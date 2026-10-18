@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useEffect,
   useId,
   useLayoutEffect,
@@ -11,7 +13,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartNoAxesCombined, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";
@@ -46,6 +48,7 @@ import { TasksArchiveController } from "./archive-controller";
 import { TasksController } from "./controller";
 import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
+const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
   archive: ["归档任务", "Archive task"],
   archivedTasks: ["归档", "Archived tasks"],
@@ -91,6 +94,7 @@ const words = {
   event_restored: ["恢复了事项", "Restored the item"],
   event_progress: ["记录了进展", "Reported progress"],
   tasks: ["团队任务", "Team tasks"],
+  conversationOverview: ["协同会话统计", "Conversation stats"],
   searchTasks: ["搜索任务…", "Search tasks…"],
   assignee: ["负责人", "Assignee"],
   unassigned: ["未分配", "Unassigned"],
@@ -1142,6 +1146,7 @@ export function createTasksView(
     const [hiddenCreated, setHiddenCreated] = useState(false);
     useLayoutEffect(() => { const node = viewport.current; if (!node) return; const observer = new ResizeObserver(entries => setCompact(entries[0]!.contentRect.width <= 600)); observer.observe(node); return () => observer.disconnect(); }, []);
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [overviewOpen, setOverviewOpen] = useState(false);
     const viewLive = useRef(true);
     useEffect(() => {
       viewLive.current = true;
@@ -1474,7 +1479,7 @@ export function createTasksView(
     return (
       <div ref={viewport} className="tasks-viewport">
         <section className="tasks">
-          <div className="tasks-overview">
+          <div className="tasks-overview" data-conversation-overview={overviewOpen && !managementOpen}>
           <div className="tasks-page-heading">
             <div className="tasks-heading-title" ref={recycleHeading}>
               {managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => { setRecycleOpen(false); setArchiveOpen(false); }}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : null}
@@ -1497,13 +1502,15 @@ export function createTasksView(
             <SegmentedControl
               className="tasks-view-switch"
               label={t("view")}
-              value={draft.mode}
-              onValueChange={(mode) =>
-                change({ mode: mode as ViewDraft["mode"] })
-              }
+              value={overviewOpen ? "overview" : draft.mode}
+              onValueChange={(mode) => {
+                setOverviewOpen(mode === "overview");
+                if (mode !== "overview") change({ mode: mode as ViewDraft["mode"] });
+              }}
               options={[
                 { value: "board", label: <><Columns3 className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("board")}</span></> },
                 { value: "list", label: <><List className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("list")}</span></> },
+                ...(ports.conversationOverview ? [{ value: "overview", label: <><ChartNoAxesCombined className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("conversationOverview")}</span></> }] : []),
               ]}
             />
             <SettingsTextInput className="tasks-search" aria-label={t("searchTasks")} placeholder={t("searchTasks")} type="search" value={draft.search} onChange={e=>change({search:e.target.value})} />
@@ -1556,6 +1563,7 @@ export function createTasksView(
 
             </div>
           </header>
+          {overviewOpen && !managementOpen && ports.conversationOverview ? <Suspense fallback={<p role="status">{t("loadingConversations")}</p>}><ConversationOverview key={memberScope} port={ports.conversationOverview} host={host} /></Suspense> : null}
           {(ports.pendingConversationLinks?.() ?? []).map(link => (
             <SettingsNotice key={`${link.taskId}:${linkKey(link)}`} tone="error">
               {t("pendingLink")}{" "}
@@ -1563,7 +1571,7 @@ export function createTasksView(
               <SettingsButton variant="quiet" onClick={() => void ports.retryConversationLinks?.(link.taskId)}>{t("retryLink")}</SettingsButton>
             </SettingsNotice>
           ))}
-          {state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
+          {overviewOpen && !managementOpen ? null : state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
             <div className="tasks-load-error" role="status">
               <SettingsNotice>{t(state.phase === "unavailable" ? "unavailable" : "loadError")}</SettingsNotice>
               <SettingsButton disabled={refreshing} onClick={() => void refreshTasks()}>{t("retry")}</SettingsButton>

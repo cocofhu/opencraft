@@ -1505,3 +1505,22 @@ end-to-end model or employee-device latency.
 - 能力协商只声明实际实现项；首版 inline 模式，文本消息/上下文、工具与当前资源读取、外链、尺寸/主题/输入输出可用，不声明 fullscreen、采样、资源订阅、下载或设备权限。
 
 - MCP App 自动尺寸区分真实内容失效和纯高度视口响应；`100vh + margin` 不得把宿主刚应用的高度循环当作新增内容。真实内容/媒体/字体/宽度变化继续测量，显式尺寸消息沿用既有桥。容器宽度来自 iframe 实际布局，合帧去重通知，不轮询、不重读资源、不重放工具、不重建 iframe；observer 与待执行帧随 View 清理。
+
+
+## Conversation overview authority
+
+Conversation statistics is a read-only optional Tasks view. Native full catalogs, latest-turn
+results, pins and product-supplied participation evidence retain their separate owners.
+Missing sources/results/people are unknown, never manufactured successes or zero coverage.
+Current state, latest completion date, archive retention and period activity are independent
+dimensions. A creator is not automatically a participant. The tab cannot send/resume a turn
+or mutate tasks, and source/account lifecycle changes revoke late projections.
+See [Conversation overview](../docs/tasks-model.md#conversation-overview).
+
+
+### Optional statistics loading
+
+Tasks loads its optional conversation statistics renderer and styles only after
+the statistics tab is selected. Suspense uses the existing loading status; it
+does not introduce another data owner or relax the startup resource budget.
+The read adapter loads on first read and checks cancellation after import.
