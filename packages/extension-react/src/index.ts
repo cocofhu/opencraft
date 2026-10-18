@@ -191,3 +191,5 @@ export * from "./identity-avatar";
 export * from "./thread-list-grouping";
 
 export { createDeferredView } from "./deferred-view";
+
+export * from "./thread-participation";
