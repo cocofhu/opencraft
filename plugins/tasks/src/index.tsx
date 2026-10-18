@@ -58,6 +58,9 @@ export function createTasksExtension(
       api.navigation.register({
         id: "opencraft.tasks.navigation",
         title: "任务",
+        titleMessage: { id: "sidebar.rail.tasks", defaultMessage: "Tasks" },
+        shortTitleMessage: { id: "sidebar.rail.tasks.short", defaultMessage: "Tasks" },
+        badgeMessage: { id: "navigation.tryIt", defaultMessage: "Try it" },
         surface: "sidebar-primary",
         target: { kind: "view", viewId: TASKS_VIEW_ID },
         icon: "columns",

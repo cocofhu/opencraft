@@ -718,3 +718,51 @@ test("settings pages preserve a fixed Host owner and reject an empty owner atomi
   assert.equal(supervisor.contributions.getSnapshot().settingsPages[0]?.contribution.targetHostId, "local-codex");
   await supervisor.dispose();
 });
+
+
+test("navigation and settings copy is validated and frozen with its activation", async () => {
+  const supervisor = new ExtensionSupervisor({ platform: "web" });
+  const title = { id: "example.title", defaultMessage: "Complete title" };
+  const short = { id: "example.short", defaultMessage: "Compact" };
+  const badge = { id: "example.badge", defaultMessage: "Preview" };
+  await supervisor.activate(definition("example.copy", api => {
+    api.views.register({ id: "example.copy.view", title: "View", viewType: "example.copy.surface" });
+    api.navigation.register({ id: "example.copy.nav", title: "Fallback", titleMessage: title, shortTitleMessage: short, badgeMessage: badge,
+      surface: "sidebar-primary", target: { kind: "view", viewId: "example.copy.view" } });
+    api.settings.registerPage({ id: "example.copy.page", title: "Fallback", titleMessage: title, shortTitleMessage: short, viewId: "example.copy.view" });
+  }));
+  title.defaultMessage = short.defaultMessage = badge.defaultMessage = "Late mutation";
+  const snapshot = supervisor.contributions.getSnapshot();
+  assert.equal(snapshot.navigation[0]?.contribution.titleMessage?.defaultMessage, "Complete title");
+  assert.equal(snapshot.navigation[0]?.contribution.shortTitleMessage?.defaultMessage, "Compact");
+  assert.equal(snapshot.navigation[0]?.contribution.badgeMessage?.defaultMessage, "Preview");
+  assert.equal(snapshot.settingsPages[0]?.contribution.shortTitleMessage?.defaultMessage, "Compact");
+  assert.ok(Object.isFrozen(snapshot.navigation[0]?.contribution.badgeMessage));
+  assert.ok(Object.isFrozen(snapshot.settingsPages[0]?.contribution.shortTitleMessage));
+  await supervisor.deactivate("example.copy");
+  assert.deepEqual(supervisor.contributions.getSnapshot().navigation, []);
+  await supervisor.dispose();
+});
+
+for (const field of ["titleMessage", "shortTitleMessage", "badgeMessage"] as const) test(`invalid navigation ${field} rolls back the whole contribution transaction`, async () => {
+  const supervisor = new ExtensionSupervisor({ platform: "web" });
+  await assert.rejects(supervisor.activate(definition("example.invalid-copy", api => {
+    api.views.register({ id: "example.invalid-copy.view", title: "View", viewType: "example.invalid-copy.surface" });
+    api.navigation.register({ id: "example.invalid-copy.nav", title: "Fallback", [field]: { id: "example.invalid-copy.message", defaultMessage: " " },
+      surface: "sidebar-primary", target: { kind: "view", viewId: "example.invalid-copy.view" } });
+  })), /navigation message fallback/u);
+  assert.deepEqual(supervisor.contributions.getSnapshot().views, []);
+  assert.deepEqual(supervisor.contributions.getSnapshot().navigation, []);
+  await supervisor.dispose();
+});
+
+test("invalid compact settings copy rejects publication", async () => {
+  const supervisor = new ExtensionSupervisor({ platform: "web" });
+  await assert.rejects(supervisor.activate(definition("example.invalid-page-copy", api => {
+    api.views.register({ id: "example.invalid-page-copy.view", title: "View", viewType: "example.invalid-page-copy.surface" });
+    api.settings.registerPage({ id: "example.invalid-page-copy.page", title: "Fallback", viewId: "example.invalid-page-copy.view",
+      shortTitleMessage: { id: "", defaultMessage: "Compact" } });
+  })), /settings message ID/u);
+  assert.deepEqual(supervisor.contributions.getSnapshot().views, []);
+  await supervisor.dispose();
+});

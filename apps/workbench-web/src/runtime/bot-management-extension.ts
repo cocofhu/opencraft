@@ -10,7 +10,8 @@ export function createBotManagementExtension(directory: AppServerBotDirectory, c
       trust: "trusted", platforms: ["web", "electron"], activationEvents: ["onStartupFinished"] },
     activate(api) {
       api.views.register({ id: "vela.bot-management.view", viewType: "vela.bot-management.surface", title: "Bots", icon: "bot", platforms: ["web", "electron"], audience: "internal" });
-      api.navigation.register({ id: "vela.bot-management.navigation", title: "Bots", icon: "bot", surface: "sidebar-primary",
+      api.navigation.register({ id: "vela.bot-management.navigation", title: "Bots", titleMessage: { id: "sidebar.bots", defaultMessage: "Bots" },
+        shortTitleMessage: { id: "sidebar.rail.bots.short", defaultMessage: "Bots" }, icon: "bot", surface: "sidebar-primary",
         target: { kind: "view", viewId: "vela.bot-management.view" }, order: 30, platforms: ["web", "electron"], audience: "internal" });
       api.internal.register("platformViewRenderer", { viewType: "vela.bot-management.surface", Component: createBotManagementView(directory, conversations, connect) });
     },

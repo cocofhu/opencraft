@@ -21,6 +21,7 @@
   "scripts": {
     "smoke:home-composer-focus": "tsx scripts/smoke-home-composer-focus.ts",
     "smoke:readable-chat-pane": "tsx scripts/smoke-readable-chat-pane.ts",
+    "smoke:navigation-copy": "tsx scripts/smoke-contributed-navigation-copy.ts",
     "smoke:connector-management": "tsx scripts/smoke-connector-management.ts",
     "smoke:workbench-tools": "tsx scripts/smoke-workbench-tool-pages.ts",
     "smoke:plugin-settings": "tsx scripts/smoke-plugin-settings.ts",

@@ -34,11 +34,12 @@ export function useWorkbenchToolActions({
       .filter((page) => page.platforms?.includes(platform) ?? true)
       .filter((page) => page.audience !== "internal" || internalDeveloperMode)
       .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
-      .map(page => ({ ...page, title: page.titleMessage ? intl.formatMessage(page.titleMessage) : page.title })),
+      .map(page => ({ ...page, title: page.titleMessage ? intl.formatMessage(page.titleMessage) : page.title,
+        shortTitle: page.shortTitleMessage ? intl.formatMessage(page.shortTitleMessage) : undefined })),
     [contributionSnapshot, internalDeveloperMode, platform, intl],
   );
 
-  return pages.map(page => ({ id: page.id, icon: page.icon, title: page.title,
+  return pages.map(page => ({ id: page.id, icon: page.icon, title: page.title, shortTitle: page.shortTitle,
     active: section === page.id, onInvoke: () => onSectionChange(page.id) }));
 }
 
