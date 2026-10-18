@@ -57,6 +57,9 @@ export class DshInteractions {
           } : {
             isBlocking: true, autoResolutionMs: null,
             questions: frame.questions.map((question: RecordValue) => ({
+              ...(typeof question.multiSelect === "boolean" ? { multiSelect: question.multiSelect } : {}),
+              ...(typeof question.detail === "string" ? { detail: question.detail } : {}),
+              ...(question.intent ? { intent: question.intent } : {}),
               id: question.id, header: question.header ?? "Question", question: question.question,
               isOther: true, isSecret: false,
               options: question.options?.map((option: RecordValue) => ({ label: option.label, description: option.description ?? "" })) ?? null,

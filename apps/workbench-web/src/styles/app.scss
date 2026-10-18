@@ -5153,6 +5153,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
   }
 
+  &__detail {
+    max-height: min(40vh, 360px);
+    overflow: auto;
+    padding: 0 6px;
+
+    // Card titles are flex rows; Markdown emphasis remains inline prose.
+    strong { display: inline; }
+  }
+
   &__question {
     padding: 0 6px;
     color: var(--color-text);
