@@ -199,6 +199,7 @@ export interface AppShellHeaderProps {
   readonly title: string | null;
   readonly project: string | null;
   readonly titleContent?: ReactNode;
+  readonly subtitle?: ReactNode;
   readonly routeHeaderActive?: boolean;
   readonly routeHeaderHostRef?: RefCallback<HTMLDivElement>;
   readonly sidebarOpen: boolean;
@@ -229,6 +230,7 @@ export function AppShellHeader({
   title,
   project,
   titleContent,
+  subtitle,
   routeHeaderActive = false,
   routeHeaderHostRef,
   sidebarOpen,
@@ -324,10 +326,15 @@ export function AppShellHeader({
           />
           {!routeHeaderActive && title !== null ? (
             <div className="thread-header-title">
-              {titleContent ?? <span className="thread-header-copy">
-                <strong>{title}</strong>
-                {project === null ? null : <small>{project} · main</small>}
-              </span>}
+              <div className="thread-header-heading">
+                <div className="thread-header-heading__main">
+                  {titleContent ?? <span className="thread-header-copy">
+                    <strong>{title}</strong>
+                    {project === null ? null : <small>{project} · main</small>}
+                  </span>}
+                </div>
+                {subtitle == null ? null : <small className="thread-header-heading__subtitle">{subtitle}</small>}
+              </div>
             </div>
           ) : null}
         </div>

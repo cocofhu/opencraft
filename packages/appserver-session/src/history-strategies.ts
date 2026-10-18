@@ -21,6 +21,7 @@ declare module "@deepseek-ai/cordis" {
 }
 
 export interface ResumeHistoryContext {
+  readonly signal?: AbortSignal;
   client: AppServerClient;
   threadId: string;
   response: ThreadResumeResponse;
@@ -208,6 +209,7 @@ async function fetchTurns(
   }, {
     timeoutMs: context.response.thread.historyMode === "message-window" ? 0 : context.requestTimeoutMs,
     priority: "background",
+    signal: context.signal,
   }), "thread/turns/list");
 }
 

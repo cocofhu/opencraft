@@ -177,6 +177,7 @@
     "test:environments": "tsx --test tests/workbench-environments.test.ts tests/environment-directory.test.ts",
     "test:desktop-login": "tsx --test tests/authentication-flows.test.ts tests/local-client-persistence-scope.test.ts",
     "test:appserver:lab": "tsx --test tests/appserver-lab*.test.ts",
+    "smoke:conversation-history-refresh": "tsx scripts/smoke-conversation-history-refresh.ts",
     "test:chat": "tsx --test tests/conversation-outbox.test.ts tests/workbench-presentation-activity.test.tsx tests/chat-*.test.ts tests/thread-attention.test.ts tests/thread-read-receipt-*.test.ts tests/conversation-history-order.test.ts tests/composer-core.test.ts tests/codex-composer-codec.test.ts tests/codex-composer-attachment-focus.test.ts tests/codex-composer-attachment-preview.test.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:boundaries": "npm run check:typography && node scripts/check-platform-boundaries.mjs",

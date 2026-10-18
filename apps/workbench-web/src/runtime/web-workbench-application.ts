@@ -1,3 +1,4 @@
+import type { ConversationPresentationProvider } from "./conversation-presentation";
 import { serverStorageKey, serverUrl } from "./server-context";
 import { createWebWorkbenchApplicationSupervisor } from "./web-workbench-supervisor";
 import { createApplicationDisposer } from "./application-disposal";
@@ -42,6 +43,7 @@ import type { WorkbenchPanelReactRuntime } from "@opencraft/workbench-panels-rea
 import { OptionalFeatureStartup, loadOptionalFeatureModule } from "./optional-feature-startup";
 
 export interface WebWorkbenchApplication {
+  readonly conversationPresentation?: ConversationPresentationProvider;
   /** Idempotent; never creates another Application or Host. */
   startOptionalFeatures(): Promise<void>;
   readonly cordis: Context;
@@ -85,6 +87,7 @@ function loadConversationBindings(storage: BrowserMetadataStorage = window.local
 /** Single application owner for every long-lived renderer service. */
 export interface CreateWebWorkbenchApplicationOptions extends Omit<WebWorkbenchSupervisorOptions, "optionalFeatureStartup"> {
   readonly deferOptionalFeatures?: boolean;
+  readonly conversationPresentation?: ConversationPresentationProvider;
   readonly browserMetadataStorage?: BrowserMetadataStorage;
   readonly browserNavigationPolicy?: BrowserNavigationPolicy;
   /** Product override; otherwise use the capability-gated local Host adapter. */
@@ -262,6 +265,7 @@ export async function createWebWorkbenchApplication(
     throw error;
   }
   return {
+    conversationPresentation: options.conversationPresentation,
     startOptionalFeatures: () => optionalFeatures?.start() ?? Promise.resolve(),
     cordis,
     browserPages,
