@@ -54,9 +54,12 @@ inactive there; selecting an existing/new conversation clears the creation
 route through the original handler and reveals the same controller and draft.
 The website keeps its existing full-page creation layout. This does not grant
 session commands for an unavailable or retired Bot, nor queue mutations.
-Regression: `apps/workbench-expo/scripts/smoke-mobile-bot-create-return.mjs`
-runs the packaged frontend in Chromium with fixture transport/Chat APIs;
-set `OPENCRAFT_PLAYWRIGHT_MODULE` and `OPENCRAFT_CHROMIUM_EXECUTABLE` as needed.
+Regression belongs to the downstream product: run `build:mobile-bot-runtime`
+and `smoke:mobile-bot-create-return` from its workspace. The probe runs its
+packaged frontend in Chromium with fixture transport/Chat APIs; set
+`OPENCRAFT_PLAYWRIGHT_MODULE` and `OPENCRAFT_CHROMIUM_EXECUTABLE` as needed.
+The optional native Cron client has its own product build and smoke commands;
+neither private generated artifact is an input to public Expo tools.
 The bootstrap publishes boolean `bot-touch-ownership` for a contact originating
 in an editable/control or horizontal scroller. The native pan yields to this
 contact; touch end/cancel and document reload release it. Runtime validation

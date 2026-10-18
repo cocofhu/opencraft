@@ -43,6 +43,11 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+Product Bot Create-return and optional native Cron probes belong with their
+downstream builders and generated assets. Public Expo scripts do not consume
+those private artifacts. The original assertions stay in the product workspace;
+this migration does not claim a device/native build or change application behavior.
+
 - Workbench tool navigation and standalone management routes consume each page's
   `management.entryPoint` declaration. Core no longer recognizes private Skills
   or Storage page IDs; their product owns the explicit declaration. Contextual
