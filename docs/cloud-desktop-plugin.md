@@ -576,9 +576,17 @@ Confirmed control on coarse-pointer Web devices also exposes a separate relative
 trackpad when the mounted surface supports `attachTrackpad`. It shares the
 adapter's pointer position, single writer, scroll limiter, composition handoff
 and grant; it creates no media connection or authority. One finger moves the
-cursor, a tap clicks, two fingers scroll or tap for right-click; double-tap then
-move holds a left drag. A second-tap candidate sends no press before movement,
-so adding a second finger cannot accidentally left-click before a right-click.
+cursor, a tap clicks, two fingers scroll or tap for right-click. A stationary
+single-finger hold starts a left drag after 300ms; movement of 8px before that
+threshold cancels arming for the entire stroke. Small finger jitter is tolerated.
+Double-tap then move remains available. A second-tap candidate sends no press
+before movement or the hold threshold. Adding a second finger cancels a pending
+hold; joining an already-held drag releases it and quarantines both contacts,
+without converting the gesture to a right-click. The hold callback rechecks its
+identity, current grant and geometry, and uses the same composition handoff.
+Reset, pointer end/cancel, capture loss and disposal cancel the timer; synchronous
+handoff retirement cannot resurrect pressed state. The compact hint includes
+hold-to-drag, while secondary copy describes the two-finger gestures.
 Pad reset releases only its own held button, cancels queued samples and fences
 retained contacts. Direct media touch remains available.
 
