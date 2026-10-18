@@ -10,7 +10,7 @@ const demandOnlyPatterns = [
   /\/apps\/workbench-web\/src\/components\/modal\/adaptive-sheet-handle\.tsx$/,
   /\/chat-render-web\/src\/extensions\/katex\/katex-math\.tsx$/,
   /\/connectors\/catalog-snapshot\./,
-  /\/upstream\/mono2\/i18n\/generated\//,
+  /\/upstream\/[^/]+\/i18n\/generated\//,
   /\/node_modules\/(?:parse5|acorn)\//,
   /\/lightvela-hermes\/src\/settings\/(?:lightvela-hermes-management|hermes-[^/]+-management)-view\./,
   /\/lightvela-hermes\/src\/(?:connectors\/connectors-settings|settings\/lightvela-hermes-(?:settings|empty))-view\./,
