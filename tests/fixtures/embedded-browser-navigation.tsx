@@ -3,25 +3,33 @@ import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
 import { createConversationBindingStore } from "@opencraft/workbench-runtime";
 import { ExternalUrlLink } from "../../packages/chat-render-web/src/renderers/resource-link/resource-link";
-import { resolveWorkbenchBrowserNavigationPolicy } from "../../apps/workbench-web/src/runtime/lightvela-web-bootstrap";
 import { BrowserWorkbenchCoordinator } from "../../apps/workbench-web/src/browser/browser-workbench-coordinator";
-import { WebBrowserPageRuntime } from "../../apps/workbench-web/src/browser/web-browser-runtime";
+import { WebBrowserPageRuntime, type BrowserNavigationPolicy } from "../../apps/workbench-web/src/browser/web-browser-runtime";
 import { WebIframeSurfaceHost } from "../../apps/workbench-web/src/browser/web-browser-surface-host";
 
 // Real link renderer, resource coordinator, Page runtime and iframe host. The
 // panel chrome and remote pages are fixtures; no account or live Host is used.
 const surfaces = new WebIframeSurfaceHost();
 surfaces.setRoot(document.getElementById("surfaces")!);
-const pages = new WebBrowserPageRuntime(surfaces, null, () => null, null, resolveWorkbenchBrowserNavigationPolicy());
+// The containing product supplies policy. This public probe uses reserved
+// synthetic origins instead of importing a downstream product bootstrap.
+const navigationPolicy: BrowserNavigationPolicy = {
+  canEmbed(url) {
+    const { protocol, hostname } = new URL(url);
+    return protocol === "https:" && (hostname === "workbench.example" || hostname.endsWith(".workbench.example"));
+  },
+  openExternal(url) { window.open(url, "_blank", "noopener,noreferrer"); },
+};
+const pages = new WebBrowserPageRuntime(surfaces, null, () => null, null, navigationPolicy);
 const panelOpens: string[] = [];
 const coordinator = new BrowserWorkbenchCoordinator(pages, {
   open(owner: string) { panelOpens.push(owner); return { id: `panel-${panelOpens.length}` }; }, dispatch() {},
 } as never, createConversationBindingStore());
 const targets = {
-  allowed: "https://lightvela.ai/preview",
-  subdomain: "https://preview.lightvela.com/app",
+  allowed: "https://workbench.example/preview",
+  subdomain: "https://preview.workbench.example/app",
   external: "https://example.org/away",
-  lookalike: "https://lightvela.ai.evil.example/away",
+  lookalike: "https://workbench.example.evil.example/away",
 };
 let currentPage: Parameters<typeof pages.navigate>[0] | undefined;
 const context = {

@@ -50,9 +50,15 @@ try {
   await menuPopup.close();
   assert.equal(await page.locator("iframe").count(), 0);
   await page.getByRole("link", { name: "allowed", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('iframe[src="https://lightvela.ai/preview"]') !== null);
+  await page.waitForFunction(() => document.querySelector('iframe[src="https://workbench.example/preview"]') !== null);
   await page.getByRole("link", { name: "subdomain", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('iframe[src="https://preview.lightvela.com/app"]') !== null);
+  await page.waitForFunction(() => document.querySelector('iframe[src="https://preview.workbench.example/app"]') !== null);
+  // Observe completed real iframe loads before taking the no-navigation
+  // baseline. Their onload revisions are unrelated to the next external URL.
+  await page.waitForFunction(() => {
+    const { pages } = (window as any).__browserFixture.snapshot();
+    return pages.length === 2 && pages.every((page: any) => !page.navigation.isLoading);
+  });
   const before = await snapshot();
   const popupEvent = context.waitForEvent("page");
   await page.getByRole("textbox", { name: "Browser address" }).fill("https://example.org/address");
