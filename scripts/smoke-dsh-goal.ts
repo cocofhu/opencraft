@@ -40,11 +40,11 @@ const endpoint = createServer(async (req, res) => {
 let host: Awaited<ReturnType<typeof startLocalAgentHost>> | undefined;
 let socket: WebSocket | undefined;
 let sequence = 0;
-const pending = new Map<string, (frame: any) => void>();
+const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
 const call = (method: string, params: unknown = {}): Promise<any> => new Promise((resolve, reject) => {
   const id = String(++sequence);
   const timer = setTimeout(() => { pending.delete(id); reject(new Error(`${method} timed out`)); }, 30000);
-  pending.set(id, frame => { clearTimeout(timer); frame.error ? reject(new Error(frame.error.message)) : resolve(frame.result); });
+  pending.set(id, { resolve, reject, timer });
   socket!.send(JSON.stringify({ id, method, params }));
 });
 const directory = join(root, "models");
@@ -57,7 +57,7 @@ const connect = async () => {
   socket.on("message", raw => {
     const frame = JSON.parse(raw.toString());
     const handler = pending.get(String(frame.id));
-    if (handler) { pending.delete(String(frame.id)); handler(frame); }
+    if (handler) { pending.delete(String(frame.id)); clearTimeout(handler.timer); frame.error ? handler.reject(new Error(frame.error.message)) : handler.resolve(frame.result); }
     else if (frame.method) notifications.push(frame);
   });
   await new Promise<void>(resolve => socket!.once("open", resolve));
