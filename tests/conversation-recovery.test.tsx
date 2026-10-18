@@ -18,7 +18,7 @@ test("recovery presentation retains painted history across syncing and failure",
   assert.equal(conversationRecoveryPresentation({ authoritative: true, hasVisibleHistory: true, failed: false }), "none");
 });
 
-test("only cold loading gets a passive ring; failures keep an actionable retry", () => {
+test("cold loading and background sync use passive rings; failures keep an actionable retry", () => {
   const runtime = new LocaleRuntime([]);
   const render = (child: ReactElement) => renderToStaticMarkup(createElement(IntlRuntimeProvider, { runtime, children: child }));
   const notice = render(createElement(ConversationRecoveryNotice, { failed: false, reconnecting: true }));
@@ -29,6 +29,9 @@ test("only cold loading gets a passive ring; failures keep an actionable retry",
   assert.match(notice, /conversation-recovery-notice/);
   assert.doesNotMatch(notice, /workbench-loading-spinner|conversation-hydration-stage/);
   assert.match(syncing, /Syncing/);
+  assert.match(syncing, /workbench-loading-spinner/);
+  assert.match(syncing, /conversation-recovery-loading__label/);
+  assert.doesNotMatch(syncing, /conversation-recovery-notice__dot/);
   assert.match(error, /role="alert"/);
   assert.match(error, /<button/);
   assert.match(loading, /role="status"/);

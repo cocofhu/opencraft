@@ -155,6 +155,14 @@ clear a different conversation's input. Mobile software Return remains newline.
 - TSK-09：会话顶部菜单的重命名与置顶操作消费已有 ThreadTitleWriter 和原生 thread management port，与侧栏共享持久状态。只显示 Host 支持的动作；不依赖 Tasks 插件可用性来授权会话管理。重命名使用共享 ModalSurface，失败保留输入、处理中禁用重复提交；置顶失败留在菜单可重试，不伪造已成功状态。菜单/编辑会话按账号、Host、Thread 隔离，切换撤销旧 UI。
 
 
+## Conversation recovery feedback
+
+- Conversation background synchronization uses the shared neutral loading ring in
+  its existing overlay slot, with screen-reader-only status text and no badge
+  surface. Reconnection/failure copy and retry actions remain visible. Retained
+  timeline, scroll and Composer identity do not change. Verified by
+  `scripts/smoke-thread-loading.ts`.
+
 ## Conversation work-status entry motion
 
 Conversation presentation owns entry eligibility. Its initial snapshot, a changed

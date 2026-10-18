@@ -51,7 +51,7 @@ function Demo(){
      emptyState={<ConversationRecoveryEmptyState failed={failed} diagnostic={diagnostic} requiresUpdate={requiresUpdate} onRetry={retry}/>}
      footer={<footer style={{height:60,padding:8}}><input aria-label="Draft" defaultValue="preserved draft"/></footer>}/>
    }
-   {presentation==='warm-loading'||presentation==='warm-error'?<ConversationRecoveryNotice failed={failed} diagnostic={diagnostic} reconnecting={true} requiresUpdate={requiresUpdate} onRetry={()=>setState('warm-loading')}/>:null}
+   {presentation==='warm-loading'||presentation==='warm-error'?<ConversationRecoveryNotice failed={failed} diagnostic={diagnostic} reconnecting={state!=='warm-syncing'} requiresUpdate={requiresUpdate} onRetry={()=>setState('warm-loading')}/>:null}
   </TimelineBlockRendererProvider>
  </main>;
 }
@@ -198,11 +198,11 @@ try {
         (window as any).retainedDraft = document.querySelector("input");
         return scroll.scrollTop;
       });
-      for (const state of ["warm-loading", "warm-error", "warm-update-error", "ready"]) {
+      for (const state of ["warm-loading", "warm-syncing", "warm-error", "warm-update-error", "ready"]) {
         await setState(state);
         if (state !== "ready") await page.locator(".conversation-recovery-notice").waitFor();
         else await page.locator(".conversation-recovery-notice").waitFor({ state: "detached" });
-        assert.equal(await ring.count(), 0);
+        assert.equal(await ring.count(), state === "warm-syncing" ? 1 : 0);
         const retained = await page.evaluate(() => ({
           sameScroll: (window as any).retainedScroll === document.querySelector(".thread-scroll"),
           scroll: (document.querySelector(".thread-scroll")! as HTMLElement).scrollTop,
@@ -213,6 +213,20 @@ try {
         assert.ok(Math.abs(retained.scroll - original) <= 1, JSON.stringify({ state, original, ...retained }));
         assert.equal(retained.draft, "Keep my unsent input");
         assert.equal(await page.getByText("Prompt 19", { exact: true }).count(), 1);
+        if (state === "warm-syncing") {
+          const notice = page.locator(".conversation-recovery-notice");
+          const label = await notice.locator(".conversation-recovery-loading__label").boundingBox();
+          assert.ok(label && label.width <= 1 && label.height <= 1, "sync prose is screen-reader only");
+          assert.match(await notice.textContent() ?? "", /Syncing/);
+          assert.equal(await notice.locator(".workbench-loading-spinner").count(), 1);
+          assert.equal(await notice.locator(".conversation-recovery-notice__dot").count(), 0);
+          assert.equal(await notice.evaluate(el => getComputedStyle(el).backgroundColor), "rgba(0, 0, 0, 0)");
+          assert.equal(await ring.evaluate(el => getComputedStyle(el).animationName), "workbench-loading-spin");
+          await page.emulateMedia({ reducedMotion: "reduce" });
+          assert.equal(await ring.evaluate(el => getComputedStyle(el).animationName), "none");
+          await page.emulateMedia({ reducedMotion: "no-preference" });
+          if (evidenceDir) await page.screenshot({ path: join(evidenceDir, `sync-${width}-${family}-${mode}.png`) });
+        }
         if (state === "warm-update-error") {
           const notice = page.locator(".conversation-recovery-notice");
           assert.match(await notice.innerText(), /Update or reload to reconnect/);

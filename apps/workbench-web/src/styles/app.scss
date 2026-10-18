@@ -246,6 +246,13 @@ body {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
+.conversation-recovery-notice--syncing {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .conversation-recovery-details {
   flex-basis: 100%;
   min-width: 0;
