@@ -751,6 +751,13 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   padding: 0 8px 0 var(--window-controls-padding-start);
 }
 
+// A browser host with neither actions nor branding has no native controls to
+// reserve. Its measurement twin must publish zero, including after a switch.
+.app-shell-root[data-codex-window-type="browser"]
+  .app-shell-header__window-controls-rail[data-navigation-empty="true"] {
+  padding: 0;
+}
+
 .application-brand {
   --application-brand-mark-size: 26px;
   display: inline-flex; align-items: center; gap: 7px;
@@ -863,7 +870,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 // Narrow headers retain their measured navigation-control spacing. Electron
 // keeps its native titlebar geometry; only Web conversation titles share this axis.
 @media (min-width: 641px) {
-  html[data-codex-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
+  .app-shell-root[data-codex-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
     padding-left: var(--thread-navigation-web-inset);
   }
 }
