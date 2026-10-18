@@ -16,7 +16,7 @@ import type { ConversationDetailLevel } from "./conversation-presentation";
 import { isAssistantAnswerContent, skillReadPresentation } from "./conversation-presentation";
 import { summarizeAutomaticApprovalReviewAction } from "./automatic-approval-review";
 import { parseSkillPath } from "./skill-path";
-import { presentReasoning, type ReasoningContentPresentation } from "./reasoning";
+import { presentReasoning, readReasoningContent, type ReasoningContentPresentation } from "./reasoning";
 import {
   isToolActivityBlock,
   isSummaryOnlyToolActivityBlock,
@@ -245,6 +245,7 @@ export interface TimelineTurnPresentationOptions {
   /** Only the newest mounted Turn may own transient live chrome. */
   readonly isMostRecentTurn: boolean;
   readonly partitionOptions?: AgentActivityPartitionOptions;
+  readonly reasoningPresenter?: typeof presentReasoning;
 }
 
 export function isAgentActivityBlock(block: TimelineBlock): boolean {
@@ -341,6 +342,7 @@ export function createAgentActivityContentUnits(
   status: TimelineStatus,
   registry?: ToolActivityPresenterRegistry,
   isActivitySliceClosed = status !== "pending" && status !== "streaming",
+  reasoningPresenter = presentReasoning,
 ): readonly AgentActivityContentUnit[] {
   const preliminaryUnits: (Omit<AgentActivityGroupContentUnit, "lifecycle"> | AgentActivityStandaloneContentUnit | ReasoningRenderUnit)[] = [];
   let group: TimelineBlock[] = [];
@@ -362,7 +364,7 @@ export function createAgentActivityContentUnits(
 
   for (const block of blocks) {
     if (block.type === "reasoning") {
-      const presentation = presentReasoning(block, false);
+      const presentation = reasoningPresenter(block, false);
       if (presentation !== null) {
         flushGroup();
         preliminaryUnits.push({ type: "reasoning", id: block.id, block, presentation, active: false });
@@ -899,6 +901,7 @@ export function createAssistantTurnPresentationPlan(
   frame: AssistantTimelineFrame,
   registry?: ToolActivityPresenterRegistry,
   partitionOptions: AgentActivityPartitionOptions = {},
+  reasoningPresenter = presentReasoning,
 ): AssistantTurnPresentationPlan {
   const changeSummary = frame.changeSummary !== undefined ? frame.changeSummary
     : frame.blocks.filter((block): block is Extract<TimelineBlock, { type: "turn-diff" }> => block.type === "turn-diff").at(-1) ?? null;
@@ -1068,7 +1071,7 @@ export function createAssistantTurnPresentationPlan(
     if (segment.type !== "activity-segment") continue;
     const endedByContent = segment.end !== "open" && segment.end !== "turn-terminal";
     activityContentUnits.set(segment, createAgentActivityContentUnits(segment.blocks,
-      endedByContent ? "complete" : frame.status, registry, segment.end !== "open"));
+      endedByContent ? "complete" : frame.status, registry, segment.end !== "open", reasoningPresenter));
   }
   // Only a real final answer grants its preceding response work disclosure.
   // Reasoning is inner content, not a response boundary or a fold grant.
@@ -1098,6 +1101,19 @@ export function createAssistantTurnPresentationPlan(
   return { slots, changeSummary };
 }
 
+/** Read the latest live todo without parsing or laying out transcript content. */
+export function activeTimelineTurnTodo(turn: TimelineTurnView, isMostRecentTurn: boolean): TodoTimelineBlock | null {
+  if (!isMostRecentTurn || (turn.status !== "pending" && turn.status !== "streaming")) return null;
+  let inUserIntro = true;
+  let latest: TodoTimelineBlock | null = null;
+  for (const frame of turn.frames) {
+    if (inUserIntro && frame.type === "user") continue;
+    inUserIntro = false;
+    for (const block of frame.blocks) if (block.type === "todo") latest = block;
+  }
+  return latest;
+}
+
 /**
  * Classify a complete Turn into stable renderer surfaces.
  *
@@ -1111,6 +1127,7 @@ export function createTimelineTurnPresentationPlan(
   {
     isMostRecentTurn,
     partitionOptions = {},
+    reasoningPresenter = presentReasoning,
   }: TimelineTurnPresentationOptions = { isMostRecentTurn: false },
 ): TimelineTurnPresentationPlan {
   const userFrames: UserTimelineFrame[] = [];
@@ -1150,11 +1167,13 @@ export function createTimelineTurnPresentationPlan(
     : null;
   let assistant = assistantFrame === null
     ? null
-    : createAssistantTurnPresentationPlan(assistantFrame, registry, partitionOptions);
-  const latestTodo = assistantFrame?.blocks.filter(
-    (block): block is TodoTimelineBlock => block.type === "todo",
-  ).at(-1) ?? null;
-  const activeTodo = isMostRecentTurn && turnIsActive ? latestTodo : null;
+    : createAssistantTurnPresentationPlan(assistantFrame, registry, partitionOptions, block => {
+        // Grouping and Thinking arbitration only need presence and source order.
+        // Materialize headers once below, after the final active mode is known.
+        const selected = readReasoningContent(block);
+        return selected === null ? null : { ...selected, header: "" };
+      });
+  const activeTodo = activeTimelineTurnTodo(turn, isMostRecentTurn);
   const currentBlocks = currentResponseBlocks(orderedBlocks);
   const hasPendingInteraction = currentBlocks.some(isPendingNonActivityBlock);
   const latestProposal = currentBlocks.filter((block) => block.type === "plan").at(-1);
@@ -1192,7 +1211,7 @@ export function createTimelineTurnPresentationPlan(
   if (assistant !== null) {
     const updateReasoning = (unit: ReasoningRenderUnit): ReasoningRenderUnit => {
       const active = thinkingOwner.type === "reasoning" && thinkingOwner.reasoningId === unit.id;
-      return { ...unit, active, presentation: presentReasoning(unit.block, active)! };
+      return { ...unit, active, presentation: reasoningPresenter(unit.block, active)! };
     };
     assistant = { ...assistant, slots: assistant.slots.map((slot) => {
       if (slot.type === "agent-activity") {

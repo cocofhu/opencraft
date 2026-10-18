@@ -1303,6 +1303,22 @@ questions or inputs retire that feedback without deleting readable content.
 When no returned content exists, the existing noninteractive Thinking status
 retains its current owner rather than becoming an empty expand button.
 
+Reasoning presentation uses two phases: grouping and Thinking ownership inspect
+selected returned text without Markdown compilation, then each visible Item's
+header is compiled once in its final active/settled mode. The latest todo read
+is a separate shared selector and never builds transcript presentation. Web and
+Native each own a `ReasoningPresentationCache` for a mounted Turn, replaced when
+its Turn key changes and released on unmount. It compares Item ID, selected
+content/source and active parser mode, so immutable reprojection does not reparse
+unchanged history; text/source edits, empty replacement and completion invalidate
+the affected Item. The LRU retains at most 128 presentations and 1,000,000 source
+plus header characters; larger Items still render in full without being cached.
+No ASTs, disclosure choices, execution authority or persistent text cache are
+shared through it. Headers continue to use the same assistant Markdown grammar
+as the unchanged canonical body, including reference definitions and streaming
+repair. The display-math tokenizer skips its boundary regex when neither actual
+delimiter is present, retaining the existing rule for documents containing math.
+
 Both platforms initially fold reasoning, even while streaming. Only an explicit
 View action changes that choice; new deltas or completion never automatically
 expand, collapse or write a preference. Web reuses its existing View restore
