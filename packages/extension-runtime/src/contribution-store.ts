@@ -178,6 +178,9 @@ function validateSettingsPage(owner: ExtensionActivationIdentity, value: Setting
     if (value.management.scope !== "agent" && value.management.scope !== "host") {
       throw new RangeError(`Settings page ${value.id} has an invalid management scope`);
     }
+    if (value.management.entryPoint !== undefined && value.management.entryPoint !== "workbench") {
+      throw new RangeError(`Settings page ${value.id} has an invalid management entry point`);
+    }
   }
 }
 
