@@ -96,7 +96,7 @@ export class DshCapabilityLink {
     return this.request("/resolve-generation", { logicalSessionId }) as Promise<{ sessionId: string; generation: number; seedThroughSeq?: number; seedThroughTurn?: number }>;
   }
   async checkpoint(sessionId: string) { return this.request("/checkpoint", { sessionId }); }
-  async createGeneration(input: { logicalSessionId: string; sourceSessionId: string; cwd: string; provider: string; model: string }): Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }> {
+  async createGeneration(input: { logicalSessionId: string; sourceSessionId: string; cwd: string; provider: string; model: string; legacyInstructions?: Record<string, unknown> }): Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }> {
     return this.request("/generation", input) as Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }>;
   }
   async unregister(threadId: string) {
