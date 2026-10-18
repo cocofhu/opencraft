@@ -11,7 +11,7 @@ drawer. Account management, identity verification and billing open the system
 browser; external journeys do not create an App-owned remote WebView or change
 Shell navigation. The App never injects credentials into those browser pages.
 
-LightVela mobile accents and drawer geometry live in
+the downstream product mobile accents and drawer geometry live in
 `products/vela/native/src/runtime/mobile-visual-tokens.ts`, layered over shared
 OpenCraft native tokens. Keep visual choices there instead of scattering
 sampled colors or fixed phone widths through feature components.
@@ -204,7 +204,7 @@ during scroll momentum. Check a WebView horizontal control separately.
 ### Unified console and folding geometry
 
 The parallel `/agents-next` Expo Web entry shares native navigation/session
-controls and the same local DOM controller with the LightVela Expo console.
+controls and the same local DOM controller with the downstream Expo console.
 A foldable's current window is the layout input, not a device category.
 `resolveMobileShellLayout` decides drawer/sidebar and page/panel geometry;
 resizing never changes Bot, Thread, Draft or content runtime identity.

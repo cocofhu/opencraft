@@ -361,7 +361,7 @@ export function HostlessWorkbench({
                 {settingsContent}
               </section>
             ) : standaloneManagementOpen ? (
-              <section className="lightvela-management-route" aria-label="LightVela management">
+              <section className="lightvela-management-route" aria-label="Account management">
                 {settingsContent}
               </section>
             ) : applicationRoute.kind === "extension-view" ? (

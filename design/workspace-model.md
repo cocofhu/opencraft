@@ -28,7 +28,7 @@
 
 ## 呈现策略
 
-Web/Electron 不把云端 Bot 创建作为工作区前置条件。账号状态只能更新账号/环境目录投影，不接管 Draft/Conversation；仅当前选中 Host 的真实连接错误可显示相应干预。没有任何 Host 时提供中立的环境入口，不自动展示 LightVela 创建向导。
+Web/Electron 不把云端 Bot 创建作为工作区前置条件。账号状态只能更新账号/环境目录投影，不接管 Draft/Conversation；仅当前选中 Host 的真实连接错误可显示相应干预。没有任何 Host 时提供中立的环境入口，不自动展示下游产品创建向导。
 
 有效主任务 + 工具面板实际展开时，主 Composer 通过 body Portal 呈现在工作区之上，提供最近一轮回复的展开视图。普通聊天区域不再挂第二个输入框。Side Chat 或后台 Agent 的 tab 前缀排除主浮层，保持参考分类策略，不凭空再增加 capability 状态副本。
 

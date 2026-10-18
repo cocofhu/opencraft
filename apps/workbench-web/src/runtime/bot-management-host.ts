@@ -1,7 +1,7 @@
 import type { AppServerBotDirectoryHost } from "@opencraft/bot-conversation-appserver";
 import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
 
-/** Bot management is a LightVela product surface, not a generic Host picker. */
+/** Bot management is a downstream product surface, not a generic Host picker. */
 export function resolveCloudHermesBotHost(
   profiles: readonly HostConnectionProfile[],
   hosts: readonly AppServerBotDirectoryHost[],

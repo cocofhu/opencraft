@@ -1251,7 +1251,7 @@ an external destination leaves the existing Page and panel intact. New-window
 requests forwarded to the coordinator follow the same route. Tools report external
 routing without claiming that an external tab is controlled or inspectable.
 
-LightVela's embedded composition and the standalone browser-hosted Web bootstrap
+the downstream product's embedded composition and the standalone browser-hosted Web bootstrap
 supply the same allowlist of `lightvela.ai` and
 `lightvela.com`, including subdomains. Matching uses a parsed HTTP(S) hostname and a
 DNS label boundary, not arbitrary URL text. Other destinations open with

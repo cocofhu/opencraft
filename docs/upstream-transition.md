@@ -30,7 +30,7 @@ no independently maintained duplicate core baseline.
 | --- | --- |
 | Actor identity, verified identity bindings, authorization, audit, Hub routing | enterprise identity verification, employee fields, enterprise avatar service |
 | Local/OIDC account adapters and public identity/execution ports | Vela account, billing, Bot discovery and cloud-service/Hermes composition |
-| Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | Join branding/navigation and LightVela native/embedded product entrypoints |
+| Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | Join branding/navigation and the downstream product native/embedded product entrypoints |
 | Public build/release tools and contribution/maintenance skills | Internal deployment, release channels, business service config and integration ledger |
 
 A private provider establishes verified identity; core owns membership and
@@ -94,7 +94,7 @@ remote executable code.
 - Server-backed Web accepts trusted extension factories. The default server
   extension entry is empty; a downstream build explicitly selects its local
   assembly with `OPENCRAFT_SERVER_EXTENSIONS_ENTRY`. Headless alone no longer
-  selects enterprise identity. This removes that assembly edge, not the remaining LightVela
+  selects enterprise identity. This removes that assembly edge, not the remaining the downstream product
   imports or private plugin/package dependencies. Browser compatibility analysis
   follows the actual runtime graph across the workspace boundary, so moving
   product sources outside the prefix does not silently drop typed API checks.

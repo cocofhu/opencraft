@@ -114,7 +114,7 @@ Composer 采用渐进披露，不把完整管理页缩进一个 Modal：未确�
 
 ### Host 原生 OAuth 的真实边界
 
-普通用户从 Composer 的 Add 菜单进入“连接器”紧凑子菜单，发现当前 Host 已配置的 MCP 服务并保存连接；已选服务通过 Composer 状态 Chip 重新打开 Popover。这里不创建远端 MCP 配置、不安装服务器、不要求 LightVela 登录。发现失败在当前控件反馈，不阻塞聊天；没有原生方法的 Host 明确失败。
+普通用户从 Composer 的 Add 菜单进入“连接器”紧凑子菜单，发现当前 Host 已配置的 MCP 服务并保存连接；已选服务通过 Composer 状态 Chip 重新打开 Popover。这里不创建远端 MCP 配置、不安装服务器、不要求下游产品登录。发现失败在当前控件反馈，不阻塞聊天；没有原生方法的 Host 明确失败。
 
 ```text
 发现并保存 → 连接 / 授权 → 用户打开授权页
@@ -175,7 +175,7 @@ DSH 模型工具层将这三个身份投影为 `connectors__search_tools` / `con
 
 `createAppServerMcpConnectorProvider` 消费现有 `mcpServerStatus/list` 与 `mcpServer/tool/call`。适配器不写远端配置、不创建另一条 MCP transport、不接管 OAuth token，也不关闭借用的 AppServerClient。
 
-第一方注册者必须明确指定共享的 `authenticationProviderId`，或者明确声明该服务 `public: true`；不能从 MCP 的 `unsupported` OAuth 状态猜测服务无需账号。私有服务的账号切换必须通过对应授权 Provider 的 epoch 表达，不能用 LightVela 登录状态冒充另一个第三方账号的授权。
+第一方注册者必须明确指定共享的 `authenticationProviderId`，或者明确声明该服务 `public: true`；不能从 MCP 的 `unsupported` OAuth 状态猜测服务无需账号。私有服务的账号切换必须通过对应授权 Provider 的 epoch 表达，不能用下游产品登录状态冒充另一个第三方账号的授权。
 
 准备时确认精确 Host、connectionGeneration、server 名称和目录，投影所有工具并将未知副作用视为写操作，由运行时审批 policy 决定可发现/调用范围。发现/调用前按实际 Thread 重读状态；授权不明、未登录、schema 改变或连接代次变化均拒绝。缺少方法的 Host 准备失败，不靠占位响应冒充支持。
 

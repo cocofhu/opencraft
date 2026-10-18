@@ -2139,7 +2139,7 @@ export function App({
           </div>
           </WorkbenchPresentationActivityProvider>
           {standaloneManagementOpen ? (
-            <section className="lightvela-management-route" aria-label="LightVela management">
+            <section className="lightvela-management-route" aria-label="Account management">
               {settingsContent}
             </section>
           ) : null}

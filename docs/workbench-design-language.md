@@ -1,7 +1,7 @@
 # Workbench design language
 
 The target sidebar and draft target picker use the existing workbench palette,
-typography and surfaces, not a separate LightVela theme.
+typography and surfaces, not a separate the downstream product theme.
 
 ## Ownership
 
@@ -155,7 +155,7 @@ light Sidebar uses the fixed material `rgb(226 244 250 / 35%)`; this constant is
 intentionally independent of Codex's 70% client material. Theme identity remains
 orthogonal to Light/Dark/System appearance mode.
 
-Lavender is an optional opaque core palette derived from LightVela frontend's
+Lavender is an optional opaque core palette derived from the downstream product frontend's
 quiet purple vocabulary. It supplies a complete window, Sidebar, panel, input
 and popover hierarchy through the same semantic theme contract. It does not
 change component geometry, typography or density, and feature CSS must not

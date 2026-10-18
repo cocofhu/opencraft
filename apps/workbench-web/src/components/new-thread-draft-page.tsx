@@ -308,7 +308,7 @@ function ExecutionUtilityBar({
             <DropdownMenu.Label className="codex-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.title", defaultMessage: "Work in" })}</DropdownMenu.Label>
             <div className="new-thread-project-menu__items">
               {[false, true].map(cloud => <DropdownMenu.Group key={String(cloud)}>
-              {cloud && hostOptions.some(host => host.cloud) ? <DropdownMenu.Label className="codex-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud · LightVela" })}</DropdownMenu.Label> : null}
+              {cloud && hostOptions.some(host => host.cloud) ? <DropdownMenu.Label className="codex-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud" })}</DropdownMenu.Label> : null}
               {hostOptions.filter(host => host.cloud === cloud).map((host) => {
                 const selected = host.hostIds.includes(activeHostId);
                 return (

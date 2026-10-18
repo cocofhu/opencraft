@@ -47,7 +47,7 @@ export function useLightVelaWorkNavigationActions({
 export function LightVelaWorkNavigation(props: Parameters<typeof useLightVelaWorkNavigationActions>[0]) {
   const actions = useLightVelaWorkNavigationActions(props);
   if (actions.length === 0) return null;
-  return <nav className="lightvela-work-navigation" aria-label="LightVela work tools">
+  return <nav className="lightvela-work-navigation" aria-label="Work tools">
     <div className="lightvela-work-navigation__items">{actions.map(action => <SidebarNavigationItem
       key={action.id} active={action.active} icon={<WorkbenchIcon name={action.icon} purpose="work" />}
       title={action.title} onInvoke={action.onInvoke} />)}</div>

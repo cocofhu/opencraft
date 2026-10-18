@@ -31,7 +31,7 @@ The following rules are normative:
    not repeat `hostId`.
 2. Every request explicitly names a Profile scope. There is no implicit
    "currently selected profile" on the wire.
-3. `profileId` is a provider profile identity. It is never a LightVela `botId`,
+3. `profileId` is a provider profile identity. It is never a the downstream product `botId`,
    conversation ID, Thread ID, display name, or filesystem path.
 4. The provider's Profile storage and configuration are authoritative for
    installed and enabled state. The renderer owns only filters, selection,

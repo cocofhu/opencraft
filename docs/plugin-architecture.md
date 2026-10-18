@@ -3,7 +3,7 @@
 GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入Vela/企业身份，
 不能无条件导入私有插件；移除配置中的必需身份提供者必须保持拒绝，核心Actor、
 成员与资源授权不下沉到产品。当前拆分尚在实施，已知直接依赖与验证不变量见
-[upstream transition](upstream-transition.md#current-blocking-edges)，不把菜单开关当依赖隔离。
+[upstream transition](upstream-transition.md#boundary-migration-record-and-remaining-review)，不把菜单开关当依赖隔离。
 
 Web supervisor 通过 `WebWorkbenchSupervisorOptions.serverExtensions` 接收可信工厂，
 仅在服务端工作台接入时加载；通用默认列表为空，不把 Headless 等同于企业身份。
@@ -11,7 +11,7 @@ Web supervisor 通过 `WebWorkbenchSupervisorOptions.serverExtensions` 接收可
 注册表或替换 credentialScope/readStateScope。构建 owner 可通过
 `OPENCRAFT_SERVER_EXTENSIONS_ENTRY` 显式指定本地 JS/TS 装配文件（相对 OpenCraft
 workspace root）；缺失文件或 URL 拒绝构建，无配置时不探测下游目录。
-该选择只改变装配入口，不证明 LightVela 或全部私有实现已脱离公开依赖闭包。
+该选择只改变装配入口，不证明下游产品或全部私有实现已脱离公开依赖闭包。
 
 客户端本地缓存只消费核心 `ClientPersistenceScope` 的 namespace、固定 Host 会话记忆
 分区及同步变更通知，不读取 Vela region/profile/credential 字段。产品提供只读投影，
@@ -82,7 +82,7 @@ Vela 的嵌入 element、Root、账号/物理连接 adapter 及产品集成测�
 Headless 通过可信服务端 composition 创建身份适配器；Join 的企业参数及插件实例化
 位于下游入口。企业身份 实现、专属文案与集成验证由下游拥有，公开 workspace 不依赖它。
 核心 Actor/Relay 验证使用合成签名身份提供者，保留准入、撤权和持久化覆盖；企业身份 原有
-签名及员工元数据验证随产品运行。LightVela 客户端其余依赖仍待隔离，不称完整拆分已完成。
+签名及员工元数据验证随产品运行。下游产品客户端其余依赖仍待隔离，不称完整拆分已完成。
 
 ### Relay 启动装配
 
@@ -96,7 +96,7 @@ Headless 通过可信服务端 composition 创建身份适配器；Join 的企�
 下游产品拥有旧企业配置转换及私有插件创建，并通过打包函数的 `relayEntry`
 显式选择编译入口。核心默认不探测父目录或引用产品；`packageWebServer` 与
 `packageRelay` 的编译期入口参数不是 HTTP/浏览器可安装插件接口。
-企业身份 已迁往下游；本边界仍不等于 LightVela 客户端私有目录已经全部迁出。
+企业身份 已迁往下游；本边界仍不等于下游产品客户端私有目录已经全部迁出。
 
 > 状态：R3 已落地 Trusted V1 内核；生态与 Restricted Channel 仍为 Proposed  
 > 架构修订：R3（Extension-first 商业 Workbench）  
@@ -149,7 +149,7 @@ Settings V1 刻意不包含 global/host/workspace 多层 scope、自定义 migra
 - Embedded Chat 在同一 Application 内将语音、Collaboration、Bot Chat/Management 呈现和 Terminal 面板模块放入延后启动队列，首屏可用并完成 `show()` 的可见帧后才按依赖顺序激活；Full Workbench 默认保留 eager 策略。必需 Host/provider、账户身份和 Terminal 协议服务不后移。队列不拥有第二份扩展 registry；销毁先撤销未完成 import 的工厂 scope，再排空已开始激活，最后释放其借用的服务。该计划不是通用 activation event dispatcher。
 - 扩展管理在普通 Settings 的“插件”页与 Skills 的“扩展”Tab 共用同一个 `ExtensionLibrary`。应用通过 `PlatformViewRegions.ExtensionLibrary` 提供内容；不受技能 Host 选择影响。目录只读合并 Supervisor、Manager 与公开贡献，区分内建/安装、启用意图、运行故障和当前版本仍运行时的操作失败。列表搜索/来源筛选，详情复用 Manager 操作；关键内建项不开放停用/移除，可选内建项支持启停，URL 安装仅开发者模式。Settings 导航向普通用户展示入口，不要求开发者模式；同时在有 Host 和无 Host 的工作台传入应用级 Supervisor 与 Manager，列表不依赖当前技能 Host。旧的 URL-only 设置实现已移除，避免漏掉内建项。
 - Web bootstrap 保留 WebSocket 基础连接扩展为关键依赖；主题、语音、模型管理、产品接入等第一方扩展使用可选激活，失败记录在 Supervisor，继续其他扩展。语音、Builtin Agents、HyperNode、Bot Chat/Management 的动态 import 和工厂也通过 `loadOptional` 有界执行；平台账户服务模块仍属于 Application bootstrap 的必需依赖。
-- Collaboration 改为可管理的可选内置扩展，通用 Web 默认停用；由 `ExtensionManager` 有界加载并激活，启停意图与用户安装扩展共用持久化仓库。停用时不加载实现或注册导航；产品初始默认值不覆盖已有用户选择。内置来源只允许启停，随应用更新，不开放 URL 更新/移除。详细产品边界见 [Collaboration Workspace](../design/lightvela-collaboration-workspace.md#扩展发现与启用)。
+- Collaboration 改为可管理的可选内置扩展，通用 Web 默认停用；由 `ExtensionManager` 有界加载并激活，启停意图与用户安装扩展共用持久化仓库。停用时不加载实现或注册导航；产品初始默认值不覆盖已有用户选择。内置来源只允许启停，随应用更新，不开放 URL 更新/移除。详细产品边界见 [Collaboration Workspace](../design/collaboration-workspace.md#扩展发现与启用)。
 - 持久化产物独立存入 `system/artifacts/<sha256>`；安装集合只保存引用，CAS 成功后才切换安装指针，候选写入失败保留旧指针。缺失产物不自动联网换版本，插件提示显式重新加载修复。旧产物暂时保留，后续 GC 不影响正确性。
 - 安装记录的公共规范化入口为内嵌产物补齐相同 SHA-256 的 `artifactRef`；显式引用与内嵌产物不一致时拒绝该记录。写入返回、当前内存快照和持久化通知重读使用同一规范，旧内嵌格式无需重写数据，失败更新也不会因通知时序改变原安装身份。
 - Module Loader、`activate` 工厂与每个内部 adapter prepare/commit 等待默认各 15 秒；subscription/internal disposer、rollback 与 command drain 默认每次 5 秒。超时撤销旧 API，继续剩余清理；工厂或 commit 迟到返回的 disposer 仍被调用，退休后命令结果不再成功返回。不隔离 trusted 模块同步死循环，也不能强制终止任意插件自行创建的副作用；prepare 必须无副作用。
@@ -158,7 +158,7 @@ Settings V1 刻意不包含 global/host/workspace 多层 scope、自定义 migra
 - 公共 `OpenCraftExtensionDefinition` 只引用公共 API，第一方 Theme Pack 已消费；`api.signal` 在失败或停用时先于清理 abort，运行中的插件可继续登记资源 subscription（贡献本身仍只在激活期登记）。自包含示例见 `examples/extensions/hello.mjs`，测试覆盖注册导航、调用公告与卸载中的待决结果。
 - Manifest V1 的格式解析保留合法的未来 `apiVersion`，当前 Supervisor 在执行 `activate` 前单独检查 API 与平台兼容性。未来 API 的安装记录不会被当作损坏记录删除；Manager 投影 `incompatible`，保留启用意图及配置。当前仅支持 API 1，不承诺旧 API 永久兼容。
 - `reload` 与同 ID 重新安装共享替换流程：候选成功激活且保存成功才更新安装记录；失败重新激活本进程保存的旧定义，使用新 activationId，旧安装版本和 enabled 保持不变。已停用插件重新安装保持停用。
-- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设，跟踪于 下游产品工作区的扩展平台完成记录（不在本仓库）。
+- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设，跟踪于下游产品工作区的扩展平台完成记录（不在本仓库）。
 
 ## 1. 结论
 

@@ -91,12 +91,12 @@ test('old bookmarks become short URLs while old API, upload and sockets remain u
 
 
 test('migration defaults are identity scoped hints and do not add membership',async t=>{
-  const f=await selectorFixture({defaultUsers:['carol'],legacyDefaultUsers:['alice'],entryName:'LightVela'});t.after(()=>f.close());
+  const f=await selectorFixture({defaultUsers:['carol'],legacyDefaultUsers:['alice'],entryName:'OpenCraft'});t.after(()=>f.close());
   for(const [name,hasDefault] of [['alice',true],['bob',false],['carol',true]] as const){
     const cookie=await f.login(name),page=await f.get('/',{cookie,accept:'text/html'}),html=await page.text();
     assert.equal(page.status,200);assert.ok(html.includes('initial='+JSON.stringify(hasDefault?'join':null)));
     assert.equal(html.includes('data-server="join"'),name!=='carol');
-    if(name==='alice')assert.match(html,/>LightVela<\/a>/u);
+    if(name==='alice')assert.match(html,/>OpenCraft<\/a>/u);
   }
   assert.notEqual(selectionIdentity({provider:'one',subject:'same'}),selectionIdentity({provider:'two',subject:'same'}));
   const identity=selectionIdentity({provider:'one',subject:'same'});

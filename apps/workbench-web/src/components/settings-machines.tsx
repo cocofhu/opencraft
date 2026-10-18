@@ -36,7 +36,7 @@ function MachineMetadata({ machine, platform }: { machine: WorkInMachine; platfo
   const system = machine.identity?.platform;
   return <>{system === "macos" ? "macOS" : system === "linux" ? "Linux" : system === "windows" ? "Windows" : intl.formatMessage({ id: "workIn.unknownSystem", defaultMessage: "Unknown system" })} · {role === "local"
     ? intl.formatMessage({ id: "settings.machines.local", defaultMessage: "Local" })
-    : role === "cloud" ? intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud · LightVela" })
+    : role === "cloud" ? intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud" })
     : intl.formatMessage({ id: "settings.machines.server", defaultMessage: "Server" })}{machine.resource ? <> · {intl.formatMessage(resourceMessages[machine.resource.phase])}</> : null}</>;
 }
 
@@ -105,7 +105,7 @@ export function SettingsMachines({ machines, platform, onSectionChange }: {
           metadata={<MachineStatus machine={machine} />}
           actions={<SettingsButton variant="quiet" onClick={() => onSectionChange(machineSettingsSection(machine))}>{intl.formatMessage({ id: "settings.machines.open", defaultMessage: "Open" })}</SettingsButton>} />)}</SettingsGroup>;
       return group.length ? cloud
-        ? <SettingsSection key="cloud" title={intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud · LightVela" })}>{rows}</SettingsSection>
+        ? <SettingsSection key="cloud" title={intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud" })}>{rows}</SettingsSection>
         : <div key="machines">{rows}</div>
         : null;
     })}

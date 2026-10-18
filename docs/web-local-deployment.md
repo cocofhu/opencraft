@@ -49,7 +49,7 @@ curl --fail --silent --show-error http://127.0.0.1:10000/__opencraft_updates
 
 `OPENCRAFT_HYPERNODE_USER` 只作为代理请求头发送，不注入网页，不决定 Host 身份。网站的主端点统一使用 `local`，运行时配置关闭 HyperNode 插件以避免重复 Host。内置 Agent 设置页在存在 `local` 或 `local-codex` 时激活，不包含执行引擎。
 
-`VITE_APPSERVER_HOSTS_JSON` 保留为开发/测试的显式覆盖，优先于网站注入配置；`VITE_WEB_BUILTIN_AGENTS=enabled|disabled` 与 `VITE_HYPERNODE_PLUGIN=enabled|disabled` 也可显式覆盖激活选择。没有注入配置的 Vite/static 部署沿用原默认行为（内置 Agent 未启用，HyperNode 启用）。LightVela 构建不包含这两个插件；Electron 的 Host 来源不变。
+`VITE_APPSERVER_HOSTS_JSON` 保留为开发/测试的显式覆盖，优先于网站注入配置；`VITE_WEB_BUILTIN_AGENTS=enabled|disabled` 与 `VITE_HYPERNODE_PLUGIN=enabled|disabled` 也可显式覆盖激活选择。没有注入配置的 Vite/static 部署沿用原默认行为（内置 Agent 未启用，HyperNode 启用）。下游产品构建不包含这两个插件；Electron 的 Host 来源不变。
 
 ```sh
 set -e
