@@ -148,9 +148,11 @@ export class DesktopViewController {
     this.startedAt = performance.now();
     this.publish({ phase: "connecting", stage: "preparing", control: "observing", canControl: false, controlFailed: false });
     if (!this.current(generation)) return;
+    const prepareTimeout = this.backend.prepareTimeoutMs;
     this.timer = setTimeout(() => {
       if (this.current(generation)) this.fail(false, "timeout");
-    }, this.timeoutMs);
+    }, prepareTimeout !== undefined && Number.isFinite(prepareTimeout) && prepareTimeout > 0
+      ? prepareTimeout : this.timeoutMs);
     void this.connect(expected, generation, abort.signal);
   }
 
@@ -165,6 +167,7 @@ export class DesktopViewController {
         || this.preview.resourceId !== attachment.resourceId || this.preview.incarnation !== attachment.incarnation)) this.preview = null;
       this.publish({ ...this.snapshot, preview: this.preview?.frame,
         mediaAspectRatio: this.preview?.frame.aspectRatio });
+      if (!this.current(generation)) return;
       this.setStage("connecting");
       if (!this.current(generation)) return;
       const connection = await attachment.connect(signal);
@@ -192,7 +195,11 @@ export class DesktopViewController {
     if (!this.current(generation) || this.connection === null) return;
     try {
       const state = this.connection.getSnapshot();
-      if (state.ended) { this.fail(state.retryable === true, state.failure ?? "transport"); return; }
+      if (state.ended) {
+        if (state.resumeObserving === true && this.snapshot.phase === "ready") this.refreshTarget(true);
+        else this.fail(state.retryable === true, state.failure ?? "transport");
+        return;
+      }
       const ready = state.videoReady && state.inputReady;
       const canControl = ready && state.controlAvailable;
       if (!canControl) {
@@ -337,8 +344,10 @@ export class DesktopViewController {
     if (this.timer !== null) clearTimeout(this.timer);
     if (stage === "connected") this.readinessDeadline = 0;
     else if (!this.readinessDeadline) this.readinessDeadline = performance.now() + Math.min(this.timeoutMs, 20_000);
-    this.timer = stage === "connected" ? null : setTimeout(() => this.fail(false, "timeout"),
-      Math.max(0, this.readinessDeadline - performance.now()));
+    const generation = this.generation;
+    this.timer = stage === "connected" ? null : setTimeout(() => {
+      if (this.current(generation)) this.fail(false, "timeout");
+    }, Math.max(0, this.readinessDeadline - performance.now()));
     this.publish({ ...this.snapshot, stage });
   }
 

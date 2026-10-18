@@ -71,6 +71,21 @@ turn the same click into Take, or revoke a later user's grant. Window/page loss
 and cancelled/outside pointer release also retire the presentation's press.
 There is no pointerup-synthesized click, debounce or delayed safety release.
 
+A trusted backend may declare a separate positive finite `prepareTimeoutMs` for
+resource preparation. It does not extend the media/first-frame deadline. Readiness
+timers and reentrant status notifications remain fenced by the connection generation.
+An established viewer that explicitly reports `control-released` retires input and
+obtains one freshly authorized observe-only attachment without a transport-failure
+banner. The provider must consume that transition as observation, never reserve
+input again. A fresh connection that is already ended cannot trigger an unbounded
+reattachment loop. No input intention is replayed on the new viewer.
+
+The noVNC mount observes positive container geometry after a zero-sized hidden
+interval and reruns its public scaling setter even when the restored dimensions
+match the original. Zero-sized measurements never set scale; disposal disconnects
+the observer and fences queued callbacks. Embedded panels resolve keyboard focus
+within their own ShadowRoot and use composed event paths for interaction ownership.
+
 Preparation is bounded (120 seconds by default); media startup and first-frame
 readiness share a separate 20-second deadline (or the shorter injected bound).
 Progress changes cannot extend that deadline. Failed
@@ -127,7 +142,7 @@ Vector geometry remains in the renderer-free `design-system/progress` contract;
 `design-system-web/progress` projects it to React/SVG and owns animation phase.
 Empty-state sizing and secondary tone apply only to direct glyphs, not nested
 progress primitives, so the spinner is neither enlarged nor clipped.
-The ownership action uses the shared 12/16 semibold `control-small` role, a 32px
+The ownership action uses the shared 12/16 regular `control-small` role, a 32px
 capsule and at least 44px coarse-pointer target. Icon actions retain shared compact
 panel controls. Activation feedback is immediate with no press scaling. Disabled
 opacity is 0.4; touch does not inherit sticky hover. A decorative solid button

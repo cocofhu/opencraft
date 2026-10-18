@@ -48,6 +48,8 @@ await runtime.install(createCloudDesktopWorkbenchPanelPlugin({
     subscribe: listener => { authorityListeners.add(listener); return () => { authorityListeners.delete(listener); }; },
     async prepare() {
       preparations++;
+      if (state.resumeObserving) state = { mediaAspectRatio: 960 / 600, videoReady: false,
+        inputReady: false, controlAvailable: false, ended: false };
       return { target, resourceId: "resource:test", incarnation: "instance:test", release() { attachmentReleases++; },
         async connect() { return {
           getSnapshot: () => state,
@@ -75,7 +77,18 @@ await runtime.install(createCloudDesktopWorkbenchPanelPlugin({
 const locale = new LocaleRuntime([{ locale: "zh-CN", label: "简体中文", load: async () => chineseMessages }]);
 await locale.update({ ideLocale: "en-US" });
 const preferences = await UiPreferencesRuntime.open({ installation: new MemoryUiPreferenceStore() });
-const root = createRoot(document.getElementById("root")!);
+const rootElement = document.getElementById("root")!;
+let renderElement = rootElement;
+if (new URL(location.href).searchParams.has("shadow")) {
+  const shadow = rootElement.attachShadow({ mode: "open" });
+  // The embedded workbench receives the same production stylesheet in its own
+  // root. Keep the test on real browser retargeting, not fabricated event paths.
+  for (const style of document.querySelectorAll('link[rel="stylesheet"]')) shadow.append(style.cloneNode(true));
+  renderElement = document.createElement("div");
+  renderElement.style.cssText = "width:100%;height:100%";
+  shadow.append(renderElement);
+}
+const root = createRoot(renderElement);
 const tab = runtime.panels.open("fixture-panel", "cloud-desktop", { conversationId: "fixture" });
 runtime.panels.register({ kind: "fixture-tool", createTab: () => ({ id: "other-tool", resource: "other-tool",
   kind: "fixture-tool", region: "right", title: "Other tool", icon: "terminal", closable: true, preview: false }) });
@@ -123,6 +136,7 @@ Object.assign(window, { __desktopUi: {
     state = { mediaAspectRatio: 960 / 600, videoReady: true, inputReady: true, controlAvailable, ended: false }; notify();
   },
   fail() { state = { ...state, ended: true }; notify(); },
+  releaseToObservation() { state = { ...state, ended: true, resumeObserving: true }; notify(); },
   connecting() { state = { mediaAspectRatio: 960 / 600, videoReady: false, inputReady: false, controlAvailable: true, ended: false }; },
   grant() { valid = true; const resolve = grant; grant = null; resolve?.(lease); },
   unavailable() { authorized = false; for (const listener of authorityListeners) listener(); },

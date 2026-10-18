@@ -39,7 +39,10 @@ function fixture(control = true, canvas?: HTMLCanvasElement) {
   let client!: RfbClient;
   const channel = Object.assign(new EventTarget(), { readyState: 0, close: () => calls.push("channel:close") });
   class Client extends EventTarget implements RfbClient {
-    viewOnly = false; scaleViewport = false; resizeSession = true; focusOnClick = true; background = "";
+    viewOnly = false; private scale = false;
+    get scaleViewport() { return this.scale; }
+    set scaleViewport(value: boolean) { this.scale = value; calls.push(`scale:${value}`); }
+    resizeSession = true; focusOnClick = true; background = "";
     constructor(_element: HTMLElement, raw: WebSocket, options: { shared: boolean }) {
       super(); assert.equal(raw, channel); assert.equal(options.shared, true); client = this; calls.push("client:create");
     }
@@ -274,4 +277,45 @@ test("clipboard abort and concurrent attempts cannot leak keys into a later gran
   assert.equal(f.calls.some(call => call.startsWith("key:")), false);
   assert.ok(f.calls.includes("clipboard:clear"));
   connection.close();
+});
+
+
+test("a collapsed surface restores noVNC scaling once and retires its resize observer", async () => {
+  const previous = Object.getOwnPropertyDescriptor(dom.window, "ResizeObserver");
+  let resized!: (entries: { contentRect: { width: number; height: number } }[]) => void;
+  let disconnected = 0;
+  class Resize {
+    constructor(callback: typeof resized) { resized = callback; }
+    observe(target: Element) { assert.equal(target, element); }
+    disconnect() { disconnected++; }
+  }
+  Object.defineProperty(dom.window, "ResizeObserver", { configurable: true, value: Resize });
+  const f = fixture();
+  try {
+    const connection = await f.adapter.connect(f.session, new AbortController().signal);
+    const surface = f.adapter.surfaces.mount(element, connection);
+    const emit = (width: number, height: number) => resized([{ contentRect: { width, height } }]);
+    const scales = () => f.calls.filter(call => call === "scale:true").length;
+    emit(600, 400); const baseline = scales();
+    emit(600, 400); assert.equal(scales(), baseline);
+    emit(0, 0); emit(0, 0); assert.equal(scales(), baseline, "zero-size geometry must not collapse the cached scale");
+    emit(600, 400); assert.equal(scales(), baseline + 1, "A to zero to A still remeasures");
+    emit(600, 400); assert.equal(scales(), baseline + 1);
+    surface.dispose(); assert.equal(disconnected, 1);
+    emit(0, 0); emit(600, 400); assert.equal(scales(), baseline + 1, "a queued callback cannot write to retired media");
+  } finally {
+    if (previous) Object.defineProperty(dom.window, "ResizeObserver", previous);
+    else Reflect.deleteProperty(dom.window, "ResizeObserver");
+  }
+});
+
+test("intentional control release requests observation without a transport fault or input grant", async () => {
+  const f = fixture(); f.session.getTermination = () => "control-released";
+  const connection = await f.adapter.connect(f.session, new AbortController().signal);
+  f.adapter.surfaces.mount(element, connection); ready(f);
+  f.client().dispatchEvent(new Event("disconnect"));
+  const state = connection.getSnapshot();
+  assert.equal(state.ended, true); assert.equal(state.resumeObserving, true);
+  assert.equal(state.failure, undefined); assert.equal(state.retryable, undefined);
+  assert.equal(state.controlAvailable, false); assert.equal(f.calls.includes("input:focus"), false);
 });

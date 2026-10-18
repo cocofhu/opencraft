@@ -11,7 +11,7 @@ import type { DesktopBackend } from "./contract";
 import { DesktopViewController, type DesktopViewSnapshot } from "./controller";
 import type { DesktopSurfaceFactory } from "./viewer";
 import { useDesktopControlAction } from "./control-action";
-import { bindDesktopInteractionOwner } from "./interaction-owner";
+import { bindDesktopInteractionOwner, ownsDesktopFocus } from "./interaction-owner";
 
 export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefined,
   controllers: Map<DesktopViewController, string>) {
@@ -44,8 +44,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       if (!adapter || !tab.resource || !element.current || !panel.current) return;
       const owner = panel.current;
       const current = new DesktopViewController(adapter.backend, adapter.surfaces, tab.resource, element.current,
-        undefined, undefined, () => owner.ownerDocument.visibilityState === "visible"
-          && owner.ownerDocument.hasFocus() && owner.contains(owner.ownerDocument.activeElement));
+        undefined, undefined, () => ownsDesktopFocus(owner));
       controller.current = current;
       controllers.set(current, ownerId);
       current.setActive(active);
