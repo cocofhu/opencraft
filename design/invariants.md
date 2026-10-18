@@ -1537,3 +1537,7 @@ Tasks loads its optional conversation statistics renderer and styles only after
 the statistics tab is selected. Suspense uses the existing loading status; it
 does not introduce another data owner or relax the startup resource budget.
 The read adapter loads on first read and checks cancellation after import.
+
+Trusted local chat renderer extensions belong to the Application render runtime.
+They share its resource policies, roll back on startup failure, and release with
+the Application; they never mutate the default library fallback or other apps.
