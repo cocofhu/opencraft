@@ -41,22 +41,24 @@ including their dependent packages. Neither package has a patched release at
 the time of this check. npm's suggested Expo major downgrade is not a compatible
 fix for the current Expo/React Native stack. Lower-severity findings also remain;
 rerun `npm audit` for the current inventory. These findings are not remediated.
-The private migration CI policy below now determines whether findings block integration.
+The upstream CI policy below determines whether findings block integration.
 
-### Private upstream migration audit policy (2026-10-18)
+### Upstream audit policy (2026-10-18)
 
-During the private upstream migration, dependency vulnerability findings are
-advisory rather than integration blockers. The security workflow derives this
-mode from GitHub's repository visibility metadata, runs the full audit at each
+Dependency vulnerability findings are advisory rather than integration blockers
+under the owner's current migration decision. This policy is independent of
+repository visibility. The security workflow runs the full audit at each
 selected installation root and retains its complete JSON report for three days.
 The Actions summary explicitly identifies advisory findings as unresolved.
 Registry errors, invalid reports, failed installations and lockfile changes
 still fail. Secrets scans, managed Web regressions and required aggregate checks
 remain mandatory. No dependency versions or advisory records are hidden.
 
-Public-repository CI and local invocation default to the existing high-severity
-failure threshold. This policy does not clear third-party provenance or change
-repository visibility, release approval or published artifacts.
+Local invocation defaults to the existing high-severity failure threshold;
+`NPM_AUDIT_REPORT_ONLY=true` explicitly selects advisory output. CI keeps that
+mode when the upstream becomes public. No findings are represented as fixed.
+The owner's later 2026-10-18 decision removes source cleanup as a prerequisite
+for the upstream migration; existing source records and notices remain.
 
 ### Compatible dependency remediation (2026-10-17)
 
@@ -98,8 +100,9 @@ machine deployment records in ignored `.local/`, and report any unverified steps
 
 Use an approved personal Git identity for new commits. Published-history cleanup
 requires the repository owner's explicit authorization; ordinary commits and
-pushes preserve history and repository visibility. A future public release must
-resolve licensing and any retained company or private metadata first.
+pushes preserve history and repository visibility. The owner has authorized the
+canonical GitHub public cutover, with the previous repository retained as a
+private archive. Do not expose credentials or account data.
 
 ### Image packaging dependency remediation (2026-10-18)
 

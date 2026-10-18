@@ -5,13 +5,14 @@ Core development, public issues, pull requests, CI and releases belong there.
 Downstream products consume immutable source revisions and own their product
 composition. This replaces the previous mono2-to-GitHub mirror direction.
 
-The private upstream source cutover is **operational**: the complete core was
+The upstream source cutover is **operational**: the complete core was
 accepted through the original protected PR, private product composition was
 moved downstream, and downstream now consumes an immutable accepted source
 revision. General core improvements are contributed through GitHub PRs;
 downstream owns its pin, product assembly and recorded patches, so its delivery
-does not depend on upstream PR acceptance. Public visibility, source-rights review and a verified
-release from the new repository identity remain incomplete.
+does not depend on upstream PR acceptance. The owner has authorized the canonical public cutover and explicitly removed
+source cleanup from this migration. A real npm publication remains deferred;
+it is not a prerequisite for the GitHub source upstream.
 
 On 2026-10-18, the owner approved retaining the original repository as the
 private [history archive](https://github.com/opencraft-app/opencraft-private-archive-20261018)
@@ -159,36 +160,28 @@ The first boundary work must preserve credential-scope revocation, identity
 expiry, participant metadata, browser/WS admission and runtime disposal. A
 successful build with those behaviors disabled is not a completed split.
 
-## License and provenance
+## Current delivery decision (2026-10-18)
 
-Apache-2.0 is selected for original core contributions. Existing recovery
-annotations establish source lineage but do not establish redistribution
-rights. `config/source-provenance.json` inventories the affected files and
-required disposition; it does not assert that every behavioral reference is
-copied expression. `NOTICE` retains this distinction and third-party notices.
-The [review inventory](source-provenance-review.md) records the affected
-components and resolution criteria; [pinned references](source-reference-bindings.json)
-now locate the previously relative Web-adapter and tool-label sources. The selected first-release scope preserves
-full clients. Blanket independent-replacement work remains paused while source-specific rights
-and lineage are reviewed; the 2026-10-18 scoped authorization permits bounded
-source treatment. The stable callback now delegates to a pinned public MIT
-implementation, with full notices. Connector mark image files are excluded
-from current core as recorded below; five other inventory groups and former
-Git history remain unresolved. Unverified provenance does not establish a need for
-replacement. A Headless-only first release is not selected.
+The owner explicitly updated the objective: **no source cleanup is required**.
+This supersedes the earlier requirement to finish the source inventory or
+replace renderer-derived regions before the public upstream cutover. Source
+replacement work is stopped. The unmerged client replacements remain in draft
+[PR #20](https://github.com/opencraft-app/opencraft/pull/20); they are not part of
+the accepted migration baseline and must not be merged as migration prerequisites.
 
-```sh
-node scripts/check-source-provenance.mjs --json
-node scripts/check-source-provenance.mjs --release
-```
+Original core contributions use Apache-2.0. Existing inventory, source
+annotations and third-party notices remain unchanged; this decision does not
+mark unresolved records as resolved or claim independent authorship. The source
+inventory checker retains integrity validation, without requiring inventory
+resolution in the release workflow. Do not resume source replacement work
+solely to complete this migration.
 
-The first command emits file SHA256s and unresolved groups. The release form
-also rejects unresolved groups. Removing an inventory record cannot hide
-remaining known source annotations. New findings must extend the inventory;
-this is not a claim that keyword scanning proves absence of other issues.
-Resolve each group with an evidenced source-rights conclusion, independent
-replacement or actual exclusion from the candidate tree. Keep its historical
-record; renaming files or deleting comments is not resolution.
+The canonical GitHub repository owns contributions, protected checks and release
+automation. The old history archive stays private. Complete Web/Electron/Expo
+clients remain in core; Vela/IOA/Join composition remains downstream. Dependency
+findings stay advisory across the visibility change, with full reports retained.
+Secrets scans, relevant builds/tests and protected normal PR merges remain.
+No npm publication or downstream deployment is authorized by this cutover step.
 
 ## Downstream import
 
@@ -238,17 +231,18 @@ success cannot justify discarding a later unported core change.
 
 ## Release lifecycle
 
-Once source review and product isolation are complete, merge a release PR
+Product isolation is complete. When an npm release is requested, merge a release PR
 that raises `packaging/web-server/package.json` and includes the exact
 `## vX.Y.Z` changelog section. The main workflow creates the immutable tag and
 performs preflight, package-once, exact-byte npm publication and verification.
 Existing-tag manual dispatch remains the retry path. The npm-release
 environment stays restricted to main and uses OIDC; no long-lived token is
-introduced. Publication remains blocked while source provenance is unresolved.
+introduced. Source inventory integrity is checked; source cleanup is not a
+publication prerequisite under the current owner decision.
 
-The present migration does not make the repository public or claim npm/desktop
-release success. npm publication is deferred by the current owner decision;
-it is not a prerequisite for using the private GitHub source upstream. Verify
+The owner has authorized the GitHub public cutover. This does not claim an
+npm/desktop release. npm publication is deferred by the current owner decision;
+it is not a prerequisite for using the GitHub source upstream. Verify
 actual GitHub settings, CI, registry bytes and a clean consumer before declaring
 a public release complete.
 

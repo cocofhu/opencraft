@@ -10,7 +10,7 @@ test('strict remains the default, including critical findings', () => {
   for (const value of [report(), report(0, 1)])
     assert.equal(auditOutcome({ status: 1, report: value }), 'blocked');
 });
-test('explicit private migration mode reports findings without calling them fixed', () => {
+test('explicit advisory mode reports findings without calling them fixed', () => {
   assert.equal(auditOutcome({ status: 1, report: report(), reportOnly: true }), 'reported');
 });
 test('clean audit passes in both modes', () => {
@@ -25,9 +25,10 @@ test('registry errors, process failures and malformed reports fail even in repor
     assert.equal(auditOutcome({ status, report: report(), reportOnly: true }), 'error');
   assert.equal(auditOutcome({ status: 1, report: report(0), reportOnly: true }), 'error');
 });
-test('workflow enables advisory findings only from trusted repository visibility metadata', () => {
+test('upstream policy preserves advisory findings across repository visibility changes', () => {
   const workflow = readFileSync(new URL('../.github/workflows/security.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /PRIVATE_MIGRATION_AUDIT_REPORT_ONLY: \$\{\{ github\.event\.repository\.private == true \}\}/);
+  assert.match(workflow, /NPM_AUDIT_REPORT_ONLY: 'true'/);
+  assert.doesNotMatch(workflow, /PRIVATE_MIGRATION_AUDIT_REPORT_ONLY|github\.event\.repository\.private/);
   assert.match(workflow, /node "\$GITHUB_WORKSPACE\/scripts\/dependency-audit\.mjs"/);
   assert.doesNotMatch(workflow, /continue-on-error|npm audit.*\|\| true/);
   assert.match(workflow, /SECRETS_RESULT: \$\{\{ needs\.secrets\.result \}\}/);
