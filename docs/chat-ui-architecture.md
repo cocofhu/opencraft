@@ -272,8 +272,17 @@ inline edit action; the same actions remain available in the menu and touch
 controls retain the shared 44px minimum. A completed Goal retires from the rail immediately; its server-owned record
 is retained. The Composer add menu offers a read-only completed-goal detail
 (with explicit removal on writable Hosts) and, on writable Hosts, setting a new
-goal. New-goal submission explicitly sets active and replaces the current Goal,
-without a clear-then-set gap; cancellation/failure preserves the completed record.
+goal. New-goal submission uses the shared resource's explicit create operation:
+a fresh native read rejects an unfinished Goal, and a completed Goal is cleared
+and confirmed absent before set(active, tokenBudget:null). Native set alone edits
+the existing Goal and retains its usage, so it cannot create a fresh accounting
+period. Pause/resume and edits continue to use set and preserve their counters.
+Cancellation does not mutate the old Goal. If replacement fails after clearing,
+the resource retains the last observed completion as a read-only summary, not as
+current server state; the editor draft remains retryable. Explicit removal clears
+that summary. It is bounded to this resource/connection, not a durable Goal history.
+No completion observer clears a Goal in the background or performs writes from
+sidebar hydration. Connection replacement fences the remaining create steps.
 Ordinary messages and editing never implicitly reactivate a completed Goal. An
 edit draft open at completion stays available but cannot save over the completed
 Goal. Paused/blocked/limited Goals remain actionable in the rail. This borrows the information-row interaction from

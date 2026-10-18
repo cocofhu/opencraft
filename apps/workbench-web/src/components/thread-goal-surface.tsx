@@ -78,7 +78,7 @@ function menuReturnFocus(event: Event): HTMLElement | null {
   return triggerId ? item?.ownerDocument.getElementById(triggerId) ?? null : null;
 }
 
-const NO_THREAD_GOAL: ThreadGoalSnapshot = { goal: null, phase: "idle", busy: false, error: null };
+const NO_THREAD_GOAL: ThreadGoalSnapshot = { goal: null, completedGoal: null, phase: "idle", busy: false, error: null };
 
 /** Presentation owns only disclosure and an unsaved edit draft. */
 export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, disabled = false, portalContainer, children }: ThreadGoalSurfaceProps) {
@@ -93,6 +93,7 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   const subscribe = useCallback((listener: () => void) => threadId === null ? () => undefined : goals.subscribe(threadId, listener), [goals, threadId]);
   const read = useCallback(() => threadId === null ? NO_THREAD_GOAL : goals.getSnapshot(threadId), [goals, threadId]);
   const snapshot = useSyncExternalStore(subscribe, read, read);
+  const goal = snapshot.goal ?? snapshot.completedGoal;
   const capability = goals.capability();
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
@@ -119,20 +120,19 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
     return () => { currentScope.current = null; };
   }, [presentationScope]);
   useEffect(() => {
-    if (!presentationActive || snapshot.goal?.status !== "active") return;
+    if (!presentationActive || goal?.status !== "active") return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [presentationActive, snapshot.goal?.status]);
+  }, [presentationActive, goal?.status]);
   useEffect(() => {
-    if (snapshot.goal?.status === "complete") setExpanded(false);
+    if (goal?.status === "complete") setExpanded(false);
     else setEditorMode(mode => mode === "view" ? null : mode);
-  }, [snapshot.goal?.status]);
+  }, [goal?.status]);
   const newGoal = threadId === null && onCreateGoal !== undefined;
   const busy = snapshot.busy || creating;
   if ((!newGoal && threadId === null) || !capability?.read) return children?.(null, false, null) ?? null;
 
-  const goal = snapshot.goal;
   const elapsed = goal === null ? 0 : goal.timeUsedSeconds + (goal.status === "active" ? Math.max(0, now / 1000 - goal.updatedAt) : 0);
   const openEditor = (opener?: HTMLElement | null, mode: "create" | "edit" | "view" = goal === null ? "create" : "edit") => {
     if (presentationScope !== currentScope.current) return;
@@ -161,7 +161,8 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
           }
         }
       } else if (threadId !== null) {
-        await goals.set(threadId, { objective, ...(editorMode === "create" ? { status: "active" as const, tokenBudget: null } : {}) });
+        if (editorMode === "create") await goals.create(threadId, objective);
+        else await goals.set(threadId, { objective });
       }
       if (presentationScope === currentScope.current) setEditorMode(null);
     });
