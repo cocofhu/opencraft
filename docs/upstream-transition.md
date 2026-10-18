@@ -43,6 +43,13 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+- Workbench tool navigation and standalone management routes consume each page's
+  `management.entryPoint` declaration. Core no longer recognizes private Skills
+  or Storage page IDs; their product owns the explicit declaration. Contextual
+  management remains the default, and the shell retains route and layout
+  ownership. Language, platform, audience and extension retirement are shared
+  contribution projections rather than product-specific branches.
+
 - Electron Main/Preload select explicit, paired local desktop product entries.
   Default public bundles no longer include the private product login, account
   HTTP implementation, session store or preload account namespace. The original

@@ -243,6 +243,12 @@ export interface SettingsPageContribution {
   readonly management?: {
     readonly familyId: string;
     readonly scope: "agent" | "host";
+    /**
+     * An application-level tool entry, rather than only contextual management.
+     * The platform shell still owns its navigation and route/container layout.
+     * Absent declarations retain the existing contextual management behavior.
+     */
+    readonly entryPoint?: "workbench";
   };
 }
 

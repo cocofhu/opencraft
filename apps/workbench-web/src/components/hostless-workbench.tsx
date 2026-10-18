@@ -24,8 +24,8 @@ import { getWindowChromePolicy, useWindowChrome } from "../window-chrome";
 import { AppShell } from "./app-shell";
 import { InternalDeveloperModeGate } from "./internal-developer-mode-gate";
 import { useInternalDeveloperMode } from "../internal-developer-mode";
-import { isLightVelaStandaloneManagementSection } from "./lightvela-management-route";
-import { LightVelaWorkNavigation } from "./lightvela-work-navigation";
+import { isWorkbenchToolPage } from "../runtime/workbench-tool-pages";
+import { WorkbenchToolNavigation } from "./workbench-tool-navigation";
 import {
   ManagementSettingsContent,
   ModalHost,
@@ -88,7 +88,7 @@ export function HostlessWorkbench({
     && selectedSettingsContribution?.management !== undefined;
   const standaloneManagementOpen = managementSettingsOpen
     && settingsSection !== null
-    && isLightVelaStandaloneManagementSection(settingsSection);
+    && isWorkbenchToolPage(selectedSettingsContribution);
   const routeSettingsOpen = settingsOpen && !managementSettingsOpen;
   const profileSnapshot = useSyncExternalStore(
     supervisor.hostProfiles.subscribe,
@@ -206,7 +206,7 @@ export function HostlessWorkbench({
       activeHostId=""
       activeThreadId=""
       managementNavigation={applicationRoute.kind === "conversation" || standaloneManagementOpen ? (
-        <LightVelaWorkNavigation
+        <WorkbenchToolNavigation
           section={standaloneManagementOpen ? settingsSection : null}
           extensionContributions={supervisor.extensions.contributions}
           onSectionChange={selectSettingsSection}
@@ -361,7 +361,7 @@ export function HostlessWorkbench({
                 {settingsContent}
               </section>
             ) : standaloneManagementOpen ? (
-              <section className="lightvela-management-route" aria-label="Account management">
+              <section className="workbench-tool-route" aria-label="Account management">
                 {settingsContent}
               </section>
             ) : applicationRoute.kind === "extension-view" ? (

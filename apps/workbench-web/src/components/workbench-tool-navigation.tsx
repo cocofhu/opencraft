@@ -1,18 +1,14 @@
 import { WorkbenchIcon } from "./ui/workbench-icon";
 import { useMemo, useSyncExternalStore } from "react";
+import { useIntl } from "@opencraft/i18n/react";
+import { isWorkbenchToolPage } from "../runtime/workbench-tool-pages";
 
 import type { ExtensionContributionStore } from "@opencraft/extension-runtime";
 
 import { useInternalDeveloperMode } from "../internal-developer-mode";
 import { SidebarNavigationItem } from "./sidebar-navigation-item";
 
-const LIGHTVELA_WORK_PAGE_IDS = new Set([
-  "lightvela.hermes.skills",
-  "lightvela.hermes.storage",
-]);
-
-
-export function useLightVelaWorkNavigationActions({
+export function useWorkbenchToolActions({
   section,
   extensionContributions,
   onSectionChange,
@@ -22,6 +18,7 @@ export function useLightVelaWorkNavigationActions({
   readonly onSectionChange: (section: string) => void;
 }) {
   const internalDeveloperMode = useInternalDeveloperMode();
+  const intl = useIntl();
   const contributionSnapshot = useSyncExternalStore(
     extensionContributions.subscribe,
     extensionContributions.getSnapshot,
@@ -33,22 +30,23 @@ export function useLightVelaWorkNavigationActions({
   const pages = useMemo(
     () => contributionSnapshot.settingsPages
       .map(({ contribution }) => contribution)
-      .filter((page) => LIGHTVELA_WORK_PAGE_IDS.has(page.id))
+      .filter(isWorkbenchToolPage)
       .filter((page) => page.platforms?.includes(platform) ?? true)
       .filter((page) => page.audience !== "internal" || internalDeveloperMode)
-      .sort((left, right) => (left.order ?? 0) - (right.order ?? 0)),
-    [contributionSnapshot, internalDeveloperMode, platform],
+      .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+      .map(page => ({ ...page, title: page.titleMessage ? intl.formatMessage(page.titleMessage) : page.title })),
+    [contributionSnapshot, internalDeveloperMode, platform, intl],
   );
 
   return pages.map(page => ({ id: page.id, icon: page.icon, title: page.title,
     active: section === page.id, onInvoke: () => onSectionChange(page.id) }));
 }
 
-export function LightVelaWorkNavigation(props: Parameters<typeof useLightVelaWorkNavigationActions>[0]) {
-  const actions = useLightVelaWorkNavigationActions(props);
+export function WorkbenchToolNavigation(props: Parameters<typeof useWorkbenchToolActions>[0]) {
+  const actions = useWorkbenchToolActions(props);
   if (actions.length === 0) return null;
-  return <nav className="lightvela-work-navigation" aria-label="Work tools">
-    <div className="lightvela-work-navigation__items">{actions.map(action => <SidebarNavigationItem
+  return <nav className="workbench-tool-navigation" aria-label="Work tools">
+    <div className="workbench-tool-navigation__items">{actions.map(action => <SidebarNavigationItem
       key={action.id} active={action.active} icon={<WorkbenchIcon name={action.icon} purpose="work" />}
       title={action.title} onInvoke={action.onInvoke} />)}</div>
   </nav>;

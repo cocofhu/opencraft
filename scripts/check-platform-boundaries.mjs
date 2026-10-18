@@ -30,6 +30,12 @@ checkFiles("public tool", "scripts", [{
   pattern: /\b(?:lightVelaApiBase|enableLightVelaCollaboration)\s*:/m,
   message: "must use the public clientProduct port instead of removed product bootstrap options",
 }]);
+for (const directory of ["apps/workbench-web/src/components/workbench-tool-navigation.tsx", "apps/workbench-web/src/runtime/workbench-tool-pages.ts"]) {
+  checkFiles("workbench tool projection", directory, [{
+    pattern: /lightvela\.hermes\.(?:skills|storage)/m,
+    message: "must consume declared management entry points, not private page IDs",
+  }]);
+}
 const publicScripts = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")).scripts;
 checkFiles("public browser fixture", "tests/fixtures", [{
   pattern: /(?:from\s*|import\s*)["'][^"']*\/lightvela-web-bootstrap(?:\.[cm]?[jt]s)?["']/m,

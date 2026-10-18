@@ -47,7 +47,7 @@ test("generated Web typography is checked in and feature styles consume semantic
   const app = read("../apps/workbench-web/src/styles/app.scss");
   assert.match(
     app,
-    /\.lightvela-work-navigation__items[\s\S]*?@include controls\.navigation-control/u,
+    /\.workbench-tool-navigation__items[\s\S]*?@include controls\.navigation-control/u,
   );
   assert.match(app, /@include typography\.role\(thread-title, primary\)/u);
   assert.doesNotMatch(app, /-webkit-font-smoothing:\s*antialiased/u);

@@ -116,8 +116,8 @@ import { TurnDiffReviewDialog } from "./components/conversation/turn-diff-review
 import { ComposerTurnChangeSummary } from "./components/conversation/turn-diff-resource";
 import { Button } from "./components/ui/button";
 import { NewThreadDraftPage } from "./components/new-thread-draft-page";
-import { isLightVelaStandaloneManagementSection } from "./components/lightvela-management-route";
-import { LightVelaWorkNavigation, useLightVelaWorkNavigationActions } from "./components/lightvela-work-navigation";
+import { isWorkbenchToolPage } from "./runtime/workbench-tool-pages";
+import { WorkbenchToolNavigation, useWorkbenchToolActions } from "./components/workbench-tool-navigation";
 import { InternalDeveloperModeGate } from "./components/internal-developer-mode-gate";
 import { useInternalDeveloperMode } from "./internal-developer-mode";
 import {
@@ -479,7 +479,7 @@ export function App({
   const managementSettingsOpen = settingsOpen
     && selectedSettingsContribution?.management !== undefined;
   const standaloneManagementOpen = managementSettingsOpen
-    && isLightVelaStandaloneManagementSection(settingsSection);
+    && isWorkbenchToolPage(selectedSettingsContribution);
   const routeSettingsOpen = settingsOpen && !managementSettingsOpen;
   // A target-management route is a modal semantic surface. The underlying
   // conversation keeps its physical shell and geometry, but is inert while
@@ -1401,7 +1401,7 @@ export function App({
   const selectSettingsSection = useCallback((section: string, mode?: "push" | "replace") => {
     workbenchNavigation.openSettings(section, mode);
   }, [workbenchNavigation]);
-  const workNavigationActions = useLightVelaWorkNavigationActions({
+  const workNavigationActions = useWorkbenchToolActions({
     section: standaloneManagementOpen ? settingsSection : null,
     extensionContributions: hostCatalog.extensionContributions,
     onSectionChange: selectSettingsSection,
@@ -1734,7 +1734,7 @@ export function App({
   );
   const sidebarManagementNavigation = useMemo(() =>
     !presentation.shellNavigation && (conversationRouteOpen || standaloneManagementOpen) ? (
-      <LightVelaWorkNavigation
+      <WorkbenchToolNavigation
         section={standaloneManagementOpen ? settingsSection : null}
         extensionContributions={hostCatalog.extensionContributions}
         onSectionChange={selectSettingsSection}
@@ -2139,7 +2139,7 @@ export function App({
           </div>
           </WorkbenchPresentationActivityProvider>
           {standaloneManagementOpen ? (
-            <section className="lightvela-management-route" aria-label="Account management">
+            <section className="workbench-tool-route" aria-label="Account management">
               {settingsContent}
             </section>
           ) : null}

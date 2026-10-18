@@ -499,6 +499,7 @@ Presentation plugin   semantic contribution projection, layout preference and in
 - `NavigationContribution` 定义 `sidebar-primary/sidebar-footer` 入口及语义 target；
 - `SidebarCatalogContribution` 引用 View，由宿主保留标题、折叠、滚动和间距所有权；
 - `SettingsPageContribution` 引用 View，由 Settings route 生成导航；
+  目标管理页可声明 `management.entryPoint: "workbench"`，表示它拥有应用级工具入口；未声明的管理页保留上下文管理行为。核心按声明投影导航和独立路由，不识别产品页面 ID。平台仍决定容器、响应式几何与滚动；入口共用贡献的语言、平台、audience、排序与激活生命周期。
 - `WorkbenchSurfaceContribution` 只声明特殊宿主 surface，目前仅有 `empty-workbench`。
 - `BotContribution` 只声明 Bot 身份、头像、可用性和打开动作；它不拥有任何 Sidebar DOM 或坐标。
 - `SidebarLayoutStore` 是 durable 置顶顺序的唯一所有者；Sidebar 根拥有拖拽事务、临时投影、磁力落点和滚动坐标系。
