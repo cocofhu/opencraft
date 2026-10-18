@@ -292,7 +292,7 @@ A 不修改正文回执格式、不开放本机 update、不实现 OAuth，也�
 | 实际 DSH `dsh-tool-skill` | 原生 pre-step 比较目录摘要并发布替代目录；工具调用按 scope/cwd 读取正文 | 名称/描述不变的正文更新通知、完整 Artifact 固定版本 |
 | OpenCraft Local DSH | 阶段 A 的同层 Provider、直接 invalidate、步骤对账与通知已经隔离 DSH 验证，见 7.2 | 所有自定义 preset、未接桥的外部 DSH、正文热更新、本机 update 和已安装桌面包同步生效 |
 
-可定位的参考入口（以下路径相对 mono2 根，未提交参考文件不影响本文的目标契约）：
+可定位的参考入口（以下路径相对下游仓库根，未提交参考文件不影响本文的目标契约）：
 
 - `ref/codex/shared/use-skills-07500.ts`
 - `ref/codex/shared/refresh-host-skills-07524.ts`

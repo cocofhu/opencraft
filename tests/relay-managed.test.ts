@@ -19,10 +19,10 @@ for (const admission of ['explicit', 'verified-provider'] as const) test(`manage
   const cleanup:(()=>unknown)[]=[];t.after(async()=>{for(const close of cleanup.reverse())await close();});
   const dir=await mkdtemp(join(tmpdir(),'managed-relay-'));cleanup.push(()=>rm(dir,{recursive:true,force:true}));
   const pair=generateKeyPairSync('ed25519'),publicKey=pair.publicKey.export({format:'pem',type:'spki'}).toString(),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'}).toString();
-  const scope={issuer:'managed-test',instanceId:'team',origin:'http://team.test'},principal={provider:'tencentoa',subject:'person',displayName:'Person',expiresAt:Date.now()+60_000};
+  const scope={issuer:'managed-test',instanceId:'team',origin:'http://team.test'},principal={provider:'enterprise-identity',subject:'person',displayName:'Person',expiresAt:Date.now()+60_000};
   const store=new MembershipStore(join(dir,'members.sqlite'));cleanup.push(()=>store.close());if(admission==='explicit')store.set(principal,'member',true,'test-admin');
   const root=join(dir,'web');await mkdir(root);await writeFile(join(root,'index.html'),'Protected workbench');
-  const core=await createWorkbenchWebServer({root,appServerTarget:null,loopbackOnly:true,accessService:new InstanceAccess(store,[new AssertionProvider(scope,publicKey)],undefined,admission==='verified-provider'?['tencentoa']:[]),desktopService:{accept(ws:WebSocket){ws.send('ready');},close(){}}});cleanup.push(()=>core.close());
+  const core=await createWorkbenchWebServer({root,appServerTarget:null,loopbackOnly:true,accessService:new InstanceAccess(store,[new AssertionProvider(scope,publicKey)],undefined,admission==='verified-provider'?['enterprise-identity']:[]),desktopService:{accept(ws:WebSocket){ws.send('ready');},close(){}}});cleanup.push(()=>core.close());
   const coreAddress=await core.listen({host:'127.0.0.1',port:0});
   const credential=randomBytes(32).toString('base64url');
   const relay=createRelayServer([{...scope,credential,signer:new AssertionSigner(scope,privateKey),identityProvider:{authenticate:req=>req.headers['x-test-auth']==='yes'?principal:null}}]);cleanup.push(()=>relay.close());relay.server.listen(0,'127.0.0.1');await once(relay.server,'listening');

@@ -48,7 +48,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 900 }, hasTouch: width === 390 });
     const errors: string[] = [], identityRequests: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
-    page.on("request", request => { if (/tencentoa.*session|identity.*session/.test(request.url())) identityRequests.push(request.url()); });
+    page.on("request", request => { if (/enterprise-identity.*session|identity.*session/.test(request.url())) identityRequests.push(request.url()); });
     await page.goto(server.resolvedUrls!.local[0]!);
     await page.locator('[data-pending-conversation-phase="submitting"]').waitFor();
     const show = async (sample: string, phase = "submitting", normal = false) => {

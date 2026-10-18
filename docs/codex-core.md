@@ -80,7 +80,7 @@ npm run check:boundaries
 
 线上只做不触发推理的健康、身份与菜单检查。真实任务连续性单独获得授权；合成推理不替代真实 OAuth、外部模型、全部工具或桌面呈现验收。
 
-受管 Headless 显式 raw core/mono2 overlay 接入见 [受管 Headless](join-managed-headless.md)，不改变其他部署默认模式。
+受管 Headless 显式 raw core/downstream overlay 接入见 [受管 Headless](managed-headless.md)，不改变其他部署默认模式。
 
 
 ## 网页就绪与 Host 就绪

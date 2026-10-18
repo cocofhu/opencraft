@@ -251,7 +251,7 @@ ipcMain.handle("opencraft:ui-preference-compare-and-set", (event, key: unknown, 
   return result;
 });
 
-ipcMain.handle("vela:lightvela-login", async (event, region: unknown) => {
+ipcMain.handle("opencraft:lightvela-login", async (event, region: unknown) => {
   if (!trustedLoginCaller(event)) return { ok: false, error: "Untrusted login caller" };
   if (region !== "cn" && region !== "intl") return { ok: false, error: "Invalid login region" };
   try {
@@ -268,7 +268,7 @@ ipcMain.handle("vela:lightvela-login", async (event, region: unknown) => {
     return { ok: false, error: error instanceof Error ? error.message : "Could not start login" };
   }
 });
-ipcMain.handle("vela:lightvela-login-cancel", event => { if (trustedLoginCaller(event)) desktopLogin.cancel(); });
+ipcMain.handle("opencraft:lightvela-login-cancel", event => { if (trustedLoginCaller(event)) desktopLogin.cancel(); });
 ipcMain.handle("vela:lightvela-session-read", event => trustedLoginCaller(event) ? desktopSessions.read() : null);
 const browserMetadataKeys = new Set(["vela.browser-pages.v1", "vela.browser-tabs.v1", "opencraft.browser-storage.v1", "vela.conversation-bindings.v1", "opencraft.browser-retired-storage.v1"]);
 const readBrowserMetadata = (): Record<string, string> => {

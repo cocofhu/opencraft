@@ -188,11 +188,11 @@ configuration currently signs with its development keystore. This is suitable
 only for internal installation; it is not a Play Store signing or publication
 contract. `.github/workflows/android-internal-apk.yml` exposes a manual build
 and downloadable Actions artifact after this subtree reaches the standalone
-GitHub mirror; the nested workflow does not run in mono2. The local
+GitHub mirror; the nested workflow does not run downstream. The local
 requirements and install command are in `apps/workbench-expo/README.md`.
 
 The public Android release target uses the public Expo configuration (the legacy
-development identifier remains `dev.vela.workbench`). It requires a
+development identifier remains `dev.opencraft.workbench`). It requires a
 repository-external production keystore, verifies the package ID and APK
 signature against that keystore, and writes both the APK and filing values.
 It never falls back to the internal development key. Private Vela release IDs,
@@ -212,7 +212,7 @@ native packages pass, then enters the `macos-release` Environment for signing,
 notarization and final packaging. Manual runs are accepted only from `main`;
 version tags matching `v*` additionally publish a GitHub Release.
 
-The standalone core must not resolve mono2-parent `file:` dependencies. The Vela
+The standalone core must not resolve downstream-parent `file:` dependencies. The Vela
 snapshots of `lightvela-agent-core`, `vela-chat-client-core` and Collaboration now
 belong to downstream `products/vela/packages`, with their generator and checks in
 that product. Run its `sync:shared-packages` when a corresponding `shared/`
@@ -220,13 +220,13 @@ authority changes, then `check:shared-packages`; the product owns these aliases
 and the original generators. Public core contains no private compatibility CLI. Existing snapshot drift is reported
 separately rather than silently regenerating current styling.
 
-For mono2 builds, file-linked Collaboration sources outside `opencraft/` resolve
+For downstream builds, file-linked Collaboration sources outside `opencraft/` resolve
 `@lightvela/vela-chat-client-core`, `@tencentcloud/chat` and `tim-upload-plugin`
 from the workbench-owned dependency graph via Vite deduplication. Keep the
 canonical chat package's messaging/platform subpath exports in its generated
 snapshot; do not externalize those imports to make a release build succeed.
 Verify the downstream product's `build:embedded:release` after changing either boundary.
-This mono2 build check is not standalone-mirror qualification.
+This downstream build check is not standalone-mirror qualification.
 
 Private Web presets and release aliases belong to downstream products, outside
 this public matrix. A trusted product Vite config composes the exported
@@ -572,7 +572,7 @@ public npm access, supported hot-update scope and browser refresh.
 
 ### Downstream identity verification
 
-The public workspace has no IOA package dependency or private test command. A
+The public workspace has no enterprise identity package dependency or private test command. A
 product that selects an enterprise factory owns its package installation, type
 checks, catalogs and integration tests before invoking the public build tools.
 Core tests continue to verify generic authorization with a signed synthetic

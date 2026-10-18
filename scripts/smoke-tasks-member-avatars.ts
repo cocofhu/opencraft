@@ -29,11 +29,11 @@ try {
       const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", error => errors.push(error.message));
       await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system")); await page.emulateMedia({ colorScheme: theme });
       // External identity service and image network are the only browser substitutes.
-      await page.route("**/__opencraft_tencentoa/session", route => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ available: true, identity: null }) }));
+      await page.route("**/__opencraft_enterprise_identity/session", route => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ available: true, identity: null }) }));
       const photos: string[] = [];
       let releasePhoto!: () => void;
       const pendingPhoto = new Promise<void>(resolve => { releasePhoto = resolve; });
-      await page.route("https://rhrc.woa.com/photo/150/**", async route => {
+      await page.route("https://directory.example.com/photo/150/**", async route => {
         photos.push(route.request().url());
         if (route.request().url().endsWith("employee.alex.png")) {
           await pendingPhoto;
@@ -113,8 +113,8 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
   try {
     const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", error => errors.push(error.message));
-    await page.route("**/__opencraft_tencentoa/session", route => route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ available: false, identity: null }) }));
-    let photoRequests = 0; await page.route("https://rhrc.woa.com/photo/150/**", route => { photoRequests++; return route.abort(); });
+    await page.route("**/__opencraft_enterprise_identity/session", route => route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ available: false, identity: null }) }));
+    let photoRequests = 0; await page.route("https://directory.example.com/photo/150/**", route => { photoRequests++; return route.abort(); });
     await page.goto(server.url + "/views/opencraft.tasks.board"); const card = page.locator('.tasks-card[data-task-id="task-1"]'); await card.waitFor();
     assert.equal(await card.locator(".tasks-avatar").textContent(), "BR"); assert.equal(await page.locator(".tasks-avatar img").count(), 0);
     await page.locator('.tasks-card[data-task-id="task-0"] .tasks-card__title').click();

@@ -38,7 +38,7 @@ try {
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}`);
   const host = page.locator("#host");
   await host.locator('[data-fixture="first"] .thread-user-message__sender').waitFor();
-  assert.deepEqual(await host.locator('.thread-user-message__sender').allTextContents(), ["skipzhang", "alexli", "skipzhang"]);
+  assert.deepEqual(await host.locator('.thread-user-message__sender').allTextContents(), ["alice", "bob", "alice"]);
   assert.equal(await host.locator('[data-fixture="anonymous"] .thread-user-message__sender').count(), 0);
   for (const width of [1200, 390]) {
     await page.setViewportSize({ width, height: 900 });

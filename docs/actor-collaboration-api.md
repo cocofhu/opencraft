@@ -4,7 +4,7 @@ Headless 的首期协作闭环：已认证自然人和 Session 共用消息、�
 
 ## 身份与授权
 
-所有请求位于 `/__opencraft_actors/collaboration/`。人类沿用已配置的本地、OIDC 或 IOA 登录与实例准入；Session 使用核心签发的 `Authorization: Bearer <token>`。匿名请求拒绝。请求体不能指定作者或当前行动者；核心从认证入口建立 ActorContext。人类 POST 需要匹配可信入口的 Origin；Session bearer POST 不依赖浏览器 Cookie。请求体限制为 UTF-8 JSON、64 KiB。
+所有请求位于 `/__opencraft_actors/collaboration/`。人类沿用已配置的本地、OIDC 或 企业身份 登录与实例准入；Session 使用核心签发的 `Authorization: Bearer <token>`。匿名请求拒绝。请求体不能指定作者或当前行动者；核心从认证入口建立 ActorContext。人类 POST 需要匹配可信入口的 Origin；Session bearer POST 不依赖浏览器 Cookie。请求体限制为 UTF-8 JSON、64 KiB。
 
 调用者必须获得针对目标 Actor 的显式授权：
 

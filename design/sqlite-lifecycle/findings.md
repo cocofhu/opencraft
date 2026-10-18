@@ -33,7 +33,7 @@
 - 真实Electron两次重启使用不同origin，真实模块插件通过SDK递增持久数据，安装记录由Main SQLite恢复；没有使用现有用户profile。
 - 真实Chromium两标签覆盖CAS/广播、生产factory旧库导入、Cordis清理真实Worker、较新数据拒绝旧实例和原生versionchange关闭。
 - 显式缺口：不枚举其他历史随机origin；没有签名新发行包；通用Host文档API、字段schemaVersion通用转换、其他既有数据库备份迁移未做。迁移checksum是制品声明校验，不是新打包器源码完整性证明。
-- 过程错误：一次npm命令在mono2根导致workspace不存在，改为opencraft根；Electron NodeNext不能导入整个renderer式runtime barrel，改为纯persistence子入口；一处fixture版本1不合法，改1.0.0；Electron异步waitForFunction等待不足，改为外层IPC权威读取轮询；两个apply_patch上下文/同文件操作校验失败，拆分后成功，未盲重试。
+- 过程错误：一次npm命令在仓库根导致workspace不存在，改为opencraft根；Electron NodeNext不能导入整个renderer式runtime barrel，改为纯persistence子入口；一处fixture版本1不合法，改1.0.0；Electron异步waitForFunction等待不足，改为外层IPC权威读取轮询；两个apply_patch上下文/同文件操作校验失败，拆分后成功，未盲重试。
 
 ## Host 文档实施事实
 - document-storage 是新增仓内共享包，无第三方依赖；纯contract和/sqlite分入口。Electron原SQLite实现移入共享包，基线SQL/hash不变，不重写历史或跨库搬数据。

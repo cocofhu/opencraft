@@ -14,7 +14,7 @@ function fixture() {
   return { query, stop, emit: (method: string, params: unknown) => receive({ method, params }) };
 }
 const key = ["appserver", "local", "threads", "sidebar"];
-const page = (type: string) => ({ data: [{ id: "pinned", name: "Pinned", preview: "", cwd: "/work/mono2", updatedAt: 1,
+const page = (type: string) => ({ data: [{ id: "pinned", name: "Pinned", preview: "", cwd: "/work/opencraft", updatedAt: 1,
   parentThreadId: null, forkedFromId: null, pinned: true, status: { type, ...(type === "active" ? { activeFlags: [] } : {}) } }], nextCursor: null });
 
 test("status event cancels an idle first read and refetches instead of reusing it", async () => {

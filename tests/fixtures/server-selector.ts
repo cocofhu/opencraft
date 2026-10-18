@@ -33,7 +33,7 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
   const pair=generateKeyPairSync('ed25519'),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'}).toString(),publicKey=pair.publicKey.export({format:'pem',type:'spki'}).toString();
   const reserve=createServer();reserve.listen(0,'127.0.0.1');await once(reserve,'listening');const port=(reserve.address() as any).port;await new Promise<void>(r=>reserve.close(()=>r()));
   const base=`http://127.0.0.1:${port}`,origin=`http://entry.selection.test:${port}`,host=new URL(origin).host;
-  const principals=Object.fromEntries(['alice','bob','carol'].map((name,index)=>[name,{provider:'tencentoa',subject:String(101+index),displayName:name,aliases:['login:'+name],attributes:{loginName:name},expiresAt:Date.now()+3600_000}]));
+  const principals=Object.fromEntries(['alice','bob','carol'].map((name,index)=>[name,{provider:'enterprise-identity',subject:String(101+index),displayName:name,aliases:['login:'+name],attributes:{loginName:name},expiresAt:Date.now()+3600_000}]));
   const provider={authenticate:(req:any)=>principals[String(req.headers['x-fixture-user'])]??null};
   const routes:any[]=[],stores:MembershipStore[]=[],clients:ReturnType<typeof connectRelay>[]=[],targets:any[]=[];
   for(const id of ['join','lighthouse']) {
@@ -65,7 +65,7 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
     target.listen(0,'127.0.0.1');await once(target,'listening');cleanup.push(()=>new Promise<void>(r=>{target.close(()=>r());target.closeAllConnections();}));
     const route={...scope,name:id==='join'?(options.entryName??'Join'):'Lighthouse',credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,privateKey),identityProvider:provider};routes.push(route);targets.push((target.address() as any).port);
   }
-  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'tencentoa',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
+  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
   for(let i=0;i<routes.length;i++)clients.push(connectRelay({relay:base,credential:routes[i]!.credential,targetPort:targets[i],allowLoopbackInsecure:true}));cleanup.push(()=>clients.forEach(c=>c.close()));
   await waitFor(()=>routes.every(r=>relay.connected(r.instanceId)));
   const get=(path:string,headers:Record<string,string>={},method='GET',body?:Buffer)=>virtualFetch(base+path,{headers:{host,...headers},method,body});

@@ -9,7 +9,7 @@ function thread(overrides: Partial<Thread>): Thread {
     id: "01a0473e-1f50-7a56-a9af-d656b84deb09",
     name: "☁️ skip发布运维用",
     preview: "skip发布运维用",
-    cwd: "/data/mono2",
+    cwd: "/data/opencraft",
     updatedAt: 100,
     status: { type: "idle" },
     forkedFromId: null,
@@ -24,7 +24,7 @@ test("same-title root, fork and subagent Threads retain visible lineage identity
   const subagent = projectAppServerThread(thread({ parentThreadId: "parent-thread" }), 100_000);
 
   assert.equal(root.title, "skip发布运维用");
-  assert.equal(root.project, "mono2");
+  assert.equal(root.project, "opencraft");
   assert.equal(root.lineage, "root");
   assert.equal(fork.lineage, "fork");
   assert.equal(subagent.lineage, "subagent");

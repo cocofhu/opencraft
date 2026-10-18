@@ -19,7 +19,7 @@ const now=Date.now()/1000;
 const local=threadServerOrigin({serverId:'local-server',label:'Local'});
 const hermes=threadServerOrigin({serverId:'lightvela-hermes',label:'Hermes Cloud'});
 const ssh=threadServerOrigin({serverId:'ssh-server:9.134.163.40',label:'Remote SSH'});
-const base={project:'mono2',lineage:'root',time:'now',updatedAt:now,unread:false};
+const base={project:'opencraft',lineage:'root',time:'now',updatedAt:now,unread:false};
 const threads=[
  {...base,id:'local',title:'Local task',status:'ready',connectionHostId:'local',connectionHostLabel:'Local',serverOrigin:local,serverRouteLocality:'local'},
  {...base,id:'hermes-running',title:'Hermes running',status:'running',updatedAt:now-1,connectionHostId:'hermes-route-a',connectionHostLabel:'Hermes route',serverOrigin:hermes,serverRouteLocality:'remote'},
@@ -45,7 +45,7 @@ try {
   assert.equal(await page.locator('.sidebar-activity-item__server-origin,.sidebar-activity-item__server-dot').count(),0);
   assert.equal(await page.locator('.sidebar-activity-item__project').count(),4);
   const projects = await page.locator('.sidebar-activity-item__project').allTextContents();
-  assert.deepEqual(projects,['mono2','mono2','mono2','mono2']);
+  assert.deepEqual(projects,['opencraft','opencraft','opencraft','opencraft']);
   const trailing = await page.locator('.sidebar-activity-item__trailing').evaluateAll((nodes: HTMLElement[]) => nodes.map(node => node.getBoundingClientRect().width));
   assert.ok(trailing.every(width => Math.abs(width - 18) < 1), JSON.stringify(trailing));
   assert.equal(await page.getByText('Hermes Cloud', { exact: true }).count(), 0);

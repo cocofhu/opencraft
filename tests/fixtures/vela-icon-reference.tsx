@@ -1,4 +1,4 @@
-// Actual components at mono2 443554e0ba2e56ee5b8652e810024451fa1028ab. Test-only visual oracle.
+// Actual components at the fixed pre-import downstream revision. Test-only visual oracle.
 import { Blocks, Bot, Cloud, Columns3, Database, Folder, HardDrive, LayoutGrid, MessageCircle, MessageSquare, Server, Settings, SquarePen, type LucideIcon } from "lucide-react";
 import { createElement } from "react";
 

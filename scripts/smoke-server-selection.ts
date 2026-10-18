@@ -48,7 +48,7 @@ try{
   const logout=await page.evaluate(()=>fetch('/__opencraft_relay/logout',{method:'POST'}).then(r=>r.status));assert.equal(logout,204);
   await context.setExtraHTTPHeaders({'x-fixture-user':'bob'});await page.goto(fixture.origin);await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
   assert.equal(await page.locator('[data-server="join"]').count(),1);assert.equal(await page.locator('[data-server="lighthouse"]').count(),0);
-  const escaped=requests.filter(path=>/^(?:\/assets\/|\/apphost|\/appserver|\/__opencraft_access|\/__opencraft_tencentoa|\/__opencraft_ssh|\/__opencraft_updates|\/opencraft-icon\.svg)/u.test(path));assert.deepEqual(escaped,[],'business requests and assets stay under the selected target');
+  const escaped=requests.filter(path=>/^(?:\/assets\/|\/apphost|\/appserver|\/__opencraft_access|\/__opencraft_enterprise_identity|\/__opencraft_ssh|\/__opencraft_updates|\/opencraft-icon\.svg)/u.test(path));assert.deepEqual(escaped,[],'business requests and assets stay under the selected target');
   assert.ok(sockets.some(x=>x.startsWith('/servers/lighthouse/apphost')));assert.ok(sockets.some(x=>x.startsWith('/servers/join/apphost')));
   await page.locator('[data-server="join"]').click();await page.locator('[data-action-id]').first().waitFor();
   fixture.clients[0]!.close();await waitFor(()=>!fixture.relay.connected('join'));

@@ -60,7 +60,7 @@ test("three hosts agree on branding but retain installed application identity", 
   assert.equal(electron.devDependencies.electron, "44.1.0");
   assert.equal(expo.name, desktopProduct.displayName);
   assert.equal(expo.scheme, "opencraft");
-  assert.equal(expo.ios.bundleIdentifier, "dev.vela.workbench");
+  assert.equal(expo.ios.bundleIdentifier, "dev.opencraft.workbench");
   assert.match(read("apps/workbench-web/index.html"), /<title>OpenCraft<\/title>/u);
   assert.equal(desktopProduct.profileDirectoryName, "OpenCraft");
   assert.deepEqual(desktopProduct.legacyProfileDirectoryNames, ["@vela/workbench-electron"]);

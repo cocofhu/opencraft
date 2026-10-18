@@ -1,18 +1,18 @@
 # Ordinary relay deployment
 
-OpenCraft can run directly or connect outward to an independently deployed Node relay. The relay lives in `apps/relay-server` in this repository and builds separately; instance connectivity is optional `plugins/relay-connect`. `packages/identity-core` defines verified identity and scoped assertions, `packages/access-control` owns instance membership, and `plugins/tencentoa` owns IOA verification and employee-specific presentation. Removing an identity plugin leaves an enabled core admission policy closed.
+OpenCraft can run directly or connect outward to an independently deployed Node relay. The relay lives in `apps/relay-server` in this repository and builds separately; instance connectivity is optional `plugins/relay-connect`. `packages/identity-core` defines verified identity and scoped assertions, `packages/access-control` owns instance membership, and `plugins/enterprise-identity` owns enterprise identity verification and employee-specific presentation. Removing an identity plugin leaves an enabled core admission policy closed.
 
 The first release forwards ordinary HTTP and WebSocket traffic, including streamed responses and uploads. The relay operator can see application traffic. TLS protects each transport hop; this is not E2EE. A team can choose its department relay or a shared company relay. Relays have separate credentials, keys, sessions and route registries; instances never automatically fall back to another relay.
 
-## One IOA entry, independently owned instances
+## One enterprise identity entry, independently owned instances
 
-Only `authenticationOrigin` needs an approved IOA entry. A team address redirects document navigation there, verifies employee identity through the IOA plugin, then returns a single-use, short-lived handoff ticket. The callback also requires the initiating browser's host-only login cookie. It establishes a host-only, HttpOnly session for that team origin; tickets and sessions are bound to the configured instance and origin. API/WS requests without a session return 401 rather than HTML redirects.
+Only `authenticationOrigin` needs an approved enterprise identity entry. A team address redirects document navigation there, verifies employee identity through the enterprise identity plugin, then returns a single-use, short-lived handoff ticket. The callback also requires the initiating browser's host-only login cookie. It establishes a host-only, HttpOnly session for that team origin; tickets and sessions are bound to the configured instance and origin. API/WS requests without a session return 401 rather than HTML redirects.
 
-Team addresses still need DNS and TLS. A relay operator can provision wildcard DNS/certificates once, then enroll team subdomains without each team applying for an IOA application/domain. Wildcard IOA registration is unnecessary with the fixed authentication origin. Availability and approval policy of a company's actual IOA gateway must still be verified by its operator. The relay is not an organization directory or a SaaS business-data service.
+Team addresses still need DNS and TLS. A relay operator can provision wildcard DNS/certificates once, then enroll team subdomains without each team applying for an enterprise identity application/domain. Wildcard enterprise identity registration is unnecessary with the fixed authentication origin. Availability and approval policy of a company's actual enterprise identity gateway must still be verified by its operator. The relay is not an organization directory or a SaaS business-data service.
 
-An instance only trusts a pinned relay issuer/public key and its own instance/origin scope. Ed25519 assertions bind the verified provider/subject to the HTTP method, exact path, instance, origin, expiry and single-use nonce. Managed document probes use the exact core GET admission endpoint and preserve the originally signed method and path. Trusted product startup may declare additional exact compatibility probe paths through `relayAssertionOptions.additionalAdmissionProbePaths`; the generic default has none. This list is copied and validated at provider construction, is never read from relay JSON or HTTP, and does not change signature, nonce, expiry or membership checks. The relay strips incoming assertion/IOA headers. Each request is authorized again against the instance-owned member database. The relay's enrollment credential grants tunnel connectivity, not team administrator permissions.
+An instance only trusts a pinned relay issuer/public key and its own instance/origin scope. Ed25519 assertions bind the verified provider/subject to the HTTP method, exact path, instance, origin, expiry and single-use nonce. Managed document probes use the exact core GET admission endpoint and preserve the originally signed method and path. Trusted product startup may declare additional exact compatibility probe paths through `relayAssertionOptions.additionalAdmissionProbePaths`; the generic default has none. This list is copied and validated at provider construction, is never read from relay JSON or HTTP, and does not change signature, nonce, expiry or membership checks. The relay strips incoming assertion/enterprise identity headers. Each request is authorized again against the instance-owned member database. The relay's enrollment credential grants tunnel connectivity, not team administrator permissions.
 
-The legacy connector remains supported. The Hub network additionally implements bounded multi-hop HTTP/WS transport with stable node identity, connection-scoped routing epochs and explicit forwarding policies. This transport slice does not implement general cross-Hub Actor registration, resource federation or per-resource tenant isolation. Trusting the IOA adapter and its pinned assertion key is an explicit identity trust configuration; tunnel enrollment alone never grants that trust or membership.
+The legacy connector remains supported. The Hub network additionally implements bounded multi-hop HTTP/WS transport with stable node identity, connection-scoped routing epochs and explicit forwarding policies. This transport slice does not implement general cross-Hub Actor registration, resource federation or per-resource tenant isolation. Trusting the enterprise identity adapter and its pinned assertion key is an explicit identity trust configuration; tunnel enrollment alone never grants that trust or membership.
 
 The relay is also a trusted identity issuer: a malicious operator holding its signing key can impersonate an admitted employee. Key pinning and local membership constrain the trust relationship but cannot protect against that issuer itself. Teams requiring a different trust boundary should deploy their own department relay.
 
@@ -73,7 +73,7 @@ login cookies and other instances' cookies are never forwarded. Uploads, SSE and
 binary responses remain streams; only HTML documents are buffered (maximum 2 MiB)
 to inject context. Update/deployment control paths remain unavailable.
 
-This mode reuses the existing entry DNS/TLS/IOA configuration; no target DNS record
+This mode reuses the existing entry DNS/TLS/enterprise identity configuration; no target DNS record
 is required. The enrolled target origin remains a virtual identity audience.
 Both relay and target Workbench must be upgraded together before enabling it.
 Target membership/admin stores remain authoritative and independent; relay
@@ -117,7 +117,7 @@ All JSON configurations below must be owner-only regular files (0600), with abso
 }
 ```
 
-Terminate HTTPS at a trusted ingress with a loopback relay backend, or configure `tlsCertFile` and `tlsKeyFile` for native HTTPS. A non-loopback plain HTTP listener requires explicit `tlsTermination: "trusted-proxy"`; restrict its network access to that ingress. The TLS gateway is part of the trust boundary and must preserve the public Host and IOA headers only from the real identity gateway. Configure gateway header/body/connection limits. The application limits each instance to 128 concurrent streams, bounded stream buffers, 10-second tunnel acquisition, 30/60-second response establishment, and a one-hour stream lifetime. Long sessions reconnect normally; request bodies and non-HTML responses stream without full buffering.
+Terminate HTTPS at a trusted ingress with a loopback relay backend, or configure `tlsCertFile` and `tlsKeyFile` for native HTTPS. A non-loopback plain HTTP listener requires explicit `tlsTermination: "trusted-proxy"`; restrict its network access to that ingress. The TLS gateway is part of the trust boundary and must preserve the public Host and enterprise identity headers only from the real identity gateway. Configure gateway header/body/connection limits. The application limits each instance to 128 concurrent streams, bounded stream buffers, 10-second tunnel acquisition, 30/60-second response establishment, and a one-hour stream lifetime. Long sessions reconnect normally; request bodies and non-HTML responses stream without full buffering.
 
 The instance connection configuration contains only:
 
@@ -133,7 +133,7 @@ The instance connection configuration contains only:
 }
 ```
 
-Start the instance with `--relay-connect-file /private/connection.json`. This enables core membership even without an IOA application token on that instance. The local target defaults to the instance listener. For an installation with a separate managed static entry, an operator may pin `targetPort` to that entry's loopback port. A relay cannot choose the target, tunnel to arbitrary services, or export the managed update endpoints. Keep updater access on a protected management route; membership admin is separate from software deployment authority.
+Start the instance with `--relay-connect-file /private/connection.json`. This enables core membership even without an enterprise identity application token on that instance. The local target defaults to the instance listener. For an installation with a separate managed static entry, an operator may pin `targetPort` to that entry's loopback port. A relay cannot choose the target, tunnel to arbitrary services, or export the managed update endpoints. Keep updater access on a protected management route; membership admin is separate from software deployment authority.
 
 `allowLoopbackInsecure: true` permits only an explicit `http://127.0.0.1:PORT` relay for local tests or a relay on the same machine. Network connections require HTTPS and normal certificate verification; optional absolute `caFile` adds a private company CA bundle without disabling verification. Enrollment is administrator maintained in the relay's configuration; adding/removing a route or rotating its credential requires restarting the relay. Run one connector per instance credential. Relay restart drops sessions/tunnels and requires employee sign-in again, with no application database changes.
 
@@ -148,7 +148,7 @@ configuration when no adapter is supplied. It never imports a module named by
 JSON or silently ignores private fields. Declared providers constrain principals
 returned by the adapter; core authorization at each target remains authoritative.
 
-The IOA configuration illustrated above belongs to a downstream product entry,
+The enterprise identity configuration illustrated above belongs to a downstream product entry,
 which bundles its identity adapter explicitly via the `relayEntry` parameter of
 `packageRelay` or `packageWebServer`. The product owns that schema and plugin
 creation. Trusted external product entries use normal dependency resolution
@@ -158,7 +158,7 @@ Hub routing. Existing product artifacts retain their `relay.mjs` interface.
 Choose the product artifact for enterprise login tests below; the default core
 artifact deliberately rejects unrecognized product configuration.
 
-## Bootstrap a new team without its own IOA application
+## Bootstrap a new team without its own enterprise identity application
 
 Before the team's first Headless startup, inspect/import its invitation using the
 bundled offline machine-owner command. It uses the same core commands as settings
@@ -179,10 +179,10 @@ only the state path prints a credential-free snapshot.
 
 Bootstrap a member/admin using `access-admin.mjs` below, and start Headless with
 that same data root and `--access-control`. Persisted Hub identity trust and
-published origin enable target admission without a separate IOA token or legacy
+published origin enable target admission without a separate enterprise identity token or legacy
 connector configuration on the team. An explicit
-`--access-member-provider tencentoa` may admit all verified employees when that is
-the team's policy; administrator grants stay explicit. The approved IOA entry
+`--access-member-provider enterprise-identity` may admit all verified employees when that is
+the team's policy; administrator grants stay explicit. The approved enterprise identity entry
 still runs only at the original relay. Later node administration uses settings.
 
 ## Member administration
@@ -192,19 +192,19 @@ The authoritative store is `memberships.sqlite` under the instance data director
 Bootstrap/recover administrators from the instance machine using the independently bundled administration command:
 
 ```sh
-node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant tencentoa STAFF_ID admin
-node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant tencentoa STAFF_ID member
-node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite revoke tencentoa STAFF_ID member
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant enterprise-identity STAFF_ID admin
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant enterprise-identity STAFF_ID member
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite revoke enterprise-identity STAFF_ID member
 node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite list
 node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite audit
 ```
 
-IOA's immutable numeric staff ID is the principal subject; login name is display/legacy enrollment input. For initial name-based enrollment, grant `tencentoa login:employee.name member` (lowercase). The first verified sign-in binds that grant to the stable staff ID and consumes the name grant. Later account rename/reuse does not transfer an already bound grant. Revoking a stable subject always wins over an old name grant. Administrators should subsequently manage the stable subject shown in the member list/session API.
+enterprise identity's immutable numeric staff ID is the principal subject; login name is display/legacy enrollment input. For initial name-based enrollment, grant `enterprise-identity login:employee.name member` (lowercase). The first verified sign-in binds that grant to the stable staff ID and consumes the name grant. Later account rename/reuse does not transfer an already bound grant. Revoking a stable subject always wins over an old name grant. Administrators should subsequently manage the stable subject shown in the member list/session API.
 
 The core also exposes authenticated `GET /__opencraft_access/session`, admin-only `GET/POST /__opencraft_access/members` and `GET /__opencraft_access/audit`. POST requires matching Origin, JSON and `{provider,subject,role,enabled}`; remote self-removal is rejected. Local machine administration is the recovery authority and its audit operator is recorded as `local-operator`, not a fabricated employee. There is no organization synchronization.
 
 For an installation that admits every verified employee, explicitly configure
-`--access-member-provider tencentoa` on the instance. Only identities verified by
+`--access-member-provider enterprise-identity` on the instance. Only identities verified by
 the configured provider/assertion trust receive an implicit ordinary member role;
 anonymous requests and other providers stay denied. Existing administrators retain
 their role. Explicit stable-subject/Actor membership revocation and disabled Actors
@@ -213,18 +213,18 @@ so restarting without this option removes default access without leaving permane
 The default installation remains explicit-member-only. This option never disables
 signature, scope, expiry, relay admission or resource authorization checks.
 
-Existing `--tencentoa-allowlist-file` installations import their validated names once into core storage. Subsequent administration uses the core store; editing the old file does not resurrect revoked accounts. An empty policy denies everyone. Removing a provider does not turn off `--access-control` or relay membership. HTTP admission is checked for every request, and open HTTP/WS sessions are checked on a 500ms revocation poll (subject to event-loop scheduling); revoked WS clients lose message delivery and are forcibly disconnected even if they ignore the close handshake; native engine work can continue under its existing independent execution contract.
+Existing `--enterprise-identity-allowlist-file` installations import their validated names once into core storage. Subsequent administration uses the core store; editing the old file does not resurrect revoked accounts. An empty policy denies everyone. Removing a provider does not turn off `--access-control` or relay membership. HTTP admission is checked for every request, and open HTTP/WS sessions are checked on a 500ms revocation poll (subject to event-loop scheduling); revoked WS clients lose message delivery and are forcibly disconnected even if they ignore the close handshake; native engine work can continue under its existing independent execution contract.
 
 ## Validate without a registered domain
 
 ```sh
 npm run test:relay
-npm run test:tencentoa
+npm run test:enterprise-identity
 npm run test:headless-server
 npm run smoke:relay
 ```
 
-Use `.test` names resolved locally and a trusted local test CA for browser HTTPS/cookie/redirect tests. No domain registration is needed. Keep synthetic IOA signing keys confined to the test boundary; success does not establish that a real corporate gateway forwards the right headers. Separately verify actual employee login through the approved existing entry.
+Use `.test` names resolved locally and a trusted local test CA for browser HTTPS/cookie/redirect tests. No domain registration is needed. Keep synthetic enterprise identity signing keys confined to the test boundary; success does not establish that a real corporate gateway forwards the right headers. Separately verify actual employee login through the approved existing entry.
 
 The optional browser smoke runs on a Linux test host with OpenSSL, NSS `certutil`
 and Playwright Chromium installed. It trusts its CA only in the isolated browser
@@ -254,7 +254,7 @@ fixed-source artifact without borrowing feature-branch files.
 In a Headless Web installation open **Settings → Hub network** as an instance
 administrator. The core owns node identity, routing, invitations and forwarding;
 `relay-protocol/node` supplies the same streaming duplex used by the ordinary
-relay. IOA validation remains in its identity plugin. The independently deployable
+relay. enterprise identity validation remains in its identity plugin. The independently deployable
 relay stays in this repository; no second server repository or SaaS control plane
 is required.
 
@@ -312,7 +312,7 @@ Optionally add the following to the existing private relay configuration:
 ```
 
 This is an additional peer-only native TLS listener. It reuses an existing DNS
-name with another reachable port if necessary; no new IOA browser entry is needed.
+name with another reachable port if necessary; no new enterprise identity browser entry is needed.
 The CA field is optional for a normally trusted certificate. A private CA is
 carried inside the signed invitation and used with normal hostname/certificate
 verification, never `rejectUnauthorized: false`. The endpoint configured in the
@@ -338,15 +338,15 @@ API to the loopback owner. The credential never reaches the browser. The relay's
 operator endpoint independently requires loopback and this credential; its public
 peer TLS listener does not expose it. Without the file Headless owns its own local
 Hub state. A configured invalid file fails startup rather than creating another
-identity. A relay configured as an IOA gateway has an operator-managed assertion authority and
+identity. A relay configured as an enterprise identity gateway has an operator-managed assertion authority and
 preserves legacy routes and the approved authentication origin. Only services
-explicitly trusting that same authority are published through its IOA gateway.
+explicitly trusting that same authority are published through its enterprise identity gateway.
 A department node serving only as a transit relay can omit all four gateway
 fields (`issuer`, `privateKey`, `tencentOaTokenFile`, `authenticationOrigin`) and set
 `routes: []`. Import the upstream invitation into its state with `hub-admin.mjs`
 before startup, then configure its incoming endpoint and issue downstream invites.
 It forwards the original issuer's scoped assertions without holding that issuer's
-private key or obtaining its own IOA application. The same binary supplies both
+private key or obtaining its own enterprise identity application. The same binary supplies both
 roles; partial gateway configuration is rejected.
 Changes to listener certificates, delegation or relay configuration require a
 service restart; ordinary invitation and policy changes use settings with revision
@@ -358,6 +358,6 @@ Run `npm run test:hub-network`, `npm run smoke:hub-network-settings` and
 `OPENCRAFT_HUB_RELAY_ARTIFACT=/absolute/output/relay/relay.mjs npm run smoke:hub-network`.
 The last smoke uses actual packaged relay code, two normally verified TLS hops,
 Chromium login handoff and target membership revocation, entirely with isolated
-`.test` names and synthetic IOA fixtures. Neither domain registration nor real
+`.test` names and synthetic enterprise identity fixtures. Neither domain registration nor real
 employee credentials are required. It proves the transport, not external firewall
-reachability or real corporate IOA gateway configuration.
+reachability or real corporate enterprise identity gateway configuration.

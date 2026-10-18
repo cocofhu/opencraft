@@ -1,7 +1,7 @@
-# Tencent OA employee identity
+# enterprise OA employee identity
 
-The optional `tencentoa.identity` plugin recognizes the employee authenticated by
-the site's TAI/TOF gateway. It registers an independent authentication provider
+The optional `enterprise.identity` plugin recognizes the employee authenticated by
+the site's enterprise identity gateway. It registers an independent authentication provider
 and an “员工身份” settings page. When configured, it owns the shared bottom-left
 account entrance: the verified employee login name and available employee photo are shown automatically, and
 clicking opens employee details and refresh. Without a verified identity the same
@@ -9,10 +9,10 @@ entrance is labelled “员工身份” and opens those details; no fixed login 
 separate OAuth flow is configured. The current site's gateway supplies identity
 headers on the same-origin session request.
 
-Footer selection uses explicit `entrancePriority` (Tencent OA: 100; existing
+Footer selection uses explicit `entrancePriority` (enterprise OA: 100; existing
 product accounts: 0). Equal priorities remain exclusive. This changes only the
 Shell presentation: LightVela's authentication, resources and account storage
-remain independently owned, and its entrance returns when Tencent OA unloads.
+remain independently owned, and its entrance returns when enterprise OA unloads.
 There is no employee logout control because this integration has no gateway
 logout contract. A 401 removes the displayed employee immediately. Local expiration
 revokes authentication while keeping bounded, previously verified display metadata
@@ -20,14 +20,14 @@ during revalidation; an open identity detail view remains available for refresh.
 
 ## Enablement
 
-Start the headless server with `--tencentoa-token-file /absolute/private/token`.
+Start the headless server with `--enterprise-identity-token-file /absolute/private/token`.
 The file must be a regular, non-symlink file owned by the server user, inaccessible
 to group/others (mode 0600). Its content is the application's raw 32-byte token;
 one trailing newline is accepted. No token is included in source or sent to the
 browser. Without configuration the endpoint returns 404 and the plugin contributes
 no settings page/provider. Invalid configuration stops startup.
 
-The deployment gateway must forward signed headers and `X-TAI-IDENTITY` on the
+The deployment gateway must forward signed headers and `X-ENTERPRISE-IDENTITY` on the
 same-origin session request. Do not expose decrypted payloads, complete headers,
 tokens or ciphertext in diagnostics. The preview is not automatically enabled by
 this source change.
@@ -35,14 +35,14 @@ this source change.
 ## Optional installation access allowlist
 
 Employee recognition and installation admission are separate decisions. Headless may
-add `--tencentoa-allowlist-file /absolute/private/employees.json` alongside its existing
-`--tencentoa-token-file`. This is a server-owned, regular, non-symlink 0600 file:
+add `--enterprise-identity-allowlist-file /absolute/private/employees.json` alongside its existing
+`--enterprise-identity-token-file`. This is a server-owned, regular, non-symlink 0600 file:
 
 ```json
 {"schemaVersion":1,"loginNames":["employee.one","employee.two"]}
 ```
 
-Names match verified IOA English login names exactly, ignoring ASCII case; no wildcards,
+Names match verified enterprise identity English login names exactly, ignoring ASCII case; no wildcards,
 groups, client-supplied identity or automatic administrator exception. Absence of the
 option preserves existing admission; a configured empty list denies everyone. Malformed,
 missing or insecure configuration fails startup instead of becoming unrestricted.
@@ -56,7 +56,7 @@ receives 403. The managed website checks document navigation with the Headless a
 endpoint before serving its static shell; static JS/CSS are public code and contain no
 employee data. Direct Headless access enforces the same policy. Health probes remain
 available, while existing deployment-administrator credentials still own website updates.
-An admitted socket expires at the verified identity deadline including existing TAI
+An admitted socket expires at the verified identity deadline including existing enterprise identity
 clock tolerance; reconnect must authenticate again. A confirmed 403 clears retained
 client identity just as 401 does. Denied document navigation shows a small retryable
 access page without loading application data; it never prints the list or private headers.
@@ -64,9 +64,9 @@ This gate does not assign per-conversation/resource permissions or change machin
 
 The server plugin implements the trusted `WorkbenchRequestIdentity` composition
 port. It owns employee sender mapping, expiration tolerance and provider HTTP
-routes; the generic gateway does not import IOA. Managed static navigation now
-probes the core `/__opencraft_access/admission` endpoint. A configured IOA plugin
-retains `/__opencraft_tencentoa/admission` for older managed workers, after core
+routes; the generic gateway does not import enterprise identity. Managed static navigation now
+probes the core `/__opencraft_access/admission` endpoint. A configured enterprise identity plugin
+retains `/__opencraft_enterprise_identity/admission` for older managed workers, after core
 admission. Closing the plugin rejects new admission and connection contexts;
 removing an expected provider is not an anonymous-access fallback. Core Actor
 and membership checks retain authority, and the earlier of membership and
@@ -92,14 +92,14 @@ connection-proof expiry retires an established socket.
 - Recognition is not resource authorization. The optional installation gate above only restricts admission; it does not grant or isolate
   shared SSH connections, desktop access, conversations or model credentials.
   Gateway/network admission and resource permissions remain separate responsibilities.
-- No undocumented nonce-replay rejection or external TOF logout flow is invented.
+- No undocumented nonce-replay rejection or external identity-logout flow is invented.
 
-Protocol basis: user-provided TAI mobile signing and TOF JWE documentation, with
+Protocol basis: user-provided enterprise identity signing and JWE documentation, with
 read-only real gateway validation. Unit tests use synthetic credentials exclusively.
 
 ## Per-message sender provenance
 
-Headless Web verifies TAI headers on each `/appserver`, `/apphost` or `/ssh-apphost` WebSocket
+Headless Web verifies enterprise identity headers on each `/appserver`, `/apphost` or `/ssh-apphost` WebSocket
 handshake. The gateway binds the verified English login name and validity deadline
 to a server-owned connection context. Renderer IDs, frame fields and client-supplied
 `sender` values cannot establish an employee identity. The deployment gateway must
@@ -147,8 +147,8 @@ Other transports advertise the capability only when the metadata provider is wir
 
 ## Employee footer photo
 
-The IOA plugin resolves a stable browser-loaded photo URL,
-`https://rhrc.woa.com/photo/150/<loginName>.png`, from a validated directory login
+The enterprise identity plugin resolves a stable browser-loaded photo URL,
+`https://directory.example.com/photo/150/<loginName>.png`, from a validated directory login
 name. The browser uses its own OA network/session; the OpenCraft server does not
 need directory connectivity. No per-refresh timestamp is appended. The account
 menu and footer consume the existing `avatarUrl` snapshot. A narrow trusted
@@ -187,7 +187,7 @@ The default UI does not use this proxy.
 
 ## Conversation participants
 
-The IOA plugin forms a distinct display list from the known creator followed by
+The enterprise identity plugin forms a distinct display list from the known creator followed by
 the server participants array, and displays only its last entry: the latest identified
 speaker, or the creator when nobody has spoken. A creator who has spoken keeps their
 message-recency position. Missing photos use the existing opaque fallback disk.
@@ -195,7 +195,7 @@ For more than one person, a separate circular number badge to the right shows th
 person count, capped at `99+` visually with the exact total in its tooltip. Single-person
 and unknown rows omit the count. The badge fits its20px photo plus an optional20px circular total with a4px gap (44px combined), both equal in size and vertically centered; no empty count lane or trailing spacer is reserved. Its right edge and the host action gap stay fixed; count changes can move the photo and release space to the title. The count uses shared metadata/disclaimer typography and theme tones,
 with a themed count disk and no overlap. The entire badge opens the same participant
-popover; its accessible name includes the exact total. Artwork stays inside the IOA
+popover; its accessible name includes the exact total. Artwork stays inside the enterprise identity
 plugin, not Shell. This replaces the three-photo stack and hidden-person overflow.
 The version-1 provider orders participants by their most recently observed identified
 message, ascending; the Renderer reads the last entry without mutating the snapshot.
@@ -219,7 +219,7 @@ creation record remain unknown and still show verified participant photos. No
 first/last sender is relabelled as the creator. Photos use stable directory URLs and browser caching; no second Blob cache or
 server-side fetch is required by the default UI.
 
-The deployment enables a plugin-owned Thread metadata provider only when Tencent OA
+The deployment enables a plugin-owned Thread metadata provider only when enterprise OA
 is configured. `opencraft/ioa/thread-participants/list` batches up to 100 Thread IDs;
 its `data[].participants` is a distinct array ordered by each identified employee's
 most recently observed user message, ascending (the most recent person is last).
@@ -236,7 +236,7 @@ catalogs. Unsupported Hosts contribute no badge. The derived `ioa_message_presen
 and `ioa_participant_state` tables share the provenance connection and transaction
 owner: existing `codex-host-queue.sqlite` for Codex/SSH, and the Hub-only identity
 database for DSH. Verified message sender bindings remain the identity authority.
-Both use the same `TencentOaParticipants` provider, immutable bindings, fork-origin
+Both use the same `EnterpriseParticipants` provider, immutable bindings, fork-origin
 handling, persisted completion state and native-history reconciliation. Existing
 Codex v1–v5 migration SQL and checksums remain unchanged.
 
@@ -244,7 +244,7 @@ Forks preserve message authorship without inheriting participant membership.
 Host-state migration v4 adds `message_sender_origins` alongside the immutable sender
 map. The Host clones authors and inherited-message provenance atomically; nested
 forks mark all copied mappings as inherited. The metadata context exposes this
-provenance to the IOA provider, which excludes inherited IDs in live and history
+provenance to the enterprise identity provider, which excludes inherited IDs in live and history
 reconciliation. A new fork initially displays only its authenticated creator;
 later accepted messages add their verified senders. Reconnect/restart cannot
 reintroduce copied authors. Existing Threads without recorded origin metadata
@@ -278,12 +278,12 @@ while revalidating. Notifications, new connection generations and explicit retry
 force reads and immediately revoke cache freshness, so cancellation followed by a
 warm remount still revalidates. A batched read owns the specific row entry and its
 revision: deleting and resubscribing to the same Thread cannot inherit the retired
-entry's reply. The IOA wire boundary accepts exactly one data/error outcome per
+entry's reply. The enterprise identity wire boundary accepts exactly one data/error outcome per
 requested Thread and rejects duplicate, overlapping or missing outcomes before
 publishing any row. Optional `creator` and `pending` remain compatible with older
 Hosts. Host-client replacement and confirmed account changes fence/clear
 old data. Hosts without active watchers release their subscriptions. No snapshots
-survive plugin disposal. Names and photos are display metadata only: no IOA RPC
+survive plugin disposal. Names and photos are display metadata only: no enterprise identity RPC
 is forwarded to native Codex, and metadata is never injected into model input.
 
 Background reconciliation is deduplicated for cold list reads and limited to four
@@ -314,7 +314,7 @@ not just the distinct participant set.
 
 ## Creator-grouped conversation list
 
-IOA contributes an optional `creator` mode through generic `threadListGrouping`.
+enterprise identity contributes an optional `creator` mode through generic `threadListGrouping`.
 The default is the Shell's taskflow list. The list's display-mode button and
 row/header right-click menus select the mode. Each loaded Thread appears once,
 under its recorded creator; participants never determine the group. The current
@@ -328,8 +328,8 @@ do not navigate or rebuild the conversation. The same participants controller
 batches reads; no additional Host schema, authentication flow or history backfill
 is introduced. Historical creators without creation records remain unknown.
 
-Mode and collapse preferences belong to IOA and use the generic local preference
-port with `tencentoa.identity.employee:<staffId>`, further isolated by product and extension.
+Mode and collapse preferences belong to enterprise identity and use the generic local preference
+port with `enterprise.identity.employee:<staffId>`, further isolated by product and extension.
 Current Web storage is localStorage, with same-origin tab invalidation and
 last-write-wins. Switching accounts immediately restores that employee's own
 preferences; anonymous mode changes are transient. Data is not synced to another
@@ -338,7 +338,7 @@ employee or device. Failed persistence keeps the current UI and reports failure.
 
 ### Personal participation filter
 
-IOA exposes an optional generic filter descriptor, `filterThreads` and
+enterprise identity exposes an optional generic filter descriptor, `filterThreads` and
 `setFilterEnabled` through `threadListGrouping`. “My conversations” defaults off; saved explicit choices remain unchanged;
 a Thread matches when its creator or participants contain the current `loginName`.
 When enabled, only positively identified membership enters the personal result.
@@ -356,7 +356,7 @@ without a current display identity all rows remain visible and the plugin omits
 the filter descriptor. Shell then hides the chip and the entire filter group
 in dropdown/context menus. Identity restoration brings them back with that
 account's saved mineEnabled preference; identity loss never writes it as disabled. Shell receives only
-Thread references and the enabled descriptor, never employee identity or IOA RPCs.
+Thread references and the enabled descriptor, never employee identity or enterprise identity RPCs.
 The same plugin-owned account preference schema stores mode, creator collapse and
 participation preference; legacy records without the new flag default off. Watching
 stays active for the full catalog while either creator mode or participation
@@ -376,10 +376,10 @@ filter, preserving title/server filtering and display mode.
 
 ## Account read receipts
 
-The IOA account contribution supplies the generic ThreadReadReceiptPort. The fixed
+The enterprise identity account contribution supplies the generic ThreadReadReceiptPort. The fixed
 Headless server persists account receipts in thread-read-receipts.sqlite, opened
 with managed document-store migrations and reported through storage health.
-GET/POST `/__opencraft_tencentoa/read-receipts` derives `tencentoa:<staffId>` from
+GET/POST `/__opencraft_enterprise_identity/read-receipts` derives `enterprise-identity:<staffId>` from
 the verified request, checks the expected-scope header, and returns only that
 account's exact Host/Thread/Turn tuples. POST accepts only `{receipts:[...]}` and
 unions records atomically; it cannot replace another device's reads or select an
@@ -401,7 +401,7 @@ background refresh preserves previously confirmed membership, including for a ne
 reader after reopen. Fork/rollback/delete revoke completion before reconciliation.
 
 The optional `ThreadMetadataExtension.observeCatalog` hook receives successfully
-synchronized native directory IDs. The IOA provider refreshes these in its existing
+synchronized native directory IDs. The enterprise identity provider refreshes these in its existing
 four-job history queue without requiring Sidebar row watchers; it deduplicates
 active jobs and revalidates on a five-minute cadence. No missing historical sender
 identity is synthesized. The normal client watcher remains compatible with Hosts
@@ -409,9 +409,9 @@ without this hook and continues to fence account and connection replacements.
 # Core admission and optional relay
 
 New headless installations with `--access-control`, a legacy allowlist, or a relay
-connection use core instance membership. The IOA adapter supplies provider
-`tencentoa`, immutable staff ID, display login name and credential expiry;
+connection use core instance membership. The enterprise identity adapter supplies provider
+`enterprise-identity`, immutable staff ID, display login name and credential expiry;
 generic roles, administrator maintenance and revocation belong to core. Legacy
 allowlists import once, then administration uses the core store. An instance
 connected to a relay can consume pinned verified identities without holding an
-IOA application key. See [ordinary relay deployment](relay-deployment.md).
+enterprise identity application key. See [ordinary relay deployment](relay-deployment.md).

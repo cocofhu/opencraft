@@ -4,7 +4,7 @@ import test from "node:test";
 import { formatDocumentTitle } from "../apps/workbench-web/src/runtime/document-title";
 
 test("document title follows task names without truncating or interpreting markup", () => {
-  assert.equal(formatDocumentTitle("clone 一下 mono2"), "clone 一下 mono2 · OpenCraft");
+  assert.equal(formatDocumentTitle("clone 一下 opencraft"), "clone 一下 opencraft · OpenCraft");
   assert.equal(formatDocumentTitle(" 更新后的任务名 "), "更新后的任务名 · OpenCraft");
   assert.equal(formatDocumentTitle("<script> & task"), "<script> & task · OpenCraft");
 });

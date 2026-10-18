@@ -27,13 +27,13 @@ test('public Headless artifact has no enterprise implementation and its CLI reje
   const result = await buildHeadlessBundle(bundle);
   const inputs = Object.keys(result.metafile.inputs);
   assert.ok(inputs.length > 100, 'inspect the real transitive graph');
-  assert.deepEqual(inputs.filter(path => path.includes('/tencentoa/') || path.includes('products/join/')), []);
+  assert.deepEqual(inputs.filter(path => path.includes('/enterprise-identity/') || path.includes('products/join/')), []);
   const source = await readFile(bundle, 'utf8');
   assert.ok(!source.includes('TencentOaServerPlugin'));
   const run = promisify(execFile);
   const help = await run(process.execPath, [bundle, '--help'], { timeout: 10_000 });
-  assert.match(help.stdout, /human-auth-config/); assert.ok(!help.stdout.includes('tencentoa'));
-  await assert.rejects(run(process.execPath, [bundle, '--tencentoa-token-file', '/not-loaded'], { timeout: 10_000 }), /Unknown option/);
+  assert.match(help.stdout, /human-auth-config/); assert.ok(!help.stdout.includes('enterprise-identity'));
+  await assert.rejects(run(process.execPath, [bundle, '--enterprise-identity-token-file', '/not-loaded'], { timeout: 10_000 }), /Unknown option/);
   const api = await import(pathToFileURL(bundle).href);
   const app = await api.startHeadlessServer(f.options); t.after(() => app.close());
   assert.equal((await fetch(app.url)).status, 200);

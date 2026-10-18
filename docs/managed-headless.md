@@ -1,6 +1,6 @@
 # 受管 Headless 与独立 Codex core
 
-本方式保留 Headless 的 mono2 Host/HTTP/WS 语义，core 只承载原生 Codex CLI 和账户维护。
+本方式保留 Headless 的下游 Host/HTTP/WS 语义，core 只承载原生 Codex CLI 和账户维护。
 独立网站和版本化 Headless execution 通过同一更新事务切换；DSH 引擎、core 与 CLI 独立维护。
 首次迁移必须停止旧内嵌 writer 后才能打开其原 Codex 目录；有活动任务时继续准备，等待自然结束。
 
@@ -9,7 +9,7 @@
 | 资源 | 唯一 owner | 生命周期 |
 |---|---|---|
 | 原生 CLI、account-pool、OAuth、账户代理 | core | 网站/Headless 断开不终止原 turn |
-| Host queue、sender、IOA、Bot、附件、私有 Tasks、pins 投影 | Headless 的 CodexEngineAdapter | 原生 transport 只提供帧，不绕过 overlay；实例关闭释放存储 |
+| Host queue、sender、企业身份、Bot、附件、私有 Tasks、pins 投影 | Headless 的 CodexEngineAdapter | 原生 transport 只提供帧，不绕过 overlay；实例关闭释放存储 |
 | DSH、agent 目录、执行 journal 与公共 Tasks | 内嵌 Local Agent，或显式配置的独立 DSH Host | 独立 Host 不随 Web/execution 更新停止 |
 | SSH management/SSH Host、employee/speech 路由 | Headless | 沿用私有配置、Host/凭据/域名身份 |
 | Web worker、历史静态 assets、update job | 稳定启动器 | 旧 WebSocket/worker 保留至断开；事务不依赖页面 |
@@ -46,7 +46,7 @@ room/receipt/slot 语义，才能交付相应回退；不把备份存在当作�
 ## 回归边界
 
 - connect 报告真实存储 outcome、拒绝第二 owner；账户 writer 仍由 core 独占。
-- send 保留权限、summary、sender/IOA、附件、Tasks、Bot receipt 与 unknown fence。
+- send 保留权限、summary、sender/企业身份、附件、Tasks、Bot receipt 与 unknown fence。
 - subscribe 在 Host epoch 内恢复原 turn/queue/goal/approval，Bot slot 不变；不重放已确认或未知提交。
 - close 释放 overlay/guard，core/CLI/原生工具继续；旧默认模式和不可用 core 的拒绝不回退为内嵌。
 - 最终 Headless profile 的真实 systemd 安装、失败恢复、页面回退和启动器重启，分别核网站、执行、core。
@@ -89,12 +89,12 @@ SSH2 固定现网依赖 1.17.0，归档带当前 checkout 安装的必要 JavaSc
 ## 受控 Join 更新源
 
 稳定运行的 `runtime/controlled-registry.mjs` 只监听 loopback，以 `OPENCRAFT_RELEASE_CATALOG`
-指定同 uid 0600 的 JSON：`schemaVersion:1`、`channel:"join-mono2"`、`selected:精确版本`、
-`releases:[{version,buildId,archive:绝对归档路径,integrity:sha512-SRI}]`。维护者从已验证的 mono2
+指定同 uid 0600 的 JSON：`schemaVersion:1`、`channel:"managed-headless"`、`selected:精确版本`、
+`releases:[{version,buildId,archive:绝对归档路径,integrity:sha512-SRI}]`。维护者从已验证的下游
 clean 源码构建完整 headless 归档，保留精确身份，原子替换 catalog；服务不发布公共 npm 包。
 归档下载前再次校验目录中的字节与 integrity；网页沿正式 npm check/install 协议核验精确归档。
 Web unit 配置 `OPENCRAFT_NPM_REGISTRY=http://127.0.0.1:PORT/` 与
-`OPENCRAFT_UPDATE_CHANNEL=join-mono2`。不存在公共 latest fallback；目录暂不可用时安装不切换。
+`OPENCRAFT_UPDATE_CHANNEL=managed-headless`。不存在公共 latest fallback；目录暂不可用时安装不切换。
 源代码升级脚本根据正式 status 中的 execution profile 选择 Headless 构建与归档，再走认证
 install-local 事务。该流程仍要求 pinned bootstrap 已支持本 profile；首次启动器维护单独进行。
 
@@ -162,8 +162,8 @@ cgroup/停止传播，并核对更新前后 Host/DSH PID，拒绝把被重启的
 
 ## 内网 npm 更新源
 
-`.ci/join/deploy.py` 可在本机部署健康验证后，将同一精确归档发布至腾讯内网 npm 的
-`join-mono2` channel；配置、重试与其他环境设置见 [Join CI](../../.ci/join/README.md)。
+下游产品的 CI 脚本可在本机部署健康验证后，将同一精确归档发布至企业 npm 的
+`managed-headless` channel；配置、重试与其他环境设置由下游产品 CI 维护。
 这与历史 loopback catalog 是两种显式来源；迁移时设置 registry/channel/userconfig，
 保留原 catalog 与服务作为回退，不做公共 latest fallback。
 

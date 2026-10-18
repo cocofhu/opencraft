@@ -14,7 +14,7 @@ const directory = await mkdtemp(join(output, 'private-')), cleanups: (() => unkn
 let operator: string | null = '["fixture","administrator"]', failReads = false;
 try {
   const controller = await createHubController(join(directory, 'controller.json'), join(directory, 'node.json')); cleanups.push(() => controller.close());
-  const pair = generateKeyPairSync('ed25519'), other = new HubNetwork(join(directory, 'other.json'), { authority: { issuer: 'fixture-login', publicKey: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(), providers: ['tencentoa'] } }); cleanups.push(() => other.close());
+  const pair = generateKeyPairSync('ed25519'), other = new HubNetwork(join(directory, 'other.json'), { authority: { issuer: 'fixture-login', publicKey: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(), providers: ['enterprise-identity'] } }); cleanups.push(() => other.close());
   const peer = createHttpServer((_req, res) => { res.writeHead(404); res.end(); }); peer.on('upgrade', (req, socket, head) => { if (!other.handleUpgrade(req, socket, head)) socket.destroy(); });
   peer.listen(0, '127.0.0.1'); await once(peer, 'listening'); const peerPort = (peer.address() as { port: number }).port; other.start(peerPort);
   cleanups.unshift(() => new Promise<void>(r => { peer.close(() => r()); peer.closeAllConnections(); }));

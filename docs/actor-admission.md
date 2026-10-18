@@ -6,7 +6,7 @@
 未知历史拒绝启动，不移走或重置身份库。备份须保留数据库和一致的 WAL 状态，不复制
 真实身份库来初始化一个新身份域。
 
-已准入的 IOA 自然人通过稳定 StaffId 绑定主体，显示名可更新。原先没有启用实例成员
+已准入的 企业身份 自然人通过稳定 StaffId 绑定主体，显示名可更新。原先没有启用实例成员
 策略的服务不会因升级自动启用门禁；也不会自动指定管理员或改变模型设置的旧存储键。
 自然人正常 HTTP/WS 访问会解析持久身份，Actor API 返回该身份。已识别但被禁用的自然人不能降级为匿名继续访问；已建立的具名 WebSocket 在核心复核失败后关闭（500ms 轮询）。未识别请求仍遵循原共享/匿名策略，不构成数据隔离。
 
@@ -48,6 +48,6 @@ HTTP/WS 接口返回 403；未携带可信身份的共享实例仍按旧匿名�
 Actor 资源上的 send/control 授权记录本身不会执行动作，目标执行 API 和资源所有者的
 实际授权检查需下一切片接通，不能将授权记录当作已实现的 Session 通信能力。
 
-测试入口：`npm run test:actors`、`test:relay`、`test:headless-server`、`test:tencentoa`、
-workspace 类型检查与 `check:boundaries`。真实 IOA 网关、Bot 引擎和跨 Hub 调用须另验，
+测试入口：`npm run test:actors`、`test:relay`、`test:headless-server`、`test:enterprise-identity`、
+workspace 类型检查与 `check:boundaries`。真实 企业身份 网关、Bot 引擎和跨 Hub 调用须另验，
 合成签名测试不等于真实自然人登录验收。

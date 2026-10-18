@@ -99,26 +99,26 @@ test("Cordis service projects Codex ParsedCommand into native commandActions", (
 });
 
 test("display-only echo between semantic commands does not collapse search and read to unknown", () => {
-  const script = String.raw`grep -rn "duration.*100\|100.*year\|DurationUnit" /workspace/projects/mono2/velagw/internal/gateway/set_reconcile.go | head -10; echo ===; sed -n 530,560p /workspace/projects/mono2/velagw/internal/gateway/set_reconcile.go`;
+  const script = String.raw`grep -rn "duration.*100\|100.*year\|DurationUnit" /workspace/projects/opencraft/internal/gateway/set_reconcile.go | head -10; echo ===; sed -n 530,560p /workspace/projects/opencraft/internal/gateway/set_reconcile.go`;
 
   assert.deepEqual(parseCommand(["bash", "-lc", script]), [
     {
       type: "search",
-      cmd: "grep -rn 'duration.*100|100.*year|DurationUnit' /workspace/projects/mono2/velagw/internal/gateway/set_reconcile.go",
+      cmd: "grep -rn 'duration.*100|100.*year|DurationUnit' /workspace/projects/opencraft/internal/gateway/set_reconcile.go",
       query: "duration.*100|100.*year|DurationUnit",
       path: "set_reconcile.go",
     },
     {
       type: "read",
-      cmd: "sed -n '530,560p' /workspace/projects/mono2/velagw/internal/gateway/set_reconcile.go",
+      cmd: "sed -n '530,560p' /workspace/projects/opencraft/internal/gateway/set_reconcile.go",
       name: "set_reconcile.go",
-      path: "/workspace/projects/mono2/velagw/internal/gateway/set_reconcile.go",
+      path: "/workspace/projects/opencraft/internal/gateway/set_reconcile.go",
     },
   ]);
 });
 
 test("multiline cd and display banner preserve the following file read", () => {
-  const script = `cd /workspace/projects/mono2
+  const script = `cd /workspace/projects/opencraft
 echo "######## PROJECT_ANALYSIS.md ########"
 cat PROJECT_ANALYSIS.md | head -200`;
 
@@ -126,25 +126,25 @@ cat PROJECT_ANALYSIS.md | head -200`;
     type: "read",
     cmd: "cat PROJECT_ANALYSIS.md",
     name: "PROJECT_ANALYSIS.md",
-    path: "/workspace/projects/mono2/PROJECT_ANALYSIS.md",
+    path: "/workspace/projects/opencraft/PROJECT_ANALYSIS.md",
   }]);
 });
 
 test("stderr discard and inverse grep filters preserve the primary read and search actions", () => {
-  const script = String.raw`sed -n 545,560p /workspace/projects/mono2/ctl/pkg/logic/bundle/logic.go; echo ===; grep -rn "credit_token_ratio" /workspace/projects/mono2 --include="*.toml" --include="*.yaml" --include="*.yml" --include="*.json" 2>/dev/null | grep -v node_modules | head -8`;
+  const script = String.raw`sed -n 545,560p /workspace/projects/opencraft/ctl/pkg/logic/bundle/logic.go; echo ===; grep -rn "credit_token_ratio" /workspace/projects/opencraft --include="*.toml" --include="*.yaml" --include="*.yml" --include="*.json" 2>/dev/null | grep -v node_modules | head -8`;
 
   assert.deepEqual(parseCommand(["bash", "-lc", script]), [
     {
       type: "read",
-      cmd: "sed -n '545,560p' /workspace/projects/mono2/ctl/pkg/logic/bundle/logic.go",
+      cmd: "sed -n '545,560p' /workspace/projects/opencraft/ctl/pkg/logic/bundle/logic.go",
       name: "logic.go",
-      path: "/workspace/projects/mono2/ctl/pkg/logic/bundle/logic.go",
+      path: "/workspace/projects/opencraft/ctl/pkg/logic/bundle/logic.go",
     },
     {
       type: "search",
-      cmd: "grep -rn credit_token_ratio /workspace/projects/mono2 '--include=*.toml' '--include=*.yaml' '--include=*.yml' '--include=*.json'",
+      cmd: "grep -rn credit_token_ratio /workspace/projects/opencraft '--include=*.toml' '--include=*.yaml' '--include=*.yml' '--include=*.json'",
       query: "credit_token_ratio",
-      path: "mono2",
+      path: "opencraft",
     },
   ]);
 });
