@@ -1318,6 +1318,9 @@ shared through it. Headers continue to use the same assistant Markdown grammar
 as the unchanged canonical body, including reference definitions and streaming
 repair. The display-math tokenizer skips its boundary regex when neither actual
 delimiter is present, retaining the existing rule for documents containing math.
+Streaming reference, standalone image and link-target suffix repair scans input
+linearly, preserving the existing output without repeated regex suffix searches
+on untrusted model text.
 
 Both platforms initially fold reasoning, even while streaming. Only an explicit
 View action changes that choice; new deltas or completion never automatically
