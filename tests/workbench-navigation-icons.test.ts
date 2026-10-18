@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import test from "node:test";
-import { WorkbenchProductContext } from "../apps/workbench-web/src/workbench-product";
+import { resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
+import { WorkbenchPresentationContext } from "../apps/workbench-web/src/workbench-product";
 import { NavigationIcon } from "../apps/workbench-web/src/components/shell-navigation/navigation-action";
 
 const render = (name: string, selected = false, product = "opencraft") => renderToStaticMarkup(
-  createElement(WorkbenchProductContext.Provider, {value:product}, createElement(NavigationIcon, { name, selected })),
+  createElement(WorkbenchPresentationContext.Provider, {value:resolveWorkbenchPresentation({iconStyle: product === "lightvela-web" ? "classic" : "standard"})}, createElement(NavigationIcon, { name, selected })),
 );
 
 test("navigation glyph state is projected without changing the semantic name or SVG box", () => {

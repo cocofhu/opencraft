@@ -304,3 +304,12 @@ Historical hashes and attribution remain in
 exclusion does not clear old Git history or change downstream artwork.
 
 Connector management is contributed through the generic View role and its eligible Settings Page. Public App no longer names a downstream management page; product composition must declare the existing destination. This does not migrate or replace connector execution/authentication.
+
+### Explicit client presentation composition
+
+The core no longer selects icon family, default color theme or Mist visibility by
+a commercial product ID. Trusted Vite composition declares optional presentation
+policy; public builds retain standard defaults. Identity/data scopes, stored theme
+IDs, saved choices and fixed legacy artwork remain unchanged. Product and embedded
+composition live downstream. This is an ownership cut, not a provenance clearance
+or a product deployment.

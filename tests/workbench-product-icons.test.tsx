@@ -9,13 +9,14 @@ import { createIntl, RawIntlProvider } from "react-intl";
 import { SidebarActivityItem } from "../apps/workbench-web/src/components/sidebar-activity-item";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Palette, Brain, MessageSquare, Globe2, Blocks, Plus } from "lucide-react";
-import { WorkbenchProductContext } from "../apps/workbench-web/src/workbench-product";
+import { WorkbenchProductContext, WorkbenchPresentationContext } from "../apps/workbench-web/src/workbench-product";
 import { WorkbenchIcon } from "../apps/workbench-web/src/components/ui/workbench-icon";
 import { NavigationIcon } from "../apps/workbench-web/src/components/shell-navigation/navigation-action";
 import { SidebarToggleIcon } from "../apps/workbench-web/src/chrome-actions/sidebar-toggle-icon";
 import { NewTaskIcon } from "../apps/workbench-web/src/chrome-actions/new-task-icon";
 import { ReferenceNavigationIcon, ReferenceNewTaskIcon, ReferenceSidebarToggleIcon } from "./fixtures/vela-icon-reference";
-const render = (component: ReturnType<typeof createElement>, product = "lightvela-web") => renderToStaticMarkup(createElement(WorkbenchProductContext.Provider, { value: product }, component));
+import { resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
+const render = (component: ReturnType<typeof createElement>, iconStyle: "classic" | "standard" = "classic") => renderToStaticMarkup(createElement(WorkbenchPresentationContext.Provider, { value: resolveWorkbenchPresentation({iconStyle}) }, component));
 const geometry = (markup: string) => [...markup.matchAll(/<(?:path|circle|rect|line|polyline|polygon|ellipse)\b[^>]*>/g)].map(match => match[0]);
 for (const selected of [false,true]) test(`Downstream navigation retains the fixed old artwork, size and selected/silhouette state (${selected})`, () => {
   for (const name of ["chat","write","message-circle","cloud","database","folder","hard-drive","server","bot","settings","applications","columns","unknown","collaboration"]) {
@@ -26,8 +27,8 @@ for (const selected of [false,true]) test(`Downstream navigation retains the fix
 });
 test("New task retains product artwork while panel toggles share the reference pair", () => {
   assert.equal(render(createElement(NewTaskIcon)),renderToStaticMarkup(createElement(ReferenceNewTaskIcon)));
-  assert.notDeepEqual(geometry(render(createElement(NewTaskIcon),"opencraft")),geometry(render(createElement(NewTaskIcon))));
-  for (const product of ["lightvela-web", "opencraft"]) for(const sidebarOpen of [false,true]) assert.equal(render(createElement(SidebarToggleIcon,{sidebarOpen}),product),renderToStaticMarkup(createElement(ReferenceSidebarToggleIcon,{sidebarOpen})));
+  assert.notDeepEqual(geometry(render(createElement(NewTaskIcon),"standard")),geometry(render(createElement(NewTaskIcon))));
+  for (const product of ["classic", "standard"] as const) for(const sidebarOpen of [false,true]) assert.equal(render(createElement(SidebarToggleIcon,{sidebarOpen}),product),renderToStaticMarkup(createElement(ReferenceSidebarToggleIcon,{sidebarOpen})));
 });
 test("semantic settings/panel icons retain old consumer-specific artwork and scale",()=>{
   for(const [name,purpose,Icon,size] of [["appearance","settings",Palette,16],["brain","settings",Brain,16],["chat","panel",MessageSquare,14],["browser","panel",Globe2,14],["activity","settings-page",Blocks,16],["changes","panel",Plus,14]] as const){
@@ -49,4 +50,11 @@ test("activity rows present a complete project badge without Server artwork", ()
     assert.doesNotMatch(markup, /server-origin|server-dot|lucide-globe|lucide-folder/);
     assert.match(markup, /sidebar-activity-item__project">a-long-project-directory</);
   }
+});
+
+test("identity alone never selects a different icon family", () => {
+  const renderIdentity = (id: string) => renderToStaticMarkup(createElement(WorkbenchProductContext.Provider,
+    {value: id}, createElement(WorkbenchIcon, {name: "appearance"})));
+  assert.equal(renderIdentity("lightvela-web"), renderIdentity("an-unrelated-product"));
+  assert.match(renderIdentity("lightvela-web"), /lucide-sun-moon/);
 });

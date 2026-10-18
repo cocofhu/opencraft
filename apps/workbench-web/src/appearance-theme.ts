@@ -21,7 +21,7 @@ import type {
 } from "@opencraft/extension-runtime";
 import { useSyncExternalStore } from "react";
 
-import { workbenchProductId, applyWorkbenchProductPresentation } from "./workbench-product";
+import { workbenchProductId, workbenchPresentation, applyWorkbenchProductPresentation } from "./workbench-product";
 
 const preferenceStorageKey = "vela.appearance-theme";
 const themeIdStorageKey = "vela.appearance-theme-id";
@@ -32,11 +32,11 @@ export const lavenderThemeId = "vela.core.lavender";
 export const mistThemeId = "vela.core.mist";
 export const zenCodeThemeId = "vela.core.zencode";
 
-export function defaultAppearanceThemeId(productId: string): string {
-  return productId === "lightvela-web" ? velaThemeId : coreThemeId;
+export function defaultAppearanceThemeId(presentation: Pick<import("./workbench-presentation").WorkbenchPresentation, "defaultThemeId"> = workbenchPresentation): string {
+  return presentation.defaultThemeId ?? coreThemeId;
 }
 
-const defaultThemeId = defaultAppearanceThemeId(workbenchProductId);
+const defaultThemeId = defaultAppearanceThemeId();
 
 interface SystemThemeQuery {
   readonly matches: boolean;
@@ -139,14 +139,14 @@ const mistTheme: AppearanceThemeRecord = Object.freeze({
   palettes: mistThemePalette,
 });
 
-const coreThemes = new Map<string, AppearanceThemeRecord>([
+const coreThemes = new Map<string, AppearanceThemeRecord>(([
   [coreThemeId, coreTheme],
   [velaThemeId, velaTheme],
   [frostThemeId, frostTheme],
   [lavenderThemeId, lavenderTheme],
   [zenCodeThemeId, zenCodeTheme],
-  ...(workbenchProductId === "lightvela-web" ? [] : [[mistThemeId, mistTheme] as const]),
-]);
+  [mistThemeId, mistTheme],
+] as const).filter(([id]) => !workbenchPresentation.hiddenBuiltinThemeIds.includes(id)));
 
 let extensionThemes = new Map<string, AppearanceThemeRecord>();
 let contributionRevision = -1;

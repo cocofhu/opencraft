@@ -1464,10 +1464,23 @@ This command does not change the domestic Chat owner.
 The underlying persisted-feature primitive is reusable by other internal
 feature gates without copying localStorage/error/event lifecycle code.
 
-Product identity selects artwork separately from the user color theme. Both
+Trusted build composition selects an explicit, immutable presentation policy
+(`WorkbenchWebBuildFeatures.presentation`), independently of product identity.
+The build validates and serializes icon style, default theme ID and hidden builtin
+theme IDs; the renderer reads it synchronously before its first appearance snapshot.
+Public defaults use the standard icon adapter and Codex theme. A custom identity
+alone never changes artwork, palette defaults or the catalog. Existing async client
+product entries keep their account/engine lifecycle and need no additional export.
+Saved theme intent and existing storage/theme IDs retain their previous authority;
+an unavailable selection uses the configured fallback without overwriting storage.
+Presentation is not permission, routing or account authority.
+
+Both
 the downstream product embedded and full lightvela-web keep the pre-backport glyphs and their
 consumer-specific scales; core keeps the new artwork. Shared metrics and the
-semantic Web icon adapter own sizes/strokes. Tokens are projected onto each
+semantic Web icon adapter own sizes/strokes. The classic adapter retains the
+existing glyphs; the legacy `workbenchIconMetrics.vela` export remains a scale
+compatibility name, not a product-ID dispatch. Tokens are projected onto each
 Presentation Root; the downstream product does not globally override explicit legacy Lucide strokes.
 A color palette such as vela.core.web never grants product capabilities or selects
 an icon family.
@@ -1479,7 +1492,8 @@ the downstream product keeps explicit legacy consumer dimensions (15px navigatio
 Settings); a core rail token must not shadow its Presentation Root policy.
 The existing product presentation adapter projects the optional consumer-size
 override; Shell consumes that override with its own density as fallback, without
-selecting a commercial product by ID. A root returning to core clears the override.
+selecting a commercial product by ID. A root returning to standard clears the override. Shadow composition supplies
+the same explicit policy to its React presentation context and root-token adapter.
 The full product-isolation browser checks the selected **Settings** action against
 the fixed legacy Settings reference and retains Palette/SunMoon family assertions.
 Home/New chat replaces the previous Start/Chats split, so the first current-page

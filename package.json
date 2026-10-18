@@ -228,7 +228,7 @@
     "test:identity-storage": "tsx --test tests/account-model-defaults.test.ts tests/unified-thread-identity.test.ts tests/codex-message-senders.test.ts",
     "test:mcp-apps": "tsx --test tests/mcp-app-host.test.ts tests/mcp-app-builder.test.ts",
     "smoke:mcp-apps": "tsx scripts/smoke-mcp-app-host.ts",
-    "test:react-runtime": "tsx --test tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs"
+    "test:react-runtime": "tsx --test tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs tests/workbench-presentation-policy.test.ts tests/workbench-product-icons.test.tsx tests/workbench-navigation-icons.test.ts tests/workbench-appearance-theme.test.ts"
   },
   "dependencies": {
     "react": "19.2.3",

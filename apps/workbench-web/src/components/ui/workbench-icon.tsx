@@ -1,5 +1,5 @@
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
-import { useWorkbenchProductId, usesVelaIcons } from "../../workbench-product";
+import { useWorkbenchPresentation } from "../../workbench-product";
 import {
   Blocks, Brain, Palette, MessageSquare, Activity, Archive, ArrowLeft, ArrowRight, AudioLines, Bot, BrainCircuit,
   CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, FileCode2, Folder,
@@ -30,18 +30,18 @@ export type WorkbenchIconName = keyof typeof workbenchIconRegistry;
 
 export type WorkbenchIconPurpose = "navigation" | "settings" | "settings-page" | "panel" | "work";
 const legacyIconOverrides = { chat: MessageSquare, appearance: Palette, brain: Brain };
-/** One semantic mapping, with only product-specific artwork overrides. */
-export function resolveWorkbenchIcon(name: string | undefined, vela: boolean, purpose: WorkbenchIconPurpose = "settings") {
-  if (vela && purpose === "settings-page") return Blocks;
-  if (vela && purpose === "navigation" && !["home", "chat", "write", "start", "message-circle", "cloud", "database", "folder", "hard-drive", "server", "bot", "settings", "applications", "columns", "keyboard"].includes(name ?? "")) return Blocks;
-  if (vela && purpose === "panel" && !["chat", "terminal", "browser", "desktop"].includes(name ?? "")) return Plus;
-  if (vela && purpose === "work") return name === "sparkles" ? Sparkles : Cloud;
-  if (vela && name && Object.hasOwn(legacyIconOverrides, name)) return legacyIconOverrides[name as keyof typeof legacyIconOverrides];
+/** One semantic mapping, with only explicit classic artwork overrides. */
+export function resolveWorkbenchIcon(name: string | undefined, classic: boolean, purpose: WorkbenchIconPurpose = "settings") {
+  if (classic && purpose === "settings-page") return Blocks;
+  if (classic && purpose === "navigation" && !["home", "chat", "write", "start", "message-circle", "cloud", "database", "folder", "hard-drive", "server", "bot", "settings", "applications", "columns", "keyboard"].includes(name ?? "")) return Blocks;
+  if (classic && purpose === "panel" && !["chat", "terminal", "browser", "desktop"].includes(name ?? "")) return Plus;
+  if (classic && purpose === "work") return name === "sparkles" ? Sparkles : Cloud;
+  if (classic && name && Object.hasOwn(legacyIconOverrides, name)) return legacyIconOverrides[name as keyof typeof legacyIconOverrides];
   if (name && Object.hasOwn(workbenchIconRegistry, name)) return workbenchIconRegistry[name as WorkbenchIconName];
-  return purpose === "navigation" ? Blocks : vela ? purpose === "panel" ? Plus : Blocks : CircleHelp;
+  return purpose === "navigation" ? Blocks : classic ? purpose === "panel" ? Plus : Blocks : CircleHelp;
 }
-export function workbenchIconSize(vela: boolean, purpose: WorkbenchIconPurpose): number {
-  return (vela ? workbenchIconMetrics.vela : workbenchIconMetrics.core)[purpose === "settings-page" ? "settings" : purpose];
+export function workbenchIconSize(classic: boolean, purpose: WorkbenchIconPurpose): number {
+  return (classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core)[purpose === "settings-page" ? "settings" : purpose];
 }
 
 /** Decorative glyph; the owning control supplies its accessible name. */
@@ -51,10 +51,10 @@ export function WorkbenchIcon({ name, size, purpose = "settings", className }: {
   readonly purpose?: WorkbenchIconPurpose;
   readonly className?: string;
 }) {
-  const vela = usesVelaIcons(useWorkbenchProductId());
-  const Icon = resolveWorkbenchIcon(name, vela, purpose);
-  const stroke = !vela && purpose === "navigation" ? workbenchIconMetrics.coreNavigation.stroke
-    : (vela ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke;
-  return <Icon size={size ?? workbenchIconSize(vela, purpose)} strokeWidth={stroke} aria-hidden="true" focusable="false"
+  const classic = useWorkbenchPresentation().iconStyle === "classic";
+  const Icon = resolveWorkbenchIcon(name, classic, purpose);
+  const stroke = !classic && purpose === "navigation" ? workbenchIconMetrics.coreNavigation.stroke
+    : (classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke;
+  return <Icon size={size ?? workbenchIconSize(classic, purpose)} strokeWidth={stroke} aria-hidden="true" focusable="false"
     className={className} data-workbench-icon={name ?? "unknown"} />;
 }
