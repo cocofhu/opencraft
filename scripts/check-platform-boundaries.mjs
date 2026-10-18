@@ -36,6 +36,10 @@ for (const directory of ["apps/workbench-web/src/components/workbench-tool-navig
     message: "must consume declared management entry points, not private page IDs",
   }]);
 }
+checkFiles("public Expo tool", "apps/workbench-expo/scripts", [{
+  pattern: /mobile-bot-runtime\.html|native-cron-client\.js/m,
+  message: "must not depend on downstream Bot/Cron generated artifacts; keep the probe with its product builder",
+}]);
 const publicScripts = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")).scripts;
 checkFiles("public browser fixture", "tests/fixtures", [{
   pattern: /(?:from\s*|import\s*)["'][^"']*\/lightvela-web-bootstrap(?:\.[cm]?[jt]s)?["']/m,
