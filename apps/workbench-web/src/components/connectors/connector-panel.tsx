@@ -47,7 +47,7 @@ export function useConnectorPresentation(manager: ConnectorManager, approvals: C
         : phase === "disabled" ? intl.formatMessage({ id: "connector.manage", defaultMessage: "Manage connectors" }) : phaseLabel(phase);
       const selecting = selectionPending.has(itemId);
       return { id: itemId, title: row.title, brandId: row.definitionId, phase, status, selected,
-        switchState: ready ? selected : null, actionable: !selecting, busy: busy || selecting,
+        switchState: ready ? selected : null, actionable: !selecting && ((row.enabled && row.authorization !== "required") || onManage !== undefined), busy: busy || selecting,
         error: selectionErrors.get(itemId) ?? state?.error ?? null } satisfies ConnectorQuickItem;
     });
     const nativeItems = snapshot.configuration.connectors.filter(row => row.hostId === scope.hostId && row.kind !== "managed").map(row => {
@@ -64,7 +64,7 @@ export function useConnectorPresentation(manager: ConnectorManager, approvals: C
         error: selectionErrors.get(itemId) ?? state?.error ?? null } satisfies ConnectorQuickItem;
     });
     return [...managedItems, ...nativeItems];
-  }, [intl, managed.data?.instances, manager, scope.hostId, scope.scopeId, selectionErrors, selectionPending, snapshot.configuration.connectors, snapshot.states]);
+  }, [intl, onManage, managed.data?.instances, manager, scope.hostId, scope.scopeId, selectionErrors, selectionPending, snapshot.configuration.connectors, snapshot.states]);
 
   const selectConnector = useCallback(async (itemKey: string, connectorId: string, enabled: boolean) => {
     setSelectionPending(previous => new Set([...previous, itemKey]));

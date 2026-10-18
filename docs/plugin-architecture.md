@@ -498,6 +498,7 @@ Presentation plugin   semantic contribution projection, layout preference and in
 - 承接 AppServer Bot 的 View 由 Bot 插件声明唯一语义角色 `bot-conversation`；Workbench 不知道插件的具体 View ID，角色冲突在扩展激活事务提交前失败；
 - `NavigationContribution` 定义 `sidebar-primary/sidebar-footer` 入口及语义 target；
 - `SidebarCatalogContribution` 引用 View，由宿主保留标题、折叠、滚动和间距所有权；
+- `ViewContribution.role: "connector-management"` 声明连接器管理能力，沿用唯一事务 owner 和激活回收契约。核心 quick picker 只在该 View 与唯一关联 Settings Page 同时满足平台/audience 且 renderer 可用时提供管理入口；不识别产品私有 ID。缺失、歧义或退役时不提供入口，旧菜单回调不得跨激活代次导航。原生 MCP 连接与选择仍由现有 manager 负责，不依赖该管理页。
 - `SettingsPageContribution` 引用 View，由 Settings route 生成导航；
   目标管理页可声明 `management.entryPoint: "workbench"`，表示它拥有应用级工具入口；未声明的管理页保留上下文管理行为。核心按声明投影导航和独立路由，不识别产品页面 ID。平台仍决定容器、响应式几何与滚动；入口共用贡献的语言、平台、audience、排序与激活生命周期。
 - `WorkbenchSurfaceContribution` 只声明特殊宿主 surface，目前仅有 `empty-workbench`。

@@ -294,3 +294,5 @@ identification alongside unchanged service names, catalog and operations.
 Historical hashes and attribution remain in
 [the artwork disposition](provenance/connector-artwork.md); this current-tree
 exclusion does not clear old Git history or change downstream artwork.
+
+Connector management is contributed through the generic View role and its eligible Settings Page. Public App no longer names a downstream management page; product composition must declare the existing destination. This does not migrate or replace connector execution/authentication.

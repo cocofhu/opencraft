@@ -533,14 +533,14 @@ test("presentation contributions cannot outlive or invent their semantic target"
   await supervisor.dispose();
 });
 
-test("a semantic View role has exactly one transactional owner", async () => {
+for (const role of ["bot-conversation", "connector-management"] as const) test(`the ${role} View role has exactly one transactional owner`, async () => {
   const supervisor = new ExtensionSupervisor({ platform: "web" });
   await supervisor.activate(definition("vela.bot-owner", (api) => {
     api.views.register({
       id: "vela.bot-owner.view",
       title: "Bot owner",
       viewType: "vela.bot-owner.surface",
-      role: "bot-conversation",
+      role,
     });
   }));
   await assert.rejects(
@@ -549,15 +549,20 @@ test("a semantic View role has exactly one transactional owner", async () => {
         id: "vela.bot-contender.view",
         title: "Bot contender",
         viewType: "vela.bot-contender.surface",
-        role: "bot-conversation",
+        role,
       });
     })),
-    /View role bot-conversation is already owned by vela\.bot-owner\.view/u,
+    new RegExp(`View role ${role} is already owned by vela\\.bot-owner\\.view`, "u"),
   );
   assert.deepEqual(
     supervisor.contributions.getSnapshot().views.map(({ contribution }) => contribution.id),
     ["vela.bot-owner.view"],
   );
+  await supervisor.deactivate("vela.bot-owner");
+  await supervisor.activate(definition("vela.replacement", (api) => {
+    api.views.register({ id: "vela.replacement.view", title: "Replacement", viewType: "vela.replacement.surface", role });
+  }));
+  assert.equal(supervisor.contributions.getSnapshot().views[0]?.contribution.role, role);
   await supervisor.dispose();
 });
 

@@ -119,7 +119,7 @@ function validateView(owner: ExtensionActivationIdentity, value: ViewContributio
   assertOwnedContributionId(owner.extensionId, value.id);
   requireLabel(value.title, `View ${value.id} title`);
   requireLabel(value.viewType, `View ${value.id} viewType`);
-  if (value.role !== undefined && value.role !== "bot-conversation") {
+  if (value.role !== undefined && value.role !== "bot-conversation" && value.role !== "connector-management") {
     throw new RangeError(`View ${value.id} has an invalid semantic role`);
   }
   if (value.audience !== undefined && value.audience !== "public" && value.audience !== "internal") {
