@@ -43,6 +43,14 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+- Electron Main/Preload select explicit, paired local desktop product entries.
+  Default public bundles no longer include the private product login, account
+  HTTP implementation, session store or preload account namespace. The original
+  implementation and compatibility channels belong to the downstream desktop
+  composition. Core retains profile/protocol/window ownership, early callback
+  routing and current-frame IPC admission; product disposal retires its handlers.
+  See [desktop product composition](desktop-product-composition.md). JS closure,
+  preload and lifecycle checks do not claim OS or external-login acceptance.
 - Public Application lifetime, optional-builtin and plugin-Settings browser probes
   no longer assume the removed private bootstrap options or an automatically
   installed product. Default startup is tested without a product; explicit product
@@ -244,9 +252,10 @@ success cannot justify discarding a later unported core change.
 
 ## Release lifecycle
 
-The main product packages and build entrypoints are isolated. Development-tool
-closure and the remaining desktop account/IPC composition still require review;
-this is not a claim that every product edge has been removed. When an npm release
+The main product packages and build entrypoints are isolated. Public development
+tools and desktop product composition now have explicit boundary checks; remaining
+consumer/build paths still require review. This is not a claim that every product
+edge has been removed. When an npm release
 is requested, merge a release PR
 that raises `packaging/web-server/package.json` and includes the exact
 `## vX.Y.Z` changelog section. The main workflow creates the immutable tag and

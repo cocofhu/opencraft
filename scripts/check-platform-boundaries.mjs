@@ -197,6 +197,11 @@ checkFiles("Electron Main", "apps/workbench-electron/src/main.ts", [
   },
 ]);
 
+checkFiles("public desktop", "apps/workbench-electron/src", [{
+  pattern: /lightvela-(?:login|session-store|account-http)|\bDesktopLightVelaLogin\b|\blightvelaAccount\b|https:\/\/api\.lightvela\.(?:com|ai)/m,
+  message: "must receive private accounts through explicit desktop product composition",
+}]);
+
 checkFiles("AppServer Lab", "apps/appserver-lab/src", [
   {
     pattern: /(?:from\s*|import\s*)["'](?:react(?:-dom|-native)?|expo(?:\/|["'])|expo-router|lucide-react)/m,
