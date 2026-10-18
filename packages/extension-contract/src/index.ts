@@ -176,6 +176,10 @@ export type NavigationTarget =
 export interface NavigationContribution {
   readonly id: string;
   readonly title: string;
+  /** Localized presentation; no sidebar DOM or product-ID lookup is required. */
+  readonly titleMessage?: ContributionMessage;
+  readonly shortTitleMessage?: ContributionMessage;
+  readonly badgeMessage?: ContributionMessage;
   readonly surface: NavigationSurface;
   readonly target: NavigationTarget;
   readonly order?: number;
@@ -214,6 +218,7 @@ export interface SettingsPageContribution {
   readonly title: string;
   /** Optional localized copy; title remains the fallback for older consumers. */
   readonly titleMessage?: ContributionMessage;
+  readonly shortTitleMessage?: ContributionMessage;
   readonly viewId: string;
   readonly order?: number;
   readonly icon?: string;

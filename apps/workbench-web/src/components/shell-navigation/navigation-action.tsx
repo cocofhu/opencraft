@@ -7,6 +7,8 @@ export interface NavigationAction {
   readonly title: string;
   /** Compact visible copy; title remains the complete accessible name. */
   readonly shortTitle?: string;
+  /** Resolved contribution copy; the Shell owns badge layout and visibility. */
+  readonly badge?: string;
   readonly icon?: string;
   readonly active?: boolean;
   readonly onInvoke: () => void;

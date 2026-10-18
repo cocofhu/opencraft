@@ -75,8 +75,7 @@ export function NavigationContent({ config, surface, compact = false, includeSet
   return surface === "applications" ? <Tooltip.Provider delayDuration={350} disableHoverableContent><nav aria-label={intl.formatMessage({ id: "navigation.applications", defaultMessage: "Applications" })} className="shell-navigation__items shell-navigation__items--applications">
     {config.actions.map(action => {
       const { full: title, short } = shellNavigationLabels(action, intl);
-      const badge = action.id === "opencraft.tasks.navigation" || action.id === "lightvela.collaboration.workspace"
-        ? <small className="shell-navigation__beta"><FormattedMessage id="navigation.tryIt" defaultMessage="Try it" /></small> : null;
+      const badge = action.badge === undefined ? null : <small className="shell-navigation__beta">{action.badge}</small>;
       return <Tooltip.Root key={action.id}><Tooltip.Trigger asChild><button type="button"
         data-action-id={action.id} aria-label={title} aria-current={action.active ? "page" : undefined} onClick={() => onInvoke(action.onInvoke)}>
         <NavigationIcon name={action.icon} selected={action.active} />

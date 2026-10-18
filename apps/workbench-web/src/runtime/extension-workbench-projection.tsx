@@ -1,3 +1,4 @@
+import { useIntl } from "@opencraft/i18n/react";
 import type {
   AppServerBotDirectory,
 } from "@opencraft/bot-conversation-appserver";
@@ -113,6 +114,7 @@ export function useExtensionWorkbenchProjection({
   openSettings,
   openView,
 }: ExtensionWorkbenchProjectionOptions): ExtensionWorkbenchProjection {
+  const intl = useIntl();
   const notices = useOptionalAsyncNotices();
   const reportError = useCallback((notice: { key: string; message: string }) => notices?.error(notice), [notices]);
   const contributionSnapshot = useSyncExternalStore(
@@ -244,7 +246,9 @@ export function useExtensionWorkbenchProjection({
       .sort(byOrderThenId);
     const actionFor = (item: (typeof navigation)[number]): SidebarActionItem => ({
         id: item.id,
-        title: item.title,
+        title: item.titleMessage ? intl.formatMessage(item.titleMessage) : item.title,
+        shortTitle: item.shortTitleMessage ? intl.formatMessage(item.shortTitleMessage) : undefined,
+        badge: item.badgeMessage ? intl.formatMessage(item.badgeMessage) : undefined,
         icon: item.icon,
         active:
           (item.target.kind === "settings" &&
@@ -340,6 +344,7 @@ export function useExtensionWorkbenchProjection({
     contributions,
     host,
     internalDeveloperMode,
+    intl,
     openSettings,
     openView,
     reportError,

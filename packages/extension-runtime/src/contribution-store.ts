@@ -4,6 +4,7 @@ import {
   type BotContribution,
   type CommandContribution,
   type CommandHandler,
+  type ContributionMessage,
   type ExtensionActivationIdentity,
   type ExtensionJson,
   type NavigationContribution,
@@ -127,9 +128,17 @@ function validateView(owner: ExtensionActivationIdentity, value: ViewContributio
   }
 }
 
+function validateMessage(value: ContributionMessage | undefined, label: string): void {
+  if (value === undefined) return;
+  if (value === null || typeof value !== "object") throw new TypeError(`Invalid ${label} message`);
+  requireLabel(value.id, `${label} message ID`);
+  requireLabel(value.defaultMessage, `${label} message fallback`);
+}
+
 function validateNavigation(owner: ExtensionActivationIdentity, value: NavigationContribution): void {
   assertOwnedContributionId(owner.extensionId, value.id);
   requireLabel(value.title, `Navigation ${value.id} title`);
+  for (const message of [value.titleMessage, value.shortTitleMessage, value.badgeMessage]) validateMessage(message, "navigation");
   if (value.audience !== undefined && value.audience !== "public" && value.audience !== "internal") {
     throw new RangeError(`Navigation ${value.id} has an invalid audience`);
   }
@@ -157,12 +166,7 @@ function validateSettingsPage(owner: ExtensionActivationIdentity, value: Setting
   assertOwnedContributionId(owner.extensionId, value.id);
   assertOwnedContributionId(owner.extensionId, value.viewId);
   requireLabel(value.title, `Settings page ${value.id} title`);
-  for (const message of [value.titleMessage, value.groupMessage]) {
-    if (message === undefined) continue;
-    if (message === null || typeof message !== "object") throw new TypeError("Invalid settings message");
-    requireLabel(message.id, "Settings message ID");
-    requireLabel(message.defaultMessage, "Settings message fallback");
-  }
+  for (const message of [value.titleMessage, value.shortTitleMessage, value.groupMessage]) validateMessage(message, "settings");
   if (value.audience !== undefined && value.audience !== "public" && value.audience !== "internal") {
     throw new RangeError(`Settings page ${value.id} has an invalid audience`);
   }
@@ -323,6 +327,9 @@ function freezePlatforms<T extends { readonly platforms?: readonly string[] }>(v
 function freezeNavigation(value: NavigationContribution): NavigationContribution {
   return Object.freeze({
     ...value,
+    ...(value.titleMessage === undefined ? {} : { titleMessage: Object.freeze({ ...value.titleMessage }) }),
+    ...(value.shortTitleMessage === undefined ? {} : { shortTitleMessage: Object.freeze({ ...value.shortTitleMessage }) }),
+    ...(value.badgeMessage === undefined ? {} : { badgeMessage: Object.freeze({ ...value.badgeMessage }) }),
     target: Object.freeze({ ...value.target }),
     ...(value.platforms === undefined ? {} : { platforms: Object.freeze([...value.platforms]) }),
   });
@@ -357,6 +364,7 @@ function freezeSettingsPage(value: SettingsPageContribution): SettingsPageContri
   return Object.freeze({
     ...value,
     ...(value.titleMessage === undefined ? {} : { titleMessage: Object.freeze({ ...value.titleMessage }) }),
+    ...(value.shortTitleMessage === undefined ? {} : { shortTitleMessage: Object.freeze({ ...value.shortTitleMessage }) }),
     ...(value.groupMessage === undefined ? {} : { groupMessage: Object.freeze({ ...value.groupMessage }) }),
     ...(value.management === undefined
       ? {}
