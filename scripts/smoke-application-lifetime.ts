@@ -3,7 +3,7 @@ import { createServer } from "vite";
 import { WebSocketServer } from "ws";
 
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
-// Only the Host wire and anonymous account HTTP boundary are synthetic. The
+// Only the Host wire and optional product composition are synthetic. The
 // Application, extensions, storage, browser services and their cleanup are real.
 const host = new WebSocketServer({ host: "127.0.0.1", port: 0 });
 await new Promise<void>(resolve => host.once("listening", resolve));
@@ -21,9 +21,11 @@ const managedModule = `export default {
 const source = `
 import {createWebWorkbenchApplication} from '/apps/workbench-web/src/runtime/web-workbench-application.ts';
 import {initializeAppearanceTheme} from '/apps/workbench-web/src/appearance-theme.ts';
+import {createSmokeClientProduct,OPTIONAL_EXTENSION_ID} from '/tests/fixtures/client-product.ts';
 initializeAppearanceTheme();
-const query=new URLSearchParams(location.search),configured=query.has('host'),managed=query.has('managed');
-const options={hostProfileMode:'configured',navigationMode:'memory',lightVelaApiBase:location.origin+'/fixture-account',
+const query=new URLSearchParams(location.search),configured=query.has('host'),managed=query.has('managed'),product=query.has('product');
+const productTrace=[];
+const options={hostProfileMode:'configured',navigationMode:'memory',...(product?{clientProduct:createSmokeClientProduct(productTrace)}:{}),
  ephemeralHostProfiles:configured?[{hostId:'fixture',displayName:'Unavailable fixture',providerId:'vela.websocket',providerConfig:{url:'ws://127.0.0.1:${(host.address() as { port: number }).port}'},providerConfigVersion:1,hostKind:'local',enabled:true,autoConnect:false,includeInSidebar:true,credentialRef:null,transportEndpoint:null,executionLocation:null,workspaceBrowseRoots:[],revision:1}]:[]};
 const manifest={manifestVersion:1,id:'lifetime.probe',name:'Lifetime probe',version:'1.0.0',apiVersion:1,trust:'trusted',platforms:['web'],activationEvents:['onStartupFinished']};
 let application,oldDocument,release,cleanupEntered=false;
@@ -33,7 +35,8 @@ const messages=error=>[String(error?.message??error),...(error instanceof Aggreg
 try {
  application=await createWebWorkbenchApplication(options);
  window.applicationProof={mode:application.supervisor.mode,
-  collaborationDefault(){const row=application.supervisor.extensionManager.getSnapshot().extensions.find(row=>row.installation.extensionId==='lightvela.collaboration');return row?{enabled:row.installation.enabled,status:row.status}:null;},
+  productTrace,
+  optionalDefault(){const row=application.supervisor.extensionManager.getSnapshot().extensions.find(row=>row.installation.extensionId===OPTIONAL_EXTENSION_ID);return row?{enabled:row.installation.enabled,status:row.status}:null;},
   async hold(fails){const gate=new Promise(resolve=>{release=resolve});
    if(managed){window.managedLifetimeControl={wait:gate,fails,save:true,entered:false};await application.supervisor.extensionManager.installModuleUrl(location.origin+'/managed-lifetime.mjs');oldDocument=window.managedLifetimeControl.document;return;}
    await application.supervisor.extensions.activate({manifest,async activate(api){
@@ -51,19 +54,19 @@ try {
    await replacement.dispose();return{stale,saved};},
   async late(){try{await application.dispose();return 'fulfilled'}catch{return 'rejected'}},
  };
-}catch(error){window.applicationProof={mode:'startup-failed',errors:messages(error)};}
+}catch(error){window.applicationProof={mode:'startup-failed',errors:messages(error),productTrace};}
 document.body.dataset.ready='true';`;
-const server = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
+const server = await createServer({ configFile: false, cacheDir: ".local/application-lifetime/vite-cache", root: process.cwd(), logLevel: "error",
   define: { "process.env.NEXT_PUBLIC_REGION": '"cn"', "process.env.NEXT_PUBLIC_PREVIEW_LOCALES": '""',
     "import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN": '"false"',
     "import.meta.env.VITE_INCLUDE_HEADLESS_CODEX": '"false"' },
-  esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, server: { host: "127.0.0.1", port: 0 },
+  esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, server: { host: "127.0.0.1", port: 0, hmr: false },
   plugins: [{ name: "application-lifetime-proof", resolveId: id => id === "/application-proof.ts" ? id : null,
     load: id => id === "/application-proof.ts" ? source : null,
     configureServer(vite) { vite.middlewares.use((req, res, next) => {
       if (req.url?.split("?")[0] === "/") { res.setHeader("Content-Type", "text/html"); res.end('<html><body><script type="module" src="/application-proof.ts"></script></body></html>'); }
       else if (req.url?.startsWith("/managed-lifetime.mjs")) { res.setHeader("Content-Type", "text/javascript"); res.end(managedModule); }
-      else if (req.url?.startsWith("/fixture-account")) { res.statusCode = 401; res.end("Anonymous fixture"); } else next();
+      else next();
     }); },
   }],
 });
@@ -72,13 +75,17 @@ try {
   await server.listen();
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
   const results: unknown[] = [];
-  const scenarios = [false, true].flatMap(managed => [false, true].flatMap(configured =>
-    [false, true].map(fails => ({ managed, configured, fails, startup: false }))));
-  scenarios.push({ managed: false, configured: false, fails: false, startup: true });
+  const scenarios = [false, true].flatMap(product => [false, true].flatMap(managed => [false, true].flatMap(configured =>
+    [false, true].map(fails => ({ product, managed, configured, fails, startup: false })))));
+  for (const product of [false, true]) scenarios.push({ product, managed: false, configured: false, fails: false, startup: true });
   for (const scenario of scenarios) {
     const context = await browser.newContext();
     try {
       const page = await context.newPage(), errors: string[] = [], externalOrigins: string[] = [];
+      const requests = new Set<string>();
+      page.on("request", request => requests.add(request.url()));
+      page.on("requestfinished", request => requests.delete(request.url()));
+      page.on("requestfailed", request => requests.delete(request.url()));
       const origin = new URL(server.resolvedUrls!.local[0]).origin;
       await page.route("**/*", (route: any) => {
         const requested = new URL(route.request().url());
@@ -108,14 +115,16 @@ try {
       const query = new URLSearchParams();
       if (scenario.configured) query.set("host", "1");
       if (scenario.managed) query.set("managed", "1");
+      if (scenario.product) query.set("product", "1");
       await page.goto(server.resolvedUrls!.local[0] + "?" + query);
-      await page.waitForSelector('body[data-ready="true"]', { state: "attached", timeout: 60000 }).catch(async error => { console.error("APPLICATION_STARTUP", scenario, errors, await page.evaluate(() => ({ ready: document.body.dataset.ready, body: document.body.innerText, html: document.documentElement.outerHTML.slice(0, 1000) }))); throw error; });
+      await page.waitForSelector('body[data-ready="true"]', { state: "attached", timeout: 60000 }).catch(async error => { console.error("APPLICATION_STARTUP", scenario, errors, [...requests], await page.evaluate(() => ({ ready: document.body.dataset.ready, body: document.body.innerText, html: document.documentElement.outerHTML.slice(0, 1000) }))); throw error; });
       const mode = await page.evaluate(() => (window as any).applicationProof.mode);
       assert.equal(mode, scenario.startup ? "startup-failed" : scenario.configured ? "active" : "hostless",
         await page.evaluate(() => (window as any).applicationProof.errors?.join("\n") ?? "Application should start"));
-      if (mode === "active") assert.deepEqual(
-        await page.evaluate(() => (window as any).applicationProof.collaborationDefault()),
-        { enabled: false, status: "disabled" }, "fresh default must leave collaboration discoverable but disabled");
+      if (!scenario.startup) assert.deepEqual(
+        await page.evaluate(() => (window as any).applicationProof.optionalDefault()),
+        scenario.product ? { enabled: false, status: "disabled" } : null,
+        "only an explicitly supplied product contributes its optional builtin");
       const resources = () => page.evaluate(() => {
         const { databases, channels } = (window as any).applicationResources;
         return { databases: databases.filter((row: { name: string }) => row.name.includes("extension-data")), channels: channels.filter((row: { name: string }) => row.name.includes("extension-data")) };
@@ -148,6 +157,20 @@ try {
         assert.ok(reopened.databases.every((row: { closes: number }) => row.closes === 1));
         assert.ok(reopened.channels.every((row: { closes: number }) => row.closes === 1));
       }
+      const trace = await page.evaluate(() => (window as any).applicationProof.productTrace) as string[];
+      if (scenario.product) {
+        const lifetimes = trace.join(',').split('product.bootstrap,').filter(Boolean);
+        assert.equal(lifetimes.length, scenario.startup ? 1 : 2);
+        for (const lifetime of lifetimes) {
+          const events = lifetime.split(',');
+          assert.equal(events.filter(event => event === 'product.dispose').length, 1, 'product owner is retired exactly once');
+          assert.ok(events.includes('scope.unsubscribe') && events.indexOf('scope.unsubscribe') < events.indexOf('product.dispose'), 'cache consumer releases before product owner');
+          if (!scenario.startup) {
+            assert.ok(events.includes('owner.activate') && events.indexOf('owner.activate') < events.indexOf('product.preflight'));
+            assert.ok(events.includes('owner.dispose') && events.indexOf('owner.dispose') < events.indexOf('product.dispose'), 'extensions release before product owner');
+          }
+        }
+      } else assert.deepEqual(trace, []);
       assert.deepEqual(errors, []);
       assert.deepEqual(externalOrigins, [], "the lifetime probe must stay inside its local boundaries");
       results.push({ ...scenario, mode, databaseAndChannelClosedOnce: true, externalHostAvailable: false });

@@ -4,7 +4,7 @@ import { createServer } from "vite";
 
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 // Real application bootstrap, Settings, Router, Supervisor and Manager. Only
-// external account requests and the self-contained test plugin use local fixtures.
+// product composition and the self-contained test plugin use local fixtures.
 const withHost = process.argv.includes("--with-host");
 const evidenceDirectory = `.local/plugin-settings/${withHost ? "active" : "hostless"}`;
 const source = `
@@ -14,6 +14,7 @@ import {createWebWorkbenchApplication,WorkbenchRoot} from '/apps/workbench-web/s
 import {initializeAppearanceTheme,setThemePreference} from '/apps/workbench-web/src/appearance-theme.ts';
 import {projectExtensionCatalog} from '/packages/extension-runtime/src/catalog.ts';
 import '/apps/workbench-web/src/styles/app.scss';
+import {createSmokeClientProduct} from '/tests/fixtures/client-product.ts';
 initializeAppearanceTheme();
 if (${withHost}) {
   const config=document.createElement('script'); config.id='opencraft-deployment-config'; config.type='application/json';
@@ -21,7 +22,7 @@ if (${withHost}) {
   document.head.append(config);
 }
 console.log("plugin-proof: bootstrap");
-const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',enableLightVelaCollaboration:false,lightVelaApiBase:location.origin+'/fixture-account'});
+const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',clientProduct:createSmokeClientProduct()});
 console.log("plugin-proof: application ready");
 const supervisor=application.supervisor;
 const manifest={manifestVersion:1,id:'example.failed',name:'Failed fixture',version:'1.2.3',apiVersion:1,trust:'trusted',platforms:['web'],activationEvents:['onStartupFinished']};
@@ -43,11 +44,11 @@ window.proof={
 };
 document.body.dataset.ready='true';`;
 const plugin = `export default {manifest:{manifestVersion:1,id:'example.installed',name:'Installed fixture',version:'2.3.4',apiVersion:1,trust:'trusted',platforms:['web'],activationEvents:['onStartupFinished']},activate(){}};`;
-const server = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
+const server = await createServer({ configFile: false, cacheDir: ".local/plugin-settings/vite-cache", root: process.cwd(), logLevel: "error",
   define: { "process.env.NEXT_PUBLIC_REGION": '"cn"', "process.env.NEXT_PUBLIC_PREVIEW_LOCALES": '""',
     "import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN": '"false"' },
   esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] },
-  server: { host: "127.0.0.1", port: 0 }, plugins: [{
+  server: { host: "127.0.0.1", port: 0, hmr: false }, plugins: [{
     name: "plugin-settings-proof", resolveId: id => id === "/proof.tsx" ? id : null,
     load: id => id === "/proof.tsx" ? source : null,
     configureServer(vite) { vite.middlewares.use((req, res, next) => {
@@ -56,8 +57,6 @@ const server = await createServer({ configFile: false, root: process.cwd(), logL
         res.end('<html><body><div id="app"></div><script type="module" src="/proof.tsx"></script></body></html>');
       } else if (req.url?.startsWith("/fixture-plugin.mjs")) {
         res.setHeader("Content-Type", "text/javascript"); res.end(plugin);
-      } else if (req.url?.startsWith("/fixture-account")) {
-        res.statusCode = 401; res.end('Anonymous fixture');
       } else next();
     }); },
   }],
@@ -68,6 +67,13 @@ try {
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.addInitScript("window.__name = target => target;");
+  const externalOrigins: string[] = [];
+  const origin = new URL(server.resolvedUrls!.local[0]).origin;
+  await page.route("**/*", (route: any) => {
+    const requested = new URL(route.request().url());
+    if (requested.origin === origin) return route.continue();
+    externalOrigins.push(requested.origin); return route.abort();
+  });
   const errors: string[] = []; page.on("pageerror", (error: Error) => { errors.push(error.message); console.error("Page error:", error.message); });
   page.on("console", message => { if (message.type() === "error" || message.text().startsWith("plugin-proof:")) console.error("Browser:", message.text().slice(0,600)); });
   await page.goto(server.resolvedUrls!.local[0]);
@@ -86,11 +92,11 @@ try {
   await library.getByLabel('搜索扩展').fill('Failed fixture');
   await library.getByText('Fixture activation failed', { exact: true }).waitFor();
   assert.equal(await library.getByRole('switch').count(), 0, 'unmanaged built-ins stay protected');
-  await library.getByLabel('搜索扩展').fill('Collaboration');
-  await library.getByRole('switch', { name: '启用 LightVela Collaboration' }).click();
-  await library.getByRole('switch', { name: '停用 LightVela Collaboration' }).waitFor();
-  await library.getByRole('switch', { name: '停用 LightVela Collaboration' }).click();
-  await library.getByRole('switch', { name: '启用 LightVela Collaboration' }).waitFor();
+  await library.getByLabel('搜索扩展').fill('Optional fixture');
+  await library.getByRole('switch', { name: '启用 Optional fixture' }).click();
+  await library.getByRole('switch', { name: '停用 Optional fixture' }).waitFor();
+  await library.getByRole('switch', { name: '停用 Optional fixture' }).click();
+  await library.getByRole('switch', { name: '启用 Optional fixture' }).waitFor();
   await library.getByLabel('搜索扩展').fill('does-not-exist');
   await library.getByText('没有匹配的扩展。', { exact: true }).waitFor();
   await library.getByLabel('搜索扩展').fill('');
@@ -118,6 +124,7 @@ try {
   await page.evaluate(() => (window as any).proof.open());
   await library.getByLabel('搜索扩展').waitFor();
   assert.deepEqual(errors, []);
+  assert.deepEqual(externalOrigins, [], "the probe must not depend on external product services");
   const evidence = await page.evaluate(() => ({
     mode: (window as any).proof.mode,
     route: (window as any).proof.route(),

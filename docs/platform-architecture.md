@@ -2175,6 +2175,12 @@ not the complete-graph shutdown plan. Automatic reverse-construction cleanup
 cannot replace the explicit normal consumer/provider order. Actual browser
 coverage in `smoke:application:lifetime` checks both modes, held/failing extension
 cleanup, retained data with stale old handles, and storage failure during startup.
+It covers default public startup and an explicitly supplied local product, checking
+that product teardown waits for its extensions and cache subscribers. The public
+`smoke:extensions:builtin` and `smoke:plugin-settings` probes use that same synthetic
+composition through `ClientWorkbenchProduct`, without a private account service or
+product package. They exercise real extension management, navigation, persisted
+enablement, protected bundled sources and Settings in Chromium.
 Its configured Host wire deliberately rejects requests; this is not a connected
 external Host or native-client acceptance result.
 

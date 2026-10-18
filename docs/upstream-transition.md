@@ -43,6 +43,14 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+- Public Application lifetime, optional-builtin and plugin-Settings browser probes
+  no longer assume the removed private bootstrap options or an automatically
+  installed product. Default startup is tested without a product; explicit product
+  behavior uses a local `ClientWorkbenchProduct` fixture. Chromium checks cover
+  persisted enablement, protected bundled sources and consumer-before-product
+  teardown, including startup rollback. Other product-specific probes must still
+  be reviewed against their actual entrypoints; passing these probes does not
+  establish that all public development commands are independent.
 - Shared-package snapshot verification still detects existing Collaboration CSS
   drift: the downstream snapshot uses typography tokens while the source and recorded
   fingerprint describe the older stylesheet. This was reproduced on the clean
@@ -231,7 +239,10 @@ success cannot justify discarding a later unported core change.
 
 ## Release lifecycle
 
-Product isolation is complete. When an npm release is requested, merge a release PR
+The main product packages and build entrypoints are isolated. Development-tool
+closure and the remaining desktop account/IPC composition still require review;
+this is not a claim that every product edge has been removed. When an npm release
+is requested, merge a release PR
 that raises `packaging/web-server/package.json` and includes the exact
 `## vX.Y.Z` changelog section. The main workflow creates the immutable tag and
 performs preflight, package-once, exact-byte npm publication and verification.

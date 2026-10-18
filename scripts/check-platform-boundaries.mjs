@@ -26,6 +26,9 @@ checkFiles("public tool", "scripts", [{
 }, {
   pattern: /\b(?:join|resolve)\([^;\n]*["'](?:products|frontend)(?:\/|["'])/m,
   message: "must not select private product source roots; keep the tool downstream",
+}, {
+  pattern: /\b(?:lightVelaApiBase|enableLightVelaCollaboration)\s*:/m,
+  message: "must use the public clientProduct port instead of removed product bootstrap options",
 }]);
 const publicScripts = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")).scripts;
 for (const [name, command] of Object.entries(publicScripts)) {
