@@ -18,6 +18,7 @@ export class DshNativeAdmission {
   private prefixes = new Map<string, { turn: number; events: DshEvent[] }>();
   private active = new Map<string, { turn: number; admission: DshAdmission }>();
   private managed = new Set<string>();
+  private goals = new Map<string, { owner: DshExecutionOwner; requestId: string | number; id?: string; revision?: number; round: number }>();
   private queued = new Map<string, { threadId: string; owner: DshExecutionOwner; requestId: string | number; clientMessageId: string }>();
   constructor(readonly authority: DshExecutionAuthority, private readonly timeoutMs = 10_000) {
     for (const entry of authority.queuedInputs()) { this.queued.set(entry.rpcId, entry); this.managed.add(entry.threadId); }
@@ -41,6 +42,11 @@ export class DshNativeAdmission {
     return { admission, rpcId, started, cancel: (error: Error) => this.cancel(threadId, admission.epoch, error) };
   }
   manages(threadId: string) { return this.managed.has(threadId); }
+  authorizeGoal(threadId: string, owner: DshExecutionOwner, requestId: string | number) {
+    const previous = this.goals.get(threadId);
+    this.goals.set(threadId, { owner, requestId, id: previous?.id, revision: previous?.revision, round: previous?.round ?? 0 });
+    this.managed.add(threadId);
+  }
   reserveQueued(threadId: string, owner: DshExecutionOwner, requestId: string | number, clientMessageId: string): string {
     const rpcId = "opencraft-queue-" + randomUUID();
     this.authority.queueInput(rpcId, threadId, owner, requestId, clientMessageId);
@@ -58,6 +64,8 @@ export class DshNativeAdmission {
   }
   reconnect(threadId: string, owner: DshExecutionOwner) {
     const reclaimed = this.authority.reconnect(threadId, owner);
+    const goal = this.goals.get(threadId);
+    if (goal?.owner.identity.id === owner.identity.id && (reclaimed || !this.authority.table.get(threadId))) goal.owner = owner;
     for (const entry of this.queued.values()) if (entry.threadId === threadId && entry.owner.identity.id === owner.identity.id &&
       (reclaimed || !this.authority.table.get(threadId))) entry.owner = owner;
   }
@@ -73,6 +81,24 @@ export class DshNativeAdmission {
   accept(threadId: string, event: DshEvent): DshEvent[] {
     const data = (event.data ?? {}) as Record<string, any>;
     const running = this.active.get(threadId);
+    // Goal changes are session-scoped, including edits while no Turn exists.
+    // A tool-created Goal inherits its admitted human execution; cold history
+    // never enters this live path and therefore cannot grant continuation.
+    if (event.type === "goal/change") {
+      let grant = this.goals.get(threadId);
+      if (data.operation === "clear" || data.goal?.phase !== "active") this.goals.delete(threadId);
+      else {
+        if (!grant && running) {
+          this.authorizeGoal(threadId, running.admission.connection, running.admission.requestId);
+          grant = this.goals.get(threadId);
+        }
+        if (grant) {
+          if (grant.id !== data.goal.id) grant.round = 0;
+          grant.id = data.goal.id; grant.revision = data.goal.revision;
+        }
+      }
+      return [event];
+    }
     if (running) {
       if (typeof data.turn === "number" && data.turn !== running.turn) return [];
       if (this.authority.table.get(threadId)?.epoch !== running.admission.epoch) return [];
@@ -92,7 +118,19 @@ export class DshNativeAdmission {
       return [];
     }
     let pending = this.pending.get(threadId);
-    if (event.type !== "user/message" || !["user", "human"].includes(data.source?.kind)) return [];
+    let goalContinuation = false;
+    if (event.type !== "user/message") return [];
+    if (!pending && data.source?.kind === "goal") {
+      const grant = this.goals.get(threadId);
+      const source = data.source;
+      if (!grant || source.goalId !== grant.id || source.revision !== grant.revision
+        || !Number.isSafeInteger(source.round) || source.round <= grant.round) return [];
+      const admission = this.authority.claimGoalContinuation(threadId, grant.owner, grant.requestId);
+      goalContinuation = true;
+      grant.round = source.round;
+      pending = { admission, rpcId: "", resolve: () => {}, reject: () => {}, timer: setTimeout(() => {}, 0) };
+    }
+    if (!["user", "human", "goal"].includes(data.source?.kind)) return [];
     if (!pending) {
       const queued = this.queued.get(data.source.rpcId);
       if (queued?.threadId === threadId) {
@@ -103,7 +141,7 @@ export class DshNativeAdmission {
         this.removeQueued(data.source.rpcId);
       }
     }
-    if (!pending || data.source.rpcId !== pending.rpcId) {
+    if (!pending || (!goalContinuation && data.source.rpcId !== pending.rpcId)) {
       this.prefixes.delete(threadId);
       return [];
     }
@@ -123,6 +161,7 @@ export class DshNativeAdmission {
     this.active.delete(threadId);
   }
   failAll(error: Error) {
+    this.goals.clear();
     for (const [id, pending] of [...this.pending]) this.cancel(id, pending.admission.epoch, error);
     for (const id of [...this.active.keys()]) this.finish(id, "failed", error.message);
     this.prefixes.clear();

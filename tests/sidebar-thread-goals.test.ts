@@ -78,3 +78,12 @@ test("failed hydration is quiet and does not retry on another row notification",
   goals.observe("other", goal("other")); await tick();
   assert.equal(calls, 1); assert.equal(sidebarGoalSignature([source]), "0"); stop();
 });
+
+test("durably active but disarmed Goal does not advertise autonomous activity", () => {
+  const h = harness();
+  const disarmed = { ...goal("one"), execution: { activation: "disarmed" } };
+  h.goals.observe("one", disarmed);
+  assert.equal(sidebarGoalSignature([h.source]), "0");
+  h.goals.observe("one", { ...goal("one"), execution: { activation: "armed" } });
+  assert.equal(sidebarGoalSignature([h.source]), "1");
+});

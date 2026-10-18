@@ -285,6 +285,7 @@ export async function startLocalAgentHost(options: {
   if (capabilityLink) adapter.setModelInfoReader((provider, model) => capabilityLink!.modelInfo(provider, model));
   if (capabilityLink) adapter.setSkillInvocationValidator((threadId, skills) => capabilityLink!.validateSkillInvocations(threadId, skills));
   if (capabilityLink) adapter.setThreadEngine({
+    goal: params => capabilityLink!.thread("goal", { ...params, sessionId: routing.native(String(params.sessionId)) }),
     describe: async params => {
       const generation = routing.current(String(params.sessionId));
       const description = await capabilityLink!.thread("describe", { ...params, sessionId: generation.nativeId });
@@ -548,7 +549,7 @@ export async function startLocalAgentHost(options: {
         const targetThread = (request.params as { threadId?: string } | null)?.threadId;
         if (request.method.startsWith("turn/") && typeof targetThread === "string") lifecycle.assertOpen(targetThread);
         const prepareExecution = async () => {
-        if ((request.method === "turn/start" || request.method === "thread/queue/start") && typeof targetThread === "string") {
+        if ((request.method === "turn/start" || request.method === "thread/queue/start" || request.method === "thread/goal/set") && typeof targetThread === "string") {
           // JIT history keeps display-only resume cold. Execution is the point
           // where the native Agent must exist and every declared Host tool must
           // be mounted before the prompt can enter DSH.
