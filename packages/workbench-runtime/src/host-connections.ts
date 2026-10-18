@@ -1,3 +1,4 @@
+import { normalizeHostComposerCommands, type HostComposerCommands, type HostComposerCommand } from "./host-composer-commands";
 import { parseRuntimeMachineIdentity, type RuntimeMachineIdentity } from "@opencraft/appserver-protocol";
 import { Context, Service, type Fiber, type Plugin } from "@deepseek-ai/cordis";
 import type { DuplexTransport } from "@opencraft/appserver-client/transport";
@@ -68,7 +69,7 @@ export interface HostConnectionPreflightContext {
 }
 
 /**
- * A provider contributes construction of a physical transport. The caller owns
+ * A provider contributes a physical transport and optional Composer command adapter. The caller owns
  * every returned transport and all AppServer/Session/Replica state above it.
  */
 export interface HostConnectionProvider<TConfig extends HostConnectionJson = HostConnectionJson> {
@@ -80,6 +81,7 @@ export interface HostConnectionProvider<TConfig extends HostConnectionJson = Hos
    * never owns application routing or presentation.
    */
   readonly settingsPageId?: string;
+  readonly composerCommands?: HostComposerCommands;
   readonly targets: readonly HostConnectionPlatform[];
   readonly configVersion: number;
   validate(config: HostConnectionJson, context: HostConnectionProviderContext): TConfig;
@@ -103,6 +105,8 @@ export interface HostConnectionProviderDescriptor {
   readonly id: string;
   readonly label: string;
   readonly settingsPageId?: string;
+  /** Declarations only; executable adapters remain with the leased provider. */
+  readonly composerCommands?: readonly HostComposerCommand[];
   readonly ownerId: string;
   readonly targets: readonly HostConnectionPlatform[];
   readonly configVersion: number;
@@ -163,10 +167,13 @@ export class HostConnectionProviderRegistry {
       throw new RangeError(`Connection provider ${providerId} has an invalid config version`);
     }
     if (this.records.has(providerId)) throw new Error(`Connection provider ${providerId} is already registered`);
+    const composerCommands = provider.composerCommands === undefined
+      ? undefined : normalizeHostComposerCommands(provider.composerCommands);
     const record: ProviderRecord = {
       provider: {
         ...provider,
         id: providerId,
+        ...(composerCommands === undefined ? {} : { composerCommands }),
         ...(settingsPageId === undefined ? {} : { settingsPageId }),
       },
       ownerId: normalizedOwner,
@@ -252,6 +259,7 @@ export class HostConnectionProviderRegistry {
         ownerId: record.ownerId,
         targets: [...record.provider.targets],
         configVersion: record.provider.configVersion,
+        ...(record.provider.composerCommands === undefined ? {} : { composerCommands: record.provider.composerCommands.commands }),
       })),
     };
     if (this.closed && !whileClosing) return;

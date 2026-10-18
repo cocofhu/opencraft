@@ -43,6 +43,13 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+Host-specific Composer shortcut declarations and standalone action adapters belong
+to the trusted connection provider. Core matching, presentation and resident
+Host/profile/provider lease checks are engine-neutral; the downstream engine
+retains its existing wire behavior. The Composer Stop button and ordinary
+submission/queue ownership are unchanged. Bot-management provider eligibility
+remains a separate boundary under review.
+
 Product Bot Create-return and optional native Cron probes belong with their
 downstream builders and generated assets. Public Expo scripts do not consume
 those private artifacts. The original assertions stay in the product workspace;

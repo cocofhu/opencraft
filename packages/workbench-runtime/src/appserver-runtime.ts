@@ -1,3 +1,4 @@
+import type { HostComposerCommandPort } from "./host-composer-commands";
 import { MCP_APPS_NAMESPACE } from "@opencraft/appserver-protocol/mcp-apps";
 import type { ConversationOutboxStorage } from "@opencraft/chat-runtime";
 import { ConversationRecoveryOwner, type RecoveryDemand } from "./recovery-policy";
@@ -360,6 +361,7 @@ export interface AppServerFileWatchLease {
 
 export interface AppServerWorkbenchRuntime {
   readonly resources: {
+    readonly composerCommands?: HostComposerCommandPort;
     readonly protocol: AppServerProtocolResourcePort;
     readonly host: AppServerHostResourcePort;
     readonly threads: AppServerThreadResourcePort;

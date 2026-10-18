@@ -1,3 +1,4 @@
+import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
 import { serverFetch, serverStorageKey } from "./server-context";
 import { reportRecoveryEvent } from "./recovery-diagnostics";
@@ -775,6 +776,15 @@ export async function createWebWorkbenchApplicationSupervisor(
       }
       const stopQueryRecovery = bindHostQueryRecovery(runtime, profile.hostId, queryClient);
       let disposed = false;
+      const composerCommands = createHostComposerCommandPort({
+        provider: providerLease.provider,
+        context: { platform, hostId: profile.hostId, profileRevision: profile.revision },
+        protocol: runtime.resources.protocol,
+        isCurrent: () => !disposed && runtime.getSnapshot().phase === "ready"
+          && hostProfiles.getSnapshot().profiles.some(current => current.hostId === profile.hostId
+            && current.enabled && current.revision === profile.revision && current.providerId === profile.providerId),
+        acquire: () => connectionProviders.providers.acquire(profile.providerId, platform),
+      });
       let identityGeneration = -1;
       let identityRead: Promise<void> = Promise.resolve();
       const observeIdentity = () => {
@@ -788,6 +798,7 @@ export async function createWebWorkbenchApplicationSupervisor(
       const stopIdentity = runtime.subscribe(observeIdentity);
       return {
         ...runtime,
+        resources: { ...runtime.resources, ...(composerCommands === undefined ? {} : { composerCommands }) },
         async connect() {
           if (!hostProfiles.getSnapshot().profiles.some(current => current.hostId === profile.hostId && current.enabled)) throw new Error("此环境当前不可连接，请刷新环境目录。");
           await runtime.connect();
