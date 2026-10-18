@@ -197,8 +197,8 @@ test("extension theme selection is root-owned and unload falls back atomically",
 
   try {
     const appearance = await import("../apps/workbench-web/src/appearance-theme.ts");
-    assert.equal(appearance.defaultAppearanceThemeId("lightvela-web"), appearance.velaThemeId);
-    assert.equal(appearance.defaultAppearanceThemeId("opencraft"), appearance.coreThemeId);
+    assert.equal(appearance.defaultAppearanceThemeId({defaultThemeId: appearance.velaThemeId}), appearance.velaThemeId);
+    assert.equal(appearance.defaultAppearanceThemeId({}), appearance.coreThemeId);
     appearance.initializeAppearanceTheme();
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.deepEqual(

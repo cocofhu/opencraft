@@ -1,5 +1,5 @@
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
-import { useWorkbenchProductId, usesVelaIcons } from "../../workbench-product";
+import { useWorkbenchPresentation } from "../../workbench-product";
 import { createElement } from "react";
 import { resolveWorkbenchIcon } from "../ui/workbench-icon";
 export interface NavigationAction {
@@ -23,15 +23,15 @@ export function NavigationIcon({ name, size, selected = false }: {
   // Only closed silhouettes can be filled. A server's lights, a Bot's face or
   // a gear's hub must not disappear under a generic `svg { fill }` rule.
   const silhouette = ["home", "chat", "message-circle", "cloud", "folder", "applications", "grid"].includes(name ?? "");
-  const vela = usesVelaIcons(useWorkbenchProductId());
-  const icon = resolveWorkbenchIcon(name, vela, "navigation");
+  const classic = useWorkbenchPresentation().iconStyle === "classic";
+  const icon = resolveWorkbenchIcon(name, classic, "navigation");
   const props = {
-    size: size ?? (vela ? workbenchIconMetrics.vela.navigation : workbenchIconMetrics.core.navigation),
+    size: size ?? (classic ? workbenchIconMetrics.vela.navigation : workbenchIconMetrics.core.navigation),
     "aria-hidden": true,
     focusable: false,
     "data-navigation-glyph-variant": selected ? "selected" : "outline",
-    fill: vela && selected && silhouette ? "currentColor" : "none",
-    strokeWidth: vela
+    fill: classic && selected && silhouette ? "currentColor" : "none",
+    strokeWidth: classic
       ? selected && !silhouette ? workbenchIconMetrics.navigation.selectedStroke : workbenchIconMetrics.navigation.stroke
       : workbenchIconMetrics.coreNavigation.stroke,
   };

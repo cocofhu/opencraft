@@ -1,8 +1,8 @@
-import { useWorkbenchProductId, usesVelaIcons } from "../workbench-product";
+import { useWorkbenchPresentation } from "../workbench-product";
 import { WorkbenchIcon } from "../components/ui/workbench-icon";
 
 export function NewTaskIcon() {
-  if (usesVelaIcons(useWorkbenchProductId())) return <LegacyNewTaskIcon />;
+  if (useWorkbenchPresentation().iconStyle === "classic") return <LegacyNewTaskIcon />;
   return <WorkbenchIcon name="start" size={16} />;
 }
 

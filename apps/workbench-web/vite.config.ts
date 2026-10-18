@@ -1,3 +1,4 @@
+import { resolveWorkbenchPresentation, type WorkbenchPresentationOptions } from "./src/workbench-presentation";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { browserTargets } from "../../config/browser-compatibility.mjs";
 import { browserCompatibility } from "./browser-compatibility.vite";
@@ -17,6 +18,7 @@ import { loadEnv, defineConfig, type ConfigEnv, type Connect, type Plugin, type 
 
 /** Trusted build composition; platform constraints still belong to core. */
 export interface WorkbenchWebBuildFeatures {
+  readonly presentation?: WorkbenchPresentationOptions;
   readonly hyperNode?: boolean;
   readonly builtinAgents?: boolean;
   readonly tasks?: boolean;
@@ -70,6 +72,7 @@ export function createWorkbenchWebConfig(
   // rolldown-vite intentionally leaves some custom `define` identifiers intact
   // while serving source modules in development.
   process.env.VITE_OPENCRAFT_PRODUCT_ID = product;
+  process.env.VITE_OPENCRAFT_PRESENTATION = JSON.stringify(resolveWorkbenchPresentation(features.presentation));
   process.env.VITE_INCLUDE_HYPERNODE_PLUGIN = includeHyperNodePlugin ? "true" : "false";
   process.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN = includeBuiltinAgentsPlugin ? "true" : "false";
   process.env.VITE_INCLUDE_HEADLESS_MODEL_SERVICES = includeHeadlessModelServices ? "true" : "false";
