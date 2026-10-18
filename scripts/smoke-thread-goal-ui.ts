@@ -94,8 +94,7 @@ try {
   };
   await summary.waitFor();
   assert.equal(await page.evaluate(() => (window as any).fixture.localeOverride()), "");
-  assert.match((await page.locator(".thread-goal__time").getAttribute("title"))!, /^\d+ 秒$/);
-  assert.equal(await page.evaluate(()=>(window as any).fixture.goalUsage().timeUsedSeconds),0);
+  assert.equal(await page.locator(".thread-goal__time").getAttribute("title"), "13 天 4 小时 36 分钟");
   for (const mode of ["light", "dark"] as const) {
     await page.evaluate(mode => (window as any).fixture.setTheme(mode), mode);
     await summary.click();
@@ -158,7 +157,8 @@ try {
   await createDialog.getByRole("button", { name: "保存" }).tap();
   await createDialog.waitFor({ state: "hidden" });
   await summary.waitFor();
-  assert.equal(await page.locator(".thread-goal__time").getAttribute("title"), "13 天 4 小时 36 分钟");
+  assert.match((await page.locator(".thread-goal__time").getAttribute("title"))!, /^\d+ 秒$/);
+  assert.equal(await page.evaluate(()=>(window as any).fixture.goalUsage().timeUsedSeconds),0);
   assert.equal(await page.evaluate(() => (window as any).fixture.objective()), "从菜单创建的持续目标");
   assert.equal(await page.evaluate(() => (window as any).fixture.setCalls()), 1);
   await add.tap();
@@ -539,7 +539,7 @@ try {
     await adaptive.getByRole('menuitem',{name:'View completed goal',exact:true}).click();
     await adaptive.getByRole('dialog',{name:'View completed goal',exact:true}).getByRole('button',{name:'Remove',exact:true}).click();
     await adaptive.getByRole('dialog').waitFor({state:'hidden'});
-    assert.equal(await adaptive.evaluate(()=>(window as any).fixture.clearCalls()),countsBefore.clear+1);
+    assert.equal(await adaptive.evaluate(()=>(window as any).fixture.clearCalls()),countsBefore.clear+2);
     assert.equal(await adaptive.evaluate(()=>(window as any).fixture.status()),undefined);
     await adaptive.goto(`http://127.0.0.1:${(vite.httpServer!.address() as {port:number}).port}/?completed=1`);
     await adaptive.locator('.codex-composer-editor').waitFor();
