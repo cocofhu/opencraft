@@ -28,9 +28,9 @@ function main() {
   let report;
   try { report = JSON.parse(raw); } catch { /* Invalid reports fail below. */ }
   const outcome = auditOutcome({ status: result.status, report,
-    reportOnly: process.env.PRIVATE_MIGRATION_AUDIT_REPORT_ONLY === 'true' });
+    reportOnly: process.env.NPM_AUDIT_REPORT_ONLY === 'true' });
   const message = outcome === 'reported'
-    ? 'Dependency findings retained as advisory during private upstream migration; not remediated.'
+    ? 'Dependency findings retained as advisory under the upstream CI policy; not remediated.'
     : `Dependency audit: ${outcome}.`;
   console.log(message);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,

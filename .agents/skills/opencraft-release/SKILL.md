@@ -13,16 +13,18 @@ upstream with a completed source cutover.
 1. Fetch main and tags in a clean isolated feature checkout. Confirm the
    requested target repository, package and release scope. Never infer release
    permission from a request to build or deploy a downstream instance.
-2. Run `node scripts/check-source-provenance.mjs --release`. Investigate unresolved
-   entries and preserve their source evidence; adding Apache-2.0 or removing a
-   provenance comment does not clear third-party material. Scan the actual
-   candidate/history with the verified Gitleaks version in the security workflow.
+2. Preserve existing source records and third-party notices. The owner's
+   2026-10-18 decision removes source cleanup as a migration or release
+   prerequisite; do not start replacement work or claim unresolved entries have
+   been cleared. `node scripts/check-source-provenance.mjs` checks inventory
+   integrity without requiring resolution. Scan the actual candidate/history
+   with the verified Gitleaks version in the security workflow.
 3. Prepare a release PR with a strictly increased stable version in
    `packaging/web-server/package.json` and its exact `## vX.Y.Z` section in
    `CHANGELOG.md`. Keep the lockfile in sync if the packaging contract changes.
    Run the affected product tests and the release workflow's local checks.
 4. Merging that version change into main triggers `.github/workflows/release.yml`.
-   It creates the exact tag only after source review passes, then packages once.
+   It validates the release request and creates the exact tag, then packages once.
    The `npm-release` environment is restricted to main. Keep OIDC and the exact
    workflow filename; do not substitute a personal npm token or publish from a PR.
 5. Follow the run through preflight, npm and GitHub Release. Report the tag/SHA,

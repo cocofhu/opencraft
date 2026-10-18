@@ -48,9 +48,9 @@ jobs:
       - name: Select the exact release request
         id: request
         run: node scripts/release-request.mjs
-      - name: Require resolved source provenance before creating a tag
+      - name: Retain source inventory before creating a tag
         if: steps.request.outputs.publish == 'true'
-        run: node scripts/check-source-provenance.mjs --release
+        run: node scripts/check-source-provenance.mjs
       - name: Create an immutable automatic version tag
         if: steps.request.outputs.create-tag == 'true'
         env:
@@ -131,8 +131,8 @@ jobs:
           VERSION="$(node -p "require('./packaging/web-server/package.json').version")"
           python3 "$KIT" source --tag "$RELEASE_TAG" --version "$VERSION" --primary-ref origin/main
 
-      - name: Require resolved tag source provenance
-        run: node scripts/check-source-provenance.mjs --release
+      - name: Retain tag source inventory
+        run: node scripts/check-source-provenance.mjs
 
       - name: Install frozen dependencies
         run: npm ci --prefer-offline --no-audit --no-fund

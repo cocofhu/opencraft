@@ -1,5 +1,10 @@
 # Source provenance review
 
+> Historical source inventory. On 2026-10-18 the owner removed source cleanup
+> from the migration scope. No further replacement work is required for the
+> GitHub upstream cutover; existing records are retained without changing their
+> unresolved status. See [the current decision](upstream-transition.md#current-delivery-decision-2026-10-18).
+
 The current decision is **unverified: inventory and resolve before public
 redistribution**. Apache-2.0 is the intended license for original OpenCraft
 contributions; it does not establish rights in recovered implementations,
