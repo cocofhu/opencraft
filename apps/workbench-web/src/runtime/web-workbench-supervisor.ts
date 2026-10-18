@@ -483,7 +483,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     await loadPresentationExtension("vela.bot-management", async signal => {
       const { createBotManagementExtension } = await import("./bot-management-extension");
       signal?.throwIfAborted();
-      return createBotManagementExtension(botDirectory, botConversations.service, hostId => connectBotHost(hostId));
+      return createBotManagementExtension(botDirectory, botConversations.service, hostId => connectBotHost(hostId), clientProduct?.botManagement);
     });
     const extensionInstallationFiber = cordis.plugin(
       provideExtensionInstallationRepository(extensionPersistence.installations),

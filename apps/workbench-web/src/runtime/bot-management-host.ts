@@ -1,18 +1,27 @@
 import type { AppServerBotDirectoryHost } from "@opencraft/bot-conversation-appserver";
 import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
+import type { ResolvedBotManagementPolicy } from "@opencraft/client-product";
 
-/** Bot management is a downstream product surface, not a generic Host picker. */
-export function resolveCloudHermesBotHost(
+export function eligibleBotManagementProfiles(
+  profiles: readonly HostConnectionProfile[],
+  policy: ResolvedBotManagementPolicy,
+): readonly HostConnectionProfile[] {
+  return profiles.filter(profile => profile.enabled
+    && (policy.providerIds === undefined || policy.providerIds.includes(profile.providerId)));
+}
+
+/** Eligibility selects candidates; only the Host directory reports actual capability. */
+export function resolveBotManagementHost(
   profiles: readonly HostConnectionProfile[],
   hosts: readonly AppServerBotDirectoryHost[],
 ): string | null {
-  const cloud = profiles.filter(profile => profile.enabled && profile.providerId === "lightvela.hermes");
-  const connected = cloud.filter(profile => hosts.some(host => host.hostId === profile.hostId && host.canManageBots));
+  const eligible = profiles.filter(profile => profile.enabled);
+  const connected = eligible.filter(profile => hosts.some(host => host.hostId === profile.hostId && host.canManageBots));
   if (connected.length === 1) return connected[0]!.hostId;
-  return cloud.length === 1 ? cloud[0]!.hostId : null;
+  return eligible.length === 1 ? eligible[0]!.hostId : null;
 }
 
-export function connectCloudHermesBotHost(
+export function connectBotManagementHost(
   connect: Promise<void>,
   timeoutMs = 15_000,
   currentReason: () => string | null = () => null,

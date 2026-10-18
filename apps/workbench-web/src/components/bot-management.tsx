@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
@@ -23,7 +23,8 @@ import {
 } from "./bot-configuration-controls";
 import "../styles/context-menu.scss";
 import "../styles/bot-management.scss";
-import { connectCloudHermesBotHost, resolveCloudHermesBotHost } from "../runtime/bot-management-host";
+import { connectBotManagementHost, eligibleBotManagementProfiles, resolveBotManagementHost } from "../runtime/bot-management-host";
+import { resolveBotManagementPolicy, type ClientBotManagementPolicy } from "@opencraft/client-product";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 
 type Directory = Pick<AppServerBotDirectory, "subscribe" | "getSnapshot" | "refresh" | "create" | "update" | "delete">;
@@ -284,18 +285,28 @@ function BotConfigurationOperation({ entry, conversations, directory, onClose, o
 }
 
 export function createBotManagementView(directory: Directory, conversations: AppServerBotConversationService,
-  connect: (hostId: string) => Promise<void>) {
+  connect: (hostId: string) => Promise<void>, policy?: ClientBotManagementPolicy) {
+  const resolvedPolicy = resolveBotManagementPolicy(policy);
   return function BotManagement({ host, activation }: ExtensionSettingsViewProps) {
     const portalContainer = useWorkbenchPresentationRoot();
     const snapshot = useSyncExternalStore(directory.subscribe, directory.getSnapshot, directory.getSnapshot);
     const [action, setAction] = useState<Action | null>(null);
-    const [creatingGroup, setCreatingGroup] = useState(false);
-    const [groups, setGroups] = useState<readonly AppServerBotConversationDescriptor[]>([]);
-    const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
-    const mounted = useRef(true);
-    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-    const cloudProfiles = host.profiles.filter(profile => profile.enabled && profile.providerId === "lightvela.hermes");
-    const hostId = resolveCloudHermesBotHost(host.profiles, snapshot.hosts) ?? "";
+    const [groupDraft, setGroupDraft] = useState<{ hostId: string; entries: readonly AppServerBotDirectoryEntry[] } | null>(null);
+    const eligibleProfiles = eligibleBotManagementProfiles(host.profiles, resolvedPolicy);
+    const hostId = resolveBotManagementHost(eligibleProfiles, snapshot.hosts) ?? "";
+    // Each selection owns reads, feedback and group projection. Switching Host
+    // does not cancel its physical connection or remount operation drafts.
+    const owner = useMemo(() => ({ hostId, active: true, busy: false, generation: 0, groupsRevision: 0 }), [hostId]);
+    useEffect(() => {
+      owner.active = true;
+      return () => { owner.active = false; owner.busy = false; owner.generation++; owner.groupsRevision++; };
+    }, [owner]);
+    const [groupResult, setGroupResult] = useState<{ owner: typeof owner; data: readonly AppServerBotConversationDescriptor[] } | null>(null);
+    const [loadingOwner, setLoadingOwner] = useState<typeof owner | null>(null);
+    const [failure, setFailure] = useState<{ owner: typeof owner; message: string } | null>(null);
+    const groups = groupResult?.owner === owner ? groupResult.data : [];
+    const busy = loadingOwner === owner;
+    const error = failure?.owner === owner ? failure.message : null;
     const state = snapshot.hosts.find(candidate => candidate.hostId === hostId);
     const stateReason = useRef<string | null>(null);
     stateReason.current = state?.error ?? null;
@@ -307,14 +318,17 @@ export function createBotManagementView(directory: Directory, conversations: App
       && conversations.capability(hostId)?.topologies.includes("group") === true
       && entries.filter(entry => entry.availability === "available" && entry.bot.status === "available").length >= 2;
     const refreshGroups = async () => {
+      const revision = ++owner.groupsRevision;
+      if (!owner.active) return;
       if (!hostId || conversations.capability(hostId)?.topologies.includes("group") !== true) {
-        if (mounted.current) setGroups([]);
+        setGroupResult({ owner, data: [] });
         return;
       }
       const page = await conversations.listConversations(hostId, { limit: 200, archived: false });
-      if (mounted.current) setGroups(page.data.filter(conversation => conversation.topology === "group"));
+      if (owner.active && owner.groupsRevision === revision) {
+        setGroupResult({ owner, data: page.data.filter(conversation => conversation.topology === "group") });
+      }
     };
-    const attemptedHost = useRef<string | null>(null);
     const handledActivation = useRef<string | null>(null);
     useEffect(() => {
       if (activation.resourceUri?.startsWith("create:") && handledActivation.current !== activation.resourceUri && canManage) {
@@ -323,26 +337,27 @@ export function createBotManagementView(directory: Directory, conversations: App
       }
     }, [activation.resourceUri, canManage, hostId]);
     const refresh = async () => {
-      if (busy || !hostId) return;
-      setBusy(true); setError(null);
+      if (owner.busy || !hostId || !owner.active) return;
+      owner.busy = true;
+      const generation = ++owner.generation;
+      const current = () => owner.active && owner.generation === generation;
+      setLoadingOwner(owner); setFailure(null);
       try {
-        await connectCloudHermesBotHost((async () => {
+        await connectBotManagementHost((async () => {
           await connect(hostId);
+          if (!current()) return;
           await directory.refresh(hostId);
+          if (!current()) return;
           await refreshGroups();
-        })(), 15_000, () => stateReason.current ?? "正在读取 Bot 列表…");
+        })(), 15_000, () => current() ? stateReason.current ?? "正在读取 Bot 列表…" : null);
       }
-      catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause)); }
-      finally { if (mounted.current) setBusy(false); }
+      catch (cause) { if (current()) setFailure({ owner, message: cause instanceof Error ? cause.message : String(cause) }); }
+      finally { if (current()) { owner.generation++; owner.groupsRevision++; owner.busy = false; setLoadingOwner(null); } }
     };
-    useEffect(() => {
-      if (!hostId || attemptedHost.current === hostId) return;
-      attemptedHost.current = hostId;
-      void refresh();
-    }, [hostId]);
+    useEffect(() => { void refresh(); }, [owner]);
     useEffect(() => {
       if (state?.phase === "ready") void refreshGroups().catch(() => undefined);
-    }, [hostId, state?.phase]);
+    }, [owner, state?.phase]);
     const actions = (entry: AppServerBotDirectoryEntry) => [
       { kind: "configure" as const, label: "模型设置", enabled: canConfigure && entry.availability === "available" },
       { kind: "clone" as const, label: "克隆", enabled: canManage && entry.bot.management?.clone === true },
@@ -351,7 +366,7 @@ export function createBotManagementView(directory: Directory, conversations: App
     ];
     return <section className="bot-management" aria-label="Bot 管理">
       <SettingsPanel title="Bots" actions={<><SettingsIconButton label="刷新 Bot" disabled={busy || !hostId} onClick={() => void refresh()}><RefreshCw size={16} /></SettingsIconButton>
-        <SettingsButton disabled={!canCreateGroup || busy} onClick={() => setCreatingGroup(true)}><MessagesSquare aria-hidden="true" size={16} />新建群聊</SettingsButton>
+        <SettingsButton disabled={!canCreateGroup || busy} onClick={() => setGroupDraft({ hostId, entries })}><MessagesSquare aria-hidden="true" size={16} />新建群聊</SettingsButton>
         <SettingsButton disabled={!canManage || busy} onClick={() => setAction({ kind: "create", hostId })}><Plus aria-hidden="true" size={16} />新建 Bot</SettingsButton></>}>
         {(error || (!busy && state?.phase !== "unsupported" && state?.error)) && <p role="alert" className="settings-control-notice">{error || state?.error}</p>}
         {busy && !entries.length ? <div className="bot-management__loading" role="status">
@@ -359,9 +374,9 @@ export function createBotManagementView(directory: Directory, conversations: App
           <p>{state?.error || "正在读取 Bots…"}</p>
         </div> : null}
         {!entries.length && !busy && !error && <div className="bot-management__empty"><Bot aria-hidden="true" size={28} /><p>{
-          cloudProfiles.length === 0 ? "登录并创建云端 Agent 后，可在此管理 Bots。"
-            : cloudProfiles.length > 1 && !hostId ? "当前账号存在多个云端 Agent，暂时无法确定 Bot 所属实例。"
-              : state?.phase === "unsupported" ? "当前云端 Agent 不支持 Bot 管理。"
+          eligibleProfiles.length === 0 ? resolvedPolicy.messages.noHosts
+            : eligibleProfiles.length > 1 && !hostId ? resolvedPolicy.messages.ambiguousHosts
+              : state?.phase === "unsupported" ? resolvedPolicy.messages.unsupportedHost
                 : canManage ? "还没有 Bot，创建一个开始使用。" : "暂时无法读取 Bot 列表，请刷新重试。"
         }</p></div>}
         <ul className="bot-management__list">{entries.map(entry => <li key={`${entry.hostId}:${entry.bot.botId}`}>
@@ -388,11 +403,12 @@ export function createBotManagementView(directory: Directory, conversations: App
           </li>)}</ul>
         </div>}
       </SettingsPanel>
-      {creatingGroup && <GroupOperation hostId={hostId} entries={entries} conversations={conversations}
-        onClose={() => setCreatingGroup(false)} onCreated={conversationId => {
-          setCreatingGroup(false);
-          void refreshGroups().catch(() => undefined);
-          host.openView("vela.bot-chat.view", botConversationResourceUri(createConversationKey(hostId, conversationId)));
+      {groupDraft && <GroupOperation hostId={groupDraft.hostId} entries={groupDraft.entries} conversations={conversations}
+        onClose={() => setGroupDraft(null)} onCreated={conversationId => {
+          const createdHostId = groupDraft.hostId;
+          setGroupDraft(null);
+          if (createdHostId === hostId) void refreshGroups().catch(() => undefined);
+          host.openView("vela.bot-chat.view", botConversationResourceUri(createConversationKey(createdHostId, conversationId)));
         }} />}
       {action?.kind === "configure" ? <BotConfigurationOperation entry={action.entry} conversations={conversations}
         directory={directory} onClose={() => setAction(null)} onComplete={() => setAction(null)} /> : null}

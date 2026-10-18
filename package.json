@@ -98,6 +98,7 @@
     "smoke:navigation-icons": "tsx scripts/smoke-navigation-icons.ts",
     "test:text-selection": "node --test tests/text-selection.test.mjs",
     "test:host-connection": "tsx --test tests/host-connection-preflight.test.ts tests/workbench-web-host-definitions.test.ts",
+    "smoke:bot-management-policy": "tsx scripts/smoke-bot-management-policy.ts",
     "test:bot-management": "tsx --test tests/bot-management-host.test.ts tests/bot-configuration-editor.test.ts tests/bot-directory.test.ts tests/chat-bot-appserver.test.ts",
     "test:dsh-bridge": "tsx --test tests/dsh-*.test.ts tests/dsh-*.test.mjs tests/local-agent-host.test.ts tests/loopback-http.test.ts",
     "smoke:dsh-continuity": "tsx scripts/smoke-independent-dsh-host.ts",
