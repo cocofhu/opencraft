@@ -296,7 +296,7 @@ function activityPhaseLabel(state: ToolActivityState): string {
 }
 
 /** A uniform operation/context/phase label; no surface-specific sentence catalog. */
-export function formatMcpToolActivityLabel(block: ToolCallTimelineBlock, state: ToolActivityState = stateFor(block.status)): string {
+export function formatMcpToolActivityLabel(block: ToolCallTimelineBlock, state: ToolActivityState = isToolCallFailed(block) ? "failed" : stateFor(block.status)): string {
   const providerTitle = normalizedComputerUseText(block.actionName);
   const scriptTitle = block.server === "node_repl" && block.name === "js"
     ? normalizedComputerUseText(object(block.input)?.title) : null;

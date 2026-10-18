@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createConversationKey, createDefaultTimelineProjectorRegistry, presentToolActivity,
   projectTimeline, threadHandoffToolResult, visibleThreadHandoffSteps,
-  formatThreadHandoffStepLabel, type ToolCallTimelineBlock,
+  formatThreadHandoffStepLabel, formatMcpToolActivityLabel, type ToolCallTimelineBlock,
 } from "@opencraft/chat-core";
 
 function tool(kind: "dynamicToolCall" | "mcpToolCall", payload: Record<string, unknown>): ToolCallTimelineBlock {
@@ -39,6 +39,11 @@ test("computer operation context works for future tools and keeps application id
   const block = tool("mcpToolCall", { server: "computer-use", tool: "inspect_custom_control", arguments: { app: "com.example.notes" }, appContext: { appName: "Notes" } });
   assert.equal(presentToolActivity(block).summary, "Inspect custom control · Notes · Completed");
   assert.doesNotMatch(presentToolActivity(block).summary, /com\.example/);
+});
+
+test("direct MCP label callers respect an error result despite a completed transport", () => {
+  const block = tool("mcpToolCall", { server: "custom", tool: "inspect" });
+  assert.equal(formatMcpToolActivityLabel({ ...block, status: "complete", errorMessage: null, output: { isError: true } }), "Inspect · Failed");
 });
 
 test("handoff steps preserve reported states, including queued steps and explicit rollback", () => {

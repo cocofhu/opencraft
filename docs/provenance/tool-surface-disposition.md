@@ -52,6 +52,9 @@ outcomes across five surfaces, future computer tools, process/display identity,
 queued and failed handoff steps, explicit rollback, transfer outcomes and
 branch/destination labels. Existing chat tests retain content envelopes,
 registered presenter precedence, navigation and created-thread cards.
+An additional regression case catches a completed transport with an error result
+when the public MCP label formatter is called directly; the same failure
+predicate now applies to that entry point too.
 
 The real Conversation/browser fixture exercises mobile/desktop and light/dark
 layouts, operation phase updates, transfer disclosures, reported step status,
