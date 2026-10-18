@@ -1223,3 +1223,12 @@ does not choose engine command names or wire methods. Provider retirement/replac
 and Host/profile invalidation reject new calls, with accepted invocations drained
 under independent provider leases. This does not grant plugin authorization or
 change ordinary Thread submission and queue ownership.
+
+### Removed product built-ins
+
+The current product's built-in declarations are the authority for bundled extension availability.
+A saved built-in absent from this product is not loaded or exposed in its extension catalog;
+it does not become a failed installation. Its durable record is retained so a product switch
+or later reintroduction preserves the user's enabled/disabled choice. Other bundled extensions
+and installed module URLs still restore independently. The background task is named
+`extensions.restore`; it is not owned by a particular optional product feature.

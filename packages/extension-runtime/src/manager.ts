@@ -126,6 +126,7 @@ export class ExtensionManager {
         }
       }
       for (const installation of this.installations.getSnapshot().records) {
+        if (installation.source.kind === "builtin" && !this.builtins.has(installation.extensionId)) continue;
         if (this.discoveryErrors.has(installation.extensionId)) continue;
         if (!installation.enabled) {
           this.setState(installation.extensionId, "disabled");
@@ -404,7 +405,9 @@ export class ExtensionManager {
     this.revision += 1;
     this.snapshot = Object.freeze({
       revision: this.revision,
-      extensions: Object.freeze(installationSnapshot.records.map((installation) => Object.freeze({
+      extensions: Object.freeze(installationSnapshot.records
+        .filter(installation => installation.source.kind !== "builtin" || this.builtins.has(installation.extensionId))
+        .map((installation) => Object.freeze({
         installation: installation.source.kind === "builtin" && this.builtins.has(installation.extensionId)
           ? Object.freeze({ ...installation, lastResolvedManifest: this.builtins.get(installation.extensionId)!.manifest })
           : installation,

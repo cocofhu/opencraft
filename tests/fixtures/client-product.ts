@@ -18,7 +18,7 @@ const optionalManifest: ExtensionManifestV1 = {
 };
 
 /** A local composition fixture, with no account, remote service or private plugin. */
-export function createSmokeClientProduct(trace: string[] = []): ClientWorkbenchProduct {
+export function createSmokeClientProduct(trace: string[] = [], includeOptional = true): ClientWorkbenchProduct {
   return {
     bootstrap() { trace.push("product.bootstrap"); },
     async create() {
@@ -47,7 +47,7 @@ export function createSmokeClientProduct(trace: string[] = []): ClientWorkbenchP
           return () => { trace.push("owner.dispose"); };
         } }],
         async preflight() { trace.push("product.preflight"); },
-        builtins: [{ manifest: optionalManifest, defaultEnabled: false, async load() { return optional; } }],
+        builtins: includeOptional ? [{ manifest: optionalManifest, defaultEnabled: false, async load() { return optional; } }] : [],
         dispose() { trace.push("product.dispose"); },
       };
     },

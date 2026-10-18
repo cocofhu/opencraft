@@ -685,3 +685,38 @@ for (const failure of [new DOMException("Storage full", "QuotaExceededError"), n
     await manager.dispose(); await supervisor.dispose(); await runtime.fiber.dispose();
   });
 }
+
+
+test("removed built-ins stay dormant without affecting installed extensions and retain reintroduction intent", async () => {
+  for (const enabled of [true, false]) {
+    const removed = { ...installation("example.removed", enabled), source: { kind: "builtin" as const } };
+    const external = installation("example.installed", true);
+    const runtime = await repository(new MemoryExtensionInstallationPersistence([removed, external]));
+    const supervisor = new ExtensionSupervisor({ platform: "web" });
+    const loads: string[] = [];
+    const manager = new ExtensionManager({ installations: runtime.repository, supervisor, loader: { async load(source) {
+      loads.push(source.url);
+      return { manifest: manifest(external.extensionId), activate() {} };
+    } } });
+    try {
+      assert.deepEqual(manager.getSnapshot().extensions.map(item => item.installation.extensionId), [external.extensionId]);
+      await manager.restore();
+      assert.deepEqual(loads, [external.source.url]);
+      assert.deepEqual(manager.getSnapshot().extensions.map(item => [item.installation.extensionId, item.status]), [[external.extensionId, "active"]]);
+      assert.deepEqual(manager.getSnapshot().discoveryErrors, []);
+      assert.equal(runtime.repository.getSnapshot().records.find(item => item.extensionId === removed.extensionId)?.enabled, enabled);
+    } finally { await manager.dispose(); await supervisor.dispose(); }
+    let starts = 0;
+    const returningSupervisor = new ExtensionSupervisor({ platform: "web" });
+    const returning = new ExtensionManager({ installations: runtime.repository, supervisor: returningSupervisor,
+      loader: loaderFor({ [external.source.url]: { manifest: manifest(external.extensionId), activate() {} } }),
+      builtins: [{ manifest: manifest(removed.extensionId), defaultEnabled: !enabled, async load() {
+        return { manifest: manifest(removed.extensionId), activate() { starts++; } };
+      } }],
+    });
+    try {
+      await returning.restore();
+      assert.equal(starts, enabled ? 1 : 0, "reintroduction preserves the saved choice");
+    } finally { await returning.dispose(); await returningSupervisor.dispose(); await runtime.fiber.dispose(); }
+  }
+});
