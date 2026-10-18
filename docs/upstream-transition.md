@@ -5,11 +5,23 @@ Core development, public issues, pull requests, CI and releases belong there.
 Downstream products consume immutable source revisions and own their product
 composition. This replaces the previous mono2-to-GitHub mirror direction.
 
-The cutover is **in progress**, not completed by this document. The latest
-mono2 core still contains product imports and code with unresolved provenance.
-Until the independently buildable candidate is accepted upstream and consumed
-downstream, preserve existing runtime owners; do not overwrite a working
-product with the older GitHub tree. No second writable copy is established.
+The private upstream source cutover is **operational**: the complete core was
+accepted through the original protected PR, private product composition was
+moved downstream, and downstream now consumes an immutable accepted source
+revision. General core improvements are contributed through GitHub PRs;
+downstream owns its pin, product assembly and recorded patches, so its delivery
+does not depend on upstream PR acceptance. Public visibility, source-rights review and a verified
+release from the new repository identity remain incomplete.
+
+On 2026-10-18, the owner approved retaining the original repository as the
+private [history archive](https://github.com/opencraft-app/opencraft-private-archive-20261018)
+and establishing clean history at the canonical address. Initial commit
+`527f579d95ff236739f8c09902db2728d86e7c7b` has the same accepted 3400-file tree
+`b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`, with complete Web/Electron/Expo
+clients. The old accepted PR #32 and its commits/tags/releases belong to the
+archived repository identity; do not interpret old canonical links as commits
+in the new history. Existing runtime owners and data are preserved; there is
+no independently maintained duplicate core baseline.
 
 ## Ownership
 
@@ -28,7 +40,7 @@ Public clients must remain useful clients, not empty replacements for the
 private product. Native product code must still be packaged, not fetched as
 remote executable code.
 
-## Current blocking edges
+## Boundary migration record and remaining review
 
 - Shared-package snapshot verification still detects existing Collaboration CSS
   drift: the downstream snapshot uses typography tokens while the source and recorded
@@ -117,8 +129,8 @@ remote executable code.
   generic APK/IPA commands no longer select a private product. Vela owns its
   original release naming and permission text, while core retains SDK/signing
   mechanics. Private smoke/tool aliases are now downstream-owned as described
-  above; independent validation, provenance and the fixed-revision source cutover
-  remain incomplete.
+  above. The fixed-revision source cutover is operational; source provenance
+  review and public-release validation remain incomplete.
   Public native development identifiers remain legacy values in this phase;
   product release identifiers and callbacks are unchanged.
 - The original Platform/Hermes plugins, account SDK and three product snapshots
@@ -155,7 +167,8 @@ rights. `config/source-provenance.json` inventories the affected files and
 required disposition; it does not assert that every behavioral reference is
 copied expression. `NOTICE` retains this distinction and third-party notices.
 The [review inventory](source-provenance-review.md) records the affected
-components and resolution criteria. The selected first-release scope preserves
+components and resolution criteria; [pinned references](source-reference-bindings.json)
+now locate the previously relative Web-adapter and tool-label sources. The selected first-release scope preserves
 full clients. Independent-replacement work is paused while source-specific rights
 and lineage are reviewed; unverified provenance does not establish a need for
 replacement. A Headless-only first release is not selected.
@@ -186,19 +199,38 @@ python3 scripts/opencraft-upstream.py plan --source /absolute/upstream \
 
 Review its immutable source tree and destination head. In a fresh isolated
 feature branch, `import` with `--expected-head` and `--expected-tree` writes
-exactly that tree under `opencraft/`, with one local parent and a receipt at
+the reviewed source plus any recorded downstream patches under `opencraft/`,
+with one local parent and a receipt at
 `docs/upstream/opencraft.json`. It transfers source blobs, not foreign commits;
 the receipt and commit trailers retain the GitHub source SHA, tree and URL.
 The tool refuses dirty worktrees, ignored files in the replaced prefix, stale
 plans and direct imports onto main/master/env/join. It does not fetch, push or
-deploy. After the first pin, it also refuses committed subtree edits that have
-not returned upstream and invalid prior receipts, rather than overwriting
-those edits. Normal downstream review, tests, integration and deployment remain
-separate operations. Never use it to discard an unported local core change.
+deploy. After the first pin, it verifies that the old pin plus the registered
+patch stack reconstructs the entire current subtree; unrecorded committed
+edits and invalid receipts are rejected rather than overwritten.
 
-This tool is ready for fixture validation; no actual pinned cutover has yet
-been performed. Products must be composed outside the replaced prefix before
-the first full upstream import.
+The downstream-owned ordered patch manifest references reachable ordinary local
+commits, with source and resolved trees recorded separately. A tested local fix
+can be registered with `record-patch` while its upstream PR remains pending or
+is declined; long-lived product patches do not require an upstream PR. `plan`
+replays the stack using three-way tree merges in a disposable repository.
+Conflicts report the patch and paths and leave the destination unchanged.
+Imports carrying patches require the reviewed `--expected-resolved-tree` too.
+`verify` checks full reconstruction, not just changed files. After the pinned
+upstream actually contains a fix, `retire-patch` permits removal only if the
+remaining stack still reproduces the current source. A merged PR alone is not
+evidence that the currently pinned version contains it. Automatic conflict
+adaptation and automatic deployment-worker verification are not implemented by
+this tool. Normal functional validation, downstream review, integration and
+deployment remain separate operations; none may discard an unrecorded change.
+
+The tool has completed the first actual accepted-main import and a subsequent
+same-tree pin to the new canonical history. The downstream receipt retains
+source SHA/tree/URL and the previous pin, while its separate history mapping
+records the old private repository identity. No external committer ancestry is
+required. Products are composed outside the replaced prefix. Validate each
+subsequent import against the current upstream and downstream trees; an earlier
+success cannot justify discarding a later unported core change.
 
 ## Release lifecycle
 
@@ -211,5 +243,7 @@ environment stays restricted to main and uses OIDC; no long-lived token is
 introduced. Publication remains blocked while source provenance is unresolved.
 
 The present migration does not make the repository public or claim npm/desktop
-release success. Verify actual GitHub settings, CI, registry bytes and a clean
-consumer before declaring the upstream operational.
+release success. npm publication is deferred by the current owner decision;
+it is not a prerequisite for using the private GitHub source upstream. Verify
+actual GitHub settings, CI, registry bytes and a clean consumer before declaring
+a public release complete.

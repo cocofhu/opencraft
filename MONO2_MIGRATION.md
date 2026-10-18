@@ -1,10 +1,13 @@
 # OpenCraft mono2 migration
 
-The 2026-10-17 decision makes GitHub `opencraft-app/opencraft` the target
-writable upstream for OpenCraft core; mono2 owns downstream product composition
-and consumes fixed revisions. See [transition status](docs/upstream-transition.md).
-The cutover is not complete: preserve the current source until product isolation,
-provenance review, upstream acceptance and the first pinned import are verified.
+GitHub `opencraft-app/opencraft` is the writable upstream for OpenCraft core;
+mono2 owns downstream product composition and consumes immutable revisions.
+Private product separation, protected upstream acceptance and actual pinned
+consumption are implemented. The 2026-10-18 owner-approved clean history keeps
+the complete clients while the original repository remains a private archive.
+See [current transition status](docs/upstream-transition.md) for exact identities
+and source revision. Public visibility, unresolved source rights and a verified
+release from the new repository remain separate unfinished work.
 Historical mono2-only/mirror statements below describe prior decisions, not the
 current target ownership. The original import was from
 `git@git.woa.com:wisp/opencraft.git`.
@@ -35,29 +38,42 @@ The old prohibition on consuming GitHub as upstream is superseded in the
 
 ## GitHub upstream and downstream consumption
 
-Core changes belong upstream after cutover. Private Vela/IOA/Join code belongs
-outside the consumed prefix, with product-owned generation and composition.
-The public tree must independently build without mono2 siblings or credentials.
-Until that boundary is implemented, this is a migration in progress.
+General core improvements are contributed upstream. Downstream products may
+carry recorded patches independently of upstream PR acceptance; upgrading the
+pin must preserve those patches or stop on conflicts. Private Vela/IOA/Join code is composed outside
+the consumed prefix, with product-owned generation, manifests, locks and build
+entries. Complete public clients build independently without mono2 siblings or
+credentials. Provenance clearance is not inferred from that dependency boundary.
 
 The former single-direction `subtree split` mirror workflow is retired. Preserve
 its historical commits and published tags; do not force-push a new history.
-Create a normal GitHub PR from its existing main and record each accepted core
-transfer. Do not blindly export the entire mixed mono2 subtree or internal logs.
+The original history is retained privately; the canonical repository has a
+new owner-approved root. Create normal PRs from the current canonical main and
+record each accepted core transfer. Do not blindly export the entire mixed mono2 subtree or internal logs.
 
 mono2's `scripts/opencraft-upstream.py` provides a pinned tree import with a
 normal local parent and `docs/upstream/opencraft.json` provenance. It copies
-blobs, verifies exact subtree equality and records source commit/tree/URL,
+blobs, verifies the complete resolved subtree and records source commit/tree/URL,
 without importing external commit ancestry or changing contributor identities.
-Use `plan` before `import`; require the reviewed destination SHA and source tree.
-Its test fixtures cover modes, symlinks, deletions, subsequent pins, dirty/stale
-worktrees and protected aggregate names. Actual first consumption is pending;
-never use an import to discard local changes not yet transferred upstream.
+Use `plan` before `import`; require the reviewed destination SHA, source tree
+and, when carrying patches, the resolved tree. Downstream owns an ordered patch
+manifest referencing reachable local commits. `record-patch` registers a fix;
+`verify` reconstructs the complete pin plus patches, and `retire-patch` requires
+that the remaining stack still reproduces the current tree. Planning replays
+patches with a three-way merge without changing the destination. Conflicts stop
+the upgrade and preserve the working version. Fixtures cover patch order,
+upstream absorption, fresh clones, binary conflicts, modes, symlinks, deletions,
+subsequent pins, dirty/stale worktrees and protected aggregate names.
+The first actual consumption and
+clean-history repin are complete; receipts belong to the downstream repository.
+Never use an import to discard local changes not yet transferred upstream or
+registered as downstream patches. The downstream repository owns the receipt,
+patch contract and its integration/deployment checks.
 
 ## Shared frontend boundary
 
-OpenCraft currently consumes a bounded closure of Agent Console source from
-the sibling `frontend/` service through
+The downstream Vela product consumes a bounded closure of Agent Console source
+from its mono2 sibling `frontend/` service through
 the downstream `products/vela/tooling/sync-mono2-agent-console.mjs`. The generated compatibility copy is
 kept temporarily so Web, Expo, Electron, and extension builds remain
 independent while stable cross-platform packages are extracted.
@@ -75,7 +91,9 @@ No snapshot regeneration is implied by relocating its owner. The Console public
 asset output now belongs to `products/vela/public`. Explicit product builds select
 that local directory with `OPENCRAFT_PRODUCT_PUBLIC_DIR`; default core builds do
 not copy it. Original asset URLs and bytes are preserved. This ownership transfer
-does not clear historical provenance or complete the remaining cutover.
+does not clear historical provenance or complete a public release. These paths
+and commands belong to the mono2 product checkout; the standalone core has no
+frontend or private snapshot prerequisite.
 
 The manifest records a repository-relative source and the latest commit that
 touched one of the files actually copied into the Agent Console closure or its
@@ -122,7 +140,8 @@ scoped to actual feature use. Vela embedded/full Web artwork is separated from
 core by product identity; the fixed embedded presentation rejects machine/Host
 configuration actions. The full integration gate and real internal end-to-end
 acceptance remain stages 4/5, not claims made by this backport. Conflict and verification
-evidence is in the [Task Pack](../docs/context/tasks/opencraft-github-backport-20261013.md).
+evidence remains in the downstream-only Task Pack
+`docs/context/tasks/opencraft-github-backport-20261013.md`.
 
 ## Gongfeng delivery history (2026-10-14)
 

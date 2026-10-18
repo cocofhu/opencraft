@@ -2,11 +2,13 @@
 
 > Upstream migration is in progress. Original contributions use Apache-2.0;
 > recovered/adapted code and product assets still require provenance review.
-> This mixed tree is not yet a cleared public release. See
+> Source-rights review is incomplete; this is not yet a cleared public release. See
 > [transition status](docs/upstream-transition.md) and `config/source-provenance.json`.
 
-OpenCraft is a clean-room, maintainable TypeScript workbench built from the latest
-recovered Codex renderer semantics. It has two real renderer hosts over one
+OpenCraft is a maintainable TypeScript agent workbench. Existing Codex Desktop
+recovery/adaptation references are recorded in the source provenance inventory;
+independent authorship and redistribution rights are not established by the
+Apache-2.0 project license. It has two real renderer hosts over one
 semantic application model and an explicit supervisor for lifecycle-scoped
 runtimes: Vite/React DOM for desktop Web and Electron, and Expo Router for iOS,
 Android, and Expo Web.
