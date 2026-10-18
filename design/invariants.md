@@ -219,6 +219,10 @@ Turn clocks, provenance, history persistence or execution state.
 
 ## Embedded panel host presentation
 
+- Product-only draft heading decoration and its responsive rules belong to the
+  explicit embedded product and are composed into its existing ShadowRoot. Shared
+  styles do not select product artwork or reserve space for that artwork.
+
 - Embedded panel viewport and its complete DOM content reuse the current conversation's panel service,
   renderer registrations and resource lifetime. Host commands must match the
   current runtime, Bot instance/Profile and conversation owner; unknown tabs or

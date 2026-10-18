@@ -43,6 +43,12 @@ remote executable code.
 
 ## Boundary migration record and remaining review
 
+Product-only embedded draft heading decoration, including narrow and short
+container rules, is owned by the downstream embedded composition. It reuses the
+original ShadowRoot stylesheet assembly and resource URL. Public shared styles
+no longer reserve that product artwork space or reference its image.
+
+
 Optional source-parity diagnostics no longer select a maintainer's absolute
 filesystem path or assume a parent reference checkout. Their local snapshots are
 explicit inputs, and browser evidence uses system temporary directories. Default
