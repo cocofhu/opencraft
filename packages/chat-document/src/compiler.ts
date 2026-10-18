@@ -553,6 +553,10 @@ const mathBlockTokenizer: TokenizerExtension = {
   name: "math",
   level: "block",
   start(source) {
+    // Marked asks every extension about each remaining paragraph suffix.
+    // Most prose has no display-math delimiter; avoid a regex scan of every
+    // suffix while retaining the exact boundary rule when a delimiter exists.
+    if (!source.includes("\\[") && !source.includes("$$")) return undefined;
     const match = /(?:^|\n)[ \t]*(?:\\\[|\$\$)/u.exec(source);
     return match?.index;
   },

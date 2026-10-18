@@ -939,6 +939,16 @@ in-memory per Workbench instance and cleared by disposal/reload; it is neither
 a cross-device inbox nor the approval/failure task-attention model. Details and
 consumer contract: [Toast notifications](../docs/toast-notifications.md).
 
+## Reasoning presentation work
+
+Thinking ownership is resolved before Markdown header compilation. Reading a
+live todo never materializes the transcript. A mounted Turn may retain bounded
+plain reasoning presentations by Item, selected source and active grammar mode;
+reprojection reuses unchanged history while edits and completion invalidate the
+affected Item. The full canonical body, disclosure identity, explicit user
+choices, drafts, focus and scroll ownership remain unchanged. No process-global
+private-text cache or truncation is introduced. See [ChatUI reasoning](../docs/chat-ui-architecture.md).
+
 ## Chat document tracking (2026-10-15)
 
 Web/Electron chat documents and lazy/error source fallbacks use normal letter spacing, independent of the Shell body’s -0.01em tracking. Assistant prose and formatted user messages share the document root, so headings, paragraphs, lists, tables and nested content inherit the same natural spacing. Existing family, size, line-height, weight, paragraph rhythm and code font selection remain owned by their current renderers. The composer and Shell are outside this document boundary; conversation list titles keep their independently approved 13px/normal role.

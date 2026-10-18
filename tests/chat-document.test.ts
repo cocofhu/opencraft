@@ -200,6 +200,28 @@ test("nested and longer fences retain open state until their actual delimiter cl
   assert.equal(closed?.completeness, "complete");
 });
 
+test("streaming suffix repairs preserve complete text and nested literal brackets", () => {
+  const repair = (source: string) => preprocessChatMarkdown(source, { streaming: true }).markdown;
+  for (const source of ["![complete](image.png)", "prefix ![partial", "![label] [reference]", "[label]", "[label]()", "[label](", "[label](url) trailing", "![line\ntext"]) {
+    assert.equal(repair(source), source);
+  }
+  assert.equal(repair("Ready\n  ![label](url\n\t\n"), "Ready\n");
+  assert.equal(repair("Ready\n![label]  \n"), "Ready\n");
+  assert.equal(repair("[outer[inner](target"), "outer[inner");
+  assert.equal(repair("[] before [label](target"), "[] before label");
+  assert.equal(repair("[label](one](two"), "label");
+  assert.equal(repair("a\uE200one\uE200two"), "a");
+  assert.equal(repair("a\uE200complete\uE201b\uE200partial"), "a\uE200complete\uE201b");
+});
+
+test("streaming suffix repair handles adversarial marker runs without repeated suffix scans", () => {
+  const length = 128_000;
+  const sources = ["\uE200".repeat(length) + "\uE201", "![" + " ".repeat(length) + "])", "[\\".repeat(length) + "](x)", "[\\](" + "[(]((".repeat(length) + ")"];
+  const started = performance.now();
+  for (const source of sources) assert.equal(preprocessChatMarkdown(source, { streaming: true }).markdown, source);
+  assert.ok(performance.now() - started < 5_000, "suffix repair must remain responsive on repeated markers");
+});
+
 test("streaming markdown stabilizes incomplete Codex syntax without mutating canonical source", () => {
   const image = preprocessChatMarkdown("Ready\n\n![screen](https://assets.exam", { streaming: true });
   assert.equal(image.markdown, "Ready\n\n");
