@@ -58,6 +58,7 @@ test("native scoped prompt sections survive loaded/cold resume and bounded forks
     mount: async (child, id) => { assert.equal(id, "standard"); bindScopeParent(scopeOf(child), presetKey); } });
   ctx.provide("sessions", { flush });
   ctx.provide("goals", { get: () => undefined });
+  ctx.provide("jobs", { list: () => [] });
   ctx.provide("sessionPersistence", { inspect: async id => stored.get(String(id)) });
   ctx.provide("sandboxPolicy", { resolve: () => ({ mode: "workspace-write" }) });
   ctx.provide("approval", { overrideOf: () => "ask" });

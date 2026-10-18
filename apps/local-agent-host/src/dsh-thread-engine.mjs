@@ -196,6 +196,7 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities, inst
       const handle = handles.get(input.sessionId);
       if (!handle) return { released: !ctx.agents.get(input.sessionId) };
       if (ctx.goals.get(handle.agent)?.activation === "armed") throw new Error("Cannot unload a thread with an armed goal");
+      if (ctx.jobs?.list(handle.agent).some(job => job.ownerSession === handle.agent.id && ["running", "stopping"].includes(job.status))) throw new Error("Cannot unload a thread with active background jobs");
       if (handle.agent.status !== "idle") throw new Error("Cannot unload a thread with active execution");
       await handle.dispose(); handles.delete(input.sessionId);
       volatileSessions.forget(input.sessionId);

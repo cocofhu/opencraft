@@ -100,8 +100,7 @@ WebSocket transports with a fake DSH server, downstream reconnect, preflight
 isolation, response races, cancellation during context lookup, and tool identity.
 It does not replace a live model/macOS acceptance test.
 
-This is not a claim of complete DSH feature parity. In particular, native question
-multiSelect/intent presentation, recovery of missed upstream timeline events,
+This is not a claim of complete DSH feature parity. Recovery of missed upstream timeline events,
 history pages beginning after a tool's call, and model-modality catalog propagation
 still need explicit protocol work. Do not add renderer heuristics or mark these
 capabilities supported merely because a generic tool card can be displayed.
@@ -155,3 +154,35 @@ smoke uses an isolated local synthetic endpoint. These corrections do not prove
 that prompt wiring caused any particular model's communication frequency.
 
 The native synthetic fixture `npx tsx scripts/smoke-dsh-goal.ts` exercises the locked runtime, HTTP/WebSocket transport, native Goal tools, same-session continuation and cold persistence. Only inference is a local synthetic endpoint; it does not assert paid-provider or device behavior.
+
+## Shared Host schedules, background completion and questions
+
+`@opencraft/host-schedules` owns one scheduling state machine, schema and
+`conversation-schedules.sqlite` per Host data root. Codex and DSH implement only
+`ScheduleExecutionPort`; the protocol, catalog and task panel are shared. DSH
+uses an explicit Host scheduler principal, serializes against thread lifecycle,
+waits for human/queued/armed-Goal work and records the stable occurrence as the
+client input ID before native submission. Missing/ambiguous receipts and previous
+boot orphans become unknown for explicit review; they are never replayed. Archive
+pauses future occurrences. Browser lifetime does not own the timer. Native DSH
+Schedule is a session-local reminder with different cold-start and recurrence
+semantics; it is not enabled as a parallel product scheduler.
+
+Background completion authorization uses the native jobs registry's exact Agent
+and ownerSession at live job creation, plus the producing input RPC. A completed,
+unreported owned job can lend that execution's authority to one exact tool-jobs
+notice message through the private capability bridge. Unowned jobs, cold snapshots,
+other plugins, ambiguous producer batches and replayed notices cannot mint a
+continuation. The native notice has no job ID: multiple eligible producers are
+conservatively refused. Engine restart clears these process-local proofs; active
+owned background jobs prevent idle unload. Notice text and labels are not used as
+authorization. Native wake budgets and inject-versus-followup choice remain native.
+
+Native `multiSelect`, `detail` and `intent` survive the additive shared question
+projection. Both renderers use the same draft/toggle/aggregation functions;
+multi-select starts empty, allows independent choices plus free text, and requires
+explicit Submit. Single-select retains its existing advance behavior. Plan detail
+renders through each platform's existing Markdown document surface. Generated
+Codex question types are unchanged. `smoke-dsh-host-services.ts` exercises real
+locked DSH with synthetic local inference, durable cold schedules, background
+wake and native questions; it is not paid-provider or physical-device evidence.

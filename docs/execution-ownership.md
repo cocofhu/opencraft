@@ -237,9 +237,9 @@ Native setup 回滚、Host 目录提交和跨进程回执不是一个数据库�
 
 A conversation schedule is owned by the long-lived Server-side Host service,
 not by a View, renderer connection, engine timer API or creator's expired login
-context. The initial implementation exposes `opencraft/conversation-schedules`
-version 1 and `opencraft/schedules/{read,save,action}` only on the local Codex
-Host with an attached schedule owner. The capability is explicit; accepting a
+context. `@opencraft/host-schedules` exposes `opencraft/conversation-schedules`
+version 1 and `opencraft/schedules/{list,read,save,action}` on local Codex and DSH
+Hosts with an attached schedule owner. The capability is explicit; accepting a
 method name alone is not evidence of background scheduling support. Managed
 Headless initializes that owner at startup when connected to the native core,
 so existing schedules recover before any browser connects. Other deployment
@@ -258,8 +258,11 @@ captured revision or unsaved draft.
 validates the target, attempts non-interrupting submission using the occurrence
 ID, and independently inspects execution outcome. Codex reuses its durable
 queue, records the acknowledged native turn ID and inspects that turn's history;
-queue delivery is not completion. DSH, Hermes and Pi must provide equivalent
-adapters and capability declarations before exposing this feature. Their queue
+queue delivery is not completion. DSH persists the occurrence input identity in
+its execution journal before native submission, waits for human/queued/armed-Goal
+work, and inspects that journal. It never resends an ambiguous or orphaned
+execution after Host restart. Hermes and Pi must provide equivalent adapters
+and capability declarations before exposing this feature. Their queue
 or transport being available does not establish scheduler support. A browser
 bridge must not own unattended schedules.
 

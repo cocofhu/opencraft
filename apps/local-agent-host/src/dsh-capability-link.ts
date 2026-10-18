@@ -75,6 +75,9 @@ export class DshCapabilityLink {
   async thread(operation: "create" | "describe" | "resume" | "fork" | "inject" | "release" | "goal", params: Record<string, unknown>): Promise<any> {
     return this.request("/thread/" + operation, params);
   }
+  async backgroundProof(threadId: string, messageId: string): Promise<{ originRpcId: string } | null> {
+    return this.request("/background-proof", { sessionId: this.routing?.native(threadId) ?? threadId, messageId });
+  }
   async modelInfo(provider: string, model: string): Promise<any> {
     return this.request("/model-info", { provider, model });
   }
