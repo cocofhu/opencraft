@@ -79,7 +79,9 @@ export function createHostComposerCommandPort(input: {
         if (!contribution.commands.some(command => command.name === name && command.kind === "action") || !contribution.invoke) {
           throw new Error(`Host Composer action ${name} is unavailable`);
         }
-        await contribution.invoke(name, { ...input.context, ...target, protocol: input.protocol });
+        await contribution.invoke(name, {
+          ...input.context, threadId: target.threadId, expectedTurnId: target.expectedTurnId, protocol: input.protocol,
+        });
       } finally {
         lease.release();
       }

@@ -74,7 +74,10 @@ test("registration validates and snapshots declarations without exposing executa
 test("new and active thread actions carry exact captured Host/profile/protocol and Turn targets", async () => {
   const calls: Array<[string, HostComposerCommandContext]> = [];
   const f = fixture(async (name, context) => { calls.push([name, context]); });
-  await f.port.invoke("stop", { threadId: null, expectedTurnId: null });
+  // Structural typing permits extra fields on an existing object. Never spread them into the bound context.
+  const target = { threadId: null, expectedTurnId: null, hostId: "foreign", profileRevision: 99,
+    platform: "expo", protocol: { request: async () => { throw new Error("Foreign protocol"); } } };
+  await f.port.invoke("stop", target);
   await f.port.invoke("stop", { threadId: "thread", expectedTurnId: "turn" });
   assert.deepEqual(calls.map(([name, c]) => [name, c.hostId, c.profileRevision, c.threadId, c.expectedTurnId]), [
     ["stop", "one", 3, null, null], ["stop", "one", 3, "thread", "turn"],
