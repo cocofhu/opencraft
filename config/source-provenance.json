@@ -83,15 +83,34 @@
     },
     {
       "id": "codex-tool-presentation-labels",
-      "status": "unverified",
+      "status": "independently-reimplemented",
       "paths": [
         "packages/chat-core/src/tool-activity.ts"
       ],
       "evidence": [
-        "packages/chat-core/src/tool-activity.ts"
+        "docs/provenance/thread-tool-presentation.md",
+        "docs/source-reference-bindings.json",
+        "tests/chat-thread-tool-activity.test.ts",
+        "scripts/smoke-thread-tool-activity.ts"
       ],
-      "reason": "The CODEX_APP_TOOL_LABELS annotation identifies recovered labels/grouping. Review this identified table separately from protocol names, ordinary short labels and the rest of the OpenCraft tool presentation/extension implementation; the annotation does not establish that the whole file is copied.",
-      "resolution": "Locate the table's exact source/version and retained expression, then record an evidenced scope and disposition. Do not infer a whole-file replacement requirement from this label/grouping reference."
+      "reason": "The specifically identified recovered 21-value native thread label table and four-flag lookup are removed. Protocol-derived operation titles and explicit execution states replace that representation.",
+      "resolution": "Preserve the bounded historical binding and verify all ten operations, failures/interruption, worktree context, navigation and transfer results. The separate unresolved tool-surface group owns the remaining MCP/legacy regions.",
+      "conclusion": "Current replacement of the identified native thread label table uses OpenCraft protocol data, generic identifier formatting and explicit state/disclosure policy. This is a bounded independent implementation disposition, not a clean-room assertion, a whole-module classification or clearance of historical commits. See docs/provenance/thread-tool-presentation.md for requirements, method and limits."
+    },
+    {
+      "id": "codex-tool-surface-fallbacks",
+      "status": "unverified",
+      "paths": [
+        "packages/chat-core/src/tool-activity.ts",
+        "packages/chat-core/src/codex-app-tools.ts"
+      ],
+      "evidence": [
+        "packages/chat-core/src/tool-activity.ts",
+        "packages/chat-core/src/codex-app-tools.ts",
+        "docs/provenance/thread-tool-presentation.md"
+      ],
+      "reason": "Expanded review finds the explicit source-identical MCP fallback annotation, computer-use/dynamic label families, native handoff summary sentences and recovered handoff-step rule outside the original native 21-value table. Functional compatibility alone does not establish retained-expression rights.",
+      "resolution": "Locate and inspect these remaining named regions individually; retain original/licensed implementations and replace only specifically identified uncleared expression. Do not classify the whole files from their annotations."
     },
     {
       "id": "product-and-brand-assets",

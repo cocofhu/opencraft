@@ -27,7 +27,8 @@ evidence, rather than treating this generated file list as a rights opinion.
 | `codex-stable-callback` | `packages/react-runtime/PROVENANCE.md`, exact dependency pin and full MIT notice | Current replacement is third-party licensed; former Git history remains unverified | Preserve notices in distributed artifacts and verify callback freshness/lifetime semantics |
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
-| `codex-tool-presentation-labels` | `CODEX_APP_TOOL_LABELS` annotation in `packages/chat-core/src/tool-activity.ts` | Unverified; found by the corrected source-marker check | Inspect the identified label/grouping table separately from protocol names, ordinary short labels and the rest of the tool presentation/extension implementation |
+| `codex-tool-presentation-labels` | Historical exact bindings and [bounded disposition](provenance/thread-tool-presentation.md) | Identified native table replaced by protocol-derived operation titles and explicit states | Keep navigation/results and verify failure/interruption; this is not whole-module or historical clearance |
+| `codex-tool-surface-fallbacks` | Explicit source-identical MCP fallback annotation and recovered handoff-step behavior found by expanded review | Unverified; separate from the original native table | Review remaining MCP/computer-use/dynamic and handoff regions individually |
 | `product-and-brand-assets` | Retained exact-source hashes and [artwork disposition](provenance/connector-artwork.md) | Current image files excluded; private product artwork downstream; historical rights unverified | Verify no image files/imports remain in source and distributable assets; retain source notices and full connector operations |
 
 ## Recording a resolution
@@ -188,3 +189,21 @@ operations remain. [Disposition and checks](provenance/connector-artwork.md)
 retain the original attribution and link to the exact asset hashes. This
 exclusion does not clear old Git commits or grant any brand rights. Five current
 source groups still require review; full clients remain the selected scope.
+
+## Native thread-tool table disposition (2026-10-18)
+
+The identified 21-value native thread label table has been removed in favor of
+protocol-derived operation titles with an explicit execution phase, with worktree
+context and provider display titles separate. Failure/interruption does not
+reuse a successful sentence or an earlier transfer progress state. Existing
+navigation, result cards and disclosure capabilities remain; the bounded
+[implementation disposition](provenance/thread-tool-presentation.md) records
+method, functional requirements, historical hash and verification. No clean-room
+or whole-module rights conclusion is claimed.
+
+Expanded review found other explicit source-identical MCP fallbacks and recovered
+handoff-step behavior outside that table. The new unresolved
+`codex-tool-surface-fallbacks` group retains them. Therefore **five current groups
+still require review** despite the native table replacement. The previous
+table-specific finding was not a complete review of the tool presentation file.
+Historical commits and public redistribution remain unresolved.
