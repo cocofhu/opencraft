@@ -330,7 +330,7 @@ decoder tests include nonzero hotspots and shape changes, not just visibility.
 - SSH-08：管理目录恢复属于 Application/controller 生命周期，不依赖设置页挂载。手动重试、在线/可见恢复与周期读取共享单飞；完成后再调度，失败退避有上限，隐页/离线暂停，销毁清理并拒绝晚到回复。授权变更暂停后台读并撤销旧代次；显式操作后的核对不能复用操作前的旧轮询。尚无 SSH profile 时的管理读取失败仍有侧栏重试，不冒充成功空列表；正常后台读取无闪动，不支持/已锁定不冒充错误。读取不隐式连接、重连、切目标或执行 Thread。
 - SSH-09：SSH 只拥有传输，不重定义原生 Thread 分页历史；共享 broker 唯一方法准入表同时约束执行、Runtime 与 UI，保留上游无关 metadata。准入不冒充上游实现保证；本机 store 与尚未映射的连接句柄不能被声明成远端能力。读取成功不推出写入能力，偏好不制造 Queue 等能力；跟进按钮和逆向快捷键仅选择可准入动作、不改保存偏好。不可准入提交在草稿/乐观队列收养前拒绝，草稿保留；后台读取也不得发出已拒绝的 queue/watch/search 方法。旧 Server 无声明保持兼容，畸形声明封闭拒绝。
 
-证据/边界见 [SSH 管理 Task Pack](../../docs/context/tasks/2026-10-05-opencraft-ssh-management.md)，不以源码声明替代实际准入验收。
+证据/边界见 下游产品工作区的 SSH 管理记录（不在本仓库），不以源码声明替代实际准入验收。
 
 状态：实施及验证中。下表记录目标与责任，不把测试名称当成已运行的证据。最新结果在 [progress.md](progress.md)。
 

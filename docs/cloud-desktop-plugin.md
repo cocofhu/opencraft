@@ -476,7 +476,7 @@ a control executor, and it is not composed into the Vela viewer port yet. Raw
 TAT session credentials must not be passed to the renderer. Local native tests
 exercise raw key/pointer/clipboard attempts against a fresh isolated X server;
 TAT transport tests still stop at a synthetic WS/BSON server. See the
-[backend resource contract](../../ctl/docs/cloud-desktop-resource.md).
+the downstream backend resource contract (not in this repository).
 
 ### noVNC media adapter
 
@@ -665,7 +665,7 @@ confirmation does not revoke an existing valid grant. Release delivery failure
 closes the whole attachment. Remote revoke, identity change and transport end
 synchronously invalidate the lease before further local input.
 
-Sandbox's [broker contract](../../sandbox/docs/desktop-viewer-broker.md) exposes
+The downstream sandbox broker contract (not in this repository) exposes
 an unmounted HTTP handler. It requires authoritative resolution and verified
 native observe/gated streams. It does **not** parse RFB or pretend a local boolean
 is an input gate. The existing immutable observer supplies no control port. A
@@ -693,7 +693,7 @@ without browser polling; user/Sandbox rebinding and retries replace mutable stat
 The DTO has no VNC credentials. Its `generation_id` is an orchestration epoch, not
 the plugin's physical resource incarnation. This is not yet a `DesktopBackend`
 adapter: exact Conversation authorization, attachment, media and input enforcement
-are still missing. See [CTL contract](../../ctl/docs/cloud-desktop-resource.md),
+are still missing. See the downstream backend resource contract (not in this repository),
 including in-memory/multi-replica and Gateway rollout limitations.
 
 ## Production adapter requirements (not fully implemented)
