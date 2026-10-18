@@ -4,8 +4,13 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      validation:
+        description: Validation scope (non-Web platforms are opt-in)
+        type: choice
+        options: [web, full]
+        default: web
       package_macos:
-        description: Build the macOS DMG in addition to full validation
+        description: Build the macOS DMG (also selects full validation)
         type: boolean
         default: false
 
@@ -19,11 +24,14 @@ concurrency:
 jobs:
   plan:
     uses: ./.github/workflows/ci-plan.yml
+    with:
+      full-matrix: ${{ github.event_name == 'workflow_dispatch' && (inputs.validation == 'full' || inputs.package_macos) }}
 
   portable:
     needs: plan
     if: needs.plan.outputs.has-builds == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +45,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run test:react-runtime
         if: matrix.target == 'web-browser'
+      - run: npm run typecheck --workspace @opencraft/workbench-web
+        if: matrix.target == 'web-browser'
       - run: npm run matrix:check
       - run: npm run matrix:build -- ${{ matrix.target }}
 
@@ -44,6 +54,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.native == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.package_macos)
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -59,6 +70,7 @@ jobs:
     needs: plan
     if: github.event_name == 'workflow_dispatch' && inputs.package_macos
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -75,28 +87,37 @@ jobs:
         with:
           name: electron-macos-native
           path: apps/workbench-electron/release/OpenCraft-*
+          retention-days: 3
 
   linux-headless:
+    needs: plan
+    if: needs.plan.outputs.headless-tests == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
       - run: npm run test:headless-server
       - run: npm run matrix:build -- headless-linux-amd64-tar
+        if: needs.plan.outputs.headless-package == 'true'
       - run: npm run smoke:headless:linux
+        if: needs.plan.outputs.headless-package == 'true'
       - uses: actions/upload-artifact@v4
+        if: needs.plan.outputs.headless-package == 'true'
         with:
           name: headless-linux-amd64-tar
           path: release/OpenCraft-server-*-linux-amd64.tar.gz
+          retention-days: 3
 
   build-checks:
     if: always()
     needs: [plan, portable, macos-native, macos-electron, linux-headless]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Require selected builds to succeed
         env:
@@ -105,9 +126,20 @@ jobs:
           NATIVE_RESULT: ${{ needs.macos-native.result }}
           PACKAGE_RESULT: ${{ needs.macos-electron.result }}
           HEADLESS_RESULT: ${{ needs.linux-headless.result }}
+          BUILD_SELECTED: ${{ needs.plan.outputs.has-builds }}
+          NATIVE_SELECTED: ${{ needs.plan.outputs.native == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.package_macos) }}
+          PACKAGE_SELECTED: ${{ github.event_name == 'workflow_dispatch' && inputs.package_macos }}
+          HEADLESS_SELECTED: ${{ needs.plan.outputs.headless-tests }}
         run: |
           test "$PLAN_RESULT" = success
-          test "$HEADLESS_RESULT" = success
-          for result in "$BUILD_RESULT" "$NATIVE_RESULT" "$PACKAGE_RESULT"; do
-            case "$result" in success|skipped) ;; *) exit 1 ;; esac
-          done
+          require_selected() {
+            if [ "$1" = true ]; then
+              test "$2" = success
+            else
+              test "$1" = false && test "$2" = skipped
+            fi
+          }
+          require_selected "$BUILD_SELECTED" "$BUILD_RESULT"
+          require_selected "$NATIVE_SELECTED" "$NATIVE_RESULT"
+          require_selected "$PACKAGE_SELECTED" "$PACKAGE_RESULT"
+          require_selected "$HEADLESS_SELECTED" "$HEADLESS_RESULT"

@@ -12,11 +12,16 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   analyze:
     # Private-repository Code Security is not enabled; run automatically on publication.
     if: github.event.repository.private == false
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       actions: read
