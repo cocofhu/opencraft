@@ -30,7 +30,7 @@ no independently maintained duplicate core baseline.
 | --- | --- |
 | Actor identity, verified identity bindings, authorization, audit, Hub routing | enterprise identity verification, employee fields, enterprise avatar service |
 | Local/OIDC account adapters and public identity/execution ports | Vela account, billing, Bot discovery and cloud-service/Hermes composition |
-| Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | Join branding/navigation and the downstream product native/embedded product entrypoints |
+| Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | managed site branding/navigation and the downstream product native/embedded product entrypoints |
 | Public build/release tools and contribution/maintenance skills | Internal deployment, release channels, business service config and integration ledger |
 
 A private provider establishes verified identity; core owns membership and
@@ -60,7 +60,7 @@ remote executable code.
   be reviewed against their actual entrypoints; passing these probes does not
   establish that all public development commands are independent.
 - The cross-Hub transport probe composes its local gateway identity through the
-  public Relay adapter port, replacing the removed private IOA configuration.
+  public Relay adapter port, replacing the removed private enterprise identity configuration.
   Real Chromium still crosses two TLS-connected Hubs, rejects anonymous identity,
   checks target membership and observes live revocation; the transit Relay uses
   the unmodified public artifact. These identities and target content are fixtures.
@@ -98,10 +98,10 @@ remote executable code.
   checker and release aliases are downstream-owned: product configs compose the
   core Vite factory rather than making a product label select private defaults.
   Existing CI and native Bot generators explicitly select their product config.
-- Join's brand package, artwork, original generation tool and product browser
+- the managed site's brand package, artwork, original generation tool and product browser
   assertions are downstream-owned. Its explicit client entry adds the original
   managed builtin to the existing product lifetime, after deployment defaults
-  resolve. Core has no Join package dependency or unconditional manifest import;
+  resolve. Core has no managed site package dependency or unconditional manifest import;
   generic branding/extension support remains public. The product Vite config
   serves/copies its own plugin assets at the original URLs.
 - Server-backed Web accepts trusted extension factories. The default server
@@ -132,7 +132,7 @@ remote executable code.
   imports, private route names, expiration rules or employee mapping. Managed
   document admission uses the core endpoint; the enterprise identity plugin owns its legacy
   alias. The assertion verifier no longer hardcodes that private alias; trusted
-  Join startup declares it as an additional exact admission probe. Default core
+  managed site startup declares it as an additional exact admission probe. Default core
   assertions only recognize the generic endpoint, with all original binding and
   replay checks retained. This removes one dependency edge, not the product entrypoint closures.
 - Expo's default entry now composes the existing native Workbench/Composer and
@@ -169,7 +169,7 @@ remote executable code.
   public tools and package commands. The Console generator
   writes original skill artwork to downstream `products/vela/public`, which also
   owns the original cloud-service proxy Worker. `products/vela/build-web.mjs` and explicit
-  Join builds select this trusted local directory using
+  managed site builds select this trusted local directory using
   `OPENCRAFT_PRODUCT_PUBLIC_DIR`; public default builds do not carry it. Original
   URLs and bytes are preserved, and native Bot documents retain
   `copyPublicDir: false`. Private probes and build aliases are downstream-owned. Snapshot
@@ -199,7 +199,7 @@ solely to complete this migration.
 
 The canonical GitHub repository owns contributions, protected checks and release
 automation. The old history archive stays private. Complete Web/Electron/Expo
-clients remain in core; Vela/enterprise identity/Join composition remains downstream. Dependency
+clients remain in core; Vela/enterprise identity/managed site composition remains downstream. Dependency
 findings stay advisory across the visibility change, with full reports retained.
 Secrets scans, relevant builds/tests and protected normal PR merges remain.
 No npm publication or downstream deployment is authorized by this cutover step.

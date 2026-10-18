@@ -147,8 +147,8 @@ function isWorkbenchApplicationRoute(pathname) {
 
 export function websiteDeploymentConfig({ appServerTarget, codexServerTarget }) {
   const hosts = [
-    ...(appServerTarget ? [{ hostId: "local", label: "Join", kind: "remote-control", url: "/appserver" }] : []),
-    ...(codexServerTarget ? [{ hostId: "local-codex", label: "Join", kind: "remote-control", url: "/codex-appserver" }] : []),
+    ...(appServerTarget ? [{ hostId: "local", label: "Server", kind: "remote-control", url: "/appserver" }] : []),
+    ...(codexServerTarget ? [{ hostId: "local-codex", label: "Server", kind: "remote-control", url: "/codex-appserver" }] : []),
   ];
   // HyperNode uses the same primary proxy. Its user header is transport
   // configuration, not permission to register a second execution Host.
@@ -211,7 +211,7 @@ export async function createWorkbenchWebServer({
   const normalizedTarget = appServerTarget === null ? null : normalizeTarget(appServerTarget);
   const normalizedCodexTarget = codexServerTarget === null ? null : normalizeTarget(codexServerTarget);
   const headlessBackend = createHeadlessBackendProxy(headlessBackendTarget);
-  const deploymentConfig = headlessServer ? { hosts: [{ hostId: "opencraft-server", label: "Join", kind: "durable",
+  const deploymentConfig = headlessServer ? { hosts: [{ hostId: "opencraft-server", label: "Server", kind: "durable",
     executionLocation: "This server", url: "/appserver", workspaceBrowseRoots: ["/"] }], builtinAgents: true, hypernode: false } : websiteDeploymentConfig({
     appServerTarget: normalizedTarget, codexServerTarget: normalizedCodexTarget, hyperNodeUser,
   });

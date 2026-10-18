@@ -99,8 +99,8 @@ test('generic release discovers runtime Codex Host and built-in settings before 
   const assertDeployment = async () => {
     const config = await page.locator('#opencraft-deployment-config').textContent();
     expect(JSON.parse(config)).toEqual({ hosts: [
-      { hostId: 'local', label: 'Join', kind: 'remote-control', url: '/appserver' },
-      { hostId: 'local-codex', label: 'Join', kind: 'remote-control', url: '/codex-appserver' },
+      { hostId: 'local', label: 'Server', kind: 'remote-control', url: '/appserver' },
+      { hostId: 'local-codex', label: 'Server', kind: 'remote-control', url: '/codex-appserver' },
     ], builtinAgents: true, hypernode: false });
     const profiles = await page.evaluate(async () => {
       const db = await new Promise((accept, reject) => {

@@ -13,8 +13,8 @@ backend attachment broker and cloud desktop resource-preparation API. Local Linu
 Hosts now have an explicit observation composition and an opt-in private native
 mouse/keyboard executor. The
 multi-tenant Vela broker is not mounted in production: its canonical directory
-and a native control executor still require integration. No WebRTC service, real
-TAT command is included. Local capability is opt-in; default compositions hide
+and a native control executor still require integration. No WebRTC service or real
+enterprise service command is included. Local capability is opt-in; default compositions hide
 the entry. Explicit trusted-internal deployments can share read-only viewing
 with everyone who can access that deployment; enabling control additionally
 trusts those users to request exclusive input on that same machine.
@@ -185,7 +185,7 @@ authorization acceptance; those require the separate runtime tests below.
 
 `DesktopBackend.recoverTransport` is an explicit promise that repeating `prepare`
 only obtains a fresh, reauthorized viewer, not resource creation or Agent work.
-The local Host adapter opts in. Vela's CTL preparation does not: an unknown POST
+The local Host adapter opts in. Vela's desktop service preparation does not: an unknown POST
 result must never be replayed by the neutral controller.
 
 Wire classifies an already-ready socket's abnormal close/error as transport loss,
@@ -374,7 +374,7 @@ bounded fresh-authorization recovery; identity/policy failures remain fail-close
 Invalid receipts and callbacks after closure/owner replacement cannot extend a
 viewer or enable input. Both sides retain expiry timers. Legacy discovery/ready
 without the capability sends no unknown message and retains the original expiry
-behavior. Vela/TAT providers are not silently opted into this local contract.
+behavior. Vela/enterprise-service providers are not silently opted into this local contract.
 
 Composition regression uses the real Host backend, wire and viewing controller
 with synthetic media: repeated five-minute deadlines retain one attachment and
@@ -387,7 +387,7 @@ Observation remains immutable read-only. Optional `--desktop-control` requires
 one explicit desktop access mode and a preinstalled, running
 `opencraft-desktop-control.service`. Startup verifies the root-owned Unix endpoint
 and checks its physical incarnation matches the observer. Without the flag,
-capability and ready remain observe-only. This does not mount Vela/TAT control.
+capability and ready remain observe-only. This does not mount Vela/enterprise service control.
 
 `LocalDesktopService` reserves one controller before asynchronous Thread checks
 and native acquisition; it confirms only after another revision check. Each
@@ -422,15 +422,15 @@ Install the reviewed helper and unit from
 interactive VNC/noVNC. The unit is not automatically enabled at boot. Explicit
 native acceptance uses only a newly created test window, not user applications.
 The native x11vnc process enforces immutable observe-only input; no client flag,
-account login, Vela adapter or TAT credential is trusted as an input gate.
+account login, Vela adapter or enterprise service credential is trusted as an input gate.
 Closing the viewer leaves native desktop services and Codex work running.
 
 ### Cloud desktop / Vela plugin boundary
 
 | Layer | Owns | Must not own |
 |---|---|---|
-| `plugins/cloud-desktop` | Desktop contract, panel/controller, lazy noVNC adapter, media focus and local input gating | Vela account, Bot selection, TAT, product HTTP or resource preparation |
-| `products/vela/plugins/lightvela-platform/src/desktop` (downstream) | Account/region and canonical directory checks, CTL preparation, authorized viewer attachment handoff | noVNC implementation, React/Shell placement, Chat's physical transport |
+| `plugins/cloud-desktop` | Desktop contract, panel/controller, lazy noVNC adapter, media focus and local input gating | Vela account, Bot selection, enterprise service, product HTTP or resource preparation |
+| `products/vela/plugins/lightvela-platform/src/desktop` (downstream) | Account/region and canonical directory checks, desktop service preparation, authorized viewer attachment handoff | noVNC implementation, React/Shell placement, Chat's physical transport |
 | Backend viewer broker | Server-side target revalidation, attachment expiry, physical incarnation and exclusive input enforcement | Client menu/view lifetime as resource-stop policy |
 | Application composition | Install the pair; retire panel consumers before disposing the Vela provider | Guessing a target from a renderer route or advertising unsupported media |
 
@@ -448,11 +448,11 @@ epoch, binding revision, region and principal are fenced across each asynchronou
 step. Changing a physical binding retires old attachments even when the stable
 target IDs do not change. Account detail refresh alone does not invalidate them.
 
-Preparation sends one explicit CTL POST, then bounded read-only GET observations.
+Preparation sends one explicit desktop-service POST, then bounded read-only GET observations.
 Unknown POST results are not retried automatically. A changed preparation epoch
 fails rather than switching silently. The default 90-second consumer wait is
 shorter than the existing 120-second viewer bootstrap bound; expiration abandons
-the viewer attempt, not CTL's independent background resource job.
+the viewer attempt, not the desktop service's independent background resource job.
 
 The provider requires an explicit `LightVelaDesktopViewerPort`, which is an
 integration boundary, not a new HTTP endpoint claimed to exist. Without it,
@@ -468,14 +468,14 @@ its `OK/data` envelope. Release uses a bounded DELETE under the original account
 after identity replacement it relies on socket retirement/server expiry instead
 of borrowing successor credentials.
 
-The backend now has an observer-only foundation: CTL's installer writes a
+The backend now has an observer-only foundation: the desktop service's installer writes a
 separate loopback native view-only x11vnc unit; Sandbox's provider opens only its
-fixed port through a dedicated backend TAT socket. Neither is auto-started or
+fixed port through a dedicated backend enterprise service socket. Neither is auto-started or
 exposed as a public API. This is not target authorization, incarnation proof or
 a control executor, and it is not composed into the Vela viewer port yet. Raw
-TAT session credentials must not be passed to the renderer. Local native tests
+enterprise-service session credentials must not be passed to the renderer. Local native tests
 exercise raw key/pointer/clipboard attempts against a fresh isolated X server;
-TAT transport tests still stop at a synthetic WS/BSON server. See the
+Enterprise service transport tests still stop at a synthetic WS/BSON server. See the
 the downstream backend resource contract (not in this repository).
 
 ### noVNC media adapter
@@ -487,7 +487,7 @@ only with its paired factory. The adapter starts observe-only, scales locally
 and disables desktop resize. Handshake establishes input-channel readiness,
 not video readiness. The reviewed `firstframe` event follows a non-empty pixel
 rectangle, completed decoding, display flip and render-queue flush; empty updates
-and cursor/resize metadata are insufficient. Socket open or CTL prepared state
+and cursor/resize metadata are insufficient. Socket open or desktop service prepared state
 is not readiness. Unexpected credential/trust challenges fail
 closed instead of prompting for raw passwords.
 
@@ -685,9 +685,9 @@ uses the ticket because browsers cannot attach arbitrary bearer headers; an
 optional trusted cookie/gateway identity must also match if configured. The
 broker derives principal from its stored ticket binding, not from a frame.
 
-## CTL preparation foundation
+## Desktop service preparation foundation
 
-CTL now separates explicit `POST …/desktop/resource` preparation from read-only
+Desktop service now separates explicit `POST …/desktop/resource` preparation from read-only
 `GET …/desktop/resource`. A bounded background job advances installation/startup
 without browser polling; user/Sandbox rebinding and retries replace mutable state.
 The DTO has no VNC credentials. Its `generation_id` is an orchestration epoch, not
@@ -700,7 +700,7 @@ including in-memory/multi-replica and Gateway rollout limitations.
 
 1. Resolve canonical binding and authorized environment, not legacy `hostId`.
    Revalidate identity in backend `prepare`.
-2. CTL/TAT prepares the desktop resource; resource incarnation and viewer
+2. Desktop service/enterprise service prepares the desktop resource; resource incarnation and viewer
    attachment have independent identities. Existing HTTP-only `Ready` is not
    proof of media readiness.
 3. Compose the tested attachment broker/short-lived credentials with a production
@@ -721,7 +721,7 @@ principal switching, delayed prepare/connect/control results, synchronous
 revocation, teardown failures, bootstrap timeout, capability notifications and
 one-tab self-registration. A real React component in JSDOM replaces only the
 external backend/media boundary and exercises observe/control, window blur and
-plugin retirement. This is not real video, security, ICE, TAT, device input or
+plugin retirement. This is not real video, security, ICE, enterprise service, device input or
 production desktop verification. Additional adapter/provider tests cover
 observe-only sessions, source-level control grant fencing, exact product binding,
 preparation DTO validation, unknown POST failure and provider retirement.
@@ -734,13 +734,13 @@ and paste keys, local input cessation on revoke and viewer teardown. Set
 `OPENCRAFT_SMOKE_EXTENDED_CLIPBOARD=1` to verify Unicode Notify/Request/Provide;
 the default legacy peer checks rejection rather than silent Unicode replacement.
 It does not verify a real
-cloud desktop, production input enforcement, TAT or mobile network recovery.
+cloud desktop, production input enforcement, enterprise service or mobile network recovery.
 
 `npm run smoke:local-desktop` additionally injects a lost native viewing stream
 inside an isolated Host after a real framebuffer is painted. It verifies a new
 authorized connection and canvas, the same framebuffer pixel, observe-only input,
 one physical Codex engine and no repeated model request. This controlled local
-fault is not evidence of real phone suspension, latency, packet loss or TAT recovery.
+fault is not evidence of real phone suspension, latency, packet loss or enterprise service recovery.
 
 ### Transport assessment (2026-10-04)
 
@@ -750,13 +750,13 @@ UDP or TURN listener. Local router/shard tests preserve binary messages includin
 1 MiB payloads; the TLS test covers local WSS. These do not verify live cloud
 ingress, mobile throughput or whether all external UDP is blocked.
 
-TAT command execution and TAT session proxy are different capabilities. The
+enterprise service command execution and enterprise-service session proxy are different capabilities. The
 existing `lightvela-hermes` multiplexer opens TCP byte streams to loopback ports
 over a WSS/BSON session. Its RFC6455 adapter can therefore carry a desktop
 WebSocket, not just control commands. The desktop transport tests exercise the
 real RFC6455 adapter with synthetic external byte streams: binary fragmentation,
 masked client bytes, a 1 MiB message and logical connection closure. They do not
-execute real TAT, decode a desktop framebuffer or enforce input authorization.
+execute real enterprise service, decode a desktop framebuffer or enforce input authorization.
 
 WSS is the initial first-class transport candidate, not a WebRTC-timeout fallback.
 Browser ICE does not accept this JavaScript TCP proxy as an injected socket.
@@ -776,12 +776,12 @@ The implementation boundary is:
   expiring attachment bound to a physical desktop incarnation. A resource
   preparation generation is not a substitute for this identity.
 - An authorized WSS broker or remote protocol-aware enforcer gates desktop input.
-  Giving the browser unrestricted TAT access and a VNC password would bypass that
+  Giving the browser unrestricted enterprise service access and a VNC password would bypass that
   gate. noVNC `viewOnly` is UX, not authorization. The enforcer must distinguish
   required protocol/configuration/framebuffer requests from keyboard, pointer,
   clipboard and other state-changing operations; unknown operations fail closed.
 - Desktop transport has its own physical connection owner, separate from the
-  Chat Host. Existing TAT logical channels isolate closure, not bandwidth or
+  Chat Host. Existing enterprise service logical channels isolate closure, not bandwidth or
   backpressure: one shared socket can queue media ahead of chat. Prefer a separate
   desktop session, subject to backend limits, with bounded queues and reconnect.
 - Surface teardown retires only its transport, attachment and input lease.

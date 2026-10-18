@@ -115,7 +115,7 @@ because the latest tree has been replaced.
 
 The Vela native icon and generated login mark were moved with their original
 bytes to downstream `products/vela/native`, outside the public core tree. This
-is a product ownership transfer. Original skill artwork and the TAT proxy Worker
+is a product ownership transfer. Original skill artwork and enterprise service proxy Worker
 likewise belong to downstream `products/vela/public`, explicitly selected only by
 product builds. These moves do not authorize remaining connector marks or artwork,
 or clear historical commits. The later bounded artwork disposition excludes the
@@ -163,7 +163,7 @@ retained in `packages/connector-core/NOTICE.md`.
 This verifies the recorded origin and retained repository license; it does not
 establish each brand owner's authorization or trademark distribution scope.
 The remaining review for this group concerns those individual marks and any
-historical distribution, rather than the already moved Vela/Join artwork.
+historical distribution, rather than the already moved Vela/managed site artwork.
 At that reference-only review the group remained **unverified**. The finding
 did not change assets, client features or disposition, or clear any renderer
 group. The subsequent bounded exclusion is recorded below.

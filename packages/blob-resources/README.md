@@ -1,7 +1,7 @@
 # Blob resources
 
 Independent Cordis service for renderer-neutral file acquisition. No Hermes,
-TAT, AppServer, React or IndexedDB dependency in the scheduler itself.
+enterprise service, AppServer, React or IndexedDB dependency in the scheduler itself.
 
 ```ts
 const fiber = ctx.plugin(BlobResourceService, { concurrency: 3, storage });
@@ -49,4 +49,4 @@ stable authenticated scope and version; a path alone is insufficient.
 
 Defaults: 3 active jobs, 64 MiB/256 memory entries; browser storage 256 MiB/512
 entries. Idle expired entries are rejected on access and swept on writes. This
-module does not add PTYs, physical sockets, or claim independent TAT bandwidth.
+module does not add PTYs, physical sockets, or claim independent enterprise service bandwidth.

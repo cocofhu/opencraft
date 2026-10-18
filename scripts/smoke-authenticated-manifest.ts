@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import { pluginBranding } from '../apps/workbench-web/plugin-branding.vite';
-// Join does not advertise installation. Exercise the platform's optional manifest
-// support through a synthetic product, without re-enabling Join's descriptor.
+// The managed site does not advertise installation. Exercise the platform's optional manifest
+// support through a synthetic product, without re-enabling the managed descriptor.
 const fixtureRoot = await mkdtemp(join(tmpdir(), 'opencraft-manifest-fixture-'));
 const fixturePlugin = join(fixtureRoot, 'plugins', 'fixture');
 await mkdir(join(fixturePlugin, 'public'), {recursive: true});

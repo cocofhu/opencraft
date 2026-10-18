@@ -318,7 +318,7 @@ npm --prefix ../products/vela run build:android:release
 adb install -r apps/workbench-expo/release/LightVela-app.opencraft.workbench-android-release.apk
 ```
 
-需要在内网提供临时下载链接时，让服务在持续运行的终端中启动：
+需要在局域网提供临时下载链接时，让服务在持续运行的终端中启动：
 
 ```bash
 python3 apps/workbench-expo/scripts/serve-android-release-apk.py --bind 0.0.0.0 --port 8765
@@ -327,8 +327,8 @@ python3 apps/workbench-expo/scripts/serve-android-release-apk.py --bind 0.0.0.0 
 提供国际包时加 `--edition intl`，下载路径相应变成
 `/LightVela-app.opencraft.workbench.intl.apk`。
 
-用 `hostname -I` 找到可达的内网 IP，将
-`http://<内网 IP>:8765/LightVela-app.opencraft.workbench.apk` 发给测试者。
+用 `hostname -I` 找到可达的局域网 IP，将
+`http://<局域网 IP>:8765/LightVela-app.opencraft.workbench.apk` 发给测试者。
 先用 `curl -I` 检查 HTTP 200 和文件长度，再下载核对 SHA-256。
 服务只开放这一个 APK 路径；签名密钥和密码不得放进下载目录。
 关闭终端或服务器进程后，链接即失效。该流程不执行上架或公开发布。

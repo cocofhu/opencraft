@@ -25,7 +25,7 @@ export function assertHeadlessBuildHost(platform = process.platform, arch = proc
 export function headlessWebHostDefinitions() {
   return [{
     hostId: "opencraft-server",
-    label: "Join",
+    label: "Server",
     kind: "durable",
     executionLocation: "This server",
     url: "/appserver",

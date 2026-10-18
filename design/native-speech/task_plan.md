@@ -12,6 +12,6 @@
 验收：真实SDK/helper/preload无录音probe、合成interim/final、停止幂等、取消/重新开始、换草稿隔离、设置重启恢复。没有读取Codex认证，没有聊天模型推理。
 根文档检查和正式设计影响检查通过；context catalog/26项测试中的4项仍受既有历史Task Pack schema、英文摘要、credit指令预算与旧长hex扫描影响，不扩大本任务清理。
 
-Context route误匹配adapter→ctl，must_read已读但不触及CTL。读取：opencraft/AGENTS、maintenance/verification、platform architecture/build matrix、TDD/planning/UI规范。
+Context route误匹配adapter→ctl，must_read已读但不触及桌面服务。读取：opencraft/AGENTS、maintenance/verification、platform architecture/build matrix、TDD/planning/UI规范。
 失败检索：global.d.ts/desktop-path.ts/builtin-theme-pack猜测名不存在，改按既有preload与voice extension入口。不反复猜测。
 Apple网页md抓取失败，使用当前Xcode SDK官方头文件验证接口。

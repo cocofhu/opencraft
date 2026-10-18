@@ -74,12 +74,12 @@ Vela 的嵌入 element、Root、账号/物理连接 adapter 及产品集成测�
 兼容由可信Headless composition的`relayAssertionOptions.additionalAdmissionProbePaths`
 显式提供，relay-connect只转交这份编译装配，不从私有relay JSON或HTTP读取路径列表。
 验证器校验并快照额外路径；POST、query或未声明路径不做转译，签名/Host/Origin/
-实例/期限/nonce和成员授权照常生效。Join声明自己的旧别名，核心不内置企业路由。
+实例/期限/nonce和成员授权照常生效。受管站点声明自己的旧别名，核心不内置企业路由。
 
 所有 WS 入口同时遵守核心准入与连接证明。证明缺失、过期或提供者抛错拒绝升级，
 有限的证明期限必须是有效数值。已建立连接取成员证明与上下文期限的较早值，
 到期先撤销消息接收再关闭；核心继续拥有 Actor、成员撤权和资源授权。
-Headless 通过可信服务端 composition 创建身份适配器；Join 的企业参数及插件实例化
+Headless 通过可信服务端 composition 创建身份适配器；受管站点的企业参数及插件实例化
 位于下游入口。企业身份 实现、专属文案与集成验证由下游拥有，公开 workspace 不依赖它。
 核心 Actor/Relay 验证使用合成签名身份提供者，保留准入、撤权和持久化覆盖；企业身份 原有
 签名及员工元数据验证随产品运行。下游产品客户端其余依赖仍待隔离，不称完整拆分已完成。
@@ -1102,7 +1102,7 @@ login, membership, Actor authority and execution lifetime. External provider
 principals identify verified humans; a product can further restrict eligibility
 through its explicit `isHuman` predicate. Session credentials continue through
 the separate Actor path and cannot masquerade as browser human identities.
-Join owns its numeric employee binding rules, token/allowlist parsing and existing
+The managed site owns its numeric employee binding rules, token/allowlist parsing and existing
 presentation/preferences assembly outside the replaceable upstream prefix.
 Standalone and managed packaging choose their entry explicitly; importing an
 application module never starts an extra CLI/listener. See
@@ -1180,7 +1180,7 @@ Share titles are the public product name, never private conversation content.
 This publishes crawler metadata, not an authenticated WeChat JS-SDK integration;
 actual WeChat thumbnail selection/caching requires client verification.
 
-Downstream Join owns its preserved brand artwork and original asset URLs in
+Downstream managed site owns its preserved brand artwork and original asset URLs in
 `products/join/plugins/join` outside the public core. Its client entry decorates the
 existing account/engine product session with the managed `join.server` builtin;
 its Vite config selects product-local branding metadata/assets. Explicit build

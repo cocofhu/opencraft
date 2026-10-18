@@ -529,8 +529,8 @@ the full list/content/toggle/source/preview/scan/uninstall/update/action surface
 It may be used only behind the adapter for an operation whose semantics are
 proven equivalent, never as a UI fallback.
 
-The adapter reuses the Host-owned TAT/Dashboard transport and authentication.
-It must not create a second TAT session, WebSocket, gateway ownership token, or
+The adapter reuses the Host-owned enterprise-service/Dashboard transport and authentication.
+It must not create a second enterprise-service session, WebSocket, gateway ownership token, or
 provider process merely because the Skills page mounts.
 
 ## 11. Cordis and UI wiring

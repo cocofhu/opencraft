@@ -132,7 +132,7 @@ test("browser Host definitions preserve identity and reject ambiguous or credent
 test("packaged Web Host resolves its same-origin AppServer endpoint at runtime", () => {
   const [host] = parseWebHostDefinitions(JSON.stringify([{
     hostId: "opencraft-server",
-    label: "Join",
+    label: "Server",
     kind: "durable",
     executionLocation: "This server",
     url: "/appserver",
@@ -282,7 +282,7 @@ test("headless Codex inherits the packaged Linux browse root instead of claiming
 
 test("an older bundled Host gains its Linux root without overwriting user profile fields", async () => {
   const [definition] = parseWebHostDefinitions(JSON.stringify([{
-    hostId: "opencraft-server", label: "Join", kind: "durable", url: "/appserver",
+    hostId: "opencraft-server", label: "Server", kind: "durable", url: "/appserver",
     workspaceBrowseRoots: ["/"],
   }]));
   const databaseName = `headless-browse-root-${crypto.randomUUID()}`;
@@ -411,8 +411,8 @@ test("activation-owned Host profiles are visible without becoming durable config
 
 const deploymentRuntime = {
   hosts: [
-    { hostId: "local", label: "Join", kind: "remote-control", url: "/appserver" },
-    { hostId: "local-codex", label: "Join", kind: "remote-control", url: "/codex-appserver" },
+    { hostId: "local", label: "Server", kind: "remote-control", url: "/appserver" },
+    { hostId: "local-codex", label: "Server", kind: "remote-control", url: "/codex-appserver" },
   ], builtinAgents: true, hypernode: false,
 };
 test("runtime deployment preserves stable Host IDs and activates built-in settings", () => {
@@ -480,8 +480,8 @@ test("fixed embedded Thread memory is account/Profile scoped and never borrows u
 
 test("website machine labels validate display-only aliases without editing Host definitions", () => {
   const base = { hosts: [], builtinAgents: true, hypernode: false };
-  assert.deepEqual(parseWebDeploymentConfig(JSON.stringify({ ...base, machineDisplayNames: { "ssh:test": " Join " } }))?.machineDisplayNames, { "ssh:test": "Join" });
-  for (const machineDisplayNames of [null, [], "Join", { a: " " }, { a: 1 }, { a: "x".repeat(65) }, { a: "Join\n" }]) {
+  assert.deepEqual(parseWebDeploymentConfig(JSON.stringify({ ...base, machineDisplayNames: { "ssh:test": " Server " } }))?.machineDisplayNames, { "ssh:test": "Server" });
+  for (const machineDisplayNames of [null, [], "Server", { a: " " }, { a: 1 }, { a: "x".repeat(65) }, { a: "Server\n" }]) {
     assert.throws(() => parseWebDeploymentConfig(JSON.stringify({ ...base, machineDisplayNames })), /machine display names/);
   }
 });

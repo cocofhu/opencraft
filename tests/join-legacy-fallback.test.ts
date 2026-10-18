@@ -35,5 +35,5 @@ test('generated predicate reads real legacy ledger rows without altering records
   } finally { db.close(); }
 });
 test('wrong bundle bytes are refused before generating any output', () => {
-  assert.throws(() => prepareJoinLegacyFallback(Buffer.from('unreviewed source')), /Unknown legacy Join source bytes/);
+  assert.throws(() => prepareJoinLegacyFallback(Buffer.from('unreviewed source')), /Unknown legacy entry source bytes/);
 });

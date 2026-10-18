@@ -19,7 +19,7 @@ const ledger = "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,name 
 const hash = (sql: string) => createHash("sha256").update(sql).digest("hex");
 const fault = (kind: SqliteLifecycleError["kind"]) => (e: unknown) => e instanceof SqliteLifecycleError && e.kind === kind;
 
-for (const partial of [false, true]) test(`old shared Codex DB keeps queue, verified author and IOA data (${partial ? "missing auxiliary object" : "complete"})`, async () => {
+for (const partial of [false, true]) test(`old shared Codex DB keeps queue, verified author and enterprise identity data (${partial ? "missing auxiliary object" : "complete"})`, async () => {
   const root = await mkdtemp(join(tmpdir(), "oc-downstream-state-"));
   const path = join(root, "codex-host-queue.sqlite");
   try {
@@ -32,7 +32,7 @@ for (const partial of [false, true]) test(`old shared Codex DB keeps queue, veri
     if (partial) old.exec("DROP INDEX ioa_presence_names");
     old.close();
     let owner = new CodexHostStateDatabase(root);
-    assert.equal(owner.outcome.status, "migrated", "Bot v2 tables are additive; the old queue/sender/IOA rows remain");
+    assert.equal(owner.outcome.status, "migrated", "Bot v2 tables are additive; the old queue/sender/enterprise identity rows remain");
     assert.ok(owner.outcome.backupPath); assert.deepEqual(owner.outcome.movedAsidePaths, []);
     const queue = new CodexHostQueue(root, owner.database);
     assert.equal(queue.find("t", "q")?.state, "unknown", "existing recovery keeps uncertain delivery fenced");

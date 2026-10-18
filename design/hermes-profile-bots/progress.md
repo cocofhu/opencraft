@@ -6,7 +6,7 @@
 身份/parser已RED→GREEN；managed handler、Bridge协商/协议拒绝、正式transport绑定已接通。
 现有Bot View此前未注册，现补注册并抑制空应用入口；成功/回滚两条卸载路径释放Source。
 聚焦81测试通过；新增6测试通过（协商、缺失降级、401不伪造、断开迟到、两profile发送/取消/恢复）。
-完整gate进行中，尚未有真实Hermes实例端到端证据。未提交/推送，未改CTL或生产。
+完整gate进行中，尚未有真实Hermes实例端到端证据。未提交/推送，未改桌面服务或生产。
 下一步：真实AppServer client+目录+Bot UI通过本地原生RPC替身验收；类型/完整gate；独立客户端。
 ## 最终源码检查点
 
@@ -14,12 +14,12 @@
 实际浏览器Bridge/client/Cordis目录/resolver/source/View双profile路由与generation恢复通过；构建CSS有几何断言，浅/深主题截图已留证。
 最终完整gate复跑中；最终独立签名包从最后源码重新构建，旧预览/其他用户窗口不覆盖。
 根文档/映射检查通过；根context-audit33测试通过；根context26测试有4项既有失败，无当前Task新增命中。
-真实账号/TAT/推理不在本次边界验收，不提交推送。
+真实账号/企业服务/推理不在本次边界验收，不提交推送。
 # 完成检查点
 
 第一阶段本地实现/边界验收完成。最后源码的完整gate复跑成功，126项扩展测试通过；真实协议/组件浏览器probe通过。
 最终独立ad-hoc签名Mac包严格签名验证通过；453个renderer文件匹配当前构建，真实Shell/Composer启动/reload无白屏、无空Bot应用入口。
-真实Hermes账号/TAT/推理未验收；根context仍4项既有失败，当前Task无新增命中；无commit/push/生产变更。
+真实Hermes账号/企业服务/推理未验收；根context仍4项既有失败，当前Task无新增命中；无commit/push/生产变更。
 后续真实实例验收需要用户指定和授权测试目标，不能以本地远端替身代替。
 # 管理能力追加检查点
 

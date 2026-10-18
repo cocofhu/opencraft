@@ -909,7 +909,7 @@ export function App({
         // item before its transport command begins. At that point it owns the
         // immutable submission and the Composer draft has been consumed. Do
         // not retain the same text in the EditorView while a remote Host (for
-        // example Hermes over TAT) is still acknowledging the command.
+        // example Hermes over enterprise service) is still acknowledging the command.
         void submission.catch(() => {
           clearLatestTurnPlacement(submittedPlacement);
           // Failure presentation belongs to the Conversation Runtime's

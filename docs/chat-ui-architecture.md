@@ -742,7 +742,7 @@ the downstream product Web and Embedded Workbench builds. It saves immediate fol
 real the downstream product settings on the same origin/product, holds completion after real
 first-Turn admission, and checks that embedded still offers Queue. The same
 fixture retains multi-Profile draft/focus, reconnect, hidden lease and account
-replacement coverage across light/dark and DPR 1/2. The external account, TAT
+replacement coverage across light/dark and DPR 1/2. The external account, enterprise service
 tunnel and Hermes service are synthetic. This focused mode explicitly does not
 certify the separate standalone visual oracle; `OPENCRAFT_EMBEDDED_WEB_ROOT` and
 `OPENCRAFT_PRODUCT_ISOLATION_OUTPUT` allow separate negative artifacts.
@@ -805,12 +805,12 @@ losing the final reply must treat the outcome as unknown. The last acknowledgeme
 is awaited even if the Draft cancels, so its ref can be released by the existing
 attachment-session owner. A process crash can leave a private spool; startup
 recovery of those abandoned spools is not implemented.
-Hermes Hosts with the TAT terminal commit port also advertise 1024 MiB and the
+Hermes Hosts with enterprise-service terminal commit port also advertise 1024 MiB and the
 same chunk RPCs. This includes the embedded Workbench, which mounts the regular
 App and its attachment resolver. The Hermes adapter uploads each 1 MiB part through
-the existing authenticated Dashboard file endpoint; TAT transports the bounded HTTP
+the existing authenticated Dashboard file endpoint; enterprise service transports the bounded HTTP
 request using its BSON frame splitting. No 1 GiB Base64 request is built. Once all
-parts are acknowledged, an isolated TAT terminal command runs Python on the remote
+parts are acknowledged, an isolated enterprise-service terminal command runs Python on the remote
 Host: it verifies offsets, part hashes and total size, streams assembly and SHA-256,
 then publishes content and the history manifest/index under an exclusive attachment
 lock. Existing identities must match content and metadata. Parts are removed after
@@ -823,7 +823,7 @@ without the terminal port retain 32 MiB; one-shot staging remains limited to 32 
 The shared file limit does not enlarge image limits or the separate inline Bot API.
 Validation: `tests/hermes-large-attachment.test.ts`,
 `scripts/smoke-hermes-large-attachment.ts`, `scripts/smoke-embedded-attachment.ts`.
-The browser smoke uses a local TAT protocol peer and HTTP endpoint and runs the
+The browser smoke uses a local enterprise-service protocol peer and HTTP endpoint and runs the
 remote Python locally; it does not certify a real cloud instance. The Composer
 smoke exercises the production component and shared resolver, not full Application boot.
 
@@ -1226,7 +1226,7 @@ Thread identity and session-list loading are not execution status.
 Only webpage tabs and read-only files linked from the conversation are exposed.
 
 For the downstream product multi-Bot instances, one embedded Host is identified by
-`instanceId + profileId`, not by the physical instance alone. CTL's root
+`instanceId + profileId`, not by the physical instance alone. The desktop service's root
 `main` identity maps to native Hermes `default`; named Bot Profiles keep their
 native identity. Every ordinary Thread operation is scoped at the Hermes
 adapter boundary, and switching Bot disposes the old embedded Application
