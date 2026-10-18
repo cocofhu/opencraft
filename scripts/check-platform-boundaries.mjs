@@ -21,6 +21,17 @@ const violations = [];
 checkFiles("shared styles", "apps/workbench-web/src/styles", [{
   pattern: /url\(\s*["']?\/lightvela-intl-home\//m,
   message: "must not select product artwork; compose product styles in the explicit product entry",
+}, {
+  pattern: /\.lightvela-(?:login|management|bot-creation)/m,
+  message: "must not own private login, management or onboarding styles; compose them downstream",
+}]);
+checkFiles("shared icon presentation", "packages/design-system/src/icons.web.scss", [{
+  pattern: /data-workbench-product/m,
+  message: "must select declared icon presentation, not product identity",
+}]);
+checkFiles("startup resource policy", "apps/workbench-web/startup-resource-policy.vite.ts", [{
+  pattern: /lightvela|enterprise-identity/m,
+  message: "must accept private roots and exclusions from trusted build composition",
 }]);
 
 // Public development commands must remain usable without a product checkout.

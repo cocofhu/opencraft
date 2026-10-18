@@ -26,6 +26,7 @@ export const useWorkbenchPresentation = () => useContext(WorkbenchPresentationCo
 /** Root-local scale; Shadow hosts and full-page roots use the same tokens. */
 export function applyWorkbenchProductPresentation(root: HTMLElement, productId: string, presentation: WorkbenchPresentation = workbenchPresentation): void {
   root.dataset.workbenchProduct = productId;
+  root.dataset.workbenchIconStyle = presentation.iconStyle;
   const classic = presentation.iconStyle === "classic";
   root.style.setProperty("--stroke-icon", String((classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke));
   root.style.setProperty("--stroke-icon-navigation", String(workbenchIconMetrics.coreNavigation.stroke));

@@ -37,7 +37,7 @@ initializeAppearanceTheme();
 const host=document.createElement('section');document.body.append(host);const shadow=host.attachShadow({mode:'open'});const slot=document.createElement('div');shadow.append(slot);applyWorkbenchProductPresentation(host,'another-identity',explicitPolicy);
 const glyphs=<><WorkbenchIcon name='appearance'/><NavigationIcon name='settings' selected/><NewTaskIcon/></>;
 createRoot(slot).render(<WorkbenchPresentationContext.Provider value={explicitPolicy}>{glyphs}</WorkbenchPresentationContext.Provider>);
-createRoot(document.getElementById('root')).render(<main><h1>Presentation policy</h1><div id='glyphs'>{glyphs}</div><textarea aria-label='Draft' defaultValue='Preserved draft'/></main>);
+createRoot(document.getElementById('root')).render(<main><h1>Presentation policy</h1><div id='glyphs'>{glyphs}</div><nav className='settings-page__navigation'><button id='navigation-glyph'><NavigationIcon name='settings' selected/></button></nav><textarea aria-label='Draft' defaultValue='Preserved draft'/></main>);
 window.proof={getAppearanceThemeSnapshot,setAppearanceThemeId,setThemePreference,workbenchPresentation,host,slot};`;
     const server = await createServer({...config,configFile:false,root:process.cwd(),logLevel:"error",
       cacheDir:"node_modules/.vite-presentation-proof",server:{host:"127.0.0.1",port:0,hmr:false},
@@ -57,6 +57,11 @@ window.proof={getAppearanceThemeSnapshot,setAppearanceThemeId,setThemePreference
         assert.equal(initial.snapshot.availableThemes.some((t:any)=>t.id==='vela.core.mist'),!product);
         assert.match(initial.glyph,product?/lucide-palette/:/lucide-sun-moon/);
         assert.match(initial.shadowGlyph,/lucide-palette/);assert.equal(initial.shadowSize,'auto');
+        const stroke = await page.locator('#navigation-glyph svg').evaluate(svg=>getComputedStyle(svg).strokeWidth);
+        assert.equal(stroke,product?'2.5px':'1.8px');
+        // Changing only identity cannot change icon presentation or its stroke.
+        await page.evaluate(()=>{document.documentElement.dataset.workbenchProduct='unrelated-product';});
+        assert.equal(await page.locator('#navigation-glyph svg').evaluate(svg=>getComputedStyle(svg).strokeWidth),stroke);
         for(const mode of ['light','dark']) {
           await page.evaluate(mode=>(window as any).proof.setThemePreference(mode),mode);
           await page.getByRole('textbox',{name:'Draft'}).fill('Draft survives theme selection');

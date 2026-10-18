@@ -19,7 +19,7 @@ svg.lucide {
   width: var(--size-icon-navigation);
   height: var(--size-icon-navigation);
   flex: 0 0 var(--size-icon-navigation);
-  :where([data-workbench-product]:not([data-workbench-product="lightvela-web"])) & {
+  :where([data-workbench-icon-style="standard"]) & {
     stroke-width: var(--stroke-icon-navigation);
   }
 }

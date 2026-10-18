@@ -1,19 +1,22 @@
 import { createHash } from "node:crypto";
-import { requiredStartupModule, startupResourceViolations } from "./startup-resource-policy.vite";
+import { requiredStartupModule, startupResourceViolations, type StartupResourcePolicy } from "./startup-resource-policy.vite";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import type { Plugin } from "vite";
 
 /** Build graph evidence stays outside the distributable, with module identities. */
-export function startupResources(): Plugin {
+export function startupResources(policy: StartupResourcePolicy = {}): Plugin {
   return {
     name: "opencraft-startup-resources",
     enforce: "post",
     async writeBundle(options, bundle) {
       const root = resolve(options.dir!);
       const chunks = Object.values(bundle).filter(item => item.type === "chunk");
-      const roots = chunks.filter(item => item.isEntry || Object.keys(item.modules).some(id => requiredStartupModule.test(id.replace(/\?.*$/, ""))));
+      const roots = chunks.filter(item => item.isEntry || Object.keys(item.modules).some(id => {
+        const module = id.replace(/\?.*$/, "").replaceAll("\\", "/");
+        return requiredStartupModule.test(module) || policy.requiredModules?.some(pattern => pattern.test(module));
+      }));
       const critical = new Set<string>();
       const visit = (file: string) => {
         if (critical.has(file)) return;
@@ -61,7 +64,7 @@ export function startupResources(): Plugin {
       const evidence = join(dirname(root), ".startup", basename(root));
       await mkdir(evidence, { recursive: true });
       await writeFile(join(evidence, "resources.json"), JSON.stringify(report, null, 2));
-      const violations = startupResourceViolations(report);
+      const violations = startupResourceViolations(report, policy);
       if (violations.length) this.error(violations.join("\n"));
       console.info("[startup-resources]", JSON.stringify(report.totals));
     },

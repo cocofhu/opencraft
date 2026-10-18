@@ -3,10 +3,20 @@ import test from "node:test";
 import { requiredStartupModule, startupResourceBudget, startupJavaScriptChunkBudget, startupResourceViolations } from "../apps/workbench-web/startup-resource-policy.vite";
 const report = (module: string, critical = true) => ({ critical: critical ? ["main.js"] : [], chunks: [{ file: "main.js", modules: [module] }], totals: { javascript: 1, css: 1, gzip: 1 } });
 test("startup gates reject on-demand modules even when byte budgets are met", () => {
-  for (const module of ["opencraft/apps/workbench-web/src/components/modal/adaptive-sheet-handle.tsx", "opencraft/packages/chat-render-web/src/extensions/katex/katex-math.tsx", "opencraft/plugins/lightvela-hermes/src/connectors/catalog-snapshot.ts", "opencraft/plugins/lightvela-hermes/src/upstream/product/i18n/generated/en-US.json", "opencraft/node_modules/parse5/dist/index.js", "opencraft/node_modules/acorn/dist/acorn.mjs", "opencraft/plugins/cloud-desktop/src/panel.tsx", "opencraft/plugins/lightvela-hermes/src/settings/hermes-memory-management-view.tsx"]) {
+  for (const module of ["opencraft/apps/workbench-web/src/components/modal/adaptive-sheet-handle.tsx", "opencraft/packages/chat-render-web/src/extensions/katex/katex-math.tsx", "opencraft/node_modules/parse5/dist/index.js", "opencraft/node_modules/acorn/dist/acorn.mjs", "opencraft/plugins/cloud-desktop/src/panel.tsx"]) {
     assert.equal(startupResourceViolations(report(module)).length, 1, module);
     assert.deepEqual(startupResourceViolations(report(module, false)), [], module);
   }
+});
+test("trusted product exclusions add to core checks and byte limits", () => {
+  const policy = { demandOnlyModules: [/\/sample-provider\/src\/settings\//] };
+  const candidate = report("/external/sample-provider/src/settings/view.tsx");
+  assert.deepEqual(startupResourceViolations(candidate), []);
+  assert.match(startupResourceViolations(candidate, policy).join("\n"), /Demand-only/);
+  assert.deepEqual(startupResourceViolations(report(candidate.chunks[0].modules[0], false), policy), []);
+  candidate.totals.javascript = startupResourceBudget.javascript + 1;
+  assert.match(startupResourceViolations(candidate, policy).join("\n"), /javascript/);
+  assert.match(startupResourceViolations(report("/node_modules/parse5/dist/index.js"), policy).join("\n"), /Demand-only/);
 });
 test("splitting cannot bypass the request fanout budget", () => {
   const files = Array.from({ length: startupJavaScriptChunkBudget + 1 }, (_, index) => `${index}.js`);

@@ -339,3 +339,13 @@ policy; public builds retain standard defaults. Identity/data scopes, stored the
 IDs, saved choices and fixed legacy artwork remain unchanged. Product and embedded
 composition live downstream. This is an ownership cut, not a provenance clearance
 or a product deployment.
+
+Navigation stroke styling also follows the declared icon style on each
+presentation root, including Shadow hosts. Product identity no longer selects
+that CSS rule; the classic selected/outline SVG strokes remain intact.
+Private login, management and onboarding styles belong to the downstream
+product and must be supplied in both its full-page and ShadowRoot assemblies.
+The core startup resource checker accepts additional required roots and
+demand-only patterns from trusted Vite composition. Product module paths are
+not built into core policy; additional policy cannot relax core byte, request
+fanout or demand-only limits.

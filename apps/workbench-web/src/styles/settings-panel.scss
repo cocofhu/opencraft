@@ -117,7 +117,6 @@
 .account-numeric-value { font-variant-numeric: tabular-nums; }
 .account-usage { padding: 0 0 8px; }
 .account-usage__hint { margin-top: 12px; font: var(--typography-metadata-font); color: var(--color-text-secondary); letter-spacing: var(--typography-metadata-tracking); }
-.settings-panel__body > .lightvela-login-options { margin-block: 24px; }
 @container settings-panel (max-width: 480px) {
   .settings-panel__body { padding-inline: 16px; }
   .settings-control-row { grid-template-columns: 1fr; gap: 6px; }
