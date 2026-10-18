@@ -28,8 +28,8 @@ try {
   await page.goto(origin);
   await page.getByRole("status").waitFor();
   const ready = (hostId: string) => ({ hostId, phase: "ready", canManageBots: true, error: null });
-  const configure = (ids: string[], states: any[], kind?: string) => page.evaluate(({ ids, states, kind }) =>
-    (window as any).botPolicyProof.configure(ids, states, kind), { ids, states, kind });
+  const configure = (ids: string[], states: any[], kind?: string, revision?: number) => page.evaluate(({ ids, states, kind, revision }) =>
+    (window as any).botPolicyProof.configure(ids, states, kind, revision), { ids, states, kind, revision });
   // A held connection must not block another target or refresh after retirement.
   await configure(["b"], [ready("b")]);
   await page.getByRole("button", { name: "Bot b", exact: true }).waitFor();
@@ -63,6 +63,16 @@ try {
   await page.evaluate(() => (window as any).botPolicyProof.settle("connect:f", true));
   await page.evaluate(() => new Promise(requestAnimationFrame));
   assert.equal(await page.getByText("Late old Host failure", { exact: true }).count(), 0);
+  // Reusing a Host ID with a new profile revision retires old reads too.
+  await page.evaluate(() => { (window as any).botPolicyProof.hold.add("groups:h"); });
+  await configure(["h"], [ready("h")], undefined, 1);
+  await page.waitForFunction(() => (window as any).botPolicyProof.calls.some((c: any) => c.kind === "groups" && c.hostId === "h"));
+  await page.evaluate(() => { (window as any).botPolicyProof.hold.delete("groups:h"); });
+  await configure(["h"], [ready("h")], undefined, 2);
+  await page.waitForFunction(() => (window as any).botPolicyProof.calls.filter((c: any) => c.kind === "connect" && c.hostId === "h").length === 2);
+  await page.evaluate(() => (window as any).botPolicyProof.settle("groups:h"));
+  await page.waitForFunction(() => !(document.querySelector('[aria-label="刷新 Bot"]') as HTMLButtonElement)?.disabled);
+  assert.equal(await page.getByText("Group groups:h", { exact: true }).count(), 0);
   // Generic ambiguity, empty policy and immutable extension assembly.
   const before = await page.evaluate(() => (window as any).botPolicyProof.calls.filter((c: any) => c.kind === "connect").length);
   await configure(["x", "y"], []);

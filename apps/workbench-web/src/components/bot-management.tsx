@@ -294,9 +294,11 @@ export function createBotManagementView(directory: Directory, conversations: App
     const [groupDraft, setGroupDraft] = useState<{ hostId: string; entries: readonly AppServerBotDirectoryEntry[] } | null>(null);
     const eligibleProfiles = eligibleBotManagementProfiles(host.profiles, resolvedPolicy);
     const hostId = resolveBotManagementHost(eligibleProfiles, snapshot.hosts) ?? "";
+    const selectedProfile = eligibleProfiles.find(profile => profile.hostId === hostId);
     // Each selection owns reads, feedback and group projection. Switching Host
     // does not cancel its physical connection or remount operation drafts.
-    const owner = useMemo(() => ({ hostId, active: true, busy: false, generation: 0, groupsRevision: 0 }), [hostId]);
+    const owner = useMemo(() => ({ hostId, active: true, busy: false, generation: 0, groupsRevision: 0 }),
+      [hostId, selectedProfile?.providerId, selectedProfile?.revision]);
     useEffect(() => {
       owner.active = true;
       return () => { owner.active = false; owner.busy = false; owner.generation++; owner.groupsRevision++; };

@@ -9,7 +9,7 @@ import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
 // Only directory/connection/conversation I/O is simulated; rendering, policy,
 // selection, lifecycle, operation drafts and Radix controls are production code.
 initializeAppearanceTheme();
-const profile = (hostId: string) => ({ hostId, providerId: `example.${hostId}`, enabled: true });
+const profile = (hostId: string) => ({ hostId, providerId: `example.${hostId}`, enabled: true, revision: 1 });
 const entry = (hostId: string) => ({ hostId, availability: "available", bot: {
   botId: hostId, name: `Bot ${hostId}`, status: "available", revision: 1,
   management: { rename: true, clone: true, delete: true },
@@ -49,13 +49,13 @@ extension.activate({
   internal: { register(_kind: string, value: any) { Restricted = value.Component; } },
 } as any);
 const Empty = createBotManagementView(directory, conversations, connect, { providerIds: [] });
-let configure: (ids: string[], states: any[], kind?: string) => void;
+let configure: (ids: string[], states: any[], kind?: string, revision?: number) => void;
 function Fixture() {
   const [profiles, setProfiles] = useState([profile("a")]);
   const [kind, setKind] = useState("generic");
-  configure = (ids, hosts, nextKind) => {
+  configure = (ids, hosts, nextKind, revision = 1) => {
     snapshot = { hosts, entries: hosts.filter(h => h.canManageBots).map(h => entry(h.hostId)) };
-    setProfiles(ids.map(profile)); if (nextKind) setKind(nextKind);
+    setProfiles(ids.map(id => ({ ...profile(id), revision }))); if (nextKind) setKind(nextKind);
     for (const listener of listeners) listener();
   };
   const View = kind === "restricted" ? Restricted : kind === "empty" ? Empty : Generic;
@@ -67,7 +67,7 @@ function Fixture() {
 }
 (window as any).botPolicyProof = {
   calls, hold,
-  configure: (ids: string[], states: any[], kind?: string) => configure(ids, states, kind),
+  configure: (ids: string[], states: any[], kind?: string, revision?: number) => configure(ids, states, kind, revision),
   settle(key: string, fail = false) {
     hold.delete(key);
     for (const task of held.get(key) ?? []) {
