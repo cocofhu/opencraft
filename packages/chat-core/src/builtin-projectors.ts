@@ -1,3 +1,4 @@
+import { userInputQuestionExtensions } from "./request-user-input";
 import { appEnvelope, MCP_APPS_NAMESPACE } from "@opencraft/appserver-protocol/mcp-apps";
 import { asItemId } from "./identity";
 import { displayAsyncQuestionReply, projectAsyncQuestions } from "./async-questions";
@@ -656,6 +657,7 @@ function userInputQuestions(value: unknown): readonly UserInputQuestion[] {
       header: string(source.header),
       prompt,
       options: questionOptions(source.options),
+      ...userInputQuestionExtensions(source),
       isOther: boolean(source.isOther) ?? false,
       isSecret: boolean(source.isSecret) ?? false,
     }];
@@ -1123,6 +1125,7 @@ export function createBuiltinTimelineProjectors(): readonly TimelineItemProjecto
         header: string(source.header),
         prompt: string(source.prompt) ?? string(source.question) ?? "Input required",
         options: questionOptions(source.options),
+        ...userInputQuestionExtensions(source),
         isOther: boolean(source.isOther) ?? questionOptions(source.options).length === 0,
         isSecret: boolean(source.isSecret) ?? false,
       }];

@@ -1,3 +1,4 @@
+import { userInputQuestionExtensions } from "@opencraft/chat-core";
 import type {
   QueuedSubmission as ProtocolQueuedSubmission,
   ReplicaJsonValue,
@@ -526,6 +527,7 @@ function interactionPayload(interaction: PendingInteraction): {
               id: string(candidate.id) ?? "",
               header: string(candidate.header),
               prompt: string(candidate.question) ?? "Input required",
+              ...userInputQuestionExtensions(candidate),
               options,
               isOther: boolean(candidate.isOther) ?? false,
               isSecret: boolean(candidate.isSecret) ?? false,
@@ -567,6 +569,7 @@ function interactionPayload(interaction: PendingInteraction): {
                 id: string(candidate.id) ?? "",
                 header: string(candidate.header),
                 prompt: string(candidate.question) ?? "Input required",
+              ...userInputQuestionExtensions(candidate),
                 options,
                 isOther: true,
                 isSecret: false,

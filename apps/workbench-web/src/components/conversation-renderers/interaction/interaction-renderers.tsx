@@ -1,5 +1,6 @@
 import {
   aggregateUserInputQuestionAnswers,
+  selectUserInputQuestionOption,
   createMcpElicitationDraft,
   createUserInputQuestionDrafts,
   normalizeMcpElicitationSchema,
@@ -12,7 +13,7 @@ import {
   type TimelineBlock,
   type UserInputQuestionDraft,
 } from "@opencraft/chat-core";
-import { resolveStandardChatResource } from "@opencraft/chat-render-web";
+import { WebChatDocument, resolveStandardChatResource } from "@opencraft/chat-render-web";
 import {
   codexSetupContextSourceExamples,
   codexSetupRoleOptions,
@@ -203,9 +204,10 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
     return nextDrafts;
   }, [drafts, questionIndex]);
   const selectOption = useCallback((optionId: string, advance = true) => {
-    const nextDrafts = updateDraft({ selectedOptionId: optionId, freeformText: draft?.freeformText ?? "" });
-    if (advance) completeCurrentQuestion(nextDrafts);
-  }, [completeCurrentQuestion, draft?.freeformText, updateDraft]);
+    if (!question) return;
+    const nextDrafts = updateDraft(selectUserInputQuestionOption(question, draft, optionId));
+    if (advance && !question.multiSelect) completeCurrentQuestion(nextDrafts);
+  }, [completeCurrentQuestion, draft, question, updateDraft]);
   const submitCurrent = useCallback(() => completeCurrentQuestion(drafts), [completeCurrentQuestion, drafts]);
   const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.defaultPrevented || question === undefined) return;
@@ -241,7 +243,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       const current = Math.max(0, question.options.findIndex((option) => option.id === draft?.selectedOptionId));
       const nextIndex = Math.max(0, Math.min(question.options.length - 1, current + (event.key === "ArrowDown" ? 1 : -1)));
       const option = question.options[nextIndex];
-      if (option !== undefined) selectOption(option.id, false);
+      if (option !== undefined && !question.multiSelect) selectOption(option.id, false);
       return;
     }
     if (event.key === "Enter" && !event.nativeEvent.isComposing) {
@@ -283,11 +285,12 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
             ) : null}
           </header>
           {question.header ? <p className="thread-request-input__question">{question.prompt}</p> : null}
+          {question.detail ? <div className="thread-request-input__detail"><WebChatDocument documentId={`${block.id}:${question.id}:detail`} source={question.detail} /></div> : null}
           {pending && question.options.length > 0 ? (
             <div className="thread-interaction-card__options">
               {question.options.map((option, index) => (
                 <button
-                  aria-pressed={draft?.selectedOptionId === option.id}
+                  aria-pressed={question.multiSelect ? draft?.selectedOptionIds?.includes(option.id) === true : draft?.selectedOptionId === option.id}
                   disabled={submission.disabled}
                   key={option.id}
                   onClick={() => selectOption(option.id)}
@@ -305,7 +308,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
               <input
                 aria-label={`Response to ${question.prompt}`}
                 disabled={submission.disabled}
-                onChange={(event) => updateDraft({ selectedOptionId: null, freeformText: event.target.value })}
+                onChange={(event) => updateDraft({ ...draft, selectedOptionId: null, freeformText: event.target.value })}
                 placeholder={question.options.length > 0 ? "Other" : "Type here"}
                 type={question.isSecret ? "password" : "text"}
                 value={draft?.freeformText ?? ""}

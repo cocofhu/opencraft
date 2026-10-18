@@ -430,6 +430,9 @@ export interface QuestionOption {
 }
 
 export interface UserInputQuestion {
+  readonly multiSelect?: boolean;
+  readonly detail?: string;
+  readonly intent?: { readonly kind: "plan-review"; readonly approve: string };
   readonly id: string;
   readonly header: string | null;
   readonly prompt: string;
