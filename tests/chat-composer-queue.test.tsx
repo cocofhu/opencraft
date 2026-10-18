@@ -105,13 +105,24 @@ test("Workbench queue projection keeps uncertain delivery non-deletable through 
 test("queue interruption is the only state promoted to a tray header", () => {
   const markup = renderToStaticMarkup(
     <ComposerQueueTray
-      items={[{ ...pendingItem, state: "failed", pausedReason: "Queue paused because you interrupted" }]}
+      items={[{ ...pendingItem, state: "failed", actionable: true, pausedReason: "Queue paused because you interrupted" }]}
       isResponseInProgress={false}
     />,
   );
 
   assert.match(markup, /Queue paused because you interrupted/);
   assert.match(markup, /Resume/);
+});
+
+test("a paused row without action authority cannot resume the queue", () => {
+  const markup = renderToStaticMarkup(
+    <ComposerQueueTray
+      items={[{ ...pendingItem, state: "failed", pausedReason: "Queue paused because you interrupted" }]}
+      isResponseInProgress={false}
+    />,
+  );
+  assert.match(markup, /Queue paused because you interrupted/);
+  assert.doesNotMatch(markup, /Resume/);
 });
 
 test("unconfirmed steering claim offers review and explicit discard, never Send or Resume", () => {

@@ -209,7 +209,7 @@
     "smoke:desktop-toolbar-feedback": "tsx scripts/smoke-desktop-toolbar-feedback.ts",
     "smoke:conversation-activity-metrics": "tsx scripts/smoke-conversation-activity-metrics.ts",
     "check:startup:cache": "node scripts/check-startup-cache.mjs",
-    "test:startup": "tsx --test tests/deferred-transport.test.ts tests/web-asset-encoding.test.mjs tests/startup-resource-policy.test.ts tests/developer-tool-inputs.test.ts tests/embedded-product-build.test.mjs tests/expo-product-entry.test.cjs tests/expo-native-build.test.cjs tests/browser-process-env.test.ts",
+    "test:startup": "tsx --test tests/deferred-transport.test.ts tests/web-asset-encoding.test.mjs tests/startup-resource-policy.test.ts tests/startup-resource-composition.test.ts tests/developer-tool-inputs.test.ts tests/embedded-product-build.test.mjs tests/expo-product-entry.test.cjs tests/expo-native-build.test.cjs tests/browser-process-env.test.ts",
     "smoke:tasks:v1": "tsx scripts/smoke-tasks-v1.ts",
     "lint:browser": "node scripts/check-browser-compatibility.mjs",
     "test:browser-compatibility": "node --test tests/browser-compatibility-lint.test.mjs tests/browser-compatibility-graph.test.mjs tests/product-module-resolution.test.mjs && tsx --test tests/workbench-browser-runtime.test.ts",

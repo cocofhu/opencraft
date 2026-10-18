@@ -4,6 +4,7 @@ import { browserTargets } from "../../config/browser-compatibility.mjs";
 import { browserCompatibility } from "./browser-compatibility.vite";
 import { workspaceDependencies } from "./workspace-dependencies.vite";
 import { startupResources } from "./startup-resources.vite";
+import type { StartupResourcePolicy } from "./startup-resource-policy.vite";
 import { optionalWebAssets } from "./optional-web-assets";
 import { productPublicAssets } from "./product-public-assets.mjs";
 import { resolveServerProductEntry, resolveClientProductEntry, resolveEmbeddedProductEntry } from "./server-product-entry.mjs";
@@ -19,6 +20,7 @@ import { loadEnv, defineConfig, type ConfigEnv, type Connect, type Plugin, type 
 /** Trusted build composition; platform constraints still belong to core. */
 export interface WorkbenchWebBuildFeatures {
   readonly presentation?: WorkbenchPresentationOptions;
+  readonly startupResourcePolicy?: StartupResourcePolicy;
   readonly hyperNode?: boolean;
   readonly builtinAgents?: boolean;
   readonly tasks?: boolean;
@@ -357,7 +359,7 @@ export function createWorkbenchWebConfig(
       )] : []),
       releaseMetadata(webRelease),
       productPublicAssets(workspaceRoot, process.env.OPENCRAFT_PRODUCT_PUBLIC_DIR),
-      ...(!isElectronRenderer ? [startupResources()] : []),
+      ...(!isElectronRenderer ? [startupResources(features.startupResourcePolicy)] : []),
       ...(!isElectronRenderer && !isEmbeddedWorkbenchBuild ? [optionalWebAssets()] : []),
       ...(!isEmbeddedWorkbenchBuild ? [previewBridgeAsset()] : []),
       ...(embeddedWorkbenchEntryPath ? [embeddedWorkbenchDevEntry(embeddedWorkbenchEntryPath)] : []),
