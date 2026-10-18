@@ -9,7 +9,7 @@ const render = (assistant: string, user = "再改一部分") => renderToStaticMa
 }));
 
 test("MiniChat projects shared Markdown semantics and chronological roles without mounting a chat runtime", () => {
-  const html = render("已准备**上海 2 区**。\n\n- 保持 10 Mbps\n- 配置为 `servers/join`\n\n```sh\nprintf ready\n```\n\n| 环境 | 状态 |\n| --- | --- |\n| Join | ready |");
+  const html = render("已准备**上海 2 区**。\n\n- 保持 10 Mbps\n- 配置为 `servers/join`\n\n```sh\nprintf ready\n```\n\n| 环境 | 状态 |\n| --- | --- |\n| Server | ready |");
   assert.match(html, /data-minichat="readonly"/);
   assert.match(html, /<strong>上海 2 区<\/strong>/);
   assert.match(html, /<ul><li><p[^>]*>保持 10 Mbps<\/p><\/li>/);

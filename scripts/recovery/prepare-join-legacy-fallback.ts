@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** One-time recovery of the fixed 2026-10-14 legacy Join entry. Never a boot hook. */
+/** One-time recovery of the fixed 2026-10-14 legacy managed entry. Never a boot hook. */
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -29,7 +29,7 @@ export function legacySshHistoryExpression(): string {
 }
 export function prepareJoinLegacyFallback(source: Buffer): { bytes: Buffer; sourceSha256: string; outputSha256: string } {
   const sourceSha256 = createHash('sha256').update(source).digest('hex');
-  if (sourceSha256 !== LEGACY_JOIN_SOURCE_SHA256) throw new Error('Unknown legacy Join source bytes');
+  if (sourceSha256 !== LEGACY_JOIN_SOURCE_SHA256) throw new Error('Unknown legacy entry source bytes');
   const text = source.toString('utf8');
   const declaration = `var SCHEMA = ${JSON.stringify(SSH_CONNECTION_MIGRATIONS[0].sql)};`;
   if (text.split(declaration).length !== 2) throw new Error('Legacy SSH schema does not match its published owner');

@@ -22,7 +22,7 @@ test('one approved login origin hands off only to enrolled team and initiating b
   const start=await get(base,'/chat?id=42','team-a.test');assert.equal(start.status,303);
   const challenge=start.headers['set-cookie']![0]!.split(';')[0]!;assert.match(start.headers['set-cookie']![0]!,/HttpOnly; SameSite=Lax.*Secure/u);
   const login=new URL(String(start.headers.location));assert.equal(login.origin,'https://login.test');
-  assert.equal((await get(base,login.pathname+login.search,'team-b.test',{'x-test-verified':'yes'})).status,403,'IOA verification cannot move to team origin');
+  assert.equal((await get(base,login.pathname+login.search,'team-b.test',{'x-test-verified':'yes'})).status,403,'enterprise identity verification cannot move to team origin');
   assert.equal((await get(base,login.pathname+login.search,'login.test')).status,401);
   const signed=await get(base,login.pathname+login.search,'login.test',{'x-test-verified':'yes'});assert.equal(signed.status,303);
   const callback=new URL(String(signed.headers.location));assert.equal(callback.origin,'https://team-a.test');

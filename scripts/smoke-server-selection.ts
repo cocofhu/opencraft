@@ -32,7 +32,7 @@ try{
   const session=await page.evaluate(()=>fetch('/servers/lighthouse/__opencraft_access/session').then(r=>r.json()));assert.equal(session.role,'member');
   const dataScope=await page.evaluate(()=>indexedDB.databases().then(xs=>xs.map(x=>x.name)));assert.ok(dataScope.some(x=>x?.includes('server:lighthouse:')));
   await page.reload();await page.locator('[data-action-id]').first().waitFor();assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);
-  // Choosing Join in a second tab changes only future entry preference, never tab A's URL or requests.
+  // Choosing the managed site in a second tab changes only future entry preference, never tab A's URL or requests.
   const other=await context.newPage();await other.goto(fixture.origin+'/servers');await other.locator('[data-server="join"]').click();await other.locator('[data-action-id]').first().waitFor();
   assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);assert.match(other.url(),/\/join(?:\/|\?|$)/u);
   const joinRole=await other.evaluate(()=>fetch('/servers/join/__opencraft_access/session').then(r=>r.json()));assert.equal(joinRole.role,'admin');const otherCookies=await other.evaluate(()=>fetch('/servers/join/fixture/headers').then(r=>r.json()));assert.equal(otherCookies.cookie,null);
@@ -62,7 +62,7 @@ try{
   assert.equal(await freshPage.locator('[data-server="lighthouse"]').count(),1);
   assert.match(await freshPage.locator('p').first().innerText(),/不可用/u);await fresh.close();
   assert.deepEqual(errors,[]);
-  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production IOA employee or model inference.'},null,2));
+  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
   console.log(JSON.stringify({output,success:true}));
 } catch(error){await writeFile(join(output,'failure.json'),JSON.stringify({error:String(error),errors,requests,sockets},null,2));throw error;}
 finally{await browser.close();await fixture.close();}

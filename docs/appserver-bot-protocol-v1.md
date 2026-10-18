@@ -34,7 +34,7 @@ The following ownership rules are normative:
 2. The Renderer owns only view state, drafts, focus, selection, animation, and
    disposable caches.
 3. `BotConversationService` is a Cordis domain service. It must not import
-   Hermes, TAT, Electron, IndexedDB, or React types.
+   Hermes, enterprise service, Electron, IndexedDB, or React types.
 4. A WebSocket connection is already scoped to one Host. Bot payloads must not
    repeat `hostId`; the outer `HostRuntimeRegistry` owns Host routing.
 5. A Bot Conversation is not a Codex Turn. Messages and Executions are separate
@@ -1126,7 +1126,7 @@ The the downstream product Hermes adapter implements the OpenCraft methods as fo
 
 Hermes private details must remain behind the adapter:
 
-- TAT/WebSocket tickets and Tencent instance identifiers
+- enterprise-service/WebSocket tickets and Tencent instance identifiers
 - Hermes runtime Session IDs and hidden group Session titles
 - `profile.ui_meta`
 - group watermarks, epochs, and relay bookkeeping
@@ -1192,7 +1192,7 @@ An implementation is not V1-compliant until all of these pass:
    `bot/conversation/read`.
 10. Stale Conversation revisions cannot overwrite newer membership.
 11. Presence expiry removes activity animation without creating a Message.
-12. The public protocol contains no `Turn`, Hermes Session, TAT, Electron,
+12. The public protocol contains no `Turn`, Hermes Session, enterprise service, Electron,
     IndexedDB, React, or transport-provider types.
 
 ## 18. Deliberately deferred from V1

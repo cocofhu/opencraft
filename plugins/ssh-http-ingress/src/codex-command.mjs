@@ -1,4 +1,4 @@
-// Join live desktop command recipes; never evaluated as local shell commands.
+// Live desktop command recipes; never evaluated as local shell commands.
 // plugins/ssh-http-ingress/src/desktop-wire.ts
 const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const invoke = 'exec /bin/sh -c "$CODEX_REMOTE_PAYLOAD"';

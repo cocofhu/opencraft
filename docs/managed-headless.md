@@ -86,7 +86,7 @@ SSH2 固定现网依赖 1.17.0，归档带当前 checkout 安装的必要 JavaSc
 首次入口维护仍有断线窗口；core、CLI、DSH 引擎升级不由网站事务隐式执行。
 
 
-## 受控 Join 更新源
+## 受管站点更新源
 
 稳定运行的 `runtime/controlled-registry.mjs` 只监听 loopback，以 `OPENCRAFT_RELEASE_CATALOG`
 指定同 uid 0600 的 JSON：`schemaVersion:1`、`channel:"managed-headless"`、`selected:精确版本`、
@@ -160,7 +160,7 @@ cgroup/停止传播，并核对更新前后 Host/DSH PID，拒绝把被重启的
 浏览器提供的动态工具仍在连接断开时撤销；不能把原生任务连续性扩大为已断开客户端工具
 仍可调用。DSH Host、插件或引擎自身升级单独排空维护，不在网站一键更新中隐式重启。
 
-## 内网 npm 更新源
+## 企业 npm 更新源
 
 下游产品的 CI 脚本可在本机部署健康验证后，将同一精确归档发布至企业 npm 的
 `managed-headless` channel；配置、重试与其他环境设置由下游产品 CI 维护。
@@ -169,7 +169,7 @@ cgroup/停止传播，并核对更新前后 Host/DSH PID，拒绝把被重启的
 
 ## 固定旧部署的历史恢复工具
 
-原2026-10-14 Join SSH owner仅接受v1账本。正式owner的v2只设置同一
+原2026-10-14 受管站点 SSH owner仅接受v1账本。正式owner的v2只设置同一
 `PRAGMA user_version=1`，不改变连接表或凭据语义，但原未修改旧入口仍拒绝两行账本。
 因此不能将它直接列作迁移后的可用回退，也不能删除v2记录或恢复旧数据库来绕过检查。
 

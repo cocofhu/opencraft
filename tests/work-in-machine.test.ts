@@ -167,10 +167,10 @@ test("configured unknown-machine labels preserve connection names and never esta
   const hosts = [profile("ssh:a", null), profile("ssh:b", null)];
   const machines = groupWorkInMachines(hosts);
   const labels = { thisMac: "This Mac", thisComputer: "This computer", unknown: "Unknown machine" };
-  const names = { "ssh:a": "Join", "ssh:b": "Join" };
+  const names = { "ssh:a": "Server", "ssh:b": "Server" };
   assert.equal(machines.length, 2);
-  assert.equal(workInMachineName(machines[0]!, "web", labels, names), "Join · ssh:a");
-  assert.equal(workInMachineName(machines[1]!, "web", labels, names), "Join · ssh:b");
+  assert.equal(workInMachineName(machines[0]!, "web", labels, names), "Server · ssh:a");
+  assert.equal(workInMachineName(machines[1]!, "web", labels, names), "Server · ssh:b");
   assert.equal(workInMachineName(machines[0]!, "web", labels), "Unknown machine · ssh:a");
   const known = groupWorkInMachines([profile("ssh:a")])[0]!;
   assert.equal(workInMachineName(known, "web", labels, names), machine.name);

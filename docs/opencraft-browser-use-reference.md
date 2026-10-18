@@ -646,7 +646,7 @@ type PreviewBinding = {
 };
 ```
 
-内网透明直连时 `publicUrl` 可以是 `http://host:port`；需要统一域名时由 service gateway
+局域网透明直连时 `publicUrl` 可以是 `http://host:port`；需要统一域名时由 service gateway
 决定子域名或受控 path。Browser Runtime 只消费 binding，不自己猜端口映射。
 
 ## 15. HyperNode 路由契约

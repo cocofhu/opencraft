@@ -225,7 +225,7 @@ const forbiddenUiAuthorityImports = [
 checkFiles("cloud desktop plugin", "plugins/cloud-desktop/src", [
   {
     pattern: /(?:from\s*|import\s*\(?)["'][^"']*(?:lightvela|tencent-tat|tat-websocket|\/apps\/)/m,
-    message: "must not import product, TAT or application authority; use an authorized provider port",
+    message: "must not import product, enterprise service or application authority; use an authorized provider port",
   },
   {
     pattern: /\b(?:fetch|localStorage|sessionStorage)\s*\(|\b(?:localStorage|sessionStorage)\s*\./m,

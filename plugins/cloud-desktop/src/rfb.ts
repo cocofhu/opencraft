@@ -346,7 +346,7 @@ class RfbConnection implements DesktopConnection {
 }
 
 /** Transport/media implementation is product-free. The provider supplies only
- * authorized viewer sessions; no TAT, Account, Bot, resource or Shell routing. */
+ * authorized viewer sessions; no enterprise service, Account, Bot, resource or Shell routing. */
 export function createRfbDesktopAdapter(load: () => Promise<RfbClientConstructor> = loadRfbClient): RfbDesktopAdapter {
   const connections = new WeakSet<RfbConnection>();
   return {

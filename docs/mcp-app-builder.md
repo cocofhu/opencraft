@@ -1,13 +1,13 @@
 # Built-in MCP App builder
 
-Join's Headless gateway owns the built-in App definition service. The existing
+the managed site's Headless gateway owns the built-in App definition service. The existing
 Web client host renders its self-contained HTML in an opaque-origin sandbox;
 the native Codex and DSH execution engines keep owning conversation history.
 App definitions are not another conversation history or business database.
 
 ## User workflow
 
-In a new Join conversation, ask the AI to create an interactive App, for example:
+In a new managed site conversation, ask the AI to create an interactive App, for example:
 “创建一个 MCP App，输入单价和数量计算总价，发布后在当前会话打开。”
 The built-in `opencraft_apps.manage` tool loads precise authoring guidance with
 `help`, reads `list`/`get`, validates a complete serialized App spec, then publishes
@@ -18,7 +18,7 @@ registration boundary. Native Codex conversations retain their original dynamic
 tool declarations; an older native conversation needs a new conversation to
 acquire the newly introduced tool. Remote SSH Hosts and older servers do not
 advertise this service and are not given its tool declaration. This release
-implements the Headless Join service, not a new desktop/native App builder.
+implements the Headless managed site service, not a new desktop/native App builder.
 
 ## Ownership and protocol
 

@@ -16,7 +16,7 @@ request presentation service, Thread metadata, a human-qualification predicate
 and owned storage diagnostics/disposal. This is compiled operator-owned code,
 not a browser extension or a module path accepted from private JSON.
 
-Join preserves its existing enterprise CLI, verification, allowlist compatibility,
+The managed site preserves its existing enterprise CLI, verification, allowlist compatibility,
 participant presentation and persisted preferences in `products/join/`, outside
 the replaceable upstream tree. Managed and standalone packaging select that
 entry explicitly; generic builds never search for it in parent directories.
@@ -101,7 +101,7 @@ https://workbench.example.com/__opencraft_auth/oidc/callback/company
   "local": true,
   "oidc": [{
     "id": "company",
-    "label": "公司账号",
+    "label": "企业账号",
     "issuer": "https://identity.example.com",
     "clientId": "opencraft-web",
     "clientSecret": "REPLACE_LOCALLY",
@@ -112,7 +112,7 @@ https://workbench.example.com/__opencraft_auth/oidc/callback/company
 
 支持 discovery、Authorization Code、PKCE S256、state、nonce、JWKS 签名验证及 issuer/audience/有效期检查。支持 `client_secret_basic`、`client_secret_post` 和 `none`；无 secret 时默认 `none`，有 secret 时默认 `client_secret_post`。修改配置后通过部署流程重启认证 owner 生效。某个身份平台不可用不会阻止本地密码登录。
 
-OIDC 身份键为完整 `[issuer, sub]` 元组的 SHA-256，避免不透明 sub 或 URL 的字符限制，不截断标识，不依赖 provider 显示名称、邮件或配置中的按钮 ID。绑定须先登录原账号，再选择“绑定公司账号”；独立登录一个此前未绑定的身份会注册独立 Actor。
+OIDC 身份键为完整 `[issuer, sub]` 元组的 SHA-256，避免不透明 sub 或 URL 的字符限制，不截断标识，不依赖 provider 显示名称、邮件或配置中的按钮 ID。绑定须先登录原账号，再选择“绑定企业账号”；独立登录一个此前未绑定的身份会注册独立 Actor。
 
 ## 登录态、权限与撤销
 

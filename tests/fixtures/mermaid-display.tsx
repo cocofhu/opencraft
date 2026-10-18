@@ -7,7 +7,7 @@ const sources = {
   login: `flowchart LR
     U[用户浏览器] -->|访问和使用| T[团队自己的 OpenCraft]
     U -->|完成登录| A[公共登录服务]
-    A -->|验证员工身份| I[公司 IOA]
+    A -->|验证员工身份| I[企业身份]
     T -->|主动通过 HTTPS 取回登录结果| A`,
   tall: `flowchart TB\n${Array.from({length: 12}, (_, i) => `A${i}[步骤 ${i}] --> A${i+1}[步骤 ${i+1}]`).join("\n")}`,
   sequence: `sequenceDiagram
