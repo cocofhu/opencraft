@@ -27,15 +27,23 @@ function tool(id: string, name: string, arguments_: unknown, status = "completed
 function Demo() {
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
-  const items = [
+  const items: TimelineSourceItem[] = [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
     tool("transfer", "handoff_thread", { threadId: "other", destinationHostId: "remote" }, "completed", {
       operationId: "transfer", status: "warning", threadTitle: "Review", destinationHostDisplayName: "Remote",
-      destinationThreadId: "remote-target", steps: [{ id: "prepare-host-transfer", status: "done" }, { id: "transfer-host-artifacts", status: "failed" }],
+      destinationThreadId: "remote-target", steps: [{ id: "prepare-host-transfer", status: "done" }, { id: "transfer-host-artifacts", status: "failed" }, { id: "create-new-worktree", status: "pending" }],
     }),
     tool("poll", "get_handoff_status", { operationId: "missing" }, "failed"),
+    tool("queued", "handoff_thread", { threadId: "queued-target" }, "completed", {
+      operationId: "queued", status: "queued", steps: [{ id: "custom-prepare-step", status: "pending" }],
+    }),
+    { id: "browser", type: "mcpToolCall", payload: { server: "browser", tool: "browser_click", status: phase,
+      arguments: {}, result: { content: [], _meta: { "codex/toolSurface": { kind: "browserUse", backend: "chrome" } } } } },
+    { id: "computer", type: "mcpToolCall", payload: { server: "computer-use", tool: "scroll", status: phase,
+      arguments: { direction: "down", app: "Notes" } } },
+    { id: "custom", type: "dynamicToolCall", payload: { namespace: "custom", tool: "inspect_workspace", status: phase, success: phase !== "failed" } },
   ];
   const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
     authoritative: true, phase: "live", turns: [{ id: "turn", status: phase === "inProgress" ? "streaming" : "complete", items }] }, registry);

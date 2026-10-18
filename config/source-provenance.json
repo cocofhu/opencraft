@@ -107,10 +107,13 @@
       "evidence": [
         "packages/chat-core/src/tool-activity.ts",
         "packages/chat-core/src/codex-app-tools.ts",
-        "docs/provenance/thread-tool-presentation.md"
+        "docs/provenance/thread-tool-presentation.md",
+        "docs/provenance/tool-surface-disposition.md",
+        "docs/provenance/tool-surface-sources.json",
+        "tests/chat-tool-surface-state.test.ts"
       ],
-      "reason": "Expanded review finds the explicit source-identical MCP fallback annotation, computer-use/dynamic label families, native handoff summary sentences and recovered handoff-step rule outside the original native 21-value table. Functional compatibility alone does not establish retained-expression rights.",
-      "resolution": "Locate and inspect these remaining named regions individually; retain original/licensed implementations and replace only specifically identified uncleared expression. Do not classify the whole files from their annotations."
+      "reason": "The identified MCP/computer/dynamic fallback catalogs and recovered handoff summary/step regions are replaced within the documented boundary. Other source-referencing regions in tool-activity.ts (web-search compaction, command summaries, content interpretation and specialized presenters) still require expression/lineage review; replacing the known catalogs does not clear those regions.",
+      "resolution": "Retain exact source/target hashes and the bounded replacement record. Review the remaining annotated regions individually; keep original/licensed implementations and replace only identified uncleared expression. Keep this group unverified until that review is complete."
     },
     {
       "id": "product-and-brand-assets",

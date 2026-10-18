@@ -176,43 +176,24 @@ export function threadHandoffToolResult(block: ToolCallTimelineBlock): ThreadHan
   };
 }
 
-/** Recovered handoff progress rule, including the synthetic rollback step. */
+/** The execution owner supplies progress. Display must not invent running or rollback steps. */
 export function visibleThreadHandoffSteps(result: ThreadHandoffToolResult): readonly ThreadHandoffStep[] {
-  const failedIndex = result.steps.findIndex((step) => step.status === "failed");
-  if (failedIndex !== -1) {
-    const throughFailure = result.steps.slice(0, failedIndex + 1);
-    return failedIndex === result.steps.length - 1
-      ? throughFailure
-      : [...throughFailure, { id: "rolling-back-changes", status: "running" }];
-  }
-  if (result.steps.some((step) => step.status === "running")) return result.steps;
-  const pendingIndex = result.steps.findIndex((step) => step.status === "pending");
-  if (pendingIndex === -1) return result.steps;
-  return result.steps.map((step, index) => index === pendingIndex ? { ...step, status: "running" } : step);
+  return result.steps;
 }
 
+/** Protocol step identifiers remain readable without an embedded message catalog. */
 export function formatThreadHandoffStepLabel(
   stepId: string,
   result: Pick<ThreadHandoffToolResult, "direction" | "localBranch" | "sourceBranch" | "worktreeBranch">,
 ): string {
-  switch (stepId) {
-    case "rolling-back-changes": return "Rolling back changes";
-    case "prepare-host-transfer": return "Preparing files for transfer";
-    case "transfer-host-artifacts": return "Copying files to the destination host";
-    case "create-new-worktree": return "Creating a new worktree";
-    case "reuse-existing-worktree": return "Reusing the existing worktree";
-    case "stash-source-changes": return "Stashing uncommitted changes";
-    case "checkout-local-branch": return `Checking out ${result.localBranch ?? result.sourceBranch ?? "branch"} locally`;
-    case "stash-target-worktree-changes": return "Stashing worktree changes";
-    case "checkout-worktree-branch": return `Checking out ${result.worktreeBranch ?? result.sourceBranch ?? "branch"} in worktree`;
-    case "detach-worktree-branch": return "Detaching branch from worktree";
-    case "apply-changes-to-worktree": return "Applying uncommitted changes to worktree";
-    case "apply-changes-to-local": return "Applying uncommitted changes locally";
-    case "switching-thread":
-      return result.direction === "to-worktree" ? "Moving chat to worktree"
-        : result.direction === "to-host-worktree" ? "Moving chat to the destination worktree"
-        : "Moving chat to local";
-    default:
-      return stepId.replace(/[-_]+/gu, " ").replace(/^./u, (character) => character.toLocaleUpperCase());
+  const title = stepId.replace(/[-_]+/gu, " ").replace(/^./u, (character) => character.toLocaleUpperCase());
+  const branch = stepId === "checkout-local-branch" ? result.localBranch ?? result.sourceBranch
+    : stepId === "checkout-worktree-branch" ? result.worktreeBranch ?? result.sourceBranch : null;
+  if (branch !== null) return `${title} · ${branch}`;
+  if (stepId === "switching-thread" && result.direction !== null) {
+    const destination = result.direction === "to-local" ? "Local"
+      : result.direction === "to-worktree" ? "Worktree" : "Destination worktree";
+    return `${title} · ${destination}`;
   }
+  return title;
 }
