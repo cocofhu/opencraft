@@ -6,9 +6,9 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { NativeSpeechManager } from "./native-speech.js";
 import type { NativeSpeechInfo, NativeSpeechPreferences, NativeSpeechOptions } from "@opencraft/app-host-protocol";
-import { DesktopLightVelaLogin, forwardLoginCallback } from "./lightvela-login.js";
-import { createDesktopSessionStore } from "./lightvela-session-store.js";
-import { desktopAccountPublicError, requestDesktopAccount, type DesktopAccountRequest } from "./lightvela-account-http.js";
+import { createDesktopProduct } from "./desktop-product-main-entry.js";
+import { activateDesktopProduct } from "./desktop-product-lifetime.js";
+import type { DesktopProductSession } from "./product-contract.js";
 import { desktopSkillHubPublicError, requestDesktopSkillHub } from "./skillhub-http.js";
 import { resolveDesktopProduct } from "./product-identity.js";
 import {
@@ -81,7 +81,6 @@ let loopbackHost: WorkbenchStaticServer | null = null;
 let rendererOrigin: string | null = null;
 let daemonManager: OpenCraftDaemonClientManager | null = null;
 const daemonBridges = new Set<{ close(): void }>();
-let desktopSessions!: ReturnType<typeof createDesktopSessionStore>;
 let sqliteDebugReader!: SqliteDebugReader;
 let uiPreferences!: DesktopUiPreferenceStore;
 const desktopLocale = createDesktopLocaleRuntime();
@@ -89,20 +88,19 @@ let connectorConfiguration: DesktopConnectorConfigurationStore | null = null;
 const connectorStore = () => connectorConfiguration ??= new DesktopConnectorConfigurationStore(join(desktopPaths.userDataDirectory, "opencraft-connectors.sqlite"));
 let extensionData: DesktopExtensionDataStore | null = null;
 registerExtensionDataIpc(() => extensionData ??= new DesktopExtensionDataStore(join(desktopPaths.userDataDirectory, "opencraft-extensions.sqlite")), trustedLoginCaller);
-let desktopLogin!: DesktopLightVelaLogin;
-let desktopLoginReady = false;
-const pendingLoginCallbacks: string[] = [];
+let desktopProductSession: DesktopProductSession | null = null;
+let desktopProductReady = false;
+const pendingProductUrls: string[] = [];
 let startupCallbackFlight: Promise<boolean> | null = null;
 
-function receiveLoginCallback(url: string): void {
-  if (!desktopLoginReady) { pendingLoginCallbacks.push(url); return; }
-  if (desktopLogin.receive(url)) return;
-  const forwarding = forwardLoginCallback(url);
-  if (mainWindow === null && daemonManager === null) startupCallbackFlight = forwarding;
+function receiveProductUrl(url: string): void {
+  if (!desktopProductReady) { pendingProductUrls.push(url); return; }
+  const forwarding = desktopProductSession?.receiveUrl(url);
+  if (forwarding && mainWindow === null && daemonManager === null) startupCallbackFlight = forwarding;
 }
 // macOS may deliver an open-url before app.whenReady(). The live transaction
 // broker also routes callbacks delivered to a different preview/profile.
-app.on("open-url", (event, url) => { event.preventDefault(); receiveLoginCallback(url); });
+app.on("open-url", (event, url) => { event.preventDefault(); receiveProductUrl(url); });
 
 function trustedLoginCaller(event: Electron.IpcMainInvokeEvent): boolean {
   return event.sender === mainWebContents && event.senderFrame === mainWebContents?.mainFrame
@@ -129,17 +127,18 @@ function initializeDesktopProfile(paths: DesktopDirectoryPlan): void {
       buttons: ["不允许", "允许"], defaultId: 0, cancelId: 0, checkboxLabel: "记住此网站的选择", checkboxChecked: false });
     return { allow: result.response === 1, remember: result.checkboxChecked };
   });
-  desktopSessions = createDesktopSessionStore(paths.userDataDirectory);
   sqliteDebugReader = new SqliteDebugReader(paths.dshDataDirectory);
   uiPreferences = new DesktopUiPreferenceStore(join(paths.userDataDirectory, "opencraft-ui.sqlite"));
   speechPreferences = createFilePrivateStorage(join(paths.userDataDirectory, "voice-input"));
-  desktopLogin = new DesktopLightVelaLogin({
+  desktopProductSession = activateDesktopProduct(createDesktopProduct, {
+    userDataDirectory: paths.userDataDirectory,
+    privateStorage: createFilePrivateStorage(join(paths.userDataDirectory, "private-storage")),
     openExternal: url => shell.openExternal(url),
-    saveSession: (value, signal) => desktopSessions.save(value, signal),
-    onSuccess: () => { void ensureMainWindow().catch(() => {}); },
-  });
-  desktopLoginReady = true;
-  for (const url of pendingLoginCallbacks.splice(0)) receiveLoginCallback(url);
+    showWindow: ensureMainWindow,
+    registerProtocol: registerDesktopProtocol,
+  }, ipcMain, event => trustedLoginCaller(event as Electron.IpcMainInvokeEvent));
+  desktopProductReady = true;
+  for (const url of pendingProductUrls.splice(0)) receiveProductUrl(url);
 }
 
 function speechHelperPath(): string {
@@ -251,25 +250,17 @@ ipcMain.handle("opencraft:ui-preference-compare-and-set", (event, key: unknown, 
   return result;
 });
 
-ipcMain.handle("opencraft:lightvela-login", async (event, region: unknown) => {
-  if (!trustedLoginCaller(event)) return { ok: false, error: "Untrusted login caller" };
-  if (region !== "cn" && region !== "intl") return { ok: false, error: "Invalid login region" };
-  try {
-    if (process.platform === "darwin" && app.isPackaged) {
-      execFileSync("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister", [
-        "-f", dirname(dirname(dirname(process.execPath))),
-      ], { stdio: "ignore", timeout: 5000 });
-    }
-    const registered = app.isPackaged ? app.setAsDefaultProtocolClient("opencraft")
-      : app.setAsDefaultProtocolClient("opencraft", process.execPath, [app.getAppPath()]);
-    if (!registered) throw new Error("Could not register the desktop login callback. Please reopen the installed app.");
-    return { ok: true, session: await desktopLogin.start(region) };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "Could not start login" };
+function registerDesktopProtocol(): void {
+  if (process.platform === "darwin" && app.isPackaged) {
+    execFileSync("/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister", [
+      "-f", dirname(dirname(dirname(process.execPath))),
+    ], { stdio: "ignore", timeout: 5000 });
   }
-});
-ipcMain.handle("opencraft:lightvela-login-cancel", event => { if (trustedLoginCaller(event)) desktopLogin.cancel(); });
-ipcMain.handle("vela:lightvela-session-read", event => trustedLoginCaller(event) ? desktopSessions.read() : null);
+  const registered = app.isPackaged ? app.setAsDefaultProtocolClient("opencraft")
+    : app.setAsDefaultProtocolClient("opencraft", process.execPath, [app.getAppPath()]);
+  if (!registered) throw new Error("Could not register the desktop login callback. Please reopen the installed app.");
+}
+
 const browserMetadataKeys = new Set(["vela.browser-pages.v1", "vela.browser-tabs.v1", "opencraft.browser-storage.v1", "vela.conversation-bindings.v1", "opencraft.browser-retired-storage.v1"]);
 const readBrowserMetadata = (): Record<string, string> => {
   const raw = createFilePrivateStorage(join(app.getPath("userData"), "browser-metadata")).read("state");
@@ -342,34 +333,10 @@ ipcMain.handle("opencraft:browser-clear-closed-data", async event => {
   createFilePrivateStorage(join(app.getPath("userData"),"browser-metadata")).write("state",JSON.stringify({...current,"opencraft.browser-retired-storage.v1":JSON.stringify(remaining)}));
   return {cleared};
 });
-ipcMain.handle("vela:lightvela-session-clear", event => {
-  if (trustedLoginCaller(event)) { desktopLogin.cancel(); desktopSessions.clear(); }
-});
-ipcMain.handle("vela:lightvela-account-request", async (event, input: DesktopAccountRequest) => {
-  if (!trustedLoginCaller(event)) throw new Error("Untrusted account caller");
-  const account = await desktopSessions.read();
-  if (!account) return { status: 401, contentType: "application/json", body: new Uint8Array() };
-  try { return await requestDesktopAccount(input, account); }
-  catch (error) { throw desktopAccountPublicError(error); }
-});
 ipcMain.handle("opencraft:skillhub-get", async (event, path: unknown) => {
   if (!trustedLoginCaller(event)) throw new Error("Untrusted SkillHub caller");
   try { return await requestDesktopSkillHub(path); }
   catch (error) { throw desktopSkillHubPublicError(error); }
-});
-ipcMain.handle("vela:lightvela-sign-out", async event => {
-  if (!trustedLoginCaller(event)) return;
-  const account = await desktopSessions.read();
-  desktopLogin.cancel(); desktopSessions.clear();
-  if (!account) return;
-  try {
-    const base = account.region === "cn" ? "https://api.lightvela.com" : "https://api.lightvela.ai";
-    const response = await fetch(`${base}/auth/session`, {
-      method: "DELETE", headers: { Authorization: `Bearer ${account.token}` },
-      redirect: "error", signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok && response.status !== 401 && response.status !== 403) throw new Error();
-  } catch { throw new Error("Signed out locally; server revocation could not be confirmed."); }
 });
 
 function rejectAppHostPort(
@@ -593,7 +560,7 @@ async function createMainWindow(): Promise<void> {
   });
   const webContents = window.webContents;
   webContents.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
-    if (isMainFrame && !isInPlace) desktopLogin.cancel();
+    if (isMainFrame && !isInPlace) desktopProductSession?.cancelInteractions();
   });
   mainWindow = window;
   lifecycle.bindWindow(window);
@@ -639,7 +606,7 @@ async function createMainWindow(): Promise<void> {
     if (!webContents.isDestroyed()) webContents.setZoomLevel(0);
   });
   window.once("closed", () => {
-    desktopLogin.cancel();
+    desktopProductSession?.cancelInteractions();
     window.off("focus", refreshWindowAppearance);
     window.off("blur", refreshWindowAppearance);
     window.off("show", refreshWindowAppearance);
@@ -669,7 +636,9 @@ const lifecycle = new DesktopLifecycle({
     uiPreferences.close();
     connectorConfiguration?.close();
     extensionData?.close();
-    desktopLogin.cancel();
+    const productErrors: unknown[] = [];
+    try { desktopProductSession?.dispose(); } catch (error) { productErrors.push(error); }
+    desktopProductSession = null;
     const daemon = daemonManager;
     const loopback = loopbackHost;
     for (const bridge of [...daemonBridges]) bridge.close();
@@ -679,7 +648,7 @@ const lifecycle = new DesktopLifecycle({
     rendererOrigin = null;
     const results = await Promise.allSettled([daemon?.shutdown(), loopback?.close()]);
     const errors = results.filter(result => result.status === "rejected");
-    if (errors.length) throw new AggregateError(errors.map(result => result.reason), "Desktop shutdown failed");
+    if (errors.length || productErrors.length) throw new AggregateError([...productErrors, ...errors.map(result => result.reason)], "Desktop shutdown failed");
   },
   destroyTray: () => { if (tray && !tray.isDestroyed()) tray.destroy(); tray = null; },
   reportError: error => console.error("Desktop lifecycle:", error),
@@ -701,7 +670,7 @@ async function bootstrap(): Promise<void> {
 
   app.on("second-instance", (_event, argv) => {
     const callback = argv.find(value => value.startsWith("opencraft://"));
-    if (callback) { receiveLoginCallback(callback); return; }
+    if (callback) { receiveProductUrl(callback); return; }
     void ensureMainWindow().catch(console.error);
   });
   app.on("activate", () => { void ensureMainWindow().catch(console.error); });
@@ -709,7 +678,7 @@ async function bootstrap(): Promise<void> {
   app.on("window-all-closed", () => { /* Resident host; only explicit Quit stops runtime. */ });
 
   await app.whenReady();
-  for (const value of process.argv) if (value.startsWith("opencraft://")) receiveLoginCallback(value);
+  for (const value of process.argv) if (value.startsWith("opencraft://")) receiveProductUrl(value);
   if (startupCallbackFlight && await startupCallbackFlight) {
     // A callback-only launch must not put an anonymous second window in front
     // of the initiating profile, which is about to finish its login.

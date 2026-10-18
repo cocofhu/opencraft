@@ -2263,9 +2263,12 @@ error, usage-track, utility-shadow and scrim colors are emitted by the theme
 engine, not hard-coded in account CSS. Returning from external billing refreshes
 account details; model configuration uses the host's settings navigation.
 
-Desktop the downstream product login uses the system browser and the registered native OIDC
-client/callback. Electron Main owns random state, PKCE, timeout, cancellation,
-single-use exchange and OS-encrypted per-profile session storage. Only the trusted
+Downstream desktop login is selected through paired trusted local Main/Preload
+entries; the public desktop does not create a private account. Core owns profile,
+window, protocol and IPC admission. The product owns random state, PKCE, timeout,
+cancellation, single-use exchange and its per-profile application-owned private
+file session storage (not OS encryption). See [desktop product composition](desktop-product-composition.md).
+Only the trusted
 top-level renderer may invoke the narrow preload account port. A callback received
 by another profile is forwarded to its live owner through a state-addressed local
 socket; the socket carries only the one-time callback and is retired on completion.
