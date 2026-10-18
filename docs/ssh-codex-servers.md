@@ -281,5 +281,5 @@ Run both light/dark schemes (`OPENCRAFT_SSH_UI_COLOR_SCHEME`); each run covers
 desktop and touch. Shared-session mode is separate from the access-key run.
 
 Implementation evidence and unverified boundaries are recorded in the
-[SSH Task Pack](../../docs/context/tasks/2026-10-04-opencraft-ssh-codex-compatibility.md).
-Management evidence is in the [management Task Pack](../../docs/context/tasks/2026-10-05-opencraft-ssh-management.md).
+downstream SSH Task Pack (not in this repository).
+Management evidence is in the downstream management Task Pack (not in this repository).

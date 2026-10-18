@@ -2,7 +2,7 @@
 
 先遵循仓库根 `AGENTS.md` 和 `opencraft/AGENTS.md`。本文件只把手机任务路由到当前设计，不复制完整实现。
 
-公开默认入口装配既有 RN Workbench/Composer 与直连 Host。下述 LightVela 登录、Bot、Router 和发行身份规则属于显式下游产品，由 mono2 `products/vela/run-expo.cjs` 选择；不能让公开构建隐式要求其账号或 Bot 生成物。通用入口的能力与本地产品选择见 [Expo README](README.md#public-and-downstream-product-entries)，私有源码与生成工具已由下游持有。
+公开默认入口装配既有 RN Workbench/Composer 与直连 Host。下述 LightVela 登录、Bot、Router 和发行身份规则属于显式下游产品，由下游产品 `products/vela/run-expo.cjs` 选择；不能让公开构建隐式要求其账号或 Bot 生成物。通用入口的能力与本地产品选择见 [Expo README](README.md#public-and-downstream-product-entries)，私有源码与生成工具已由下游持有。
 
 | 改动 | 先读 |
 |---|---|

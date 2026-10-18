@@ -21,7 +21,7 @@ node scripts/check-source-provenance.mjs --json > provenance-review.json
 node scripts/check-source-provenance.mjs --release
 ```
 
-The report is specific to that checkout. The mono2 and GitHub candidates differ;
+The report is specific to that checkout. The public and downstream candidates differ;
 a report for one cannot clear the other. Commit the eventual conclusion and its
 evidence, rather than treating this generated file list as a rights opinion.
 

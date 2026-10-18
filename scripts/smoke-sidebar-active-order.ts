@@ -18,7 +18,7 @@ initializeAppearanceTheme();
 const layout=await SidebarLayoutStore.open({load:async()=>null,save:async(_,v)=>v});
 const preferences=await openWorkbenchUiPreferences();
 const now=new Date();now.setHours(12,0,0,0);const today=now.getTime()/1000;
-const base={project:'mono2',status:'ready',connectionHostId:'host',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'host',hostKind:'local',label:'Local'})};
+const base={project:'opencraft',status:'ready',connectionHostId:'host',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'host',hostKind:'local',label:'Local'})};
 const initial=[...Array.from({length:12},(_,i)=>({...base,id:'done'+i,title:'Done '+i,updatedAt:today-i,createdAt:1,unread:true})),
 {...base,id:'older-run',title:'Older running',status:'running',createdAt:10,updatedAt:today-86400},
 {...base,id:'newer-run',title:'Newer running',status:'running',createdAt:20,updatedAt:today-86400},

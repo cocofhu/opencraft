@@ -161,7 +161,7 @@ npm run gate:server-updates -- --scenario self-upgrade
 
 公共包使用 `@opencraft-app/opencraft`，源为 `https://registry.npmjs.org/`。首版 0.1.10 支持 Linux x64 / Node.js 24；包含网站、更新器、执行 gateway/daemon，不包含独立 Codex core、CLI 或 DSH 引擎，不是全新服务器一键安装器。
 
-正式发布workflow为 `.github/workflows/release.yml`。在main合入提升 `packaging/web-server/package.json` 稳定版本并提交精确 `## vX.Y.Z` changelog后自动请求发布；版本未变不发布，降级、预发布号与缺失发布记录拒绝。来源清单的 `--release` 检查通过后才创建指向该main事件提交的新tag；已有同名tag只能精确指向原提交，禁止覆盖。仍可从main手动派发已有稳定tag以恢复既有发布。当前来源核实和产品拆分未完成，自动发布尚不能越过该检查；实现不等于已在GitHub生效。
+正式发布workflow为 `.github/workflows/release.yml`。在main合入提升 `packaging/web-server/package.json` 稳定版本并提交精确 `## vX.Y.Z` changelog后自动请求发布；版本未变不发布，降级、预发布号与缺失发布记录拒绝。来源清单的 `--release` 检查通过后才创建指向该main事件提交的新tag；已有同名tag只能精确指向原提交，禁止覆盖。仍可从main手动派发已有稳定tag以恢复既有发布。来源清单检查与产品隔离均已具备；首次 npm 发布按既定决定暂缓，因此实现已就绪但不等于已经在 GitHub 或 npm 真实发布。
 
 包模板版本必须与tag相同；tag必须位于main历史中。预检再次核对tag内来源清单、安装锁定依赖、执行相关测试和浏览器回归，然后构建一个execution tgz、核对公开包内容并生成SHA256 manifest。发布job只下载并发布这份归档，不重建；npm版本已存在时只接受字节完全一致的归档。最后核对npm下载/安装及GitHub Release归档、manifest和release notes。全发布workflow串行，`npm-release` Environment仍只允许main。已上传后若最终校验失败，用 `gh run rerun <run-id> --failed` 复用原归档，核对远端字节后继续，不重建或重复上传。操作技能见 [opencraft-release](../.agents/skills/opencraft-release/SKILL.md)，迁移边界见[上游迁移](upstream-transition.md)。
 
@@ -169,7 +169,7 @@ npm run gate:server-updates -- --scenario self-upgrade
 
 npm 上传返回成功后，公开 metadata 可能延迟出现。整包 metadata 可能受 CDN 缓存影响；发布烟测显式使用 `--metadata-source version-api` 查询公共精确版本接口 `/包名/版本`，验证返回的包名和版本，并记录缓存状态、等待及安装耗时。该模式不发送 npm 凭据；需要认证或没有此接口的 registry 继续使用默认 npm CLI 查询。精确接口的 HTTP 404 最多重试 30 次、间隔 10 秒，然后仍在独立临时目录运行 `npm install 包名@版本 --prefer-online`。安装 CLI 自身仍可能读取受缓存影响的整包 metadata；仅对明确的 `ETARGET` 且错误指向本次精确版本进行同样的有界重试，认证、网络、其他包缺失、错误版本和其他安装错误立即失败。用新 workflow 复核旧 tag 时，若 tag 内的 kit 尚未提供此参数，则使用原 npm CLI 查询。已存在版本的烟测不能证明新版本上传后的同步耗时，需在下一次真实发布中观察。
 
-Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。当前 GitHub 仓库为 private，发布显式关闭 provenance；不改变仓库可见性或宣称提供公共来源证明。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
+Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。仓库已公开（`opencraft-app/opencraft`），发布 workflow 不额外声明 npm provenance；来源证明以仓库内 `NOTICE`、各包 `PROVENANCE.md` 和 `config/source-provenance.json` 为准，不在 npm 侧另行宣称。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
 
 ```sh
 gh workflow run release.yml --repo opencraft-app/opencraft --ref main -f tag=v0.1.10
@@ -230,7 +230,7 @@ SSH management、员工身份和语音入口；它不是上文受管 gateway 的
 内嵌 Codex 的首次独立 core 迁移必须等待真实活动 turn、工具与队列自然清空，或由
 操作者安排维护窗口。持久 `unknown` 表示提交结果尚未确认，不能据此判断任务已死、
 删除记录或自动重放；恢复由原 owner 按历史中的 client message 身份核对。
-独立 core 的原生连续性不包含 mono2 的队列、verified sender、IOA、Tasks 和其他
+独立 core 的原生连续性不包含下游的队列、verified sender、企业身份、Tasks 和其他
 Host overlay；需要保留这些能力时，先完成相应 adapter 接入，不能借部署改变默认执行选择。
 
 目标库包含当前 owner 不识别的旧表时，先找原建表与读写来源，再设计有界的 owner
@@ -238,8 +238,8 @@ Host overlay；需要保留这些能力时，先完成相应 adapter 接入，�
 结构拒绝，也不能移开后用空库替代。发现目标 preview 来自未提交或后续补丁时，将
 它与指定构建来源分别记录；未经确认不能把该 preview 当作已接收源码构建输入。
 
-完整保留 mono2 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
-[受管 Headless 与独立 core](join-managed-headless.md)。纯 core bridge 不能替代该模式。
+完整保留下游 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
+[受管 Headless 与独立 core](managed-headless.md)。纯 core bridge 不能替代该模式。
 # Optional ordinary relay
 
 The managed package includes independent inactive relay/admin executables and an

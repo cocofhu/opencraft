@@ -1,6 +1,6 @@
 # OpenCraft Extension Platform 与插件内核架构
 
-GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入Vela/IOA，
+GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入Vela/企业身份，
 不能无条件导入私有插件；移除配置中的必需身份提供者必须保持拒绝，核心Actor、
 成员与资源授权不下沉到产品。当前拆分尚在实施，已知直接依赖与验证不变量见
 [upstream transition](upstream-transition.md#current-blocking-edges)，不把菜单开关当依赖隔离。
@@ -52,7 +52,7 @@ Vela 的嵌入 element、Root、账号/物理连接 adapter 及产品集成测�
 音频、连接和面板 helpers 仍属于核心，不复制组件、不以空实现代替完整客户端。
 
 普通中继的可部署边界见 [relay deployment](relay-deployment.md)：`apps/relay-server`
-独立启动，`plugins/relay-connect` 可选出站连接；IOA 验签、JWE 与员工字段映射属于
+独立启动，`plugins/relay-connect` 可选出站连接；企业身份 验签、JWE 与员工字段映射属于
 下游产品的企业插件，通用 Principal/成员/角色/撤销属于核心包。实例只接收固定 issuer、
 公钥、实例与 Origin 范围的短期凭证；中继注册权不产生业务管理员权限。启用核心准入后，
 认证插件缺失保持拒绝，不能以停用插件绕过成员授权。
@@ -65,8 +65,8 @@ Vela 的嵌入 element、Root、账号/物理连接 adapter 及产品集成测�
 准入之后处理身份来源自己的 HTTP 路由。该端口不是 Renderer 可提交的身份，
 也不是浏览器扩展安装 ABI。未知网关配置项及缺少方法的身份端口在启动时拒绝。
 
-IOA 插件拥有签名、解密、时钟容差、员工 sender 映射及旧 HTTP 别名；通用网关
-不导入 IOA。静态文档探针使用 `/__opencraft_access/admission`，无准入配置的匿名
+企业身份 插件拥有签名、解密、时钟容差、员工 sender 映射及旧 HTTP 别名；通用网关
+不导入 企业身份。静态文档探针使用 `/__opencraft_access/admission`，无准入配置的匿名
 部署也能返回 204；启用成员校验、Actor 约束或配置的身份提供者时仍须通过相应校验。
 未注册的 `/__opencraft_*` API 返回 404，不能回落成成功的 SPA HTML。
 
@@ -80,8 +80,8 @@ IOA 插件拥有签名、解密、时钟容差、员工 sender 映射及旧 HTTP
 有限的证明期限必须是有效数值。已建立连接取成员证明与上下文期限的较早值，
 到期先撤销消息接收再关闭；核心继续拥有 Actor、成员撤权和资源授权。
 Headless 通过可信服务端 composition 创建身份适配器；Join 的企业参数及插件实例化
-位于下游入口。IOA 实现、专属文案与集成验证由下游拥有，公开 workspace 不依赖它。
-核心 Actor/Relay 验证使用合成签名身份提供者，保留准入、撤权和持久化覆盖；IOA 原有
+位于下游入口。企业身份 实现、专属文案与集成验证由下游拥有，公开 workspace 不依赖它。
+核心 Actor/Relay 验证使用合成签名身份提供者，保留准入、撤权和持久化覆盖；企业身份 原有
 签名及员工元数据验证随产品运行。LightVela 客户端其余依赖仍待隔离，不称完整拆分已完成。
 
 ### Relay 启动装配
@@ -96,7 +96,7 @@ Headless 通过可信服务端 composition 创建身份适配器；Join 的企�
 下游产品拥有旧企业配置转换及私有插件创建，并通过打包函数的 `relayEntry`
 显式选择编译入口。核心默认不探测父目录或引用产品；`packageWebServer` 与
 `packageRelay` 的编译期入口参数不是 HTTP/浏览器可安装插件接口。
-IOA 已迁往下游；本边界仍不等于 LightVela 客户端私有目录已经全部迁出。
+企业身份 已迁往下游；本边界仍不等于 LightVela 客户端私有目录已经全部迁出。
 
 > 状态：R3 已落地 Trusted V1 内核；生态与 Restricted Channel 仍为 Proposed  
 > 架构修订：R3（Extension-first 商业 Workbench）  
@@ -109,9 +109,9 @@ IOA 已迁往下游；本边界仍不等于 LightVela 客户端私有目录已�
 
 - 随标准 Headless 分发的 `opencraft.account`：每部署独立本地账号的服务端凭据插件，拥有密码策略、验证及凭据版本证明；通过核心提供的窄存储端口保留既有账号库，不依赖统一账号中心。核心仍拥有浏览器登录态、自然人绑定、成员与资源授权，停用插件不能绕过准入。由私有配置启用，非浏览器扩展安装；见[服务器登录](server-authentication.md#自部署账号插件)。
 
-- 可选 `tencentoa.identity`：后端逐请求太湖验签与 TOF 身份解密，独立员工
+- 可选 `enterprise.identity`：后端逐请求太湖验签与 TOF 身份解密，独立员工
   Authentication provider 与共享控件设置页；不取代平台账户，不自动授权资源。
-  详见 [员工身份插件](./tencentoa-authentication.md)。
+  详见 [员工身份插件](./enterprise-authentication.md)。
 
 - `packages/extension-contract`：renderer-free manifest V1、activation identity、Command、Settings、
   location-neutral View、Navigation、Sidebar Catalog、Settings Page、Workbench Surface、双明暗
@@ -158,7 +158,7 @@ Settings V1 刻意不包含 global/host/workspace 多层 scope、自定义 migra
 - 公共 `OpenCraftExtensionDefinition` 只引用公共 API，第一方 Theme Pack 已消费；`api.signal` 在失败或停用时先于清理 abort，运行中的插件可继续登记资源 subscription（贡献本身仍只在激活期登记）。自包含示例见 `examples/extensions/hello.mjs`，测试覆盖注册导航、调用公告与卸载中的待决结果。
 - Manifest V1 的格式解析保留合法的未来 `apiVersion`，当前 Supervisor 在执行 `activate` 前单独检查 API 与平台兼容性。未来 API 的安装记录不会被当作损坏记录删除；Manager 投影 `incompatible`，保留启用意图及配置。当前仅支持 API 1，不承诺旧 API 永久兼容。
 - `reload` 与同 ID 重新安装共享替换流程：候选成功激活且保存成功才更新安装记录；失败重新激活本进程保存的旧定义，使用新 activationId，旧安装版本和 enabled 保持不变。已停用插件重新安装保持停用。
-- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设，跟踪于 `docs/context/tasks/2026-09-22-extension-platform-completion.md`（仓库根）。
+- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设，跟踪于 下游产品工作区的扩展平台完成记录（不在本仓库）。
 
 ## 1. 结论
 
@@ -452,7 +452,7 @@ UNLOADING / DISPOSED`，非常适合实现 Activation 内核。`ctx.effect()` �
 框架及后续接入条件见 [Conversation desktop plugin](cloud-desktop-plugin.md)。
 
 云桌面与 Vela 产品插件保持单向依赖：通用插件拥有桌面 contract、面板和 noVNC
-媒体适配，不读取账号或调用 TAT/CTL；`lightvela-platform/desktop` 只消费通用
+媒体适配，不读取账号或调用企业云服务；`lightvela-platform/desktop` 只消费通用
 contract/media 子入口，拥有精确绑定校验、资源准备及后端 attachment 交接，
 不导入桌面 React renderer、noVNC 或 Hermes Chat 隧道。生产观看授权/输入门禁
 尚未实现，缺失 viewer port 时不发布能力。源码和 package dependency guard
@@ -1084,7 +1084,7 @@ Priority-based account entrances and multi-item registries keep their own semant
 `threadBadge` is an internal React contribution for one optional product-owned
 Thread adornment. Shell owns layout, identity and overlay exclusivity; the product
 owns data and content. The trailing slot takes its content width, stays right-aligned
-with the existing row-menu gap, and consumes no space for absent content. IOA
+with the existing row-menu gap, and consumes no space for absent content. 企业身份
 uses it for the last three server-array participants plus a circular “…” on overflow;
 the full participant Popover and creator provenance remain product-owned.
 
@@ -1119,7 +1119,7 @@ chip and hidden-row count; product identity tests and account preferences stay
 inside the plugin. When personal filtering is enabled, only confirmed creator/participant membership
 matches; unresolved metadata and ready empty creator/participants data are excluded.
 Shell adds no unknown-membership status row or expansion control.
-When IOA has no display identity, it omits the optional filter descriptor; Shell
+When 企业身份 has no display identity, it omits the optional filter descriptor; Shell
 hides its chip and menu group without changing the stored preference or hiding rows.
 Product-specific creator semantics, account ordering and preference schemas stay
 in the plugin. The optional `api.localPreferences` port supplies generic
@@ -1197,7 +1197,7 @@ metadata/assets and the same desktop/mobile activation/unload/replacement paths.
 
 Tasks member profiles consume the existing optional `IdentityAvatarContext` and
 `AvatarImage`. An explicit nullable `{kind,id}` reference is display data only;
-Tasks never imports the IOA implementation or derives identity from a name. The
+Tasks never imports the 企业身份 implementation or derives identity from a name. The
 product provider resolves photos; missing providers, unknown kinds and failed
 images retain the caller's initials and geometry. Profile references cannot grant
 authentication, access or ownership, and task assignment works without a provider.

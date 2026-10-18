@@ -3,7 +3,7 @@
  * The surviving 2026-10-06 TypeScript covered only earlier rooms/receipts.
  * This module retains the deployed draft/native mapping, idempotency and slot
  * behavior; it borrows CodexHostStateDatabase rather than opening a second writer.
- * Recovery evidence and comparison boundaries: docs/join-managed-headless.md.
+ * Recovery evidence and comparison boundaries: docs/managed-headless.md.
  */
 // apps/opencraft-daemon/src/codex-bot-bridge.ts
 import { AsyncLocalStorage } from "node:async_hooks";

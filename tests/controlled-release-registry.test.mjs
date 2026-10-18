@@ -15,14 +15,14 @@ test('controlled Join channel uses exact archive, rejects changed bytes and neve
     fixture = await releaseFixture(root);
     const archive = fixture.releases.get('1.1.0');
     const catalogPath = join(root, 'catalog.json');
-    const catalog = { schemaVersion: 1, channel: 'join-mono2', selected: archive.version,
+    const catalog = { schemaVersion: 1, channel: 'managed-headless', selected: archive.version,
       releases: [{ version: archive.version, buildId: archive.buildId, archive: archive.archive, integrity: archive.integrity }] };
     const save = () => writeFile(catalogPath, JSON.stringify(catalog), { mode: 0o600 });
     await save();
     registry = await createControlledReleaseRegistry({ catalogPath });
     const address = await registry.listen({ port: 0 });
     const origin = `http://127.0.0.1:${address.port}/`;
-    const source = createNpmReleaseSource({ registry: origin, channel: 'join-mono2' });
+    const source = createNpmReleaseSource({ registry: origin, channel: 'managed-headless' });
     const exact = await source.latest();
     assert.equal(exact.version, archive.version); assert.equal(exact.buildId, archive.buildId); assert.equal(exact.integrity, archive.integrity);
     const downloaded = await source.download(exact, join(root, 'download'));

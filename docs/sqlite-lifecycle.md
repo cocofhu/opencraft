@@ -18,7 +18,7 @@
 
 | 文件名 | Owner 进程与源码 | 数据目录 | 数据职责 |
 |---|---|---|---|
-| `thread-identity.sqlite` | Headless Hub：[ThreadIdentityDatabase](../apps/opencraft-daemon/src/thread-identity-database.ts) / AppServerIdentityOverlay | Headless `thread-identities/opencraft-server` | DSH trusted sender/creator, fork origins and derived IOA presence/completion; no native messages or execution state |
+| `thread-identity.sqlite` | Headless Hub：[ThreadIdentityDatabase](../apps/opencraft-daemon/src/thread-identity-database.ts) / AppServerIdentityOverlay | Headless `thread-identities/opencraft-server` | DSH trusted sender/creator, fork origins and derived 企业身份 presence/completion; no native messages or execution state |
 | `thread-read-receipts.sqlite` | Headless installation：[ThreadReadReceiptStore](../scripts/thread-read-receipt-store.ts) | Headless server data directory | Verified-account exact read receipts; existing document-store migrations/CAS, independent of selected Host |
 | `opencraft-ui.sqlite` | Electron Main：[ui-preferences-store](../apps/workbench-electron/src/ui-preferences-store.ts) | Electron `userDataDirectory` | UI 偏好与 CAS |
 | `opencraft-connectors.sqlite` | Electron Main：[connector-configuration-store](../apps/workbench-electron/src/connector-configuration-store.ts) | Electron `userDataDirectory` | 连接选择意图，不含凭据 |
@@ -30,12 +30,12 @@
 | `opencraft-managed-connectors.sqlite` | daemon 内 Local Agent Host：[connector-host/store](../packages/connector-host/src/store.ts) | Host `dataDirectory` | 实例、凭据与 OAuth 事务 |
 | `account-pool.sqlite` | 独立 codex-core：[account-pool-host/store](../packages/account-pool-host/src/store.ts)、[account service](../packages/account-pool-host/src/codex-account-service.ts) | codex-core `dataDirectory` | 账户元数据、亲和性与配额；secret 文件由同一 owner 管理 |
 | `tasks.sqlite` | [TasksSqliteStore](../plugins/tasks/src/sqlite.ts)；Local Agent 启动 owner / Codex 功能私有 owner | 原 Host 目录；各实例各自独占，不跨目录合库 | Tasks、关联、revision/CAS；原 `tasks-rows` v1 SQL/hash 不变 |
-| `codex-host-queue.sqlite` | [CodexHostStateDatabase](../apps/opencraft-daemon/src/codex-host-state-database.ts)；CodexEngineAdapter | 原 Codex 目录；SSH 为原 `ssh-servers/<binding hash>` 目录 | durable queue、message_senders、IOA presence/state/completion 与远端会话目录/同步水位共用一个迁移/连接/事务 owner |
+| `codex-host-queue.sqlite` | [CodexHostStateDatabase](../apps/opencraft-daemon/src/codex-host-state-database.ts)；CodexEngineAdapter | 原 Codex 目录；SSH 为原 `ssh-servers/<binding hash>` 目录 | durable queue、message_senders、企业身份 presence/state/completion 与远端会话目录/同步水位共用一个迁移/连接/事务 owner |
 | `codex-message-attachments.sqlite` | [CodexMessageAttachments](../apps/opencraft-daemon/src/codex-message-attachments.ts)；CodexEngineAdapter | 同上 | 已发送文件的 display metadata，不改变原生 mention 输入 |
 | `connections.sqlite` | [SshConnectionStore](../apps/opencraft-daemon/src/ssh-connection-store.ts)；可选 SSH management owner | 原 `ssh` 私有目录 | 连接/CAS、host key 与加密 credential；原 `ssh-connections` v1 SQL/hash 不变，v2 保留旧 reader 的 `user_version=1` |
 
 
-Electron Main 三库仍按消费入口懒打开。Local Agent 基础五库及配置目录时的 Tasks 统一由 [local-agent-storage](../apps/local-agent-host/src/storage/local-agent-storage.ts) 打开；未配置目录的嵌入/测试入口使用内存库，不提供持久 Host 文档能力。服务器 Host 目录为 `OPENCRAFT_EXECUTION_STATE/data`。account-pool 由所选 Codex owner 管理；独立 [codex-core](codex-core.md) 仍独立启动/升级，默认 mono2 Codex adapter 在连接时打开并报告 outcome，不被 Local Agent owner 二次打开。
+Electron Main 三库仍按消费入口懒打开。Local Agent 基础五库及配置目录时的 Tasks 统一由 [local-agent-storage](../apps/local-agent-host/src/storage/local-agent-storage.ts) 打开；未配置目录的嵌入/测试入口使用内存库，不提供持久 Host 文档能力。服务器 Host 目录为 `OPENCRAFT_EXECUTION_STATE/data`。account-pool 由所选 Codex owner 管理；独立 [codex-core](codex-core.md) 仍独立启动/升级，默认下游 Codex adapter 在连接时打开并报告 outcome，不被 Local Agent owner 二次打开。
 
 Web preferences、Connector configuration 与插件文档继续使用各自 IndexedDB adapter；Web/Expo replica 保持原有平台语义。SQLite debug reader 是只读消费者，不建表、不迁移。DSH/Hermes/Codex 引擎私有存储、JSON 项目/模型配置不由本 runner 接管。`codex-thread-pins` 经原生 reserved section 协议操作，不是另一份本地自有 SQLite；Hermes pins 同样由远端协议 owner 持有。原生 `queue_1.sqlite` 只沿既有队列搬运语义读取/删除已确认导入记录，不接管其 schema；`.codex-writer.sqlite` 只承担 writer lock，排除于业务库清单。类名中的 DSH 不改变 routing/executions 的 OpenCraft 所有权。
 
@@ -60,7 +60,7 @@ Web preferences、Connector configuration 与插件文档继续使用各自 Inde
 
 ### AccountPool 已知无账本旧结构
 
-mono2 回迁保留旧 owner 已支持的数据升级：`pool_accounts` 的七列基线及按原顺序追加的五个 nullable 元数据列；已存在的 `pool_affinity`、`pool_active_account` 必须匹配原结构，`pool_quota` 可以是原六列或已追加 `limit_windows_json` 的七列。缺少辅助表允许由转换创建；额外表、列、索引或已知列定义不符不接纳。识别与转换由 [AccountPool owner](../packages/account-pool-host/src/store.ts) 提供，不是公共层放宽全部库的 schema 策略。
+旧产品回迁保留既有 owner 已支持的数据升级：`pool_accounts` 的七列基线及按原顺序追加的五个 nullable 元数据列；已存在的 `pool_affinity`、`pool_active_account` 必须匹配原结构，`pool_quota` 可以是原六列或已追加 `limit_windows_json` 的七列。缺少辅助表允许由转换创建；额外表、列、索引或已知列定义不符不接纳。识别与转换由 [AccountPool owner](../packages/account-pool-host/src/store.ts) 提供，不是公共层放宽全部库的 schema 策略。
 
 `openManagedDatabase` 的可选 `legacyMigration` 只处理没有账本且不匹配当前目标指纹的旧库；`accepts` 读取结构指纹和只读 schema objects（类型、名称、SQL），`migrate` 在写入前备份完成后执行。转换、最终目标指纹校验和既有版本账本登记在同一事务内原子提交，outcome 为 `migrated`；事务内重新核对识别时的结构与对象，防止转换前结构变化。失败回滚、保留备份并拒绝打开，不退回移开重建；重复打开为 `up-to-date`，不再转换。已匹配当前结构仍为 `adopted`，未知结构仍为 `moved-aside`。已有账本的 newer-schema/history-mismatch 校验在此入口之前执行，不允许 owner 转换绕过；已发布基线 SQL 与 checksum 不改。
 
@@ -72,7 +72,7 @@ mono2 回迁保留旧 owner 已支持的数据升级：`pool_accounts` 的七列
 
 ### 本次五个 Host owner 的旧构造器核对
 
-回迁对照固定 mono2 `443554e0ba2e56ee5b8652e810024451fa1028ab`（导入前 HEAD）与 GitHub `f7626b4..f55a774` 的旧构造器；相关旧实现一致，#31 改为托管打开。以下证明的是旧构造器支持这些输入，不推断历史发布产物曾产生缺对象库。
+回迁对照固定导入前源码与旧 GitHub 树的旧构造器；相关旧实现一致，#31 改为托管打开。以下证明的是旧构造器支持这些输入，不推断历史发布产物曾产生缺对象库。
 
 | Host owner | 原行为证据与本次结论 | 数据验证 |
 |---|---|---|
@@ -82,16 +82,16 @@ mono2 回迁保留旧 owner 已支持的数据升级：`pool_accounts` 的七列
 | threads | 原单表，完整旧记录自动 adopted；空库 fresh 已覆盖，无其他有源码证据的缺对象变体需要转换 | [thread-catalog 测试](../tests/thread-catalog.test.ts) 与独立旧构造器 fixture 证明记录保留；不加兼容回调 |
 | host-documents | 原 extension_records 已有 v1 账本；未知库/缺表原本拒绝，不能当已知 legacy 放宽 | [SQLite 测试](../tests/sqlite-node.test.ts) 覆盖原账本 up-to-date、文档保留与缺域表拒绝；不加兼容回调 |
 
-`createMissingLegacyObjects` 只在 owner 显式给定上述旧 DDL 时提供 `legacyMigration`；逐个比较已有 schema object 的 type/name/SQL，只忽略引号外排版空白，保留 FK、STRICT、索引和其他约束定义。未知对象或定义不同不因另一个对象缺失而接纳。缺少的对象只按旧行为创建，不生成不存在的业务历史；该入口不扫描 mono2 额外持久库，也不改变默认的未知库处置。
+`createMissingLegacyObjects` 只在 owner 显式给定上述旧 DDL 时提供 `legacyMigration`；逐个比较已有 schema object 的 type/name/SQL，只忽略引号外排版空白，保留 FK、STRICT、索引和其他约束定义。未知对象或定义不同不因另一个对象缺失而接纳。缺少的对象只按旧行为创建，不生成不存在的业务历史；该入口不扫描下游额外持久库，也不改变默认的未知库处置。
 
-### mono2 额外 owner 的兼容与目标校验
+### 下游额外 owner 的兼容与目标校验
 
-- Codex state 的 queue、sender、IOA 四张表属于同一个物理库；consumer 不再自行 CREATE。旧完整库 `adopted`，旧构造器支持的已知缺对象通过 `createMissingLegacyObjects` 备份后原子补齐；dispatching 恢复为 unknown 等队列恢复仍在业务 owner，不进入迁移。metadata plugin 只借用连接，不能升级或关闭它。
+- Codex state 的 queue、sender、企业身份 四张表属于同一个物理库；consumer 不再自行 CREATE。旧完整库 `adopted`，旧构造器支持的已知缺对象通过 `createMissingLegacyObjects` 备份后原子补齐；dispatching 恢复为 unknown 等队列恢复仍在业务 owner，不进入迁移。metadata plugin 只借用连接，不能升级或关闭它。
 - attachments 沿用原表/索引和记录身份，允许原构造器支持的缺索引；不迁移或改写 attachment payload。
 - Tasks 沿用已发布 v1 账本，拒绝非空无账本库；默认固定 Local Agent authority 预开，私有 Codex Tasks 仍在用户实际发现/使用功能时打开，capabilities 成功回执之前必须完成迁移。未使用它不创建第二份 Tasks 文件或阻止 Codex 连接。
 - SSH 保留原 v1 SQL/name/hash、私有路径/key/密文，v2 只投影旧 reader 的 user_version。已有 v1 及新建后中断于 v1 的受证结构可重试；未知基线、新版/错误账本、失去 key 都拒绝，不替换 credentials。
 - 新接入 owner 使用 `createSchemaValidator` 严格比对 sqlite_master 的 type/name/SQL（只忽略引号外排版与 IF NOT EXISTS）。有账本但丢表、约束或索引变更不能被 up-to-date 掩盖。最终 SQL、目标校验、最终账本记账位于同一迁移事务；legacy 转换同样在记账前校验。`legacyPolicy` 保持 Tasks/SSH 原拒绝无账本边界，state/attachments 只接纳有旧源码证据的已知结构，未知库保留原文件并拒绝；公共九库未启用该新策略，旧默认行为不改。
-- [mono2 fixtures](../tests/mono2-sqlite-lifecycle.test.ts) 对照固定导入前源码，覆盖记录/关联/密文/CAS、重复打开、错误/新版历史、缺域对象、转换与 v2 失败回滚/恢复点。公共 runner 的无 owner 校验仍只提供下述有限指纹，不能声称所有历史库都做了 SQL 对象级检查。
+- [下游 fixtures](../tests/downstream-sqlite-lifecycle.test.ts) 对照固定导入前源码，覆盖记录/关联/密文/CAS、重复打开、错误/新版历史、缺域对象、转换与 v2 失败回滚/恢复点。公共 runner 的无 owner 校验仍只提供下述有限指纹，不能声称所有历史库都做了 SQL 对象级检查。
 
 ## 5. 打开与升级流程
 
@@ -190,14 +190,14 @@ IndexedDB 使用原生升级事务，不运行 SQL runner；广播仅通知已�
 CodexHostStateDatabase 的已发布 v1 保持原文，v2 追加 rooms/commands/message slots；
 其业务 adapter 借用同一连接。已知旧结构在 owner 内有界转换并保留映射/receipt/消息 ID，
 未知仍拒绝；回退接受性须用实际旧 reader 在隔离副本验证。来源与边界见
-[受管 Headless](join-managed-headless.md#codex-bot-来源与迁移)。
+[受管 Headless](managed-headless.md#codex-bot-来源与迁移)。
 
 
 Join首次受管迁移的SSH历史恢复：旧单体只接受v1账本，而正式owner已发布的v2仅维护
 user_version。原未修改旧入口不能直接作为升级后的回退。固定历史恢复工具复用该owner
 正式迁移清单，对固定来源的旧owner增加精确v2接受，原SQL/checksum/记录不变，未知仍拒绝；
 生成物不入Git、不作为常规启动热patch。必须证明完整兼容旧入口接受新owner后的真实副本，
-而非只证明某张库可读；见[受管Headless历史恢复](join-managed-headless.md#固定旧部署的历史恢复工具)。
+而非只证明某张库可读；见[受管Headless历史恢复](managed-headless.md#固定旧部署的历史恢复工具)。
 
 
 ## Codex Host v5：持久会话目录与参与关系完成状态
@@ -221,7 +221,7 @@ v4→v5 测试逐表核对队列、发送者、创建者、参与索引、来源
 
 `ThreadIdentityDatabase` is a new owner opened only when Headless employee
 verification is configured. Managed v1 creates the sender, origin, creator and
-derived IOA tables through migrations; plugin consumers only borrow its connection.
+derived 企业身份 tables through migrations; plugin consumers only borrow its connection.
 It uses strict schema validation and rejects unknown legacy files, newer versions
 and changed checksum history without replacing data. Future changes append v2;
 existing Codex v1–v5 migrations and all native DSH databases are untouched.

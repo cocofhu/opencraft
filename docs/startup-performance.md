@@ -8,7 +8,7 @@
 
 当前保守并集预算：原始 JS 3.7MB、独立 CSS 700KB、JS/CSS gzip 1.2MB、静态关键 JS 最多120个请求。JS 中的 shadow 内联 CSS计入 JS。预算按解析成本与传输量分别控制；调整必须附同场景浏览器测量和模块归属原因，不得仅提高阈值掩盖回归。管理实现、字典数据、连接器目录、HTML/扩展 parser 和桌面 panel 不允许进入静态关键图，即使总字节没超标。
 
-在 mono2 产品目录运行 `npm run build:web:release` 即执行门禁，私有图在 `apps/workbench-web/.startup/<outDir>/resources.json`，含模块、静态/动态边、关键文件与字节；位于 dist 之外，不进入公开产物。`npm run test:startup` 覆盖禁止模块与预算负例、延迟 transport 的取消/重试/发送上下文/失败分类、真实 HTTP 压缩协商。产品目录的 `npm run smoke:startup-boundaries` 覆盖真实 React 延迟视图、语言切换竞态和 shadow 样式生命周期。
+在下游产品目录运行 `npm run build:web:release` 即执行门禁，私有图在 `apps/workbench-web/.startup/<outDir>/resources.json`，含模块、静态/动态边、关键文件与字节；位于 dist 之外，不进入公开产物。`npm run test:startup` 覆盖禁止模块与预算负例、延迟 transport 的取消/重试/发送上下文/失败分类、真实 HTTP 压缩协商。产品目录的 `npm run smoke:startup-boundaries` 覆盖真实 React 延迟视图、语言切换竞态和 shadow 样式生命周期。
 
 ## Loading and cache
 

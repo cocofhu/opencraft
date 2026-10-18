@@ -42,7 +42,7 @@ records are evicted first. Expired output is reported explicitly.
 ## Deployment scope
 
 Local backend, terminal client and native-module packaging are implemented.
-The Hermes/TAT bridge still exposes command/exec; it requires a separate backend
+The Hermes/cloud-service bridge still exposes command/exec; it requires a separate backend
 migration to support this contract. There is deliberately no command/exec fallback.
 Other hosts must implement the process methods; attach/list and sequenced replay
 are additional requirements beyond upstream process execution.

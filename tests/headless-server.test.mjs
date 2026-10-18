@@ -68,8 +68,8 @@ test("headless machine name supports operator configuration and CLI override", (
 });
 
 test("headless command accepts a private data root and rejects unsupported flags", () => {
-  assert.throws(() => parseHeadlessArguments(["--tencentoa-token-file", "/private/token"]), /Unknown option/);
-  assert.throws(() => parseHeadlessArguments(["--tencentoa-token-file", "relative"]));
+  assert.throws(() => parseHeadlessArguments(["--enterprise-identity-token-file", "/private/token"]), /Unknown option/);
+  assert.throws(() => parseHeadlessArguments(["--enterprise-identity-token-file", "relative"]));
   assert.deepEqual(parseHeadlessArguments(["--port", "10001", "--data-dir", "/tmp/opencraft-test"], {}), {
     help: false,
     host: "127.0.0.1",
@@ -330,9 +330,9 @@ test("direct public gateway accepts proxy HTTPS Origin for static WebUI and WebS
     client.end();
   });
   assert.equal(await status({ Host: externalHost, Origin: externalOrigin }), 200);
-  assert.equal(await status({ Host: externalHost, Origin: "https://join.devcloud.woa.com" }), 200);
+  assert.equal(await status({ Host: externalHost, Origin: "https://workbench.example.com" }), 200);
   const foreign = new WebSocket(`ws://127.0.0.1:${address.port}/appserver`, {
-    headers: { Host: externalHost }, origin: "https://join.devcloud.woa.com",
+    headers: { Host: externalHost }, origin: "https://workbench.example.com",
   });
   context.after(() => foreign.terminate());
   await new Promise((resolvePromise, reject) => {
@@ -352,7 +352,7 @@ test("direct public gateway accepts proxy HTTPS Origin for static WebUI and WebS
   assert.equal((await new Promise(resolvePromise => socket.once("message", resolvePromise))).toString(), "same-port-websocket");
   socket.close();
   const appHostSocket = new WebSocket(`ws://127.0.0.1:${address.port}/apphost`, {
-    headers: { Host: externalHost }, origin: "https://join.devcloud.woa.com",
+    headers: { Host: externalHost }, origin: "https://workbench.example.com",
   });
   context.after(() => appHostSocket.terminate());
   await new Promise((resolvePromise, reject) => {
@@ -634,10 +634,10 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
 
 
 test('authenticated provider membership is explicit, validated and requires authentication configuration', () => {
-  const args = ['--relay-connect-file','/private/relay.json','--access-member-provider','tencentoa'];
-  const parsed = parseHeadlessArguments(args, {});assert.deepEqual(parsed.accessMemberProviders,['tencentoa']);assert.equal(parsed.accessControl,true);
-  assert.deepEqual(parseHeadlessArguments(['--access-member-provider','tencentoa'],{}).accessMemberProviders,['tencentoa']); // persisted Hub trust is validated at startup
-  assert.throws(()=>parseHeadlessArguments([...args,'--access-member-provider','tencentoa'],{}),/unique provider/);
+  const args = ['--relay-connect-file','/private/relay.json','--access-member-provider','enterprise-identity'];
+  const parsed = parseHeadlessArguments(args, {});assert.deepEqual(parsed.accessMemberProviders,['enterprise-identity']);assert.equal(parsed.accessControl,true);
+  assert.deepEqual(parseHeadlessArguments(['--access-member-provider','enterprise-identity'],{}).accessMemberProviders,['enterprise-identity']); // persisted Hub trust is validated at startup
+  assert.throws(()=>parseHeadlessArguments([...args,'--access-member-provider','enterprise-identity'],{}),/unique provider/);
   assert.throws(()=>parseHeadlessArguments(['--access-member-provider','*'],{}),/provider identifier/);
 });
 
@@ -653,10 +653,10 @@ test('Headless provider policy reaches Actor admission and accepts an unenrolled
   const signer=new AssertionSigner(scope,privateKey),relay=createRelayServer([{...scope,credential,signer,identityProvider:{authenticate:()=>null}}]);
   relay.server.listen(0,'127.0.0.1');await once(relay.server,'listening');t.after(()=>relay.close());
   const relayFile=join(dir,'relay.json');await writeFile(relayFile,JSON.stringify({schemaVersion:1,...scope,credential,publicKey,relay:`http://127.0.0.1:${relay.server.address().port}`,allowLoopbackInsecure:true}),{mode:0o600});
-  await assert.rejects(startHeadlessServer({root:dir,webRoot,dataDirectory:join(dir,'misconfigured'),accessMemberProviders:['tencentoa'],startAgentHost:async()=>{throw new Error('must not start');}}),/identity provider/);
-  const options=parseHeadlessArguments(['--data-dir',join(dir,'instance'),'--relay-connect-file',relayFile,'--access-member-provider','tencentoa'],{});
+  await assert.rejects(startHeadlessServer({root:dir,webRoot,dataDirectory:join(dir,'misconfigured'),accessMemberProviders:['enterprise-identity'],startAgentHost:async()=>{throw new Error('must not start');}}),/identity provider/);
+  const options=parseHeadlessArguments(['--data-dir',join(dir,'instance'),'--relay-connect-file',relayFile,'--access-member-provider','enterprise-identity'],{});
   const server=await startHeadlessServer({...options,port:0,root:dir,webRoot,startAgentHost:async()=>({websocketUrl:'ws://127.0.0.1:1',close:async()=>{}})});t.after(()=>server.close());
-  const identity={provider:'tencentoa',subject:'777777',displayName:'fixture.employee',expiresAt:Date.now()+60000};
+  const identity={provider:'enterprise-identity',subject:'777777',displayName:'fixture.employee',expiresAt:Date.now()+60000};
   const read=(path,signed=true)=>new Promise((resolve,reject)=>{
     const req=request(server.url+path,{headers:{host:'fixture.test',accept:'text/html',...(signed?{[ASSERTION_HEADER]:signer.issue(identity,'GET',path)}:{staffid:'777777'})}},res=>{let body='';res.on('data',c=>body+=c);res.on('end',()=>resolve({status:res.statusCode,body}));});req.on('error',reject);req.end();
   });

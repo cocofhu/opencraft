@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 RELEASE_DIR = Path(__file__).resolve().parents[1] / "release"
-APK = RELEASE_DIR / "LightVela-com.tencent.vela-android-release.apk"
-DOWNLOAD_PATH = "/LightVela-com.tencent.vela.apk"
+APK = RELEASE_DIR / "LightVela-app.opencraft.workbench-android-release.apk"
+DOWNLOAD_PATH = "/LightVela-app.opencraft.workbench.apk"
 
 
 class ApkHandler(BaseHTTPRequestHandler):
@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--edition", choices=("cn", "intl"), default="cn")
     args = parser.parse_args()
-    package = "com.tencent.vela" if args.edition == "cn" else "com.tencent.vela.intl"
+    package = "app.opencraft.workbench" if args.edition == "cn" else "app.opencraft.workbench.intl"
     global APK, DOWNLOAD_PATH
     APK = RELEASE_DIR / f"LightVela-{package}-android-release.apk"
     DOWNLOAD_PATH = f"/LightVela-{package}.apk"

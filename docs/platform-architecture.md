@@ -92,7 +92,7 @@ sources, execution engines and communication channels enter through plugin
 adapters; they do not own the caller's permissions or bypass target authority.
 
 The [human authentication principle](architecture/actor-collaboration.md#多种登录方式绑定同一自然人)
-makes the human Actor the stable identity and local accounts, OIDC and IOA
+makes the human Actor the stable identity and local accounts, OIDC and enterprise identity
 verified identity bindings. One human may have several sign-in methods; each
 login identity binds to one human within its identity authority. Permissions,
 resource ownership and audit records follow the Actor. Names and matching email
@@ -113,7 +113,7 @@ Enabling login does not itself change anonymous workspace admission or product-s
 
 Optional ordinary relay deployment uses core `identity-core` principals and
 `access-control` instance membership at every headless HTTP/WS entry. The Node
-relay and outbound `relay-connect` plugin transport traffic; IOA authentication
+relay and outbound `relay-connect` plugin transport traffic; enterprise identity authentication
 remains an adapter. One approved authentication origin hands off a browser-bound,
 single-use ticket to each team origin, and the instance independently verifies
 scoped assertions and local grants. An explicit `--access-member-provider` policy may admit verified identities from selected providers as ordinary members without persistent implicit grants; explicit revocations and administrator roles remain authoritative. Default installations still require explicit membership. This implements installation admission,
@@ -880,7 +880,7 @@ settings controls reuse the existing Radix and theme primitives. Source and acce
 
 ### Machines, Work in and Agents
 
-The presentation below describes standalone Web/Electron. mono2 embedded
+The presentation below describes standalone Web/Electron. Downstream embedded
 Work in/machine and icon gating remains unfinished; standalone implementation
 and earlier upstream validation are not embedded acceptance evidence.
 
@@ -971,7 +971,7 @@ The thirteen Node SQLite storage kinds use the shared sqlite-node lifecycle;
 physical paths and exclusive owners stay separate. A configured Local Agent opens
 its five foundational stores plus the existing Tasks file before listening. Its
 failure releases handles and rejects startup. Codex state opens queue, sender and
-IOA tables through one connection/migration owner; attachments have their own file.
+enterprise identity tables through one connection/migration owner; attachments have their own file.
 Codex-private Tasks remain lazy and validate storage before capability success.
 SSH management opens only for the configured feature. Private Host failures cannot
 publish that Host open; unused optional owners do not prevent default embedded or
@@ -1093,7 +1093,7 @@ result. `PlatformAccountContribution.readReceipts` optionally binds the verified
 account to an append/union persistence port. The fixed installation backend owns
 the database independently of selected execution Host, engine and browser.
 
-For IOA, each read/write request verifies the gateway identity; the server derives
+For enterprise identity, each read/write request verifies the gateway identity; the server derives
 the account key. `x-opencraft-read-scope` only rejects account-switch races and
 cannot select another account. JSON-only same-origin writes reject foreign
 origins, cross-site requests, malformed tuples and oversized bodies. The service
@@ -1175,7 +1175,7 @@ never enters the preference store.
 a stable Server ID and display-only label (empty ID means all Servers). It is
 restored before Sidebar rendering and never broadens because that Server has no
 currently loaded rows. The label neither discovers nor authorizes a Server.
-The Server selection is independent of the IOA account-owned participation
+The Server selection is independent of the enterprise identity account-owned participation
 filter. Reload restores both explicit on/off participation choices and the
 selected Server, including an explicit return to all Servers. The combined
 real-Sidebar browser regression uses the production IndexedDB and plugin
@@ -1853,9 +1853,9 @@ connections fail locally and never turn into a second writer or a Web release
 barrier. Host readiness is a separate health projection, not HTTP readiness.
 
 `codexCoreEndpoint` is explicitly optional in both desktop and SSH daemon
-composition. Without it, mono2 retains embedded/SSH execution, including the
-Host-owned queue, verified senders and IOA participant metadata. The core bridge
-does not own or reproduce those mono2 Host overlays and rejects verified sender
+composition. Without it, the downstream product retains embedded/SSH execution, including the
+Host-owned queue, verified senders and enterprise identity participant metadata. The core bridge
+does not own or reproduce those downstream Host overlays and rejects verified sender
 attribution. Existing internal Headless deployments are not switched to core mode.
 
 The transport packages are peers. Replay is not a wrapper around WebSocket and
@@ -1884,11 +1884,11 @@ fresh-read revision checks and serialized writes are not a CTL cross-client CAS.
 Deleted Bot events invalidate open conversation snapshots and block later sends.
 Only current Host generations may publish mutation receipts into the directory.
 
-`@lightvela/agent-core` comes from the mono2-neutral
-`shared/lightvela-agent-core` package. mono2 Web validates each product behavior
+`@lightvela/agent-core` comes from the product-neutral
+`shared/lightvela-agent-core` package. Downstream Web validates each product behavior
 first; OpenCraft injects AppServer/Host adapters only after that contract is
 stable. The core never imports either renderer, storage, auth transport, i18n or
-analytics. During migration the generated mono2 HTTP repository may resolve the
+analytics. During migration the generated downstream HTTP repository may resolve the
 package for shared Bot identity/lifecycle, but remains a compatibility consumer,
 not a second source of product policy.
 
@@ -2123,11 +2123,11 @@ and late restoration from undoing sign-out.
 
 ### Authentication ownership
 
-The optional `tencentoa.identity` plugin contributes a separate employee provider,
+The optional `enterprise.identity` plugin contributes a separate employee provider,
 settings page and the account entrance when its server endpoint is configured.
 The entrance displays the verified employee login name automatically and opens
 identity details/refresh without a fixed login URL. Account contributions have
-explicit presentation precedence (`entrancePriority`, default 0; Tencent OA 100);
+explicit presentation precedence (`entrancePriority`, default 0; enterprise OA 100);
 equal priorities remain exclusive, and unloading the higher-priority contribution
 restores the product entrance. Provider session/storage authority is unchanged.
 Gateway-owned identities omit `signOut` when no logout operation is supported.
@@ -2145,7 +2145,7 @@ Only the English login name is persisted. Codex/SSH retain the existing Host que
 SQLite and transaction owner; queue admission and provenance share a transaction.
 For DSH, the Headless `/appserver` identity overlay owns a separate managed
 `thread-identities/opencraft-server/thread-identity.sqlite` v1 under the Hub data
-root. It records attribution and derived IOA metadata, never message bodies or
+root. It records attribution and derived enterprise identity metadata, never message bodies or
 execution state, and does not open the independent Host stores. Native messages
 remain the evidence for participation; queued or rejected submissions do not count.
 The overlay resolves the current native address for its read-only history client;
@@ -2154,11 +2154,11 @@ the original submitter. History/live/shared Chat projection carry hidden sender
 metadata; the native model input remains free of employee provenance.
 Forked history preserves immutable author attribution separately from membership:
 the Host records inherited message origins atomically with cloned sender bindings,
-and exposes an optional inherited-message query to its metadata provider. IOA
+and exposes an optional inherited-message query to its metadata provider. enterprise identity
 presence excludes inherited messages; the badge includes the new authenticated
 creator and subsequently observed senders. Origin records survive restart and nested
 forks in the same Host-state database (additive migration v4).
-See [Tencent OA authentication](tencentoa-authentication.md).
+See [enterprise OA authentication](enterprise-authentication.md).
 
 The hostless and configured-Host Application supervisors share one explicit
 service-disposal plan, including the client extension persistence backend and
@@ -2443,7 +2443,7 @@ through exit. Header, main and right-tool geometry consume that single animated
 left width. Neither the sidebar nor its presentation owns Host/Thread lifetimes.
 Built-in contribution IDs select localized full names and compact rail labels;
 the label projection does not create another navigation authority. Thread row
-menus and the IOA anonymous entrance use the same Intl runtime. The existing
+menus and the enterprise identity anonymous entrance use the same Intl runtime. The existing
 four locale catalogs carry this sidebar copy without expanding standalone
 language selection. Mode radio/checkbox menus share a reserved indicator column.
 Touch row density uses the existing control hit minimum: single-line rows are
@@ -2571,7 +2571,7 @@ the DSH-backed Host and serves a packaged Web Workbench from one HTTP server,
 bound to loopback by default. The renderer's bundled Host profile resolves `/appserver` against the
 actual browser origin at runtime; neither the browser nor the static host owns
 the DSH process or its credentials. When employee verification is configured,
-`/appserver` also applies the shared Hub identity overlay, advertises the same IOA
+`/appserver` also applies the shared Hub identity overlay, advertises the same enterprise identity
 metadata capability as Codex/SSH, and verifies the captured submission context at
 native admission. Client identity fields cannot establish provenance. Request IDs
 and logical-client epochs fence late replies across disconnect/reinitialize;
@@ -2873,7 +2873,7 @@ Authentication, account clipboard/focus and Bot-management fixtures consume the
 current platform contract and actual services. Attachment tests reflect the
 existing 1 GiB chunked capability and verify transport assembly through both
 Codex adapter and local Host; no commercial wire limit is changed here.
-Trusted platform Views receive optional `PlatformViewHost.currentUser` from the selected account contribution's authenticated `identity` projection: provider ID, stable subject ID and explicit handle. Display-only names, retained metadata and anonymous/loading/error snapshots cannot supply that identity. The provider owns authentication and revocation; this projection supplies no credentials or resource grants. IOA maps verified staffId/loginName into this shared contract. Tasks uses an exact registered member handle or a client-selected viewing preference; it does not import IOA or infer identity from a name.
+Trusted platform Views receive optional `PlatformViewHost.currentUser` from the selected account contribution's authenticated `identity` projection: provider ID, stable subject ID and explicit handle. Display-only names, retained metadata and anonymous/loading/error snapshots cannot supply that identity. The provider owns authentication and revocation; this projection supplies no credentials or resource grants. enterprise identity maps verified staffId/loginName into this shared contract. Tasks uses an exact registered member handle or a client-selected viewing preference; it does not import enterprise identity or infer identity from a name.
 
 ### Global conversation text search
 
@@ -2971,7 +2971,7 @@ continue to use their existing title sources.
 
 ### Account model defaults authority
 
-Personal Composer model/effort defaults are account data, separate from installation UI preferences. `PlatformAccountContribution.modelDefaults` exposes `AccountModelDefaultsPort`; Tencent OA implements authenticated same-origin HTTP backed by `account-model-defaults.sqlite`. Records are isolated by verified staff identity and Host, with revision CAS and no browser persistence. Renderer query memory is a disposable projection. Account/activation changes fence writes and late responses; HTTP validates the current identity and scope for every operation. Failures surface through Composer model errors and never fall back to legacy browser account records or write shared Host config. Without an account port standalone installation memory remains supported. See [model configuration](../design/model-configuration.md#personal-defaults-on-shared-servers).
+Personal Composer model/effort defaults are account data, separate from installation UI preferences. `PlatformAccountContribution.modelDefaults` exposes `AccountModelDefaultsPort`; enterprise OA implements authenticated same-origin HTTP backed by `account-model-defaults.sqlite`. Records are isolated by verified staff identity and Host, with revision CAS and no browser persistence. Renderer query memory is a disposable projection. Account/activation changes fence writes and late responses; HTTP validates the current identity and scope for every operation. Failures surface through Composer model errors and never fall back to legacy browser account records or write shared Host config. Without an account port standalone installation memory remains supported. See [model configuration](../design/model-configuration.md#personal-defaults-on-shared-servers).
 
 
 ### Recovery episode diagnostics

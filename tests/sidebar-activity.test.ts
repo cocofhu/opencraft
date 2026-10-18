@@ -25,7 +25,7 @@ function thread(
   return {
     id,
     serverOrigin: threadServerOrigin({ serverId: "local-server", label: "Local" }),
-    project: "mono2",
+    project: "opencraft",
     updatedAt: seconds(updatedAt),
     ...overrides,
   };
@@ -52,7 +52,7 @@ test("Activity chronology owns sections while equal thread ids retain Server pro
 
 test("Activity metadata owns project copy while serverOrigin retains Server provenance", () => {
   const local = thread("local", new Date(2026, 8, 21, 9));
-  assert.deepEqual(sidebarActivityMetadata(local), { project: "mono2" });
+  assert.deepEqual(sidebarActivityMetadata(local), { project: "opencraft" });
   assert.deepEqual(sidebarActivityMetadata({
     ...local,
     serverOrigin: threadServerOrigin({

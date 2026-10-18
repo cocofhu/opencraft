@@ -220,7 +220,7 @@ export function provideExtensionInstallationRepository(
   persistence: ExtensionInstallationPersistence,
 ): Plugin {
   return class ProvidedExtensionInstallationRepository extends ExtensionInstallationRepository {
-    static readonly displayName = "vela.extension-installation-repository";
+    static readonly displayName = "opencraft.extension-installation-repository";
 
     constructor(context: Context) {
       super(context, persistence);

@@ -3,7 +3,7 @@
 The target upstream is [opencraft-app/opencraft](https://github.com/opencraft-app/opencraft).
 Core development, public issues, pull requests, CI and releases belong there.
 Downstream products consume immutable source revisions and own their product
-composition. This replaces the previous mono2-to-GitHub mirror direction.
+composition. This replaces the previous mirror direction.
 
 The upstream source cutover is **operational**: the complete core was
 accepted through the original protected PR, private product composition was
@@ -15,7 +15,7 @@ source cleanup from this migration. A real npm publication remains deferred;
 it is not a prerequisite for the GitHub source upstream.
 
 On 2026-10-18, the owner approved retaining the original repository as the
-private [history archive](https://github.com/opencraft-app/opencraft-private-archive-20261018)
+private history archive
 and establishing clean history at the canonical address. Initial commit
 `527f579d95ff236739f8c09902db2728d86e7c7b` has the same accepted 3400-file tree
 `b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`, with complete Web/Electron/Expo
@@ -28,8 +28,8 @@ no independently maintained duplicate core baseline.
 
 | Upstream core | Downstream product |
 | --- | --- |
-| Actor identity, verified identity bindings, authorization, audit, Hub routing | IOA verification, employee fields, enterprise avatar service |
-| Local/OIDC account adapters and public identity/execution ports | Vela account, billing, Bot discovery and TAT/Hermes composition |
+| Actor identity, verified identity bindings, authorization, audit, Hub routing | enterprise identity verification, employee fields, enterprise avatar service |
+| Local/OIDC account adapters and public identity/execution ports | Vela account, billing, Bot discovery and cloud-service/Hermes composition |
 | Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | Join branding/navigation and LightVela native/embedded product entrypoints |
 | Public build/release tools and contribution/maintenance skills | Internal deployment, release channels, business service config and integration ledger |
 
@@ -86,7 +86,7 @@ remote executable code.
 - Server-backed Web accepts trusted extension factories. The default server
   extension entry is empty; a downstream build explicitly selects its local
   assembly with `OPENCRAFT_SERVER_EXTENSIONS_ENTRY`. Headless alone no longer
-  selects IOA. This removes that assembly edge, not the remaining LightVela
+  selects enterprise identity. This removes that assembly edge, not the remaining LightVela
   imports or private plugin/package dependencies. Browser compatibility analysis
   follows the actual runtime graph across the workspace boundary, so moving
   product sources outside the prefix does not silently drop typed API checks.
@@ -97,19 +97,19 @@ remote executable code.
   These mechanisms are verified with external build fixtures; they do not by
   themselves move the remaining private plugins or prove their physical extraction.
 - Headless and Relay startup accept trusted identity adapters; their default
-  startup closures have no IOA dependency. The downstream product owns private
+  startup closures have no enterprise identity dependency. The downstream product owns private
   CLI/configuration compatibility, human qualification and presentation and
   explicitly selects standalone/managed bundled entries. Headless core continues
   to own local/OIDC login, membership, Actor authority and execution lifetime.
-  The IOA implementation, private catalogs and enterprise integration tests are now
+  The enterprise identity implementation, private catalogs and enterprise integration tests are now
   downstream-owned; the public workspace no longer depends on that package.
   Generic Actor/relay/storage tests remain public and use a synthetic signed
   identity source where needed. The product installs its own locked workspace
   against this exact checkout and validates private catalogs and lifecycle tests.
   The generic
-  HTTP/WS gateway now consumes a trusted request-identity port, with no IOA
+  HTTP/WS gateway now consumes a trusted request-identity port, with no enterprise identity
   imports, private route names, expiration rules or employee mapping. Managed
-  document admission uses the core endpoint; the IOA plugin owns its legacy
+  document admission uses the core endpoint; the enterprise identity plugin owns its legacy
   alias. The assertion verifier no longer hardcodes that private alias; trusted
   Join startup declares it as an additional exact admission probe. Default core
   assertions only recognize the generic endpoint, with all original binding and
@@ -147,7 +147,7 @@ remote executable code.
   directory and toolchain. Core boundary checks reject product source paths in
   public tools and package commands. The Console generator
   writes original skill artwork to downstream `products/vela/public`, which also
-  owns the original TAT proxy Worker. `products/vela/build-web.mjs` and explicit
+  owns the original cloud-service proxy Worker. `products/vela/build-web.mjs` and explicit
   Join builds select this trusted local directory using
   `OPENCRAFT_PRODUCT_PUBLIC_DIR`; public default builds do not carry it. Original
   URLs and bytes are preserved, and native Bot documents retain
@@ -178,7 +178,7 @@ solely to complete this migration.
 
 The canonical GitHub repository owns contributions, protected checks and release
 automation. The old history archive stays private. Complete Web/Electron/Expo
-clients remain in core; Vela/IOA/Join composition remains downstream. Dependency
+clients remain in core; Vela/enterprise identity/Join composition remains downstream. Dependency
 findings stay advisory across the visibility change, with full reports retained.
 Secrets scans, relevant builds/tests and protected normal PR merges remain.
 No npm publication or downstream deployment is authorized by this cutover step.
@@ -186,7 +186,7 @@ No npm publication or downstream deployment is authorized by this cutover step.
 ## Downstream import
 
 During the transition, a source-tree import avoids the known external
-committer ancestry rejection without rewriting contributors. The mono2 tool
+committer ancestry rejection without rewriting contributors. The downstream import tool
 `scripts/opencraft-upstream.py` reads a separately fetched upstream clone:
 
 ```sh
@@ -201,7 +201,7 @@ with one local parent and a receipt at
 `docs/upstream/opencraft.json`. It transfers source blobs, not foreign commits;
 the receipt and commit trailers retain the GitHub source SHA, tree and URL.
 The tool refuses dirty worktrees, ignored files in the replaced prefix, stale
-plans and direct imports onto main/master/env/join. It does not fetch, push or
+plans and direct imports onto the default or protected branches. It does not fetch, push or
 deploy. After the first pin, it verifies that the old pin plus the registered
 patch stack reconstructs the entire current subtree; unrecorded committed
 edits and invalid receipts are rejected rather than overwritten.

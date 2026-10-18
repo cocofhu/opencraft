@@ -17,7 +17,7 @@ import { AssertionSigner } from '../packages/identity-core/src/node';
 import { MembershipStore, InstanceAccess } from '../packages/access-control/src/index';
 import { createWorkbenchWebServer } from '../scripts/serve-workbench-web.mjs';
 
-const principal = { provider: 'tencentoa', subject: '123', displayName: 'Network member', expiresAt: Date.now() + 3600_000 };
+const principal = { provider: 'enterprise-identity', subject: '123', displayName: 'Network member', expiresAt: Date.now() + 3600_000 };
 const keys = () => { const pair = generateKeyPairSync('ed25519'); return { publicKey: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(), privateKey: pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString() }; };
 async function waitFor(check: () => boolean) { const until = Date.now() + 8000; while (!check()) { if (Date.now() > until) throw new Error('Hub condition timeout'); await new Promise(r => setTimeout(r, 20)); } }
 async function listen(server: Server) { server.listen(0, '127.0.0.1'); await once(server, 'listening'); return (server.address() as { port: number }).port; }
@@ -34,7 +34,7 @@ async function virtualGet(base: string, path: string, auth = true) {
 test('three real Hub nodes stream HTTP and WS; target owns membership; withdraw and reconnect preserve identity', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'hub-network-')), cleanup: (() => unknown)[] = [];
   t.after(async () => { for (const close of cleanup.reverse()) await close(); await rm(dir, { recursive: true, force: true }); });
-  const pair = keys(), authority = { issuer: 'network-auth', publicKey: pair.publicKey, providers: ['tencentoa'] };
+  const pair = keys(), authority = { issuer: 'network-auth', publicKey: pair.publicKey, providers: ['enterprise-identity'] };
   const a = new HubNetwork(join(dir, 'a.json'), { authority }), b = new HubNetwork(join(dir, 'b.json'), { authority }), c = new HubNetwork(join(dir, 'c.json'), { authority });
   cleanup.push(() => a.close(), () => b.close(), () => c.close());
   const store = new MembershipStore(join(dir, 'members.sqlite')); cleanup.push(() => store.close()); store.set(principal, 'member', true, 'test');
@@ -117,7 +117,7 @@ test('settings require instance administrator, same-origin JSON and retain true 
   const server = createServer(async (req, res) => { if (!await controller.handle(req, res, () => current)) { res.writeHead(404); res.end(); } });
   const port = await listen(server), origin = `http://127.0.0.1:${port}`; t.after(() => new Promise<void>(r => { server.close(() => r()); server.closeAllConnections(); }));
   assert.equal((await fetch(origin + '/__opencraft_hub/settings')).status, 403);
-  current = '["tencentoa","administrator"]';
+  current = '["enterprise-identity","administrator"]';
   const snapshot = await (await fetch(origin + '/__opencraft_hub/settings')).json();
   const body = JSON.stringify({ revision: snapshot.revision, action: 'configure', name: 'Configured', endpoint: origin, origin: '', accepting: true, forwarding: true });
   assert.equal((await fetch(origin + '/__opencraft_hub/settings', { method: 'POST', headers: { origin: 'https://other.test', 'content-type': 'application/json' }, body })).status, 403);
@@ -128,7 +128,7 @@ test('settings require instance administrator, same-origin JSON and retain true 
 
 test('private persistence, invitation signature/expiry, CAS, explicit identity trust and origin scope', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'hub-state-')); t.after(() => rm(dir, { recursive: true, force: true }));
-  const pair = keys(), a = new HubNetwork(join(dir, 'a.json'), { authority: { issuer: 'auth', publicKey: pair.publicKey, providers: ['tencentoa'] } }), b = new HubNetwork(join(dir, 'b.json'));
+  const pair = keys(), a = new HubNetwork(join(dir, 'a.json'), { authority: { issuer: 'auth', publicKey: pair.publicKey, providers: ['enterprise-identity'] } }), b = new HubNetwork(join(dir, 'b.json'));
   t.after(() => { a.close(); b.close(); }); configure(a, 'http://127.0.0.1:9999');
   assert.equal((await stat(join(dir, 'a.json'))).mode & 0o077, 0);
   assert.throws(() => new HubStore(join(dir, 'a.json')), /lock/i);
@@ -192,13 +192,13 @@ test('packaged offline enrollment boots a token-free Headless team with pinned H
   const operator = join(dir, 'hub-admin.mjs'), bundle = join(dir, 'headless.mjs');
   await build({ entryPoints: [join(process.cwd(), 'scripts/hub-admin.ts')], outfile: operator, bundle: true, platform: 'node', format: 'esm', target: 'node24', banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" } });
   await buildHeadlessBundle(bundle);
-  const pair = keys(), a = new HubNetwork(join(dir, 'a.json'), { authority: { issuer: 'bootstrap-login', publicKey: pair.publicKey, providers: ['tencentoa'] } }); configure(a, 'http://127.0.0.1:9');
+  const pair = keys(), a = new HubNetwork(join(dir, 'a.json'), { authority: { issuer: 'bootstrap-login', publicKey: pair.publicKey, providers: ['enterprise-identity'] } }); configure(a, 'http://127.0.0.1:9');
   const invitation = invite(a, ['http://bootstrap-team.test']), file = join(dir, 'command.json'), state = join(data, 'hub-network.json');
   await writeFile(file, JSON.stringify({ action: 'connect', invitation, trustIdentity: true, publishOrigin: 'http://bootstrap-team.test' }), { mode: 0o600 });
   const result = await promisify(execFile)(process.execPath, [operator, state, file]);
   const id = JSON.parse(result.stdout).snapshot.hubId; assert.ok(!result.stdout.includes(invitation));
   const { startHeadlessServer, parseHeadlessArguments } = await import(pathToFileURL(bundle).href);
-  const options = { ...parseHeadlessArguments(['--data-dir', data, '--access-control', '--access-member-provider', 'tencentoa'], {}), root: dir, webRoot: web, port: 0,
+  const options = { ...parseHeadlessArguments(['--data-dir', data, '--access-control', '--access-member-provider', 'enterprise-identity'], {}), root: dir, webRoot: web, port: 0,
     startAgentHost: async () => ({ websocketUrl: 'ws://127.0.0.1:9/rpc', async close() {} }) };
   let app: any;
   t.after(async () => { await app?.close(); a.close(); await rm(dir, { recursive: true, force: true }); });

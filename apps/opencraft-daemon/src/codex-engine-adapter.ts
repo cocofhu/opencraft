@@ -105,7 +105,7 @@ interface LocalCodexEngineOptions extends SharedCodexRoutingOptions {
   /** Explicit opt-in to the independently owned native core; never falls back to stdio. */
   readonly coreEndpoint?: string;
   readonly coreAuthToken?: string;
-  /** Headless owns mono2 overlays while the independent core owns only native/accounts. */
+  /** Headless owns downstream overlays while the independent core owns only native/accounts. */
   readonly coreHostOverlays?: boolean;
   readonly botConversations?: boolean;
   /** Opt in before migrating a legacy embedded writer to independently owned core storage. */

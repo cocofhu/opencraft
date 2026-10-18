@@ -59,7 +59,7 @@ try {
   await waitFor(async () => { if (department.exitCode !== null) throw new Error('Department relay failed'); try { return (await fetch(`http://127.0.0.1:${bAdminPort}/__opencraft_relay/health`)).ok; } catch { return false; } });
   mutate(c, { action: 'connect', invitation: bc.invitation, trustIdentity: true, publishOrigin: origin });
   const store = new MembershipStore(join(privateRoot, 'members.sqlite')); cleanup.push(() => store.close());
-  const principal = { provider: 'tencentoa', subject: '123', displayName: 'fixture.employee', expiresAt: Date.now() + 3600_000 }; store.set(principal, 'member', true, 'fixture');
+  const principal = { provider: 'enterprise-identity', subject: '123', displayName: 'fixture.employee', expiresAt: Date.now() + 3600_000 }; store.set(principal, 'member', true, 'fixture');
   const root = join(privateRoot, 'web'); await mkdir(root); await writeFile(join(root, 'index.html'), '<!doctype html><html><head><title>Team C</title></head><body><h1>Team C through two Hubs</h1></body></html>');
   const core = await createWorkbenchWebServer({ root, accessService: new InstanceAccess(store, [c]), loopbackOnly: false,
     desktopService: { accept(ws: WebSocket) { ws.send('ready'); }, close() {} }, desktopAccess: 'trusted-internal' }); cleanup.push(() => core.close());

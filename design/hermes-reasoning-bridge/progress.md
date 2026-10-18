@@ -8,5 +8,5 @@
 - Current-master UI smoke passed: GLM 5.3 shows only Light/High/Max, defaults High, selecting Max writes `effort=max`, and no page errors. Evidence: `/tmp/opencraft-hermes-reasoning-ui-Wioi2r`.
 - Final `npm run gate` passed after `prepare:dsh-runtime`, including all workspace types/tests and Web/Expo Web/iOS builds.
 - Electron build passed. Independent arm64 preview packaged at `release/hermes-reasoning-current-master/mac-arm64/OpenCraft Preview.app`; strict deep codesign verification passed.
-- Packaged preview opened with isolated profile `/Users/skipzhang/.opencraft/preview-hermes-reasoning-current-master` on CDP 19846; Composer and model trigger are mounted.
+- Packaged preview opened with isolated profile `<home>/.opencraft/preview-hermes-reasoning-current-master` on CDP 19846; Composer and model trigger are mounted.
 - No real model inference, credential read, commit, push, or release performed.

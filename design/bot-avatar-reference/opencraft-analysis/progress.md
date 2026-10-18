@@ -80,7 +80,7 @@
   with the root-relative `.agents` path and failed to locate the script; reran
   it from the repository root rather than changing the command contract.
 - A final line-number search included Markdown backticks inside a shell double
-  quote, so the shell attempted `npm run test:chat` from the mono2 root and
+  quote, so the shell attempted `npm run test:chat` from the repository root and
   reported a missing root script. No files changed; retained the already proven
   OpenCraft-subdirectory test result and avoided that quoting pattern afterward.
 - Context documentation validation passes. Change-impact validation correctly

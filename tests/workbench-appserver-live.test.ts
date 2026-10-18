@@ -56,7 +56,7 @@ test("real 9988 Workbench composes Resume, Replica and Conversation Runtime acro
     closeTimeoutMs: 250,
     createSocket: (url) => new WebSocket(url, {
       headers: {
-        "x-hypernode-user": process.env.OPENCRAFT_HYPERNODE_USER ?? "skipzhang",
+        "x-hypernode-user": process.env.OPENCRAFT_HYPERNODE_USER ?? "alice",
       },
     }) as unknown as AppServerWebSocket,
   });

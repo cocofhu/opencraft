@@ -37,15 +37,21 @@ Installation IDs are explicit per platform and build profile:
 | Host/profile | Identifier |
 |---|---|
 | Desktop installed app | `ai.lightvela.vela` |
-| Android Expo Go and internal APK | `dev.vela.workbench` |
-| Android LightVela signed release APK | `com.tencent.vela` |
-| iOS development and internal IPA | `dev.vela.workbench` |
+| Android Expo Go and internal APK | `dev.opencraft.workbench` |
+| Android LightVela signed release APK | `app.opencraft.workbench` |
+| iOS development and internal IPA | `dev.opencraft.workbench` |
 | iOS LightVela test IPA | `ai.lightvela.vela` |
 
 The Expo release profiles are selected by `OPENCRAFT_ANDROID_RELEASE=1` and
 `OPENCRAFT_IOS_RELEASE=1` in `apps/workbench-expo/app.config.js`. A changed
 identifier is a separate installation; it does not update the old package.
 Bundle compatibility does not authorize a Vela-named data root.
+
+The 2026-10-18 provenance de-sensitization renamed the company-branded installation
+identities: the signed Android release package is `app.opencraft.workbench`
+(`.intl` for the international edition), and development/internal Android and iOS
+builds use `dev.opencraft.workbench`. The retired identifiers belong to the old
+installation; the renamed packages install separately and do not update it.
 
 ### Authority rules
 
@@ -115,7 +121,9 @@ local-storage keys and serialized projection fields remain canonical identities.
 There is only one schema and one reader, not a compatibility fork. Default-product
 storage remains unprefixed, while the LightVela product partition is unchanged.
 These compatibility IDs do not authorize new Vela-named filesystem paths,
-directories, sockets, tokens, databases or logs.
+directories, sockets, tokens, databases or logs. The same rule covers the
+published `ioa_*` table identities: they are retained as storage contracts and
+are not renamed by source de-sensitization.
 
 AppServer capability strings (`vela/agents`, `vela/bot-conversations`,
 `vela/browser-use`) and published browser tool names stay stable. The source

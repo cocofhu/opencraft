@@ -30,21 +30,21 @@ const withProfile = (android, ios, run) => {
 test("mobile package identities are opt-in and platform-specific", () => {
   const base = {
     name: "OpenCraft",
-    android: { package: "dev.vela.workbench", versionCode: 1 },
-    ios: { bundleIdentifier: "dev.vela.workbench", supportsTablet: true },
+    android: { package: "dev.opencraft.workbench", versionCode: 1 },
+    ios: { bundleIdentifier: "dev.opencraft.workbench", supportsTablet: true },
   };
   assert.equal(withProfile(false, false, () => configureExpo({ config: base })), base);
 
   const android = withProfile(true, false, () => configureExpo({ config: base }));
   assert.equal(android.name, "LightVela");
-  assert.equal(android.android.package, "com.tencent.vela");
-  assert.equal(android.ios.bundleIdentifier, "dev.vela.workbench");
-  assert.equal(base.android.package, "dev.vela.workbench");
+  assert.equal(android.android.package, "app.opencraft.workbench");
+  assert.equal(android.ios.bundleIdentifier, "dev.opencraft.workbench");
+  assert.equal(base.android.package, "dev.opencraft.workbench");
 
   const ios = withProfile(false, true, () => configureExpo({ config: base }));
   assert.equal(ios.name, "LightVela");
   assert.equal(ios.ios.bundleIdentifier, "ai.lightvela.vela");
-  assert.equal(ios.android.package, "dev.vela.workbench");
+  assert.equal(ios.android.package, "dev.opencraft.workbench");
 });
 
 test("release signing only replaces the generated Gradle release identity", () => {

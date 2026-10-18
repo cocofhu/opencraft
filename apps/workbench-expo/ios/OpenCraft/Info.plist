@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>opencraft</string>
-          <string>dev.vela.workbench</string>
+          <string>dev.opencraft.workbench</string>
         </array>
       </dict>
     </array>
