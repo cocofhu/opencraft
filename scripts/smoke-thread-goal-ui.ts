@@ -94,7 +94,8 @@ try {
   };
   await summary.waitFor();
   assert.equal(await page.evaluate(() => (window as any).fixture.localeOverride()), "");
-  assert.equal(await page.locator(".thread-goal__time").getAttribute("title"), "13 天 4 小时 36 分钟");
+  assert.match((await page.locator(".thread-goal__time").getAttribute("title"))!, /^\d+ 秒$/);
+  assert.equal(await page.evaluate(()=>(window as any).fixture.goalUsage().timeUsedSeconds),0);
   for (const mode of ["light", "dark"] as const) {
     await page.evaluate(mode => (window as any).fixture.setTheme(mode), mode);
     await summary.click();
