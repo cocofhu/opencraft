@@ -35,6 +35,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: npm run test:react-runtime
+        if: matrix.target == 'web-browser'
       - run: npm run matrix:check
       - run: npm run matrix:build -- ${{ matrix.target }}
 

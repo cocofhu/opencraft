@@ -24,7 +24,7 @@ evidence, rather than treating this generated file list as a rights opinion.
 | --- | --- | --- | --- |
 | `codex-renderer-import-map` | `vendor/codex/IMPORT_MAP.json` links Shell, Composer, theme, conversation and right-panel targets to renderer recovery/adaptation | Unverified; retained for internal review | Establish applicable source rights, or independently replace affected expression while preserving OpenCraft behavior |
 | `codex-shell-followup` | Source annotations in panel/sidebar animation, docking and history restoration | Unverified; behavior modeling and expression need separate review | Inspect each target and its lineage; record which implementation is original, licensed, replaced or excluded |
-| `codex-stable-callback` | `packages/react-runtime/PROVENANCE.md` | Unverified | Establish rights or independently implement against React's public contract; verify callback freshness and lifetime semantics |
+| `codex-stable-callback` | `packages/react-runtime/PROVENANCE.md`, exact dependency pin and full MIT notice | Current replacement is third-party licensed; former Git history remains unverified | Preserve notices in distributed artifacts and verify callback freshness/lifetime semantics |
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
 | `codex-tool-presentation-labels` | `CODEX_APP_TOOL_LABELS` annotation in `packages/chat-core/src/tool-activity.ts` | Unverified; found by the corrected source-marker check | Inspect the identified label/grouping table separately from protocol names, ordinary short labels and the rest of the tool presentation/extension implementation |
@@ -48,7 +48,8 @@ an explicit conclusion and evidence for that conclusion:
   evidence and validate the remaining client; removing functionality requires
   an explicit product scope decision.
 
-No group currently has a verified resolution. The product scope remains
+The stable-callback replacement has a recorded licensed source; the other six
+groups remain unverified. The product scope remains
 **preserve the full Web/Electron/Expo client**. The earlier recommendation to
 replace all unverified client modules is **paused** (2026-10-17), following the
 user's question about why rewriting was necessary. Unverified source rights do
@@ -61,7 +62,10 @@ or appropriately licensed, along with the required notices. Only consider
 replacement for a specifically identified scope whose retained expression
 cannot be cleared; establish that scope before proposing the replacement.
 The disposition labels above describe possible evidenced outcomes, not standing
-instructions to rewrite. Product dependency isolation can continue separately.
+instructions to rewrite. The 2026-10-18 scoped treatment authorization permits
+replacement of specifically bounded uncleared expression while preserving the
+complete client; it does not resume blanket rewriting or grant third-party
+rights. Product dependency isolation can continue separately.
 
 ## Source-specific review boundary
 
@@ -133,7 +137,7 @@ dispatcher probe. These differences help bound the review; neither establishes
 independent creation or a distribution license. The documented browser
 VisualViewport addition remains separate from the Electron baseline.
 
-All seven groups remain **unverified**. No recovery implementation was copied
+At that reference-only review, all seven groups remained **unverified**. No recovery implementation was copied
 into the report, removed, replaced or relicensed. The README no longer labels
 the workbench a cleared clean-room implementation: that claim was not supported
 by the retained source records. Complete clients remain the selected scope and
@@ -154,3 +158,17 @@ The remaining review for this group concerns those individual marks and any
 historical distribution, rather than the already moved Vela/Join artwork.
 The group remains **unverified**. No asset, client feature or disposition is
 changed, and none of the renderer groups is cleared by this finding.
+
+## Licensed stable callback replacement (2026-10-18)
+
+The small local stable-callback implementation was removed in favor of the exact
+MIT-licensed `react-use-event-hook@0.9.6` dependency. The published archive was
+verified against its registry integrity; [the package provenance](../packages/react-runtime/PROVENANCE.md)
+records immutable source, archive hashes, platform assumptions, behavior tests
+and notice delivery. This is a licensed replacement, not a claim of independent
+authorship for an adaptation of the former recovered implementation.
+
+The source inventory resolves only `codex-stable-callback` for the current
+replacement. The other six groups, the former implementation and public-history
+clearance remain unresolved. The repository stays private; no public release,
+tag or npm publication follows from this disposition.
