@@ -4,7 +4,7 @@ import type { ConnectorDefinition, ConnectorInstance, ConnectorOAuthProgress, Co
 import { connectorErrorMessage, type ConnectorOperation, type ManagedConnectorController } from "@opencraft/workbench-runtime";
 import { SettingsActions, SettingsGroup, SettingsNotice, SettingsRow, SettingsTextInput } from "@opencraft/extension-react";
 import { Button } from "../ui/button";
-import { ConnectorBrand } from "./connector-brand";
+import { ConnectorIcon } from "./connector-icon";
 import { connectorCheckLabel, connectorCredentialHelp, connectorOAuthStatus } from "./connector-setup-copy";
 
 export function ConnectorSetup({ definition, instance, hostId, controller, supported, onDone }: {
@@ -57,7 +57,7 @@ export function ConnectorSetup({ definition, instance, hostId, controller, suppo
   const disabled = !supported || busy !== null || oauth?.status === "pending";
   return <section className="connector-setup" aria-label={`${definition.name}接入配置`}>
     <header className="connector-setup__header">
-      <ConnectorBrand id={definition.id} />
+      <ConnectorIcon id={definition.id} />
       <div><span className="connector-setup__eyebrow">{definition.category}</span><h2>{definition.name}</h2></div>
       <p>{definition.description}</p>
     </header>

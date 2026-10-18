@@ -31,10 +31,9 @@
   }
 }
 
-.connector-brand {
+.connector-icon {
   display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px;
   border-radius: var(--radius-lg); background: var(--color-background-elevated-primary-opaque); color: var(--color-text-secondary);
-  img { width: 30px; height: 30px; object-fit: contain; }
 }
 .connector-service-card {
   appearance: none; display: flex; flex-direction: column; min-width: 0; text-align: left;
