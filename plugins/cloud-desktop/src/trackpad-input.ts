@@ -10,7 +10,7 @@ export interface DesktopTrackpadPort {
 }
 
 /** Relative touch gestures share the media adapter's pointer writer and grant.
- * No delayed commands: double-tap drag is recognized only on a fresh down.
+ * A stationary 300ms hold or double-tap movement starts a left drag.
  * Reset quarantines held contacts until they all lift. */
 export function bindDesktopTrackpad(element: HTMLElement, port: DesktopTrackpadPort) {
   const window = element.ownerDocument.defaultView!;
@@ -19,6 +19,7 @@ export function bindDesktopTrackpad(element: HTMLElement, port: DesktopTrackpadP
   let pairStart: Point | null = null, pairLast: Point | null = null;
   let moved = false, paired = false, blocked = false, dragging = false, dragPending = false;
   let beganAt = 0, lastTap = -Infinity, frame: number | null = null;
+  let hold: number | null = null;
   let bounds: number[] = [];
   const geometry = () => { const r = element.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; };
   const point = (e: PointerEvent): Point => ({ x: e.clientX, y: e.clientY });
@@ -26,8 +27,13 @@ export function bindDesktopTrackpad(element: HTMLElement, port: DesktopTrackpadP
     const [a, b] = [...fingers.values()] as [Point, Point]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   };
   const cancelFrame = () => { if (frame !== null) window.cancelAnimationFrame(frame); frame = null; };
+  const cancelHold = () => { if (hold !== null) window.clearTimeout(hold); hold = null; };
+  const pressDrag = () => {
+    // Focus/composition handoff may synchronously reset this gesture.
+    dragging = true; element.dataset.pressed = "true"; port.press(1);
+  };
   const reset = () => {
-    cancelFrame(); port.release(); dragging = dragPending = false; blocked = fingers.size > 0;
+    cancelHold(); cancelFrame(); port.release(); dragging = dragPending = false; blocked = fingers.size > 0;
     start = last = pairStart = pairLast = null; paired = moved = false; lastTap = -Infinity;
     element.dataset.pressed = "false";
   };
@@ -55,7 +61,15 @@ export function bindDesktopTrackpad(element: HTMLElement, port: DesktopTrackpadP
       moved = paired = false;
       dragPending = beganAt - lastTap < 320; dragging = false;
       lastTap = -Infinity;
+      const pending = window.setTimeout(() => {
+        if (hold !== pending) return;
+        hold = null;
+        if (valid() && fingers.size === 1 && !paired && !moved) pressDrag();
+      }, 300);
+      hold = pending;
     } else if (fingers.size === 2) {
+      cancelHold();
+      if (dragging) { reset(); return; }
       port.release(); dragging = dragPending = false; element.dataset.pressed = "false";
       paired = true; moved = false; pairStart = pairLast = center();
     } else reset();
@@ -68,18 +82,18 @@ export function bindDesktopTrackpad(element: HTMLElement, port: DesktopTrackpadP
       if (frame === null) frame = window.requestAnimationFrame(sample);
     } else if (fingers.size === 1 && !paired && start && last) {
       const next = point(event);
-      if (Math.hypot(next.x - start.x, next.y - start.y) >= 8) moved = true;
+      if (Math.hypot(next.x - start.x, next.y - start.y) >= 8) { moved = true; cancelHold(); }
       // A possible second tap does not press until it actually moves. A
       // second finger can still turn it into a right-click without a stray left.
       if (moved && dragPending && !dragging) {
-        port.press(1); dragging = true; element.dataset.pressed = "true";
+        pressDrag();
       }
-      port.move({ x: next.x - last.x, y: next.y - last.y }); last = next;
+      if (last) { port.move({ x: next.x - last.x, y: next.y - last.y }); last = next; }
     }
   };
   const end = (event: PointerEvent) => {
     if (!fingers.has(event.pointerId)) return;
-    stop(event);
+    stop(event); cancelHold();
     const eligible = valid() && event.type === "pointerup";
     if (eligible && fingers.size === 2) { cancelFrame(); sample(); }
     if (eligible && !moved && performance.now() - beganAt < 500) {

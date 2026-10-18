@@ -13,13 +13,24 @@ function fixture(beforeRemotePress?: () => void) {
   const frames = new Map<number, FrameRequestCallback>();
   dom.window.requestAnimationFrame = callback => { frames.set(++next, callback); return next; };
   dom.window.cancelAnimationFrame = id => { frames.delete(id); };
+  let now = 0;
+  const timers = new Map<number, { at: number; run: () => void }>();
+  dom.window.setTimeout = (handler, delay = 0) => {
+    assert.equal(typeof handler, "function");
+    timers.set(++next, { at: now + delay, run: handler as () => void }); return next;
+  };
+  dom.window.clearTimeout = id => { timers.delete(id!); };
   const packets: { x: number; y: number; mask: number }[] = [];
   const client = { getInputCanvas: () => canvas, setPointerInputManaged() {}, focus() {},
     sendPointer: (x: number, y: number, mask: number) => packets.push({ x, y, mask }) } as unknown as RfbClient;
   const input = bindDesktopPointerInput(element, client, () => allowed, beforeRemotePress);
   const pad = dom.window.document.getElementById("pad")!;
   const detach = input.attachTrackpad(pad);
-  return { packets, input, frames, canvas, pad,
+  return { packets, input, frames, timers, canvas, pad,
+    advance(ms: number) {
+      now += ms;
+      for (const [id, timer] of timers) if (timer.at <= now) { timers.delete(id); timer.run(); }
+    },
     padEvent(type: string, id: number, x: number, y: number) {
       const event = new dom.window.MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
       Object.defineProperties(event, { pointerId: { value: id }, pointerType: { value: "touch" } });
@@ -210,4 +221,103 @@ test("trackpad press rechecks the grant after composition focus handoff", () => 
   f = fixture(() => { f.allow(false); f.input.reset(); }); f.allow(true);
   f.padEvent("pointerdown", 1, 30, 80); f.padEvent("pointerup", 1, 30, 80);
   assert.deepEqual(f.packets, []); f.close();
+});
+
+test("a stationary 300ms hold starts a relative drag without a preceding tap and releases exactly once", () => {
+  const f = fixture(); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80);
+  f.advance(299); assert.deepEqual(f.packets, [], "holding must not click early");
+  f.advance(1); assert.deepEqual(f.packets, [{ x: 100, y: 100, mask: 1 }]);
+  assert.equal(f.pad.dataset.pressed, "true");
+  f.advance(600); assert.equal(f.packets.length, 1, "the hold timer cannot repeat");
+  f.padEvent("pointermove", 1, 50, 80);
+  assert.deepEqual(f.packets.at(-1), { x: 125, y: 100, mask: 1 });
+  f.padEvent("pointerup", 1, 50, 80); f.advance(500);
+  assert.deepEqual(f.packets.map(p => p.mask), [1, 1, 0]);
+  assert.equal(f.pad.dataset.pressed, "false"); assert.equal(f.timers.size, 0); f.close();
+});
+
+test("movement cancels long-press arming permanently for that stroke; tiny finger jitter is tolerated", () => {
+  const f = fixture(); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80); f.advance(100);
+  f.padEvent("pointermove", 1, 38, 80); f.padEvent("pointermove", 1, 30, 80);
+  f.advance(600); f.padEvent("pointerup", 1, 30, 80);
+  assert.ok(f.packets.length > 0); assert.ok(f.packets.every(p => p.mask === 0), "moving then pausing cannot grab anything");
+  f.packets.length = 0;
+  f.padEvent("pointerdown", 2, 30, 80); f.padEvent("pointermove", 2, 33, 82); f.advance(300);
+  assert.equal(f.packets.at(-1)?.mask, 1, "small involuntary movement still permits a hold");
+  f.padEvent("pointerup", 2, 33, 82);
+  assert.deepEqual(f.packets.slice(1).map(p => p.mask), [1, 0]); f.close();
+});
+
+test("a short tap stays a single click and a second finger cancels the pending hold", () => {
+  const f = fixture(); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80); f.advance(299); f.padEvent("pointerup", 1, 30, 80); f.advance(500);
+  assert.deepEqual(f.packets.map(p => p.mask), [1, 0]);
+  f.packets.length = 0;
+  f.padEvent("pointerdown", 2, 30, 80); f.advance(200); f.padEvent("pointerdown", 3, 100, 80);
+  f.advance(300); assert.deepEqual(f.packets, []);
+  f.padEvent("pointerup", 2, 30, 80); f.padEvent("pointerup", 3, 100, 80);
+  assert.deepEqual(f.packets.map(p => p.mask), [4, 0]); f.close();
+});
+
+test("joining a held drag with a second finger releases it without converting either contact to a click", () => {
+  const f = fixture(); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80); f.advance(300);
+  f.padEvent("pointerdown", 2, 100, 80);
+  f.padEvent("pointerup", 1, 30, 80); f.padEvent("pointermove", 2, 120, 80); f.padEvent("pointerup", 2, 120, 80);
+  f.advance(500); assert.deepEqual(f.packets.map(p => p.mask), [1, 0]);
+  f.padEvent("pointerdown", 3, 30, 80); f.padEvent("pointerup", 3, 30, 80);
+  assert.deepEqual(f.packets.map(p => p.mask), [1, 0, 1, 0]); f.close();
+});
+
+test("cancel, capture loss, reset, disposal, geometry and grant changes fence pending holds", () => {
+  for (const reason of ["pointercancel", "lostpointercapture", "reset", "dispose", "resize", "pad-resize", "grant", "media"]) {
+    const f = fixture(); f.allow(true);
+    f.padEvent("pointerdown", 1, 30, 80); f.advance(200);
+    const stale = [...f.timers.values()].map(timer => timer.run);
+    if (reason === "reset") f.input.reset();
+    else if (reason === "dispose") f.input.dispose();
+    else if (reason === "resize") f.canvas.width = 100;
+    else if (reason === "pad-resize") f.pad.getBoundingClientRect = () => ({ x: 0, y: 0, width: 200, height: 150 } as DOMRect);
+    else if (reason === "grant") f.allow(false);
+    else if (reason === "media") { f.event("pointerdown", 2, 50, 50); f.event("pointercancel", 2, 50, 50); }
+    else f.padEvent(reason, 1, 30, 80);
+    f.advance(300); for (const run of stale) run();
+    assert.deepEqual(f.packets, [], reason);
+    f.allow(true); f.padEvent("pointermove", 1, 60, 80); f.padEvent("pointerup", 1, 60, 80); f.advance(500);
+    assert.deepEqual(f.packets, [], `${reason}: an old held finger cannot enter a successor gesture`); f.close();
+  }
+});
+
+test("long-press focus handoff can synchronously retire the gesture without a stuck pressed state", () => {
+  let f: ReturnType<typeof fixture>;
+  f = fixture(() => { f.input.reset(); }); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80); f.advance(300);
+  assert.deepEqual(f.packets, []); assert.equal(f.pad.dataset.pressed, "false");
+  f.padEvent("pointermove", 1, 60, 80); f.padEvent("pointerup", 1, 60, 80);
+  assert.deepEqual(f.packets, []); f.close();
+});
+
+test("an old cleared hold callback cannot start or consume a fresh gesture's timer", () => {
+  const f = fixture(); f.allow(true);
+  f.padEvent("pointerdown", 1, 30, 80);
+  const old = [...f.timers.values()][0]!.run;
+  f.input.reset(); f.padEvent("pointerup", 1, 30, 80);
+  f.padEvent("pointerdown", 2, 30, 80); old();
+  f.advance(299); assert.deepEqual(f.packets, []);
+  f.advance(1); assert.deepEqual(f.packets.map(p => p.mask), [1]);
+  f.padEvent("pointerup", 2, 30, 80); assert.deepEqual(f.packets.map(p => p.mask), [1, 0]); f.close();
+});
+
+test("cancelling or disposing an active stationary hold releases its remote left button", () => {
+  for (const reason of ["pointercancel", "lostpointercapture", "reset", "dispose"]) {
+    const f = fixture(); f.allow(true);
+    f.padEvent("pointerdown", 1, 30, 80); f.advance(300);
+    if (reason === "reset") f.input.reset();
+    else if (reason === "dispose") f.input.dispose();
+    else f.padEvent(reason, 1, 30, 80);
+    f.advance(500); assert.deepEqual(f.packets.map(p => p.mask), [1, 0], reason);
+    assert.equal(f.pad.dataset.pressed, "false"); f.close();
+  }
 });
