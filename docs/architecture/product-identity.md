@@ -45,13 +45,13 @@ Installation IDs are explicit per platform and build profile:
 The Expo release profiles are selected by `OPENCRAFT_ANDROID_RELEASE=1` and
 `OPENCRAFT_IOS_RELEASE=1` in `apps/workbench-expo/app.config.js`. A changed
 identifier is a separate installation; it does not update the old package.
+Bundle compatibility does not authorize a Vela-named data root.
 
 The 2026-10-18 provenance de-sensitization renamed the company-branded installation
 identities: the signed Android release package is `app.opencraft.workbench`
 (`.intl` for the international edition), and development/internal Android and iOS
 builds use `dev.opencraft.workbench`. The retired identifiers belong to the old
 installation; the renamed packages install separately and do not update it.
-Bundle compatibility does not authorize a Vela-named data root.
 
 ### Authority rules
 
