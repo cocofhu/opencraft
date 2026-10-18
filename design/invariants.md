@@ -298,7 +298,13 @@ Surface消费Shell的同一逻辑active投影：隐藏立即退出模拟光标�
 Confirmed coarse-pointer desktop control may expose a relative trackpad through
 the mounted media capability. The pad interprets gestures only; media owns the
 same pointer position/writer, bounded scroll, text handoff and backend grant.
-It never duplicates a connection or resumes control. Cancellation fences retained
+It never duplicates a connection or resumes control. A stationary single finger
+holds the left button after 300ms, then moves relative to the existing cursor;
+release ends the drag. Movement reaching 8px before the deadline cancels arming.
+Tap, two-finger scroll/right-click and double-tap drag stay available. The timer
+is fenced by gesture lifetime, grant and geometry, including reentrant text
+handoff. A second finger cancels pending arming; after a drag starts it releases
+the button and quarantines contacts without another click. Cancellation fences retained
 contacts, and an idle pad cannot release a direct media press. Design System
 places picture, controls and neutral theme-derived touch surface in disjoint
 rows, consuming Shell's existing visual viewport height when keyboards contract
