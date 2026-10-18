@@ -561,6 +561,39 @@ try {
     await page.screenshot({ path: join(directory, "shadow-observing.png") });
     await page.evaluate(() => (window as any).__desktopUi.dispose()); await page.close();
   }
+  for (const cancel of [false, true]) {
+    const page = await browser.newPage({ viewport: { width: 720, height: 700 }, reducedMotion: "reduce" });
+    const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}/?shadow&takeover`);
+    await page.locator('[data-phase="connecting"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.ready(false));
+    const take = page.getByRole("button", {name: "Take control", exact: true});
+    assert.equal(await take.isEnabled(), true, "only declared takeover enables read-only action");
+    await take.click();
+    await page.locator('[data-phase="connecting"]').waitFor();
+    if (cancel) await page.evaluate(() => {
+      const outside = document.createElement("input"); outside.id = "takeover-outside";
+      document.body.append(outside); outside.focus();
+    });
+    await page.evaluate(() => (window as any).__desktopUi.ready());
+    await page.locator('[data-phase="ready"]').waitFor();
+    if (!cancel) {
+      await page.locator('[data-control="requesting"]').waitFor();
+      await page.evaluate(() => (window as any).__desktopUi.grant());
+      await page.locator('[data-control="controlling"]').waitFor();
+    }
+    const counts = await page.evaluate(() => (window as any).__desktopUi.counts());
+    assert.equal(counts.takeovers, 1); assert.equal(counts.preparations, 2);
+    assert.equal(counts.requests, cancel ? 0 : 1, "leaving before a late grant retires the control intent");
+    if (cancel) {
+      assert.equal(await page.locator('.cloud-desktop-panel').getAttribute('data-control'), 'observing');
+      assert.equal(await page.locator('#takeover-outside').evaluate(element => document.activeElement === element), true);
+    }
+    assert.deepEqual(errors, []);
+    receipts.push({ takeover: true, cancel, counts });
+    await page.screenshot({path: join(directory, `takeover-${cancel ? 'cancelled' : 'granted'}.png`)});
+    await page.evaluate(() => (window as any).__desktopUi.dispose()); await page.close();
+  }
   console.log(JSON.stringify({ passed: true, directory, receipts,
     scope: "Real panel/controller/current production CSS; only backend/media boundaries synthetic. Not native-control or production authorization acceptance." }, null, 2));
 } finally {

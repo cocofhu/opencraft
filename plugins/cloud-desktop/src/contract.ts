@@ -66,6 +66,10 @@ export interface DesktopAttachment {
 }
 
 export interface DesktopBackend {
+  /** Explicit one-shot reconnect intent for a read-only viewer. Optional: without
+   * an implementation the UI cannot advertise takeover. The provider still owns
+   * authorization, preemption and consumption on the next prepare attempt. */
+  requestTakeover?(): void;
   /** Explicit opt-in: prepare only allocates a fresh, reauthorized viewer and
    * can be repeated without replaying resource creation or Agent execution. */
   readonly recoverTransport?: boolean;

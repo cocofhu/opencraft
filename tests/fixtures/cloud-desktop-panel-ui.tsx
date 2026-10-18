@@ -20,7 +20,7 @@ import { UiPreferencesProvider } from "../../apps/workbench-web/src/runtime/ui-p
 let state: DesktopConnectionSnapshot = { mediaAspectRatio: 960 / 600, videoReady: false, inputReady: false,
   controlAvailable: true, ended: false };
 let authorized = true, valid = false, mounts = 0, preparations = 0, requests = 0, releases = 0, connectionCloses = 0, attachmentReleases = 0;
-let pasteAvailable = true;
+let pasteAvailable = true, takeovers = 0;
 let toolMounts = 0, toolCloses = 0;
 let grant: ((lease: DesktopControlLease) => void) | null = null;
 const listeners = new Set<() => void>(), authorityListeners = new Set<() => void>();
@@ -44,6 +44,9 @@ const target = { conversationId: "fixture", environmentId: "environment:test", s
 const runtime = await createWorkbenchPanelReactRuntime();
 await runtime.install(createCloudDesktopWorkbenchPanelPlugin({
   backend: {
+    requestTakeover: new URL(location.href).searchParams.has("takeover") ? () => {
+      takeovers++; state = { ...state, videoReady: false, inputReady: false, controlAvailable: true, ended: false };
+    } : undefined,
     resolveTarget: () => authorized ? target : null,
     subscribe: listener => { authorityListeners.add(listener); return () => { authorityListeners.delete(listener); }; },
     async prepare() {
@@ -140,7 +143,7 @@ Object.assign(window, { __desktopUi: {
   connecting() { state = { mediaAspectRatio: 960 / 600, videoReady: false, inputReady: false, controlAvailable: true, ended: false }; },
   grant() { valid = true; const resolve = grant; grant = null; resolve?.(lease); },
   unavailable() { authorized = false; for (const listener of authorityListeners) listener(); },
-  counts: () => ({ mounts, preparations, requests, releases, connectionCloses, attachmentReleases, toolMounts, toolCloses }),
+  counts: () => ({ takeovers, mounts, preparations, requests, releases, connectionCloses, attachmentReleases, toolMounts, toolCloses }),
   other: () => runtime.panels.open("fixture-panel", "fixture-tool", {}),
   desktop: () => runtime.panels.dispatch("fixture-panel", { type: "activate-tab", region: "right", tabId: tab.id }),
   hide: () => runtime.panels.dispatch("fixture-panel", { type: "set-region-open", region: "right", open: false }),

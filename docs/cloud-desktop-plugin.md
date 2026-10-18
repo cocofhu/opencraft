@@ -832,3 +832,15 @@ and [TURN transport](https://www.rfc-editor.org/rfc/rfc8656.html#section-3.1).
 Reference: read-only Codex 26.930.31428 desktop tab/viewer analysis. Adopted
 per-Conversation tabs, remote/view lifetime split and observe/control split;
 did not copy private signaling endpoints or UID, or assume robust reconnection.
+
+### Explicit takeover from read-only viewing
+
+A backend may declare `requestTakeover` for a single explicit reconnect intent.
+A read-only viewer without it keeps the control action disabled. With it, one
+activation requests one fresh viewer; the provider owns authorization/preemption
+and consumes the flag even if preparation fails. The panel waits for that
+reconnect, then requests control only while it still owns interaction focus.
+Leaving, hiding or disposing retires the intent; a late grant cannot pull focus
+back. There is no takeover polling or automatic preemption on ordinary retry.
+The real ShadowRoot panel probe covers success and leaving before readiness;
+private provider allocation semantics are verified in the downstream product.
