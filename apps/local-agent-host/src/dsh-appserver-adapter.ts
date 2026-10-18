@@ -36,6 +36,7 @@ import type { RuntimeProviderApplyParams, RuntimeModelsDiscoverParams, RuntimePr
 
 type RecordValue = Record<string, unknown>;
 export interface DshThreadEnginePort {
+  goal?(params: RecordValue): Promise<any>;
   describe?(params: RecordValue): Promise<any>;
   create(params: RecordValue): Promise<any>;
   resume(params: RecordValue): Promise<any>;
@@ -1130,6 +1131,20 @@ export class DshAppServerAdapter {
       this.admission.reconnect(sessionId, owner);
       return result;
     }
+    if (method === "thread/goal/set" || method === "thread/goal/clear") {
+      return this.authority.withWriteLease(sessionId, owner, async () => {
+        if (!this.threadEngine?.goal) throw new Error("This engine cannot change goals");
+        await this.ensureRuntime(sessionId);
+        // Arm the owner before the native service can publish a Goal/round.
+        // Keep this authorization on an unknown transport outcome: native
+        // durability may finish after the caller's timeout. Exact goal source
+        // validation still prevents unrelated work from using it.
+        if (method === "thread/goal/set" && (value.status == null || value.status === "active")) {
+          this.admission!.authorizeGoal(sessionId, owner, requestId);
+        }
+        return this.dispatch(method, params);
+      });
+    }
     if (method === "turn/start") {
       // The interrupted Turn is published before session.cancel acknowledges.
       // A follow-up can arrive in that window; keep its draft in flight until
@@ -1246,8 +1261,18 @@ export class DshAppServerAdapter {
     switch (method) {
       case "thread/goal/get": {
         const threadId = string(value.threadId);
+        if (this.threadEngine?.goal) {
+          const live = await this.threadEngine.goal({ sessionId: threadId, operation: "get" });
+          if (live.loaded) return { goal: projectDshGoal(threadId, live.goal ? { ...live.goal, goal: live.goal } : null) };
+        }
         const history = await this.client.call<DshHistoryPage>("session.history", { sessionId: threadId, maxMessages: 1 });
-        return { goal: projectDshGoal(threadId, history.projections?.values.goal) };
+        return { goal: projectDshGoal(threadId, history.projections?.values.goal, "disarmed") };
+      }
+      case "thread/goal/set":
+      case "thread/goal/clear": {
+        if (!this.threadEngine?.goal) throw new Error("This engine cannot change goals");
+        const result = await this.threadEngine.goal({ ...value, sessionId: string(value.threadId), operation: method.endsWith("/set") ? "set" : "clear" });
+        return method.endsWith("/clear") ? result : { goal: projectDshGoal(string(value.threadId), { ...result.goal, goal: result.goal }) };
       }
       case "runtime/status/read": {
         const host = await this.client.call<RecordValue>("host.describe");
@@ -1333,7 +1358,7 @@ export class DshAppServerAdapter {
           capabilities: {
             extensions: {
               [OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]: { version: 1, fork: this.threadEngine !== null, ephemeral: this.threadEngine !== null, injectItems: this.threadEngine !== null, rename: true, archive: true, unsubscribe: true },
-              [OPENCRAFT_THREAD_GOAL_EXTENSION]: { version: 1, read: true, write: false },
+              [OPENCRAFT_THREAD_GOAL_EXTENSION]: { version: 1, read: true, write: !!this.threadEngine?.goal, usageAccounting: false },
               ...(this.hostCapabilities ? { "opencraft/host-capabilities": { version: 1 } } : {}),
               "opencraft/loopback-http": { version: 1 },
               [OPENCRAFT_PROFILE_SKILLS_EXTENSION]: OPENCRAFT_LOCAL_DSH_SKILLS_CAPABILITY,

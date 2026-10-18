@@ -1516,6 +1516,9 @@ end-to-end model or employee-device latency.
 
 - MCP App 自动尺寸区分真实内容失效和纯高度视口响应；`100vh + margin` 不得把宿主刚应用的高度循环当作新增内容。真实内容/媒体/字体/宽度变化继续测量，显式尺寸消息沿用既有桥。容器宽度来自 iframe 实际布局，合帧去重通知，不轮询、不重读资源、不重放工具、不重建 iframe；observer 与待执行帧随 View 清理。
 
+### DSH Goal execution projection
+
+Goal durable phase and native live activation are distinct. An active/disarmed Goal presents paused with explicit Resume, including cold restore/fork; a read never arms continuation. Hosts declaring `usageAccounting:false` omit elapsed/token metrics, while older capabilities retain existing accounting. Goal mutations/driver stay server-owned; shared Composer UI does not schedule rounds.
 
 ## Conversation overview authority
 

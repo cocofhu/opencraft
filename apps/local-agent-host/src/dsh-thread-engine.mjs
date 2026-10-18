@@ -84,6 +84,43 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities, inst
   });
   return {
     create,
+    async goal(input) {
+      const agent = ctx.agents.get(input.sessionId);
+      if (!agent) {
+        if (input.operation === "get") return { goal: null, loaded: false };
+        throw new Error("Goal mutation requires a loaded thread");
+      }
+      let goal = ctx.goals.get(agent);
+      if (input.operation === "get") return { goal: goal ?? null, loaded: true };
+      if (input.tokenBudget != null) throw new Error("DSH does not support goal token budgets");
+      const ref = () => ({ id: goal.id, revision: goal.revision });
+      if (input.operation === "clear") {
+        if (goal) ctx.goals.clear(agent, ref());
+        await ctx.sessions.flush(agent.session);
+        return { cleared: !!goal };
+      }
+      if (input.operation !== "set") throw new Error("Unknown goal operation");
+      const status = input.status;
+      if (status != null && !["active", "paused", "blocked", "complete"].includes(status)) throw new Error("Unsupported DSH goal status");
+      if (input.objective != null && (typeof input.objective !== "string" || !input.objective.trim())) throw new Error("Goal objective must be non-empty");
+      if (!goal || (goal.phase === "complete" && status === "active" && input.objective != null)) {
+        if (typeof input.objective !== "string") throw new Error("A new goal requires an objective");
+        // Create arms immediately. Do not partially create an unsupported state.
+        if (status != null && status !== "active") throw new Error("A new goal must be active");
+        goal = ctx.goals.create(agent, { objective: input.objective });
+      } else {
+        if (status === "active" && goal.phase === "complete") throw new Error("A completed goal requires a new objective");
+        if (status === "paused" && !["active", "paused"].includes(goal.phase)) throw new Error("Only an active goal can be paused");
+        if (status === "blocked" && !["active", "blocked"].includes(goal.phase)) throw new Error("Only an active goal can be blocked");
+        if (input.objective != null && input.objective !== goal.objective) goal = ctx.goals.edit(agent, ref(), { objective: input.objective });
+        if (status === "active" && (goal.phase !== "active" || goal.activation !== "armed")) goal = ctx.goals.resume(agent, ref());
+        else if (status === "paused" && goal.phase !== "paused") goal = ctx.goals.pause(agent, ref());
+        else if (status === "complete" && goal.phase !== "complete") goal = ctx.goals.complete(agent, ref());
+        else if (status === "blocked" && goal.phase !== "blocked") goal = ctx.goals.block(agent, ref(), { code: "human-blocked", message: "Goal blocked by the user." });
+      }
+      await ctx.sessions.flush(agent.session);
+      return { goal };
+    },
     async describe(input) {
       const live = ctx.agents.get(input.sessionId)?.session;
       const stored = live ? { meta: live.header, events: live.events } : await ctx.sessionPersistence.inspect(SessionId(input.sessionId));
@@ -158,6 +195,7 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities, inst
     async release(input) {
       const handle = handles.get(input.sessionId);
       if (!handle) return { released: !ctx.agents.get(input.sessionId) };
+      if (ctx.goals.get(handle.agent)?.activation === "armed") throw new Error("Cannot unload a thread with an armed goal");
       if (handle.agent.status !== "idle") throw new Error("Cannot unload a thread with active execution");
       await handle.dispose(); handles.delete(input.sessionId);
       volatileSessions.forget(input.sessionId);

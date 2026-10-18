@@ -85,7 +85,7 @@ import { catalogCachedAt, managedCatalogDiscoveryPhase, mergeThreadCatalogPages,
 import { subscribeHostCatalogReadiness } from "./host-catalog-readiness";
 import { canDisplayHostThreadCatalog, canReadHostThreadCatalog, managedHostCatalogSignature, readHostThreadCatalog, type ManagedHostCatalogSource } from "./host-thread-catalog";
 import { PlatformAccountContributionRegistry } from "./platform-account-contributions";
-import { observeSidebarThreadGoals, sidebarGoalSignature, type SidebarGoalSource } from "./sidebar-thread-goals";
+import { sidebarGoalActive, observeSidebarThreadGoals, sidebarGoalSignature, type SidebarGoalSource } from "./sidebar-thread-goals";
 
 
 import { ActiveWebWorkbenchApplicationSupervisor, AppServerHostCatalog, retryQuery } from './workbench-application-services';
@@ -700,7 +700,7 @@ export function useMultiHostThreadCatalog(): {
         schedule: scheduleQueries[index]?.data?.schedules.find(plan => plan.threadId === thread.id),
         goalActive: goalSources.some(source => source.goals === application.registry.peekRuntime(host.hostId)?.resources.goals
           && source.isCurrent() && source.goals.capability()?.read
-          && source.goals.getSnapshot(thread.id).goal?.status === "active"),
+          && sidebarGoalActive(source.goals.getSnapshot(thread.id).goal)),
         unread: application.threadAttention.unread(host.hostId, thread.id),
         connectionHostId: host.hostId,
         interactionAvailable: phases[index] === "ready" && admitted[index],
