@@ -287,8 +287,6 @@ export function App({
   const hostCatalog = useAppServerHosts();
   const attentionScope = hostCatalog.threadAttention.getScope();
   const conversationViewIdentity = useConversationViewIdentity();
-  const connectorPresentation = useConnectorPresentation(hostCatalog.connectorManager, hostCatalog.connectorApprovals,
-    { hostId: hostCatalog.selectedHostId, scopeId: conversationViewIdentity.scopeId }, () => hostCatalog.navigation.openSettings("lightvela.hermes.skills"));
   const extensionPlatform = (
     globalThis as typeof globalThis & {
       opencraftDesktop?: { readonly kind?: string };
@@ -296,18 +294,6 @@ export function App({
   ).opencraftDesktop?.kind === "electron"
     ? "electron"
     : "web";
-  const composerEndActions = (
-    <>{presentation.connectorLauncher ? connectorPresentation.launcher : null}<ComposerExtensionActions
-      actionIds={presentation.composerActions}
-      controller={composerController}
-      disabled={draft !== null && draftSubmissionOwnsNavigation(draft.phase)}
-      platform={extensionPlatform}
-      registry={hostCatalog.composerActionRenderers}
-    /></>
-  );
-  const composerAddMenuContent = presentation.connectorLauncher
-    ? connectorPresentation.addMenuContent
-    : null;
   const conversationViewActivation = useConversationViewActivation();
   const snapshot = useAppServerSnapshot();
   useEffect(() => {
@@ -537,6 +523,20 @@ export function App({
     openSettings: workbenchNavigation.openSettings,
     openView: workbenchNavigation.openExtensionView,
   });
+  const connectorPresentation = useConnectorPresentation(hostCatalog.connectorManager, hostCatalog.connectorApprovals,
+    { hostId: hostCatalog.selectedHostId, scopeId: conversationViewIdentity.scopeId }, extensionProjection.manageConnectors);
+  const composerEndActions = (
+    <>{presentation.connectorLauncher ? connectorPresentation.launcher : null}<ComposerExtensionActions
+      actionIds={presentation.composerActions}
+      controller={composerController}
+      disabled={draft !== null && draftSubmissionOwnsNavigation(draft.phase)}
+      platform={extensionPlatform}
+      registry={hostCatalog.composerActionRenderers}
+    /></>
+  );
+  const composerAddMenuContent = presentation.connectorLauncher
+    ? connectorPresentation.addMenuContent
+    : null;
   useEffect(() => {
     if (extensionProjection.account?.snapshot.phase === "anonymous" && extensionProjection.account.provider.signInViewId) setAccountOpen(false);
   }, [extensionProjection.account?.snapshot.phase, extensionProjection.account?.provider]);

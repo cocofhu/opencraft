@@ -158,7 +158,7 @@ export interface ViewContribution {
    * Optional host-facing capability supplied by this view. Consumers bind to
    * the capability instead of importing an extension's concrete view id.
    */
-  readonly role?: "bot-conversation";
+  readonly role?: "bot-conversation" | "connector-management";
   readonly icon?: string;
   readonly platforms?: readonly ExtensionPlatform[];
   /** Presentation audience only; internal views stay registered but hidden by the host. */

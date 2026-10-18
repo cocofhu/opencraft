@@ -28,6 +28,8 @@ import type { ApplicationRoute } from "./workbench-navigation";
 import type { PlatformAccountContributionRegistry } from "./platform-account-contributions";
 import { isInternalAudienceVisible } from "../internal-developer-mode";
 
+import { createConnectorManagementAction } from "./connector-management-action";
+
 import { useOptionalAsyncNotices } from "../components/async-notices";
 
 const EMPTY_ACCOUNT_SNAPSHOT: PlatformAccountSnapshot = Object.freeze({
@@ -51,6 +53,7 @@ export interface ExtensionAccountProjection {
 }
 
 export interface ExtensionWorkbenchProjection {
+  readonly manageConnectors?: () => void;
   readonly primaryActions: readonly SidebarActionItem[];
   readonly footerActions: readonly SidebarActionItem[];
   readonly catalogs: readonly SidebarCatalogItem[];
@@ -294,6 +297,7 @@ export function useExtensionWorkbenchProjection({
     const accountContent = accountProvider === null ? null : renderView(accountProvider.viewId);
 
     return {
+      manageConnectors: createConnectorManagementAction(contributions, renderers, host.platform, internalDeveloperMode, openSettings),
       primaryActions: navigation
         .filter((item) => item.surface === "sidebar-primary")
         .map(actionFor),
