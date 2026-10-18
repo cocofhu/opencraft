@@ -1,6 +1,6 @@
 # 所有权/隔离
 
-- Host稳定身份(account,region,instance)，物理TAT/Dashboard只一份；profile不是新Host。
+- Host稳定身份(account,region,instance)，物理企业服务/Dashboard只一份；profile不是新Host。
 - 控制面(v1/instances/{id}/bots)返回BotID/ProfileID；profile main仅在adapter映射为native default，display name不作执行身份。
 - AppServer bot目录对接native profiles.list；只暴露控制面与runtime一致的profile，不注入虚构default；旧runtime opt-in身份保留兼容。
 - Bot/conversation绑定profile不可随UI选择改变；stored session→profile恢复由native索引/唯一查找决定。profile缺失/不支持明确拒绝；不全局activate profile。

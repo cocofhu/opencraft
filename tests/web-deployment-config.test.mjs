@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { websiteDeploymentConfig, injectWebsiteDeploymentConfig, createWorkbenchWebServer } from '../scripts/workbench-web-server.mjs';
 
-const local = { hostId: 'local', label: 'Join', kind: 'remote-control', url: '/appserver' };
-const codex = { hostId: 'local-codex', label: 'Join', kind: 'remote-control', url: '/codex-appserver' };
+const local = { hostId: 'local', label: 'Server', kind: 'remote-control', url: '/appserver' };
+const codex = { hostId: 'local-codex', label: 'Server', kind: 'remote-control', url: '/codex-appserver' };
 test('worker readiness and metadata stay available while the configured Headless backend is down', async t => {
   const root = await mkdtemp(join(tmpdir(), 'web-headless-readiness-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -48,7 +48,7 @@ test('direct and SPA HTML requests receive uncached config with accurate GET/HEA
     await writeFile(join(root, 'index.html'), '<html><head></head><body>中文</body></html>');
     await writeFile(join(root, 'app.webmanifest'), JSON.stringify({ name: 'Fixture', icons: [] }));
     await writeFile(join(root, 'embedded.html'), '<p>Standalone document</p>');
-    server = await createWorkbenchWebServer({ root, appServerTarget: 'ws://127.0.0.1:9989/rpc', codexServerTarget: 'ws://127.0.0.1:9988/rpc/codex', machineDisplayNames: {'ssh:test':'Join'} });
+    server = await createWorkbenchWebServer({ root, appServerTarget: 'ws://127.0.0.1:9989/rpc', codexServerTarget: 'ws://127.0.0.1:9988/rpc/codex', machineDisplayNames: {'ssh:test':'Server'} });
     const base = `http://127.0.0.1:${(await server.listen({ port: 0 })).port}`;
     for (const path of ['/', '/index.html', '/settings/updates']) {
       const response = await fetch(base + path, { headers: { accept: 'text/html' } });
@@ -58,7 +58,7 @@ test('direct and SPA HTML requests receive uncached config with accurate GET/HEA
       assert.equal(response.headers.get('etag'), null);
       assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(html));
       assert.match(html, /local-codex/);
-      assert.match(html, /"machineDisplayNames":\{"ssh:test":"Join"\}/);
+      assert.match(html, /"machineDisplayNames":\{"ssh:test":"Server"\}/);
       assert.doesNotMatch(html, /9989|9988/);
       const head = await fetch(base + path, { method: 'HEAD', headers: { accept: 'text/html' } });
       assert.equal(head.headers.get('content-length'), response.headers.get('content-length'));

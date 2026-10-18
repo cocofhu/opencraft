@@ -308,7 +308,7 @@ the same OpenCraft sources. It bundles a pinned Node executable, the DSH runtime
 an exact-version Linux amd64 Codex CLI, native Linux PTY module, Web renderer
 and a Node launcher. It does not contain
 Electron Main, Preload or window dependencies. The Web renderer seeds one
-same-origin `Join` Host profile; the launcher starts the actual
+same-origin `Server` Host profile; the launcher starts the actual
 Local Agent Host and proxies `/appserver` to its private loopback endpoint.
 The same loopback gateway exposes `/apphost` for a leased Codex Host, backed by
 the existing OpenCraft Codex stdio adapter and account pool. Web Settings
@@ -470,7 +470,7 @@ rtk proxy shasum -a 256 "$signed_dmg_path" "$signed_zip_path"
 For an installation where every network-admitted user is trusted to view this
 machine's desktop, choose `--trusted-internal-desktop` instead of `--local-desktop`.
 Keep the existing `--host 0.0.0.0 --allow-unauthenticated-public` acknowledgement
-for a non-loopback listener. No TAT or separate account service is needed. The
+for a non-loopback listener. No enterprise service or separate account service is needed. The
 verified native observer must already be installed/running; legacy interactive
 VNC/noVNC ports need not be started or exposed. A TLS reverse proxy must preserve
 the browser-facing Host and forward `/desktop/connect` WebSocket upgrades.
@@ -589,7 +589,7 @@ symlinks and core/generated-output collisions. Vite development and preview serv
 the same URLs; native `copyPublicDir: false` builds continue to omit these files.
 The downstream Vela runner owns `build:web`, `build:web:release` and
 `build:embedded:release`, choosing its existing entries and `products/vela/public`.
-Private product build aliases run downstream. Join's fixed
+Private product build aliases run downstream. The managed site's fixed
 source packaging selects the same product assets when the selected revision owns
 that directory; historical receipts retain their original core public layout.
 This neither deploys the downstream product nor resolves the artwork's distribution rights.

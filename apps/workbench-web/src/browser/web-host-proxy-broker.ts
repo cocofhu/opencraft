@@ -44,7 +44,7 @@ function transferableChunk(value: Uint8Array): ArrayBuffer {
 }
 
 /**
- * Owns the page side of the Service Worker bridge. Host credentials and TAT
+ * Owns the page side of the Service Worker bridge. Host credentials and enterprise service
  * connections never cross this boundary; the worker only receives bytes.
  */
 export class WebHostProxyBroker {

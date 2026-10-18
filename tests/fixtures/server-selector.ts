@@ -63,7 +63,7 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
     const { createHeadlessBackendProxy }=await import('../../scripts/web-deployment/headless-backend.mjs');
     const proxy=createHeadlessBackendProxy(`http://127.0.0.1:${address.port}`);target.on('upgrade',(req,socket,head)=>proxy.upgrade(req,socket,head,()=>{},new Set()));
     target.listen(0,'127.0.0.1');await once(target,'listening');cleanup.push(()=>new Promise<void>(r=>{target.close(()=>r());target.closeAllConnections();}));
-    const route={...scope,name:id==='join'?(options.entryName??'Join'):'Lighthouse',credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,privateKey),identityProvider:provider};routes.push(route);targets.push((target.address() as any).port);
+    const route={...scope,name:id==='join'?(options.entryName??'Server'):'Lighthouse',credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,privateKey),identityProvider:provider};routes.push(route);targets.push((target.address() as any).port);
   }
   const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
   for(let i=0;i<routes.length;i++)clients.push(connectRelay({relay:base,credential:routes[i]!.credential,targetPort:targets[i],allowLoopbackInsecure:true}));cleanup.push(()=>clients.forEach(c=>c.close()));

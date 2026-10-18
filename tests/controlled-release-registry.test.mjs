@@ -8,7 +8,7 @@ import { createControlledReleaseRegistry } from '../scripts/web-deployment/contr
 import { createNpmReleaseSource, PACKAGE_NAME, unpackRelease } from '../scripts/web-deployment/releases.mjs';
 import { releaseFixture } from './web-deployment-fixture.mjs';
 
-test('controlled Join channel uses exact archive, rejects changed bytes and never falls back to public latest', { timeout: 120_000 }, async () => {
+test('controlled managed-headless channel uses exact archive, rejects changed bytes and never falls back to public latest', { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'oc-controlled-registry-'));
   let fixture, registry;
   try {

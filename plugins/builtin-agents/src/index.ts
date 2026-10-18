@@ -72,7 +72,7 @@ export function createHeadlessCodexExtension(options: HeadlessCodexExtensionOpti
   const config = validate({});
   const hostProvider: HostConnectionProvider = Object.freeze({
     id: "vela.headless-codex",
-    label: "Join",
+    label: "Server",
     targets: ["web"] as const,
     configVersion: 1,
     validate,
@@ -108,7 +108,7 @@ export function createHeadlessCodexExtension(options: HeadlessCodexExtensionOpti
       api.internal.register(HOST_PROFILE_CONTRIBUTION_CHANNEL, {
         profile: {
           hostId: "local-codex",
-          displayName: "Join",
+          displayName: "Server",
           providerId: hostProvider.id,
           providerConfig: config,
           providerConfigVersion: 1,
@@ -117,8 +117,8 @@ export function createHeadlessCodexExtension(options: HeadlessCodexExtensionOpti
           autoConnect: true,
           includeInSidebar: true,
           credentialRef: null,
-          transportEndpoint: "Join",
-          executionLocation: "This server · Join",
+          transportEndpoint: "Server",
+          executionLocation: "This server",
           workspaceBrowseRoots: options.workspaceBrowseRoots,
           revision: 0,
         },
@@ -207,7 +207,7 @@ export function createBuiltinAgentsExtension(options: BuiltinAgentsExtensionOpti
       api.internal.register(HOST_PROFILE_CONTRIBUTION_CHANNEL, {
         profile: {
           hostId: "local-codex",
-          displayName: "Join",
+          displayName: "Server",
           providerId: hostProvider.id,
           providerConfig: config,
           providerConfigVersion: 1,

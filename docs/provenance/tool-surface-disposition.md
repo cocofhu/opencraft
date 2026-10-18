@@ -67,5 +67,5 @@ annotations also remain around web-search compaction, command summaries,
 content interpretation and specialized presenters. These require their own
 actual-expression/lineage review, rather than treating a passing test or a
 removed comment as clearance. Historical source and the four other unresolved
-inventory groups remain separate. No repository visibility, Join deployment or
+inventory groups remain separate. No repository visibility, managed site deployment or
 npm publication changes are part of this disposition.

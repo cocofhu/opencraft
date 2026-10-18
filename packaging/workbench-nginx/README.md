@@ -1,6 +1,6 @@
-# Join ingress access observations
+# managed site ingress access observations
 
-This is the environment-owned Nginx HTTP reverse-proxy configuration for Join.
+This is the environment-owned Nginx HTTP reverse-proxy configuration for managed site.
 The backend and HTTP/WS forwarding behavior remain unchanged. TLS can terminate
 at an outer proxy; `scheme` describes this hop, while `forwarded_proto`, `origin`
 and `referer_origin` describe observed request headers, without trusting them for
@@ -10,7 +10,7 @@ JSON access rows include timestamp, server-generated request ID, peer and bounde
 forwarded IP chain, bounded user agent, Fetch Metadata, status and upstream timing.
 Origin and Referer retain only scheme/host/port. Request paths exclude query strings.
 Cookie, Authorization, bodies, full Referer and URL queries are never logged.
-The request ID is returned in `X-Join-Request-ID` and forwarded as `X-Request-ID`.
+The request ID is returned in `X-managed site-Request-ID` and forwarded as `X-Request-ID`.
 Connection/peer/user-agent/time help compare sequences but cannot identify a user
 or prove two connections belong to the same device. WebSocket access rows finish
 on disconnect: absence of a completed 101 row does not prove upgrade failure.

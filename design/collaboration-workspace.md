@@ -29,17 +29,17 @@ OpenCraft 内存在两套完全独立的聊天产品：
 
 | 产品 | 权威数据 | 前端状态 | 呈现 |
 |---|---|---|---|
-| 下游产品 IM Chat | 腾讯云 IM 消息与会话；collaboration 保存资源映射和 IM MessageThread 引用 | IM connection、conversation、draft、unread、search、IM thread | Collaboration Workspace |
+| 下游产品 IM Chat | 第三方 IM 消息与会话；collaboration 保存资源映射和 IM MessageThread 引用 | IM connection、conversation、draft、unread、search、IM thread | Collaboration Workspace |
 | Codex 会话 ChatUI | AppServer / Agent Runtime 的 Thread、Turn、Item、Agent Activity 和 Tool 状态 | Workbench Thread lease、Timeline、Composer、panel resources | 现有 OpenCraft Conversation |
 
 硬性禁止：
 
-- 腾讯 IM Message 不得转换为 AppServer Turn/Item 后塞进 Codex Timeline。
-- Codex Agent Activity、thinking、tool call 或 token stream 不得写入腾讯 IM 历史。
+- 第三方 IM Message 不得转换为 AppServer Turn/Item 后塞进 Codex Timeline。
+- Codex Agent Activity、thinking、tool call 或 token stream 不得写入第三方 IM 历史。
 - IM draft/unread/selection 不得复用 Codex Draft、Thread lease 或 Composer queue。
 - IM MessageThread 与 Codex Thread 必须使用不同类型名、route kind、service 和持久 key。
 - Collaboration 插件不得 import Codex/AppServer conversation renderer；Codex Chat 插件也不得
-  import腾讯 IM adapter。
+  import第三方 IM adapter。
 
 Agent 可以通过 `vela-computer` 从 IM 收到工作并把结果发回 IM；这是 Agent 侧协议桥接，
 不是前端两套 Chat 状态的合并点。
@@ -56,7 +56,7 @@ IM 群聊和 Server 内私聊是一套体验、一个消息模型和一套 Compo
 
 - Channel Topic：支持 @、Task 投影和 IM MessageThread；history/search 使用 sequence；不发送
   普通群已读回执。
-- Server 内私聊：底层为腾讯双人 Group；不支持 @、Task 投影和 IM MessageThread；history
+- Server 内私聊：底层为第三方双人 Group；不支持 @、Task 投影和 IM MessageThread；history
   定位与已读行为使用普通 Group 能力。
 
 不得为群聊、私聊复制两套 Store 或两套发送实现。
@@ -122,8 +122,8 @@ browser-history push，因此需先增加窄的 `pushViewResource()` host port�
 | `ImDirectoryService` | Channel、私聊、Members、成员详情和 membership operation projection | IM SDK lifecycle、消息正文 |
 | `ImChatService` | 群聊/私聊统一 conversation 状态、消息、draft、未读、search、send/reconcile | Codex Thread/Turn/Activity |
 | `ImMessageThreadService` | root ref、reply ref cursor、IM hydration、thread unread/read | Codex Thread lease、主会话 message array |
-| `ComputerService` | Computer 产品身份、Server 归属、desired lifecycle、Agent 绑定和 CAS | CTL 内部任务细节、TAT Enrollment |
-| CTL adapter/projection | 下游产品 instance 的实际执行与 observed runtime state | Computer 产品身份和 Server 权限 |
+| `ComputerService` | Computer 产品身份、Server 归属、desired lifecycle、Agent 绑定和 CAS | 桌面服务内部任务细节、企业服务 Enrollment |
+| 桌面服务 adapter/projection | 下游产品 instance 的实际执行与 observed runtime state | Computer 产品身份和 Server 权限 |
 | Host terminal port | exact instance terminal session、panel tab 和资源生命周期 | Computer 页面状态、active Bot 切换 |
 
 React View 只订阅这些 service 的 snapshot；网络、timer、UserSig renewal、polling 和 SDK
@@ -139,15 +139,15 @@ Computer 实现来源：
 
 - `kind = lightvela_instance`；当前 UI 不提供其他 kind。
 - 创建 Computer 的唯一入口是从当前下游产品账户实例目录选择已有实例；Computer 页面
-  不购买或新建 CTL 实例。
+  不购买或新建桌面服务实例。
 - 一个 Computer 只能归属一个 Server；一个 Server 可以拥有多个 Computers。跨 Server 使用
   必须先显式迁移归属，不能让同一个 Computer 同时出现在多个 Server 权限域。
 - collaboration 拥有 Computer ID、Server 归属、产品 desired state、Agent 绑定、权限、revision
   和产品生命周期编排。
-- `providerRef.instanceId` 是不可变的 CTL 执行引用，不是另一个用户可见 binding 实体。
-- CTL 接收 Computer service 的产品动作，拥有底层 instance task 和实际 observed state；观测
+- `providerRef.instanceId` 是不可变的桌面服务执行引用，不是另一个用户可见 binding 实体。
+- 桌面服务接收 Computer service 的产品动作，拥有底层 instance task 和实际 observed state；观测
   结果回投独立 Computer projection。
-- UI 不能出现安装脚本、setup code、Computer credential、TAT 注册或外部 Computer 加入。
+- UI 不能出现安装脚本、setup code、Computer credential、企业服务注册或外部 Computer 加入。
 - collaboration 旧 `computers`、`tat_instance_bindings`、setup/enrollment/terminal API 已发布，
   不得原地改写；需要新的正式契约版本和迁移/退役策略。
 
@@ -157,13 +157,13 @@ Computer 实现来源：
   revision、created_by_member_id。
 - provider identity registry 保证同一下游产品 instance 最多对应一个未退役 Computer；所有
   Server 查询仍显式携带 `server_id` ShardKey。
-- 独立 runtime projection 保存 CTL lifecycle、last synced at、stable error code 和 runtime
+- 独立 runtime projection 保存桌面服务 lifecycle、last synced at、stable error code 和 runtime
   metadata；不得把 observed state 写回 authority 字段。
 - Agent 继续引用 Computer ID，不额外引入 binding ID。
 
 ## Terminal 接入
 
-不复用 collaboration 旧 `/terminal-sessions`，也不在插件内创建 xterm/TAT client。
+不复用 collaboration 旧 `/terminal-sessions`，也不在插件内创建 xterm/企业服务 client。
 
 使用 platform 的 instance-scoped terminal provider：
 
@@ -172,8 +172,8 @@ Computer 实现来源：
 3. `lightvela-platform` 为精确 instance 创建 terminal session。
 4. `plugin-terminal` 继续拥有 terminal registry、right/bottom panel tab、resize 和 dispose。
 
-底层 provider 可以调用 CTL/TAT，但 Collaboration 插件只看见 terminal resource port，不
-拥有 TAT 纳管逻辑。
+底层 provider 可以调用桌面服务/企业服务，但 Collaboration 插件只看见 terminal resource port，不
+拥有企业服务纳管逻辑。
 
 ## 源码迁移策略
 
@@ -189,7 +189,7 @@ Computer 实现来源：
 - Expo Router route tree；
 - React Native、Unistyles、mobile primitive 和旧 WorkspaceChrome；
 - Zustand 单体 `app-store.ts`；
-- 旧 Human Auth、Computer Enrollment、registration script、TAT terminal controller；
+- 旧 Human Auth、Computer Enrollment、registration script、the enterprise service terminal controller；
 - Codex Conversation/Activity renderer。
 
 ## 实施顺序
@@ -200,10 +200,10 @@ Computer 实现来源：
    列表、搜索、附件和成员上下文操作。
 4. **IM MessageThread**：独立 service/snapshot，按平台 reply refs 从 IM hydrate。
 5. **Computers（默认关闭）**：平台列出现有下游产品 instances；后台实现
-   `Computer(kind=lightvela_instance)` authority、唯一归属 registry 和 CTL projection；
+   `Computer(kind=lightvela_instance)` authority、唯一归属 registry 和桌面服务 projection；
    Computer 页面不创建实例。Tasks/Reminders 不进入本轮。
 6. **Terminal**：精确 instance provider + host-owned panel，不走旧 Enrollment surface。
-7. **退役**：删除插件内临时 View、禁止新客户端调用旧 Auth/Enrollment/TAT surface；旧发布契约
+7. **退役**：删除插件内临时 View、禁止新客户端调用旧 Auth/Enrollment/企业服务 surface；旧发布契约
    按版本策略保留或下线。
 
 ## 验收门禁
@@ -213,8 +213,8 @@ Computer 实现来源：
 - IM 群聊/私聊共用同一 Chat service/UI 测试；capability 差异有独立 fixtures。
 - IM MessageThread 与 Codex Thread 类型、storage key、route 和 snapshot 不可互换。
 - resource URI round-trip、deep link、Back/Forward、刷新恢复通过。
-- Terminal 测试锁定 exact instance；断言不调用旧 enrollment 或 collaboration TAT session API。
-- Computer UI 无外部加入、安装、setup code、credential 文案，也不包含购买/创建 CTL 实例。
+- Terminal 测试锁定 exact instance；断言不调用旧 enrollment 或 collaboration 企业服务 session API。
+- Computer UI 无外部加入、安装、setup code、credential 文案，也不包含购买/创建桌面服务实例。
 - 未配置可信 instance ownership directory 时，Computer 导航和实例读取均不存在；不能展示一个
   无法完成加入流程的默认入口。
 - OpenCraft extension/typecheck/boundary/build 门禁，以及浏览器宽屏、窄屏、刷新、重连 QA 通过。

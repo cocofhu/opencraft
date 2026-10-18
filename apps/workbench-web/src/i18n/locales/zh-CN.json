@@ -342,7 +342,7 @@
   "webUpdates.checking": "正在检查…",
   "webUpdates.checkFailed": "检查失败",
   "webUpdates.notPublished": "暂无发布版本",
-  "webUpdates.notPublishedHint": "公司源的此渠道尚未发布网站版本。当前网站继续运行，发布后可再次检查更新。",
+  "webUpdates.notPublishedHint": "企业源的此渠道尚未发布网站版本。当前网站继续运行，发布后可再次检查更新。",
   "webUpdates.error.authentication": "npm 认证失败，请配置网站部署用户的 npm 凭据。",
   "webUpdates.error.network": "无法连接npm 源，请检查服务器网络后重试。",
   "webUpdates.error.unavailable": "网站服务无法找到 npm，请检查服务的 PATH 配置。",

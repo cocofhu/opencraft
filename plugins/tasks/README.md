@@ -81,7 +81,7 @@ subscriptions; extension retirement clears drafts and fences late replies.
 - `npm run preview:tasks:workbench`: actual Workbench with independent data.
   First run `npm run prepare:dsh-runtime`, then build Web with
   `OPENCRAFT_HEADLESS_SERVER_BUILD=true` and `VITE_APPSERVER_HOSTS_JSON` set to
-  `[{"hostId":"opencraft-server","label":"Join","kind":"durable","executionLocation":"This server","url":"/appserver","workspaceBrowseRoots":["/"]}]`.
+  `[{"hostId":"opencraft-server","label":"managed site","kind":"durable","executionLocation":"This server","url":"/appserver","workspaceBrowseRoots":["/"]}]`.
   `OPENCRAFT_TASKS_WORKBENCH_DATA` retains a chosen independent data directory;
   `OPENCRAFT_CODEX_EXECUTABLE` supplies Codex outside PATH. Loopback only; this
   does not switch an existing Workbench.

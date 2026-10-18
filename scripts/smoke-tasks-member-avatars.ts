@@ -109,7 +109,7 @@ try {
       assert.equal(JSON.stringify(snapshot().tasks), tasksBefore, "Profile maintenance cannot change a task, responsibility or revision");
     } finally { await context.close(); }
   }
-  // IOA is absent at activation; all profile references still leave ordinary tasks operational.
+  // enterprise identity is absent at activation; all profile references still leave ordinary tasks operational.
   const context = await browser.newContext({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
   try {
     const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", error => errors.push(error.message));
@@ -126,5 +126,5 @@ try {
     await page.screenshot({ path: join(artifacts, "no-ioa.png"), animations: "disabled" });
   } finally { await context.close(); }
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, cases: ["8 desktop/touch light/dark scenes", "real shared IOA avatar provider", "pending photo keeps initials/loaded photo replaces fallback/404/missing identity/unknown kind", "UI edit and clear persisted profile", "profile changes preserve task rows and revisions", "My tasks with initials", "IOA absent and ordinary assignment works", "24px geometry and no overflow", "zero page errors"], artifacts }));
+  console.log(JSON.stringify({ passed: true, cases: ["8 desktop/touch light/dark scenes", "real shared enterprise identity avatar provider", "pending photo keeps initials/loaded photo replaces fallback/404/missing identity/unknown kind", "UI edit and clear persisted profile", "profile changes preserve task rows and revisions", "My tasks with initials", "enterprise identity absent and ordinary assignment works", "24px geometry and no overflow", "zero page errors"], artifacts }));
 } finally { service.close(); await browser.close(); await server.close(); await rm(data, { recursive: true, force: true }); }

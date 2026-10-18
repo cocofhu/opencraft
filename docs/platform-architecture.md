@@ -393,7 +393,7 @@ their existing physical-presentation lifetime. The control button projects the
 user's intention immediately as Stop; only a valid backend grant enables input.
 
 The neutral desktop plugin now owns the lazy noVNC media adapter; Vela's
-`lightvela-platform/desktop` provider owns account/directory validation, CTL
+`lightvela-platform/desktop` provider owns account/directory validation, desktop service
 preparation and attachment handoff through narrow ports. Dependencies point
 from product to neutral contract/media/session-wire, never in reverse. Vela's
 viewer port consumes configured authenticated broker endpoints and never owns
@@ -409,7 +409,7 @@ Local Linux Codex Hosts have a separate explicit `--local-desktop` composition:
 and root-verified streams; `CodexEngineAdapter` binds grants to server-stamped
 logical Client epochs. Workbench's `HostDesktopBackend` maps Scope aliases to
 native Thread IDs and consumes the neutral media/session-wire. It is independent
-of Vela accounts and TAT. The dedicated WebSocket gateway is exact-Origin and
+of Vela accounts and enterprise service. The dedicated WebSocket gateway is exact-Origin and
 loopback-only by default; an explicit `--trusted-internal-desktop` deployment
 instead trusts everyone admitted to that installation's network access. That
 deployment advertises a distinct same-origin trusted-internal transport, supports
@@ -862,7 +862,7 @@ title writer keeps optimistic edits scoped to the same Host/Thread until the
 native acknowledgement or failure arrives.
 The application shell alone projects the current page title to `document.title`
 as `<page title> · <application name>`, sharing the header's task/extension title rather
-than introducing a second title cache. Join Web uses `JoinVela`, including initial HTML;
+than introducing a second title cache. The managed site Web uses `the managed-site brand`, including initial HTML;
 Electron uses `OpenCraft`, and embedded workbenches leave the host title unchanged.
 Draft and Settings pages use the application name;
 background conversations and panels cannot overwrite the document title.
@@ -1226,7 +1226,7 @@ hides both, and disabling developer mode exits an already-open storage route.
 This is a presentation gate; storage services and data are not removed.
 Anonymous state renders the complete the downstream product site selection and sign-in
 controls in that content area instead of replacing the page with a bare notice.
-Authenticated state mounts the existing TAT file manager for the selected Bot.
+Authenticated state mounts the existing enterprise service file manager for the selected Bot.
 This page does not invent local-storage semantics. Skills is a separate full
 Workbench adapted from `chat-demo-v2`: public catalog discovery is anonymous,
 while installed state and mutations belong to an explicit installation target.
@@ -1399,13 +1399,13 @@ Embedded Vite `assets/a-[hash][extname]` resources have immutable one-year cache
 headers in the Pages artifact. Stable loaders, version files and Service Workers
 remain revalidated; publishing must continue retaining old content-hash closures.
 
-The authenticated domestic Chat route may also prepare a physical TAT connection
+The authenticated domestic Chat route may also prepare a physical enterprise service connection
 from the intermediate result of its existing instance-list read, independently
 of the slower per-instance Profile catalogs. A sole discovered instance that is Running or an
 explicit verified root-instance selection is required; a named Bot among several
-machines is not enough to guess its physical target. The TAT API retains ownership,
+machines is not enough to guess its physical target. The enterprise service API retains ownership,
 Running-state and active-Pass checks. No extra Application/account service is
-created, and the preparation sends only the TAT handshake: no PTY, Dashboard
+created, and the preparation sends only enterprise service handshake: no PTY, Dashboard
 bootstrap, loopback health probe, Profile tools or AppServer RPC.
 
 This in-process preparation capability is owned by the route/session discovery
@@ -1880,7 +1880,7 @@ template-based cloning to the existing instance Bot API; it never constructs a
 native profile from the display name. Root profile deletion is prohibited.
 Creation receipts retain success or failure for a command ID; uncertain writes
 are not retried automatically. Semantic revisions increase within the Host port;
-fresh-read revision checks and serialized writes are not a CTL cross-client CAS.
+fresh-read revision checks and serialized writes are not a desktop service cross-client CAS.
 Deleted Bot events invalidate open conversation snapshots and block later sends.
 Only current Host generations may publish mutation receipts into the directory.
 
@@ -2278,7 +2278,7 @@ desktop workbench or receive desktop IPC capabilities. Closing/reloading the
 initiating renderer cancels its pending transaction; late callbacks cannot log in.
 Authenticated account/control-plane reads and updates use a Main-owned HTTP port,
 restricted to the saved session's regional authority and known account, instance
-listing, TAT-session and configuration endpoints. Main attaches the credential;
+listing, enterprise service-session and configuration endpoints. Main attaches the credential;
 renderer-supplied destinations cannot turn it into a general proxy. This avoids
 depending on production Web CORS rules for random desktop loopback origins.
 
@@ -2506,7 +2506,7 @@ conversation descendants. Both translated edges still share the same progress,
 and this paint boundary does not change gesture, DOM or scroll ownership.
 
 Desktop destination buttons show icons only; accessible labels and Radix tooltips
-retain their names. The common Header owns the standalone Join mascot/wordmark
+retain their names. The common Header owns the standalone managed site mascot/wordmark
 and trailing sidebar toggle on conversation, task, settings and collapsed routes.
 The measured brand region uses the default sidebar width capped by viewport
 space; it is independent of whether a route supplies context. History arrows
@@ -2738,8 +2738,8 @@ Host, alter the active conversation, or rewrite model/provider configuration.
 Electron activates these settings with its daemon-owned `local` and
 `local-codex` Host profiles. The generic OpenCraft Web package includes these
 settings views and activates them from website-owned HTML configuration before
-Host startup. The website derives `local` (Join) and `local-codex`
-(Join), both `remote-control`, from its primary and Codex proxy targets. URLs
+Host startup. The website derives `local` (managed site) and `local-codex`
+(managed site), both `remote-control`, from its primary and Codex proxy targets. URLs
 remain same-origin; private execution addresses and HyperNode user headers are
 not exposed. The managed website disables the HyperNode plugin to avoid a duplicate
 primary profile; its user header remains transport configuration only. Explicit `VITE_APPSERVER_HOSTS_JSON` overrides the runtime
@@ -2906,7 +2906,7 @@ install metadata without a login redirect. Other brand links retain their own
 fetch semantics; validated same-origin asset URLs remain mandatory.
 
 Manifest publication is opt-in through the product descriptor's `manifestUrl`.
-Join currently omits it: both initial HTML and runtime branding emit no manifest
+The managed site currently omits it: both initial HTML and runtime branding emit no manifest
 link, while title, favicon, touch icon and public share metadata remain active.
 Legacy static manifest/icon files remain available for existing pages; absence
 of a link does not clear browser data, unregister workers or uninstall an app.

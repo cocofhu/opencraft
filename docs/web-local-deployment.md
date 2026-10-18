@@ -45,7 +45,7 @@ curl --fail --silent --show-error http://127.0.0.1:10000/__opencraft_updates
 
 使用 `.nvmrc` 对应 Node 和当前 checkout 的依赖。选择本地精确包版本，设置 `OPENCRAFT_RELEASE_VERSION`；核对当前版本与公共渠道，避免未来正式版本号低于本机版本。源码未提交时保留 dirty 标记。
 
-网站服务在每次 HTML 响应中注入 Host 列表与内置扩展开关。`OPENCRAFT_APPSERVER_URL` 提供 `local`（Join），`OPENCRAFT_CODEX_APPSERVER_URL` 提供 `local-codex`（Join），两者使用同源代理路径；浏览器中已有的 Host 关联保持不变。通用包和公共 npm 包均不需要部署用的 `VITE_*` 构建变量。设置执行地址仍是网站服务的运行时配置，不在页面上填写。
+网站服务在每次 HTML 响应中注入 Host 列表与内置扩展开关。`OPENCRAFT_APPSERVER_URL` 提供 `local`（受管站点），`OPENCRAFT_CODEX_APPSERVER_URL` 提供 `local-codex`（受管站点），两者使用同源代理路径；浏览器中已有的 Host 关联保持不变。通用包和公共 npm 包均不需要部署用的 `VITE_*` 构建变量。设置执行地址仍是网站服务的运行时配置，不在页面上填写。
 
 `OPENCRAFT_HYPERNODE_USER` 只作为代理请求头发送，不注入网页，不决定 Host 身份。网站的主端点统一使用 `local`，运行时配置关闭 HyperNode 插件以避免重复 Host。内置 Agent 设置页在存在 `local` 或 `local-codex` 时激活，不包含执行引擎。
 

@@ -21,7 +21,7 @@ import time
 
 
 # The operator installs one private binding. Browser requests cannot select an
-# executable, display, port or user. Source: CTL's verified immutable observer
+# executable, display, port or user. Source: desktop service's verified immutable observer
 # transport; this standalone Host composition also supports an existing Xvnc.
 CONFIGURATION = pathlib.Path("/etc/opencraft/desktop.json")
 

@@ -11,7 +11,7 @@ export interface NativeObserver {
   open(incarnation: string, signal: AbortSignal): Promise<Socket>;
 }
 
-/** Fixed verified loopback endpoint. No TAT, user shell or arbitrary TCP target.
+/** Fixed verified loopback endpoint. No enterprise service, user shell or arbitrary TCP target.
  * The private key stays on the Host. No credential reaches the renderer. */
 export function createNativeObserver(): NativeObserver {
   const openVerified = async (signal: AbortSignal, expected?: string) => {
