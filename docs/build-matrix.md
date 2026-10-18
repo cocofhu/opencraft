@@ -25,6 +25,37 @@ so each surface is an explicit matrix target with its own artifact contract.
 | `expo-android-internal-apk` | Expo prebuild + Gradle release | Installable internal APK | Linux/macOS with JDK and Android SDK |
 | `expo-android-release-apk` | Expo prebuild + Gradle, external PKCS12 signing | Configured public application ID, signed APK and filing text | Linux with JDK, Android SDK and release key |
 
+## Optional developer references and browser evidence
+
+Default builds, `npm run gate` and public product-entry tests do not require a
+parent monorepo or reference checkout. Prepare the separate locked execution
+runtime with `npm run prepare:dsh-runtime` before running the full gate.
+
+Historical source-parity tools are opt-in. Obtain a compatible snapshot yourself;
+the repository does not distribute or download it. Select the local input explicitly:
+
+```sh
+CODEX_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-work-status.ts
+CODEX_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-activity-rendering.ts
+CODEX_SCROLL_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-scroll.ts
+CODEX_SCROLL_REFERENCE_ROOT=/absolute/reference npx tsx scripts/diagnose-work-status-completion.ts
+CODEX_REFERENCE_ROOT=/absolute/reference npx tsx --test tests/codex-activity-model.test.ts
+node scripts/check-dsh-source.mjs /absolute/reference/services
+node scripts/export-hermes-connector-catalog.mjs /absolute/marketplace
+```
+
+The scroll tools also accept `CODEX_REFERENCE_ROOT` when the scroll-specific
+variable is unset. Missing inputs fail with a setup instruction before a browser
+or server starts. These tools retain their existing snapshot layout and function
+fingerprints; configuring a directory does not prove version compatibility or
+source rights. The catalog exporter emits historical product metadata and does
+not install a connector or connect to a service.
+
+Goal and navigation-avatar browser probes write screenshots to a unique system
+temporary directory and print its path. They do not require `/data`, and retain
+the evidence for inspection. Browser selection still uses
+`OPENCRAFT_CHROMIUM_EXECUTABLE` when needed.
+
 ## Browser compatibility
 
 The browser baseline is Safari 16.6 / iOS Safari 16.6–16.7 (including iPadOS

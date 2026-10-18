@@ -2,7 +2,8 @@
 // Icons beside the generated file are copied from the same Overmind marketplace snapshot.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-const root = process.argv[2] ?? '/data/overmind/resources/marketplace';
+if (!process.argv[2]?.trim()) throw new Error('Usage: node scripts/export-hermes-connector-catalog.mjs <marketplace-directory>; this optional product snapshot is not included in OpenCraft.');
+const root = process.argv[2];
 const manifest = JSON.parse(readFileSync(join(root, '.codebuddy-connector/connectors.json'), 'utf8'));
 console.log('// Generated marketplace browsing snapshot. No VM connection or credentials required.');
 console.log('import type { ConnectorCard, ConnectorDetail } from "./connector-client";');

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import vm from "node:vm";
 import ts from "typescript";
+import { requireReferenceDirectory } from "./lib/reference-input";
 import {
   deriveTurnWorkStatus,
   formatWorkDuration,
@@ -10,9 +11,7 @@ import {
   type TimelineSourceTurn,
 } from "@opencraft/chat-core";
 
-const root =
-  process.env.CODEX_REFERENCE_ROOT ??
-  "/data/mia/.runtime/lifecycle-authority-dead-contract-r3562";
+const root = requireReferenceDirectory(process.env.CODEX_REFERENCE_ROOT, "CODEX_REFERENCE_ROOT");
 const { insertWorkStatusItem } = await import(
   pathToFileURL(`${root}/editor/shared/derive-work-interval.js`).href
 );

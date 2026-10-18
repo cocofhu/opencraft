@@ -2,12 +2,11 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
-
-export const codexActivityReferenceRoot =
-  "/data/mia/.runtime/lifecycle-authority-dead-contract-r3562";
+import { requireReferenceDirectory } from "./reference-input";
 
 /** Exact r3562 bodies. App services and unrelated tool-body rendering stay explicit test ports. */
-export function loadCodexActivityFunctions(root = codexActivityReferenceRoot) {
+export function loadCodexActivityFunctions(input = process.env.CODEX_REFERENCE_ROOT) {
+  const root = requireReferenceDirectory(input, "CODEX_REFERENCE_ROOT");
   const fingerprints: Record<string, string> = {};
   function extract(file: string, names: readonly string[]) {
     const source = readFileSync(join(root, file), "utf8");
