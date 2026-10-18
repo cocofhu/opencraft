@@ -44,7 +44,7 @@ try {
  await page.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():(external.push(r.request().url()),r.abort()));
  await page.goto(url);await page.locator('body[data-ready="true"]').waitFor({timeout:60000});
  const draft=page.getByRole('textbox',{name:'Retained draft'});await draft.fill('Retained through locale and geometry');
- const showSidebar=async()=>{const toggle=page.locator('[data-chrome-action-id="sidebar-toggle"]:visible').first();if(await toggle.count()&&(await toggle.getAttribute('aria-expanded'))!=='true')await toggle.click();};
+ const showSidebar=async()=>{const toggle=page.locator('.app-shell-root [data-chrome-action-id="sidebar-toggle"]:visible').last();if(await toggle.count()&&(await toggle.getAttribute('aria-expanded'))!=='true')await toggle.click();};
  const locales=['en-US','zh-CN','ms-MY','th-TH'];
  await mkdir(output,{recursive:true});
  const observed=[];
