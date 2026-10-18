@@ -13,7 +13,7 @@ User requested recording these issues for a subsequent fix (2026-09-08).
   name or arguments. Context, summary, progress, inline diff and structured result
   survive translation. Hermes tools expose expandable input/output/diff details
   and source-authored contextual subtitles instead of only a generic tool name.
-- `item/updated` is a Vela adapter notification extension, not a standard Codex
+- `item/updated` is a the downstream product adapter notification extension, not a standard Codex
   notification. Payload is `{threadId, turnId, item: {id, type, ...fields}}`.
   It patches that Item without starting/completing it or resetting lifecycle
   timestamps. Omitted fields are retained. `item/started` and `item/completed`
@@ -44,7 +44,7 @@ precise boundary rule.
 
 Local Hermes reference `tui_gateway/server.py` emits tool.start context/args,
 tool.complete summary/result/duration_s/optional inline_diff, and optional
-verbose args_text/result_text. The Vela toolItem mapper preserves name, args,
+verbose args_text/result_text. The the downstream product toolItem mapper preserves name, args,
 JSON-stringified result, duration and basic status but drops display context,
 summary and inline diff. Validate which fields the deployed Hermes advertises
 and actually sends; local latest source is not proof of production capability.

@@ -737,7 +737,7 @@ returning malformed success data. These fixtures do not certify a commercial
 backend or embedded preference policy.
 
 The real embedded preference policy is covered by
-`npm run smoke:product-isolation --prefix products/vela -- --embedded-only` (from the downstream product workspace), using the isolated
+`npm run smoke:product-isolation --prefix products/<product> -- --embedded-only` (from the downstream product workspace), using the isolated
 the downstream product Web and Embedded Workbench builds. It saves immediate follow-up through
 real the downstream product settings on the same origin/product, holds completion after real
 first-Turn admission, and checks that embedded still offers Queue. The same

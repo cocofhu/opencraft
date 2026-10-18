@@ -44,7 +44,7 @@ const bytes = (data: RawData): Buffer => Array.isArray(data) ? Buffer.concat(dat
 
 /** One backend owner for local bindings and viewers. Registration is backend
  * configuration, not browser IDs. This service is exposed only on an explicitly
- * loopback or trusted-internal Host; it is not Vela auth or a public multi-tenant authority. */
+ * loopback or trusted-internal Host; it is not downstream auth or a public multi-tenant authority. */
 export class LocalDesktopService {
   private readonly attachments = new Map<string, Attachment>();
   private readonly preparing = new Map<string, number>();

@@ -17,7 +17,7 @@ import { NewTaskIcon } from "../apps/workbench-web/src/chrome-actions/new-task-i
 import { ReferenceNavigationIcon, ReferenceNewTaskIcon, ReferenceSidebarToggleIcon } from "./fixtures/vela-icon-reference";
 const render = (component: ReturnType<typeof createElement>, product = "lightvela-web") => renderToStaticMarkup(createElement(WorkbenchProductContext.Provider, { value: product }, component));
 const geometry = (markup: string) => [...markup.matchAll(/<(?:path|circle|rect|line|polyline|polygon|ellipse)\b[^>]*>/g)].map(match => match[0]);
-for (const selected of [false,true]) test(`Vela navigation retains the fixed old artwork, size and selected/silhouette state (${selected})`, () => {
+for (const selected of [false,true]) test(`Downstream navigation retains the fixed old artwork, size and selected/silhouette state (${selected})`, () => {
   for (const name of ["chat","write","message-circle","cloud","database","folder","hard-drive","server","bot","settings","applications","columns","unknown","collaboration"]) {
     const actual=render(createElement(NavigationIcon,{name,selected}));
     const reference=renderToStaticMarkup(createElement(ReferenceNavigationIcon,{name,selected}));

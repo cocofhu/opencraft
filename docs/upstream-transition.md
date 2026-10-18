@@ -29,7 +29,7 @@ no independently maintained duplicate core baseline.
 | Upstream core | Downstream product |
 | --- | --- |
 | Actor identity, verified identity bindings, authorization, audit, Hub routing | enterprise identity verification, employee fields, enterprise avatar service |
-| Local/OIDC account adapters and public identity/execution ports | Vela account, billing, Bot discovery and cloud-service/Hermes composition |
+| Local/OIDC account adapters and public identity/execution ports | the downstream product account, billing, Bot discovery and cloud-service/Hermes composition |
 | Chat, Composer, timeline, design tokens, public Web/Electron/Expo clients | managed site branding/navigation and the downstream product native/embedded product entrypoints |
 | Public build/release tools and contribution/maintenance skills | Internal deployment, release channels, business service config and integration ledger |
 
@@ -88,25 +88,25 @@ this migration does not claim a device/native build or change application behavi
   preserve the current UI until source/overlay ownership is resolved. A passing
   core gate does not substitute for this separate failing snapshot check.
 - Web Application/Supervisor now consume the trusted `@opencraft/client-product`
-  lifecycle rather than creating a Vela account. The public entry selects no
+  lifecycle rather than creating a the downstream product account. The public entry selects no
   private product. Downstream explicitly selects a local composition using
   `OPENCRAFT_CLIENT_PRODUCT_ENTRY`; the private client package owns early login
   callbacks, one account, ordered platform/Hermes activation, embedded preflight
   and optional Collaboration descriptors. Its borrowed cache port preserves
   product credential namespaces and profile hydration behavior. The private client
   and Collaboration plugin sources, manifests and tests are downstream-owned in
-  `products/vela/plugins`; the public workspace no longer installs those packages.
-  Platform/Hermes and the account SDK now live in downstream `products/vela`
+  `products/<product>/plugins`; the public workspace no longer installs those packages.
+  Platform/Hermes and the account SDK now live in downstream `products/<product>`
   as well. Public workspace manifests and locks no longer install those six
   private runtime/snapshot packages; this does not resolve source provenance.
 - The private embedded element, account/physical-connection adapter, root and
-  integration tests live in downstream `products/vela`. The trusted build owner
+  integration tests live in downstream `products/<product>`. The trusted build owner
   selects its local entry with `OPENCRAFT_EMBEDDED_PRODUCT_ENTRY`; default public
   Web/Electron builds have no embedded product input or loader. Explicit product
   builds retain the existing element API and loader URL. An embedded-only build
   without an explicit entry fails instead of producing an empty replacement.
   Generic paint, prompt, panel, audio and connection helpers remain core. The
-  Web application manifest no longer depends on Vela plugins. Original native
+  Web application manifest no longer depends on the downstream product plugins. Original native
   product sources and private package entities are owned downstream. Original
   private probes and synchronizers are now downstream-owned as well; core has
   no private CLI compatibility imports. Generic approval/extension behavior
@@ -153,19 +153,19 @@ this migration does not claim a device/native build or change application behavi
   assertions only recognize the generic endpoint, with all original binding and
   replay checks retained. This removes one dependency edge, not the product entrypoint closures.
 - Expo's default entry now composes the existing native Workbench/Composer and
-  direct WebSocket Host without selecting the Vela Router, account or Bot DOM.
+  direct WebSocket Host without selecting the downstream product Router, account or Bot DOM.
   `OPENCRAFT_EXPO_PRODUCT_ENTRY` and `OPENCRAFT_EXPO_PRODUCT_CONFIG` are trusted
-  local build inputs. Downstream `products/vela/run-expo.cjs` selects the original
+  local build inputs. Downstream `products/<product>/run-expo.cjs` selects the original
   Router or agents-next entry, owns edition configuration and the private iOS
   Bot prerequisite, and passes this choice through the entire native build.
   The shared runner generates only public math/Mermaid assets. Original private
   routes, account/region components, Bot views and their original tests now live
-  in downstream `products/vela/native`. The original Router registration consumes
+  in downstream `products/<product>/native`. The original Router registration consumes
   an explicitly selected product route context; core keeps the shared native
   Workbench and rendering adapters. Downstream styles scan the moved sources,
   and the product resolver binds shared SDK dependencies to the host instance.
   Platform/Hermes entities now live downstream too. Private native build aliases and agents-next assembly now belong downstream;
-  generic APK/IPA commands no longer select a private product. Vela owns its
+  generic APK/IPA commands no longer select a private product. the downstream product owns its
   original release naming and permission text, while core retains SDK/signing
   mechanics. Private smoke/tool aliases are now downstream-owned as described
   above. The fixed-revision source cutover is operational; source provenance
@@ -174,18 +174,18 @@ this migration does not claim a device/native build or change application behavi
   product release identifiers and callbacks are unchanged.
 - The original Platform/Hermes plugins, account SDK and three product snapshots
   (`lightvela-agent-core`, `vela-chat-client-core`, `vela-collaboration-web`) live
-  in downstream `products/vela/plugins` and `products/vela/packages`. Their package
+  in downstream `products/<product>/plugins` and `products/<product>/packages`. Their package
   names and runtime implementations are preserved. Product tests own the original
   private cases; mixed suites keep generic Actor/Host/Workbench checks in core.
   Product SSR tests bind transitive dependencies to the core renderer's React
   instance, matching the production bundler's deduplication.
 - Product shared-package and frontend-closure generators now live in downstream
-  `products/vela/tooling`. Private core CLI aliases and compatibility wrappers
+  `products/<product>/tooling`. Private core CLI aliases and compatibility wrappers
   are removed; downstream commands explicitly select the original core working
   directory and toolchain. Core boundary checks reject product source paths in
   public tools and package commands. The Console generator
-  writes original skill artwork to downstream `products/vela/public`, which also
-  owns the original cloud-service proxy Worker. `products/vela/build-web.mjs` and explicit
+  writes original skill artwork to downstream `products/<product>/public`, which also
+  owns the original cloud-service proxy Worker. `products/<product>/build-web.mjs` and explicit
   managed site builds select this trusted local directory using
   `OPENCRAFT_PRODUCT_PUBLIC_DIR`; public default builds do not carry it. Original
   URLs and bytes are preserved, and native Bot documents retain
@@ -198,14 +198,22 @@ The first boundary work must preserve credential-scope revocation, identity
 expiry, participant metadata, browser/WS admission and runtime disposal. A
 successful build with those behaviors disabled is not a completed split.
 
-## Current delivery decision (2026-10-18)
+## Current delivery decision (2026-10-19)
 
-The owner explicitly updated the objective: **no source cleanup is required**.
-This supersedes the earlier requirement to finish the source inventory or
-replace renderer-derived regions before the public upstream cutover. Source
-replacement work is stopped. The unmerged client replacements remain in draft
-[PR #20](https://github.com/opencraft-app/opencraft/pull/20); they are not part of
-the accepted migration baseline and must not be merged as migration prerequisites.
+The earlier instruction to finish the source inventory before the public
+upstream cutover was replaced by a narrower one: **presentation is neutralized,
+provenance evidence is not**. Reader-facing text — documentation prose, UI copy,
+labels, comments and test descriptions — no longer carries company, personal,
+internal-service or downstream brand identities. Wire contracts, persisted
+identifiers, package IDs and release artifact names are unchanged: renaming them
+would be a data migration, not copy editing.
+
+This does not touch legal provenance. The source inventory, `NOTICE`, per-package
+provenance records and the recorded review remain exactly as recorded, and no
+unresolved record is marked resolved. Source replacement work stays stopped; the
+unmerged client replacements remain in draft
+[PR #20](https://github.com/opencraft-app/opencraft/pull/20) and are not part of
+the accepted migration baseline.
 
 Original core contributions use Apache-2.0. Existing inventory, source
 annotations and third-party notices remain unchanged; this decision does not
@@ -216,7 +224,7 @@ solely to complete this migration.
 
 The canonical GitHub repository owns contributions, protected checks and release
 automation. The old history archive stays private. Complete Web/Electron/Expo
-clients remain in core; Vela/enterprise identity/managed site composition remains downstream. Dependency
+clients remain in core; the downstream product/enterprise identity/managed site composition remains downstream. Dependency
 findings stay advisory across the visibility change, with full reports retained.
 Secrets scans, relevant builds/tests and protected normal PR merges remain.
 No npm publication or downstream deployment is authorized by this cutover step.

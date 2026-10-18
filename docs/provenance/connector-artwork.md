@@ -13,7 +13,7 @@ operation has been removed. No runtime URL or remote artwork is loaded.
 
 Lucide's existing ISC license and included Feather MIT notice are retained by
 the dependency and the Web/Electron dependency-license output. This is replacement of the decorative image slots,
-not independent recreation of any brand mark. Private Vela/managed site artwork stays
+not independent recreation of any brand mark. Private the downstream product/managed site artwork stays
 downstream. Historical files and distribution rights remain unverified; the
 current-tree exclusion does not authorize publishing historical commits.
 

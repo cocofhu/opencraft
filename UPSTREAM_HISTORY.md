@@ -39,16 +39,16 @@ revision.
 
 ## Agent Console compatibility closure
 
-The downstream Vela product consumes a bounded closure of Agent Console source
+The downstream the downstream product product consumes a bounded closure of Agent Console source
 generated from its own frontend service. The generated compatibility copy lives
 in the downstream product workspace and is owned there together with its
 generator, drift check and `UPSTREAM.json`. Generated files are never edited by
 hand: change the downstream frontend source and regenerate. The public core has
 no frontend or private snapshot prerequisite.
 
-The shared product snapshots likewise live in the downstream `products/vela/packages`
+The shared product snapshots likewise live in the downstream `products/<product>/packages`
 workspace with their generator and explicit verification commands. The Console
-public asset output belongs to `products/vela/public`; explicit product builds
+public asset output belongs to `products/<product>/public`; explicit product builds
 select that directory with `OPENCRAFT_PRODUCT_PUBLIC_DIR`, and default core
 builds do not copy it. Original asset URLs and bytes are preserved. This
 ownership transfer does not clear historical provenance or complete a public

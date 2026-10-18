@@ -16,7 +16,7 @@ the independent latest-follow-content notification. There is no universal
 "defer all measurement" rule.
 
 The same ten-event sequence produced 0 warnings in the original functions and
-2 in Vela. A test-only removal of the ancestor observation produced 0/0 without
+2 in the downstream product. A test-only removal of the ancestor observation produced 0/0 without
 changing settled geometry. That diagnostic transform has now been removed;
 tests exercise the corrected production module directly.
 
@@ -26,10 +26,10 @@ tests exercise the corrected production module directly.
   coalesced resize notifications, without a second content-height cache.
 - Response wrapper installs this observer in a layout effect, as `oO` does.
 - Row transactions and follow-content reporting retain their synchronous order.
-- Vela's history-fill adapter receives a post-commit list-height notification.
+- the downstream product's history-fill adapter receives a post-commit list-height notification.
   It retains its existing single-flight coordinator, and cannot take over row
   measurements, response follow, or scroll compensation. This is the integration
-  of Vela pagination, not a claim that Codex has an identically named callback.
+  of the downstream product pagination, not a claim that Codex has an identically named callback.
 - Browser regressions now fail on ResizeObserver loop warnings instead of merely
   checking that they eventually stop.
 

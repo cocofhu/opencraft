@@ -3,7 +3,7 @@
 > Historical source inventory. On 2026-10-18 the owner removed source cleanup
 > from the migration scope. No further replacement work is required for the
 > GitHub upstream cutover; existing records are retained without changing their
-> unresolved status. See [the current decision](upstream-transition.md#current-delivery-decision-2026-10-18).
+> unresolved status. See [the current decision](upstream-transition.md#current-delivery-decision-2026-10-19).
 
 The current decision is **unverified: inventory and resolve before public
 redistribution**. Apache-2.0 is the intended license for original OpenCraft
@@ -113,10 +113,10 @@ history, generated assets and final archives before changing repository
 visibility or publishing a release. Historical commits are not cleared merely
 because the latest tree has been replaced.
 
-The Vela native icon and generated login mark were moved with their original
-bytes to downstream `products/vela/native`, outside the public core tree. This
+The the downstream product native icon and generated login mark were moved with their original
+bytes to downstream `products/<product>/native`, outside the public core tree. This
 is a product ownership transfer. Original skill artwork and enterprise service proxy Worker
-likewise belong to downstream `products/vela/public`, explicitly selected only by
+likewise belong to downstream `products/<product>/public`, explicitly selected only by
 product builds. These moves do not authorize remaining connector marks or artwork,
 or clear historical commits. The later bounded artwork disposition excludes the
 remaining connector image
@@ -163,7 +163,7 @@ retained in `packages/connector-core/NOTICE.md`.
 This verifies the recorded origin and retained repository license; it does not
 establish each brand owner's authorization or trademark distribution scope.
 The remaining review for this group concerns those individual marks and any
-historical distribution, rather than the already moved Vela/managed site artwork.
+historical distribution, rather than the already moved the downstream product/managed site artwork.
 At that reference-only review the group remained **unverified**. The finding
 did not change assets, client features or disposition, or clear any renderer
 group. The subsequent bounded exclusion is recorded below.

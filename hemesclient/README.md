@@ -1,6 +1,6 @@
 # hemesclient
 
-`hemesclient` is a small, self-contained Bun binary that presents a Vela/Codex AppServer
+`hemesclient` is a small, self-contained Bun binary that presents a the downstream product/Codex AppServer
 WebSocket endpoint while using Hermes Agent's JSON-RPC gateway as the authoritative backend.
 It connects to the real `/api/ws` transport and keeps Hermes' durable session id separate from
 the live id returned by `session.resume`.
@@ -47,7 +47,7 @@ machine does not need Node.js, Bun, or `node_modules`.
   --port 9989
 ```
 
-Point Vela at `ws://<bridge-host>:9989/rpc`. Probe the gateway without starting a server with:
+Point the downstream product at `ws://<bridge-host>:9989/rpc`. Probe the gateway without starting a server with:
 
 ```bash
 ./dist/hemesclient sessions --gateway http://127.0.0.1:9119
@@ -63,4 +63,4 @@ On this machine the services are `hermes-gateway.service`, `hermes-serve.service
 The adapter deliberately owns two identities: the durable Hermes session id is exposed as the
 AppServer thread id, while Hermes' short live `session_id` is private transport state. Async
 events are translated back through that map, so reconnect/resume never leaks a live id into a
-Vela route.
+the downstream product route.

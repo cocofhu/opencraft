@@ -5,7 +5,7 @@ import { HermesGatewayClient } from "./hermes-client";
 import { startServer } from "./server";
 
 function usage(): string {
-  return `hemesclient - Hermes Gateway to Vela AppServer bridge
+  return `hemesclient - Hermes Gateway to OpenCraft AppServer bridge
 
 Usage:
   hemesclient serve [--gateway URL] [--token TOKEN] [--host HOST] [--port PORT]

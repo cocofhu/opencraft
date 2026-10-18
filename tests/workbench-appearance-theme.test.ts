@@ -114,7 +114,7 @@ test("Lavender projects a complete soft-purple surface hierarchy without geometr
   }
 });
 
-test("Vela defines a web-native shell material without changing the Codex fallback", () => {
+test("The canvas theme defines a web-native shell material without changing the Codex fallback", () => {
   const vela = buildCodexThemeCssProperties("light", velaThemePalette.light);
   const extensionCompatible = buildCodexThemeCssProperties("light", {
     accent: "#3478f6",
@@ -203,7 +203,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.deepEqual(
       appearance.getAppearanceThemeSnapshot().availableThemes.slice(0, 5).map(({ label }) => label),
-      ["Codex", "Vela", "Frost", "Lavender", "ZenCode"],
+      ["Codex", "Canvas", "Frost", "Lavender", "ZenCode"],
     );
     assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.zenCodeThemeId)?.label, "ZenCode");
     assert.equal(properties.get("--codex-base-surface"), "#ffffff");

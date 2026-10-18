@@ -615,7 +615,7 @@ test("self-registration is capability-gated; opening twice focuses one tab per c
     assert.equal(runtime.panels.getToolbarActionSnapshot().length, 0); await empty.dispose();
     const installed = await runtime.install(createCloudDesktopWorkbenchPanelPlugin(f));
     const action = runtime.panels.getToolbarActionSnapshot()[0]!;
-    assert.equal(action.id, "opencraft.cloud-desktop.open", "neutral desktop entry is not owned by Vela");
+    assert.equal(action.id, "opencraft.cloud-desktop.open", "neutral desktop entry is not owned by the downstream product");
     const context = { ownerId: "panel:a", resourceOwnerId: "thread:a", hostId: "legacy-route", cwd: null };
     assert.equal(action.isAvailable?.({ ...context, resourceOwnerId: "thread:b" }), false);
     await action.run(context); await action.run(context);

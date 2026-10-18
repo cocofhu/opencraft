@@ -14,7 +14,7 @@ const essays = process.env.CODEX_SCROLL_ESSAYS === "1";
 const realClock = process.env.CODEX_SCROLL_REAL_CLOCK === "1";
 const baselinePolicy = process.env.CODEX_SCROLL_REFERENCE_POLICY === "baseline";
 // Geometry/animation comparison needs the same entry point on both sides.
-// The visible Vela button is exercised separately by the scroll smoke test.
+// The visible downstream button is exercised separately by the scroll smoke test.
 const testVisibleButton = process.env.CODEX_SCROLL_INPUT === "visible-button";
 const diagnoseResize = process.env.CODEX_SCROLL_RESIZE_DIAGNOSIS === "1";
 const boundaryFrames = Number(process.env.CODEX_SCROLL_BOUNDARY_FRAMES ?? 48);

@@ -102,7 +102,7 @@ test("mobile code-block formatting protects marks and atomic inline identities",
   }] };
   assert.equal(formatNativeComposerBlock(marked, { start: 0, end: 4 }, "code"), null);
   const mention: ComposerDocument = { version: 1, blocks: [{
-    type: "paragraph", children: [{ type: "mention", id: "agent-1", label: "Vela", mentionKind: "agent" }],
+    type: "paragraph", children: [{ type: "mention", id: "agent-1", label: "OpenCraft", mentionKind: "agent" }],
   }] };
   assert.equal(formatNativeComposerBlock(mention, { start: 0, end: 5 }, "code"), null);
 });
@@ -175,7 +175,7 @@ test("mobile Enter renumbers later ordered items and exits an empty list item", 
 test("mobile list split never cuts an atomic mention", () => {
   const original: ComposerDocument = { version: 1, blocks: [{
     type: "list", ordered: false, items: [{ id: "a", children: [{
-      type: "paragraph", children: [{ type: "mention", id: "bot", label: "Vela", mentionKind: "agent" }],
+      type: "paragraph", children: [{ type: "mention", id: "bot", label: "OpenCraft", mentionKind: "agent" }],
     }] }],
   }] };
   assert.equal(splitNativeComposerListItem(original, 4), null);
