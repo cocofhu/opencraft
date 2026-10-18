@@ -72,3 +72,5 @@ export { WORKBENCH_RESOURCE_POLICIES } from "./resource-policy";
 export * from "./account-model-defaults";
 
 export * from "./submitted-message-display";
+
+export * from "./host-composer-commands";

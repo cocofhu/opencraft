@@ -201,15 +201,21 @@ snapshot-oriented compatibility projection for Codex V3 Resume. Web and Native
 surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
-For a the downstream product Hermes Host, the Web Composer offers `/new`, `/compress`,
-`/status`, `/usage`, `/stop` and `/help` in its input footer and slash suggestions.
-Choosing a shortcut inserts editable text into the current Draft; only explicit
-submission executes it. Ordinary shortcuts use Hermes `prompt.submit`. A standalone
-`/stop` uses the Hermes Host `hermes/stop` request instead: it interrupts the active
-Turn through `session.interrupt` when one exists, then calls `process.stop` to kill
-running background processes. An idle or new chat still calls `process.stop`.
-The Composer Stop button continues to use `turn/interrupt` only. Other Hosts
-retain their own suggestions and have no Hermes shortcut menu.
+Host providers may declare localized Composer shortcuts as ordinary prompts or
+standalone actions. Selecting either only inserts editable text; explicit send is
+required. The core matches only a single paragraph with no attachments/context
+and no arguments. Ordinary prompts and unmatched input retain normal submission,
+including queue admission. The optional resident `composerCommands` port binds an
+action adapter to the actual Host/profile and protocol, never the selected Host
+or an engine ID. Disabled/revised profiles, disposed runtimes and retired or
+replaced providers refuse new actions; accepted calls hold their own provider
+leases until completion, even if the resident runtime is being disposed.
+
+Engine plugins own command names, descriptions and action-to-protocol mapping.
+For example, a plugin can give its standalone stop command stronger background
+cleanup semantics while the Composer Stop button retains `turn/interrupt`.
+A new Draft action need not create a Thread. The expected active Turn is captured
+from the matching Conversation so an adapter can refuse to interrupt a newer Turn.
 
 ## 跨桌面、手机和平板的会话连续性
 

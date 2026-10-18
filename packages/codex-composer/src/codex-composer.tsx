@@ -2286,7 +2286,7 @@ export const CodexComposer = forwardRef<
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
-                  <DropdownMenu.Content className="codex-composer-selection-menu codex-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label="Hermes commands" onCloseAutoFocus={(event) => {
+                  <DropdownMenu.Content className="codex-composer-selection-menu codex-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
                     if (!refocusAfterShortcutSelectionRef.current) return;
                     refocusAfterShortcutSelectionRef.current = false;
                     event.preventDefault();

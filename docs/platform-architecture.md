@@ -1631,7 +1631,8 @@ migration and must not become a second product-level lifecycle owner.
 
 Host discovery is dynamic, but ownership is not. `HostConnectionProfileStore`
 persists stable Host identities and provider configuration; the Cordis-owned
-`HostConnectionProviderRegistry` accepts trusted transport factories;
+`HostConnectionProviderRegistry` accepts trusted transport factories and optional
+Composer command adapters (see below);
 `HostRuntimeRegistry` lazily creates and exclusively owns complete Host
 runtimes. A provider lease is held for the lifetime of every runtime it
 created, so plugin reload cannot invalidate a live connection. Web currently
@@ -3078,3 +3079,16 @@ handlers execute in bounded QuickJS workers, not Node's application realm. The
 existing execution engines remain the history authorities; remote Hosts do not
 inherit this local resource authority. Service capability negotiation controls
 which conversations receive the authoring tool.
+
+## Host Composer command adapters
+
+Trusted Host connection providers may optionally own localized Composer command
+declarations and an action adapter. This extends their client-side adapter role,
+not their authority over Thread, queue, Replica or authorization. Registration
+validates and freezes declarations; catalog snapshots expose metadata only.
+The resident runtime projects an optional command port over its captured provider
+and protocol. Each invocation rechecks profile/runtime ownership, acquires the
+same provider instance and releases that per-call lease on success or failure.
+Retirement publishes removal immediately and drains already accepted calls.
+No command registry or asynchronous lookup of the selected Host is introduced.
+See [Composer semantics](chat-ui-architecture.md).

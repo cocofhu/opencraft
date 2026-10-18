@@ -1207,3 +1207,14 @@ authentication, access or ownership, and task assignment works without a provide
 ### Startup registration and demand presentation
 
 扩展元数据/provider 必须在路由恢复前可发现，管理页实现不属于注册依赖。Web 的 Required/Optional/Demand 阶段、共享账户/Host 生命周期、延迟组件失败重试和连接导入取消屏障，以 [Startup resource ownership](platform-architecture.md#startup-resource-ownership) 为当前实现契约；事件名 `onStartupFinished` 本身不保证模块已脱离关键图。构建应检查真实静态依赖，见 [启动资源门禁](startup-performance.md)。
+
+### Provider-owned Composer commands
+
+`HostConnectionProvider.composerCommands` is an optional trusted client adapter.
+Plugins declare localized `prompt` or `action` suggestions and implement action
+execution through a protocol port bound to the resident Host. The core presents
+the declarations and dispatches only explicit standalone action submissions; it
+does not choose engine command names or wire methods. Provider retirement/replacement
+and Host/profile invalidation reject new calls, with accepted invocations drained
+under independent provider leases. This does not grant plugin authorization or
+change ordinary Thread submission and queue ownership.
