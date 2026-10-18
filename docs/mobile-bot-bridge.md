@@ -182,6 +182,14 @@ flowchart LR
 
 ## Native audio and packaged code
 
+The product composition supplies native capture through `AudioCapturePort` and
+transcription through `SpeechServicePort`. Its bootstrap-global compatibility,
+account/region binding and authenticated speech-service protocol stay downstream.
+The public workbench consumes these ports; it does not read product bridge globals
+or instantiate that product HTTP adapter. Native and product browser regressions
+belong with those adapters, while the shared recording/transient-input lifecycle
+continues to be tested in the public voice plugin.
+
 Executable modules, stylesheets and workers for the App-owned runtime come from
 the build. The packaged document permits inline/data/blob code and styles, with
 no network script or stylesheet source and no nested document. API responses

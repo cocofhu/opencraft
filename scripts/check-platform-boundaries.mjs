@@ -18,6 +18,20 @@ function collectFiles(directory) {
 
 const violations = [];
 
+// Shared workbench code consumes SpeechServicePort/AudioCapturePort. Product
+// bridge globals, authenticated routes and fixed product model policy belong
+// to downstream adapters rather than the public embedded host.
+checkFiles("shared voice composition", "apps/workbench-web/src", [{
+  pattern: /__LIGHTVELA_BOT_(?:RUNTIME_ID|POST)__/m,
+  message: "must receive native audio through a capture port, not product bootstrap globals",
+}, {
+  pattern: /\/api\/speech\//m,
+  message: "must receive the product speech service through its public port",
+}, {
+  pattern: /["']ep-hyasr3["']/m,
+  message: "must not select a fixed product speech model in the shared workbench",
+}]);
+
 checkFiles("shared styles", "apps/workbench-web/src/styles", [{
   pattern: /url\(\s*["']?\/lightvela-intl-home\//m,
   message: "must not select product artwork; compose product styles in the explicit product entry",
