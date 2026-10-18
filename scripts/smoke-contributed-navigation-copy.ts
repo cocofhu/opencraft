@@ -67,7 +67,7 @@ try {
    await page.waitForFunction(width=>Math.abs(document.querySelector('.app-shell-root').getBoundingClientRect().width-width)<1,width);
    await page.waitForFunction(width=>{const w=document.querySelector('.app-shell-sidecar')?.getBoundingClientRect().width??0;return width===390?w<1:w>1;},width);
    await showSidebar();
-   if(width===390){await item.locator('.shell-navigation__item-label--full').waitFor({state:'visible'});await item.locator('small').waitFor({state:'visible'});}
+   if(width===390){await item.locator('.shell-navigation__item-label--full').waitFor({state:'visible'});await item.locator('small').waitFor({state:'visible'});await page.waitForFunction(()=>{const badge=document.querySelector('[data-action-id="example.copy.nav"] small');const r=badge.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&badge.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));});}
    await page.screenshot({path:output+'/'+locale+'-'+theme+'-'+width+'.png',fullPage:true});
   }
   await page.setViewportSize({width:1440,height:1000});
