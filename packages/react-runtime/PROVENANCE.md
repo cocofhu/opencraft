@@ -6,7 +6,7 @@
 `useEvent` export from **react-use-event-hook 0.9.6**, by Scott Rippey, licensed
 under MIT. The workspace declares the exact version; the root lockfile pins:
 
-- Source: <https://github.com/scottrippey/react-use-event-hook/tree/35bc20cc9d789e2b95664915a72c7fd01b1cbbb2>
+- Project: <https://github.com/scottrippey/react-use-event-hook>
 - Registry archive: <https://registry.npmjs.org/react-use-event-hook/-/react-use-event-hook-0.9.6.tgz>
 - SHA512 integrity: `sha512-wNchkFrrlz64QQOJOf5+dFjy+27bJEwtS1SgliRXVsU60wo3pSntNRlwDws2qPHwrAP/wlm5IyQHBlPCya0JIQ==`
 - Archive SHA1: `cbe75361a366a9abd65d9513851a8f2fcc3f6e08`
@@ -18,6 +18,13 @@ the callback during React's insertion effect, before layout consumers. An
 uncommitted suspended render cannot publish its callback. The public library
 also rejects invocation before the first mount; OpenCraft's observer/layout
 consumers invoke commands only after commit. No React private internals are used.
+
+The npm metadata reports `gitHead` as
+`35bc20cc9d789e2b95664915a72c7fd01b1cbbb2`; that object could not be resolved
+through the current GitHub repository (raw source returned 404; Git tree API
+returned 422). It is retained as registry metadata, not presented as a verified
+Git source binding. The publicly downloaded archive's readable implementation,
+license and immutable integrity are the source of this licensed disposition.
 
 The library's environment selection requires `window` for its client effect.
 Web and Electron renderers provide it; React Native 0.86.3 initializes

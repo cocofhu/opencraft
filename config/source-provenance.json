@@ -53,7 +53,7 @@
       ],
       "reason": "The previous locally restored callback has been removed. The current OpenCraft adapter delegates to the exact public MIT-licensed react-use-event-hook 0.9.6 package.",
       "resolution": "Retain the upstream package license and pinned integrity, source notice, Web/Electron dependency license output and Expo public-manifest notice; verify stable identity and committed-render semantics.",
-      "conclusion": "Current callback implementation: react-use-event-hook 0.9.6, source commit 35bc20cc9d789e2b95664915a72c7fd01b1cbbb2, MIT, Copyright (c) 2022 Scott Rippey. OpenCraft retains only its typed useStableEvent adapter. Other react-runtime files are unchanged OpenCraft presentation helpers/exports/metadata. This disposition applies to the replacement source, not former implementations or historical commits; see PROVENANCE.md for exact archive integrity, notice distribution and verification limits."
+      "conclusion": "Current callback implementation: react-use-event-hook 0.9.6, verified immutable npm archive with lockfile SHA512 integrity, MIT, Copyright (c) 2022 Scott Rippey. OpenCraft retains only its typed useStableEvent adapter. Other react-runtime files are unchanged OpenCraft presentation helpers/exports/metadata. This disposition applies to the replacement source, not former implementations or historical commits; see PROVENANCE.md for exact archive integrity, notice distribution and verification limits."
     },
     {
       "id": "codex-timeline-virtualizer",
