@@ -1073,7 +1073,9 @@ identity and drafts; protocol numbers and raw server errors stay out of the UI.
 The Web recovery presentation does not equate non-authoritative with invisible.
 When a Thread already has painted Timeline frames, reconnect and retry preserve
 those frames, their scroll position and Composer draft; a small local connection
-notice shows the pending or failed state while commands remain disabled until
+notice shows reconnecting or failure copy, while background synchronization uses
+the shared neutral loading ring with a screen-reader-only localized status name
+and no badge surface. Commands remain disabled until
 authority returns. Only a Thread without visible frames gets a centered neutral
 loading ring in the Timeline's empty slot (delayed 200 ms to avoid fast-load
 flashes). It has no visible copy; the localized status name is screen-reader

@@ -71,10 +71,11 @@ export function ConversationRecoveryNotice({ failed, reconnecting, requiresUpdat
   readonly requiresUpdate?: boolean;
   readonly onRetry?: () => void;
 }) {
+  const syncing = !failed && !reconnecting;
   return (
-    <div className="conversation-recovery-notice" role={failed ? "alert" : "status"}>
-      <span className="conversation-recovery-notice__dot" aria-hidden="true" />
-      <span>{failed
+    <div className={`conversation-recovery-notice${syncing ? " conversation-recovery-notice--syncing" : ""}`} role={failed ? "alert" : "status"}>
+      {syncing ? <LoadingSpinner /> : <span className="conversation-recovery-notice__dot" aria-hidden="true" />}
+      <span className={syncing ? "conversation-recovery-loading__label" : undefined}>{failed
         ? requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.reconnect.failed" defaultMessage="Could not reconnect" />
         : reconnecting
           ? <FormattedMessage id="chat.reconnect.pending" defaultMessage="Reconnecting…" />
