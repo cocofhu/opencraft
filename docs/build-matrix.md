@@ -91,54 +91,71 @@ behavioral tests; optional preview/media errors must not break those flows.
 `build-matrix` runs on every PR, but `scripts/ci-plan.mjs` chooses its jobs from
 Git's full merge-base diff. It includes deleted paths and both sides of a rename;
 it does not use GitHub's limited workflow path filter or a paginated file API.
-The reusable `ci-plan.yml` runs the selector tests without installing npm packages
-and records selected work in the Actions summary. A missing diff selects the full
-validation baseline instead of silently skipping checks.
+The reusable `ci-plan.yml` tests the selector and aggregate check without
+installing npm packages and records selected work in the Actions summary.
+
+Automatic validation defaults to Web and relevant Linux server regressions.
+Electron, Expo and macOS builds require an explicit manual full-matrix request
+or their existing release workflows. Automatic selection never widens to those
+platforms, including for lockfiles, CI changes or an unreadable diff.
 
 | Changed area | Automatic validation |
 | --- | --- |
-| Root Markdown, README/AGENTS, `docs/`, `design/`, `.agents/` | No build; secrets scan remains |
-| Web renderer source or shared CSS/SCSS | Web browser + Electron renderer |
-| Expo application | Expo Web + iOS JavaScript bundle |
-| Electron Main/Preload/native code | Linux host build + macOS native host compile/tests |
-| Daemon, local agent host, DSH runtime | Electron host build |
-| Shared package/plugin code | All five portable targets; managed Web regression |
-| Web update UI, Vite/static inputs, update/deployment scripts and tests | Managed Web regression and applicable builds |
-| Root manifests/lockfile/toolchain, CI configuration, selector changes, unknown build inputs | Broad portable/runtime validation; no DMG |
+| Root Markdown, README/AGENTS, `docs/`, `design/`, `.agents/` | No product build or server archive; secrets scan and upstream contract remain |
+| Web renderer source or shared CSS/SCSS | Web browser build, typecheck and React runtime tests |
+| Expo application | Web compatibility build; native/Expo validation is opt-in |
+| Electron Main/Preload/native code, Daemon, local agent host, DSH runtime | Linux server regressions; desktop/native validation is opt-in |
+| Shared package/plugin code or unknown inputs | Web browser build, managed Web regression and Linux server regressions |
+| Web update UI, Vite/static inputs, update/deployment scripts and tests | Managed Web regression and applicable Web/server checks |
+| Root manifests/lockfile/toolchain or CI/selector changes | Web build, all installation-root audits, managed Web and Linux server regressions |
+| Server archive/installer/deployment inputs or build artifact contract | Linux server regressions plus archive build and smoke test |
 
-These are conservative area rules, not a source-level dependency graph. Root
-`package.json` changes intentionally select the broad baseline even if only a
-script changed; workspace manifests also select their install-root audit. Shared
-TypeScript may serve more than one platform, so it retains portable coverage.
-A source-only visual PR needs two renderer builds, not Expo, host, macOS or DMG.
+The server job installs dependencies once and always runs selected server tests;
+archive building, archive smoke and upload are separately conditional. Shared
+runtime or ordinary lockfile changes do not generate an installation archive.
+An unreadable diff conservatively selects Web, audits, server regressions and the
+server archive. Documentation changes do not run this product packaging job.
 
-A manual `build-matrix` dispatch runs the complete validation matrix. Set its
-`package_macos` checkbox to additionally build and upload the macOS DMG; the
-separate native compile job is then covered by the packaging job. Ordinary PRs
-never build a DMG. Signed/notarized release workflows and their tag/manual
-triggers are unchanged.
+Manual `build-matrix` dispatch defaults to `validation: web`, exercising Web and
+Linux server regressions. Choose `validation: full` to validate all five portable
+targets, macOS native code and the Linux server archive. The `package_macos`
+checkbox also selects full validation and uploads a macOS DMG; that packaging
+job covers the separate native compile. Signed/notarized release workflows and
+their tag/manual triggers are unchanged. Manual CI DMGs and server archives are
+retained for three days; release artifact retention is separate.
 
-New commits cancel superseded runs of the same PR. No workflow-level path filter
-leaves a required check pending: `build-checks` reports success when no build is
-needed and fails if planning or a selected job fails/cancels. Use this stable
-aggregate check rather than conditional matrix job names in branch protection.
-No repository protection settings are changed by this policy.
+New commits cancel superseded build, security, CodeQL and upstream-contract runs
+of the same PR. Jobs have bounded timeouts. No workflow-level path filter leaves
+a required check pending: `build-checks` succeeds for an intentionally empty
+build plan, but a selected job must succeed. A failed/cancelled/skipped selected
+job, missing plan output or unexpected execution fails the aggregate. Use the
+stable `build-checks`, `security-checks` and `upstream-contract` names in branch
+protection; this policy does not change repository protection settings.
+
+Dependabot runs weekly. Compatible minor/patch updates are grouped per npm
+installation root, and compatible Actions updates are grouped together. Major
+updates remain separate. Each ecosystem/root allows at most two simultaneous
+version-update PRs; existing open PRs are not automatically closed. Security
+update PR limits follow GitHub's separate policy.
 
 The `security` workflow runs once per PR, on pushes to `main`, and weekly. PRs
-only audit the npm installation roots whose manifests/lockfiles changed; main,
-weekly and manual runs audit all three roots so newly disclosed vulnerabilities
-remain visible without a dependency change. Managed Web E2E is selected by the
-update/deployment inputs above, not every visual edit. `security-checks` is the
-corresponding aggregate check. Selected audits retain complete findings. During
-private upstream migration only, dependency findings are advisory; public CI
-and local audit invocation retain the high-severity failure threshold. Tool and
-registry errors still fail in either mode. See [Security](../SECURITY.md#private-upstream-migration-audit-policy-2026-10-18).
+only audit the npm installation roots selected by changed manifests/lockfiles;
+CI/toolchain changes, main, weekly and manual runs audit all three roots so newly
+disclosed vulnerabilities remain visible without a dependency change. Managed
+Web E2E is selected by update/deployment and shared inputs, not every visual edit.
+Selected audits retain complete findings for three days. Advisory dependency
+findings remain advisory under the current upstream policy, independent of
+repository visibility; installation/registry errors, secrets and functional
+regressions still fail. See [Security](../SECURITY.md#upstream-audit-policy-2026-10-18).
 
-Validate policy changes with `node --test tests/ci-plan.test.mjs tests/dependency-audit.test.mjs` and `actionlint`
-on the three CI workflows. Tests cover source-only UI, native, Expo, shared code,
-dependency roots, documentation, manual/weekly runs, unavailable diffs, advanced
-base branches, deleted/renamed files, and changes exceeding 300 paths. This tests
-the scheduling contract; it does not replace product builds or release checks.
+Validate policy changes with
+`node --test tests/ci-plan.test.mjs tests/ci-workflows.test.mjs tests/dependency-audit.test.mjs`
+and `actionlint` on the affected workflows. Tests cover Web-only defaults,
+explicit manual full requests, server tests versus archives, unavailable diffs,
+advanced base branches, deleted/renamed files, and changes exceeding 300 paths.
+The aggregate tests execute its actual shell script against success, failure,
+skipped, cancelled and missing-selection states. These validate the scheduling
+contract; they do not certify desktop/native products or replace release checks.
 
 The browser and Electron targets intentionally do not share a built `index.html`.
 They share source and chunks, but have different origin contracts. Electron

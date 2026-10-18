@@ -6,46 +6,67 @@ import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { changedPaths, planChanges, portableTargets } from '../scripts/ci-plan.mjs';
 
-const renderers = ['web-browser', 'electron-renderer'];
+const webTargets = ['web-browser'];
+const emptyPlan = { targets: [], audits: [], managedWeb: false, native: false, headlessTests: false, headlessPackage: false };
 test('selected targets exist in the build artifact contract', () => {
   const matrix = JSON.parse(readFileSync(new URL('../config/build-matrix.json', import.meta.url), 'utf8'));
   for (const target of portableTargets) assert(matrix.targets.some(entry => entry.id === target), target);
 });
-test('visual-only changes build both Web renderers without native packaging or update E2E', () => {
+test('visual-only changes build Web without native packaging, server tests or update E2E', () => {
   assert.deepEqual(planChanges(['apps/workbench-web/src/components/sidebar.tsx', 'packages/design-system/src/tokens.web.scss']), {
-    targets: renderers, audits: [], managedWeb: false, native: false,
+    ...emptyPlan, targets: webTargets,
   });
 });
 test('docs-only and empty diffs need no build; main and weekly runs still audit unchanged dependencies', () => {
   for (const paths of [[], ['docs/build-matrix.md', 'README.md', 'design/invariants.md']]) {
-    assert.deepEqual(planChanges(paths), { targets: [], audits: [], managedWeb: false, native: false });
+    assert.deepEqual(planChanges(paths), emptyPlan);
   }
   for (const event of ['push', 'schedule']) {
     assert.deepEqual(planChanges([], { event }).audits, ['.', 'runtime/dsh', 'hemesclient']);
     assert.equal(planChanges([], { event }).managedWeb, false);
   }
 });
-test('Expo source selects only Expo; host and macOS changes select their runtime', () => {
-  assert.deepEqual(planChanges(['apps/workbench-expo/src/app.tsx']).targets, ['expo-web', 'expo-ios-bundle']);
-  assert.deepEqual(planChanges(['apps/local-agent-host/src/main.ts']).targets, ['electron-host']);
-  const native = planChanges(['apps/workbench-electron/native/speech.swift']);
-  assert.deepEqual(native.targets, ['electron-host']);
-  assert.equal(native.native, true);
-});
-test('shared contracts and unknown build inputs retain broad platform coverage', () => {
-  for (const path of ['packages/chat-core/src/index.ts', 'plugins/new-plugin/src/index.ts', 'new-build-tool.config.js', 'packages/prompt-core/system-prompt.md']) {
-    const plan = planChanges([path]);
-    assert.deepEqual(plan.targets, portableTargets, path);
-    assert.equal(plan.managedWeb, true, path);
+test('platform source never starts Electron, Expo or macOS builds automatically', () => {
+  assert.deepEqual(planChanges(['apps/workbench-expo/src/app.tsx']), { ...emptyPlan, targets: webTargets });
+  for (const path of ['apps/local-agent-host/src/main.ts', 'apps/opencraft-daemon/src/index.ts',
+    'runtime/dsh/src/index.ts', 'apps/workbench-electron/native/speech.swift']) {
+    assert.deepEqual(planChanges([path]), { ...emptyPlan, headlessTests: true }, path);
   }
 });
-test('root toolchain, lockfile, workflow and selector changes validate all targets and audits', () => {
+test('shared contracts and unknown build inputs retain Web and server coverage', () => {
+  for (const path of ['packages/chat-core/src/index.ts', 'plugins/new-plugin/src/index.ts',
+    'new-build-tool.config.js', 'packages/prompt-core/system-prompt.md', 'tests/sync.test.mjs']) {
+    assert.deepEqual(planChanges([path]), {
+      ...emptyPlan, targets: webTargets, managedWeb: true, headlessTests: true,
+    }, path);
+  }
+});
+test('root toolchain, lockfile, workflow and selector changes stay on Web/Linux', () => {
   for (const path of ['package.json', 'package-lock.json', '.nvmrc', '.npmrc', 'tsconfig.base.json',
     'config/build-matrix.json', '.github/workflows/ci-plan.yml', 'scripts/ci-plan.mjs', 'tests/ci-plan.test.mjs']) {
     const plan = planChanges([path]);
-    assert.deepEqual(plan.targets, portableTargets, path);
+    assert.deepEqual(plan.targets, webTargets, path);
     assert.deepEqual(plan.audits, ['.', 'runtime/dsh', 'hemesclient'], path);
-    assert.equal(plan.native, true, path);
+    assert.equal(plan.native, false, path);
+    assert.equal(plan.headlessTests, true, path);
+    assert.equal(plan.headlessPackage, path === 'config/build-matrix.json', path);
+  }
+});
+test('server runtime changes test without packaging; archive inputs also build and smoke the archive', () => {
+  for (const path of ['scripts/headless-server.mjs', 'scripts/headless-identity.mjs', 'tests/headless-server.test.mjs']) {
+    const plan = planChanges([path]);
+    assert.equal(plan.headlessTests, true, path);
+    assert.equal(plan.headlessPackage, false, path);
+  }
+  for (const path of ['scripts/package-headless-linux.mjs', 'scripts/install-headless-linux.sh',
+    'scripts/headless-codex-launcher.sh', 'scripts/headless-server-launcher.sh', 'scripts/headless-web-release.mjs',
+    'scripts/smoke-headless-package.mjs', 'scripts/server-deployment/service.mjs',
+    'tests/headless-installer.test.mjs', 'tests/server-deployment.test.mjs', 'packaging/web-server/package.json']) {
+    const plan = planChanges([path]);
+    assert.equal(plan.headlessTests, true, path);
+    assert.equal(plan.headlessPackage, true, path);
+    assert.equal(plan.native, false, path);
+    assert.deepEqual(plan.targets, webTargets, path);
   }
 });
 test('isolated lockfiles audit their own install roots and workspace manifests audit the root', () => {
@@ -63,11 +84,20 @@ test('managed Web is selected for update UI, deployment, protocol and Vite chang
     assert.equal(planChanges([path]).managedWeb, true, path);
   }
 });
-test('manual requests and unavailable diffs restore the full validation baseline', () => {
-  for (const options of [{ event: 'workflow_dispatch' }, { unknownDiff: true }]) {
-    assert.deepEqual(planChanges([], options), {
-      targets: portableTargets, audits: ['.', 'runtime/dsh', 'hemesclient'], managedWeb: true, native: true,
-    });
+test('manual Web is the default, and missing diffs conservatively validate the Linux server archive', () => {
+  const automatic = { ...emptyPlan, targets: webTargets, audits: ['.', 'runtime/dsh', 'hemesclient'],
+    managedWeb: true, headlessTests: true };
+  assert.deepEqual(planChanges([], { event: 'workflow_dispatch' }), automatic);
+  assert.deepEqual(planChanges([], { unknownDiff: true }), { ...automatic, headlessPackage: true });
+});
+test('only explicit manual full requests restore other platforms and macOS', () => {
+  assert.deepEqual(planChanges([], { event: 'workflow_dispatch', fullMatrix: true }), {
+    targets: portableTargets, audits: ['.', 'runtime/dsh', 'hemesclient'], managedWeb: true,
+    native: true, headlessTests: true, headlessPackage: true,
+  });
+  for (const event of ['pull_request', 'push', 'schedule']) {
+    assert.equal(planChanges(['package-lock.json'], { event, fullMatrix: true }).native, false);
+    assert.deepEqual(planChanges(['package-lock.json'], { event, fullMatrix: true }).targets, webTargets);
   }
 });
 test('real Git diff covers merge-base semantics, deletions, renames, and more than 300 paths', () => {
@@ -90,7 +120,7 @@ test('real Git diff covers merge-base semantics, deletions, renames, and more th
     assert(paths.includes('apps/workbench-web/old.ts'));
     assert(paths.includes('apps/workbench-expo/moved.ts'));
     assert(!paths.includes('unrelated.config.js'));
-    assert.deepEqual(planChanges(paths).targets, [...renderers, 'expo-web', 'expo-ios-bundle']);
+    assert.deepEqual(planChanges(paths).targets, webTargets);
     assert.deepEqual(new Set(changedPaths('push', { before: base, after: head }, cwd)), new Set(paths));
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });
@@ -107,8 +137,35 @@ test('CLI writes machine-readable outputs and falls back when a base commit is u
       const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)];
     }));
     assert.equal(values['has-builds'], 'true'); assert.equal(values['has-audits'], 'true');
-    assert.deepEqual(JSON.parse(values.targets), portableTargets);
-    assert.match(readFileSync(summary, 'utf8'), /Full fallback: true/);
+    assert.deepEqual(JSON.parse(values.targets), webTargets);
+    assert.equal(values.native, 'false');
+    assert.equal(values['headless-tests'], 'true');
+    assert.equal(values['headless-package'], 'true');
+    assert.match(readFileSync(summary, 'utf8'), /Diff unavailable: true/);
     assert.throws(() => changedPaths('push', { before: '--bad', after: 'a'.repeat(40) }, cwd));
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+test('CLI propagates explicit manual full-matrix requests without widening PRs', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'opencraft-ci-manual-'));
+  try {
+    const eventPath = join(cwd, 'event.json');
+    writeFileSync(eventPath, '{}');
+    for (const [event, full, expectedTargets, expectedNative] of [
+      ['workflow_dispatch', 'false', webTargets, 'false'],
+      ['workflow_dispatch', 'true', portableTargets, 'true'],
+      ['pull_request', 'true', webTargets, 'false'],
+    ]) {
+      const output = join(cwd, `output-${event}-${full}`);
+      execFileSync(process.execPath, [resolve('scripts/ci-plan.mjs')], { cwd,
+        env: { ...process.env, GITHUB_EVENT_NAME: event, GITHUB_EVENT_PATH: eventPath,
+          CI_FULL_MATRIX: full, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: '' }, stdio: 'pipe' });
+      const values = Object.fromEntries(readFileSync(output, 'utf8').trim().split('\n').map(line => {
+        const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)];
+      }));
+      assert.deepEqual(JSON.parse(values.targets), expectedTargets);
+      assert.equal(values.native, expectedNative);
+      assert.equal(values['headless-tests'], 'true');
+      assert.equal(values['headless-package'], String(full === 'true'));
+    }
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });
