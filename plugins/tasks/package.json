@@ -7,7 +7,8 @@
     ".": "./src/index.tsx",
     "./server": "./src/server.ts",
     "./sqlite": "./src/sqlite.ts",
-    "./agent": "./src/agent.ts"
+    "./agent": "./src/agent.ts",
+    "./conversation-overview": "./src/conversation-overview-model.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

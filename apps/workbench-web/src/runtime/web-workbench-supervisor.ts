@@ -1,4 +1,5 @@
 import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
+import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
 import { serverFetch, serverStorageKey } from "./server-context";
 import { reportRecoveryEvent } from "./recovery-diagnostics";
@@ -193,6 +194,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     startupRollback.push(() => threadAttention.dispose());
     const applicationBranding = new ApplicationBrandingRegistry();
     const threadBadges = new ThreadBadgeContributionRegistry();
+    const threadParticipation = new ThreadParticipationContributionRegistry();
     const threadListGrouping = new ThreadListGroupingContributionRegistry();
     const identityAvatars = new IdentityAvatarContributionRegistry();
     const authenticationFiber = cordis.plugin(AuthenticationService);
@@ -282,6 +284,7 @@ export async function createWebWorkbenchApplicationSupervisor(
         platformAccount: platformAccounts.createAdapter(),
         applicationBranding: applicationBranding.createAdapter(),
         threadBadge: threadBadges.createAdapter(),
+        threadParticipation: threadParticipation.createAdapter(),
         threadListGrouping: threadListGrouping.createAdapter(),
         identityAvatar: identityAvatars.createAdapter(),
         [AUTHENTICATION_PROVIDER_CHANNEL]: authenticationProviderAdapter(cordis.authentication),
@@ -337,6 +340,16 @@ export async function createWebWorkbenchApplicationSupervisor(
         const { createTasksExtension } = await import("@opencraft/plugin-tasks");
         signal?.throwIfAborted();
         return createTasksExtension({
+          conversationOverview: {
+            async read(...args) {
+              const { createConversationOverviewPort } = await import("./conversation-overview");
+              args[1].throwIfAborted();
+              return createConversationOverviewPort({
+                getClient: id => appServerRegistry.clients.get(id),
+                participation: () => threadParticipation.getSnapshot().contribution,
+              }).read(...args);
+            },
+          },
           storageHostId: platform === "electron" ? "local-codex" : headlessAppHost ? "opencraft-server" : bootstrapDefinitions[0]?.hostId ?? null,
           request: (hostId, method, params) => agentRuntimes.request(hostId, method, params),
           prepareConversation: (taskId, hostId) => {
