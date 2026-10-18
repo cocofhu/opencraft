@@ -26,15 +26,14 @@ import {initializeAppearanceTheme,setThemePreference} from '/apps/workbench-web/
 import '/apps/workbench-web/src/styles/app.scss';
 import '/apps/workbench-web/src/styles/settings-page.scss';
 initializeAppearanceTheme();
-const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',enableLightVelaCollaboration:false,lightVelaApiBase:location.origin+'/fixture-account'});
+const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory'});
 application.supervisor.navigation.openSettings('appearance');
 createIntlTestRoot(document.getElementById('app'),undefined,'zh-CN').render(<WorkbenchRoot application={application}/>);
 window.proof={theme:setThemePreference,route:()=>application.supervisor.navigation.getSnapshot().applicationRoute};`;
-  const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: 'error', define: { 'process.env.NEXT_PUBLIC_REGION': '"cn"', 'process.env.NEXT_PUBLIC_PREVIEW_LOCALES': '""', 'import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_HEADLESS_CODEX': '"true"' }, esbuild: { jsx: 'automatic' }, resolve: { dedupe: ['react', 'react-dom'] },
-    server: { host: '127.0.0.1', port: 0 }, plugins: [{ name: 'hub-network-ui-proof', resolveId: id => id === '/proof.tsx' ? id : null,
+  const vite = await createServer({ configFile: false, cacheDir: ".local/hub-settings/vite-cache", root: process.cwd(), logLevel: 'error', define: { 'process.env.NEXT_PUBLIC_REGION': '"cn"', 'process.env.NEXT_PUBLIC_PREVIEW_LOCALES': '""', 'import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_HEADLESS_CODEX': '"true"' }, esbuild: { jsx: 'automatic' }, resolve: { dedupe: ['react', 'react-dom'] },
+    server: { host: '127.0.0.1', port: 0, hmr: false }, plugins: [{ name: 'hub-network-ui-proof', resolveId: id => id === '/proof.tsx' ? id : null,
       load: id => id === '/proof.tsx' ? source : null, configureServer(server) { server.middlewares.use((req, res, next) => {
         if (req.url === '/') { res.setHeader('content-type', 'text/html'); res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="app"></div><script type="module" src="/proof.tsx"></script></body></html>'); }
-        else if (req.url?.startsWith('/fixture-account')) { res.writeHead(401); res.end('{}'); }
         else if (req.url === '/__opencraft_hub/settings') { if (failReads && req.method === 'GET') { res.writeHead(503); res.end('{}'); } else void controller.handle(req, res, () => operator); }
         else next();
       }); } }] });

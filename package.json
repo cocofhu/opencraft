@@ -22,6 +22,7 @@
     "smoke:home-composer-focus": "tsx scripts/smoke-home-composer-focus.ts",
     "smoke:readable-chat-pane": "tsx scripts/smoke-readable-chat-pane.ts",
     "smoke:plugin-settings": "tsx scripts/smoke-plugin-settings.ts",
+    "smoke:extensions:builtin": "tsx scripts/smoke-optional-builtin-extension.ts",
     "smoke:sidebar-conversation-latency": "tsx scripts/smoke-sidebar-conversation-latency.ts",
     "smoke:sidebar-menu-latency": "tsx scripts/smoke-sidebar-menu-latency.ts",
     "pretest:extensions": "tsx --test tests/extension-artifacts.test.ts tests/extension-catalog.test.ts tests/optional-feature-startup.test.ts",

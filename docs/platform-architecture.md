@@ -2175,8 +2175,21 @@ not the complete-graph shutdown plan. Automatic reverse-construction cleanup
 cannot replace the explicit normal consumer/provider order. Actual browser
 coverage in `smoke:application:lifetime` checks both modes, held/failing extension
 cleanup, retained data with stale old handles, and storage failure during startup.
+It covers default public startup and an explicitly supplied local product, checking
+that product teardown waits for its extensions and cache subscribers. The public
+`smoke:extensions:builtin` and `smoke:plugin-settings` probes use that same synthetic
+composition through `ClientWorkbenchProduct`, without a private account service or
+product package. They exercise real extension management, navigation, persisted
+enablement, protected bundled sources and Settings in Chromium.
 Its configured Host wire deliberately rejects requests; this is not a connected
 external Host or native-client acceptance result.
+
+`smoke:hub-network` separately packages a local gateway with the trusted Relay
+identity composition port. Its test-only credential adapter is not selected by
+the public Relay entry. A second Relay runs the ordinary public artifact without
+an identity provider. Real Chromium exercises login handoff across two TLS Hub
+hops, anonymous rejection, target membership and revocation; private identity
+services are not prerequisites. Run `build:relay` before this transport probe.
 
 The application supervisor installs two renderer-neutral Cordis services before
 activating extensions, and disposes them with the application (including startup

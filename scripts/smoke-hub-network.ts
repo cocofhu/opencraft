@@ -4,13 +4,14 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { once } from 'node:events';
-import { generateKeyPairSync, randomBytes, createHash, createCipheriv } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { chromium } from '@playwright/test';
 import WebSocket from 'ws';
 import { HubNetwork } from '../packages/hub-network/src/node';
 import { MembershipStore, InstanceAccess } from '../packages/access-control/src';
 import { createWorkbenchWebServer } from './serve-workbench-web.mjs';
 import { AssertionSigner } from '../packages/identity-core/src/node';
+import { packageRelay } from './package-relay.mjs';
 
 const output = resolve(process.env.OPENCRAFT_HUB_SMOKE_DIRECTORY ?? '.local/hub-network-transport'); await mkdir(output, { recursive: true });
 const privateRoot = await mkdtemp(join(output, 'private-')), cleanup: (() => unknown)[] = [];
@@ -27,12 +28,18 @@ try {
   const pair = generateKeyPairSync('ed25519'), privateKey = pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString();
   const entryPort = await freePort(), tlsPort = await freePort(), bPort = await freePort(), publicBase = `http://127.0.0.1:${entryPort}`;
   const origin = `http://team.hub.test:${entryPort}`, login = `http://login.hub.test:${entryPort}`, credential = randomBytes(32).toString('base64url');
-  await writeFile(join(privateRoot, 'ioa-token'), Buffer.alloc(32, 97), { mode: 0o600 }); await save('operator.json', { credential });
-  await save('relay.json', { schemaVersion: 1, issuer: 'smoke-auth', privateKey, tencentOaTokenFile: join(privateRoot, 'ioa-token'), authenticationOrigin: login, host: '127.0.0.1', port: entryPort,
+  const fixtureCredential = randomBytes(32).toString('base64url');
+  await save('identity.json', { credential: fixtureCredential }); await save('operator.json', { credential });
+  // The public transit Relay stays unmodified. Only this isolated gateway adds
+  // a trusted local identity adapter through the same composition port.
+  const gateway = await packageRelay({ output: join(privateRoot, 'gateway'), relayEntry: resolve('tests/fixtures/hub-relay-entry.ts') });
+  await save('relay.json', { schemaVersion: 1, authentication: { issuer: 'smoke-auth', privateKey, origin: login, providers: ['fixture'] }, host: '127.0.0.1', port: entryPort,
     serverSelection: true, routes: [{ instanceId: 'entry', origin: login, credential: randomBytes(32).toString('base64url') }],
     hubNetwork: { stateFile: join(privateRoot, 'a.json'), operatorCredentialFile: join(privateRoot, 'operator.json'), caFile: join(privateRoot, 'ca.crt'),
       tlsCertFile: join(privateRoot, 'server.crt'), tlsKeyFile: join(privateRoot, 'server.key'), port: tlsPort } });
-  const child = spawn(process.execPath, [artifact, join(privateRoot, 'relay.json')], { stdio: ['ignore', 'pipe', 'pipe'] }); let childLog = '';
+  const child = spawn(process.execPath, [join(gateway.output, 'relay.mjs'), join(privateRoot, 'relay.json')], {
+    env: { ...process.env, OPENCRAFT_HUB_FIXTURE_CREDENTIAL_FILE: join(privateRoot, 'identity.json') }, stdio: ['ignore', 'pipe', 'pipe'],
+  }); let childLog = '';
   child.stdout!.on('data', b => childLog += b); child.stderr!.on('data', b => childLog += b);
   cleanup.unshift(async () => { if (child.exitCode === null) { child.kill('SIGTERM'); await once(child, 'exit'); } await writeFile(join(output, 'relay-process.log'), childLog); });
   await waitFor(async () => { if (child.exitCode !== null) throw new Error('Relay artifact failed to start'); try { return (await fetch(publicBase + '/__opencraft_relay/health')).ok; } catch { return false; } });
@@ -59,20 +66,18 @@ try {
   await waitFor(async () => { if (department.exitCode !== null) throw new Error('Department relay failed'); try { return (await fetch(`http://127.0.0.1:${bAdminPort}/__opencraft_relay/health`)).ok; } catch { return false; } });
   mutate(c, { action: 'connect', invitation: bc.invitation, trustIdentity: true, publishOrigin: origin });
   const store = new MembershipStore(join(privateRoot, 'members.sqlite')); cleanup.push(() => store.close());
-  const principal = { provider: 'enterprise-identity', subject: '123', displayName: 'fixture.employee', expiresAt: Date.now() + 3600_000 }; store.set(principal, 'member', true, 'fixture');
+  const principal = { provider: 'fixture', subject: '123', displayName: 'Network member', expiresAt: Date.now() + 3600_000 }; store.set(principal, 'member', true, 'fixture');
   const root = join(privateRoot, 'web'); await mkdir(root); await writeFile(join(root, 'index.html'), '<!doctype html><html><head><title>Team C</title></head><body><h1>Team C through two Hubs</h1></body></html>');
   const core = await createWorkbenchWebServer({ root, accessService: new InstanceAccess(store, [c]), loopbackOnly: false,
     desktopService: { accept(ws: WebSocket) { ws.send('ready'); }, close() {} }, desktopAccess: 'trusted-internal' }); cleanup.push(() => core.close());
   const coreAddress = await core.listen({ host: '127.0.0.1', port: 0 }); c.start(coreAddress.port);
   await waitFor(async () => (await operator()).routes.some((r: any) => r.hubId === c.store.id));
   await assert.rejects(new Promise<void>((resolve, reject) => { const ws = new WebSocket(`wss://127.0.0.1:${tlsPort}/__opencraft_hub/control`, 'opencraft-hub.v1'); ws.once('open', () => { ws.terminate(); resolve(); }); ws.once('error', reject); }), /certificate|issuer|self.signed/iu);
-  const token = Buffer.alloc(32, 97), timestamp = String(Math.floor(Date.now() / 1000)), sequence = 'isolated-hub';
-  const header = Buffer.from(JSON.stringify({ alg: 'dir', enc: 'A256GCM' })).toString('base64url'), iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', token, iv); cipher.setAAD(Buffer.from(header));
-  const body = Buffer.concat([cipher.update(JSON.stringify({ LoginName: 'fixture.employee', StaffId: 123, Expiration: new Date(Date.now() + 3600_000).toISOString() })), cipher.final()]);
-  const ioa = { timestamp, 'x-rio-seq': sequence, signature: createHash('sha256').update(timestamp + token.toString() + sequence + ',,,' + timestamp).digest('hex').toUpperCase(),
-    'x-tai-identity': [header, '', iv.toString('base64url'), body.toString('base64url'), cipher.getAuthTag().toString('base64url')].join('.') };
   const browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ['--no-sandbox', '--no-proxy-server', '--host-resolver-rules=MAP *.hub.test 127.0.0.1'] }); cleanup.push(() => browser.close());
-  const context = await browser.newContext({ extraHTTPHeaders: ioa }), page = await context.newPage(), errors: string[] = [], navigations: string[] = [];
+  const anonymous = await browser.newContext();
+  try { assert.equal((await (await anonymous.newPage()).goto(origin))?.status(), 401, 'the gateway must reject unverified browser identity'); }
+  finally { await anonymous.close(); }
+  const context = await browser.newContext({ extraHTTPHeaders: { 'x-fixture-credential': fixtureCredential } }), page = await context.newPage(), errors: string[] = [], navigations: string[] = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('request', r => { if (r.isNavigationRequest()) navigations.push(new URL(r.url()).hostname); });
   const response = await page.goto(origin); assert.equal(response?.status(), 200); assert.equal(await page.title(), 'Team C'); assert.ok(navigations.includes('login.hub.test'));
   const session = await page.evaluate(() => fetch('/__opencraft_access/session').then(r => r.json())); assert.equal(session.role, 'member'); assert.equal(session.principal.subject, '123');
@@ -98,6 +103,7 @@ try {
   const route = (await operator()).routes.find((r: any) => r.hubId === c.store.id); assert.equal(route.path.length, 3); assert.deepEqual(errors, []);
   await writeFile(join(output, 'receipt.json'), JSON.stringify({ artifact, route, tokenFreeDepartmentRelay: true, nodeTlsBothHops: true, normalCertificateVerification: true, untrustedCaRejected: true,
     browserLoginHandoff: true, sameOriginSelectionOverTwoHubs: true, targetRole: session.role, memberRevocation: true, intermediateCannotResignIdentity: true, errors,
-    boundary: 'Actual bundled identity gateway and token-free department relay child processes, HTTPS peer transport, real Chromium and core target membership. IOA gateway/key and target page are isolated fixtures; no production employee or model calls.' }, null, 2));
+    unverifiedIdentityRejected: true,
+    boundary: 'Actual bundled generic identity gateway and token-free public department Relay child processes, HTTPS peer transport, real Chromium and core target membership. Gateway identity adapter and target page are isolated fixtures; no private product, employee or model calls.' }, null, 2));
   console.log(JSON.stringify({ output, nodeTlsBothHops: true, browserLoginHandoff: true, memberRevocation: true }));
 } finally { for (const close of cleanup.reverse()) await close(); await rm(privateRoot, { recursive: true, force: true }); }
