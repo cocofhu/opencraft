@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { SettingsTextInput } from "@opencraft/extension-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 
-import { ConnectorBrand } from "./connector-brand";
+import { ConnectorIcon } from "./connector-icon";
 
 export interface ConnectorQuickItem {
   readonly id: string;
@@ -36,7 +36,7 @@ function ConnectorIdentity({ item }: { readonly item: ConnectorQuickItem }) {
     </span>
   ) : (
     <span className="connector-quick-identity" aria-hidden="true">
-      <ConnectorBrand id={item.brandId} />
+      <ConnectorIcon id={item.brandId} />
     </span>
   );
 }

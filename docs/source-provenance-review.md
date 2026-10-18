@@ -1,5 +1,10 @@
 # Source provenance review
 
+> Historical source inventory. On 2026-10-18 the owner removed source cleanup
+> from the migration scope. No further replacement work is required for the
+> GitHub upstream cutover; existing records are retained without changing their
+> unresolved status. See [the current decision](upstream-transition.md#current-delivery-decision-2026-10-18).
+
 The current decision is **unverified: inventory and resolve before public
 redistribution**. Apache-2.0 is the intended license for original OpenCraft
 contributions; it does not establish rights in recovered implementations,
@@ -24,11 +29,12 @@ evidence, rather than treating this generated file list as a rights opinion.
 | --- | --- | --- | --- |
 | `codex-renderer-import-map` | `vendor/codex/IMPORT_MAP.json` links Shell, Composer, theme, conversation and right-panel targets to renderer recovery/adaptation | Unverified; retained for internal review | Establish applicable source rights, or independently replace affected expression while preserving OpenCraft behavior |
 | `codex-shell-followup` | Source annotations in panel/sidebar animation, docking and history restoration | Unverified; behavior modeling and expression need separate review | Inspect each target and its lineage; record which implementation is original, licensed, replaced or excluded |
-| `codex-stable-callback` | `packages/react-runtime/PROVENANCE.md` | Unverified | Establish rights or independently implement against React's public contract; verify callback freshness and lifetime semantics |
+| `codex-stable-callback` | `packages/react-runtime/PROVENANCE.md`, exact dependency pin and full MIT notice | Current replacement is third-party licensed; former Git history remains unverified | Preserve notices in distributed artifacts and verify callback freshness/lifetime semantics |
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
-| `codex-tool-presentation-labels` | `CODEX_APP_TOOL_LABELS` annotation in `packages/chat-core/src/tool-activity.ts` | Unverified; found by the corrected source-marker check | Inspect the identified label/grouping table separately from protocol names, ordinary short labels and the rest of the tool presentation/extension implementation |
-| `product-and-brand-assets` | Connector notices plus product/skill/native assets enumerated by the report | Unverified | Move private product assets downstream, check individual third-party distribution terms, and supply original upstream branding |
+| `codex-tool-presentation-labels` | Historical exact bindings and [bounded disposition](provenance/thread-tool-presentation.md) | Identified native table replaced by protocol-derived operation titles and explicit states | Keep navigation/results and verify failure/interruption; this is not whole-module or historical clearance |
+| `codex-tool-surface-fallbacks` | [Exact source/target bindings and bounded replacement](provenance/tool-surface-disposition.md) | Known fallback catalogs and handoff inference replaced; wider annotated regions remain unverified | Review web-search compaction, command summaries, content interpretation and specialized presenters individually |
+| `product-and-brand-assets` | Retained exact-source hashes and [artwork disposition](provenance/connector-artwork.md) | Current image files excluded; private product artwork downstream; historical rights unverified | Verify no image files/imports remain in source and distributable assets; retain source notices and full connector operations |
 
 ## Recording a resolution
 
@@ -48,7 +54,9 @@ an explicit conclusion and evidence for that conclusion:
   evidence and validate the remaining client; removing functionality requires
   an explicit product scope decision.
 
-No group currently has a verified resolution. The product scope remains
+The stable-callback replacement has a recorded licensed source and the connector
+brand images are excluded from current core; five other groups remain unverified.
+The product scope remains
 **preserve the full Web/Electron/Expo client**. The earlier recommendation to
 replace all unverified client modules is **paused** (2026-10-17), following the
 user's question about why rewriting was necessary. Unverified source rights do
@@ -61,7 +69,10 @@ or appropriately licensed, along with the required notices. Only consider
 replacement for a specifically identified scope whose retained expression
 cannot be cleared; establish that scope before proposing the replacement.
 The disposition labels above describe possible evidenced outcomes, not standing
-instructions to rewrite. Product dependency isolation can continue separately.
+instructions to rewrite. The 2026-10-18 scoped treatment authorization permits
+replacement of specifically bounded uncleared expression while preserving the
+complete client; it does not resume blanket rewriting or grant third-party
+rights. Product dependency isolation can continue separately.
 
 ## Source-specific review boundary
 
@@ -107,6 +118,97 @@ bytes to downstream `products/vela/native`, outside the public core tree. This
 is a product ownership transfer. Original skill artwork and the TAT proxy Worker
 likewise belong to downstream `products/vela/public`, explicitly selected only by
 product builds. These moves do not authorize remaining connector marks or artwork,
-or clear historical commits. The brand group remains unverified; its active core
-paths now enumerate the connector marks, with removed product paths retained as
-disposition evidence.
+or clear historical commits. The later bounded artwork disposition excludes the
+remaining connector image
+files from current core. Exact historical source hashes and removed product
+paths remain as disposition evidence; historical rights are still unverified.
+
+
+## Pinned reference follow-up (2026-10-18)
+
+[Source reference bindings](source-reference-bindings.json) pins nine local
+reference modules by recovery build/partition path and SHA256 against the
+accepted source tree `b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`.
+The previously relative r1501 Web-adapter files and the r1973 tool-label source
+are now located. These identifiers locate the reference files; their mapping
+to an exact distributed Desktop application version remains unverified.
+
+The identified `CODEX_APP_TOOL_LABELS` table has 21 label values, found in the
+pinned activity message/renderer modules. The activity registry also locates
+its handoff, status, list and read grouping flags. This is a table-specific
+source finding; it does not classify the whole tool-activity implementation.
+
+The current Web reflow adapter adds explicit completion/cancellation and layout
+settling to the earlier timeout behavior. Its legacy helper retains the 250ms
+bounded duration. The public-hook callback omits the reference's private React
+dispatcher probe. These differences help bound the review; neither establishes
+independent creation or a distribution license. The documented browser
+VisualViewport addition remains separate from the Electron baseline.
+
+At that reference-only review, all seven groups remained **unverified**. No recovery implementation was copied
+into the report, removed, replaced or relicensed. The README no longer labels
+the workbench a cleared clean-room implementation: that claim was not supported
+by the retained source records. Complete clients remain the selected scope and
+blanket replacement remains paused.
+
+## Connector asset source verification (2026-10-18)
+
+[Connector brand sources](connector-brand-sources.json) records all 23 PNG/SVG
+marks in the current core at review commit
+`0cea4c95aced0a57f513989ffc1daf930e930fe6`. Each is byte-identical to its named
+path in Octop commit `ae65fe4e26854d2eaf751cee89341ec5d71569f0`.
+The MIT license text at that exact source commit matches the notice already
+retained in `packages/connector-core/NOTICE.md`.
+
+This verifies the recorded origin and retained repository license; it does not
+establish each brand owner's authorization or trademark distribution scope.
+The remaining review for this group concerns those individual marks and any
+historical distribution, rather than the already moved Vela/Join artwork.
+At that reference-only review the group remained **unverified**. The finding
+did not change assets, client features or disposition, or clear any renderer
+group. The subsequent bounded exclusion is recorded below.
+
+## Licensed stable callback replacement (2026-10-18)
+
+The small local stable-callback implementation was removed in favor of the exact
+MIT-licensed `react-use-event-hook@0.9.6` dependency. The published archive was
+verified against its registry integrity; [the package provenance](../packages/react-runtime/PROVENANCE.md)
+records immutable source, archive hashes, platform assumptions, behavior tests
+and notice delivery. This is a licensed replacement, not a claim of independent
+authorship for an adaptation of the former recovered implementation.
+
+The source inventory resolves only `codex-stable-callback` for the current
+replacement. At that point six other current groups, the former implementation
+and public-history clearance remained unresolved; the subsequent artwork
+exclusion below reduces the current unresolved groups to five. The repository
+stays private; no public release,
+tag or npm publication follows from this disposition.
+
+## Connector artwork exclusion (2026-10-18)
+
+The bounded asset review identified exactly 23 unchanged connector marks, not
+the service catalog or connector runtime. Those image files and their glob loader
+are removed from the current core. Licensed Lucide category icons replace their
+decorative slots; all service names, recipes, search, setup and connection
+operations remain. [Disposition and checks](provenance/connector-artwork.md)
+retain the original attribution and link to the exact asset hashes. This
+exclusion does not clear old Git commits or grant any brand rights. Five current
+source groups still require review; full clients remain the selected scope.
+
+## Native thread-tool table disposition (2026-10-18)
+
+The identified 21-value native thread label table has been removed in favor of
+protocol-derived operation titles with an explicit execution phase, with worktree
+context and provider display titles separate. Failure/interruption does not
+reuse a successful sentence or an earlier transfer progress state. Existing
+navigation, result cards and disclosure capabilities remain; the bounded
+[implementation disposition](provenance/thread-tool-presentation.md) records
+method, functional requirements, historical hash and verification. No clean-room
+or whole-module rights conclusion is claimed.
+
+Expanded review found other explicit source-identical MCP fallbacks and recovered
+handoff-step behavior outside that table. The new unresolved
+`codex-tool-surface-fallbacks` group retains them. Therefore **five current groups
+still require review** despite the native table replacement. The previous
+table-specific finding was not a complete review of the tool presentation file.
+Historical commits and public redistribution remain unresolved.

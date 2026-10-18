@@ -6,7 +6,7 @@ import { SegmentedControl, SettingsNotice, SettingsSelect, SettingsTextInput } f
 import { useAppServerHosts } from "../../runtime/appserver-runtime-context";
 import { ModalHost } from "../modal/modal-host";
 import { Button } from "../ui/button";
-import { ConnectorBrand } from "./connector-brand";
+import { ConnectorIcon } from "./connector-icon";
 import { ConnectorNativeServices } from "./connector-native-services";
 import { ConnectorSetup } from "./connector-setup";
 import "./connector-library.scss";
@@ -64,7 +64,7 @@ export function ConnectorLibrary({ hostId, manager }: { hostId: string; manager:
         const supported = snapshot.data?.supportedDefinitions.includes(entry.id) === true;
         const count = instances.filter(row => row.definitionId === entry.id).length;
         return <button key={entry.id} type="button" className="connector-service-card" aria-label={`${entry.name} · 查看接入详情`} onClick={() => setEditing({ kind: entry.id, instance: null })}>
-          <span className="connector-service-card__identity"><ConnectorBrand id={entry.id} /><strong>{entry.name}</strong></span>
+          <span className="connector-service-card__identity"><ConnectorIcon id={entry.id} /><strong>{entry.name}</strong></span>
           <span className="connector-service-card__description">{entry.description}</span>
           <span className="connector-service-card__footer"><span>{count ? <><Check size={13} aria-hidden="true" /> 已配置 {count}</> : entry.category}</span>
             {supported ? <Plus size={15} aria-hidden="true" /> : <span>接入说明 <ArrowUpRight size={13} aria-hidden="true" /></span>}
@@ -73,7 +73,7 @@ export function ConnectorLibrary({ hostId, manager }: { hostId: string; manager:
       })}
     </section> : <section aria-label="已配置的连接" className="connector-library__instances">
       {visibleInstances.map(row => <article key={row.id} className="connector-instance">
-        <ConnectorBrand id={row.definitionId} />
+        <ConnectorIcon id={row.definitionId} />
         <div className="connector-instance__copy"><h3>{row.title}</h3><p>{connectorDefinition(row.definitionId).name}</p>
           <span>{!row.enabled ? "已停用" : row.authorization === "required" ? "需要授权" : "已配置"}</span>
           {errors.has(row.id) ? <p role="alert">{errors.get(row.id)}</p> : null}

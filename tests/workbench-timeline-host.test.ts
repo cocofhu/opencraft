@@ -262,10 +262,6 @@ test("tool Activity uses one flat surface contract and lazily owns detail bodies
   assert.match(genericWebTool, /unmountBodyWhenCollapsed/u);
   assert.doesNotMatch(genericWebTool, /unmountBodyWhenCollapsed=\{block\.kind === "mcp"\}/u);
 });
-const stableEventSource = readFileSync(
-  new URL("../packages/react-runtime/src/use-stable-event.ts", import.meta.url),
-  "utf8",
-);
 const appShellSource = readFileSync(
   new URL(
     "../apps/workbench-web/src/components/app-shell.tsx",
@@ -1279,8 +1275,6 @@ test("history pagination keeps one callback identity across viewport measurement
     /const loadOlderConversation = useStableEvent\(\(\) => activeThreadLease\?\.loadOlder\(\) \?\? Promise\.resolve\(\)\)/u,
   );
   assert.match(expoFrameSource, /\? loadOlderConversation : undefined/u);
-  assert.match(stableEventSource, /useInsertionEffect\(\(\) => \{/u);
-  assert.match(stableEventSource, /return useCallback\([\s\S]*?\[\]\);/u);
   for (const source of [webConversationSource, nativeVirtualizedTurnsSource]) {
     assert.match(source, /useTurnHistoryBackfill\(\{/u);
     assert.doesNotMatch(source, /loadOlderPendingRef/u);

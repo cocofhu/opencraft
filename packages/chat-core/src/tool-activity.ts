@@ -8,7 +8,7 @@ import type {
   ToolCallTimelineBlock,
 } from "./timeline";
 import { deriveSubagentActivityPresentation, subagentInlineStatusLabel } from "./subagent-activity";
-import { threadHandoffToolResult } from "./codex-app-tools";
+import { isCodexAppThreadTool, threadHandoffToolResult } from "./codex-app-tools";
 import { parseSkillPath } from "./skill-path";
 import { formatCodexDuration } from "./format-duration";
 
@@ -220,42 +220,6 @@ function formatToolToken(token: string, index: number): string {
   return index === 0 ? lower.charAt(0).toLocaleUpperCase() + lower.slice(1) : lower;
 }
 
-const COMPUTER_USE_LABELS: Readonly<Record<string, {
-  readonly active: string;
-  readonly activeWithApp: string;
-  readonly completed: string;
-  readonly completedWithApp: string;
-  readonly activeWithDetail?: string;
-  readonly activeWithDetailAndApp?: string;
-  readonly completedWithDetail?: string;
-  readonly completedWithDetailAndApp?: string;
-}>> = {
-  list_apps: { active: "List Mac apps", activeWithApp: "List Mac apps", completed: "List Mac apps", completedWithApp: "List Mac apps" },
-  list_mac_apps: { active: "List Mac apps", activeWithApp: "List Mac apps", completed: "List Mac apps", completedWithApp: "List Mac apps" },
-  click: { active: "Clicking", activeWithApp: "Clicking in {appName}", completed: "Clicked", completedWithApp: "Clicked in {appName}" },
-  drag: { active: "Dragging", activeWithApp: "Dragging in {appName}", completed: "Dragged", completedWithApp: "Dragged in {appName}" },
-  get_app_state: { active: "Looking", activeWithApp: "Looking at {appName}", completed: "Looked", completedWithApp: "Looked at {appName}" },
-  get_state: { active: "Looking", activeWithApp: "Looking at {appName}", completed: "Looked", completedWithApp: "Looked at {appName}" },
-  perform_accessibility_action: { active: "Performing accessibility action", activeWithApp: "Performing accessibility action in {appName}", completed: "Performed accessibility action", completedWithApp: "Performed accessibility action in {appName}" },
-  perform_secondary_action: { active: "Performing accessibility action", activeWithApp: "Performing accessibility action in {appName}", completed: "Performed accessibility action", completedWithApp: "Performed accessibility action in {appName}" },
-  press_key: { active: "Pressing key", activeWithApp: "Pressing key in {appName}", completed: "Pressed key", completedWithApp: "Pressed key in {appName}" },
-  scroll: {
-    active: "Scrolling", activeWithApp: "Scrolling in {appName}", completed: "Scrolled", completedWithApp: "Scrolled in {appName}",
-    activeWithDetail: "Scrolling {detail}", activeWithDetailAndApp: "Scrolling {detail} in {appName}",
-    completedWithDetail: "Scrolled {detail}", completedWithDetailAndApp: "Scrolled {detail} in {appName}",
-  },
-  set_value: {
-    active: "Setting value", activeWithApp: "Setting value in {appName}", completed: "Set value", completedWithApp: "Set value in {appName}",
-    activeWithDetail: "Setting to “{detail}”", activeWithDetailAndApp: "Setting to “{detail}” in {appName}",
-    completedWithDetail: "Set to “{detail}”", completedWithDetailAndApp: "Set to “{detail}” in {appName}",
-  },
-  type_text: {
-    active: "Typing text", activeWithApp: "Typing text in {appName}", completed: "Typed text", completedWithApp: "Typed text in {appName}",
-    activeWithDetail: "Typing text “{detail}”", activeWithDetailAndApp: "Typing text “{detail}” in {appName}",
-    completedWithDetail: "Typed text “{detail}”", completedWithDetailAndApp: "Typed text “{detail}” in {appName}",
-  },
-};
-
 function normalizedComputerUseText(value: unknown, maximumLength = 120): string | null {
   const text = nonEmptyString(value)?.replace(/\s+/gu, " ").trim() ?? null;
   if (text === null) return null;
@@ -321,45 +285,34 @@ function computerUseDetail(block: ToolCallTimelineBlock): string | null {
   return null;
 }
 
-function fillComputerUseLabel(template: string, appName: string | null, detail: string | null): string {
-  return template.replaceAll("{appName}", appName ?? "").replaceAll("{detail}", detail ?? "");
+/** Execution status is independent of a provider's display title or surface. */
+function activityPhaseLabel(state: ToolActivityState): string {
+  switch (state) {
+    case "running": return "Running";
+    case "completed": return "Completed";
+    case "failed": return "Failed";
+    case "interrupted": return "Stopped";
+  }
 }
 
-/** Source-identical core fallbacks used by Codex's MCP tool registry. */
-export function formatMcpToolActivityLabel(block: ToolCallTimelineBlock, state: ToolActivityState = stateFor(block.status)): string {
-  if (block.server === "node_repl" && block.name === "js") {
-    const title = nonEmptyString(object(block.input)?.title);
-    if (title !== null) return title.length <= 80 ? title : `${title.slice(0, 79).trimEnd()}…`;
-  }
+/** A uniform operation/context/phase label; no surface-specific sentence catalog. */
+export function formatMcpToolActivityLabel(block: ToolCallTimelineBlock, state: ToolActivityState = isToolCallFailed(block) ? "failed" : stateFor(block.status)): string {
+  const providerTitle = normalizedComputerUseText(block.actionName);
+  const scriptTitle = block.server === "node_repl" && block.name === "js"
+    ? normalizedComputerUseText(object(block.input)?.title) : null;
+  const name = stripMatchingAppPrefix(block.name, block.appName).map(formatToolToken).join(" ") || block.name;
+  const fields = [providerTitle ?? scriptTitle ?? name];
   if (block.sourceKind === "browserUse") {
-    return block.sourceBackend === "chrome" ? "Used Chrome" : "Used the browser";
+    fields.push(block.sourceBackend === "chrome" ? "Chrome" : "Browser");
+  } else if (block.sourceKind === "computerUse" || block.server === "computer-use") {
+    const app = computerUseAppName(block);
+    const detail = computerUseDetail(block);
+    if (app !== null) fields.push(app);
+    if (detail !== null) fields.push(detail);
   }
-  if (block.sourceKind === "computerUse" || block.server === "computer-use") {
-    const labels = COMPUTER_USE_LABELS[block.name];
-    if (labels !== undefined) {
-      const completed = state !== "running";
-      const appName = computerUseAppName(block);
-      const detail = computerUseDetail(block);
-      const template = detail !== null && appName !== null
-        ? completed ? labels.completedWithDetailAndApp : labels.activeWithDetailAndApp
-        : detail !== null
-          ? completed ? labels.completedWithDetail : labels.activeWithDetail
-          : appName !== null
-            ? completed ? labels.completedWithApp : labels.activeWithApp
-            : completed ? labels.completed : labels.active;
-      return fillComputerUseLabel(template ?? (completed ? labels.completedWithApp : labels.activeWithApp), appName, detail);
-    }
-  }
-  const tokens = stripMatchingAppPrefix(block.name, block.appName);
-  return tokens.map(formatToolToken).join(" ") || block.name;
+  fields.push(activityPhaseLabel(state));
+  return fields.join(" · ");
 }
-
-const DYNAMIC_TOOL_LABELS: Readonly<Record<string, { readonly active: string; readonly completed: string }>> = {
-  automation_update: { active: "Updating scheduled task", completed: "Scheduled task updated" },
-  load_workspace_dependencies: { active: "Loading workspace dependencies", completed: "Loaded workspace dependencies" },
-  pia_slackbot_dm: { active: "Pia Slackbot DM", completed: "Pia Slackbot DM" },
-  read_thread_terminal: { active: "Reading chat terminal", completed: "Read chat terminal" },
-};
 
 /** DSH (DeepSeek Harness) tools arrive under `deepseek-harness` with no native
  * presenter. Give the common ones a semantic Activity icon and label so they do
@@ -397,9 +350,8 @@ function formatDynamicToolName(value: string): string {
 
 /** Generic dynamic calls are compact labels; only registered tools own a body. */
 export function formatDynamicToolActivityLabel(block: ToolCallTimelineBlock, state: ToolActivityState): string {
-  const labels = DYNAMIC_TOOL_LABELS[block.name];
-  if (labels !== undefined) return state === "running" ? labels.active : labels.completed;
-  return formatDynamicToolName(block.name);
+  const title = normalizedComputerUseText(block.actionName) ?? formatDynamicToolName(block.name);
+  return `${title} · ${activityPhaseLabel(state)}`;
 }
 
 function hasValue(value: unknown): boolean {
@@ -716,37 +668,27 @@ export function formatCommandActivitySummary(
   return withElapsed(showSpecificCommand ? `Ran ${command}` : "Ran command", "in");
 }
 
-interface CodexAppToolLabels {
-  readonly active: string;
-  readonly completed: string;
-  readonly failed?: string;
-  readonly grouping?: ToolActivityGrouping;
-  readonly continues?: boolean;
-  readonly summaryOnly?: boolean;
+/**
+ * Thread tools use protocol-derived operation titles and an explicit state,
+ * rather than a per-tool table of active/completed sentences. Provider titles
+ * are display information only; they cannot change execution state or policy.
+ */
+function threadOperationSummary(
+  block: ToolCallTimelineBlock,
+  state: ToolActivityState,
+  worktree: boolean,
+): string {
+  const title = nonEmptyString(block.actionName) ?? formatDynamicToolName(block.name);
+  return `${title}${worktree ? " · Worktree" : ""} · ${activityPhaseLabel(state)}`;
 }
 
-/** Labels/grouping recovered from Codex's dynamic tool renderer registry. */
-const CODEX_APP_TOOL_LABELS: Readonly<Record<string, CodexAppToolLabels>> = {
-  fork_thread: { active: "Forking chat", completed: "Forked chat" },
-  create_thread: { active: "Creating chat", completed: "Created chat" },
-  list_threads: { active: "Listing chats", completed: "Listed chats", continues: true },
-  read_thread: { active: "Reading chat", completed: "Read chat", continues: true },
-  handoff_thread: {
-    active: "Handing off chat",
-    completed: "Handed off chat",
-    failed: "Failed to hand off chat",
-    grouping: "standalone",
-  },
-  get_handoff_status: {
-    active: "Checking handoff status",
-    completed: "Checked handoff status",
-    summaryOnly: true,
-  },
-  send_message_to_thread: { active: "Sending message to chat", completed: "Sent message to chat" },
-  set_thread_pinned: { active: "Updating chat pin", completed: "Updated chat pin" },
-  set_thread_archived: { active: "Updating chat archive", completed: "Updated chat archive" },
-  set_thread_title: { active: "Renaming chat", completed: "Renamed chat" },
-};
+/** Local disclosure policy; never a declaration of tool permissions. */
+function threadOperationRole(block: ToolCallTimelineBlock): "transfer" | "poll" | "inspect" | "change" {
+  if (block.name === "handoff_thread") return "transfer";
+  if (block.name === "get_handoff_status") return "poll";
+  if (block.name === "read_thread" || block.name === "list_threads") return "inspect";
+  return "change";
+}
 
 function codexAppSummaryKey(block: ToolCallTimelineBlock): string {
   const input = object(block.input);
@@ -793,62 +735,39 @@ function createCodexAppPresenter(): ToolActivityPresenter {
   return {
     name: "codex-app-tools",
     priority: 100,
-    matches: (block) => block.kind === "dynamic"
-      && block.namespace === "codex_app"
-      && block.name in CODEX_APP_TOOL_LABELS,
+    matches: isCodexAppThreadTool,
     present(block, state) {
-      const labels = CODEX_APP_TOOL_LABELS[block.name];
-      if (labels === undefined) return null;
       if (!codexAppToolArgumentsValid(block)) return null;
+      const role = threadOperationRole(block);
       const input = object(block.input);
       const hasWorktree = block.name === "fork_thread"
         ? object(input?.environment)?.type === "worktree"
         : block.name === "create_thread"
           ? object(input?.target)?.type === "project" && object(object(input?.target)?.environment)?.type === "worktree"
           : false;
-      const active = hasWorktree
-        ? block.name === "fork_thread" ? "Forking chat in new worktree" : "Creating worktree chat"
-        : labels.active;
-      const completed = hasWorktree
-        ? block.name === "fork_thread" ? "Forked chat in new worktree" : "Created worktree chat"
-        : labels.completed;
-      const handoff = threadHandoffToolResult(block);
+      // A transport failure or cancellation wins over an earlier progress
+      // payload. A completed polling RPC can still describe an active transfer.
+      const handoff = state === "failed" || state === "interrupted" ? null : threadHandoffToolResult(block);
       const handoffDestination = handoff?.destinationHostDisplayName ?? null;
       const handoffTitle = handoff?.threadTitle ?? null;
       const effectiveState: ToolActivityState = handoff === null ? state
         : handoff.status === "queued" || handoff.status === "running" ? "running"
         : handoff.status === "error" ? "failed"
         : "completed";
+      const handoffPhase = handoff?.status === "queued" ? "Queued"
+        : handoff?.status === "warning" ? "Needs attention" : activityPhaseLabel(effectiveState);
       const handoffSummary = handoff === null ? null
-        : handoff.status === "queued" || handoff.status === "running"
-          ? handoffTitle !== null && handoffDestination !== null
-            ? `Handing off ${handoffTitle} to ${handoffDestination}`
-            : "Handing off chat"
-          : handoff.status === "error"
-            ? handoffTitle !== null && handoffDestination !== null
-              ? `Failed to hand off ${handoffTitle} to ${handoffDestination}`
-              : "Failed to hand off chat"
-            : handoff.status === "warning"
-              ? handoffDestination === null ? "Handoff needs attention" : `Handoff to ${handoffDestination} needs attention`
-              : handoffTitle !== null && handoffDestination !== null
-                ? `Handed off ${handoffTitle} to ${handoffDestination}`
-                : "Handed off chat";
-      const summary = handoffSummary ?? (state === "running"
-        ? active
-        : state === "failed"
-          ? labels.failed ?? completed
-          : state === "interrupted"
-            ? completed
-            : completed);
+        : ["Transfer", handoffTitle, handoffDestination, handoffPhase].filter((part) => part !== null).join(" · ");
+      const summary = handoffSummary ?? threadOperationSummary(block, state, hasWorktree);
       return {
         ...toolPresentationBase(block, effectiveState),
-        grouping: block.appResourceUri === null ? labels.grouping ?? "groupable" : "standalone",
+        grouping: block.appResourceUri !== null || role === "transfer" ? "standalone" : "groupable",
         icon: "agent",
         summary,
         detail: block.errorMessage,
         summaryKey: codexAppSummaryKey(block),
-        continuesLiveActivityBetweenCalls: labels.continues ?? false,
-        summaryOnlyInConversationGroup: labels.summaryOnly ?? false,
+        continuesLiveActivityBetweenCalls: role === "inspect" && effectiveState !== "failed" && effectiveState !== "interrupted",
+        summaryOnlyInConversationGroup: role === "poll" && effectiveState !== "failed" && effectiveState !== "interrupted",
       };
     },
   };

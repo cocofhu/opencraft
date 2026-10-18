@@ -13,7 +13,9 @@ mixed migration tree as a cleared Apache-2.0 release.
 
 Existing third-party notices:
 - packages/connector-core/NOTICE.md
-- apps/workbench-web/src/assets/connector-brands/NOTICE.md
+- docs/provenance/connector-artwork.md (excluded artwork; historical attribution)
+- packages/react-runtime/NOTICE.json (react-use-event-hook 0.9.6, MIT;
+  includes the complete copyright and permission notice)
 
 Recovery/adaptation evidence is retained in vendor/codex/IMPORT_MAP.json and
 the package PROVENANCE.md documents. Those records establish source lineage,

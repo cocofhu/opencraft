@@ -28,7 +28,7 @@ const probe = { setThemePreference, result: "idle", error: "", available: () => 
 Object.assign(window, { connectorProbe: probe }); initializeAppearanceTheme();
 function App() {
   const presentation = useConnectorPresentation(manager, approvals, { hostId, scopeId }, () => undefined);
-  return <main style={{ padding: 24, minHeight: "100dvh", background: "var(--color-background-surface)" }}>
+  return <main style={{ padding: 24, height: "100dvh", overflowY: "auto", background: "var(--color-background-surface)" }}>
     <div style={{ width: "min(720px, 100%)", marginBottom: 24 }}><CodexComposer controller={composer} isStreaming={false}
       addMenuContent={presentation.addMenuContent} endActions={presentation.launcher}
       selectionCatalog={{ models: [], permissionProfiles: [] }} onSubmit={async () => {}} onCancel={() => {}} /></div>

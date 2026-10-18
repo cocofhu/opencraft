@@ -40,15 +40,20 @@
     },
     {
       "id": "codex-stable-callback",
-      "status": "unverified",
+      "status": "third-party-licensed",
       "paths": [
         "packages/react-runtime/**"
       ],
       "evidence": [
-        "packages/react-runtime/PROVENANCE.md"
+        "packages/react-runtime/PROVENANCE.md",
+        "packages/react-runtime/NOTICE.json",
+        "package-lock.json",
+        "tests/react-runtime.test.tsx",
+        "tests/react-runtime-notices.test.mjs"
       ],
-      "reason": "Package records a restoration against a recovered desktop module; rights and independent implementation status are unverified.",
-      "resolution": "Review or independently replace the package against React's public contract."
+      "reason": "The previous locally restored callback has been removed. The current OpenCraft adapter delegates to the exact public MIT-licensed react-use-event-hook 0.9.6 package.",
+      "resolution": "Retain the upstream package license and pinned integrity, source notice, Web/Electron dependency license output and Expo public-manifest notice; verify stable identity and committed-render semantics.",
+      "conclusion": "Current callback implementation: react-use-event-hook 0.9.6, verified immutable npm archive with lockfile SHA512 integrity, MIT, Copyright (c) 2022 Scott Rippey. OpenCraft retains only its typed useStableEvent adapter. Other react-runtime files are unchanged OpenCraft presentation helpers/exports/metadata. This disposition applies to the replacement source, not former implementations or historical commits; see PROVENANCE.md for exact archive integrity, notice distribution and verification limits."
     },
     {
       "id": "codex-timeline-virtualizer",
@@ -78,34 +83,58 @@
     },
     {
       "id": "codex-tool-presentation-labels",
-      "status": "unverified",
+      "status": "independently-reimplemented",
       "paths": [
         "packages/chat-core/src/tool-activity.ts"
       ],
       "evidence": [
-        "packages/chat-core/src/tool-activity.ts"
+        "docs/provenance/thread-tool-presentation.md",
+        "docs/source-reference-bindings.json",
+        "tests/chat-thread-tool-activity.test.ts",
+        "scripts/smoke-thread-tool-activity.ts"
       ],
-      "reason": "The CODEX_APP_TOOL_LABELS annotation identifies recovered labels/grouping. Review this identified table separately from protocol names, ordinary short labels and the rest of the OpenCraft tool presentation/extension implementation; the annotation does not establish that the whole file is copied.",
-      "resolution": "Locate the table's exact source/version and retained expression, then record an evidenced scope and disposition. Do not infer a whole-file replacement requirement from this label/grouping reference."
+      "reason": "The specifically identified recovered 21-value native thread label table and four-flag lookup are removed. Protocol-derived operation titles and explicit execution states replace that representation.",
+      "resolution": "Preserve the bounded historical binding and verify all ten operations, failures/interruption, worktree context, navigation and transfer results. The separate unresolved tool-surface group owns the remaining MCP/legacy regions.",
+      "conclusion": "Current replacement of the identified native thread label table uses OpenCraft protocol data, generic identifier formatting and explicit state/disclosure policy. This is a bounded independent implementation disposition, not a clean-room assertion, a whole-module classification or clearance of historical commits. See docs/provenance/thread-tool-presentation.md for requirements, method and limits."
+    },
+    {
+      "id": "codex-tool-surface-fallbacks",
+      "status": "unverified",
+      "paths": [
+        "packages/chat-core/src/tool-activity.ts",
+        "packages/chat-core/src/codex-app-tools.ts"
+      ],
+      "evidence": [
+        "packages/chat-core/src/tool-activity.ts",
+        "packages/chat-core/src/codex-app-tools.ts",
+        "docs/provenance/thread-tool-presentation.md",
+        "docs/provenance/tool-surface-disposition.md",
+        "docs/provenance/tool-surface-sources.json",
+        "tests/chat-tool-surface-state.test.ts"
+      ],
+      "reason": "The identified MCP/computer/dynamic fallback catalogs and recovered handoff summary/step regions are replaced within the documented boundary. Other source-referencing regions in tool-activity.ts (web-search compaction, command summaries, content interpretation and specialized presenters) still require expression/lineage review; replacing the known catalogs does not clear those regions.",
+      "resolution": "Retain exact source/target hashes and the bounded replacement record. Review the remaining annotated regions individually; keep original/licensed implementations and replace only identified uncleared expression. Keep this group unverified until that review is complete."
     },
     {
       "id": "product-and-brand-assets",
-      "status": "unverified",
+      "status": "excluded",
       "paths": [
         "apps/workbench-web/src/assets/connector-brands/**"
       ],
       "evidence": [
-        "apps/workbench-web/src/assets/connector-brands/NOTICE.md"
+        "docs/provenance/connector-artwork.md",
+        "docs/connector-brand-sources.json"
       ],
-      "reason": "Third-party connector marks need individual distribution scope; an upstream code license does not automatically license branding. Native product artwork and skill assets moved downstream with original bytes. Remaining connector marks and historical distribution rights are still unverified.",
-      "resolution": "Move product artwork to the downstream product, retain applicable third-party notices, and use original upstream branding.",
+      "reason": "The exact 23 Octop connector brand images were identified but their individual redistribution scope was not established. They and their image-loading imports are absent from the current core candidate; prior private product artwork was moved downstream.",
+      "resolution": "Keep historical source hashes and notice evidence. Current connector UI uses the existing licensed Lucide category icons with service names and all connector operations retained. Verify actual UI and emitted assets; historical commits are not cleared by removing current files.",
       "downstreamDispositions": [
         {
           "originalPath": "apps/workbench-web/public/assets/skills/**",
           "downstreamPath": "products/vela/public/assets/skills/**",
           "disposition": "Original bytes moved downstream; not a distribution-rights determination."
         }
-      ]
+      ],
+      "conclusion": "No connector brand image remains in the current public core source. This is exclusion of the identified image files, not a claim of brand authorization or a license determination for historical commits. Full clients, service catalog/recipes and runtime capabilities remain. See the retained exact-source list and current disposition."
     }
   ]
 }

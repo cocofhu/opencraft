@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "19.2.3"
+    "react": "19.2.3",
+    "react-use-event-hook": "0.9.6"
   },
   "devDependencies": {
     "@types/react": "~19.2.2"

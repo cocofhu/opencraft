@@ -26,8 +26,10 @@ function capturePrebuild(script, release) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opencraft-native-build-'));
   try {
     // Standalone source fixture has no mono2/products sibling or native project.
-    const standalone = path.join(temp, 'app');
+    const standalone = path.join(temp, 'apps/workbench-expo');
     fs.mkdirSync(path.join(standalone, 'scripts'), { recursive: true });
+    fs.mkdirSync(path.join(temp, 'packages/react-runtime'), { recursive: true });
+    fs.copyFileSync(path.join(app, '../../packages/react-runtime/NOTICE.json'), path.join(temp, 'packages/react-runtime/NOTICE.json'));
     for (const name of ['app.json', 'app.config.js', 'product-entry.cjs']) fs.copyFileSync(path.join(app, name), path.join(standalone, name));
     fs.copyFileSync(path.join(app, 'scripts', script), path.join(standalone, 'scripts', script));
     const bin = path.join(temp, 'bin'); fs.mkdirSync(bin);

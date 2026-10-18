@@ -1089,7 +1089,7 @@ test("Codex tool facts survive projection and statistics deduplicate item update
   assert.equal(mcp.callId, "mcp-1");
   assert.equal(mcp.errorMessage, "rate limited");
   assert.equal(mcp.durationMs, 1250);
-  assert.equal(presentToolActivity(mcp).summary, "Search code");
+  assert.equal(presentToolActivity(mcp).summary, "Search code · Failed");
   assert.equal(presentToolActivity(mcp).detail, null);
   assert.deepEqual(extractToolCallContentParts(mcp), [
     { kind: "text", role: "error", text: "rate limited" },
@@ -1113,7 +1113,7 @@ test("Codex tool facts survive projection and statistics deduplicate item update
   });
 });
 
-test("MCP activity labels preserve Codex generic, browser, app-prefix, and node-repl semantics", () => {
+test("MCP activity titles preserve operation, browser context, app prefix and provider title", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-labels",
     status: "complete",
@@ -1126,10 +1126,10 @@ test("MCP activity labels preserve Codex generic, browser, app-prefix, and node-
     ],
   }]), createDefaultTimelineProjectorRegistry());
   const labels = snapshot.frames.flatMap((frame) => frame.blocks).filter((block) => block.type === "tool-call").map((block) => presentToolActivity(block).summary);
-  assert.deepEqual(labels, ["Open API URL", "Search pull requests", "Used Chrome", "Used the browser", "Inspect the active browser tab"]);
+  assert.deepEqual(labels, ["Open API URL · Completed", "Search pull requests · Completed", "Browser click · Chrome · Completed", "Browser click · Browser · Completed", "Inspect the active browser tab · Completed"]);
 });
 
-test("computer-use tool surfaces preserve app identity and exact active/completed action labels", () => {
+test("computer-use tool surfaces preserve app identity and explicit execution phase", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-computer-use",
     status: "streaming",
@@ -1190,9 +1190,9 @@ test("computer-use tool surfaces preserve app identity and exact active/complete
   }]), createDefaultTimelineProjectorRegistry());
   const blocks = snapshot.frames.flatMap((frame) => frame.blocks).filter((block) => block.type === "tool-call");
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).summary), [
-    "Scrolled down in Safari",
-    "Typing text “hello world” in Notes",
-    "Used the browser",
+    "Scroll · Safari · down · Completed",
+    "Type text · Notes · hello world · Running",
+    "Browser click · Browser · Completed",
   ]);
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).icon), ["computer", "computer", "browser"]);
   assert.deepEqual(blocks[0]?.sourceApp, { kind: "appId", appId: "com.apple.Safari" });
@@ -1216,7 +1216,7 @@ test("computer-use tool surfaces preserve app identity and exact active/complete
   );
 });
 
-test("generic dynamic tools use Codex compact labels and never invent a raw body", () => {
+test("generic dynamic tools show operation and outcome without inventing a raw body", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-dynamic-labels",
     status: "complete",
@@ -1228,7 +1228,7 @@ test("generic dynamic tools use Codex compact labels and never invent a raw body
   }]), createDefaultTimelineProjectorRegistry());
   const blocks = snapshot.frames.flatMap((frame) => frame.blocks).filter((block): block is Extract<TimelineBlock, { type: "tool-call" }> => block.type === "tool-call");
   const presentations = blocks.filter((block) => !isToolActivityPresentationSuppressed(block)).map((block) => presentToolActivity(block));
-  assert.deepEqual(presentations.map(({ summary }) => summary), ["Inspect workspace state", "Read chat terminal"]);
+  assert.deepEqual(presentations.map(({ summary }) => summary), ["Inspect workspace state · Completed", "Read thread terminal · Completed"]);
   assert.deepEqual(presentations.map(({ canExpand }) => canExpand), [false, false]);
   assert.deepEqual(presentations.map(({ icon }) => icon), ["none", "agent"]);
   assert.equal(isToolActivityPresentationSuppressed(blocks[2]!), true);
@@ -1296,7 +1296,7 @@ test("node_repl MCP calls use Codex's terminal activity icon", () => {
   const block = snapshot.frames[0]?.blocks[0];
   assert.equal(block?.type, "tool-call");
   if (block?.type !== "tool-call") return;
-  assert.equal(presentToolActivity(block).summary, "Inspecting the workspace");
+  assert.equal(presentToolActivity(block).summary, "Inspecting the workspace · Completed");
   assert.equal(presentToolActivity(block).icon, "terminal");
 });
 
@@ -1387,7 +1387,7 @@ test("invalid Chrome tab arguments stay in protocol state but do not leak generi
   assert.equal(shouldRenderAgentThinkingPlaceholder(frame), true);
 });
 
-test("source-specific dynamic tool titles remain completion labels when the call fails", () => {
+test("native thread failures have explicit states alongside unchanged legacy source-specific titles", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-host-tool-failures",
     status: "complete",
@@ -1402,7 +1402,7 @@ test("source-specific dynamic tool titles remain completion labels when the call
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).summary), [
     "Read settings",
     "Read tab",
-    "Listed chats",
+    "List threads · Failed",
   ]);
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).state), ["failed", "failed", "failed"]);
 });
@@ -1886,7 +1886,7 @@ test("multi-action command Items fan out into source-faithful exec rows without 
   assert.equal(snapshot.frames[0]?.anchors.filter((anchor) => anchor.type === "item").length, 1);
 });
 
-test("Codex app tools use recovered labels and standalone grouping", () => {
+test("Native thread tools use explicit operation states and semantic disclosure", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-codex-tools",
     status: "streaming",
@@ -1919,7 +1919,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
     state: "running",
     grouping: "groupable",
     icon: "agent",
-    summary: "Listing chats",
+    summary: "List threads · Running",
     detail: null,
     canExpand: false,
     durationMs: null,
@@ -1927,7 +1927,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
     continuesLiveActivityBetweenCalls: true,
     summaryOnlyInConversationGroup: false,
   });
-  assert.equal(presentToolActivity(handoff).summary, "Handed off chat");
+  assert.equal(presentToolActivity(handoff).summary, "Handoff thread · Completed");
   assert.equal(presentToolActivity(handoff).grouping, "standalone");
   assert.equal(presentToolActivity(handoff).summaryKey, "codex_app:handoff_thread:thread-child:ssh:one");
 
@@ -1946,7 +1946,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
       },
     }],
   }]), createDefaultTimelineProjectorRegistry()).frames[0]?.blocks[0];
-  assert.equal(worktree?.type === "tool-call" ? presentToolActivity(worktree).summary : null, "Forked chat in new worktree");
+  assert.equal(worktree?.type === "tool-call" ? presentToolActivity(worktree).summary : null, "Fork thread · Worktree · Completed");
 
   const created = projectTimeline(source([{
     id: "turn-created-thread",
@@ -2024,7 +2024,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
       },
     }],
   }]), createDefaultTimelineProjectorRegistry()).frames[0]?.blocks[0];
-  assert.equal(handoffStatus?.type === "tool-call" ? presentToolActivity(handoffStatus).summary : null, "Handoff to Build Mac needs attention");
+  assert.equal(handoffStatus?.type === "tool-call" ? presentToolActivity(handoffStatus).summary : null, "Transfer · Review the UI · Build Mac · Needs attention");
   if (handoffStatus?.type !== "tool-call") throw new Error("Expected handoff status tool call");
   assert.equal(presentToolActivity(handoffStatus).state, "completed");
   assert.equal(presentToolActivity(handoffStatus).summaryOnlyInConversationGroup, true);
@@ -2036,9 +2036,9 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
   assert.deepEqual(handoffResult === null ? [] : visibleThreadHandoffSteps(handoffResult), [
     { id: "prepare-host-transfer", status: "done" },
     { id: "transfer-host-artifacts", status: "failed" },
-    { id: "rolling-back-changes", status: "running" },
+    { id: "create-new-worktree", status: "pending" },
   ]);
-  assert.equal(handoffResult === null ? null : formatThreadHandoffStepLabel("switching-thread", handoffResult), "Moving chat to the destination worktree");
+  assert.equal(handoffResult === null ? null : formatThreadHandoffStepLabel("switching-thread", handoffResult), "Switching thread · Destination worktree");
 });
 
 test("registered Codex thread tools reject malformed arguments without a generic fallback row", () => {
@@ -2146,7 +2146,7 @@ test("Agent Activity reproduces active labels and deterministic completed summar
   assert.equal(completedHeader.summaryKey, "summary");
   assert.equal(completedHeader.icon, "wrench");
   assert.equal(agentActivityHeaderAccessibleLabel(completedHeader.summary),
-    "Used GitHub integration, edited files, read files, ran a command, searched the web, and listed chats");
+    "Used GitHub integration, edited files, read files, ran a command, searched the web, and list threads · Completed");
   assert.deepEqual(completedHeader.summary.kind === "parts"
     ? completedHeader.summary.parts.map((part) => part.kind)
     : [], ["sources", "files", "exploration", "commands", "web-search", "dynamic"]);
@@ -2348,7 +2348,7 @@ test("tool presentation registry is priority ordered and reversibly extensible",
   remove();
   assert.equal(publications, 2);
   unsubscribe();
-  assert.equal(presentToolActivity(block, registry).summary, "Inspect");
+  assert.equal(presentToolActivity(block, registry).summary, "Inspect · Completed");
   assert.equal(createAssistantTurnPresentationPlan(frame, registry).slots[0]?.type, "agent-activity");
 });
 

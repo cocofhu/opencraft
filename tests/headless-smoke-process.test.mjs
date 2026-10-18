@@ -13,7 +13,8 @@ async function isRunning(pid) {
     const stat = await readFile(`/proc/${pid}/stat`, "utf8");
     return !["Z", "X"].includes(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[0]);
   } catch (error) {
-    if (error.code === "ENOENT") return false;
+    // The process can exit after /proc opens the file but before its read.
+    if (error.code === "ENOENT" || error.code === "ESRCH") return false;
     throw error;
   }
 }

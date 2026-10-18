@@ -99,16 +99,11 @@
   background: var(--color-background-button-secondary);
   color: var(--color-icon-secondary);
 
-  .connector-brand {
+  .connector-icon {
     width: 18px;
     height: 18px;
     border-radius: inherit;
     background: transparent;
-
-    img {
-      width: 16px;
-      height: 16px;
-    }
 
     svg {
       width: 14px;
