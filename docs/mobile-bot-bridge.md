@@ -1,7 +1,7 @@
 # Embedded Bot bridge
 
 The existing Bot product UI lives in `frontend/src/mobile-dom/entry.tsx` and
-is bundled into `products/vela/native/assets/mobile-bot-runtime.html` by
+is bundled into `products/<product>/native/assets/mobile-bot-runtime.html` by
 the downstream product's `build:mobile-bot-runtime` command. The iOS WebView loads that local asset. It does not
 navigate to a hosted Bot screen. Both sides import the single wire contract
 `@opencraft/mobile-bot-bridge`.
@@ -35,7 +35,7 @@ The local HTML includes the actual OpenCraft Web custom element, its styles
 and build assets; this Agent Console entry does not mount RN Chat or AgentChat.
 Automations currently keeps the original packaged frontend panel. A staged
 React Native/HeroUI implementation and target-scoped port for the original
-Cron client live under `products/vela/native/src/components/mobile-automations.shared.tsx`
+Cron client live under `products/<product>/native/src/components/mobile-automations.shared.tsx`
 and `src/runtime/native-cron-port.ts`, but are not routed into the product.
 The initial native form lacked templates, 0 Token creation/editing, delivery
 channels, skills, upstream bindings, effective windows and run-output details;

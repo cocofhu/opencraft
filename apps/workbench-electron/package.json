@@ -5,9 +5,9 @@
   "description": "OpenCraft desktop workbench",
   "author": {
     "name": "OpenCraft",
-    "email": "support@lightvela.ai"
+    "url": "https://github.com/opencraft-app/opencraft"
   },
-  "homepage": "https://lightvela.ai",
+  "homepage": "https://github.com/opencraft-app/opencraft",
   "desktopName": "OpenCraft",
   "type": "module",
   "main": "dist-host/main.cjs",
@@ -131,7 +131,7 @@
       "category": "Development",
       "icon": "../workbench-expo/ios/OpenCraft/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png",
       "executableName": "opencraft",
-      "maintainer": "OpenCraft <support@lightvela.ai>",
+      "maintainer": "OpenCraft <maintainers@opencraft.app>",
       "vendor": "OpenCraft",
       "synopsis": "OpenCraft agent workbench",
       "syncDesktopName": true,

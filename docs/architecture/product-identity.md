@@ -45,7 +45,7 @@ Installation IDs are explicit per platform and build profile:
 The Expo release profiles are selected by `OPENCRAFT_ANDROID_RELEASE=1` and
 `OPENCRAFT_IOS_RELEASE=1` in `apps/workbench-expo/app.config.js`. A changed
 identifier is a separate installation; it does not update the old package.
-Bundle compatibility does not authorize a Vela-named data root.
+Bundle compatibility does not authorize a the downstream product-named data root.
 
 The 2026-10-18 provenance de-sensitization renamed the company-branded installation
 identities: the signed Android release package is `app.opencraft.workbench`
@@ -120,7 +120,7 @@ Existing `vela.*` plugin/View/host IDs, `vela-bot:` resource URIs, IndexedDB nam
 local-storage keys and serialized projection fields remain canonical identities.
 There is only one schema and one reader, not a compatibility fork. Default-product
 storage remains unprefixed, while the downstream product partition is unchanged.
-These compatibility IDs do not authorize new Vela-named filesystem paths,
+These compatibility IDs do not authorize new the downstream product-named filesystem paths,
 directories, sockets, tokens, databases or logs. The same rule covers the
 published `ioa_*` table identities: they are retained as storage contracts and
 are not renamed by source de-sensitization.

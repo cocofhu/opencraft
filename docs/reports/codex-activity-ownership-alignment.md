@@ -17,7 +17,7 @@
    the user had chosen to expand. A compaction-only region with persistent
    steering demonstrates why those states are different.
 3. Retain Unit identity when a completed single-item group becomes standalone.
-   Original `je` preserves `e.key`. The previous Vela demotion replaced the
+   Original `je` preserves `e.key`. The previous the downstream product demotion replaced the
    `agent-activity-group:*` key with `agent-activity-standalone:*`. The wrapper
    identity is now preserved; its inner renderer may still legitimately change.
 
@@ -60,7 +60,7 @@ fixture supplies the CSS utilities used by these functions, not the entire
 installed app stylesheet. Final readiness is evaluated independently from raw
 fixture items by the original function, not copied from the candidate verdict.
 
-This closes the earlier “both sides use Vela Activity” verification gap for
+This closes the earlier “both sides use the downstream product Activity” verification gap for
 these boundaries. It is **not** full installed-app, provider-translator or
 all-tool-renderer pixel parity, nor a capture of the user's live event stream.
 

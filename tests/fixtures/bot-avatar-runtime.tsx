@@ -21,7 +21,7 @@ const participants: readonly BotParticipantSnapshot[] = [
   {
     participantId: "bot:vela",
     kind: "bot",
-    displayName: "Vela",
+    displayName: "OpenCraft",
     avatar: {
       kind: "monogram",
       text: "V",

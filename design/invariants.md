@@ -458,7 +458,7 @@ the list viewport and the existing application Router authority.
 | WSP-22 | 导航 hover 与当前路由是不同状态：Theme Engine 定义统一 `navigation-hover/current/pressed` token，Design System `navigation-control` 解释 `aria-current="page"`/selected；Sidebar、Work、Settings 与平台 Shell 不得自定义停留背景 | Theme Engine/controls.web；明暗主题 token 测试、Skills↔Storage Electron computed-style 验收 |
 | WSP-23 | Embedded Workbench 只拥有宿主右侧画布；外层 Sidebar、Explore/Chat 路由与 History 归宿主。嵌入 Composer 在 ready/show 前只读，hide 先撤销写 lease 但保留 Application、会话与 Panel；Host 侧仅消费 session snapshot/action，不复制会话真源 | EmbeddedWorkbenchElement、EmbeddedChatWriteAuthority、transient ConversationBinding；双跑/fallback 单测、真实下游产品页面与 Browser/Terminal Panel 验收 |
 | WSP-24 | Sidebar Activity 按等你处理(review/error)→置顶→最近去重分区；running不独立分区，按置顶与最近归类且保留行内运行状态；等你处理组两行桌面最小48px、触屏密度最小56px；含工作目录的各组采用标题与辅助目录两行，桌面最小48px、触屏密度最小56px；无目录且无待处理状态时为单行桌面最小32px、触屏密度最小44px，最近内部running优先，运行行按原生createdAt倒序（缺失创建元数据的行排在已知创建时间之后）；其余按规范recency倒序，完成后退出运行优先，已读不参与排序。排序先于十条分页；日期标题按实际可见行连续日期段投影，不重排会话，不新增进行中分区或定时挪位。各区可折叠；只有最近区消费十条预算。可选产品参与筛选默认关闭，由插件判定与按账号存偏好，snapshot.data为空（loading/error/unsupported）时保留行；数据已就绪但creator/participants均为空时不匹配“我参与的”，仅在顶部筛选控件调整，不追加底部隐藏人数或显示全部入口；displayIdentity为null时插件不输出filter描述符，Shell隐藏菜单参与筛选组；身份恢复沿用账号mineEnabled偏好，身份消失不改写偏好。停用插件隐藏菜单参与筛选并恢复完整目录。标题搜索与稳定Server筛选由Shell持有。企业身份 badge按实际内容宽度右对齐，仅显示最近已识别发言人，未知时回退创建人，多人时追加总人数圆标（上限99+、tooltip保留精确人数），头像20px、间距4px、圆标24px，不保留空人数槽；无内容不占位，分组模式遵循hideRowBadge；稳定来源是 `serverOrigin.serverId`，Hub route、tenant、Host placement 与 Thread 状态正交。行内不显示Server图标/色点，Server身份仍供筛选与完整tooltip使用；项目目录位于标题下方辅助行，使用label/tertiary排版，弱于metadata/secondary日期分组；必要待处理状态仍使用metadata，无底板、色点或独立配置项；待处理状态与目录共用辅助行，以中点分隔，不重复运行中文字；长目录按正文可用宽度省略，完整目录保留在行tooltip。头像右侧仅保留原菜单尾槽，与头像间隔4px；pending/running/Goal/review/error/unread与菜单共用该槽，内容网格仅正文和头像两列，不再预留独立18px状态列；状态或菜单能力变化不得推动正文/头像几何，错误/待处理/未读圆点统一5px中性灰。触控与桌面共用同一 Activity 组件、状态与 Design System token，不分叉业务语义；仅瞬时 hover 与菜单命中区按当前输入能力适配；移动抽屉纵向菜单固定顶部，搜索与筛选随列表滚动；底部仅悬浮新建与设置，不显示个人头像/账号底栏。Activity 行容器独占 hover/选中底色，按钮与伪元素不得重复叠加背景，“…”入口背景透明，指针移到入口时行 hover 不断开；文档级当前输入信号令触控滚动不产生鼠标 hover 底色。无 hover 或当前触摸输入时，独立“…”入口直接可见、有足够命中区，并为项目标签与尾部状态槽位预留空间；鼠标 hover、键盘焦点和选中态各自独立 | client-hub-server.ts、MultiHost compatibility projection、SidebarActivityItem/ThreadRowMenu、同 Server 跨 Hub route/改名/状态正交测试、触控/鼠标浏览器验收与真实 Electron 窄侧栏验收 |
-| WSP-25 | Web/Electron unified Sidebar 的桌面60px图标栏或移动抽屉纵向菜单只保留 Home，通过openChat恢复已有会话或草稿；桌面Conversations标题下的全宽New chat横条与移动端底部悬浮按钮复用navigateToHome新建草稿；移动新建与圆形设置按钮由Shell同排悬浮在滚动区上方，设置在右侧，不显示账号入口/底部底板，列表留出末尾空间；展开时折叠控件属于侧栏，收起时 persistent titlebar 仅保留展开入口，不再追加 Write。浏览器标题栏不再保留独立 Vela/Home 按钮；transient/floating Header 不复制 Write。动态 action 必须进入 Header rail 测量和 macOS safe area | AppShellNavigationControls、window-chrome；展开/收起、persistent/transient、首帧宽度、真实浏览器和 Electron 点击验收 |
+| WSP-25 | Web/Electron unified Sidebar 的桌面60px图标栏或移动抽屉纵向菜单只保留 Home，通过openChat恢复已有会话或草稿；桌面Conversations标题下的全宽New chat横条与移动端底部悬浮按钮复用navigateToHome新建草稿；移动新建与圆形设置按钮由Shell同排悬浮在滚动区上方，设置在右侧，不显示账号入口/底部底板，列表留出末尾空间；展开时折叠控件属于侧栏，收起时 persistent titlebar 仅保留展开入口，不再追加 Write。浏览器标题栏不再保留独立下游产品/Home 按钮；transient/floating Header 不复制 Write。动态 action 必须进入 Header rail 测量和 macOS safe area | AppShellNavigationControls、window-chrome；展开/收起、persistent/transient、首帧宽度、真实浏览器和 Electron 点击验收 |
 
 
 
@@ -740,10 +740,10 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 
 ## UI 图标：共享视觉语言
 
-- 图形由 product identity 选择：OpenCraft core 保留新功能的语义图形，但视觉风格按下游产品 Agent Console 源码统一；Vela 嵌入聊天和完整 lightvela-web 保留固定回迁前组件的形状、描边、尺度、leading-slot 与选中/hover；颜色主题不选择图形或授予能力。每个 Shadow DOM/presentation root 独立投影 token，多实例不写 document 产品状态。
-- core Web/Electron 导航角色对齐 `frontend/src/styles.css` 的 `.lv-agents-nav-icon svg`：Lucide 24 单位画布、14px、1.8 描边、圆端点和圆连接；普通控件按对应下游产品源组件的显式尺度与 Lucide 默认描边呈现；Vela 保留旧 Lucide/16 单位填充图形和显式描边；品牌标识、内容插图与上游生成资源独立，不由通用 SVG 选择器改写。
-- `apps/workbench-web/src/components/ui/workbench-icon.tsx` 是导航、设置与面板扩展语义名到图形的唯一 Web 映射。扩展传递语义名；core 未知名称显示中性帮助图形；Vela 的导航/设置/面板保留旧 consumer 的 Blocks/Plus fallback，不误呈现为某个已知功能。
-- `workbenchIconMetrics` 与 `icons.web.scss` 拥有尺度/描边 primitive，core 导航14px、1.8描边，普通/选中均为轮廓，选中含义由行背景和文字保持；Vela 按旧 consumer 的15/16/14px与原 SVG 属性投影，不强改其他旧组件的显式描边。导航前导槽位沿用 `--size-navigation-leading-slot`，直接 SVG 与包装槽位保持光学中心和文字起点对齐；unified Shell 对 core 上方目的地与下方 Settings 共享 Shell inline inset，不让窄屏通用 Settings padding 改变其中一列。紧凑工具按钮保留其宿主尺寸；不能将所有场景强制放大。
+- 图形由 product identity 选择：OpenCraft core 保留新功能的语义图形，但视觉风格按下游产品 Agent Console 源码统一；下游产品嵌入聊天和完整 lightvela-web 保留固定回迁前组件的形状、描边、尺度、leading-slot 与选中/hover；颜色主题不选择图形或授予能力。每个 Shadow DOM/presentation root 独立投影 token，多实例不写 document 产品状态。
+- core Web/Electron 导航角色对齐 `frontend/src/styles.css` 的 `.lv-agents-nav-icon svg`：Lucide 24 单位画布、14px、1.8 描边、圆端点和圆连接；普通控件按对应下游产品源组件的显式尺度与 Lucide 默认描边呈现；下游产品保留旧 Lucide/16 单位填充图形和显式描边；品牌标识、内容插图与上游生成资源独立，不由通用 SVG 选择器改写。
+- `apps/workbench-web/src/components/ui/workbench-icon.tsx` 是导航、设置与面板扩展语义名到图形的唯一 Web 映射。扩展传递语义名；core 未知名称显示中性帮助图形；下游产品的导航/设置/面板保留旧 consumer 的 Blocks/Plus fallback，不误呈现为某个已知功能。
+- `workbenchIconMetrics` 与 `icons.web.scss` 拥有尺度/描边 primitive，core 导航14px、1.8描边，普通/选中均为轮廓，选中含义由行背景和文字保持；下游产品按旧 consumer 的15/16/14px与原 SVG 属性投影，不强改其他旧组件的显式描边。导航前导槽位沿用 `--size-navigation-leading-slot`，直接 SVG 与包装槽位保持光学中心和文字起点对齐；unified Shell 对 core 上方目的地与下方 Settings 共享 Shell inline inset，不让窄屏通用 Settings padding 改变其中一列。紧凑工具按钮保留其宿主尺寸；不能将所有场景强制放大。
 - 同一操作在展开/收起入口使用相同图形；状态变化不改变按钮命中区、焦点或布局。图标继承控件颜色，不另设选中配色。
 - 独立 core 桌面 rail 的 16px 例外只作用于 rail 导航与 footer，不能在共同侧栏列覆盖 `--size-icon-navigation`，否则相邻 Settings 与商业产品会被一同放大。core Settings 仍为 14px 导航角色；下游产品导航/Settings 保留原 consumer 的 15/16px。产品隔离浏览器选中真实 Settings，比对固定旧 Settings 图形并独立校验 Palette/SunMoon 家族；Home/New chat 不再冒充旧 Write。浅深与 DPR1/2 分别核对，不以更新截图或复制当前 resolver 代替兼容预期。
 - 验证：`npx tsx scripts/smoke-icons.ts` 使用真实导航组件检查浅/深色、DPR 1/2、选中与折叠按钮几何，生成图谱和结果 JSON。下游产品目录的 `npm run smoke:sidebar-icons` 另挂载真实 unified AppShell，检查宽窄侧栏双列几何、普通/选中及 下游源样式/图形对照；三面 release 用 `smoke-product-isolation.mjs` 检查根隔离。Web 构建与组件证据不代表 Electron 原生窗口验收。
@@ -754,7 +754,7 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 - Thread 记忆按现有 product/Host/Profile 加当前 account/region 作用域；未知账号归属的旧 selection 不转给新账号，不删原历史。账号撤销、路由/草稿代次及 Application 释放共同隔离晚到结果；隐藏/重新显示与重连不重建草稿或机器 authority。
 - Node SQLite 一个物理文件只能有一个迁移/连接 owner；Codex queue、sender、企业身份 presence/state 同库，metadata consumer 不再 CREATE 或独自关闭。Tasks/SSH 已发布 SQL/hash 不变，未知账本拒绝，已知旧记录在备份/原子转换中保留；没有空列表替代已知旧库数据。
 - Local Agent 配置目录的 Tasks 属于启动 gate；可选 Codex Tasks/SSH 私有 owner 按功能真实使用打开，能力成功回执先验证数据。迁移 outcome 不代表全部可选引擎已初始化，不把失败库误报 ready。
-- 验证：`tests/downstream-sqlite-lifecycle.test.ts`、`tests/workbench-product-icons.test.tsx`、`tests/work-in-draft.test.ts`、下游 `products/vela/tooling/smoke-product-isolation.mjs`。真实三面 release DOM、企业服务/RFC6455/AppServer bridge、浅深×DPR1/2 的外部边界为本地合成账号/Host；完整 gate、真实企业账号/推理/SSH/发布仍留后续阶段。
+- 验证：`tests/downstream-sqlite-lifecycle.test.ts`、`tests/workbench-product-icons.test.tsx`、`tests/work-in-draft.test.ts`、下游 `products/<product>/tooling/smoke-product-isolation.mjs`。真实三面 release DOM、企业服务/RFC6455/AppServer bridge、浅深×DPR1/2 的外部边界为本地合成账号/Host；完整 gate、真实企业账号/推理/SSH/发布仍留后续阶段。
 
 ### Header 首帧与浮动侧栏几何所有权
 
@@ -777,7 +777,7 @@ Header 的可见导航 rail 用 `max-content` 在同一次布局中保留真实�
 
 触屏行高仅消费密度token：单行max(32px, --size-control-hit-min)，两行最小max(48px, --size-control-hit-min + 12px)；状态、头像与行菜单垂直居中。漏斗/右键的模式radio与filter checkbox共享indicator槽与文字轴，四种locale/桌面触屏均保留间隔。
 
-core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉沿用正常侧栏宽度，仅按屏宽减24px收窄，不再强制扩至屏宽84%，不写回桌面宽度；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。Vela 两面保持旧 consumer 留白。
+core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉沿用正常侧栏宽度，仅按屏宽减24px收窄，不再强制扩至屏宽84%，不写回桌面宽度；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
 
 `scripts/smoke-sidebar-thread-insets.mjs` 挂载真实 AppShell + Sidebar + ThreadRowMenu，以合成短/长标题、日期组、项目和状态测宽窄固定/浮动、选中/hover浅深几何；此前 Settings 列测试不代替会话消费链。
 

@@ -12,7 +12,7 @@ response-policy and virtualizer function bodies in headless Chromium. The refere
 root is `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
 The harness logs SHA-256 fingerprints of the extracted functions.
 
-Both endpoints use Vela's row presentation. This is **not** a running full Codex
+Both endpoints use the downstream product's row presentation. This is **not** a running full Codex
 application or a production Hermes/AppServer replay. No messages were sent to a
 real conversation. The test does not cover protocol timing/classification upstream
 of the provided timeline blocks.
@@ -34,7 +34,7 @@ visible row coordinates, text end, phase and follow mode.
 sampled scalar/anchor difference. This is finite test coverage, not global parity.
 The original 18-event synthetic regression also passed after extending the fixture.
 
-| Sequence | r3562 functions | Vela |
+| Sequence | r3562 functions | the downstream product |
 | --- | --- | --- |
 | At bottom before send, direct final answer grows to six essays | `static`; stays at answer beginning | Same |
 | At 600 characters, invoke bottom action; continue to 1,800 | `user_follow`; distance remains 0px | Same |
@@ -48,17 +48,17 @@ answer; an explicit user scroll upward relinquishes it.
 
 ## Confirmed differences / unresolved scope
 
-1. **Empty final-answer item is misclassified by Vela.** r3562 `AD` treats an
+1. **Empty final-answer item is misclassified by the downstream product.** r3562 `AD` treats an
    `agentMessage` with phase other than commentary as final, even without text.
    `deriveTimelineLatestTurnPhase` additionally requires `text.trim().length > 0`.
-   At empty submission the probes read original `static/final_answer` versus Vela
+   At empty submission the probes read original `static/final_answer` versus the downstream product
    `prework_watch/prework`. Both converge to `static/final_answer` at the first
    nonempty chunk in this test. This is a real semantic difference, but this test
    does not establish it as the cause of the reported lost follow.
 
 2. **Fast animation-boundary behavior is not equivalent.** With 192ms boundaries,
    the large prework update arrives before placement animation settles. The
-   reference endpoint retains a 302.359375px response spacer; Vela clears it to 0px.
+   reference endpoint retains a 302.359375px response spacer; the downstream product clears it to 0px.
    Both still enter `prework_follow`, then `user_follow`, and keep scroll distance
    at 0px. The fast variant deliberately fails the geometry assertion; it is not
    hidden by the normal-boundary pass. An original/original control passed with

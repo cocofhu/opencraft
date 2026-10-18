@@ -1,6 +1,6 @@
 # OpenCraft Extension Platform 与插件内核架构
 
-GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入Vela/企业身份，
+GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入下游产品/企业身份，
 不能无条件导入私有插件；移除配置中的必需身份提供者必须保持拒绝，核心Actor、
 成员与资源授权不下沉到产品。当前拆分尚在实施，已知直接依赖与验证不变量见
 [upstream transition](upstream-transition.md#boundary-migration-record-and-remaining-review)，不把菜单开关当依赖隔离。
@@ -14,7 +14,7 @@ workspace root）；缺失文件或 URL 拒绝构建，无配置时不探测下�
 该选择只改变装配入口，不证明下游产品或全部私有实现已脱离公开依赖闭包。
 
 客户端本地缓存只消费核心 `ClientPersistenceScope` 的 namespace、固定 Host 会话记忆
-分区及同步变更通知，不读取 Vela region/profile/credential 字段。产品提供只读投影，
+分区及同步变更通知，不读取下游产品 region/profile/credential 字段。产品提供只读投影，
 保留既有持久键及账号撤权时序；应用卸载仅释放订阅，不旋转持久 namespace。
 此端口不是 Actor、readStateScope 或远端授权证明；资料刷新可改变记忆分区，不能据此
 清除输入草稿。
@@ -45,8 +45,8 @@ Web构建预设由可信本地Vite配置组合：核心导出`createWorkbenchWeb
 公开核心不再提供指向下游Web目录的CLI别名。原生Bot仍使用同一产品配置及原内存
 打包契约，不从远端获取执行代码。此归属变化不等于来源授权已核实。
 
-Vela 的嵌入 element、Root、账号/物理连接 adapter 及产品集成测试由下游
-`products/vela` 拥有。构建通过 `OPENCRAFT_EMBEDDED_PRODUCT_ENTRY` 显式选择本地文件，
+下游产品的嵌入 element、Root、账号/物理连接 adapter 及产品集成测试由下游
+`products/<product>` 拥有。构建通过 `OPENCRAFT_EMBEDDED_PRODUCT_ENTRY` 显式选择本地文件，
 默认公开 Web/Electron 不附带私有嵌入图；嵌入专用 target 未配置入口直接失败。
 产品构建保留原 loader URL、element API、绘制/连接与释放时序。通用绘制、发送、
 音频、连接和面板 helpers 仍属于核心，不复制组件、不以空实现代替完整客户端。
@@ -451,7 +451,7 @@ UNLOADING / DISPOSED`，非常适合实现 Activation 内核。`ctx.effect()` �
 未接通适配器时不发布可用入口，桌面进程、观看连接和独占控制租约分开所有权。
 框架及后续接入条件见 [Conversation desktop plugin](cloud-desktop-plugin.md)。
 
-云桌面与 Vela 产品插件保持单向依赖：通用插件拥有桌面 contract、面板和 noVNC
+云桌面与下游产品插件保持单向依赖：通用插件拥有桌面 contract、面板和 noVNC
 媒体适配，不读取账号或调用企业云服务；`lightvela-platform/desktop` 只消费通用
 contract/media 子入口，拥有精确绑定校验、资源准备及后端 attachment 交接，
 不导入桌面 React renderer、noVNC 或 Hermes Chat 隧道。生产观看授权/输入门禁

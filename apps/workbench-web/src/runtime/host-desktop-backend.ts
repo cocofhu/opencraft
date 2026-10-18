@@ -9,7 +9,7 @@ import { createDesktopWireSession } from "@opencraft/plugin-cloud-desktop/sessio
 const unavailable = () => new Error("Desktop is unavailable");
 type Registry = Pick<HostRuntimeRegistry<AppServerWorkbenchRuntime>, "subscribe" | "getSnapshot" | "peekRuntime">;
 
-/** Local Host adapter, independent of Vela/enterprise service. Client Scope aliases are only
+/** Local Host adapter, independent of the downstream product/enterprise service. Client Scope aliases are only
  * presentation identities: requests use the bound native Thread ID, and the
  * Host constructs and checks its own authoritative binding before granting. */
 export class HostDesktopBackend implements DesktopBackend {
