@@ -172,7 +172,8 @@ now locate the previously relative Web-adapter and tool-label sources. The selec
 full clients. Blanket independent-replacement work remains paused while source-specific rights
 and lineage are reviewed; the 2026-10-18 scoped authorization permits bounded
 source treatment. The stable callback now delegates to a pinned public MIT
-implementation, with full notices; the other six inventory groups and former
+implementation, with full notices. Connector mark image files are excluded
+from current core as recorded below; five other inventory groups and former
 Git history remain unresolved. Unverified provenance does not establish a need for
 replacement. A Headless-only first release is not selected.
 
@@ -250,3 +251,10 @@ release success. npm publication is deferred by the current owner decision;
 it is not a prerequisite for using the private GitHub source upstream. Verify
 actual GitHub settings, CI, registry bytes and a clean consumer before declaring
 a public release complete.
+
+Connector brand images were subsequently excluded from current core following
+their exact-source review. Existing licensed category icons retain service
+identification alongside unchanged service names, catalog and operations.
+Historical hashes and attribution remain in
+[the artwork disposition](provenance/connector-artwork.md); this current-tree
+exclusion does not clear old Git history or change downstream artwork.

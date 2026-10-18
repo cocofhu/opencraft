@@ -79,7 +79,8 @@ try {
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "腾讯 IMA · 查看接入详情");
   assert.equal(await page.getByRole("textbox", { name: "搜索连接器" }).inputValue(), "IMA");
   await page.getByRole("textbox", { name: "搜索连接器" }).fill("");
-  await page.waitForFunction(() => [...document.querySelectorAll<HTMLImageElement>('.connector-brand img')].every(image => image.complete && image.naturalWidth > 0));
+  assert.equal(await page.locator('.connector-service-card .connector-icon svg').count(), 23);
+  assert.equal(await page.locator('.connector-icon img, .connector-icon image, .connector-icon use').count(), 0);
   await page.screenshot({ path: join(output, "library.png") });
   assert.deepEqual(await page.evaluate(() => (window as any).connectorProbe.available()), []);
   await page.getByRole("button", { name: "添加", exact: true }).click();
@@ -130,7 +131,7 @@ try {
   await page.getByRole("status").filter({ hasText: "已停止等待授权结果" }).waitFor();
   assert.equal(await page.getByRole("alert").count(), 0, "confirmed cancellation clears the old uncertain-result error");
   evidence.push("check failure/retry; Client ID guidance; unconfirmed save inspected without duplicate or mislabeled OAuth; polling warning clears; cancellation does not claim revocation");
-  evidence.push("compact branded catalog; inspector keyboard/focus; search retained; configured view; narrow dark layout and delete confirmation");
+  evidence.push("compact catalog with 23 local category icons; inspector keyboard/focus; search retained; configured view; narrow dark layout and delete confirmation");
   assert.deepEqual(errors, []); console.log(JSON.stringify({ output, evidence, calls }));
 } finally {
   await writeFile(join(output, "report.json"), JSON.stringify({ evidence, errors, calls })); await browser?.close(); await vite.close();

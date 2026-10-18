@@ -28,7 +28,7 @@ evidence, rather than treating this generated file list as a rights opinion.
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
 | `codex-tool-presentation-labels` | `CODEX_APP_TOOL_LABELS` annotation in `packages/chat-core/src/tool-activity.ts` | Unverified; found by the corrected source-marker check | Inspect the identified label/grouping table separately from protocol names, ordinary short labels and the rest of the tool presentation/extension implementation |
-| `product-and-brand-assets` | Connector notices plus product/skill/native assets enumerated by the report | Unverified | Move private product assets downstream, check individual third-party distribution terms, and supply original upstream branding |
+| `product-and-brand-assets` | Retained exact-source hashes and [artwork disposition](provenance/connector-artwork.md) | Current image files excluded; private product artwork downstream; historical rights unverified | Verify no image files/imports remain in source and distributable assets; retain source notices and full connector operations |
 
 ## Recording a resolution
 
@@ -48,8 +48,9 @@ an explicit conclusion and evidence for that conclusion:
   evidence and validate the remaining client; removing functionality requires
   an explicit product scope decision.
 
-The stable-callback replacement has a recorded licensed source; the other six
-groups remain unverified. The product scope remains
+The stable-callback replacement has a recorded licensed source and the connector
+brand images are excluded from current core; five other groups remain unverified.
+The product scope remains
 **preserve the full Web/Electron/Expo client**. The earlier recommendation to
 replace all unverified client modules is **paused** (2026-10-17), following the
 user's question about why rewriting was necessary. Unverified source rights do
@@ -111,9 +112,10 @@ bytes to downstream `products/vela/native`, outside the public core tree. This
 is a product ownership transfer. Original skill artwork and the TAT proxy Worker
 likewise belong to downstream `products/vela/public`, explicitly selected only by
 product builds. These moves do not authorize remaining connector marks or artwork,
-or clear historical commits. The brand group remains unverified; its active core
-paths now enumerate the connector marks, with removed product paths retained as
-disposition evidence.
+or clear historical commits. The later bounded artwork disposition excludes the
+remaining connector image
+files from current core. Exact historical source hashes and removed product
+paths remain as disposition evidence; historical rights are still unverified.
 
 
 ## Pinned reference follow-up (2026-10-18)
@@ -156,8 +158,9 @@ This verifies the recorded origin and retained repository license; it does not
 establish each brand owner's authorization or trademark distribution scope.
 The remaining review for this group concerns those individual marks and any
 historical distribution, rather than the already moved Vela/Join artwork.
-The group remains **unverified**. No asset, client feature or disposition is
-changed, and none of the renderer groups is cleared by this finding.
+At that reference-only review the group remained **unverified**. The finding
+did not change assets, client features or disposition, or clear any renderer
+group. The subsequent bounded exclusion is recorded below.
 
 ## Licensed stable callback replacement (2026-10-18)
 
@@ -169,6 +172,19 @@ and notice delivery. This is a licensed replacement, not a claim of independent
 authorship for an adaptation of the former recovered implementation.
 
 The source inventory resolves only `codex-stable-callback` for the current
-replacement. The other six groups, the former implementation and public-history
-clearance remain unresolved. The repository stays private; no public release,
+replacement. At that point six other current groups, the former implementation
+and public-history clearance remained unresolved; the subsequent artwork
+exclusion below reduces the current unresolved groups to five. The repository
+stays private; no public release,
 tag or npm publication follows from this disposition.
+
+## Connector artwork exclusion (2026-10-18)
+
+The bounded asset review identified exactly 23 unchanged connector marks, not
+the service catalog or connector runtime. Those image files and their glob loader
+are removed from the current core. Licensed Lucide category icons replace their
+decorative slots; all service names, recipes, search, setup and connection
+operations remain. [Disposition and checks](provenance/connector-artwork.md)
+retain the original attribution and link to the exact asset hashes. This
+exclusion does not clear old Git commits or grant any brand rights. Five current
+source groups still require review; full clients remain the selected scope.
