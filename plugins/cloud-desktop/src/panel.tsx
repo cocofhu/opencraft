@@ -193,8 +193,8 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
         <div ref={trackpad} className="ui-desktop-trackpad__surface" role="group" data-sidebar-gesture="ignore"
           aria-label={intl.formatMessage({ id: "desktop.trackpad", defaultMessage: "Trackpad" })}>
           <span className="ui-desktop-trackpad__title" aria-hidden="true">{intl.formatMessage({ id: "desktop.trackpad", defaultMessage: "Trackpad" })}</span>
-          <span className="ui-desktop-trackpad__hint">{intl.formatMessage({ id: "desktop.trackpadHint", defaultMessage: "Slide to move · Tap to click · Two fingers to scroll" })}</span>
-          <span className="ui-desktop-trackpad__detail">{intl.formatMessage({ id: "desktop.trackpadDetail", defaultMessage: "Two-finger tap for right-click · Double-tap and hold to drag" })}</span>
+          <span className="ui-desktop-trackpad__hint">{intl.formatMessage({ id: "desktop.trackpadHint", defaultMessage: "Slide to move · Tap to click · Hold to drag" })}</span>
+          <span className="ui-desktop-trackpad__detail">{intl.formatMessage({ id: "desktop.trackpadDetail", defaultMessage: "Two fingers to scroll · Two-finger tap for right-click" })}</span>
         </div>
       </div> : null}
       </div>

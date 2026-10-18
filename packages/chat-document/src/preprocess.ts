@@ -16,9 +16,41 @@ export interface PreprocessChatMarkdownOptions {
 
 export type ChatDocumentDialect = "assistant" | "user-message";
 
-const incompleteReferenceSuffix = /\uE200[^\uE201]*$/u;
-const incompleteImageLine = /(^|\n)[^\S\n]*!\[[^\]\n]*(?:\](?:\([^\)\n]*)?)?\s*$/u;
-const incompleteLinkTarget = /\[([^\]\n]+)\]\(([^\)\n]+)$/u;
+function stripIncompleteReference(source: string): string {
+  const start = source.indexOf("\uE200", source.lastIndexOf("\uE201") + 1);
+  return start < 0 ? source : source.slice(0, start);
+}
+
+/** Only the final nonblank line can be an unfinished standalone image. */
+function hideIncompleteImage(source: string): string {
+  const end = source.trimEnd().length;
+  const start = source.lastIndexOf("\n", end - 1) + 1;
+  const line = source.slice(start, end).trimStart();
+  if (!line.startsWith("![")) return source;
+  const closingLabel = line.indexOf("]", 2);
+  if (closingLabel >= 0) {
+    const target = line.slice(closingLabel + 1);
+    if (target !== "" && (!target.startsWith("(") || target.includes(")"))) return source;
+  }
+  return source.slice(0, start);
+}
+
+/** Scan once; failed bracket candidates must not rescan the remaining suffix. */
+function hideIncompleteLinkTarget(source: string): string {
+  const start = source.lastIndexOf("\n") + 1;
+  const lastClosingTarget = source.lastIndexOf(")");
+  let openingLabel = -1;
+  for (let index = start; index < source.length; index += 1) {
+    if (source[index] === "[" && openingLabel < 0) openingLabel = index;
+    if (source[index] !== "]") continue;
+    if (openingLabel >= 0 && index > openingLabel + 1 && source[index + 1] === "("
+      && index + 2 < source.length && index > lastClosingTarget) {
+      return source.slice(0, openingLabel) + source.slice(openingLabel + 1, index);
+    }
+    openingLabel = -1;
+  }
+  return source;
+}
 
 function isEscaped(text: string, index: number): boolean {
   let slashCount = 0;
@@ -172,7 +204,7 @@ export function preprocessChatMarkdown(
   source: string,
   options: PreprocessChatMarkdownOptions = {},
 ): PreprocessedChatMarkdown {
-  let markdown = source.replace(incompleteReferenceSuffix, "");
+  let markdown = stripIncompleteReference(source);
   const openFence = locateOpenFence(markdown);
   if (options.streaming !== true || markdown.length === 0) return { markdown, openFence };
 
@@ -183,8 +215,8 @@ export function preprocessChatMarkdown(
   if (markdown.includes("`") && hasOddInlineBackticks(markdown)) {
     return { markdown, openFence: null };
   }
-  if (markdown.includes("![")) markdown = markdown.replace(incompleteImageLine, "$1");
-  if (markdown.includes("](")) markdown = markdown.replace(incompleteLinkTarget, "$1");
+  if (markdown.includes("![")) markdown = hideIncompleteImage(markdown);
+  if (markdown.includes("](")) markdown = hideIncompleteLinkTarget(markdown);
   markdown = closeOddDelimiter(markdown, "**");
   markdown = closeOddDelimiter(markdown, "*");
   return { markdown, openFence };

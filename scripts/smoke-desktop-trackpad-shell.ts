@@ -81,6 +81,37 @@ try {
     // Exercise nested hint text and held movement, not just final drawer state.
     const cdp = await context.newCDPSession(page);
     const sidebar = page.locator(".app-shell-floating-left-panel");
+    await page.waitForTimeout(350); // Let the preceding tap's double-tap window expire.
+    const heldBox = await pad.boundingBox(); assert.ok(heldBox);
+    const heldPoint = { x: heldBox.x + heldBox.width / 2, y: heldBox.y + heldBox.height / 2, id: 1 };
+    const packetCount = () => page.evaluate(() => (window as any).fixture.packets.length);
+    const masksSince = (n: number) => page.evaluate(n => (window as any).fixture.packets.slice(n) as number[], n);
+    const holdStart = await packetCount();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [heldPoint] });
+    await page.waitForTimeout(100);
+    assert.deepEqual(await masksSince(holdStart), [], "stationary hold must not press immediately");
+    await page.waitForFunction(() => document.querySelector<HTMLElement>(".ui-desktop-trackpad__surface")?.dataset.pressed === "true");
+    assert.deepEqual(await masksSince(holdStart), [1], "300ms hold grabs without a preceding tap");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...heldPoint, x: heldPoint.x + 35 }] });
+    const heldMasks = await masksSince(holdStart);
+    assert.ok(heldMasks.length >= 2 && heldMasks.every(mask => mask === 1), "movement keeps the button held");
+    assert.equal(await sidebar.count(), 0, "held drag cannot reveal sidebar");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    assert.deepEqual(await masksSince(holdStart), [...heldMasks, 0], "release ends drag without a second click");
+    await page.waitForTimeout(350);
+    const moveStart = await packetCount();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [heldPoint] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...heldPoint, x: heldPoint.x + 35 }] });
+    await page.waitForTimeout(400);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    const moveMasks = await masksSince(moveStart);
+    assert.ok(moveMasks.length > 0 && moveMasks.every(mask => mask === 0), "moving then pausing cannot arm a long-press drag");
+    const cancelStart = await packetCount();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [heldPoint] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    await page.waitForTimeout(400);
+    assert.deepEqual(await masksSince(cancelStart), [], "cancelled native touch cannot fire a delayed press");
+    evidence.push({ device, longPress: { heldMasks, moveMasks, nativeCancel: true } });
     const gesture = async (from: number, to: number, y: number, pair = false) => {
       const points = (x: number) => [{ x, y, id: 1 }, ...(pair ? [{ x: x + 25, y: y + 16, id: 2 }] : [])];
       await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points(from) });

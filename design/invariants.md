@@ -298,7 +298,13 @@ Surface消费Shell的同一逻辑active投影：隐藏立即退出模拟光标�
 Confirmed coarse-pointer desktop control may expose a relative trackpad through
 the mounted media capability. The pad interprets gestures only; media owns the
 same pointer position/writer, bounded scroll, text handoff and backend grant.
-It never duplicates a connection or resumes control. Cancellation fences retained
+It never duplicates a connection or resumes control. A stationary single finger
+holds the left button after 300ms, then moves relative to the existing cursor;
+release ends the drag. Movement reaching 8px before the deadline cancels arming.
+Tap, two-finger scroll/right-click and double-tap drag stay available. The timer
+is fenced by gesture lifetime, grant and geometry, including reentrant text
+handoff. A second finger cancels pending arming; after a drag starts it releases
+the button and quarantines contacts without another click. Cancellation fences retained
 contacts, and an idle pad cannot release a direct media press. Design System
 places picture, controls and neutral theme-derived touch surface in disjoint
 rows, consuming Shell's existing visual viewport height when keyboards contract
@@ -933,6 +939,16 @@ in-memory per Workbench instance and cleared by disposal/reload; it is neither
 a cross-device inbox nor the approval/failure task-attention model. Details and
 consumer contract: [Toast notifications](../docs/toast-notifications.md).
 
+## Reasoning presentation work
+
+Thinking ownership is resolved before Markdown header compilation. Reading a
+live todo never materializes the transcript. A mounted Turn may retain bounded
+plain reasoning presentations by Item, selected source and active grammar mode;
+reprojection reuses unchanged history while edits and completion invalidate the
+affected Item. The full canonical body, disclosure identity, explicit user
+choices, drafts, focus and scroll ownership remain unchanged. No process-global
+private-text cache or truncation is introduced. See [ChatUI reasoning](../docs/chat-ui-architecture.md).
+
 ## Chat document tracking (2026-10-15)
 
 Web/Electron chat documents and lazy/error source fallbacks use normal letter spacing, independent of the Shell body’s -0.01em tracking. Assistant prose and formatted user messages share the document root, so headings, paragraphs, lists, tables and nested content inherit the same natural spacing. Existing family, size, line-height, weight, paragraph rhythm and code font selection remain owned by their current renderers. The composer and Shell are outside this document boundary; conversation list titles keep their independently approved 13px/normal role.
@@ -1499,3 +1515,22 @@ end-to-end model or employee-device latency.
 - 能力协商只声明实际实现项；首版 inline 模式，文本消息/上下文、工具与当前资源读取、外链、尺寸/主题/输入输出可用，不声明 fullscreen、采样、资源订阅、下载或设备权限。
 
 - MCP App 自动尺寸区分真实内容失效和纯高度视口响应；`100vh + margin` 不得把宿主刚应用的高度循环当作新增内容。真实内容/媒体/字体/宽度变化继续测量，显式尺寸消息沿用既有桥。容器宽度来自 iframe 实际布局，合帧去重通知，不轮询、不重读资源、不重放工具、不重建 iframe；observer 与待执行帧随 View 清理。
+
+
+## Conversation overview authority
+
+Conversation statistics is a read-only optional Tasks view. Native full catalogs, latest-turn
+results, pins and product-supplied participation evidence retain their separate owners.
+Missing sources/results/people are unknown, never manufactured successes or zero coverage.
+Current state, latest completion date, archive retention and period activity are independent
+dimensions. A creator is not automatically a participant. The tab cannot send/resume a turn
+or mutate tasks, and source/account lifecycle changes revoke late projections.
+See [Conversation overview](../docs/tasks-model.md#conversation-overview).
+
+
+### Optional statistics loading
+
+Tasks loads its optional conversation statistics renderer and styles only after
+the statistics tab is selected. Suspense uses the existing loading status; it
+does not introduce another data owner or relax the startup resource budget.
+The read adapter loads on first read and checks cancellation after import.
