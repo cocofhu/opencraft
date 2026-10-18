@@ -1,3 +1,4 @@
+import { createBackgroundJobProofs } from "./dsh-background-jobs.mjs";
 import { recoverDshGeneration } from "./dsh-generation-recovery.mjs";
 // Engine-side capability registration. Imported by the actual DSH Loader so
 // defineTool and scoped registries come from that process's own module graph.
@@ -15,8 +16,9 @@ import { createDshSkillCatalog } from "./dsh-skill-catalog.mjs";
 import { validateSkillInvocations } from "./dsh-skill-invocation.mjs";
 import { createInstructionController, sessionInstructions, hasSessionInstructions, instructionOverrides } from "./dsh-instructions.mjs";
 
-export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments", "goals"];
+export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments", "goals", "jobs"];
 export async function apply(ctx, config) {
+  const backgroundJobs = createBackgroundJobProofs(ctx);
   const promptSlots = await import(new URL("../../dsh-system-prompt/lib/index.js", config.toolsModuleUrl).href);
   const instructions = createInstructionController(promptSlots);
   const threadEngine = await createThreadEngine(ctx, config.toolsModuleUrl, {
@@ -294,6 +296,9 @@ export async function apply(ctx, config) {
         if (intent) await recoverGeneration(intent.input);
         const checkpoint = await checkpoints.read(body.logicalSessionId);
         res.end(JSON.stringify({ sessionId: checkpoint?.sourceSessionId ?? body.logicalSessionId, generation: checkpoint?.generation ?? 0, ...checkpoint?.seedCoordinates })); return;
+      }
+      if (req.method === "POST" && route === "/background-proof") {
+        res.end(JSON.stringify(backgroundJobs.take(body.sessionId, body.messageId))); return;
       }
       if (req.method === "GET" && route === "/events") {
         const events = calls.splice(0);

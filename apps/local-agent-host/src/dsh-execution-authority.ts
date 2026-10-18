@@ -118,10 +118,13 @@ export class DshExecutionAuthority {
     this.assertConnected(owner);
     return this.claimExecution(threadId, owner, requestId);
   }
-  /** An explicitly armed native Goal outlives its originating socket. Only the
-   * admission gate may call this after validating the native goal source. */
-  claimGoalContinuation(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
+  /** A proven native continuation outlives its originating socket. Only the
+   * admission gate may call this after validating a Goal or owned job proof. */
+  claimContinuation(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
     return this.claimExecution(threadId, owner, requestId);
+  }
+  claimGoalContinuation(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
+    return this.claimContinuation(threadId, owner, requestId);
   }
   private claimExecution(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
     const lease = this.leases.acquire(threadId, owner, "executing");
@@ -149,6 +152,13 @@ export class DshExecutionAuthority {
     this.database.prepare("INSERT INTO opencraft_execution_inputs VALUES (?, ?, ?, ?, ?)").run(
       admission.executionId, admission.threadId, rpcId, clientMessageId ?? null, admission.connection.identity.id,
     );
+  }
+  /** Durable occurrence identity; absence is the only safe permission to submit. */
+  scheduleInput(threadId: string, clientMessageId: string) {
+    const row = this.database.prepare(`SELECT e.state, e.turn_id FROM opencraft_execution_inputs i
+      JOIN hypernode_turn_execution_attempts e ON e.execution_id=i.execution_id
+      WHERE i.thread_id=? AND i.client_message_id=? ORDER BY e.started_at_ms DESC LIMIT 1`).get(threadId, clientMessageId);
+    return row ? { state: String(row.state), turnId: typeof row.turn_id === "string" ? row.turn_id : undefined } : null;
   }
   projectInput(threadId: string, event: DshEvent): DshEvent {
     if (event.type !== "user/message") return event;

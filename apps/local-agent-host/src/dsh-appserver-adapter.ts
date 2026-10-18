@@ -612,7 +612,29 @@ export class DshAppServerAdapter {
     }) });
   }
 
+  private backgroundProofReader?: (threadId: string, messageId: string) => Promise<{ originRpcId: string } | null>;
+  private readonly proofTails = new Map<string, Promise<void>>();
+  setBackgroundProofReader(reader: NonNullable<DshAppServerAdapter["backgroundProofReader"]>) { this.backgroundProofReader = reader; }
   private onMuxFrame(frame: RecordValue): void {
+    const threadId = string(frame.sessionId);
+    const event = object(frame.event), data = object(event.data), source = object(data.source);
+    const needsProof = frame.type === "session/event" && event.type === "user/message" && source.kind === "plugin" && source.plugin === "tool-jobs";
+    const prior = this.proofTails.get(threadId);
+    if (!needsProof && !prior) { this.applyMuxFrame(frame); return; }
+    const generation = this.streamGeneration;
+    const operation = (prior ?? Promise.resolve()).then(async () => {
+      if (generation !== this.streamGeneration || generation?.signal.aborted) return;
+      if (needsProof && this.backgroundProofReader && typeof data.id === "string") {
+        const proof = await this.backgroundProofReader(threadId, data.id).catch(() => null);
+        if (generation !== this.streamGeneration || generation?.signal.aborted) return;
+        if (proof) this.admission?.authorizeBackground(threadId, data.id, proof.originRpcId);
+      }
+      this.applyMuxFrame(frame);
+    }).catch(() => { /* Fail closed; a notice cannot break the native stream. */ });
+    this.proofTails.set(threadId, operation);
+    void operation.finally(() => { if (this.proofTails.get(threadId) === operation) this.proofTails.delete(threadId); });
+  }
+  private applyMuxFrame(frame: RecordValue): void {
     if (typeof frame.type === "string" && (frame.type.startsWith("question/") || frame.type.startsWith("approval/"))) {
       void this.interactions.receive(frame).catch(error => console.error("[opencraft local host] interaction projection", error));
       return;
