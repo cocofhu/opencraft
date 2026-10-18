@@ -536,7 +536,7 @@ provider process merely because the Skills page mounts.
 ## 11. Cordis and UI wiring
 
 ```text
-mono2-derived Skills presentation
+downstream-derived Skills presentation
   -> ProfileSkillsRepository (presentation DTO adapter)
   -> ProfileSkillsService (Cordis domain service)
   -> AppServer client selected by hostId outside the protocol
@@ -553,7 +553,7 @@ boundary, obtains the Host's AppServer client from the runtime registry, checks
 `opencraft/profile-skills`, and sends a wire request containing only the
 explicit Profile scope. Components never inject `appServerClients` directly.
 
-The mono2/Hermes Desktop presentation remains external reference code. We add
+The downstream/Hermes Desktop presentation remains external reference code. We add
 one narrow repository/provider seam at our integration boundary; we do not
 copy networking, paths, polling stores, or Shell behavior into its components.
 Diagnostics and Cloud Storage can later use the same architecture with their

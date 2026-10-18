@@ -230,7 +230,7 @@ SSH management、员工身份和语音入口；它不是上文受管 gateway 的
 内嵌 Codex 的首次独立 core 迁移必须等待真实活动 turn、工具与队列自然清空，或由
 操作者安排维护窗口。持久 `unknown` 表示提交结果尚未确认，不能据此判断任务已死、
 删除记录或自动重放；恢复由原 owner 按历史中的 client message 身份核对。
-独立 core 的原生连续性不包含 mono2 的队列、verified sender、IOA、Tasks 和其他
+独立 core 的原生连续性不包含下游的队列、verified sender、企业身份、Tasks 和其他
 Host overlay；需要保留这些能力时，先完成相应 adapter 接入，不能借部署改变默认执行选择。
 
 目标库包含当前 owner 不识别的旧表时，先找原建表与读写来源，再设计有界的 owner
@@ -238,8 +238,8 @@ Host overlay；需要保留这些能力时，先完成相应 adapter 接入，�
 结构拒绝，也不能移开后用空库替代。发现目标 preview 来自未提交或后续补丁时，将
 它与指定构建来源分别记录；未经确认不能把该 preview 当作已接收源码构建输入。
 
-完整保留 mono2 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
-[受管 Headless 与独立 core](join-managed-headless.md)。纯 core bridge 不能替代该模式。
+完整保留下游 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
+[受管 Headless 与独立 core](managed-headless.md)。纯 core bridge 不能替代该模式。
 # Optional ordinary relay
 
 The managed package includes independent inactive relay/admin executables and an

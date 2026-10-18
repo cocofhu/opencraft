@@ -10,7 +10,7 @@
 
 - Root context route had no matching pack; bounded exact source search is required.
 - The shared worktree is heavily dirty from the ongoing OpenCraft migration. Changes must be narrow and must not revert unrelated files.
-- `graphify-out/graph.json` is absent. A full mono2 graph build would be disproportionate for this bounded navigation migration, so current-source exact search is the fallback.
+- `graphify-out/graph.json` is absent. A full repository graph build would be disproportionate for this bounded navigation migration, so current-source exact search is the fallback.
 - `opencraft/AGENTS.md` requires the OpenCraft maintenance guide and cross-package gate for this navigation change.
 
 ## Current Source Shape
@@ -94,7 +94,7 @@
 ## Desktop Visual Finding
 
 - The first packaged preview visibly removed the Environment action and opened Model Services through Settings at `/settings/vela.builtin-agents.model-services`.
-- Its Settings group still rendered the old `Local Agent` label instead of the worktree source's `本机`. Root cause: the temporary borrowed `node_modules` contains npm workspace symlinks pointing back to `/Users/skipzhang/mono2/opencraft`, so package imports can mix main-checkout code with this worktree.
+- Its Settings group still rendered the old `Local Agent` label instead of the worktree source's `本机`. Root cause: the temporary borrowed `node_modules` contains npm workspace symlinks pointing back to `<checkout>/opencraft`, so package imports can mix main-checkout code with this worktree.
 - That preview is diagnostic only and cannot be final acceptance evidence. Local worktree-owned workspace links are required before rebuilding and rerunning gates.
 - The final current-worktree preview renders `Chat` and `Settings` only in Applications. Settings shows a `本机` group with one `模型服务` entry, selected at `/settings/vela.builtin-agents.model-services`.
 - The existing provider navigation/detail surface remains intact; no Environment navigation, breadcrumb, overview or content container is mounted.

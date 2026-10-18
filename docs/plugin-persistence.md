@@ -112,4 +112,4 @@ Web 多标签是必测路径：blocked 必须可见，versionchange 停止新写
 
 当前 Workbench Web 的 `LocalAccountPreferences` 适配 localStorage，按产品/插件/账号隔离，单 key 整份 JSON last-write-wins；同页写入及同源标签页 storage 事件发布失效通知。清理、配额或访问失败由插件反馈，不能冒称已保存。不跨账号、Host 或设备同步；匿名仅保留临时 UI。extension-runtime 拒绝退休 activation 的读写并回收订阅。未装配的平台返回缺失能力，不能宣称 Native 或 Electron 稳定跨启动持久化。
 
-内建 UI key 仍由 `UiPreferencesRuntime` 与既有 IndexedDB/Main SQLite authority 管理。首个消费者是 IOA 的创建人分组显示模式与折叠状态，账号 key 使用 provider + staffId；Shell 不读写其偏好 schema。验证见 `tencentoa-creator-grouping.test.ts` 与 `smoke-ioa-creator-groups.ts`，后者覆盖真实插件激活、刷新、双标签通知及账号切换（身份/RPC/照片边界为替身）。
+内建 UI key 仍由 `UiPreferencesRuntime` 与既有 IndexedDB/Main SQLite authority 管理。首个消费者是 企业身份 的创建人分组显示模式与折叠状态，账号 key 使用 provider + staffId；Shell 不读写其偏好 schema。验证见 `enterprise-identity-creator-grouping.test.ts` 与 `smoke-ioa-creator-groups.ts`，后者覆盖真实插件激活、刷新、双标签通知及账号切换（身份/RPC/照片边界为替身）。

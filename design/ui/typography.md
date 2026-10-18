@@ -119,7 +119,7 @@ the sole adapter interpolates registry names. No ordinary UI literal is exempted
 Synced `upstream/`, generated, vendor and external documents keep their source
 ownership. Change their source and refresh/check the existing sync closure; never
 rewrite imported files to satisfy this UI lint. This scope is OpenCraft, including
-its owned plugins and Native renderers, not a redesign of independent mono2 products.
+its owned plugins and Native renderers, not a redesign of independent downstream products.
 
 ## Lessons from merged changes
 

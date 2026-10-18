@@ -9,7 +9,7 @@ changes still notify without navigation, and execution rechecks the current
 target independently of toolbar visibility.
 
 Status: source framework, noVNC media adapter, Vela provider/viewer port, bounded
-backend attachment broker and CTL resource-preparation API. Local Linux Codex
+backend attachment broker and cloud desktop resource-preparation API. Local Linux Codex
 Hosts now have an explicit observation composition and an opt-in private native
 mouse/keyboard executor. The
 multi-tenant Vela broker is not mounted in production: its canonical directory
@@ -283,7 +283,7 @@ An operator can instead choose `--trusted-internal-desktop` for a deployment who
 network admission is already trusted. It permits a non-loopback listener with the
 existing explicit listener acknowledgement; the two desktop modes are mutually
 exclusive. This means **everyone able to access that deployment is trusted to view
-the same local machine desktop**. It adds no Vela login, TAT or multi-tenant policy.
+the same local machine desktop**. It adds no Vela login, cloud-service or multi-tenant policy.
 The Host advertises `same-origin-trusted-internal` only after native observation is
 verified. Default/public deployments without this flag still hide the entry.
 The gateway requires an exact HTTP(S) Origin authority matching Host, including
@@ -726,7 +726,7 @@ production desktop verification. Additional adapter/provider tests cover
 observe-only sessions, source-level control grant fencing, exact product binding,
 preparation DTO validation, unknown POST failure and provider retirement.
 
-From the mono2 core directory, `npm run smoke:cloud-desktop --prefix ../products/vela` runs the real panel, Vela provider and noVNC in a
+From the downstream product workspace, `npm run smoke:cloud-desktop --prefix products/vela` runs the real panel, Vela provider and noVNC in a
 browser against a synthetic local RFB server and product authority. It checks a
 decoded binary framebuffer pixel, a deliberately held first-frame/empty-update
 negative, actual pointer/key delivery and focus after a grant, ordered clipboard

@@ -20,8 +20,8 @@ URL 更新或移除。
 `a34ee6d`（`feat(collaboration): wire deployable component`）建立了独立协作产品与服务接入，
 没有规定通用工作台必须默认激活该扩展；本节明确其产品启用策略。
 
-仓库归属：本设计及实现只写入 `git.woa.com/wisp/mono2.git`。OpenCraft 已完成一次性历史导入，
-不与旧 OpenCraft 仓库或 `mono2-clean4` 工作区建立双写/同步关系。
+仓库归属：本设计及实现只写入 下游产品仓库。OpenCraft 已完成一次性历史导入，
+不与旧 OpenCraft 仓库或旧工作区建立双写/同步关系。
 
 ## 第一不变量：两套 Chat 泾渭分明
 

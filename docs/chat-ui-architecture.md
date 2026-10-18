@@ -4,7 +4,7 @@
 
 Web/Electron show each user message's verified employee `loginName` above its
 content, with a 20px circular photo beside the small muted label aligned to the end.
-The IOA plugin resolves the photo through the trusted identity-avatar contribution;
+The enterprise identity plugin resolves the photo through the trusted identity-avatar contribution;
 failed images retain a same-size person icon. Attachment-only messages use
 the same label. Unknown or absent senders leave no label. The label consumes
 the individual message snapshot, never the current footer account or Turn author,
@@ -24,8 +24,8 @@ non-overlapping rows; touch focus does not retain a hover grip over the photo.
 ChatRuntime carries the original per-entry protocol sender. Exact-client local
 submission hints may paint a pending queue before acknowledgement; explicit server
 identity (including null) wins, and restored/unrelated entries never inherit the
-current employee. Web resolves the IOA contribution into generic name/avatar URL
-values; Composer owns only layout/fallback, not IOA URLs or account policy. Queue
+current employee. Web resolves the enterprise identity contribution into generic name/avatar URL
+values; Composer owns only layout/fallback, not enterprise identity URLs or account policy. Queue
 editing/reordering never relabels its submitter; these values are display-only.
 
 ## Streaming projection and document reuse
@@ -737,7 +737,7 @@ returning malformed success data. These fixtures do not certify a commercial
 backend or embedded preference policy.
 
 The real embedded preference policy is covered by
-`npm run smoke:product-isolation --prefix ../products/vela -- --embedded-only` (from the mono2 core directory), using the isolated
+`npm run smoke:product-isolation --prefix products/vela -- --embedded-only` (from the downstream product workspace), using the isolated
 LightVela Web and Embedded Workbench builds. It saves immediate follow-up through
 real LightVela settings on the same origin/product, holds completion after real
 first-Turn admission, and checks that embedded still offers Queue. The same
@@ -1830,12 +1830,12 @@ this does not declare a native Expo PDF viewer.
 ## Product Thread badge slot
 
 The Shell offers one trusted `threadBadge` contribution. Its React contract supplies
-Host/Thread identity, portal root and controlled Popover state; IOA owns the circular
+Host/Thread identity, portal root and controlled Popover state; enterprise identity owns the circular
 participant badge and data reads. The badge is a sibling of the Thread navigation
 button. Sidebar owns exclusivity across participant Popovers and existing context/
 dropdown menus, clears state on selection/hidden-row/unload, and prevents a retired
 Popover from restoring focus into a newer one. Escape retains normal focus return.
-No IOA-specific query, count, identity or badge styling belongs to Sidebar.
+No enterprise identity-specific query, count, identity or badge styling belongs to Sidebar.
 
 Chinese emphasis uses the standard Marked tokenizer first. If it rejects an asterisk delimiter at a Han/punctuation boundary, the compiler retries with a length-preserving delimiter mask and a relaxed Han opener boundary. This preserves canonical source, code/escape masking and standard English/underscore behavior. The Codex reference uses Marked 16.4.1 without this override and reproduces both reported completed-text cases.
 

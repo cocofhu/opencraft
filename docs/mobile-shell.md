@@ -1,6 +1,6 @@
 # iOS mobile shell
 
-本文描述显式下游 Vela 产品的 Shell。公开默认 Expo 使用既有 RN Workbench 与直连 Host；Vela 通过 mono2 产品 runner 选择原入口，见 [Expo README](../apps/workbench-expo/README.md#public-and-downstream-product-entries)。入口拆分不改变本文的导航、账号、Bot 或几何所有权。
+本文描述显式下游 Vela 产品的 Shell。公开默认 Expo 使用既有 RN Workbench 与直连 Host；Vela 通过下游产品 runner 选择原入口，见 [Expo README](../apps/workbench-expo/README.md#public-and-downstream-product-entries)。入口拆分不改变本文的导航、账号、Bot 或几何所有权。
 
 ## Ownership
 

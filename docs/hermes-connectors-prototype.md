@@ -3,7 +3,7 @@
 ## Ownership
 
 - Workbench owns only generic settings/view contributions. No connector branch was added to core.
-- `plugins/lightvela-hermes/src/connectors` owns UI, TAT client and installation action.
+- `plugins/lightvela-hermes/src/connectors` owns UI, cloud-service client and installation action.
 - A view is bound to a physical Bot ID; switching Bot or logging out disposes its requests.
 - `/data/overmind` owns catalog, instance state, credentials, service clients and skills.
 - Hermes uses a stdio MCP bridge to the VM's loopback daemon. Neither COS credentials nor
@@ -63,13 +63,13 @@ Hermes config tests verify preservation, repeat installation and conflicting-ent
 Plugin tests/typecheck/build verify registration and supported-flow boundaries.
 An isolated installation also downloads the COS release with wget, verifies the digest,
 runs the compiled daemon, repeats installation, checks icons/skills/config and calls a
-fixture tool through the compiled stdio bridge. Actual user-Bot TAT installation and
+fixture tool through the compiled stdio bridge. Actual user-Bot cloud-service installation and
 external-service credentials still need an interactive smoke test.
 
 ## CLI PTY authorization
 
 The plugin detail panel starts a daemon-owned session through the existing authenticated
-TAT HTTP transport; it never sends a shell command. `POST /v1/cli-auth/sessions` takes an
+cloud-service HTTP transport; it never sends a shell command. `POST /v1/cli-auth/sessions` takes an
 existing connector instance ID; the daemon resolves the trusted catalogue command and
 uses that instance's isolated HOME and environment. Installation and status checks reuse
 the normal connect workflow. The authorization command runs in a real Unix controlling

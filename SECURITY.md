@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Send vulnerability reports privately to **masonxhuang@proton.me**. Include the
+Report vulnerabilities privately through the repository's GitHub private security advisory (Security → Advisories → Report a vulnerability). Include the
 affected version or commit, reproduction steps, impact and a redacted diagnostic
 sample. Keep credentials, private host addresses, user conversations and prompts
 out of public issues, pull requests and Actions logs.
@@ -57,8 +57,10 @@ remain mandatory. No dependency versions or advisory records are hidden.
 Local invocation defaults to the existing high-severity failure threshold;
 `NPM_AUDIT_REPORT_ONLY=true` explicitly selects advisory output. CI keeps that
 mode when the upstream becomes public. No findings are represented as fixed.
-The owner's later 2026-10-18 decision removes source cleanup as a prerequisite
-for the upstream migration; existing source records and notices remain.
+Source cleanup was removed from the upstream migration prerequisites, and a later
+provenance scan and de-sensitization pass removed internal host, contact and
+identity references from the public tree. That pass neither cleared nor rewrote
+source records and notices.
 
 ### Compatible dependency remediation (2026-10-17)
 

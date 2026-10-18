@@ -32,7 +32,7 @@ description: OpenCraft 项目维护总纲。用于维护 opencraft 的架构、�
 
 本文中的路径均相对 **OpenCraft 服务根**（包含 `AGENTS.md`、独立 `package.json` 和 `docs/` 的 `opencraft/`），不是当前终端目录。
 
-1. 从OpenCraft服务根的 `AGENTS.md` 进入；只有当前checkout确实位于mono2内时才读取其父级入口并运行内部Context Router。独立GitHub仓库不依赖mono2脚本或目录。GitHub目标上游及切换状态读 `docs/upstream-transition.md`，不把过渡中的混合源码当已完成开源。
+1. 从OpenCraft服务根的 `AGENTS.md` 进入；独立GitHub仓库不依赖任何下游或父级脚本与目录。GitHub目标上游及切换状态读 `docs/upstream-transition.md`，不把过渡中的混合源码当已完成开源。
 2. 架构修改读 `docs/platform-architecture.md`；按下面路由只读触及的专题。正式文档和当前源码/测试是事实依据，本 Skill 是维护方法，不建立平行真源。
 3. 当前源码、旧总结、参考产品不一致时先核对版本与实际调用链。测试预期也可能错误：以用户明确的产品行为重新审查不变量，不靠旧测试给错误行为背书。
 

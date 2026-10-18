@@ -1,14 +1,14 @@
 # OpenCraft Agent 入口
 
-本文件是OpenCraft服务根入口，独立GitHub checkout也必须能直接使用。若它位于mono2中，额外遵循mono2根入口及Context Router；独立仓库不要求不存在的父级脚本或内部文档。正式事实以当前源码、测试、生成契约和下列专题文档为准。
+本文件是OpenCraft服务根入口，独立GitHub checkout也必须能直接使用。独立仓库不要求不存在的父级脚本或内部文档。正式事实以当前源码、测试、生成契约和下列专题文档为准。
 
 ## 上下游迁移
 
-GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、执行引擎和渠道经插件接入；核心仍拥有主体、授权和Hub分发。Vela/IOA/Join业务装配属于下游。当前迁移尚未完成，先读[实际状态与来源清单](docs/upstream-transition.md)；不要用旧GitHub源码覆盖当前产品，也不建立两套可写核心。原贡献采用Apache-2.0，未核实第三方恢复/适配材料不因LICENSE自动获得授权。
+GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、执行引擎和渠道经插件接入；核心仍拥有主体、授权和Hub分发。下游产品的业务装配（身份、品牌与企业服务）不属于核心。当前切换状态见[实际状态与来源清单](docs/upstream-transition.md)；不要用旧源码覆盖当前产品，也不建立两套可写核心。原贡献采用Apache-2.0，未核实第三方恢复/适配材料不因LICENSE自动获得授权。
 
 ## 当前上游化交付范围（2026-10-18）
 
-用户已明确更新目标「无需做任何来源清理」。停止为上游化进行来源替换；已有来源记录和NOTICE保留，不将未核实项改成已核实。不以来源清理作为GitHub上游、公开切换或发布自动化的前置。未合并的来源清理PR #20保留为草稿，不因本目标合入。当前重点为完整核心独立运行、Vela/IOA产品隔离、贡献/发布Skills及上下游固定版本与补丁链路。npm仍暂不发布；旧私有历史归档保留。真实权限、凭据、构建及受保护分支检查继续遵守。
+用户已更新目标：对上游仓库做一次来源信息扫描与去敏重写（内部地址、个人身份、内部仓库与服务名）；法律来源权利核实仍与去敏分开。已有来源记录和NOTICE保留，不将未核实项改成已核实。未合并的来源清理PR #20保留为草稿。当前重点为完整核心独立运行、下游产品隔离、贡献/发布Skills及上下游固定版本与补丁链路。npm仍暂不发布；旧私有历史归档保留。真实权限、凭据、构建及受保护分支检查继续遵守。
 
 ## 完成标准
 
@@ -29,9 +29,9 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 - DSH 是可替换的执行引擎，不是 Bot、模型、会话、凭据或产品配置的唯一真源。先确认对象身份、生命周期和唯一写入者，再修改页面或 adapter。
 - 宿主只声明并呈现已接通的能力；不得用开关、菜单项或前端状态冒充协议、运行时或后端能力。
-- 云桌面通用插件拥有桌面 contract、媒体和面板，不依赖 Vela 账号、Bot、TAT 或 CTL。产品 provider 只消费通用 contract/media 子入口，拥有授权绑定、资源准备和观看 attachment 交接，不拥有桌面 DOM、Shell 或 Chat 连接。依赖方向与回收顺序见 [云桌面插件边界](docs/cloud-desktop-plugin.md#cloud-desktop--vela-plugin-boundary)；客户端只读状态不得代替后端输入授权。
+- 云桌面通用插件拥有桌面 contract、媒体和面板，不依赖产品账号、Bot 或企业云服务。产品 provider 只消费通用 contract/media 子入口，拥有授权绑定、资源准备和观看 attachment 交接，不拥有桌面 DOM、Shell 或 Chat 连接。依赖方向与回收顺序见 [云桌面插件边界](docs/cloud-desktop-plugin.md#cloud-desktop--vela-plugin-boundary)；客户端只读状态不得代替后端输入授权。
 - 主体与协作遵循[原生主体与 Hub 协作设计纲领](docs/architecture/actor-collaboration.md)：人类与持久 Agent/Bot/Session 都是主体，权限独立授予，Hub 负责准入与授权路由。该纲领是目标设计，不代表多租户已实现。现有 Client / Hub / Server 的连接、执行与 lease 契约见[执行所有权](docs/execution-ownership.md#client--hub--server-拓扑)；Renderer 是呈现机制，Host 是部署载体，均不能决定主体身份。
-- 自然人身份是主对象，登录方式是身份绑定：[多种登录方式落到同一自然人](docs/architecture/actor-collaboration.md#多种登录方式绑定同一自然人)。本地账号、OIDC 与 IOA 等身份来源共用核心 human Actor；权限、资源归属和审计关联 Actor，不随登录方式变化。绑定须验证身份，不按同名或相同邮箱自动合并；登录态与 Bot Session 凭据分开管理。Headless 随包提供每部署独立账号的官方服务端插件 `opencraft.account` 与可配置 OIDC，专用企业验证由可选插件接入；配置与已实现边界见[服务器登录](docs/server-authentication.md)。
+- 自然人身份是主对象，登录方式是身份绑定：[多种登录方式落到同一自然人](docs/architecture/actor-collaboration.md#多种登录方式绑定同一自然人)。本地账号、OIDC 与企业身份等身份来源共用核心 human Actor；权限、资源归属和审计关联 Actor，不随登录方式变化。绑定须验证身份，不按同名或相同邮箱自动合并；登录态与 Bot Session 凭据分开管理。Headless 随包提供每部署独立账号的官方服务端插件 `opencraft.account` 与可配置 OIDC，专用企业验证由可选插件接入；配置与已实现边界见[服务器登录](docs/server-authentication.md)。
 
 ## 按需加载
 
@@ -42,9 +42,9 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 | OpenCraft 架构、交互、布局、平台适配或预览 | [opencraft-maintenance](.agents/skills/opencraft-maintenance/SKILL.md)，按任务读取其验证清单 |
 | iPhone 通过 Cloudflare Tunnel 打开 Expo Go 开发预览 | [opencraft-expo-cf-preview](.agents/skills/opencraft-expo-cf-preview/SKILL.md)；先轻量核对 Metro、隧道与外网 iOS manifest，再给完整明文 `exps://` 链接，提醒用 Safari 打开；不为日常预览下载完整 bundle。手机操作见 [Expo README](apps/workbench-expo/README.md#iphone-真机快速体验) |
 | Android 内测、正式 APK，或 iOS 测试 IPA | 先读 [手机端路线](apps/workbench-expo/README.md#手机端路线) 和 [构建矩阵](docs/build-matrix.md)；按目标选择签名、包名及验证步骤 |
-| Android 备案资料或临时内网下载 | [Android 正式 APK](apps/workbench-expo/README.md#android-lightvela-release-apk)；从最终 APK 核对包名、签名证书和文件摘要，只开放 APK 下载路径 |
+| Android 备案资料或临时局域网下载 | [Android 正式 APK](apps/workbench-expo/README.md#android-lightvela-release-apk)；从最终 APK 核对包名、签名证书和文件摘要，只开放 APK 下载路径 |
 | 承载当前代理的 headless 预览服务切换或重启 | [opencraft-self-hosted-preview](.agents/skills/opencraft-self-hosted-preview/SKILL.md)；由独立服务完成切换与回退，重连后核对实际进程 |
-| mono2 Agent Console 共享实现 | [MONO2_MIGRATION](MONO2_MIGRATION.md)、`frontend/AGENTS.md`；同步边界还读 `../docs/context/project/upstream-subtrees.md` |
+| 下游产品 Agent Console 共享实现 | [历史与消费契约](UPSTREAM_HISTORY.md)；同步边界由下游产品工作区维护 |
 | Web、Expo、Electron 构建与交付 | [build-matrix](docs/build-matrix.md) |
 | 公共 npm 发布、Web 更新部署 | [Web 发布与部署](docs/web-deployment.md#公共-npm-发布流程)，含包名、Trusted Publisher、精确归档与验收约定 |
 | 从源码打包替换服务器本地 Web | [本地替换指引](docs/web-local-deployment.md)；先核对 `.local/README.md` 中的实际部署信息 |
@@ -64,8 +64,8 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 - 当需求指定 HeroUI Native/NextUI Native 的抽屉、弹层或其他交互控件时，要求涵盖**容器本身**的手势、遮罩、关闭、可访问性和动画；仅在手写 `Animated.View`、`PanResponder` 或普通 `View` 里放 HeroUI 按钮，不算使用该原生控件。实现前核对当前安装版本实际导出的组件及 Expo Go 支持；若库没有对应控件，选用可在 Expo Go 运行的成熟原生交互原语，并在 Task Pack 与交接中明确组件来源及例外，不能把它标为 HeroUI Native 抽屉。禁止引入 Unistyles。
 - iOS 页面前进和返回统一经过可复用的原生导航页面容器：按钮返回与左边缘右滑必须走同一完成路径；拖动要跟手、未达阈值回弹、松手后补完动画。按当前**容器**宽度计算位移和阈值，窗口尺寸变化后重新测量，不能写死 iPhone 宽度或假定所有页面都是手机全屏 Stack。尊重系统减少动态效果设置，动画期间保留底层页面和 Bot runtime；从侧栏进入个人与设置时还必须保留侧栏的打开状态，返回应露出原侧栏，不能先关闭再推页面。状态栏与 Home Indicator 属于同一移动页面，不得留下独立横条。新增页面先复用这一层，再选择具体的手机、iPad 或折叠屏呈现方式。
 - iPhone 外网预览提供完整明文 `exps://` 链接，在 Safari 打开并跳转 Expo Go；Metro 与 Cloudflare Tunnel 必须持续运行。为加快迭代，新链接只做轻量可用性检查（Metro 监听、隧道连接和 iOS manifest 响应），**不下载完整 bundle 校验**；源码的 Expo 类型检查和 iOS 打包仍按改动风险运行。链接失效时重新生成并做同样的轻量检查；不要把服务端检查表述为真机已验证。
-- Android 内测包为 `dev.vela.workbench`，使用开发签名；正式包为 `com.tencent.vela`，必须使用仓库外的正式密钥。iOS 测试 IPA 须在有 Xcode 和 Apple 签名的 Mac 上构建。更换包名或密钥后，从**新成品**重新提取备案值。
-- 本地 APK/IPA 打包、备案资料和临时内网下载不等于 GitOps 发布。交接时分别报告源码 checkout、包名、签名证书摘要、APK 文件摘要、安装验证和下载进程状态；私钥与密码不得进入仓库、日志或下载目录。
+- Android 内测包为 `dev.opencraft.workbench`，使用开发签名；正式包为 `app.opencraft.workbench`，必须使用仓库外的正式密钥。iOS 测试 IPA 须在有 Xcode 和 Apple 签名的 Mac 上构建。更换包名或密钥后，从**新成品**重新提取备案值。
+- 本地 APK/IPA 打包、备案资料和临时局域网下载不等于 GitOps 发布。交接时分别报告源码 checkout、包名、签名证书摘要、APK 文件摘要、安装验证和下载进程状态；私钥与密码不得进入仓库、日志或下载目录。
 
 ## 代码与 Contract
 
@@ -74,7 +74,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 - 协议变化必须同时检查声明、生成类型、Host/provider adapter、持久化/恢复、失败语义和兼容测试。共享 TypeScript 能编译不等于已部署 Host 兼容。
 - 内建 UI Preferences 统一消费 `UiPreferencesRuntime`；插件的个人本地呈现偏好可消费可选 `api.localPreferences`，由平台隔离产品/插件/账号与激活生命周期、插件持有 schema；不代替业务文档 CAS 或共享账号 authority。React 不直接选择 localStorage、IndexedDB、SQLite 或远端存储。scope、adapter、CAS 和正式 key 以 [UI preference authority](docs/platform-architecture.md#ui-preference-authority) 为准。
 - Desktop 路径必须消费 [Directory identity charter](docs/architecture/product-identity.md#directory-identity-charter) 的唯一 resolver：生产数据根不得含 `vela`，旧 `@vela/*` 只允许作为幂等迁移输入；Main/Daemon/DSH 显式使用 runtime cwd，Thread workspace cwd 必须来自 Project/Thread，禁止回退 `process.cwd()`。
-- Vela/Hermes 的 Console 适配源码和生成工具属于下游产品，不是独立核心的安装或默认检查依赖。mono2 中由 `products/vela` 持有 `plugins/lightvela-hermes/src/upstream/mono2/` 机械生成层；不得直接编辑，须修改 `frontend/` 真源后运行该产品的同步及只读漂移检查，连同 `UPSTREAM.json` 提交。详见 [迁移契约](MONO2_MIGRATION.md)。
+- Vela/Hermes 的 Console 适配源码和生成工具属于下游产品，不是独立核心的安装或默认检查依赖。下游产品工作区持有机械生成层；不得直接编辑，须修改其前端真源后运行该产品的同步及只读漂移检查，连同 `UPSTREAM.json` 提交。详见 [历史与消费契约](UPSTREAM_HISTORY.md)。
 - SQLite 表结构变更只在该库 owner 的 migrations 列表追加连续 version N+1；不得改写已发布迁移的 SQL 原文、名称或版本。生命周期与恢复契约见 [sqlite-lifecycle](docs/sqlite-lifecycle.md)。
 - OpenCraft 自有 SQLite 的新增运行时 `CREATE TABLE` / `ALTER TABLE` 只由迁移执行；业务初始化与恢复不得另建表或按列探测补结构。测试 fixture 与下述保留的上游镜像不作为升级 authority。
 - 所有 OpenCraft 自有 SQLite 库必须经 `openManagedDatabase` 打开并暴露 outcome；owner 负责独占生命周期、关闭和处置摘要，不得吞掉迁移失败后继续宣称 ready。
@@ -126,7 +126,7 @@ UI 任务按需读取 [UI 专题索引](design/ui/README.md)，字体任务继�
 | 单 workspace | `npm run typecheck --workspace <package>` + 相关聚焦测试 |
 | 跨包 contract | 两端 typecheck/test + `npm run check:boundaries` |
 | Bot/Host | `npm run test:bot-management`，再按风险补 adapter/runtime 测试 |
-| Agent Console 同步（仅 mono2 下游） | 在产品目录运行 `npm run sync:mono2-agent-console` 后执行 `npm run check:mono2-agent-console`；公开核心不提供私有转调 |
+| Agent Console 同步（仅下游产品） | 在下游产品目录运行该产品的同步与只读漂移检查；公开核心不提供私有转调 |
 | 广泛共享或交付矩阵 | `npm run gate` |
 
 变更后至少运行受影响的聚焦测试。视觉、窗口、Main/Preload 或原生能力还需按 [维护验证清单](.agents/skills/opencraft-maintenance/references/verification.md) 选择真实组件与桌面验收。
@@ -157,6 +157,6 @@ UI 任务按需读取 [UI 专题索引](design/ui/README.md)，字体任务继�
 ## 硬边界
 
 - `opencraft/` 是独立 npm workspace，保留自己的 `package-lock.json`；不得与 `frontend/` 的 pnpm workspace 或锁文件合并。
-- GitHub是目标核心上游，mono2拥有私有产品并固定版本消费；当前切换状态见 `docs/upstream-transition.md`，不要恢复旧单向镜像或双写。旧 `wisp/opencraft` 仅为有界历史和回退证据。
+- GitHub 是目标核心上游，下游产品持有私有装配并固定版本消费；当前切换状态见 `docs/upstream-transition.md`，不要恢复旧单向镜像或双写。旧私有仓库仅为有界历史和回退证据。
 - OpenCraft 校验或构建不得隐式触发 frontend、GitOps、发布、生产或云资源修改。
 - 构建产物、`node_modules`、本地日志、隔离 profile 和机器路径不得进入 Git。
