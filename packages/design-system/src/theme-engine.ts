@@ -148,7 +148,7 @@ export const frostThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
 };
 
 /**
- * LightVela's restrained lavender language projected through the shared
+ * A restrained lavender language projected through the shared
  * Workbench theme contract. The palette changes color and material only;
  * typography, density and geometry remain owned by the Design System.
  */

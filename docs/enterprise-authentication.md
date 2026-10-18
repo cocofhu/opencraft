@@ -11,7 +11,7 @@ headers on the same-origin session request.
 
 Footer selection uses explicit `entrancePriority` (enterprise OA: 100; existing
 product accounts: 0). Equal priorities remain exclusive. This changes only the
-Shell presentation: LightVela's authentication, resources and account storage
+Shell presentation: the downstream product's authentication, resources and account storage
 remain independently owned, and its entrance returns when enterprise OA unloads.
 There is no employee logout control because this integration has no gateway
 logout contract. A 401 removes the displayed employee immediately. Local expiration

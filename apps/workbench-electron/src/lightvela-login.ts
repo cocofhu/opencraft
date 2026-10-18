@@ -120,7 +120,7 @@ export class DesktopLightVelaLogin {
     const callback = parseLoginCallback(raw);
     const tx = this.pending;
     if (!callback || !tx || callback.state !== tx.state || tx.processing) return false;
-    if (callback.error) { this.finish(tx, new Error("LightVela login was not completed. Please try again.")); return true; }
+    if (callback.error) { this.finish(tx, new Error("Sign-in was not completed. Please try again.")); return true; }
     tx.processing = true;
     void (async () => {
       try {

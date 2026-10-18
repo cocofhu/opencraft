@@ -67,7 +67,7 @@
 - Remove `ApplicationRoute.kind = "environments"`, `openEnvironments`, `closeEnvironments`, and `environmentsUrl` from browser navigation and transaction interfaces.
 - Remove Environment imports/state/rendering from connected and hostless shells.
 - Remove `SettingsPageContribution.environment`; make Built-in Model Services an ordinary Settings contribution, still backed by its hard-bound local service.
-- Remove Environment-only components/style and UI-only tests/smokes. Keep environment directory and LightVela creation service tests because they are domain/runtime capabilities rather than the deleted surface.
+- Remove Environment-only components/style and UI-only tests/smokes. Keep environment directory and the downstream product creation service tests because they are domain/runtime capabilities rather than the deleted surface.
 - Remove the hidden/unreachable Settings `connections` page branch so the Environment UI does not survive as dead code.
 
 ## Test Migration
@@ -80,7 +80,7 @@
 ## Residual Scan
 
 - Production route/component/style references are gone after the primary edits.
-- Remaining `environmentOpen` occurrences are confined to an isolated authentication-flow fixture that validates the retained LightVela creation service, not the application Shell.
+- Remaining `environmentOpen` occurrences are confined to an isolated authentication-flow fixture that validates the retained the downstream product creation service, not the application Shell.
 - `AppShellHeader.breadcrumbs` now has no consumer and was introduced for Environment; it can be removed as dead presentation API.
 - Three formal documents still describe the superseded Environment parent navigation and must be updated before verification.
 
@@ -88,7 +88,7 @@
 
 - Replace the old `Fixed navigation entrances` contract with Chat + Settings as the visible application routes.
 - State that Model Services is Settings-owned in presentation but still writes only through `LocalAgentSettingsService("local")`.
-- Preserve the background EnvironmentDirectory/LightVela discovery ownership documentation; remove claims about a visible Environment list, breadcrumbs, overview, or creation entrance.
+- Preserve the background EnvironmentDirectory/the downstream product discovery ownership documentation; remove claims about a visible Environment list, breadcrumbs, overview, or creation entrance.
 - Replace the old “Environment configuration navigation” feature rule with a Settings-owned model-services rule.
 
 ## Desktop Visual Finding

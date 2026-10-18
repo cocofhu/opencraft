@@ -38,9 +38,9 @@ Installation IDs are explicit per platform and build profile:
 |---|---|
 | Desktop installed app | `ai.lightvela.vela` |
 | Android Expo Go and internal APK | `dev.opencraft.workbench` |
-| Android LightVela signed release APK | `app.opencraft.workbench` |
+| Android the downstream product signed release APK | `app.opencraft.workbench` |
 | iOS development and internal IPA | `dev.opencraft.workbench` |
-| iOS LightVela test IPA | `ai.lightvela.vela` |
+| iOS the downstream product test IPA | `ai.lightvela.vela` |
 
 The Expo release profiles are selected by `OPENCRAFT_ANDROID_RELEASE=1` and
 `OPENCRAFT_IOS_RELEASE=1` in `apps/workbench-expo/app.config.js`. A changed
@@ -119,7 +119,7 @@ building source alone never moves a machine's profile.
 Existing `vela.*` plugin/View/host IDs, `vela-bot:` resource URIs, IndexedDB names,
 local-storage keys and serialized projection fields remain canonical identities.
 There is only one schema and one reader, not a compatibility fork. Default-product
-storage remains unprefixed, while the LightVela product partition is unchanged.
+storage remains unprefixed, while the downstream product partition is unchanged.
 These compatibility IDs do not authorize new Vela-named filesystem paths,
 directories, sockets, tokens, databases or logs. The same rule covers the
 published `ioa_*` table identities: they are retained as storage contracts and
@@ -133,7 +133,7 @@ unchanged. Native deep links now use `opencraft:`.
 
 ## Service-provider ownership
 
-LightVela remains a service-provider plugin. Its domains, OAuth callbacks,
+the downstream product remains a service-provider plugin. Its domains, OAuth callbacks,
 account identifiers, backend names and configuration do not become OpenCraft.
 Third-party DSH, Hermes and Codex reference sources are not rebranded.
 

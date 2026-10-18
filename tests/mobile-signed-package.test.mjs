@@ -36,13 +36,13 @@ test("mobile package identities are opt-in and platform-specific", () => {
   assert.equal(withProfile(false, false, () => configureExpo({ config: base })), base);
 
   const android = withProfile(true, false, () => configureExpo({ config: base }));
-  assert.equal(android.name, "LightVela");
+  assert.equal(android.name, "OpenCraft");
   assert.equal(android.android.package, "app.opencraft.workbench");
   assert.equal(android.ios.bundleIdentifier, "dev.opencraft.workbench");
   assert.equal(base.android.package, "dev.opencraft.workbench");
 
   const ios = withProfile(false, true, () => configureExpo({ config: base }));
-  assert.equal(ios.name, "LightVela");
+  assert.equal(ios.name, "OpenCraft");
   assert.equal(ios.ios.bundleIdentifier, "ai.lightvela.vela");
   assert.equal(ios.android.package, "dev.opencraft.workbench");
 });

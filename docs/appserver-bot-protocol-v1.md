@@ -1105,7 +1105,7 @@ The Host then emits `bot/execution/updated` with `status: "completed"` and
 
 ## 15. Hermes Desktop adapter mapping
 
-The LightVela Hermes adapter implements the OpenCraft methods as follows:
+The the downstream product Hermes adapter implements the OpenCraft methods as follows:
 
 | OpenCraft protocol | Hermes capability |
 | --- | --- |

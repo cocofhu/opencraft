@@ -109,7 +109,7 @@ function AccountContent({ config, compact, onInvoke }: {
   if (isAnonymousShellAccount(account)) {
     return <div className="shell-navigation__items">
       <button type="button" onClick={() => onInvoke(account.onOpen)}>
-        <LogIn size={16} /><span>{account.snapshot.anonymousLabel ?? <FormattedMessage id="account.signInLightVela" defaultMessage="Sign in to LightVela" />}</span>
+        <LogIn size={16} /><span>{account.snapshot.anonymousLabel ?? <FormattedMessage id="account.signInLightVela" defaultMessage="Sign in" />}</span>
       </button>
     </div>;
   }
@@ -117,7 +117,7 @@ function AccountContent({ config, compact, onInvoke }: {
     <>
       <button type="button" title={compact ? account.snapshot.name || "Account" : undefined} onClick={() => onInvoke(account.onOpen)}>
         <AccountAvatar account={account} /><span className="shell-navigation__identity">
-          <strong>{account.snapshot.name || "LightVela"}</strong>
+          <strong>{account.snapshot.name || "OpenCraft"}</strong>
           <small>{account.snapshot.planLabel || "Account Settings"}</small>
         </span>
       </button>

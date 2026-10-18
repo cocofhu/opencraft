@@ -319,7 +319,7 @@ Failed automatic attempts stay in the reconnecting phase, preserving cached
 content instead of alternating error/loading UI. Stability timers are generation
 fenced and cancelled on disconnect and disposal. Reconnect
 awaits the old physical close before admitting a successor, and failed activation
-remains observable after cleanup. Anonymous `/apphost` rejects SSH IDs; Renderer IDs and LightVela login
+remains observable after cleanup. Anonymous `/apphost` rejects SSH IDs; Renderer IDs and the downstream product login
 projections are not administrator authority. Only public fingerprints/configuration
 are returned, never saved passwords. Static private key/agent recipes remain a
 read-only compatibility source. This is single-installation administrator access,
@@ -745,7 +745,7 @@ its write on a successor. Discovery failures remain errors, not unpin-all or
 unsupported success. Catalog notifications and connection recovery invalidate
 the same shared queries; no menu owns a polling loop or persistent pin set.
 
-The LightVela site renders its own Agent sidebar around the embedded Workbench.
+The the downstream product site renders its own Agent sidebar around the embedded Workbench.
 The embedded element passes each Thread's pinned state and the current Host's
 discovered pin capability to that sidebar, and forwards pin commands to the same
 Thread management resource. The site shows pinned rows outside its recent-page
@@ -1224,7 +1224,7 @@ Cloud Storage uses the standalone management-page hierarchy adapted from
 Its View and navigation contribution are internal-audience only: normal mode
 hides both, and disabling developer mode exits an already-open storage route.
 This is a presentation gate; storage services and data are not removed.
-Anonymous state renders the complete LightVela site selection and sign-in
+Anonymous state renders the complete the downstream product site selection and sign-in
 controls in that content area instead of replacing the page with a bare notice.
 Authenticated state mounts the existing TAT file manager for the selected Bot.
 This page does not invent local-storage semantics. Skills is a separate full
@@ -1333,7 +1333,7 @@ resume, history, model catalog, rename and delete must never escape it. Physical
 Dashboard/session-token reuse remains instance-scoped, while Composer queue and
 other logical Host state include the Profile identity.
 The embedded entry constructs the same Application runtime as the full
-Workbench, but contributes an explicit, ephemeral LightVela Host profile and
+Workbench, but contributes an explicit, ephemeral the downstream product Host profile and
 never opens or writes the normal Host catalog. Its fixed profile store is an
 Application-local adapter, including machine identity observations; connection
 recipes and the execution target remain owned by the embedding product.
@@ -1378,7 +1378,7 @@ cancel, approve or answer an interaction. The stable
 `/__opencraft/embedded-workbench.js` loader points to a content-addressed Vite
 entry; deployments using another static origin must provide the required module
 CORS policy explicitly.
-For the LightVela Pages release, the Embedded Workbench remains an independent
+For the downstream Pages release, the Embedded Workbench remains an independent
 Vite target and is staged under the same-origin `/__opencraft/` subtree beside
 the Next export. It is not imported by the Next application bundle and is only
 requested when domestic Chat is active. The release build fails closed when the
@@ -1465,7 +1465,7 @@ The underlying persisted-feature primitive is reusable by other internal
 feature gates without copying localStorage/error/event lifecycle code.
 
 Product identity selects artwork separately from the user color theme. Both
-LightVela embedded and full lightvela-web keep the pre-backport glyphs and their
+the downstream product embedded and full lightvela-web keep the pre-backport glyphs and their
 consumer-specific scales; core keeps the new artwork. Shared metrics and the
 semantic Web icon adapter own sizes/strokes. Tokens are projected onto each
 Presentation Root; Vela does not globally override explicit legacy Lucide strokes.
@@ -1475,7 +1475,7 @@ an icon family.
 Standalone core rail density scopes its icon dimensions to the rail navigation
 and footer, not the common sidebar column that also contains Settings. Its compact
 desktop rail remains 16px while core Settings retain the 14px navigation role.
-LightVela keeps explicit legacy consumer dimensions (15px navigation, 16px
+the downstream product keeps explicit legacy consumer dimensions (15px navigation, 16px
 Settings); a core rail token must not shadow its Presentation Root policy.
 The existing product presentation adapter projects the optional consumer-size
 override; Shell consumes that override with its own density as fallback, without
@@ -1519,7 +1519,7 @@ resource loading failure as logout.
 Tencent IM Web data plane for Server, Channel, private Group and Member surfaces.
 Its UI, service implementations and Tencent adapters are shared through
 `shared/vela-collaboration-web`. The extension preserves its activation owner;
-the LightVela `/agents/labs/collaboration` laboratory provides a separate
+the downstream `/agents/labs/collaboration` laboratory provides a separate
 account-bound owner through the same request port. It is default-hidden behind
 `show()` and only eligible when the site's selected authority is
 the Beijing test API. It does not borrow Agent entitlement or Bot execution,
@@ -1901,15 +1901,15 @@ not a second source of product policy.
   not replace a usable local or other-Host Workbench with a creation guide.
   Account-level `applicationIntervention` is a deprecated compatibility field
   ignored by the Shell. Only the selected Host's actual connection failure can
-  request a matching provider intervention. LightVela no longer contributes an
+  request a matching provider intervention. the downstream product no longer contributes an
   automatic `empty-workbench` creation guide; zero-Host startup has a neutral
   no-Agent state with a Settings action. Environment discovery and cloud
   creation services do not create an application-level Environment surface.
   The onboarding `bot-required` projection is retained for explicitly selected
-  LightVela configuration, not as a global desktop prerequisite. Native Expo
+  the downstream product configuration, not as a global desktop prerequisite. Native Expo
   account onboarding is a separate adapter and is not changed by this desktop fix.
 - Product onboarding shares a renderer-neutral account-state projection. An
-  authenticated LightVela account with zero executable Bots can still enter
+  authenticated the downstream product account with zero executable Bots can still enter
   Collaboration; `bot-required` belongs only to the Hermes/Codex Host path, not
   to the application account gate. Web and Expo still resolve the same
   region-aware `/dashboard/create` target when a user explicitly enters that
@@ -2211,7 +2211,7 @@ Inline environment login is owned by its form lease: authentication allows the
 form to recheck prerequisites, and creation still requires explicit confirmation.
 No flow persists callbacks, arbitrary URLs or privileged continuation commands.
 
-LightVela exposes `snapshot.session` (status + auth epoch) separately from its
+the downstream product exposes `snapshot.session` (status + auth epoch) separately from its
 legacy `phase` (Bot-catalog loading/error compatibility for existing Host consumers)
 and `details.phase` (profile/entitlements). Shell identity, login, and environment
 discovery consume session truth. A resource 5xx never logs out or invalidates a
@@ -2250,7 +2250,7 @@ error, usage-track, utility-shadow and scrim colors are emitted by the theme
 engine, not hard-coded in account CSS. Returning from external billing refreshes
 account details; model configuration uses the host's settings navigation.
 
-Desktop LightVela login uses the system browser and the registered native OIDC
+Desktop the downstream product login uses the system browser and the registered native OIDC
 client/callback. Electron Main owns random state, PKCE, timeout, cancellation,
 single-use exchange and OS-encrypted per-profile session storage. Only the trusted
 top-level renderer may invoke the narrow preload account port. A callback received
@@ -2315,7 +2315,7 @@ transport phase remain separate. Provider-managed entries carry a typed
 capabilities; configured Local/manual Hosts carry `resource: null`. Resource
 actions route only through the owning source, require a caller operation ID and
 fail closed when either capability or handler is absent. `provisionHost()` still
-persists a connection recipe and never means cloud allocation. LightVela discovery lives in its plugin's
+persists a connection recipe and never means cloud allocation. the downstream product discovery lives in its plugin's
 `environment-directory` folder and binds identity to region, account and instance.
 It lists non-running states, paginates with generation fences, and clears entries
 on sign-out. Explicit saved bindings preserve Host IDs; unbound legacy profiles
@@ -2734,7 +2734,7 @@ links and remembered history resolve to `local` at the Router boundary; missing
 local thread/project selections are copied without deleting legacy values or
 overwriting existing local intent. This compatibility applies only to the
 website-owned primary proxy without explicit Host overrides or a real saved
-HyperNode profile. LightVela excludes these
+HyperNode profile. the downstream product excludes these
 plugins and Electron ignores website configuration. The Web
 extension registers presentation only; the deployment's WebSocket profiles own
 the Host connections, and provider credentials remain on the AppServer Host.
@@ -2753,7 +2753,7 @@ business state embedded in a component, it has crossed the boundary too early.
 
 ### Embedded console model authority
 
-The embedded LightVela Chat uses the Host's configured model policy. Its model
+The embedded the downstream product Chat uses the Host's configured model policy. Its model
 and reasoning controls are omitted; saved Composer choices cannot override the
 current Bot/Profile configuration. Before each new Turn the runtime re-reads
 the profile-scoped Host model catalog, validates input against its declared
@@ -2917,7 +2917,7 @@ Sidebar pending/running/Goal/review/error/unread activities share the single tra
 从普通聊天启动时仍走同一 Optional owner 与加载/取消边界。此规则保留深链和刷新意图，
 不提前加载所有管理页。
 
-注册描述、业务服务和视图实现分开。LightVela/Hermes/内建 Agent 仍同步注册可发现页面及 provider；`createDeferredView` 只缓存成功的组件、合并并发加载，失败可重试，卸载屏蔽迟到呈现。页面离开不会销毁 Application 持有的账户、Host、会话或草稿。Hermes 使用 `DeferredDuplexTransport`，预先注册的同步 provider ABI 不变，只有 connect 才获取物理协议模块；转发消息、发送者 context、状态/失败分类和恢复提示，close 撤销尝试并关闭迟到 transport。
+注册描述、业务服务和视图实现分开。下游产品/Hermes/内建 Agent 仍同步注册可发现页面及 provider；`createDeferredView` 只缓存成功的组件、合并并发加载，失败可重试，卸载屏蔽迟到呈现。页面离开不会销毁 Application 持有的账户、Host、会话或草稿。Hermes 使用 `DeferredDuplexTransport`，预先注册的同步 provider ABI 不变，只有 connect 才获取物理协议模块；转发消息、发送者 context、状态/失败分类和恢复提示，close 撤销尝试并关闭迟到 transport。
 
 生成的 Agent Console 字典由同步器的 renderer 适配策略管理：保留全部语种的字面量动态导入，在管理页显示前准备当前字典；同一加载合并、失败删除 pending、语言代次屏蔽旧切换。不得仅设置区域编译常量而把国际站字典裁掉。Next SSR 真源行为不变，Metro 不引入 top-level await。
 
