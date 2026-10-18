@@ -4,13 +4,13 @@
 
 ## What was compared
 
-`scripts/diagnose-work-status-completion.ts` drives real Vela Activity and
+`scripts/diagnose-work-status-completion.ts` drives real the downstream product Activity and
 Conversation rendering through work → final and late-final-at-completion changes.
 It records the status node identity, label/row geometry, scroll height, response
 spacer position and motion transforms for 30 RAF samples.
 
 `WORK_REFERENCE=1` substitutes the extracted r3562 controller/list/response
-functions, retaining the SAME Vela row renderer and fixed text width. It is not
+functions, retaining the SAME the downstream product row renderer and fixed text width. It is not
 the original Codex Activity renderer or a full installed-app pixel comparison.
 
 `WORK_OBSERVER_ONLY=1` removes only the eager latest-Turn measurement effect
@@ -25,7 +25,7 @@ in a test-server transform. Production source remains untouched.
 2. Work divider → disclosure can replace the label node. The original `DA/fA`
    also partitions the work item into the outer header; node replacement alone
    is not proof of an ownership bug or permission to ban this presentation.
-3. Vela eagerly measures the latest row on every `latestTurn` change in
+3. the downstream product eagerly measures the latest row on every `latestTurn` change in
    `virtualized-conversation-turns.tsx`. During collapse/migration, this can
    capture an outgoing AnimatePresence subtree plus the new tree, then commit
    that transient sum as virtual-list geometry. A later observer corrects it.
@@ -42,11 +42,11 @@ Long late-final transition, with the same production Markdown renderer:
 
 | Host | scrollHeight before / first changed sample / settled |
 | --- | --- |
-| Vela | 2193 / 4252 / 2187 |
+| the downstream product | 2193 / 4252 / 2187 |
 | Original functions | 2193 / 2193 / 2187 |
-| Vela, eager latest measurement disabled in test | 2193 / 2193 / 2187 |
+| the downstream product, eager latest measurement disabled in test | 2193 / 2193 / 2187 |
 
-At the bad sample the visible Vela row is already 2059px high, but total scroll
+At the bad sample the visible the downstream product row is already 2059px high, but total scroll
 height still includes the outgoing 2065px region. The label's top jumps from
 -1493 to -3548 and back to -1483. The exact sampled frame index varies with real
 browser scheduling; these runs are not a shared-clock frame-parity test.
@@ -68,7 +68,7 @@ In the short work → final case the row is 123px, but the next spacer position 
 
 ## Limits and remaining details
 
-The shared Vela renderer still changes the label's local text box by 4px when
+The shared the downstream product renderer still changes the label's local text box by 4px when
 moving from the standalone divider to the inline-button header. This also
 appears with original scroll functions because presentation is shared; it does
 not establish the original Codex typography. Some no-final-clock cases add a
@@ -102,7 +102,7 @@ were not changed to conceal the measurement defect. The separate typography
 comparison remains outside this correction. No deployment is implied.
 
 Verification after the correction: 126 focused unit tests and Web typecheck
-passed; five status-transition cases passed for Vela and the original-function
+passed; five status-transition cases passed for the downstream product and the original-function
 host; production-renderer scroll comparison passed 143 event boundaries and
 2364 paired frames with maximum geometry difference 0px. Real scroll smoke,
 continuous submissions, history fill in both policies and the work-status
@@ -113,7 +113,7 @@ the scroll regressions.
 
 The user still reports that the transition does not feel like an in-place
 update. The scroll comparison above cannot disprove that report: both sides
-used Vela's Activity renderer, classifier and CSS. It establishes the corrected
+used the downstream product's Activity renderer, classifier and CSS. It establishes the corrected
 measurement boundary, not parity of the status presentation itself.
 
 The second browser audit adds a DOM Range over the label text. In the short

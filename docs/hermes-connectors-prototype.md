@@ -45,7 +45,7 @@ Archive includes only binary, marketplace and integration scripts, never runtime
 
 ## Deliberate limits
 
-- Linux x64 VM only; Vela frontend supports Web and Electron.
+- Linux x64 VM only; the downstream product frontend supports Web and Electron.
 - No WorkBuddy managed-account auth or remote OAuth callback forwarding.
 - CLI terminal authorization requires a Sidecar advertising `cliAuthPty`; old releases show
   an upgrade notice. This change requires both a new Sidecar and the plugin frontend.

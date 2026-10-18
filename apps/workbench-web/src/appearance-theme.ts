@@ -92,7 +92,7 @@ const coreTheme: AppearanceThemeRecord = Object.freeze({
 const velaTheme: AppearanceThemeRecord = Object.freeze({
   descriptor: Object.freeze({
     id: velaThemeId,
-    label: "Vela",
+    label: "Canvas",
     description: "A quiet, web-native canvas.",
     source: "core",
   }),

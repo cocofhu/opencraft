@@ -49,8 +49,8 @@ The Vite renderer is the precision desktop surface used by browsers and
 Electron. The default Expo entry composes the existing RN Workbench, presentation runtime
 and direct WebSocket Host for iOS, Android and Expo Web. Host configuration uses
 `EXPO_PUBLIC_APPSERVER_WS_URL` and `EXPO_PUBLIC_APPSERVER_HOST_ID`; a physical
-device needs a reachable Host endpoint. It does not instantiate a Vela account.
-The explicit downstream Vela entry retains its Router, native login, Bot
+device needs a reachable Host endpoint. It does not instantiate a the downstream product account.
+The explicit downstream the downstream product entry retains its Router, native login, Bot
 navigation and packaged frontend DOM runtime. The product runner selects trusted
 local entry/config files for the whole Metro/Gradle/Xcode build; core Metro only
 replaces the root entry import and delegates every other request to its existing
@@ -58,7 +58,7 @@ resolver chain. Product entry directories are added to the watched graph without
 replacing npm workspace resolution. Native math/Mermaid capability providers
 remain generic and package their runtime code locally. Private routes, account/Bot components and product plugins live downstream.
 The public APK/IPA scripts own generic SDK/signing mechanics; the explicit
-product runner owns Vela edition/identity, permission wording and artifact
+product runner owns the downstream product edition/identity, permission wording and artifact
 naming. The agents-next frontend assembly also belongs downstream, with its
 original generated manifest and packaged Bot document. Public commands do not
 auto-discover a private product. Legacy development IDs remain unchanged.
@@ -392,10 +392,10 @@ Closing the tab or changing the panel owner disposes the viewer. Other tools kee
 their existing physical-presentation lifetime. The control button projects the
 user's intention immediately as Stop; only a valid backend grant enables input.
 
-The neutral desktop plugin now owns the lazy noVNC media adapter; Vela's
+The neutral desktop plugin now owns the lazy noVNC media adapter; the downstream product's
 `lightvela-platform/desktop` provider owns account/directory validation, desktop service
 preparation and attachment handoff through narrow ports. Dependencies point
-from product to neutral contract/media/session-wire, never in reverse. Vela's
+from product to neutral contract/media/session-wire, never in reverse. the downstream product's
 viewer port consumes configured authenticated broker endpoints and never owns
 desktop framing or rendering. Sandbox has a bounded attachment broker with
 one-use scoped credentials and confirmed remote control handoff. Its production
@@ -409,7 +409,7 @@ Local Linux Codex Hosts have a separate explicit `--local-desktop` composition:
 and root-verified streams; `CodexEngineAdapter` binds grants to server-stamped
 logical Client epochs. Workbench's `HostDesktopBackend` maps Scope aliases to
 native Thread IDs and consumes the neutral media/session-wire. It is independent
-of Vela accounts and enterprise service. The dedicated WebSocket gateway is exact-Origin and
+of the downstream product accounts and enterprise service. The dedicated WebSocket gateway is exact-Origin and
 loopback-only by default; an explicit `--trusted-internal-desktop` deployment
 instead trusts everyone admitted to that installation's network access. That
 deployment advertises a distinct same-origin trusted-internal transport, supports
@@ -440,13 +440,13 @@ attachment RPCs cannot be forwarded through the remote binding.
 Local viewing recovery opts in only because preparing a new attachment cannot
 replay resource creation or Agent work. Wire/media classify established transport
 loss; the viewing controller owns bounded backoff and fresh-grant replacement,
-never inherited input. Vela preparation remains manual on failure. See the
+never inherited input. the downstream product preparation remains manual on failure. See the
 [viewing recovery contract](cloud-desktop-plugin.md#bounded-viewing-recovery).
 Local viewer expiry is renewable through explicit discovery plus wire capability,
 not a removed timeout: the dedicated viewing socket requests reauthorization,
 the Host rechecks native Thread/Client/incarnation, and a matching confirmation
 re-arms both expiry owners. Failure remains bounded and cannot reacquire control.
-Legacy and Vela providers are not implicitly opted in. See
+Legacy and the downstream product providers are not implicitly opted in. See
 [confirmed viewing renewal](cloud-desktop-plugin.md#confirmed-viewing-renewal).
 
 ### Workspace file Explorer ownership
@@ -1468,7 +1468,7 @@ Product identity selects artwork separately from the user color theme. Both
 the downstream product embedded and full lightvela-web keep the pre-backport glyphs and their
 consumer-specific scales; core keeps the new artwork. Shared metrics and the
 semantic Web icon adapter own sizes/strokes. Tokens are projected onto each
-Presentation Root; Vela does not globally override explicit legacy Lucide strokes.
+Presentation Root; the downstream product does not globally override explicit legacy Lucide strokes.
 A color palette such as vela.core.web never grants product capabilities or selects
 an icon family.
 

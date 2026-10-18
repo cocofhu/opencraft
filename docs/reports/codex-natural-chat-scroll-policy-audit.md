@@ -6,7 +6,7 @@
 
 此前把 r3562 的 `oO` response-placement 分支当成唯一聊天滚动策略，结论不完整。
 原版通过 Statsig gate `1579719221` 选择两条不同路径。关闭开关时，原版已有
-“自然发送、无需点击、正文增长时保持贴底”的路径；当前 Vela 始终挂载 response
+“自然发送、无需点击、正文增长时保持贴底”的路径；当前下游产品始终挂载 response
 策略，且运行中关闭虚拟列表的默认视口保持。这是策略选择/所有权层面的缺口。
 
 源码证明存在两条路径；没有读取用户正在运行的 Codex 实例的 gate 值，不能宣称
@@ -53,7 +53,7 @@ user_follow，否则为 static。final_answer 自身变长不会自动取得跟�
 这解释了局部测试的 static，但不能据此否定用户所说的 Codex 自然聊天跟随：
 自然模式走的是另一条分支。
 
-## Vela 的缺口
+## 下游产品的缺口
 
 `apps/workbench-web/src/components/conversation.tsx`：
 
@@ -71,11 +71,11 @@ user_follow，否则为 static。final_answer 自身变长不会自动取得跟�
 
 ## 无头验证
 
-沿用抽取的原版函数体、正式 Vela Markdown renderer，真实 Chromium 时钟。
+沿用抽取的原版函数体、正式下游产品 Markdown renderer，真实 Chromium 时钟。
 同一 Turn、同一个 assistant item，逐步增长到六篇 500 字正文（含标题共 3,078 字）。
 初始化在底部；发送后没有按钮点击、滚轮或触控操作。
 
-| 检查点 | 原版 gate-false 路径距离底部 | Vela 当前 response 路径 |
+| 检查点 | 原版 gate-false 路径距离底部 | 下游产品当前 response 路径 |
 | --- | ---: | ---: |
 | 首个 100 字 | 0px | 71px |
 | 1,000 字 | 0px | 541px |
@@ -83,7 +83,7 @@ user_follow，否则为 static。final_answer 自身变长不会自动取得跟�
 | 3,078 字，仍在生成 | 0px | 1,629px |
 | 完成 | 0px | 1,667px |
 
-原版 baseline 没有 response spacer；Vela 此例为 348px。数值依赖测试几何，
+原版 baseline 没有 response spacer；下游产品此例为 348px。数值依赖测试几何，
 用于证明分支行为差异，不是对生产截图的像素测量。
 
 命令（从 `/vela` 运行，按环境提供 Playwright/Chromium 路径）：
@@ -93,17 +93,17 @@ CODEX_SCROLL_ESSAYS=1 CODEX_SCROLL_RENDERER=production CODEX_SCROLL_REAL_CLOCK=1
 ```
 
 该比较故意选择不同策略，不作 parity 断言。它运行原版滚动/虚拟列表函数，使用共享
-Vela 行渲染，不是整个 Codex 应用，也没有向生产会话发送测试请求。
+下游产品行渲染，不是整个 Codex 应用，也没有向生产会话发送测试请求。
 
 ## 次要语义差异，不应混作滚动修复
 
 Hermes bridge 的 `ensureAssistant` / `appendAssistant` 发出 `phase: null`。
-原版 `AD` 和 Vela 滚动分类都将非 commentary 的非空正文视为 final_answer。
+原版 `AD` 和下游产品滚动分类都将非 commentary 的非空正文视为 final_answer。
 而 worked-for 的显示结束条件要求显式 final_answer，所以“Working for”仍显示
 不能证明滚动策略仍处于 prework；原版的两种判定本身也不同。
 不能为了触发 prework_follow 而把真正正文伪装成 commentary。
 
-此外 Vela 分类额外要求正文非空，原版 AD 对空 agentMessage 已判 final_answer；
+此外下游产品分类额外要求正文非空，原版 AD 对空 agentMessage 已判 final_answer；
 这需要另行收敛，但不是本次自然模式缺失的主要解释。
 
 ## 整改方向（本次仅审计，未实施）
@@ -127,9 +127,9 @@ Hermes bridge 的 `ensureAssistant` / `appendAssistant` 发出 `phase: null`。
 4. response 模式的 `oO` 接收最新 Turn 高度/跟随内容通知。user_follow 时滚到 0；
    static 时使用 `lO` 补偿增高量以固定阅读位置。static 不是“什么也不做”。
 
-Vela 也在持续收到测量；复测记录如下：
+下游产品也在持续收到测量；复测记录如下：
 
-| 正文字数 | Vela 累计最新 Turn 测量通知 | Vela 正文开头 y | Vela 距底部 | 原版自然路径距底部 |
+| 正文字数 | 下游产品累计最新 Turn 测量通知 | 下游产品正文开头 y | 下游产品距底部 | 原版自然路径距底部 |
 | --- | ---: | ---: | ---: | ---: |
 | 100 | 6 | 225px | 71px | 0px |
 | 1,000 | 24 | 225px | 541px | 0px |
@@ -137,7 +137,7 @@ Vela 也在持续收到测量；复测记录如下：
 | 3,078 | 66 | 225px | 1,629px | 0px |
 
 这些通知计数只来自候选侧的平台 owner，未把原版未注入的计数当作零通知。
-Vela 的 mode 始终为 static：它追踪了增长，却维持了与用户意图不符的开头锚点。
+下游产品的 mode 始终为 static：它追踪了增长，却维持了与用户意图不符的开头锚点。
 `handleLatestTurnMeasurement` 中 static 被 `isViewportPreservingTurnFollowMode`
 接纳，然后执行 `compensateHeightDelta`。与此同时，底层自然贴底决策被
 `preserveMeasuredTurnViewport={!isLatestTurnInProgress}` 关闭。

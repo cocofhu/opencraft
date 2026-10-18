@@ -24,7 +24,7 @@ test("navigation glyph state is projected without changing the semantic name or 
   }
 });
 
-test("Vela navigation retains its existing silhouette and detailed selected state", () => {
+test("Downstream navigation retains its existing silhouette and detailed selected state", () => {
   for (const name of ["chat", "message-circle", "cloud", "folder", "applications"]) {
     assert.match(render(name, false, "lightvela-web"), /fill="none"/);
     assert.match(render(name, true, "lightvela-web"), /fill="currentColor"/);

@@ -23,7 +23,7 @@ function Demo(){
  window.fixture={setSidebar,setRight,setFull,setRoute,setThemePreference,setCrowded,setLayout};
  const config={settingsActive:route==='Settings',actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>setRoute('Chat')},{id:'files',title:'Files',icon:'folder',onInvoke:()=>setRoute('Files')},
  ...(crowded ? Array.from({length:40},(_,i)=>({id:'extra-'+i,title:'Extra application '+(i+1),icon:'folder',onInvoke:()=>{}})) : [])],
- account:{snapshot:{name:'Vela Workspace',phase:'ready',avatarUrl:null,planLabel:'Launch',usageRemainingPercent:69},onOpen:()=>setAccountOpen(true),onRefresh:async()=>{},onSignOut:async()=>{throw Error('test failure')}},onOpenSettings:()=>setRoute('Settings')};
+ account:{snapshot:{name:'OpenCraft Workspace',phase:'ready',avatarUrl:null,planLabel:'Launch',usageRemainingPercent:69},onOpen:()=>setAccountOpen(true),onRefresh:async()=>{},onSignOut:async()=>{throw Error('test failure')}},onOpenSettings:()=>setRoute('Settings')};
  return <><AppShell navigation={config} layoutScope={route} mainContentLayout={layout}
  header={<AppShellHeader title={null} project={null} sidebarOpen={sidebar} rightPanelOpen={right} rightPanelFullWidth={full}
  onToggleSidebar={()=>setSidebar(v=>!v)} onToggleRightPanel={()=>setRight(v=>!v)} onHome={()=>setRoute('Home')}
@@ -61,7 +61,7 @@ try {
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}`);
   await page.waitForSelector("#shell-entrance-applications");
   const home = page.getByRole("button", { name: "Home", exact: true });
-  assert.equal(await home.textContent(), "Vela");
+  assert.equal(await home.textContent(), "OpenCraft");
   assert.equal(await home.locator("svg").count(), 0, "wordmark replaces the house glyph");
   await home.click();
   await page.getByRole("heading", { name: "Home", exact: true }).waitFor();

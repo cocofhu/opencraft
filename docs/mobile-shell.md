@@ -1,10 +1,10 @@
 # iOS mobile shell
 
-本文描述显式下游 Vela 产品的 Shell。公开默认 Expo 使用既有 RN Workbench 与直连 Host；Vela 通过下游产品 runner 选择原入口，见 [Expo README](../apps/workbench-expo/README.md#public-and-downstream-product-entries)。入口拆分不改变本文的导航、账号、Bot 或几何所有权。
+本文描述显式下游产品产品的 Shell。公开默认 Expo 使用既有 RN Workbench 与直连 Host；下游产品通过下游产品 runner 选择原入口，见 [Expo README](../apps/workbench-expo/README.md#public-and-downstream-product-entries)。入口拆分不改变本文的导航、账号、Bot 或几何所有权。
 
 ## Ownership
 
-`products/vela/native/src/runtime/mobile-shell-model.ts` owns the semantic surface:
+`products/<product>/native/src/runtime/mobile-shell-model.ts` owns the semantic surface:
 `agents` or native `account`. Gesture progress, drag cancellation, safe-area
 geometry and animation belong to the native navigation surface and iOS mobile
 drawer. Account management, identity verification and billing open the system
@@ -12,7 +12,7 @@ browser; external journeys do not create an App-owned remote WebView or change
 Shell navigation. The App never injects credentials into those browser pages.
 
 the downstream product mobile accents and drawer geometry live in
-`products/vela/native/src/runtime/mobile-visual-tokens.ts`, layered over shared
+`products/<product>/native/src/runtime/mobile-visual-tokens.ts`, layered over shared
 OpenCraft native tokens. Keep visual choices there instead of scattering
 sampled colors or fixed phone widths through feature components.
 Native account editors keep the local draft, confirmed server name, cooldown

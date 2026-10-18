@@ -86,11 +86,11 @@ test("native formatting toggles only the selected span and keeps other blocks", 
 });
 
 test("editing beside a mention preserves its identity, while editing through it converts only that span", () => {
-  const mention = { type: "mention" as const, id: "agent-1", label: "Vela", mentionKind: "agent" as const };
+  const mention = { type: "mention" as const, id: "agent-1", label: "OpenCraft", mentionKind: "agent" as const };
   const original: ComposerDocument = { version: 1, blocks: [{ type: "paragraph", children: [
     { type: "text", text: "Ask " }, mention, { type: "text", text: " today" },
   ] }] };
-  const beside = replaceNativeComposerText(original, "Ask @Vela again today");
+  const beside = replaceNativeComposerText(original, "Ask @OpenCraft again today");
   assert.deepEqual(beside.blocks[0], { type: "paragraph", children: [
     { type: "text", text: "Ask " }, mention, { type: "text", text: " again today" },
   ] });
@@ -202,7 +202,7 @@ test("native link action preserves selected marks and surrounding document struc
   assert.equal(nativeComposerLinkAt(acrossQuote, 4, 9), "https://example.com");
   assert.deepEqual(setNativeComposerLink(acrossQuote, 4, 9, null), original);
   const mention: ComposerDocument = { version: 1, blocks: [{ type: "paragraph", children: [
-    { type: "mention", id: "agent", label: "Vela", mentionKind: "agent" },
+    { type: "mention", id: "agent", label: "OpenCraft", mentionKind: "agent" },
   ] }] };
   assert.equal(setNativeComposerLink(mention, 0, 5, "https://example.com"), null);
 });
@@ -474,7 +474,7 @@ test("formatted native and preview runs match the portable text projection and c
   const document: ComposerDocument = { version: 1, blocks: [
     { type: "paragraph", children: [
       { type: "text", text: "Bold ", marks: ["strong"] },
-      { type: "mention", id: "agent-1", label: "Vela", mentionKind: "agent" },
+      { type: "mention", id: "agent-1", label: "OpenCraft", mentionKind: "agent" },
       { type: "hard-break" },
       { type: "text", text: "Code", marks: ["code"] },
     ] },
@@ -590,7 +590,7 @@ test("a native selection spanning an atomic mention does not partially format th
   const original: ComposerDocument = { version: 1, blocks: [
     { type: "paragraph", children: [{ type: "text", text: "Ask" }] },
     { type: "paragraph", children: [
-      { type: "mention", id: "agent-1", label: "Vela", mentionKind: "agent" },
+      { type: "mention", id: "agent-1", label: "OpenCraft", mentionKind: "agent" },
       { type: "text", text: " now" },
     ] },
   ] };

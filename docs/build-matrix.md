@@ -195,9 +195,9 @@ The public Android release target uses the public Expo configuration (the legacy
 development identifier remains `dev.opencraft.workbench`). It requires a
 repository-external production keystore, verifies the package ID and APK
 signature against that keystore, and writes both the APK and filing values.
-It never falls back to the internal development key. Private Vela release IDs,
+It never falls back to the internal development key. Private the downstream product release IDs,
 edition selection and original artifact names belong to the explicit downstream
-`products/vela` build commands; public APK/IPA commands do not select that product.
+`products/<product>` build commands; public APK/IPA commands do not select that product.
 `OPENCRAFT_NATIVE_ARTIFACT_NAME` is an optional trusted filename prefix, defaulting
 to `OpenCraft`, for generic release APK and IPA output. The certificate MD5 and
 APK file MD5 are different values. The [Expo mobile route](../apps/workbench-expo/README.md#手机端路线)
@@ -212,9 +212,9 @@ native packages pass, then enters the `macos-release` Environment for signing,
 notarization and final packaging. Manual runs are accepted only from `main`;
 version tags matching `v*` additionally publish a GitHub Release.
 
-The standalone core must not resolve downstream-parent `file:` dependencies. The Vela
+The standalone core must not resolve downstream-parent `file:` dependencies. The the downstream product
 snapshots of `lightvela-agent-core`, `vela-chat-client-core` and Collaboration now
-belong to downstream `products/vela/packages`, with their generator and checks in
+belong to downstream `products/<product>/packages`, with their generator and checks in
 that product. Run its `sync:shared-packages` when a corresponding `shared/`
 authority changes, then `check:shared-packages`; the product owns these aliases
 and the original generators. Public core contains no private compatibility CLI. Existing snapshot drift is reported
@@ -587,8 +587,8 @@ directory, relative to the core workspace or absolute. Default core builds selec
 none. The adapter preserves original filenames/bytes and rejects missing roots,
 symlinks and core/generated-output collisions. Vite development and preview serve
 the same URLs; native `copyPublicDir: false` builds continue to omit these files.
-The downstream Vela runner owns `build:web`, `build:web:release` and
-`build:embedded:release`, choosing its existing entries and `products/vela/public`.
+The downstream the downstream product runner owns `build:web`, `build:web:release` and
+`build:embedded:release`, choosing its existing entries and `products/<product>/public`.
 Private product build aliases run downstream. The managed site's fixed
 source packaging selects the same product assets when the selected revision owns
 that directory; historical receipts retain their original core public layout.
@@ -597,10 +597,10 @@ This neither deploys the downstream product nor resolves the artwork's distribut
 ### Expo product selection
 
 Default Expo Web/iOS bundle commands build the public RN Workbench with its
-configured direct Host, not a Vela account-gated Router. Downstream Vela uses
-`products/vela/run-expo.cjs`; product-owned APK/IPA and agents-next aliases explicitly delegate
+configured direct Host, not a the downstream product account-gated Router. Downstream the downstream product uses
+`products/<product>/run-expo.cjs`; product-owned APK/IPA and agents-next aliases explicitly delegate
 to it so Metro, Gradle and Xcode inherit the same local product entry/config.
-Only the Vela iOS product requires frontend-generated Bot HTML. Both products
+Only the downstream product iOS product requires frontend-generated Bot HTML. Both products
 retain locally packaged generic math/Mermaid renderers. This selection does not
 claim signed builds, physical plugin extraction or device verification.
 

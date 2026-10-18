@@ -8,11 +8,11 @@ into backend observation and can exceed React's update depth. Availability
 changes still notify without navigation, and execution rechecks the current
 target independently of toolbar visibility.
 
-Status: source framework, noVNC media adapter, Vela provider/viewer port, bounded
+Status: source framework, noVNC media adapter, the downstream product provider/viewer port, bounded
 backend attachment broker and cloud desktop resource-preparation API. Local Linux Codex
 Hosts now have an explicit observation composition and an opt-in private native
 mouse/keyboard executor. The
-multi-tenant Vela broker is not mounted in production: its canonical directory
+multi-tenant the downstream product broker is not mounted in production: its canonical directory
 and a native control executor still require integration. No WebRTC service or real
 enterprise service command is included. Local capability is opt-in; default compositions hide
 the entry. Explicit trusted-internal deployments can share read-only viewing
@@ -165,7 +165,7 @@ from accessibility. Only the confirmed visor has the 241px minimum. Auxiliary
 input actions remain capability-driven. Narrow and wide shoulder masks use distinct
 asymmetric reference curves. Card shadows crossfade fixed pseudo layers over 240ms
 rather than interpolating shadow geometry; the wide card retains one shadow across
-ownership changes. Paired theme accent/foreground tokens drive color, not a Vela or
+ownership changes. Paired theme accent/foreground tokens drive color, not a the downstream product or
 assistant identity or hardcoded global purple. Watching does not falsely assert
 an agent owns control. Clicking observing media uses the same single-use,
 lifecycle-fenced Take activation as the button. Window/panel blur and logical
@@ -185,7 +185,7 @@ authorization acceptance; those require the separate runtime tests below.
 
 `DesktopBackend.recoverTransport` is an explicit promise that repeating `prepare`
 only obtains a fresh, reauthorized viewer, not resource creation or Agent work.
-The local Host adapter opts in. Vela's desktop service preparation does not: an unknown POST
+The local Host adapter opts in. the downstream product's desktop service preparation does not: an unknown POST
 result must never be replayed by the neutral controller.
 
 Wire classifies an already-ready socket's abnormal close/error as transport loss,
@@ -283,7 +283,7 @@ An operator can instead choose `--trusted-internal-desktop` for a deployment who
 network admission is already trusted. It permits a non-loopback listener with the
 existing explicit listener acknowledgement; the two desktop modes are mutually
 exclusive. This means **everyone able to access that deployment is trusted to view
-the same local machine desktop**. It adds no Vela login, cloud-service or multi-tenant policy.
+the same local machine desktop**. It adds no the downstream product login, cloud-service or multi-tenant policy.
 The Host advertises `same-origin-trusted-internal` only after native observation is
 verified. Default/public deployments without this flag still hide the entry.
 The gateway requires an exact HTTP(S) Origin authority matching Host, including
@@ -374,7 +374,7 @@ bounded fresh-authorization recovery; identity/policy failures remain fail-close
 Invalid receipts and callbacks after closure/owner replacement cannot extend a
 viewer or enable input. Both sides retain expiry timers. Legacy discovery/ready
 without the capability sends no unknown message and retains the original expiry
-behavior. Vela/enterprise-service providers are not silently opted into this local contract.
+behavior. the downstream product/enterprise-service providers are not silently opted into this local contract.
 
 Composition regression uses the real Host backend, wire and viewing controller
 with synthetic media: repeated five-minute deadlines retain one attachment and
@@ -387,7 +387,7 @@ Observation remains immutable read-only. Optional `--desktop-control` requires
 one explicit desktop access mode and a preinstalled, running
 `opencraft-desktop-control.service`. Startup verifies the root-owned Unix endpoint
 and checks its physical incarnation matches the observer. Without the flag,
-capability and ready remain observe-only. This does not mount Vela/enterprise service control.
+capability and ready remain observe-only. This does not mount the downstream product/enterprise service control.
 
 `LocalDesktopService` reserves one controller before asynchronous Thread checks
 and native acquisition; it confirms only after another revision check. Each
@@ -422,19 +422,19 @@ Install the reviewed helper and unit from
 interactive VNC/noVNC. The unit is not automatically enabled at boot. Explicit
 native acceptance uses only a newly created test window, not user applications.
 The native x11vnc process enforces immutable observe-only input; no client flag,
-account login, Vela adapter or enterprise service credential is trusted as an input gate.
+account login, the downstream product adapter or enterprise service credential is trusted as an input gate.
 Closing the viewer leaves native desktop services and Codex work running.
 
-### Cloud desktop / Vela plugin boundary
+### Cloud desktop / downstream product plugin boundary
 
 | Layer | Owns | Must not own |
 |---|---|---|
-| `plugins/cloud-desktop` | Desktop contract, panel/controller, lazy noVNC adapter, media focus and local input gating | Vela account, Bot selection, enterprise service, product HTTP or resource preparation |
-| `products/vela/plugins/lightvela-platform/src/desktop` (downstream) | Account/region and canonical directory checks, desktop service preparation, authorized viewer attachment handoff | noVNC implementation, React/Shell placement, Chat's physical transport |
+| `plugins/cloud-desktop` | Desktop contract, panel/controller, lazy noVNC adapter, media focus and local input gating | the downstream product account, Bot selection, enterprise service, product HTTP or resource preparation |
+| `products/<product>/plugins/lightvela-platform/src/desktop` (downstream) | Account/region and canonical directory checks, desktop service preparation, authorized viewer attachment handoff | noVNC implementation, React/Shell placement, Chat's physical transport |
 | Backend viewer broker | Server-side target revalidation, attachment expiry, physical incarnation and exclusive input enforcement | Client menu/view lifetime as resource-stop policy |
-| Application composition | Install the pair; retire panel consumers before disposing the Vela provider | Guessing a target from a renderer route or advertising unsupported media |
+| Application composition | Install the pair; retire panel consumers before disposing the downstream product provider | Guessing a target from a renderer route or advertising unsupported media |
 
-Dependency direction is Vela provider → neutral desktop `contract` / `rfb`
+Dependency direction is the downstream product provider → neutral desktop `contract` / `rfb`
 subpaths. Cloud desktop never imports a product plugin. Product provider does not
 import the panel renderer entry or noVNC. Boundary checks cover source imports
 and the neutral plugin's product dependencies; they do not establish a security
@@ -472,7 +472,7 @@ The backend now has an observer-only foundation: the desktop service's installer
 separate loopback native view-only x11vnc unit; Sandbox's provider opens only its
 fixed port through a dedicated backend enterprise service socket. Neither is auto-started or
 exposed as a public API. This is not target authorization, incarnation proof or
-a control executor, and it is not composed into the Vela viewer port yet. Raw
+a control executor, and it is not composed into the downstream product viewer port yet. Raw
 enterprise-service session credentials must not be passed to the renderer. Local native tests
 exercise raw key/pointer/clipboard attempts against a fresh isolated X server;
 Enterprise service transport tests still stop at a synthetic WS/BSON server. See the
@@ -672,7 +672,7 @@ is an input gate. The existing immutable observer supplies no control port. A
 control-capable adapter must actually arbitrate all users of its executor,
 including Agent automation, revoke input and clear held keys/buttons on release
 and stream closure. The native input executor and product authority composition
-remain absent for Vela. The backend now has a verified immutable observer transport:
+remain absent for the downstream product. The backend now has a verified immutable observer transport:
 a native loopback proxy checks actual process/socket ownership and signs each
 fresh challenge using a root-only runtime key. It strips that proof before
 handing off RFB and retires the viewer on physical identity change. This is not
@@ -726,7 +726,7 @@ production desktop verification. Additional adapter/provider tests cover
 observe-only sessions, source-level control grant fencing, exact product binding,
 preparation DTO validation, unknown POST failure and provider retirement.
 
-From the downstream product workspace, `npm run smoke:cloud-desktop --prefix products/vela` runs the real panel, Vela provider and noVNC in a
+From the downstream product workspace, `npm run smoke:cloud-desktop --prefix products/<product>` runs the real panel, the downstream product provider and noVNC in a
 browser against a synthetic local RFB server and product authority. It checks a
 decoded binary framebuffer pixel, a deliberately held first-frame/empty-update
 negative, actual pointer/key delivery and focus after a grant, ordered clipboard
@@ -792,7 +792,7 @@ The implementation boundary is:
   verify queue limits and mobile weak-network recovery before shipping.
 
 There is a tested Sandbox broker and a separate opt-in local Host composition,
-but no Vela multi-tenant authority/verified-stream composition or server-side
+but no the downstream product multi-tenant authority/verified-stream composition or server-side
 control executor. The noVNC media adapter,
 session protocol and product handoff exist in source, but no new transport
 capability is advertised by default. If WebRTC is added

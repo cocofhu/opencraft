@@ -17,10 +17,10 @@ No downstream sign-in or generated private Bot HTML is required for this entry.
 Native math/Mermaid HTML remains packaged by the shared runner.
 
 The downstream instructions below describe the **explicit downstream product**.
-In a downstream product checkout run `node products/vela/run-expo.cjs start --go` from the
-downstream root, or `npm run expo:start --prefix products/vela -- --go`. Its runner
+In a downstream product checkout run `node products/<product>/run-expo.cjs start --go` from the
+downstream root, or `npm run expo:start --prefix products/<product> -- --go`. Its runner
 selects the original Router/account/Bot entry and edition configuration.
-The downstream `products/vela` APK/IPA/agents-next aliases select that product
+The downstream `products/<product>` APK/IPA/agents-next aliases select that product
 for the complete build. Public APK/IPA aliases use the public entry; agents-next
 is owned only by the downstream product. Custom downstream builds may set `OPENCRAFT_EXPO_PRODUCT_ENTRY` and
 `OPENCRAFT_EXPO_PRODUCT_CONFIG` to existing local entry and `.cjs` config files;
@@ -44,7 +44,7 @@ checkout 构建并验证成品；构建成功本身不代表已经安装、上�
 
 当前 iOS 版使用 HeroUI Native 登录页和智能体滑动侧栏，侧栏左下角固定“个人与设置”入口，不显示底部 Tab。智能体设置运行由 `frontend/` 源码构建的本地 DOM 功能容器；“对话”使用 OpenCraft 自有的 RN Chat 和 Composer，连接所选 Bot 的实例与 Profile。个人页合并原生资料与应用设置，并提供“订阅管理”按钮。深入管理账号、实名认证和订阅支付时打开所选站点的现有网页。Android 版仍是独立的 React Native 工作台；它的内测 APK 见下文。
 
-登录页精灵图标内联在首屏 JS 中，避免 Expo Go 通过远程 Metro 再请求一张图片。替换 `assets/lightvela-icon.png` 后运行 `npm --prefix ../products/vela run assets:login-mark` 更新首屏素材。
+登录页精灵图标内联在首屏 JS 中，避免 Expo Go 通过远程 Metro 再请求一张图片。替换 `assets/lightvela-icon.png` 后运行 `npm --prefix ../products/<product> run assets:login-mark` 更新首屏素材。
 
 1. 在 iPhone 上从[美区 App Store 安装 Expo Go](https://apps.apple.com/us/app/expo-go/id982107779)。
 2. 让开发者先运行 `npx expo whoami`，确认电脑 Expo CLI 与手机 Expo Go 登录的是同一个 Expo 账号；未登录时在电脑上完成 `npx expo login`。再按 [Cloudflare Expo Go 预览 skill](../../.agents/skills/opencraft-expo-cf-preview/SKILL.md)启动并核验预览，取得本次的 `exps://…trycloudflare.com` 链接。链接每次可能变化；Metro 和 Cloudflare Tunnel 必须保持运行。直连链接不能绕过 iPhone 真机的 Expo 账号校验。
@@ -71,13 +71,13 @@ Camera:
 
 ```bash
 npm install
-npm --prefix ../products/vela run build:mobile-bot-runtime
-node ../products/vela/run-expo.cjs start --go
+npm --prefix ../products/<product> run build:mobile-bot-runtime
+node ../products/<product>/run-expo.cjs start --go
 ```
 
 The Bot runtime build requires a downstream product checkout with `frontend/` and
 `opencraft/` dependencies installed. It packages the existing frontend Bot
-components, providers and styles as local HTML under `products/vela/native/assets/`.
+components, providers and styles as local HTML under `products/<product>/native/assets/`.
 The generated asset contains frontend code and is ignored by Git. Regenerate
 it after frontend Bot changes, before starting Metro or building an iOS archive.
 The standalone public OpenCraft subtree lacks `frontend/` and cannot
@@ -155,7 +155,7 @@ changing it reloads the current page so the website's own i18n can apply it.
 International Simplified Chinese maps to the site's published `zh-SG` locale.
 The mainland China website currently remains Chinese even if the App shell is
 English. No session token or language value is sent to another origin. Add
-future native translations in `products/vela/native/src/runtime/mobile-language.ts` and expose a
+future native translations in `products/<product>/native/src/runtime/mobile-language.ts` and expose a
 locale only after both App and website have a complete dictionary.
 
 For iPhone diagnostics, open Settings, enable Developer mode, then open
@@ -186,7 +186,7 @@ team, and a provisioning profile for `dev.opencraft.workbench`, run:
 
 ```bash
 npm ci
-APPLE_TEAM_ID=YOUR_TEAM_ID npm --prefix ../products/vela run build:ios:ipa
+APPLE_TEAM_ID=YOUR_TEAM_ID npm --prefix ../products/<product> run build:ios:ipa
 ```
 
 The script prebuilds iOS, installs pods, archives a Release build, and exports
@@ -201,7 +201,7 @@ verified on Linux.
 
 ```bash
 OPENCRAFT_IOS_RELEASE=1 APPLE_TEAM_ID=YOUR_TEAM_ID \
-  OPENCRAFT_IOS_EXPORT_METHOD=ad-hoc npm --prefix ../products/vela run build:ios:ipa
+  OPENCRAFT_IOS_EXPORT_METHOD=ad-hoc npm --prefix ../products/<product> run build:ios:ipa
 ```
 
 该命令生成 `apps/workbench-expo/release/LightVela-ios-internal.ipa`；
@@ -257,7 +257,7 @@ from the OpenCraft root:
 
 ```bash
 npm ci
-npm --prefix ../products/vela run build:android:apk
+npm --prefix ../products/<product> run build:android:apk
 adb install -r apps/workbench-expo/release/OpenCraft-android-internal.apk
 ```
 
@@ -294,7 +294,7 @@ Expo Go 与内测 APK 仍使用 `dev.opencraft.workbench`。正式签名 PKCS12 
 export OPENCRAFT_ANDROID_RELEASE_KEYSTORE=/secure/path/lightvela-release.p12
 export OPENCRAFT_ANDROID_RELEASE_PASSWORD_FILE=/secure/path/keystore-password.txt
 export OPENCRAFT_ANDROID_RELEASE_KEY_ALIAS=lightvela-workbench-release
-npm --prefix ../products/vela run build:android:release
+npm --prefix ../products/<product> run build:android:release
 ```
 
 国际包在另一份干净 checkout 中用相同命令构建，但增加
@@ -335,7 +335,7 @@ python3 apps/workbench-expo/scripts/serve-android-release-apk.py --bind 0.0.0.0 
 
 ## Parallel `/agents-next` Expo Web console
 
-From `opencraft/`, run `npm --prefix ../products/vela run build:agents-next`.
+From `opencraft/`, run `npm --prefix ../products/<product> run build:agents-next`.
 Then start the frontend dev server and visit `/agents-next/`. From `frontend/`,
 `npm run build:agents-next` performs the same preparation; run it before a
 frontend release build that includes this experimental entry. Both workspaces'

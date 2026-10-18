@@ -6,7 +6,7 @@ import ts from "typescript";
 /**
  * Test-only execution of r3562 function bodies, not a second semantic rewrite.
  * Bundle initialization, application selectors, React/Motion and presentation
- * are injected explicitly. No Vela scroll/follow/virtualizer implementation is
+ * are injected explicitly. No downstream scroll/follow/virtualizer implementation is
  * imported by the reference endpoint. Each extracted body is fingerprinted.
  */
 export function createCodexScrollReferenceModules(root: string) {

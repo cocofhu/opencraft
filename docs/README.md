@@ -1,6 +1,6 @@
 # OpenCraft 服务文档
 
-OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench、Expo 客户端、Electron 桌面壳和 AppServer 适配层。Vela/Hermes 产品与 Agent Console 共享适配由下游产品持有；公开核心保持独立运行时、包管理器、构建矩阵和发布所有权。
+OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench、Expo 客户端、Electron 桌面壳和 AppServer 适配层。下游产品/Hermes 产品与 Agent Console 共享适配由下游产品持有；公开核心保持独立运行时、包管理器、构建矩阵和发布所有权。
 
 ## 权威入口
 
@@ -29,7 +29,7 @@ OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench
 
 ## 变更边界
 
-下游 Vela 可以消费 `frontend/` 中显式列入同步闭包的 UI、domain、repository 和 locale 实现。新增跨服务复用优先提取稳定 workspace package；在包边界完成前，必须同步生成物并通过 drift check。OpenCraft 的 CI 只做安装、校验和构建，不发布 frontend、不修改 GitOps，也不推进任何生产环境。
+下游产品可以消费 `frontend/` 中显式列入同步闭包的 UI、domain、repository 和 locale 实现。新增跨服务复用优先提取稳定 workspace package；在包边界完成前，必须同步生成物并通过 drift check。OpenCraft 的 CI 只做安装、校验和构建，不发布 frontend、不修改 GitOps，也不推进任何生产环境。
 
 ## 验证
 

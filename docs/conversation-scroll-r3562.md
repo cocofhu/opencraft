@@ -142,7 +142,7 @@ browser warnings or production reproduction of every historical report.
 ## Executed original-function differential
 
 `scripts/compare-codex-scroll.ts` now runs two browser endpoints: the production
-Vela Conversation and the r3562 original response, virtualizer and scroll-layout
+the downstream product Conversation and the r3562 original response, virtualizer and scroll-layout
 function bodies. `scripts/lib/codex-scroll-reference.ts` extracts the bodies by
 AST boundaries, without editing them, and records SHA-256 fingerprints. It does
 not implement a second rewritten reference policy.
@@ -166,7 +166,7 @@ settled-state pass as a zero-difference, frame-for-frame application replica.
 
 This comparison exposed a concrete missing subscription: after a 60px direct
 answer completed, the reference changed `(distance, spacer)` from `(29, 348)`
-to `(0, 319)` while preserving the reading anchor. Vela remained at `(29, 348)`.
+to `(0, 319)` while preserving the reading anchor. the downstream product remained at `(29, 348)`.
 Renewing observation on the controller's published 24px boundary fixes that
 discrepancy. No completion-specific pixel subtraction or extra scroll owner was
 introduced.

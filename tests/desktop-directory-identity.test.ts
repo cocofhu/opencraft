@@ -18,7 +18,7 @@ import { daemonLaunchSpec } from "../apps/workbench-electron/src/daemon-client.t
 const appDataDirectory = "/Users/test/Library/Application Support";
 const homeDirectory = "/Users/test";
 
-test("production and Preview resolve stable Vela-free directory identities", () => {
+test("production and Preview resolve stable product-free directory identities", () => {
   const production = resolveDesktopDirectoryPlan({
     appDataDirectory,
     homeDirectory,

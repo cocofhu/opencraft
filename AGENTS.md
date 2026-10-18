@@ -6,9 +6,9 @@
 
 GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、执行引擎和渠道经插件接入；核心仍拥有主体、授权和Hub分发。下游产品的业务装配（身份、品牌与企业服务）不属于核心。当前切换状态见[实际状态与来源清单](docs/upstream-transition.md)；不要用旧源码覆盖当前产品，也不建立两套可写核心。原贡献采用Apache-2.0，未核实第三方恢复/适配材料不因LICENSE自动获得授权。
 
-## 当前上游化交付范围（2026-10-18）
+## 当前上游化交付范围（2026-10-19）
 
-用户已更新目标：对上游仓库做一次来源信息扫描与去敏重写（内部地址、个人身份、内部仓库与服务名）；法律来源权利核实仍与去敏分开。已有来源记录和NOTICE保留，不将未核实项改成已核实。未合并的来源清理PR #20保留为草稿。当前重点为完整核心独立运行、下游产品隔离、贡献/发布Skills及上下游固定版本与补丁链路。npm仍暂不发布；旧私有历史归档保留。真实权限、凭据、构建及受保护分支检查继续遵守。
+公开核心独立运行、下游产品隔离、贡献/发布Skills、上下游固定版本与补丁链路是当前重点。来源记录与NOTICE按原样保留，法律来源权利核实与仓库内措辞分开处理，不把未核实项写成已核实。npm仍暂不发布；旧私有历史归档保留。真实权限、凭据、构建及受保护分支检查继续遵守。
 
 ## 完成标准
 
@@ -29,7 +29,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 - DSH 是可替换的执行引擎，不是 Bot、模型、会话、凭据或产品配置的唯一真源。先确认对象身份、生命周期和唯一写入者，再修改页面或 adapter。
 - 宿主只声明并呈现已接通的能力；不得用开关、菜单项或前端状态冒充协议、运行时或后端能力。
-- 云桌面通用插件拥有桌面 contract、媒体和面板，不依赖产品账号、Bot 或企业云服务。产品 provider 只消费通用 contract/media 子入口，拥有授权绑定、资源准备和观看 attachment 交接，不拥有桌面 DOM、Shell 或 Chat 连接。依赖方向与回收顺序见 [云桌面插件边界](docs/cloud-desktop-plugin.md#cloud-desktop--vela-plugin-boundary)；客户端只读状态不得代替后端输入授权。
+- 云桌面通用插件拥有桌面 contract、媒体和面板，不依赖产品账号、Bot 或企业云服务。产品 provider 只消费通用 contract/media 子入口，拥有授权绑定、资源准备和观看 attachment 交接，不拥有桌面 DOM、Shell 或 Chat 连接。依赖方向与回收顺序见 [云桌面插件边界](docs/cloud-desktop-plugin.md#cloud-desktop--downstream-product-plugin-boundary)；客户端只读状态不得代替后端输入授权。
 - 主体与协作遵循[原生主体与 Hub 协作设计纲领](docs/architecture/actor-collaboration.md)：人类与持久 Agent/Bot/Session 都是主体，权限独立授予，Hub 负责准入与授权路由。该纲领是目标设计，不代表多租户已实现。现有 Client / Hub / Server 的连接、执行与 lease 契约见[执行所有权](docs/execution-ownership.md#client--hub--server-拓扑)；Renderer 是呈现机制，Host 是部署载体，均不能决定主体身份。
 - 自然人身份是主对象，登录方式是身份绑定：[多种登录方式落到同一自然人](docs/architecture/actor-collaboration.md#多种登录方式绑定同一自然人)。本地账号、OIDC 与企业身份等身份来源共用核心 human Actor；权限、资源归属和审计关联 Actor，不随登录方式变化。绑定须验证身份，不按同名或相同邮箱自动合并；登录态与 Bot Session 凭据分开管理。Headless 随包提供每部署独立账号的官方服务端插件 `opencraft.account` 与可配置 OIDC，专用企业验证由可选插件接入；配置与已实现边界见[服务器登录](docs/server-authentication.md)。
 
@@ -54,7 +54,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 ## 手机端入口
 
-- 公开 Expo 默认复用既有 RN Workbench/Composer 与直连 Host；显式下游 Vela 入口由产品 runner 选择原 Router/账号/Bot。Vela 的 iOS 由 HeroUI Native 登录和操作控件、原生导航页面及 Bot 侧栏承载；账号与设置入口固定在侧栏底部，没有底栏。Bot 功能在 App 内打包的 frontend DOM runtime 中呈现；Android 是独立 React Native 工作台。手机平台、构建方式和产物先按 [Expo 路线表](apps/workbench-expo/README.md#手机端路线) 选择，不能把 Expo Go 预览当作可安装包。
+- 公开 Expo 默认复用既有 RN Workbench/Composer 与直连 Host；显式下游产品入口由产品 runner 选择原 Router/账号/Bot。下游产品的 iOS 由 HeroUI Native 登录和操作控件、原生导航页面及 Bot 侧栏承载；账号与设置入口固定在侧栏底部，没有底栏。Bot 功能在 App 内打包的 frontend DOM runtime 中呈现；Android 是独立 React Native 工作台。手机平台、构建方式和产物先按 [Expo 路线表](apps/workbench-expo/README.md#手机端路线) 选择，不能把 Expo Go 预览当作可安装包。
 - 修改 iOS Shell 或内置 Bot 功能时，先读 [Expo 局部 Agent 入口](apps/workbench-expo/AGENTS.md)，由它路由 [Shell 状态](docs/mobile-shell.md)与[原生／DOM 桥接](docs/mobile-bot-bridge.md)；优先修改现有过时规则，避免把旧底栏、旧网页套壳等已失效方案追加成并列事实。
 - App 内功能的 JS/CSS 与 Worker 必须预制在安装包中；远程只提供 API 数据和媒体，禁止以网页或动态代码作为功能回退。原生设备能力经平台端口接入，外部账号、实名与订阅页面交给系统浏览器。具体边界见 [Embedded Bot bridge](docs/mobile-bot-bridge.md#native-audio-and-packaged-code)。
 - 手机端请求、缓存和离线写入先按 [移动数据协调契约](docs/mobile-data-architecture.md) 区分读取、在线事务与可持久化草稿；不得把 TanStack Query 的内存缓存、WebView 的独立 JS 环境或普通重试称为全 App 持久请求队列。账号展示缓存必须按会话与区域隔离，退出登录清除。
@@ -74,7 +74,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 - 协议变化必须同时检查声明、生成类型、Host/provider adapter、持久化/恢复、失败语义和兼容测试。共享 TypeScript 能编译不等于已部署 Host 兼容。
 - 内建 UI Preferences 统一消费 `UiPreferencesRuntime`；插件的个人本地呈现偏好可消费可选 `api.localPreferences`，由平台隔离产品/插件/账号与激活生命周期、插件持有 schema；不代替业务文档 CAS 或共享账号 authority。React 不直接选择 localStorage、IndexedDB、SQLite 或远端存储。scope、adapter、CAS 和正式 key 以 [UI preference authority](docs/platform-architecture.md#ui-preference-authority) 为准。
 - Desktop 路径必须消费 [Directory identity charter](docs/architecture/product-identity.md#directory-identity-charter) 的唯一 resolver：生产数据根不得含 `vela`，旧 `@vela/*` 只允许作为幂等迁移输入；Main/Daemon/DSH 显式使用 runtime cwd，Thread workspace cwd 必须来自 Project/Thread，禁止回退 `process.cwd()`。
-- Vela/Hermes 的 Console 适配源码和生成工具属于下游产品，不是独立核心的安装或默认检查依赖。下游产品工作区持有机械生成层；不得直接编辑，须修改其前端真源后运行该产品的同步及只读漂移检查，连同 `UPSTREAM.json` 提交。详见 [历史与消费契约](UPSTREAM_HISTORY.md)。
+- Hermes 的 Console 适配源码和生成工具属于下游产品，不是独立核心的安装或默认检查依赖。下游产品工作区持有机械生成层；不得直接编辑，须修改其前端真源后运行该产品的同步及只读漂移检查，连同 `UPSTREAM.json` 提交。详见 [历史与消费契约](UPSTREAM_HISTORY.md)。
 - SQLite 表结构变更只在该库 owner 的 migrations 列表追加连续 version N+1；不得改写已发布迁移的 SQL 原文、名称或版本。生命周期与恢复契约见 [sqlite-lifecycle](docs/sqlite-lifecycle.md)。
 - OpenCraft 自有 SQLite 的新增运行时 `CREATE TABLE` / `ALTER TABLE` 只由迁移执行；业务初始化与恢复不得另建表或按列探测补结构。测试 fixture 与下述保留的上游镜像不作为升级 authority。
 - 所有 OpenCraft 自有 SQLite 库必须经 `openManagedDatabase` 打开并暴露 outcome；owner 负责独占生命周期、关闭和处置摘要，不得吞掉迁移失败后继续宣称 ready。

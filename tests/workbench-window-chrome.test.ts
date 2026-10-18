@@ -114,7 +114,7 @@ test("persistent browser and Electron headers keep Write behind floating sidebar
   assert.match(header, /aria-label=\{intl\.formatMessage\(\{ id: "navigation\.newTask", defaultMessage: "Start new task" \}\)\}/u);
   assert.match(header, /data-app-shell-new-task-trigger="true"/u);
   assert.match(header, /onClick=\{onHome\}/u);
-  assert.doesNotMatch(header, /data-app-shell-home-trigger|app-shell-wordmark|Vela · Home/u);
+  assert.doesNotMatch(header, /data-app-shell-home-trigger|app-shell-wordmark|OpenCraft · Home/u);
 });
 
 test("native fullscreen atomically removes the macOS traffic-light safe area", () => {

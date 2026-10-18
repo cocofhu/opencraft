@@ -10,7 +10,7 @@ Web 主聊天入口（`apps/workbench-web/src/app.tsx`）的 `scrollPolicy` 从
 中"用户明确选择回答定位分支"的 Web 主入口选择；不改 `ConversationScrollPolicy`
 类型、不删除 response-placement 分支，两分支保持互斥。
 
-依据是用户对真实 Codex 与 Vela 的体感反馈：工具调用/流式输出期间
+依据是用户对真实 Codex 与下游产品的体感反馈：工具调用/流式输出期间
 "高光内容不跟随、跑着跑着掉出视野"。对照证据表明这不是移植偏差，而是
 response-placement 分支本身的语义。
 
@@ -28,8 +28,8 @@ CODEX_SCROLL_REFERENCE_ROOT=<repo>/ref/codex npx tsx scripts/compare-codex-scrol
 
 | 运行 | 对照 | 结果 |
 | --- | --- | --- |
-| run1b（response-placement） | Vela 当前分支 vs r3562 原版同分支函数 | 143 个事件边界 1px 内一致 |
-| run2（natural） | Vela natural 分支 vs r3562 原版自然路径 | 34 个事件边界 1px 内一致 |
+| run1b（response-placement） | 下游产品当前分支 vs r3562 原版同分支函数 | 143 个事件边界 1px 内一致 |
+| run2（natural） | 下游产品 natural 分支 vs r3562 原版自然路径 | 34 个事件边界 1px 内一致 |
 
 同场景（贴底提交、无输入、正文增长到 3078 字符）下两条策略的离底距离：
 
