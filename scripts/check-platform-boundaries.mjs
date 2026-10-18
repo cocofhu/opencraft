@@ -18,6 +18,11 @@ function collectFiles(directory) {
 
 const violations = [];
 
+checkFiles("shared styles", "apps/workbench-web/src/styles", [{
+  pattern: /url\(\s*["']?\/lightvela-intl-home\//m,
+  message: "must not select product artwork; compose product styles in the explicit product entry",
+}]);
+
 // Public development commands must remain usable without a product checkout.
 // Product probes and source synchronizers are owned by their downstream workspace.
 checkFiles("public tool", "scripts", [{
