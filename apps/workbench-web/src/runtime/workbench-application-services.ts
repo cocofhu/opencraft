@@ -504,7 +504,8 @@ export interface WebWorkbenchSupervisorOptions {
   readonly navigationMode?: "browser" | "memory";
   /** Embedded products may supply one explicit Host without directory discovery. */
   readonly hostProfileMode?: "environment" | "configured";
-  readonly modelSelectionPolicy?: "user" | "host-default";
+  readonly modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
+  readonly readSelectableModels?: import("@opencraft/workbench-runtime").AppServerWorkbenchRuntimeConfig["readSelectableModels"];
   /** Trusted product owns account/engine assembly and its credential cache scope. */
   readonly clientProduct?: import("@opencraft/client-product").ClientWorkbenchProduct;
 }

@@ -12,6 +12,9 @@ export interface WorkbenchReasoningEffortChoice {
  * AppServer owns availability; renderers only present this projection.
  */
 export interface WorkbenchComposerModelChoice {
+  readonly groupKey?: string | null;
+  readonly groupLabel?: string | null;
+  readonly configuredRole?: "primary" | "fallback" | null;
   readonly id: string;
   readonly value: string;
   readonly label: string;
@@ -59,6 +62,9 @@ export function projectComposerModelChoices(
       id: model.id,
       value: model.model,
       label: model.displayName,
+      groupKey: model.groupKey ?? null,
+      groupLabel: model.groupLabel ?? null,
+      configuredRole: model.configuredRole ?? null,
       description: model.description || null,
       isDefault: model.isDefault,
       inputModalities: modelInputModalities(model.inputModalities),

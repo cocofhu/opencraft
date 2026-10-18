@@ -175,12 +175,22 @@ export interface AppServerRuntimeClock {
   clearTimeout(timer: unknown): void;
 }
 
+export interface SelectableModelPresentation {
+  readonly id: string;
+  readonly displayName: string;
+  readonly groupKey: string | null;
+  readonly groupLabel: string | null;
+  readonly configuredRole?: "primary" | "fallback" | null;
+}
+
 export interface AppServerWorkbenchRuntimeConfig {
   readonly outbox?: ConversationOutboxStorage;
   readonly hostId: string;
   /** Presentation-only identity captured when a local message is submitted. */
   readonly getSubmissionSender?: () => MessageSender | null;
   readonly modelSelectionPolicy?: ModelSelectionPolicy;
+  /** Composition-owned availability and display projection; the Host still authorizes execution. */
+  readonly readSelectableModels?: (catalog: readonly { readonly id: string; readonly model: string }[], options?: { readonly preferCached?: boolean }) => Promise<readonly SelectableModelPresentation[] | null>;
   /** Fixed transport for isolated runtimes and tests. A closed fixed transport is terminal. */
   readonly transport?: DuplexTransport;
   /** Creates one transport for each AppServer Client generation. */
@@ -671,6 +681,18 @@ export function createAppServerWorkbenchRuntime(
   const requireClient = (): AppServerClient => {
     if (client === null) throw new Error("AppServer Workbench has not started");
     return client;
+  };
+
+  const listSelectableModels = async (params: ModelListParams): Promise<ModelListResponse> => {
+    const page = await requireClient().request("model/list", params);
+    if (!config.readSelectableModels) return page;
+    const choices = new Map((await config.readSelectableModels(page.data) ?? []).map((choice) => [choice.id, choice]));
+    return { ...page, data: page.data.flatMap((model) => {
+      const choice = choices.get(model.id);
+      return choice ? [{ ...model, displayName: choice.displayName,
+        groupKey: choice.groupKey, groupLabel: choice.groupLabel,
+        configuredRole: choice.configuredRole ?? null }] : [];
+    }) };
   };
 
   const canRequest = (method: AppServerMethod): boolean => allowsAppServerMethod(
@@ -1415,7 +1437,10 @@ export function createAppServerWorkbenchRuntime(
         resolveCompilerOptions: async (intent) => {
           const followUp = intent.target.type === "steer-active-turn" || intent.target.type === "enqueue-follow-up";
           const threadId = intent.target.type === "new-thread" ? null : intent.target.key.threadId;
-          const useHostDefault = config.modelSelectionPolicy === "host-default" && !followUp;
+          const useHostDefault = !followUp && (
+            config.modelSelectionPolicy === "host-default"
+            || (config.modelSelectionPolicy === "session" && intent.target.type === "new-thread" && intent.selections.model === undefined)
+          );
           const modelId = useHostDefault ? null : intent.selections.model ?? (threadId ? bindings.get(threadId)?.runtime.getSnapshot().execution.model : null);
           const scope = !useHostDefault && client!.initializeResult?.capabilities?.extensions?.[OPENCRAFT_SCOPED_MODEL_CATALOG_EXTENSION] !== undefined ? threadId : null;
           let cursor: string | null = null;
@@ -1426,6 +1451,15 @@ export function createAppServerWorkbenchRuntime(
             if (model) {
               const inputModalities = modelInputModalities(model.inputModalities);
               if (followUp) return { inputModalities };
+              if (config.modelSelectionPolicy === "session" && intent.selections.model !== undefined && config.readSelectableModels) {
+                let choices: readonly SelectableModelPresentation[] | null = null;
+                try {
+                  choices = await config.readSelectableModels([model], { preferCached: true });
+                } catch {
+                  // Model Settings is advisory when its remote read is unavailable; the Host still validates the model.
+                }
+                if (choices && !choices.some((choice) => choice.id === model.id)) throw new Error("所选模型已不可用，请重新选择");
+              }
               // The Host owns reasoning settings in embedded mode as well.
               if (useHostDefault) return { inputModalities, model: model.model };
               return {
@@ -1788,7 +1822,7 @@ export function createAppServerWorkbenchRuntime(
       },
       composerCatalog: {
         async listModels(params = {}) {
-          return requireClient().request("model/list", {
+          return listSelectableModels({
             cursor: null,
             limit: 100,
             includeHidden: false,
@@ -1811,7 +1845,7 @@ export function createAppServerWorkbenchRuntime(
         },
         async writeNewThreadDefaults(defaults) {
           // A Host-default presentation submits the Host's current model; it owns no configuration intent.
-          if (config.modelSelectionPolicy === "host-default") return;
+          if (config.modelSelectionPolicy === "host-default" || config.modelSelectionPolicy === "session") return;
           assertMethodAccess("config/batchWrite");
           await requireClient().request("config/batchWrite", {
             edits: [

@@ -27,3 +27,5 @@ export type {
   ResourceBlock,
   TextBlock,
 } from "@opencraft/composer-core";
+
+export { groupComposerModels } from "./session-model-picker";

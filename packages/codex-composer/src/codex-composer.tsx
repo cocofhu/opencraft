@@ -1,3 +1,4 @@
+import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
@@ -126,6 +127,9 @@ export interface ComposerModelOption {
   /** Concrete AppServer `model` override, which is distinct from catalog id. */
   readonly value: string;
   readonly label: string;
+  readonly groupKey?: string | null;
+  readonly groupLabel?: string | null;
+  readonly configuredRole?: "primary" | "fallback" | null;
   readonly description: string | null;
   readonly isDefault: boolean;
   readonly inputModalities?: readonly ("text" | "image" | "audio")[];
@@ -173,6 +177,7 @@ export interface ComposerSelectionCatalog {
   readonly modelError?: string | null;
   readonly permissionProfileError?: string | null;
   readonly onModelMenuOpen?: () => void;
+  readonly onConfigureModels?: () => void;
   readonly onRememberModelDefaults?: (defaults: {
     readonly model: string;
     readonly effort: string | null;
@@ -743,8 +748,8 @@ export interface CodexComposerProps {
   submissionDisabled?: boolean;
   placeholder?: string;
   selectionCatalog?: ComposerSelectionCatalog;
-  /** Host-owned models are inherited; this surface offers no model override. */
-  modelSelectionPolicy?: "user" | "host-default";
+  /** user remembers defaults; session overrides only this conversation; host-default offers no override. */
+  modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
   effectiveSelections?: ComposerEffectiveSelections;
   executionTarget?: ComposerExecutionTarget;
   defaultFollowUpAction?: ComposerFollowUpAction;
@@ -1221,7 +1226,7 @@ export const CodexComposer = forwardRef<
       const view = editorViewRef.current;
       const dictation = controller.getInputInteractionSnapshot();
       if (!dictationFinished && dictation !== null) {
-        if (dictation.phase !== "listening" || disabled || submissionDisabled || (modelSelectionPolicy !== "host-default" && selectedModelValue === null) || composerSnapshot.hasProcessingAssets) return;
+        if (dictation.phase !== "listening" || disabled || submissionDisabled || (modelSelectionPolicy === "user" && selectedModelValue === null) || composerSnapshot.hasProcessingAssets) return;
         const draftId = controller.getSnapshot().draft.id;
         const committed = await dictation.finish();
         if (committed && editorViewRef.current === view && editorControllerRef.current === controller
@@ -1249,7 +1254,8 @@ export const CodexComposer = forwardRef<
       let intent: SubmitIntent;
       try {
         intent = controller.createSubmitIntent();
-        if (selectedModelValue !== null && !isStreaming && editingQueuedSubmissionId === null) {
+        if (selectedModelValue !== null && !isStreaming && editingQueuedSubmissionId === null
+          && (modelSelectionPolicy !== "session" || intent.selections.model !== undefined)) {
           intent = { ...intent, selections: { ...intent.selections,
             // Preserve an unavailable explicit choice so Runtime rejects it instead
             // of silently resolving the Host default model.
@@ -1844,6 +1850,10 @@ export const CodexComposer = forwardRef<
   };
 
   const selectModel = (model: ComposerModelOption) => {
+    if (modelSelectionPolicy === "session") {
+      controller.dispatch({ type: "set-selections", patch: { model: model.value, effort: undefined } });
+      return;
+    }
     const supportsCurrentEffort =
       selectedEffortValue !== null &&
       model.efforts.some((effort) => effort.value === selectedEffortValue);
@@ -2197,10 +2207,11 @@ export const CodexComposer = forwardRef<
           ref={footerLayout.footerRef}
           className="codex-composer-footer"
           data-footer-density={footerLayout.density}
+          data-model-selection-policy={modelSelectionPolicy}
           data-input-mode={voiceActive ? "dictation" : "standard"}
         >
           {inputInteraction === null ? null : <DictationFooter interaction={inputInteraction}
-            canSend={!disabled && !submissionDisabled && !composerSnapshot.hasUnavailableAssets && (modelSelectionPolicy === "host-default" || selectedModelValue !== null)}
+            canSend={!disabled && !submissionDisabled && !composerSnapshot.hasUnavailableAssets && (modelSelectionPolicy !== "user" || selectedModelValue !== null)}
             onSend={() => { void submit(); }} onCancel={cancelInputInteraction} />}
           <div
             ref={footerLayout.attachmentRef}
@@ -2320,6 +2331,10 @@ export const CodexComposer = forwardRef<
               </span>
             )}
             <div className="codex-composer-picker-region">
+              {modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
+                selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
+                onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
+                focus={intelligenceFocus} /> : null}
               {modelSelectionPolicy === "user" ? <DropdownMenu.Root
                 modal={false}
                 open={openPicker === "intelligence"}

@@ -229,6 +229,8 @@ export interface EmbeddedWorkbenchAppActions {
 }
 
 export interface EmbeddedWorkbenchAppPresentation {
+  readonly modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
+  readonly onConfigureModels?: () => void;
   readonly panelHost?: {
     readonly target: HTMLElement;
     readonly presentation?: { subscribe: (listener: () => void) => (() => void); getSnapshot: () => boolean };
@@ -260,6 +262,7 @@ export function App({
   readonly presentation?: WorkbenchPresentationPolicy;
 } = {}) {
   const intl = useIntl();
+  const modelSelectionPolicy = embedded?.modelSelectionPolicy ?? (embedded ? "host-default" : "user");
   const internalDeveloperMode = useInternalDeveloperMode();
   const [accountOpen, setAccountOpen] = useState(false);
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
@@ -1153,7 +1156,7 @@ export function App({
       draft?.target.execution.workspace.cwd ??
       activeHost.workspaceBrowseRoots[0] ??
       null,
-    embedded === undefined && draft === null ? activeThreadId : null,
+    draft === null ? activeThreadId : null,
     presentation.runtimeHostConfiguration,
   );
   const composerWorkspaceRoots = useMemo<readonly string[]>(() => {
@@ -1194,9 +1197,10 @@ export function App({
       }),
       isFetching: composerCatalog.isFetching,
       modelError: composerCatalog.modelError?.message ?? null,
-      onRememberModelDefaults: composerCatalog.rememberModelDefaults,
-      onModelMenuOpen: () => { composerCatalog.onModelMenuOpen(); engineCatalog.open(); },
-      agentGroups: draft === null || presentation.executionSelection === "fixed" ? undefined : engineCatalog.groups.map(group => ({
+      onRememberModelDefaults: modelSelectionPolicy === "user" ? composerCatalog.rememberModelDefaults : undefined,
+      onConfigureModels: embedded?.onConfigureModels,
+      onModelMenuOpen: modelSelectionPolicy === "session" ? composerCatalog.retryModels : () => { composerCatalog.onModelMenuOpen(); engineCatalog.open(); },
+      agentGroups: modelSelectionPolicy !== "user" || draft === null || presentation.executionSelection === "fixed" ? undefined : engineCatalog.groups.map(group => ({
         id: group.hostId,
         label: hostCatalog.profiles.find(host => host.hostId === group.hostId)?.agent ?? hostCatalog.hosts.find(host => host.hostId === group.hostId)?.label ?? group.hostId,
         active: group.hostId === snapshot.hostId,
@@ -1216,7 +1220,7 @@ export function App({
         composerCatalog.permissionProfileError?.message ?? null,
     }),
     [
-      presentation.executionSelection, engineCatalog, draft, hostCatalog, snapshot.hostId,
+      modelSelectionPolicy, embedded?.onConfigureModels, presentation.executionSelection, engineCatalog, draft, hostCatalog, snapshot.hostId,
       composerCatalog.isFetching,
       composerCatalog.modelError,
       composerCatalog.onModelMenuOpen,
@@ -1862,7 +1866,7 @@ export function App({
             composerPresentationEnabled={conversationRouteOpen}
             draft={draft}
             controller={composerController}
-            modelSelectionPolicy={embedded ? "host-default" : "user"}
+            modelSelectionPolicy={modelSelectionPolicy}
             showExecutionControls={presentation.executionSelection === "selectable"}
             heading={embedded ? intl.formatMessage({
               id: "chat.companionHeading",
@@ -1874,7 +1878,7 @@ export function App({
             }) : undefined}
             selectionCatalog={composerSelectionCatalog}
             catalog={composerSuggestionCatalog}
-            effectiveSelections={composerCatalog.newThreadDefaults ?? undefined}
+            effectiveSelections={modelSelectionPolicy === "session" ? undefined : composerCatalog.newThreadDefaults ?? undefined}
             personalDefaultsPending={composerCatalog.personalDefaultsPending}
             workspaceOptions={draftWorkspaceOptions}
             workspaceOptionsLoading={projectCatalog.isFetching}
@@ -2086,7 +2090,7 @@ export function App({
                         </>}
                         shortcutCommands={hostShortcutCommands}
                         endActions={composerEndActions}
-                        modelSelectionPolicy={embedded ? "host-default" : "user"}
+                        modelSelectionPolicy={modelSelectionPolicy}
                         placeholder={embedded ? intl.formatMessage({
                           id: "chat.companionFollowupPlaceholder",
                           defaultMessage: "Tell me what you'd like to do next",

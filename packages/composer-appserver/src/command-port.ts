@@ -119,7 +119,8 @@ export function createAppServerConversationCommandPort(
   config: AppServerConversationCommandPortConfig,
 ): ConversationCommandPort {
   const compile = async (intent: SubmitIntent) => {
-    if (config.modelSelectionPolicy === "host-default") {
+    if (config.modelSelectionPolicy === "host-default"
+      || (config.modelSelectionPolicy === "session" && intent.selections.model === undefined)) {
       const { model: _model, effort: _effort, ...selections } = intent.selections;
       intent = { ...intent, selections };
     }
