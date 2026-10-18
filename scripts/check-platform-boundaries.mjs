@@ -31,6 +31,10 @@ checkFiles("public tool", "scripts", [{
   message: "must use the public clientProduct port instead of removed product bootstrap options",
 }]);
 const publicScripts = JSON.parse(readFileSync(join(repositoryRoot, "package.json"), "utf8")).scripts;
+checkFiles("public browser fixture", "tests/fixtures", [{
+  pattern: /(?:from\s*|import\s*)["'][^"']*\/lightvela-web-bootstrap(?:\.[cm]?[jt]s)?["']/m,
+  message: "must supply navigation policy through the public port, not a removed private bootstrap",
+}]);
 for (const [name, command] of Object.entries(publicScripts)) {
   if (/\.\.\/(?:products|frontend)(?:\/|$)/.test(command)) {
     violations.push(`package.json scripts.${name}: public command must not select a private product workspace`);

@@ -59,6 +59,11 @@ remote executable code.
   teardown, including startup rollback. Other product-specific probes must still
   be reviewed against their actual entrypoints; passing these probes does not
   establish that all public development commands are independent.
+- The embedded-navigation browser probe supplies a synthetic navigation policy
+  through the core `BrowserNavigationPolicy` port. It no longer imports the
+  removed private bootstrap or relies on product hostnames. Real link clicks,
+  allowed iframe destinations, external opener isolation, lookalike rejection
+  and retained drafts remain covered; this is not a live product login check.
 - The cross-Hub transport probe composes its local gateway identity through the
   public Relay adapter port, replacing the removed private IOA configuration.
   Real Chromium still crosses two TLS-connected Hubs, rejects anonymous identity,
