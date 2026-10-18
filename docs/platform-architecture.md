@@ -2870,8 +2870,8 @@ Conversation-local scheduling is a Host service with a durable occurrence ledger
 and a narrow engine execution port. Views only manage plans and read results;
 engines retain admission and execution authority. See [conversation schedules](execution-ownership.md#conversation-schedules)
 for capability, restart, uncertain delivery, timing and shared-Host authorization
-boundaries. Existing Codex queue support does not imply that every engine has a
-scheduler adapter.
+boundaries. Codex and DSH consume `@opencraft/host-schedules` through separate
+execution ports; queue support alone does not imply an adapter for other engines.
 
 Schedule presence in the shared Sidebar is a Host catalog projection, independent
 of conversation execution status. The multi-Host reader uses capability-gated,

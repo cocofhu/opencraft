@@ -18,6 +18,9 @@ export class DshNativeAdmission {
   private prefixes = new Map<string, { turn: number; events: DshEvent[] }>();
   private active = new Map<string, { turn: number; admission: DshAdmission }>();
   private managed = new Set<string>();
+  private readonly backgroundOwners = new Map<string, { threadId: string; owner: DshExecutionOwner; requestId: string | number }>();
+  private readonly backgroundProofs = new Map<string, { threadId: string; owner: DshExecutionOwner; requestId: string | number }>();
+  private goals = new Map<string, { owner: DshExecutionOwner; requestId: string | number; id?: string; revision?: number; round: number }>();
   private queued = new Map<string, { threadId: string; owner: DshExecutionOwner; requestId: string | number; clientMessageId: string }>();
   constructor(readonly authority: DshExecutionAuthority, private readonly timeoutMs = 10_000) {
     for (const entry of authority.queuedInputs()) { this.queued.set(entry.rpcId, entry); this.managed.add(entry.threadId); }
@@ -29,6 +32,7 @@ export class DshNativeAdmission {
     const rpcId = "opencraft-execution-" + admission.executionId;
     try { this.authority.rememberInput(admission, rpcId, clientMessageId); }
     catch (error) { this.authority.finish(admission, "failed", "inputIdentityPersistenceFailed"); throw error; }
+    this.backgroundOwners.set(rpcId, { threadId, owner, requestId });
     let reject!: (error: Error) => void;
     const started = new Promise<number>((resolve, fail) => {
       reject = fail;
@@ -40,12 +44,23 @@ export class DshNativeAdmission {
     void started.catch(() => {});
     return { admission, rpcId, started, cancel: (error: Error) => this.cancel(threadId, admission.epoch, error) };
   }
+  authorizeBackground(threadId: string, messageId: string, originRpcId: string) {
+    const origin = this.backgroundOwners.get(originRpcId);
+    if (!origin || origin.threadId !== threadId) return;
+    this.backgroundProofs.set(threadId + ":" + messageId, origin);
+  }
   manages(threadId: string) { return this.managed.has(threadId); }
+  authorizeGoal(threadId: string, owner: DshExecutionOwner, requestId: string | number) {
+    const previous = this.goals.get(threadId);
+    this.goals.set(threadId, { owner, requestId, id: previous?.id, revision: previous?.revision, round: previous?.round ?? 0 });
+    this.managed.add(threadId);
+  }
   reserveQueued(threadId: string, owner: DshExecutionOwner, requestId: string | number, clientMessageId: string): string {
     const rpcId = "opencraft-queue-" + randomUUID();
     this.authority.queueInput(rpcId, threadId, owner, requestId, clientMessageId);
     this.managed.add(threadId);
     this.queued.set(rpcId, { threadId, owner, requestId, clientMessageId });
+    this.backgroundOwners.set(rpcId, { threadId, owner, requestId });
     return rpcId;
   }
   queuedClientId(threadId: string, rpcId: string): string {
@@ -58,6 +73,8 @@ export class DshNativeAdmission {
   }
   reconnect(threadId: string, owner: DshExecutionOwner) {
     const reclaimed = this.authority.reconnect(threadId, owner);
+    const goal = this.goals.get(threadId);
+    if (goal?.owner.identity.id === owner.identity.id && (reclaimed || !this.authority.table.get(threadId))) goal.owner = owner;
     for (const entry of this.queued.values()) if (entry.threadId === threadId && entry.owner.identity.id === owner.identity.id &&
       (reclaimed || !this.authority.table.get(threadId))) entry.owner = owner;
   }
@@ -73,7 +90,26 @@ export class DshNativeAdmission {
   accept(threadId: string, event: DshEvent): DshEvent[] {
     const data = (event.data ?? {}) as Record<string, any>;
     const running = this.active.get(threadId);
+    // Goal changes are session-scoped, including edits while no Turn exists.
+    // A tool-created Goal inherits its admitted human execution; cold history
+    // never enters this live path and therefore cannot grant continuation.
+    if (event.type === "goal/change") {
+      let grant = this.goals.get(threadId);
+      if (data.operation === "clear" || data.goal?.phase !== "active") this.goals.delete(threadId);
+      else {
+        if (!grant && running) {
+          this.authorizeGoal(threadId, running.admission.connection, running.admission.requestId);
+          grant = this.goals.get(threadId);
+        }
+        if (grant) {
+          if (grant.id !== data.goal.id) grant.round = 0;
+          grant.id = data.goal.id; grant.revision = data.goal.revision;
+        }
+      }
+      return [event];
+    }
     if (running) {
+      if (event.type === "user/message") this.backgroundProofs.delete(threadId + ":" + data.id);
       if (typeof data.turn === "number" && data.turn !== running.turn) return [];
       if (this.authority.table.get(threadId)?.epoch !== running.admission.epoch) return [];
       if (event.type === "user/message" && this.queued.get(data.source?.rpcId)?.threadId === threadId) this.removeQueued(data.source.rpcId);
@@ -92,18 +128,39 @@ export class DshNativeAdmission {
       return [];
     }
     let pending = this.pending.get(threadId);
-    if (event.type !== "user/message" || !["user", "human"].includes(data.source?.kind)) return [];
+    let goalContinuation = false;
+    let backgroundContinuation = false;
+    if (event.type !== "user/message") return [];
+    if (!pending && data.source?.kind === "goal") {
+      const grant = this.goals.get(threadId);
+      const source = data.source;
+      if (!grant || source.goalId !== grant.id || source.revision !== grant.revision
+        || !Number.isSafeInteger(source.round) || source.round <= grant.round) return [];
+      const admission = this.authority.claimGoalContinuation(threadId, grant.owner, grant.requestId);
+      goalContinuation = true;
+      grant.round = source.round;
+      pending = { admission, rpcId: "", resolve: () => {}, reject: () => {}, timer: setTimeout(() => {}, 0) };
+    }
+    if (data.source?.kind === "plugin") {
+      const key = threadId + ":" + data.id, grant = this.backgroundProofs.get(key);
+      this.backgroundProofs.delete(key);
+      if (pending || !grant || data.source.plugin !== "tool-jobs" || data.source.form !== "notice") return [];
+      const admission = this.authority.claimContinuation(threadId, grant.owner, grant.requestId);
+      backgroundContinuation = true;
+      pending = { admission, rpcId: "", resolve: () => {}, reject: () => {}, timer: setTimeout(() => {}, 0) };
+    } else if (!["user", "human", "goal"].includes(data.source?.kind)) return [];
     if (!pending) {
       const queued = this.queued.get(data.source.rpcId);
       if (queued?.threadId === threadId) {
         const admission = this.authority.claim(threadId, queued.owner, queued.requestId);
         this.authority.rememberInput(admission, data.source.rpcId, queued.clientMessageId);
+        this.backgroundOwners.set(data.source.rpcId, { threadId, owner: queued.owner, requestId: queued.requestId });
         pending = { admission, rpcId: data.source.rpcId, resolve: () => {}, reject: () => {},
           timer: setTimeout(() => {}, 0), clientMessageId: queued.clientMessageId };
         this.removeQueued(data.source.rpcId);
       }
     }
-    if (!pending || data.source.rpcId !== pending.rpcId) {
+    if (!pending || (!goalContinuation && !backgroundContinuation && data.source.rpcId !== pending.rpcId)) {
       this.prefixes.delete(threadId);
       return [];
     }
@@ -123,6 +180,8 @@ export class DshNativeAdmission {
     this.active.delete(threadId);
   }
   failAll(error: Error) {
+    this.goals.clear();
+    this.backgroundOwners.clear(); this.backgroundProofs.clear();
     for (const [id, pending] of [...this.pending]) this.cancel(id, pending.admission.epoch, error);
     for (const id of [...this.active.keys()]) this.finish(id, "failed", error.message);
     this.prefixes.clear();

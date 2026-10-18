@@ -36,6 +36,7 @@ import type { RuntimeProviderApplyParams, RuntimeModelsDiscoverParams, RuntimePr
 
 type RecordValue = Record<string, unknown>;
 export interface DshThreadEnginePort {
+  goal?(params: RecordValue): Promise<any>;
   describe?(params: RecordValue): Promise<any>;
   create(params: RecordValue): Promise<any>;
   resume(params: RecordValue): Promise<any>;
@@ -611,7 +612,29 @@ export class DshAppServerAdapter {
     }) });
   }
 
+  private backgroundProofReader?: (threadId: string, messageId: string) => Promise<{ originRpcId: string } | null>;
+  private readonly proofTails = new Map<string, Promise<void>>();
+  setBackgroundProofReader(reader: NonNullable<DshAppServerAdapter["backgroundProofReader"]>) { this.backgroundProofReader = reader; }
   private onMuxFrame(frame: RecordValue): void {
+    const threadId = string(frame.sessionId);
+    const event = object(frame.event), data = object(event.data), source = object(data.source);
+    const needsProof = frame.type === "session/event" && event.type === "user/message" && source.kind === "plugin" && source.plugin === "tool-jobs";
+    const prior = this.proofTails.get(threadId);
+    if (!needsProof && !prior) { this.applyMuxFrame(frame); return; }
+    const generation = this.streamGeneration;
+    const operation = (prior ?? Promise.resolve()).then(async () => {
+      if (generation !== this.streamGeneration || generation?.signal.aborted) return;
+      if (needsProof && this.backgroundProofReader && typeof data.id === "string") {
+        const proof = await this.backgroundProofReader(threadId, data.id).catch(() => null);
+        if (generation !== this.streamGeneration || generation?.signal.aborted) return;
+        if (proof) this.admission?.authorizeBackground(threadId, data.id, proof.originRpcId);
+      }
+      this.applyMuxFrame(frame);
+    }).catch(() => { /* Fail closed; a notice cannot break the native stream. */ });
+    this.proofTails.set(threadId, operation);
+    void operation.finally(() => { if (this.proofTails.get(threadId) === operation) this.proofTails.delete(threadId); });
+  }
+  private applyMuxFrame(frame: RecordValue): void {
     if (typeof frame.type === "string" && (frame.type.startsWith("question/") || frame.type.startsWith("approval/"))) {
       void this.interactions.receive(frame).catch(error => console.error("[opencraft local host] interaction projection", error));
       return;
@@ -1130,6 +1153,20 @@ export class DshAppServerAdapter {
       this.admission.reconnect(sessionId, owner);
       return result;
     }
+    if (method === "thread/goal/set" || method === "thread/goal/clear") {
+      return this.authority.withWriteLease(sessionId, owner, async () => {
+        if (!this.threadEngine?.goal) throw new Error("This engine cannot change goals");
+        await this.ensureRuntime(sessionId);
+        // Arm the owner before the native service can publish a Goal/round.
+        // Keep this authorization on an unknown transport outcome: native
+        // durability may finish after the caller's timeout. Exact goal source
+        // validation still prevents unrelated work from using it.
+        if (method === "thread/goal/set" && (value.status == null || value.status === "active")) {
+          this.admission!.authorizeGoal(sessionId, owner, requestId);
+        }
+        return this.dispatch(method, params);
+      });
+    }
     if (method === "turn/start") {
       // The interrupted Turn is published before session.cancel acknowledges.
       // A follow-up can arrive in that window; keep its draft in flight until
@@ -1239,11 +1276,25 @@ export class DshAppServerAdapter {
 
   private async dispatchCommand(method: string, params: unknown): Promise<unknown> {
     const value = object(params);
+    if (!this.threadEngine && ["thread/start", "thread/resume", "thread/fork"].includes(method)
+      && (value.baseInstructions != null || value.developerInstructions != null)) {
+      throw new Error("This engine does not expose native thread instruction overrides");
+    }
     switch (method) {
       case "thread/goal/get": {
         const threadId = string(value.threadId);
+        if (this.threadEngine?.goal) {
+          const live = await this.threadEngine.goal({ sessionId: threadId, operation: "get" });
+          if (live.loaded) return { goal: projectDshGoal(threadId, live.goal ? { ...live.goal, goal: live.goal } : null) };
+        }
         const history = await this.client.call<DshHistoryPage>("session.history", { sessionId: threadId, maxMessages: 1 });
-        return { goal: projectDshGoal(threadId, history.projections?.values.goal) };
+        return { goal: projectDshGoal(threadId, history.projections?.values.goal, "disarmed") };
+      }
+      case "thread/goal/set":
+      case "thread/goal/clear": {
+        if (!this.threadEngine?.goal) throw new Error("This engine cannot change goals");
+        const result = await this.threadEngine.goal({ ...value, sessionId: string(value.threadId), operation: method.endsWith("/set") ? "set" : "clear" });
+        return method.endsWith("/clear") ? result : { goal: projectDshGoal(string(value.threadId), { ...result.goal, goal: result.goal }) };
       }
       case "runtime/status/read": {
         const host = await this.client.call<RecordValue>("host.describe");
@@ -1329,7 +1380,7 @@ export class DshAppServerAdapter {
           capabilities: {
             extensions: {
               [OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]: { version: 1, fork: this.threadEngine !== null, ephemeral: this.threadEngine !== null, injectItems: this.threadEngine !== null, rename: true, archive: true, unsubscribe: true },
-              [OPENCRAFT_THREAD_GOAL_EXTENSION]: { version: 1, read: true, write: false },
+              [OPENCRAFT_THREAD_GOAL_EXTENSION]: { version: 1, read: true, write: !!this.threadEngine?.goal, usageAccounting: false },
               ...(this.hostCapabilities ? { "opencraft/host-capabilities": { version: 1 } } : {}),
               "opencraft/loopback-http": { version: 1 },
               [OPENCRAFT_PROFILE_SKILLS_EXTENSION]: OPENCRAFT_LOCAL_DSH_SKILLS_CAPABILITY,
@@ -1359,6 +1410,10 @@ export class DshAppServerAdapter {
       case "thread/resume": {
         const sessionId = string(value.threadId);
         const historyEpoch = this.historyEpoch;
+        if (this.threadEngine && (value.baseInstructions != null || value.developerInstructions != null)) {
+          await this.threadEngine.resume({ sessionId,
+            baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions });
+        }
         const description = this.threadEngine?.describe ? await this.threadEngine.describe({ sessionId }) : null;
         if (historyEpoch !== this.historyEpoch || !this.engineReady)
           throw new DshClientError("DSH_GENERATION_CHANGED", "DSH restarted during resume; retry required", true);
@@ -1566,7 +1621,7 @@ export class DshAppServerAdapter {
         const created = await this.threadEngine.fork({ sourceSessionId: sourceId,
           dynamicTools: value.dynamicTools,
           cwd: typeof value.cwd === "string" ? value.cwd : source.cwd ?? homedir(),
-          ephemeral: value.ephemeral === true, developerInstructions: value.developerInstructions,
+          ephemeral: value.ephemeral === true, baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions,
           provider: selection?.provider, model: selection?.model,
           lastTurn: boundary(value.lastTurnId), beforeTurn: boundary(value.beforeTurnId),
           permissionPreset: requestedPreset,
@@ -1619,7 +1674,8 @@ export class DshAppServerAdapter {
             : typeof value.cwd === "string" ? { cwd: value.cwd } : {}),
           ...(typeof value.agentId === "string" && value.agentId !== "dsh" ? { agentPreset: value.agentId } : {}),
           ...(requestedPreset === undefined ? {} : { permissionPreset: requestedPreset }),
-          ...(this.threadEngine ? { ...selection, ephemeral: value.ephemeral === true, developerInstructions: value.developerInstructions } : {}),
+          ...(this.threadEngine ? { ...selection, ephemeral: value.ephemeral === true,
+            baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions } : {}),
         };
         let created: { sessionId: string; agentPreset?: string; cwd?: string; ephemeral?: boolean } | null = null;
         try {

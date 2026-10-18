@@ -516,7 +516,7 @@ Bot 的空展示页与历史耗尽分开：仍有更早源记录时，视口可�
 
 目标入口契约：无目标的可写会话通过 Composer 的“＋”菜单设置持续目标，
 不保留独立创建胶囊或空白占位。Goal surface 拥有编辑草稿、弹窗和既有目标
-进度；既有目标通过attachedContent进入Composer附属区，共享队列/摘要的边界与材质，不再独立悬浮反色胶囊。桌面一行显示状态/截断摘要/紧凑耗时与快捷操作；按Composer实际容器空间收起摘要和编辑按钮，菜单保留操作、触控最小44px；只读保留查看；complete为终态，立即退出附属区但不自动clear。已完成目标经“＋”菜单回看，可写Host保留显式移除及设置下一个目标；新建显式写active并替换当前目标，取消/失败不清旧记录，普通消息和旧编辑不隐式重启。暂停/阻塞/受限态继续保留附属区入口。详情用Radix负责定位/外点/Escape/焦点恢复，编辑用ModalSurface与共享Button；切尺寸不重挂载Composer。Goal 文案、状态、错误与耗时通过现有 Intl/语言资源呈现；语言切换不重建编辑器、不清目标草稿，不翻译用户目标正文。新建草稿在 Host 支持可写 Goal 时同样提供入口，
+进度；既有目标通过attachedContent进入Composer附属区，共享队列/摘要的边界与材质，不再独立悬浮反色胶囊。桌面一行显示状态/截断摘要/紧凑耗时与快捷操作；按Composer实际容器空间收起摘要和编辑按钮，菜单保留操作、触控最小44px；只读保留查看；complete为终态，立即退出附属区但不自动clear。已完成目标经“＋”菜单回看，可写Host保留显式移除及设置下一个目标；新建经共享Runtime先读取并确认旧complete目标已clear，再set(active,tokenBudget:null)，新周期的耗时/token由原生从零计量；暂停/继续及编辑保持原周期。取消不写入；clear后新建失败保留只读完成摘要与草稿，不冒称原生旧记录仍在。摘要仅在当前资源/连接内存活，显式移除时清除；未知创建结果先读确认、不重复启动；连接更换阻止后续写入。普通消息和旧编辑不隐式重启。暂停/阻塞/受限态继续保留附属区入口。详情用Radix负责定位/外点/Escape/焦点恢复，编辑用ModalSurface与共享Button；切尺寸不重挂载Composer。Goal 文案、状态、错误与耗时通过现有 Intl/语言资源呈现；语言切换不重建编辑器、不清目标草稿，不翻译用户目标正文。新建草稿在 Host 支持可写 Goal 时同样提供入口，
 确认后直接原生创建会话并设定目标，无需先发送普通消息；取消不创建会话，失败
 重试保留已创建的 Thread，不重复开启目标。只读或无能力 Host 不提供创建入口，
 切换会话撤销旧目标编辑但不得重挂载 Composer 或丢失输入草稿。
@@ -938,6 +938,16 @@ independent of any history consumer. The provider retains bounded history, which
 in-memory per Workbench instance and cleared by disposal/reload; it is neither
 a cross-device inbox nor the approval/failure task-attention model. Details and
 consumer contract: [Toast notifications](../docs/toast-notifications.md).
+
+## Reasoning presentation work
+
+Thinking ownership is resolved before Markdown header compilation. Reading a
+live todo never materializes the transcript. A mounted Turn may retain bounded
+plain reasoning presentations by Item, selected source and active grammar mode;
+reprojection reuses unchanged history while edits and completion invalidate the
+affected Item. The full canonical body, disclosure identity, explicit user
+choices, drafts, focus and scroll ownership remain unchanged. No process-global
+private-text cache or truncation is introduced. See [ChatUI reasoning](../docs/chat-ui-architecture.md).
 
 ## Chat document tracking (2026-10-15)
 
@@ -1505,3 +1515,25 @@ end-to-end model or employee-device latency.
 - 能力协商只声明实际实现项；首版 inline 模式，文本消息/上下文、工具与当前资源读取、外链、尺寸/主题/输入输出可用，不声明 fullscreen、采样、资源订阅、下载或设备权限。
 
 - MCP App 自动尺寸区分真实内容失效和纯高度视口响应；`100vh + margin` 不得把宿主刚应用的高度循环当作新增内容。真实内容/媒体/字体/宽度变化继续测量，显式尺寸消息沿用既有桥。容器宽度来自 iframe 实际布局，合帧去重通知，不轮询、不重读资源、不重放工具、不重建 iframe；observer 与待执行帧随 View 清理。
+
+### DSH Goal execution projection
+
+Goal durable phase and native live activation are distinct. An active/disarmed Goal presents paused with explicit Resume, including cold restore/fork; a read never arms continuation. Hosts declaring `usageAccounting:false` omit elapsed/token metrics, while older capabilities retain existing accounting. Goal mutations/driver stay server-owned; shared Composer UI does not schedule rounds.
+
+## Conversation overview authority
+
+Conversation statistics is a read-only optional Tasks view. Native full catalogs, latest-turn
+results, pins and product-supplied participation evidence retain their separate owners.
+Missing sources/results/people are unknown, never manufactured successes or zero coverage.
+Current state, latest completion date, archive retention and period activity are independent
+dimensions. A creator is not automatically a participant. The tab cannot send/resume a turn
+or mutate tasks, and source/account lifecycle changes revoke late projections.
+See [Conversation overview](../docs/tasks-model.md#conversation-overview).
+
+
+### Optional statistics loading
+
+Tasks loads its optional conversation statistics renderer and styles only after
+the statistics tab is selected. Suspense uses the existing loading status; it
+does not introduce another data owner or relax the startup resource budget.
+The read adapter loads on first read and checks cancellation after import.

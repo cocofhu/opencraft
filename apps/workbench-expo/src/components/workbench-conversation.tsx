@@ -1,6 +1,8 @@
 import { nativeMonoFontFamily, typographyRole } from "@opencraft/design-system/typography";
 import {
   createTimelineTurnPresentationPlan,
+  activeTimelineTurnTodo,
+  ReasoningPresentationCache,
   assistantMessageActions,
   compactionLabel,
   todoSummary,
@@ -12,6 +14,7 @@ import {
   createMcpElicitationDraft,
   createUserInputQuestionDrafts,
   aggregateUserInputQuestionAnswers,
+  selectUserInputQuestionOption,
   agentActivityHeaderAccessibleLabel,
   deriveAgentActivityHeaderPresentation,
   deriveSubagentActivityGroupPresentation,
@@ -1228,22 +1231,23 @@ function NativeQuestionBlock({ block }: { block: Extract<TimelineBlock, { type: 
           <IconButton accessibilityLabel="Next question" disabled={isLast} onPress={() => setQuestionIndex((current) => Math.min(block.questions.length - 1, current + 1))} size="sm"><ChevronRight size={15} /></IconButton>
         </View> : null}
       </View>
+      {question.detail ? <NativeConversationChatDocument documentId={`${block.id}:${question.id}:detail`} source={question.detail} /> : null}
       {block.state === "pending" ? <>
         <View style={styles.questionOptions}>{question.options.map((option, index) => (
           <InteractiveSurface
-            accessibilityRole="radio"
-            accessibilityState={{ checked: draft?.selectedOptionId === option.id }}
+            accessibilityRole={question.multiSelect ? "checkbox" : "radio"}
+            accessibilityState={{ checked: (question.multiSelect ? draft?.selectedOptionIds?.includes(option.id) : draft?.selectedOptionId === option.id) }}
             key={option.id}
-            onPress={() => complete(updateDraft({ selectedOptionId: option.id, freeformText: draft?.freeformText ?? "" }))}
-            style={[styles.questionOption, draft?.selectedOptionId === option.id && styles.questionOptionSelected]}
+            onPress={() => { const next = updateDraft(selectUserInputQuestionOption(question, draft, option.id)); if (!question.multiSelect) complete(next); }}
+            style={[styles.questionOption, (question.multiSelect ? draft?.selectedOptionIds?.includes(option.id) : draft?.selectedOptionId === option.id) && styles.questionOptionSelected]}
           >
             <Text style={styles.questionOptionKey}>{index + 1}</Text>
             <View style={styles.questionOptionCopy}><Text style={styles.interactionButtonText}>{option.label}</Text>{option.description ? <Text style={styles.semanticStatus}>{option.description}</Text> : null}</View>
-            {draft?.selectedOptionId === option.id ? <Check size={15} /> : null}
+            {(question.multiSelect ? draft?.selectedOptionIds?.includes(option.id) : draft?.selectedOptionId === option.id) ? <Check size={15} /> : null}
           </InteractiveSurface>
         ))}</View>
         {question.options.length === 0 || question.isOther ? <TextInput
-          onChangeText={(value) => updateDraft({ selectedOptionId: null, freeformText: value })}
+          onChangeText={(value) => updateDraft({ ...draft, selectedOptionId: null, freeformText: value })}
           onSubmitEditing={() => complete(drafts)}
           placeholder={question.options.length > 0 ? "Other" : "Type here"}
           placeholderTextColor={theme.color.text.tertiary}
@@ -1978,9 +1982,10 @@ function Turn({
   const registry = useContext(NativeToolActivityPresenterContext);
   const reportLatestFollowContentLayout = useContext(NativeLatestTurnFollowContentContext);
   const version = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
+  const reasoningCache = useMemo(() => new ReasoningPresentationCache(), [turn.turnKey]);
   const presentation = useMemo(
-    () => createTimelineTurnPresentationPlan(turn, registry, { isMostRecentTurn }),
-    [isMostRecentTurn, registry, turn, version],
+    () => createTimelineTurnPresentationPlan(turn, registry, { isMostRecentTurn, reasoningPresenter: reasoningCache.present }),
+    [isMostRecentTurn, reasoningCache, registry, turn, version],
   );
   const turnThinking = presentation.thinkingOwner.type === "turn"
     ? presentation.thinkingOwner
@@ -2120,8 +2125,8 @@ export function WorkbenchConversation({
     const latest = entries.at(-1);
     return latest === undefined
       ? null
-      : createTimelineTurnPresentationPlan(latest, toolActivityPresenterRegistry, { isMostRecentTurn: true }).activeTodo;
-  }, [entries, toolActivityPresenterRegistry]);
+      : activeTimelineTurnTodo(latest, true);
+  }, [entries]);
   const historyKey = timeline === null
     ? null
     : JSON.stringify([timeline.key.hostId, timeline.key.threadId]);

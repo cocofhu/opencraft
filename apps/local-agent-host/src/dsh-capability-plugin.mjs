@@ -1,3 +1,4 @@
+import { createBackgroundJobProofs } from "./dsh-background-jobs.mjs";
 import { recoverDshGeneration } from "./dsh-generation-recovery.mjs";
 // Engine-side capability registration. Imported by the actual DSH Loader so
 // defineTool and scoped registries come from that process's own module graph.
@@ -13,13 +14,17 @@ import { createThreadEngine } from "./dsh-thread-engine.mjs";
 import { volatileSessions } from "./dsh-thread-storage.mjs";
 import { createDshSkillCatalog } from "./dsh-skill-catalog.mjs";
 import { validateSkillInvocations } from "./dsh-skill-invocation.mjs";
+import { createInstructionController, sessionInstructions, hasSessionInstructions, instructionOverrides } from "./dsh-instructions.mjs";
 
-export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments"];
+export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments", "goals", "jobs"];
 export async function apply(ctx, config) {
+  const backgroundJobs = createBackgroundJobProofs(ctx);
+  const promptSlots = await import(new URL("../../dsh-system-prompt/lib/index.js", config.toolsModuleUrl).href);
+  const instructions = createInstructionController(promptSlots);
   const threadEngine = await createThreadEngine(ctx, config.toolsModuleUrl, {
     mount: (input, agent) => input.capabilities === undefined ? Promise.resolve() : mountCapabilities(input, agent),
     rollback: sessionId => unregister(sessionId),
-  });
+  }, instructions);
   // Resolve against the bundled engine, not the application's dependency tree.
   const { assertObjectJsonSchema } = await import(config.toolsModuleUrl);
   const { createScope } = await import(new URL("../../dsh-scope/lib/index.js", config.toolsModuleUrl).href);
@@ -119,7 +124,10 @@ export async function apply(ctx, config) {
         !["ask", "never"].includes(policy.approval)) throw new Error("Generation recovery requires exact permission state");
     const requestedPreset = pendingIntent?.input.agentPreset ?? body.agentPreset ?? source?.session.header.agentPreset;
     const agentPreset = (await ctx.agentPresets.resolve(requestedPreset)).id;
-    return recoverDshGeneration(checkpoints, { ...body, permissionPreset: preset, permissionState: policy, agentPreset }, {
+    const sourceState = source?.session ?? await ctx.sessionPersistence.inspect(SessionId(body.sourceSessionId)).then(stored => ({ header: stored.meta, events: stored.events }));
+    const savedInstructions = hasSessionInstructions(sourceState) ? sessionInstructions(sourceState)
+      : instructionOverrides(body.legacyInstructions ?? {});
+    return recoverDshGeneration(checkpoints, { ...body, instructions: savedInstructions, permissionPreset: preset, permissionState: policy, agentPreset }, {
           readTail: async (id, fromSeq) => (await ctx.sessionPersistence.readFrom(SessionId(id), fromSeq)).events,
           readExisting: async id => {
             const headers = await ctx.sessionPersistence.list();
@@ -128,9 +136,12 @@ export async function apply(ctx, config) {
           },
           create: async (prepared, input) => {
             const handle = await ctx.agents.create({
-            sessionId: SessionId(prepared.sessionId), seed: prepared.seed, meta: { cwd: input.cwd, agentPreset: input.agentPreset },
+            sessionId: SessionId(prepared.sessionId), seed: prepared.seed, meta: { cwd: input.cwd, agentPreset: input.agentPreset, opencraftInstructions: input.instructions ?? {} },
             agentOptions: { provider: input.provider, model: input.model },
-            setup: async agentCtx => { await ctx.agentPresets.mount(agentCtx, input.agentPreset); },
+            setup: async agentCtx => {
+              await ctx.agentPresets.mount(agentCtx, input.agentPreset);
+              instructions.setup(agentCtx, input.instructions ?? {});
+            },
             });
             try {
               if (input.permissionPreset && input.permissionPreset !== "custom") ctx.permissionPresets.set(handle.agent.session, input.permissionPreset);
@@ -143,7 +154,10 @@ export async function apply(ctx, config) {
           resume: async (id, input) => {
             const handle = await ctx.agents.resume({
               resumeSessionId: SessionId(id), agentOptions: { provider: input.provider, model: input.model },
-              setup: async agentCtx => { await ctx.agentPresets.mount(agentCtx, input.agentPreset); },
+              setup: async agentCtx => {
+                await ctx.agentPresets.mount(agentCtx, input.agentPreset);
+                instructions.setup(agentCtx, input.instructions ?? {});
+              },
             });
             try {
               if (input.permissionPreset && input.permissionPreset !== "custom") ctx.permissionPresets.set(handle.agent.session, input.permissionPreset);
@@ -282,6 +296,9 @@ export async function apply(ctx, config) {
         if (intent) await recoverGeneration(intent.input);
         const checkpoint = await checkpoints.read(body.logicalSessionId);
         res.end(JSON.stringify({ sessionId: checkpoint?.sourceSessionId ?? body.logicalSessionId, generation: checkpoint?.generation ?? 0, ...checkpoint?.seedCoordinates })); return;
+      }
+      if (req.method === "POST" && route === "/background-proof") {
+        res.end(JSON.stringify(backgroundJobs.take(body.sessionId, body.messageId))); return;
       }
       if (req.method === "GET" && route === "/events") {
         const events = calls.splice(0);

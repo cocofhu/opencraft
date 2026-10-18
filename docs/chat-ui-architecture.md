@@ -272,8 +272,17 @@ inline edit action; the same actions remain available in the menu and touch
 controls retain the shared 44px minimum. A completed Goal retires from the rail immediately; its server-owned record
 is retained. The Composer add menu offers a read-only completed-goal detail
 (with explicit removal on writable Hosts) and, on writable Hosts, setting a new
-goal. New-goal submission explicitly sets active and replaces the current Goal,
-without a clear-then-set gap; cancellation/failure preserves the completed record.
+goal. New-goal submission uses the shared resource's explicit create operation:
+a fresh native read rejects an unfinished Goal, and a completed Goal is cleared
+and confirmed absent before set(active, tokenBudget:null). Native set alone edits
+the existing Goal and retains its usage, so it cannot create a fresh accounting
+period. Pause/resume and edits continue to use set and preserve their counters.
+Cancellation does not mutate the old Goal. If replacement fails after clearing,
+the resource retains the last observed completion as a read-only summary, not as
+current server state; the editor draft remains retryable. Explicit removal clears
+that summary. It is bounded to this resource/connection, not a durable Goal history.
+No completion observer clears a Goal in the background or performs writes from
+sidebar hydration. Connection replacement fences the remaining create steps.
 Ordinary messages and editing never implicitly reactivate a completed Goal. An
 edit draft open at completion stays available but cannot save over the completed
 Goal. Paused/blocked/limited Goals remain actionable in the rail. This borrows the information-row interaction from
@@ -1302,6 +1311,25 @@ current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.
 When no returned content exists, the existing noninteractive Thinking status
 retains its current owner rather than becoming an empty expand button.
+
+Reasoning presentation uses two phases: grouping and Thinking ownership inspect
+selected returned text without Markdown compilation, then each visible Item's
+header is compiled once in its final active/settled mode. The latest todo read
+is a separate shared selector and never builds transcript presentation. Web and
+Native each own a `ReasoningPresentationCache` for a mounted Turn, replaced when
+its Turn key changes and released on unmount. It compares Item ID, selected
+content/source and active parser mode, so immutable reprojection does not reparse
+unchanged history; text/source edits, empty replacement and completion invalidate
+the affected Item. The LRU retains at most 128 presentations and 1,000,000 source
+plus header characters; larger Items still render in full without being cached.
+No ASTs, disclosure choices, execution authority or persistent text cache are
+shared through it. Headers continue to use the same assistant Markdown grammar
+as the unchanged canonical body, including reference definitions and streaming
+repair. The display-math tokenizer skips its boundary regex when neither actual
+delimiter is present, retaining the existing rule for documents containing math.
+Streaming reference, standalone image and link-target suffix repair scans input
+linearly, preserving the existing output without repeated regex suffix searches
+on untrusted model text.
 
 Both platforms initially fold reasoning, even while streaming. Only an explicit
 View action changes that choice; new deltas or completion never automatically

@@ -72,8 +72,11 @@ export class DshCapabilityLink {
   async validate(capabilities: readonly DshHostCapability[]) {
     await this.request("/validate-capabilities", { capabilities });
   }
-  async thread(operation: "create" | "describe" | "resume" | "fork" | "inject" | "release", params: Record<string, unknown>): Promise<any> {
+  async thread(operation: "create" | "describe" | "resume" | "fork" | "inject" | "release" | "goal", params: Record<string, unknown>): Promise<any> {
     return this.request("/thread/" + operation, params);
+  }
+  async backgroundProof(threadId: string, messageId: string): Promise<{ originRpcId: string } | null> {
+    return this.request("/background-proof", { sessionId: this.routing?.native(threadId) ?? threadId, messageId });
   }
   async modelInfo(provider: string, model: string): Promise<any> {
     return this.request("/model-info", { provider, model });
@@ -96,7 +99,7 @@ export class DshCapabilityLink {
     return this.request("/resolve-generation", { logicalSessionId }) as Promise<{ sessionId: string; generation: number; seedThroughSeq?: number; seedThroughTurn?: number }>;
   }
   async checkpoint(sessionId: string) { return this.request("/checkpoint", { sessionId }); }
-  async createGeneration(input: { logicalSessionId: string; sourceSessionId: string; cwd: string; provider: string; model: string }): Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }> {
+  async createGeneration(input: { logicalSessionId: string; sourceSessionId: string; cwd: string; provider: string; model: string; legacyInstructions?: Record<string, unknown> }): Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }> {
     return this.request("/generation", input) as Promise<{ sessionId: string; generation: number; interruptedTurns: number; seedThroughSeq: number; seedThroughTurn: number }>;
   }
   async unregister(threadId: string) {

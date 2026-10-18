@@ -1,3 +1,4 @@
+import { threadGoalNeedsResume } from "@opencraft/appserver-protocol";
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -78,7 +79,7 @@ function menuReturnFocus(event: Event): HTMLElement | null {
   return triggerId ? item?.ownerDocument.getElementById(triggerId) ?? null : null;
 }
 
-const NO_THREAD_GOAL: ThreadGoalSnapshot = { goal: null, phase: "idle", busy: false, error: null };
+const NO_THREAD_GOAL: ThreadGoalSnapshot = { goal: null, completedGoal: null, phase: "idle", busy: false, error: null };
 
 /** Presentation owns only disclosure and an unsaved edit draft. */
 export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, disabled = false, portalContainer, children }: ThreadGoalSurfaceProps) {
@@ -93,6 +94,7 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   const subscribe = useCallback((listener: () => void) => threadId === null ? () => undefined : goals.subscribe(threadId, listener), [goals, threadId]);
   const read = useCallback(() => threadId === null ? NO_THREAD_GOAL : goals.getSnapshot(threadId), [goals, threadId]);
   const snapshot = useSyncExternalStore(subscribe, read, read);
+  const goal = snapshot.goal ?? snapshot.completedGoal;
   const capability = goals.capability();
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
@@ -119,20 +121,19 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
     return () => { currentScope.current = null; };
   }, [presentationScope]);
   useEffect(() => {
-    if (!presentationActive || snapshot.goal?.status !== "active") return;
+    if (!presentationActive || capability?.usageAccounting === false || goal?.status !== "active") return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [presentationActive, snapshot.goal?.status]);
+  }, [presentationActive, goal?.status, capability?.usageAccounting]);
   useEffect(() => {
-    if (snapshot.goal?.status === "complete") setExpanded(false);
+    if (goal?.status === "complete") setExpanded(false);
     else setEditorMode(mode => mode === "view" ? null : mode);
-  }, [snapshot.goal?.status]);
+  }, [goal?.status]);
   const newGoal = threadId === null && onCreateGoal !== undefined;
   const busy = snapshot.busy || creating;
   if ((!newGoal && threadId === null) || !capability?.read) return children?.(null, false, null) ?? null;
 
-  const goal = snapshot.goal;
   const elapsed = goal === null ? 0 : goal.timeUsedSeconds + (goal.status === "active" ? Math.max(0, now / 1000 - goal.updatedAt) : 0);
   const openEditor = (opener?: HTMLElement | null, mode: "create" | "edit" | "view" = goal === null ? "create" : "edit") => {
     if (presentationScope !== currentScope.current) return;
@@ -161,7 +162,8 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
           }
         }
       } else if (threadId !== null) {
-        await goals.set(threadId, { objective, ...(editorMode === "create" ? { status: "active" as const, tokenBudget: null } : {}) });
+        if (editorMode === "create") await goals.create(threadId, objective);
+        else await goals.set(threadId, { objective });
       }
       if (presentationScope === currentScope.current) setEditorMode(null);
     });
@@ -183,9 +185,11 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   </> : null;
 
   const overlayContainer = portalContainer ?? presentationRoot ?? undefined;
-  const summaryLabel = goal === null ? "" : intl.formatMessage(messages[goal.status]);
+  const summaryLabel = goal === null ? "" : intl.formatMessage(messages[threadGoalNeedsResume(goal) ? "paused" : goal.status]);
   const elapsedLabel = duration(elapsed, intl);
-  const goalContent = !completed && (goal !== null || snapshot.phase === "error" || actionError) ? <div className="thread-goal" data-goal-status={goal?.status ?? "none"}>
+  const showUsage = capability.usageAccounting !== false;
+  const needsResume = threadGoalNeedsResume(goal);
+  const goalContent = !completed && (goal !== null || snapshot.phase === "error" || actionError) ? <div className="thread-goal" data-goal-status={needsResume ? "paused" : goal?.status ?? "none"}>
     {goal === null || threadId === null ? null : <div className="thread-goal__bar">
       <Popover.Root open={expanded} onOpenChange={setExpanded}>
         <Popover.Trigger asChild>
@@ -193,7 +197,7 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
             <Target className="thread-goal__target" size={16} aria-hidden="true" />
             <span className="thread-goal__label">{summaryLabel}</span>
             <span className="thread-goal__preview">{goal.objective}</span>
-            <span className="thread-goal__time" title={elapsedLabel}>{compactDuration(elapsed, intl)}</span>
+            {showUsage ? <span className="thread-goal__time" title={elapsedLabel}>{compactDuration(elapsed, intl)}</span> : null}
             <ChevronDown className="thread-goal__chevron" size={14} aria-hidden="true" />
           </button>
         </Popover.Trigger>
@@ -203,14 +207,14 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
               <Popover.Close asChild><Button variant="ghost" size="sm" aria-label={intl.formatMessage(messages.close)}><X size={16} aria-hidden="true" /></Button></Popover.Close>
             </div>
             <p>{goal.objective}</p>
-            <div className="thread-goal__metrics"><span>{elapsedLabel}</span>
+            <div className="thread-goal__metrics">{showUsage ? <span>{elapsedLabel}</span> : null}
               {goal.tokenBudget !== null ? <small>{intl.formatMessage(messages.usage, { used: intl.formatNumber(goal.tokensUsed), budget: intl.formatNumber(goal.tokenBudget) })}</small> : null}
             </div>
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
       {capability.write ? <div className="thread-goal__actions">
-        {goal.status === "active" ? <Button variant="ghost" size="sm" disabled={busy || disabled} aria-label={intl.formatMessage(messages.pause)} title={intl.formatMessage(messages.pause)} onClick={() => run(() => goals.set(threadId, { status: "paused" }))}><CirclePause size={16} aria-hidden="true" /></Button>
+        {goal.status === "active" && !needsResume ? <Button variant="ghost" size="sm" disabled={busy || disabled} aria-label={intl.formatMessage(messages.pause)} title={intl.formatMessage(messages.pause)} onClick={() => run(() => goals.set(threadId, { status: "paused" }))}><CirclePause size={16} aria-hidden="true" /></Button>
           : goal.status !== "complete" ? <Button variant="ghost" size="sm" disabled={busy || disabled} aria-label={intl.formatMessage(messages.resume)} title={intl.formatMessage(messages.resume)} onClick={() => run(() => goals.set(threadId, { status: "active" }))}><Play size={16} aria-hidden="true" /></Button> : null}
         <Button ref={editRef} className="thread-goal__edit" variant="ghost" size="sm" disabled={busy || disabled} aria-label={intl.formatMessage(messages.edit)} title={intl.formatMessage(messages.edit)} onClick={() => openEditor(editRef.current)}><Pencil size={16} aria-hidden="true" /></Button>
         <DropdownMenu.Root>
@@ -242,7 +246,7 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
         {editorMode === "view" ? <>
           <p>{summaryLabel}</p>
           <p className="thread-goal__completed-objective">{goal?.objective}</p>
-          <div className="thread-goal__metrics"><span>{elapsedLabel}</span>
+          <div className="thread-goal__metrics">{showUsage ? <span>{elapsedLabel}</span> : null}
             {goal?.tokenBudget != null ? <small>{intl.formatMessage(messages.usage, { used: intl.formatNumber(goal.tokensUsed), budget: intl.formatNumber(goal.tokenBudget) })}</small> : null}
           </div>
           {snapshot.phase === "error" && threadId !== null ? <Button variant="ghost" disabled={busy} onClick={() => { void goals.refresh(threadId).catch(() => undefined); }}>{intl.formatMessage(messages.refreshError)}</Button> : null}

@@ -8,6 +8,17 @@ import { DshAppServerAdapter } from "../apps/local-agent-host/src/dsh-appserver-
 import { DshClient } from "../apps/local-agent-host/src/dsh-client.js";
 import { mergeTurns } from "../packages/appserver-session/src/merge-turns.js";
 
+test("an external engine without a native thread port rejects prompt overrides instead of dropping them", async () => {
+  const adapter = new DshAppServerAdapter({} as DshClient);
+  try {
+    for (const method of ["thread/start", "thread/resume", "thread/fork"]) {
+      for (const field of ["baseInstructions", "developerInstructions"]) {
+        await assert.rejects(adapter.dispatch(method, { threadId: "s", [field]: "" }), /instruction overrides/);
+      }
+    }
+  } finally { adapter.close(); }
+});
+
 test("HyperNode terminal summaries preserve live Items and settle before completion", async () => {
   for (const kind of ["completed", "aborted", "interrupted", "error", "blocked", "max-tokens", "unknown"]) {
     const adapter = new DshAppServerAdapter({} as DshClient);

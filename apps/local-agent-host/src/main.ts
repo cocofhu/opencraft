@@ -1,3 +1,6 @@
+import { ConversationSchedules, ScheduleFault } from "@opencraft/host-schedules";
+import { CONVERSATION_SCHEDULES_EXTENSION } from "@opencraft/appserver-protocol";
+import { dshScheduleExecutionPort } from "./dsh-schedules.js";
 import type { RuntimeMachineIdentity } from "@opencraft/appserver-protocol";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile, readdir, stat, lstat, writeFile, mkdtemp, rm, access } from "node:fs/promises";
@@ -66,6 +69,7 @@ interface LogicalClient {
 
 function rpcError(error: unknown): { code: number; message: string; data?: unknown } {
   if (error instanceof HostDocumentFault) return { code: error.code, message: error.message };
+  if (error instanceof ScheduleFault) return { code: error.code, message: error.message };
   if (error instanceof TasksFault) return { code: error.code, message: error.message };
   if (error instanceof DshClientError) return { code: -32001, message: error.message, data: { code: error.code, retryable: error.retryable } };
   if (typeof error === "object" && error !== null) {
@@ -282,9 +286,11 @@ export async function startLocalAgentHost(options: {
     if (bridgeUrl) capabilityLink.attach(bridgeUrl);
     for (const pending of routing.pending()) routing.reconcile(pending.logicalId, await capabilityLink.resolveGeneration(pending.logicalId));
   }
+  if (capabilityLink) adapter.setBackgroundProofReader((threadId, messageId) => capabilityLink!.backgroundProof(threadId, messageId));
   if (capabilityLink) adapter.setModelInfoReader((provider, model) => capabilityLink!.modelInfo(provider, model));
   if (capabilityLink) adapter.setSkillInvocationValidator((threadId, skills) => capabilityLink!.validateSkillInvocations(threadId, skills));
   if (capabilityLink) adapter.setThreadEngine({
+    goal: params => capabilityLink!.thread("goal", { ...params, sessionId: routing.native(String(params.sessionId)) }),
     describe: async params => {
       const generation = routing.current(String(params.sessionId));
       const description = await capabilityLink!.thread("describe", { ...params, sessionId: generation.nativeId });
@@ -308,9 +314,12 @@ export async function startLocalAgentHost(options: {
     resume: async params => {
       const id = String(params.sessionId);
       const configuration = lifecycle.catalog.configuration(id);
+      const { developerInstructions: legacyDeveloperInstructions, baseInstructions: legacyBaseInstructions, ...runtimeConfiguration } = configuration;
       const agentPreset = lifecycle.catalog.get(id)?.extra?.dsh?.agentPreset;
       const selection = decodeModel(configuration.model);
-      const resumed = await capabilityLink!.thread("resume", { ...configuration, ...params, ...selection, agentPreset, sessionId: routing.native(id) });
+      const resumed = await capabilityLink!.thread("resume", { ...runtimeConfiguration, ...params, ...selection, agentPreset,
+        legacyInstructions: { baseInstructions: legacyBaseInstructions, developerInstructions: legacyDeveloperInstructions },
+        sessionId: routing.native(id) });
       // The native Web API's picker is process-local for a never-run session.
       // Restore its product-owned binding before resume/fork reads that picker.
       if (selection) {
@@ -340,6 +349,28 @@ export async function startLocalAgentHost(options: {
     inject: params => capabilityLink!.thread("inject", { ...params, sessionId: routing.native(String(params.sessionId)) }),
     release: params => capabilityLink!.thread("release", { ...params, sessionId: routing.native(String(params.sessionId)) }),
   });
+  const prepareThreadExecution = async (threadId: string) => {
+    await adapter.activateThread(threadId);
+    await skillRefresh.ensureFresh();
+    const expected = capabilities.list(threadId).length;
+    if (expected > 0) {
+      if (!capabilityLink) throw new Error("This host cannot register engine capabilities");
+      verifyDshCapabilityRegistration(expected, await capabilityLink.register(threadId));
+    }
+  };
+  const scheduleDirectory = options.dataDirectory ?? await mkdtemp(join(tmpdir(), "opencraft-schedules-"));
+  if (!options.dataDirectory) cleanup.push(() => rm(scheduleDirectory, { recursive: true, force: true }));
+  const schedules = new ConversationSchedules(scheduleDirectory,
+    dshScheduleExecutionPort(adapter, authority, lifecycle, prepareThreadExecution), Date.now, event => console.warn("[opencraft local host]", event.event), () => {
+      for (const [socket, clients] of socketClients) for (const state of clients.values())
+        sendClient(socket, state.clientId, { jsonrpc: "2.0", method: "opencraft/schedules/changed", params: {} });
+    });
+  cleanup.push(() => schedules.close());
+  const storageSummaries = [...storage.summaries, { name: "conversation-schedules", status: schedules.outcome.status,
+    appliedVersion: schedules.outcome.appliedVersion, movedAside: schedules.outcome.movedAsidePaths.length > 0 }];
+  // Stop scheduling before draining native runtimes during Host shutdown.
+  const drainLifecycle = drainThreads;
+  drainThreads = async () => { await schedules.close(); await drainLifecycle?.(); };
   const restartBudget = new DshRestartBudget();
   restartBudget.ready();
   let restartOperation: Promise<void> | null = null;
@@ -386,6 +417,7 @@ export async function startLocalAgentHost(options: {
               const next = await capabilityLink.createGeneration({
                 logicalSessionId: session.sessionId, sourceSessionId: current.nativeId,
                 cwd: session.cwd ?? homedir(), provider: models.current.provider, model: models.current.model,
+                legacyInstructions: lifecycle.catalog.configuration(session.sessionId),
               });
               routing.publish(current.nativeId, { logicalId: session.sessionId, nativeId: next.sessionId, generation: next.generation,
                 seedThroughSeq: next.seedThroughSeq, seedThroughTurn: next.seedThroughTurn,
@@ -433,7 +465,7 @@ export async function startLocalAgentHost(options: {
     response.setHeader("content-type", "application/json; charset=utf-8");
     if (url.pathname === "/health") {
       response.statusCode = engineStatus === "ready" ? 200 : 503;
-      response.end(`${JSON.stringify({ ok: engineStatus === "ready", engine: "dsh", pid: process.pid, enginePid: supervisor.processId, status: engineStatus, storage: storage.summaries })}\n`);
+      response.end(`${JSON.stringify({ ok: engineStatus === "ready", engine: "dsh", pid: process.pid, enginePid: supervisor.processId, status: engineStatus, storage: storageSummaries })}\n`);
       return;
     }
     response.statusCode = 404;
@@ -522,6 +554,11 @@ export async function startLocalAgentHost(options: {
         return;
       }
       try {
+        if (request.method.startsWith("opencraft/schedules/")) {
+          const result = request.method === "opencraft/schedules/list" ? schedules.list()
+            : await schedules.handle(request.method, request.params, owner.identity.id);
+          send(socket, { jsonrpc: "2.0", id: request.id, result }); return;
+        }
         if (request.method.startsWith("opencraft/tasks/")) {
           const result = tasks.handle(request.method, request.params);
           send(socket, { jsonrpc: "2.0", id: request.id, result }); return;
@@ -544,21 +581,7 @@ export async function startLocalAgentHost(options: {
         const targetThread = (request.params as { threadId?: string } | null)?.threadId;
         if (request.method.startsWith("turn/") && typeof targetThread === "string") lifecycle.assertOpen(targetThread);
         const prepareExecution = async () => {
-        if ((request.method === "turn/start" || request.method === "thread/queue/start") && typeof targetThread === "string") {
-          // JIT history keeps display-only resume cold. Execution is the point
-          // where the native Agent must exist and every declared Host tool must
-          // be mounted before the prompt can enter DSH.
-          await adapter.activateThread(targetThread);
-          await skillRefresh.ensureFresh();
-          const expected = capabilities.list(targetThread).length;
-          if (expected > 0) {
-            if (!capabilityLink) throw new Error("This host cannot register engine capabilities");
-            verifyDshCapabilityRegistration(
-              expected,
-              await capabilityLink.register(targetThread),
-            );
-          }
-        }
+          if (["turn/start", "thread/queue/start", "thread/goal/set"].includes(request.method as string) && typeof targetThread === "string") await prepareThreadExecution(targetThread);
         };
         if (request.method === "runtime/http/cancel") {
           const id = (request.params as { requestId: string }).requestId;
@@ -682,10 +705,12 @@ export async function startLocalAgentHost(options: {
               extensions: {
                 ...initialized.capabilities?.extensions,
                 [OPENCRAFT_ATTACHMENT_STAGING_EXTENSION]: attachmentStaging.capability,
+                [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true },
               },
             },
           };
         }
+        if (request.method === "thread/archive" && typeof targetThread === "string") schedules.suspend(targetThread);
         const capabilityThreadId = (result as { thread?: { id?: string } } | null)?.thread?.id
           ?? (request.params as { threadId?: string } | undefined)?.threadId;
         if (request.method === "turn/start" && typeof capabilityThreadId === "string") lifecycle.acceptedTurn(capabilityThreadId, request.params as Record<string, unknown>);
@@ -744,10 +769,11 @@ export async function startLocalAgentHost(options: {
     // dirty revision so skills/list and the next send retry when it is ready.
     await skillRefresh.changed().catch(() => undefined);
   }
+  schedules.start();
   const websocketUrl = `ws://127.0.0.1:${address.port}/rpc?token=${encodeURIComponent(token)}`;
   return {
     websocketUrl,
-    get storageOutcomes() { return storage.summaries; },
+    get storageOutcomes() { return storageSummaries; },
     get dshUrl() { return client.baseUrl; },
     get engineProcessId() { return supervisor.processId; },
     get engineState() { return engineStatus; },
