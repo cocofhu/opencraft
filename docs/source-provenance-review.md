@@ -110,3 +110,31 @@ product builds. These moves do not authorize remaining connector marks or artwor
 or clear historical commits. The brand group remains unverified; its active core
 paths now enumerate the connector marks, with removed product paths retained as
 disposition evidence.
+
+
+## Pinned reference follow-up (2026-10-18)
+
+[Source reference bindings](source-reference-bindings.json) pins nine local
+reference modules by recovery build/partition path and SHA256 against the
+accepted source tree `b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`.
+The previously relative r1501 Web-adapter files and the r1973 tool-label source
+are now located. These identifiers locate the reference files; their mapping
+to an exact distributed Desktop application version remains unverified.
+
+The identified `CODEX_APP_TOOL_LABELS` table has 21 label values, found in the
+pinned activity message/renderer modules. The activity registry also locates
+its handoff, status, list and read grouping flags. This is a table-specific
+source finding; it does not classify the whole tool-activity implementation.
+
+The current Web reflow adapter adds explicit completion/cancellation and layout
+settling to the earlier timeout behavior. Its legacy helper retains the 250ms
+bounded duration. The public-hook callback omits the reference's private React
+dispatcher probe. These differences help bound the review; neither establishes
+independent creation or a distribution license. The documented browser
+VisualViewport addition remains separate from the Electron baseline.
+
+All seven groups remain **unverified**. No recovery implementation was copied
+into the report, removed, replaced or relicensed. The README no longer labels
+the workbench a cleared clean-room implementation: that claim was not supported
+by the retained source records. Complete clients remain the selected scope and
+blanket replacement remains paused.
