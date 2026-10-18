@@ -47,8 +47,14 @@ Host-specific Composer shortcut declarations and standalone action adapters belo
 to the trusted connection provider. Core matching, presentation and resident
 Host/profile/provider lease checks are engine-neutral; the downstream engine
 retains its existing wire behavior. The Composer Stop button and ordinary
-submission/queue ownership are unchanged. Bot-management provider eligibility
-remains a separate boundary under review.
+submission/queue ownership are unchanged.
+
+Bot-management provider eligibility and product empty states are declared by the
+trusted client product. Core selects among eligible enabled profiles using actual
+directory capabilities, without interpreting a private provider ID or account.
+Ambiguity does not choose a Host; selection/profile replacement retires old reads
+without remounting operation drafts. This cut does not grant backend permissions
+or establish that every consumer/build edge has been reviewed.
 
 Product Bot Create-return and optional native Cron probes belong with their
 downstream builders and generated assets. Public Expo scripts do not consume

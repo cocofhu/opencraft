@@ -1889,6 +1889,18 @@ are gated by Host `botManagement` and per-Bot `management` operations. Dialogs
 own only user intent and draft text; Radix owns focus, Escape and delete confirmation.
 The same creation entry is used from the Bot sidebar and management page.
 
+Trusted `ClientProductSession.botManagement` declares optional provider eligibility
+and empty-state copy. Core defaults to all enabled profiles; an explicit empty
+allowlist selects none. Assembly snapshots and freezes the policy. The management
+view prefers a unique eligible Host with directory-reported Bot management;
+otherwise only a sole eligible profile may connect. Ambiguous candidates never
+select an arbitrary Host. Product eligibility grants no capability or authority:
+Host and per-Bot operations remain the mutation gates. Existing persisted View IDs
+remain compatible. Selection-scoped reads discard late group results and feedback;
+a pending request cannot block refresh for a new target. Operation drafts retain
+their captured Host rather than following selection changes.
+
+
 Hermes transports own one control-plane mutation port per account/instance,
 surviving replaceable bridge generations. The port maps blank creation and
 template-based cloning to the existing instance Bot API; it never constructs a
