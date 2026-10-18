@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer } from "vite";
 
+const output = await mkdtemp(join(tmpdir(), "opencraft-navigation-avatar-"));
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const fixture = `
 import React from 'react';
@@ -58,7 +62,7 @@ try {
     assert.equal(await avatar.getAttribute('aria-label'),'alice');
     await page.waitForFunction(()=>document.querySelector('.conversation-navigation-tooltip__avatar img')?.complete);
     assert.equal(await avatar.locator('img').count(),1);
-    await page.screenshot({path:'/data/tmp/turn-avatar-'+theme+'.png'});
+    await page.screenshot({path:join(output, `turn-avatar-${theme}.png`)});
     await buttons.nth(1).focus();
     await page.waitForFunction(()=>document.querySelector('.conversation-navigation-tooltip__avatar')?.getAttribute('aria-label')==='bob');
     assert.equal(await avatar.locator('svg').count(),1);
@@ -74,4 +78,5 @@ try {
     console.log(theme+': known / missing / unknown / broken author avatar passed');
   }
   assert.deepEqual(errors, []);
+  console.log(JSON.stringify({ output, passed: true }));
 } finally { await browser?.close(); await vite.close(); }

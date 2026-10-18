@@ -1,10 +1,10 @@
 import { createServer } from "vite";
 import assert from "node:assert/strict";
 import { createCodexScrollReferenceModules } from "./lib/codex-scroll-reference";
+import { requireReferenceDirectory } from "./lib/reference-input";
 
 const reference = createCodexScrollReferenceModules(
-  process.env.CODEX_SCROLL_REFERENCE_ROOT ??
-    "/data/mia/.runtime/lifecycle-authority-dead-contract-r3562",
+  requireReferenceDirectory(process.env.CODEX_SCROLL_REFERENCE_ROOT ?? process.env.CODEX_REFERENCE_ROOT, "CODEX_SCROLL_REFERENCE_ROOT or CODEX_REFERENCE_ROOT"),
 );
 const playwright = await import(
   process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright"

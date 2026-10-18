@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer } from "vite";
 
-const output = await mkdtemp("/data/opencraft-goal-ui-");
+const output = await mkdtemp(join(tmpdir(), "opencraft-goal-ui-"));
 const source = `
 import React,{useState} from 'react';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';

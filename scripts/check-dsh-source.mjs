@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
-const reference = resolve(workspace, process.argv[2] ?? "../ref/hypernode/policy/src/services");
+if (!process.argv[2]?.trim()) throw new Error("Usage: node scripts/check-dsh-source.mjs <reference-services-directory>; the optional source snapshot is not included in OpenCraft.");
+const reference = resolve(workspace, process.argv[2]);
+if (!statSync(reference, { throwIfNoEntry: false })?.isDirectory()) throw new Error("Reference services must name an existing local directory.");
 const local = resolve(workspace, "apps/local-agent-host/src/hypernode");
 function findClass(file, name) {
   const ast = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);

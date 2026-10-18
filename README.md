@@ -102,9 +102,9 @@ come from the connected host, not from this checkout.
 
 ```bash
 npm ci
+npm run prepare:dsh-runtime
 npm test
 npm run matrix:build -- web-browser electron-renderer electron-host expo-web expo-ios-bundle
-npm run prepare:dsh-runtime
 npm run smoke:local-agent
 ```
 

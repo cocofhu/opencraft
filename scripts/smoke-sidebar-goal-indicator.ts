@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer } from "vite";
 
-const output = await mkdtemp("/data/opencraft-sidebar-goal-");
+const output = await mkdtemp(join(tmpdir(), "opencraft-sidebar-goal-"));
 const source = `
 import React,{useState,useSyncExternalStore}from'react';
 import{createIntlTestRoot}from'/tests/fixtures/intl-root.tsx';
