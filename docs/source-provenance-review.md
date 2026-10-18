@@ -138,3 +138,19 @@ into the report, removed, replaced or relicensed. The README no longer labels
 the workbench a cleared clean-room implementation: that claim was not supported
 by the retained source records. Complete clients remain the selected scope and
 blanket replacement remains paused.
+
+## Connector asset source verification (2026-10-18)
+
+[Connector brand sources](connector-brand-sources.json) records all 23 PNG/SVG
+marks in the current core at review commit
+`0cea4c95aced0a57f513989ffc1daf930e930fe6`. Each is byte-identical to its named
+path in Octop commit `ae65fe4e26854d2eaf751cee89341ec5d71569f0`.
+The MIT license text at that exact source commit matches the notice already
+retained in `packages/connector-core/NOTICE.md`.
+
+This verifies the recorded origin and retained repository license; it does not
+establish each brand owner's authorization or trademark distribution scope.
+The remaining review for this group concerns those individual marks and any
+historical distribution, rather than the already moved Vela/Join artwork.
+The group remains **unverified**. No asset, client feature or disposition is
+changed, and none of the renderer groups is cleared by this finding.
