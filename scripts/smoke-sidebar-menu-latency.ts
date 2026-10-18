@@ -1,0 +1,132 @@
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import { createServer } from "vite";
+
+const output = process.env.OPENCRAFT_MENU_LATENCY_OUTPUT ?? "/tmp/opencraft-sidebar-menu-latency";
+const source = `
+import React,{useState} from 'react';
+import * as Popover from '@radix-ui/react-popover';
+import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
+import {Sidebar} from '/apps/workbench-web/src/components/sidebar.tsx';
+import {SidebarLayoutStore} from '@opencraft/sidebar-layout';
+import {legacyDirectServerProjectionFromHost} from '@opencraft/workbench-runtime';
+import {initializeAppearanceTheme,setThemePreference} from '/apps/workbench-web/src/appearance-theme.ts';
+import '/apps/workbench-web/src/styles/app.scss';
+initializeAppearanceTheme();
+const layout=await SidebarLayoutStore.open({load:async()=>null,save:async()=>{}});
+const count=Number(new URL(location.href).searchParams.get('rows')||200);
+const initial=Array.from({length:count},(_,i)=>({id:'t'+i,title:'Conversation '+i,project:'workspace',status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'local',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'local',hostKind:'local',label:'Local'})}));
+let snapshot={revision:0,mode:'creator',modes:[{id:'creator',label:'By creator'}],hideRowBadge:false,notice:null};
+const listeners=new Set();const publish=patch=>{snapshot={...snapshot,...patch,revision:snapshot.revision+1};for(const listener of listeners)listener()};
+const grouping={id:'probe',getSnapshot:()=>snapshot,subscribe:listener=>{listeners.add(listener);return()=>listeners.delete(listener)},watch:()=>()=>{},project:refs=>{window.projections++;return[{id:'all',label:'All conversations',avatarUrl:null,collapsed:false,threads:refs}]},setMode:mode=>publish({mode}),toggleGroup:()=>{}};
+// Synthetic badge content; the controlled plugin contract and Radix popover are real.
+const badge={id:'probe',Component:({threadId,open,onOpenChange,onCloseAutoFocus,portalContainer})=><Popover.Root open={open} onOpenChange={onOpenChange}><Popover.Trigger asChild><button aria-label={'People '+threadId}>People</button></Popover.Trigger><Popover.Portal container={portalContainer}><Popover.Content onCloseAutoFocus={onCloseAutoFocus}>Participants {threadId}</Popover.Content></Popover.Portal></Popover.Root>};
+window.rowsProcessed=0;window.projections=0;window.actions=[];
+const actions={onRename:async()=>{},onFork:async()=>{},onArchive:async()=>window.actions.push('archive'),onDelete:async()=>{},onSetPinned:async()=>window.actions.push('pin')};
+const capabilities=()=>({pin:true,rename:true,fork:true,archive:true,delete:true});
+function App(){const[rows,setRows]=useState(initial);const[active,setActive]=useState('t0');window.fixture={setRows,setActive,initial,setThemePreference,setMode:grouping.setMode};return <div style={{width:320,height:800,display:'flex'}}><Sidebar threads={rows} activeHostId='local' activeThreadId={active} sidebarLayout={layout} threadActions={actions} threadBadge={badge} threadListGrouping={grouping} threadCapabilities={capabilities} pendingTitle={()=>{window.rowsProcessed++;return undefined}} onSelectThread={(_,id)=>setActive(id)} onNewTask={()=>{}} onOpenSettings={()=>{}} showFooter={false}/></div>}
+createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
+
+const vite = await createServer({
+  configFile: false, root: process.cwd(), logLevel: "error",
+  resolve: { dedupe: ["react", "react-dom"] },
+  cacheDir: "node_modules/.vite-sidebar-menu-latency",
+  optimizeDeps: { noDiscovery: true, include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime", "lucide-react", "@radix-ui/react-context-menu", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@tanstack/react-query", "hoist-non-react-statics", "react-is", "scheduler"] },
+  esbuild: { jsx: "automatic" }, server: { host: "127.0.0.1", port: 0, hmr: false },
+  plugins: [{
+    name: "sidebar-menu-latency-fixture",
+    resolveId: id => id === "/fixture.tsx" ? id : null,
+    load: id => id === "/fixture.tsx" ? source : null,
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith("/?")) return next();
+        res.setHeader("content-type", "text/html");
+        res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/fixture.tsx"></script>');
+      });
+    },
+  }],
+});
+let browser: any;
+const evidence: unknown[] = [];
+try {
+  await mkdir(output, { recursive: true });
+  await vite.listen();
+  const pw = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
+  browser = await pw.chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
+  for (const rows of [30, 200]) {
+    const page = await browser.newPage({ viewport: { width: 1000, height: 844 } });
+    const errors: string[] = [];
+    page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.addInitScript("window.__name=v=>v");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?rows=${rows}`);
+    await page.locator(".sidebar-activity-item").first().waitFor();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+    const samples = [];
+    for (let i = 0; i < 3; i++) {
+      const sample = await page.evaluate(async () => {
+        const w = window as any;
+        const before = { rows: w.rowsProcessed, projections: w.projections };
+        const start = performance.now();
+        document.querySelector(".sidebar-activity-item")!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 100, clientY: 200, button: 2 }));
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error("Menu did not open")), 10_000);
+          const check = () => document.querySelector('[role="menu"]') ? requestAnimationFrame(() => { clearTimeout(timeout); resolve(); }) : requestAnimationFrame(check);
+          check();
+        });
+        return { ms: performance.now() - start, rowsProcessed: w.rowsProcessed - before.rows, projections: w.projections - before.projections };
+      });
+      assert.equal(sample.rowsProcessed, 0, "opening a row menu must not reconstruct the list");
+      assert.equal(sample.projections, 0, "opening a row menu must not rerun product grouping");
+      samples.push(sample);
+      assert.equal(await page.getByRole("menu").count(), 1);
+      assert.equal(await page.getByRole("menuitem", { name: "Archive", exact: true }).locator("svg").count(), 1);
+      await page.keyboard.press("Escape");
+      await page.getByRole("menu").waitFor({ state: "hidden" });
+    }
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    // Real keyboard activation of More preserves one controlled menu and row DOM.
+    await page.evaluate(() => { (window as any).rowNode = document.querySelector(".sidebar-activity-item"); });
+    const more = page.getByRole("button", { name: "Actions for Conversation 0", exact: true });
+    await more.focus(); await more.press("Enter");
+    await page.getByRole("menuitem", { name: "Pin", exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => (window as any).actions), ["pin"]);
+    assert.equal(await page.evaluate(() => (window as any).rowNode === document.querySelector(".sidebar-activity-item")), true);
+    // Badge and row actions participate in the same owner, including late closes.
+    await page.getByRole("button", { name: "People t0", exact: true }).click();
+    await page.getByText("Participants t0", { exact: true }).waitFor();
+    await page.locator(".sidebar-activity-item").nth(1).dispatchEvent("contextmenu", { clientX: 120, clientY: 240, button: 2 });
+    await page.getByRole("menu").waitFor();
+    await page.getByText("Participants t0", { exact: true }).waitFor({ state: "hidden" });
+    await page.evaluate(() => (window as any).fixture.setActive("t2"));
+    await page.getByRole("menu").waitFor({ state: "hidden" });
+    // The list-level display menu remains exclusive with row menus.
+    await page.getByRole("button", { name: "Filters", exact: true }).click();
+    await page.getByRole("menu").waitFor();
+    await page.locator(".sidebar-activity-item").first().dispatchEvent("contextmenu", { clientX: 100, clientY: 200, button: 2 });
+    await page.getByRole("menuitem", { name: "Archive", exact: true }).waitFor();
+    assert.equal(await page.getByRole("menu").count(), 1);
+    await page.keyboard.press("Escape");
+    await page.getByRole("menu").waitFor({ state: "hidden" });
+    // Hidden/removed/disabled targets cannot leave an orphan menu owner.
+    for (const change of ["disabled", "removed", "mode"]) {
+      await page.locator(".sidebar-activity-item").first().click({ button: "right" });
+      await page.getByRole("menu").waitFor();
+      await page.evaluate(change => {
+        const f = (window as any).fixture;
+        if (change === "disabled") f.setRows(f.initial.map((row: any, i: number) => i === 0 ? { ...row, interactionAvailable: false } : row));
+        else if (change === "removed") f.setRows(f.initial.slice(1));
+        else f.setMode(null);
+      }, change);
+      await page.getByRole("menu").waitFor({ state: "hidden" });
+      await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial));
+    }
+    assert.deepEqual(errors, []);
+    evidence.push({ rows, cpuRate: 4, samples, interactionRegression: true });
+    await page.close();
+  }
+  console.log(JSON.stringify({ passed: true, output, evidence }));
+} finally {
+  await writeFile(`${output}/result.json`, JSON.stringify(evidence, null, 2));
+  await browser?.close(); await vite.close();
+}

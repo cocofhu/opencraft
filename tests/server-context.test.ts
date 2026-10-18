@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { parseServerContext, serverUrl, serverPath, serverStorageKey, serverFetch } from '../apps/workbench-web/src/runtime/server-context';
+
+test('browser context scopes network and persistent state while leaving external destinations alone',async t=>{
+  const originalDocument=Object.getOwnPropertyDescriptor(globalThis,'document'),originalWindow=Object.getOwnPropertyDescriptor(globalThis,'window'),originalFetch=globalThis.fetch;
+  t.after(()=>{for(const [key,value] of [['document',originalDocument],['window',originalWindow]] as const){if(value)Object.defineProperty(globalThis,key,value);else Reflect.deleteProperty(globalThis,key);}globalThis.fetch=originalFetch;});
+  let id='one';const context=()=>({id,name:id,basePath:'/servers/'+id,selectorPath:'/servers'});
+  Object.defineProperty(globalThis,'document',{configurable:true,value:{getElementById:()=>({textContent:JSON.stringify(context())})}});
+  Object.defineProperty(globalThis,'window',{configurable:true,value:{location:{origin:'https://entry.test'}}});
+  const calls:unknown[][]=[];globalThis.fetch=async(...args)=>{calls.push(args);return new Response('{}');};
+  assert.equal(serverUrl('/apphost'),'/servers/one/apphost');assert.equal(serverUrl('/servers/one/apphost'),'/servers/one/apphost');
+  assert.equal(serverUrl('https://external.test/a'),'https://external.test/a');assert.equal(serverUrl('//external.test/a'),'//external.test/a');
+  assert.equal(serverPath('/servers/one/chat/42'),'/chat/42');assert.equal(serverStorageKey('drafts'),'server:one:drafts');
+  assert.equal(serverPath('/servers/one'),'/');
+  await serverFetch('/api',{method:'POST',body:'payload'});assert.equal(calls[0]![0],'/servers/one/api');
+  await serverFetch(new Request('https://entry.test/api',{method:'POST',body:'payload'}));const request=calls[1]![0] as Request;
+  assert.equal(request.url,'https://entry.test/servers/one/api');assert.equal(await request.text(),'payload');
+  await serverFetch('https://entry.test/ssh/catalog');assert.equal(String(calls[2]![0]),'https://entry.test/servers/one/ssh/catalog');
+  id='two';assert.equal(serverStorageKey('drafts'),'server:two:drafts');assert.equal(serverUrl('/apphost'),'/servers/two/apphost');
+  assert.throws(()=>parseServerContext(JSON.stringify({...context(),basePath:'//external.test'})),/Invalid server context/u);
+  const legacy={...context(),basePath:'/__opencraft_servers/two',selectorPath:'/__opencraft_servers'};
+  assert.equal(parseServerContext(JSON.stringify(legacy))?.basePath,legacy.basePath);
+  assert.throws(()=>parseServerContext(JSON.stringify({...legacy,selectorPath:'/servers'})),/Invalid server context/u);
+});

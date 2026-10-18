@@ -1,0 +1,175 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readFile, readlink, symlink, rename, rm, writeFile } from 'node:fs/promises';
+import { isAbsolute, join, resolve, dirname } from 'node:path';
+import { request } from 'node:http';
+import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+
+import { assertExecutionNativePayload } from './native-preflight.mjs';
+import { attachDshHost, readPrivateJson } from './dsh-host-client.mjs';
+
+const exec = promisify(execFile);
+// Observe the independent process identity. Protocol compatibility is checked by
+// its connection adapter, never by Web/execution deployment admission.
+export async function coreHealth(endpoint, tokenPath) {
+  const token = (await readFile(tokenPath, 'utf8')).trim();
+  return new Promise((accept, reject) => {
+    const req = request({ socketPath: endpoint, path: '/health', headers: { authorization: `Bearer ${token}` } }, response => {
+      let data = '';
+      response.on('data', chunk => { data += chunk; if (data.length > 8192) req.destroy(new Error('Invalid core health')); });
+      response.on('end', () => {
+        try {
+          const value = JSON.parse(data);
+          if (response.statusCode !== 200 || (!Number.isSafeInteger(value.protocolVersion) || value.protocolVersion < 1) || !Number.isSafeInteger(value.pid) || value.pid < 1 || !Number.isSafeInteger(value.codexPid) || value.codexPid < 1) throw new Error();
+          accept(value);
+        } catch { reject(new Error('Codex core identity is unavailable')); }
+      });
+      response.on('error', reject);
+    });
+    req.on('error', () => reject(new Error('Codex core health request failed')));
+    req.setTimeout(5000, () => req.destroy(new Error('Core health timeout'))); req.end();
+  });
+}
+async function unitProperties(unit) {
+  const { stdout } = await exec('systemctl', ['show', unit, '--property=Id,ControlGroup,PartOf,BindsTo,PropagatesStopTo,ExecStart,StopWhenUnneeded,KillMode,MainPID,Conflicts,User,DynamicUser'], { timeout: 10_000 });
+  return Object.fromEntries(stdout.trim().split('\n').map(line => { const at = line.indexOf('='); return [line.slice(0, at), line.slice(at + 1)]; }));
+}
+export async function assertIndependentUnits(unit, coreUnit, link, readProperties = unitProperties, health = null) {
+  const [execution, core] = await Promise.all([readProperties(unit), readProperties(coreUnit)]);
+  if (!core.ControlGroup || execution.ControlGroup === core.ControlGroup
+    || (execution.ControlGroup && core.ControlGroup.startsWith(`${execution.ControlGroup}/`))
+    || ['PartOf', 'BindsTo'].some(key => core[key]) || core.StopWhenUnneeded !== 'no'
+    || execution.Conflicts?.split(' ').includes(core.Id) || core.Conflicts?.split(' ').includes(execution.Id)
+    || execution.PropagatesStopTo || execution.KillMode !== 'control-group'
+    || (health && Number(core.MainPID) !== health.pid)
+    || !execution.ExecStart?.includes(`${link}/execution/gateway.mjs`))
+    throw new Error('Execution service must use the managed gateway and an independent Codex core');
+}
+export async function grantExecutionAccess(releaseRoot, user, deploymentDirectory) {
+  const { stdout } = await exec('id', ['-u', '--', user], { timeout: 5000 });
+  const uid = Number(stdout.trim());
+  if (!Number.isSafeInteger(uid) || uid < 0) throw new Error('Unknown execution user');
+  if (uid === process.getuid?.()) return;
+  // Grant only traversal to private deployment containers; code receives read access.
+  const parents = new Set([deploymentDirectory, dirname(releaseRoot), dirname(dirname(releaseRoot))]);
+  for (const parent of parents) await exec('setfacl', ['-m', `u:${uid}:--x`, '--', parent], { timeout: 10_000 });
+  await exec('setfacl', ['-R', '-m', `u:${uid}:rX`, '--', releaseRoot], { timeout: 30_000 });
+}
+export function createExecutionDeployment({ link, unit, coreUnit, coreEndpoint, tokenPath, healthUrl, profile = 'daemon',
+  dshDescriptor, dshUnit,
+  validate = health => assertIndependentUnits(unit, coreUnit, link, unitProperties, health),
+  prepareAccess = async release => {
+    const properties = await unitProperties(unit);
+    if (properties.DynamicUser === 'yes') throw new Error('Managed execution requires a stable service user');
+    await grantExecutionAccess(release.releaseRoot, properties.User || 'root', dirname(link));
+  },
+  restart = () => exec('systemctl', ['restart', unit], { timeout: 60_000 }), timeout = 30_000 }) {
+  if (!['daemon', 'headless'].includes(profile)) throw new Error('Invalid execution profile');
+  if ((dshDescriptor || dshUnit) && (profile !== 'headless' || !isAbsolute(dshDescriptor || '')
+    || !/^[A-Za-z0-9_.@-]+\.service$/.test(dshUnit || '') || [unit, coreUnit].includes(dshUnit)))
+    throw new Error('Invalid independent DSH Host configuration');
+  if (![link, coreEndpoint, tokenPath].every(isAbsolute) || !/^[A-Za-z0-9_.@-]+\.service$/.test(unit)
+    || !/^[A-Za-z0-9_.@-]+\.service$/.test(coreUnit) || unit === coreUnit) throw new Error('Invalid managed execution configuration');
+  const url = new URL(healthUrl);
+  if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.username || url.password) throw new Error('Execution health must use loopback HTTP');
+  const pinsPath = `${link}.pins.json`;
+  async function dshHealth() {
+    if (!dshDescriptor) return null;
+    const descriptor = await readPrivateJson(dshDescriptor);
+    const attachment = await attachDshHost(dshDescriptor, descriptor.dataDirectory);
+    await assertIndependentUnits(unit, dshUnit, link, unitProperties, attachment.identity);
+    return attachment.identity;
+  }
+  async function pinnedRoots() {
+    try {
+      const roots = JSON.parse(await readFile(pinsPath, 'utf8'));
+      if (!Array.isArray(roots) || !roots.every(root => typeof root === 'string' && isAbsolute(root))) throw new Error('Invalid execution pins');
+      return roots;
+    } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+  }
+  async function pin(roots) {
+    const temporary = `${pinsPath}.${randomUUID()}.tmp`;
+    try { await writeFile(temporary, JSON.stringify([...new Set(roots)]), { mode: 0o600 }); await rename(temporary, pinsPath); }
+    finally { await rm(temporary, { force: true }); }
+  }
+  async function inspect(release) {
+    const manifest = JSON.parse(await readFile(join(release.releaseRoot, 'package.json'), 'utf8'));
+    const metadata = manifest.opencraftExecution;
+    if (metadata?.protocolVersion !== 1 || metadata.platform !== process.platform || metadata.arch !== process.arch || metadata.nodeAbi !== process.versions.modules
+      || (metadata.profile || 'daemon') !== profile)
+      throw new Error('Release has no compatible execution payload');
+    if (dshDescriptor && metadata.independentDshHost !== 1)
+      throw new Error('Release cannot attach an independent DSH Host; crossing this migration boundary requires drained maintenance');
+    for (const file of ['gateway.mjs', 'daemon.cjs', 'dsh-capability-plugin.mjs', ...(profile === 'headless' ? ['dsh-thread-persistence-plugin.mjs', 'dsh-thread-projection-plugin.mjs'] : [])]) await readFile(join(release.releaseRoot, 'execution', file));
+    await assertExecutionNativePayload(release.releaseRoot);
+    await validate();
+  }
+  async function point(root) {
+    const temporary = `${link}.${randomUUID()}.tmp`;
+    try { await symlink(root, temporary); await rename(temporary, link); }
+    finally { await rm(temporary, { force: true }); }
+  }
+  async function ready(release, before, dshBefore = null) {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(1500) });
+        const health = await response.json();
+        if (response.ok && health.ok && (profile !== 'headless' || health.profile === 'headless') && health.version === release.version && health.buildId === release.buildId) {
+          const after = await coreHealth(coreEndpoint, tokenPath);
+          if (after.pid !== before.pid || after.codexPid !== before.codexPid || health.core?.pid !== before.pid || health.core?.codexPid !== before.codexPid)
+            throw new Error('Codex core changed during execution update');
+          if (dshBefore) {
+            const current = await dshHealth();
+            if (current.pid !== dshBefore.pid || current.enginePid !== dshBefore.enginePid
+              || health.dsh?.pid !== dshBefore.pid || health.dsh?.enginePid !== dshBefore.enginePid)
+              throw new Error('DSH Host changed during execution update');
+          }
+          return;
+        }
+      } catch (error) { if (['Codex core changed during execution update', 'DSH Host changed during execution update'].includes(error.message)) throw error; }
+      await delay(100);
+    }
+    throw new Error('Execution release failed readiness');
+  }
+  return {
+    inspect,
+    async status() {
+      let target = null;
+      try { target = JSON.parse(await readFile(join(link, 'package.json'), 'utf8')); } catch {}
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
+        const health = await response.json();
+        if (!response.ok || health.ok !== true || typeof health.version !== 'string' || typeof health.buildId !== 'string') throw new Error();
+        return { enabled: true, profile, version: health.version, buildId: health.buildId,
+          ready: health.version === target?.version && health.buildId === target?.opencraftWeb?.buildId };
+      } catch { return { enabled: true, profile, version: null, buildId: null, ready: false }; }
+    },
+    async referencedRoots() {
+      const roots = await pinnedRoots();
+      try { return [...new Set([...roots, resolve(link, '..', await readlink(link))])]; }
+      catch { throw new Error('Execution release pointer is unreadable; retain release files'); }
+    },
+    async apply(release) {
+      await inspect(release);
+      let oldRoot;
+      try { oldRoot = resolve(link, '..', await readlink(link)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      // Automatic recovery must be compatible before any candidate can be activated.
+      if (dshDescriptor && oldRoot && oldRoot !== release.releaseRoot) await inspect({ releaseRoot: oldRoot });
+      const before = await coreHealth(coreEndpoint, tokenPath);
+      const dshBefore = await dshHealth();
+      await validate(before);
+      await prepareAccess(release);
+      await pin([...(await pinnedRoots()), ...(oldRoot ? [oldRoot] : []), release.releaseRoot]);
+      // Startup also reconciles a pointer changed by an interrupted update.
+      if (oldRoot !== release.releaseRoot) { await point(release.releaseRoot); await restart(); }
+      else {
+        try { await ready(release, before, dshBefore); await pin([release.releaseRoot]); return; }
+        catch { await restart(); }
+      }
+      await ready(release, before, dshBefore);
+      await pin([release.releaseRoot]);
+    },
+  };
+}

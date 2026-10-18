@@ -1,0 +1,31 @@
+// Shared by touch navigation, search and floating header surfaces. Theme owns the palette.
+// Floating controls keep all optical shading inside the silhouette. Keep that
+// material here alongside the denser search/navigation surface.
+@mixin surface($floating: false) {
+  background: var(--color-background-elevated-primary-opaque);
+  box-shadow: var(--elevation-prominent);
+  @if $floating {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-border-default) 65%, transparent),
+      inset 0 1px 0 rgb(255 255 255 / 55%),
+      inset 0 -1px 0 color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+  @supports ((backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px))) {
+    background: color-mix(in srgb, var(--color-background-elevated-primary-opaque) 82%, transparent);
+    @if $floating {
+      background: linear-gradient(
+        145deg,
+        rgb(255 255 255 / 14%),
+        transparent 50%,
+        color-mix(in srgb, var(--color-text) 5%, transparent)
+      ), color-mix(in srgb, var(--color-background-elevated-primary-opaque) 32%, transparent);
+    }
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+  }
+  @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+    background: var(--color-background-elevated-primary-opaque);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

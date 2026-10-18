@@ -1,0 +1,67 @@
+export type SidebarThreadMenuKind = "context" | "dropdown";
+
+export interface OpenSidebarThreadMenu {
+  readonly hostId: string;
+  readonly threadId: string;
+  readonly kind: SidebarThreadMenuKind | "badge";
+}
+
+export function isSidebarThreadMenuOpen(
+  current: OpenSidebarThreadMenu | null,
+  target: OpenSidebarThreadMenu,
+): boolean {
+  return current?.hostId === target.hostId
+    && current.threadId === target.threadId
+    && current.kind === target.kind;
+}
+
+export function updateOpenSidebarThreadMenu(
+  current: OpenSidebarThreadMenu | null,
+  target: OpenSidebarThreadMenu,
+  open: boolean,
+): OpenSidebarThreadMenu | null {
+  if (open) return target;
+  // A closing callback from the previous menu must not close a newer one.
+  return isSidebarThreadMenuOpen(current, target) ? null : current;
+}
+
+/** A Sidebar owns one open menu; only its previous/next row needs to render. */
+export class SidebarThreadMenuStore {
+  private current: OpenSidebarThreadMenu | null = null;
+  private readonly listeners = new Map<string, Set<() => void>>();
+
+  private key(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">): string {
+    return JSON.stringify([target.hostId, target.threadId]);
+  }
+
+  getSnapshot = (): OpenSidebarThreadMenu | null => this.current;
+
+  getKind(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">): OpenSidebarThreadMenu["kind"] | null {
+    return this.current?.hostId === target.hostId && this.current.threadId === target.threadId ? this.current.kind : null;
+  }
+
+  subscribe(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">, listener: () => void): () => void {
+    const key = this.key(target);
+    const listeners = this.listeners.get(key) ?? new Set();
+    listeners.add(listener);
+    this.listeners.set(key, listeners);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this.listeners.delete(key);
+    };
+  }
+
+  update(target: OpenSidebarThreadMenu, open: boolean): void {
+    this.set(updateOpenSidebarThreadMenu(this.current, target, open));
+  }
+
+  close = (): void => { this.set(null); };
+
+  private set(next: OpenSidebarThreadMenu | null): void {
+    const previous = this.current;
+    if (previous === next || (previous && next && isSidebarThreadMenuOpen(previous, next))) return;
+    this.current = next;
+    const keys = new Set([previous, next].filter((target): target is OpenSidebarThreadMenu => target !== null).map(target => this.key(target)));
+    for (const key of keys) for (const listener of this.listeners.get(key) ?? []) listener();
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@opencraft/access-control",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./actors": "./src/actors.ts",
+    "./actor-access": "./src/actor-access.ts"
+  },
+  "dependencies": {
+    "@opencraft/identity-core": "*",
+    "@opencraft/sqlite-node": "*",
+    "openid-client": "6.8.8"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

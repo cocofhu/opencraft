@@ -1,0 +1,86 @@
+# Conversation activity visuals
+
+This topic owns process-summary rendering in the conversation detail page:
+commands, read/search/edit tools, reasoning, image views, grouped tools and
+active/completed context compaction, collaboration process headers/status and
+Codex App thread-tool process rows. It preserves the existing glyph designs.
+It does not apply one font or one glyph shape to prose, identity logos, cards,
+controls or returned documents.
+
+## Shared owners
+
+- `ActivityDisclosure` supplies interactive summaries. Noninteractive process
+  records use `ActivitySummaryRow`; compaction must use it too. Both use the
+  body typography role (14px/20px, regular weight), independently of the chat reading preference.
+  Collaboration toggles and Codex App process rows consume the same header class
+  and ActivityIcon rail; accompanying collaboration status uses this same owner.
+  Their expanded content and agent identity chips are separate semantics.
+  Expanded reasoning and returned documents retain chat/prose typography.
+- `ActivityIcon` is the only process-glyph rail. Supply the glyph/identity;
+  do not supply feature-local size, width, height, stroke, style or class overrides.
+  Existing external logos use contain in this same slot, preserving aspect ratio;
+  do not redraw, crop or force their silhouette to match an action glyph.
+- `apps/workbench-web/src/styles/_conversation-activity.scss` owns the summary
+  font role and optical calibration. The typography registry still owns font
+  metrics. Shell/disclosure owners retain layout, hit areas, lifecycle and spacing.
+
+The rail is centered in a 20px slot. Existing glyphs have different source
+viewBoxes/padding, so calibrated canvases produce roughly 15px visible geometry
+rather than identical outer boxes. Brain and other Lucide effective strokes
+(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled Codex
+contours retain their paths: no added strokes, filters, transforms or rendering
+hacks. Preserve normal vector antialiasing, caps/joins and theme color. Active,
+completed, folded and expanded states do not choose independent metrics.
+
+## Reference and choice
+
+Codex extracted desktop 26.901.51231 uses one AgentActivityItem for compaction
+and tools (`Db` delegates to shared `Vna`; `Ana` owns its inline row and 6px gap).
+Its source uses the chat role for both and shared icon sizes; this is evidence
+for parity/ownership, not a requirement to enlarge OpenCraft status copy.
+BB pinned ref 62fe3bc46bd1d935b71482b62a1e0887ffb83487 (also checked 9ddb184) `TimelineRowHeader` and
+`ExpandableTimelineRow` use shared leading icons (`size-3.5`, 14px) and
+`CollapsibleHeader` text-sm (13px desktop, 15px touch in theme.css). Those are
+canvas dimensions, not measured painted silhouettes or proof of current native
+appearance. OpenCraft uses its existing body role, independently of reading preference, with
+roughly15px visible glyphs alongside14px regular text. Do not shrink process copy
+to metadata merely to balance icons; glyph artwork and optical calibration remain unchanged.
+
+## Enforcement and acceptance
+
+Enter through AGENTS → design/ui/README → this topic only for activity/icon work.
+`check-conversation-activity.mjs` runs inside existing `check:typography`, hence
+boundaries/gate. It rejects feature-local rails, glyph sizing/stroke props and
+activity font/SVG overrides outside the visual owner, including valid-but-wrong
+font tokens. The compaction renderer must consume the shared summary. Parser
+adversarial tests run in test:typography and test:control-standards; no baseline
+or blanket exceptions. Future summaries use these owners rather than another
+renderer-local style block. Source review still checks semantic fit; lint cannot
+recognize every invented class or purpose.
+
+Run `npm run smoke:conversation-activity-metrics` for the real Conversation at
+DPR1/2, light/dark, narrow/wide, historical/live compaction and enlarged reading
+preference. Check font role/weight/line height, painted bounds, centered rail,
+label gap and effective stroke, then inspect screenshots. Run the existing
+`npx tsx scripts/smoke-reasoning-disclosure.ts` and spacing regression for related
+interaction changes. Glyph source/path identity must remain unchanged during
+rendering-only calibration. Chromium simulation does not establish physical
+macOS/Windows/iPhone rasterization.
+
+## Why earlier checks missed compaction
+
+The earlier calibration tested four activity glyphs but left compaction as a
+separate plain flex row: it inherited chat text and hardcoded ListChecks12.
+Generic font lint rejected numeric overrides but could not detect a missing role.
+Shared summary reuse, required-consumer checks and actual mixed-row computed
+styles now cover that omission instead of adding another local font override.
+
+## Coverage follow-up
+
+A passing compaction check did not prove every conversation process row was
+covered: collaboration headers still inherited the chat size and used Bot14,
+while Codex App rows chose their own metadata role. Keep the real timeline corpus
+representative of these production consumers. The static contract requires shared
+header/rail use in both collaboration renderers and Codex App thread-tool rows.
+Screenshots wait for expanded prose geometry to settle; a computed-font assertion
+alone cannot catch an image taken before ResizeObserver/disclosure layout settles.

@@ -1,0 +1,363 @@
+# Ordinary relay deployment
+
+OpenCraft can run directly or connect outward to an independently deployed Node relay. The relay lives in `apps/relay-server` in this repository and builds separately; instance connectivity is optional `plugins/relay-connect`. `packages/identity-core` defines verified identity and scoped assertions, `packages/access-control` owns instance membership, and `plugins/tencentoa` owns IOA verification and employee-specific presentation. Removing an identity plugin leaves an enabled core admission policy closed.
+
+The first release forwards ordinary HTTP and WebSocket traffic, including streamed responses and uploads. The relay operator can see application traffic. TLS protects each transport hop; this is not E2EE. A team can choose its department relay or a shared company relay. Relays have separate credentials, keys, sessions and route registries; instances never automatically fall back to another relay.
+
+## One IOA entry, independently owned instances
+
+Only `authenticationOrigin` needs an approved IOA entry. A team address redirects document navigation there, verifies employee identity through the IOA plugin, then returns a single-use, short-lived handoff ticket. The callback also requires the initiating browser's host-only login cookie. It establishes a host-only, HttpOnly session for that team origin; tickets and sessions are bound to the configured instance and origin. API/WS requests without a session return 401 rather than HTML redirects.
+
+Team addresses still need DNS and TLS. A relay operator can provision wildcard DNS/certificates once, then enroll team subdomains without each team applying for an IOA application/domain. Wildcard IOA registration is unnecessary with the fixed authentication origin. Availability and approval policy of a company's actual IOA gateway must still be verified by its operator. The relay is not an organization directory or a SaaS business-data service.
+
+An instance only trusts a pinned relay issuer/public key and its own instance/origin scope. Ed25519 assertions bind the verified provider/subject to the HTTP method, exact path, instance, origin, expiry and single-use nonce. Managed document probes use the exact core GET admission endpoint and preserve the originally signed method and path. Trusted product startup may declare additional exact compatibility probe paths through `relayAssertionOptions.additionalAdmissionProbePaths`; the generic default has none. This list is copied and validated at provider construction, is never read from relay JSON or HTTP, and does not change signature, nonce, expiry or membership checks. The relay strips incoming assertion/IOA headers. Each request is authorized again against the instance-owned member database. The relay's enrollment credential grants tunnel connectivity, not team administrator permissions.
+
+The legacy connector remains supported. The Hub network additionally implements bounded multi-hop HTTP/WS transport with stable node identity, connection-scoped routing epochs and explicit forwarding policies. This transport slice does not implement general cross-Hub Actor registration, resource federation or per-resource tenant isolation. Trusting the IOA adapter and its pinned assertion key is an explicit identity trust configuration; tunnel enrollment alone never grants that trust or membership.
+
+The relay is also a trusted identity issuer: a malicious operator holding its signing key can impersonate an admitted employee. Key pinning and local membership constrain the trust relationship but cannot protect against that issuer itself. Teams requiring a different trust boundary should deploy their own department relay.
+
+## Shared entry server selection
+
+Set `serverSelection: true` on an authenticated relay whose approved authentication
+origin is also an explicitly configured entry route. It is opt-in; existing
+per-origin deployments keep their behavior. A document visit to `/` lists only
+servers whose own `/__opencraft_access/session` admits the verified principal.
+Static routes can set an optional `name` (up to 128 characters); discovered routes
+use their peer name or enrolled hostname. The explicit chooser is `/servers`; a selected Workbench runs at
+`/servers/<instanceId>/`. Static routes and discovered Hub routes use
+the same scoped issuer and target admission contract. A user may access another
+instance even when the entry instance denies that user membership.
+
+Legacy `/__opencraft_servers` document links redirect to `/servers`, preserving
+the selected instance, deep path and query. Old API, upload, stream and WebSocket
+requests keep working at their original prefix until navigation. Updated clients
+accept both deployment contexts, so upgrade target clients before activating a
+relay that emits the short path. Instance IDs, remembered choices and browser
+storage scopes remain unchanged.
+
+The browser remembers the last choice under a key derived from verified provider
+and stable subject, within that entry origin. Future root visits reopen it only
+while target admission succeeds. Explicitly opening the chooser never redirects
+automatically. Another browser, cleared browser data or a different identity
+requires another choice unless an operator configured an identity migration default. Offline or revoked targets return document navigation
+to the chooser; APIs/WS return errors and never silently switch servers. Existing
+execution continues independently when the user switches the page.
+
+Operators migrating an existing installation can set `serverSelectionDefaultsFile`
+to an absolute, owner-only JSON file:
+
+```json
+{"schemaVersion":1,"defaults":{"<sha256-of-JSON-[provider,subject]>":"team-a"}}
+```
+
+Snapshot verified stable bindings for existing users into this deployment data;
+never put employee names or IDs in source. For historical records that predate
+stable bindings, the file may also contain hashed provider aliases. These only
+match aliases explicitly supplied by the currently verified identity provider;
+they supply navigation hints, never identity merging, saved preference keys or
+authorization. A stable binding default takes precedence over an alias hint. The hash uses UTF-8 compact
+`JSON.stringify([provider, subject])`. Limits are 10,000 entries and the private
+configuration reader's 1 MiB size cap. A default only applies on a root visit
+without a saved choice and is remembered when the admitted target opens. Saved
+choices, including currently unavailable ones, take precedence. Explicit chooser
+visits remain open. Defaults never grant membership, resurrect disabled users or
+silently substitute another target. New identities absent from the file see the
+chooser. File changes take effect on relay restart.
+
+The URL binds the target per tab. The relay validates the browser's entry Origin,
+removes the target prefix before signing the exact target request, and preserves
+the enrolled target origin as its assertion audience. Browser assets, Router
+basename, application HTTP/WS adapters and persistent storage are scoped by the
+injected deployment context. Target cookies are renamed and path scoped; entry
+login cookies and other instances' cookies are never forwarded. Uploads, SSE and
+binary responses remain streams; only HTML documents are buffered (maximum 2 MiB)
+to inject context. Update/deployment control paths remain unavailable.
+
+This mode reuses the existing entry DNS/TLS/IOA configuration; no target DNS record
+is required. The enrolled target origin remains a virtual identity audience.
+Both relay and target Workbench must be upgraded together before enabling it.
+Target membership/admin stores remain authoritative and independent; relay
+operators never acquire an instance administrator role by enrollment or selection.
+Same-origin installations share the browser origin trust boundary: use this mode
+with trusted server operators. Separate origins are the supported boundary for
+mutually untrusted application code; storage/cookie namespacing is not a browser
+sandbox against malicious same-origin JavaScript.
+
+Validate the built Headless Web client with `npx tsx scripts/smoke-server-selection.ts`
+(after a Headless Web release build). It uses two real isolated core membership
+stores, relay tunnels and Chromium with synthetic provider/Codex boundaries.
+It does not stand in for actual corporate employee sign-in.
+
+## Build and configure
+
+Use Node 24 or newer. From the repository root (`opencraft/`):
+
+```sh
+npm ci
+npm run build:relay -- /absolute/output/relay
+node /absolute/output/relay/relay.mjs /absolute/private/relay.json
+```
+
+All JSON configurations below must be owner-only regular files (0600), with absolute paths. Generate an Ed25519 key pair and independent random 32-byte base64url enrollment credentials using your deployment secret tooling. Never commit actual keys, tokens, sessions or configurations. The relay config shape is:
+
+```json
+{
+  "schemaVersion": 1,
+  "issuer": "department-relay",
+  "host": "127.0.0.1",
+  "port": 18090,
+  "authenticationOrigin": "https://login.example.test",
+  "tencentOaTokenFile": "/private/ioa-token",
+  "privateKey": "<Ed25519 PKCS8 PEM>",
+  "routes": [{
+    "instanceId": "team-a",
+    "origin": "https://team-a.example.test",
+    "credential": "<43-character base64url enrollment credential>"
+  }]
+}
+```
+
+Terminate HTTPS at a trusted ingress with a loopback relay backend, or configure `tlsCertFile` and `tlsKeyFile` for native HTTPS. A non-loopback plain HTTP listener requires explicit `tlsTermination: "trusted-proxy"`; restrict its network access to that ingress. The TLS gateway is part of the trust boundary and must preserve the public Host and IOA headers only from the real identity gateway. Configure gateway header/body/connection limits. The application limits each instance to 128 concurrent streams, bounded stream buffers, 10-second tunnel acquisition, 30/60-second response establishment, and a one-hour stream lifetime. Long sessions reconnect normally; request bodies and non-HTML responses stream without full buffering.
+
+The instance connection configuration contains only:
+
+```json
+{
+  "schemaVersion": 1,
+  "relay": "https://relay.example.test",
+  "issuer": "department-relay",
+  "instanceId": "team-a",
+  "origin": "https://team-a.example.test",
+  "credential": "<same per-instance enrollment credential>",
+  "publicKey": "<Ed25519 SPKI PEM>"
+}
+```
+
+Start the instance with `--relay-connect-file /private/connection.json`. This enables core membership even without an IOA application token on that instance. The local target defaults to the instance listener. For an installation with a separate managed static entry, an operator may pin `targetPort` to that entry's loopback port. A relay cannot choose the target, tunnel to arbitrary services, or export the managed update endpoints. Keep updater access on a protected management route; membership admin is separate from software deployment authority.
+
+`allowLoopbackInsecure: true` permits only an explicit `http://127.0.0.1:PORT` relay for local tests or a relay on the same machine. Network connections require HTTPS and normal certificate verification; optional absolute `caFile` adds a private company CA bundle without disabling verification. Enrollment is administrator maintained in the relay's configuration; adding/removing a route or rotating its credential requires restarting the relay. Run one connector per instance credential. Relay restart drops sessions/tunnels and requires employee sign-in again, with no application database changes.
+
+## Core entry and product composition
+
+The default `npm run build:relay` artifact is product independent. For a transit
+Hub it accepts `routes: []` and the existing `hubNetwork` configuration. Gateway
+authentication uses an explicit `authentication` object with `issuer`,
+`privateKey`, `origin` and `providers`. A trusted server composition supplies
+`createIdentity` from `relay-server/application`; the default CLI rejects that
+configuration when no adapter is supplied. It never imports a module named by
+JSON or silently ignores private fields. Declared providers constrain principals
+returned by the adapter; core authorization at each target remains authoritative.
+
+The IOA configuration illustrated above belongs to a downstream product entry,
+which bundles its identity adapter explicitly via the `relayEntry` parameter of
+`packageRelay` or `packageWebServer`. The product owns that schema and plugin
+creation. Trusted external product entries use normal dependency resolution
+first, then the current core workspace's node_modules as a build fallback; no
+module path comes from runtime JSON. The application owns resource rollback, listeners, TLS, assertions and
+Hub routing. Existing product artifacts retain their `relay.mjs` interface.
+Choose the product artifact for enterprise login tests below; the default core
+artifact deliberately rejects unrecognized product configuration.
+
+## Bootstrap a new team without its own IOA application
+
+Before the team's first Headless startup, inspect/import its invitation using the
+bundled offline machine-owner command. It uses the same core commands as settings
+and refuses to open a state file already owned by a running process:
+
+```sh
+node /absolute/output/relay/hub-admin.mjs /private/team/hub-network.json /private/inspect.json
+node /absolute/output/relay/hub-admin.mjs /private/team/hub-network.json /private/connect.json
+```
+
+The owner-only `inspect.json` contains `{ "action": "inspect", "invitation": "<invitation>" }`.
+After checking the fingerprint/issuer, `connect.json` contains
+`{ "action": "connect", "invitation": "<invitation>", "trustIdentity": true, "publishOrigin": "https://team.example.test" }`.
+The selected origin must be granted by the invitation. Keep the invitation out of
+shell history and remove these private input files after use. The same binary is
+bundled as `runtime/hub-admin.mjs` in the server package. A plain invocation with
+only the state path prints a credential-free snapshot.
+
+Bootstrap a member/admin using `access-admin.mjs` below, and start Headless with
+that same data root and `--access-control`. Persisted Hub identity trust and
+published origin enable target admission without a separate IOA token or legacy
+connector configuration on the team. An explicit
+`--access-member-provider tencentoa` may admit all verified employees when that is
+the team's policy; administrator grants stay explicit. The approved IOA entry
+still runs only at the original relay. Later node administration uses settings.
+
+## Member administration
+
+The authoritative store is `memberships.sqlite` under the instance data directory, opened with managed migrations and reported in health outcomes. It is not replicated to the relay. `admin` can maintain members/audit; `member` can use this shared installation. Members in one installation share its authorized projects, conversations and saved connections. This release does not claim per-conversation ownership or viewer-only restrictions.
+
+Bootstrap/recover administrators from the instance machine using the independently bundled administration command:
+
+```sh
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant tencentoa STAFF_ID admin
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite grant tencentoa STAFF_ID member
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite revoke tencentoa STAFF_ID member
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite list
+node /absolute/output/relay/access-admin.mjs /private/instance/memberships.sqlite audit
+```
+
+IOA's immutable numeric staff ID is the principal subject; login name is display/legacy enrollment input. For initial name-based enrollment, grant `tencentoa login:employee.name member` (lowercase). The first verified sign-in binds that grant to the stable staff ID and consumes the name grant. Later account rename/reuse does not transfer an already bound grant. Revoking a stable subject always wins over an old name grant. Administrators should subsequently manage the stable subject shown in the member list/session API.
+
+The core also exposes authenticated `GET /__opencraft_access/session`, admin-only `GET/POST /__opencraft_access/members` and `GET /__opencraft_access/audit`. POST requires matching Origin, JSON and `{provider,subject,role,enabled}`; remote self-removal is rejected. Local machine administration is the recovery authority and its audit operator is recorded as `local-operator`, not a fabricated employee. There is no organization synchronization.
+
+For an installation that admits every verified employee, explicitly configure
+`--access-member-provider tencentoa` on the instance. Only identities verified by
+the configured provider/assertion trust receive an implicit ordinary member role;
+anonymous requests and other providers stay denied. Existing administrators retain
+their role. Explicit stable-subject/Actor membership revocation and disabled Actors
+remain authoritative. The default role is not persisted as an explicit membership,
+so restarting without this option removes default access without leaving permanent grants.
+The default installation remains explicit-member-only. This option never disables
+signature, scope, expiry, relay admission or resource authorization checks.
+
+Existing `--tencentoa-allowlist-file` installations import their validated names once into core storage. Subsequent administration uses the core store; editing the old file does not resurrect revoked accounts. An empty policy denies everyone. Removing a provider does not turn off `--access-control` or relay membership. HTTP admission is checked for every request, and open HTTP/WS sessions are checked on a 500ms revocation poll (subject to event-loop scheduling); revoked WS clients lose message delivery and are forcibly disconnected even if they ignore the close handshake; native engine work can continue under its existing independent execution contract.
+
+## Validate without a registered domain
+
+```sh
+npm run test:relay
+npm run test:tencentoa
+npm run test:headless-server
+npm run smoke:relay
+```
+
+Use `.test` names resolved locally and a trusted local test CA for browser HTTPS/cookie/redirect tests. No domain registration is needed. Keep synthetic IOA signing keys confined to the test boundary; success does not establish that a real corporate gateway forwards the right headers. Separately verify actual employee login through the approved existing entry.
+
+The optional browser smoke runs on a Linux test host with OpenSSL, NSS `certutil`
+and Playwright Chromium installed. It trusts its CA only in the isolated browser
+home directory, without changing the host's certificate store or disabling TLS
+verification. Set `OPENCRAFT_RELAY_SMOKE_DIRECTORY` to retain evidence elsewhere.
+
+The test matrix includes two isolated instances, team-bound login/cookies, rejected cross-team/replayed assertions and tickets, HTTP and WS/binary flow, large upload checksums, incremental SSE, membership revocation, instance disconnect/reconnect, independent relay credentials and gateway Origin rejection. Revoke enrollment by rotating/removing the route credential and restarting its relay; revoke business access in the instance store. Never silently move an instance between relays.
+
+For Join, first deploy compatible core code through clean `env/join` and its managed CI, then validate a relay and protected local entry on separate ports. Preserve the business data root, machine/server/thread IDs, independent execution services and updater route. Only move the public ingress after both the login path and the member bootstrap have evidence and a tested configuration rollback. Version/health on the management entry remain the source of delivery truth. A source build, local mock login or successful merge alone is not a production cutover receipt.
+
+The managed entry supports `OPENCRAFT_RELAY_INGRESS_URL=http://127.0.0.1:RELAY_PORT`
+and `OPENCRAFT_RELAY_INTERNAL_PORT=PRIVATE_PORT`. It forwards public business HTTP/WS
+to the relay while its second listener binds only loopback and serves the protected
+instance through the existing static-worker/headless owners. Every private static request
+is admitted by the instance core, including requests without HTML Accept headers. Pin the connector's
+`targetPort` to that private port. `/version.json`, health and the existing updater
+keep their management behavior; team membership does not grant deployment keys.
+CLI options take effect when the stable managed launcher is restarted from its
+aggregate artifact, not merely when its static worker updates. Preserve the old
+environment/configuration for rollback; do not restore an older business database.
+The managed package also carries inactive `runtime/relay.mjs` and
+`runtime/access-admin.mjs` entry points so a relay can be deployed from the same
+fixed-source artifact without borrowing feature-branch files.
+
+## Hub network and cascading connections
+
+In a Headless Web installation open **Settings → Hub network** as an instance
+administrator. The core owns node identity, routing, invitations and forwarding;
+`relay-protocol/node` supplies the same streaming duplex used by the ordinary
+relay. IOA validation remains in its identity plugin. The independently deployable
+relay stays in this repository; no second server repository or SaaS control plane
+is required.
+
+1. Set a node name and its reachable HTTPS endpoint before enabling incoming
+   connections. An outgoing-only node needs no incoming endpoint. Enable transit
+   only when this node should carry traffic for descendants.
+2. Generate an invitation with the exact service origins permitted through this
+   connection and whether descendants may transit. Empty origins permit a node
+   connection without publishing business services. Share the invitation privately.
+3. On the joining node paste the invitation, inspect the node fingerprint and
+   identity issuer, then explicitly accept that identity source if supplied.
+   Optionally select an allowed origin to publish this installation. Connecting
+   does not grant local employee membership or administrator rights.
+4. To form A ← B ← C, B imports A's invitation, enables incoming connections and
+   forwarding, then generates C's invitation. A's scope must include C's origin
+   and permit transit. C's invitation must include that origin. Route views show
+   the actual path; disconnect/revoke withdraws it and closes affected streams.
+
+The first redemption binds an invitation to the joining node's Ed25519 key.
+Unused invitations expire after 24 hours; redeemed nodes reconnect with the same
+persisted identity until revoked. Invitations are shown once; incoming enrollment
+stores a hash, outgoing connections retain their required credential in the private
+node state. Public snapshots contain neither credentials nor private keys. Keep
+`hub-network.json` under the Headless data root private and backed up with its
+identity; copying it into two running deployments is unsupported. One process
+owns the file and lock. Endpoints, identity trust and published origin survive
+process restart, independently of application resource IDs and databases.
+
+Advertisements require an owner-signed service descriptor and an acyclic path,
+with at most eight nodes. Each neighbor enforces exact origins and transit scope;
+ambiguous public hosts are rejected. Connection retirement removes its routes.
+The original pinned identity issuer signs for the final target; intermediate nodes
+do not become identity issuers. The target checks signature, audience, origin,
+request, expiry, nonce and its own current membership. Revoking identity trust
+stops publishing the local service. Forwarding is ordinary hop-by-hop transport,
+so intermediate operators remain trusted with traffic; there is no E2EE or
+transparent replay of interrupted writes. Alternate paths are selected only for
+new requests.
+
+### Standalone relay as the same logical Hub
+
+Optionally add the following to the existing private relay configuration:
+
+```json
+{
+  "hubNetwork": {
+    "stateFile": "/private/hub-network.json",
+    "operatorCredentialFile": "/private/hub-operator.json",
+    "caFile": "/private/hub-ca.pem",
+    "tlsCertFile": "/private/hub-cert.pem",
+    "tlsKeyFile": "/private/hub-key.pem",
+    "port": 18443
+  }
+}
+```
+
+This is an additional peer-only native TLS listener. It reuses an existing DNS
+name with another reachable port if necessary; no new IOA browser entry is needed.
+The CA field is optional for a normally trusted certificate. A private CA is
+carried inside the signed invitation and used with normal hostname/certificate
+verification, never `rejectUnauthorized: false`. The endpoint configured in the
+settings must match the certificate and actual externally reachable listener.
+When HTTPS is already terminated at a trusted ingress, the existing relay listener
+can carry the peer upgrade paths and the separate peer listener can be omitted.
+
+`hub-operator.json` contains `{ "credential": "<independent 43-character random base64url>" }`.
+To let this installation's administrators manage that same relay-owned Hub, create
+`hub-network-controller.json` under the Headless data root, owned by the server
+user with mode 0600:
+
+```json
+{
+  "schemaVersion": 1,
+  "endpoint": "http://127.0.0.1:18090",
+  "credential": "<same private operator credential>"
+}
+```
+
+Headless reads this optional file at startup and delegates its admin-only settings
+API to the loopback owner. The credential never reaches the browser. The relay's
+operator endpoint independently requires loopback and this credential; its public
+peer TLS listener does not expose it. Without the file Headless owns its own local
+Hub state. A configured invalid file fails startup rather than creating another
+identity. A relay configured as an IOA gateway has an operator-managed assertion authority and
+preserves legacy routes and the approved authentication origin. Only services
+explicitly trusting that same authority are published through its IOA gateway.
+A department node serving only as a transit relay can omit all four gateway
+fields (`issuer`, `privateKey`, `tencentOaTokenFile`, `authenticationOrigin`) and set
+`routes: []`. Import the upstream invitation into its state with `hub-admin.mjs`
+before startup, then configure its incoming endpoint and issue downstream invites.
+It forwards the original issuer's scoped assertions without holding that issuer's
+private key or obtaining its own IOA application. The same binary supplies both
+roles; partial gateway configuration is rejected.
+Changes to listener certificates, delegation or relay configuration require a
+service restart; ordinary invitation and policy changes use settings with revision
+conflict detection and operator audit. Keep the previous configuration/artifact
+for rollback without restoring old business databases.
+
+Run `npm run test:hub-network`, `npm run smoke:hub-network-settings` and
+`npm run build:relay -- /absolute/output/relay`, then
+`OPENCRAFT_HUB_RELAY_ARTIFACT=/absolute/output/relay/relay.mjs npm run smoke:hub-network`.
+The last smoke uses actual packaged relay code, two normally verified TLS hops,
+Chromium login handoff and target membership revocation, entirely with isolated
+`.test` names and synthetic IOA fixtures. Neither domain registration nor real
+employee credentials are required. It proves the transport, not external firewall
+reachability or real corporate IOA gateway configuration.

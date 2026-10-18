@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "intendedOriginalLicense": "Apache-2.0",
+  "entries": [
+    {
+      "id": "codex-renderer-import-map",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/app.tsx",
+        "apps/workbench-web/src/components/app-shell.tsx",
+        "apps/workbench-web/src/components/conversation.tsx",
+        "apps/workbench-web/src/components/right-panel.tsx",
+        "apps/workbench-web/src/styles/app.scss",
+        "packages/codex-composer/src/codex-composer.tsx",
+        "packages/design-system/src/theme-engine.ts"
+      ],
+      "evidence": [
+        "vendor/codex/IMPORT_MAP.json",
+        "docs/codex-frame-spec.md"
+      ],
+      "reason": "Existing import map records recovery/adaptation from Codex Desktop renderer; redistribution authorization has not been established.",
+      "resolution": "Establish source rights or independently replace the affected implementation; retain this provenance history."
+    },
+    {
+      "id": "codex-shell-followup",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/components/floating-left-panel.tsx",
+        "apps/workbench-web/src/components/sidebar.tsx",
+        "apps/workbench-web/src/components/use-panel-animation.ts",
+        "apps/workbench-web/src/sidebar-dock-model.ts",
+        "packages/appserver-protocol/src/resume-history.ts"
+      ],
+      "evidence": [
+        "apps/workbench-web/src/sidebar-dock-model.ts",
+        "packages/appserver-protocol/src/resume-history.ts"
+      ],
+      "reason": "Source comments refer to recovered renderer behavior; review must distinguish independent behavior modeling from adapted expression.",
+      "resolution": "Review actual implementation and source lineage; independently replace any uncleared adapted expression."
+    },
+    {
+      "id": "codex-stable-callback",
+      "status": "unverified",
+      "paths": [
+        "packages/react-runtime/**"
+      ],
+      "evidence": [
+        "packages/react-runtime/PROVENANCE.md"
+      ],
+      "reason": "Package records a restoration against a recovered desktop module; rights and independent implementation status are unverified.",
+      "resolution": "Review or independently replace the package against React's public contract."
+    },
+    {
+      "id": "codex-timeline-virtualizer",
+      "status": "unverified",
+      "paths": [
+        "packages/timeline-virtualizer/**"
+      ],
+      "evidence": [
+        "packages/timeline-virtualizer/PROVENANCE.md"
+      ],
+      "reason": "Package explicitly records restored reducers, layout and scrolling mechanisms from recovered desktop modules.",
+      "resolution": "Establish rights or independently replace the implementation against documented OpenCraft requirements and tests."
+    },
+    {
+      "id": "codex-timeline-adapters",
+      "status": "unverified",
+      "paths": [
+        "packages/timeline-react/**",
+        "packages/timeline-host-web/**"
+      ],
+      "evidence": [
+        "packages/timeline-react/PROVENANCE.md",
+        "packages/timeline-host-web/PROVENANCE.md"
+      ],
+      "reason": "The React adapter records Codex Desktop behavioral references; the Web adapter records recovered behavior and separately identifies original browser capabilities. Review must distinguish behavioral reference, adapted expression and OpenCraft additions per file rather than treating the entire packages as copied.",
+      "resolution": "Verify exact source/version, retained expression and applicable rights for the adapters. Keep licensed or independently authored implementations and their notices; consider replacement only for specifically established uncleared material."
+    },
+    {
+      "id": "codex-tool-presentation-labels",
+      "status": "unverified",
+      "paths": [
+        "packages/chat-core/src/tool-activity.ts"
+      ],
+      "evidence": [
+        "packages/chat-core/src/tool-activity.ts"
+      ],
+      "reason": "The CODEX_APP_TOOL_LABELS annotation identifies recovered labels/grouping. Review this identified table separately from protocol names, ordinary short labels and the rest of the OpenCraft tool presentation/extension implementation; the annotation does not establish that the whole file is copied.",
+      "resolution": "Locate the table's exact source/version and retained expression, then record an evidenced scope and disposition. Do not infer a whole-file replacement requirement from this label/grouping reference."
+    },
+    {
+      "id": "product-and-brand-assets",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/assets/connector-brands/**"
+      ],
+      "evidence": [
+        "apps/workbench-web/src/assets/connector-brands/NOTICE.md"
+      ],
+      "reason": "Third-party connector marks need individual distribution scope; an upstream code license does not automatically license branding. Native product artwork and skill assets moved downstream with original bytes. Remaining connector marks and historical distribution rights are still unverified.",
+      "resolution": "Move product artwork to the downstream product, retain applicable third-party notices, and use original upstream branding.",
+      "downstreamDispositions": [
+        {
+          "originalPath": "apps/workbench-web/public/assets/skills/**",
+          "downstreamPath": "products/vela/public/assets/skills/**",
+          "disposition": "Original bytes moved downstream; not a distribution-rights determination."
+        }
+      ]
+    }
+  ]
+}

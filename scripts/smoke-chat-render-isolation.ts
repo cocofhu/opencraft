@@ -1,0 +1,101 @@
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import { createServer } from "vite";
+const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
+const output = ".local/chat-render-isolation";
+await mkdir(output, { recursive: true });
+// Real document/runtime/renderers; only the Host media callback is synthetic.
+const fixture = `
+import React,{useState}from'react';
+import{flushSync}from'react-dom';
+import{createIntlTestRoot}from'/tests/fixtures/intl-root.tsx';
+import{createWebChatRenderRuntime}from'/packages/chat-render-web/src/runtime.ts';
+import{WebChatRenderRuntimeProvider}from'/packages/chat-render-web/src/runtime-context.tsx';
+import{WebChatDocument}from'/packages/chat-render-web/src/web-chat-document.tsx';
+import'/apps/workbench-web/src/styles/app.scss';
+const runtimes=[await createWebChatRenderRuntime(),await createWebChatRenderRuntime()];
+window.events=[];window.pending=[];
+const pixel='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jvXkAAAAASUVORK5CYII=';
+const callbacks=[0,1].map(id=>({
+ onOpenResource:(target)=>window.events.push({kind:'open',id,target}),
+ onMeasurementRequest:event=>window.events.push({kind:'measure',id,...event}),
+ loadMediaSource:input=>new Promise(resolve=>window.pending.push({id,input,resolve:()=>resolve({source:pixel})})),
+}));
+const initial={documentId:'isolation',source:'Stable **paragraph**.\\n\\n[Open fixture](./fixture.ts)',streaming:true,theme:'light',hostId:'fixture',cwd:'/workspace',...callbacks[0]};
+function App(){const[props,setProps]=useState(initial);const[,setTick]=useState(0);const[owner,setOwner]=useState(0);
+window.fixture={tick(){flushSync(()=>setTick(n=>n+1))},patch(value){flushSync(()=>setProps(p=>({...p,...value})))},callbacks(id){flushSync(()=>setProps(p=>({...p,...callbacks[id]})))},runtime(){flushSync(()=>setOwner(1))}};
+return <WebChatRenderRuntimeProvider runtime={runtimes[owner]}><WebChatDocument {...props}/></WebChatRenderRuntimeProvider>}
+createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
+const server = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
+  esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] },
+  cacheDir: "node_modules/.vite-chat-render-isolation", server: { host: "127.0.0.1", port: 0 },
+  plugins: [{ name: "chat-render-isolation", enforce: "pre", resolveId: id => id === "/isolation.tsx" ? id : null,
+    load: id => id === "/isolation.tsx" ? fixture : null,
+    transform(code, id) {
+      if (id.endsWith("/web-chat-document.tsx")) return code.replace(
+        "function ResolvedWebChatDocument(props: WebChatDocumentProps) {",
+        "function ResolvedWebChatDocument(props: WebChatDocumentProps) { window.__documents=(window.__documents??0)+1;");
+      if (id.endsWith("/prose/prose-renderer.tsx")) return code.replace("const { node } = props;", "window.__prose=(window.__prose??0)+1;const { node } = props;");
+    },
+    configureServer(vite) { vite.middlewares.use((req, res, next) => {
+      if (req.url !== "/") return next();
+      res.setHeader("content-type", "text/html");
+      res.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/isolation.tsx"></script>');
+    }); },
+  }],
+});
+let browser: any;
+const results: unknown[] = [];
+try {
+  await server.listen();
+  browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
+  for (const width of [390, 1280]) {
+    const context = await browser.newContext({ viewport: { width, height: 844 }, reducedMotion: "reduce" });
+    await context.addInitScript(() => { (window as any).__name = (fn: unknown) => fn; });
+    const page = await context.newPage(), errors: string[] = [];
+    page.on("pageerror", (e: Error) => errors.push(e.message));
+    await page.goto(`http://127.0.0.1:${(server.httpServer!.address() as any).port}/`);
+    await page.getByText("Stable", { exact: false }).first().waitFor();
+    const root = await page.locator(".opencraft-chat-document").elementHandle();
+    const unchanged = await page.evaluate(() => {
+      const w = window as any, documents = w.__documents, prose = w.__prose;
+      for (let n = 0; n < 20; n++) w.fixture.tick();
+      return { documents: w.__documents - documents, prose: w.__prose - prose };
+    });
+    assert.deepEqual(unchanged, { documents: 0, prose: 0 });
+    await page.getByText("Open fixture", { exact: true }).click();
+    await page.evaluate(() => (window as any).fixture.callbacks(1));
+    await page.getByText("Open fixture", { exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => (window as any).events.filter((e: any) => e.kind === "open").map((e: any) => e.id)), [0, 1]);
+    await page.evaluate(() => (window as any).fixture.patch({ theme: "dark", streaming: false }));
+    assert.equal(await page.locator(".opencraft-chat-document").getAttribute("data-markdown-animated"), null);
+    // Local async media state must still settle inside an otherwise memoized tree.
+    await page.evaluate(() => (window as any).fixture.patch({ source: "![Fixture image](./fixture.png)" }));
+    await page.waitForFunction(() => (window as any).pending.length > 0);
+    await page.evaluate(() => { const w = window as any; w.events = []; w.pending.at(-1).resolve(); });
+    await page.locator("img.chat-markdown-image").waitFor();
+    await page.waitForFunction(() => (window as any).events.some((e: any) => e.kind === "measure" && e.id === 1 && e.reason === "resource-resolve" && e.generation > 1));
+    // Runtime Context changes must cross memo even when every document prop is equal.
+    const contextDelta = await page.evaluate(() => { const w = window as any, before = w.__documents; w.fixture.runtime(); return w.__documents - before; });
+    assert.ok(contextDelta > 0);
+    await page.waitForFunction(() => (window as any).pending.length > 1);
+    await page.evaluate(() => (window as any).pending.at(-1).resolve());
+    await page.locator("img.chat-markdown-image").waitFor();
+    await page.evaluate(() => (window as any).fixture.patch({ source: "Updated **text**.\\n\\n```ts\\nconst answer = 42;\\n```".replaceAll("\\n", "\n"), streaming: true }));
+    await page.getByText("Updated", { exact: false }).first().waitFor();
+    await page.waitForFunction(() => (window as any).events.some((e: any) => e.kind === "measure" && e.id === 1 && e.reason === "code-highlight"));
+    const darkHighlight = await page.locator(".chat-code-highlight").innerHTML();
+    await page.evaluate(() => { const w = window as any; w.events = []; w.fixture.patch({ theme: "light" }); });
+    await page.waitForFunction(() => (window as any).events.some((e: any) => e.reason === "code-highlight"));
+    assert.notEqual(await page.locator(".chat-code-highlight").innerHTML(), darkHighlight, "Theme-only change refreshes syntax colors");
+    assert.equal(await page.locator(".opencraft-chat-document").getAttribute("data-markdown-animated"), "true");
+    await page.evaluate(() => (window as any).fixture.patch({ streaming: false, dialect: "user-message" }));
+    assert.equal(await page.locator(".opencraft-chat-document").getAttribute("data-chat-document-dialect"), "user-message");
+    assert.ok(await root!.evaluate((e: Element) => e.isConnected), "Document DOM remains mounted");
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: `${output}/${width}.png` });
+    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, domRetained: true, errors });
+    await context.close();
+  }
+  console.log(JSON.stringify({ passed: true, results }));
+} finally { await writeFile(`${output}/results.json`, JSON.stringify(results, null, 2)); await browser?.close(); await server.close(); }

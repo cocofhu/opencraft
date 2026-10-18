@@ -1,0 +1,124 @@
+import type { SshConnectionView, SshCodexServerDescriptor } from "@opencraft/app-host-protocol";
+import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
+import type { AppServerWorkbenchRuntime, HostRuntimeRegistry } from "@opencraft/workbench-runtime";
+import { managedCatalogDiscoveryPhase, mergeThreadCatalogPages } from "./thread-catalog-query";
+
+/** Read-only application projection; the backend remains the SSH authority. */
+export interface ManagedHostCatalogSnapshot {
+  readonly available: boolean | null;
+  readonly authenticated: boolean;
+  readonly items: readonly SshConnectionView[];
+  readonly legacyServers: readonly SshCodexServerDescriptor[];
+  readonly refreshing: boolean;
+  readonly error: string | null;
+}
+
+export interface ManagedHostCatalogSource {
+  getSnapshot(): ManagedHostCatalogSnapshot;
+  subscribe(listener: () => void): () => void;
+  getAuthorizationEpoch(): number;
+  refresh(): Promise<void>;
+}
+
+/** Chat consumes catalog/admission changes, not healthy background poll progress.
+ * Keep the controller's full snapshot available to connection management. The
+ * primitive is stable across freshly decoded but unchanged catalog responses. */
+export function managedHostCatalogSignature(source: ManagedHostCatalogSource | null): string | null {
+  if (source === null) return null;
+  const snapshot = source.getSnapshot();
+  return JSON.stringify([
+    source.getAuthorizationEpoch(),
+    snapshot.available,
+    snapshot.authenticated,
+    snapshot.items,
+    snapshot.legacyServers,
+    snapshot.error,
+    managedCatalogDiscoveryPhase(snapshot),
+  ]);
+}
+
+/** Cached metadata remains displayable during physical reconnects. This does
+ * not admit requests or execution; query keys still fence recipe/auth epochs. */
+export function canDisplayHostThreadCatalog(
+  profile: HostConnectionProfile,
+  management: ManagedHostCatalogSnapshot | null,
+): boolean {
+  if (!profile.enabled || !profile.includeInSidebar) return false;
+  if (profile.hostKind === "remote-ssh" && management?.available === true) {
+    if (!management.authenticated) return false;
+    const row = management.items.find(item => item.serverId === profile.hostId);
+    if (row) return row.enabled && row.revision === profile.revision;
+    return management.legacyServers.some(server => server.serverId === profile.hostId);
+  }
+  return true;
+}
+
+export function canReadHostThreadCatalog(
+  profile: HostConnectionProfile,
+  phase: string | undefined,
+  management: ManagedHostCatalogSnapshot | null,
+): boolean {
+  if (!profile.enabled || !profile.includeInSidebar) return false;
+  // The runtime owns recovery for every provider. In particular, a five-second
+  // management poll may still report open after the logical link has failed.
+  if (phase === "reconnecting" || phase === "error" || phase === "disposed") return false;
+  if (profile.hostKind === "remote-ssh" && management?.available === true) {
+    if (!management.authenticated) return false;
+    const row = management.items.find(item => item.serverId === profile.hostId);
+    if (row) {
+      if (!row.enabled || row.revision !== profile.revision) return false;
+      // An explicitly connected backend may admit a catalog reader without
+      // selecting it as the current chat target. A ready logical connection
+      // also works when management's physical status has not been refreshed.
+      return row.state === "open" || phase === "ready";
+    }
+    if (!management.legacyServers.some(server => server.serverId === profile.hostId)) return false;
+    // Static recipes have no managed row; their authenticated live profile
+    // still requires an explicitly established logical connection.
+  }
+  return profile.autoConnect || phase === "ready";
+}
+
+/** Establish only a logical reader through the existing registry. Never select
+ * a Host, resume a Thread, or grant interaction ownership to discover history. */
+export async function readHostThreadCatalog(input: {
+  readonly profile: HostConnectionProfile;
+  readonly currentProfile: () => HostConnectionProfile | undefined;
+  readonly management: ManagedHostCatalogSource | null;
+  readonly registry: Pick<HostRuntimeRegistry<AppServerWorkbenchRuntime>, "peekRuntime" | "ensureConnected">;
+}) {
+  // SSH authorization cannot revoke or invalidate a different Host's reads.
+  const management = input.profile.hostKind === "remote-ssh" ? input.management : null;
+  const authorizationEpoch = management?.getAuthorizationEpoch();
+  const assertCurrent = () => {
+    const current = input.currentProfile();
+    if (!current || current.hostId !== input.profile.hostId
+      || management?.getAuthorizationEpoch() !== authorizationEpoch || current.revision !== input.profile.revision
+      || !canReadHostThreadCatalog(current, input.registry.peekRuntime(current.hostId)?.getSnapshot().phase,
+        management?.getSnapshot() ?? null)) {
+      throw new Error("此连接当前不可读取会话，请刷新连接列表。");
+    }
+  };
+  assertCurrent();
+  const runtime = await input.registry.ensureConnected(input.profile.hostId);
+  assertCurrent();
+  // Sidebar and global title search share this catalog. A recent-page window
+  // silently hides older conversations from both, even when the Server still
+  // has them. Follow the Server's cursor through metadata pages only.
+  const pages = [];
+  const cursors = new Set<string>();
+  let cursor: string | null = null;
+  do {
+    assertCurrent();
+    const page = await runtime.resources.threads.list({ cursor, limit: 50 });
+    // Fence every page, including a revoked final response. Never publish a
+    // partial catalog as a successful complete search after a failed page.
+    assertCurrent();
+    pages.push(page);
+    cursor = page.nextCursor ?? null;
+    if (cursor !== null && cursors.has(cursor)) throw new Error("Repeated thread catalog cursor");
+    if (cursor !== null) cursors.add(cursor);
+  } while (cursor !== null);
+  // The first page backfills old pins, which can recur in later recent pages.
+  return { ...pages[0]!, data: mergeThreadCatalogPages(pages), nextCursor: null };
+}

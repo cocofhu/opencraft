@@ -1,0 +1,22 @@
+{
+  "name": "@opencraft/design-system-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./progress": "./src/progress.tsx",
+    "./discrete-slider": "./src/discrete-slider.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencraft/design-system": "0.1.0",
+    "@radix-ui/react-slider": "^1.3.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2"
+  }
+}

@@ -1,0 +1,54 @@
+@use "@opencraft/design-system/typography.web" as typography;
+
+// Process summaries (including compaction) have one visual owner, independent
+// of the reading preference. Disclosure geometry/interaction stays in app.scss.
+.thread-activity-item__header,
+.thread-subagent-activity__status {
+  @include typography.role(body);
+}
+
+.thread-thinking-placeholder {
+  @include typography.role(body, tertiary);
+}
+
+.thread-activity-item__icon {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+
+  > svg,
+  > img {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    object-fit: contain;
+  }
+
+  // Source canvas padding differs. Keep original contours and calibrate to
+  // ~15px painted geometry; effective Lucide stroke remains 1.2 CSS pixels.
+  > .lucide { stroke-width: 1.44; }
+  > .lucide-brain,
+  > .lucide-wrench,
+  > .lucide-bot,
+  > .lucide-monitor,
+  > .lucide-message-square,
+  > .lucide-earth {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.6;
+  }
+  > [data-codex-activity-icon="read"],
+  > [data-codex-activity-icon="files"],
+  > [data-codex-activity-icon="browser"] {
+    width: 19px;
+    height: 19px;
+  }
+  > [data-codex-activity-icon="stop"] {
+    width: 27px;
+    height: 27px;
+  }
+}
