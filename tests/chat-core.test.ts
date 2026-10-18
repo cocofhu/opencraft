@@ -1387,7 +1387,7 @@ test("invalid Chrome tab arguments stay in protocol state but do not leak generi
   assert.equal(shouldRenderAgentThinkingPlaceholder(frame), true);
 });
 
-test("source-specific dynamic tool titles remain completion labels when the call fails", () => {
+test("native thread failures have explicit states alongside unchanged legacy source-specific titles", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-host-tool-failures",
     status: "complete",
@@ -1402,7 +1402,7 @@ test("source-specific dynamic tool titles remain completion labels when the call
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).summary), [
     "Read settings",
     "Read tab",
-    "Listed chats",
+    "List threads · Failed",
   ]);
   assert.deepEqual(blocks.map((block) => presentToolActivity(block).state), ["failed", "failed", "failed"]);
 });
@@ -1886,7 +1886,7 @@ test("multi-action command Items fan out into source-faithful exec rows without 
   assert.equal(snapshot.frames[0]?.anchors.filter((anchor) => anchor.type === "item").length, 1);
 });
 
-test("Codex app tools use recovered labels and standalone grouping", () => {
+test("Native thread tools use explicit operation states and semantic disclosure", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-codex-tools",
     status: "streaming",
@@ -1919,7 +1919,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
     state: "running",
     grouping: "groupable",
     icon: "agent",
-    summary: "Listing chats",
+    summary: "List threads · Running",
     detail: null,
     canExpand: false,
     durationMs: null,
@@ -1927,7 +1927,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
     continuesLiveActivityBetweenCalls: true,
     summaryOnlyInConversationGroup: false,
   });
-  assert.equal(presentToolActivity(handoff).summary, "Handed off chat");
+  assert.equal(presentToolActivity(handoff).summary, "Handoff thread · Completed");
   assert.equal(presentToolActivity(handoff).grouping, "standalone");
   assert.equal(presentToolActivity(handoff).summaryKey, "codex_app:handoff_thread:thread-child:ssh:one");
 
@@ -1946,7 +1946,7 @@ test("Codex app tools use recovered labels and standalone grouping", () => {
       },
     }],
   }]), createDefaultTimelineProjectorRegistry()).frames[0]?.blocks[0];
-  assert.equal(worktree?.type === "tool-call" ? presentToolActivity(worktree).summary : null, "Forked chat in new worktree");
+  assert.equal(worktree?.type === "tool-call" ? presentToolActivity(worktree).summary : null, "Fork thread · Worktree · Completed");
 
   const created = projectTimeline(source([{
     id: "turn-created-thread",
@@ -2146,7 +2146,7 @@ test("Agent Activity reproduces active labels and deterministic completed summar
   assert.equal(completedHeader.summaryKey, "summary");
   assert.equal(completedHeader.icon, "wrench");
   assert.equal(agentActivityHeaderAccessibleLabel(completedHeader.summary),
-    "Used GitHub integration, edited files, read files, ran a command, searched the web, and listed chats");
+    "Used GitHub integration, edited files, read files, ran a command, searched the web, and list threads · Completed");
   assert.deepEqual(completedHeader.summary.kind === "parts"
     ? completedHeader.summary.parts.map((part) => part.kind)
     : [], ["sources", "files", "exploration", "commands", "web-search", "dynamic"]);

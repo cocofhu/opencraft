@@ -8,7 +8,7 @@ import type {
   ToolCallTimelineBlock,
 } from "./timeline";
 import { deriveSubagentActivityPresentation, subagentInlineStatusLabel } from "./subagent-activity";
-import { threadHandoffToolResult } from "./codex-app-tools";
+import { isCodexAppThreadTool, threadHandoffToolResult } from "./codex-app-tools";
 import { parseSkillPath } from "./skill-path";
 import { formatCodexDuration } from "./format-duration";
 
@@ -716,37 +716,30 @@ export function formatCommandActivitySummary(
   return withElapsed(showSpecificCommand ? `Ran ${command}` : "Ran command", "in");
 }
 
-interface CodexAppToolLabels {
-  readonly active: string;
-  readonly completed: string;
-  readonly failed?: string;
-  readonly grouping?: ToolActivityGrouping;
-  readonly continues?: boolean;
-  readonly summaryOnly?: boolean;
+/**
+ * Thread tools use protocol-derived operation titles and an explicit state,
+ * rather than a per-tool table of active/completed sentences. Provider titles
+ * are display information only; they cannot change execution state or policy.
+ */
+function threadOperationSummary(
+  block: ToolCallTimelineBlock,
+  state: ToolActivityState,
+  worktree: boolean,
+): string {
+  const title = nonEmptyString(block.actionName) ?? formatDynamicToolName(block.name);
+  const phase = state === "running" ? "Running"
+    : state === "completed" ? "Completed"
+      : state === "failed" ? "Failed" : "Stopped";
+  return `${title}${worktree ? " · Worktree" : ""} · ${phase}`;
 }
 
-/** Labels/grouping recovered from Codex's dynamic tool renderer registry. */
-const CODEX_APP_TOOL_LABELS: Readonly<Record<string, CodexAppToolLabels>> = {
-  fork_thread: { active: "Forking chat", completed: "Forked chat" },
-  create_thread: { active: "Creating chat", completed: "Created chat" },
-  list_threads: { active: "Listing chats", completed: "Listed chats", continues: true },
-  read_thread: { active: "Reading chat", completed: "Read chat", continues: true },
-  handoff_thread: {
-    active: "Handing off chat",
-    completed: "Handed off chat",
-    failed: "Failed to hand off chat",
-    grouping: "standalone",
-  },
-  get_handoff_status: {
-    active: "Checking handoff status",
-    completed: "Checked handoff status",
-    summaryOnly: true,
-  },
-  send_message_to_thread: { active: "Sending message to chat", completed: "Sent message to chat" },
-  set_thread_pinned: { active: "Updating chat pin", completed: "Updated chat pin" },
-  set_thread_archived: { active: "Updating chat archive", completed: "Updated chat archive" },
-  set_thread_title: { active: "Renaming chat", completed: "Renamed chat" },
-};
+/** Local disclosure policy; never a declaration of tool permissions. */
+function threadOperationRole(block: ToolCallTimelineBlock): "transfer" | "poll" | "inspect" | "change" {
+  if (block.name === "handoff_thread") return "transfer";
+  if (block.name === "get_handoff_status") return "poll";
+  if (block.name === "read_thread" || block.name === "list_threads") return "inspect";
+  return "change";
+}
 
 function codexAppSummaryKey(block: ToolCallTimelineBlock): string {
   const input = object(block.input);
@@ -793,26 +786,19 @@ function createCodexAppPresenter(): ToolActivityPresenter {
   return {
     name: "codex-app-tools",
     priority: 100,
-    matches: (block) => block.kind === "dynamic"
-      && block.namespace === "codex_app"
-      && block.name in CODEX_APP_TOOL_LABELS,
+    matches: isCodexAppThreadTool,
     present(block, state) {
-      const labels = CODEX_APP_TOOL_LABELS[block.name];
-      if (labels === undefined) return null;
       if (!codexAppToolArgumentsValid(block)) return null;
+      const role = threadOperationRole(block);
       const input = object(block.input);
       const hasWorktree = block.name === "fork_thread"
         ? object(input?.environment)?.type === "worktree"
         : block.name === "create_thread"
           ? object(input?.target)?.type === "project" && object(object(input?.target)?.environment)?.type === "worktree"
           : false;
-      const active = hasWorktree
-        ? block.name === "fork_thread" ? "Forking chat in new worktree" : "Creating worktree chat"
-        : labels.active;
-      const completed = hasWorktree
-        ? block.name === "fork_thread" ? "Forked chat in new worktree" : "Created worktree chat"
-        : labels.completed;
-      const handoff = threadHandoffToolResult(block);
+      // A transport failure or cancellation wins over an earlier progress
+      // payload. A completed polling RPC can still describe an active transfer.
+      const handoff = state === "failed" || state === "interrupted" ? null : threadHandoffToolResult(block);
       const handoffDestination = handoff?.destinationHostDisplayName ?? null;
       const handoffTitle = handoff?.threadTitle ?? null;
       const effectiveState: ToolActivityState = handoff === null ? state
@@ -833,22 +819,16 @@ function createCodexAppPresenter(): ToolActivityPresenter {
               : handoffTitle !== null && handoffDestination !== null
                 ? `Handed off ${handoffTitle} to ${handoffDestination}`
                 : "Handed off chat";
-      const summary = handoffSummary ?? (state === "running"
-        ? active
-        : state === "failed"
-          ? labels.failed ?? completed
-          : state === "interrupted"
-            ? completed
-            : completed);
+      const summary = handoffSummary ?? threadOperationSummary(block, state, hasWorktree);
       return {
         ...toolPresentationBase(block, effectiveState),
-        grouping: block.appResourceUri === null ? labels.grouping ?? "groupable" : "standalone",
+        grouping: block.appResourceUri !== null || role === "transfer" ? "standalone" : "groupable",
         icon: "agent",
         summary,
         detail: block.errorMessage,
         summaryKey: codexAppSummaryKey(block),
-        continuesLiveActivityBetweenCalls: labels.continues ?? false,
-        summaryOnlyInConversationGroup: labels.summaryOnly ?? false,
+        continuesLiveActivityBetweenCalls: role === "inspect" && effectiveState !== "failed" && effectiveState !== "interrupted",
+        summaryOnlyInConversationGroup: role === "poll" && effectiveState !== "failed" && effectiveState !== "interrupted",
       };
     },
   };
