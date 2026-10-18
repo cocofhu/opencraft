@@ -278,7 +278,7 @@ if (process.argv[2] === 'core') {
       backupFiles, movedAsideFiles, storageFailure, model: 'gpt-6-luna', at: new Date().toISOString(), cli: execFileSync('codex', ['--version'], { encoding: 'utf8' }).trim(), threadId, turnId,
       before, after, runningPids: runningTree, afterPids: afterTree, oldGatewayPid, newGatewayPid: gatewayPid(),
       toolCalls: originalToolCalls, shellExecutions: 1, browserInstall: !selfUpgrade, sourceSelfUpgrade: selfUpgrade, browserRollback: true,
-      boundary: `Real npm CLI, Headless production SPA and payload, mono2 overlays and real Codex CLI; synthetic loopback inference; both releases packaged from current source, no N-1 old-binary rollback claim; ${systemd ? 'real isolated systemd units and restart' : 'systemd restart replaced by isolated process restart'}` };
+      boundary: `Real npm CLI, Headless production SPA and payload, downstream overlays and real Codex CLI; synthetic loopback inference; both releases packaged from current source, no N-1 old-binary rollback claim; ${systemd ? 'real isolated systemd units and restart' : 'systemd restart replaced by isolated process restart'}` };
     const output = resolve(process.env.OPENCRAFT_SERVER_UPDATE_EVIDENCE_DIRECTORY || '.local/server-updates'); await mkdir(output, { recursive: true }); await writeFile(join(output, selfUpgrade ? 'self-upgrade-proof.json' : systemd ? 'systemd-proof.json' : 'proof.json'), JSON.stringify(proof, null, 2));
     console.log(JSON.stringify({ ok: true, shellExecutions: 1, originalTurnCompleted: true, corePidsUnchanged: true, browserInstall: !selfUpgrade, sourceSelfUpgrade: selfUpgrade, browserRollback: true, systemd }));
   } catch (error) {

@@ -92,7 +92,7 @@ export function routeLogicalClientFrame(frame: string, clientIds: readonly strin
   if (typeof target !== "string" || !clientIds.includes(target)) return null;
   delete value[LOGICAL_CLIENT_FIELD]; return JSON.stringify(value);
 }
-export const CONNECT_APP_HOST_MESSAGE = "vela:connect-app-host" as const;
+export const CONNECT_APP_HOST_MESSAGE = "opencraft:connect-app-host" as const;
 
 export type AppHostTransportState =
   | "idle"

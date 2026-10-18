@@ -4,7 +4,7 @@ import type {
 } from "@opencraft/browser-core";
 
 export const PREVIEW_BRIDGE_PROTOCOL_VERSION = 1 as const;
-export const PREVIEW_BRIDGE_SOURCE = "vela-preview-bridge" as const;
+export const PREVIEW_BRIDGE_SOURCE = "opencraft-preview-bridge" as const;
 
 export type PreviewBridgeMethod =
   | "read-context"

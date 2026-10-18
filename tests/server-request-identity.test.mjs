@@ -94,7 +94,7 @@ test('obsolete or incomplete server identity configuration cannot silently enabl
   const { root, origin } = await fixture(t);
   await assert.rejects(createWorkbenchWebServer({ root, tencentOaService: {} }), /Unknown workbench gateway option/);
   await assert.rejects(createWorkbenchWebServer({ root, identityService: {} }), /Invalid request identity service/);
-  const response = await fetch(origin + '/__opencraft_tencentoa/session', { headers: { accept: 'text/html' } });
+  const response = await fetch(origin + '/__opencraft_enterprise_identity/session', { headers: { accept: 'text/html' } });
   assert.equal(response.status, 404);
 });
 
@@ -107,5 +107,5 @@ test('standalone generic gateway bundles without any product identity module or 
   });
   assert.ok(Object.keys(result.metafile.inputs).length > 1);
   for (const input of Object.keys(result.metafile.inputs)) assert.doesNotMatch(input, /plugins\//u);
-  assert.doesNotMatch(result.outputFiles[0].text, /plugin-tencentoa|__opencraft_tencentoa|identityValidUntil/u);
+  assert.doesNotMatch(result.outputFiles[0].text, /plugin-enterprise-identity|__opencraft_enterprise_identity|identityValidUntil/u);
 });

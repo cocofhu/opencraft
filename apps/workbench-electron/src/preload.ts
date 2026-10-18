@@ -92,11 +92,11 @@ contextBridge.exposeInMainWorld("opencraftDesktop", Object.freeze({
   versions: Object.freeze({ electron: process.versions.electron }),
   lightvelaAccount: Object.freeze({
     async signIn(region: "cn" | "intl") {
-      const result = await ipcRenderer.invoke("vela:lightvela-login", region);
+      const result = await ipcRenderer.invoke("opencraft:lightvela-login", region);
       if (!result.ok) throw new Error(result.error);
       return result.session;
     },
-    cancel: () => ipcRenderer.invoke("vela:lightvela-login-cancel"),
+    cancel: () => ipcRenderer.invoke("opencraft:lightvela-login-cancel"),
     readSession: () => ipcRenderer.invoke("vela:lightvela-session-read"),
     clearSession: () => ipcRenderer.invoke("vela:lightvela-session-clear"),
     signOut: () => ipcRenderer.invoke("vela:lightvela-sign-out"),

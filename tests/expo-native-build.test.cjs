@@ -12,8 +12,8 @@ test('standalone Expo config keeps the public identity and permission wording', 
   assert.equal(config.name, 'OpenCraft');
   assert.equal(config.scheme, 'opencraft');
   // Retain legacy IDs; changing an installed app's identity is a separate decision.
-  assert.equal(config.ios.bundleIdentifier, 'dev.vela.workbench');
-  assert.equal(config.android.package, 'dev.vela.workbench');
+  assert.equal(config.ios.bundleIdentifier, 'dev.opencraft.workbench');
+  assert.equal(config.android.package, 'dev.opencraft.workbench');
   const commands = require(path.join(app, 'package.json')).scripts;
   assert.equal(Object.values(commands).some(command => command.includes('products/vela')), false, 'Public native commands must work without the private product workspace');
   assert.equal(config.plugins.find(p => p[0] === 'expo-image-picker')[1].photosPermission, 'Allow OpenCraft to choose a profile photo.');
@@ -25,7 +25,7 @@ test('standalone Expo config keeps the public identity and permission wording', 
 function capturePrebuild(script, release) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'opencraft-native-build-'));
   try {
-    // Standalone source fixture has no mono2/products sibling or native project.
+    // Standalone source fixture has no downstream products sibling or native project.
     const standalone = path.join(temp, 'apps/workbench-expo');
     fs.mkdirSync(path.join(standalone, 'scripts'), { recursive: true });
     fs.mkdirSync(path.join(temp, 'packages/react-runtime'), { recursive: true });

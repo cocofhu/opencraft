@@ -5,7 +5,7 @@
  */
 export const startupResourceBudget = Object.freeze({ javascript: 3_700_000, css: 700_000, gzip: 1_200_000 });
 export const startupJavaScriptChunkBudget = 120;
-export const requiredStartupModule = /\/(?:apps\/workbench-web\/src\/(?:workbench-entry|main)\.tsx?|plugins\/(?:lightvela-hermes|lightvela-platform|builtin-agents|headless-model-services)\/src\/runtime-entry\.tsx?|plugins\/(?:builtin-agents|tencentoa)\/src\/index\.tsx?)$/;
+export const requiredStartupModule = /\/(?:apps\/workbench-web\/src\/(?:workbench-entry|main)\.tsx?|plugins\/(?:lightvela-hermes|lightvela-platform|builtin-agents|headless-model-services)\/src\/runtime-entry\.tsx?|plugins\/(?:builtin-agents|enterprise-identity)\/src\/index\.tsx?)$/;
 const demandOnlyPatterns = [
   /\/apps\/workbench-web\/src\/components\/modal\/adaptive-sheet-handle\.tsx$/,
   /\/chat-render-web\/src\/extensions\/katex\/katex-math\.tsx$/,

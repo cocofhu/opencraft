@@ -12,21 +12,21 @@ import {
 
 test("workspace paths normalize separators and traversal before reaching AppServer", () => {
   assert.equal(
-    normalizeWorkspacePath("/workspace//projects/mono2/../mono2/src"),
-    "/workspace/projects/mono2/src",
+    normalizeWorkspacePath("/workspace//projects/opencraft/../opencraft/src"),
+    "/workspace/projects/opencraft/src",
   );
   assert.equal(
-    joinWorkspacePath("/workspace/projects/mono2", "src/../docs"),
-    "/workspace/projects/mono2/docs",
+    joinWorkspacePath("/workspace/projects/opencraft", "src/../docs"),
+    "/workspace/projects/opencraft/docs",
   );
 });
 
 test("the browser picker cannot escape its AppServer project root", () => {
   const root = "/workspace/projects";
-  assert.equal(isWorkspacePathWithinRoot("/workspace/projects/mono2", root), true);
+  assert.equal(isWorkspacePathWithinRoot("/workspace/projects/opencraft", root), true);
   assert.equal(isWorkspacePathWithinRoot("/workspace/projects-elsewhere", root), false);
   assert.equal(workspaceParentPath("/workspace/projects", root), root);
-  assert.equal(workspaceParentPath("/workspace/projects/mono2", root), root);
+  assert.equal(workspaceParentPath("/workspace/projects/opencraft", root), root);
   assert.equal(workspaceParentPath("/workspace", root), root);
 });
 
@@ -35,8 +35,8 @@ test("an outside or missing initial folder resolves to the authoritative root", 
   assert.equal(resolveWorkspacePickerInitialPath("/root", root), root);
   assert.equal(resolveWorkspacePickerInitialPath(null, root), root);
   assert.equal(
-    resolveWorkspacePickerInitialPath("/workspace/projects/mono2", root),
-    "/workspace/projects/mono2",
+    resolveWorkspacePickerInitialPath("/workspace/projects/opencraft", root),
+    "/workspace/projects/opencraft",
   );
 });
 

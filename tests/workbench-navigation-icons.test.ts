@@ -36,7 +36,7 @@ test("Vela navigation retains its existing silhouette and detailed selected stat
   assert.match(render("message-circle"), /lucide-message-circle/);
 });
 
-test("core navigation uses the mono2 outline role without boldening selected glyphs", () => {
+test("core navigation uses the downstream outline role without boldening selected glyphs", () => {
   for (const name of ["chat", "start", "columns", "server", "settings"]) {
     for (const selected of [false, true]) {
       assert.match(render(name, selected), /stroke-width="1.8"/);

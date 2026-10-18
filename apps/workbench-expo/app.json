@@ -8,10 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "dev.vela.workbench"
+      "bundleIdentifier": "dev.opencraft.workbench"
     },
     "android": {
-      "package": "dev.vela.workbench",
+      "package": "dev.opencraft.workbench",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize"
     },

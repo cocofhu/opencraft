@@ -14,13 +14,13 @@ import { TasksSqliteStore } from "../plugins/tasks/src/sqlite";
 import { SshConnectionStore } from "../apps/opencraft-daemon/src/ssh-connection-store";
 import { openLocalAgentStorage } from "../apps/local-agent-host/src/storage/local-agent-storage";
 import { SqliteLifecycleError } from "@opencraft/sqlite-node";
-import { legacyQueueSql, legacySenderSql, legacyParticipantsSql, legacyAttachmentsSql, legacyTasksSql, legacySshSql } from "./fixtures/mono2-sqlite-legacy";
+import { legacyQueueSql, legacySenderSql, legacyParticipantsSql, legacyAttachmentsSql, legacyTasksSql, legacySshSql } from "./fixtures/downstream-sqlite-legacy";
 const ledger = "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,name TEXT NOT NULL,checksum TEXT NOT NULL,applied_at INTEGER NOT NULL) STRICT";
 const hash = (sql: string) => createHash("sha256").update(sql).digest("hex");
 const fault = (kind: SqliteLifecycleError["kind"]) => (e: unknown) => e instanceof SqliteLifecycleError && e.kind === kind;
 
 for (const partial of [false, true]) test(`old shared Codex DB keeps queue, verified author and IOA data (${partial ? "missing auxiliary object" : "complete"})`, async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-state-"));
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-state-"));
   const path = join(root, "codex-host-queue.sqlite");
   try {
     const old = new DatabaseSync(path);
@@ -49,7 +49,7 @@ for (const partial of [false, true]) test(`old shared Codex DB keeps queue, veri
 });
 
 test("partial legacy shared DB failure rolls back and keeps source and pre-write backup", async t => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-rollback-")), path = join(root, "codex-host-queue.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-rollback-")), path = join(root, "codex-host-queue.sqlite");
   try {
     const old = new DatabaseSync(path); old.exec(legacySenderSql);
     old.prepare("INSERT INTO message_senders VALUES(?,?,?,?)").run("t", "m", "null", 1); old.close();
@@ -69,7 +69,7 @@ test("partial legacy shared DB failure rolls back and keeps source and pre-write
 });
 
 test("attachment legacy index completion retains actual refs and rejects rewritten/newer history", async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-attachments-")), path = join(root, "codex-message-attachments.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-attachments-")), path = join(root, "codex-message-attachments.sqlite");
   try {
     const old = new DatabaseSync(path); old.exec(legacyAttachmentsSql); old.exec("DROP INDEX codex_message_attachments_message");
     old.prepare("INSERT INTO codex_message_attachments VALUES(?,?,?,?,?)").run("t", "m", "a", 1, '{"id":"a","name":"retained"}'); old.close();
@@ -85,7 +85,7 @@ test("attachment legacy index completion retains actual refs and rejects rewritt
 });
 
 test("published Tasks v1 SQL/hash and linked rows remain unchanged; configured startup rejects bad Tasks history", async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-tasks-")), path = join(root, "tasks.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-tasks-")), path = join(root, "tasks.sqlite");
   try {
     const old = new DatabaseSync(path); old.exec(ledger + ";" + legacyTasksSql);
     old.prepare("INSERT INTO schema_migrations VALUES(1,'tasks-rows',?,1)").run(hash(legacyTasksSql));
@@ -100,7 +100,7 @@ test("published Tasks v1 SQL/hash and linked rows remain unchanged; configured s
 });
 
 test("SSH published v1 upgrades with a backup, keeps encrypted rows/key and CAS; reopen is stable", async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-ssh-")), path = join(root, "connections.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-ssh-")), path = join(root, "connections.sqlite");
   try {
     await writeFile(join(root, "credential.key"), Buffer.alloc(32, 7), { mode: 0o600 });
     const old = new DatabaseSync(path); old.exec(ledger + ";" + legacySshSql + ";PRAGMA user_version=1");
@@ -121,7 +121,7 @@ test("SSH published v1 upgrades with a backup, keeps encrypted rows/key and CAS;
 
 
 test("ledgered shared state with missing domain objects fails without recreating them", async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-domain-")), path = join(root, "codex-host-queue.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-domain-")), path = join(root, "codex-host-queue.sqlite");
   try {
     const owner = new CodexHostStateDatabase(root);
     new CodexMessageSenders(owner.database).record("t", "m", { kind: "employee", loginName: "retained" }); owner.close();
@@ -133,7 +133,7 @@ test("ledgered shared state with missing domain objects fails without recreating
 });
 
 for (const owner of ["state", "attachments", "tasks"]) test(`unknown unledgered ${owner} storage rejects without replacing the active file`, async () => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-unknown-"));
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-unknown-"));
   const path = join(root, owner === "state" ? "codex-host-queue.sqlite" : owner === "attachments" ? "codex-message-attachments.sqlite" : "tasks.sqlite");
   try {
     const old = new DatabaseSync(path); old.exec("CREATE TABLE foreign_data(value TEXT); INSERT INTO foreign_data VALUES('retained')"); old.close();
@@ -144,7 +144,7 @@ for (const owner of ["state", "attachments", "tasks"]) test(`unknown unledgered 
 });
 
 test("SSH final migration failure keeps published v1 rows/history and recovery snapshot", async t => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-ssh-rollback-")), path = join(root, "connections.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-ssh-rollback-")), path = join(root, "connections.sqlite");
   try {
     await writeFile(join(root, "credential.key"), Buffer.alloc(32, 7), { mode: 0o600 });
     const old = new DatabaseSync(path); old.exec(ledger + ";" + legacySshSql + ";PRAGMA user_version=1");
@@ -163,7 +163,7 @@ test("SSH final migration failure keeps published v1 rows/history and recovery s
 
 
 test("fresh SSH interrupted after published v1 resumes the final metadata migration", async t => {
-  const root = await mkdtemp(join(tmpdir(), "oc-mono2-ssh-fresh-failure-")), path=join(root,"connections.sqlite");
+  const root = await mkdtemp(join(tmpdir(), "oc-downstream-ssh-fresh-failure-")), path=join(root,"connections.sqlite");
   try {
     const exec=DatabaseSync.prototype.exec;
     const mock=t.mock.method(DatabaseSync.prototype,"exec",function(this:DatabaseSync,sql:string){
@@ -177,7 +177,7 @@ test("fresh SSH interrupted after published v1 resumes the final metadata migrat
 
 
 test("required Codex state failure prevents native process/open status; unused Tasks do not gate engine connect", async () => {
-  const root=await mkdtemp(join(tmpdir(),"oc-mono2-codex-startup-"));
+  const root=await mkdtemp(join(tmpdir(),"oc-downstream-codex-startup-"));
   let spawned=0;
   try {
     const state=new CodexHostStateDatabase(root);new CodexMessageSenders(state.database).record("t","m",null);state.close();

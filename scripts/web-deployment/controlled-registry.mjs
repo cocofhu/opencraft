@@ -13,7 +13,7 @@ export async function createControlledReleaseRegistry({ catalogPath }) {
     const info = await stat(catalogPath);
     if (!info.isFile() || (info.mode & 0o077) !== 0 || info.uid !== process.getuid()) throw new Error('Release catalog must be an owned private file');
     const value = JSON.parse(await readFile(catalogPath, 'utf8'));
-    if (value?.schemaVersion !== 1 || value.channel !== 'join-mono2' || !semver.valid(value.selected)
+    if (value?.schemaVersion !== 1 || value.channel !== 'managed-headless' || !semver.valid(value.selected)
       || !Array.isArray(value.releases) || value.releases.length < 1 || value.releases.length > 128) throw new Error('Invalid controlled catalog');
     const releases = new Map();
     for (const item of value.releases) {
@@ -68,7 +68,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const port = Number(process.env.OPENCRAFT_REGISTRY_PORT || 18882);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid registry port');
   const address = await registry.listen({ port });
-  console.log(`[opencraft controlled registry] loopback:${address.port}, channel=join-mono2`);
+  console.log(`[opencraft controlled registry] loopback:${address.port}, channel=managed-headless`);
   const stop = () => void registry.close().then(() => process.exit(0));
   process.once('SIGTERM', stop); process.once('SIGINT', stop);
 }

@@ -28,7 +28,7 @@ try {
       await page.clock.install();
       await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system"));
       await page.emulateMedia({ colorScheme: theme });
-      await page.route("**/__opencraft_tencentoa/session", route => route.fulfill({ status: identity ? 200 : 401, contentType: "application/json", body: JSON.stringify({ available: true, identity }) }));
+      await page.route("**/__opencraft_enterprise_identity/session", route => route.fulfill({ status: identity ? 200 : 401, contentType: "application/json", body: JSON.stringify({ available: true, identity }) }));
       const board = server.url + "/views/opencraft.tasks.board";
       const mine = page.getByRole("button", { name: "My tasks", exact: true });
       const member = page.getByLabel("My member account", { exact: true });
@@ -60,7 +60,7 @@ try {
       // Refresh shared identity while the same Task view stays mounted.
       identity = { ...identity, loginName: "alex", staffId: "11" };
       await page.clock.fastForward(61_000);
-      const refreshed = page.waitForResponse(response => response.url().endsWith("/__opencraft_tencentoa/session"));
+      const refreshed = page.waitForResponse(response => response.url().endsWith("/__opencraft_enterprise_identity/session"));
       await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange"))); await refreshed;
       await page.waitForFunction(() => document.querySelectorAll(".tasks-card").length === 2);
       assert.deepEqual(await ids(), ["task-a", "task-b"], "A mounted view follows the new verified identity");

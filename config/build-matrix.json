@@ -116,8 +116,8 @@
       "platforms": ["linux"],
       "command": ["npm", "run", "build:expo:android:release"],
       "artifacts": [
-        "apps/workbench-expo/release/OpenCraft-dev.vela.workbench-android-release.apk",
-        "apps/workbench-expo/release/OpenCraft-dev.vela.workbench-filing.txt"
+        "apps/workbench-expo/release/OpenCraft-dev.opencraft.workbench-android-release.apk",
+        "apps/workbench-expo/release/OpenCraft-dev.opencraft.workbench-filing.txt"
       ],
       "description": "OpenCraft APK signed with an external production keystore; explicit downstream products own release identity and naming"
     }

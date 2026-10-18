@@ -245,7 +245,7 @@ function validateBot(owner: ExtensionActivationIdentity, value: BotContribution)
   if (value.avatar.kind === "image-url") {
     requireLabel(value.avatar.url, `Bot ${value.id} avatar URL`);
     try {
-      const protocol = new URL(value.avatar.url, "https://vela.invalid").protocol;
+      const protocol = new URL(value.avatar.url, "https://opencraft.invalid").protocol;
       if (!["https:", "http:", "data:"].includes(protocol)) throw new Error();
     } catch {
       throw new RangeError(`Bot ${value.id} has an invalid avatar URL`);
