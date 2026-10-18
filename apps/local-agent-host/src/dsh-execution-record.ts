@@ -5,6 +5,7 @@ import { classifyDshCommand } from "./dsh-command-actions.js";
 import type { DshEvent } from "./dsh-client.js";
 import { userContent } from "./dsh-content.js";
 import { DshExecutionTelemetry } from "./dsh-execution-telemetry.js";
+import { DshBlockProjection } from "./dsh-block-projection.js";
 type Value = Record<string, any>;
 class LocalService { constructor(readonly ctx: Value) {} }
 
@@ -43,8 +44,12 @@ export class DshExecutionRecord {
     const Tools = toolImplementation(LocalService, undefined, clock);
     const ImportedCore = engineImplementation(clock, (_span: unknown, name: string) => this.telemetry.milestone(name), (_span: unknown, status: string) => this.telemetry.end(status));
     class Core extends ImportedCore {
+      private readonly blocks = new DshBlockProjection();
       processSessionEvent(worker: Value, active: Value, message: Value) {
         const event = message.event;
+        if (event && this.blocks.handle(event, active,
+          event => super.processSessionEvent(worker, active, { ...message, event }),
+          (method, params) => this.notify(method, params))) return;
         const activityOnlyCompletion = event?.type === "turn/end"
           && event.data?.reason?.kind === "completed"
           && active.assistantStream == null

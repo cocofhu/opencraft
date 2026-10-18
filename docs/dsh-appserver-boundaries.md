@@ -82,3 +82,46 @@ The Workbench owns only the presentation of projected Thread state. A review
 marker requires a real product attention source; restore not yet loaded is not
 review work. Sidebar colors consume semantic design tokens and do not reinterpret
 transport or AppServer lifecycle state.
+
+## Indexed assistant blocks and thread instructions
+
+The local `DshBlockProjection` supplements the fixed HyperNode interpreter.
+Native `block-start` tracks block identity without creating empty reasoning
+Items; `block-end` reconciles the complete indexed block. Reasoning closes
+before text begins, including streams without explicit block-end. A final
+assistant envelope corrects the same reasoning Item rather than creating it
+again. Text retains deferred commentary/final phase ownership at execution
+boundaries. Live delivery and history replay use this same ordered fold.
+
+`baseInstructions` overrides the native scoped deployment persona slot; harness,
+tools and repository context remain native contributions. `developerInstructions`
+is an additional scoped section. RPC strings remain literal, including `{{...}}`.
+Omitted/null RPC fields retain the saved value;
+an empty string suppresses the base persona or removes the additional developer
+section. Changes affect subsequent prompt assemblies without recreating or
+interrupting the Agent. A history-only resume without overrides remains lazy. An external engine without
+the native thread port rejects explicit overrides instead of silently dropping them.
+
+Native Session creation metadata holds initial choices; the owned non-surface
+`opencraft/instructions` event records later complete choices. There is no user
+message injection or parallel transcript store. The locked rc.2 runtime exports
+its accepted event vocabulary but lacks a plugin registration method: the local
+controller registers exactly this event for its composition lifetime. Unknown
+unrelated required events still fail closed. An older Host without this
+registration cannot interpret logs containing the extension; preserve the data
+and upgrade the Host instead of removing events or silently ignoring instructions.
+
+Fork inherits settings at the selected native history boundary and applies
+explicit overrides. Cold resume, engine-generation recovery and live updates
+share one scoped controller. Legacy catalog instructions are migration input
+only when the native session has no instruction state; they cannot overwrite
+newer native choices during ordinary activation. Existing sessions that never
+persisted their old baseInstructions cannot recover that previously discarded
+value. Prompt contents and arbitrary provider errors are not diagnostic output.
+
+`tests/dsh-blocks.test.ts`, `tests/dsh-instructions.test.mjs` and
+`scripts/smoke-dsh-instructions.ts` exercise block completion/reconciliation,
+scoped isolation, bounded forks, concurrent resumes and real locked-runtime
+requests across whole-Host and engine-generation recovery. Inference in the
+smoke uses an isolated local synthetic endpoint. These corrections do not prove
+that prompt wiring caused any particular model's communication frequency.

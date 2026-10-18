@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { volatileSessions } from "./dsh-thread-storage.mjs";
+import { instructionOverrides, sessionInstructions, createInstructionController, registerInstructionEvents } from "./dsh-instructions.mjs";
 
 export function requireThreadWorkspaceCwd(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -30,25 +31,30 @@ export function forkSeed(source, { lastTurn, beforeTurn } = {}, closers) {
 }
 
 /** Native ownership and full event seeding; no renderer projection enters this port. */
-export async function createThreadEngine(ctx, toolsModuleUrl, capabilities) {
+export async function createThreadEngine(ctx, toolsModuleUrl, capabilities, instructionController) {
   const module = path => new URL(path, toolsModuleUrl).href;
-  const { SessionId, interruptedTurnClosers } = await import(module("../../dsh-session/lib/index.js"));
+  const { SessionId, interruptedTurnClosers, KNOWN_SESSION_EVENT_TYPES } = await import(module("../../dsh-session/lib/index.js"));
+  registerInstructionEvents(ctx, KNOWN_SESSION_EVENT_TYPES);
   const { createUserMessage } = await import(module("../../dsh-llm/lib/index.js"));
   const { setSandboxMode } = await import(module("../../dsh-sandbox-policy/lib/index.js"));
   const { setApprovalPolicy } = await import(module("../../dsh-user-approval/lib/index.js"));
+  const promptSlots = await import(module("../../dsh-system-prompt/lib/index.js"));
+  const instructions = instructionController ?? createInstructionController(promptSlots);
   const handles = new Map();
   const resuming = new Map();
   const setup = input => async child => {
-    await ctx.agentPresets.mount(child, input.agentPreset);
-    if (input.developerInstructions) child.systemPrompt.section({ name: "opencraft:developer-instructions", order: 90, text: input.developerInstructions });
+    const agentPreset = (await ctx.agentPresets.resolve(input.agentPreset ?? child.agent.session.header.agentPreset)).id;
+    await ctx.agentPresets.mount(child, agentPreset);
+    instructions.setup(child, input);
     if (input.permissionPreset && input.permissionPreset !== "custom") ctx.permissionPresets.set(child.agent.session, input.permissionPreset);
     if (input.permissionState) {
       setSandboxMode(child.agent.session, input.permissionState.mode);
       setApprovalPolicy(child.agent.session, input.permissionState.approval);
     }
-    await capabilities?.mount(input, child.agent);
+    await capabilities?.mount({ ...input, agentPreset }, child.agent);
   };
   const create = async input => {
+    const instructions = instructionOverrides(input);
     const sessionId = input.sessionId ?? randomUUID();
     if (input.ephemeral) volatileSessions.mark(sessionId);
     const agentPreset = (await ctx.agentPresets.resolve(input.agentPreset)).id;
@@ -56,7 +62,8 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities) {
     try {
       const handle = await ctx.agents.create({ sessionId: SessionId(sessionId),
         seed: input.seed,
-        meta: { cwd, agentPreset, ...(input.sourceSessionId ? { parentSession: SessionId(input.sourceSessionId), seedLength: input.seed.length } : {}) },
+        meta: { cwd, agentPreset, opencraftInstructions: instructions,
+          ...(input.sourceSessionId ? { parentSession: SessionId(input.sourceSessionId), seedLength: input.seed.length } : {}) },
         agentOptions: { ...(input.provider ? { provider: input.provider } : {}), ...(input.model ? { model: input.model } : {}) },
         setup: setup({ ...input, sessionId, agentPreset }) });
       handles.set(sessionId, handle);
@@ -97,15 +104,25 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities) {
       } };
     },
     async resume(input) {
-      if (ctx.agents.get(input.sessionId)) return { sessionId: input.sessionId };
-      if (resuming.has(input.sessionId)) return resuming.get(input.sessionId);
+      const overrides = instructionOverrides(input);
+      if (resuming.has(input.sessionId)) {
+        await resuming.get(input.sessionId);
+        return this.resume(input);
+      }
+      const live = ctx.agents.get(input.sessionId);
+      if (live) {
+        if (instructions.ensure(live, { ...input, ...overrides })) {
+          await ctx.sessions.flush(live.session);
+        }
+        return { sessionId: input.sessionId };
+      }
       const operation = (async () => {
       if (volatileSessions.has(input.sessionId)) throw new Error("Temporary thread has been closed");
-      const agentPreset = (await ctx.agentPresets.resolve(input.agentPreset)).id;
       const handle = await ctx.agents.resume({ resumeSessionId: SessionId(input.sessionId),
         agentOptions: { ...(input.provider ? { provider: input.provider } : {}), ...(input.model ? { model: input.model } : {}) },
-        setup: setup({ ...input, agentPreset }) });
+        setup: setup(input) });
       handles.set(input.sessionId, handle);
+      await ctx.sessions.flush(handle.agent.session);
       return { sessionId: input.sessionId };
       })().finally(() => resuming.delete(input.sessionId));
       resuming.set(input.sessionId, operation);
@@ -115,13 +132,14 @@ export async function createThreadEngine(ctx, toolsModuleUrl, capabilities) {
       const source = ctx.agents.get(input.sourceSessionId)?.session;
       const inspected = source ? { meta: source.header, events: source.events } : await ctx.sessionPersistence.inspect(SessionId(input.sourceSessionId));
       const seed = forkSeed(inspected.events, input, interruptedTurnClosers);
+      const instructions = { ...sessionInstructions({ header: inspected.meta, events: seed }), ...instructionOverrides(input) };
       // Policy resolution only reads the event log; constructing a whole throwaway
       // Session here deep-copied and froze the entire seed just to fold it once.
       const permissionState = {
         mode: ctx.sandboxPolicy.resolve({ session: { events: seed, header: inspected.meta, id: SessionId(input.sourceSessionId) } }).mode,
         approval: ctx.approval.overrideOf({ events: seed }) ?? ctx.approval.config.policy ?? "ask",
       };
-      return create({ ...input, seed, cwd: input.cwd ?? inspected.meta.cwd,
+      return create({ ...input, ...instructions, seed, cwd: input.cwd ?? inspected.meta.cwd,
         agentPreset: input.agentPreset ?? inspected.meta.agentPreset, permissionState: input.permissionState ?? permissionState,
         permissionPreset: input.permissionPreset ?? ctx.permissionPresets.current(seed) });
     },

@@ -137,6 +137,17 @@ test("resume replays the saved model binding before an empty engine session can 
     assert.equal(catalog.configuration("thread").model, "product:model");
   } finally { await service.close(); }
 });
+test("null instruction fields retain legacy migration input while an empty string clears it", async () => {
+  const catalog = new ThreadCatalog(), service = new ThreadLifecycle(catalog, async () => ({ released: true }), () => {});
+  const reply = async () => ({ thread: { id: "thread", turns: [] } });
+  try {
+    await service.dispatch("thread/start", { developerInstructions: "legacy developer" }, "a", reply);
+    await service.dispatch("thread/resume", { threadId: "thread", developerInstructions: null }, "a", reply);
+    assert.equal(catalog.configuration("thread").developerInstructions, "legacy developer");
+    await service.dispatch("thread/resume", { threadId: "thread", developerInstructions: "" }, "a", reply);
+    assert.equal(catalog.configuration("thread").developerInstructions, "");
+  } finally { await service.close(); }
+});
 test("disconnect cleanup serializes temporary release against a new resume", async () => {
   const catalog = new ThreadCatalog(); let finish!: () => void, releaseStarted!: () => void;
   const started = new Promise<void>(resolve => { releaseStarted = resolve; });
