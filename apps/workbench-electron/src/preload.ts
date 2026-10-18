@@ -1,3 +1,5 @@
+import { createDesktopPreload } from "./desktop-product-preload-entry.js";
+import { composeDesktopBridge } from "./desktop-product-lifetime.js";
 import { contextBridge, ipcRenderer } from "electron";
 import type { NativeSpeechEvent, NativeSpeechOptions, NativeSpeechPreferences } from "@opencraft/app-host-protocol";
 import {
@@ -11,7 +13,7 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
   ipcRenderer.postMessage(CONNECT_APP_HOST_MESSAGE, event.data, [event.ports[0]!]);
 });
 
-contextBridge.exposeInMainWorld("opencraftDesktop", Object.freeze({
+contextBridge.exposeInMainWorld("opencraftDesktop", composeDesktopBridge({
   kind: "electron",
   locale: Object.freeze({
     getSystemLocale: () => ipcRenderer.invoke("opencraft:system-locale"),
@@ -90,18 +92,6 @@ contextBridge.exposeInMainWorld("opencraftDesktop", Object.freeze({
   }),
   platform: process.platform,
   versions: Object.freeze({ electron: process.versions.electron }),
-  lightvelaAccount: Object.freeze({
-    async signIn(region: "cn" | "intl") {
-      const result = await ipcRenderer.invoke("opencraft:lightvela-login", region);
-      if (!result.ok) throw new Error(result.error);
-      return result.session;
-    },
-    cancel: () => ipcRenderer.invoke("opencraft:lightvela-login-cancel"),
-    readSession: () => ipcRenderer.invoke("vela:lightvela-session-read"),
-    clearSession: () => ipcRenderer.invoke("vela:lightvela-session-clear"),
-    signOut: () => ipcRenderer.invoke("vela:lightvela-sign-out"),
-    request: (input: { url: string; method: string; contentType?: string; body?: Uint8Array }) => ipcRenderer.invoke("vela:lightvela-account-request", input),
-  }),
   getWindowFullscreen(): boolean {
     return ipcRenderer.sendSync("vela:get-window-fullscreen") === true;
   },
@@ -117,4 +107,4 @@ contextBridge.exposeInMainWorld("opencraftDesktop", Object.freeze({
   setWindowAppearance(appearance: import("@opencraft/design-system/theme-options").ThemeWindowAppearance): void {
     ipcRenderer.send("vela:set-window-appearance", appearance);
   },
-}));
+}, createDesktopPreload(ipcRenderer)));

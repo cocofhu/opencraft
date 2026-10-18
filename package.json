@@ -111,7 +111,7 @@
     "smoke:connector-desktop": "tsx scripts/smoke-connector-desktop.ts",
     "test:adaptive-navigation": "tsx --test tests/adaptive-navigation.test.ts tests/adaptive-panel.test.ts",
     "test:identity": "tsx --test tests/product-identity.test.ts tests/desktop-directory-identity.test.ts && node --test tests/prepare-dsh-runtime.test.mjs",
-    "test:electron-launch": "node --test tests/electron-preview-launch.test.mjs",
+    "test:electron-launch": "node --import tsx --test tests/electron-preview-launch.test.mjs tests/desktop-product-lifetime.test.ts tests/desktop-product-build.test.mjs",
     "test:macos-release": "node --test tests/macos-universal-release.test.mjs",
     "test:extensions": "tsx --test tests/application-branding.test.ts tests/single-contribution-registry.test.ts tests/host-document-service.test.ts tests/host-document-client.test.ts tests/extension-persistence.test.ts tests/extension-storage-api.test.ts tests/extension-runtime.test.ts tests/extension-settings.test.ts tests/extension-installations.test.ts tests/sidebar-layout.test.ts tests/bot-directory.test.ts",
     "test:recovery": "node --import tsx --test tests/recovery-policy.test.ts tests/recovery-dsh-chain.test.mjs tests/chat-workbench-resource-recovery.test.ts tests/conversation-return-probe.test.ts",
