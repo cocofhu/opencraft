@@ -101,7 +101,9 @@ export class ThreadLifecycle {
           ...(method === "thread/fork" ? { ephemeral: params.ephemeral === true, forkedFromId: params.threadId, parentThreadId: null } : {}),
           configuration: {
             ...Object.fromEntries(["model", "cwd", "runtimeWorkspaceRoots"].filter(key => reply[key] !== undefined).map(key => [key, reply[key]])),
-            ...Object.fromEntries(["cwd", "agentId", "runtimeWorkspaceRoots", "developerInstructions", "permissions"].filter(key => params[key] !== undefined).map(key => [key, params[key]])),
+            ...Object.fromEntries(["cwd", "agentId", "runtimeWorkspaceRoots", "developerInstructions", "permissions"]
+              .filter(key => params[key] !== undefined && (key !== "developerInstructions" || params[key] !== null))
+              .map(key => [key, params[key]])),
           },
         });
         this.attachments.attach(clientId, reply.thread.id); this.cancelTimer(reply.thread.id);

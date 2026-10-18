@@ -1239,6 +1239,10 @@ export class DshAppServerAdapter {
 
   private async dispatchCommand(method: string, params: unknown): Promise<unknown> {
     const value = object(params);
+    if (!this.threadEngine && ["thread/start", "thread/resume", "thread/fork"].includes(method)
+      && (value.baseInstructions != null || value.developerInstructions != null)) {
+      throw new Error("This engine does not expose native thread instruction overrides");
+    }
     switch (method) {
       case "thread/goal/get": {
         const threadId = string(value.threadId);
@@ -1359,6 +1363,10 @@ export class DshAppServerAdapter {
       case "thread/resume": {
         const sessionId = string(value.threadId);
         const historyEpoch = this.historyEpoch;
+        if (this.threadEngine && (value.baseInstructions != null || value.developerInstructions != null)) {
+          await this.threadEngine.resume({ sessionId,
+            baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions });
+        }
         const description = this.threadEngine?.describe ? await this.threadEngine.describe({ sessionId }) : null;
         if (historyEpoch !== this.historyEpoch || !this.engineReady)
           throw new DshClientError("DSH_GENERATION_CHANGED", "DSH restarted during resume; retry required", true);
@@ -1566,7 +1574,7 @@ export class DshAppServerAdapter {
         const created = await this.threadEngine.fork({ sourceSessionId: sourceId,
           dynamicTools: value.dynamicTools,
           cwd: typeof value.cwd === "string" ? value.cwd : source.cwd ?? homedir(),
-          ephemeral: value.ephemeral === true, developerInstructions: value.developerInstructions,
+          ephemeral: value.ephemeral === true, baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions,
           provider: selection?.provider, model: selection?.model,
           lastTurn: boundary(value.lastTurnId), beforeTurn: boundary(value.beforeTurnId),
           permissionPreset: requestedPreset,
@@ -1619,7 +1627,8 @@ export class DshAppServerAdapter {
             : typeof value.cwd === "string" ? { cwd: value.cwd } : {}),
           ...(typeof value.agentId === "string" && value.agentId !== "dsh" ? { agentPreset: value.agentId } : {}),
           ...(requestedPreset === undefined ? {} : { permissionPreset: requestedPreset }),
-          ...(this.threadEngine ? { ...selection, ephemeral: value.ephemeral === true, developerInstructions: value.developerInstructions } : {}),
+          ...(this.threadEngine ? { ...selection, ephemeral: value.ephemeral === true,
+            baseInstructions: value.baseInstructions, developerInstructions: value.developerInstructions } : {}),
         };
         let created: { sessionId: string; agentPreset?: string; cwd?: string; ephemeral?: boolean } | null = null;
         try {

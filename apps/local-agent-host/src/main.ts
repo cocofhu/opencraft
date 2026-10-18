@@ -308,9 +308,12 @@ export async function startLocalAgentHost(options: {
     resume: async params => {
       const id = String(params.sessionId);
       const configuration = lifecycle.catalog.configuration(id);
+      const { developerInstructions: legacyDeveloperInstructions, baseInstructions: legacyBaseInstructions, ...runtimeConfiguration } = configuration;
       const agentPreset = lifecycle.catalog.get(id)?.extra?.dsh?.agentPreset;
       const selection = decodeModel(configuration.model);
-      const resumed = await capabilityLink!.thread("resume", { ...configuration, ...params, ...selection, agentPreset, sessionId: routing.native(id) });
+      const resumed = await capabilityLink!.thread("resume", { ...runtimeConfiguration, ...params, ...selection, agentPreset,
+        legacyInstructions: { baseInstructions: legacyBaseInstructions, developerInstructions: legacyDeveloperInstructions },
+        sessionId: routing.native(id) });
       // The native Web API's picker is process-local for a never-run session.
       // Restore its product-owned binding before resume/fork reads that picker.
       if (selection) {
@@ -386,6 +389,7 @@ export async function startLocalAgentHost(options: {
               const next = await capabilityLink.createGeneration({
                 logicalSessionId: session.sessionId, sourceSessionId: current.nativeId,
                 cwd: session.cwd ?? homedir(), provider: models.current.provider, model: models.current.model,
+                legacyInstructions: lifecycle.catalog.configuration(session.sessionId),
               });
               routing.publish(current.nativeId, { logicalId: session.sessionId, nativeId: next.sessionId, generation: next.generation,
                 seedThroughSeq: next.seedThroughSeq, seedThroughTurn: next.seedThroughTurn,

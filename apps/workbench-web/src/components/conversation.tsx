@@ -6,6 +6,8 @@ import { ThinkingLabel } from "./thinking-label";
 import { ResponsePositionedTurns, type ResponsePositionedTurnsApi } from "./conversation/response-positioned-turns";
 import {
   createTimelineTurnPresentationPlan,
+  activeTimelineTurnTodo,
+  ReasoningPresentationCache,
   deriveAsyncQuestionStates,
   groupTimelineFramesByTurn,
   presentAutomationUpdate,
@@ -547,9 +549,10 @@ function Turn({
     toolActivityPresenters.getSnapshot,
     toolActivityPresenters.getSnapshot,
   );
+  const reasoningCache = useMemo(() => new ReasoningPresentationCache(), [turn.turnKey]);
   const presentation = useMemo(
-    () => createTimelineTurnPresentationPlan(turn, toolActivityPresenters, { isMostRecentTurn, partitionOptions: { keepMcpAppEntriesPersistent: renderMcpApps, renderMcpApps } }),
-    [isMostRecentTurn, renderMcpApps, toolActivityPresenterVersion, toolActivityPresenters, turn],
+    () => createTimelineTurnPresentationPlan(turn, toolActivityPresenters, { isMostRecentTurn, reasoningPresenter: reasoningCache.present, partitionOptions: { keepMcpAppEntriesPersistent: renderMcpApps, renderMcpApps } }),
+    [isMostRecentTurn, reasoningCache, renderMcpApps, toolActivityPresenterVersion, toolActivityPresenters, turn],
   );
   const turnThinking = presentation.thinkingOwner.type === "turn"
     ? presentation.thinkingOwner
@@ -728,8 +731,8 @@ export function Conversation({
   const activeTodo = useMemo(
     () => latestTurn === null
       ? null
-      : createTimelineTurnPresentationPlan(latestTurn, toolActivityPresenterRegistry, { isMostRecentTurn: true }).activeTodo,
-    [latestTurn, toolActivityPresenterRegistry],
+      : activeTimelineTurnTodo(latestTurn, true),
+    [latestTurn],
   );
   const [activityCollapsedById, setActivityCollapsedById] = useState<Readonly<Record<string, boolean>>>(
     () => initialRestoreSnapshot?.agentActivityCollapsedById ?? {},
