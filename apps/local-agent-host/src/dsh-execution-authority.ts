@@ -116,6 +116,14 @@ export class DshExecutionAuthority {
   }
   claim(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
     this.assertConnected(owner);
+    return this.claimExecution(threadId, owner, requestId);
+  }
+  /** An explicitly armed native Goal outlives its originating socket. Only the
+   * admission gate may call this after validating the native goal source. */
+  claimGoalContinuation(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
+    return this.claimExecution(threadId, owner, requestId);
+  }
+  private claimExecution(threadId: string, owner: DshExecutionOwner, requestId: string | number): DshAdmission {
     const lease = this.leases.acquire(threadId, owner, "executing");
     if (!lease.acquired) throw new Error("Thread write lease belongs to another connection");
     const result = this.table.claim(threadId, {

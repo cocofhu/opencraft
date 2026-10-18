@@ -1,3 +1,4 @@
+import { threadGoalNeedsResume } from "@opencraft/appserver-protocol";
 import type { ThreadGoalResource } from "@opencraft/workbench-runtime";
 
 export interface SidebarGoalSource {
@@ -42,6 +43,10 @@ export function observeSidebarThreadGoals(source: SidebarGoalSource, notify: () 
 /** Only mode changes repaint the list; usage counters are not row activity. */
 export function sidebarGoalSignature(sources: readonly SidebarGoalSource[]): string {
   return sources.map(source => source.isCurrent() && source.goals.capability()?.read
-    ? source.threadIds.map(id => source.goals.getSnapshot(id).goal?.status === "active" ? "1" : "0").join("")
+    ? source.threadIds.map(id => sidebarGoalActive(source.goals.getSnapshot(id).goal) ? "1" : "0").join("")
     : "").join("|");
+}
+
+export function sidebarGoalActive(goal: unknown): boolean {
+  return typeof goal === "object" && goal !== null && "status" in goal && goal.status === "active" && !threadGoalNeedsResume(goal);
 }

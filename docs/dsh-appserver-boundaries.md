@@ -42,7 +42,8 @@
 | foreground bash | commandExecution with commandActions, outputDelta, exitCode and duration |
 | todo/write | turn/plan/updated and a stable plan item for history |
 | goal/change | thread/goal/updated or thread/goal/cleared, independent of TODO |
-| thread/goal/get | authoritative session.history goal projection |
+| thread/goal/get | live ctx.goals view, or cold session.history goal projection |
+| thread/goal/set and clear | native ctx.goals CAS mutation and Session durability |
 | assistant/message | deferred phase: commentary before further work, final_answer on successful turn end |
 | thread status `notLoaded` or `idle` | neutral Workbench Thread state; no attention marker |
 | thread status `active` | running Workbench Thread state |
@@ -55,10 +56,37 @@ expansions and unsupported flags remain unknown. Background bash stays a generic
 tool result rather than pretending its process has exited. Foreground result
 markers distinguish nonzero exits, timeout and signals from success.
 
-Goal reads and notifications do not implement goal mutation or budget accounting.
-DSH exposes no goal token/time counters: protocol-required counters are zero
-(no recorded usage), tokenBudget is null; they are not measured consumption.
-Goal mutations must not be advertised as supported until explicitly translated.
+Goal mutation belongs to `ctx.goals` on the exact live Agent, serialized through
+its native thread port and flushed through `ctx.sessions`. Create/edit/pause/
+resume/complete/block/clear use the service's current id/revision; native goal
+tools keep their own human/automatic-round policy. No second goal database or
+OpenCraft continuation loop exists. The native goal-round driver owns scheduling,
+round limits, cancellation and durability checkpoints.
+
+An explicit active Goal mutation authorizes a process-local continuation owner
+before native arming. A tool-created Goal inherits its admitted human execution.
+Only native `source.kind=goal` with the exact authorized goal id/revision and a
+new positive round receives a new execution epoch. A pending human admission
+cannot be stolen. Armed goals outlive their originating socket; reconnect by
+the same actor reclaims the execution and future round owner. Engine loss clears
+these grants. Session-scoped `goal/change` notifications bypass Turn admission,
+so pause/complete/clear remain observable between turns. History replay never
+creates a continuation grant.
+
+Cold restore and fork retain durable phase/objective but native activation is
+disarmed. The optional `execution.activation` Goal projection lets the existing
+UI show Resume even for a durably active, disarmed Goal. Reading never loads or
+arms an Agent; explicit Resume rearms it. An armed Goal prevents idle unload.
+Completing or clearing a Goal stops subsequent rounds; an already executing
+round may finish its final answer. Turn interruption uses the native driver's
+cancellation behavior rather than a parallel stop mechanism.
+
+DSH exposes no goal token/time accounting: required counters remain zero and
+`tokenBudget` is null. The Goal capability declares `usageAccounting:false`, so
+shared UI omits elapsed/token metrics. Non-null token budgets and unsupported
+statuses are rejected. Native round limits are not token budgets. Hosts without
+the native Goal port remain read-only; older capabilities without the optional
+accounting flag retain their existing behavior.
 
 Generic tool approvals have no fabricated shell command: command remains null
 and reason names the tool. Persistent grants are rejected, not silently widened.
@@ -125,3 +153,5 @@ scoped isolation, bounded forks, concurrent resumes and real locked-runtime
 requests across whole-Host and engine-generation recovery. Inference in the
 smoke uses an isolated local synthetic endpoint. These corrections do not prove
 that prompt wiring caused any particular model's communication frequency.
+
+The native synthetic fixture `npx tsx scripts/smoke-dsh-goal.ts` exercises the locked runtime, HTTP/WebSocket transport, native Goal tools, same-session continuation and cold persistence. Only inference is a local synthetic endpoint; it does not assert paid-provider or device behavior.

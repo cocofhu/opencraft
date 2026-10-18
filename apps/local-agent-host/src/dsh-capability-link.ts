@@ -72,7 +72,7 @@ export class DshCapabilityLink {
   async validate(capabilities: readonly DshHostCapability[]) {
     await this.request("/validate-capabilities", { capabilities });
   }
-  async thread(operation: "create" | "describe" | "resume" | "fork" | "inject" | "release", params: Record<string, unknown>): Promise<any> {
+  async thread(operation: "create" | "describe" | "resume" | "fork" | "inject" | "release" | "goal", params: Record<string, unknown>): Promise<any> {
     return this.request("/thread/" + operation, params);
   }
   async modelInfo(provider: string, model: string): Promise<any> {

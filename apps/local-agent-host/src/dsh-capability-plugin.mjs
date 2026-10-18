@@ -15,7 +15,7 @@ import { createDshSkillCatalog } from "./dsh-skill-catalog.mjs";
 import { validateSkillInvocations } from "./dsh-skill-invocation.mjs";
 import { createInstructionController, sessionInstructions, hasSessionInstructions, instructionOverrides } from "./dsh-instructions.mjs";
 
-export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments"];
+export const inject = ["llm", "tools", "agents", "skills", "sessions", "sessionPersistence", "agentLoop", "agentPresets", "sandboxPolicy", "approval", "permissionPresets", "attachments", "goals"];
 export async function apply(ctx, config) {
   const promptSlots = await import(new URL("../../dsh-system-prompt/lib/index.js", config.toolsModuleUrl).href);
   const instructions = createInstructionController(promptSlots);

@@ -1,3 +1,5 @@
+import type { ThreadGoal } from "./generated/v2/ThreadGoal.js";
+
 /** Host-owned queue behavior that cannot be inferred from queue contents. */
 export const OPENCRAFT_THREAD_QUEUE_EXTENSION = "opencraft/thread-queue";
 
@@ -8,14 +10,28 @@ export interface OpenCraftThreadGoalCapability {
   readonly version: 1;
   readonly read: true;
   readonly write: boolean;
+  /** Absent preserves the legacy accounting contract. */
+  readonly usageAccounting?: false;
 }
 
 export function parseThreadGoalCapability(value: unknown): OpenCraftThreadGoalCapability | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
   return candidate.version === 1 && candidate.read === true && typeof candidate.write === "boolean"
-    ? { version: 1, read: true, write: candidate.write }
+    ? { version: 1, read: true, write: candidate.write, ...(candidate.usageAccounting === false ? { usageAccounting: false as const } : {}) }
     : null;
+}
+
+/** Additive Goal metadata, kept outside the generated upstream schema. */
+export type OpenCraftThreadGoal = ThreadGoal & {
+  readonly execution?: { readonly activation: "armed" | "disarmed" };
+};
+
+/** Optional live execution metadata; durable phase alone cannot prove arming. */
+export function threadGoalNeedsResume(goal: unknown): boolean {
+  if (typeof goal !== "object" || goal === null) return false;
+  const value = goal as { status?: unknown; execution?: { activation?: unknown } };
+  return value.status === "active" && value.execution?.activation === "disarmed";
 }
 
 export interface OpenCraftThreadQueueCapability {
