@@ -57,7 +57,7 @@ synthetic; it does not claim a real execution engine or native-device session.
 
 The wider review also found the module's explicit “source-identical” MCP fallback
 annotation, native handoff summary sentences and recovered handoff-step behavior in `codex-app-tools.ts`. Those
-regions were outside the original 21-value finding. The separate unresolved
-`codex-tool-surface-fallbacks` inventory entry retains them for source-specific
-review; this table disposition does not clear them, add authorization or reduce
+regions were outside the original 21-value finding. The follow-up [tool surface disposition](tool-surface-disposition.md) records
+their bounded replacement. The separate unresolved `codex-tool-surface-fallbacks`
+inventory entry retains the wider annotated regions for source-specific review; this table disposition does not clear them, add authorization or reduce
 that work to a harmless protocol-name assumption. The full clients remain.
