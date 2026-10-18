@@ -329,3 +329,41 @@ it is not blindly restored again. Storage startup reports the new applied v5
 outcome separately from unrelated owner versions.
 The Agent CLI archive query returns compact summaries (20 by default, max 100)
 and the server cursor; `read` supplies full retained content on demand.
+
+
+## Conversation overview
+
+Tasks offers an optional read-only conversation statistics tab through `ConversationOverviewPort`.
+It does not join only linked tasks or reuse a loaded sidebar subset: enabled sources are paginated
+through native interactive Thread catalogs, including archives, with host/thread identity deduplication.
+Ephemeral entries and native-default subagent exclusions stay outside this scope. A disconnected
+source is explicitly incomplete, never a zero. Native pins include entries outside recent pages.
+
+Current state is independent of the selected date range. Completion requires the latest native
+turn to succeed and no active run; cold (`notLoaded`) native runtimes still require the successful
+latest result. Active approval/input waits, failed/interrupted turns, missing results and empty
+conversations remain distinct. Only latest-turn metadata is read, with four concurrent requests;
+no message bodies, resuming, sending, or task mutation. A source/client connection change fences
+late data; cancellation and unmount stop the scan. Reads occur only while this tab is mounted,
+with manual refresh and a 30-second visible-document refresh.
+
+Calendar presets/custom inclusive dates use the device zone. New counts use `createdAt`, activity
+uses `updatedAt`, and completion trends count each currently completed conversation once using
+the latest turn's real `completedAt`. They are not historical per-turn throughput. Missing native
+completion timestamps stay out of trends. Archives are an independent retention dimension.
+
+An optional trusted `threadParticipation` contribution supplies accepted-message participant
+identities, separately from creator identity. Core never imports a private product protocol or
+infers identities from badges. People analysis counts known participants of period-updated
+conversations, not period message counts, effort, or individual productivity. Unknown/pending
+rows remain unknown and the coverage denominator is displayed. Tasks filters/edit drafts and
+SQLite authority are unaffected; light/dark and touch layouts consume design-system tokens.
+
+A refresh that cannot read any source retains the last successful snapshot within the same account and source scope; the existing freshness status reports the failure without inserting an error block. Cold unavailable reads show unknown counts. Account/source changes still revoke the snapshot.
+
+The statistics renderer and its styles load on first selection of the statistics
+tab. The tab uses React Suspense with the existing conversation-loading status
+while code arrives; read state, account scope and periodic refresh stay with the
+same statistics component. Opening Tasks alone does not load this optional view. Its native read adapter
+also loads only on the first read; cancellation is checked after import before
+any request can begin.

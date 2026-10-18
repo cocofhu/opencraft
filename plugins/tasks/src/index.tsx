@@ -13,6 +13,7 @@ export interface TaskConversationActivity {
 /** The application owns transports, identities and native conversation activity. */
 export interface TasksExtensionPorts {
   readonly storageHostId: string | null;
+  readonly conversationOverview?: import("./conversation-overview-model").ConversationOverviewPort;
   request<M extends TasksMethod>(
     hostId: string,
     method: M,

@@ -1,6 +1,8 @@
 import { nativeMonoFontFamily, typographyRole } from "@opencraft/design-system/typography";
 import {
   createTimelineTurnPresentationPlan,
+  activeTimelineTurnTodo,
+  ReasoningPresentationCache,
   assistantMessageActions,
   compactionLabel,
   todoSummary,
@@ -1980,9 +1982,10 @@ function Turn({
   const registry = useContext(NativeToolActivityPresenterContext);
   const reportLatestFollowContentLayout = useContext(NativeLatestTurnFollowContentContext);
   const version = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
+  const reasoningCache = useMemo(() => new ReasoningPresentationCache(), [turn.turnKey]);
   const presentation = useMemo(
-    () => createTimelineTurnPresentationPlan(turn, registry, { isMostRecentTurn }),
-    [isMostRecentTurn, registry, turn, version],
+    () => createTimelineTurnPresentationPlan(turn, registry, { isMostRecentTurn, reasoningPresenter: reasoningCache.present }),
+    [isMostRecentTurn, reasoningCache, registry, turn, version],
   );
   const turnThinking = presentation.thinkingOwner.type === "turn"
     ? presentation.thinkingOwner
@@ -2122,8 +2125,8 @@ export function WorkbenchConversation({
     const latest = entries.at(-1);
     return latest === undefined
       ? null
-      : createTimelineTurnPresentationPlan(latest, toolActivityPresenterRegistry, { isMostRecentTurn: true }).activeTodo;
-  }, [entries, toolActivityPresenterRegistry]);
+      : activeTimelineTurnTodo(latest, true);
+  }, [entries]);
   const historyKey = timeline === null
     ? null
     : JSON.stringify([timeline.key.hostId, timeline.key.threadId]);
