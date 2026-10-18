@@ -438,6 +438,8 @@ export function createWorkbenchWebConfig(
       },
     },
     build: {
+      // Ship complete dependency notices with Web and Electron renderer assets.
+      license: { fileName: "licenses/dependencies.md" },
       target: browserslistToEsbuild(browserTargets),
       // Vite 8 uses Rolldown + Oxc. Release builds keep the standard Oxc
       // minifier; aggressive secondary compression/mangling has caused

@@ -169,8 +169,11 @@ copied expression. `NOTICE` retains this distinction and third-party notices.
 The [review inventory](source-provenance-review.md) records the affected
 components and resolution criteria; [pinned references](source-reference-bindings.json)
 now locate the previously relative Web-adapter and tool-label sources. The selected first-release scope preserves
-full clients. Independent-replacement work is paused while source-specific rights
-and lineage are reviewed; unverified provenance does not establish a need for
+full clients. Blanket independent-replacement work remains paused while source-specific rights
+and lineage are reviewed; the 2026-10-18 scoped authorization permits bounded
+source treatment. The stable callback now delegates to a pinned public MIT
+implementation, with full notices; the other six inventory groups and former
+Git history remain unresolved. Unverified provenance does not establish a need for
 replacement. A Headless-only first release is not selected.
 
 ```sh
