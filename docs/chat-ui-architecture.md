@@ -201,7 +201,7 @@ snapshot-oriented compatibility projection for Codex V3 Resume. Web and Native
 surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
-For a LightVela Hermes Host, the Web Composer offers `/new`, `/compress`,
+For a the downstream product Hermes Host, the Web Composer offers `/new`, `/compress`,
 `/status`, `/usage`, `/stop` and `/help` in its input footer and slash suggestions.
 Choosing a shortcut inserts editable text into the current Draft; only explicit
 submission executes it. Ordinary shortcuts use Hermes `prompt.submit`. A standalone
@@ -706,7 +706,7 @@ owned by DSH and may finish before the next-step inbox is consumed.
 The standalone main conversation defaults fresh follow-up input to queueing during
 an active response. Chat settings can persist `steer` instead through
 `UiPreferencesRuntime` (`chat.defaultFollowUpAction`, installation scope). The
-LightVela embedded conversation defaults to `queue` while a response is active,
+the downstream product embedded conversation defaults to `queue` while a response is active,
 independent of the standalone preference.
 Ctrl/Cmd+Enter temporarily chooses the opposite action; idle input still starts
 a normal response. Content always takes precedence, including attachment-only,
@@ -738,8 +738,8 @@ backend or embedded preference policy.
 
 The real embedded preference policy is covered by
 `npm run smoke:product-isolation --prefix products/vela -- --embedded-only` (from the downstream product workspace), using the isolated
-LightVela Web and Embedded Workbench builds. It saves immediate follow-up through
-real LightVela settings on the same origin/product, holds completion after real
+the downstream product Web and Embedded Workbench builds. It saves immediate follow-up through
+real the downstream product settings on the same origin/product, holds completion after real
 first-Turn admission, and checks that embedded still offers Queue. The same
 fixture retains multi-Profile draft/focus, reconnect, hidden lease and account
 replacement coverage across light/dark and DPR 1/2. The external account, TAT
@@ -1225,7 +1225,7 @@ for each Thread. The host Sidebar may show activity from that field; selected
 Thread identity and session-list loading are not execution status.
 Only webpage tabs and read-only files linked from the conversation are exposed.
 
-For LightVela multi-Bot instances, one embedded Host is identified by
+For the downstream product multi-Bot instances, one embedded Host is identified by
 `instanceId + profileId`, not by the physical instance alone. CTL's root
 `main` identity maps to native Hermes `default`; named Bot Profiles keep their
 native identity. Every ordinary Thread operation is scoped at the Hermes
@@ -1306,7 +1306,7 @@ body but must not reset either reasoning or tool-group choices. The header uses 
 nonempty visible document line when active, or first visible line when settled.
 The status label stays readable in full; the document-line preview yields space
 and truncates when the header is narrow or the line is long.
-Embedded LightVela status labels follow the host locale for all supported site
+Embedded the downstream product status labels follow the host locale for all supported site
 languages; returned reasoning text stays in the language supplied by the engine.
 `chat-document` owns the shared assistant Markdown grammar and plain-text
 projection: labels omit formatting controls and link destinations, but preserve
@@ -1536,7 +1536,7 @@ history, or remounting the Conversation.
 - Browser attachment blobs require a compatible Host attachment-staging
   capability before they can become server-readable AppServer attachments. The
   compiler remains a final fail-closed boundary, not the primary upload-state UI.
-- LightVela Hermes advertises that capability only when its authenticated
+- the downstream product Hermes advertises that capability only when its authenticated
   Dashboard filesystem exists. Client bytes are staged under the controlled
   `<codexHome>/opencraft-attachments/<client-id>` directory with a durable
   manifest, a location-keyed display-metadata index, replay/content checks and
@@ -1590,7 +1590,7 @@ failures must not be reported through `console.error`, which Expo Go renders
 as a full-screen development error.
 workspace and permission controls consume the same AppServer project and
 permission-profile catalogs; they appear only when the connected Host returns
-actionable entries. The current LightVela Hermes bridge returns empty catalogs
+actionable entries. The current the downstream product Hermes bridge returns empty catalogs
 for both methods, so its iOS Bot chat has no workspace or permission choice
 until that Host implements the corresponding capability. The renderer does not
 manufacture selectable projects or permission profiles.
@@ -1840,7 +1840,7 @@ No enterprise identity-specific query, count, identity or badge styling belongs 
 Chinese emphasis uses the standard Marked tokenizer first. If it rejects an asterisk delimiter at a Han/punctuation boundary, the compiler retries with a length-preserving delimiter mask and a relaxed Han opener boundary. This preserves canonical source, code/escape masking and standard English/underscore behavior. The Codex reference uses Marked 16.4.1 without this override and reproduces both reported completed-text cases.
 
 
-Mobile Web Composer ordinary Return inserts a paragraph on coarse primary-pointer devices, including iOS native paragraph changes routed back through ProseMirror Enter. Suggestion, code and list commands keep their own precedence. Desktop Enter and explicit Ctrl/Cmd+Enter submissions remain available. Standalone and LightVela embedded Composer consume the same placeholder message IDs: new conversations use `chat.companionPlaceholder`, and follow-ups use `chat.companionFollowupPlaceholder`.
+Mobile Web Composer ordinary Return inserts a paragraph on coarse primary-pointer devices, including iOS native paragraph changes routed back through ProseMirror Enter. Suggestion, code and list commands keep their own precedence. Desktop Enter and explicit Ctrl/Cmd+Enter submissions remain available. Standalone and the downstream product embedded Composer consume the same placeholder message IDs: new conversations use `chat.companionPlaceholder`, and follow-ups use `chat.companionFollowupPlaceholder`.
 
 Standalone and embedded Web entry points share one minimum Composer editing height: 64px for desktop viewports (at least 768px), and 48px below that breakpoint regardless of pointer type. This applies to new-thread and narrower panel containers; embedded styles do not override the height. Document growth and the scroll cap retain their existing behavior.
 

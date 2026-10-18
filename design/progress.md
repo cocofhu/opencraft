@@ -8,7 +8,7 @@
 
 ## 2026-09-14：云端 Bot 不是工作区前置条件
 
-根因是账号零 Bot 产生 applicationIntervention，并在 App 中优先于选中 Host 的错误接管主内容。已删除该优先级及 LightVela 自动 empty-workbench 创建入口；无 Host 时显示中立环境入口。显式环境创建、选中 Host 的连接干预仍保留。正在验证匿名/已登录零 Bot、类型/门禁与新版预览。
+根因是账号零 Bot 产生 applicationIntervention，并在 App 中优先于选中 Host 的错误接管主内容。已删除该优先级及下游产品自动 empty-workbench 创建入口；无 Host 时显示中立环境入口。显式环境创建、选中 Host 的连接干预仍保留。正在验证匿名/已登录零 Bot、类型/门禁与新版预览。
 
 源码与构建已完成。完整 gate 通过；随后将显式选中但无实例的 Host 提示改为中立“选择运行环境”，最终 Web 类型与 74 项聚焦回归通过。该 Host 提示也不再调用创建 Bot 向导。新包 `release/optional-cloud-final-preview` 签名完整性校验通过。已询问用户是否重启当前已登录预览；尚未收到确认，因此未关闭旧窗口或改动登录/配置。真实已登录窗口的新版验收待重启确认。
 

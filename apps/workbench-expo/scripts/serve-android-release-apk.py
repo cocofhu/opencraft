@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve only the local LightVela Android release APK over HTTP."""
+"""Serve only the local Android release APK over HTTP."""
 
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

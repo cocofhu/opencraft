@@ -13,10 +13,10 @@ ProseMirror and the Codex SCSS frame are intentionally unavailable here.
 `npm run start --workspace @opencraft/workbench-expo`, `export:web` and
 `bundle:ios` use the existing public RN Workbench and direct Host. Set
 `EXPO_PUBLIC_APPSERVER_WS_URL` to a reachable Host for a physical device.
-No LightVela login or generated private Bot HTML is required for this entry.
+No downstream sign-in or generated private Bot HTML is required for this entry.
 Native math/Mermaid HTML remains packaged by the shared runner.
 
-The LightVela instructions below describe the **explicit downstream product**.
+The downstream instructions below describe the **explicit downstream product**.
 In a downstream product checkout run `node products/vela/run-expo.cjs start --go` from the
 downstream root, or `npm run expo:start --prefix products/vela -- --go`. Its runner
 selects the original Router/account/Bot entry and edition configuration.
@@ -34,7 +34,7 @@ installation continuity; product-specific permission text belongs to its config.
 |---|---|---|
 | iPhone 体验当前代码 | Expo Go 临时预览，依赖持续运行的 Metro | [真机快速体验](#iphone-真机快速体验) |
 | Android 内测安装 | `dev.opencraft.workbench`，开发签名 APK | [Android 内测 APK](#android-internal-apk) |
-| Android 正式包与资料 | 中国大陆 `app.opencraft.workbench`；国际 `app.opencraft.workbench.intl`，分别生成签名与包资料 | [Android 正式 APK](#android-lightvela-release-apk) |
+| Android 正式包与资料 | 中国大陆 `app.opencraft.workbench`；国际 `app.opencraft.workbench.intl`，分别生成签名与包资料 | [Android 正式 APK](#android-release-apk) |
 | iOS 可安装测试包 | 内测 `dev.opencraft.workbench`；大陆 `ai.lightvela.vela`；国际 `ai.lightvela.vela.intl` | [iOS IPA](#ios-site-shell-and-simulator) |
 
 Expo Go 链接、Android APK 和 iOS IPA 是不同交付物。每次交付都从当前
@@ -49,7 +49,7 @@ checkout 构建并验证成品；构建成功本身不代表已经安装、上�
 1. 在 iPhone 上从[美区 App Store 安装 Expo Go](https://apps.apple.com/us/app/expo-go/id982107779)。
 2. 让开发者先运行 `npx expo whoami`，确认电脑 Expo CLI 与手机 Expo Go 登录的是同一个 Expo 账号；未登录时在电脑上完成 `npx expo login`。再按 [Cloudflare Expo Go 预览 skill](../../.agents/skills/opencraft-expo-cf-preview/SKILL.md)启动并核验预览，取得本次的 `exps://…trycloudflare.com` 链接。链接每次可能变化；Metro 和 Cloudflare Tunnel 必须保持运行。直连链接不能绕过 iPhone 真机的 Expo 账号校验。
 3. 把完整链接粘贴到 **Safari 地址栏**，允许跳转 Expo Go。不要用聊天软件内置浏览器，也不必等待项目出现在 Expo Go 的开发服务器列表。
-4. Expo Go 默认进入国际站并登录 LightVela。登录后进入“我的智能体”；打开左侧菜单，从固定的“个人与设置”入口进入个人页。个人页可管理订阅、选择语言和查看开源授权。登录前也能从右上角打开设置。调试大陆站时，在登录前的设置中启用开发者模式，再切换站点。
+4. Expo Go 默认进入国际站并登录下游产品。登录后进入“我的智能体”；打开左侧菜单，从固定的“个人与设置”入口进入个人页。个人页可管理订阅、选择语言和查看开源授权。登录前也能从右上角打开设置。调试大陆站时，在登录前的设置中启用开发者模式，再切换站点。
 
 如果出现红屏或一直加载，请把手机画面发给开发者，并让其检查外网 manifest 与正在运行的 Metro 日志；只有定位到 bundle 传输问题时才检查完整 bundle。此预览是临时开发服务，不能当作已安装的独立 IPA。
 如果 Expo Go 提示电脑的 CLI 未登录或账号不同，先让开发者核对 `npx expo whoami`，在电脑上完成同账号登录后，点手机错误页的 **Try Again**；无需把密码发给开发者。只有 CLI 已缓存另一个账号时才需要重启 Metro。
@@ -113,7 +113,7 @@ development client, starts Metro, and opens the iOS Simulator. The default
 theme is explicitly light. Expo no longer depends on Unistyles or NitroModules;
 the Android workbench uses React Native styles, while iOS uses HeroUI Native.
 
-After native LightVela sign-in, iOS verifies the session and loads the
+After native sign-in, iOS verifies the session and loads the
 App-packaged Bot DOM runtime. The native session and region are supplied to
 the existing frontend repository and session providers before their scripts
 run. A local Gesture Handler/Reanimated container provides the interruptible
@@ -167,7 +167,7 @@ response text. Normal account errors remain plain user-facing messages.
 Settings also contains an offline list of this Expo app's direct open-source
 dependencies, with their versions and license identifiers from the workspace
 lockfile. Each row opens the upstream package page for full terms; a separate
-button opens LightVela's complete open-source notice. Run
+button opens the downstream product's complete open-source notice. Run
 `npm run licenses:generate --workspace @opencraft/workbench-expo` after changing
 app dependencies and `npm run licenses:check --workspace @opencraft/workbench-expo`
 to verify the bundled list.
@@ -195,7 +195,7 @@ Set `OPENCRAFT_IOS_EXPORT_METHOD=ad-hoc` for registered test devices; the
 default is `development`. Apple signing and device installation cannot be
 verified on Linux.
 
-要构建 LightVela 标识的 iOS 测试 IPA，在干净 checkout 的 Mac 上设置
+要构建产品品牌的 iOS 测试 IPA，在干净 checkout 的 Mac 上设置
 `OPENCRAFT_IOS_RELEASE=1`，并提供对应 Bundle ID 的 Apple Developer Team。
 默认大陆包 `ai.lightvela.vela`：
 
@@ -212,7 +212,7 @@ OPENCRAFT_IOS_RELEASE=1 APPLE_TEAM_ID=YOUR_TEAM_ID \
 或 ad-hoc 测试包，不会生成 App Store 分发 IPA。Mac、Xcode、CocoaPods
 与 Apple 签名缺一不可；Linux 上的 JS bundle 检查不能代替 IPA 验证。
 
-## Native LightVela login
+## Native sign-in
 
 The iOS app uses the existing `GET /oauth2/authorize` page and
 `POST /auth/session/exchange`. The release edition fixes the default site:
@@ -236,7 +236,7 @@ Cold-start callbacks restore the pending transaction; the callback route returns
 to `/` and never owns credentials. Stale callbacks cannot suppress a saved session. The generic web login flow is unchanged. Native OIDC grants live for 120 seconds and are redeemed only through the first-party session adapter, not as site-gateway JWTs.
 
 The matching server contract is `user/auth/api/native-login.openapi.yaml` in the
-LightVela downstream repository. No production deployment is implied by a simulator build.
+the downstream repository. No production deployment is implied by a simulator build.
 
 CI and Linux hosts can verify the complete JavaScript bundle and native package
 discovery closure without Xcode:
@@ -277,10 +277,10 @@ Once OpenCraft is mirrored to its standalone GitHub repository, the manual
 **Android internal APK** Actions workflow builds the same target and provides
 the APK as an artifact. The nested workflow does not execute downstream and does
 not publish to a store or GitHub Release. Installing the APK does not require
-Metro; sign-in still requires the native LightVela login server contract
+Metro; sign-in still requires the downstream sign-in server contract
 described above.
 
-## Android LightVela release APK
+## Android release APK
 
 正式 Android 分为大陆包 `app.opencraft.workbench`（默认）和国际包
 `app.opencraft.workbench.intl`（设置 `OPENCRAFT_LIGHTVELA_EDITION=intl`）；

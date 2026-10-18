@@ -7,7 +7,7 @@ so each surface is an explicit matrix target with its own artifact contract.
 | Target | Renderer/runtime | Output | Build host |
 | --- | --- | --- | --- |
 | `web-browser` | Vite, HTTP origin, same-origin `/appserver` gateway | Hashed static release | Linux/macOS/Windows |
-| `lightvela-web` | LightVela/Hermes Vite product, no HyperNode plugin | `dist-lightvela-web` hashed static release | Linux/macOS/Windows |
+| `lightvela-web` | downstream product/Hermes Vite product, no HyperNode plugin | `dist-lightvela-web` hashed static release | Linux/macOS/Windows |
 | `electron-renderer` | Vite, origin-root asset URLs, Electron loopback origin | Relocatable renderer tree | Linux/macOS/Windows |
 | `electron-host` | Sandboxed Electron main/preload + static loopback origin + independent OpenCraft Daemon | Main/preload, daemon executable and pinned DSH runtime | Linux/macOS/Windows |
 | `electron-macos-arm64-zip` | Electron host + renderer | Apple Silicon `.app` ZIP | Linux/macOS |
@@ -294,7 +294,7 @@ and plugin switches into HTML before startup, derived from primary/Codex proxy
 targets; the HyperNode plugin is disabled to avoid a second primary Host. No deployment `VITE_*` variables are required for
 `package:web:server`. `VITE_APPSERVER_HOSTS_JSON` remains an explicit development
 and test override; Agent/HyperNode flags can override activation. Static/Vite
-pages without injection retain their old defaults. LightVela excludes the
+pages without injection retain their old defaults. The downstream product excludes the
 built-in Agent and HyperNode plugins; Electron Host ownership is unchanged.
 These settings views do not bundle an execution engine.
 Host definitions may use root-relative WebSocket paths such as `/appserver` and
@@ -353,7 +353,7 @@ Public binding requires both `--host 0.0.0.0` and
 `--allow-unauthenticated-public`; static WebUI and `/appserver`/`/apphost`
 WebSockets then share the chosen port with same-origin checks. This is one
 single-user Host, not multi-user authorization, HTTPS termination or a secure
-cloud deployment. LightVela account login is not a substitute for
+cloud deployment. Downstream account login is not a substitute for
 server access control. Two server processes cannot own the same data directory.
 For a restricted systemd preview, set a private `StateDirectory` and its
 `HOME` to that directory for the service user; the launcher puts its single-
@@ -578,7 +578,7 @@ checks, catalogs and integration tests before invoking the public build tools.
 Core tests continue to verify generic authorization with a signed synthetic
 provider; replacing a verifier must not remove authorization coverage. Building
 a default artifact still proves only its actual transitive graph, not the
-independence of the remaining LightVela or native product code.
+independence of the remaining downstream or native product code.
 
 ### Downstream public assets
 
@@ -592,7 +592,7 @@ The downstream Vela runner owns `build:web`, `build:web:release` and
 Private product build aliases run downstream. Join's fixed
 source packaging selects the same product assets when the selected revision owns
 that directory; historical receipts retain their original core public layout.
-This neither deploys LightVela nor resolves the artwork's distribution rights.
+This neither deploys the downstream product nor resolves the artwork's distribution rights.
 
 ### Expo product selection
 

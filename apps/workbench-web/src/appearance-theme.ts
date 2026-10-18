@@ -93,7 +93,7 @@ const velaTheme: AppearanceThemeRecord = Object.freeze({
   descriptor: Object.freeze({
     id: velaThemeId,
     label: "Vela",
-    description: "LightVela's quiet, web-native canvas.",
+    description: "A quiet, web-native canvas.",
     source: "core",
   }),
   palettes: velaThemePalette,
@@ -113,7 +113,7 @@ const lavenderTheme: AppearanceThemeRecord = Object.freeze({
   descriptor: Object.freeze({
     id: lavenderThemeId,
     label: "Lavender",
-    description: "A soft lavender workspace inspired by LightVela's quiet UI palette.",
+    description: "A soft lavender workspace with a quiet UI palette.",
     source: "core",
   }),
   palettes: lavenderThemePalette,

@@ -243,7 +243,7 @@ Turn clocks, provenance, history persistence or execution state.
 - PIN-03：置顶读写只处理元数据，不 Resume/Start；Hermes 明确携带所属 profile，身份歧义拒绝写入，压缩链由 Hermes 自身处理。
 - PIN-04：置顶目录返回完整摘要、独立于近期窗口；侧栏去重后单独分组，待处理优先于置顶且去重；置顶不占十条最近区预算。刷新/重连从后端重新读取。
 - PIN-05：同一会话写入串行；操作前列表不能覆盖操作后状态；连接撤销拒绝晚到结果且不重放写入。菜单复用现有受控互斥 owner，不拥有存储或轮询。
-- PIN-06：LightVela 站点的外层会话侧栏只消费嵌入式 Workbench 投影的置顶状态、能力和动作；置顶会话不占近期分页名额，站点不持久化第二份置顶集合。
+- PIN-06：下游产品站点的外层会话侧栏只消费嵌入式 Workbench 投影的置顶状态、能力和动作；置顶会话不占近期分页名额，站点不持久化第二份置顶集合。
 
 ## Desktop input ownership
 
@@ -330,7 +330,7 @@ decoder tests include nonzero hotspots and shape changes, not just visibility.
 - SSH-08：管理目录恢复属于 Application/controller 生命周期，不依赖设置页挂载。手动重试、在线/可见恢复与周期读取共享单飞；完成后再调度，失败退避有上限，隐页/离线暂停，销毁清理并拒绝晚到回复。授权变更暂停后台读并撤销旧代次；显式操作后的核对不能复用操作前的旧轮询。尚无 SSH profile 时的管理读取失败仍有侧栏重试，不冒充成功空列表；正常后台读取无闪动，不支持/已锁定不冒充错误。读取不隐式连接、重连、切目标或执行 Thread。
 - SSH-09：SSH 只拥有传输，不重定义原生 Thread 分页历史；共享 broker 唯一方法准入表同时约束执行、Runtime 与 UI，保留上游无关 metadata。准入不冒充上游实现保证；本机 store 与尚未映射的连接句柄不能被声明成远端能力。读取成功不推出写入能力，偏好不制造 Queue 等能力；跟进按钮和逆向快捷键仅选择可准入动作、不改保存偏好。不可准入提交在草稿/乐观队列收养前拒绝，草稿保留；后台读取也不得发出已拒绝的 queue/watch/search 方法。旧 Server 无声明保持兼容，畸形声明封闭拒绝。
 
-证据/边界见 下游产品工作区的 SSH 管理记录（不在本仓库），不以源码声明替代实际准入验收。
+证据/边界见下游产品工作区的 SSH 管理记录（不在本仓库），不以源码声明替代实际准入验收。
 
 状态：实施及验证中。下表记录目标与责任，不把测试名称当成已运行的证据。最新结果在 [progress.md](progress.md)。
 
@@ -446,8 +446,8 @@ the list viewport and the existing application Router authority.
 | WSP-12 | Thread 菜单与 Side Chat 只消费版本匹配、显式声明的 Host 生命周期能力；菜单 Fork 仅需 fork，Side Chat 须同时声明 fork/ephemeral/injectItems/unsubscribe。不支持时明确失败，不用空会话模拟或删除父历史。顶部会话菜单与侧栏 Fork 共用 forkAndOpenThread；顶部使用分叉图标，未声明 fork 时不展示，等待期间原位显示进度并禁用重复操作，未知结果不自动重试。菜单 Fork 收到 child ID 后不等待目录刷新即可打开；若用户已切换 route scope，迟到结果不得抢回导航 | 协议能力解析、Workbench 门控、forkAndOpenThread、smoke-conversation-header-menu；Codex/DSH 真实 Host 与负例验证 |
 | WSP-13 | ephemeral fork 返回结果是 baseline，不请求持久 Resume/queue；旧连接代次不能被采用 | Session.adoptFork + HostRuntime；appserver-session.test.ts 与 smoke-side-chat-appserver.ts |
 | WSP-14 | 当前产品没有下方面板、移动到下方/Show bottom panel 入口或底部占位；旧标签无损归回右侧 | AppShell/RightPanel、restoreRightPanelTabs；类型、聚焦测试、Web/native smoke |
-| WSP-15 | 账号登录或零云端 Bot 不接管本机/其他 Host 工作区；创建仅来自主动环境操作；只有选中 Host 的真实连接错误可请求干预 | App connectionIntervention、LightVela contribution；匿名/已登录零 Bot 回归 |
-| WSP-16 | Skills 与 Cloud Storage 可作为 Workbench 侧栏中的 LightVela 独立路由；它们与 Start 消费同一 Shell navigation action 模型，Web/Electron 桌面一级导航位于60px图标栏，底部为设置/账号，列表为独立列；既有移动抽屉信号下改为列表上方纵向全宽菜单、新建/设置在底部独立悬浮且不显示账号底栏、列表全宽，复用同一 action 与状态；内建与贡献入口按当前locale解析短标签和完整可访问名，不显示额外的 “Work” 标题。导航只选择既有贡献页，不能创建/切换 Host、Bot 或会话 | LightVela Work navigation；聚焦路由/几何测试与 Web/Electron 验收 |
+| WSP-15 | 账号登录或零云端 Bot 不接管本机/其他 Host 工作区；创建仅来自主动环境操作；只有选中 Host 的真实连接错误可请求干预 | App connectionIntervention、下游产品 contribution；匿名/已登录零 Bot 回归 |
+| WSP-16 | Skills 与 Cloud Storage 可作为 Workbench 侧栏中的下游产品独立路由；它们与 Start 消费同一 Shell navigation action 模型，Web/Electron 桌面一级导航位于60px图标栏，底部为设置/账号，列表为独立列；既有移动抽屉信号下改为列表上方纵向全宽菜单、新建/设置在底部独立悬浮且不显示账号底栏、列表全宽，复用同一 action 与状态；内建与贡献入口按当前locale解析短标签和完整可访问名，不显示额外的 “Work” 标题。导航只选择既有贡献页，不能创建/切换 Host、Bot 或会话 | 下游产品 Work navigation；聚焦路由/几何测试与 Web/Electron 验收 |
 | WSP-17 | AppShell 窗口 chrome、原生拖拽区和侧栏 resize owner 跨路由常驻；独立管理页只替换内容区，不得通过 `header=null` 改变物理窗口结构 | AppShell/AppShellHeader；Skills、Cloud Storage 路由测试与桌面 held-drag 验收 |
 | WSP-18 | `New chat` 是回到 Home 的本地导航事务，不是远端 Thread 创建：Draft、conversation application route 与 View 同步提交，Host/Workspace 在页面可见后异步准备；失败留在 Home 原位反馈，不得继续显示 Skills/Settings | `navigateToHome`、WorkbenchNavigationTransaction、Coordinator；慢/失败 Host 单测与桌面 Skills→New chat 验收 |
 | WSP-19 | 扩展页面由 contribution 声明 `document/master-detail/edge-to-edge` 布局，Settings Shell 只解释一次；`edge-to-edge` 只移除 document inset，Shell viewport 仍是唯一纵向 scroll owner，只有 `master-detail` 将滚动下放内部 panes。Skills 的 catalog toolbar 不叠加 padding，安装目标与 tabs 同行 | SettingsPageContribution、SettingsContent、Hermes Skills；布局契约、Electron scrollHeight/scrollTop 与 Skills→Storage 验收 |
@@ -455,7 +455,7 @@ the list viewport and the existing application Router authority.
 | WSP-21 | Terminal visual inset 与无 padding measurement host 分离；终端排版边界隔离正文 tracking/word-spacing/text-transform，字体与网格间距由 xterm 拥有，不覆盖其内部行补偿。测量、绘制、光标和 PTY 使用一致的 cell 度量，累计位置误差不能随列数增长；不仅 screen ≤ host，满行字符推进与末列光标也必须位于 screen 内（允许像素舍入容差）。字体/主题/zoom/隐藏后重显使旧网格失效；PTY resize 只发布变化后的最终 cols/rows | TerminalPanel、FitAddon、AppServerTerminalSession；真实字符 Range/光标边界、负/正正文 tracking、长 ASCII/宽字符、双向 resize、字体加载、隐藏重显与 PTY `stty size` 验收 |
 | WSP-22 | Host 是 PTY/process 唯一 owner；Application 按 Conversation Scope 维护有序 terminal session 集合和最近激活项。Panel tab 只投影/更新 active session，切换到非 Terminal tab 不清空最近项。Agent 的 `read_thread_terminal` 仅通过调用 Host + Thread 的 binding 读取该 Scope 当前终端的有界输出，不接受 session ID、不枚举或跨会话读取 | ConversationTerminalSessionRegistry、ConversationBindingStore、Terminal Panel plugin、dynamic tool handler；多终端激活/关闭回退、Panel owner 与 resource owner 分离、非法参数/Host+Thread 隔离、UTF-8/截断测试 |
 | WSP-22 | 导航 hover 与当前路由是不同状态：Theme Engine 定义统一 `navigation-hover/current/pressed` token，Design System `navigation-control` 解释 `aria-current="page"`/selected；Sidebar、Work、Settings 与平台 Shell 不得自定义停留背景 | Theme Engine/controls.web；明暗主题 token 测试、Skills↔Storage Electron computed-style 验收 |
-| WSP-23 | Embedded Workbench 只拥有宿主右侧画布；外层 Sidebar、Explore/Chat 路由与 History 归宿主。嵌入 Composer 在 ready/show 前只读，hide 先撤销写 lease 但保留 Application、会话与 Panel；Host 侧仅消费 session snapshot/action，不复制会话真源 | EmbeddedWorkbenchElement、EmbeddedChatWriteAuthority、transient ConversationBinding；双跑/fallback 单测、真实 LightVela 页面与 Browser/Terminal Panel 验收 |
+| WSP-23 | Embedded Workbench 只拥有宿主右侧画布；外层 Sidebar、Explore/Chat 路由与 History 归宿主。嵌入 Composer 在 ready/show 前只读，hide 先撤销写 lease 但保留 Application、会话与 Panel；Host 侧仅消费 session snapshot/action，不复制会话真源 | EmbeddedWorkbenchElement、EmbeddedChatWriteAuthority、transient ConversationBinding；双跑/fallback 单测、真实下游产品页面与 Browser/Terminal Panel 验收 |
 | WSP-24 | Sidebar Activity 按等你处理(review/error)→置顶→最近去重分区；running不独立分区，按置顶与最近归类且保留行内运行状态；等你处理组两行桌面最小48px、触屏密度最小56px；含工作目录的各组采用标题与辅助目录两行，桌面最小48px、触屏密度最小56px；无目录且无待处理状态时为单行桌面最小32px、触屏密度最小44px，最近内部running优先，运行行按原生createdAt倒序（缺失创建元数据的行排在已知创建时间之后）；其余按规范recency倒序，完成后退出运行优先，已读不参与排序。排序先于十条分页；日期标题按实际可见行连续日期段投影，不重排会话，不新增进行中分区或定时挪位。各区可折叠；只有最近区消费十条预算。可选产品参与筛选默认关闭，由插件判定与按账号存偏好，snapshot.data为空（loading/error/unsupported）时保留行；数据已就绪但creator/participants均为空时不匹配“我参与的”，仅在顶部筛选控件调整，不追加底部隐藏人数或显示全部入口；displayIdentity为null时插件不输出filter描述符，Shell隐藏菜单参与筛选组；身份恢复沿用账号mineEnabled偏好，身份消失不改写偏好。停用插件隐藏菜单参与筛选并恢复完整目录。标题搜索与稳定Server筛选由Shell持有。企业身份 badge按实际内容宽度右对齐，仅显示最近已识别发言人，未知时回退创建人，多人时追加总人数圆标（上限99+、tooltip保留精确人数），头像20px、间距4px、圆标24px，不保留空人数槽；无内容不占位，分组模式遵循hideRowBadge；稳定来源是 `serverOrigin.serverId`，Hub route、tenant、Host placement 与 Thread 状态正交。行内不显示Server图标/色点，Server身份仍供筛选与完整tooltip使用；项目目录位于标题下方辅助行，使用label/tertiary排版，弱于metadata/secondary日期分组；必要待处理状态仍使用metadata，无底板、色点或独立配置项；待处理状态与目录共用辅助行，以中点分隔，不重复运行中文字；长目录按正文可用宽度省略，完整目录保留在行tooltip。头像右侧仅保留原菜单尾槽，与头像间隔4px；pending/running/Goal/review/error/unread与菜单共用该槽，内容网格仅正文和头像两列，不再预留独立18px状态列；状态或菜单能力变化不得推动正文/头像几何，错误/待处理/未读圆点统一5px中性灰。触控与桌面共用同一 Activity 组件、状态与 Design System token，不分叉业务语义；仅瞬时 hover 与菜单命中区按当前输入能力适配；移动抽屉纵向菜单固定顶部，搜索与筛选随列表滚动；底部仅悬浮新建与设置，不显示个人头像/账号底栏。Activity 行容器独占 hover/选中底色，按钮与伪元素不得重复叠加背景，“…”入口背景透明，指针移到入口时行 hover 不断开；文档级当前输入信号令触控滚动不产生鼠标 hover 底色。无 hover 或当前触摸输入时，独立“…”入口直接可见、有足够命中区，并为项目标签与尾部状态槽位预留空间；鼠标 hover、键盘焦点和选中态各自独立 | client-hub-server.ts、MultiHost compatibility projection、SidebarActivityItem/ThreadRowMenu、同 Server 跨 Hub route/改名/状态正交测试、触控/鼠标浏览器验收与真实 Electron 窄侧栏验收 |
 | WSP-25 | Web/Electron unified Sidebar 的桌面60px图标栏或移动抽屉纵向菜单只保留 Home，通过openChat恢复已有会话或草稿；桌面Conversations标题下的全宽New chat横条与移动端底部悬浮按钮复用navigateToHome新建草稿；移动新建与圆形设置按钮由Shell同排悬浮在滚动区上方，设置在右侧，不显示账号入口/底部底板，列表留出末尾空间；展开时折叠控件属于侧栏，收起时 persistent titlebar 仅保留展开入口，不再追加 Write。浏览器标题栏不再保留独立 Vela/Home 按钮；transient/floating Header 不复制 Write。动态 action 必须进入 Header rail 测量和 macOS safe area | AppShellNavigationControls、window-chrome；展开/收起、persistent/transient、首帧宽度、真实浏览器和 Electron 点击验收 |
 
@@ -463,7 +463,7 @@ the list viewport and the existing application Router authority.
 
 | WSP-26 | Right Panel 显隐与宽度模式正交：全局 Header toggle 唯一负责开关；Panel toolbar 只负责用户显式 maximize/restore。空间不足导致 auto-full-width 时不得重复 `Back to chat` 或呈现无效 restore 动作 | AppShell、ShellPresentation、RightPanel；auto/explicit full-width 源码契约与 Electron 窄窗验收 |
 | WSP-27 | Frost 是独立 Theme ID，Light/Dark/System 与其正交；浅色 Sidebar material 固定为 `rgb(226 244 250 / 35%)`，不得引用或动态推导 Codex 70% material | theme-engine、appearance-theme；主题目录、持久化、CSS token 与真实 Electron computed-style 验收 |
-| WSP-28 | Lavender 是独立 Theme ID，以 LightVela frontend 的低饱和紫色语汇投影完整 window/sidebar/panel/input/popover 表面；只改变主题色与材质，不复制组件 CSS 或改变字体、密度、圆角和布局 | theme-engine、appearance-theme；浅深色 semantic token、主题目录、持久化与真实 Electron 验收 |
+| WSP-28 | Lavender 是独立 Theme ID，以下游产品 frontend 的低饱和紫色语汇投影完整 window/sidebar/panel/input/popover 表面；只改变主题色与材质，不复制组件 CSS 或改变字体、密度、圆角和布局 | theme-engine、appearance-theme；浅深色 semantic token、主题目录、持久化与真实 Electron 验收 |
 | WSP-29 | Conversation 可见恢复与执行 capability readiness 分离：`thread/resume` 和首屏历史完成即可退出全页 Restoring；动态工具/Connector 注册按 Thread + client generation 单 flight 预热，不得占住历史 authority。任何执行型 mutation 必须等待同一 capability lease；预热失败可在执行时重试，但不能清空或降级已恢复历史 | AppServerWorkbenchRuntime binding、Local Host capability broker；悬挂/失败注册、历史先呈现、发送门禁与重试测试 |
 | WSP-30 | DSH engine plugin 的 capability register/unregister/release 按 native session 串行、跨 session 并行；两个相同并发注册必须幂等，不得各自创建 scope/Skill 后以重复工具 400 失败。Bridge 非 2xx 只回传插件生成的有界单行错误摘要，不回显 token 或请求 payload | DshCapabilityLink/plugin；真实 loader 完整 Workbench capability 并发注册与错误摘要测试 |
 | WSP-31 | Electron 主窗口与 Renderer Shell 消费同一 `workbenchWindowMetrics.minimumWidth=480`；达到下限时进入 immersive fallback，临时隐藏 navigation/context/right，不改写保存的开关、Pin 或宽度。业务内容最大宽度不得反向成为原生窗口下限 | shell-space、Electron Main；320/480 几何矩阵、480px 真实 Electron Header/Composer/Settings/Skills/Panel 验收 |
@@ -619,7 +619,7 @@ Connector 目录浏览不套用设置行：采用限宽品牌卡片，已配置�
 - 图片选中即在输入卡片内显示方形缩略图；处理中、失败和删除均原位反馈。触控删除始终可见，不能依赖 hover；处理中不宣称网络上传百分比，失败图片不允许发送。
 - 已发送图片由 Timeline 及媒体加载边界投影。缩略图进入图片查看器，不绕过通用链接策略来打开 `data:` URL；查看器按原资源身份加载并在关闭后恢复焦点。
 
-### LightVela 国内嵌入预览面板
+### 下游产品国内嵌入预览面板
 
 国内控制台隐藏发布允许右侧浏览器标签与对话文件只读预览，默认收起，复用 Shell resize owner。只读预览不提供目录树、搜索、编辑与终端入口；权限仍由 Host 决定。新草稿保留面板开关所在标题栏；面板元数据与会话绑定由本次 Bot 的 Application 内存持有，销毁时释放，不从其他账号或独立站点的 localStorage 恢复。
 
@@ -728,7 +728,7 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 - 切换运行位置保留草稿内容；暂不可用的附件原位标注，不静默删除。
 - Web 不显示「这台…」；只有桌面端本机 daemon 所在机器显示「这台 Mac / 这台电脑」。云端资源生命周期与连接状态分开呈现。
 - 设置的「运行 › 机器」使用同一 `groupWorkInMachines` / `workInMachineName` 投影：一台机器一行，未知身份 Host 独立成行，云端独立成组。机器内按 Agent 呈现目标 Host 的设置与连接，不在侧栏重复列 Host；旧 `execution-<hostId>` 以及身份晚到前的未知机器路由由 Router REPLACE 纠正。「运行」分组依次提供一级入口「模型服务」「Codex 账户」「机器」；前两项直达现有固定 targetHostId 的插件页，仅高亮对应入口，并以「用于」标签呈现机器归属。机器内入口与返回机器行为保留；idle 表示尚未启动，连接地址单行省略并提供完整 title。模型服务与 Codex 账户仍归各自 Host，不提供服务端统一中转或多机器选择器。
-- 验证：`tests/settings-machines.test.tsx`、`tests/settings-machine-navigation.test.ts`、`tests/work-in-*.test.ts`、`tests/opencraft-daemon.test.ts`；Web 与 Linux Electron 实测，macOS 窗口、真实多机器与 LightVela 云端链路尚未实测。
+- 验证：`tests/settings-machines.test.tsx`、`tests/settings-machine-navigation.test.ts`、`tests/work-in-*.test.ts`、`tests/opencraft-daemon.test.ts`；Web 与 Linux Electron 实测，macOS 窗口、真实多机器与下游产品云端链路尚未实测。
 
 ### 服务器更新范围与任务连续性
 
@@ -739,12 +739,12 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 
 ## UI 图标：共享视觉语言
 
-- 图形由 product identity 选择：OpenCraft core 保留新功能的语义图形，但视觉风格按下游 LightVela Agent Console 源码统一；Vela 嵌入聊天和完整 lightvela-web 保留固定回迁前组件的形状、描边、尺度、leading-slot 与选中/hover；颜色主题不选择图形或授予能力。每个 Shadow DOM/presentation root 独立投影 token，多实例不写 document 产品状态。
-- core Web/Electron 导航角色对齐 `frontend/src/styles.css` 的 `.lv-agents-nav-icon svg`：Lucide 24 单位画布、14px、1.8 描边、圆端点和圆连接；普通控件按对应 LightVela 源组件的显式尺度与 Lucide 默认描边呈现；Vela 保留旧 Lucide/16 单位填充图形和显式描边；品牌标识、内容插图与上游生成资源独立，不由通用 SVG 选择器改写。
+- 图形由 product identity 选择：OpenCraft core 保留新功能的语义图形，但视觉风格按下游产品 Agent Console 源码统一；Vela 嵌入聊天和完整 lightvela-web 保留固定回迁前组件的形状、描边、尺度、leading-slot 与选中/hover；颜色主题不选择图形或授予能力。每个 Shadow DOM/presentation root 独立投影 token，多实例不写 document 产品状态。
+- core Web/Electron 导航角色对齐 `frontend/src/styles.css` 的 `.lv-agents-nav-icon svg`：Lucide 24 单位画布、14px、1.8 描边、圆端点和圆连接；普通控件按对应下游产品源组件的显式尺度与 Lucide 默认描边呈现；Vela 保留旧 Lucide/16 单位填充图形和显式描边；品牌标识、内容插图与上游生成资源独立，不由通用 SVG 选择器改写。
 - `apps/workbench-web/src/components/ui/workbench-icon.tsx` 是导航、设置与面板扩展语义名到图形的唯一 Web 映射。扩展传递语义名；core 未知名称显示中性帮助图形；Vela 的导航/设置/面板保留旧 consumer 的 Blocks/Plus fallback，不误呈现为某个已知功能。
 - `workbenchIconMetrics` 与 `icons.web.scss` 拥有尺度/描边 primitive，core 导航14px、1.8描边，普通/选中均为轮廓，选中含义由行背景和文字保持；Vela 按旧 consumer 的15/16/14px与原 SVG 属性投影，不强改其他旧组件的显式描边。导航前导槽位沿用 `--size-navigation-leading-slot`，直接 SVG 与包装槽位保持光学中心和文字起点对齐；unified Shell 对 core 上方目的地与下方 Settings 共享 Shell inline inset，不让窄屏通用 Settings padding 改变其中一列。紧凑工具按钮保留其宿主尺寸；不能将所有场景强制放大。
 - 同一操作在展开/收起入口使用相同图形；状态变化不改变按钮命中区、焦点或布局。图标继承控件颜色，不另设选中配色。
-- 独立 core 桌面 rail 的 16px 例外只作用于 rail 导航与 footer，不能在共同侧栏列覆盖 `--size-icon-navigation`，否则相邻 Settings 与商业产品会被一同放大。core Settings 仍为 14px 导航角色；LightVela 导航/Settings 保留原 consumer 的 15/16px。产品隔离浏览器选中真实 Settings，比对固定旧 Settings 图形并独立校验 Palette/SunMoon 家族；Home/New chat 不再冒充旧 Write。浅深与 DPR1/2 分别核对，不以更新截图或复制当前 resolver 代替兼容预期。
+- 独立 core 桌面 rail 的 16px 例外只作用于 rail 导航与 footer，不能在共同侧栏列覆盖 `--size-icon-navigation`，否则相邻 Settings 与商业产品会被一同放大。core Settings 仍为 14px 导航角色；下游产品导航/Settings 保留原 consumer 的 15/16px。产品隔离浏览器选中真实 Settings，比对固定旧 Settings 图形并独立校验 Palette/SunMoon 家族；Home/New chat 不再冒充旧 Write。浅深与 DPR1/2 分别核对，不以更新截图或复制当前 resolver 代替兼容预期。
 - 验证：`npx tsx scripts/smoke-icons.ts` 使用真实导航组件检查浅/深色、DPR 1/2、选中与折叠按钮几何，生成图谱和结果 JSON。下游产品目录的 `npm run smoke:sidebar-icons` 另挂载真实 unified AppShell，检查宽窄侧栏双列几何、普通/选中及 下游源样式/图形对照；三面 release 用 `smoke-product-isolation.mjs` 检查根隔离。Web 构建与组件证据不代表 Electron 原生窗口验收。
 
 
@@ -768,7 +768,7 @@ Header 的可见导航 rail 用 `max-content` 在同一次布局中保留真实�
 
 Join 服务器显式启用 `join.server` 插件，插件拥有 JoinVela 名称、吉祥物、favicon 和安装清单；通用 Shell 通过 `applicationBranding` 独占贡献槽消费品牌，停用后恢复 OpenCraft。其他 Web 不隐式选择 Join 品牌。Join 独立网页启用该插件时，吉祥物与 JoinVela 品牌位于跨会话、任务和设置页面的统一 Header 左侧，侧栏开关在品牌区域右端；不显示左右历史箭头。紧凑布局品牌参与 Header 的真实测量，收起侧栏不隐藏品牌；触控布局的主页面Header隐藏图标与字标（侧栏Header保留），并从可见及测量轨道同时移除品牌宽度，让出会话标题空间。初始 HTML 与 Shell 文档标题使用 JoinVela，当前页面/会话名仍前置；Electron 保留 OpenCraft，嵌入工作台不写宿主 document.title。中文开始入口为“开始整活”，任务与 Collaboration 的既有 action 保留；桌面图标栏仅显示图标，通过 aria-label 与 Radix tooltip 提供完整名称，不展开“玩一玩”标签；手机抽屉仍呈现完整文字行。
 
-独立入口提供可选 Mist 浅深主题，侧栏与正文使用接近的中性底色，沿用主题偏好保存/恢复；LightVela 嵌入不注册 Mist，现有默认主题不变。Join Web 右栏初始使用既有 compact 档位，不改变已有拖拽或持久偏好。
+独立入口提供可选 Mist 浅深主题，侧栏与正文使用接近的中性底色，沿用主题偏好保存/恢复；下游产品嵌入不注册 Mist，现有默认主题不变。Join Web 右栏初始使用既有 compact 档位，不改变已有拖拽或持久偏好。
 
 有 Shell 导航的移动 Web 在 ≤640px 时，顶部栏 56px、按钮点击区 44px、图标 20px，标题使用既有 control-large 角色；固定与浮动导航 Portal、测量副本和正文顶部偏移保持同一高度。前进/后退保留在展开导航中，为顶部标题留出空间。宿主无 Shell 导航时继续拥有标题栏高度，桌面不变。
 
@@ -786,7 +786,7 @@ core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向
 
 - Sidebar 菜单占位由 ActivityItem 自身拥有，不依赖 ThreadRowMenu 或 Host 管理能力。断线、恢复、能力不可用和恢复不能改变标题、Server 来源、状态及徽标坐标；无授权时仍不呈现操作菜单。
 
-- JoinVela 独立 Web 入口声明同源应用清单，固定 id/start_url/scope 为根路径，standalone 显示并提供 192/512 PNG 安装图标和 180px apple-touch-icon。Electron、嵌入式 Workbench 和 LightVela Web 不挂接 Join 应用清单；不通过 Service Worker 缓存会话、API 或页面来模拟离线能力。
+- JoinVela 独立 Web 入口声明同源应用清单，固定 id/start_url/scope 为根路径，standalone 显示并提供 192/512 PNG 安装图标和 180px apple-touch-icon。Electron、嵌入式 Workbench 和下游产品 Web 不挂接 Join 应用清单；不通过 Service Worker 缓存会话、API 或页面来模拟离线能力。
 
 ## Mobile keyboard Composer budget
 

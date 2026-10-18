@@ -1,6 +1,6 @@
 # Mobile data coordination
 
-This is the data contract for the LightVela iOS shell and the embedded Bot runtime. The account display cache, native profile query coordinator and account update event are implemented; a durable outbox and broader Bot invalidation contract remain future work.
+This is the data contract for the downstream iOS shell and the embedded Bot runtime. The account display cache, native profile query coordinator and account update event are implemented; a durable outbox and broader Bot invalidation contract remain future work.
 
 ## Ownership
 

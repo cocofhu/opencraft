@@ -74,7 +74,7 @@ owner-only password file; OpenCraft does not create it or copy the credential.
 This is OS permission isolation, not encryption against same-user processes.
 
 The default management authority is the backend installation administrator, not
-the Renderer or a LightVela account projection. The Settings **远程连接** page
+the Renderer or a the downstream product account projection. The Settings **远程连接** page
 automatically obtains an eight-hour HttpOnly, SameSite=Strict session in the
 default `shared` access mode. Operators can select `access-key` protection with
 `--ssh-require-access-key` or `--ssh-access-file`. This session authorizes the installation's configured

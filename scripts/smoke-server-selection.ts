@@ -7,7 +7,7 @@ import { AppHostServer } from '../packages/app-host-server/src';
 
 const output=resolve(process.env.OPENCRAFT_SELECTOR_SMOKE_DIRECTORY??'.local/server-selector');await mkdir(output,{recursive:true});
 const errors:string[]=[],requests:string[]=[],sockets:string[]=[];
-const fixture=await selectorFixture({legacyDefaultUsers:['alice'],entryName:'LightVela',webRoot:resolve(process.env.OPENCRAFT_SELECTOR_WEB_ROOT??'apps/workbench-web/dist'),appHost:()=>new AppHostServer({logicalClientRouting:true,createTransport(){
+const fixture=await selectorFixture({legacyDefaultUsers:['alice'],entryName:'OpenCraft',webRoot:resolve(process.env.OPENCRAFT_SELECTOR_WEB_ROOT??'apps/workbench-web/dist'),appHost:()=>new AppHostServer({logicalClientRouting:true,createTransport(){
   const messages=new Set<(frame:string)=>void>(),statuses=new Set<(status:any)=>void>();
   return {status:{state:'idle'} as any,async connect(){this.status={state:'open'};for(const listener of statuses)listener(this.status);},async send(frame:string){
     const rpc=JSON.parse(frame);if(rpc.id===undefined)return;
@@ -22,7 +22,7 @@ try{
   await page.goto(fixture.origin+'/__opencraft_servers');await page.waitForURL('**/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
   await page.goto(fixture.origin);await page.waitForURL('**/servers/join/**');await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
   await page.goto(fixture.origin+'/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
-  assert.equal(await page.locator('[data-server="join"]').innerText(),'LightVela');
+  assert.equal(await page.locator('[data-server="join"]').innerText(),'OpenCraft');
   for(const width of [320,390,1280])for(const colorScheme of ['light','dark'] as const){await page.setViewportSize({width,height:900});await page.emulateMedia({colorScheme});await page.screenshot({path:join(output,`chooser-${width}-${colorScheme}.png`)});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
   await page.locator('[data-server="lighthouse"]').click();await page.waitForURL('**/servers/lighthouse/**');
   await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
