@@ -2184,6 +2184,13 @@ enablement, protected bundled sources and Settings in Chromium.
 Its configured Host wire deliberately rejects requests; this is not a connected
 external Host or native-client acceptance result.
 
+`smoke:hub-network` separately packages a local gateway with the trusted Relay
+identity composition port. Its test-only credential adapter is not selected by
+the public Relay entry. A second Relay runs the ordinary public artifact without
+an identity provider. Real Chromium exercises login handoff across two TLS Hub
+hops, anonymous rejection, target membership and revocation; private identity
+services are not prerequisites. Run `build:relay` before this transport probe.
+
 The application supervisor installs two renderer-neutral Cordis services before
 activating extensions, and disposes them with the application (including startup
 rollback). They are not per-Host, per-Conversation or per-React-View state:

@@ -51,6 +51,11 @@ remote executable code.
   teardown, including startup rollback. Other product-specific probes must still
   be reviewed against their actual entrypoints; passing these probes does not
   establish that all public development commands are independent.
+- The cross-Hub transport probe composes its local gateway identity through the
+  public Relay adapter port, replacing the removed private IOA configuration.
+  Real Chromium still crosses two TLS-connected Hubs, rejects anonymous identity,
+  checks target membership and observes live revocation; the transit Relay uses
+  the unmodified public artifact. These identities and target content are fixtures.
 - Shared-package snapshot verification still detects existing Collaboration CSS
   drift: the downstream snapshot uses typography tokens while the source and recorded
   fingerprint describe the older stylesheet. This was reproduced on the clean
