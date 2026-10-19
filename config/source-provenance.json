@@ -256,9 +256,11 @@
         "docs/provenance/user-message-blocks-baseline.json",
         "docs/provenance/user-message-blocks-replacement.md",
         "docs/provenance/streaming-segments-baseline.json",
-        "docs/provenance/streaming-segments-replacement.md"
+        "docs/provenance/streaming-segments-replacement.md",
+        "docs/provenance/document-inline-link-baseline.json",
+        "docs/provenance/document-inline-link-replacement.md"
       ],
-      "reason": "Remaining compiler inline-token, semantic node identity and general preprocessing behavioral/recovery records require region-level review. Link scanning, math delimiters, user-message normalization and global fade-segment reconciliation have bounded current-implementation records. Behavioral references alone do not mandate helper or whole-file rewriting.",
+      "reason": "Remaining compiler inline-token, semantic node identity and general preprocessing behavioral/recovery records require region-level review. Link scanning, math delimiters, user-message normalization, global fade-segment reconciliation and the explicitly attributed inline-link construction case have bounded current-implementation records. Behavioral references alone do not mandate helper or whole-file rewriting.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -857,6 +859,22 @@
       "reason": "Only the explicitly recovered createTurnMeasurementTransaction function is independently replaced after frozen requirements, 6189 complete policy/identity/callback cases and actual Conversation/history baselines. Imports, public types, adjacent functions and all consumers retain their implementations.",
       "resolution": "Retain historical function/module/declaration hashes, actual exposure and initial 164/15 case differences; compare complete raw outputs and platform consumers. This partial-file disposition does not clear neighboring functions; eight groups remain unresolved.",
       "conclusion": "Current batch ownership preserves per-input deltas, pending restore/scroll/latest-height decisions and one coherent layout/window projection. Verification remains bounded, without strict author isolation, historical-rights or Native-device claims."
+    },
+    {
+      "id": "document-inline-link-construction",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-document/src/compiler.ts"
+      ],
+      "evidence": [
+        "docs/provenance/document-inline-link-baseline.json",
+        "docs/provenance/document-inline-link-replacement.md",
+        "tests/chat-document.test.ts",
+        "tests/inline-markdown-file-preview.test.mjs"
+      ],
+      "reason": "Only the source-equivalent annotated link case of mapInlineTokens is independently replaced after frozen public requirements, 5788 complete compiler observations, six streaming sessions and 560 sealed-port cases. All neighboring compiler bytes and renderer/resource owners remain unchanged.",
+      "resolution": "Retain historical module/case hashes, annotation, exact scope and actual exposure. Eight unresolved groups remain; this partial-file disposition does not clear adjacent implementations or historical rights.",
+      "conclusion": "Link labels retain nested Markdown structure and source ranges while disabling interactive text decoration. Node target/title compatibility stays intact; sanitization and opening remain renderer/resource contracts. No strict author-isolation or native-device claim."
     }
   ]
 }

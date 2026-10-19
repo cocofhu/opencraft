@@ -53,3 +53,35 @@ favicon/tooltip, ordinary/modifier/context-menu intent, clipboard and the 500ms
 streaming activation guard. Its baseline screenshot was inspected. It uses
 synthetic targets/ports and does not establish employee, remote Host or native
 hardware acceptance. No selected implementation changes exist at this freeze.
+
+## Current replacement and completed checks
+
+The new branch separates label projection from the typed link node assembly.
+It consumes only the existing token fields and shared base/text/token/mapping
+ports. It never opens or sanitizes a resource. No neighboring helper is rewritten.
+The old annotation remains in the baseline rather than being silently erased.
+The final module SHA256 is `b233ea7a64ce61abaec035d4ef5607e508b4afe968d7d201694255a53880a523`;
+the replacement-case SHA256 is `589786c4eeea3d546935a36d92e9e215c58e4b9c18fb9fac86625e0b4864eb47`.
+Prefix and suffix hashes prove every compiler byte outside the selected case
+unchanged. Both complete raw observation files match their frozen baselines on
+the first candidate; no observer input or assertion was changed after authoring.
+
+All 45 existing document/cache/resource-flow/provenance tests and the document
+typecheck pass. The existing actual Web URL smoke passes its unchanged assertions
+for heading structure, target safety/intent, context actions and streaming guard.
+Before/after screenshots were inspected; tooltip timing differs between captures,
+so this is not a pixel-identical screenshot claim. The browser uses synthetic
+resources and ports, without employee login, real remote actions or native-device
+acceptance. Platform boundary and official Web build results are recorded below
+when terminal; no new repository tests or harness are introduced.
+
+This is a partial compiler implementation disposition. Eight inventory groups,
+other annotated regions, historical rights and strict author isolation remain
+unresolved. No licensing or release-readiness conclusion follows from matching
+finite behavior outputs.
+
+Platform boundaries passed. The official public Web build completed with 791
+runtime source files and zero browser compatibility issues. Final source-inventory
+validation reports no errors and keeps eight unresolved groups/releaseReady=false;
+ten existing provenance checks pass after the inventory update. Original source
+records and notices remain in history and the bounded baseline.
