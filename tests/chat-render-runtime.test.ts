@@ -293,7 +293,8 @@ test("code wrap observers publish only changes and can release duplicate callbac
     codeBlockWrapPreference.set(true);
     codeBlockWrapPreference.set(true);
     assert.deepEqual(observed, [true]);
-    first();
+    assert.equal(first(), true);
+    assert.equal(first(), false);
     codeBlockWrapPreference.toggle();
     assert.deepEqual(observed, [true]);
     assert.equal(codeBlockWrapPreference.getSnapshot(), false);

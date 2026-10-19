@@ -23,9 +23,9 @@ function createWrapPreference() {
   };
   return {
     getSnapshot: () => current,
-    subscribe(listener: () => void): () => void {
+    subscribe(listener: () => void): () => boolean {
       observers.add(listener);
-      return () => { observers.delete(listener); };
+      return () => observers.delete(listener);
     },
     set: update,
     toggle: () => update(!current),
