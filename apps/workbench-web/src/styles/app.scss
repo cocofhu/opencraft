@@ -4164,6 +4164,19 @@ html[data-codex-window-type="electron"] .thread-scroll {
   flex: 0 0 auto;
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+
+  // The safe-area gutter sits below the translucent Composer. Cover only that
+  // gutter so a scrolled activity row cannot appear beneath the input.
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset-inline: 0;
+    bottom: 0;
+    height: max(16px, env(safe-area-inset-bottom, 0px));
+    background: var(--color-surface);
+    pointer-events: none;
+  }
 }
 
 .thread-scroll-footer__gradient {
