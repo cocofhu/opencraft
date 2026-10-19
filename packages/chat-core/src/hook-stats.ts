@@ -1,3 +1,4 @@
+/** Replacement method and history: docs/provenance/hook-statistics-replacement.md. */
 export type HookRunStatus = "running" | "completed" | "failed" | "blocked" | "stopped";
 export type HookOutputEntryKind = "warning" | "stop" | "feedback" | "context" | "error";
 export type HookStatsEntryKind = "stop" | "feedback" | "error";
@@ -36,11 +37,6 @@ export interface HookStatsRun {
   readonly count: number;
 }
 
-/**
- * Turn-scoped projection used by Codex's response action row. The extra
- * blocked/feedback fields stay renderer-neutral because they also determine
- * whether a hook-owned user prompt is surfaced by product shells.
- */
 export interface HookStats {
   readonly count: number;
   readonly blockedCount: number;
@@ -52,177 +48,93 @@ export interface HookStats {
   readonly runs: readonly HookStatsRun[];
 }
 
-function record(value: unknown): Readonly<Record<string, unknown>> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Readonly<Record<string, unknown>>
-    : null;
+/** Narrow untrusted protocol values without coercing identity or message data. */
+function object(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : null;
 }
 
-function text(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function hookOutputEntry(value: unknown): HookOutputEntry | null {
-  const source = record(value);
-  const kind = text(source?.kind);
-  const entryText = text(source?.text);
-  if (
-    entryText === null
-    || (kind !== "warning" && kind !== "stop" && kind !== "feedback" && kind !== "context" && kind !== "error")
-  ) return null;
-  return { kind, text: entryText };
-}
-
-function hookRun(value: unknown): HookRun | null {
-  const wrapper = record(value);
-  const source = record(wrapper?.run) ?? wrapper;
-  const id = text(wrapper?.id) ?? text(source?.id);
-  const eventName = text(source?.eventName);
-  const runSource = text(source?.source);
-  const status = text(source?.status);
-  if (
-    id === null
-    || eventName === null
-    || runSource === null
-    || (status !== "running" && status !== "completed" && status !== "failed" && status !== "blocked" && status !== "stopped")
-  ) return null;
-  return {
-    id,
-    eventName,
-    source: runSource,
-    status,
-    statusMessage: text(source?.statusMessage)?.trim() || null,
-    entries: Array.isArray(source?.entries)
-      ? source.entries.flatMap((entry) => {
-        const normalized = hookOutputEntry(entry);
-        return normalized === null ? [] : [normalized];
-      })
-      : [],
-  };
-}
-
-function equivalentRuns(left: HookStatsRun, right: HookStatsRun): boolean {
-  return left.eventName === right.eventName
-    && left.source === right.source
-    && left.statusMessage === right.statusMessage
-    && left.entries.length === right.entries.length
-    && left.entries.every((entry, index) => {
-      const candidate = right.entries[index];
-      return candidate !== undefined
-        && entry.tone === candidate.tone
-        && entry.text === candidate.text;
-    });
-}
-
-/** Source-equivalent reconstruction of Codex's `ga(turn.hookRuns)` reducer. */
-export function summarizeHookRuns(value: unknown): HookStats | null {
-  if (!Array.isArray(value) || value.length === 0) return null;
-  const normalizedRuns = value.flatMap((entry) => {
-    const run = hookRun(entry);
-    return run === null ? [] : [run];
-  });
-  if (normalizedRuns.length === 0) return null;
-
-  const entries: HookStatsEntry[] = [];
-  const blockedMessages: string[] = [];
-  const blockedSources: string[] = [];
-  const feedbackMessages: Array<{ source: string; text: string }> = [];
-  const runs: HookStatsRun[] = [];
-  let blockedCount = 0;
-  let errorCount = 0;
-
-  for (const run of normalizedRuns) {
-    const runEntries: HookStatsRunEntry[] = [];
-    const feedback: string[] = [];
-    for (const entry of run.entries) {
-      switch (entry.kind) {
-        case "error":
-        case "feedback":
-        case "stop": {
-          entries.push({ kind: entry.kind, text: entry.text });
-          runEntries.push({ tone: "error", text: entry.text });
-          if (entry.kind === "feedback" && entry.text.trim().length > 0) feedback.push(entry.text.trim());
-          break;
-        }
-        case "warning":
-          runEntries.push({ tone: "warning", text: entry.text });
-          break;
-        case "context":
-          break;
+function observation(value: unknown): { displayId: string; run: HookRun } | null {
+  const envelope = object(value);
+  if (!envelope) return null;
+  const data = object(envelope.run) ?? envelope;
+  if (typeof data.id !== "string" || typeof data.eventName !== "string"
+    || typeof data.source !== "string"
+    || typeof data.status !== "string"
+    || !["running", "completed", "failed", "blocked", "stopped"].includes(data.status)) return null;
+  const entries: HookOutputEntry[] = [];
+  if (Array.isArray(data.entries)) {
+    for (const candidate of data.entries) {
+      const entry = object(candidate);
+      if (entry && typeof entry.text === "string" && typeof entry.kind === "string"
+        && ["warning", "stop", "feedback", "context", "error"].includes(entry.kind)) {
+        entries.push({ kind: entry.kind as HookOutputEntryKind, text: entry.text });
       }
-    }
-
-    if (run.status === "blocked") {
-      blockedCount += 1;
-      if (run.eventName === "userPromptSubmit") {
-        blockedSources.push(run.source);
-        blockedMessages.push(...feedback);
-      }
-    } else if (run.status === "failed") {
-      errorCount += 1;
-    }
-    if (run.eventName === "stop") {
-      feedbackMessages.push(...feedback.map((entry) => ({ source: run.source, text: entry })));
-    }
-
-    const projected: HookStatsRun = {
-      id: run.id,
-      eventName: run.eventName,
-      source: run.source,
-      statusMessage: run.statusMessage,
-      entries: runEntries,
-      count: 1,
-    };
-    const previous = runs.at(-1);
-    if (previous !== undefined && equivalentRuns(previous, projected)) {
-      runs[runs.length - 1] = { ...previous, count: previous.count + 1 };
-    } else {
-      runs.push(projected);
     }
   }
-
   return {
-    count: normalizedRuns.length,
-    blockedCount,
-    blockedMessages,
-    blockedSources,
-    errorCount,
-    entries,
-    feedbackMessages,
-    runs,
+    displayId: typeof envelope.id === "string" ? envelope.id : data.id,
+    run: {
+      id: data.id, eventName: data.eventName, source: data.source,
+      status: data.status as HookRunStatus,
+      statusMessage: typeof data.statusMessage === "string" ? data.statusMessage.trim() || null : null,
+      entries,
+    },
   };
+}
+
+export function summarizeHookRuns(value: unknown): HookStats | null {
+  if (!Array.isArray(value)) return null;
+  const observations = value.map(observation).filter(item => item !== null);
+  if (observations.length === 0) return null;
+  const blockedMessages: string[] = [], blockedSources: string[] = [];
+  const entries: HookStatsEntry[] = [];
+  const feedbackMessages: { source: string; text: string }[] = [];
+  const runs: HookStatsRun[] = [];
+  let blockedCount = 0, errorCount = 0, previousDisplayKey: string | null = null;
+  for (const { displayId, run } of observations) {
+    if (run.status === "blocked") blockedCount++;
+    if (run.status === "failed") errorCount++;
+    const blockedPrompt = run.eventName === "userPromptSubmit" && run.status === "blocked";
+    if (blockedPrompt) blockedSources.push(run.source);
+    const details: HookStatsRunEntry[] = [];
+    for (const entry of run.entries) {
+      if (entry.kind === "context") continue;
+      details.push({ tone: entry.kind === "warning" ? "warning" : "error", text: entry.text });
+      if (entry.kind !== "warning") entries.push({ kind: entry.kind, text: entry.text });
+      if (entry.kind !== "feedback" || !entry.text.trim()) continue;
+      if (blockedPrompt) blockedMessages.push(entry.text.trim());
+      else if (run.eventName === "stop") feedbackMessages.push({ source: run.source, text: entry.text.trim() });
+    }
+    // Compare display values only. Counts and identity belong to observations,
+    // while this run list is an adjacent visual compression of those facts.
+    const key = JSON.stringify([run.eventName, run.source, run.statusMessage, details]);
+    const previous = runs.at(-1);
+    if (previous && key === previousDisplayKey) {
+      runs[runs.length - 1] = { ...previous, count: previous.count + 1 };
+    } else {
+      runs.push({ id: displayId, eventName: run.eventName, source: run.source,
+        statusMessage: run.statusMessage, entries: details, count: 1 });
+    }
+    previousDisplayKey = key;
+  }
+  return { count: observations.length, blockedCount, blockedMessages, blockedSources,
+    errorCount, entries, feedbackMessages, runs };
 }
 
 export function formatHookSource(source: string): "Admin" | "User" | "Project" | "Plugin" | "Session" | "Unknown" {
-  if (
-    source === "system"
-    || source === "mdm"
-    || source === "cloudRequirements"
-    || source === "cloudManagedConfig"
-    || source === "legacyManagedConfigFile"
-    || source === "legacyManagedConfigMdm"
-  ) return "Admin";
-  if (source === "user") return "User";
-  if (source === "project") return "Project";
-  if (source === "plugin") return "Plugin";
-  if (source === "sessionFlags") return "Session";
-  return "Unknown";
+  switch (source) {
+    case "system": return "Admin";
+    case "user": return "User";
+    case "project": return "Project";
+    case "plugin": return "Plugin";
+    case "sessionFlags": return "Session";
+    default: return "Unknown";
+  }
 }
 
-/** Exact English labels used by Codex's detailed Hooks tooltip. */
 export function formatHookEventName(eventName: string): string {
-  switch (eventName) {
-    case "preToolUse": return "PreToolUse";
-    case "permissionRequest": return "PermissionRequest";
-    case "postToolUse": return "PostToolUse";
-    case "preCompact": return "PreCompact";
-    case "postCompact": return "PostCompact";
-    case "sessionStart": return "SessionStart";
-    case "sessionEnd": return "SessionEnd";
-    case "userPromptSubmit": return "UserPromptSubmit";
-    case "subagentStart": return "SubagentStart";
-    case "subagentStop": return "SubagentStop";
-    case "stop": return "Stop";
-    default: return eventName;
-  }
+  const known = ["preToolUse", "permissionRequest", "postToolUse", "preCompact", "postCompact",
+    "sessionStart", "sessionEnd", "userPromptSubmit", "subagentStart", "subagentStop", "stop", "interrupt"];
+  return known.includes(eventName) ? eventName[0].toUpperCase() + eventName.slice(1) : eventName;
 }

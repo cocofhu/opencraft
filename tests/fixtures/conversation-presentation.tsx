@@ -6,6 +6,7 @@ import {
   createConversationKey,
   createDefaultTimelineProjectorRegistry,
   projectTimeline,
+  summarizeHookRuns,
   type TimelineSourceTurn,
   type ConversationDetailLevel,
 } from "@opencraft/chat-core";
@@ -41,6 +42,17 @@ function Demo() {
   const [detail, setDetail] =
     useState<ConversationDetailLevel>("STEPS_COMMANDS");
   const [generation, setGeneration] = useState(0);
+  probe.hooks = () => {
+    setGeneration(value => value + 1);
+    setTurn({ id: "hook-turn", status: "complete",
+      items: [{ id: "hook-answer", type: "agentMessage", payload: { text: "Hook result", completed: true } }],
+      hookStats: summarizeHookRuns([
+        ...["one", "two"].map(id => ({ id, eventName: "userPromptSubmit", source: "project", status: "blocked",
+          entries: [{ kind: "context", text: "hidden context" }, { kind: "feedback", text: "Add a test." }] })),
+        { id: "failed", eventName: "postToolUse", source: "user", status: "failed", entries: [{ kind: "error", text: "Audit failed." }] },
+      ]),
+    });
+  };
   probe.complete = () => setTurn((turn) => ({ ...turn, status: "complete" }));
   probe.restore = () => setGeneration((value) => value + 1);
   probe.detail = setDetail;
