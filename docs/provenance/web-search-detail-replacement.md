@@ -66,3 +66,35 @@ ellipsis and non-expandability; synthetic inputs do not prove live search,
 provider execution, employee login or Native hardware behavior. All 126 existing
 chat/tool tests pass before authoring. No selected implementation has changed
 at this observation freeze.
+
+
+## Current implementation and verification
+
+The new query projection scans site operands into retained text spans and an
+ordered domain set, then assembles the compatible compact detail. Existing
+hostname parsing and first-query selection helpers are unchanged. The new public
+extractor selects operation fields explicitly and retains the generic
+query/pattern/URL fallback and outer query behavior. It remains a pure display
+projection with no tool execution, navigation, provider or authorization state.
+
+The first candidate omitted pattern/URL fallback for unknown action types,
+producing 1,266 differences in the unchanged broad corpus; its complete outputs
+and differences are retained. The original 225 focused inputs happened to pass
+and were insufficient alone. The correction changes only the selected extractor;
+no observer, input or assertion was changed. Final complete outputs are raw-byte
+equal for all 5,620 inputs, 24 presenter states, 225 focused inputs and 16 actual
+Web tool-row states. Narrow light/dark screenshots were inspected. The 126
+existing tool/Timeline tests, shared core/Web/Expo types and platform boundaries
+pass. The official Web build passes with 791 runtime source files and zero browser compatibility issues. The source inventory integrity check and ten existing provenance tests pass; all eight unresolved groups and releaseReady=false remain.
+
+Current module SHA256: `a0734f9001ab32245805d2a8e1d3af06713f4e965014e10a1c35989641155c5a`. The baseline retains
+both current declaration hashes and exact unchanged fragment hashes. All bytes
+outside the two selected declarations, including the helper between them,
+imports, protocol names, ordinary compatibility values and other presenters,
+are unchanged. The raw observation and fixed outside-region checks are separate
+from actual browser presentation. Synthetic tool input is not real external
+search, employee login, complete Workbench or Native hardware acceptance.
+
+No exact recovered source binding, source license or historical-rights conclusion
+is asserted. Prior author exposure and eight unresolved inventory groups remain;
+this does not clear the whole file or establish strict author isolation.

@@ -46,5 +46,44 @@
     "observe.mts": "81d506eaa82e047624ba03b5eacd8dd420423a21b9b0332d8cc7553901e5426d",
     "observe-focused.mts": "862612fbe4bce3845cfbeaced5e16a90a464dd381984d97848ce6b70f3ab6b35",
     "browser.mjs": "3355bbcf33342030810c20f457dd91c37b0876302f028e55654008b705dd22b2"
+  },
+  "replacement": {
+    "currentModuleSha256": "a0734f9001ab32245805d2a8e1d3af06713f4e965014e10a1c35989641155c5a",
+    "regions": [
+      {
+        "name": "formatWebSearchQuery",
+        "start": 15986,
+        "end": 16786,
+        "signature": "function formatWebSearchQuery(value: string): string",
+        "sha256": "f8fd49289912eaf29c76e58584b99297283f027434f29d3ca8bc56bb8fd740eb"
+      },
+      {
+        "name": "extractWebSearchDetail",
+        "start": 17335,
+        "end": 18409,
+        "signature": "export function extractWebSearchDetail(value: unknown): string | null",
+        "sha256": "b5e58a91ea3312b63ac322076e328bffcc95927cb0a1614de8f0ebbeb0a64daf"
+      }
+    ],
+    "allOutsideSelectedDeclarationsByteEqual": true,
+    "unchangedFragments": [
+      {
+        "bytes": 15991,
+        "sha256": "c2431a801af9ce6f6d652b4a51cdcc1b798c4ccd42972a4a518cb801ed173dd2"
+      },
+      {
+        "bytes": 549,
+        "sha256": "56ccf51972c6366bab2223f272a5a9a5a7f67750b1389cee23744915cca30aeb"
+      },
+      {
+        "bytes": 31351,
+        "sha256": "372cf7829bf0fb90ed09426b214690d52b3fc5f7d6e7a4ca762350483cb979cd"
+      }
+    ]
+  },
+  "initialRejectedCandidate": {
+    "publicDifferences": 1266,
+    "focusedDifferences": 0,
+    "cause": "Missing pattern/URL fallback for unknown action types, detected by unchanged broad public corpus; original differences retained"
   }
 }
