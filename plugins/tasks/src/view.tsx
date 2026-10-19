@@ -264,7 +264,7 @@ function ActivityPanel({ model, session, canPost, ports }: { model: TaskActivity
     window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh);
     return () => { stop(); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
   }, [model, ports]);
-  const fields: Record<string, keyof typeof words> = { title: "title", description: "description", kind: "kind", acceptanceCriteria: "acceptance", assigneeId: "assignee", priority: "priority", dueDate: "dueDate", projectId: "project", projectServerId: "projectSource" };
+  const fields: Record<string, keyof typeof words> = { title: "title", description: "description", kind: "kind", acceptanceCriteria: "acceptance", aiResearch: "aiResearch", aiResearchReason: "researchReason", assigneeId: "assignee", priority: "priority", dueDate: "dueDate", projectId: "project", projectServerId: "projectSource" };
   return <section className="tasks-activity" aria-label={t("activityTab")}>
     <h3>{t("activityTab")}</h3>
     {canPost ? <div className="tasks-progress-composer">
