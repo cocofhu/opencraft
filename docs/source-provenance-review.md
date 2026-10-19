@@ -583,3 +583,15 @@ blob/annotation and prior full-body author exposure are recorded in the
 this is not strict author isolation or historical rights clearance. Only this
 module is replaced. Four client/Host inventory files and all eight unresolved
 groups remain open; source-inspired descriptions alone do not mandate rewrites.
+
+
+## Markdown link scanner boundary (2026-10-20)
+
+Only the directly source-identical `findMarkdownLink` function in compiler.ts is
+replaced from [frozen application observations](provenance/markdown-link-scanner-replacement.md).
+The current scanner preserves raw label/destination values and UTF-16 search
+positions; the caller retains unescaping and resource policy. Non-target compiler
+bytes remain unchanged. Historical file/region hashes and actual exposure remain
+recorded; no strict author-isolation or historical-rights clearance is asserted.
+The same compiler file remains unverified for its other source-attributed regions,
+and all eight unresolved groups remain open. This is not a whole-file rewrite.
