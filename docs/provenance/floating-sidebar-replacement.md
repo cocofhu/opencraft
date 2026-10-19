@@ -180,3 +180,30 @@ mobile presentation and disappears with that presence. The existing Shell CSS
 owns stationary material/placement/hit-testing. These supplemental requirements
 were recorded after the first replacement and before the missing-wash correction;
 they must not be described as part of the initial pre-authoring freeze.
+
+## Final wash correction and complete mobile verification
+
+The stationary sibling is independently implemented from the supplemental DOM,
+progress/opacity and lifetime observations, retaining existing Shell CSS and the
+same progress port. The full 20-state fixture-root comparison has zero differences
+after sorting only attribute/style declaration order; wash DOM/computed opacity,
+geometry and pointer behavior match exactly. The frozen 46-state panel projection
+also remains at zero differences after this correction. Both initial regressions
+(first-frame header offset and omitted wash) remain documented; neither is called
+a pre-existing product failure.
+
+The unchanged existing mobile stack smoke now passes all twelve combinations of
+light/dark, ordinary/reduced motion and widths 320/390/430, as it does with the
+historical component. Its 36 evidence entries include held reversal/cancellation,
+stationary safe-area material, progress/depth/wash, search, Escape, reopen and
+underlying draft/input ownership. Representative old/new dark held frames and
+the new reduced-motion light scene were inspected. This is real browser/React/
+Shell input and rendering with synthetic data, not employee/native hardware
+acceptance. Final Web build passes 791 runtime sources/zero compatibility issues;
+56 focused tests and Web types pass. The original footer smoke and historical
+reduced-motion legacy scroll reset remain limitations, not newly passing checks.
+
+Final module SHA256: `7350e652e9c6c2fa82649e0bcb6c0b40693ebb453f7d90e61a7e1d695b00e506`. No repository tests/harness,
+dependencies, Shell/resize/style/spring implementations or integrations changed.
+Historical source records and all eight unresolved groups remain. Public PR
+acceptance and downstream Join integration/deployment are separate later events.
