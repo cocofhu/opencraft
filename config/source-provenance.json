@@ -171,7 +171,6 @@
       "status": "unverified",
       "paths": [
         "packages/chat-core/src/agent-activity.ts",
-        "packages/chat-core/src/mcp-elicitation.ts",
         "packages/chat-core/src/realtime-transcript.ts",
         "packages/chat-core/src/turn-user-message-normalization.ts"
       ],
@@ -205,6 +204,12 @@
           "replacement": "user-message-presentation",
           "evidence": "docs/provenance/user-message-replacement.md",
           "historicalBlob": "4b0b054ca039ce0b549e60e095190ec43f7cc28e"
+        },
+        {
+          "path": "packages/chat-core/src/mcp-elicitation.ts",
+          "replacement": "mcp-elicitation-presentation",
+          "evidence": "docs/provenance/mcp-elicitation-replacement.md",
+          "historicalBlob": "6222e2ae56a87ad3ba87e275446990a540be34ba"
         }
       ]
     },
@@ -277,6 +282,21 @@
       "reason": "Both complete modules formerly carried source-equivalent annotations. They are replaced from frozen public requirements, shared timeline/consumer contracts and black-box OpenCraft observations.",
       "resolution": "Retain the two historical blobs, requirements commit and author exposure. The remaining four chat-semantics files and seven other unresolved groups stay unverified.",
       "conclusion": "Current request/directive parsing uses literal boundaries and typed display semantics; Web layout partitions existing typed inputs and derives visibility. Both implementations were independently authored within the documented exposure boundary. This is not strict clean-room isolation, historical-rights clearance or a whole-renderer classification; see the scope, method and evidence in the disposition."
+    },
+    {
+      "id": "mcp-elicitation-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/mcp-elicitation.ts"
+      ],
+      "evidence": [
+        "docs/provenance/mcp-elicitation-replacement.md",
+        "tests/chat-mcp-elicitation.test.ts",
+        "scripts/smoke-mcp-elicitation.ts"
+      ],
+      "reason": "The complete shared elicitation module formerly contained source-equivalent metadata/display annotations. All five exported functions are replaced from frozen requirements, typed consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain the historical blob, requirements commit and actual author exposure. Three other chat-semantics files and seven other unresolved groups remain unverified.",
+      "conclusion": "The current implementation independently routes metadata, presents values, normalizes fields, creates drafts and validates the established form subset. This disposition covers only this complete module and its documented replacement. It is not strict clean-room isolation, full JSON Schema security validation, historical-rights clearance or a whole-client classification; see method, compatibility evidence and runtime limits in the disposition."
     }
   ]
 }

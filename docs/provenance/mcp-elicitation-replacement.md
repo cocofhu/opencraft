@@ -16,7 +16,7 @@ implementation was read for this replacement. The author has previously reviewed
 other recovered modules; this is a requirements-driven independent replacement,
 not strict clean-room isolation or historical rights clearance.
 
-1. Preserve all six function exports and their public types. Normalize untrusted
+1. Preserve all five function exports and their public types. Normalize untrusted
    metadata/schema values as data; no I/O, submission, authorization or policy
    mutation occurs in this shared renderer-neutral module.
 2. Normalize risk (`low`/`high` only), subtitle strings and deduplicated
@@ -55,3 +55,47 @@ not strict clean-room isolation or historical rights clearance.
    tool value expansion, persistence choices, suggestion/auth/URL presentation and
    actual action handoffs, using synthetic data. Typecheck Web and shared core;
    retain the shared Expo consumer contract without claiming native-device tests.
+
+## Implementation observations
+
+Requirements were committed as `b548b78` before implementation. The frozen draft
+miscounted the exported functions as six; the actual five functions listed by
+AST extraction are all replaced, with no scope reduction. All exported types
+remain unchanged.
+
+The replacement uses explicit tagged metadata routing, literal engine-sentence
+recognition, typed field descriptors, and field-local validation with collected
+outputs/errors. The display helper separates scalar text from structured JSON.
+Draft/content creation retains prototype-like names as own data properties.
+
+The first 8,198 black-box comparisons covered metadata modes/tags, persistence,
+malformed inputs, primitive and choice schema variants/defaults, ten draft
+variants per field set, and preview boundaries. Compatibility corrections from
+observed outputs preserve implicit computer-use fallback precedence, item-choice
+fallback for non-array fields, and integer markers even when choices take
+presentation precedence. The final matrix has zero differences. No old helper
+body was inspected to make these corrections.
+
+## Verification and limits
+
+- `node --import tsx --test tests/chat-mcp-elicitation.test.ts tests/chat-core.test.ts tests/chat-interaction-response.test.ts tests/source-provenance.test.mjs`: 127 passed.
+- `npm run test:chat`: 740 passed. New tests cover mode/routing/persistence,
+  required typed identities, exact fallback context, schema/default/validation
+  boundaries, display limits/circular data and prototype-like own field names.
+- Core and Web workspace typechecks and `npm run check:boundaries`: passed.
+- `scripts/smoke-mcp-elicitation.ts`: passed at 390px and 1200px using the real
+  pending-interaction panel and current theme properties, with no page errors.
+  It verifies required/minimum errors, numeric/boolean/selection/array submission,
+  risk display, complete expanded JSON, fifth parameter disclosure, session and
+  permanent scope handoffs, denial, install/auth open-then-continue and generic
+  URL decline. No response is emitted merely by opening setup. The narrow
+  screenshot was visually inspected with readable approval controls.
+- Inventory validation has no structural errors. Only this module moves to the
+  independent replacement record; three chat-semantics paths and all eight
+  unresolved groups remain. The release provenance gate remains unresolved.
+
+Browser actions terminate at synthetic response/URL handoffs. No external tool
+was authorized or executed, no connector account was linked, and no native-device
+or authenticated service flow was tested. The shared public types and both
+platform consumers are retained; this bounded result does not classify the
+consuming renderer, other modules, historical commits or distribution rights.
