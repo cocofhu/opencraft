@@ -417,7 +417,7 @@ evidence, rather than treating this generated file list as a rights opinion.
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
 | `codex-tool-presentation-labels` | Historical exact bindings and [bounded disposition](provenance/thread-tool-presentation.md) | Identified native table replaced by protocol-derived operation titles and explicit states | Keep navigation/results and verify failure/interruption; this is not whole-module or historical clearance |
-| `codex-tool-surface-fallbacks` | [Exact source/target bindings and bounded replacement](provenance/tool-surface-disposition.md) | Known fallback catalogs and handoff inference replaced; wider annotated regions remain unverified | Review web-search compaction, command summaries, content interpretation and specialized presenters individually |
+| `codex-tool-surface-fallbacks` | [Exact source/target bindings and bounded replacement](provenance/tool-surface-disposition.md) | Known fallback catalogs and handoff inference replaced; wider annotated regions remain unverified | Web-search detail has a separate bounded record; review remaining command summaries, content interpretation and specialized presenters individually |
 | `product-and-brand-assets` | Retained exact-source hashes and [artwork disposition](provenance/connector-artwork.md) | Current image files excluded; private product artwork downstream; historical rights unverified | Verify no image files/imports remain in source and distributable assets; retain source notices and full connector operations |
 
 ## Recording a resolution
@@ -747,3 +747,17 @@ the frozen pre-authoring observations; all initial differences remain recorded.
 Imports, compatibility labels/data, app styles and BrowserDeviceHandles are unchanged.
 The historical manifest/Host review inventory and eight unresolved groups remain;
 this does not clear adjacent expression, native behavior or historical rights.
+
+
+## Bounded web search detail disposition (2026-10-20)
+
+Only the two specifically attributed query/detail functions in `tool-activity.ts`
+have a current [independent replacement record](provenance/web-search-detail-replacement.md).
+The [baseline](provenance/web-search-detail-baseline.json) retains exact historical
+module/declaration hashes and annotations, complete frozen observation hashes,
+the initially missed unknown-action fallback and unchanged outside-region proof.
+The hostname/first-query helpers and every other tool presenter remain unchanged.
+No exact reference source binding was found in this bounded pass. This is not a
+whole-module copying finding, historical-rights clearance or strict author
+isolation. All eight unresolved inventory groups remain open; behavior-only
+references and ordinary protocol/compatibility data are not blanket rewrite targets.
