@@ -631,3 +631,55 @@ test("targeted frames stay inside their lease even when same-page RPC IDs collid
     assert.equal(runtimeFrames.length, 1, "retired lease reply must not reach a successor or sibling");
   } finally { await probe.close(); await runtime.close(); client.close(); connection.close(); await server.close(); }
 });
+
+
+test("expired claim saturation retires the bridge, preserves service Hosts and fences old grants", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const ports = createPortPair(), slow = new ControlledTransport(), healthy = new TestTransport();
+  const server = new AppHostServer({ physicalHostLifetime: "server", createTransport: id => id === "slow" ? slow : healthy });
+  const connection = server.accept(ports.host, "saturated");
+  const client = new MessagePortAppHostClient({ ...ports.browser, close() { ports.browser.close(); connection.close(); } }, "saturated", { maxPendingRequests: 2 });
+  const peer = client.createTransport("healthy");
+  const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+  let successor: MessagePortAppHostClient | undefined;
+  let successorConnection: ReturnType<AppHostServer["accept"]> | undefined;
+  try {
+    await peer.connect();
+    for (let index = 0; index < 2; index++) {
+      const expired = assert.rejects(client.connectHost("slow", client.createLeaseId()), /host\/connect timed out/);
+      await flush(); context.mock.timers.tick(30_000); await expired;
+    }
+    const limitFailure = (error: unknown) => error instanceof Error && (error as Error & { code?: string; retryable?: boolean }).code === "APP_HOST_REQUEST_LIMIT" && (error as Error & { retryable?: boolean }).retryable === true;
+    await assert.rejects(client.connectHost("healthy", client.createLeaseId()), limitFailure);
+    assert.equal(peer.status.state, "failed");
+    assert.deepEqual(peer.status.failure, { code: "APP_HOST_REQUEST_LIMIT", recovery: "automatic" });
+    await assert.rejects(client.waitUntilReady(), limitFailure);
+    assert.equal(healthy.closeCount, 0, "revoking Client attachments cannot stop a service-owned physical Host");
+    const nextPorts = createPortPair();
+    successorConnection = server.accept(nextPorts.host, "successor");
+    successor = new MessagePortAppHostClient(nextPorts.browser, "successor");
+    const next = successor.createTransport("healthy");
+    await next.connect(); await next.send("healthy work after bridge renewal");
+    slow.connectGate.resolve(); for (let index = 0; index < 5; index++) await flush();
+    assert.equal(peer.status.state, "failed", "late startup cannot revive a revoked bridge");
+    assert.equal(next.status.state, "open");
+    assert.deepEqual(healthy.sent, ["healthy work after bridge renewal"]);
+    assert.equal(healthy.connectCount, 1);
+  } finally { slow.connectGate.resolve(); successor?.close(); successorConnection?.close(); client.close(); connection.close(); await server.close(); }
+});
+
+test("ordinary pending-request backpressure does not revoke a healthy bridge", async () => {
+  const ports = createPortPair(), physical = new TestTransport(), gate = deferred<void>();
+  physical.send = async frame => { physical.sent.push(frame); await gate.promise; };
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "busy");
+  const client = new MessagePortAppHostClient(ports.browser, "busy", { maxPendingRequests: 1 });
+  const channel = client.createTransport("healthy");
+  try {
+    await channel.connect(); const first = channel.send("in flight");
+    await assert.rejects(channel.send("over capacity"), /pending request limit reached/);
+    assert.equal(channel.status.state, "open");
+    gate.resolve(); await first; await channel.send("capacity restored");
+    assert.deepEqual(physical.sent, ["in flight", "capacity restored"]);
+  } finally { gate.resolve(); client.close(); connection.close(); await server.close(); }
+});

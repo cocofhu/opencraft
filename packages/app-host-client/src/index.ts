@@ -213,6 +213,18 @@ export class MessagePortAppHostClient {
       return Promise.reject(this.terminalError ?? new Error("App Host connection is closed"));
     }
     if (this.pending.size + this.lateResults.size >= (this.options.maxPendingRequests ?? 256)) {
+      if (this.lateResults.size > 0) {
+        // Expired claims cannot be forgotten: their late grants still need an
+        // owner. Retiring the bridge releases its attachments at the server
+        // and lets the shared socket owner acquire a fresh request budget.
+        const error = appHostError({
+          code: "APP_HOST_REQUEST_LIMIT",
+          message: "App Host pending request limit reached",
+          retryable: true,
+        });
+        this.terminate(error);
+        return Promise.reject(error);
+      }
       return Promise.reject(new Error("App Host pending request limit reached"));
     }
     const requestId = `${this.rendererId}:${++this.requestSequence}`;

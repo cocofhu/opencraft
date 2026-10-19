@@ -70,6 +70,7 @@ export class WebSocketTransport implements DuplexTransport {
   private socket: AppServerWebSocket | null = null;
   private currentStatus: TransportStatus = { state: "idle" };
   private connectPromise: Promise<void> | null = null;
+  private cancelConnect: ((error: Error) => void) | null = null;
   private inboundQueue = Promise.resolve();
   private socketGeneration = 0;
 
@@ -106,6 +107,7 @@ export class WebSocketTransport implements DuplexTransport {
       const cleanupConnectListeners = () => {
         socket.removeEventListener("open", handleOpen);
         signal?.removeEventListener("abort", handleAbort);
+        if (this.cancelConnect === failConnect) this.cancelConnect = null;
       };
       const failConnect = (error: Error) => {
         if (settled) return;
@@ -131,6 +133,7 @@ export class WebSocketTransport implements DuplexTransport {
         }
       };
 
+      this.cancelConnect = failConnect;
       socket.addEventListener("open", handleOpen);
       socket.addEventListener("message", (event) => {
         if (!isCurrentSocket()) return;
@@ -141,6 +144,7 @@ export class WebSocketTransport implements DuplexTransport {
             for (const listener of this.messageListeners) listener(frame);
           })
           .catch((error: unknown) => {
+            if (!isCurrentSocket() || this.currentStatus.state !== "open") return;
             this.setStatus({
               state: "failed",
               reason: error instanceof Error ? error.message : String(error),
@@ -189,6 +193,9 @@ export class WebSocketTransport implements DuplexTransport {
 
   async close(): Promise<void> {
     const socket = this.socket;
+    // The platform may omit its close event, including after terminate().
+    // Settle the original connect caller before bounded socket disposal.
+    this.cancelConnect?.(new Error("WebSocket closed before opening"));
     if (socket === null) {
       if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
       return;
@@ -207,8 +214,10 @@ export class WebSocketTransport implements DuplexTransport {
         settled = true;
         globalThis.clearTimeout(timeoutId);
         socket.removeEventListener("close", handleClose);
-        if (this.socket === socket) this.socket = null;
-        if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
+        if (this.socket === socket) {
+          this.socket = null;
+          if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
+        }
         resolve();
       };
       const handleClose = () => finish();
