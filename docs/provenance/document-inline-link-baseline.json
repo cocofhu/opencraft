@@ -121,5 +121,20 @@
     "Source-equivalent to Codex renderInlineTokens(..., false): link",
     "labels remain text and cannot contain nested interactive decorations such as workspace mentions or file citations."
   ],
-  "authorExposure": "AST metadata and comments/public signatures, document model, compiler helpers before mapInlineTokens and existing tests reviewed in this pass. No selected case body or recovered reference printed. Earlier session exposures documented elsewhere remain; no strict isolation claim."
+  "authorExposure": "AST metadata and comments/public signatures, document model, compiler helpers before mapInlineTokens and existing tests reviewed in this pass. No selected case body or recovered reference printed. Earlier session exposures documented elsewhere remain; no strict isolation claim.",
+  "frozenObservations": {
+    "publicCompiler": {
+      "moduleSha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8",
+      "cases": 5788,
+      "streams": 6,
+      "sha256": "42cda1de84394157963b3ffef970fa27063f647132ec46ea43fa52779fd5aec7"
+    },
+    "sealedPrivatePort": {
+      "moduleSha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8",
+      "cases": 560,
+      "sha256": "b777b7b0e64930ab7766b2db6ee9e46fddccfb65f3b1c0e5f31cb7e590efc714"
+    },
+    "existingTestsPassed": 35,
+    "actualWebUrlSmoke": "passed before authoring; screenshot inspected"
+  }
 }

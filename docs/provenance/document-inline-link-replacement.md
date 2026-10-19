@@ -31,3 +31,25 @@ This requirements commit precedes the replacement. Selected historical expressio
 and recovered reference bodies were not printed in this bounded pass, but earlier
 exposure remains recorded; this is not strict author isolation or historical-rights
 clearance. Eight unresolved inventory groups remain open.
+
+## Frozen observations before implementation
+
+The unchanged compiler produced 5,788 complete public compile observations
+and six every-prefix streaming sessions, including committed snapshots and repeat
+cache identity. Raw output SHA256: `42cda1de84394157963b3ffef970fa27063f647132ec46ea43fa52779fd5aec7`.
+A sealed execution of the unchanged private mapping port adds 560
+label/title/child-token/offset/decorate combinations; its implementation was
+executed without printing the body. Raw output SHA256: `b777b7b0e64930ab7766b2db6ee9e46fddccfb65f3b1c0e5f31cb7e590efc714`.
+Empty or non-string label text falls back to an empty text child, while an
+explicit empty title remains an empty string and a non-string title becomes null.
+Label child ranges retain their existing link-start origin rather than a new
+Markdown-source interpretation. Nested formatting/images remain typed children;
+only text decorations are disabled. No grammar or source-range correction is part
+of this replacement.
+
+The 35 existing document/cache/resource-flow tests passed before authoring.
+The existing actual Web URL smoke passed heading preservation, sanitized target,
+favicon/tooltip, ordinary/modifier/context-menu intent, clipboard and the 500ms
+streaming activation guard. Its baseline screenshot was inspected. It uses
+synthetic targets/ports and does not establish employee, remote Host or native
+hardware acceptance. No selected implementation changes exist at this freeze.
