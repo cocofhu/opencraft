@@ -1565,6 +1565,8 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .sidebar-activity-list {
+  // Append pages without letting the browser anchor the moving tail controls.
+  overflow-anchor: none;
   gap: var(--gap-sidebar-activity-groups);
 }
 
@@ -1804,6 +1806,13 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   }
 }
 
+// Mobile uses the outer Shell scrollport; its tail must not become an anchor.
+.shell-sidebar__scroll { overflow-anchor: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-activity-pagination .is-spinning { animation: none; }
+}
+
 .sidebar-activity-more,
 .sidebar-activity-empty {
   @include typography.role(metadata, tertiary);
@@ -1813,6 +1822,9 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .sidebar-activity-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-control-group);
   @include controls.quiet-control;
   @include typography.role(sidebar-section, secondary);
   min-height: max(30px, var(--size-control-hit-min));

@@ -7,6 +7,12 @@
   "presentation-transition": {
     "source": "ref/codex/browser/internal/is-different-host-in-conversation.js",
     "sourceSha256": "323bd8ca717cf0d2189f2c66d0d8c07c67ef972449ba539dfae38c52ef040d72",
-    "classSha256": "fe69e9e68a0bc6b3b161581cec161d8c41fc80110c7e64d83c1dab74ab85c67a"
+    "classSha256": "fe69e9e68a0bc6b3b161581cec161d8c41fc80110c7e64d83c1dab74ab85c67a",
+    "implementation": {
+      "status": "independently-reimplemented",
+      "moduleSha256": "c14ece76d1c591257ac8971cfdf704df948b81a086a3091cff679b19e9bef3bd",
+      "baseline": "docs/provenance/browser-transition-baseline.json",
+      "requirements": "docs/provenance/browser-transition-replacement.md"
+    }
   }
 }

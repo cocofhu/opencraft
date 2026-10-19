@@ -1,5 +1,41 @@
 # Source provenance review
 
+## Complete tool, image and subagent renderer replacement (2026-10-20)
+
+[All six exports of the tool/image/subagent module](provenance/tool-renderers-replacement.md)
+are wholly replaced from recorded requirements, public interfaces and executable
+observations. Core still owns summaries/content/group state, Host ports own
+resources and navigation, and existing media/modal/activity owners retain their
+boundaries. Original hashes, historical annotation and all eight earlier partial
+renderer-expression dispositions remain recorded. This resolves the final current
+path of that inventory group; **eight other groups remain unverified**. Shared
+ports and historical rights are not reclassified. This bounded implementation
+conclusion does not establish strict author isolation or release readiness.
+
+
+## Complete command and review renderer replacement (2026-10-20)
+
+[All seven exports of the command/review module](provenance/command-review-replacement.md)
+are replaced after frozen requirements and executable public observations. The
+historically source-identical accessory uses a new licensed Lucide composition;
+full historical hashes/annotations and author exposure remain evidence. Shared
+classification, document, disclosure and engine integration ports remain unchanged
+and are not reclassified. One renderer-expression path and all nine unresolved
+groups remain open. Finite browser comparisons and existing checks establish only
+the documented behavior, not strict isolation, historical rights or release readiness.
+
+## Complete appearance runtime replacement (2026-10-19)
+
+[The entire appearance runtime](provenance/appearance-runtime-replacement.md)
+is independently replaced after frozen requirements and public-port observations.
+Preference keys, theme IDs, Settings controls, system mode and extension
+load/unload intent are preserved. The renderer-expression group retains **two**
+unresolved paths and seven partial dispositions; all **nine** unresolved groups
+remain open. Shared palette/compiler ports are unchanged and remain unresolved.
+Historical hashes, annotations, author exposure and finite browser evidence are
+retained; strict author isolation, historical rights and release readiness are not
+established by this bounded replacement.
+
 ## Complete Shell right-panel host replacement (2026-10-19)
 
 [The complete presentation host](provenance/shell-panel-host-replacement.md)
@@ -115,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Seven files: four browser implementation modules claiming copied bodies/identical helpers, their pinned source manifest, and two related toolbar/host contracts |
+| `codex-browser-source-followup` | Four unresolved files: manager implementation, its historical source manifest, and two toolbar/host contracts; viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -233,7 +269,7 @@ boundaries, not conclusions that all code in each file was copied:
 | --- | --- | --- |
 | `codex-chat-semantics-followup` | User-message Web layout, activity/Thinking ownership, MCP elicitation, realtime transcript, turn diff, user-message normalization and wrapper parsing | Fix public requirements and actual input/output contracts per module, establish lineage, then replace or license only bounded expression |
 | `codex-document-streaming-followup` | Markdown compilation/preprocessing and streaming segment identity | Separate standard Markdown behavior from source-specific tokenization/reconciliation; verify complete rendered documents and streaming identity |
-| `codex-client-host-followup` | Lab journal, hook projection, interrupt cleanup, dictation footer and panel geometry | Distinguish reference-inspired observations from retained expression; preserve runtime cancellation, dictation and layout behavior |
+| `codex-client-host-followup` | Lab journal, hook projection, dictation footer and panel geometry; interrupt response helper has a separate bounded disposition | Distinguish reference-inspired observations from retained expression; preserve runtime cancellation, dictation and layout behavior |
 
 With these additions the earlier “five unverified groups” is a historical count,
 not the current complete total. The manifest/report is the authority for current
@@ -489,3 +525,61 @@ handoff-step behavior outside that table. The new unresolved
 still require review** despite the native table replacement. The previous
 table-specific finding was not a complete review of the tool presentation file.
 Historical commits and public redistribution remain unresolved.
+
+
+## Bounded source review: no automatic package rewrites (2026-10-20)
+
+Only an actual recorded source reference identifies a review target. Absence of
+such a reference is not a reason to rewrite working code. Even an explicit
+reference may describe behavior, standard facts or an already licensed/original
+implementation; review the actual region and keep those implementations rather
+than replacing a whole file, package or directory by association. The unresolved
+group count is an inventory, not a promise to rewrite that many groups.
+
+The browser viewport drag helper had an explicit claim that its function bodies
+came from a named reference. Its complete small module is independently replaced
+after [frozen requirements and observed contracts](provenance/browser-viewport-resize-replacement.md).
+The [baseline](provenance/browser-viewport-resize-baseline.json) retains its exact
+historical blob/hash and source annotation. Preset facts, toolbar behavior,
+the manager implementation is unchanged. Presentation handoff was subsequently
+replaced as recorded below; the remaining browser group stays unverified. This bounded disposition does not clear historical
+commits or grant distribution rights to adjacent code.
+
+
+## Browser presentation handoff replacement (2026-10-20)
+
+The complete explicitly source-attributed transition module is replaced from
+[frozen requirements and public observations](provenance/browser-transition-replacement.md).
+The manager, presets, toolbar and Host implementation are retained; the Host's
+stale documentation comment is corrected. Owner/surface leases preserve painted
+continuity, acknowledgement, prewarm, cancellation and interaction ownership.
+Adversarial stale-reference/generation cases are fenced and separately documented
+as intentional differences from the old behavior. Historical source/class hashes
+remain in the manifest alongside the separately identified current module hash.
+At that transition checkpoint, five browser inventory files and all eight unresolved groups remained unverified;
+this is not strict author isolation, historical rights clearance or release readiness.
+
+
+## Browser preset helper and legacy export review (2026-10-20)
+
+The directly source-attributed preset module now independently expresses the six
+[declared/consumed APIs](provenance/browser-viewport-presets-review.md), retaining
+all 13 application preset IDs, dimensions, order and initialization identities.
+These are compatibility values, not newly verified hardware specifications.
+Seven undeclared recovery exports without repository consumers are removed;
+device brands and adjacent original/behavioral code are retained. Historical
+annotation/hash, observed data and actual author exposure remain recorded.
+Four browser inventory files and all eight unresolved groups stay unverified;
+this is not strict author isolation or historical rights clearance.
+
+
+## Interrupt response protocol policy (2026-10-20)
+
+The directly annotated interrupt response module now expresses an exhaustive
+policy over the existing eight-method server-request union. The public function,
+wire method names and cancellation response facts remain compatible. Historical
+blob/annotation and prior full-body author exposure are recorded in the
+[implementation evidence](provenance/interaction-interrupt-replacement.md);
+this is not strict author isolation or historical rights clearance. Only this
+module is replaced. Four client/Host inventory files and all eight unresolved
+groups remain open; source-inspired descriptions alone do not mandate rewrites.

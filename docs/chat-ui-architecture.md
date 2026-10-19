@@ -229,6 +229,15 @@ cleanup semantics while the Composer Stop button retains `turn/interrupt`.
 A new Draft action need not create a Thread. The expected active Turn is captured
 from the matching Conversation so an adapter can refuse to interrupt a newer Turn.
 
+Turn interruption derives cancellation payloads from the typed server-request
+policy. Responses decline approvals, dismiss dedicated pickers or leave questions
+unanswered; dynamic tool calls remain owned by server resolution. Each invocation
+returns its own payload. The conversation runtime selects only the target turn,
+settles all response attempts before interrupt, carries the original provenance
+and releases its transient interrupt state on failure. The helper does not grant
+permissions or own pending-request removal. See the [bounded implementation
+record](provenance/interaction-interrupt-replacement.md).
+
 ## 跨桌面、手机和平板的会话连续性
 
 Conversation Scope 是会话身份，View 是具体窗口或页面的呈现与滚动状态；任务输入槽位以 View ID 标识，但其 Application 级草稿所有权独立于页面缓存。`workbench-runtime` 的 `ConversationDraftOwnerRegistry` 保留原 Controller 与附件资源，`ConversationDraftContinuity` 管理同一输入槽文档的保存、恢复、发送成功后的丢弃和迟到读取仲裁；平台只提供本地存储。移动端用 SQLite，并以区域、凭证摘要和 Bot 实例/Profile 分区；Web/Electron 用浏览器本地存储，并以产品和账号服务的凭证作用域分区。退出登录或切换凭证时撤销旧存储、清除所有草稿所有者及其内部目标缓存，包括已无页面的草稿。附件与临时文件引用不从文档缓存恢复；会话切换保留内存附件不等于刷新恢复字节。

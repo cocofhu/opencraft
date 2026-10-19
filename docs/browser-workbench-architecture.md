@@ -1259,3 +1259,43 @@ DNS label boundary, not arbitrary URL text. Other destinations open with
 Electron workbench supplies no policy and retains its native browsing behavior. This is a
 policy for OpenCraft-initiated navigation, not a security boundary for redirects or
 navigation initiated inside an inaccessible cross-origin guest.
+
+
+### Viewport drag geometry replacement (2026-10-20)
+
+The small `viewport-resize.js` pure helper now uses independently authored axis
+geometry after frozen requirements and observed contracts; its former explicit
+source-body attribution is retained in the provenance baseline. This supersedes
+only the earlier statement that drag calculation itself directly uses the
+reference implementation. Device preset facts, source manager, toolbar and
+transition ownership are unchanged and are not cleared by this replacement.
+Horizontal handles resize around a fixed center, bottom handles alter height,
+and the captured scale maps pointer movement into bounded viewport dimensions.
+Pointer capture, cancellation, keyboard and persistence remain in their current
+owners. See [bounded replacement](provenance/browser-viewport-resize-replacement.md).
+
+
+### Browser presentation transition ownership (2026-10-20)
+
+The manager continues to own backing hosts, storage and mount claims. Its
+presentation transition module now independently implements owner/surface leases:
+a pending incoming view retains the painted outgoing view, blocks both during
+handoff, accepts a current attachment ack or bounded deadline, then prewarms for
+two frames and releases on the next frame. Registration only updates stacking.
+Removal, route transfer, hidden sync and rapid replacement revoke scheduled work;
+old callbacks cannot reclaim a newer reference or generation. Surface moves retire
+the previous presentation claim. Automation input/focus locks remain on the Host.
+Historical source digests and exact replacement/verification limits are recorded
+in [the module provenance](provenance/browser-transition-replacement.md); this
+replaces only prior descriptions of the transition as an unmodified source class.
+
+
+### Viewport preset compatibility data (2026-10-20)
+
+The preset module retains the existing ordered 13-entry application catalog,
+disabled responsive default and lazy/idempotent public initialization. The
+toolbar and manager consume the same six declared exports. Numeric helpers
+round and bound width/height without owning capture, persistence or scale.
+Unused, undeclared recovery utilities/tokens are removed; device names and
+application dimensions are retained. This catalog is not a hardware specification.
+See [the bounded review](provenance/browser-viewport-presets-review.md).

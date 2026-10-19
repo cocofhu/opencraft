@@ -127,6 +127,7 @@
   "sidebar.catalog.retry": "重试",
   "sidebar.catalog.showMore": "查看更多",
   "sidebar.catalog.less": "收起",
+  "sidebar.catalog.end": "没有更多了",
   "sidebar.catalog.more": "加载更多",
   "sidebar.catalog.moreRemote": "更多会话（{count} 个远程）",
   "sidebar.serverOrigin": "来自 {server}",
