@@ -18,6 +18,7 @@ a failing pre-fix case; inspect near-start, middle and near-end output in additi
 to theme/density/DPR coverage. `scripts/smoke-reasoning-slider.ts` verifies the real
 Composer consumer and keeps per-stop screenshots and geometric samples.
 
+
 ## Composer input action icons
 
 The shared voice action consumes the design-system composer input icon role:
@@ -1588,3 +1589,10 @@ without that context do not show an unsupported switch. Navigation uses the
 context selector path, including legacy deployments; target admission, remembered
 choice and per-tab execution ownership remain authoritative at their existing
 owners. Changing pages does not stop execution.
+
+
+### Contribution icon authority
+
+Registered navigation and settings icon names remain effective in every
+presentation style. Classic artwork variants, sizes and selected-state strokes
+may differ; generic fallbacks apply only to missing or unsupported names.
