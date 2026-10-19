@@ -1,0 +1,43 @@
+{
+  "path": "apps/workbench-web/src/sidebar-dock-model.ts",
+  "base": "15c621c3093010957d57dc65b9d606961aa1291c",
+  "moduleSha256": "47007b1d8f1c26a04e952fac6def176ae8bc56ea5d8ba32bdad410418a644383",
+  "header": {
+    "start": 0,
+    "end": 148,
+    "text": "// Behavior restored from Codex r1532:\n// terminal/initialize-app-shell-drag-module-06089.ts and\n// terminal/use-app-shell-layout-motion-04358.ts.\n\n",
+    "sha256": "db35466bab0f9dab9284e0cc13943086c92e285f00960f85916293da87d8b543"
+  },
+  "regions": [
+    {
+      "name": "resolveSidebarFloatingIntent",
+      "kind": "FunctionDeclaration",
+      "start": 1165,
+      "end": 1872,
+      "sha256": "ecf9874645710f995835fcebf70279588f7e5bfa11a347d69ccd1e3639e5f1ae",
+      "signature": "export function resolveSidebarFloatingIntent({\n  docked,\n  currentlyRequested,\n  pointerX,\n  panelWidth,\n  triggerPeeked,\n  triggerSuppressed,\n}: SidebarFloatingIntentInput): boolean",
+      "annotation": "/**\n * The closed panel has a deliberately narrow acquisition target. Once open,\n * the entire panel width becomes the retention target. This hysteresis is the\n * reason Codex's edge reveal feels intentional instead of twitchy.\n */"
+    },
+    {
+      "name": "resolveSidebarPresentation",
+      "kind": "FunctionDeclaration",
+      "start": 1872,
+      "end": 2358,
+      "sha256": "6654d3e14ef07bc2dd2625a1cc7a694fc5f1a1138b3b79bbaedf42b4d474094d",
+      "signature": "export function resolveSidebarPresentation({\n  docked,\n  layoutMounted,\n  layoutResizing,\n  floatingRequested,\n  floatingResizing,\n}: SidebarPresentationInput): SidebarPresentation",
+      "annotation": "/** Layout presence owns the transition; the floating panel may mount only\n * after the layout panel is fully gone. */"
+    },
+    {
+      "name": "shouldMountFloatingSidebarPresenceOwner",
+      "kind": "FunctionDeclaration",
+      "start": 2358,
+      "end": 2879,
+      "sha256": "599b45f994d32728f397e6e455b9041b0342deaf62314766f6073d44ef912f7f",
+      "signature": "export function shouldMountFloatingSidebarPresenceOwner({\n  docked,\n  layoutMounted,\n  layoutResizing,\n}: FloatingSidebarPresenceOwnerInput): boolean",
+      "annotation": "/**\n * The floating panel owns its own pointer-leave exit animation while the\n * sidebar is undocked. A dock transaction removes that presence owner itself,\n * so an invisible exiting overlay cannot keep the persistent toolbar from\n * receiving hover. This is a different lifetime from floating visibility.\n */"
+    }
+  ],
+  "scope": "Only the three historical restoration declarations and direct header; later hover/toggle functions, types and ordinary constants unchanged",
+  "exposure": "Old selected bodies and reference implementations were not printed in this bounded pass. Prior review may have exposed this module; no strict author-isolation claim.",
+  "lineage": "The earliest recorded restored module contains only the three selected functions; later revisions add hover capability and toggle policy. Private repository metadata is retained outside the public repository, not reproduced here."
+}
