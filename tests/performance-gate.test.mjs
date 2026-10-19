@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { scenarios, summarize, candidate, compare } from '../scripts/performance/report.mjs';
@@ -52,10 +53,10 @@ test('formal release gate is unconditional, before packaging, with retained fail
   assert.doesNotMatch(readFileSync(new URL('../.github/workflows/build-matrix.yml', import.meta.url), 'utf8'), /gate:performance/);
 });
 test('CLI fails on incompatible evidence and never reuses an existing output directory', () => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'opencraft-performance-test-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'opencraft performance test-'));
   try {
     writeFileSync(path.join(dir, 'run.lock'), 'previous invocation');
-    const result = spawnSync(process.execPath, [new URL('../scripts/performance/run.mjs', import.meta.url).pathname, '--output', dir], { encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../scripts/performance/run.mjs', import.meta.url)), '--output', dir], { encoding: 'utf8' });
     assert.notEqual(result.status, 0); assert.match(result.stderr, /EEXIST/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
