@@ -1,11 +1,15 @@
 /** Browser deployment context only. Authorization always remains at the target. */
-export interface BrowserServerContext { readonly id: string; readonly name: string; readonly basePath: string; readonly selectorPath: string; }
+export interface BrowserServerContext { readonly id: string; readonly name: string; readonly basePath: string; readonly selectorPath: string; readonly targetOrigin?: string; }
 export function parseServerContext(raw: string | null): BrowserServerContext | null {
   if (!raw) return null;
   const value = JSON.parse(raw) as BrowserServerContext;
   if (!value || !/^[A-Za-z0-9._-]{1,128}$/u.test(value.id) || typeof value.name !== 'string'
     || !['/servers', '/__opencraft_servers'].includes(value.selectorPath)
     || value.basePath !== value.selectorPath + '/' + encodeURIComponent(value.id)) throw new Error('Invalid server context');
+  if (value.targetOrigin !== undefined) {
+    const origin = new URL(value.targetOrigin);
+    if (!['http:', 'https:'].includes(origin.protocol) || origin.origin !== value.targetOrigin || origin.username || origin.password) throw new Error('Invalid server context');
+  }
   return Object.freeze(value);
 }
 export function browserServerContext(): BrowserServerContext | null {
@@ -33,4 +37,9 @@ export const serverFetch: typeof fetch = (input, init) => {
 export function serverStorageKey(key: string): string {
   const id = browserServerContext()?.id;
   return id ? `server:${id}:${key}` : key;
+}
+
+/** The enrolled target owns installation sessions; the browser entry owns URLs. */
+export function serverAdmissionOrigin(): string {
+  return browserServerContext()?.targetOrigin ?? window.location.origin;
 }

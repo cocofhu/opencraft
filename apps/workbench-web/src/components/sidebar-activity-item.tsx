@@ -102,7 +102,7 @@ export function SidebarActivityItem({
         <span className="sidebar-activity-item__title-line"><span className="sidebar-activity-item__title">{title}</span>
           {scheduleLabel ? <span className="sidebar-activity-item__schedule" role="img" aria-label={scheduleLabel} title={scheduleLabel}><Clock size={16} aria-hidden="true" /></span> : null}</span>
         {twoLine || project ? <span className="sidebar-activity-item__metadata">
-          {twoLine ? <span className="sidebar-activity-item__state-label">{status === "running" ? <FormattedMessage id="sidebar.status.running" defaultMessage="Running" /> : status === "review" ? <FormattedMessage id="sidebar.status.review" defaultMessage="Ready for review" /> : status === "error" ? <FormattedMessage id="sidebar.status.error" defaultMessage="Connection failed" /> : <FormattedMessage id="sidebar.status.unread" defaultMessage="New reply" />}</span> : null}
+          {twoLine ? <span className="sidebar-activity-item__state-label">{status === "running" ? <FormattedMessage id="sidebar.status.running" defaultMessage="Running" /> : status === "review" ? <FormattedMessage id="sidebar.status.review" defaultMessage="Ready for review" /> : status === "error" ? <FormattedMessage id="sidebar.status.error" defaultMessage="Conversation error" /> : <FormattedMessage id="sidebar.status.unread" defaultMessage="New reply" />}</span> : null}
           {twoLine && project ? <span aria-hidden="true">·</span> : null}
           {project ? <span className="sidebar-activity-item__project">{project}</span> : null}
         </span> : null}

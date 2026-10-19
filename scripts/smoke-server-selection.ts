@@ -6,8 +6,8 @@ import { selectorFixture, waitFor } from '../tests/fixtures/server-selector';
 import { AppHostServer } from '../packages/app-host-server/src';
 
 const output=resolve(process.env.OPENCRAFT_SELECTOR_SMOKE_DIRECTORY??'.local/server-selector');await mkdir(output,{recursive:true});
-const errors:string[]=[],requests:string[]=[],sockets:string[]=[];
-const fixture=await selectorFixture({legacyDefaultUsers:['alice'],entryName:'OpenCraft',webRoot:resolve(process.env.OPENCRAFT_SELECTOR_WEB_ROOT??'apps/workbench-web/dist'),appHost:()=>new AppHostServer({logicalClientRouting:true,createTransport(){
+const errors:string[]=[],requests:string[]=[],sockets:string[]=[],sshGrants:string[]=[];
+const fixture=await selectorFixture({sshPublicAccess:true,legacyDefaultUsers:['alice'],entryName:'OpenCraft',webRoot:resolve(process.env.OPENCRAFT_SELECTOR_WEB_ROOT??'apps/workbench-web/dist'),appHost:()=>new AppHostServer({logicalClientRouting:true,createTransport(){
   const messages=new Set<(frame:string)=>void>(),statuses=new Set<(status:any)=>void>();
   return {status:{state:'idle'} as any,async connect(){this.status={state:'open'};for(const listener of statuses)listener(this.status);},async send(frame:string){
     const rpc=JSON.parse(frame);if(rpc.id===undefined)return;
@@ -18,7 +18,14 @@ const fixture=await selectorFixture({legacyDefaultUsers:['alice'],entryName:'Ope
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox','--no-proxy-server','--host-resolver-rules=MAP *.selection.test 127.0.0.1']});
 try{
   const context=await browser.newContext({extraHTTPHeaders:{'x-fixture-user':'alice'},locale:'zh-CN'}),page=await context.newPage();
-  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(new URL(r.url()).pathname));page.on('websocket',s=>sockets.push(new URL(s.url()).pathname));
+  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;requests.push(path);if(r.method()==='POST'&&path.endsWith('/__opencraft_ssh/session'))sshGrants.push(path);});page.on('websocket',s=>sockets.push(new URL(s.url()).pathname));
+  // Existing direct settings bookmarks must gain context without changing server.
+  await page.goto(fixture.origin+'/settings/servers?retained=one%2Ftwo');
+  await page.waitForURL('**/servers/join/settings/servers?retained=one%2Ftwo');
+  await page.getByRole('navigation',{name:'Settings sections',exact:true}).getByRole('button',{name:'服务器',exact:true}).waitFor();
+  await page.getByText('当前服务器',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>JSON.parse(document.getElementById('opencraft-server-context')!.textContent!).id),'join');
+  await page.screenshot({path:join(output,'legacy-join-settings.png')});
   await page.goto(fixture.origin+'/__opencraft_servers');await page.waitForURL('**/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
   await page.goto(fixture.origin);await page.waitForURL('**/servers/join/**');await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
   await page.goto(fixture.origin+'/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
@@ -28,14 +35,53 @@ try{
   await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
   await page.screenshot({path:join(output,'lighthouse-workbench.png')});
   await page.goto(fixture.origin+'/__opencraft_servers/lighthouse/');await page.waitForURL('**/servers/lighthouse/');await page.locator('[data-action-id]').first().waitFor();
-  const cookieIsolation=await page.evaluate(async()=>{await fetch('/servers/lighthouse/fixture/stream').then(r=>r.text());return fetch('/servers/lighthouse/fixture/headers').then(r=>r.json());});assert.equal(cookieIsolation.cookie,'private-target=not-shared');
+  // Direct URL wins over Lighthouse memory and becomes the next root destination.
+  // A second tab's successful entry must never retarget this existing page.
+  const direct=await context.newPage();
+  await direct.goto(fixture.origin+'/servers/join/settings/servers?direct=one%2Ftwo#retained',{waitUntil:'commit'});
+  assert.equal(new URL(direct.url()).pathname,'/servers/join/settings/servers');
+  assert.equal(new URL(direct.url()).search,'?direct=one%2Ftwo');assert.equal(new URL(direct.url()).hash,'#retained');
+  await direct.getByText('当前服务器',{exact:true}).waitFor();
+  await direct.goto(fixture.origin);await direct.waitForURL('**/servers/join/**');
+  await direct.goto(fixture.origin+'/servers/lighthouse/settings/servers?direct=2');
+  await direct.getByText('当前服务器',{exact:true}).waitFor();
+  // An embedded successful document and a background HTML read are not entry.
+  await direct.evaluate(async()=>{
+    const iframe=document.createElement('iframe');iframe.src='/servers/join/fixture/compressed.html';
+    const loaded=new Promise<void>(resolve=>iframe.onload=()=>resolve());document.body.append(iframe);await loaded;iframe.remove();
+    await fetch('/servers/join/fixture/compressed.html',{headers:{accept:'text/html'}}).then(r=>r.text());
+  });
+  await direct.goto(fixture.origin);await direct.waitForURL('**/servers/lighthouse/**');
+  await direct.reload();await direct.locator('[data-action-id]').first().waitFor();
+  assert.match(new URL(direct.url()).pathname,/^\/servers\/lighthouse\/?$/u);await direct.close();
+  const noStorage=await browser.newContext({extraHTTPHeaders:{'x-fixture-user':'alice'}});
+  await noStorage.addInitScript(()=>{Storage.prototype.setItem=Storage.prototype.getItem=()=>{throw new Error('Storage unavailable');};});
+  const noStoragePage=await noStorage.newPage();
+  await noStoragePage.goto(fixture.origin+'/servers/lighthouse/fixture/compressed.html');
+  assert.equal(await noStoragePage.title(),'Compressed');
+  assert.equal(new URL(noStoragePage.url()).pathname,'/servers/lighthouse/fixture/compressed.html');await noStorage.close();
+  const cookieIsolation=await page.evaluate(async()=>{await fetch('/servers/lighthouse/fixture/stream').then(r=>r.text());return fetch('/servers/lighthouse/fixture/headers').then(r=>r.json());});assert.match(cookieIsolation.cookie,/(?:^|; )private-target=not-shared(?:;|$)/u);assert.doesNotMatch(cookieIsolation.cookie,/opencraft-relay-session/u);
   const session=await page.evaluate(()=>fetch('/servers/lighthouse/__opencraft_access/session').then(r=>r.json()));assert.equal(session.role,'member');
   const dataScope=await page.evaluate(()=>indexedDB.databases().then(xs=>xs.map(x=>x.name)));assert.ok(dataScope.some(x=>x?.includes('server:lighthouse:')));
   await page.reload();await page.locator('[data-action-id]').first().waitFor();assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);
   // Choosing the managed site in a second tab changes only future entry preference, never tab A's URL or requests.
+  const bookmark=await context.newPage();await bookmark.goto(fixture.origin+'/settings/servers?existing=1');
+  await bookmark.waitForURL('**/servers/join/settings/servers?existing=1');await bookmark.getByText('当前服务器',{exact:true}).waitFor();
+  assert.equal(await bookmark.evaluate(()=>JSON.parse(document.getElementById('opencraft-server-context')!.textContent!).id),'join');await bookmark.close();
   const other=await context.newPage();await other.goto(fixture.origin+'/servers');await other.locator('[data-server="join"]').click();await other.locator('[data-action-id]').first().waitFor();
+  // Exercise actual Workbench discovery against real SSH management and relay.
+  await page.waitForTimeout(6500);
+  const discovery=await page.evaluate(async()=>{
+    const context=JSON.parse(document.getElementById('opencraft-server-context')!.textContent!);
+    const session=await fetch(context.basePath+'/__opencraft_ssh/session').then(r=>r.json());
+    return {session,targetOrigin:context.targetOrigin,errors:document.querySelectorAll('.sidebar-catalog-feedback').length};
+  });
+  assert.equal(discovery.session.authenticated,true);
+  assert.equal(discovery.session.authenticatedOrigin,discovery.targetOrigin);
+  assert.equal(discovery.errors,0);
+  assert.equal(sshGrants.filter(path=>path.includes('/lighthouse/')).length,1,'discovery and page reload reuse the same SSH grant');
   assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);assert.match(other.url(),/\/join(?:\/|\?|$)/u);
-  const joinRole=await other.evaluate(()=>fetch('/servers/join/__opencraft_access/session').then(r=>r.json()));assert.equal(joinRole.role,'admin');const otherCookies=await other.evaluate(()=>fetch('/servers/join/fixture/headers').then(r=>r.json()));assert.equal(otherCookies.cookie,null);
+  const joinRole=await other.evaluate(()=>fetch('/servers/join/__opencraft_access/session').then(r=>r.json()));assert.equal(joinRole.role,'admin');const otherCookies=await other.evaluate(()=>fetch('/servers/join/fixture/headers').then(r=>r.json()));assert.ok(otherCookies.cookie===null || /^opencraft_ssh_session_http=/u.test(otherCookies.cookie));assert.doesNotMatch(otherCookies.cookie??'',/private-target/u);
   await page.goto(fixture.origin);await page.waitForURL(url=>url.pathname.startsWith('/servers/join'));await page.locator('[data-action-id]').first().waitFor();
   // Settings owns server switching; the chooser still opens with a saved choice.
   assert.equal(await page.locator('.shell-navigation__items').getByRole('button',{name:/切换服务器|Switch server/u}).count(),0);
@@ -66,7 +112,7 @@ try{
   assert.equal(await freshPage.locator('[data-server="lighthouse"]').count(),1);
   assert.match(await freshPage.locator('p').first().innerText(),/不可用/u);await fresh.close();
   assert.deepEqual(errors,[]);
-  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
+  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,explicitUrlWins:true,directEntryBecomesRememberedChoice:true,deepLinkPreservesQueryAndFragment:true,backgroundAndIframeDoNotChangeChoice:true,storageUnavailableDirectEntry:true,legacySettingsBookmark:true,realSshDiscovery:discovery,sshGrantRequests:sshGrants,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
   console.log(JSON.stringify({output,success:true}));
 } catch(error){await writeFile(join(output,'failure.json'),JSON.stringify({error:String(error),errors,requests,sockets},null,2));throw error;}
 finally{await browser.close();await fixture.close();}

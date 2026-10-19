@@ -449,7 +449,7 @@
   "sidebar.status.goal": "正在推进目标",
   "sidebar.status.running": "运行中",
   "sidebar.status.review": "等待审阅",
-  "sidebar.status.error": "连接失败",
+  "sidebar.status.error": "会话出错",
   "sidebar.status.unread": "有新回复",
   "sidebar.rail.start": "开始",
   "sidebar.rail.chat": "会话",
