@@ -135,6 +135,21 @@
         }
       ],
       "conclusion": "No connector brand image remains in the current public core source. This is exclusion of the identified image files, not a claim of brand authorization or a license determination for historical commits. Full clients, service catalog/recipes and runtime capabilities remain. See the retained exact-source list and current disposition."
+    },
+    {
+      "id": "skill-path-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/skill-path.ts"
+      ],
+      "evidence": [
+        "docs/provenance/skill-path-replacement.md",
+        "tests/chat-skill-path.test.ts",
+        "tests/chat-core.test.ts"
+      ],
+      "reason": "The historical module carried a source-equivalent display-title annotation outside the original inventory. The entire module is replaced from frozen requirements, public export/consumer contracts and black-box OpenCraft behavior observations.",
+      "resolution": "Retain the historical blob and requirement commit. This bounded replacement does not resolve the five other unverified inventory groups or other previously untracked annotations.",
+      "conclusion": "Current replacement implements lexical component normalization and explicit recognized skill-directory layouts without reading recovered Desktop or BB/Paseo implementation source. The author previously inspected other recovery-related modules and saw two old display-helper lines during interface extraction, so no strict clean-room isolation or historical rights clearance is claimed. See the authoring boundary, compatibility evidence and limits in the disposition."
     }
   ]
 }

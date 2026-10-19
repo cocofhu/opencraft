@@ -43,3 +43,33 @@ unexposed implementation team is claimed.
 The new design uses lexical path components and recognized directory layouts;
 retained names and wire-path conventions are compatibility inputs. No historical
 source annotation is deleted to represent the old module as original.
+
+## Compatibility follow-up and validation
+
+The frozen requirements commit is `93475c9`. After the initial implementation,
+54 black-box path comparisons caught two compatibility details: the direct
+`scripts` directory itself is a script resource, and `.system` is reserved only
+in local skill roots, not plugin-owned skill identifiers. These were corrected
+from observed outputs without opening the old parser body. All 54 combinations
+then matched, covering local/plugin layouts, system markers, trailing and
+repeated separators, parent navigation, definition files and script resources.
+The corpus is bounded; it is not a proof for all possible strings.
+
+Validation of the replacement:
+
+- `node --import tsx --test tests/chat-skill-path.test.ts tests/chat-core.test.ts
+  tests/chat-conversation-presentation.test.ts tests/chat-skill-icon.test.ts
+  tests/source-provenance.test.mjs`: 123 passed.
+- `npm run typecheck --workspace @opencraft/chat-core`: passed.
+- `npm run check:boundaries`: passed, including typography/activity ownership.
+- `node scripts/check-source-provenance.mjs`: integrity passed. The five existing
+  unverified groups remain; their release check is still unresolved.
+- `scripts/smoke-conversation-presentation.ts` in Chromium: passed existing
+  presentation scenarios plus a real Conversation rendering the parsed skill
+  read as `Reading Review skill`, with no browser errors.
+
+The browser fixture uses synthetic protocol input; no live engine, external
+account, Electron binary or Expo device is claimed. Existing clients consume
+unchanged exports. The extra parser cases are included automatically by the
+existing `test:chat` glob. No blanket source-inventory completeness claim follows
+from adding this one disposition; other missing annotations still need review.
