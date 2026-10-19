@@ -54,3 +54,45 @@ still-unresolved shared classifier/presenter/document/activity dependencies are
 ports, not implementation templates. No external recovered renderer or BB/Paseo
 body is used as an authoring input. Implementation must follow this requirements
 commit; observations and compatibility refinements will be appended separately.
+
+
+## Public behavior frozen before implementation
+
+The first exploratory browser invocation supplied a notification callback without
+applying its state and used two invalid command fixture values (`completed` and
+`NONE`). These samples are not final acceptance. The corrected baseline uses the
+actual `complete` status and all three declared detail policies: 56 samples, no
+page errors. A second 15-sample edge observation also has no page errors.
+
+- Reasoning begins folded. Without an external callback its local choice persists
+  through text growth and settlement. A supplied callback delegates choice to the
+  consumer; `collapsed` overrides local choice. A supplied presentation and active
+  override are honored. Only actual returned content creates the disclosure.
+- Header and body use the existing activity/document ports. The body is lazy and
+  removed after closure; the shared trigger may pre-mount it during attempted
+  expansion even when a controlled parent declines the requested choice.
+- Generic commands begin folded even when running/pending. The same choice
+  survives status changes; expanded labels use the shared generic wording while
+  folded labels include the actual command. Live elapsed time uses Item start,
+  settled time uses reported duration. A background PTY retains its own wording.
+- A single read uses a resource-link detail rather than a terminal body; resource
+  activation emits the resolved file target/decision. Skill reads consume shared
+  policy and can be hidden while running. Terminal output uses ANSI rendering,
+  absent output says No output, and settled footers distinguish success, exit
+  code (including unknown) and interruption. Copy command/output actions remain.
+- A running review starts expanded; settled review starts folded. Its nested
+  assessment disclosure is independent. Title, plain-text rationale, warning and
+  lifecycle status come from shared core. Review lists retain supplied order,
+  including approvals; the outer registry separately suppresses approved blocks.
+- The interruption contract actually contains message/detail only, not a review
+  or action. Requirement 5 means presenting that message with its explanatory
+  tooltip; this observation corrects the initial generic wording without widening
+  the protocol or inventing review fields.
+- Copy supplies plain text or the lazy HTML/text MIME pair through existing ports.
+  Success changes the accessible label to Copied and later restores it; failures
+  leave the original action available and do not emit an unhandled page error.
+
+Temporary browser evidence (not committed probes/harness):
+
+- `opencraft-command-review-baseline-final.json` SHA-256 `3f4dccdb8c280d7be71b3f0bfe537ca21596860ae93397cb6ac12f61415bc8da`.
+- `opencraft-command-review-edges.json` SHA-256 `4cd2bbc827e80a1046f17c72a2f91594debbe863cf5bb6f1824c862077a99677`.
