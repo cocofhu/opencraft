@@ -7,7 +7,7 @@ import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
 import { createConversationKey } from "@opencraft/chat-core";
 import { createComposerController } from "@opencraft/composer-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { CodexComposer, groupComposerModels } from "@opencraft/codex-composer";
 import { embeddedLocaleCatalogs } from "../apps/workbench-web/src/i18n/catalogs";
 
 // tsx compiles package sources with the classic JSX runtime.
@@ -16,7 +16,7 @@ import { embeddedLocaleCatalogs } from "../apps/workbench-web/src/i18n/catalogs"
 const selectionCatalog = { agents: [], permissionProfiles: [], models: [{ id: "m", value: "m", label: "M", isDefault: true,
   description: null, efforts: [], defaultEffort: null, inputModalities: ["text"] }] } as const;
 
-async function render(options: { text: string; submissionDisabled: boolean; locale?: string }) {
+async function render(options: { text: string; submissionDisabled: boolean; locale?: string; modelSelectionPolicy?: "session" | "host-default"; noModels?: boolean; modelError?: string; isFetching?: boolean; withReasoning?: boolean }) {
   const locale = new LocaleRuntime(embeddedLocaleCatalogs);
   await locale.update({ localeOverride: options.locale ?? "zh-CN" });
   let id = 0;
@@ -25,7 +25,14 @@ async function render(options: { text: string; submissionDisabled: boolean; loca
   if (options.text) controller.dispatch({ type: "set-document", document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: options.text }] }] } as never });
   return renderToStaticMarkup(<IntlRuntimeProvider runtime={locale}>
     <CodexComposer controller={controller} submissionDisabled={options.submissionDisabled}
-      onSubmit={() => false} onCancel={() => {}} selectionCatalog={selectionCatalog as never} />
+      onSubmit={() => false} onCancel={() => {}} selectionCatalog={{ ...selectionCatalog,
+        models: options.noModels ? [] : options.withReasoning
+          ? selectionCatalog.models.map(model => ({ ...model, efforts: [{ value: "medium", label: "Medium", description: null }], defaultEffort: "medium" }))
+          : selectionCatalog.models,
+        modelError: options.modelError,
+        isFetching: options.isFetching,
+      } as never}
+      modelSelectionPolicy={options.modelSelectionPolicy} />
   </IntlRuntimeProvider>);
 }
 
@@ -46,4 +53,51 @@ test("every embedded console language translates the hint", async () => {
     const messages = await catalog.load();
     assert.ok(typeof messages["chat.waitingForHostToSend"] === "string" && messages["chat.waitingForHostToSend"].length > 0, catalog.locale);
   }
+});
+
+test("embedded session policy shows the configured model picker", async () => {
+  const html = await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "session" });
+  assert.match(html, /codex-composer-mode--intelligence/u);
+  assert.match(html, /class="codex-composer-mode__model-label">M</u);
+  assert.doesNotMatch(html, /codex-composer-mode__model-skeleton/u);
+  assert.doesNotMatch(html, /title="M"/u);
+  assert.doesNotMatch(await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "host-default" }), /codex-composer-mode--intelligence/u);
+});
+
+test("embedded model label stays visible while a cached catalog refreshes", async () => {
+  const html = await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "session", isFetching: true });
+  assert.match(html, /class="codex-composer-mode__model-label">M</u);
+  assert.doesNotMatch(html, /codex-composer-mode__model-skeleton/u);
+});
+
+test("embedded model groups keep provider models and built-in auto under their headings", () => {
+  const models = [
+    { ...selectionCatalog.models[0]!, id: "auto", label: "自动", groupKey: "built-in", groupLabel: "内置模型" },
+    { ...selectionCatalog.models[0]!, id: "plan-a", label: "模型 A", groupKey: "plan", groupLabel: "腾讯云 Token Plan" },
+    { ...selectionCatalog.models[0]!, id: "other", label: "Other", groupKey: "other", groupLabel: "其他套餐" },
+    { ...selectionCatalog.models[0]!, id: "plan-b", label: "模型 B", groupKey: "plan", groupLabel: "腾讯云 Token Plan" },
+  ];
+  assert.deepEqual(groupComposerModels(models, true).map((group) =>
+    [group.label, group.models.map((model) => model.label)]), [
+    ["内置模型", ["自动"]], ["腾讯云 Token Plan", ["模型 A", "模型 B"]], ["其他套餐", ["Other"]],
+  ]);
+  assert.equal(groupComposerModels(models, false).length, models.length);
+});
+
+test("embedded model picker does not present catalog-derived reasoning", async () => {
+  const html = await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "session", withReasoning: true });
+  assert.match(html, /aria-label="M"/u);
+  assert.doesNotMatch(html, /codex-composer-mode__effort-label|思考强度: Medium/u);
+});
+
+test("an empty or failed embedded catalog leaves the picker available for status and retry", async () => {
+  const empty = await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "session", noModels: true });
+  assert.match(empty, /class="codex-composer-mode codex-composer-mode--intelligence"/u);
+  assert.doesNotMatch(empty, /class="codex-composer-mode codex-composer-mode--intelligence"[^>]*disabled/u);
+  assert.match(empty, /aria-label="模型"/u);
+  assert.match(empty, /codex-composer-mode__model-skeleton/u);
+  assert.doesNotMatch(empty, /class="codex-composer-mode__model-label">模型</u);
+  const failed = await render({ text: "", submissionDisabled: false, modelSelectionPolicy: "session", noModels: true, modelError: "internal failure" });
+  assert.match(failed, /title="无法加载模型，请重试。"/u);
+  assert.doesNotMatch(failed, /internal failure/u);
 });

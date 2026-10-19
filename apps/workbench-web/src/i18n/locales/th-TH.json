@@ -604,5 +604,11 @@
   "mcpApp.failed": "App unavailable",
   "mcpApp.loading": "Loading app…",
   "mcpApp.resume": "Open app",
-  "mcpApp.pause": "Pause app"
+  "mcpApp.pause": "Pause app",
+  "composer.model.loading": "กำลังโหลดโมเดล…",
+  "composer.model.loadError": "ไม่สามารถโหลดโมเดลได้ โปรดลองอีกครั้ง",
+  "composer.model.retry": "ลองใหม่",
+  "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
+  "composer.model.fallbackShort": "สำรอง",
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
 }

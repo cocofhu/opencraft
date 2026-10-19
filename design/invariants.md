@@ -1537,3 +1537,10 @@ Tasks loads its optional conversation statistics renderer and styles only after
 the statistics tab is selected. Suspense uses the existing loading status; it
 does not introduce another data owner or relax the startup resource budget.
 The read adapter loads on first read and checks cancellation after import.
+
+### Explicit session model selection
+
+- `user`, `host-default` and `session` are declared composition policies, not product-name checks.
+- A session without an explicit model inherits the current Host default for creation and its existing model for continuation; choosing a model never writes deployment defaults.
+- Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
+- Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.

@@ -390,7 +390,7 @@
   "draft.startNewTask": "开始新任务",
   "composer.permissions.unavailable": "此执行端不可用权限配置。当前权限保持不变。",
   "composer.permissions.disabledByHost": "受服务要求限制已禁用",
-  "composer.model.unavailable": "当前选择的模型不可用，请重新选择。",
+  "composer.model.unavailable": "所选模型不可用，请重新选择。",
   "composer.mentionContext": "提及文件与上下文",
   "chat.waitingForHost": "等待执行端",
   "chat.saveQueuedMessage": "保存排队消息",
@@ -626,5 +626,11 @@
   "mcpApp.failed": "应用暂不可用",
   "mcpApp.loading": "正在加载应用…",
   "mcpApp.resume": "打开应用",
-  "mcpApp.pause": "暂停应用"
+  "mcpApp.pause": "暂停应用",
+  "composer.model.loading": "正在加载模型…",
+  "composer.model.loadError": "无法加载模型，请重试。",
+  "composer.model.retry": "重试",
+  "composer.model.configure": "配置更多模型",
+  "composer.model.fallbackShort": "备用",
+  "composer.model.empty": "没有可用模型，请检查模型配置。"
 }
