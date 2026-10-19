@@ -2670,7 +2670,14 @@ attachments, never service-owned execution.
 
 AppHost ready and Host claim waits have finite control deadlines. Timed-out claim
 acknowledgements release their original lease; each subsequent attempt uses a new
-lease. Business envelopes serialize per Host, allowing another Host on the same
+lease. Closing one logical channel cancels its own ready/claim wait without
+closing the shared client or cancelling service-owned startup. A grant already
+in flight is released against its original lease and generation; its completion
+cannot overwrite that channel's terminal closed status. Deterministic coverage
+exercises close before ready, during shared startup and between grant delivery
+and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
+also checks late release while a peer remains open on the same real socket.
+Business envelopes serialize per Host, allowing another Host on the same
 socket and connection probes to progress during a slow activation. Local send
 cancellation releases its pending acknowledgement without cancelling or replaying
 remote execution. AppServer initialization rejects results from a revoked transport.

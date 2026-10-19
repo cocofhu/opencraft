@@ -318,6 +318,7 @@ class AppHostChannelTransport implements DuplexTransport {
   private connectOperation: Promise<void> | null = null;
   private closed = false;
   private leaseId = "";
+  private readonly closeAbort = new AbortController();
 
   constructor(
     private readonly client: MessagePortAppHostClient,
@@ -337,16 +338,22 @@ class AppHostChannelTransport implements DuplexTransport {
     this.leaseId = this.client.createLeaseId();
     this.generation = 0;
     this.setStatus({ state: "connecting" });
-    const operation = this.client.connectHost(this.hostId, this.leaseId, signal)
+    const operation = this.client.connectHost(this.hostId, this.leaseId,
+      signal ? AbortSignal.any([signal, this.closeAbort.signal]) : this.closeAbort.signal)
       .then((result) => {
-        if (this.closed) throw new Error(`App Host channel ${this.hostId} closed during connection`);
+        if (this.closed) {
+          // Channel disposal does not close the shared client. A grant that
+          // arrives afterwards still belongs to this retired lease only.
+          void this.client.disconnectHost(this.hostId, this.leaseId, result.generation).catch(() => undefined);
+          throw new Error(`App Host channel ${this.hostId} closed during connection`);
+        }
         this.generation = result.generation;
         this.setStatus({ state: "open" });
       })
       .catch((cause) => {
         const reason = cause instanceof Error ? cause.message : String(cause);
         const failure = cause instanceof Error ? appHostFailure(cause) : undefined;
-        this.setStatus({ state: "failed", reason, ...(failure ? { failure } : {}) });
+        if (!this.closed) this.setStatus({ state: "failed", reason, ...(failure ? { failure } : {}) });
         throw cause;
       })
       .finally(() => {
@@ -376,6 +383,7 @@ class AppHostChannelTransport implements DuplexTransport {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    this.closeAbort.abort();
     this.setStatus({ state: "closing" });
     try {
       if (this.generation > 0) {

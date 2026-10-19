@@ -631,3 +631,84 @@ test("targeted frames stay inside their lease even when same-page RPC IDs collid
     assert.equal(runtimeFrames.length, 1, "retired lease reply must not reach a successor or sibling");
   } finally { await probe.close(); await runtime.close(); client.close(); connection.close(); await server.close(); }
 });
+
+test("closing a pending channel releases its late grant without disturbing its peer", async () => {
+  const ports = createPortPair();
+  const physical = new ControlledTransport();
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "pending-channel-close");
+  const client = new MessagePortAppHostClient(ports.browser, "pending-channel-close");
+  const retired = client.createTransport("local"), peer = client.createTransport("local");
+  try {
+    const retiring = assert.rejects(retired.connect(), /closed|aborted/);
+    const surviving = peer.connect();
+    await new Promise(resolve => setImmediate(resolve));
+    await retired.close();
+    physical.connectGate.resolve();
+    await Promise.all([retiring, surviving]);
+    await new Promise(resolve => setImmediate(resolve));
+    await peer.send("peer-stays-open");
+    assert.equal(physical.closeCount, 0);
+    await peer.close();
+    assert.equal(physical.closeCount, 1, "the retired channel must not retain a late claim");
+    assert.equal(retired.status.state, "closed", "late completion must not overwrite terminal close");
+  } finally {
+    physical.connectGate.resolve();
+    client.close(); connection.close(); await server.close();
+  }
+});
+
+test("closing before ready cancels only that channel's queued claim", async () => {
+  const ports = createPortPair();
+  const claims: string[] = [];
+  const post = ports.browser.postMessage;
+  ports.browser.postMessage = message => {
+    const input = message as { type: string; leaseId: string };
+    if (input.type === "host/connect") claims.push(input.leaseId);
+    post(message);
+  };
+  const physical = new TestTransport();
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "before-ready-close");
+  const client = new MessagePortAppHostClient(ports.browser, "before-ready-close");
+  const retired = client.createTransport("local"), peer = client.createTransport("local");
+  try {
+    const rejected = assert.rejects(retired.connect(), /aborted|closed/);
+    await retired.close();
+    await peer.connect(); await rejected;
+    assert.equal(claims.length, 1, "only the surviving channel may request a claim");
+    assert.equal(retired.status.state, "closed");
+    await peer.send("still-usable");
+    await peer.close();
+    assert.equal(physical.closeCount, 1);
+  } finally {
+    client.close(); connection.close(); await server.close();
+  }
+});
+
+test("close between grant delivery and its promise callback releases exactly that grant", async () => {
+  let listener: ((event: MessageEvent<unknown>) => void) | undefined;
+  const sent: Array<{ type: string; requestId: string; leaseId: string; generation?: number }> = [];
+  const client = new MessagePortAppHostClient({
+    postMessage: message => { sent.push(message as typeof sent[number]); },
+    addEventListener: (_type, next) => { listener = next; },
+    removeEventListener: () => { listener = undefined; }, start() {}, close() {},
+  }, "grant-close-microtask");
+  const receive = (message: unknown) => listener?.({ data: message } as MessageEvent<unknown>);
+  const transport = client.createTransport("local");
+  try {
+    receive({ type: "ready", protocolVersion: 2, services: ["appserver"] });
+    const rejected = assert.rejects(transport.connect(), /closed|aborted/);
+    await new Promise(resolve => setImmediate(resolve));
+    const claim = sent.find(message => message.type === "host/connect")!;
+    receive({ type: "response", requestId: claim.requestId, ok: true, result: { hostId: "local", generation: 17 } });
+    await transport.close(); await rejected;
+    await new Promise(resolve => setImmediate(resolve));
+    const releases = sent.filter(message => message.type === "host/disconnect");
+    assert.equal(releases.length, 1);
+    assert.equal(releases[0]!.leaseId, claim.leaseId);
+    assert.equal(releases[0]!.generation, 17);
+    assert.equal(transport.status.state, "closed");
+    receive({ type: "response", requestId: releases[0]!.requestId, ok: true });
+  } finally { client.close(); }
+});
