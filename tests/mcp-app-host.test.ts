@@ -4,6 +4,25 @@ import { createAppBridge } from "../apps/workbench-web/src/mcp-apps/bridge";
 import { readAppResource, appCsp } from "../apps/workbench-web/src/mcp-apps/policy";
 import { createMcpAppOwner } from "../apps/workbench-web/src/mcp-apps/owner";
 import type { McpAppPort } from "../apps/workbench-web/src/mcp-apps/contract";
+import { MCP_APP_RESOURCE_META } from "../packages/appserver-protocol/src/mcp-apps";
+
+test("same-name published cards select their own tools and exact URI metadata", async () => {
+  const server = "opencraft-app-calculator-r1", calls: any[] = [];
+  const owner = createMcpAppOwner({ key: "host:thread:1", threadId: "thread", assertCurrent() {},
+    request: (async (method: string, params: any) => {
+      calls.push({ method, params });
+      if (method === "mcpServerStatus/list") return { data: [
+        { name: server, resources: [{ uri: "ui://first" }], tools: { first: { name: "first" } } },
+        { name: server, resources: [{ uri: "ui://second" }], tools: { second: { name: "second" } } },
+      ], nextCursor: null };
+      return { content: [] };
+    }) as any, sendMessage: async () => {}, openLink() {},
+  });
+  assert.deepEqual(Object.keys(await owner.listTools(server, "ui://first")), ["first"]);
+  assert.deepEqual(Object.keys(await owner.listTools(server, "ui://second")), ["second"]);
+  await owner.callTool(server, "first", {}, "ui://first");
+  assert.deepEqual(calls.at(-1).params._meta, { [MCP_APP_RESOURCE_META]: "ui://first" });
+});
 
 const identity = { server: "apps", uri: "ui://counter/app.html", callId: "call1", name: "Counter" };
 function fixture() {
@@ -36,7 +55,7 @@ test("standard initialize precedes tool events and preserves UI-only metadata", 
 test("tools and resource reads cannot select another server, URI or model-only tool", async () => {
   const f = fixture();
   await f.receive("tools/call", { name: "increment", server: "other", arguments: { amount: 2 } });
-  assert.deepEqual(f.calls, [["apps", "increment", { amount: 2 }]]);
+  assert.deepEqual(f.calls, [["apps", "increment", { amount: 2 }, identity.uri]]);
   await f.receive("tools/call", { name: "private" });
   await f.receive("tools/call", { name: "missing" });
   await f.receive("resources/read", { uri: "file:///secret" });

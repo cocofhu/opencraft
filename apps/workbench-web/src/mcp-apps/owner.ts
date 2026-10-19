@@ -1,6 +1,7 @@
 import type { ComposerContextReference, SubmitIntent } from "@opencraft/composer-core";
 import type { AppServerMethod, AppServerMethodParams, AppServerMethodResult } from "@opencraft/appserver-protocol";
 import { record, type McpAppPort } from "./contract";
+import { MCP_APP_RESOURCE_META } from "@opencraft/appserver-protocol/mcp-apps";
 
 interface OwnerOptions {
   readonly key: string;
@@ -23,7 +24,7 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
       const result = await options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });
       assertCurrent(); catalog = null; return result;
     },
-    async listTools(server) {
+    async listTools(server, resourceUri) {
       assertCurrent();
       if (Date.now() - catalogReadAt > 10000) catalog = null;
       if (!catalog) {
@@ -35,7 +36,13 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         for (let page = 0; page < 20; page++) {
           const result: AppServerMethodResult<"mcpServerStatus/list"> = await options.request("mcpServerStatus/list", { threadId: options.threadId, cursor, limit: 100, detail: "toolsAndAuthOnly" });
           assertCurrent();
-          for (const entry of result.data) servers[entry.name] = record(entry.tools);
+          for (const entry of result.data) {
+            const tools = record(entry.tools);
+            servers[entry.name] = tools;
+            for (const resource of entry.resources ?? []) {
+              if (typeof record(resource).uri === "string") servers[JSON.stringify([entry.name, record(resource).uri])] = tools;
+            }
+          }
           const nextCursor = result.nextCursor;
           if (!nextCursor) return servers;
           if (seen.has(nextCursor)) throw new Error("Invalid MCP catalog cursor");
@@ -44,7 +51,8 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         throw new Error("MCP catalog exceeds its page limit");
       })().catch(error => { catalog = null; throw error; });
       }
-      const tools = (await catalog)[server];
+      const entries = await catalog;
+      const tools = (resourceUri ? entries[JSON.stringify([server, resourceUri])] : undefined) ?? entries[server];
       assertCurrent();
       if (!tools) throw new Error("MCP server is not available");
       return Object.fromEntries(Object.entries(tools).filter(([, value]) => {
@@ -52,9 +60,11 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         return !(Array.isArray(visibility) && visibility.includes("model") && !visibility.includes("app"));
       }));
     },
-    async callTool(server, tool, args) {
+    async callTool(server, tool, args, resourceUri) {
       assertCurrent();
-      const result = await options.request("mcpServer/tool/call", { threadId: options.threadId, server, tool, arguments: JSON.parse(JSON.stringify(args)) });
+      const result = await options.request("mcpServer/tool/call", { threadId: options.threadId, server, tool, arguments: JSON.parse(JSON.stringify(args)),
+        ...(resourceUri && server.startsWith("opencraft-app-") ? { _meta: { [MCP_APP_RESOURCE_META]: resourceUri } } : {}),
+      });
       assertCurrent(); return result;
     },
     sendMessage: async text => { assertCurrent(); await options.sendMessage(text); assertCurrent(); },

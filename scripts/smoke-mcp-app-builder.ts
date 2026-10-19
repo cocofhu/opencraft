@@ -17,6 +17,7 @@ let app: any, browser: any;
 const upstream = new WebSocketServer({ host: "127.0.0.1", port: 0 });
 await new Promise<void>((resolve) => upstream.once("listening", resolve));
 let sequence = 0;
+const engineItems: any[] = [];
 upstream.on("connection", (socket) => {
   const pending = new Map<string, string | number>();
   socket.on("message", (data) => {
@@ -27,6 +28,12 @@ upstream.on("connection", (socket) => {
       const id = pending.get(String(p.id));
       if (id !== undefined) {
         pending.delete(String(p.id));
+        if (p.result?.success) for (const block of p.result.contentItems ?? []) {
+          try {
+            const envelope = JSON.parse(block.text);
+            if (envelope.kind === "opencraft-mcp-app") engineItems.push({ id: String(p.id), type: "dynamicToolCall", namespace: "opencraft_apps", tool: "manage", status: "completed", success: true, arguments: {}, contentItems: p.result.contentItems });
+          } catch {}
+        }
         socket.send(JSON.stringify({ jsonrpc: "2.0", id, result: p.result }));
       }
       return;
@@ -39,6 +46,9 @@ upstream.on("connection", (socket) => {
         capabilities: { extensions: {} },
       });
       return;
+    }
+    if (p.method === "thread/read") {
+      reply({ thread: { id: p.params.threadId, turns: [{ id: "saved-turn", items: engineItems }] } }); return;
     }
     if (p.method === "fixture/model-tool") {
       const callId = "model-tool-" + ++sequence;
@@ -91,8 +101,8 @@ const ctx=new Context();await ctx.plugin(TimelineBlockRendererRegistryService);a
 const client=new JsonRpcAppServerClient({hostId:'host',transport:new WebSocketTransport({url:location.origin.replace('http','ws')+'/appserver'})});
 const stop=installMcpAppsDynamicToolHandler(client);await client.connect({clientInfo:{name:'builder-browser',version:'1'},capabilities:{experimentalApi:true}});
 const registry=createDefaultTimelineProjectorRegistry();let items=[];
-function App(){const [revision,setRevision]=useState(0);const port=useMemo(()=>createMcpAppOwner({key:'host:fixture-thread:1',threadId:'fixture-thread',assertCurrent:()=>{if(client.status.state!=='open')throw Error('closed')},request:(method,params)=>client.requestRaw(method,params),sendMessage:async()=>{},openLink:()=>{}}),[]);
-window.fixture={client,async tool(input,shape='native'){const r=await client.requestRaw('fixture/model-tool',input);if(!r.success)throw Error(r.contentItems[0].text);const data=JSON.parse(r.contentItems[0].text);if(data.kind==='opencraft-mcp-app'){items=[{id:'launch-'+revision,type:'dynamicToolCall',payload:{namespace:shape==='native'?'opencraft_apps':'deepseek-harness',tool:shape==='native'?'manage':'opencraft_apps__manage',status:'completed',success:true,arguments:input,contentItems:r.contentItems}}];setRevision(x=>x+1)}return data;},hide(hidden){Object.defineProperty(document,"visibilityState",{configurable:true,value:hidden?"hidden":"visible"});document.dispatchEvent(new Event("visibilitychange"));},close(){stop();client.close()}};
+function App(){const [revision,setRevision]=useState(0);const port=useMemo(()=>createMcpAppOwner({key:'host:fixture-thread:1',threadId:'fixture-thread',assertCurrent:()=>{if(client.status.state!=='open')throw Error('closed')},request:(method,params)=>client.requestRaw(method,params),sendMessage:async text=>{window.fixture.messages.push(text)},openLink:()=>{}}),[]);
+window.fixture={client,messages:[],async restore(server){const r=await client.requestRaw('thread/read',{threadId:'fixture-thread',includeTurns:true});items=r.thread.turns.flatMap(t=>t.items).filter(i=>{try{return JSON.parse(i.contentItems[0].text).server===server}catch{return false}}).slice(-1).map(({id,type,...payload})=>({id,type,payload}));setRevision(x=>x+1);},async tool(input,shape='native'){const r=await client.requestRaw('fixture/model-tool',input);if(!r.success)throw Error(r.contentItems[0].text);const data=JSON.parse(r.contentItems[0].text);if(data.kind==='opencraft-mcp-app'){items=[{id:'launch-'+revision,type:'dynamicToolCall',payload:{namespace:shape==='native'?'opencraft_apps':'deepseek-harness',tool:shape==='native'?'manage':'opencraft_apps__manage',status:'completed',success:true,arguments:input,contentItems:r.contentItems}}];setRevision(x=>x+1)}return data;},hide(hidden){Object.defineProperty(document,"visibilityState",{configurable:true,value:hidden?"hidden":"visible"});document.dispatchEvent(new Event("visibilitychange"));},close(){stop();client.close()}};
 const timeline=useMemo(()=>projectTimeline({key:createConversationKey('host','fixture-thread'),revision,authoritative:true,phase:'live',turns:[{id:'turn',status:'complete',items}]},registry),[revision]);
 return <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><Conversation timeline={timeline} scrollPolicy='natural' documentContext={{conversationId:'fixture-thread',cwd:null,hostId:'host',theme:'light',mcpApps:port}}/></TimelineBlockRendererProvider>}
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
@@ -237,7 +247,7 @@ try {
       description: "Real server calculator",
       entryTool: "calculate",
       uiHtml:
-        '<!doctype html><html><body><h2>Calculator</h2><button id="go">7 + 8</button><output id="value">Ready</output><script>document.getElementById("go").onclick=async()=>{try{const r=await window.openai.callTool("calculate",{a:7,b:8});document.getElementById("value").textContent=r.structuredContent.sum}catch(e){document.getElementById("value").textContent="Inactive"}};</script></body></html>',
+        '<!doctype html><html><body><h2>Calculator</h2><button id="go">7 + 8</button><output id="value">Ready</output><input id="draft" aria-label="Draft"><button id="send">Send choice</button><script>document.getElementById("send").onclick=()=>window.openai.sendFollowUpMessage({prompt:document.getElementById("draft").value});document.getElementById("go").onclick=async()=>{try{const r=await window.openai.callTool("calculate",{a:7,b:8});document.getElementById("value").textContent=r.structuredContent.sum}catch(e){document.getElementById("value").textContent="Inactive"}};</script></body></html>',
       tools: [
         {
           name: "calculate",
@@ -281,6 +291,26 @@ try {
     assert.equal(await page.locator("iframe").count(), idle);
     await tool({ action: "openBuilder" });
     await frame.locator("#status").filter({ hasText: "已完成" }).waitFor();
+    const bob = await browser.newContext({ viewport: { width, height: 844 }, hasTouch: width === 390 });
+    await bob.addCookies([{ name: "fixture", value: "bob", url: app.url }]);
+    const other = await bob.newPage();
+    await other.goto(app.url);
+    await other.waitForFunction(() => !!(window as any).fixture);
+    assert.deepEqual((await other.evaluate(() => (window as any).fixture.tool({ action: "list" }))).apps, []);
+    await other.evaluate(server => (window as any).fixture.restore(server), `opencraft-app-${spec.appId}-r1`);
+    const otherFrame = other.frameLocator("iframe");
+    await otherFrame.locator("#go").click();
+    await otherFrame.locator("#value").filter({ hasText: "15" }).waitFor();
+    await otherFrame.locator("#draft").fill("Apple x 1");
+    await otherFrame.locator("#send").click();
+    await other.waitForFunction(() => (window as any).fixture.messages.length === 1);
+    assert.deepEqual(await other.evaluate(() => (window as any).fixture.messages), ["Apple x 1"]);
+    await other.screenshot({ path: path.join(output, `historical-shared-${width}.png`) });
+    await other.reload();
+    await other.waitForFunction(() => !!(window as any).fixture);
+    await other.evaluate(server => (window as any).fixture.restore(server), `opencraft-app-${spec.appId}-r1`);
+    await otherFrame.locator("#go").click();
+    await otherFrame.locator("#value").filter({ hasText: "15" }).waitFor();
     const beforeGlobals = listRequests;
     assert.ok(beforeGlobals > 0, "observe real App list requests before testing quiescence");
     await frame.locator("body").evaluate(() => {
@@ -307,6 +337,8 @@ try {
       tool({ action: "open", appId: spec.appId }),
       /inactive/,
     );
+    await otherFrame.locator("#go").click();
+    await otherFrame.locator("#value").filter({ hasText: "Inactive" }).waitFor();
     await tool({
       action: "rollback",
       appId: spec.appId,
@@ -338,19 +370,6 @@ try {
       tool({ action: "open", appId: spec.appId }),
       /inactive/,
     );
-    const bob = await browser.newContext();
-    await bob.addCookies([{ name: "fixture", value: "bob", url: app.url }]);
-    const other = await bob.newPage();
-    await other.goto(app.url);
-    await other.waitForFunction(() => !!(window as any).fixture);
-    assert.deepEqual(
-      (
-        await other.evaluate(() =>
-          (window as any).fixture.tool({ action: "list" }),
-        )
-      ).apps,
-      [],
-    );
     await bob.close();
     assert.deepEqual(errors, []);
     results.push({
@@ -363,6 +382,10 @@ try {
       builder: true,
       rollback: true,
       actorIsolation: true,
+      historicalSharedCard: true,
+      sharedToolAndFollowup: true,
+      reconnectHistory: true,
+      sharedRevocation: true,
       globalsNoRequery: true,
       pageerrors: errors,
     });

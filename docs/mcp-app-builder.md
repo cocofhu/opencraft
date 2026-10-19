@@ -45,6 +45,31 @@ Only that exact tool identity can request inline rendering; the gateway still
 checks owner/server/resource for every operation. Restoring history preserves
 that envelope through the existing engine history. No new history store exists.
 
+## Historical card compatibility
+
+Management, drafts and mutation versions stay private to the creating Actor.
+An admitted viewer can run an exact published card after the gateway observes
+its successful builder result in that connection's engine-owned conversation
+history or completed item event. Evidence is scoped to the thread, server and
+full resource URI, bounded in memory and discarded on disconnect. It is not
+accepted from user text, RPC arguments or arbitrary tool output. Native/DSH
+history, resume initial pages and later turn/item pages use the same rule.
+
+Existing schema-1 definitions, server names, revision numbers and resource URIs
+remain unchanged; no ownership rewrite, republishing or history migration is
+required. Existing owner-only calls keep working. New clients include the card
+URI in optional tool metadata to distinguish equal App IDs/revisions owned by
+different Actors. Legacy calls without that metadata work when unambiguous;
+ambiguous calls fail rather than execute another card's code. Runtime inventory
+includes only active releases evidenced in that requested thread, alongside the
+viewer's own Apps. Access to a card never grants listing/getting its private
+definition or using builder management as its creator.
+
+History evidence cannot revive an unpublished, deleted or replaced release.
+Every resource/tool access checks the creator's current active revision, and
+worker completion rechecks revocation. Reconnection reacquires evidence from
+the canonical history; browser display caches never authorize access.
+
 ## Persistence and versions
 
 `mcp-apps.sqlite` is gateway-owned and opens through the managed SQLite owner
