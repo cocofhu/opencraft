@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "125cd50b28377c186072e05cbbabffb5bc4ccd3e",
+  "path": "packages/chat-document/src/compiler.ts",
+  "fileSha256": "a70f35a780dcd0a05c4e8a36318575e050ab39a6bf60c28d186a1f2473773961",
+  "selectedDeclarations": [
+    "mathBlockTokenizer",
+    "mathInlineTokenizer"
+  ],
+  "annotation": "Source-equivalent Codex delimiters: dollar pairs are display-only blocks.",
+  "scope": "Only the two attributed math delimiter tokenizer declarations and their direct annotation; no other compiler/preprocess/streaming regions.",
+  "exposure": "Earlier narrow rg output displayed declaration names and several return expressions. Existing public compiler tests and consumer registrations have been read. Historical tokenizer execution will be sealed; no strict author-isolation claim.",
+  "requirements": "Keep current tokenizer extension names/levels/start and token return contract; preserve application display/inline delimiters, raw ranges, trimming, malformed inputs, dollar prose and fenced/inline code handling. Current compiler/tokenizer owns structural placement; resource admission and streaming identity remain outside scope."
+}
