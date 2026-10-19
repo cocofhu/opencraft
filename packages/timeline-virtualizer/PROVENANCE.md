@@ -12,7 +12,7 @@ The shared package intentionally contains no React, DOM, Expo, or React Native
 imports. Web and Native adapters must supply measurement, scrolling, and layout
 scheduling through the ports in `src/ports.ts`.
 
-`src/history-backfill.ts` restores the history-loading control mechanism from
+Historical `src/history-backfill.ts` restored the history-loading control mechanism from
 the latest recovered source:
 
 - `reference://codex/.runtime/source-tree-build-r1973-initializer-state-control-closure/lazy/app-initial/thread-scroll-layout-xQ2_L08y.js:145-182`
@@ -43,12 +43,30 @@ The [replacement contract](../../docs/provenance/timeline-follow-replacement.md)
 records authoring order, retained interfaces/constants, behavior comparisons and
 verification limits. Historical source records above remain historical facts.
 
-The shared response-positioning controller, history backfill, window/layout,
+The shared response-positioning controller, window/layout,
 restoration and platform adapters retain their current implementations. This
 single-module disposition does not establish rights for them, the recovered
 reference, or historical commits. It does not claim strict author isolation or
 Native device acceptance. Compatibility export names and numeric/spring data
 remain unchanged; changing a name is not the implementation replacement.
+
+## Current history backfill disposition (2026-10-20)
+
+Only the complete `TurnHistoryBackfillCoordinator` class in `src/history-backfill.ts`
+is independently replaced from frozen OpenCraft requirements, public types,
+existing tests, the unchanged React adapter and black-box observations. Its
+historical module SHA256 is
+`5819a01f20431c320b5b07b54537ad39320fbda6de42176e03068a5a29fd5ead`.
+The [baseline inventory](../../docs/provenance/timeline-backfill-baseline.json)
+retains class/member hashes and actual author exposure. The
+[replacement contract](../../docs/provenance/timeline-backfill-replacement.md)
+records complete policy and real Conversation comparisons, the initial rejected
+parameter-mapping attempt and finite verification limits. Imports, public types,
+shared loading policy and Web/Native adapters retain their implementations.
+
+This disposition does not clear other package files, recovered references or
+historical commits, and does not claim strict author isolation or Native hardware
+acceptance. Historical restoration records above remain historical facts.
 
 ## Platform rule
 

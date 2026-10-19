@@ -16,54 +16,49 @@ interface ActiveBackfill {
   readonly promise: Promise<void>;
 }
 
-/**
- * Coordinates the recovered Codex history-fill transaction independently of
- * DOM or React Native. It owns the single-flight lock and generation boundary;
- * the host owns measurement and the post-load layout barrier.
- */
+/** Owns serialized history work across layout generations. */
 export class TurnHistoryBackfillCoordinator {
-  private active: ActiveBackfill | null = null;
-  private generation = 0;
+  private operation: ActiveBackfill | null = null;
+  private epoch = 0;
 
   constructor(private readonly port: TurnHistoryBackfillPort) {}
 
-  /** Invalidates an observer/layout owner without allowing two page loads at once. */
   invalidate(): void {
-    this.generation += 1;
+    this.epoch += 1;
   }
 
-  request = (): Promise<void> => {
-    const generation = this.generation;
-    const active = this.active;
-    if (active !== null) {
-      if (active.generation === generation) return active.promise;
-      return active.promise.then(this.request, this.request);
+  readonly request = (): Promise<void> => {
+    const running = this.operation;
+    if (running !== null) {
+      return running.generation === this.epoch
+        ? running.promise
+        : running.promise.catch(() => undefined).then(this.request);
     }
 
-    const promise = this.drain(generation).finally(() => {
-      if (this.active?.promise === promise) this.active = null;
+    const generation = this.epoch;
+    const promise = this.fillViewport(generation).finally(() => {
+      if (this.operation?.promise === promise) this.operation = null;
     });
-    this.active = { generation, promise };
+    this.operation = { generation, promise };
     return promise;
   };
 
-  private async drain(generation: number): Promise<void> {
-    if (!this.isCurrent(generation)) return;
+  private async fillViewport(owner: number): Promise<void> {
+    if (!this.canContinue(owner)) return;
+
     try {
       for (;;) {
         const before = this.port.readMetrics();
-        if (
-          before === null
-          || !shouldLoadOlderHistory({
-            contentHeightPx: before.scrollHeightPx,
-            distanceFromBottomPx: before.distanceFromBottomPx,
-            viewportHeightPx: before.viewportHeightPx,
-          })
-        ) return;
+        if (before === null || !shouldLoadOlderHistory({
+          contentHeightPx: before.scrollHeightPx,
+          viewportHeightPx: before.viewportHeightPx,
+          distanceFromBottomPx: before.distanceFromBottomPx,
+        })) return;
 
-        const result = await this.port.loadPage();
+        const page = await this.port.loadPage();
+        // The host must settle the page's geometry even if ownership changed.
         await this.port.afterLayout();
-        if (!this.isCurrent(generation) || result === "stop") return;
+        if (!this.canContinue(owner) || page === "stop") return;
 
         const after = this.port.readMetrics();
         if (after === null || after.scrollHeightPx === before.scrollHeightPx) return;
@@ -73,7 +68,7 @@ export class TurnHistoryBackfillCoordinator {
     }
   }
 
-  private isCurrent(generation: number): boolean {
-    return generation === this.generation && this.port.isEnabled();
+  private canContinue(owner: number): boolean {
+    return owner === this.epoch && this.port.isEnabled();
   }
 }
