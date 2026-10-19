@@ -29,6 +29,8 @@ export interface HostThreadCatalogState {
   readonly label: string;
   readonly phase: "unavailable" | "loading" | "ready" | "error";
   readonly cachedAt?: number;
+  /** Authoritative first-page rows while the complete directory is still loading. */
+  readonly partial?: boolean;
 }
 
 /** Optional Hub projection metadata; legacy/native Servers omit it. */
