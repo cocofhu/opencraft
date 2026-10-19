@@ -4,8 +4,42 @@ import { createAppBridge } from "../apps/workbench-web/src/mcp-apps/bridge";
 import { readAppResource, appCsp } from "../apps/workbench-web/src/mcp-apps/policy";
 import { createMcpAppOwner } from "../apps/workbench-web/src/mcp-apps/owner";
 import type { McpAppPort } from "../apps/workbench-web/src/mcp-apps/contract";
+import { MCP_APP_RESOURCE_META } from "../packages/appserver-protocol/src/mcp-apps";
+
+test("same-name published cards select their own tools and exact URI metadata", async () => {
+  const server = "opencraft-app-calculator-r1", calls: any[] = [];
+  const owner = createMcpAppOwner({ key: "host:thread:1", threadId: "thread", assertCurrent() {},
+    request: (async (method: string, params: any) => {
+      calls.push({ method, params });
+      if (method === "mcpServerStatus/list") return { data: [
+        { name: server, resources: [{ uri: "ui://first" }], tools: { first: { name: "first" } } },
+        { name: server, resources: [{ uri: "ui://second" }], tools: { second: { name: "second" } } },
+      ], nextCursor: null };
+      return { content: [] };
+    }) as any, sendMessage: async () => {}, openLink() {},
+  });
+  assert.deepEqual(Object.keys(await owner.listTools(server, "ui://first")), ["first"]);
+  assert.deepEqual(Object.keys(await owner.listTools(server, "ui://second")), ["second"]);
+  await owner.callTool(server, "first", {}, "ui://first");
+  assert.deepEqual(calls.at(-1).params._meta, { [MCP_APP_RESOURCE_META]: "ui://first" });
+});
 
 const identity = { server: "apps", uri: "ui://counter/app.html", callId: "call1", name: "Counter" };
+test("cached built-in cards share one canonical history read; resources retry once, tool calls never retry", async () => {
+  let hydrated = false, hydrations = 0, reads = 0, writes = 0;
+  const owner = createMcpAppOwner({ key: "host:thread:1", threadId: "thread", assertCurrent() {},
+    request: (async (method: string) => {
+      if (method === "thread/read") { hydrations++; await new Promise(r => setTimeout(r, 0)); hydrated = true; return {}; }
+      if (method === "mcpServer/resource/read") { reads++; if (!hydrated) throw Error("inactive"); return { contents: [] }; }
+      writes++; throw Error("write failed");
+    }) as any, sendMessage: async () => {}, openLink() {},
+  });
+  await Promise.all([owner.readResource("opencraft-app-example-r1", "ui://opencraft/apps/first", null),
+    owner.readResource("opencraft-app-example-r1", "ui://opencraft/apps/second", null)]);
+  assert.equal(hydrations, 1); assert.equal(reads, 4);
+  await assert.rejects(owner.callTool("opencraft-app-example-r1", "write", {}), /write failed/);
+  assert.equal(writes, 1);
+});
 function fixture() {
   let current = true;
   const calls: unknown[] = [], messages: unknown[] = [], sent: any[] = [];
@@ -36,7 +70,7 @@ test("standard initialize precedes tool events and preserves UI-only metadata", 
 test("tools and resource reads cannot select another server, URI or model-only tool", async () => {
   const f = fixture();
   await f.receive("tools/call", { name: "increment", server: "other", arguments: { amount: 2 } });
-  assert.deepEqual(f.calls, [["apps", "increment", { amount: 2 }]]);
+  assert.deepEqual(f.calls, [["apps", "increment", { amount: 2 }, identity.uri]]);
   await f.receive("tools/call", { name: "private" });
   await f.receive("tools/call", { name: "missing" });
   await f.receive("resources/read", { uri: "file:///secret" });
@@ -86,6 +120,7 @@ test("resource policy verifies provenance, MIME, size and CSP injection boundari
   const result = (overrides = {}) => ({ contents: [{ uri: identity.uri, mimeType: "text/html;profile=mcp-app", text: "<b>OK</b>", ...overrides }] });
   const resource = readAppResource(result(), identity.uri, "call1");
   assert.match(appCsp(resource), /connect-src 'none'/);
+  assert.match(appCsp(resource), /form-action 'none'/);
   assert.throws(() => readAppResource({ ...result(), originCallId: "other" }, identity.uri, "call1"), /provenance/);
   assert.throws(() => readAppResource(result({ mimeType: "application/javascript" }), identity.uri, "call1"));
   assert.throws(() => readAppResource(result({ text: "x".repeat(1048577) }), identity.uri, "call1"));

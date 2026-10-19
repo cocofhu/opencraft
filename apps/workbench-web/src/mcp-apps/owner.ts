@@ -1,6 +1,7 @@
 import type { ComposerContextReference, SubmitIntent } from "@opencraft/composer-core";
 import type { AppServerMethod, AppServerMethodParams, AppServerMethodResult } from "@opencraft/appserver-protocol";
 import { record, type McpAppPort } from "./contract";
+import { MCP_APP_RESOURCE_META } from "@opencraft/appserver-protocol/mcp-apps";
 
 interface OwnerOptions {
   readonly key: string;
@@ -15,15 +16,27 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
   const context = new Map<string, string>();
   let catalogReadAt = 0;
   let catalog: Promise<Record<string, Record<string, unknown>>> | null = null;
+  let historyHydration: Promise<unknown> | null = null;
   const assertCurrent = options.assertCurrent;
   return {
     key: options.key, assertCurrent,
     async readResource(server, uri, callId) {
       assertCurrent();
-      const result = await options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });
+      const read = () => options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });
+      let result;
+      try { result = await read(); }
+      catch (error) {
+        assertCurrent();
+        if (!server.startsWith("opencraft-app-") || !uri.startsWith("ui://opencraft/apps/")) throw error;
+        // A restored card may precede this connection's canonical history. Share
+        // one read-only hydration; only gateway-observed output can grant access.
+        historyHydration ??= options.request("thread/read", { threadId: options.threadId, includeTurns: true });
+        try { await historyHydration; } catch { throw error; }
+        assertCurrent(); result = await read();
+      }
       assertCurrent(); catalog = null; return result;
     },
-    async listTools(server) {
+    async listTools(server, resourceUri) {
       assertCurrent();
       if (Date.now() - catalogReadAt > 10000) catalog = null;
       if (!catalog) {
@@ -35,7 +48,13 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         for (let page = 0; page < 20; page++) {
           const result: AppServerMethodResult<"mcpServerStatus/list"> = await options.request("mcpServerStatus/list", { threadId: options.threadId, cursor, limit: 100, detail: "toolsAndAuthOnly" });
           assertCurrent();
-          for (const entry of result.data) servers[entry.name] = record(entry.tools);
+          for (const entry of result.data) {
+            const tools = record(entry.tools);
+            servers[entry.name] = tools;
+            for (const resource of entry.resources ?? []) {
+              if (typeof record(resource).uri === "string") servers[JSON.stringify([entry.name, record(resource).uri])] = tools;
+            }
+          }
           const nextCursor = result.nextCursor;
           if (!nextCursor) return servers;
           if (seen.has(nextCursor)) throw new Error("Invalid MCP catalog cursor");
@@ -44,7 +63,8 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         throw new Error("MCP catalog exceeds its page limit");
       })().catch(error => { catalog = null; throw error; });
       }
-      const tools = (await catalog)[server];
+      const entries = await catalog;
+      const tools = (resourceUri ? entries[JSON.stringify([server, resourceUri])] : undefined) ?? entries[server];
       assertCurrent();
       if (!tools) throw new Error("MCP server is not available");
       return Object.fromEntries(Object.entries(tools).filter(([, value]) => {
@@ -52,9 +72,11 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
         return !(Array.isArray(visibility) && visibility.includes("model") && !visibility.includes("app"));
       }));
     },
-    async callTool(server, tool, args) {
+    async callTool(server, tool, args, resourceUri) {
       assertCurrent();
-      const result = await options.request("mcpServer/tool/call", { threadId: options.threadId, server, tool, arguments: JSON.parse(JSON.stringify(args)) });
+      const result = await options.request("mcpServer/tool/call", { threadId: options.threadId, server, tool, arguments: JSON.parse(JSON.stringify(args)),
+        ...(resourceUri && server.startsWith("opencraft-app-") ? { _meta: { [MCP_APP_RESOURCE_META]: resourceUri } } : {}),
+      });
       assertCurrent(); return result;
     },
     sendMessage: async text => { assertCurrent(); await options.sendMessage(text); assertCurrent(); },

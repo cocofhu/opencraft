@@ -45,6 +45,35 @@ Only that exact tool identity can request inline rendering; the gateway still
 checks owner/server/resource for every operation. Restoring history preserves
 that envelope through the existing engine history. No new history store exists.
 
+## Historical card compatibility
+
+Management, drafts and mutation versions stay private to the creating Actor.
+An admitted viewer can run an exact published card after the gateway observes
+its successful builder result in that connection's engine-owned conversation
+history or completed item event. Evidence is scoped to the thread, server and
+full resource URI, bounded in memory and discarded on disconnect. It is not
+accepted from user text, RPC arguments or arbitrary tool output. Native/DSH
+history, resume initial pages and later turn/item pages use the same rule.
+
+Existing schema-1 definitions, server names, revision numbers and resource URIs
+remain unchanged; no ownership rewrite, republishing or history migration is
+required. Existing owner-only calls keep working. New clients include the card
+URI in optional tool metadata to distinguish equal App IDs/revisions owned by
+different Actors. Legacy calls without that metadata work when unambiguous;
+ambiguous calls fail rather than execute another card's code. Runtime inventory
+includes only active releases evidenced in that requested thread, alongside the
+viewer's own Apps. Access to a card never grants listing/getting its private
+definition or using builder management as its creator.
+
+History evidence cannot revive an unpublished, deleted or replaced release.
+Every resource/tool access checks the creator's current active revision, and
+worker completion rechecks revocation. Reconnection reacquires evidence from
+the canonical history; browser display caches never authorize access. If a cached
+built-in card is restored before that read completes, its first failed resource
+read shares one canonical thread hydration per view owner and retries the
+resource once. Gateway-observed history still determines access. External App
+resources, tool invocations and chat messages do not acquire automatic retries.
+
 ## Persistence and versions
 
 `mcp-apps.sqlite` is gateway-owned and opens through the managed SQLite owner
@@ -67,6 +96,12 @@ published definitions without loading all Apps or executing generated code.
 Limits: 64 non-deleted Apps, 256 lifetime IDs, 64 release numbers per App and
 16 MiB total definition text per owner; 650 KB input spec, 512 KB HTML, 16 tools.
 Lists are bounded and include compact titles/descriptions; get with revision reads the exact immutable spec. These are definition limits, not a durable business-data API.
+
+Local HTML forms may dispatch validated submit events inside the opaque sandbox.
+The iframe allows forms so existing `submit` listeners and Enter submission work;
+CSP still sets `form-action 'none'`, so a form cannot post to the network or
+navigate the iframe through a submission. Generated forms should prevent the
+browser default and use the narrow App bridge for the requested action.
 
 ## Generated code and UI
 

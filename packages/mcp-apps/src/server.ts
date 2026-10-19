@@ -10,12 +10,14 @@ import {
 } from "./spec";
 import { javascript } from "./javascript";
 import { builderHtml } from "./manager-ui";
+import type { AppReference } from "./history-access";
 import {
   ownsServer,
   MCP_APPS_SERVER,
   MCP_APPS_URI,
   MCP_APPS_METHOD,
   MCP_APPS_DYNAMIC_TOOLS,
+  MCP_APP_RESOURCE_META,
 } from "@opencraft/appserver-protocol/mcp-apps";
 export {
   MCP_APPS_SERVER,
@@ -176,14 +178,28 @@ export class McpAppsService {
     if (!release) throw new Error("App release not found");
     return release;
   }
-  private fromServer(owner: string, server: string) {
+  private fromServer(owner: string, server: string, references: readonly AppReference[] = [], uri?: unknown) {
     const match = /^opencraft-app-([a-z][a-z0-9-]{1,39})-r([1-9][0-9]*)$/.exec(
       server,
     );
     if (!match) throw new Error("Unknown App server");
+    const candidates = references.filter(r => r.server === server && (uri === undefined || r.resourceUri === uri));
+    const own = this.store.get(owner, match[1]!);
+    const ownRelease = own?.active === Number(match[2]) ? this.store.release(owner, match[1]!, own.active) : null;
+    if (ownRelease && (uri === undefined || ownRelease.uri === uri)) {
+      if (uri === undefined && candidates.some(r => r.resourceUri !== ownRelease.uri))
+        throw new Error("Ambiguous App reference; reopen with its resource URI");
+      return ownRelease;
+    }
+    if (candidates.length > 1) throw new Error("Ambiguous App reference; reopen with its resource URI");
+    if (candidates.length === 1) {
+      const release = this.store.referencedRelease(candidates[0]!.resourceUri, match[1]!, Number(match[2]));
+      if (release) return this.active(release.owner, release.id, release.revision);
+    }
+    if (uri !== undefined && ownRelease) throw new Error("App resource not found");
     return this.active(owner, match[1]!, Number(match[2]));
   }
-  inventory(owner: string) {
+  inventory(owner: string, references: readonly AppReference[] = []) {
     const common = {
       runtimeStatus: null,
       pluginId: null,
@@ -219,10 +235,18 @@ export class McpAppsService {
       ],
       resourceTemplates: [],
     };
-    const apps = this.store.list(owner, 0, 64).apps.flatMap((a) => {
+    const releases = this.store.list(owner, 0, 64).apps.flatMap((a) => {
       if (!a.activeRevision) return [];
-      const rel = this.active(owner, String(a.appId)),
-        spec = JSON.parse(rel.spec) as AppSpec;
+      return [this.active(owner, String(a.appId))];
+    });
+    for (const ref of references) {
+      try {
+        const rel = this.fromServer(owner, ref.server, references, ref.resourceUri);
+        if (!releases.some(r => r.owner === rel.owner && r.id === rel.id && r.revision === rel.revision)) releases.push(rel);
+      } catch { /* Revoked, deleted or replaced releases never reappear through history. */ }
+    }
+    const apps = releases.flatMap(rel => {
+      const spec = JSON.parse(rel.spec) as AppSpec;
       return [
         {
           ...common,
@@ -263,9 +287,11 @@ export class McpAppsService {
     method: string,
     input: unknown,
     assertCurrent: () => void = () => {},
+    references: readonly AppReference[] | (() => readonly AppReference[]) = [],
   ) {
     this.current(assertCurrent);
     const p = object(input);
+    const currentReferences = () => typeof references === "function" ? references() : references;
     if (method === MCP_APPS_METHOD)
       return this.manage(owner, input, assertCurrent);
     const server = String(p.server);
@@ -277,7 +303,7 @@ export class McpAppsService {
             ? builderHtml
             : null
           : (() => {
-              const r = this.fromServer(owner, server);
+              const r = this.fromServer(owner, server, currentReferences(), p.uri);
               return r.uri === p.uri
                 ? (JSON.parse(r.spec) as AppSpec).uiHtml
                 : null;
@@ -301,7 +327,8 @@ export class McpAppsService {
       if (p.tool !== "manage") throw new Error("Unknown builder tool");
       return result(await this.manage(owner, p.arguments, assertCurrent));
     }
-    const rel = this.fromServer(owner, server),
+    const uri = p._meta && typeof p._meta === "object" ? object(p._meta)[MCP_APP_RESOURCE_META] : undefined;
+    const rel = this.fromServer(owner, server, currentReferences(), uri),
       spec = JSON.parse(rel.spec) as AppSpec,
       t = spec.tools.find((t) => t.name === p.tool);
     if (!t) throw new Error("Unknown App tool");
@@ -322,7 +349,8 @@ export class McpAppsService {
           ? p.arguments
           : t.handler.structuredContent;
     this.current(assertCurrent);
-    this.fromServer(owner, server); // old release cannot complete after revocation.
+    const current = this.fromServer(owner, server, currentReferences(), rel.uri);
+    if (current.owner !== rel.owner || current.revision !== rel.revision) throw new Error("App release is inactive");
     const wrapped =
       data && typeof data === "object" && "structuredContent" in data
         ? (data as { structuredContent: unknown; text?: string })

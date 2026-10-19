@@ -4,6 +4,7 @@ import type {
 } from "@opencraft/appserver-client/transport";
 import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol/routing";
 import type { McpAppsService } from "./server";
+import { AppHistoryAccess } from "@opencraft/mcp-apps/history-access";
 import {
   ownsServer,
   MCP_APPS_METHOD,
@@ -26,7 +27,8 @@ function parseFrame(frame: string): Record<string, unknown> | null {
 export class McpAppsRpcSession {
   private closed = false;
   private pending = new Set<string | number>();
-  private inventory = new Set<string | number>();
+  private inventory = new Map<string | number, unknown>();
+  private history = new AppHistoryAccess();
   private initialize = new Set<string | number>();
   private readonly service: McpAppsService;
   private readonly emit: (frame: string) => void;
@@ -39,6 +41,7 @@ export class McpAppsRpcSession {
     this.pending.clear();
     this.inventory.clear();
     this.initialize.clear();
+    this.history.clear();
   }
   receive(frame: string, context: TransportSubmissionContext): boolean {
     const p = parseFrame(frame);
@@ -48,12 +51,13 @@ export class McpAppsRpcSession {
     if (!owner) return false; // internal probes/legacy peers never acquire anonymous authority.
     const params =
       p.params && typeof p.params === "object" ? object(p.params) : {};
+    this.history.requested(p.id, p.method, params);
     if (p.method === "initialize") {
       if (this.initialize.size < 16) this.initialize.add(p.id);
       return false;
     }
     if (p.method === "mcpServerStatus/list" && !params.cursor) {
-      if (this.inventory.size < 128) this.inventory.add(p.id);
+      if (this.inventory.size < 128) this.inventory.set(p.id, params.threadId);
       return false;
     }
     if (
@@ -102,7 +106,7 @@ export class McpAppsRpcSession {
     void Promise.resolve()
       .then(() => {
         current();
-        return this.service.handle(owner.id, String(p.method), params, current);
+        return this.service.handle(owner.id, String(p.method), params, current, () => this.history.references(params.threadId));
       })
       .then(
         (value) => reply(value),
@@ -114,6 +118,10 @@ export class McpAppsRpcSession {
   project(frame: string, context: TransportSubmissionContext): string {
     const p = parseFrame(frame);
     if (!p) return frame;
+    if (!this.closed && context.resourceOwner) {
+      try { context.resourceOwner.assertCurrent(); this.history.observed(p); } catch { this.history.clear(); }
+    }
+    const inventoryThread = typeof p.id === "string" || typeof p.id === "number" ? this.inventory.get(p.id) : undefined;
     if (
       (typeof p.id === "string" || typeof p.id === "number") &&
       this.initialize.delete(p.id) &&
@@ -164,7 +172,7 @@ export class McpAppsRpcSession {
           ...(r ?? {}),
           data: [
             ...(Array.isArray(r?.data) ? r.data : []),
-            ...this.service.inventory(context.resourceOwner.id),
+            ...this.service.inventory(context.resourceOwner.id, this.history.references(inventoryThread)),
           ],
           nextCursor: r?.nextCursor ?? null,
         },
