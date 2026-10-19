@@ -1,5 +1,21 @@
 # Source provenance review
 
+## Complete Agent Activity replacement (2026-10-19)
+
+[The complete Agent Activity module](provenance/agent-activity-replacement.md)
+now has a requirements-first independent replacement record for all 15 exports.
+The source inventory retains its historical blob/hash and the six earlier partial
+chat-semantics dispositions. This resolves the final current path in
+`codex-chat-semantics-followup`; **nine** other groups remain unverified. Earlier
+eight/ten-group counts below are dated snapshots, not current membership.
+
+Ordered response work, independent reasoning, presenter extensions, MCP App and
+voice persistence, one Thinking/clock owner and existing working integrations
+are preserved. Finite black-box compatibility matrices, Chat tests, type/boundary
+checks and actual Conversation browser probes are documented with their limits.
+This does not reclassify dependencies, the consuming renderer or historical
+commits, and does not assert strict clean-room isolation or distribution rights.
+
 ## Additional explicit-source inventory coverage (2026-10-19)
 
 The follow-up audit at `f979bb477180a2346d2e96dba21314eb7ff50f8c` found

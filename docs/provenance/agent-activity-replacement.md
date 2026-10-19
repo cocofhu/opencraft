@@ -82,3 +82,92 @@ its final path is actually replaced and verified. Preserve all prior partial
 records, notices and source bindings; the other unresolved groups and historical
 rights remain unresolved. No release, npm publication or downstream deployment
 is authorized by this disposition.
+
+## Implementation and compatibility disposition
+
+Requirements were committed as `ac746b5e17de90a45c532f01816d30ac0af8edf5`
+before the replacement implementation at
+`e424ac1cfd8478b582583ba6a9b9b153c95bb96d`. The complete module, including
+all 15 exports, is now independently authored within the input/exposure boundary
+above. Public declarations are retained as compatibility contracts. The author
+also inspected existing dependency implementations for reasoning content,
+conversation/tool presentation and presenter registry behavior while verifying
+those contracts. Those dependencies are not reclassified by this replacement.
+
+The implementation first collects ordered response-work slices, then projects
+inner groups/reasoning and partition regions, then assigns one Turn work clock.
+The Turn parent selects a Thinking owner before requesting the active reasoning
+presentation, so it does not parse the active body twice. Source frame objects
+remain unchanged. An explicit user choice still controls eligible disclosures;
+chronological closure alone cannot make a fold eligible.
+
+Observed compatibility refinements include:
+
+- Deduplicate changed paths in completed summaries. Keep provider source identity,
+  Chrome/browser semantics and presenter suppression separate from display text.
+- Preserve the dynamic suffix bridge, including running registered dynamic calls.
+  Summary-only standalone polls are absent; groupable polling can contribute a
+  live group without creating a retrospective standalone row.
+- MCP App persistence requires the enabled feature and actual renderer capability,
+  an MCP call with an available/loading result, and a real resource or host
+  resolution. Terminal calls with no output do not invent a persistent surface.
+- Count work-status metadata once in the general content count and in standalone
+  layout, but exclude it from the outer collapsed work count. A clock-only surface
+  cannot grant an outer toggle. Persistent/pre-toggle rows keep their ownership.
+- Client-owned interruption replaces a stale working interval with the established
+  stopped interval; remote interruption does not synthesize it. A hidden final
+  slice with unknown timing cannot transfer a Turn duration back to older work.
+- Keep storage frames/anchors, one inline subagent surface, latest todo/proposal
+  selection, the independent change-summary resource and stable source-based slot
+  identities. Historical mounted Turns cannot claim a transient Thinking owner.
+
+### Verification scope
+
+Three local black-box matrices exercise the old public module and the new one
+without reading the old function bodies. They contain **56,954 comparisons**:
+30,872 generated ordered/status/parent/header comparisons, 14,562 clock,
+partition/layout/disclosure comparisons, and 11,520 provider-registry/tool-surface
+comparisons. The deterministic generated sequence seed is `752359`; sequences
+contain up to six Items. Status matrices include pending, streaming, complete,
+failed and interrupted where applicable. Clock/choice/capability matrices include
+unknown and known intervals, client interruption, explicit persistence choices,
+custom groupable/standalone/suppressed presenters and dynamic bridge hints.
+All compared outputs match. The exploratory harnesses and run outputs remain
+ignored local artifacts, not CI gates; the committed focused tests and browser
+scripts are the reproducible acceptance checks. These finite observations are
+compatibility evidence, not a proof of every possible input or source rights.
+
+The three focused contract tests cover repeated changes to one file, standalone
+clock visibility without collapse eligibility, and cancellation with frozen input
+observations. Existing Chat tests include chronological steering/async boundaries,
+reasoning compile/cache counts, work clocks, resource-only Turns and disclosure
+state coverage. The complete Chat suite passes all 759 tests. Core/Web typechecks and
+package/typography/activity ownership checks pass on the fixed source. The 19
+release/provenance/dependency-policy tests pass; inventory has no coverage errors
+and release mode continues to reject the nine unresolved groups.
+
+Browser verification uses the actual shared projector and Conversation/Activity
+components through `scripts/smoke-activity-disclosure.ts` and
+`scripts/smoke-reasoning-disclosure.ts`. It covers mouse/touch, light/dark, narrow
+and wide containers, retained prose DOM, steering, explicit expansion across
+streaming/prepend/reload, reasoning Markdown/selection, one response-work fold,
+60 tools interleaved with 13 empty reasoning Items, one clock and localized labels.
+Engine-flavor text is synthetic; this is not live model, native iPhone or packaged
+Electron acceptance. Several full-script runs timed out at long-list interaction or localized-page
+initialization, including a fixed-source run. An earlier complete rerun and the
+unchanged baseline both passed. Five isolated localized-page cases passed. With
+source fixed, a final full rerun added only local network/page-error listeners and
+failure diagnostics; all original assertions, twelve engine/theme/input cases and
+five locales passed without skipping conditions, suppressing errors, forcing
+clicks or changing timeouts. Activity disclosure's four theme/input cases passed.
+The intermittent full-script timeouts are not proven fixed or fully attributed;
+retain that validation limit. Existing tool-group resize warnings are recorded by
+the script and also occur on the baseline; they are not cleared by this disposition.
+Narrow dark Markdown and wide light one-clock screenshots were visually checked.
+
+The inventory retains the original Agent Activity blob/hash and all six previous
+partial chat-semantics dispositions. This resolves the final current path of that
+group after verification. The nine other unresolved groups, including the newly
+inventoried browser and renderer-expression groups, remain open. Original source
+history and dependency rights remain unverified; no strict clean-room isolation,
+blanket legal clearance, release, npm publication or downstream deployment follows.
