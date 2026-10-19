@@ -358,7 +358,6 @@
         "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
         "apps/workbench-web/src/browser/codex-presentation-host.ts",
         "apps/workbench-web/src/browser/codex/browser-manager.js",
-        "apps/workbench-web/src/browser/codex/presentation-transition.js",
         "apps/workbench-web/src/browser/codex/source-manifest.json",
         "apps/workbench-web/src/browser/codex/viewport-presets.js"
       ],
@@ -367,10 +366,12 @@
         "docs/provenance/annotation-coverage-20261019.json",
         "apps/workbench-web/src/browser/codex/source-manifest.json",
         "docs/provenance/browser-viewport-resize-baseline.json",
-        "docs/provenance/browser-viewport-resize-replacement.md"
+        "docs/provenance/browser-viewport-resize-replacement.md",
+        "docs/provenance/browser-transition-baseline.json",
+        "docs/provenance/browser-transition-replacement.md"
       ],
-      "reason": "Two remaining implementation modules explicitly claim copied class bodies and the viewport-preset module claims identical helpers. Their historical manifest and related toolbar/host comments identify bounded review targets, not proof that every whole file was copied. The explicitly source-attributed viewport drag helper now has its own bounded independent replacement disposition.",
-      "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementation and mere behavioral references where appropriate. Do not expand a directory or package inventory into a rewrite mandate. Preserve historical bindings; the viewport helper replacement does not clear remaining browser code or historical rights."
+      "reason": "The remaining manager explicitly claims a copied class body and the viewport-preset module claims identical helpers. Their historical manifest and related toolbar/host contracts remain review inventory, not proof of whole-file copying. Viewport drag geometry and presentation transitions have separate bounded independent dispositions.",
+      "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementation and mere behavioral references where appropriate. Do not turn directory membership into a rewrite mandate. Historical source/class hashes remain unchanged; replacement module hashes are identified separately. Remaining browser regions and historical rights are not cleared."
     },
     {
       "id": "codex-renderer-expression-followup",
@@ -601,6 +602,22 @@
       "reason": "The complete 26-line module explicitly claimed source function bodies. Replacement was authored only after frozen requirements and public baseline observations; its pure axis computation preserves the existing declaration and toolbar-owned capture/cancellation. No adjacent module was rewritten.",
       "resolution": "Retain exact historical target hash and source annotation, finite observation artifacts and the scoped method. Verify all existing device handles, bounds and scaling through the existing tests and consumer types; keep untouched browser regions unverified.",
       "conclusion": "Current viewport drag geometry is independently authored from a frozen public contract and finite black-box observations using signed axis movement and bounded dimensions. This is not strict author isolation, historical rights clearance, proof of universal equivalence or validation of a native browser host."
+    },
+    {
+      "id": "browser-presentation-handoff",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/browser/codex/presentation-transition.js"
+      ],
+      "evidence": [
+        "docs/provenance/browser-transition-baseline.json",
+        "docs/provenance/browser-transition-replacement.md",
+        "apps/workbench-web/src/browser/codex/source-manifest.json",
+        "tests/codex-browser-manager.test.ts"
+      ],
+      "reason": "The complete module carried an explicit copied-class annotation. The replacement was authored after frozen public contracts and 53 black-box baseline sequences, without printing the old target body as authoring text.",
+      "resolution": "Retain the historical blob, original source/class digests, requirements commits and actual author exposure. The manifest separately locks current module bytes; remaining browser regions and all eight unresolved groups remain open.",
+      "conclusion": "Current code independently expresses owner/surface presentation leases, attachment acknowledgement, bounded prewarm, cancellation and generation/reference fencing. This bounded implementation disposition does not establish strict author isolation, historical rights or public release readiness."
     }
   ]
 }

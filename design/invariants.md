@@ -1716,3 +1716,16 @@ remain available without repeating stale historical prompts in grouped rows.
 Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
 See [the whole-module record](../docs/provenance/tool-renderers-replacement.md) for
 exposure, decorative avatar hue assignment and finite validation limits.
+
+
+## Browser presentation handoff leases (2026-10-20)
+
+A view handoff retains the painted predecessor until the incoming attachment is
+acknowledged (or its bounded fallback expires), two prewarm frames complete and
+the release frame runs. Both views remain interaction-blocked during transfer;
+finishing a view cannot clear its separate automation input/focus lock. Owner,
+surface, reference and mount generation identify the presentation lease. Hidden
+views, close/dispose, route transfer and superseding views revoke pending work;
+late callbacks and old references cannot mutate a newer lease. Browser backing,
+persistence, permissions and navigation retain their existing manager/Host owners.
+See [the bounded implementation record](../docs/provenance/browser-transition-replacement.md).

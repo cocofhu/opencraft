@@ -1273,3 +1273,18 @@ Horizontal handles resize around a fixed center, bottom handles alter height,
 and the captured scale maps pointer movement into bounded viewport dimensions.
 Pointer capture, cancellation, keyboard and persistence remain in their current
 owners. See [bounded replacement](provenance/browser-viewport-resize-replacement.md).
+
+
+### Browser presentation transition ownership (2026-10-20)
+
+The manager continues to own backing hosts, storage and mount claims. Its
+presentation transition module now independently implements owner/surface leases:
+a pending incoming view retains the painted outgoing view, blocks both during
+handoff, accepts a current attachment ack or bounded deadline, then prewarms for
+two frames and releases on the next frame. Registration only updates stacking.
+Removal, route transfer, hidden sync and rapid replacement revoke scheduled work;
+old callbacks cannot reclaim a newer reference or generation. Surface moves retire
+the previous presentation claim. Automation input/focus locks remain on the Host.
+Historical source digests and exact replacement/verification limits are recorded
+in [the module provenance](provenance/browser-transition-replacement.md); this
+replaces only prior descriptions of the transition as an unmodified source class.
