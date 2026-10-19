@@ -1,10 +1,10 @@
-/** Codex overlay state ports: RouteScope intent + tab collapse reason, not draft state.
- * Source: create-composer-overlay-reactive-state / compute-contain-scale-factor.
- * Names express behavior (some recovered upstream symbol names are inverted).
+/** Presentation intent only. Replacement scope and historical evidence:
+ * docs/provenance/floating-composer-replacement.md.
  */
 export type OverlayPhase = "entering" | "visible" | "exiting" | "hidden";
 export type CollapseReason = "manual" | "auto-collapse";
 export type BrowserReadiness = "ready" | "loading" | "unavailable";
+
 export interface FloatingComposerSnapshot {
   readonly enabled: boolean;
   readonly collapsedTabs: ReadonlyMap<string, CollapseReason>;
@@ -19,214 +19,177 @@ export function projectFloatingComposer(
     tabId: string | null;
     readiness: BrowserReadiness;
     forceExpanded?: boolean;
-  }
+  },
 ) {
-  const shown =
-    state.enabled &&
-    (input.tabId === null || !state.collapsedTabs.has(input.tabId));
-  const ready = input.readiness === "ready";
-  const visible = !input.floating || !ready || shown;
-  const peeked = input.floating && ready && state.enabled && !shown;
-  const phase = visible
-    ? state.phase === "entering"
-      ? "entering"
-      : "visible"
-    : state.phase === "exiting"
-    ? "exiting"
-    : "hidden";
+  const handles = input.floating && input.readiness === "ready";
+  const collapsed = handles && input.tabId !== null && state.collapsedTabs.has(input.tabId);
+  const peeked = collapsed && state.enabled;
+  const wantsHidden = handles && (!state.enabled || collapsed);
+  const phase: OverlayPhase = wantsHidden
+    ? state.phase === "exiting" ? "exiting" : "hidden"
+    : state.phase === "entering" ? "entering" : "visible";
+  const expanded = input.forceExpanded || (input.tabId !== null && input.tabId === state.focusedTab);
   return {
     phase,
     peeked,
-    mounted: phase !== "hidden" || peeked,
-    interactive: phase === "visible" && !peeked,
-    density: !input.floating
-      ? "default"
-      : input.forceExpanded ||
-        (input.tabId !== null && state.focusedTab === input.tabId)
-      ? "expanded"
-      : "compact",
-    handles: input.floating && ready,
+    mounted: peeked || phase !== "hidden",
+    interactive: phase === "visible",
+    density: input.floating ? expanded ? "expanded" : "compact" : "default",
+    handles,
   } as const;
 }
 
 export class FloatingComposerState {
-  private snapshot: FloatingComposerSnapshot = {
+  private value: FloatingComposerSnapshot = {
     enabled: true,
     collapsedTabs: new Map(),
     focusedTab: null,
     phase: "visible",
   };
-  private readonly listeners = new Set<() => void>();
-  private timer: ReturnType<typeof setTimeout> | undefined;
-  private generation = 0;
-  get hasSubscribers() { return this.listeners.size > 0; }
-  getSnapshot = () => this.snapshot;
-  subscribe = (listener: () => void) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-      if (!this.listeners.size) this.settle();
-    };
+  private readonly observers = new Set<() => void>();
+  private pending: ReturnType<typeof setTimeout> | undefined;
+  private revision = 0;
+
+  get hasSubscribers(): boolean { return this.observers.size > 0; }
+  getSnapshot = (): FloatingComposerSnapshot => this.value;
+  subscribe = (listener: () => void): (() => void) => {
+    this.observers.add(listener);
+    return () => { this.observers.delete(listener); };
   };
-  private publish(patch: Partial<FloatingComposerSnapshot>) {
-    this.snapshot = { ...this.snapshot, ...patch };
-    for (const listener of this.listeners) listener();
+
+  private update(patch: Partial<FloatingComposerSnapshot>): void {
+    this.value = { ...this.value, ...patch };
+    for (const observer of this.observers) observer();
   }
-  focus(tabId: string | null) {
-    if (this.snapshot.focusedTab !== tabId) this.publish({ focusedTab: tabId });
+
+  focus(tabId: string | null): void {
+    if (tabId !== this.value.focusedTab) this.update({ focusedTab: tabId });
   }
-  private transition(visible: boolean, reducedMotion: boolean) {
-    clearTimeout(this.timer);
-    const generation = ++this.generation;
-    this.publish({
-      phase: reducedMotion
-        ? visible
-          ? "visible"
-          : "hidden"
-        : visible
-        ? "entering"
-        : "exiting",
-    });
-    if (!reducedMotion)
-      this.timer = setTimeout(() => {
-        if (generation === this.generation)
-          this.publish({ phase: visible ? "visible" : "hidden" });
+
+  private animate(visible: boolean, reducedMotion: boolean): void {
+    const ticket = ++this.revision;
+    if (this.pending !== undefined) clearTimeout(this.pending);
+    this.pending = undefined;
+    const destination = visible ? "visible" : "hidden";
+    this.update({ phase: reducedMotion ? destination : visible ? "entering" : "exiting" });
+    if (!reducedMotion) {
+      this.pending = setTimeout(() => {
+        if (ticket !== this.revision) return;
+        this.pending = undefined;
+        this.update({ phase: destination });
       }, 120);
+    }
   }
-  settle() {
-    clearTimeout(this.timer);
-    this.generation++;
-    if (this.snapshot.phase === "entering" || this.snapshot.phase === "exiting")
-      this.publish({
-        phase: this.snapshot.phase === "entering" ? "visible" : "hidden",
-      });
+
+  settle(): void {
+    ++this.revision;
+    if (this.pending !== undefined) clearTimeout(this.pending);
+    this.pending = undefined;
+    if (this.value.phase === "entering") this.update({ phase: "visible" });
+    else if (this.value.phase === "exiting") this.update({ phase: "hidden" });
   }
-  hide(tabId: string | null, reducedMotion = false) {
-    if (
-      !tabId ||
-      !this.snapshot.enabled ||
-      this.snapshot.collapsedTabs.has(tabId)
-    )
-      return;
-    this.publish({
-      collapsedTabs: new Map(this.snapshot.collapsedTabs).set(tabId, "manual"),
-      focusedTab: null,
-    });
-    this.transition(false, reducedMotion);
+
+  private collapse(tabId: string, reason: CollapseReason, reducedMotion: boolean): void {
+    const collapsedTabs = new Map(this.value.collapsedTabs);
+    collapsedTabs.set(tabId, reason);
+    this.update({ collapsedTabs, ...(reason === "manual" ? { focusedTab: null } : {}) });
+    this.animate(false, reducedMotion);
   }
-  show(tabId: string | null, reducedMotion = false) {
-    if (
-      !tabId ||
-      !this.snapshot.enabled ||
-      !this.snapshot.collapsedTabs.has(tabId)
-    )
-      return;
-    const tabs = new Map(this.snapshot.collapsedTabs);
-    tabs.delete(tabId);
-    this.publish({ collapsedTabs: tabs });
-    this.transition(true, reducedMotion);
+
+  hide(tabId: string | null, reducedMotion = false): void {
+    if (!tabId || !this.value.enabled || this.value.collapsedTabs.has(tabId)) return;
+    this.collapse(tabId, "manual", reducedMotion);
   }
-  toggle(tabId: string | null, reducedMotion = false) {
-    const shown =
-      this.snapshot.enabled &&
-      (tabId === null || !this.snapshot.collapsedTabs.has(tabId));
-    const tabs = new Map(this.snapshot.collapsedTabs);
-    if (!shown && tabId !== null) tabs.delete(tabId);
-    this.publish({ enabled: !shown, collapsedTabs: tabs });
-    this.transition(!shown, reducedMotion);
+
+  show(tabId: string | null, reducedMotion = false): void {
+    if (!tabId || !this.value.enabled || !this.value.collapsedTabs.has(tabId)) return;
+    this.reveal(tabId, reducedMotion);
   }
-  autoCollapse(
-    tabId: string,
-    collapse: boolean,
-    editorOrMenuActive: boolean,
-    reducedMotion = false
-  ) {
-    const reason = this.snapshot.collapsedTabs.get(tabId);
-    if (
-      collapse
-        ? reason != null || editorOrMenuActive
-        : reason !== "auto-collapse"
-    )
-      return;
-    const tabs = new Map(this.snapshot.collapsedTabs);
-    if (collapse) tabs.set(tabId, "auto-collapse");
-    else tabs.delete(tabId);
-    this.publish({ collapsedTabs: tabs });
-    this.transition(!collapse, reducedMotion);
+
+  private reveal(tabId: string, reducedMotion: boolean): void {
+    const collapsedTabs = new Map(this.value.collapsedTabs);
+    collapsedTabs.delete(tabId);
+    this.update({ collapsedTabs });
+    this.animate(true, reducedMotion);
+  }
+
+  toggle(tabId: string | null, reducedMotion = false): void {
+    const collapsedTabs = new Map(this.value.collapsedTabs);
+    const revealing = tabId !== null && collapsedTabs.has(tabId);
+    const enabled = revealing || !this.value.enabled;
+    if (enabled && tabId !== null) collapsedTabs.delete(tabId);
+    this.update({ enabled, collapsedTabs });
+    this.animate(enabled, reducedMotion);
+  }
+
+  autoCollapse(tabId: string, collapse: boolean, editorOrMenuActive: boolean, reducedMotion = false): void {
+    const reason = this.value.collapsedTabs.get(tabId);
+    if (collapse) {
+      if (editorOrMenuActive || reason !== undefined) return;
+      this.collapse(tabId, "auto-collapse", reducedMotion);
+    } else if (reason === "auto-collapse") {
+      this.reveal(tabId, reducedMotion);
+    }
   }
 }
 
-/** A bounded RouteScope analogue owned by the shell, never module-global. */
+/** Shell-owned recent route intent. Subscribers pin their entries during use. */
 export class FloatingComposerRegistry {
-  private readonly routes = new Map<string, FloatingComposerState>();
-  get(scopeId: string) {
-    let state = this.routes.get(scopeId);
-    if (!state) {
-      state = new FloatingComposerState();
-    }
-    this.routes.delete(scopeId);
-    this.routes.set(scopeId, state);
+  private readonly recent = new Map<string, FloatingComposerState>();
+
+  get(scopeId: string): FloatingComposerState {
+    const state = this.recent.get(scopeId) ?? new FloatingComposerState();
+    this.recent.delete(scopeId);
+    this.recent.set(scopeId, state);
     return state;
   }
-  release(scopeId: string) {
-    this.routes.get(scopeId)?.settle();
-    if (this.routes.size > 20)
-      for (const [key, state] of this.routes) {
-        if (!state.hasSubscribers) {
-          state.settle();
-          this.routes.delete(key);
-          if (this.routes.size <= 20) break;
-        }
-      }
+
+  release(_scopeId: string): void {
+    for (const [key, state] of this.recent) {
+      if (this.recent.size <= 20) break;
+      if (!state.hasSubscribers) this.recent.delete(key);
+    }
   }
 }
 
-/** Source wheel-controller policy: momentum cannot trigger the next action.
- * ref/codex/modules/ui-islands-v8/use-toggle-diff-panel-subscription.js mDc.
- */
+/** Keep an initiating wheel action from consuming its own trailing momentum. */
 export class ComposerWheelSwipeController {
-  private activeSwipe: {
-    firstEventTimestamp: number;
-    hasDecelerated: boolean;
-    lastDeltaY: number;
-    lastEventTimestamp: number;
-    origin: "peek" | "composer";
-    peakDeltaY: number;
-  } | null = null;
-  beginSwipe(
-    event: Pick<WheelEvent, "deltaY" | "timeStamp">,
-    origin: "peek" | "composer"
-  ) {
-    const delta = Math.abs(event.deltaY);
-    this.activeSwipe = {
-      firstEventTimestamp: event.timeStamp,
-      hasDecelerated: false,
-      lastDeltaY: delta,
-      lastEventTimestamp: event.timeStamp,
-      origin,
-      peakDeltaY: delta,
+  private gesture: {
+    start: number;
+    lastTime: number;
+    lastMagnitude: number;
+    peakMagnitude: number;
+    decayed: boolean;
+    idle: number;
+  } | undefined;
+
+  beginSwipe(event: Pick<WheelEvent, "deltaY" | "timeStamp">, origin: "peek" | "composer"): void {
+    const magnitude = Math.abs(event.deltaY);
+    this.gesture = {
+      start: event.timeStamp,
+      lastTime: event.timeStamp,
+      lastMagnitude: magnitude,
+      peakMagnitude: magnitude,
+      decayed: false,
+      idle: origin === "peek" ? 400 : 150,
     };
   }
-  isContinuation(event: Pick<WheelEvent, "deltaY" | "timeStamp">) {
-    const swipe = this.activeSwipe;
-    if (!swipe) return false;
-    const delta = Math.abs(event.deltaY);
-    const newGesture =
-      event.timeStamp - swipe.firstEventTimestamp >= 200 &&
-      swipe.hasDecelerated &&
-      delta > swipe.lastDeltaY + 8;
-    if (
-      event.timeStamp - swipe.lastEventTimestamp <
-        (swipe.origin === "peek" ? 400 : 150) &&
-      !newGesture
-    ) {
-      swipe.peakDeltaY = Math.max(swipe.peakDeltaY, delta);
-      swipe.hasDecelerated ||= delta * 2 <= swipe.peakDeltaY;
-      swipe.lastDeltaY = delta;
-      swipe.lastEventTimestamp = event.timeStamp;
-      return true;
+
+  isContinuation(event: Pick<WheelEvent, "deltaY" | "timeStamp">): boolean {
+    const gesture = this.gesture;
+    if (!gesture) return false;
+    const magnitude = Math.abs(event.deltaY);
+    const expired = event.timeStamp - gesture.lastTime >= gesture.idle;
+    const restarted = event.timeStamp - gesture.start >= 200
+      && gesture.decayed && magnitude > gesture.lastMagnitude + 8;
+    if (expired || restarted) {
+      this.gesture = undefined;
+      return false;
     }
-    this.activeSwipe = null;
-    return false;
+    gesture.peakMagnitude = Math.max(gesture.peakMagnitude, magnitude);
+    gesture.decayed ||= magnitude <= gesture.peakMagnitude / 2;
+    gesture.lastMagnitude = magnitude;
+    gesture.lastTime = event.timeStamp;
+    return true;
   }
 }
