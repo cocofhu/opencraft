@@ -257,6 +257,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   private login: CodexDeviceLoginService | null = null;
   private refresh: CodexCredentialRefreshManager | null = null;
   private subscriptions: CodexSubscriptionService | null = null;
+  private poolAuth: ReturnType<typeof createCodexAccountPoolLaunch>["auth"] | null = null;
   private stderrTail = "";
   private closeOperation: Promise<void> | null = null;
   private readonly desktopOwnerNamespace = randomUUID();
@@ -474,12 +475,13 @@ export class CodexEngineAdapter implements DuplexTransport {
     subscriptions.start();
     const hostToken = store.issueHostToken("local-codex");
     const launch = createCodexAccountPoolLaunch({ baseUrl: poolServer.url, hostToken });
+    this.poolAuth = launch.auth;
     const childArgs = ["app-server", "--stdio", ...launch.args];
     const childEnv: NodeJS.ProcessEnv = {
         ...process.env,
         ...launch.env,
         CODEX_HOME: runtimeRoot,
-        OPENAI_API_KEY: "opencraft-account-pool",
+        OPENAI_API_KEY: undefined,
         CODEX_API_KEY: undefined,
         CODEX_ACCESS_TOKEN: undefined,
     };
@@ -924,6 +926,10 @@ export class CodexEngineAdapter implements DuplexTransport {
       await this.writePhysical({ method: "initialized", params: {} });
       if (this.statusValue.state !== "open") return;
       this.physicalInitialized = true;
+      if (this.poolAuth !== null) {
+        await this.requestPhysical("account/login/start", this.poolAuth);
+        if (this.statusValue.state !== "open") return;
+      }
       this.durableCatalog?.start();
       if (this.options.kind === "remote") {
         let goalCapability: OpenCraftThreadGoalCapability | null = null;
@@ -1174,6 +1180,11 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private receiveServerRequest(id: string | number, message: RpcRecord): void {
+    if (message.method === "account/chatgptAuthTokens/refresh" && this.poolAuth !== null) {
+      const { type: _type, ...result } = this.poolAuth;
+      void this.writePhysical({ id, result })?.catch(() => undefined);
+      return;
+    }
     if (this.threadTitles?.owns(string(record(message.params).threadId))) {
       void this.writePhysical({ id, error: { code: -32601, message: "Title generation does not support tools or user interaction" } })?.catch(() => undefined);
       return;
