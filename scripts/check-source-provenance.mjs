@@ -6,7 +6,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const statuses = new Set(['unverified', 'original', 'third-party-licensed', 'independently-reimplemented', 'excluded']);
-const markers = /restored (?:and typed )?from Codex|recovered (?:from )?Codex|behavior follows Codex Desktop|Codex r822|reference:\/\/codex|recovered\/assets|source-equivalent|semantically adopted from (?:Codex|BB|Paseo)|the recovered renderer builds|mirrors the recovered|whose recovered AppShell|inspired by the latest recovered recorder/iu;
+// Explicit implementation/source-lineage assertions require review. These are
+// inventory candidates, not automatic findings of copying or a license ruling.
+const markers = [
+  /restored (?:and typed )?from Codex|recovered (?:from )?Codex|behavior follows Codex Desktop|Codex r822|reference:\/\/codex|recovered\/assets|source-equivalent|semantically adopted from (?:Codex|BB|Paseo)|the recovered renderer builds|mirrors the recovered|whose recovered AppShell|inspired by the latest recovered recorder/iu,
+  /source[- ](?:identical|faithful|shaped)|source (?:class|function) bod(?:y|ies)/iu,
+  /(?:semantic )?restoration of Codex|reconstructed from Codex|unmodified Codex/iu,
+  /ref\/codex\//iu,
+];
 const ignored = new Set(['node_modules', '.git', '.local', 'dist', 'build', '.expo']);
 
 async function files(directory, prefix = '') {
@@ -54,8 +61,9 @@ export async function inspectProvenance(directory = root) {
   // Documentation outside executable packages remains evidence, not a claim
   // that all behavioral references are copied or require the same treatment.
   for (const path of allFiles) {
-    if (!/^(apps|packages|plugins)\//u.test(path) || !/\.(?:[cm]?[jt]sx?|scss|md)$/u.test(path)) continue;
-    if (markers.test(await readFile(resolve(directory, path), 'utf8'))
+    if (!/^(apps|packages|plugins)\//u.test(path) || !/\.(?:[cm]?[jt]sx?|scss|md|json)$/u.test(path)) continue;
+    const content = await readFile(resolve(directory, path), 'utf8');
+    if (markers.some(marker => marker.test(content))
       && !manifest.entries.some(entry => entry.paths.some(pattern => matches(path, pattern)))) errors.push(`Untracked source provenance annotation: ${path}`);
   }
   const unresolved = entries.filter(entry => entry.status === 'unverified').map(entry => entry.id);
