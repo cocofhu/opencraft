@@ -71,5 +71,20 @@
       "signature": "function FloatingLeftPanelContent({ unified,\n  children,\n  header,\n  footer,\n  width,\n  widthPx,\n  mobileProgress,\n  getCurrentWidth,\n  getMaximumWidth,\n  onResize,\n  onResizeEnd,\n  onResizingChange,\n}: Omit<FloatingLeftPanelProps, \"visible\" | \"onExitComplete\">) "
     }
   ],
-  "authorExposure": "Current module comments, AST declarations/signatures/types, AppShell consumer and existing test source assertions were read. Neither selected component body nor recovered reference body printed in this bounded pass. Previous session source exposures remain; no strict-isolation claim."
+  "authorExposure": "Current module comments, AST declarations/signatures/types, AppShell consumer and existing test source assertions were read. Neither selected component body nor recovered reference body printed in this bounded pass. Previous session source exposures remain; no strict-isolation claim.",
+  "frozenObservations": {
+    "scenes": 2,
+    "states": 46,
+    "rawSha256": "87cf30846428dcc6137b99d7d1d25703d4baa8b9948ac2571dcd31b744dd5156",
+    "observerSha256": "68d10eb00955ab99ba9762eba5634871bbe0da5bae40a61c28967dc1153a20b2",
+    "comparisonSha256": "5d4e2fe6e5d4da88d87f138eb4a8b1b4f4feeabd2620fe3af61248a5a7f143a5",
+    "pageErrors": [],
+    "focusedTestsPassed": 28,
+    "motionFrameTraceSha256": {
+      "false": "c0e31b5955741dba1028d9105d31b1dc6424e2606417e953e5e998f0788ca00b",
+      "true": "09a7a15d37f931dec30e9111acb38155e2b418ccfefeb6f4187f19bbbf98d5b0"
+    },
+    "fullShellSmoke": "failed before authoring at docked footer rightInset12/paddingRight0; assertion unchanged; original navigation8s timeout also retained",
+    "screenshots": "Both reduced and ordinary component scenes inspected; synthetic slots, not complete Workbench"
+  }
 }
