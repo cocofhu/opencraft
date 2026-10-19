@@ -35,7 +35,7 @@ function harness(initialProfile: HostConnectionProfile = profile) {
   const registry = new HostRuntimeRegistry([{ descriptor: { hostId: profile.hostId, label: "Fixture", kind: "remote-ssh",
     transportEndpoint: null, executionLocation: "Fixture", workspaceBrowseRoots: ["/remote"] }, createRuntime: () => runtime }]);
   const source = { getSnapshot: () => snapshot, getAuthorizationEpoch: () => authorizationEpoch, subscribe: () => () => {}, refresh: async () => {} };
-  return { calls, registry, source, read: () => readHostThreadCatalog({ profile: initialProfile, currentProfile: () => current, management: source, registry }),
+  return { calls, registry, source, read: (options: { onInitialPage?: (page: { data: readonly { id: string; pinned?: boolean }[] }) => void; signal?: AbortSignal } = {}) => readHostThreadCatalog({ profile: initialProfile, currentProfile: () => current, management: source, registry, ...options }),
     setCurrent: (value: HostConnectionProfile | undefined) => { current = value; },
     setSnapshot: (value: Partial<ManagedHostCatalogSnapshot>) => { snapshot = { ...snapshot, ...value }; },
     nextAuthorization: () => { authorizationEpoch++; },
@@ -245,4 +245,49 @@ test("stale open management observation cannot redial a reconnecting runtime", a
   await assert.rejects(h.read(), /不可读取会话/);
   assert.deepEqual(h.calls, []);
   await h.registry.dispose();
+});
+
+
+test("cold reader exposes authoritative first-page pins while complete directory remains pending", async () => {
+  const h = harness(), gate = deferred();
+  const first = [{ id: "old-pin", pinned: true }, { id: "recent" }];
+  h.setListPage(async ({ cursor }) => {
+    if (cursor === null) return { data: first, nextCursor: "older" };
+    await gate.promise;
+    return { data: [{ id: "old-pin", pinned: false }, { id: "old-search-match" }], nextCursor: null };
+  });
+  const progress: string[][] = [];
+  let complete = false;
+  const pending = h.read({ onInitialPage: page => progress.push(page.data.map(row => row.id)) }).then(value => { complete = true; return value; });
+  try {
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(progress, [["old-pin", "recent"]]);
+    assert.equal(complete, false, "first rows are presentation progress, never complete success");
+    gate.resolve(); const result = await pending;
+    assert.deepEqual(result.data.map(row => row.id), ["old-pin", "recent", "old-search-match"]);
+    assert.equal(result.data[0]?.pinned, true);
+    assert.equal(progress.length, 1, "later pages do not repeatedly rebuild the visible directory");
+  } finally { gate.resolve(); await pending.catch(() => {}); await h.registry.dispose(); }
+});
+
+test("empty or single-page catalogs do not publish unnecessary partial presentation", async () => {
+  for (const empty of [true, false]) {
+    const h = harness(); const progress: unknown[] = [];
+    h.setListPage(async () => ({ data: empty ? [] : [{ id: "only" }], nextCursor: null }));
+    try { const result = await h.read({ onInitialPage: page => progress.push(page) });
+      assert.deepEqual(progress, []); assert.equal(result.data.length, empty ? 0 : 1);
+    } finally { await h.registry.dispose(); }
+  }
+});
+
+test("cancelled or revoked first replies never expose private first-page rows", async () => {
+  for (const cancelled of [true, false]) {
+    const h = harness(), controller = new AbortController(); const progress: unknown[] = [];
+    h.setListPage(async () => { if (cancelled) controller.abort(); else h.nextAuthorization();
+      return { data: [{ id: "private" }], nextCursor: "older" }; });
+    try {
+      await assert.rejects(h.read({ signal: controller.signal, onInitialPage: page => progress.push(page) }));
+      assert.deepEqual(progress, []); assert.deepEqual(h.calls, ["connect", "thread/list"]);
+    } finally { await h.registry.dispose(); }
+  }
 });

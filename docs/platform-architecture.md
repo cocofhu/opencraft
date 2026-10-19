@@ -285,7 +285,15 @@ Pages are read sequentially under the same recipe/authorization admission,
 deduplicating native pin backfill by Thread ID. An empty page with a cursor is
 not completion; repeated cursors or failed/revoked later pages fail that Host's
 read without publishing a partial complete catalog. These reads do not resume
-Threads or load message history, and retain the runtime's indexed SSH policy.
+Threads or load message history, and retain the runtime's indexed SSH policy. Cold observers may display the authoritative initial page (including old pin backfill)
+while subsequent metadata pages load. This observer-only placeholder never enters
+the complete directory cache, never reports complete search, and is removed on a
+failed cold read. Refreshes retain the last complete snapshot; recipe/authorization
+keys, cancellation and live admission fence initial pages as well as final results.
+The Sidebar labels partial loading; completion replaces it with the entire
+catalog without an empty frame. Goal enrichment and unread catch-up wait for the
+complete catalog, preserving their existing request schedule. First usable rows
+and complete directory readiness are separate performance metrics.
 
 The optional conversation overview is isolated in
 `apps/workbench-web/src/features/conversation-overview`. Appearance controls its

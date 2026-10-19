@@ -342,6 +342,7 @@ export const Sidebar = memo(function Sidebar({
             placeholder={intl.formatMessage({ id: "sidebar.search", defaultMessage: "Search conversations" })}
             value={search} onChange={event => setSearch(event.target.value)} /></label>}
           {grouping.notice ? <div className="sidebar-catalog-feedback" role="status">{formatLabel(grouping.notice)}</div> : null}
+          {threadCatalogs.some(catalog => catalog.partial && catalog.phase === "loading") ? <div className="sidebar-catalog-feedback" role="status">{intl.formatMessage({ id: "sidebar.search.loading", defaultMessage: "Loading conversations…" })}</div> : null}
           {feedback.map(catalog => (
             <div className="sidebar-catalog-feedback" key={catalog.key} role="status">
                 <span className="sidebar-catalog-feedback__message" title={catalog.label ?? undefined}>{catalog.label === null
