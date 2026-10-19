@@ -1,5 +1,44 @@
 # Source provenance review
 
+## Additional explicit-source inventory coverage (2026-10-19)
+
+The follow-up audit at `f979bb477180a2346d2e96dba21314eb7ff50f8c` found
+16 source-lineage candidates missed by the previous scanner. The exact paths,
+Git blobs and SHA256 values are retained in
+[the baseline record](provenance/annotation-coverage-20261019.json).
+Two additional **unverified** groups now cover them:
+
+| Group | Review boundary |
+| --- | --- |
+| `codex-browser-source-followup` | Seven files: four browser implementation modules claiming copied bodies/identical helpers, their pinned source manifest, and two related toolbar/host contracts |
+| `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
+
+This raises the current unresolved group count from eight to **ten**. Earlier
+counts below are dated snapshots, not the current total. No implementation is
+reclassified or independently replaced by this inventory change. Some claims
+refer to a bounded region or to behavior only; actual retained expression and
+rights still require review. In particular, the theme's visible `Codex` name
+and source-faithful description remain a pending presentation correction.
+
+The scanner now catches explicit class/function-body claims, source-identical,
+source-faithful and source-shaped annotations, reconstruction/restoration claims
+and `ref/codex/` bindings, including JSON source manifests. Regression fixtures
+start with an otherwise resolved inventory so an uncovered annotation cannot
+silently report release readiness. Generic connection/focus recovery, ordinary
+behavior comparisons, product names and Codex/ChatGPT protocol identifiers do
+not become copy findings. The scanner remains a known-annotation inventory
+check, not an exhaustive code-origin detector or legal review.
+
+Validation: all ten source-provenance tests pass. Running the same new test
+against the baseline scanner fails because it reports `releaseReady: true`.
+The current inventory check reports no uncovered known annotations; `--release`
+continues to exit with status 1 for the ten unresolved groups, as required.
+
+All historical notices, source annotations and browser operations are retained.
+The existing Agent Activity replacement is still in progress separately;
+this change does not claim it is complete. No application UI, protocol, runtime
+or deployment behavior changes in this follow-up.
+
 ## Turn user-message normalization replacement (2026-10-19)
 
 [The complete normalization module](provenance/message-normalization-replacement.md)
