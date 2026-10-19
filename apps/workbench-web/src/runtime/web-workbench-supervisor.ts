@@ -511,7 +511,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     });
     startupRollback.push(() => extensionManager.dispose());
     if (options.optionalFeatureStartup !== undefined) {
-      options.optionalFeatureStartup.add("lightvela.collaboration", async signal => {
+      options.optionalFeatureStartup.add("extensions.restore", async signal => {
         signal?.throwIfAborted();
         await extensionManager.restore();
       });
