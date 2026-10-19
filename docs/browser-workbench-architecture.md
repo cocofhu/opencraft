@@ -55,7 +55,7 @@ Iterator helpers（如 `Map.values().map()`）。需要映射时先用标准数�
 标签、页面及 storage ID 元数据通过主进程存储，不能依赖启动时变化的 localhost origin。
 空白 backing 交由源管理器 prewarm 所有权管理；首次加载前已设置分区与 sandbox。
 崩溃恢复通过标准 guest reload 重建 renderer，保持 logical page 和 partition。
-设备预设与拖动计算直接来自 Codex，尺寸变化消费源 manager toolbar 投影，持久化到标签偏好。
+设备预设保留应用兼容数据，数值helper与拖动计算已分别有界替换；尺寸变化消费现有registry与工具栏投影，持久化仍由标签偏好owner负责。
 
 设备工具栏呈现（2026-09-14）：按源 DeviceToolbar/数字输入的布局和编辑语义迁移，
 地址栏只保留设备模式开关；设备模式显示 34px 单行工具栏（预设、宽 × 高、旋转、
@@ -63,6 +63,7 @@ Iterator helpers（如 `Map.values().map()`）。需要映射时先用标准数�
 缩放，小于460px隐藏 Dimensions 标签。宽高输入保留编辑草稿，合法数值即时应用，
 失焦/Enter 时规范化。拖动来自左右/底边/两个底角的真实视口边界，而非文字按钮；
 pointer capture、取消与键盘操作属于控件，页面尺寸仍由共享 viewport layout 计算。
+当前工具栏与数字输入已按冻结契约独立替换，原来源说明保留在[有界记录](provenance/browser-toolbar-replacement.md)。父层mode/zoom与本地聚焦草稿分开；预设选择重置受支持zoom，旋转保留模式身份，Enter阻止默认提交后失焦，Escape只失焦。相邻手柄与共享样式未改。
 浏览器内的 PreviewBridge 复用现有敏感字段策略与语义输入，不声称 trusted input/CDP。
 挂载代次与焦点转移规则对照 ref/codex/browser-sidebar-webview-manager 和
 get-or-create-browser-sidebar-webview-root；其余尚未验证的 Codex 细节不能按架构接入成功推定完成。

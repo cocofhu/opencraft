@@ -101,7 +101,8 @@ The fresh-component matrix corrects two assumptions in the initial interpretatio
 Live numeric callbacks occur only when the raw numeric value is within the field's
 range, then round to an integer. Below/above-bound input stays local until blur,
 which clamps and commits; blank input restores the current prop without a callback.
-Enter and Escape blur without consuming the bubbled keyboard event. Preset choices
+Enter and Escape blur; the frozen matrix records Enter preventing its default
+while still bubbling, and Escape retaining its default. Preset choices
 produce a fresh standard device-mode object (dropping unrelated input fields),
 whereas rotation preserves all existing mode fields and swaps the dimensions.
 Choosing responsive retains exact current dimensions, including zero or fractional
@@ -119,3 +120,41 @@ between local numeric text and parent-owned mode values; the complete callback,
 focus, validity and input outputs are locked separately. No product code changed
 for either observer. Both acknowledgement variants are required comparisons for
 the replacement; neither can substitute for the other.
+
+
+## Implementation and exact comparisons
+
+Both selected components are independently expressed from the frozen contract.
+Preset selection emits a standard device mode and optional zoom reset; rotation
+retains mode identity; dimension edits use local focused text and parent callbacks.
+The implementation keeps imports, compatibility labels/data, shared CSS and the
+entire `BrowserDeviceHandles` suffix. No tests or harness are added to the repository.
+
+The first replacement matched all 136 static outputs and all four actual browser
+scenes/64 checkpoints. Each 258-case matrix reported 24 differences, all the same
+missing Enter default-prevention behavior. The original observations were not
+changed: restoring default prevention yields zero differences in both full matrices,
+including callback order, raw input/validity, focus and bubbled keyboard flags.
+The final browser scenes match their complete frozen payloads, including markup
+and geometry. Run head and source hash differ by design and are retained separately
+as provenance metadata; comparison never removes fields within scene/case payloads.
+No strict author isolation, complete panel/Workbench, Page service or native claim.
+
+The initial SSR observer omitted its classic JSX React binding; correcting that
+external environment required no product change. Earlier author exposure, initial
+differences and all original observation files remain in the evidence directory.
+Source acceptance and downstream product delivery will be recorded separately.
+
+
+## Candidate validation
+
+The 39 existing browser/core/runtime/background/permissions/geometry/manager and
+provenance tests pass. Web type checking, typography/activity/platform boundaries
+and the official root Web build pass (791 runtime source files, zero compatibility
+issues). The final narrow dark screenshot was viewed. The scope guard verifies
+byte-identical imports/compatibility data (apart from replacing the selected source
+annotation), the complete handle function and its entire suffix. Source checks
+report no errors, eight unresolved groups and releaseReady=false; no rights status
+is inferred from passing checks. The initial report was plain text; the observer
+requested the existing --json mode for structured consumption, without changing
+the checker. Upstream acceptance and Join delivery remain separate pending stages.

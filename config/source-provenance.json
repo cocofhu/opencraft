@@ -367,7 +367,6 @@
       "id": "codex-browser-source-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
         "apps/workbench-web/src/browser/codex-presentation-host.ts",
         "apps/workbench-web/src/browser/codex/source-manifest.json"
       ],
@@ -382,7 +381,7 @@
         "docs/provenance/browser-viewport-presets-baseline.json",
         "docs/provenance/browser-viewport-presets-review.md"
       ],
-      "reason": "The explicitly copied manager class has a separate bounded replacement disposition. Its historical manifest and related toolbar/Host contracts remain review inventory, not proof of whole-file copying. Viewport drag, preset helpers/initialization and presentation handoff likewise retain their separate dispositions.",
+      "reason": "The explicitly copied manager class, adapted toolbar/numeric-input components, viewport drag, preset helpers and presentation handoff have separate bounded dispositions. The historical manifest and Host contract remain review inventory, not proof of whole-file copying; the untouched toolbar handles are not selected by directory membership.",
       "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementations and behavioral references. Do not turn directory membership into a rewrite mandate. Historical source/class hashes remain unchanged; replacement module locks are separate. Remaining browser regions and historical rights are not cleared."
     },
     {
@@ -792,9 +791,24 @@
         "apps/workbench-web/src/browser/codex/source-manifest.json",
         "tests/codex-browser-manager.test.ts"
       ],
-      "reason": "Only the complete explicitly copied class is replaced. The factory/port wrapper, adapter, independent Host/transition, presets and toolbar retain their implementations. Consumer contracts and initial state/Host/router/Web baselines were frozen before authoring; supplemental idempotence and prewarm observations followed authoring and are recorded separately.",
+      "reason": "Only the complete explicitly copied class is replaced. The factory/port wrapper, adapter, independent Host/transition, presets and toolbar retained their implementations during that registry batch. The toolbar now has its own separate bounded replacement record. Consumer contracts and initial state/Host/router/Web baselines were frozen before authoring; supplemental idempotence and prewarm observations followed authoring and are recorded separately.",
       "resolution": "Preserve historical source/class hashes and actual author exposure. Lock current module bytes separately. Remaining browser inventory and all eight unresolved groups stay open; no directory-wide rewrite or historical-rights conclusion.",
       "conclusion": "Current code independently expresses Host/storage/mount ownership, asynchronous registration fencing, automation state, transfer and teardown. Exact observations and real Web iframe/draft/layout continuity bound the claim; no strict author isolation, full Workbench, Electron/native guest or historical rights clearance."
+    },
+    {
+      "id": "browser-device-toolbar",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/browser/browser-device-toolbar.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/browser-toolbar-baseline.json",
+        "docs/provenance/browser-toolbar-replacement.md",
+        "tests/browser-device-toolbar.test.ts"
+      ],
+      "reason": "Only the two explicitly adapted toolbar and numeric-input components are independently replaced from the frozen consumer contract, static output and actual Web observations. Imports, preset compatibility data, CSS and BrowserDeviceHandles remain unchanged.",
+      "resolution": "Keep immutable historical module/function hashes, actual author exposure and complete comparison outputs. Review remaining annotated regions individually; behavioral references and shared-file membership do not mandate rewriting.",
+      "conclusion": "Current implementation separates parent-owned mode/zoom from local focused numeric text. 136 static outputs, four actual Web scenes/64 checkpoints and both acknowledged/unacknowledged 258-case matrices match after restoring Enter default prevention. No strict author isolation, full panel/native acceptance or historical-rights clearance."
     }
   ]
 }

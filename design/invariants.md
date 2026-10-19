@@ -625,8 +625,9 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 | BRW-07 | 权限按 partition/origin/type 隔离；旧页面与撤销后的迟到授权不得生效 | browser-permissions.test.ts＋原生拒绝/撤销/清除数据回归 |
 | BRW-08 | browser-use 与 UI 挂载独立；操作互斥且 finally 释放；隐藏页仍可渲染/截图，无面板激活副作用 | browser-background.test.ts＋原生后台读取/截图/关闭回归 |
 | BRW-09 | 恢复未完成不是用户关闭；close 与清除站点数据分离，重启不因 localhost 端口变化丢失归属 | desktop metadata＋native restart smoke |
+| BRW-10 | 设备工具栏只投影父层 viewport mode/zoom；聚焦数字草稿独立，范围内编辑即时提交、失焦规范化，预设/旋转不夺取 Page 或持久化所有权 | 独立 toolbar/input；136 静态、64 Web 检查点及两组258边界；手柄/布局保持原owner |
 
-当前迁移状态：源类体哈希校验、66 项聚焦测试、完整门禁，以及最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。
+历史迁移验收：当时源类体哈希校验、66 项聚焦测试、完整门禁，以及当时最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与当时源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。当前 registry 与 toolbar 的有界独立替换各有 provenance 记录，不沿用旧原生验收证明新实现。
 
 模型成立、编译通过、真实控件通过、真实 Host 通过、Mac 产物通过是不同级别。未经相应验证不得提升状态。恢复源码没有明确承诺的行为不得擅自增加约束；结构互斥、稳定前缀和同步移交本身可构成合法保证。
 # 会话生命周期补充（2026-09-15）

@@ -151,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Three remaining inventory files: the historical source manifest and two toolbar/Host contracts; the explicitly attributed manager class, viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
+| `codex-browser-source-followup` | Two remaining inventory files: the historical source manifest and Host contract; the toolbar/input has its own bounded replacement record; the explicitly attributed manager class, viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -662,3 +662,17 @@ retry ownership, draft writes and Composer submission remain unchanged. Historic
 hashes and actual JSX exposure are retained; this does not establish strict
 author isolation, native acceptance or historical rights. Eight unresolved groups
 remain open; adjacent client/Host modules are reviewed individually.
+
+
+## Device toolbar and numeric input — 2026-10-20
+
+The [bounded replacement](provenance/browser-toolbar-replacement.md) selects only
+two components under an explicit recovered-renderer adaptation annotation. The
+[baseline](provenance/browser-toolbar-baseline.json) keeps original module/function
+hashes and actual author exposure separately from the current module lock. All
+136 static outputs, 64 actual Chromium checkpoints and both 258-case numeric/preset
+matrices match. Enter default prevention was missed initially and restored using
+the frozen pre-authoring observations; all initial differences remain recorded.
+Imports, compatibility labels/data, app styles and BrowserDeviceHandles are unchanged.
+The historical manifest/Host review inventory and eight unresolved groups remain;
+this does not clear adjacent expression, native behavior or historical rights.

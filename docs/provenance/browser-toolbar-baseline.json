@@ -48,7 +48,7 @@
     "React compiler caches/i18n wrappers removed; product tokens/icons substituted."
   ],
   "strictIsolation": false,
-  "status": "contract-only; implementation unchanged",
+  "status": "bounded replacement implemented; validation and upstream delivery pending",
   "observations": [
     {
       "path": "static-observations.json",
@@ -78,5 +78,15 @@
       "performedBeforeAuthoring": true,
       "parentAcknowledges": false
     }
-  ]
+  ],
+  "implementation": {
+    "moduleSha256": "fd055dc28938e87d79a7edbe3cb2b0c1724a70d8102493898040f08a4b45b5b9",
+    "selectedRegions": [
+      "BrowserDeviceToolbar",
+      "DimensionInput"
+    ],
+    "unchangedRegion": "BrowserDeviceHandles",
+    "requirementsCommit": "fbfbed4",
+    "strictIsolation": false
+  }
 }
