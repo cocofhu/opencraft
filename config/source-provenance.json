@@ -64,8 +64,8 @@
       "evidence": [
         "packages/timeline-virtualizer/PROVENANCE.md"
       ],
-      "reason": "Historical package inventory records restored reducers, layout and scrolling mechanisms from recovered desktop modules. The current follow.ts has a separate bounded independent replacement record; remaining files and historical rights stay unverified.",
-      "resolution": "Review remaining specifically attributed regions individually. Keep historical references, licensed/original code and ordinary compatibility constants; the follow-policy disposition does not clear the package or mandate blanket replacement."
+      "reason": "Historical package inventory records restored reducers, layout and scrolling mechanisms from recovered desktop modules. The current follow.ts and history-backfill.ts have separate bounded independent replacement records; remaining files and historical rights stay unverified.",
+      "resolution": "Review remaining specifically attributed regions individually. Keep historical references, licensed/original code and ordinary compatibility constants; the follow-policy and backfill dispositions does not clear the package or mandate blanket replacement."
     },
     {
       "id": "codex-timeline-adapters",
@@ -825,6 +825,22 @@
       "reason": "The complete explicitly restored follow-policy module is replaced after freezing public types, OpenCraft requirements, complete policy/controller outputs and an actual Conversation browser baseline. Shared consumers, window/history/restoration modules and adapters remain unchanged.",
       "resolution": "Retain exact historical function/module hashes, exposure and authoring order, original failing legacy browser expectation and full comparison results. Compatibility names/constants remain ordinary data. Eight unresolved groups stay open.",
       "conclusion": "Current code independently owns mode transitions, placement snapshots, signed resize compensation, response-spacer geometry and pure restore projections. Verification is bounded; no strict author isolation, Native hardware or historical rights clearance."
+    },
+    {
+      "id": "timeline-history-backfill",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/timeline-virtualizer/src/history-backfill.ts"
+      ],
+      "evidence": [
+        "packages/timeline-virtualizer/PROVENANCE.md",
+        "docs/provenance/timeline-backfill-baseline.json",
+        "docs/provenance/timeline-backfill-replacement.md",
+        "tests/chat-timeline-virtualizer.test.ts"
+      ],
+      "reason": "The complete explicitly restored history coordinator is replaced after freezing OpenCraft requirements, public declarations, 446 full call-order/Promise/error observations and ten actual Conversation checkpoints. Imports, shared policy and platform adapters are unchanged.",
+      "resolution": "Retain historical module/class/member hashes, actual author exposure, failed first parameter mapping and complete raw comparison results. Review other specifically attributed regions separately; eight unresolved groups remain open.",
+      "conclusion": "Current independently expressed operation and epoch ownership serialize loads across invalidations and preserve layout barriers, error callbacks and Promise semantics. This bounded implementation replacement does not establish strict author isolation, Native hardware acceptance or historical-rights clearance."
     }
   ]
 }

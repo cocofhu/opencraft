@@ -1,5 +1,17 @@
 # ChatUI integration architecture
 
+## Shared history backfill coordinator
+
+`TurnHistoryBackfillCoordinator` owns one history-load operation and layout epoch
+through the existing `timeline-react` adapter. Same-generation requests share the
+operation; replacement generations wait for old work, including failures, before
+starting another load. A completed page always reaches the platform layout
+barrier, then current ownership/enabled state, explicit stop, missing geometry or
+unchanged height ends continuation. Web and Native retain their own measurements
+and frame scheduling. The [bounded replacement contract](provenance/timeline-backfill-replacement.md)
+records frozen observations and historical provenance without reclassifying other
+timeline code or treating callback identity changes as a new owner.
+
 ## Trusted Web renderer composition
 
 A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.

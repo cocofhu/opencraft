@@ -1,5 +1,17 @@
 # Source provenance review
 
+## History backfill coordinator replacement (2026-10-20)
+
+The complete [explicitly restored coordinator](provenance/timeline-backfill-replacement.md)
+is independently replaced after freezing public declarations, existing tests,
+446 call-order/Promise/error cases and ten actual Conversation checkpoints.
+The full raw outputs match. The first parameter-mapping error was caught and
+corrected without altering observers, helper policy or assertions. Imports,
+public types and React/Web/Native adapters remain unchanged. Historical hashes,
+source annotations and actual author exposure remain recorded; eight groups
+remain unverified. This is not strict author isolation, Native-device acceptance,
+historical-rights clearance or release readiness.
+
 ## Timeline follow policy replacement (2026-10-20)
 
 Only the [explicitly restored follow-policy module](provenance/timeline-follow-replacement.md)

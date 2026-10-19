@@ -1639,6 +1639,18 @@ records historical origin and current verification separately; neighboring
 window, restoration, history and platform owners retain their implementations.
 
 
+## Shared history backfill ownership
+
+One renderer-neutral coordinator serializes history pages across layout epochs.
+Repeated current requests share the active Promise; invalidation fences continuation
+and replacement work waits for old work to settle. Every successful page finishes
+the host layout barrier before ownership, enabled state or explicit stop decides
+continuation. Unchanged height ends the fill pass. Error callbacks retain stale
+failure reporting; they cannot grant old work a new layout generation. Public
+ports, shared load policy and platform geometry ownership remain unchanged.
+The [bounded replacement record](../docs/provenance/timeline-backfill-replacement.md)
+separates current implementation evidence from historical source rights.
+
 ## Conversation presentation contributions
 
 Optional conversation subtitles share the existing title rail and constrained

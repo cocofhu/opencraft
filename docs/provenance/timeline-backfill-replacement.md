@@ -82,3 +82,35 @@ which remains part of the evidence rather than a claimed warning-free run.
 This exercises real Conversation, React ownership adapter, virtualizer, DOM metrics
 and ResizeObserver with synthetic content; it is not Native-device, employee-login,
 paid-model or remote-Host acceptance. No historical coordinator body was read.
+
+## Replacement and observed outcome
+
+The complete class is now independently expressed with operation/epoch ownership,
+a stable request command and a viewport-fill loop. Imports, public type declarations
+and both shared/platform adapters are unchanged. Current module SHA256:
+`6682cd21405b10ada3ea3171f8a10d60aa147abcdb19065ff1bed0e571f2216b`.
+
+The first attempt passed scrollHeightPx directly to the shared policy, whose
+contract requires contentHeightPx. Typechecking rejected that mismatch and 36
+frozen policy cases differed; its first browser output also differed. The first
+focused test run's underfill loop was stopped after the cause was established.
+Correcting only the caller's field mapping yields exact raw-byte equality for all
+446 policy cases and all ten actual Conversation browser checkpoints. The original
+observers and expected payloads are unchanged; first-attempt evidence is retained.
+The same ResizeObserver notification warning occurs before/after, with no captured
+page errors. No reference implementation body was opened for the correction.
+
+All 141 existing focused tests pass on the corrected implementation. Subsequent
+type, boundary, official Web-build, source inventory and protected PR results are
+recorded separately as they complete. No new committed tests/harness or dependencies.
+
+## Verification completed before PR
+
+Shared virtualizer/React, Web and Expo/Native typechecks pass; all 141 existing
+focused tests, typography/platform boundaries and source inventory validation
+pass. The official Web build contains 791 runtime source files and zero
+compatibility issues. The final real Conversation screenshot was inspected.
+The corrected module and all frozen observation hashes above remain unchanged.
+Eight inventory groups remain unresolved and releaseReady remains false. No
+Native hardware or complete employee/model/Host chain was exercised. Upstream
+integration and Join runtime deployment remain separate subsequent events.
