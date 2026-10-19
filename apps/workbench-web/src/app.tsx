@@ -1544,7 +1544,7 @@ export function App({
         } catch { window.dispatchEvent(new CustomEvent("opencraft-panel-action-failed")); }
       }}>
       <Monitor size={15} aria-hidden="true" />
-      <span>{cloudDesktopAction.label}</span>
+      <span>{intl.formatMessage({ id: "composer.cloudComputer", defaultMessage: "Cloud computer" })}</span>
     </button>
   ) : null;
   const panelHostProjection: HostPanelState = {

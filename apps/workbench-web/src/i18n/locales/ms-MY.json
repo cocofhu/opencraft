@@ -37,6 +37,7 @@
   "composer.commands.stop": "Hentikan tugas semasa",
   "composer.commands.help": "Semua arahan",
   "panel.newBrowser": "Tab pelayar baru",
+  "composer.cloudComputer": "Komputer awan",
   "panel.desktopEntry": "Desktop",
   "panel.browser": "pelayar",
   "panel.fileHint": "Klik fail dalam perbualan untuk pratonton di sini.",
