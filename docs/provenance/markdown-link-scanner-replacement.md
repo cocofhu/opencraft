@@ -30,3 +30,24 @@ This commit precedes implementation and expanded observations. Public interface,
 consumer and existing tests were authoring inputs; old scanner expressions were
 not printed in this bounded pass. This does not establish strict author isolation,
 clear historical source rights or resolve other annotated compiler regions.
+
+
+## Completed pre-authoring grammar observations
+
+The external corpus contains 40,866 structured/malformed string-and-offset cases
+and 24 edge-offset cases. Empty labels or destinations do not match. Label
+contents end at the first unescaped closing bracket, which must be immediately
+followed by an opening parenthesis. Destination contents end at the first
+unescaped closing parenthesis; inner opening parentheses are raw characters,
+not a balanced-parenthesis grammar. Backslash pairs preserve raw text while
+shielding delimiters. CR/LF invalidate a candidate, including an escaped CR/LF;
+spaces, title-like text, angle brackets, NUL and Unicode line separators are
+raw application data. Search may continue to a later valid bracket candidate.
+Escaped prefixes and image punctuation do not alter the scanner's start offset;
+the caller retains their interpretation.
+
+Search offsets use UTF-16 positions. Negative offsets search from zero, fractional
+finite offsets truncate, NaN/positive infinity do not match, and negative infinity
+searches from zero. These observed compatibility details do not establish a new
+Markdown standard. The frozen external observation SHA256 is `3b9e1dfcf60cdcc71e073a5896ff343757c9f18f915dc5fe71051d988d7c6d37`.
+The implementation is still unchanged at this requirements checkpoint.
