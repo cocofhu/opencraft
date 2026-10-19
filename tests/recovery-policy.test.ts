@@ -150,3 +150,18 @@ test("diagnostic history is bounded, manual stop has no retry deadline and inval
  assert.equal(f.owner.getProgress(key),undefined);
  f.owner.dispose();
 });
+
+test("a new explicit recovery after terminal failure has its own correlation and attempt count",async()=>{
+ const f=fixture(),key={};
+ const failed=f.owner.recover({key,demand:()=>"visible",retryable:()=>false,run:async()=>{throw {code:"TIMEOUT"};}});
+ await failed;await tick();
+ const previous=f.owner.getProgress(key)!;assert.equal(previous.stage,"failed");
+ f.owner.begin("revalidate");
+ let release!:()=>void;
+ const retry=f.owner.recover({key,demand:()=>"visible",retryable:()=>false,run:()=>new Promise<void>(resolve=>{release=resolve;})},true);
+ await tick();const current=f.owner.getProgress(key)!;
+ assert.notEqual(current.recoveryId,previous.recoveryId);
+ assert.equal(current.recoveryId,f.events.filter(e=>e.stage==='history-started').at(-1)?.recoveryId);
+ assert.equal(current.attempt,1);assert.equal(current.lastFailure,undefined);
+ release();await retry;f.owner.dispose();
+});

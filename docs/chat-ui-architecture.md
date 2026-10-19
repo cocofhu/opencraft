@@ -2189,3 +2189,6 @@ collapsed copyable report before failure as well as during automatic retries.
 The presentation clock pauses in background tabs and never schedules work.
 Authoritative recovery removes the notice; invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
+A fresh work item after a terminal failure starts a new history observation;
+its correlation ID and attempt count cannot inherit the completed report.
+Coalesced retries of an active work item still share the original observation.

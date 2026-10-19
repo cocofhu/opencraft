@@ -186,6 +186,8 @@ export class ConversationRecoveryOwner {
     let resolve!: (error?: unknown) => void;
     const promise = new Promise<void>((done, reject) => { resolve = error => error === undefined ? done() : reject(error); });
     if (!this.episode) this.begin("resources");
+    // A new work item must not inherit a completed failure from an older episode.
+    this.historyProgress.delete(task.key);
     this.observe("queued", task.key);
     this.work.set(task.key, { task, attempt: 0, retryTicket: 0, propagateFailure: task.propagateFailure === true, resolve, promise });
     this.pump();
