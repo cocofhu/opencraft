@@ -160,3 +160,28 @@ test("a staged file renders in the file row without a duplicate @ context chip",
   assert.deepEqual(layout.files.map(file => file.name), ["受众广.md"]);
   assert.deepEqual(layout.contexts.map(context => context.name), ["src"]);
 });
+
+test("layout retains input objects and makes no writes to frozen content", () => {
+  const file = Object.freeze({ type: "file" as const, id: "f", name: "f", target: "/f", mimeType: null, startLine: null, endLine: null });
+  const skill = Object.freeze({ type: "skill" as const, name: "f", path: "/f" });
+  const mention = Object.freeze({ type: "mention" as const, name: "f", path: "/f" });
+  const input = Object.freeze(message({ content: Object.freeze([skill, mention]), attachments: Object.freeze([file]) }));
+  const layout = deriveUserMessageWebLayout(input);
+  assert.equal(layout.files[0], file);
+  assert.deepEqual(layout.contexts, [skill]);
+  assert.equal(layout.contexts[0], skill);
+});
+
+test("status-only Goal and hook feedback retain the empty bubble; review stands alone", () => {
+  for (const overrides of [{ goal: true }, { hookFeedback: true }, { deliveryStatus: "failed" as const }]) {
+    const layout = deriveUserMessageWebLayout(message(overrides));
+    assert.equal(layout.hasStatus, true);
+    assert.equal(layout.showBubble, true);
+  }
+  for (const overrides of [{ reviewMode: true }, { pullRequestFixMode: true }, { autoResolveSync: true }, { commentCount: 1 }]) {
+    const layout = deriveUserMessageWebLayout(message(overrides));
+    assert.equal(layout.hasStatus, true);
+    assert.equal(layout.showBody, true);
+    assert.equal(layout.showBubble, false);
+  }
+});
