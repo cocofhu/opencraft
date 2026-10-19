@@ -10,6 +10,7 @@ import { useIntl } from "@opencraft/i18n/react";
 import {
   ChevronDown,
   ListFilter,
+  LoaderCircle,
   SquarePen,
   UserRound,
   Settings,
@@ -244,6 +245,9 @@ export const Sidebar = memo(function Sidebar({
   const contextModeItems = <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind="context" onSelect={() => { closeDisplayMenu(); threadMenuStore.close(); }} />;
   const catalogLoading = threadCatalogDiscovery === "loading"
     || threadCatalogs.some(catalog => catalog.phase === "loading");
+  const catalogPartialLoading = threadCatalogs.some(catalog => catalog.partial && catalog.phase === "loading");
+  const catalogProgressLabel = catalogPartialLoading
+    ? intl.formatMessage({ id: "sidebar.search.loading", defaultMessage: "Loading conversations…" }) : undefined;
   const feedback = [
     ...(threadCatalogDiscovery === "error" ? [{ key: "discovery", label: null, cachedAt: undefined, retry: onRetryThreadCatalogDiscovery }] : []),
     ...threadCatalogs.filter(catalog => catalog.phase === "error" || catalog.cachedAt !== undefined).map(catalog => ({
@@ -323,7 +327,13 @@ export const Sidebar = memo(function Sidebar({
 
         <ContextMenu.Root open={displayMenu === "context"} onOpenChange={open => updateDisplayMenu("context", open)}>
         <ContextMenu.Trigger asChild><section className="sidebar-tasks" aria-label="Tasks" aria-busy={catalogLoading}>
-          <div className="sidebar-list-toolbar"><span>{intl.formatMessage({ id: "sidebar.conversations", defaultMessage: "Conversations" })}</span>
+          <div className="sidebar-list-toolbar"><span>
+            {intl.formatMessage({ id: "sidebar.conversations", defaultMessage: "Conversations" })}
+            {catalogPartialLoading ? <span className="sidebar-catalog-progress" role="status" title={catalogProgressLabel}>
+              <LoaderCircle size={12} className="is-spinning" aria-hidden="true" />
+              <span className="sidebar-catalog-progress__label">{catalogProgressLabel}</span>
+            </span> : null}
+          </span>
             <DropdownMenu.Root open={displayMenu === "dropdown"} onOpenChange={open => updateDisplayMenu("dropdown", open)}><DropdownMenu.Trigger asChild><button type="button" className="sidebar-list-mode-trigger" data-filter-active={Boolean(server || grouping.filter?.enabled)} aria-label={intl.formatMessage({ id: "sidebar.filters", defaultMessage: "Filters" })} title={[intl.formatMessage({ id: "sidebar.filters", defaultMessage: "Filters" }), ...(grouping.filter?.enabled ? [formatLabel(grouping.filter.label)] : []), selectedServer?.[1] ?? intl.formatMessage({ id: "sidebar.allServers", defaultMessage: "All servers" })].join(" · ")} ><ListFilter size={14} aria-hidden="true" /></button></DropdownMenu.Trigger>
               <DropdownMenu.Portal container={portalContainer}><DropdownMenu.Content className="workbench-context-menu" sideOffset={5} align="end"><ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind="dropdown" />
                 <DropdownMenu.Separator />
@@ -342,7 +352,6 @@ export const Sidebar = memo(function Sidebar({
             placeholder={intl.formatMessage({ id: "sidebar.search", defaultMessage: "Search conversations" })}
             value={search} onChange={event => setSearch(event.target.value)} /></label>}
           {grouping.notice ? <div className="sidebar-catalog-feedback" role="status">{formatLabel(grouping.notice)}</div> : null}
-          {threadCatalogs.some(catalog => catalog.partial && catalog.phase === "loading") ? <div className="sidebar-catalog-feedback" role="status">{intl.formatMessage({ id: "sidebar.search.loading", defaultMessage: "Loading conversations…" })}</div> : null}
           {feedback.map(catalog => (
             <div className="sidebar-catalog-feedback" key={catalog.key} role="status">
                 <span className="sidebar-catalog-feedback__message" title={catalog.label ?? undefined}>{catalog.label === null

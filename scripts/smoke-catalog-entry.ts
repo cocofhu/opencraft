@@ -95,10 +95,13 @@ try {
       await page.locator('.sidebar-activity-item').first().click();
       assert.equal((await page.evaluate(() => (window as any).catalogEntry.actions)).length, 1);
       const before = await page.evaluate(() => (window as any).catalogEntry.snapshot());
+      const pinnedTop = (await page.getByText('Conversation 221', { exact: true }).boundingBox())!.y;
       await page.screenshot({ path: `${output}/partial-${width}-${theme}.png` });
       hold = false; release?.();
       await page.waitForFunction(() => (window as any).catalogEntry.cached()?.data.length === 222);
       await page.waitForFunction(() => !(window as any).catalogEntry.snapshot().fetching);
+      assert.ok(Math.abs((await page.getByText('Conversation 221', { exact: true }).boundingBox())!.y - pinnedTop) <= 1,
+        'completing the directory must not move already visible pinned rows');
       assert.equal(await page.evaluate(() => {
         const rows = (window as any).catalogEntry.observations;
         const first = rows.findIndex((row: any) => row.rows > 0);

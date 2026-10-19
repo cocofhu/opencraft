@@ -1788,6 +1788,23 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   &:hover { color: var(--color-text); }
 }
 
+.sidebar-catalog-progress {
+  display: inline-flex;
+  margin-inline-start: var(--gap-control-group);
+  vertical-align: middle;
+
+  > svg { display: block; }
+  &__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { > svg { animation: none; } }
+}
+
 .sidebar-catalog-feedback {
   @include typography.role(metadata, tertiary);
   display: flex;

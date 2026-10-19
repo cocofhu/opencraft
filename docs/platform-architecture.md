@@ -290,7 +290,9 @@ while subsequent metadata pages load. This observer-only placeholder never enter
 the complete directory cache, never reports complete search, and is removed on a
 failed cold read. Refreshes retain the last complete snapshot; recipe/authorization
 keys, cancellation and live admission fence initial pages as well as final results.
-The Sidebar labels partial loading; completion replaces it with the entire
+The Sidebar exposes partial loading in its fixed-height toolbar, with an accessible
+status label and reduced-motion-aware progress glyph. It adds no status row that
+could displace already visible conversations on completion. Completion replaces it with the entire
 catalog without an empty frame. Goal enrichment and unread catch-up wait for the
 complete catalog, preserving their existing request schedule. First usable rows
 and complete directory readiness are separate performance metrics. Cold in-flight
