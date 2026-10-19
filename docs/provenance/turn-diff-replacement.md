@@ -39,6 +39,8 @@ not strict clean-room separation or clearance of historical rights.
    live patch Activity. Validate selected-file review and the real change-card
    component, with synthetic input clearly distinguished from a live engine.
 
+Requirements were committed as `526dbde` before implementation (`09fdd6a`).
+
 ## Implementation and compatibility observations
 
 The replacement uses a file-section iterator and an insertion-ordered map of
@@ -73,3 +75,7 @@ Validation of the implementation:
 Historical source remains available by the recorded blob and in Git history.
 This disposition applies only to the complete current turn-diff summary module,
 not the renderer, other chat semantics, historical commits or legal rights.
+
+After integrating the hook-statistics and scanner follow-ups, the combined turn-diff,
+chat-core, review, hook, skill-path and provenance suite passed 132 tests. The
+inventory has no structural errors, and all eight unresolved groups remain.
