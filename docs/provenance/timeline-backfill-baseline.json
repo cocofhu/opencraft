@@ -126,5 +126,15 @@
       ]
     }
   ],
-  "scopeBasis": "Package PROVENANCE explicitly records restoration of history-loading mechanism; no function or method bodies printed/read for authoring."
+  "scopeBasis": "Package PROVENANCE explicitly records restoration of history-loading mechanism; no function or method bodies printed/read for authoring.",
+  "beforeAuthoringObservations": {
+    "policy": {
+      "observerSha256": "0a93cdc291a56b820e8ed6da5431eb6177c1eb03eb3d2e19cb3506c491dee29e",
+      "outputSha256": "c577196fd1ad47d497b9bf8ce766a0250984f469d728763cd31be430ee57881f"
+    },
+    "browser": {
+      "observerSha256": "27806b88b857a2747edfb224b5d7734879924bf7ab97b4b9c178986597ebfd4d",
+      "outputSha256": "c287759a150719db6d34c72ec5c9799bd183f267084b6b7d0457f82bc7c66cb9"
+    }
+  }
 }

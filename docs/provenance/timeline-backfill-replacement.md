@@ -27,7 +27,7 @@ positions without copying method bodies.
    the current generation's permitted boundary. Fill until scrolling is possible,
    explicit stop, disabled/missing metrics, invalidation or unchanged height.
 4. Retain sync/async load behavior, returned Promise identity and settling/error
-   semantics. Error callbacks report current failures through the supplied port;
+   semantics. Error callbacks report failures, including stale failures, through the supplied port;
    neither reference text nor guessed cancellation rules replace observation.
 5. Public interfaces/imports and unchanged helper policy remain compatibility
    contracts. Web and Native keep their existing adapters and scroll authority.
@@ -51,3 +51,34 @@ must match the scope. Native hardware and employee/model chains are separate.
 Initial status: requirements frozen; implementation not authored. The preceding
 toolbar/follow batch is already integrated into Join and its original CI is live;
 this next module is not part of that deployment.
+
+## Frozen observations before authoring
+
+The unmodified historical class produced 446 complete cases: 224 viewport and
+page-result combinations, six synchronous/async failure cases and 216 held-load /
+held-layout combinations covering invalidation, replacement requests, disabled or
+missing metrics and throwing error callbacks. Complete raw output SHA256:
+`c577196fd1ad47d497b9bf8ce766a0250984f469d728763cd31be430ee57881f`.
+The actual existing Conversation history fixture produced ten checkpoints for
+underfill, callback identity changes, unmount/remount, repeated fill and growth.
+Complete raw browser output SHA256:
+`c287759a150719db6d34c72ec5c9799bd183f267084b6b7d0457f82bc7c66cb9`.
+Both observers guarded the unchanged historical module hash throughout execution.
+External observer hashes are recorded in the baseline inventory; harnesses,
+synthetic input and raw observations remain outside the repository.
+
+These observations refine the initial prose: successful page loads always finish
+the layout barrier, even after invalidation or an explicit stop result. Generation
+and enabled checks follow that barrier. Stale failures still call onError; a
+throwing error callback rejects that operation, while a replacement request can
+continue after the old rejection. Initial isEnabled exceptions reject directly;
+metric/load/layout failures are reported through onError. Height change in either
+direction permits another pass, which rereads geometry. Identical active requests
+share a Promise; replacement requests wait for the previous operation to settle.
+
+All 141 existing focused tests passed before authoring. Browser checkpoints have
+no page errors; Vite separately logged one ResizeObserver notification-loop warning,
+which remains part of the evidence rather than a claimed warning-free run.
+This exercises real Conversation, React ownership adapter, virtualizer, DOM metrics
+and ResizeObserver with synthetic content; it is not Native-device, employee-login,
+paid-model or remote-Host acceptance. No historical coordinator body was read.
