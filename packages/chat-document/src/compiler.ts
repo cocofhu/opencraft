@@ -412,63 +412,59 @@ export interface MarkdownLinkMatch {
   readonly path: string;
 }
 
-/** Source-identical scanner used by Codex's composerLink tokenizer. */
+/** Application link grammar; historical source and frozen observations:
+ * docs/provenance/markdown-link-scanner-replacement.md. Unescaping belongs to the caller.
+ */
 export function findMarkdownLink(text: string, startIndex: number): MarkdownLinkMatch | null {
-  let cursor = startIndex;
-  scanLinks: while (cursor < text.length) {
-    const open = text.indexOf("[", cursor);
-    if (open === -1) return null;
-    let close = open + 1;
-    while (close < text.length) {
-      const character = text[close];
-      const next = text[close + 1];
-      if (character === "\n" || character === "\r") {
-        cursor = close + 1;
-        continue scanLinks;
-      }
-      if (character === "\\" && (next === "\\" || (next === "]" && text[close + 2] !== "("))) {
-        close += 2;
-        continue;
-      }
-      if (character === "]") break;
-      close += 1;
-    }
-    if (close >= text.length) return null;
-    if (close === open + 1 || text[close + 1] !== "(") {
-      cursor = close + 1;
+  if (!(startIndex < text.length)) return null;
+  let phase: "search" | "label" | "path" = "search";
+  let opening = -1;
+  let labelEnd = -1;
+  let pathStart = -1;
+  let escaped = false;
+  for (let cursor = Math.max(0, Math.trunc(startIndex)); cursor < text.length; cursor += 1) {
+    if (phase === "search") {
+      const nextOpening = text.indexOf("[", cursor);
+      if (nextOpening < 0) return null;
+      cursor = nextOpening;
+      opening = cursor;
+      escaped = false;
+      phase = "label";
       continue;
     }
-    let end = close + 2;
-    while (end < text.length) {
-      const character = text[end];
-      const next = text[end + 1];
-      if (character === "\n" || character === "\r") {
-        cursor = end + 1;
-        continue scanLinks;
-      }
-      if (character === "\\" && (next === "\n" || next === "\r")) {
-        cursor = end + 2;
-        continue scanLinks;
-      }
-      if (character === "\\" && next !== undefined) {
-        end += 2;
-        continue;
-      }
-      if (character === ")") {
-        if (end === close + 2) {
-          cursor = end + 1;
-          continue scanLinks;
-        }
-        return {
-          start: open,
-          end: end + 1,
-          label: text.slice(open + 1, close),
-          path: text.slice(close + 2, end),
-        };
-      }
-      end += 1;
+    const character = text[cursor];
+    if (character === "\r" || character === "\n") {
+      phase = "search";
+      escaped = false;
+      continue;
     }
-    return null;
+    // A ]( label boundary wins even after a backslash. Destination closing
+    // parentheses, in contrast, can be shielded by a preceding escape.
+    if (phase === "label" && character === "]" && text[cursor + 1] === "(") {
+      labelEnd = cursor;
+      pathStart = cursor + 2;
+      phase = cursor > opening + 1 ? "path" : "search";
+      escaped = false;
+      cursor += 1;
+      continue;
+    }
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (phase === "label" && character === "]") phase = "search";
+    if (phase === "path" && character === ")") {
+      if (cursor > pathStart) return {
+        start: opening, end: cursor + 1,
+        label: text.slice(opening + 1, labelEnd),
+        path: text.slice(pathStart, cursor),
+      };
+      phase = "search";
+    }
   }
   return null;
 }

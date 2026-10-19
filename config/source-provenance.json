@@ -248,9 +248,11 @@
         "docs/source-provenance-review.md",
         "packages/chat-document/src/compiler.ts",
         "packages/chat-document/src/preprocess.ts",
-        "packages/chat-document/src/streaming/identity.ts"
+        "packages/chat-document/src/streaming/identity.ts",
+        "docs/provenance/markdown-link-scanner-baseline.json",
+        "docs/provenance/markdown-link-scanner-replacement.md"
       ],
-      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
+      "reason": "Remaining compiler inline-token mapping and math delimiter regions, preprocessing and streaming identity carry source-equivalent/recovery annotations. The separately recorded findMarkdownLink replacement does not clear this file or group. Review actual regions individually; annotations alone do not establish whole-file copying or authorization.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -655,6 +657,26 @@
       "reason": "The complete helper carried a source-equivalent Desktop cleanup annotation. Express current cancellation responses through an exhaustive typed protocol policy after freezing requirements and public observations. Protocol identifiers and response values remain integration facts.",
       "resolution": "Retain the historical blob, annotation and actual prior full-body author exposure. Current contract-based implementation does not establish strict author isolation or clear historical rights. The remaining four client/Host inventory files and eight unresolved groups remain open.",
       "conclusion": "The current helper has one explicit response factory per protocol method, fresh nested payloads and no access to parameters or runtime state. Conversation runtime retains cancellation sequencing, turn filtering, provenance and failure ownership. No neighboring implementation is rewritten."
+    },
+    {
+      "id": "markdown-link-scanner",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-document/src/compiler.ts"
+      ],
+      "regions": [
+        "findMarkdownLink only; all other compiler regions remain under codex-document-streaming-followup"
+      ],
+      "evidence": [
+        "docs/provenance/markdown-link-scanner-baseline.json",
+        "docs/provenance/markdown-link-scanner-replacement.md",
+        "tests/chat-document.test.ts",
+        "tests/chat-document-cache.test.ts",
+        "tests/inline-markdown-file-preview.test.mjs"
+      ],
+      "reason": "Only the exported scanner carried the direct source-identical annotation. Independently express its observed application grammar using a monotonic search/label/path scan, retaining the existing API and caller-owned unescaping.",
+      "resolution": "Historical file/region hashes, annotation, frozen corpus and actual exposure remain recorded. Prior author exposure to adjacent material and sealed historical-function observations preclude any strict-isolation claim. Other compiler regions and all eight unresolved groups remain open.",
+      "conclusion": "This disposition covers only the current findMarkdownLink function, not compiler.ts as a whole. Matching values and independent current authoring do not establish historical rights, a source license or release readiness."
     }
   ]
 }
