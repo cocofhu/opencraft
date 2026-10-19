@@ -927,6 +927,7 @@ export async function createWebWorkbenchApplicationSupervisor(
   const displayContinuity: BrowserDisplayContinuity = {
     retainSubmission: (intent, receipt) => currentDisplayContinuity.retainSubmission(intent, receipt),
     peekSubmission: (hostId, threadId) => currentDisplayContinuity.peekSubmission(hostId, threadId),
+    peek: (hostId, threadId) => currentDisplayContinuity.peek(hostId, threadId),
     load: (hostId, threadId) => currentDisplayContinuity.load(hostId, threadId),
     observe(snapshot) {
       if (displayWritesSuspended) {

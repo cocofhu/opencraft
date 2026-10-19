@@ -683,11 +683,14 @@ export function App({
   }, [hostCatalog.displayContinuity, timeline]);
   const firstSubmissionTimeline = activeThreadId === null ? null
     : hostCatalog.displayContinuity.peekSubmission(snapshot.hostId, activeThreadId);
+  const memoryTimeline = activeThreadId === null ? null
+    : hostCatalog.displayContinuity.peek(snapshot.hostId, activeThreadId);
   const visibleTimeline = (timeline?.frames.length ?? 0) > 0
     ? timeline
     : firstSubmissionTimeline !== null ? firstSubmissionTimeline
     : timeline?.authoritative
     ? timeline
+    : memoryTimeline !== null ? memoryTimeline
     : cachedTimeline?.scope === displayScope
       && cachedTimeline.timeline.key.hostId === snapshot.hostId
       && cachedTimeline.timeline.key.threadId === activeThreadId

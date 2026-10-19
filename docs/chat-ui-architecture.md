@@ -946,6 +946,28 @@ execution policy. See [migration contract](../design/dsh-engine-migration.md).
    capability lease, and a failed prewarm is retried there rather than
    invalidating already-restored history.
 
+### Initial history and display reuse
+
+Durable paginated providers that explicitly advertise initial-page support may
+return the newest five full Turns in Resume. The Session consumes that page once;
+it does not issue another Turn/Item read for the same initial window. Providers without this advertisement keep bounded per-Turn Item reads:
+a single large native full-Turn response can regress low-latency restoration. Headers-only replies
+retain the existing per-Turn Item reader, and transport frame-limit errors fall
+back to that reader's adaptive Item pages. An oversized merged Resume retries
+without the page before using this reader. Legacy providers keep full-history
+compatibility. Full pages retain all Items, older cursors and chronological order;
+no tool output or interaction is truncated to improve timing.
+
+ConversationDisplayContinuity keeps at most 64 already-projected text displays
+in its existing account/Host/Thread scope. `peek` exposes a synchronous paint-only
+snapshot, including before an asynchronous persistence write finishes. Web and
+Native consult it during render before starting disk restoration. The same
+seven-day age and 24-message/text limits apply; disk loads keep the original
+expiry time, authoritative empty history removes a display, and a delayed disk
+read cannot replace a newer observation. Account scope replacement discards the
+owner. This memory is a projection cache, not a second history authority, Replica
+checkpoint, execution lease, or source for tool/approval actions.
+
 ### History positions and concurrent observations
 
 Execution ownership and transcript grouping are different boundaries. One
