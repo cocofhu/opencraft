@@ -1664,3 +1664,22 @@ Historical annotations, author exposure and bounded verification remain in
 [the replacement record](../docs/provenance/shell-panel-host-replacement.md).
 Shared animation, resize, browser and geometry implementations are unchanged;
 this disposition does not classify those dependencies or native platform behavior.
+
+
+## Appearance runtime ownership
+
+The application appearance owner publishes one immutable snapshot for preference,
+resolved system mode, retained requested ID, applied fallback and catalog. Settings
+and React consumers subscribe to that owner; palette changes do not remount drafts.
+Only the active contribution source may update the catalog; disconnect retains the
+requested extension ID and falls back to an available built-in, restoring the
+selection when its contribution returns. The presentation policy's built-in default
+(or first visible built-in) owns fallback; unrelated missing IDs do not switch to a
+newly loaded extension default. An all-hidden policy retains Neutral for safety.
+
+Shared compiler/palettes are unchanged dependency ports. Theme projection owns its
+CSS properties, mode/classes and native appearance payload; document initialization
+also owns product presentation and theme-color metadata. Explicit element projection
+preserves unrelated styles and does not claim document/product ownership. Legacy
+preference keys and IDs remain compatibility data. See
+[the whole-module replacement and exposure record](../docs/provenance/appearance-runtime-replacement.md).
