@@ -1,0 +1,269 @@
+{
+  "path": "packages/timeline-virtualizer/src/follow.ts",
+  "moduleSha256": "ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472",
+  "lines": 283,
+  "declarations": [
+    {
+      "kind": "type",
+      "name": "LatestTurnPhase",
+      "text": "export type LatestTurnPhase = \"idle\" | \"prework\" | \"final_answer\";"
+    },
+    {
+      "kind": "type",
+      "name": "TurnFollowMode",
+      "text": "export type TurnFollowMode = \"static\" | \"response_watch\" | \"prework_watch\" | \"prework_follow\" | \"user_follow\";"
+    },
+    {
+      "kind": "type",
+      "name": "TurnFollowState",
+      "text": "export interface TurnFollowState {\n  readonly followMode: TurnFollowMode;\n}"
+    },
+    {
+      "kind": "type",
+      "name": "TurnFollowEvent",
+      "text": "export type TurnFollowEvent =\n  | {\n      readonly type: \"latest_turn_follow_content_changed\";\n      readonly latestTurnPhase: LatestTurnPhase;\n      readonly followContentOverflowPx: number;\n    }\n  | {\n      readonly type: \"latest_turn_phase_changed\";\n      readonly previousLatestTurnPhase: LatestTurnPhase;\n      readonly latestTurnPhase: LatestTurnPhase;\n    }\n  | { readonly type: \"latest_turn_placed\"; readonly watchForOverflow?: boolean }\n  | { readonly type: \"latest_turn_removed\" }\n  | {\n      readonly type: \"scroll_distance_changed\";\n      readonly distanceFromBottomPx: number;\n      readonly latestTurnPhase: LatestTurnPhase;\n    }\n  | {\n      readonly type: \"scroll_to_bottom\";\n      readonly latestTurnPhase: LatestTurnPhase;\n    };"
+    },
+    {
+      "kind": "type",
+      "name": "LatestTurnPlacementSnapshot",
+      "text": "export interface LatestTurnPlacementSnapshot {\n  readonly distanceFromBottomPx: number;\n  readonly scrollHeightPx: number;\n  readonly shouldPlaceLatestTurn: boolean;\n}"
+    },
+    {
+      "kind": "type",
+      "name": "TurnFollowRestoreState",
+      "text": "export interface TurnFollowRestoreState {\n  readonly turnKey: string;\n  readonly isLatestTurnInProgress: boolean;\n  readonly latestTurnPhase: LatestTurnPhase;\n  readonly followMode: TurnFollowMode;\n  readonly latestTurnHeightPx: number | null;\n  readonly latestTurnFollowContentHeightPx: number | null;\n}"
+    },
+    {
+      "kind": "function",
+      "name": "withFollowMode",
+      "start": 2373,
+      "end": 2546,
+      "exported": false,
+      "parameters": [
+        {
+          "name": "state",
+          "type": "TurnFollowState"
+        },
+        {
+          "name": "followMode",
+          "type": "TurnFollowMode"
+        }
+      ],
+      "returnType": "TurnFollowState",
+      "sha256": "718d692d6d0b51b2881f6ae2ae4c10c70aae86a5b41f7865658da10d5b490592"
+    },
+    {
+      "kind": "function",
+      "name": "createTurnFollowState",
+      "start": 2548,
+      "end": 2670,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "followMode",
+          "type": "TurnFollowMode"
+        }
+      ],
+      "returnType": "TurnFollowState",
+      "sha256": "59b4e917421662ef1470bbabb9a4063a7346636d638da573e7b05a8e86d5425f"
+    },
+    {
+      "kind": "function",
+      "name": "createInitialTurnFollowState",
+      "start": 2672,
+      "end": 3485,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  distanceFromBottomPx,\n  isLatestTurnInProgress,\n  latestTurnPhase,\n  restoredFollowMode,\n}",
+          "type": "{\n  readonly distanceFromBottomPx: number;\n  readonly isLatestTurnInProgress: boolean;\n  readonly latestTurnPhase: LatestTurnPhase;\n  readonly restoredFollowMode?: TurnFollowMode | null;\n}"
+        }
+      ],
+      "returnType": "TurnFollowState",
+      "sha256": "aab5942655ee3e23c068472276ea8b130eeaf82c63323014a838b61bf2ea1b84"
+    },
+    {
+      "kind": "function",
+      "name": "reduceTurnFollowState",
+      "start": 3546,
+      "end": 5999,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "state",
+          "type": "TurnFollowState"
+        },
+        {
+          "name": "event",
+          "type": "TurnFollowEvent"
+        }
+      ],
+      "returnType": "TurnFollowState",
+      "sha256": "6f5f06a6c62f675181bfa588625c7f1ff84b64744f592d9c7860e633d5a6cb26"
+    },
+    {
+      "kind": "function",
+      "name": "isViewportPreservingTurnFollowMode",
+      "start": 6084,
+      "end": 6278,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "followMode",
+          "type": "TurnFollowMode"
+        }
+      ],
+      "returnType": "boolean",
+      "sha256": "e53801280df000704a1a720cb9e37eca7a3c5d7085d8960e5181eee46e9a5694"
+    },
+    {
+      "kind": "function",
+      "name": "shouldFollowLatestTurn",
+      "start": 6280,
+      "end": 6521,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "state",
+          "type": "TurnFollowState"
+        },
+        {
+          "name": "latestTurnPhase",
+          "type": "LatestTurnPhase"
+        }
+      ],
+      "returnType": "boolean",
+      "sha256": "18c6237cdc23d80bae630c7bf43d6c421f84e63a6e2f0dc6992e9efe8470a91c"
+    },
+    {
+      "kind": "function",
+      "name": "createLatestTurnPlacementSnapshot",
+      "start": 6609,
+      "end": 7074,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  distanceFromBottomPx,\n  responseSpacerHeightPx,\n  scrollHeightPx,\n}",
+          "type": "{\n  readonly distanceFromBottomPx: number;\n  readonly responseSpacerHeightPx: number;\n  readonly scrollHeightPx: number;\n}"
+        }
+      ],
+      "returnType": "LatestTurnPlacementSnapshot",
+      "sha256": "95ca70c51bddc332dcf6ee9e90491221401ae4a6b2c01654bc56de885f284451"
+    },
+    {
+      "kind": "function",
+      "name": "shouldPlaceLatestTurnFromPendingSubmit",
+      "start": 7339,
+      "end": 7510,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "placement",
+          "type": "LatestTurnPlacementSnapshot | null"
+        }
+      ],
+      "returnType": "boolean",
+      "sha256": "9c8edd4a7686155836b63b06c22b866ad61196ffcba2a605bacd45de06d3eea8"
+    },
+    {
+      "kind": "function",
+      "name": "distanceAfterUnplacedLatestTurnContentResize",
+      "start": 7597,
+      "end": 7901,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  nextScrollHeightPx,\n  placement,\n}",
+          "type": "{\n  readonly nextScrollHeightPx: number;\n  readonly placement: LatestTurnPlacementSnapshot;\n}"
+        }
+      ],
+      "returnType": "number",
+      "sha256": "1e25aca489a43e2fa6d7622effa9558a40b61b6c04ed9db5d764d576e5c2c2fd"
+    },
+    {
+      "kind": "function",
+      "name": "maximumResponseSpacerHeightPx",
+      "start": 7989,
+      "end": 8441,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  scrollElementHeightPx,\n  scrollPaddingBottomPx,\n}",
+          "type": "{\n  readonly scrollElementHeightPx: number;\n  readonly scrollPaddingBottomPx: number;\n}"
+        }
+      ],
+      "returnType": "number",
+      "sha256": "05bc49f7c4e2a91180cf676edb1afb38eea1e0ebe3a523be209c8be4aa04122a"
+    },
+    {
+      "kind": "function",
+      "name": "responseSpacerOverflowPx",
+      "start": 8528,
+      "end": 8884,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  distanceFromBottomPx,\n  responseSpacerHeightPx,\n  scrollPaddingBottomPx,\n}",
+          "type": "{\n  readonly distanceFromBottomPx: number;\n  readonly responseSpacerHeightPx: number;\n  readonly scrollPaddingBottomPx: number;\n}"
+        }
+      ],
+      "returnType": "number",
+      "sha256": "84b441601db6e76fe6bb22c9255df2af8ec2a2453fc0dd243b0dd60dca6ef8af"
+    },
+    {
+      "kind": "function",
+      "name": "normalizeFollowRestorePosition",
+      "start": 8973,
+      "end": 9894,
+      "exported": true,
+      "parameters": [
+        {
+          "name": "{\n  distanceFromBottomPx,\n  latestTurnPhase,\n  responseSpacerHeightPx,\n  scrollPaddingBottomPx,\n  scrollState,\n}",
+          "type": "{\n  readonly distanceFromBottomPx: number;\n  readonly latestTurnPhase: LatestTurnPhase;\n  readonly responseSpacerHeightPx: number;\n  readonly scrollPaddingBottomPx: number;\n  readonly scrollState: TurnFollowState;\n}"
+        }
+      ],
+      "returnType": "{ readonly distanceFromBottomPx: number; readonly scrollState: TurnFollowState }",
+      "sha256": "f7fc34392e689ed855be1313cb55b8d2ef630f13f06617deb26a851fbbf535e1"
+    }
+  ],
+  "beforePolicy": {
+    "sourceSha256": "ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472",
+    "head": "165e087ef557bfbfda831776c4c4fd24174a485c",
+    "counts": {
+      "initial": 846,
+      "transitions": 680,
+      "predicates": 15,
+      "snapshots": 289,
+      "resize": 1728,
+      "capacity": 144,
+      "overflow": 1728,
+      "restore": 25920,
+      "controllers": 90
+    },
+    "sha256": "f26f90dfc6477f96ef381a38952b47f8b40679763e69126b73dc0ee073942f0e",
+    "serialization": "Nonfinite numbers and negative zero tagged losslessly; no output fields omitted or normalized."
+  },
+  "requirementsCommit": "165e087ef557bfbfda831776c4c4fd24174a485c",
+  "beforeBrowser": {
+    "moduleSha256": "ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472",
+    "observationSha256": "9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5",
+    "scenes": 3,
+    "checkpoints": 28,
+    "errors": []
+  },
+  "currentModuleSha256": "006e38c7637ccb880735e092e21631e9b5dc50cb43c1299892e86d0002054a70",
+  "requirementsFreezeCommits": [
+    "165e087ef557bfbfda831776c4c4fd24174a485c",
+    "edcc7f1",
+    "ff7bfb5"
+  ],
+  "comparison": {
+    "policyOutputBytesIdentical": true,
+    "browserOutputBytesIdentical": true,
+    "browserSha256": "9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5",
+    "existingTests": 141,
+    "webRuntimeSources": 791,
+    "compatibilityIssues": 0,
+    "nativeDeviceVerified": false
+  }
+}

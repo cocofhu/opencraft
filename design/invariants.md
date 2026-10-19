@@ -1625,6 +1625,20 @@ The read adapter loads on first read and checks cancellation after import.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
 - A Composer with machine/workspace context chrome uses stacked context, input and footer rows, including when empty. Model and permission controls remain in the measured footer; they never borrow an absolute slot from the context row. Empty composers without context chrome retain their existing inline touch presentation. Layout changes preserve the editor, selection state and menus.
 
+
+## Shared Turn follow policy
+
+The renderer-neutral `timeline-virtualizer/src/follow.ts` is the single follow
+ownership policy for Web and Native. Static/watch modes preserve reading; only
+explicit bottom intent or the permitted watched-content overflow acquires follow.
+Completion alone does not acquire ownership. Restore capture projects a saved
+checkpoint without mutating the live controller. Placement/spacer thresholds,
+public mode/event names and spring data remain compatibility contracts. The
+[bounded replacement contract](../docs/provenance/timeline-follow-replacement.md)
+records historical origin and current verification separately; neighboring
+window, restoration, history and platform owners retain their implementations.
+
+
 ## Conversation presentation contributions
 
 Optional conversation subtitles share the existing title rail and constrained

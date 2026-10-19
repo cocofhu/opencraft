@@ -1,5 +1,16 @@
 # Source provenance review
 
+## Timeline follow policy replacement (2026-10-20)
+
+Only the [explicitly restored follow-policy module](provenance/timeline-follow-replacement.md)
+is independently replaced from frozen OpenCraft contracts and complete policy,
+shared-controller and actual Conversation observations. Public types, mode/event
+names, ordinary numeric/spring data and all consumer implementations are retained.
+The old module/function hashes, actual author exposure and baseline legacy-smoke
+failure remain evidence. Other virtualizer files and adapters are not reclassified;
+**eight groups remain unverified**. This does not establish strict author isolation,
+Native hardware acceptance, historical rights or release readiness.
+
 ## Complete tool, image and subagent renderer replacement (2026-10-20)
 
 [All six exports of the tool/image/subagent module](provenance/tool-renderers-replacement.md)

@@ -1,6 +1,6 @@
 # Timeline virtualizer provenance
 
-This package is a typed, renderer-neutral restoration of the Codex Desktop
+The package historically began as a typed, renderer-neutral restoration of the Codex Desktop
 `VirtualizedTurnList` model. The behavior baseline is:
 
 - `reference://codex/.runtime/source-tree-build-r1316-owner-adoption-abi/lazy/app-initial/thread-virtualizer-D5BSbZuA.js`
@@ -23,13 +23,32 @@ layout barrier, viewport-fill loop, and unchanged-height stop condition. The
 React callback-identity boundary lives in `@opencraft/timeline-react`; DOM and Native
 hosts continue to provide their own metrics and frame scheduler.
 
-`src/follow.ts` restores the parent `LocalConversationThread` policy that sits
+Historical `src/follow.ts` restored the parent `LocalConversationThread` policy that sits
 above the list itself. Its `static`, `prework_watch`, `prework_follow`, and
-`user_follow` reducer is the typed form of the recovered `OD` state machine at
+`user_follow` reducer was the typed form of the recovered `OD` state machine at
 `local-conversation-thread-CShhuS2f.js:8896-8933`. Latest-Turn placement,
 response-spacer geometry, and restore normalization retain the recovered
 24/300/2⁄3/240 constants. They stay renderer-neutral; Web and RN adapters own
 only their scroll calls, measurement events, and animation primitives.
+
+## Current follow policy disposition (2026-10-20)
+
+Only `src/follow.ts` is independently replaced from the frozen OpenCraft public
+contract, existing tests, consumer interfaces and complete black-box observations.
+The old module SHA256 is
+`ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472`;
+individual historical function hashes and actual author exposure remain in the
+[baseline inventory](../../docs/provenance/timeline-follow-baseline.json).
+The [replacement contract](../../docs/provenance/timeline-follow-replacement.md)
+records authoring order, retained interfaces/constants, behavior comparisons and
+verification limits. Historical source records above remain historical facts.
+
+The shared response-positioning controller, history backfill, window/layout,
+restoration and platform adapters retain their current implementations. This
+single-module disposition does not establish rights for them, the recovered
+reference, or historical commits. It does not claim strict author isolation or
+Native device acceptance. Compatibility export names and numeric/spring data
+remain unchanged; changing a name is not the implementation replacement.
 
 ## Platform rule
 
