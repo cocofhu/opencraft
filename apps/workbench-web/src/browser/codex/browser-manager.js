@@ -1,971 +1,447 @@
-// Source class body copied from ref/codex/features/browser/browser-sidebar-webview-manager.ts.
-// Changes are limited to dependency injection and eager class export.
+// Independent browser Host registry; consumer contract and historical digests are
+// recorded in docs/provenance/browser-manager-replacement.md.
 export function createImplementation(ports) {
 const window = ports.window ?? globalThis.window;
 const document = ports.document ?? globalThis.document;
 const {$l,DEFAULT_WEBVIEW_STATE,Jl,PagePresentationTransition,RESPONSIVE_PRESET_ID,VscodeWebviewMessageBus,areWebviewTabsEqual,bm,buildCacheKey,clampPanelWidth__rBr_2f54e,createCompositeKey__fN_2fpbe,createLoggerFacade,createWebviewHandoffManager,getCacheEntry__aVr_2fhgg,getCompositeWebviewStorageKey,getDefaultPanelWidth,getPendingWebviewAdoptionLease,getWebviewByKey,identityPassthrough,initializeAllModules__sd_bofx,initializeBrowserViewportPresets,initializeSidebarGlobalState,joinKeyWithNull,logger__Kp_mubr,messageRouterInstance,normalizeUrlOrEmpty,parseConversationBrowserTabKey,WebviewSidebarManager,browserSidebarWebviewModule,unregisterWebviewHandler,ym}=ports;
 const WVr="default", UVr={responsiveViewportSize:null,toolbarState:DEFAULT_WEBVIEW_STATE};
-return class {
-        listeners = new Set;
-        browserUseCursorStates = new Map;
-        snapshots = new Map;
-        mediaTabs = [];
-        ownerRoutePathsByConversation = new Map;
-        browserUseActiveTabKeys = new Set;
-        browserUseTabKeys = new Set;
-        browserUseTabs = [];
-        browserUseTabIdsKeysByConversation = new Map;
-        browserUseViewportSizes = new Map;
-        browserUseCaptureSurfaceSizes = new Map;
-        tabCaptureActiveKeys = new Set;
-        deviceToolbarTabStates = new Map;
-        tabPersistenceStates = new Map;
-        webviews = new Map;
-        transferredWebviewKeys = new Set;
-        pendingElectronTransfers = new Map;
-        mountStates = new Map;
-        registrationAttempts = new WeakMap;
-        nextHostGeneration = 0;
-        rendererInstanceId = crypto.randomUUID();
-        rendererSessionRegistration = null;
-        pagePresentationTransition = new PagePresentationTransition;
-        prewarmedEmptyWebviews = new WeakSet;
-        prewarmedEmptyWebview = null;
-        constructor(){
-            messageRouterInstance.subscribe(`browser-sidebar-state`, (e)=>{
-                this.setSnapshot(e.conversationId, e.browserTabId, e.snapshot);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-browser-use-state`, (e)=>{
-                this.setBrowserUseActive(e.conversationId, e.browserTabId, e.isActive);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-browser-use-page-released`, (e)=>{
-                this.releaseBrowserUseTab(e.conversationId, e.browserTabId);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-browser-use-viewport`, (e)=>{
-                this.setBrowserUseViewportSize(e.conversationId, e.browserTabId, e.viewportSize);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-browser-use-capture-surface`, (e)=>{
-                this.setBrowserUseCaptureSurfaceSize(e.conversationId, e.browserTabId, e.surfaceSize);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-browser-use-cursor-state`, (e)=>{
-                this.setBrowserUseCursorState(e.conversationId, e.browserTabId, e);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-tab-capture-state`, (e)=>{
-                this.setTabCaptureActive(e.conversationId, e.browserTabId, e.isActive);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-destroy-webview`, (e)=>{
-                this.destroyWebviewAtHostRequest(e.conversationId, e.browserTabId, e.mountGeneration, e.reason, e.teardownId);
-            });
-            messageRouterInstance.subscribe(`browser-sidebar-webview-attached`, (e)=>{
-                this.markWebviewAttached(e.conversationId, e.browserTabId, e.mountGeneration);
-            });
-            if (typeof window < `u`) {
-                window.addEventListener(`focus`, ()=>{
-                    this.resyncAttachedWebviews();
-                });
-            }
-            if (typeof document < `u`) {
-                document.addEventListener(`visibilitychange`, ()=>{
-                    if (document.visibilityState === `visible`) {
-                        this.resyncAttachedWebviews();
-                    }
-                });
-            }
+return class BrowserHostRegistry {
+  listeners = new Set();
+  browserUseCursorStates = new Map();
+  snapshots = new Map();
+  mediaTabs = [];
+  ownerRoutePathsByConversation = new Map();
+  browserUseActiveTabKeys = new Set();
+  browserUseTabKeys = new Set();
+  browserUseTabs = [];
+  browserUseTabIdsKeysByConversation = new Map();
+  browserUseViewportSizes = new Map();
+  browserUseCaptureSurfaceSizes = new Map();
+  tabCaptureActiveKeys = new Set();
+  deviceToolbarTabStates = new Map();
+  tabPersistenceStates = new Map();
+  webviews = new Map();
+  transferredWebviewKeys = new Set();
+  pendingElectronTransfers = new Map();
+  mountStates = new Map();
+  registrationAttempts = new WeakMap();
+  nextHostGeneration = 0;
+  rendererInstanceId = crypto.randomUUID();
+  rendererSessionRegistration = null;
+  pagePresentationTransition = new PagePresentationTransition();
+  prewarmedEmptyWebviews = new WeakSet();
+  prewarmedEmptyWebview = null;
+
+  constructor() {
+    const listen = (topic, callback) => messageRouterInstance.subscribe(topic, callback);
+    listen("browser-sidebar-state", value => this.setSnapshot(value.conversationId, value.browserTabId, value.snapshot));
+    listen("browser-sidebar-browser-use-state", value => this.setBrowserUseActive(value.conversationId, value.browserTabId, value.isActive));
+    listen("browser-sidebar-browser-use-page-released", value => this.releaseBrowserUseTab(value.conversationId, value.browserTabId));
+    listen("browser-sidebar-browser-use-viewport", value => this.setBrowserUseViewportSize(value.conversationId, value.browserTabId, value.viewportSize));
+    listen("browser-sidebar-browser-use-capture-surface", value => this.setBrowserUseCaptureSurfaceSize(value.conversationId, value.browserTabId, value.surfaceSize));
+    listen("browser-sidebar-browser-use-cursor-state", value => this.setBrowserUseCursorState(value.conversationId, value.browserTabId, value));
+    listen("browser-sidebar-tab-capture-state", value => this.setTabCaptureActive(value.conversationId, value.browserTabId, value.isActive));
+    listen("browser-sidebar-destroy-webview", value => this.destroyWebviewAtHostRequest(value.conversationId, value.browserTabId, value.mountGeneration, value.reason, value.teardownId));
+    listen("browser-sidebar-webview-attached", value => this.markWebviewAttached(value.conversationId, value.browserTabId, value.mountGeneration));
+    window.addEventListener("focus", () => this.resyncAttachedWebviews());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") this.resyncAttachedWebviews();
+    });
+  }
+
+  subscribe = listener => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  #key(owner, tab) { return createCompositeKey__fN_2fpbe(owner, tab); }
+  #host(owner, tab) { return this.webviews.get(this.#key(owner, tab)); }
+  #log(message, safe, sensitive) {
+    logger__Kp_mubr.info(message, sensitive === undefined ? { safe } : { safe, sensitive });
+  }
+  getSnapshot(owner, tab) { return this.snapshots.get(this.#key(owner, tab)) ?? null; }
+  getMediaTabs() { return this.mediaTabs; }
+  setConversationOwnerRoutePath(owner, path) {
+    this.ownerRoutePathsByConversation.set(owner, path);
+    const previous = this.mediaTabs;
+    this.refreshMediaTabs();
+    if (previous !== this.mediaTabs) this.emitMediaChange();
+  }
+  getBrowserStorageId(owner, tab) {
+    const key = this.#key(owner, tab);
+    if (!this.tabPersistenceStates.has(key)) {
+      this.tabPersistenceStates.set(key, { browserStorageId: `browser:${crypto.randomUUID()}`, mode: "ephemeral" });
+    }
+    return this.tabPersistenceStates.get(key).browserStorageId;
+  }
+  getExistingBrowserStorageId(owner, tab) {
+    return this.tabPersistenceStates.get(this.#key(owner, tab))?.browserStorageId ?? null;
+  }
+  restorePersistedPageState(owner, tab, browserStorageId) {
+    const previous = this.tabPersistenceStates.get(this.#key(owner, tab));
+    if (previous?.browserStorageId === browserStorageId && previous.mode === "restore-expected") return;
+    this.tabPersistenceStates.set(this.#key(owner, tab), { browserStorageId, mode: "restore-expected" });
+    this.emitChange();
+  }
+  setPersistentBrowserStorageId(owner, tab, browserStorageId) {
+    const previous = this.tabPersistenceStates.get(this.#key(owner, tab));
+    if (previous?.browserStorageId === browserStorageId && previous.mode === "persistent") return;
+    this.tabPersistenceStates.set(this.#key(owner, tab), { browserStorageId, mode: "persistent" });
+    this.emitChange();
+  }
+  getPagePersistence(owner, tab) {
+    const browserStorageId = this.getBrowserStorageId(owner, tab);
+    const key = this.#key(owner, tab), state = this.tabPersistenceStates.get(key);
+    if (state.mode === "ephemeral") this.tabPersistenceStates.set(key, { browserStorageId, mode: "persistent" });
+    return { browserStorageId, restore: state.mode === "restore-expected" ? "required" : "none" };
+  }
+  getBrowserUseCursorState(owner, tab) { return this.browserUseCursorStates.get(this.#key(owner, tab)) ?? null; }
+  isBrowserUseActive(owner, tab) { return this.browserUseActiveTabKeys.has(this.#key(owner, tab)); }
+  isBrowserUseTab(owner, tab) { return this.browserUseTabKeys.has(this.#key(owner, tab)); }
+  getBrowserUseTabs() { return this.browserUseTabs; }
+  getBrowserUseActiveBrowserTabId(owner) { return this.getLastConversationBrowserTabId(owner, this.browserUseActiveTabKeys); }
+  getBrowserUseBrowserTabIdsKey(owner) { return this.browserUseTabIdsKeysByConversation.get(owner) ?? ""; }
+  getConversationBrowserTabIds(owner) {
+    return this.getConversationBrowserTabIdsFromKeys(owner, new Set([...this.webviews.keys(), ...this.browserUseTabKeys]));
+  }
+  getBrowserUseBrowserTabIds(owner) { return this.getConversationBrowserTabIdsFromKeys(owner, this.browserUseTabKeys); }
+  getDeviceToolbarTabState(owner, tab) { return this.deviceToolbarTabStates.get(this.#key(owner, tab)) ?? UVr; }
+  getMountGeneration(owner, tab) { return this.mountStates.get(this.#key(owner, tab))?.generation ?? 0; }
+  claimMountGeneration(owner, tab, claim) {
+    const key = this.#key(owner, tab);
+    let state = this.mountStates.get(key);
+    if (!state) {
+      state = { claimKeys: new Set(), generation: 0 };
+      this.mountStates.set(key, state);
+    }
+    if (!state.claimKeys.size) state.generation++;
+    state.claimKeys.add(claim);
+    return state.generation;
+  }
+  hasOtherMountGenerationClaim(owner, tab, claim, generation) {
+    const state = this.mountStates.get(this.#key(owner, tab));
+    return !!state && state.generation === generation && [...state.claimKeys].some(key => key !== claim);
+  }
+  releaseMountGeneration(owner, tab, claim, generation) {
+    const state = this.mountStates.get(this.#key(owner, tab));
+    if (state?.generation === generation) state.claimKeys.delete(claim);
+    return state?.generation ?? 0;
+  }
+  syncElectronWebview(host, state, reference, surface) {
+    this.pagePresentationTransition.sync(host, state, reference, surface);
+  }
+  setPrewarmedEmptyWebview(host, active) {
+    if (active) {
+      this.prewarmedEmptyWebviews.add(host);
+      this.prewarmedEmptyWebview = host;
+    } else this.releasePrewarmedEmptyWebview(host);
+  }
+  focusWebview(owner, tab, allowed) { this.#host(owner, tab)?.focus(allowed); }
+  hasWebviewFocus(owner, tab) { return this.#host(owner, tab)?.hasFocus() ?? false; }
+  detachElectronWebview(host, reference, surface, generation) {
+    this.pagePresentationTransition.detach(host, reference, surface, generation);
+  }
+  setDeviceToolbarTabState(owner, tab, update) {
+    this.deviceToolbarTabStates.set(this.#key(owner, tab), update(this.getDeviceToolbarTabState(owner, tab)));
+    this.emitChange();
+  }
+  setSnapshot(owner, tab, snapshot) {
+    this.snapshots.set(this.#key(owner, tab), snapshot);
+    this.refreshMediaTabs();
+    this.emitChange();
+  }
+  #clearTab(key) {
+    for (const collection of [this.snapshots, this.browserUseCursorStates, this.browserUseActiveTabKeys,
+      this.browserUseTabKeys, this.browserUseViewportSizes, this.browserUseCaptureSurfaceSizes,
+      this.tabCaptureActiveKeys, this.deviceToolbarTabStates, this.tabPersistenceStates,
+      this.mountStates, this.pendingElectronTransfers]) collection.delete(key);
+  }
+  removeTab(owner, tab) {
+    const key = this.#key(owner, tab), host = this.webviews.get(key);
+    if (host) this.pagePresentationTransition.removeTab(host);
+    this.#clearTab(key);
+    this.syncBrowserUseTabKeys(owner);
+    this.refreshBrowserUseTabs();
+    this.refreshMediaTabs();
+    this.emitChange();
+  }
+  getWebview(owner, tab, initialUrl, options = {}) {
+    const key = this.#key(owner, tab), pagePersistence = this.getPagePersistence(owner, tab);
+    let host = this.webviews.get(key);
+    if (host) {
+      host.setHostKind(options.hostKind ?? "right-panel");
+      if (host.setPagePersistence(pagePersistence)) this.registerWebviewHost(host, pagePersistence);
+      return host;
+    }
+    const hostKind = options.hostKind ?? "right-panel";
+    host = new WebviewSidebarManager({
+      browserTabId: tab, conversationId: owner, elementKey: key, hostKind,
+      hostGeneration: ++this.nextHostGeneration, pagePersistence,
+      partition: getCompositeWebviewStorageKey(owner, tab), rendererInstanceId: this.rendererInstanceId,
+      adoptionLease: null, adoptedWebContentsId: null,
+    });
+    this.webviews.set(key, host);
+    this.registerWebviewHost(host, pagePersistence);
+    this.refreshMediaTabs();
+    this.#log("IAB_LIFECYCLE renderer created browser sidebar webview", { browserTabId: tab, conversationId: owner, hostKind }, { initialUrl });
+    this.emitChange();
+    return host;
+  }
+  registerWebviewHost(host, pagePersistence) {
+    const attempt = {};
+    this.registrationAttempts.set(host, attempt);
+    if (this.rendererSessionRegistration === null) {
+      this.rendererSessionRegistration = ym.browserSidebar.registerWebviewHostSession({ rendererInstanceId: this.rendererInstanceId }).catch(() => false);
+    }
+    const current = () => this.isCurrentWebviewHost(host) && this.registrationAttempts.get(host) === attempt;
+    const register = async () => {
+      try {
+        if (!await this.rendererSessionRegistration) {
+          if (current()) this.disposeCurrentWebviewHost(host);
+          return;
         }
-        subscribe = (e)=>{
-            this.listeners.add(e);
-            return ()=>{
-                this.listeners.delete(e);
-            };
-        };
-        getSnapshot(e, t) {
-            return this.snapshots.get(createCompositeKey__fN_2fpbe(e, t)) ?? null;
-        }
-        getMediaTabs() {
-            return this.mediaTabs;
-        }
-        setConversationOwnerRoutePath(e, t) {
-            if (this.ownerRoutePathsByConversation.get(e) !== t) {
-                this.ownerRoutePathsByConversation.set(e, t);
-                if (this.mediaTabs.some((t)=>t.conversationId === e)) {
-                    this.emitMediaChange();
-                }
-            }
-        }
-        getBrowserStorageId(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.tabPersistenceStates.get(n);
-            if (r != null) {
-                return r.browserStorageId;
-            }
-            let i = identityPassthrough(`browser:${crypto.randomUUID()}`);
-            this.tabPersistenceStates.set(n, {
-                browserStorageId: i,
-                mode: `ephemeral`
-            });
-            return i;
-        }
-        getExistingBrowserStorageId(e, t) {
-            return this.tabPersistenceStates.get(createCompositeKey__fN_2fpbe(e, t))?.browserStorageId ?? null;
-        }
-        restorePersistedPageState(e, t, adoptionLease__n_2fs6o) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            let i = this.tabPersistenceStates.get(r);
-            if (!(i?.browserStorageId === adoptionLease__n_2fs6o && i.mode === `restore-expected`)) {
-                this.tabPersistenceStates.set(r, {
-                    browserStorageId: adoptionLease__n_2fs6o,
-                    mode: `restore-expected`
-                });
-                this.emitChange();
-            }
-        }
-        setPersistentBrowserStorageId(e, t, adoptedWebContentsId__n_2fsda) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            let i = this.tabPersistenceStates.get(r);
-            if (!(i?.browserStorageId === adoptedWebContentsId__n_2fsda && i.mode === `persistent`)) {
-                this.tabPersistenceStates.set(r, {
-                    browserStorageId: adoptedWebContentsId__n_2fsda,
-                    mode: `persistent`
-                });
-                this.emitChange();
-            }
-        }
-        getPagePersistence(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.tabPersistenceStates.get(n);
-            if (r == null) {
-                let browserStorageId = identityPassthrough(`browser:${crypto.randomUUID()}`);
-                this.tabPersistenceStates.set(n, {
-                    browserStorageId,
-                    mode: `persistent`
-                });
-                return {
-                    browserStorageId,
-                    restore: `none`
-                };
-            }
-            if (r.mode === `restore-expected`) {
-                return {
-                    browserStorageId: r.browserStorageId,
-                    restore: `required`
-                };
-            }
-            if (r.mode === `ephemeral`) {
-                this.tabPersistenceStates.set(n, {
-                    browserStorageId: r.browserStorageId,
-                    mode: `persistent`
-                });
-            }
-            return {
-                browserStorageId: r.browserStorageId,
-                restore: `none`
-            };
-        }
-        getBrowserUseCursorState(e, t) {
-            return this.browserUseCursorStates.get(createCompositeKey__fN_2fpbe(e, t)) ?? null;
-        }
-        isBrowserUseActive(e, t) {
-            return this.browserUseActiveTabKeys.has(createCompositeKey__fN_2fpbe(e, t));
-        }
-        isBrowserUseTab(e, t) {
-            return this.browserUseTabKeys.has(createCompositeKey__fN_2fpbe(e, t));
-        }
-        getBrowserUseTabs() {
-            return this.browserUseTabs;
-        }
-        getBrowserUseActiveBrowserTabId(e) {
-            return this.getLastConversationBrowserTabId(e, this.browserUseActiveTabKeys);
-        }
-        getBrowserUseBrowserTabIdsKey(e) {
-            return this.browserUseTabIdsKeysByConversation.get(e) ?? ``;
-        }
-        getConversationBrowserTabIds(e) {
-            let t = [];
-            let n = new Set;
-            let r = [
-                this.browserUseTabKeys,
-                this.webviews.keys()
-            ];
-            for (let i of r){
-                for (let r of this.getConversationBrowserTabIdsFromKeys(e, i)){
-                    if (!n.has(r)) {
-                        n.add(r);
-                        t.push(r);
-                    }
-                }
-            }
-            return t;
-        }
-        getBrowserUseBrowserTabIds(e) {
-            return this.getConversationBrowserTabIdsFromKeys(e, this.browserUseTabKeys);
-        }
-        getDeviceToolbarTabState(e, t) {
-            return this.deviceToolbarTabStates.get(createCompositeKey__fN_2fpbe(e, t)) ?? UVr;
-        }
-        getMountGeneration(e, t) {
-            return this.mountStates.get(createCompositeKey__fN_2fpbe(e, t))?.generation ?? 0;
-        }
-        claimMountGeneration(e, t, n = WVr) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            let i = this.mountStates.get(r) ?? {
-                claimKeys: new Set,
-                generation: 0
-            };
-            if (i.claimKeys.size === 0) {
-                i.generation += 1;
-            }
-            i.claimKeys.add(n);
-            this.mountStates.set(r, i);
-            return i.generation;
-        }
-        hasOtherMountGenerationClaim(e, t, n = WVr, r) {
-            let i = this.mountStates.get(createCompositeKey__fN_2fpbe(e, t));
-            if (i == null || r != null && i.generation !== r) {
-                return false;
-            }
-            for (let e of i.claimKeys){
-                if (e !== n) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        releaseMountGeneration(e, t, n = WVr, r) {
-            let i = createCompositeKey__fN_2fpbe(e, t);
-            let a = this.mountStates.get(i);
-            if (a == null) {
-                return 0;
-            }
-            if (!(r != null && a.generation !== r)) {
-                a.claimKeys.delete(n);
-            }
-            return a.generation;
-        }
-        syncElectronWebview(e, t, n, r = `right-panel`) {
-            this.pagePresentationTransition.sync(e, t, n, r);
-        }
-        setPrewarmedEmptyWebview(e, t) {
-            if (!t) {
-                if (this.prewarmedEmptyWebview === e) {
-                    this.prewarmedEmptyWebview = null;
-                }
-                return;
-            }
-            if (this.prewarmedEmptyWebview != null && this.prewarmedEmptyWebview !== e) {
-                this.releasePrewarmedEmptyWebview(this.prewarmedEmptyWebview);
-            }
-            this.prewarmedEmptyWebviews.add(e);
-            this.prewarmedEmptyWebview = e;
-        }
-        focusWebview(e, t, n = ()=>true) {
-            this.webviews.get(createCompositeKey__fN_2fpbe(e, t))?.focus(n);
-        }
-        hasWebviewFocus(e, t) {
-            return this.webviews.get(createCompositeKey__fN_2fpbe(e, t))?.hasFocus() ?? false;
-        }
-        detachElectronWebview(e, t, n, r) {
-            if (!(this.prewarmedEmptyWebviews.has(e) && (r == null || r === e.getMountGeneration()) && this.releasePrewarmedEmptyWebview(e))) {
-                this.pagePresentationTransition.detach(e, t, n, r);
-            }
-        }
-        setDeviceToolbarTabState(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            this.deviceToolbarTabStates.set(r, n(this.getDeviceToolbarTabState(e, t)));
-            this.emitChange();
-        }
-        setSnapshot(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            this.snapshots.set(r, n);
-            if (this.browserUseTabKeys.has(r)) {
-                this.syncBrowserUseTabKeys(e);
-            }
-            this.emitMediaChange();
-        }
-        removeTab(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.webviews.get(n);
-            if (r != null) {
-                this.pagePresentationTransition.removeTab(r);
-            }
-            this.pendingElectronTransfers.delete(n);
-            this.snapshots.delete(n);
-            this.tabPersistenceStates.delete(n);
-            let i = this.browserUseTabKeys.delete(n);
-            this.browserUseActiveTabKeys.delete(n);
-            this.browserUseCursorStates.delete(n);
-            this.browserUseCaptureSurfaceSizes.delete(n);
-            this.browserUseViewportSizes.delete(n);
-            this.tabCaptureActiveKeys.delete(n);
-            this.deviceToolbarTabStates.delete(n);
-            this.mountStates.delete(n);
-            if (i) {
-                this.syncBrowserUseTabKeys(e);
-            }
-            this.emitMediaChange();
-        }
-        getWebview(e, t, n, r) {
-            let i = createCompositeKey__fN_2fpbe(e, t);
-            let a = this.getPagePersistence(e, t);
-            let o = buildCacheKey(e, t);
-            let s = this.webviews.get(i);
-            let c = r?.hostKind ?? `right-panel`;
-            if (s?.getPartition() === o) {
-                s.setHostKind(c);
-                if (s.setPagePersistence(a)) {
-                    this.registerWebviewHost(s, a);
-                    this.emitChange();
-                }
-                if (r != null) {
-                    s.setAdoptionAttributes(r.adoptionLease ?? null, r.adoptedWebContentsId ?? null);
-                    if (r.adoptionLease != null && r.adoptedWebContentsId != null) {
-                        logger__Kp_mubr.info(`IAB_ADOPTION renderer updated adopted webview`, {
-                            safe: {
-                                adoptedWebContentsId: r.adoptedWebContentsId,
-                                browserTabId: t,
-                                conversationId: e,
-                                hasInitialUrl: n.length > 0
-                            },
-                            sensitive: {}
-                        });
-                    }
-                }
-                return s;
-            }
-            if (s != null) {
-                this.disposeWebviewHost(e, t, i, `web`);
-            }
-            let hostGeneration = ++this.nextHostGeneration;
-            let u = new (WebviewSidebarManager)({
-                browserTabId: t,
-                conversationId: e,
-                elementKey: getCompositeWebviewStorageKey(e, t),
-                hostKind: c,
-                hostGeneration,
-                pagePersistence: a,
-                partition: o,
-                rendererInstanceId: this.rendererInstanceId,
-                adoptionLease: r?.adoptionLease ?? null,
-                adoptedWebContentsId: r?.adoptedWebContentsId ?? null
-            });
-            if (this.browserUseActiveTabKeys.has(i)) {
-                u.setBrowserUseActive(true);
-            }
-            let d = this.browserUseViewportSizes.get(i) ?? null;
-            if (d != null) {
-                u.setBrowserUseViewportSize(d);
-            }
-            let f = this.browserUseCaptureSurfaceSizes.get(i) ?? null;
-            if (f != null) {
-                u.setBrowserUseCaptureSurfaceSize(f);
-            }
-            u.setTabCaptureActive(this.tabCaptureActiveKeys.has(i));
-            this.webviews.set(i, u);
-            this.registerWebviewHost(u, a);
-            logger__Kp_mubr.info(`IAB_LIFECYCLE renderer created browser sidebar webview`, {
-                safe: {
-                    browserTabId: t,
-                    conversationId: e,
-                    hostKind: c
-                },
-                sensitive: {
-                    initialUrl: n
-                }
-            });
-            if (r?.adoptionLease != null && r.adoptedWebContentsId != null) {
-                logger__Kp_mubr.info(`IAB_ADOPTION renderer created adopted webview`, {
-                    safe: {
-                        adoptedWebContentsId: r.adoptedWebContentsId,
-                        browserTabId: t,
-                        conversationId: e,
-                        hasInitialUrl: n.length > 0
-                    },
-                    sensitive: {}
-                });
-            }
-            this.emitMediaChange();
-            return u;
-        }
-        registerWebviewHost(e, pagePersistence) {
-            let n = ym?.browserSidebar;
-            if (n == null) {
-                this.disposeCurrentWebviewHost(e);
-                return;
-            }
-            let r = e.getBrowserTabId();
-            let i = e.getConversationId();
-            let a = {};
-            this.registrationAttempts.set(e, a);
-            this.rendererSessionRegistration ??= n.registerWebviewHostSession({
-                rendererInstanceId: this.rendererInstanceId
-            });
-            this.rendererSessionRegistration.then((o)=>{
-                if (o && this.registrationAttempts.get(e) === a) {
-                    return n.registerWebviewHost({
-                        browserTabId: r,
-                        conversationId: i,
-                        hostGeneration: e.getHostGeneration(),
-                        pagePersistence,
-                        rendererInstanceId: this.rendererInstanceId
-                    });
-                }
-                return false;
-            }).then((t)=>{
-                this.registrationAttempts.get(e) !== a || !this.isCurrentWebviewHost(e) || e.getBrowserTabId() !== r || e.getConversationId() !== i || (t ? e.markRegistered() && this.emitChange() : (this.disposeCurrentWebviewHost(e), this.emitMediaChange()));
-            }).catch(()=>{
-                if (!(this.registrationAttempts.get(e) !== a || !this.isCurrentWebviewHost(e))) {
-                    this.disposeCurrentWebviewHost(e);
-                    this.emitMediaChange();
-                }
-            });
-        }
-        isCurrentWebviewHost(e) {
-            return this.webviews.get(createCompositeKey__fN_2fpbe(e.getConversationId(), e.getBrowserTabId())) === e;
-        }
-        disposeCurrentWebviewHost(e) {
-            let t = e.getConversationId();
-            let n = e.getBrowserTabId();
-            let r = createCompositeKey__fN_2fpbe(t, n);
-            if (this.webviews.get(r) === e) {
-                this.disposeWebviewHost(t, n, r, `web`);
-            }
-        }
-        getCursorOverlayHost(e, t) {
-            return this.webviews.get(createCompositeKey__fN_2fpbe(e, t))?.getCursorOverlayHost() ?? null;
-        }
-        setBrowserUseActive(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            let i = this.browserUseActiveTabKeys.has(r);
-            let a = this.browserUseTabKeys.has(r);
-            let o = this.browserUseCursorStates.get(r) ?? null;
-            if (n) {
-                this.browserUseTabKeys.add(r);
-                if (!a) {
-                    this.syncBrowserUseTabKeys(e);
-                }
-                this.browserUseActiveTabKeys.add(r);
-                if (!i) {
-                    this.browserUseCursorStates.delete(r);
-                }
-            } else {
-                this.browserUseActiveTabKeys.delete(r);
-                if (o != null) {
-                    this.browserUseCursorStates.set(r, {
-                        visible: false,
-                        x: o.x,
-                        y: o.y
-                    });
-                }
-            }
-            this.webviews.get(r)?.setBrowserUseActive?.(n);
-            logger__Kp_mubr.info(`IAB_LIFECYCLE renderer synced browser use webview state`, {
-                safe: {
-                    browserTabId: t,
-                    conversationId: e,
-                    isBrowserUseActive: n
-                },
-                sensitive: {}
-            });
-            (i !== n || o != null) && (n && !a ? this.emitMediaChange() : this.emitChange());
-        }
-        releaseBrowserUseTab(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.browserUseActiveTabKeys.delete(n);
-            let i = this.browserUseTabKeys.delete(n);
-            let a = this.browserUseCursorStates.delete(n);
-            let o = this.browserUseCaptureSurfaceSizes.delete(n);
-            let s = this.browserUseViewportSizes.delete(n);
-            let c = this.deviceToolbarTabStates.delete(n);
-            let l = r || i || a || o || s || c;
-            this.webviews.get(n)?.releaseBrowserUse();
-            if (i) {
-                this.syncBrowserUseTabKeys(e);
-            }
-            this.releaseDetachedPrewarmedEmptyWebview(e, t);
-            l && (i ? this.emitMediaChange() : this.emitChange());
-        }
-        clearBrowserUseState() {
-            let commandHandlerMap = new Set([
-                ...this.browserUseTabKeys,
-                ...this.browserUseActiveTabKeys,
-                ...this.browserUseCursorStates.keys(),
-                ...this.browserUseCaptureSurfaceSizes.keys(),
-                ...this.browserUseViewportSizes.keys()
-            ]);
-            for (let t of commandHandlerMap){
-                let { browserTabId: e, conversationId: n } = parseConversationBrowserTabKey(t);
-                this.releaseBrowserUseTab(n, e);
-            }
-        }
-        setBrowserUseViewportSize(e, path__t_2fynw, n) {
-            let r = createCompositeKey__fN_2fpbe(e, path__t_2fynw);
-            let i = n == null ? null : {
-                width: clampPanelWidth__rBr_2f54e(n.width),
-                height: getDefaultPanelWidth(n.height)
-            };
-            if (i == null) {
-                this.browserUseViewportSizes.delete(r);
-            } else {
-                this.browserUseViewportSizes.set(r, i);
-            }
-            this.webviews.get(r)?.setBrowserUseViewportSize?.(i);
-            this.setDeviceToolbarTabState(e, path__t_2fynw, (e)=>{
-                if (i == null) {
-                    return {
-                        ...e,
-                        toolbarState: {
-                            ...e.toolbarState,
-                            isEnabled: false
-                        }
-                    };
-                }
-                return {
-                    responsiveViewportSize: i,
-                    toolbarState: {
-                        ...e.toolbarState,
-                        ...i,
-                        isEnabled: true,
-                        presetId: RESPONSIVE_PRESET_ID
-                    }
-                };
-            });
-        }
-        setBrowserUseCaptureSurfaceSize(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            if (n == null) {
-                this.browserUseCaptureSurfaceSizes.delete(r);
-            } else {
-                this.browserUseCaptureSurfaceSizes.set(r, n);
-            }
-            this.webviews.get(r)?.setBrowserUseCaptureSurfaceSize(n);
-        }
-        setBrowserUseCursorState(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            let i = this.browserUseCursorStates.get(r);
-            if (n.visible) {
-                if (i?.visible === n.visible && i.animateMovement === n.animateMovement && i.moveSequence === n.moveSequence && i.x === n.x && i.y === n.y) {
-                    return;
-                }
-                this.browserUseCursorStates.set(r, {
-                    animateMovement: n.animateMovement,
-                    moveSequence: n.moveSequence,
-                    visible: true,
-                    x: n.x,
-                    y: n.y
-                });
-                this.emitChange();
-                return;
-            }
-            if (!(i == null || !i.visible)) {
-                this.browserUseCursorStates.set(r, {
-                    visible: false,
-                    x: i.x,
-                    y: i.y
-                });
-                this.emitChange();
-            }
-        }
-        setTabCaptureActive(e, t, n) {
-            let r = createCompositeKey__fN_2fpbe(e, t);
-            if (n) {
-                this.tabCaptureActiveKeys.add(r);
-            } else {
-                this.tabCaptureActiveKeys.delete(r);
-            }
-            this.webviews.get(r)?.setTabCaptureActive(n);
-            if (!n) {
-                this.releaseDetachedPrewarmedEmptyWebview(e, t);
-            }
-        }
-        reassociateTabState(e, t, n, r, i) {
-            let a = joinKeyWithNull(createCompositeKey__fN_2fpbe(e, t), createCompositeKey__fN_2fpbe(n, r));
-            let o = createCompositeKey__fN_2fpbe(e, t);
-            let s = createCompositeKey__fN_2fpbe(n, r);
-            if (o === s || this.transferredWebviewKeys.has(a)) {
-                return;
-            }
-            let c = this.webviews.get(o) ?? null;
-            let l = this.webviews.get(s) ?? null;
-            let u = this.tabPersistenceStates.get(o) ?? null;
-            let d = this.tabPersistenceStates.get(s) ?? null;
-            let dispatchFn = this.snapshots.get(o) ?? null;
-            if (l != null || this.pendingElectronTransfers.has(s) || this.snapshots.has(s) || d != null && d.mode !== `ephemeral`) {
-                this.transferredWebviewKeys.add(a);
-                if (c != null) {
-                    this.disposeWebviewHost(e, t, o, `closed`);
-                }
-                this.removeTab(e, t);
-                messageRouterInstance.dispatchMessage(`browser-sidebar-command`, {
-                    ...u == null || u.mode === `ephemeral` ? {} : {
-                        pagePersistence: {
-                            browserStorageId: u.browserStorageId,
-                            restore: u.mode === `restore-expected` ? `required` : `none`
-                        }
-                    },
-                    browserTabId: t,
-                    conversationId: e,
-                    command: {
-                        type: `close-tab`
-                    }
-                });
-                if (i?.removeSourceBrowserStateWhenEmpty) {
-                    this.removeConversationBrowserStateIfEmpty(e);
-                }
-                return;
-            }
-            if (c != null) {
-                this.pagePresentationTransition.transferRoute(c);
-            }
-            this.pendingElectronTransfers.delete(o);
-            this.pendingElectronTransfers.delete(s);
-            this.transferredWebviewKeys.add(a);
-            if (c != null) {
-                this.webviews.delete(o);
-                c.transfer({
-                    browserTabId: r,
-                    conversationId: n,
-                    elementKey: getCompositeWebviewStorageKey(n, r),
-                    partition: buildCacheKey(n, r)
-                });
-                this.webviews.set(s, c);
-            }
-            let p = this.browserUseViewportSizes.get(o) ?? null;
-            let m = this.browserUseTabKeys.has(o);
-            let h = this.tabCaptureActiveKeys.delete(o);
-            let g = this.mountStates.get(o) ?? null;
-            let _ = this.browserUseActiveTabKeys.delete(o);
-            this.browserUseCaptureSurfaceSizes.delete(o);
-            this.browserUseCursorStates.delete(o);
-            this.browserUseTabKeys.delete(o);
-            this.browserUseViewportSizes.delete(o);
-            this.mountStates.delete(o);
-            this.tabPersistenceStates.delete(o);
-            if (u != null) {
-                this.tabPersistenceStates.set(s, u);
-            }
-            if (c != null) {
-                this.registerWebviewHost(c, u == null || u.mode === `ephemeral` ? undefined : this.getPagePersistence(n, r));
-            }
-            this.pendingElectronTransfers.set(s, {
-                sourceBrowserTabId: t,
-                sourceConversationId: e
-            });
-            messageRouterInstance.dispatchMessage(`browser-sidebar-command`, {
-                conversationId: e,
-                browserTabId: t,
-                command: {
-                    type: `transfer-conversation`,
-                    targetBrowserTabId: r,
-                    targetConversationId: n
-                }
-            });
-            let v = false;
-            if (m) {
-                this.browserUseTabKeys.add(s);
-                this.syncBrowserUseTabKeys(e);
-                v = true;
-            }
-            if (_) {
-                this.browserUseActiveTabKeys.add(s);
-            }
-            if (p != null) {
-                this.browserUseViewportSizes.set(s, p);
-            }
-            if (h && c != null) {
-                this.tabCaptureActiveKeys.add(s);
-            }
-            if (g != null) {
-                this.mountStates.set(s, {
-                    claimKeys: new Set,
-                    generation: g.generation
-                });
-            }
-            c?.setBrowserUseCaptureSurfaceSize(null);
-            logger__Kp_mubr.info(`IAB_LIFECYCLE renderer reassociated browser sidebar tab`, {
-                safe: {
-                    sourceBrowserTabId: t,
-                    sourceConversationId: e,
-                    targetBrowserTabId: r,
-                    targetConversationId: n
-                }
-            });
-            let y = this.deviceToolbarTabStates.get(o);
-            if (dispatchFn != null) {
-                this.snapshots.delete(o);
-                this.snapshots.set(s, dispatchFn);
-            }
-            if (v) {
-                this.syncBrowserUseTabKeys(n);
-            }
-            if (y != null) {
-                this.deviceToolbarTabStates.delete(o);
-                this.deviceToolbarTabStates.set(s, y);
-            }
-            if (i?.removeSourceBrowserStateWhenEmpty) {
-                this.removeConversationBrowserStateIfEmpty(e);
-            }
-            this.emitMediaChange();
-        }
-        consumePendingElectronTransfer(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.pendingElectronTransfers.get(n) ?? null;
-            if (r == null) {
-                return null;
-            }
-            this.pendingElectronTransfers.delete(n);
-            this.releaseDetachedPrewarmedEmptyWebview(e, t);
-            return r;
-        }
-        peekPendingElectronTransfer(e, t) {
-            return this.pendingElectronTransfers.get(createCompositeKey__fN_2fpbe(e, t)) ?? null;
-        }
-        disposeAll() {
-            this.prewarmedEmptyWebview = null;
-            this.pagePresentationTransition.disposeAll();
-            this.snapshots.clear();
-            this.ownerRoutePathsByConversation.clear();
-            this.browserUseCursorStates.clear();
-            this.browserUseActiveTabKeys.clear();
-            this.browserUseTabKeys.clear();
-            this.browserUseTabIdsKeysByConversation.clear();
-            this.refreshBrowserUseTabs();
-            this.browserUseCaptureSurfaceSizes.clear();
-            this.browserUseViewportSizes.clear();
-            this.tabCaptureActiveKeys.clear();
-            this.deviceToolbarTabStates.clear();
-            this.tabPersistenceStates.clear();
-            this.pendingElectronTransfers.clear();
-            this.mountStates.clear();
-            for (let e of this.webviews.values()){
-                e.dispose();
-            }
-            this.webviews.clear();
-            this.transferredWebviewKeys.clear();
-            this.emitMediaChange();
-        }
-        emitChange() {
-            for (let e of this.listeners){
-                e();
-            }
-        }
-        emitMediaChange() {
-            this.refreshMediaTabs();
-            this.emitChange();
-        }
-        resyncAttachedWebviews() {
-            for (let e of this.webviews.values()){
-                e.resync();
-            }
-        }
-        disposeWebviewHost(e, browserTabId, n, r) {
-            let i = this.webviews.get(n) ?? null;
-            this.webviews.delete(n);
-            if (i != null) {
-                if (this.prewarmedEmptyWebview === i) {
-                    this.prewarmedEmptyWebview = null;
-                }
-                this.prewarmedEmptyWebviews.delete(i);
-                if (r === `closed`) {
-                    this.pagePresentationTransition.removeTab(i);
-                } else {
-                    this.pagePresentationTransition.disposeHost(i);
-                }
-                i.dispose();
-                logger__Kp_mubr.info(`IAB_LIFECYCLE renderer removed browser sidebar webview`, {
-                    safe: {
-                        browserTabId,
-                        conversationId: e,
-                        tabType: r
-                    }
-                });
-            }
-        }
-        releasePrewarmedEmptyWebview(e) {
-            if (!this.prewarmedEmptyWebviews.has(e)) {
-                return false;
-            }
-            if (this.prewarmedEmptyWebview === e) {
-                this.prewarmedEmptyWebview = null;
-            }
-            let t = e.getConversationId();
-            let n = e.getBrowserTabId();
-            let r = createCompositeKey__fN_2fpbe(t, n);
-            let i = this.snapshots.get(r);
-            if (i?.tabType !== $l.NEW_TAB_PAGE || i.url.length > 0 || this.browserUseTabKeys.has(r) || this.tabCaptureActiveKeys.has(r) || this.pendingElectronTransfers.has(r) || normalizeUrlOrEmpty(getWebviewByKey(t, n) ?? ``).length > 0 || getPendingWebviewAdoptionLease(t, n) != null || getCacheEntry__aVr_2fhgg(t, n) != null) {
-                return false;
-            }
-            this.disposeCurrentWebviewHost(e);
-            this.emitChange();
-            return true;
-        }
-        releaseDetachedPrewarmedEmptyWebview(e, t) {
-            let n = createCompositeKey__fN_2fpbe(e, t);
-            let r = this.webviews.get(n);
-            if (!(r == null || !this.prewarmedEmptyWebviews.has(r) || (this.mountStates.get(n)?.claimKeys.size ?? 0) > 0)) {
-                this.releasePrewarmedEmptyWebview(r);
-            }
-        }
-        destroyWebviewAtHostRequest(e, t, mountGeneration, r, teardownId) {
-            let a = createCompositeKey__fN_2fpbe(e, t);
-            let o = this.webviews.get(a) ?? null;
-            let s = o != null && o.shouldDestroyForHostRequest({
-                mountGeneration,
-                reason: r
-            }) !== false;
-            if (s) {
-                this.disposeWebviewHost(e, t, a, r);
-            }
-            if (r === `closed`) {
-                this.removeTab(e, t);
-            } else if (s) {
-                this.emitMediaChange();
-            }
-            messageRouterInstance.dispatchMessage(`browser-sidebar-webview-destroyed`, {
-                browserTabId: t,
-                conversationId: e,
-                reason: r,
-                teardownId
-            });
-        }
-        getLastConversationBrowserTabId(e, t) {
-            let n = `${e}\0`;
-            let r = null;
-            for (let conversationId__e_2g3y3 of t){
-                if (conversationId__e_2g3y3.startsWith(n)) {
-                    r = Jl(conversationId__e_2g3y3.slice(n.length));
-                }
-            }
-            return r;
-        }
-        getConversationBrowserTabIdsFromKeys(e, t) {
-            let n = `${e}\0`;
-            let r = [];
-            for (let e of t){
-                if (e.startsWith(n)) {
-                    r.push(Jl(e.slice(n.length)));
-                }
-            }
-            return r;
-        }
-        removeConversationBrowserStateIfEmpty(e) {
-            if (!(this.getConversationBrowserTabIds(e).length > 0)) {
-                this.removeConversationTabs(e);
-            }
-        }
-        syncBrowserUseTabKeys(e) {
-            let fallbackHandler__t_2g47j = this.getConversationBrowserTabIdsFromKeys(e, this.browserUseTabKeys);
-            if (fallbackHandler__t_2g47j.length === 0) {
-                this.browserUseTabIdsKeysByConversation.delete(e);
-                this.refreshBrowserUseTabs();
-                return;
-            }
-            this.browserUseTabIdsKeysByConversation.set(e, fallbackHandler__t_2g47j.join(`\0`));
-            this.refreshBrowserUseTabs();
-        }
-        refreshBrowserUseTabs() {
-            this.browserUseTabs = Array.from(this.browserUseTabKeys, parseConversationBrowserTabKey);
-        }
-        refreshMediaTabs() {
-            let e = [];
-            for (let [t, n] of this.snapshots){
-                if (!this.browserUseTabKeys.has(t) && !this.webviews.has(t) || n.tabType !== $l.WEB || !n.isAudible && !n.isCapturingUserMedia) {
-                    continue;
-                }
-                let r = parseConversationBrowserTabKey(t);
-                e.push({
-                    ...r,
-                    faviconUrl: n.faviconUrl,
-                    isAudioMuted: n.isAudioMuted,
-                    isAudible: n.isAudible,
-                    isCapturingCamera: n.isCapturingCamera,
-                    isCapturingMicrophone: n.isCapturingMicrophone,
-                    isCapturingUserMedia: n.isCapturingUserMedia,
-                    isLoading: n.isLoading,
-                    isWaitingForResponse: n.isWaitingForResponse === true,
-                    ownerRoutePath: this.ownerRoutePathsByConversation.get(r.conversationId) ?? null,
-                    title: n.title,
-                    url: n.url
-                });
-            }
-            if (!areWebviewTabsEqual(this.mediaTabs, e)) {
-                this.mediaTabs = e;
-            }
-        }
-        removeConversationTabs(e) {
-            let t = `${e}\0`;
-            this.pagePresentationTransition.removeConversation(e);
-            for (let e of this.snapshots.keys()){
-                if (e.startsWith(t)) {
-                    this.snapshots.delete(e);
-                }
-            }
-            for (let e of this.browserUseActiveTabKeys){
-                if (e.startsWith(t)) {
-                    this.browserUseActiveTabKeys.delete(e);
-                }
-            }
-            for (let e of this.browserUseTabKeys){
-                if (e.startsWith(t)) {
-                    this.browserUseTabKeys.delete(e);
-                }
-            }
-            this.refreshBrowserUseTabs();
-            for (let e of this.browserUseCursorStates.keys()){
-                if (e.startsWith(t)) {
-                    this.browserUseCursorStates.delete(e);
-                }
-            }
-            for (let e of this.browserUseCaptureSurfaceSizes.keys()){
-                if (e.startsWith(t)) {
-                    this.browserUseCaptureSurfaceSizes.delete(e);
-                }
-            }
-            for (let e of this.browserUseViewportSizes.keys()){
-                if (e.startsWith(t)) {
-                    this.browserUseViewportSizes.delete(e);
-                }
-            }
-            for (let e of this.tabCaptureActiveKeys){
-                if (e.startsWith(t)) {
-                    this.tabCaptureActiveKeys.delete(e);
-                }
-            }
-            for (let e of this.deviceToolbarTabStates.keys()){
-                if (e.startsWith(t)) {
-                    this.deviceToolbarTabStates.delete(e);
-                }
-            }
-            for (let e of this.pendingElectronTransfers.keys()){
-                if (e.startsWith(t)) {
-                    this.pendingElectronTransfers.delete(e);
-                }
-            }
-            for (let e of this.mountStates.keys()){
-                if (e.startsWith(t)) {
-                    this.mountStates.delete(e);
-                }
-            }
-            for (let e of this.tabPersistenceStates.keys()){
-                if (e.startsWith(t)) {
-                    this.tabPersistenceStates.delete(e);
-                }
-            }
-            for (let [e, n] of this.webviews.entries()){
-                if (e.startsWith(t)) {
-                    this.webviews.delete(e);
-                    this.pagePresentationTransition.disposeHost(n);
-                    n.dispose();
-                }
-            }
-            this.browserUseTabIdsKeysByConversation.delete(e);
-            this.ownerRoutePathsByConversation.delete(e);
-        }
-        markWebviewAttached(e, t, n) {
-            let r = this.getMountGeneration(e, t);
-            if (r === n) {
-                unregisterWebviewHandler(e, t);
-            }
-            this.pagePresentationTransition.acknowledgeAttachment(this.webviews.get(createCompositeKey__fN_2fpbe(e, t)) ?? null, n, r);
-            this.emitChange();
-        }
+        if (!current()) return;
+        const accepted = await ym.browserSidebar.registerWebviewHost({
+          browserTabId: host.getBrowserTabId(), conversationId: host.getConversationId(),
+          hostGeneration: host.getHostGeneration(), pagePersistence, rendererInstanceId: this.rendererInstanceId,
+        });
+        if (!current()) return;
+        if (accepted) { if (host.markRegistered()) this.emitChange(); }
+        else this.disposeCurrentWebviewHost(host);
+      } catch {
+        if (current()) this.disposeCurrentWebviewHost(host);
+      } finally {
+        if (this.registrationAttempts.get(host) === attempt) this.registrationAttempts.delete(host);
+      }
     };
+    void register();
+  }
+  isCurrentWebviewHost(host) { return this.#host(host.getConversationId(), host.getBrowserTabId()) === host; }
+  disposeCurrentWebviewHost(host) {
+    if (this.isCurrentWebviewHost(host)) this.disposeWebviewHost(host.getConversationId(), host.getBrowserTabId(), this.#key(host.getConversationId(), host.getBrowserTabId()), this.getSnapshot(host.getConversationId(), host.getBrowserTabId())?.tabType ?? "web");
+  }
+  getCursorOverlayHost(owner, tab) { return this.#host(owner, tab)?.getCursorOverlayHost() ?? null; }
+  setBrowserUseActive(owner, tab, active) {
+    const key = this.#key(owner, tab);
+    if (this.browserUseActiveTabKeys.has(key) === active) {
+      this.#host(owner, tab)?.setBrowserUseActive(active);
+      this.#log("IAB_LIFECYCLE renderer synced browser use webview state", { browserTabId: tab, conversationId: owner, isBrowserUseActive: active }, {});
+      return;
+    }
+    if (active) {
+      this.browserUseActiveTabKeys.add(key);
+      this.browserUseTabKeys.add(key);
+      this.browserUseCursorStates.delete(key);
+    } else {
+      this.browserUseActiveTabKeys.delete(key);
+      const cursor = this.browserUseCursorStates.get(key);
+      if (cursor) this.browserUseCursorStates.set(key, { visible: false, x: cursor.x, y: cursor.y });
+    }
+    this.#host(owner, tab)?.setBrowserUseActive(active);
+    this.syncBrowserUseTabKeys(owner);
+    this.refreshBrowserUseTabs();
+    this.refreshMediaTabs();
+    this.emitChange();
+    this.#log("IAB_LIFECYCLE renderer synced browser use webview state", { browserTabId: tab, conversationId: owner, isBrowserUseActive: active }, {});
+    if (!active) this.releaseDetachedPrewarmedEmptyWebview(owner, tab);
+  }
+  releaseBrowserUseTab(owner, tab) {
+    const key = this.#key(owner, tab), existed = this.browserUseTabKeys.delete(key);
+    this.browserUseActiveTabKeys.delete(key);
+    for (const map of [this.browserUseCursorStates, this.browserUseViewportSizes, this.browserUseCaptureSurfaceSizes, this.deviceToolbarTabStates]) map.delete(key);
+    this.#host(owner, tab)?.releaseBrowserUse();
+    this.syncBrowserUseTabKeys(owner);
+    this.refreshBrowserUseTabs();
+    this.refreshMediaTabs();
+    if (existed) this.emitChange();
+    this.releaseDetachedPrewarmedEmptyWebview(owner, tab);
+  }
+  clearBrowserUseState() {
+    for (const key of [...this.browserUseTabKeys]) {
+      const { conversationId, browserTabId } = parseConversationBrowserTabKey(key);
+      this.releaseBrowserUseTab(conversationId, browserTabId);
+    }
+  }
+  setBrowserUseViewportSize(owner, tab, size) {
+    const key = this.#key(owner, tab);
+    if (size) {
+      this.browserUseViewportSizes.set(key, size);
+      this.setDeviceToolbarTabState(owner, tab, previous => ({ ...previous,
+        responsiveViewportSize: size, toolbarState: { ...previous.toolbarState, isEnabled: true, presetId: RESPONSIVE_PRESET_ID, ...size } }));
+    } else {
+      this.browserUseViewportSizes.delete(key);
+      this.setDeviceToolbarTabState(owner, tab, previous => ({ ...previous,
+        toolbarState: { ...previous.toolbarState, isEnabled: false } }));
+    }
+    this.#host(owner, tab)?.setBrowserUseViewportSize(size);
+  }
+  setBrowserUseCaptureSurfaceSize(owner, tab, size) {
+    const key = this.#key(owner, tab);
+    if (size) this.browserUseCaptureSurfaceSizes.set(key, size);
+    else this.browserUseCaptureSurfaceSizes.delete(key);
+    this.#host(owner, tab)?.setBrowserUseCaptureSurfaceSize(size);
+  }
+  setBrowserUseCursorState(owner, tab, cursor) {
+    const visible = cursor.visible;
+    const { animateMovement, moveSequence, x, y } = cursor;
+    const key = this.#key(owner, tab);
+    const previous = this.browserUseCursorStates.get(key);
+    if (!visible && !previous) return;
+    const next = visible ? { animateMovement, moveSequence, visible, x, y } : { visible, x, y };
+    if (areWebviewTabsEqual(previous, next)) return;
+    this.browserUseCursorStates.set(key, next);
+    this.emitChange();
+  }
+  setTabCaptureActive(owner, tab, active) {
+    const key = this.#key(owner, tab);
+    if (active) this.tabCaptureActiveKeys.add(key);
+    else this.tabCaptureActiveKeys.delete(key);
+    this.#host(owner, tab)?.setTabCaptureActive(active);
+  }
+  reassociateTabState(owner, tab, targetOwner, targetTab, targetRoutePath) {
+    const oldKey = this.#key(owner, tab), newKey = this.#key(targetOwner, targetTab);
+    const host = this.webviews.get(oldKey);
+    for (const map of [this.snapshots, this.tabPersistenceStates, this.deviceToolbarTabStates, this.browserUseViewportSizes]) {
+      if (map.has(oldKey)) { map.set(newKey, map.get(oldKey)); map.delete(oldKey); }
+    }
+    const mount = this.mountStates.get(oldKey);
+    if (mount) {
+      this.mountStates.delete(oldKey);
+      this.mountStates.set(newKey, { claimKeys: new Set(), generation: mount.generation });
+    }
+    for (const set of [this.browserUseActiveTabKeys, this.browserUseTabKeys]) {
+      if (set.delete(oldKey)) set.add(newKey);
+    }
+    this.browserUseCursorStates.delete(oldKey);
+    this.browserUseCaptureSurfaceSizes.delete(oldKey);
+    this.tabCaptureActiveKeys.delete(oldKey);
+    if (host) {
+      this.pagePresentationTransition.transferRoute(host);
+      this.webviews.delete(oldKey);
+      this.webviews.set(newKey, host);
+      host.transfer({ conversationId: targetOwner, browserTabId: targetTab, elementKey: newKey, partition: getCompositeWebviewStorageKey(targetOwner, targetTab) });
+      this.registerWebviewHost(host, this.getPagePersistence(targetOwner, targetTab));
+    }
+    this.transferredWebviewKeys.add(`${oldKey}\0${newKey}`);
+    this.pendingElectronTransfers.set(newKey, { sourceBrowserTabId: tab, sourceConversationId: owner });
+    this.syncBrowserUseTabKeys(owner);
+    this.syncBrowserUseTabKeys(targetOwner);
+    this.refreshBrowserUseTabs();
+    this.refreshMediaTabs();
+    this.emitChange();
+    messageRouterInstance.dispatchMessage("browser-sidebar-command", { conversationId: owner, browserTabId: tab,
+      command: { type: "transfer-conversation", targetBrowserTabId: targetTab, targetConversationId: targetOwner } });
+    host?.resync();
+    this.#log("IAB_LIFECYCLE renderer reassociated browser sidebar tab", { sourceBrowserTabId: tab, sourceConversationId: owner, targetBrowserTabId: targetTab, targetConversationId: targetOwner });
+  }
+  consumePendingElectronTransfer(owner, tab) {
+    const transfer = this.peekPendingElectronTransfer(owner, tab);
+    this.pendingElectronTransfers.delete(this.#key(owner, tab));
+    return transfer;
+  }
+  peekPendingElectronTransfer(owner, tab) { return this.pendingElectronTransfers.get(this.#key(owner, tab)) ?? null; }
+  disposeAll() {
+    this.pagePresentationTransition.disposeAll();
+    for (const host of this.webviews.values()) host.dispose();
+    for (const collection of [this.listeners, this.browserUseCursorStates, this.snapshots,
+      this.ownerRoutePathsByConversation, this.browserUseActiveTabKeys, this.browserUseTabKeys,
+      this.browserUseTabIdsKeysByConversation, this.browserUseViewportSizes, this.browserUseCaptureSurfaceSizes,
+      this.tabCaptureActiveKeys, this.deviceToolbarTabStates, this.tabPersistenceStates, this.webviews,
+      this.transferredWebviewKeys, this.pendingElectronTransfers, this.mountStates]) collection.clear();
+    this.mediaTabs = [];
+    this.browserUseTabs = [];
+    this.prewarmedEmptyWebview = null;
+  }
+  emitChange() { for (const listener of this.listeners) listener(); }
+  emitMediaChange() { this.emitChange(); }
+  resyncAttachedWebviews() { for (const host of this.webviews.values()) host.resync(); }
+  disposeWebviewHost(owner, tab, key, reason) {
+    const host = this.webviews.get(key);
+    if (!host) return;
+    this.pagePresentationTransition.disposeHost(host);
+    this.registrationAttempts.delete(host);
+    this.webviews.delete(key);
+    this.releasePrewarmedEmptyWebview(host);
+    host.dispose();
+    this.refreshMediaTabs();
+    this.#log("IAB_LIFECYCLE renderer removed browser sidebar webview", { browserTabId: tab, conversationId: owner, tabType: reason });
+  }
+  releasePrewarmedEmptyWebview(host) {
+    this.prewarmedEmptyWebviews.delete(host);
+    if (this.prewarmedEmptyWebview === host) this.prewarmedEmptyWebview = null;
+    // Standard guests have no adoption registry to release. The logical Page
+    // retains its backing; dropping a prewarm marker must not close that Page.
+    return false;
+  }
+  releaseDetachedPrewarmedEmptyWebview(owner, tab) {
+    const host = this.#host(owner, tab);
+    if (host && this.prewarmedEmptyWebviews.has(host) && !host.isPainted() && !this.isBrowserUseTab(owner, tab)) this.releasePrewarmedEmptyWebview(host);
+  }
+  destroyWebviewAtHostRequest(owner, tab, mountGeneration, reason, teardownId) {
+    const host = this.#host(owner, tab);
+    if (host?.shouldDestroyForHostRequest({ mountGeneration, reason })) this.disposeWebviewHost(owner, tab, this.#key(owner, tab), reason);
+    this.tabPersistenceStates.delete(this.#key(owner, tab));
+    this.mountStates.delete(this.#key(owner, tab));
+    messageRouterInstance.dispatchMessage("browser-sidebar-webview-destroyed", { browserTabId: tab, conversationId: owner, reason, teardownId });
+  }
+  getLastConversationBrowserTabId(owner, keys) { return this.getConversationBrowserTabIdsFromKeys(owner, keys).at(-1) ?? null; }
+  getConversationBrowserTabIdsFromKeys(owner, keys) {
+    const prefix = `${owner}\0`;
+    return [...keys].filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length));
+  }
+  removeConversationBrowserStateIfEmpty(owner) {
+    if (!this.getConversationBrowserTabIds(owner).length) this.ownerRoutePathsByConversation.delete(owner);
+  }
+  syncBrowserUseTabKeys(owner) {
+    const ids = this.getBrowserUseBrowserTabIds(owner);
+    if (ids.length) this.browserUseTabIdsKeysByConversation.set(owner, ids.join("\0"));
+    else this.browserUseTabIdsKeysByConversation.delete(owner);
+  }
+  refreshBrowserUseTabs() {
+    const next = [...this.browserUseTabKeys].map(key => parseConversationBrowserTabKey(key));
+    if (!areWebviewTabsEqual(this.browserUseTabs, next)) this.browserUseTabs = next;
+  }
+  refreshMediaTabs() {
+    const next = [];
+    for (const key of new Set([...this.webviews.keys(), ...this.browserUseTabKeys])) {
+      const snapshot = this.snapshots.get(key);
+      if (!snapshot || snapshot.tabType !== $l.WEB || !snapshot.url || !(snapshot.isAudible || snapshot.isCapturingUserMedia)) continue;
+      const { conversationId, browserTabId } = parseConversationBrowserTabKey(key);
+      next.push({ conversationId, browserTabId, faviconUrl: snapshot.faviconUrl, isAudioMuted: snapshot.isAudioMuted,
+        isAudible: snapshot.isAudible, isCapturingCamera: snapshot.isCapturingCamera,
+        isCapturingMicrophone: snapshot.isCapturingMicrophone, isCapturingUserMedia: snapshot.isCapturingUserMedia,
+        isLoading: snapshot.isLoading, isWaitingForResponse: snapshot.isWaitingForResponse ?? false,
+        ownerRoutePath: this.ownerRoutePathsByConversation.get(conversationId), title: snapshot.title, url: snapshot.url });
+    }
+    if (!areWebviewTabsEqual(this.mediaTabs, next)) this.mediaTabs = next;
+  }
+  removeConversationTabs(owner) {
+    this.pagePresentationTransition.removeConversation(owner);
+    for (const [key, host] of [...this.webviews]) {
+      if (host.getConversationId() === owner) {
+        this.registrationAttempts.delete(host);
+        this.webviews.delete(key);
+        this.releasePrewarmedEmptyWebview(host);
+        host.dispose();
+      }
+    }
+    const collections = [this.browserUseCursorStates, this.snapshots, this.browserUseActiveTabKeys,
+      this.browserUseTabKeys, this.browserUseViewportSizes, this.browserUseCaptureSurfaceSizes,
+      this.tabCaptureActiveKeys, this.deviceToolbarTabStates, this.tabPersistenceStates,
+      this.mountStates, this.pendingElectronTransfers];
+    for (const collection of collections) for (const key of [...collection.keys()]) if (key.startsWith(`${owner}\0`)) collection.delete(key);
+    this.ownerRoutePathsByConversation.delete(owner);
+    this.syncBrowserUseTabKeys(owner);
+    this.refreshBrowserUseTabs();
+    this.refreshMediaTabs();
+  }
+  markWebviewAttached(owner, tab, generation) {
+    const host = this.#host(owner, tab);
+    if (host) {
+      this.pagePresentationTransition.acknowledgeAttachment(host, generation, this.getMountGeneration(owner, tab));
+      unregisterWebviewHandler(owner, tab);
+      this.emitChange();
+    }
+  }
+};
 }

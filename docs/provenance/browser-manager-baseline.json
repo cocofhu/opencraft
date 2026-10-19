@@ -111,5 +111,19 @@
     "cases": 24,
     "scope": "Synthetic session/host registration false/rejection, current/superseded/untracked Host object references, delegated destroy policy and nine router payloads. Actual independent Host plus explicitly synthetic shouldDestroyForHostRequest port; current Web Host lacks that native API. Proxy property reads describe opaque execution, not reference source. Initial malformed identity inputs and accumulated raw router subscribers retained outside final run. No complete native claim.",
     "completeCoverage": false
-  }
+  },
+  "postAuthoringSupplementalObservations": [
+    {
+      "name": "state-idempotence",
+      "sha256": "259e5561850aa6bfc064efd3b6dffee950734060e5ef8a0fbf2a36adcaf497be",
+      "cases": 8,
+      "scope": "Opaque execution of exact historical baseline after initial independent authoring; body not printed; first mismatches retained."
+    },
+    {
+      "name": "prewarm",
+      "sha256": "15a92315e7554ad958d20055a35abf804dc7032fbe3a4bfe90928b60873670a9",
+      "cases": 17,
+      "scope": "Opaque execution of exact historical baseline after initial independent authoring; body not printed; first mismatches retained."
+    }
+  ]
 }

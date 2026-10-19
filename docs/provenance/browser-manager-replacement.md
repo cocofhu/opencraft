@@ -35,8 +35,9 @@ No repository tests or observation harness are added; update existing integrity
 assertions only if required to retain historical digests separately from a new
 implementation lock. No reference Desktop implementation is authoring input.
 
-This is a requirements freeze and bounded candidate, not a completed replacement,
-current source classification or a rights conclusion. Prior author exposure is
+At the initial freeze this was a bounded candidate, not a completed replacement,
+current source classification or a rights conclusion. Subsequent implementation
+and verification are recorded below; this freeze is retained as history. Prior author exposure is
 recorded; strict author isolation and historical rights remain unverified. Eight
 unresolved groups remain open. No Join pin or running version is changed by this
 next candidate, which follows the separate Hook/dictation batch already in CI.
@@ -57,8 +58,10 @@ Opaque initial execution records nine router topics, window focus/document
 visibility handlers and sixteen default getter observations. Renderer/storage IDs
 are mocked as deterministic opaque identities. This initial sample does not
 exercise Host creation, asynchronous registration, transfer, destruction, media
-projection or the complete class. Those remain explicit observation work before
-implementation. No runtime implementation or source classification has changed.
+projection or the complete class. At that checkpoint those were explicit work
+before implementation; later Host/edge/Web runs below cover those exercised
+sequences. No runtime implementation or source classification changed at this
+initial observation checkpoint.
 
 ## State observations before authoring
 
@@ -75,8 +78,8 @@ that does not establish complete media projection behavior.
 
 This run still does not cover Host registration readiness, stale identity
 fencing, presentation transitions, prewarm/destroy or constructor router payloads.
-The class remains unchanged and those coverage gaps still block replacement
-authoring. State calls and default getters are evidence for only their exercised
+At this state-only checkpoint the class remained unchanged and those coverage
+gaps blocked authoring; later Host/edge/Web observations are recorded below. State calls and default getters are evidence for only their exercised
 inputs; they are not a claim that all sixty methods have been validated.
 
 ## Host and invocation inventory before authoring
@@ -97,8 +100,9 @@ uninstrumented runs. Default-only observations additionally cover the two
 browser-use predicates, but there is no claim of full branch coverage. The exact
 five not-invoked names and artifact digests are retained in the baseline. Host-
 request destruction, current-identity disposal and empty-conversation cleanup
-still need valid consumer-driven scenarios; constructor router payloads, rejected
-registration and genuine browser coordinator/guest behavior also remain gaps.
+needed valid scenarios at this checkpoint; later edge and actual Web consumer
+runs below address their exercised paths. Native guest behavior remains outside
+the recorded acceptance scope.
 A running counter is not completion evidence for those cases. No replacement
 implementation or current provenance classification has changed.
 
@@ -121,8 +125,9 @@ An additional consumer search includes scripts: the existing desktop browser
 smoke observes `isBrowserUseActive` after background inspection/capture. It must
 remain available and accurately release automation. This run does not execute
 that Electron smoke, native guest navigation/storage, full Workbench or employee
-sessions. The other lifecycle/router rejection gaps above remain explicit. No
-new repository harness or test is added and no implementation is authored yet.
+sessions. At this Web checkpoint no implementation had been authored; the later edge
+cases address registration/router rejection within their declared synthetic
+scope. No new repository harness or test is added.
 
 ## Final edge requirements before authoring
 
@@ -152,3 +157,49 @@ first differences. The historical module/class manifest stays immutable and the
 new module receives a separate implementation digest. Outside the selected class,
 only its obsolete copied-body annotation changes; no other implementation is
 selected by association with the feature.
+
+## Independent implementation and validation
+
+The selected class is independently implemented as a Host registry. Explicit
+per-Host attempt tokens and exact current Host references fence registration;
+public maps retain the observed storage, mount, automation, snapshot and transfer
+contracts. Prewarm release drops only the local marker for the standard guest
+port with no adoption registry; it does not destroy the logical Page. Factory
+bindings and suffix bytes are unchanged, except the two obsolete annotation
+lines. Historical manifest fields and all other manifest entries remain exactly
+unchanged; the current module has a separate digest. The adapter, Host, transition,
+preset and toolbar implementations are unchanged.
+
+The first complete comparison found 13 serialized state differences, 240 Host
+trace differences and 19 edge differences (many repeated downstream fields, not
+that many distinct defects). Corrections retain release-generation return values,
+notification counts, current/reference cleanup and transfer partition/route
+behavior. Subsequent post-authoring opaque checks extend coverage with seventeen
+prewarm cases and an eight-scene/336-call idempotence matrix. The latter first
+found 545 serialized differences, then 113: duplicate storage/cursor updates,
+activation cursor reset, null viewport disabling, repeated Host synchronization
+and media selection/route projection were corrected. All initial, state, Host,
+edge, prewarm and matrix outputs now exactly equal their full historical
+observations. First outputs and corrections remain separately retained. Those
+supplemental observations occurred after authoring; this is not strict author
+isolation or independent historical rights verification.
+
+The actual Chromium Web consumer repeats all ten frozen checkpoints with exact
+state equality, preserving the same iframe/document and edited draft through
+rapid switching, remount, live responsive resize, device viewport and floating
+presentation. Logical close and disposal remove frames/Hosts. This uses actual
+coordinator/Page/iframe/Host/transition implementations and local fixtures; it is
+not full Workbench, Electron/native guest or employee-session acceptance. No
+reference body or emitted-code diagnostics were printed during authoring.
+
+Validation: 39 existing browser/core/runtime/background/permission/preview-bridge/
+geometry/manager/provenance tests pass, Web types and typography/platform
+boundaries pass, and the official root Web build reports 791 runtime sources
+with zero compatibility issues. The first build incorrectly used the child
+workspace entry before its preview-bridge asset was built; it stopped on that
+missing artifact. The official root build includes this prerequisite and passes;
+the failed build log is retained. No repository test or harness is added; the
+existing integrity assertion now checks historical records separately from both
+current module locks and drops its obsolete class-parser branch/import. Eight
+unresolved groups remain; neighboring inventory and historical rights are not
+cleared. Upstream PR and Join source consumption remain distinct delivery steps.

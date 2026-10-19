@@ -151,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Four unresolved files: manager implementation, its historical source manifest, and two toolbar/host contracts; viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
+| `codex-browser-source-followup` | Three remaining inventory files: the historical source manifest and two toolbar/Host contracts; the explicitly attributed manager class, viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -540,8 +540,8 @@ The browser viewport drag helper had an explicit claim that its function bodies
 came from a named reference. Its complete small module is independently replaced
 after [frozen requirements and observed contracts](provenance/browser-viewport-resize-replacement.md).
 The [baseline](provenance/browser-viewport-resize-baseline.json) retains its exact
-historical blob/hash and source annotation. Preset facts, toolbar behavior,
-the manager implementation is unchanged. Presentation handoff was subsequently
+historical blob/hash and source annotation. At that viewport checkpoint, preset facts, toolbar behavior and
+the manager implementation were unchanged. Presentation handoff was subsequently
 replaced as recorded below; the remaining browser group stays unverified. This bounded disposition does not clear historical
 commits or grant distribution rights to adjacent code.
 
@@ -550,7 +550,8 @@ commits or grant distribution rights to adjacent code.
 
 The complete explicitly source-attributed transition module is replaced from
 [frozen requirements and public observations](provenance/browser-transition-replacement.md).
-The manager, presets, toolbar and Host implementation are retained; the Host's
+At that transition checkpoint, the manager, presets, toolbar and Host
+implementations were retained; the Host's
 stale documentation comment is corrected. Owner/surface leases preserve painted
 continuity, acknowledgement, prewarm, cancellation and interaction ownership.
 Adversarial stale-reference/generation cases are fenced and separately documented
@@ -626,6 +627,20 @@ occurrence behavior, counters, entering flags and session CAS outputs are retain
 The first empty-string mismatch evidence and historical hashes remain available.
 Other identity/compiler/preprocessing regions and eight unresolved inventory groups
 remain open; this does not establish strict author isolation or historical rights.
+
+
+## Bounded browser Host registry (2026-10-20)
+
+[Only the explicitly copied manager class](provenance/browser-manager-replacement.md)
+is independently expressed from frozen contracts and opaque state, Host, router
+and actual Web consumer observations. The current module lock is separate from
+immutable historical source/class digests. Storage/mount ownership, registration
+fencing, prewarm, transfer, automation and cleanup remain with this registry;
+existing adapter, Host, transition, presets and toolbar retain their own scope.
+Post-authoring state/idempotence and prewarm extensions, first differences and
+actual exposure are recorded. Eight unresolved groups remain open, including the
+three neighboring browser inventory files; no strict author isolation, native
+acceptance or historical rights clearance is claimed.
 
 
 ## Bounded Hook execution upsert (2026-10-20)
