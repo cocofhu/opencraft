@@ -12,47 +12,75 @@ const labels: Record<string,string> = {
   "iphone-15-pro-max":"iPhone 15 Pro Max","pixel-8":"Pixel 8","iphone-15-pro":"iPhone 15 Pro",
   "samsung-galaxy-s24-ultra":"Galaxy S24 Ultra","iphone-se":"iPhone SE",
 };
-/** Source behavior: renderBrowserDeviceToolbarInput and DeviceToolbar in
- * ref/codex/lazy/app-initial/render-browser-sidebar-comment-overlay.js.
- * React compiler caches/i18n wrappers removed; product tokens/icons substituted.
- */
+/** OpenCraft toolbar projection; bounded history: docs/provenance/browser-toolbar-replacement.md. */
 export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
   mode:DeviceMode;onChange(mode:DeviceMode):void;onClose():void;zoom:number;onZoom?: (percent:number)=>void;
 }) {
-  const custom = (patch:Partial<DeviceMode>) => onChange({...mode,...patch,type:"device",presetId:"responsive"});
-  const presetId = mode.type==="device" && DEVICE_PRESETS.some(p=>p.id===mode.presetId) ? mode.presetId : "responsive";
-  return <div className="browser-device-toolbar" role="toolbar" aria-label="Device toolbar">
-    <label className="browser-device-toolbar__label" htmlFor="browser-device-preset">Dimensions:</label>
-    <select id="browser-device-preset" aria-label="Device preset" value={presetId} onChange={event=>{
-      const preset=DEVICE_PRESETS.find(p=>p.id===event.currentTarget.value)!;
-      onChange({type:"device",presetId:preset.id,width:preset.id==="responsive"?mode.width:preset.width,height:preset.id==="responsive"?mode.height:preset.height});
-      onZoom?.(100);event.currentTarget.blur();
-    }}>
-      {DEVICE_PRESETS.map(p=><option key={p.id} value={p.id}>{labels[p.id]??p.id}</option>)}
-    </select>
-    <div className="browser-device-toolbar__dimensions">
-      <DimensionInput label="Viewport width" value={mode.width} min={240} onChange={width=>custom({width})}/>
-      <span aria-hidden="true">×</span>
-      <DimensionInput label="Viewport height" value={mode.height} min={160} onChange={height=>custom({height})}/>
+  const selection = mode.type === "device" && DEVICE_PRESETS.some(item => item.id === mode.presetId)
+    ? mode.presetId : "responsive";
+  const editDimension = (axis: "width" | "height", dimension: number) => {
+    onChange({...mode, [axis]: dimension, type: "device", presetId: "responsive"});
+  };
+  return (
+    <div className="browser-device-toolbar" role="toolbar" aria-label="Device toolbar">
+      <label className="browser-device-toolbar__label" htmlFor="browser-device-preset">Dimensions:</label>
+      <select id="browser-device-preset" aria-label="Device preset" value={selection} onChange={event => {
+        const preset = DEVICE_PRESETS.find(item => item.id === event.currentTarget.value);
+        if (preset) {
+          const dimensions = preset.id === "responsive" ? mode : preset;
+          onChange({type: "device", presetId: preset.id, width: dimensions.width, height: dimensions.height});
+          onZoom?.(100);
+        }
+        event.currentTarget.blur();
+      }}>
+        {DEVICE_PRESETS.map(preset => <option key={preset.id} value={preset.id}>{labels[preset.id] ?? preset.id}</option>)}
+      </select>
+      <div className="browser-device-toolbar__dimensions">
+        <DimensionInput label="Viewport width" value={mode.width} min={240} onChange={value => editDimension("width", value)}/>
+        <span aria-hidden="true">×</span>
+        <DimensionInput label="Viewport height" value={mode.height} min={160} onChange={value => editDimension("height", value)}/>
+      </div>
+      <button type="button" aria-label="Rotate viewport" title="Rotate viewport" onClick={() => {
+        onChange({...mode, width: mode.height, height: mode.width});
+      }}><RotateCcw size={16}/></button>
+      {onZoom ? <select className="browser-device-toolbar__zoom" aria-label="Browser zoom" value={zoom} onChange={event => {
+        onZoom(Number(event.currentTarget.value));
+        event.currentTarget.blur();
+      }}>
+        {[50,75,100,125,150,200].map(percent => <option key={percent} value={percent}>{percent}%</option>)}
+      </select> : null}
+      <button type="button" className="browser-device-toolbar__close" aria-label="Close device toolbar" title="Close device toolbar" onClick={onClose}><X size={14}/></button>
     </div>
-    <button type="button" aria-label="Rotate viewport" title="Rotate viewport" onClick={()=>onChange({...mode,width:mode.height,height:mode.width})}><RotateCcw size={16}/></button>
-    {onZoom?<select className="browser-device-toolbar__zoom" aria-label="Browser zoom" value={zoom} onChange={event=>{onZoom(Number(event.currentTarget.value));event.currentTarget.blur();}}>
-      {[...new Set([50,75,100,125,150,200,zoom])].sort((a,b)=>a-b).map(value=><option key={value} value={value}>{value}%</option>)}
-    </select>:null}
-    <button type="button" className="browser-device-toolbar__close" aria-label="Close device toolbar" title="Close device toolbar" onClick={onClose}><X size={14}/></button>
-  </div>;
+  );
 }
+
 function DimensionInput({label,value,min,onChange}:{label:string;value:number;min:number;onChange(value:number):void}) {
-  const [draft,setDraft]=useState<string|null>(null);
+  // Local text belongs to the focused edit; numeric mode remains parent-owned.
+  const [draft, setDraft] = useState<string | null>(null);
   return <input className="browser-device-toolbar__input" aria-label={label} type="number" min={min} max={4096}
-    value={draft??String(value)} onFocus={()=>setDraft(String(value))}
-    onChange={event=>{
-      setDraft(event.currentTarget.value);
-      const number=event.currentTarget.valueAsNumber;
-      if(Number.isFinite(number)&&number>=min&&number<=4096)onChange(Math.round(number));
+    value={draft ?? String(value)}
+    onFocus={() => setDraft(String(value))}
+    onChange={event => {
+      const text = event.currentTarget.value;
+      setDraft(text);
+      if (text.trim() === "") return;
+      const dimension = Number(text);
+      if (Number.isFinite(dimension) && dimension >= min && dimension <= 4096) {
+        onChange(Math.round(dimension));
+      }
     }}
-    onBlur={event=>{setDraft(null);const n=event.currentTarget.valueAsNumber;if(Number.isFinite(n))onChange(Math.min(4096,Math.max(min,Math.round(n))));}}
-    onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();event.currentTarget.blur();}if(event.key==="Escape"){setDraft(null);event.currentTarget.blur();}}}/>;
+    onBlur={event => {
+      const text = event.currentTarget.value;
+      if (text.trim() !== "") {
+        const dimension = Number(text);
+        if (Number.isFinite(dimension)) onChange(Math.max(min, Math.min(4096, Math.round(dimension))));
+      }
+      setDraft(null);
+    }}
+    onKeyDown={event => {
+      if (event.key === "Enter") event.preventDefault();
+      if (event.key === "Enter" || event.key === "Escape") event.currentTarget.blur();
+    }}/>
 }
 type Edge="left"|"right"|"bottom"|"bottom-left"|"bottom-right";
 export function BrowserDeviceHandles({mode,slot,onChange}:{mode:DeviceMode;slot:RefObject<HTMLDivElement|null>;onChange(mode:DeviceMode):void}) {

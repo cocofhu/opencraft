@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "base": "3e14804a1fc1a02b2d0f600afda6645754884171",
+  "path": "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
+  "historicalModuleSha256": "1dccc26b8a4563c8ce0bfd9f8686870f3622f546641d8ee25d6d36c50f2a0093",
+  "selectedRegions": [
+    {
+      "name": "BrowserDeviceToolbar",
+      "start": 1188,
+      "end": 3357,
+      "sha256": "65e2924e3a016cba71685b2d86d6e1f0d44a05ad11b1603b84734ededa1e6b91",
+      "parameters": [
+        {
+          "name": "{mode,onChange,onClose,zoom,onZoom}",
+          "type": "{\n  mode:DeviceMode;onChange(mode:DeviceMode):void;onClose():void;zoom:number;onZoom?: (percent:number)=>void;\n}"
+        }
+      ]
+    },
+    {
+      "name": "DimensionInput",
+      "start": 3358,
+      "end": 4261,
+      "sha256": "12689485b1c19fa4a0048b291864067c90265d5b1b04e2803e623835de4e19a8",
+      "parameters": [
+        {
+          "name": "{label,value,min,onChange}",
+          "type": "{label:string;value:number;min:number;onChange(value:number):void}"
+        }
+      ]
+    }
+  ],
+  "unchangedRegion": [
+    {
+      "name": "BrowserDeviceHandles",
+      "start": 4326,
+      "end": 7645,
+      "sha256": "95341a5468113a37a9b494f980021e56c6ba3a7a1d770658ce6596f66a2ed651",
+      "parameters": [
+        {
+          "name": "{mode,slot,onChange}",
+          "type": "{mode:DeviceMode;slot:RefObject<HTMLDivElement|null>;onChange(mode:DeviceMode):void}"
+        }
+      ]
+    }
+  ],
+  "sourceAnnotation": [
+    "Source behavior: renderBrowserDeviceToolbarInput and DeviceToolbar in ref/codex/lazy/app-initial/render-browser-sidebar-comment-overlay.js.",
+    "React compiler caches/i18n wrappers removed; product tokens/icons substituted."
+  ],
+  "strictIsolation": false,
+  "status": "bounded replacement implemented; validation and upstream delivery pending",
+  "observations": [
+    {
+      "path": "static-observations.json",
+      "sha256": "a8dd9a1de62e7f2c5da2172a197496d7d7f82a086646ba76fe743a41637101a4",
+      "cases": 136
+    },
+    {
+      "path": "browser-before/observations.json",
+      "sha256": "70200f0307f89c3091ed1ad7f9b2ecedc2c21c191a84a8b020bdcecb1623047e",
+      "scenes": 4,
+      "checkpoints": 64,
+      "actualChromium": true,
+      "nativeVerified": false
+    },
+    {
+      "path": "matrix-before/observations.json",
+      "sha256": "9d1c18f8fb641b84f7a736eb76c6125b688faa30cec90f136f449efe9a783be3",
+      "cases": 258,
+      "actualChromium": true,
+      "performedBeforeAuthoring": true
+    },
+    {
+      "path": "matrix-noack-before/observations.json",
+      "sha256": "8fd8364f15994af25e965e9cff59020cddb4ee6fb75aa04609d7503b3fb690c1",
+      "cases": 258,
+      "actualChromium": true,
+      "performedBeforeAuthoring": true,
+      "parentAcknowledges": false
+    }
+  ],
+  "implementation": {
+    "moduleSha256": "fd055dc28938e87d79a7edbe3cb2b0c1724a70d8102493898040f08a4b45b5b9",
+    "selectedRegions": [
+      "BrowserDeviceToolbar",
+      "DimensionInput"
+    ],
+    "unchangedRegion": "BrowserDeviceHandles",
+    "requirementsCommit": "fbfbed4",
+    "strictIsolation": false
+  }
+}
