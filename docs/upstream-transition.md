@@ -118,20 +118,18 @@ this migration does not claim a device/native build or change application behavi
   Real Chromium still crosses two TLS-connected Hubs, rejects anonymous identity,
   checks target membership and observes live revocation; the transit Relay uses
   the unmodified public artifact. These identities and target content are fixtures.
-- Shared-package snapshot verification still detects existing Collaboration CSS
-  drift: the downstream snapshot uses typography tokens while the source and recorded
-  fingerprint describe the older stylesheet. This was reproduced on the clean
-  aggregation baseline. Regenerating it would revert current product styling;
-  preserve the current UI until source/overlay ownership is resolved. A passing
-  core gate does not substitute for this separate failing snapshot check.
+- Removed product Collaboration sources and their snapshot checks do not define
+  a current core capability. Historical migration evidence remains with the
+  downstream archive; product removal is not a claim that Actor/Hub messaging
+  has been implemented.
 - Web Application/Supervisor now consume the trusted `@opencraft/client-product`
-  lifecycle rather than creating a the downstream product account. The public entry selects no
+  lifecycle rather than creating a downstream product account. The public entry selects no
   private product. Downstream explicitly selects a local composition using
   `OPENCRAFT_CLIENT_PRODUCT_ENTRY`; the private client package owns early login
   callbacks, one account, ordered platform/Hermes activation, embedded preflight
-  and optional Collaboration descriptors. Its borrowed cache port preserves
+  and its declared optional features. Its borrowed cache port preserves
   product credential namespaces and profile hydration behavior. The private client
-  and Collaboration plugin sources, manifests and tests are downstream-owned in
+  and optional product plugin sources, manifests and tests are downstream-owned in
   `products/<product>/plugins`; the public workspace no longer installs those packages.
   Platform/Hermes and the account SDK now live in downstream `products/<product>`
   as well. Public workspace manifests and locks no longer install those six
@@ -292,16 +290,17 @@ edits and invalid receipts are rejected rather than overwritten.
 The downstream-owned ordered patch manifest references reachable ordinary local
 commits, with source and resolved trees recorded separately. A tested local fix
 can be registered with `record-patch` while its upstream PR remains pending or
-is declined; long-lived product patches do not require an upstream PR. `plan`
+is declined. Product implementation belongs in downstream composition; a local
+core patch is an adoption bridge, not a second long-lived product core. `plan`
 replays the stack using three-way tree merges in a disposable repository.
 Conflicts report the patch and paths and leave the destination unchanged.
 Imports carrying patches require the reviewed `--expected-resolved-tree` too.
 `verify` checks full reconstruction, not just changed files. After the pinned
 upstream actually contains a fix, `retire-patch` permits removal only if the
 remaining stack still reproduces the current source. A merged PR alone is not
-evidence that the currently pinned version contains it. Automatic conflict
-adaptation and automatic deployment-worker verification are not implemented by
-this tool. Normal functional validation, downstream review, integration and
+evidence that the currently pinned version contains it. Automatic conflict adaptation is not implemented by this tool. Deployment
+owners can invoke its fixed-commit reconstruction verifier before deciding
+whether to build or skip an update; the tool itself does not deploy. Normal functional validation, downstream review, integration and
 deployment remain separate operations; none may discard an unrecorded change.
 
 The tool has completed the first actual accepted-main import and a subsequent

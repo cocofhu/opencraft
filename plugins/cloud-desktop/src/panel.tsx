@@ -33,7 +33,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
     const controlAction = useDesktopControlAction(controller, snapshot.control === "observing" ? "take" : "stop");
     const surfaceAction = useDesktopControlAction<HTMLDivElement>(controller, "take", true);
     /** A read-only lease keeps the action clickable. One click = one takeover
-     * reconnect (ctl preempts the current writer); never a timed polling loop.
+     * reconnect (the provider owns preemption); never a timed polling loop.
      * The intent lives only for that reconnected viewer and only while the
      * user stays on this panel: focus leaving, an outside interaction or
      * window deactivation cancels it, so a late grant can never pull the user

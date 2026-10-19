@@ -58,8 +58,8 @@ The Vite renderer is the precision desktop surface used by browsers and
 Electron. The default Expo entry composes the existing RN Workbench, presentation runtime
 and direct WebSocket Host for iOS, Android and Expo Web. Host configuration uses
 `EXPO_PUBLIC_APPSERVER_WS_URL` and `EXPO_PUBLIC_APPSERVER_HOST_ID`; a physical
-device needs a reachable Host endpoint. It does not instantiate a the downstream product account.
-The explicit downstream the downstream product entry retains its Router, native login, Bot
+device needs a reachable Host endpoint. It does not instantiate a downstream product account.
+The explicit downstream product entry retains its Router, native login, Bot
 navigation and packaged frontend DOM runtime. The product runner selects trusted
 local entry/config files for the whole Metro/Gradle/Xcode build; core Metro only
 replaces the root entry import and delegates every other request to its existing
@@ -1537,71 +1537,20 @@ A plain same-origin Web Worker is not advertised as a security boundary. Full
 rationale and the migration plan are defined in
 [`plugin-architecture.md`](./plugin-architecture.md).
 
-The Web application owns exactly one `LightVelaAccountService`, whose source,
-OAuth lifecycle, account View and `platformAccount` contribution belong to
-`lightvela.platform`. `lightvela.hermes` and `lightvela.collaboration` borrow
-that same account authority; deactivating either consumer must not sign out or
-dispose the account. Collaboration uses the account's authenticated raw-request
-port for its OpenAPI responses, while Hermes retains the envelope-aware request
-path. No consumer creates a second token store or interprets another extension's
-resource loading failure as logout.
+Trusted product composition owns its account service, identity-provider adapters
+and private service clients. Optional engine/UI consumers borrow that authority;
+retiring a consumer does not sign out or dispose the account. Core owns the
+Application lifetime and invokes the product lifecycle through
+`ClientWorkbenchProduct`. Public builds do not instantiate a product account.
 
-`lightvela.collaboration` owns one routed Collaboration Workspace and the Human
-Tencent IM Web data plane for Server, Channel, private Group and Member surfaces.
-Its UI, service implementations and Tencent adapters are shared through
-`shared/vela-collaboration-web`. The extension preserves its activation owner;
-the downstream `/agents/labs/collaboration` laboratory provides a separate
-account-bound owner through the same request port. It is default-hidden behind
-`show()` and only eligible when the site's selected authority is
-the Beijing test API. It does not borrow Agent entitlement or Bot execution,
-switch Shanghai credentials to Beijing, or create another token store. Closing
-the laboratory disposes its IM scope; reopening waits for prior logout.
-The current Human is read from `GET /v1/collaboration/me/profile`; the delegated
-actor profile does not require a locally stored email. The legacy email-based
-`/me` response remains available under its published contract.
-Its activation-scoped service obtains a short-lived
-session from `POST /v1/me/im/session`, logs in through `@tencentcloud/chat`, and
-owns SDK close. View mount/unmount only subscribes to the service snapshot; it
-cannot recreate or dispose the IM connection. This conversation state is
-separate from AppServer Agent conversations and does not register a
-`BotContribution`.
-Within that activation, services are scoped to the shared account's
-`authGeneration`. An identity change immediately invalidates the old Chat and
-directory, replaces the Workspace and View state, and waits for the previous
-SDK owner to finish logout before logging in the new Human. Late mutations
-from a disposed scope cannot navigate the new View. The extension only
-unsubscribes from account authority on disposal; it never disposes or signs out
-the shared account. A send in progress remains locked to its conversation even
-when the user leaves and reopens that conversation.
-The empty Workspace offers Server creation through the same authenticated
-account request port; one idempotency key is retained across uncertain
-submissions, and both immediate and accepted creation responses lead to the
-Server's default Channel only once its IM state is ready. A transient failed IM
-login can be retried without creating a second connection owner. Channel and
-private Group drafts are scoped to their conversation identities; older
-message pages are loaded from Tencent IM cursors rather than a second message
-store.
-An Owner or Admin can create a one-use, 24-hour member invite from the Server
-directory. An account with no Server can accept the join link with a retained
-idempotency key and navigate to the returned Server ID. The one-time token stays
-in View state, is cleared on Server switch, and is never placed in a route or
-log. Both account and IM-session responses are checked for their required
-fields so a malformed HTTP 200 error envelope cannot masquerade as a valid
-Human account or Tencent IM credential.
-Realtime messages received while the initial history page is in flight are
-merged with that page for the active conversation, never replaced by it;
-switching conversations invalidates late history results.
-An uncertain text-send outcome retains the original client request ID for
-that conversation. The View presents a confirmation action, which reconciles
-the existing Tencent IM attempt before allowing another send; it cannot
-silently turn an unknown result into a second message.
-Failed root Channel initialization is rendered as a failed state rather than
-indefinite preparation; the View keeps sending disabled until IM readiness.
-An explicit API base/region in standalone Web config selects the account
-authority but must not activate the blocking embedded-Host account preflight.
-Only a configured embedded Host performs that preflight. An expired standalone
-session leaves the workbench running and makes Collaboration offer a sign-in
-and retry path instead of crashing the application.
+Account changes invalidate product credential/cache scopes and retire old
+consumer work. Late reads or mutations cannot update a replacement scope.
+Resource-loading failures are not evidence of logout, and independent consumers
+do not create another token store. Private service endpoints, IM channels and
+product business policies are documented with their downstream implementation,
+not as core platform capabilities. Retired product features do not establish an
+implemented core collaboration channel. Core Actor/Hub collaboration remains
+subject to the implementation limits in the charter above.
 
 `AgentCapabilityRuntime` is an optional AI-facing consumer of that platform. It exposes
 searchable capabilities rather than packages, progressively loads model
@@ -2898,13 +2847,11 @@ contract](execution-ownership.md#schedule-catalog-projection).
 
 ## Retired implementation audit (2026-10-16)
 
-The account/environment presentation implementation belongs to
-`plugin-lightvela-platform`. Tests and browser fixtures import that owner directly;
-unused Hermes source-path forwarding files, the prototype latest-WebSocket
-wrapper and the removed Environment-page hook have been deleted. The used Hermes
-account service/contract exports remain adapters for existing renderer and native
-consumers; they do not create a second account authority. Existing persisted
-account/region keys and legacy read migrations are retained.
+Private account/environment presentation and its product-facing fixtures are
+owned by downstream composition. Removed forwarding wrappers and prototype
+connection hooks are not public APIs. Product compatibility exports and stored
+account/region identifiers remain with their actual downstream owner; their
+presence does not create another core account authority.
 
 The current Embedded Workbench uses Host readiness, binding and Conversation
 capabilities. Its old standalone Bot Chat write-lease class had no production

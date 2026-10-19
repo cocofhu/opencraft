@@ -22,6 +22,27 @@ small reusable port upstream when the existing contract cannot express a real
 consumer need; keep the product implementation downstream. Do not import app
 internals to extend the downloaded Extension API.
 
+## Move a downstream capability upstream
+
+Start from the actual product call path and identify who owns identity,
+credentials, execution and disposal. Put the reusable contract in core; keep the
+product adapter and its service policy with the downstream consumer. A generic
+port is useful only when that consumer can preserve its behavior through it.
+
+Review the complete consumer migration before removing an old core adapter.
+The downstream build must select the replacement explicitly, and public builds
+must work without the private workspace. Preserve durable identifiers, saved
+preferences and compatibility readers unless a separate migration changes them.
+An absent product builtin is unavailable in that product, not a failed download.
+
+Keep source acceptance separate from downstream adoption. An upstream merge does
+not update a consumer's fixed revision. Advance that revision, reconcile every
+local patch against the accepted source, validate the product, then retire only
+patches whose behavior is actually present. Retain the original commit and PR
+links; do not maintain a second editable implementation or discard local work to
+make an upgrade clean. Use existing focused checks and actual client evidence
+for the affected boundary rather than inventing another migration harness.
+
 ## Develop and validate
 
 Read [AGENTS.md](AGENTS.md) for ownership and [the build matrix](docs/build-matrix.md)
