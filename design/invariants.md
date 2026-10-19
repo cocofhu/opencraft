@@ -1,5 +1,11 @@
 # 工作区不变量
 
+## Discrete slider fill
+
+The shared track owns capsule clipping. Its selected range has a square inner
+edge beneath the circular thumb, so the accent fills the entire track to the
+thumb without a rounded notch. Radix retains value, pointer and keyboard ownership.
+
 ## Composer input action icons
 
 The shared voice action consumes the design-system composer input icon role:
