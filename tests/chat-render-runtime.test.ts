@@ -22,6 +22,7 @@ import { ChatEnhancementService } from "../packages/chat-render-web/src/services
 import {
   codeBlockWrapPreference,
   codeLanguageLabel,
+  isSvgCodeSnippet,
   resolveCodeSurfacePolicy,
 } from "../packages/chat-render-web/src/renderers/code/code-block-model";
 import {
@@ -257,7 +258,7 @@ test("file citations and mentions share the same display target on Web and Nativ
   assert.equal(chatReferenceTarget({ ...mention, text: "$workspace", referenceKind: "variable" }), null);
 });
 
-test("code blocks share Codex word-wrap preference and normalize language labels", () => {
+test("code blocks share word-wrap preference and normalize language labels", () => {
   let publications = 0;
   const unsubscribe = codeBlockWrapPreference.subscribe(() => {
     publications += 1;
@@ -279,6 +280,36 @@ test("code blocks share Codex word-wrap preference and normalize language labels
   assert.equal(resolveCodeSurfacePolicy({ code: "<svg></svg>", language: "svg" }).wrap, "off");
   codeBlockWrapPreference.set(false);
   unsubscribe();
+});
+
+test("code wrap observers publish only changes and can release duplicate callback membership", () => {
+  codeBlockWrapPreference.set(false);
+  const observed: boolean[] = [];
+  const listener = () => observed.push(codeBlockWrapPreference.getSnapshot());
+  const first = codeBlockWrapPreference.subscribe(listener);
+  const duplicate = codeBlockWrapPreference.subscribe(listener);
+  try {
+    codeBlockWrapPreference.set(false);
+    codeBlockWrapPreference.set(true);
+    codeBlockWrapPreference.set(true);
+    assert.deepEqual(observed, [true]);
+    first();
+    codeBlockWrapPreference.toggle();
+    assert.deepEqual(observed, [true]);
+    assert.equal(codeBlockWrapPreference.getSnapshot(), false);
+  } finally {
+    first(); duplicate(); codeBlockWrapPreference.set(false);
+  }
+});
+
+test("SVG preview policy needs an explicit markup language and wins over forced wrapping", () => {
+  assert.equal(isSvgCodeSnippet("\n<SVG viewBox='0 0 1 1'></SVG>", " XML "), true);
+  for (const code of ["<svgwhatever>", "text <svg >", "<!--comment--><svg >", "<?xml?><svg >"]) {
+    assert.equal(isSvgCodeSnippet(code, "svg"), false);
+  }
+  assert.equal(isSvgCodeSnippet("<svg >", null), false);
+  assert.equal(resolveCodeSurfacePolicy({code: "<svg >", language: "html", forceWrap: true}).wrap, "off");
+  assert.equal(codeLanguageLabel(" Unknown-Language ", false), " Unknown-Language ");
 });
 
 test("syntax highlighting preserves the permanent code-box geometry", () => {

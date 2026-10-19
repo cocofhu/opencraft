@@ -1,22 +1,3 @@
-let codeWrapEnabled = false;
-const codeWrapListeners = new Set<() => void>();
-
-export const codeBlockWrapPreference = {
-  getSnapshot: () => codeWrapEnabled,
-  subscribe(listener: () => void) {
-    codeWrapListeners.add(listener);
-    return () => codeWrapListeners.delete(listener);
-  },
-  set(value: boolean) {
-    if (value === codeWrapEnabled) return;
-    codeWrapEnabled = value;
-    for (const listener of codeWrapListeners) listener();
-  },
-  toggle() {
-    codeBlockWrapPreference.set(!codeWrapEnabled);
-  },
-};
-
 export type CodeBlockWrapPolicy = "off" | "always" | "user-controlled";
 export type CodeSurfaceVariant = "default" | "preview";
 
@@ -32,49 +13,73 @@ export interface ResolveCodeSurfacePolicyOptions {
   readonly variant?: CodeSurfaceVariant;
 }
 
-export function isSvgCodeSnippet(code: string, language: string | null): boolean {
-  const normalized = language?.trim().toLowerCase() ?? "";
-  return (normalized === "svg" || normalized === "xml" || normalized === "html")
-    && /^\s*<svg(?:\s|>)/iu.test(code);
-}
-
-/** Source-faithful policy boundary from Codex's CodeBlockRendererSwitch. */
-export function resolveCodeSurfacePolicy({
-  code,
-  forceWrap = false,
-  language,
-  variant = "default",
-}: ResolveCodeSurfacePolicyOptions): CodeSurfacePolicy {
-  if (variant === "preview" || isSvgCodeSnippet(code, language)) {
-    return { variant, wrap: "off" };
-  }
+function createWrapPreference() {
+  const observers = new Set<() => void>();
+  let current = false;
+  const update = (value: boolean): void => {
+    if (value === current) return;
+    current = value;
+    for (const observer of observers) observer();
+  };
   return {
-    variant,
-    wrap: forceWrap ? "always" : "user-controlled",
+    getSnapshot: () => current,
+    subscribe(listener: () => void): () => void {
+      observers.add(listener);
+      return () => { observers.delete(listener); };
+    },
+    set: update,
+    toggle: () => update(!current),
   };
 }
 
-const languageLabels: Readonly<Record<string, string>> = {
-  arduino: "Arduino", bash: "Bash", c: "C", cpp: "C++", csharp: "C#", css: "CSS",
-  diff: "Diff", go: "Go", graphql: "GraphQL", ini: "INI", java: "Java",
-  javascript: "JavaScript", json: "JSON", kotlin: "Kotlin", less: "Less", lua: "Lua",
-  makefile: "Makefile", markdown: "Markdown", objectivec: "Objective-C", perl: "Perl",
-  php: "PHP", "php-template": "PHP template", plaintext: "Plain text", python: "Python",
-  "python-repl": "Python REPL", r: "R", ruby: "Ruby", rust: "Rust", scss: "SCSS",
-  shell: "Shell", sql: "SQL", swift: "Swift", typescript: "TypeScript", vbnet: "Visual Basic .NET",
-  wasm: "WebAssembly", xml: "XML", yaml: "YAML",
-};
+/** One observable preference shared by code surfaces on each client. */
+export const codeBlockWrapPreference = createWrapPreference();
 
-const languageAliases: Readonly<Record<string, string>> = {
-  "c#": "csharp", "c++": "cpp", cs: "csharp", gql: "graphql", html: "xml",
-  js: "javascript", jsx: "javascript", md: "markdown", objc: "objectivec", patch: "diff",
-  py: "python", rb: "ruby", rs: "rust", sh: "bash", text: "plaintext", ts: "typescript",
-  tsx: "typescript", vb: "vbnet", yml: "yaml", zsh: "bash",
-};
+const svgLanguages = new Set(["svg", "html", "xml"]);
+
+/** Presentation recognition only; the renderer owns preview safety. */
+export function isSvgCodeSnippet(code: string, language: string | null): boolean {
+  if (!svgLanguages.has(language?.trim().toLowerCase() ?? "")) return false;
+  const opening = code.trimStart();
+  if (opening.slice(0, 4).toLowerCase() !== "<svg") return false;
+  const delimiter = opening.charAt(4);
+  return delimiter === ">" || (delimiter !== "" && delimiter.trim() === "");
+}
+
+export function resolveCodeSurfacePolicy(options: ResolveCodeSurfacePolicyOptions): CodeSurfacePolicy {
+  const variant = options.variant ?? "default";
+  const fixedWidth = variant === "preview" || isSvgCodeSnippet(options.code, options.language);
+  const wrap: CodeBlockWrapPolicy = fixedWidth ? "off" : options.forceWrap ? "always" : "user-controlled";
+  return { variant, wrap };
+}
+
+const languageNames = new Map<string, string>();
+for (const [label, aliases] of [
+  ["TypeScript", ["ts", "tsx", "typescript"]],
+  ["JavaScript", ["js", "jsx", "javascript"]],
+  ["Python", ["py", "python"]],
+  ["Bash", ["sh", "bash", "zsh"]],
+  ["Shell", ["shell"]],
+  ["JSON", ["json"]],
+  ["YAML", ["yaml", "yml"]],
+  ["Markdown", ["md", "markdown"]],
+  ["XML", ["html", "xml"]],
+  ["Rust", ["rs", "rust"]],
+  ["Plain text", ["text", "plaintext"]],
+  ["C", ["c"]], ["C++", ["cpp", "c++"]], ["C#", ["cs", "csharp", "c#"]],
+  ["Go", ["go"]], ["Java", ["java"]], ["Kotlin", ["kotlin"]],
+  ["Swift", ["swift"]], ["Ruby", ["rb", "ruby"]], ["PHP", ["php"]],
+  ["SQL", ["sql"]], ["CSS", ["css"]], ["SCSS", ["scss"]],
+  ["Less", ["less"]], ["INI", ["ini"]],
+  ["WebAssembly", ["wasm"]], ["R", ["r"]], ["Perl", ["perl"]], ["Lua", ["lua"]], ["Diff", ["diff"]],
+  ["Makefile", ["makefile"]], ["GraphQL", ["graphql", "gql"]],
+  ["Visual Basic .NET", ["vb", "vbnet"]], ["Objective-C", ["objc", "objectivec"]],
+] as const) {
+  for (const alias of aliases) languageNames.set(alias, label);
+}
 
 export function codeLanguageLabel(language: string | null, open: boolean): string {
-  if (language === null || language.trim().length === 0) return open ? "" : "Code";
-  const normalized = language.trim().toLowerCase();
-  const canonical = languageAliases[normalized] ?? normalized;
-  return languageLabels[canonical] ?? language;
+  const key = language?.trim().toLowerCase() ?? "";
+  if (key.length === 0) return open ? "" : "Code";
+  return languageNames.get(key) ?? language!;
 }
