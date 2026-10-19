@@ -225,5 +225,23 @@
       "returnType": "{ readonly distanceFromBottomPx: number; readonly scrollState: TurnFollowState }",
       "sha256": "f7fc34392e689ed855be1313cb55b8d2ef630f13f06617deb26a851fbbf535e1"
     }
-  ]
+  ],
+  "beforePolicy": {
+    "sourceSha256": "ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472",
+    "head": "165e087ef557bfbfda831776c4c4fd24174a485c",
+    "counts": {
+      "initial": 846,
+      "transitions": 680,
+      "predicates": 15,
+      "snapshots": 289,
+      "resize": 1728,
+      "capacity": 144,
+      "overflow": 1728,
+      "restore": 25920,
+      "controllers": 90
+    },
+    "sha256": "f26f90dfc6477f96ef381a38952b47f8b40679763e69126b73dc0ee073942f0e",
+    "serialization": "Nonfinite numbers and negative zero tagged losslessly; no output fields omitted or normalized."
+  },
+  "requirementsCommit": "165e087ef557bfbfda831776c4c4fd24174a485c"
 }
