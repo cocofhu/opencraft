@@ -98,5 +98,12 @@
     ],
     "instrumentedOutputsEqualUninstrumented": true,
     "completeCoverage": false
+  },
+  "browserCoordinatorObservations": {
+    "sha256": "240b8b0ddf41880afc35c7e7e51e8065e449c2663a694682e651b09b47a7c202",
+    "sourceCommit": "ce7091d3a791cf8a05c4696a9c4bf1be8bbc1e99",
+    "steps": 10,
+    "scope": "Actual BrowserPresentationCoordinator, thin manager adapter, historical manager, independent Host/transition, WebBrowserPageRuntime and WebIframeSurfaceHost in local Chromium; real same-origin local iframe document/draft and layout. No Electron/native guest, full Workbench, employee session or remote website claim.",
+    "completeCoverage": false
   }
 }

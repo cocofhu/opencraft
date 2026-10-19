@@ -101,3 +101,25 @@ still need valid consumer-driven scenarios; constructor router payloads, rejecte
 registration and genuine browser coordinator/guest behavior also remain gaps.
 A running counter is not completion evidence for those cases. No replacement
 implementation or current provenance classification has changed.
+
+## Actual Web consumer baseline before authoring
+
+A local Chromium run exercises the actual BrowserPresentationCoordinator, thin
+manager adapter, historical manager, independent Host/transition, Page runtime
+and WebIframeSurfaceHost together. Ten checkpoints cover initial readiness,
+rapid A/B/C switching, returning to A with the same iframe/document and an edited
+draft, live responsive widths 390/600/430, a 393×852 device viewport, moving the
+same Page to floating presentation, logical close and full disposal. Assertions
+confirm the outgoing frames park, the selected frame paints, the original draft
+and Host identity survive remount, layout updates without replacing the Page,
+and close/disposal remove frames and manager Hosts. No browser page errors were
+observed; the floating-frame screenshot was inspected. This is the actual Web
+consumer and a real local same-origin iframe, not a fake manager/Host geometry
+model. The exact observation digest and source identity are frozen separately.
+
+An additional consumer search includes scripts: the existing desktop browser
+smoke observes `isBrowserUseActive` after background inspection/capture. It must
+remain available and accurately release automation. This run does not execute
+that Electron smoke, native guest navigation/storage, full Workbench or employee
+sessions. The other lifecycle/router rejection gaps above remain explicit. No
+new repository harness or test is added and no implementation is authored yet.
