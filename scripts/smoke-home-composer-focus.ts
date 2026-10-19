@@ -18,8 +18,9 @@ try {
   const context=await browser.newContext({viewport:{width:test.width,height:844},hasTouch:!desktop,isMobile:!desktop,reducedMotion:test.reduce?"reduce":"no-preference",...(!desktop?{userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1"}:{})});
   await context.addInitScript(({width})=>{(window as any).__name=(value:unknown)=>value;const v=new EventTarget();Object.assign(v,{height:844,width,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,"visualViewport",{value:v});(window as any).setViewport=(height:number,offsetTop:number)=>{Object.assign(v,{height,offsetTop});v.dispatchEvent(new Event("resize"));v.dispatchEvent(new Event("scroll"));};},{width:test.width});
   const page=await context.newPage(),errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
+  const inline=!desktop&&test.width===390&&!test.ordinary&&!test.reduce;
   page.setDefaultNavigationTimeout(90000);
-  await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${test.theme}${desktop?"&desktop":""}${test.ordinary?"&ordinary":""}${before?"&legacyHeader":""}`);
+  await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${test.theme}${inline?"&inline&toolbar":""}${desktop?"&desktop":""}${test.ordinary?"&ordinary":""}${before?"&legacyHeader":""}`);
   const editor=page.locator(".codex-composer-editor"),shell=page.locator(".codex-composer-shell");
   await editor.waitFor();await page.waitForTimeout(250);
   await editor.evaluate(el=>{(window as any).keptEditor=el;(el as HTMLElement).blur();});
@@ -29,7 +30,7 @@ try {
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
   assert(await page.locator(".codex-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
-  const formatting=await shell.evaluate(el=>getComputedStyle(el).display);
+  const formatting=await shell.evaluate(el=>getComputedStyle(el).display),emptyEditor=(await editor.boundingBox())!;
   await editor.pressSequentially("保留当前草稿");
   if(!desktop&&!test.ordinary)assert.equal(await shell.evaluate(el=>getComputedStyle(el).display),formatting,'typing keeps shell formatting context');
   const assertNativeSelection=async()=>{
@@ -43,10 +44,21 @@ try {
     assert.deepEqual(geometry.ancestors,[],'editor has no filtered ancestor');
     return geometry;
   };
+  if(inline){const typed=(await editor.boundingBox())!;assert(Math.abs(typed.x-emptyEditor.x)<=1&&Math.abs(typed.y-emptyEditor.y)<=1,'empty to typing preserves editor origin');}
   await assertNativeSelection();const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
+   if(inline){
+    const trigger=page.locator('.codex-composer-mode--depth');await trigger.tap();
+    const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
+    const fast=menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true});await fast.tap();
+    assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),await fast.getAttribute('aria-checked')==='true'?1:0);
+    const control=menu.locator('.ui-discrete-slider__control'),box=(await control.boundingBox())!;
+    await control.tap({position:{x:box.width-2,y:box.height/2}});
+    await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+    assert(await editor.evaluate(el=>el===document.activeElement),'keyboard plus depth/Fast preserves native editing focus');
+   }
    const send=page.locator(".codex-composer-submit");const visible=(await send.boundingBox())!;
    assert(visible.y>=top&&visible.y+visible.height<=top+height+1,`${label}: send clipped ${JSON.stringify({height,top,visible})}`);
    assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible,selection:await assertNativeSelection()});
