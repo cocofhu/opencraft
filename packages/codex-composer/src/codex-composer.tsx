@@ -1980,7 +1980,7 @@ export const CodexComposer = forwardRef<
       }}
       onKeyDownCapture={() => { inputPointerEntrance.current = null; }}
       className="codex-composer-stack"
-      data-composer-layout="auto-single-line"
+      data-composer-layout={chromeHeader != null ? "stacked" : "auto-single-line"}
       data-composer-empty={!composerSnapshot.hasContent && !showSuggestions
         && composerSnapshot.draft.attachments.length === 0
         && composerSnapshot.draft.lifecycle.phase === "editing" ? "true" : "false"}
