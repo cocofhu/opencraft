@@ -79,3 +79,16 @@ cancellation interpretation in the initial plan; retain caller identity and the
 actual outputs rather than inventing a new interaction contract. The full result
 hashes are locked in the baseline. Supplemental boundaries may be frozen before
 authoring; no implementation is changed in this checkpoint.
+
+
+## Supplemental boundaries frozen before authoring
+
+A further 258 actual Chromium cases run before implementation: 96 dimension
+cases (both fields, 12 raw numeric/empty inputs, live/blur/Enter/Escape endings),
+156 preset cases (six initial device/fit/unknown/custom/out-of-bound modes, all
+13 options, zoom supported/absent), and six rotations. Each case mounts a fresh
+component with a controlled parent. Complete props, callback order, raw input
+values/validity, focus and bubbled keyboard default-prevention are retained.
+There are no page errors. These are a finite compatibility baseline, not an
+exhaustive branch claim or a new authorization/validation owner. The selected
+source remains at its original hash; no implementation has yet been authored.

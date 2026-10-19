@@ -62,6 +62,13 @@
       "checkpoints": 64,
       "actualChromium": true,
       "nativeVerified": false
+    },
+    {
+      "path": "matrix-before/observations.json",
+      "sha256": "9d1c18f8fb641b84f7a736eb76c6125b688faa30cec90f136f449efe9a783be3",
+      "cases": 258,
+      "actualChromium": true,
+      "performedBeforeAuthoring": true
     }
   ]
 }
