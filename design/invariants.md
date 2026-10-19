@@ -1559,3 +1559,14 @@ it does not establish external account or channel delivery acceptance.
 Trusted local chat renderer extensions belong to the Application render runtime.
 They share its resource policies, roll back on startup failure, and release with
 the Application; they never mutate the default library fallback or other apps.
+
+### Relay server selection in Settings
+
+Relayed Web clients expose current deployment and Switch server under Settings →
+Servers, including narrow layouts. Shell application/account navigation does not
+duplicate it. Presence comes from validated browser deployment context, not an
+administrator role or the Headless administration build flag. Direct deployments
+without that context do not show an unsupported switch. Navigation uses the
+context selector path, including legacy deployments; target admission, remembered
+choice and per-tab execution ownership remain authoritative at their existing
+owners. Changing pages does not stop execution.

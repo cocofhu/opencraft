@@ -35,6 +35,13 @@ accept both deployment contexts, so upgrade target clients before activating a
 relay that emits the short path. Instance IDs, remembered choices and browser
 storage scopes remain unchanged.
 
+In a relayed Web Workbench, **Settings → Servers** shows the current server and
+provides **Switch server** to open the explicit chooser. This is the only Shell
+entry for switching servers; it is available to ordinary admitted members and
+does not require the server-administration build flag. Direct deployments without
+relay context do not advertise a chooser. The relay-supplied selector path also
+preserves compatibility with legacy deployments.
+
 The browser remembers the last choice under a key derived from verified provider
 and stable subject, within that entry origin. Future root visits reopen it only
 while target admission succeeds. Explicitly opening the chooser never redirects

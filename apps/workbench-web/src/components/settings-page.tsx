@@ -21,6 +21,8 @@ import { TouchDensitySetting } from "./touch-density-setting";
 import { WorkbenchShortcutList } from "./workbench-shortcut-help";
 import { ChatSettings } from "./chat-settings";
 import { HubNetworkSettings } from "./hub-network-settings";
+import { ServerSelectionSettings } from "./server-selection-settings";
+import { browserServerContext } from "../runtime/server-context";
 import { ExtensionLibrary } from "./extensions/extension-library";
 
 const appearanceMessages = defineMessages({
@@ -277,6 +279,14 @@ export function SettingsNavigation({
             <WorkbenchIcon name="keyboard" />
             <span><FormattedMessage id="shortcuts.title" defaultMessage="Keyboard shortcuts" /></span>
           </button>
+          {currentPlatform() === "web" && browserServerContext() ? <button
+            type="button"
+            aria-current={section === "servers" ? "page" : undefined}
+            onClick={() => onSectionChange("servers")}
+          >
+            <Server size={16} />
+            <span><FormattedMessage id="settings.servers" defaultMessage="Servers" /></span>
+          </button> : null}
           {currentPlatform() === "web" && hasManagedWebUpdates() ? <WebUpdatesNavigation selected={section === "updates"} onOpen={() => onSectionChange("updates")} /> : null}
           {currentPlatform() === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === 'true' ? <button type="button" aria-current={section === 'hub-network' ? 'page' : undefined} onClick={() => onSectionChange('hub-network')}>
             <Server size={16} /><span>{intl.formatMessage({ id: 'settings.hubNetwork', defaultMessage: 'Hub network' })}</span>
@@ -461,6 +471,7 @@ export function SettingsContent({
               {configurationMachine !== null ? <SettingsMachineIdentity machine={configurationMachine} platform={platform} onSectionChange={onSectionChange} /> : null}
               {section === "machines" ? <SettingsMachines machines={machines} platform={platform} onSectionChange={onSectionChange} />
               : selectedMachine !== null ? <SettingsMachine machine={selectedMachine} pages={extensionPages.filter(page => page.management === undefined)} platform={platform} onSectionChange={onSectionChange} />
+              : section === "servers" && platform === "web" && browserServerContext() ? <ServerSelectionSettings />
               : section === 'hub-network' && platform === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === 'true' ? <HubNetworkSettings />
               : section.startsWith("execution-") ? null
               : missingConfigurationHost || section.startsWith("machine-") ? <><SettingsPageHeader title={intl.formatMessage({ id: "settings.machines.unavailable", defaultMessage: "Machine unavailable" })} /><SettingsButton onClick={() => onSectionChange("machines")}>{intl.formatMessage({ id: "settings.machines.title", defaultMessage: "Machines" })}</SettingsButton></>
