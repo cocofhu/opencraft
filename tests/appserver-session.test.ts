@@ -1712,6 +1712,7 @@ test("durable paginated restore consumes full Turns without Item request waterfa
   const turns = [{ id: "new", itemsView: "full", items: [{ id: "answer", type: "agentMessage", text: "Latest answer" }] },
     { id: "old", itemsView: "full", items: [{ id: "question", type: "userMessage" }] }];
   const h = await createHarness({ hostKind: "durable", historyMode: "paginated",
+    historyRecovery: { mode: "replace", checkpoint: { epoch: "engine", nextSeq: 4 } },
     turnsPages: { null: { data: turns, nextCursor: "older" } } });
   try {
     const view = await h.runtime.resume.resume({ threadId: "thread-one" });
@@ -1739,6 +1740,7 @@ test("durable provider's advertised initial page restores without a second histo
 
 test("oversized durable full page retains adaptive Item pagination and all messages", async () => {
   const h = await createHarness({ hostKind: "durable", historyMode: "paginated", oversizedFullPage: true,
+    historyRecovery: { mode: "replace", checkpoint: { epoch: "engine", nextSeq: 4 } },
     turnsPages: { null: { data: [{ id: "tail", itemsView: "notLoaded" }], nextCursor: null } },
     itemsByTurnId: { tail: [{ id: "answer", type: "agentMessage", text: "Still available" }] } });
   try {
@@ -1762,5 +1764,19 @@ test("oversized advertised Resume page falls back without dropping history", asy
     assert.ok(requests[0]?.params.initialTurnsPage);
     assert.equal(requests[1]?.params.initialTurnsPage, undefined);
     assert.equal(h.requests.filter(r => r.method === "thread/turns/list").length, 1);
+  } finally { await h.close(); }
+});
+
+
+test("unadvertised durable providers preserve bounded Item reads", async () => {
+  const h = await createHarness({ hostKind: "durable", historyMode: "paginated",
+    turnsPages: { null: { data: [{ id: "tail", itemsView: "notLoaded" }], nextCursor: null } },
+    itemsByTurnId: { tail: [{ id: "answer", type: "agentMessage", text: "Kept" }] } });
+  try {
+    const view = await h.runtime.resume.resume({ threadId: "thread-one" });
+    assert.equal(view.turns[0]?.items?.[0]?.id, "answer");
+    assert.equal(h.requests.find(r => r.method === "thread/resume")?.params.initialTurnsPage, undefined);
+    assert.deepEqual(h.requests.filter(r => r.method === "thread/turns/list").map(r => r.params.itemsView), ["notLoaded"]);
+    assert.equal(h.requests.filter(r => r.method === "thread/items/list").length, 1);
   } finally { await h.close(); }
 });

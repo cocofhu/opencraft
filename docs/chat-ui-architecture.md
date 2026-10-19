@@ -950,8 +950,8 @@ execution policy. See [migration contract](../design/dsh-engine-migration.md).
 
 Durable paginated providers that explicitly advertise initial-page support may
 return the newest five full Turns in Resume. The Session consumes that page once;
-it does not issue another Turn/Item read for the same initial window. Other
-paginated durable providers receive one full-Turn page read. Headers-only replies
+it does not issue another Turn/Item read for the same initial window. Providers without this advertisement keep bounded per-Turn Item reads:
+a single large native full-Turn response can regress low-latency restoration. Headers-only replies
 retain the existing per-Turn Item reader, and transport frame-limit errors fall
 back to that reader's adaptive Item pages. An oversized merged Resume retries
 without the page before using this reader. Legacy providers keep full-history

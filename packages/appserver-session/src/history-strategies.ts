@@ -298,7 +298,10 @@ async function loadDurablePage(context: ResumeHistoryContext, cursor: string | n
     ? context.response.initialTurnsPage : null;
   let page: ThreadTurnsListResponse;
   try {
-    page = embedded == null ? await fetchTurns(context, cursor, context.pageSize, "full")
+    // Unadvertised native providers keep bounded Item reads: a single large
+    // full-Turn response can regress low-latency restore despite fewer RPCs.
+    const itemsView = context.supportsInitialTurnsPage === true ? "full" : "notLoaded";
+    page = embedded == null ? await fetchTurns(context, cursor, context.pageSize, itemsView)
       : requireTurnsPage(embedded, "thread/resume.initialTurnsPage");
   } catch (error) {
     // Retain the existing adaptive Item pagination for transport frame limits.
