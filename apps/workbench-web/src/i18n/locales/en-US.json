@@ -355,6 +355,7 @@
   "sidebar.catalog.error": "Couldn't load {server} conversations",
   "sidebar.catalog.showMore": "Show more",
   "sidebar.catalog.less": "Show less",
+  "sidebar.catalog.end": "No more conversations",
   "sidebar.catalog.more": "Load more",
   "sidebar.catalog.moreRemote": "Show more ({count} remote)",
   "sidebar.catalog.retry": "Retry",

@@ -30,6 +30,7 @@ import { SidebarThreadMenuStore, type OpenSidebarThreadMenu, type SidebarThreadM
 import { SidebarThreadRowMenu, SidebarThreadBadge } from "./sidebar-thread-menu";
 import { sidebarActivityDateHeadings, groupThreadsByTaskFlow, sidebarActivityMetadata } from "../sidebar-activity";
 import { NavigationIcon as SidebarContributionIcon, type NavigationAction as SidebarActionItem } from "./shell-navigation/navigation-action";
+import { useSidebarEndPull } from "./use-sidebar-end-pull";
 import { SidebarActivityItem } from "./sidebar-activity-item";
 import { SidebarNavigationItem } from "./sidebar-navigation-item";
 import { useShellPresentation, useDismissSidebarAfterSelection } from "./shell-presentation";
@@ -54,7 +55,7 @@ export interface SidebarCatalogItem {
   readonly initiallyCollapsed?: boolean;
   readonly content: ReactNode;
 }
-import { memo, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 interface SidebarProps {
   threads: readonly SidebarThread[];
@@ -117,16 +118,27 @@ const getDefaultGrouping = () => defaultGrouping;
 const PINNED_PAGE_SIZE = 6;
 const RECENT_PAGE_SIZE = 10;
 
-function SidebarPagination({ total, visibleCount, pageSize, onChange }: {
-  total: number; visibleCount: number; pageSize: number; onChange: (count: number) => void;
+function SidebarPagination({ total, visibleCount, pageSize, onChange, pullToLoad = false }: {
+  total: number; visibleCount: number; pageSize: number; onChange: (count: number) => void; pullToLoad?: boolean;
 }) {
   const intl = useIntl();
-  if (total <= pageSize) return null;
-  return <div className="sidebar-activity-pagination">
-    {visibleCount < total ? <button type="button" className="sidebar-activity-more" onClick={() => onChange(visibleCount + pageSize)}>
-      {intl.formatMessage({ id: "sidebar.catalog.showMore", defaultMessage: "Show more" })}
-    </button> : null}
-    {visibleCount > pageSize ? <button type="button" className="sidebar-activity-more" onClick={() => onChange(pageSize)}>
+  const [pending, startTransition] = useTransition();
+  const footerRef = useRef<HTMLDivElement>(null);
+  // Both inputs reveal one page of the existing catalog. The transition owns
+  // pending presentation; it does not introduce a second data/request owner.
+  const reveal = () => {
+    if (!pending && visibleCount < total) startTransition(() => onChange(visibleCount + pageSize));
+  };
+  useSidebarEndPull(footerRef, pullToLoad && !pending && visibleCount < total, reveal);
+  const moreLabel = intl.formatMessage({ id: "sidebar.catalog.showMore", defaultMessage: "Show more" });
+  return <div className="sidebar-activity-pagination" ref={footerRef} aria-busy={pending} hidden={total <= pageSize}>
+    {visibleCount < total ? <button type="button" className="sidebar-activity-more" onClick={reveal} disabled={pending} aria-label={moreLabel}>
+      {pending ? <LoaderCircle size={14} className="is-spinning" aria-hidden="true" /> : null}
+      <span>{moreLabel}</span>
+    </button> : pullToLoad ? <span className="sidebar-activity-empty" role="status">
+      {intl.formatMessage({ id: "sidebar.catalog.end", defaultMessage: "No more conversations" })}
+    </span> : null}
+    {visibleCount > pageSize ? <button type="button" className="sidebar-activity-more" disabled={pending} onClick={() => onChange(pageSize)}>
       {intl.formatMessage({ id: "sidebar.catalog.less", defaultMessage: "Show less" })}
     </button> : null}
   </div>;
@@ -270,7 +282,12 @@ export const Sidebar = memo(function Sidebar({
   const selectedGroupKey = activityGroups.find(group => group.threads.some(thread => `${thread.connectionHostId}:${thread.id}` === selectedThreadKey))?.key ?? null;
   const selectedVisible = visibleKeys.has(selectedThreadKey);
 
+  const selectionScrollRef = useRef({ selectedThreadKey, recentVisibleCount, pinnedVisibleCount });
   useLayoutEffect(() => {
+    const previous = selectionScrollRef.current;
+    selectionScrollRef.current = { selectedThreadKey, recentVisibleCount, pinnedVisibleCount };
+    if (previous.selectedThreadKey === selectedThreadKey
+      && (recentVisibleCount > previous.recentVisibleCount || pinnedVisibleCount > previous.pinnedVisibleCount)) return;
     const container = scrollContainerRef.current;
     const activeThread = container?.querySelector<HTMLElement>(
       ".sidebar-activity-item.is-selected",
@@ -295,7 +312,7 @@ export const Sidebar = memo(function Sidebar({
     ) {
       activeThread.scrollIntoView({ block: "nearest" });
     }
-  }, [selectedThreadKey, selectedGroupKey, selectedVisible]);
+  }, [selectedThreadKey, selectedGroupKey, selectedVisible, recentVisibleCount, pinnedVisibleCount]);
 
   return (
     <SidebarEntityDndCoordinator items={bots} layout={sidebarLayout}>
@@ -440,7 +457,7 @@ export const Sidebar = memo(function Sidebar({
                     return <div key={threadKey}>{dateHeading ? <div className="sidebar-activity-date">{dateHeading}</div> : null}{row}</div>;
                   })}
                   {!grouped && !group.collapsed && group.key === "pinned" ? <SidebarPagination total={flow.pinned.length} visibleCount={pinnedVisibleCount} pageSize={PINNED_PAGE_SIZE} onChange={setPinnedVisibleCount} /> : null}
-                  {!grouped && !group.collapsed && group.key === "recent" ? <SidebarPagination total={flow.recent.length} visibleCount={recentVisibleCount} pageSize={RECENT_PAGE_SIZE} onChange={setRecentVisibleCount} /> : null}
+                  {!grouped && !group.collapsed && group.key === "recent" ? <SidebarPagination total={flow.recent.length} visibleCount={recentVisibleCount} pageSize={RECENT_PAGE_SIZE} onChange={setRecentVisibleCount} pullToLoad /> : null}
                 </div>
               </section>
             ))}
