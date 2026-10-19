@@ -64,3 +64,16 @@ and compresses adjacent display projections using a serialized value tuple.
 It retains the exported data types and protocol event/source labels. This is a
 new implementation of the specified data transformation, not cosmetic renaming
 of the historical reducer. The earlier historical source is not reclassified.
+
+Validation after ordinary integration of the accepted skill-path replacement:
+
+- 169 focused hook/skill/chat-core/chat-runtime/provenance tests passed.
+- chat-core typecheck, platform/typography/activity boundaries and provenance
+  inventory integrity passed; five existing unverified groups remain unresolved.
+- Chromium `smoke-conversation-presentation.ts` passed both independent-module
+  scenarios and all existing checks, with no browser errors. Hook details show
+  two adjacent project observations as two runs, hide context, and retain the
+  failure; prose summary shows Ran=3, Blocked=2, Errors=1.
+- This is a real browser component with synthetic protocol input. No real engine,
+  account, Electron binary or Expo device verification is claimed. Both platforms
+  continue consuming the same exported core contract.
