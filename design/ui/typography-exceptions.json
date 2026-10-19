@@ -47,7 +47,7 @@
       "reviewWhen": "When this renderer or its sizing contract changes; remove stale entries automatically."
     },
     {
-      "file": "packages/design-system/src/typography.web.scss",
+      "file": "packages/design-system/src/typography-mixins.web.scss",
       "selector": "@mixin role($name, $tone: primary)",
       "property": "font-family",
       "value": "var(--typography-#{$name}-family)",
@@ -56,7 +56,7 @@
       "reviewWhen": "When this renderer or its sizing contract changes; remove stale entries automatically."
     },
     {
-      "file": "packages/design-system/src/typography.web.scss",
+      "file": "packages/design-system/src/typography-mixins.web.scss",
       "selector": "@mixin role($name, $tone: primary)",
       "property": "font-size",
       "value": "var(--typography-#{$name}-size)",
@@ -65,7 +65,7 @@
       "reviewWhen": "When this renderer or its sizing contract changes; remove stale entries automatically."
     },
     {
-      "file": "packages/design-system/src/typography.web.scss",
+      "file": "packages/design-system/src/typography-mixins.web.scss",
       "selector": "@mixin role($name, $tone: primary)",
       "property": "font-weight",
       "value": "var(--typography-#{$name}-weight)",
@@ -74,7 +74,7 @@
       "reviewWhen": "When this renderer or its sizing contract changes; remove stale entries automatically."
     },
     {
-      "file": "packages/design-system/src/typography.web.scss",
+      "file": "packages/design-system/src/typography-mixins.web.scss",
       "selector": "@mixin role($name, $tone: primary)",
       "property": "line-height",
       "value": "var(--typography-#{$name}-line-height)",
@@ -83,7 +83,7 @@
       "reviewWhen": "When this renderer or its sizing contract changes; remove stale entries automatically."
     },
     {
-      "file": "packages/design-system/src/typography.web.scss",
+      "file": "packages/design-system/src/typography-mixins.web.scss",
       "selector": "@mixin role($name, $tone: primary)",
       "property": "letter-spacing",
       "value": "var(--typography-#{$name}-tracking)",
