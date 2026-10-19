@@ -1,0 +1,89 @@
+{
+  "path": "packages/chat-core/src/tool-activity.ts",
+  "base": "15c621c3093010957d57dc65b9d606961aa1291c",
+  "moduleSha256": "0e6389ba93616cc1722e2975cd6009ac3bc4fda5e814bb4d59f5382a21d47f20",
+  "regions": [
+    {
+      "name": "formatWebSearchQuery",
+      "kind": "FunctionDeclaration",
+      "start": 15986,
+      "end": 16639,
+      "sha256": "7ad40492aad00a58b748578bca243cd1ed8a6509a29240de2600465cee9ebb3d",
+      "signature": "function formatWebSearchQuery(value: string): string"
+    },
+    {
+      "name": "extractWebSearchDetail",
+      "kind": "FunctionDeclaration",
+      "start": 17188,
+      "end": 18255,
+      "sha256": "44f1223c17dce0b64219dd510818ff443bcc28a4c02fb49c5b725d1be53c78e7",
+      "signature": "export function extractWebSearchDetail(value: unknown): string | null"
+    }
+  ],
+  "annotations": [
+    "/** Mirrors Codex's compact query label, including its extracted `site:` facets. */",
+    "/** Extracts the exact compact detail used by Codex for every WebSearchAction. */\n"
+  ],
+  "scope": "Only the two named function declarations and their direct annotations; all neighboring implementation bytes stay unchanged",
+  "exposure": "Current selected historical bodies and recovered references were not printed in this bounded pass. Prior review may have exposed the broader module; no strict author-isolation claim. AST parsing executes no historical implementation.",
+  "sourceBinding": "Function-specific behavioral/source attribution retained. No exact recovered source file was located in this pass; no claim that a license or copying assessment has been established.",
+  "frozenObservations": {
+    "publicPort": {
+      "cases": 5620,
+      "sha256": "61a8a3169ac59f8f75eaf2967b9c455bb5385c8f3701da81ed66f156580325eb",
+      "presentations": 24
+    },
+    "focusedPort": {
+      "cases": 225,
+      "sha256": "0705eec104d054a7e25803782ba0e8030429cb38ce9f7bcde780a087286c6ed2"
+    },
+    "realWebToolRows": {
+      "cases": 16,
+      "sha256": "a047c4803782abc579dfa4cef990d775077c0d376bd8b9323bee85c53970d5d4"
+    }
+  },
+  "observerHashes": {
+    "observe.mts": "81d506eaa82e047624ba03b5eacd8dd420423a21b9b0332d8cc7553901e5426d",
+    "observe-focused.mts": "862612fbe4bce3845cfbeaced5e16a90a464dd381984d97848ce6b70f3ab6b35",
+    "browser.mjs": "3355bbcf33342030810c20f457dd91c37b0876302f028e55654008b705dd22b2"
+  },
+  "replacement": {
+    "currentModuleSha256": "a0734f9001ab32245805d2a8e1d3af06713f4e965014e10a1c35989641155c5a",
+    "regions": [
+      {
+        "name": "formatWebSearchQuery",
+        "start": 15986,
+        "end": 16786,
+        "signature": "function formatWebSearchQuery(value: string): string",
+        "sha256": "f8fd49289912eaf29c76e58584b99297283f027434f29d3ca8bc56bb8fd740eb"
+      },
+      {
+        "name": "extractWebSearchDetail",
+        "start": 17335,
+        "end": 18409,
+        "signature": "export function extractWebSearchDetail(value: unknown): string | null",
+        "sha256": "b5e58a91ea3312b63ac322076e328bffcc95927cb0a1614de8f0ebbeb0a64daf"
+      }
+    ],
+    "allOutsideSelectedDeclarationsByteEqual": true,
+    "unchangedFragments": [
+      {
+        "bytes": 15991,
+        "sha256": "c2431a801af9ce6f6d652b4a51cdcc1b798c4ccd42972a4a518cb801ed173dd2"
+      },
+      {
+        "bytes": 549,
+        "sha256": "56ccf51972c6366bab2223f272a5a9a5a7f67750b1389cee23744915cca30aeb"
+      },
+      {
+        "bytes": 31351,
+        "sha256": "372cf7829bf0fb90ed09426b214690d52b3fc5f7d6e7a4ca762350483cb979cd"
+      }
+    ]
+  },
+  "initialRejectedCandidate": {
+    "publicDifferences": 1266,
+    "focusedDifferences": 0,
+    "cause": "Missing pattern/URL fallback for unknown action types, detected by unchanged broad public corpus; original differences retained"
+  }
+}
