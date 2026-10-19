@@ -1168,8 +1168,9 @@ focus; material variables select ordinary/Newera and opaque accessibility fallba
 Scrolling or keyboard viewport updates must not rewrite the selection, recreate the
 EditorView or blur/refocus it to repair painting.
 
-Desktop Web keeps the editor opaque while touch editors use glass; queue and file
-summary rails use their own theme glass on both, independent of the Newera switch.
+Desktop Web keeps the editor opaque while touch editors use glass; queue/goal
+rails use their own theme glass on both, independent of the Newera switch. The
+separate live file pill uses an opaque theme elevated surface.
 The footer must not put an opaque gradient between rails and scrolling content.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices
