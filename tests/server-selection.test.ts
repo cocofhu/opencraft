@@ -21,6 +21,12 @@ test('same-origin selection retains target authority, including users who cannot
   assert.equal((await f.get('/servers/join/__opencraft_access/session',{cookie:carol})).status,403);
   const context=await f.get('/servers/lighthouse/',{cookie:alice,accept:'text/html'});const html=await context.text();
   assert.equal(context.status,200);assert.match(html,/<base href="\/servers\/lighthouse\/">/u);assert.match(html,/id="opencraft-server-context"/u);
+  assert.ok(html.includes('localStorage.setItem("opencraft.last-server.v1:'+selectionIdentity(f.principals.alice!)+'","lighthouse")'));
+  assert.doesNotMatch(html,/login:alice/u);
+  const background=await f.get('/servers/join/fixture/compressed.html',{cookie:alice,accept:'application/json'});
+  assert.doesNotMatch(await background.text(),/localStorage.setItem/u);
+  const chooser=await(await f.get('/servers',{cookie:alice})).text();
+  assert.doesNotMatch(chooser,/localStorage.setItem/u,'chooser does not commit a target before successful navigation');
   const compressed=await f.get('/servers/lighthouse/fixture/compressed.html',{cookie:alice,accept:'text/html','accept-encoding':'gzip'});
   assert.equal(compressed.headers.get('content-encoding'),null);assert.match(await compressed.text(),/opencraft-server-context/u);
   const sanitized=await f.get('/servers/lighthouse/fixture/headers',{cookie:alice+'; opencraft.account.session=do-not-share',origin:f.origin,'x-opencraft-relay-assertion':'forged','staffid':'carol'});

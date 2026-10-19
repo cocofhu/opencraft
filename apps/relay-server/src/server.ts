@@ -235,7 +235,8 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
             bytes+=Buffer.byteLength(chunk); if(bytes>2_097_152){upstream.destroy(new Error('Relay document limit'));document.destroy();return;} body+=chunk;
           });
           result.on('error', () => res.destroy());document.on('error', () => res.destroy());result.on('aborted',()=>res.destroy()); document.on('end', () => {
-            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base,targetOrigin:context.route.origin});
+            const navigation = req.method === 'GET' && req.headers.accept?.includes('text/html') && result.statusCode === 200;
+            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base,targetOrigin:context.route.origin},navigation ? auth.principal : undefined);
             const output = {...result.headers}; delete output['content-length']; delete output['content-encoding']; delete output['transfer-encoding']; delete output.etag;
             if(output['set-cookie'])output['set-cookie']=scopedCookies(output['set-cookie'],context.route.instanceId,context.base);
             res.writeHead(result.statusCode ?? 502,{...output,'cache-control':'private, no-store','content-length':Buffer.byteLength(html)});res.end(html);

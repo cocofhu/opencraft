@@ -35,6 +35,31 @@ try{
   await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
   await page.screenshot({path:join(output,'lighthouse-workbench.png')});
   await page.goto(fixture.origin+'/__opencraft_servers/lighthouse/');await page.waitForURL('**/servers/lighthouse/');await page.locator('[data-action-id]').first().waitFor();
+  // Direct URL wins over Lighthouse memory and becomes the next root destination.
+  // A second tab's successful entry must never retarget this existing page.
+  const direct=await context.newPage();
+  await direct.goto(fixture.origin+'/servers/join/settings/servers?direct=one%2Ftwo#retained',{waitUntil:'commit'});
+  assert.equal(new URL(direct.url()).pathname,'/servers/join/settings/servers');
+  assert.equal(new URL(direct.url()).search,'?direct=one%2Ftwo');assert.equal(new URL(direct.url()).hash,'#retained');
+  await direct.getByText('当前服务器',{exact:true}).waitFor();
+  await direct.goto(fixture.origin);await direct.waitForURL('**/servers/join/**');
+  await direct.goto(fixture.origin+'/servers/lighthouse/settings/servers?direct=2');
+  await direct.getByText('当前服务器',{exact:true}).waitFor();
+  // An embedded successful document and a background HTML read are not entry.
+  await direct.evaluate(async()=>{
+    const iframe=document.createElement('iframe');iframe.src='/servers/join/fixture/compressed.html';
+    const loaded=new Promise<void>(resolve=>iframe.onload=()=>resolve());document.body.append(iframe);await loaded;iframe.remove();
+    await fetch('/servers/join/fixture/compressed.html',{headers:{accept:'text/html'}}).then(r=>r.text());
+  });
+  await direct.goto(fixture.origin);await direct.waitForURL('**/servers/lighthouse/**');
+  await direct.reload();await direct.locator('[data-action-id]').first().waitFor();
+  assert.match(new URL(direct.url()).pathname,/^\/servers\/lighthouse\/?$/u);await direct.close();
+  const noStorage=await browser.newContext({extraHTTPHeaders:{'x-fixture-user':'alice'}});
+  await noStorage.addInitScript(()=>{Storage.prototype.setItem=Storage.prototype.getItem=()=>{throw new Error('Storage unavailable');};});
+  const noStoragePage=await noStorage.newPage();
+  await noStoragePage.goto(fixture.origin+'/servers/lighthouse/fixture/compressed.html');
+  assert.equal(await noStoragePage.title(),'Compressed');
+  assert.equal(new URL(noStoragePage.url()).pathname,'/servers/lighthouse/fixture/compressed.html');await noStorage.close();
   const cookieIsolation=await page.evaluate(async()=>{await fetch('/servers/lighthouse/fixture/stream').then(r=>r.text());return fetch('/servers/lighthouse/fixture/headers').then(r=>r.json());});assert.match(cookieIsolation.cookie,/(?:^|; )private-target=not-shared(?:;|$)/u);assert.doesNotMatch(cookieIsolation.cookie,/opencraft-relay-session/u);
   const session=await page.evaluate(()=>fetch('/servers/lighthouse/__opencraft_access/session').then(r=>r.json()));assert.equal(session.role,'member');
   const dataScope=await page.evaluate(()=>indexedDB.databases().then(xs=>xs.map(x=>x.name)));assert.ok(dataScope.some(x=>x?.includes('server:lighthouse:')));
@@ -87,7 +112,7 @@ try{
   assert.equal(await freshPage.locator('[data-server="lighthouse"]').count(),1);
   assert.match(await freshPage.locator('p').first().innerText(),/不可用/u);await fresh.close();
   assert.deepEqual(errors,[]);
-  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,legacySettingsBookmark:true,realSshDiscovery:discovery,sshGrantRequests:sshGrants,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
+  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,explicitUrlWins:true,directEntryBecomesRememberedChoice:true,deepLinkPreservesQueryAndFragment:true,backgroundAndIframeDoNotChangeChoice:true,storageUnavailableDirectEntry:true,legacySettingsBookmark:true,realSshDiscovery:discovery,sshGrantRequests:sshGrants,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
   console.log(JSON.stringify({output,success:true}));
 } catch(error){await writeFile(join(output,'failure.json'),JSON.stringify({error:String(error),errors,requests,sockets},null,2));throw error;}
 finally{await browser.close();await fixture.close();}

@@ -50,9 +50,13 @@ behavior. It does not consult another saved server choice or grant membership.
 Reload an already-open unscoped page to receive the deployment context and the
 **Settings → Servers** entry.
 
-The browser remembers the last choice under a key derived from verified provider
-and stable subject, within that entry origin. Future root visits reopen it only
-while target admission succeeds. Explicitly opening the chooser never redirects
+The URL `/servers/<instanceId>/…` always selects that server, including deep
+links and reloads, regardless of a saved choice. After a successful admitted
+top-level document opens, the browser remembers that server under a key derived
+from verified provider and stable subject, within that entry origin. This includes
+direct links, not just chooser clicks. Future root visits reopen it only while
+target admission succeeds. Failed navigation, background requests and embedded
+frames do not change the preference; a different tab remains bound to its own URL. Explicitly opening the chooser never redirects
 automatically. Another browser, cleared browser data or a different identity
 requires another choice unless an operator configured an identity migration default. Offline or revoked targets return document navigation
 to the chooser; APIs/WS return errors and never silently switch servers. Existing
