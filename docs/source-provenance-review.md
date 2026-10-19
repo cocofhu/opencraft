@@ -1,5 +1,16 @@
 # Source provenance review
 
+## Turn user-message normalization replacement (2026-10-19)
+
+[The complete normalization module](provenance/message-normalization-replacement.md)
+has a bounded requirements-first independent replacement record. Its historical
+blob remains in partial dispositions. Agent Activity is the remaining unverified
+path in the chat-semantics group; all eight unresolved source groups remain open.
+Message identity, Composer content ownership, Host-staged file presentation and
+local steering acknowledgement are retained. This does not clear the consuming
+renderer, source history, other modules or distribution rights.
+
+
 ## Realtime transcript replacement (2026-10-19)
 
 [The complete realtime transcript parser](provenance/realtime-transcript-replacement.md)
