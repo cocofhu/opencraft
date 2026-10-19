@@ -12,5 +12,9 @@
     "inputCases": 8391,
     "compilerTrees": 580,
     "sha256": "1d8d39cdc294b9ede7bcc34fccdb749c87a4a4ae0ed693d35b625d76293f4b22"
+  },
+  "postAuthoringExposure": {
+    "event": "The first focused historical-function extraction omitted module regex constants and failed with ReferenceError userMessageFence. Its diagnostic included a historical source line and encoded emitted function content; this expands actual author exposure after initial replacement and two comparison attempts.",
+    "retention": "Original failure log retained externally. Corrected observation executes the complete historical pure module without displaying bodies; no strict isolation or historical rights claim."
   }
 }

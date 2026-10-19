@@ -605,3 +605,14 @@ Display line admission, inline LF rejection, trimming and raw consumption remain
 compatible; compiler structure and code-fence handling keep their owners. The
 first failed comparison, historical hashes and actual exposure remain recorded.
 Other compiler regions and all eight unresolved groups remain open.
+
+
+## User-message block normalization boundary (2026-10-20)
+
+Only the directly attributed `preprocessUserMessageMarkdown` function is replaced
+from [frozen application observations](provenance/user-message-blocks-replacement.md).
+List adjacency, continuation across indented fences, zero-length reset and global
+CR/CRLF normalization remain compatible. Helpers and other preprocessing bytes
+are unchanged. Historical hashes, failed comparisons and later diagnostic exposure
+remain recorded; strict author isolation and historical rights are unverified.
+Other regions and all eight unresolved groups remain open.
