@@ -1,4 +1,4 @@
-import type { Context } from "@deepseek-ai/cordis";
+import type { Context, Plugin } from "@deepseek-ai/cordis";
 import {
   createChatRenderRuntime,
   registerStandardChatResourcePolicy,
@@ -83,6 +83,7 @@ const WebBuiltinRenderers = Object.assign(function WebBuiltinRenderers(ctx: Cont
 
 export async function createWebChatRenderRuntime(
   context?: Context,
+  extensions: readonly Plugin[] = [],
 ): Promise<ChatRenderRuntime> {
   const runtime = await createChatRenderRuntime({}, context);
   try {
@@ -91,6 +92,9 @@ export async function createWebChatRenderRuntime(
     await runtime.install(ShikiWebExtension);
     await runtime.install(KatexWebExtension);
     await runtime.install(MermaidWebExtension);
+    // Trusted local composition only. Installed fibers share this runtime's
+    // rollback/disposal and never change another Application or the fallback.
+    for (const extension of extensions) await runtime.install(extension);
     return runtime;
   } catch (error) {
     await runtime.dispose().catch(() => undefined);

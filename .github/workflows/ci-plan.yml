@@ -19,6 +19,8 @@ on:
         value: ${{ jobs.plan.outputs.managed-web }}
       native:
         value: ${{ jobs.plan.outputs.native }}
+      extensions:
+        value: ${{ jobs.plan.outputs.extensions }}
       headless-tests:
         value: ${{ jobs.plan.outputs.headless-tests }}
       headless-package:
@@ -38,6 +40,7 @@ jobs:
       has-audits: ${{ steps.select.outputs.has-audits }}
       managed-web: ${{ steps.select.outputs.managed-web }}
       native: ${{ steps.select.outputs.native }}
+      extensions: ${{ steps.select.outputs.extensions }}
       headless-tests: ${{ steps.select.outputs.headless-tests }}
       headless-package: ${{ steps.select.outputs.headless-package }}
     steps:

@@ -11,6 +11,7 @@ function job(name) {
 }
 const gate = job('build-checks').match(/        run: \|\n([\s\S]*)/)[1].replace(/^          /gm, '');
 const selected = {
+  EXTENSIONS_SELECTED: 'false', EXTENSIONS_RESULT: 'skipped',
   PLAN_RESULT: 'success', BUILD_SELECTED: 'true', BUILD_RESULT: 'success',
   NATIVE_SELECTED: 'false', NATIVE_RESULT: 'skipped', PACKAGE_SELECTED: 'false', PACKAGE_RESULT: 'skipped',
   HEADLESS_SELECTED: 'true', HEADLESS_RESULT: 'success',
@@ -22,20 +23,21 @@ function check(env) {
 test('the real aggregate script accepts Web/server and documentation-only plans', () => {
   assert.equal(check({}), 0);
   assert.equal(check({ BUILD_SELECTED: 'false', BUILD_RESULT: 'skipped', HEADLESS_SELECTED: 'false', HEADLESS_RESULT: 'skipped' }), 0);
+  assert.equal(check({ EXTENSIONS_SELECTED: 'true', EXTENSIONS_RESULT: 'success' }), 0);
   assert.equal(check({ NATIVE_SELECTED: 'true', NATIVE_RESULT: 'success' }), 0);
   assert.equal(check({ PACKAGE_SELECTED: 'true', PACKAGE_RESULT: 'success' }), 0);
 });
 test('a selected build cannot pass by failing, cancelling, or being skipped', () => {
   for (const result of ['failure', 'cancelled', 'skipped', '']) {
     assert.notEqual(check({ PLAN_RESULT: result }), 0, `plan: ${result}`);
-    for (const name of ['BUILD', 'NATIVE', 'PACKAGE', 'HEADLESS']) {
+    for (const name of ['BUILD', 'NATIVE', 'PACKAGE', 'HEADLESS', 'EXTENSIONS']) {
       assert.notEqual(check({ [`${name}_SELECTED`]: 'true', [`${name}_RESULT`]: result }), 0, `${name}: ${result}`);
     }
   }
   assert.notEqual(check({ BUILD_SELECTED: '', BUILD_RESULT: 'skipped' }), 0, 'missing selector output');
 });
 test('the aggregate rejects an unexpected job execution instead of accepting a mismatched plan', () => {
-  for (const name of ['BUILD', 'NATIVE', 'PACKAGE', 'HEADLESS']) {
+  for (const name of ['BUILD', 'NATIVE', 'PACKAGE', 'HEADLESS', 'EXTENSIONS']) {
     assert.notEqual(check({ [`${name}_SELECTED`]: 'false', [`${name}_RESULT`]: 'success' }), 0, name);
   }
 });

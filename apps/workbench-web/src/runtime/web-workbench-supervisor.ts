@@ -511,7 +511,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     });
     startupRollback.push(() => extensionManager.dispose());
     if (options.optionalFeatureStartup !== undefined) {
-      options.optionalFeatureStartup.add("lightvela.collaboration", async signal => {
+      options.optionalFeatureStartup.add("extensions.restore", async signal => {
         signal?.throwIfAborted();
         await extensionManager.restore();
       });
@@ -751,6 +751,7 @@ export async function createWebWorkbenchApplicationSupervisor(
           return () => cancelAnimationFrame(frame);
         }, () => presentationActive() ? 32 : 250),
         modelSelectionPolicy: options.modelSelectionPolicy,
+        readSelectableModels: options.readSelectableModels,
         hostId: profile.hostId,
         hostKind: profile.hostKind,
         // A provider transport is one physical Client generation. Initial

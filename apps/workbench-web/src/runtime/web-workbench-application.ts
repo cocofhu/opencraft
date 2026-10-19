@@ -1,7 +1,8 @@
+import type { ConversationPresentationProvider } from "./conversation-presentation";
 import { serverStorageKey, serverUrl } from "./server-context";
 import { createWebWorkbenchApplicationSupervisor } from "./web-workbench-supervisor";
 import { createApplicationDisposer } from "./application-disposal";
-import { Context } from "@deepseek-ai/cordis";
+import { Context, type Plugin } from "@deepseek-ai/cordis";
 import { createCloudDesktopWorkbenchPanelPlugin, type CloudDesktopPluginAdapter } from "@opencraft/plugin-cloud-desktop";
 import {
   createWebChatRenderRuntime,
@@ -42,6 +43,7 @@ import type { WorkbenchPanelReactRuntime } from "@opencraft/workbench-panels-rea
 import { OptionalFeatureStartup, loadOptionalFeatureModule } from "./optional-feature-startup";
 
 export interface WebWorkbenchApplication {
+  readonly conversationPresentation?: ConversationPresentationProvider;
   /** Idempotent; never creates another Application or Host. */
   startOptionalFeatures(): Promise<void>;
   readonly cordis: Context;
@@ -84,7 +86,10 @@ function loadConversationBindings(storage: BrowserMetadataStorage = window.local
 
 /** Single application owner for every long-lived renderer service. */
 export interface CreateWebWorkbenchApplicationOptions extends Omit<WebWorkbenchSupervisorOptions, "optionalFeatureStartup"> {
+  /** Trusted local renderer plugins; owned and released with this Application. */
+  readonly chatRenderExtensions?: readonly Plugin[];
   readonly deferOptionalFeatures?: boolean;
+  readonly conversationPresentation?: ConversationPresentationProvider;
   readonly browserMetadataStorage?: BrowserMetadataStorage;
   readonly browserNavigationPolicy?: BrowserNavigationPolicy;
   /** Product override; otherwise use the capability-gated local Host adapter. */
@@ -144,7 +149,7 @@ export async function createWebWorkbenchApplication(
   const panelRuntime = await createWorkbenchPanelRuntime(cordis);
   let chatRenderRuntime: ChatRenderRuntime;
   try {
-    chatRenderRuntime = await createWebChatRenderRuntime(cordis);
+    chatRenderRuntime = await createWebChatRenderRuntime(cordis, options.chatRenderExtensions);
   } catch (error) {
     browserPresentations.dispose();
     browserPages.dispose();
@@ -262,6 +267,7 @@ export async function createWebWorkbenchApplication(
     throw error;
   }
   return {
+    conversationPresentation: options.conversationPresentation,
     startOptionalFeatures: () => optionalFeatures?.start() ?? Promise.resolve(),
     cordis,
     browserPages,

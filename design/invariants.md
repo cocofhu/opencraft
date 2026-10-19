@@ -1309,7 +1309,7 @@ engine. Every known or unknown type keeps a visible badge and its text in light,
 dark, extension and forced-color themes; no database type or workflow state is
 changed by choosing a presentation tone.
 
-Web user-message navigation rail is inset 36px from the conversation viewport. Desktop Web conversation titles consume that same leading axis. The existing 36px hit target requires 72px content clearance, derived from the shared inset; insufficient space suppresses the rail rather than covering prose. Narrow headers retain measured control spacing and Electron retains its native title geometry and platform-specific 16px rail inset.
+Web user-message navigation rail is inset 36px from the conversation viewport. Desktop Web conversation titles consume that same leading axis. The existing 36px hit target requires 72px content clearance, derived from the shared inset; insufficient space suppresses the rail rather than covering prose. Narrow headers retain measured control spacing and Electron retains its native title geometry and platform-specific 16px rail inset. Browser navigation without branding or actions contributes zero measured width; restoring content restores its physical measurement. Header alignment consumes Shell host identity inside both document and ShadowRoot presentations, rather than relying on an outer html attribute.
 
 
 ## Tasks action hierarchy and recycle continuity
@@ -1537,3 +1537,36 @@ Tasks loads its optional conversation statistics renderer and styles only after
 the statistics tab is selected. Suspense uses the existing loading status; it
 does not introduce another data owner or relax the startup resource budget.
 The read adapter loads on first read and checks cancellation after import.
+
+### Explicit session model selection
+
+- `user`, `host-default` and `session` are declared composition policies, not product-name checks.
+- A session without an explicit model inherits the current Host default for creation and its existing model for continuation; choosing a model never writes deployment defaults.
+- Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
+- Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
+
+## Conversation presentation contributions
+
+Optional conversation subtitles share the existing title rail and constrained
+width; renaming and ordinary headers retain their controls. Trusted product
+contributions before/after Composer cannot replace its draft owner. Visible
+history refresh changes durable history without Resume, page reload or Composer
+remount. Hidden/retired views stop scheduling reads; cancelled or stale-generation
+results cannot update the new conversation. Browser evidence uses the real
+Shell/Header/hook with a synthetic lease, alongside actual runtime/protocol tests;
+it does not establish external account or channel delivery acceptance.
+
+Trusted local chat renderer extensions belong to the Application render runtime.
+They share its resource policies, roll back on startup failure, and release with
+the Application; they never mutate the default library fallback or other apps.
+
+### Relay server selection in Settings
+
+Relayed Web clients expose current deployment and Switch server under Settings →
+Servers, including narrow layouts. Shell application/account navigation does not
+duplicate it. Presence comes from validated browser deployment context, not an
+administrator role or the Headless administration build flag. Direct deployments
+without that context do not show an unsupported switch. Navigation uses the
+context selector path, including legacy deployments; target admission, remembered
+choice and per-tab execution ownership remain authoritative at their existing
+owners. Changing pages does not stop execution.

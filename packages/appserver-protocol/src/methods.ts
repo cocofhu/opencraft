@@ -212,6 +212,10 @@ export type CatalogModel = Omit<GeneratedModelListResponse["data"][number], "def
   contextWindow?: number;
   maxTokens?: number;
   source?: "builtin" | "custom";
+  /** Optional composition-owned display metadata; not execution authorization. */
+  groupKey?: string | null;
+  groupLabel?: string | null;
+  configuredRole?: "primary" | "fallback" | null;
 };
 export type ModelListResponse = Omit<GeneratedModelListResponse, "data"> & { data: CatalogModel[] };
 export type PermissionProfileListParams = GeneratedPermissionProfileListParams;

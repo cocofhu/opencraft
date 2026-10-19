@@ -1,6 +1,5 @@
-import { browserServerContext } from "../../runtime/server-context";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Gauge, LogIn, LogOut, Server, Settings, User } from "lucide-react";
+import { Gauge, LogIn, LogOut, Settings, User } from "lucide-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { IntlShape } from "@opencraft/i18n";
 import { useEffect, useState } from "react";
@@ -87,7 +86,6 @@ export function NavigationContent({ config, surface, compact = false, includeSet
         </span>
       </button></Tooltip.Trigger>{compact ? <Tooltip.Portal><Tooltip.Content className="shell-navigation-tooltip" side="right" sideOffset={8}>{title}</Tooltip.Content></Tooltip.Portal> : null}</Tooltip.Root>;
     })}
-    {browserServerContext() ? <Tooltip.Root><Tooltip.Trigger asChild><button type="button" aria-label={intl.formatMessage({ id: "navigation.switchServer", defaultMessage: "Switch server" }) + " · " + browserServerContext()!.name} onClick={() => onInvoke(() => window.location.assign(browserServerContext()!.selectorPath))}><Server size={16} /><span className="shell-navigation__item-label"><FormattedMessage id="navigation.switchServer" defaultMessage="Switch server" /> · {browserServerContext()!.name}</span></button></Tooltip.Trigger>{compact ? <Tooltip.Portal><Tooltip.Content className="shell-navigation-tooltip" side="right" sideOffset={8}>{intl.formatMessage({ id: "navigation.switchServer", defaultMessage: "Switch server" })} · {browserServerContext()!.name}</Tooltip.Content></Tooltip.Portal> : null}</Tooltip.Root> : null}
     {includeSettings ? <button type="button" aria-current={config.settingsActive ? "page" : undefined} title={compact ? intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" }) : undefined} onClick={() => onInvoke(config.onOpenSettings)}><NavigationIcon name="settings" selected={config.settingsActive} /><span className="shell-navigation__item-label"><FormattedMessage id="settings.title" defaultMessage="Settings" /></span></button> : null}
   </nav></Tooltip.Provider> : <AccountContent compact={compact} config={config} onInvoke={onInvoke} />;
 }

@@ -1,5 +1,17 @@
 # ChatUI integration architecture
 
+## Trusted Web renderer composition
+
+A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.
+`createWebChatRenderRuntime` installs them after the standard Web renderers,
+using the same registries and resource-policy service. The runtime owns their
+fibers: startup failure rolls back preceding installations, and Application
+disposal releases them. No extension is installed into the library fallback or
+another Application. This is trusted build composition, not an HTTP-supplied
+module loader or a product ID switch. Product parsers, dictionaries and artwork
+stay downstream. `smoke-product-render-extensions.ts` exercises the real
+Application and documents, default isolation and startup/disposal failures.
+
 ## User message sender display
 
 Web/Electron show each user message's verified employee `loginName` above its
@@ -2141,3 +2153,24 @@ announced failure. Narrow and themed layouts wrap technical fields while retaini
 history, scroll and drafts. Protocol mismatch still requires an update rather
 than a retry loop. The clipboard-only package export avoids importing renderers
 and their styles for this utility.
+
+## External conversation presentation and history reads
+
+Trusted local application composition may provide `conversationPresentation` to
+both WorkbenchRoot and an embedded App. It receives scoped Host/Thread facts and
+existing metadata-read/fork actions, and contributes a subtitle and content before
+or after the Composer. Core does not interpret product channel metadata, disable
+the Composer, change delivery, or grant fork permission. The product owns its copy
+and the decision to opt a conversation into visible history refresh.
+
+`AppServerThreadRuntimeLease.refreshHistory(signal)` is a read-only operation for
+resumed message-window history. It skips disconnected, non-authoritative, streaming
+and pending-command states; it never sends Resume or acquires execution ownership.
+The coordinator serializes it with older-page loads, reads metadata first, and
+loads a fresh tail only when the metadata revision changes. It retains observations
+received during the read. Connection replacement, released ownership and abort
+retire late results. Existing initial-page, legacy and bounded-recovery paths remain.
+The Web hook polls every five seconds while visible, checks immediately on return,
+backs failures off to sixty seconds, aborts on conversation retirement, and leaves
+the transcript, draft DOM and reading position mounted. It is opt-in rather than a
+second automatic refresh policy for all conversations.

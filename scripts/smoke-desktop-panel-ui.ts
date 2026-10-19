@@ -125,7 +125,8 @@ try {
       const style = getComputedStyle(element); return { size: style.fontSize, line: style.lineHeight,
         weight: style.fontWeight, radius: style.borderRadius, height: element.getBoundingClientRect().height };
     });
-    assert.equal(buttonStyle.size, "12px"); assert.equal(buttonStyle.weight, "600");
+    assert.equal(buttonStyle.size, "12px");
+    assert.equal(buttonStyle.weight, "400", "ordinary ownership controls use the shared regular control-small role");
     assert.equal(buttonStyle.radius, "999px"); assert.ok(buttonStyle.height >= (width === 320 ? 44 : 32));
     // The shared React Button always projects a size (md by default). Density
     // must beat every legacy size, not only raw plugin buttons without a size.
@@ -177,8 +178,8 @@ try {
       return { leftTop: left.top, rightTop: right.top, leftWidth: left.width, leftHeight: left.height, rightHeight: right.height };
     });
     assert.deepEqual(shoulders, width === 1024
-      ? { leftTop: '-1px', rightTop: '-1.5px', leftWidth: '16px', leftHeight: '24px', rightHeight: '25px' }
-      : { leftTop: '1.42969px', rightTop: '1.42969px', leftWidth: '17px', leftHeight: '24px', rightHeight: '25px' });
+      ? { leftTop: '-1px', rightTop: '-1.5px', leftWidth: '17px', leftHeight: '24px', rightHeight: '25px' }
+      : { leftTop: '1.42969px', rightTop: '1.42969px', leftWidth: '18px', leftHeight: '24px', rightHeight: '25px' });
     const controlBounds = await page.getByRole("button", { name: "Take control", exact: true }).boundingBox();
     const pasteBefore = await page.getByRole("button", { name: "Paste", exact: true }).boundingBox();
     const takeAction = page.getByRole("button", { name: "Take control", exact: true });
@@ -362,9 +363,15 @@ try {
       await release.waitFor(); await release.focus();
       await release.evaluate(element => element.addEventListener("keydown", () => (element as HTMLElement).blur(), { once: true }));
       const beforeKeyBlur = (await page.evaluate(() => (window as any).__desktopUi.counts())).requests;
-      await page.keyboard.press(key); await take.waitFor();
+      await page.keyboard.press(key);
       assert.equal((await page.evaluate(() => (window as any).__desktopUi.counts())).requests, beforeKeyBlur,
         "keyboard stop followed by null blur cannot become a take");
+      // Blurring during keydown may suppress the browser's native click (in
+      // particular Space). Unknown focusout alone is not outside interaction,
+      // and the control must not synthesize a click. A separate window loss
+      // authoritatively retires any ownership before the next test sequence.
+      await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+      await take.waitFor();
     }
     await activate(page.getByRole("button", { name: "Take control", exact: true }));
     await page.evaluate(() => (window as any).__desktopUi.grant());
@@ -507,6 +514,84 @@ try {
     assert.equal(counts.connectionCloses, 1); assert.equal(counts.attachmentReleases, 1);
     assert.equal(counts.toolMounts, 3); assert.equal(counts.toolCloses, 2, "closing desktop selects the remaining ordinary tool");
     assert.deepEqual(errors, []); receipts.push({ shell: true, width, bounds, counts });
+    await page.evaluate(() => (window as any).__desktopUi.dispose()); await page.close();
+  }
+  {
+    const page = await browser.newPage({ viewport: { width: 720, height: 700 }, reducedMotion: "reduce" });
+    const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}/?shadow`);
+    await page.locator('[data-phase="connecting"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.ready());
+    await page.getByRole("button", { name: "Take control", exact: true }).click();
+    await page.locator('[data-control="requesting"]').waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "root",
+      "document focus is retargeted to the shadow host");
+    assert.equal(await page.locator(".cloud-desktop-panel canvas").evaluate(element =>
+      (element.getRootNode() as ShadowRoot).activeElement === element), true);
+    await page.evaluate(() => (window as any).__desktopUi.grant());
+    await page.locator('[data-control="controlling"]').waitFor();
+    await page.locator(".cloud-desktop-panel canvas").click();
+    assert.equal(await page.locator(".cloud-desktop-panel").getAttribute("data-control"), "controlling",
+      "composed pointer/focus events inside the shadow panel must retain ownership");
+    await page.evaluate(() => {
+      const outside = document.createElement("button"); outside.id = "outside-desktop";
+      outside.textContent = "Outside"; outside.style.cssText = "position:fixed;top:0;left:0;z-index:10000";
+      document.body.append(outside);
+    });
+    await page.locator("#outside-desktop").click();
+    await page.locator('[data-control="observing"]').waitFor();
+    const take = page.getByRole("button", { name: "Take control", exact: true });
+    await take.focus(); await take.press("Space");
+    await page.locator('[data-control="requesting"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.grant());
+    await page.locator('[data-control="controlling"]').waitFor();
+    await page.getByRole("button", { name: "Stop controlling", exact: true }).press("Enter");
+    await page.locator('[data-control="observing"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.releaseToObservation());
+    await page.locator('[data-phase="connecting"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.ready(false));
+    await page.locator('[data-phase="ready"]').waitFor();
+    const counts = await page.evaluate(() => (window as any).__desktopUi.counts());
+    assert.equal(counts.preparations, 2); assert.equal(counts.requests, 2);
+    assert.equal(counts.connectionCloses, 1); assert.equal(counts.attachmentReleases, 1);
+    assert.equal(await page.locator(".cloud-desktop-panel").getAttribute("data-control"), "observing");
+    assert.equal(await page.getByRole("heading", { name: "Desktop connection lost" }).count(), 0);
+    assert.deepEqual(errors, []);
+    receipts.push({ shadow: true, releaseToObservation: true, counts });
+    await page.screenshot({ path: join(directory, "shadow-observing.png") });
+    await page.evaluate(() => (window as any).__desktopUi.dispose()); await page.close();
+  }
+  for (const cancel of [false, true]) {
+    const page = await browser.newPage({ viewport: { width: 720, height: 700 }, reducedMotion: "reduce" });
+    const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}/?shadow&takeover`);
+    await page.locator('[data-phase="connecting"]').waitFor();
+    await page.evaluate(() => (window as any).__desktopUi.ready(false));
+    const take = page.getByRole("button", {name: "Take control", exact: true});
+    assert.equal(await take.isEnabled(), true, "only declared takeover enables read-only action");
+    await take.click();
+    await page.locator('[data-phase="connecting"]').waitFor();
+    if (cancel) await page.evaluate(() => {
+      const outside = document.createElement("input"); outside.id = "takeover-outside";
+      document.body.append(outside); outside.focus();
+    });
+    await page.evaluate(() => (window as any).__desktopUi.ready());
+    await page.locator('[data-phase="ready"]').waitFor();
+    if (!cancel) {
+      await page.locator('[data-control="requesting"]').waitFor();
+      await page.evaluate(() => (window as any).__desktopUi.grant());
+      await page.locator('[data-control="controlling"]').waitFor();
+    }
+    const counts = await page.evaluate(() => (window as any).__desktopUi.counts());
+    assert.equal(counts.takeovers, 1); assert.equal(counts.preparations, 2);
+    assert.equal(counts.requests, cancel ? 0 : 1, "leaving before a late grant retires the control intent");
+    if (cancel) {
+      assert.equal(await page.locator('.cloud-desktop-panel').getAttribute('data-control'), 'observing');
+      assert.equal(await page.locator('#takeover-outside').evaluate(element => document.activeElement === element), true);
+    }
+    assert.deepEqual(errors, []);
+    receipts.push({ takeover: true, cancel, counts });
+    await page.screenshot({path: join(directory, `takeover-${cancel ? 'cancelled' : 'granted'}.png`)});
     await page.evaluate(() => (window as any).__desktopUi.dispose()); await page.close();
   }
   console.log(JSON.stringify({ passed: true, directory, receipts,

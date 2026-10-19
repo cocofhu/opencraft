@@ -1,3 +1,5 @@
+import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
+import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut, shortcutLabel } from "./workbench-shortcuts";
 import { WorkbenchShortcutHelp } from "./components/workbench-shortcut-help";
@@ -229,6 +231,8 @@ export interface EmbeddedWorkbenchAppActions {
 }
 
 export interface EmbeddedWorkbenchAppPresentation {
+  readonly modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
+  readonly onConfigureModels?: () => void;
   readonly panelHost?: {
     readonly target: HTMLElement;
     readonly presentation?: { subscribe: (listener: () => void) => (() => void); getSnapshot: () => boolean };
@@ -254,12 +258,15 @@ export interface EmbeddedWorkbenchAppPresentation {
 
 export function App({
   embedded,
+  conversationPresentation,
   presentation = FULL_WORKBENCH_PRESENTATION,
 }: {
   readonly embedded?: EmbeddedWorkbenchAppPresentation;
+  readonly conversationPresentation?: ConversationPresentationProvider;
   readonly presentation?: WorkbenchPresentationPolicy;
 } = {}) {
   const intl = useIntl();
+  const modelSelectionPolicy = embedded?.modelSelectionPolicy ?? (embedded ? "host-default" : "user");
   const internalDeveloperMode = useInternalDeveloperMode();
   const [accountOpen, setAccountOpen] = useState(false);
   const [conversationSearchOpen, setConversationSearchOpen] = useState(false);
@@ -1153,7 +1160,7 @@ export function App({
       draft?.target.execution.workspace.cwd ??
       activeHost.workspaceBrowseRoots[0] ??
       null,
-    embedded === undefined && draft === null ? activeThreadId : null,
+    draft === null ? activeThreadId : null,
     presentation.runtimeHostConfiguration,
   );
   const composerWorkspaceRoots = useMemo<readonly string[]>(() => {
@@ -1194,9 +1201,10 @@ export function App({
       }),
       isFetching: composerCatalog.isFetching,
       modelError: composerCatalog.modelError?.message ?? null,
-      onRememberModelDefaults: composerCatalog.rememberModelDefaults,
-      onModelMenuOpen: () => { composerCatalog.onModelMenuOpen(); engineCatalog.open(); },
-      agentGroups: draft === null || presentation.executionSelection === "fixed" ? undefined : engineCatalog.groups.map(group => ({
+      onRememberModelDefaults: modelSelectionPolicy === "user" ? composerCatalog.rememberModelDefaults : undefined,
+      onConfigureModels: embedded?.onConfigureModels,
+      onModelMenuOpen: modelSelectionPolicy === "session" ? composerCatalog.retryModels : () => { composerCatalog.onModelMenuOpen(); engineCatalog.open(); },
+      agentGroups: modelSelectionPolicy !== "user" || draft === null || presentation.executionSelection === "fixed" ? undefined : engineCatalog.groups.map(group => ({
         id: group.hostId,
         label: hostCatalog.profiles.find(host => host.hostId === group.hostId)?.agent ?? hostCatalog.hosts.find(host => host.hostId === group.hostId)?.label ?? group.hostId,
         active: group.hostId === snapshot.hostId,
@@ -1216,7 +1224,7 @@ export function App({
         composerCatalog.permissionProfileError?.message ?? null,
     }),
     [
-      presentation.executionSelection, engineCatalog, draft, hostCatalog, snapshot.hostId,
+      modelSelectionPolicy, embedded?.onConfigureModels, presentation.executionSelection, engineCatalog, draft, hostCatalog, snapshot.hostId,
       composerCatalog.isFetching,
       composerCatalog.modelError,
       composerCatalog.onModelMenuOpen,
@@ -1590,9 +1598,30 @@ export function App({
   const schedulesAvailable = scheduleCapability?.version === 1 && runtime.resources.host.canRequest?.("opencraft/schedules/read") === true;
   const conversationMenuAvailable = conversationSurfaceVisible && draft === null && activeThreadId !== null
         && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
+  const refreshConversationCatalog = useCallback(() => queryClient.invalidateQueries({
+    queryKey: ["appserver", snapshot.hostId, "threads"],
+  }), [queryClient, snapshot.hostId]);
+  const conversationContribution = conversationSurfaceVisible && draft === null && activeThreadId !== null
+    ? conversationPresentation?.({
+      hostId: snapshot.hostId, threadId: activeThreadId, extra: activeProtocolThread?.extra,
+      ready: snapshot.phase === "ready", authoritative: snapshot.conversation?.authoritative === true,
+      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId).fork,
+      readExtra: async () => (await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", {
+        threadId: activeThreadId, includeTurns: false,
+      })).thread.extra,
+      fork: () => forkAndOpenThread({
+        routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+        fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId),
+        refreshThreads: refreshConversationCatalog,
+        openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+      }),
+    }) : null;
+  useConversationHistoryRefresh(activeThreadLease,
+    conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
   const header = (
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
+      subtitle={conversationContribution?.subtitle}
       navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
       headerActionCount={conversationMenuAvailable ? 1 : 0}
       headerAction={conversationMenuAvailable ? (
@@ -1862,7 +1891,7 @@ export function App({
             composerPresentationEnabled={conversationRouteOpen}
             draft={draft}
             controller={composerController}
-            modelSelectionPolicy={embedded ? "host-default" : "user"}
+            modelSelectionPolicy={modelSelectionPolicy}
             showExecutionControls={presentation.executionSelection === "selectable"}
             heading={embedded ? intl.formatMessage({
               id: "chat.companionHeading",
@@ -1874,7 +1903,7 @@ export function App({
             }) : undefined}
             selectionCatalog={composerSelectionCatalog}
             catalog={composerSuggestionCatalog}
-            effectiveSelections={composerCatalog.newThreadDefaults ?? undefined}
+            effectiveSelections={modelSelectionPolicy === "session" ? undefined : composerCatalog.newThreadDefaults ?? undefined}
             personalDefaultsPending={composerCatalog.personalDefaultsPending}
             workspaceOptions={draftWorkspaceOptions}
             workspaceOptionsLoading={projectCatalog.isFetching}
@@ -2033,6 +2062,7 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
+                    {conversationContribution?.beforeComposer}
                     {snapshot.conversation?.continuation.error ? (
                       <p role="alert">{snapshot.conversation.continuation.error.message}</p>
                     ) : null}
@@ -2086,7 +2116,7 @@ export function App({
                         </>}
                         shortcutCommands={hostShortcutCommands}
                         endActions={composerEndActions}
-                        modelSelectionPolicy={embedded ? "host-default" : "user"}
+                        modelSelectionPolicy={modelSelectionPolicy}
                         placeholder={embedded ? intl.formatMessage({
                           id: "chat.companionFollowupPlaceholder",
                           defaultMessage: "Tell me what you'd like to do next",
@@ -2113,6 +2143,7 @@ export function App({
                         />
                       </div>
                         )}
+                    {conversationContribution?.afterComposer}
                     </div>
                     </ThreadComposerPresentation>
                   }

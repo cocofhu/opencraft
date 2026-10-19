@@ -4,14 +4,14 @@ import type { CloudDesktopPluginAdapter } from "./index";
 import React from "react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { ClipboardPaste, Keyboard, MonitorOff } from "lucide-react";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { DesktopBackend } from "./contract";
 import { DesktopViewController, type DesktopViewSnapshot } from "./controller";
 import type { DesktopSurfaceFactory } from "./viewer";
 import { useDesktopControlAction } from "./control-action";
-import { bindDesktopInteractionOwner } from "./interaction-owner";
+import { bindDesktopInteractionOwner, ownsDesktopFocus } from "./interaction-owner";
 
 export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefined,
   controllers: Map<DesktopViewController, string>) {
@@ -32,6 +32,44 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
     });
     const controlAction = useDesktopControlAction(controller, snapshot.control === "observing" ? "take" : "stop");
     const surfaceAction = useDesktopControlAction<HTMLDivElement>(controller, "take", true);
+    /** A read-only lease keeps the action clickable. One click = one takeover
+     * reconnect (the provider owns preemption); never a timed polling loop.
+     * The intent lives only for that reconnected viewer and only while the
+     * user stays on this panel: focus leaving, an outside interaction or
+     * window deactivation cancels it, so a late grant can never pull the user
+     * back from another task. */
+    const takeoverRef = useRef<(() => void) | null>(null);
+    const requestTakeover = useCallback(() => {
+      const current = controller.current;
+      const owner = panel.current;
+      if (!active || !current || !owner || !adapter?.backend.requestTakeover || current.getSnapshot().phase !== "ready") return;
+      takeoverRef.current?.();
+      // Keep the explicit gesture on a stable owner while the reconnect hides
+      // the toolbar. This runs now, never when a delayed grant arrives.
+      owner.focus({ preventScroll: true });
+      let stage: "reconnecting" | "connecting" | "ready" = "reconnecting";
+      const stop = (): void => { takeoverRef.current = null; unsubscribe(); disposeLeave(); };
+      const unsubscribe = current.subscribe(() => {
+        const state = current.getSnapshot();
+        if (state.phase === "failed" || state.phase === "unavailable") { stop(); return; }
+        if (state.phase !== "ready") {
+          if (stage === "ready") stop(); else stage = "connecting";
+          return;
+        }
+        if (stage === "reconnecting") return;
+        stage = "ready";
+        if (state.control === "observing" && state.canControl) {
+          stop();
+          // The reconnect grant is late evidence, not fresh intent: only take
+          // control when this panel still owns focus at that moment.
+          if (ownsDesktopFocus(owner)) void current.requestControl();
+        }
+      });
+      const disposeLeave = bindDesktopInteractionOwner(owner, stop);
+      takeoverRef.current = stop;
+      adapter.backend.requestTakeover();
+      current.retry();
+    }, [active]);
     const owned = active && snapshot.phase === "ready" && snapshot.control === "controlling";
     const ratio = snapshot.mediaAspectRatio;
     const geometry = { "--desktop-aspect-ratio": ratio && Number.isFinite(ratio) && ratio > 0 ? ratio : 4 / 3 } as CSSProperties;
@@ -44,8 +82,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       if (!adapter || !tab.resource || !element.current || !panel.current) return;
       const owner = panel.current;
       const current = new DesktopViewController(adapter.backend, adapter.surfaces, tab.resource, element.current,
-        undefined, undefined, () => owner.ownerDocument.visibilityState === "visible"
-          && owner.ownerDocument.hasFocus() && owner.contains(owner.ownerDocument.activeElement));
+        undefined, undefined, () => ownsDesktopFocus(owner));
       controller.current = current;
       controllers.set(current, ownerId);
       current.setActive(active);
@@ -54,6 +91,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       current.start();
       setSnapshot(current.getSnapshot());
       return () => {
+        takeoverRef.current?.();
         unsubscribe();
         disposeInteraction();
         controller.current = null;
@@ -62,6 +100,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       };
     }, [tab.resource, ownerId]);
     useLayoutEffect(() => {
+      if (!active) takeoverRef.current?.();
       controller.current?.setActive(active);
     }, [active]);
 
@@ -123,7 +162,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
         </div> : null}
       </div>
     </div>;
-    return <section ref={panel} className="cloud-desktop-panel" data-phase={snapshot.phase} data-stage={snapshot.stage}
+    return <section ref={panel} tabIndex={-1} className="cloud-desktop-panel" data-phase={snapshot.phase} data-stage={snapshot.stage}
       data-control={snapshot.control} inert={!active || undefined}
       aria-label={intl.formatMessage({ id: "desktop.panel", defaultMessage: "Desktop" })}>
       <div className="ui-desktop-view" data-owned={owned ? "true" : "false"} style={geometry}>
@@ -166,9 +205,9 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
           <span className="ui-button__label"><ClipboardPaste size={16} aria-hidden="true" /></span>
         </button> : null}
         <button type="button" className="ui-desktop-view__action"
-          disabled={!active || snapshot.phase !== "ready" || !snapshot.canControl}
+          disabled={!active || snapshot.phase !== "ready" || (!snapshot.canControl && !adapter?.backend.requestTakeover)}
           aria-pressed={snapshot.control !== "observing"}
-          {...controlAction}>
+          {...(snapshot.canControl ? controlAction : { onClick: requestTakeover })}>
           <span className="ui-button__label cloud-desktop-panel__control-label">
             {Object.entries(controlLabels).map(([state, label]) => <span key={state}
               aria-hidden={state !== snapshot.control ? true : undefined}

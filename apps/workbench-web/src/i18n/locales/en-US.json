@@ -566,6 +566,9 @@
   "settings.contributions.employeeIdentity": "Employee identity",
   "settings.contributions.voiceInput": "Voice input",
   "navigation.tryIt": "Try it",
+  "settings.servers": "Servers",
+  "settings.servers.description": "Choose which server to use. Access is managed separately on each server.",
+  "settings.servers.current": "Current server",
   "settings.hubNetwork": "Hub network",
   "office.loading": "Opening document…",
   "office.failed": "This document could not be displayed. You can download the original file.",
@@ -602,5 +605,11 @@
   "mcpApp.failed": "App unavailable",
   "mcpApp.loading": "Loading app…",
   "mcpApp.resume": "Open app",
-  "mcpApp.pause": "Pause app"
+  "mcpApp.pause": "Pause app",
+  "composer.model.loading": "Loading models…",
+  "composer.model.loadError": "Couldn't load models. Try again.",
+  "composer.model.retry": "Retry",
+  "composer.model.configure": "Add more models",
+  "composer.model.fallbackShort": "Backup",
+  "composer.model.empty": "No models available. Check Model Settings."
 }

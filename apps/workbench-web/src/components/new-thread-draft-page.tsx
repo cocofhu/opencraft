@@ -99,7 +99,7 @@ export interface NewThreadDraftPageProps {
   readonly selectionCatalog: ComposerSelectionCatalog;
   readonly catalog: ComposerCatalog;
   readonly effectiveSelections?: ComposerEffectiveSelections;
-  readonly modelSelectionPolicy?: "user" | "host-default";
+  readonly modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
   readonly personalDefaultsPending?: boolean;
   readonly workspaceOptions: readonly DraftWorkspaceOption[];
   readonly workspaceOptionsLoading?: boolean;

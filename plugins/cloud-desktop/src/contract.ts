@@ -30,6 +30,9 @@ export interface DesktopConnectionSnapshot {
   readonly inputReady: boolean;
   readonly controlAvailable: boolean;
   readonly ended: boolean;
+  /** Intentional control release needs a fresh observe-only attachment, not fault recovery.
+   * The provider must ensure the next prepare cannot reserve input. */
+  readonly resumeObserving?: boolean;
   /** Only an established stream's classified transport loss is retryable.
    * Missing means manual recovery; never infer this from raw error text. */
   readonly retryable?: boolean;
@@ -63,9 +66,15 @@ export interface DesktopAttachment {
 }
 
 export interface DesktopBackend {
+  /** Explicit one-shot reconnect intent for a read-only viewer. Optional: without
+   * an implementation the UI cannot advertise takeover. The provider still owns
+   * authorization, preemption and consumption on the next prepare attempt. */
+  requestTakeover?(): void;
   /** Explicit opt-in: prepare only allocates a fresh, reauthorized viewer and
    * can be repeated without replaying resource creation or Agent execution. */
   readonly recoverTransport?: boolean;
+  /** Resource preparation budget only; media/handshake deadlines remain independent. */
+  readonly prepareTimeoutMs?: number;
   /** Cached, authorized capability lookup. Null means no entry, not an implicit
    * local-machine fallback. Resolution must be for this exact conversation. */
   resolveTarget(conversationId: string): DesktopTarget | null;

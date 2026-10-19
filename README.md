@@ -1,5 +1,7 @@
 # OpenCraft
 
+Contribute through [CONTRIBUTING](CONTRIBUTING.md). To build a client extension, start with the [current boundary guide](docs/extension-development.md) and [runnable example](examples/extensions/README.md).
+
 OpenCraft core is developed in this GitHub upstream. Product providers and
 branding are composed downstream; see [transition status](docs/upstream-transition.md).
 Original contributions use Apache-2.0; existing third-party notices and source

@@ -12,7 +12,7 @@ import {initializeAppearanceTheme} from '/apps/workbench-web/src/appearance-them
 import '/apps/workbench-web/src/styles/app.scss';
 import {createSmokeClientProduct,OPTIONAL_EXTENSION_ID,PRODUCT_EXTENSION_ID} from '/tests/fixtures/client-product.ts';
 initializeAppearanceTheme();
-const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',clientProduct:createSmokeClientProduct()});
+const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',clientProduct:createSmokeClientProduct([], !new URLSearchParams(location.search).has("removed"))});
 const supervisor=application.supervisor;
 createIntlTestRoot(document.getElementById('app')).render(<WorkbenchRoot application={application}/>);
 createIntlTestRoot(document.getElementById('library')).render(<ExtensionLibrary manager={supervisor.extensionManager} supervisor={supervisor.extensions}/>);
@@ -31,7 +31,7 @@ const server = await createServer({ configFile: false, cacheDir: ".local/optiona
     name: "optional-builtin-proof", resolveId: id => id === "/builtin-proof.tsx" ? id : null,
     load: id => id === "/builtin-proof.tsx" ? source : null,
     configureServer(vite) { vite.middlewares.use((req, res, next) => {
-      if (req.url === "/") {
+      if (req.url?.split("?")[0] === "/") {
         res.setHeader("Content-Type", "text/html");
         res.end('<html><body><div id="app"></div><aside id="library" style="position:fixed;right:20px;top:100px;width:500px;max-height:700px;overflow:auto;z-index:1000;background:var(--color-background);padding:20px"></aside><script type="module" src="/builtin-proof.tsx"></script></body></html>');
       } else next();
@@ -92,11 +92,28 @@ try {
   await library.getByLabel('搜索扩展').fill('Optional fixture');
   await library.getByRole('switch', { name: '启用 Optional fixture' }).waitFor();
   assert.equal(await page.evaluate(() => (window as any).builtinProof.snapshot().installation.enabled), false);
+  await mkdir('.local/optional-builtin-verification', { recursive: true });
+  // Retire the product after enabling, keeping the same browser persistence.
+  await library.getByRole('switch', { name: '启用 Optional fixture' }).click();
+  await library.getByRole('switch', { name: '停用 Optional fixture' }).waitFor();
+  await page.goto(`${server.resolvedUrls!.local[0]}?removed=1`);
+  await page.waitForSelector('body[data-ready="true"]');
+  assert.equal(await page.evaluate(() => (window as any).builtinProof.snapshot()), undefined);
+  assert.equal(await page.evaluate(() => (window as any).builtinProof.navigation().includes('Fixture workspace')), false);
+  assert.equal(await page.evaluate(() => (window as any).builtinProof.productActive()), true);
+  await library.getByLabel('搜索扩展').fill('Optional fixture');
+  assert.equal(await library.getByRole('switch').count(), 0);
+  assert.equal(await library.getByText('unavailable in this product', { exact: false }).count(), 0);
+  await page.screenshot({ path: '.local/optional-builtin-verification/removed.png' });
+  await page.goto(server.resolvedUrls!.local[0]);
+  await page.waitForSelector('body[data-ready="true"]');
+  await library.getByLabel('搜索扩展').fill('Optional fixture');
+  await library.getByRole('switch', { name: '停用 Optional fixture' }).waitFor();
   assert.deepEqual(errors, []);
   assert.deepEqual(externalOrigins, [], "the probe must not depend on external product services");
   await mkdir('.local/optional-builtin-verification', { recursive: true });
   await page.screenshot({ path: '.local/optional-builtin-verification/default-disabled.png' });
-  console.log('PASS: real Web bootstrap accepts a local product with a disabled builtin; extension controls enable navigation, restore choice, disable and protect bundled source; product owner stays active.');
+  console.log('PASS: real Web bootstrap accepts a local product with a disabled builtin; extension controls enable navigation, restore choice, disable and protect bundled source; removed built-ins disappear without errors, reintroduction restores choice and product owner stays active.');
 } finally {
   await browser?.close();
   await server.close();

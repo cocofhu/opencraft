@@ -16,10 +16,12 @@ export function useDesktopControlAction<T extends HTMLElement = HTMLButtonElemen
   useEffect(() => {
     const cancel = () => { if (press.current) press.current.run = cancelled; };
     const visibility = () => { if (document.visibilityState !== "visible") cancel(); };
+    const releasedInside = (event: Event, target: HTMLElement) => event.composedPath().includes(target)
+      || event.target instanceof Node && target.contains(event.target);
     const pointerUp = (event: globalThis.PointerEvent) => {
       const current = press.current;
       if (current?.source === "pointer" && current.id === event.pointerId
-        && (!(event.target instanceof Node) || !current.target.contains(event.target))) cancel();
+        && !releasedInside(event, current.target)) cancel();
     };
     const pointerCancel = (event: globalThis.PointerEvent) => {
       if (press.current?.source === "pointer" && press.current.id === event.pointerId) cancel();
@@ -27,7 +29,7 @@ export function useDesktopControlAction<T extends HTMLElement = HTMLButtonElemen
     const keyUp = (event: globalThis.KeyboardEvent) => {
       const current = press.current;
       if (current?.source === "keyboard" && current.key === event.key
-        && (!(event.target instanceof Node) || !current.target.contains(event.target))) cancel();
+        && !releasedInside(event, current.target)) cancel();
     };
     window.addEventListener("blur", cancel);
     document.addEventListener("visibilitychange", visibility);

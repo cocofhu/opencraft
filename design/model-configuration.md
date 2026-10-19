@@ -63,3 +63,20 @@ Headless 的 Model Services 在现有添加提供商表单中选择用途，复�
 ## Personal defaults on shared servers
 
 Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
+
+## 会话选择与产品目录
+
+Composer 的 `ModelSelectionPolicy` 显式区分三种模式：`user` 使用用户选择，
+`host-default` 不提供模型覆盖，`session` 在用户未选择时继承 Host 当前默认、
+选择后只影响当前会话。现有会话没有新选择时保持其模型；会话选择不写全局或个人默认。
+策略由装配声明，不能仅凭“嵌入”或产品名推断。Web 嵌入入口省略策略时保留原宿主默认。
+
+产品可通过 `readSelectableModels` 提供模型目录的可用项和显示分组/名称/备用角色；
+产品设置接口和凭据仍由下游拥有。普通发送不读取产品设置，明确选择只查询已有缓存；
+缓存缺失/失败交由 Host 做最终校验，明确的空目录拒绝已删除选择。菜单打开可主动刷新。
+这是展示与提交前置检查，不替代服务端授权。模型ID与原生模型值保持区分。
+
+`session` 菜单只显示模型、分组与备用标记；推理档位仍由 Host 管理。刷新保留已有名称，
+冷目录显示静态占位，失败与空目录仍可打开重试，原始产品错误不进入菜单。
+可选配置动作由装配提供；长名称由容器裁切并提供可复制的完整提示。
+共享 Composer 保留触屏编辑焦点与键盘菜单语义，不复制产品设置页。

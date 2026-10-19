@@ -1,5 +1,7 @@
 # OpenCraft Extension Platform 与插件内核架构
 
+> 开发入口：[当前插件边界、API 与贡献路径](extension-development.md)。本文同时保留目标拓扑和迁移历史；目标设计不是已实现 API。当前类型以 `packages/extension-contract/src/index.ts` 为准，示例以 `examples/extensions/hello.mjs` 为准。
+
 GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入下游产品/企业身份，
 不能无条件导入私有插件；移除配置中的必需身份提供者必须保持拒绝，核心Actor、
 成员与资源授权不下沉到产品。当前拆分尚在实施，已知直接依赖与验证不变量见
@@ -163,7 +165,7 @@ Settings V1 刻意不包含 global/host/workspace 多层 scope、自定义 migra
 - 公共 `OpenCraftExtensionDefinition` 只引用公共 API，第一方 Theme Pack 已消费；`api.signal` 在失败或停用时先于清理 abort，运行中的插件可继续登记资源 subscription（贡献本身仍只在激活期登记）。自包含示例见 `examples/extensions/hello.mjs`，测试覆盖注册导航、调用公告与卸载中的待决结果。
 - Manifest V1 的格式解析保留合法的未来 `apiVersion`，当前 Supervisor 在执行 `activate` 前单独检查 API 与平台兼容性。未来 API 的安装记录不会被当作损坏记录删除；Manager 投影 `incompatible`，保留启用意图及配置。当前仅支持 API 1，不承诺旧 API 永久兼容。
 - `reload` 与同 ID 重新安装共享替换流程：候选成功激活且保存成功才更新安装记录；失败重新激活本进程保存的旧定义，使用新 activationId，旧安装版本和 enabled 保持不变。已停用插件重新安装保持停用。
-- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设，跟踪于下游产品工作区的扩展平台完成记录（不在本仓库）。
+- 更新恢复不回滚插件自行产生的副作用。新 module-url 安装随记录持久化自包含 ESM 与 SHA-256；恢复先校验保存内容，不请求源 URL，只有显式 reload 才下载候选。模块上限 512 KiB，静态/动态 import 与 import.meta 在执行前拒绝，要求作者 bundle 私有依赖。旧的未固定记录仍走原 URL 加载，显式更新后固定。摘要用于完整性而非发布者身份认证；可信代码不是沙箱。完整版本范围、第一方隔离、公共接口扩展与客户端验收仍在建设；公开范围与未完成项见本文第14节，当前可执行贡献路径见 [Extension development](extension-development.md)。
 
 ## 1. 结论
 
@@ -520,91 +522,61 @@ collapsed rail。暂时离线的实体不会从 durable order 中删除。
 
 ## 7. 公共 Manifest 与 API
 
-### 7.1 Manifest
+### 7.1 当前 Manifest V1
 
-公共 manifest 只描述静态、可验证的事实：
-
-```ts
-export interface OpenCraftExtensionManifestV1 {
-  readonly manifestVersion: 1;
-  readonly id: ExtensionId;
-  readonly name: string;
-  readonly version: string;
-  readonly apiVersion: string;
-  readonly engines: { readonly opencraft: string };
-  readonly activationEvents: readonly ActivationEvent[];
-  readonly requestedPermissions?: readonly ExtensionPermissionRequest[];
-  readonly platforms?: readonly ("web" | "electron" | "ios" | "android")[];
-  readonly dependencies?: readonly ExtensionId[];
-  readonly entrypoints?: {
-    readonly provider?: string;
-    readonly sandboxUi?: string;
-  };
-  readonly contributes?: ExtensionContributions;
-}
-
-export type ActivationEvent =
-  | `onCommand:${ContributionId}`
-  | `onView:${ContributionId}`
-  | `onResource:${string}`
-  | `onLanguage:${string}`
-  | "onStartupFinished";
-```
-
-默认不允许任意 `main` 进入主 Renderer。可信内建插件由应用编译清单登记，不通过公共
-manifest 的 `provider` 入口冒充第三方。
-
-### 7.2 公共 API
+可安装可信模块导出 `OpenCraftExtensionDefinition`。以下是当前合法的 Manifest；
+完整字段以 [ExtensionManifestV1](../packages/extension-contract/src/index.ts) 为准。
 
 ```ts
-export interface OpenCraftExtensionApiV1 {
-  readonly identity: Readonly<ExtensionActivationKey>;
-  readonly subscriptions: DisposableStore;
-  readonly commands: CommandsApiV1;
-  readonly bots: BotsApiV1;
-  readonly workspace: WorkspaceApiV1;
-  readonly conversations: ConversationsApiV1;
-  readonly resources: ResourcesApiV1;
-  readonly storage: ExtensionStorageApiV1;
-  readonly access: ExtensionAccessView;
-}
+const manifest = {
+  manifestVersion: 1,
+  id: "example.hello",
+  name: "Hello extension",
+  version: "1.0.0",
+  apiVersion: 1,
+  trust: "trusted",
+  platforms: ["web", "electron"],
+  activationEvents: ["onStartupFinished"],
+};
 ```
 
-公共 API 不导出：
+当前 `apiVersion` 是数字，Host 仅接受 1；平台值为 `web | electron | expo`。
+`dependencies` 是必须已经 active 的扩展 ID，不是版本范围解析或下载请求。
+不能从声明 activation event 推定已有完整惰性调度；平台声明也不代表该平台已有安装器。
+`engines`、`requestedPermissions`、`provider/sandboxUi entrypoints` 属于后续设计，
+不是当前 V1 可消费字段。可信产品编译入口与用户安装的模块 URL 是不同的装配边界。
 
-- `@deepseek-ai/cordis` 类型；
-- React/React Native Component 类型；
-- TanStack Query client；
-- AppServerClient/Transport；
-- Replica mutable store；
-- DOM、Electron IPC、Node `fs`；
-- 应用内部 Store 的 `dispatch`。
+### 7.2 当前公共 API
 
-公共 API 独立版本化。内部包重构、Cordis 升级和协议生成文件变化，不得强迫插件升级。
+公开类型 `OpenCraftExtensionApiV1` 提供：
 
-`storage` 的目标语义以 [插件持久化契约](./plugin-persistence.md) 为准：默认异步 JSON/KV，
-宿主绑定插件命名空间与区域，Client-local 由 Electron SQLite / Web IndexedDB 投影，
-Host 数据始终经该 Host authority 访问；SQL 不是跨端基础 API。物理 schema 与插件 payload
-独立迁移，重载撤销旧 handle，停用/卸载不默认删除数据。当前 V1 已提供可空的
-client-local 文档 storage 接口及 [Host 文档 API](./host-document-storage.md) 适配，
-后者只绑定已初始化并实际支持协议的 Host。Host 仅提供 API，本期不建设
-Host 插件装载器。插件可自建 Worker 并登记清理，Cordis 管激活/销毁和旧代次撤销。
-本期不引入 Drizzle。
+- 生命周期：`signal`、`identity`、`subscriptions`；
+- 数据：可空 `storage`、可选 `localPreferences`；能力存在性以实际宿主为准；
+- 贡献：`commands`、`settings`、`views`、`navigation`、`sidebar`、`workbench`、
+  `themes`、`bots`、`window`。
 
-#### 7.2.1 稳定性契约
+此处的 View/Workbench 注册描述支持的贡献，不承诺加载任意 React UI。
+`window.showAnnouncement` 只提交数据，由应用拥有窗口、焦点、Portal 与销毁。
+现有可信产品装配可访问更多内部接口，不属于可下载模块的公共 ABI。
 
-- manifest 用 `apiVersion` 声明兼容范围，Host 在安装前解析，不在运行到一半才失败；
-- `OpenCraftExtensionApiV1` 在 V1 生命周期内只做向后兼容增加，删除或改变语义必须进入 V2；
-- RPC envelope、错误码、资源 URI、Contribution ID 和持久化 state schema 都属于公共 ABI；
-- 废弃 API 先产生开发诊断和迁移建议，经过公开兼容窗口后才能移除；
-- SDK 只包含类型、schema、测试工具和 RPC client，不把应用内部实现打进插件；
-- 每个 Host 发布机器可读 `supportedApiVersions + platformCapabilities`；
-- Web、Electron、Expo 可以支持不同物理能力，但相同 API 的成功、拒绝、unsupported 和取消
-  语义必须通过同一 contract suite；
-- 每个稳定 API 都要有录制 fixture、错误码测试和至少一个旧版 Extension 兼容样本。
+公共 API 不提供根 Cordis Context、React Component、Query client、
+AppServer Transport、可变 Replica、文件系统或 Electron IPC。
+可信模块仍运行在 Renderer realm；这不是隔离执行宿主。
+数据与生命周期语义见 [插件持久化契约](plugin-persistence.md) 与
+[可运行示例](../examples/extensions/README.md)。
 
-公开 API 的目标不是冻结所有功能，而是允许内部持续重构。Extension 依赖的是版本化 Port，
-不是 Cordis Service key、React props、AppServer 生成类型或当前文件路径。
+#### 7.2.1 稳定性契约与后续目标
+
+V1 只做向后兼容增加；删除成员或改变语义须提出 V2 与迁移路径。
+当前已有 API 1/平台兼容拒绝、失败清理和安装恢复测试，不代表下列目标全部实现：
+
+- API/engine 版本范围协商、机器可读跨端 capability discovery；
+- 完整依赖解析、声明式权限授予、隔离宿主及版本化 RPC；
+- 发布 SDK、统一旧版本兼容样本和跨端完整 contract suite；
+- API 废弃诊断与公开迁移窗口。
+
+新增公共能力须带现有消费者兼容与生命周期证据，不能直接把产品内部 Context、
+React props 或生成协议类型变成稳定 SDK。贡献方法见 [贡献指南](../CONTRIBUTING.md)。
 
 ### 7.3 发行、解析与 Artifact
 
@@ -1223,3 +1195,12 @@ does not choose engine command names or wire methods. Provider retirement/replac
 and Host/profile invalidation reject new calls, with accepted invocations drained
 under independent provider leases. This does not grant plugin authorization or
 change ordinary Thread submission and queue ownership.
+
+### Removed product built-ins
+
+The current product's built-in declarations are the authority for bundled extension availability.
+A saved built-in absent from this product is not loaded or exposed in its extension catalog;
+it does not become a failed installation. Its durable record is retained so a product switch
+or later reintroduction preserves the user's enabled/disabled choice. Other bundled extensions
+and installed module URLs still restore independently. The background task is named
+`extensions.restore`; it is not owned by a particular optional product feature.

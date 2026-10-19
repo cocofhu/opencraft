@@ -133,8 +133,10 @@
     "smoke:thread-lifecycle": "tsx scripts/smoke-thread-lifecycle.ts",
     "smoke:thread-management": "tsx scripts/smoke-thread-management.ts",
     "smoke:model-capabilities": "tsx scripts/smoke-model-capabilities.ts",
+    "smoke:session-model-selector": "tsx scripts/smoke-session-model-selector.ts",
+    "test:session-model-selection": "tsx --test tests/chat-session-model-selection.test.ts tests/chat-composer-connection-hint.test.tsx",
     "test:native-speech": "tsx --test tests/native-speech.test.ts tests/dictation-ledger.test.ts tests/dictation-startup-feedback.test.tsx tests/composer-core.test.ts",
-    "test:hunyuan-speech": "tsx --test tests/hunyuan-speech.test.ts tests/speech-model-configuration.test.ts tests/embedded-speech-service.test.ts",
+    "test:hunyuan-speech": "tsx --test tests/hunyuan-speech.test.ts tests/speech-model-configuration.test.ts",
     "migrate:speech-models": "tsx scripts/migrate-speech-models.ts",
     "smoke:hunyuan-dictation": "tsx scripts/smoke-hunyuan-dictation.ts",
     "smoke:speech-model-settings": "tsx scripts/smoke-speech-model-settings.ts",
@@ -178,6 +180,7 @@
     "test:environments": "tsx --test tests/workbench-environments.test.ts tests/environment-directory.test.ts",
     "test:desktop-login": "tsx --test tests/authentication-flows.test.ts tests/local-client-persistence-scope.test.ts",
     "test:appserver:lab": "tsx --test tests/appserver-lab*.test.ts",
+    "smoke:conversation-history-refresh": "tsx scripts/smoke-conversation-history-refresh.ts",
     "test:chat": "tsx --test tests/conversation-outbox.test.ts tests/workbench-presentation-activity.test.tsx tests/chat-*.test.ts tests/thread-attention.test.ts tests/thread-read-receipt-*.test.ts tests/conversation-history-order.test.ts tests/composer-core.test.ts tests/codex-composer-codec.test.ts tests/codex-composer-attachment-focus.test.ts tests/codex-composer-attachment-preview.test.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:boundaries": "npm run check:typography && node scripts/check-platform-boundaries.mjs",
@@ -232,7 +235,8 @@
     "test:mcp-apps": "tsx --test tests/mcp-app-host.test.ts tests/mcp-app-builder.test.ts",
     "smoke:mcp-apps": "tsx scripts/smoke-mcp-app-host.ts",
     "smoke:host-composer-commands": "tsx scripts/smoke-host-composer-commands.ts",
-    "test:react-runtime": "tsx --test tests/host-composer-commands.test.ts tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs tests/workbench-presentation-policy.test.ts tests/workbench-product-icons.test.tsx tests/workbench-navigation-icons.test.ts tests/workbench-appearance-theme.test.ts"
+    "test:react-runtime": "tsx --test tests/host-composer-commands.test.ts tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs tests/workbench-presentation-policy.test.ts tests/workbench-product-icons.test.tsx tests/workbench-navigation-icons.test.ts tests/workbench-appearance-theme.test.ts",
+    "test:extension-example": "tsx --test tests/extension-example.test.ts"
   },
   "dependencies": {
     "react": "19.2.3",

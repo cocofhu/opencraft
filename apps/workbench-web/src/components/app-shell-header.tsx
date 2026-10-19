@@ -77,6 +77,7 @@ export function AppShellNavigationControls({
   }, [actions, hostRole, sidebarDocked, sidebarOpen, presentation?.sidebarControlsInSidebar, touchLayout]);
   const { headerLeftFitWidth } = useAppShellLayoutMotion();
   const visibleBrand = brand;
+  const hasNavigationContent = Boolean(visibleBrand) || presentedActions.length > 0;
   const measureRef = useRef<HTMLDivElement | null>(null);
   const toggleSidebar = useCallback(() => {
     if (hostRole === "transient") {
@@ -133,7 +134,7 @@ export function AppShellNavigationControls({
     const measure = measureRef.current;
     if (measure === null) return;
     const updateWidth = (width: number) => {
-      if (width > 0 && Math.abs(headerLeftFitWidth.get() - width) > 0.5) {
+      if ((width > 0 || !hasNavigationContent) && Math.abs(headerLeftFitWidth.get() - width) > 0.5) {
         headerLeftFitWidth.set(width);
       }
     };
@@ -145,7 +146,7 @@ export function AppShellNavigationControls({
     });
     observer.observe(measure, { box: "border-box" });
     return () => observer.disconnect();
-  }, [headerLeftFitWidth, hostRole]);
+  }, [headerLeftFitWidth, hostRole, hasNavigationContent]);
 
   return (
     <>
@@ -154,7 +155,7 @@ export function AppShellNavigationControls({
         aria-hidden="true"
         className="app-shell-header__window-controls-measure"
       >
-        <div className="app-shell-header__window-controls-rail" data-navigation-brand={visibleBrand ? true : undefined} data-sidebar-collapsed={presentation?.sidebarControlsInSidebar && !sidebarOpen || undefined}>
+        <div className="app-shell-header__window-controls-rail" data-navigation-empty={!hasNavigationContent || undefined} data-navigation-brand={visibleBrand ? true : undefined} data-sidebar-collapsed={presentation?.sidebarControlsInSidebar && !sidebarOpen || undefined}>
           {visibleBrand}
           {presentedActions.map((action) => (
             <span
@@ -171,7 +172,7 @@ export function AppShellNavigationControls({
         className="app-shell-header__window-controls"
         data-app-shell-header-start-slot="true"
       >
-        <div className="app-shell-header__window-controls-rail" data-navigation-brand={visibleBrand ? true : undefined} data-sidebar-collapsed={presentation?.sidebarControlsInSidebar && !sidebarOpen || undefined}>
+        <div className="app-shell-header__window-controls-rail" data-navigation-empty={!hasNavigationContent || undefined} data-navigation-brand={visibleBrand ? true : undefined} data-sidebar-collapsed={presentation?.sidebarControlsInSidebar && !sidebarOpen || undefined}>
           {visibleBrand}
           {presentedActions.map((action) => (
             <span
@@ -199,6 +200,7 @@ export interface AppShellHeaderProps {
   readonly title: string | null;
   readonly project: string | null;
   readonly titleContent?: ReactNode;
+  readonly subtitle?: ReactNode;
   readonly routeHeaderActive?: boolean;
   readonly routeHeaderHostRef?: RefCallback<HTMLDivElement>;
   readonly sidebarOpen: boolean;
@@ -229,6 +231,7 @@ export function AppShellHeader({
   title,
   project,
   titleContent,
+  subtitle,
   routeHeaderActive = false,
   routeHeaderHostRef,
   sidebarOpen,
@@ -324,10 +327,15 @@ export function AppShellHeader({
           />
           {!routeHeaderActive && title !== null ? (
             <div className="thread-header-title">
-              {titleContent ?? <span className="thread-header-copy">
-                <strong>{title}</strong>
-                {project === null ? null : <small>{project} · main</small>}
-              </span>}
+              <div className="thread-header-heading">
+                <div className="thread-header-heading__main">
+                  {titleContent ?? <span className="thread-header-copy">
+                    <strong>{title}</strong>
+                    {project === null ? null : <small>{project} · main</small>}
+                  </span>}
+                </div>
+                {subtitle == null ? null : <small className="thread-header-heading__subtitle">{subtitle}</small>}
+              </div>
             </div>
           ) : null}
         </div>

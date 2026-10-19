@@ -42,7 +42,7 @@ function WorkbenchContent({
         <WebChatRenderRuntimeProvider runtime={application.chatRenderRuntime}>
           <TimelineBlockRendererProvider registry={application.timelineRenderers}>
             <AppServerRuntimeProvider supervisor={application.supervisor}>
-              <App />
+              <App conversationPresentation={application.conversationPresentation} />
             </AppServerRuntimeProvider>
           </TimelineBlockRendererProvider>
         </WebChatRenderRuntimeProvider>
