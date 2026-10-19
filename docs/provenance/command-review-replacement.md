@@ -182,3 +182,7 @@ and release Web build passed again; the final browser compatibility check covers
 790 runtime source files with zero issues. Inventory reports errors=[] and
 releaseReady=false with nine unresolved groups and one remaining expression path.
 Normal PR CI and actual downstream deployment are separate subsequent events.
+
+### Accepted upstream baseline follow-up
+
+After PR #127 was accepted, the normal feature merge `4eec9b492d64143a563789367fc429204923d556` retained the accepted sidebar implementation from main `fdcbc11`. The replacement module itself is unchanged. The combined branch passes the existing 14 reasoning/provenance checks, Web types, typography/activity/platform boundaries, the four desktop/mobile × light/dark command/review keyboard/copy/stream identity observations (12 samples, no page errors), and the release Web build with 791 browser runtime sources and no compatibility issues. This finite recheck does not extend the author-exposure or historical-rights claims above. No tests or harness were added.
