@@ -293,7 +293,11 @@ keys, cancellation and live admission fence initial pages as well as final resul
 The Sidebar labels partial loading; completion replaces it with the entire
 catalog without an empty frame. Goal enrichment and unread catch-up wait for the
 complete catalog, preserving their existing request schedule. First usable rows
-and complete directory readiness are separate performance metrics.
+and complete directory readiness are separate performance metrics. Cold in-flight
+invalidations (for example, edits to already visible rows) are coalesced into one
+ordinary refresh after complete success is committed. They cannot be swallowed by
+the pending Query or indefinitely postpone the first complete cache; scope and
+cancellation still fence the scheduled refresh.
 
 The optional conversation overview is isolated in
 `apps/workbench-web/src/features/conversation-overview`. Appearance controls its

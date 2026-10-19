@@ -26,14 +26,35 @@ export function useHostThreadCatalogQueries(inputs: readonly CatalogQuery[]) {
       placeholderData: initialPages.get(key)?.page,
       queryFn: async ({ signal }: { signal: AbortSignal }) => {
         const request = Symbol();
+        // InvalidateQueries joins an existing cold fetch when it has no cached
+        // data. Preserve invalidations caused by edits to already visible rows.
+        let invalidatedWhileCold = false;
+        const unsubscribe = queryClient.getQueryCache().subscribe(event => {
+          if (event.type === "updated" && event.action.type === "invalidate"
+            && JSON.stringify(event.query.queryKey) === key
+            && queryClient.getQueryData(input.queryKey) === undefined) invalidatedWhileCold = true;
+        });
         try {
-          return await readHostThreadCatalog({ ...input, signal, onInitialPage: page => {
+          const complete = await readHostThreadCatalog({ ...input, signal, onInitialPage: page => {
             // A refresh retains its previous complete snapshot. Cancellation and
             // scoped keys prevent a replaced reader from resurrecting old rows.
             if (signal.aborted || queryClient.getQueryData(input.queryKey) !== undefined) return;
             setInitialPages(previous => new Map(previous).set(key, { request, page }));
           } });
+          if (invalidatedWhileCold && !signal.aborted) {
+            // The next task runs after Query has committed complete success.
+            // Keep that full snapshot while one ordinary refresh catches up;
+            // repeated notifications cannot starve initial completion.
+            setTimeout(() => {
+              if (!signal.aborted && queryClient.getQueryData(input.queryKey) === complete
+                && queryClient.getQueryState(input.queryKey)?.fetchStatus === "idle") {
+                void queryClient.invalidateQueries({ queryKey: input.queryKey, exact: true });
+              }
+            }, 0);
+          }
+          return complete;
         } finally {
+          unsubscribe();
           setInitialPages(previous => {
             if (previous.get(key)?.request !== request) return previous;
             const next = new Map(previous); next.delete(key); return next;

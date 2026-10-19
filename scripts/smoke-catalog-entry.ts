@@ -124,6 +124,20 @@ try {
       assert.equal(await page.locator('.sidebar-activity-item').count(), 0);
       assert.deepEqual(errors, []); evidence.push({ width, theme, firstPage: before, pageCalls, errors }); await page.close();
     }
+    // An early rename/archive/pin invalidates an in-flight cold read before a
+    // complete cache exists. That invalidation must survive initial success.
+    hold = true; fail = false; release = undefined;
+    const mutationCalls = pageCalls;
+    const mutationPage = await browser.newPage(); await mutationPage.addInitScript('window.__name=value=>value'); await mutationPage.goto(origin);
+    await mutationPage.waitForFunction(() => (window as any).catalogEntry?.snapshot().partial);
+    rows[0] = { ...rows[0]!, name: 'Conversation 0 renamed during initial load' };
+    await mutationPage.evaluate(() => { for (let n = 0; n < 3; n++) void (window as any).catalogEntry.refresh(); });
+    hold = false; release?.();
+    await mutationPage.waitForFunction(() => (window as any).catalogEntry.cached()?.data.find((row: any) => row.id === 't0')?.name === 'Conversation 0 renamed during initial load', undefined, { timeout: 5000 });
+    await mutationPage.getByText('Conversation 0 renamed during initial load', { exact: true }).waitFor();
+    assert.equal(await mutationPage.evaluate(() => (window as any).catalogEntry.cached().data.length), 222);
+    assert.equal(pageCalls - mutationCalls, 10, 'coalesce cold invalidations into one complete refresh');
+    await mutationPage.close(); rows[0] = { ...rows[0]!, name: 'Conversation 0' };
     // A later-page failure during the first load removes transient rows and exposes retry.
     hold = true; fail = false; release = undefined;
     const page = await browser.newPage(); await page.addInitScript('window.__name=value=>value'); await page.goto(origin);
