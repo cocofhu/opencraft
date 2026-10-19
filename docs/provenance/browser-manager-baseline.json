@@ -75,5 +75,28 @@
     ],
     "scope": "synthetic state ports, no Host construction/native browser or complete lifecycle claim",
     "completeCoverage": false
+  },
+  "hostObservations": {
+    "sha256": "f53b253bcb404352a2131b4a2e7431ac78db3038400707b004ad6ae1daecb670",
+    "steps": 53,
+    "hostsCreated": 6,
+    "framesRemaining": 0,
+    "timersRemaining": 0,
+    "scope": "historical manager and independent actual Host/Transition with synthetic DOM guest ports, controlled host-ready promises and frame queue; no native guest/browser coordinator/employee session claim",
+    "completeCoverage": false
+  },
+  "invocationInventory": {
+    "sha256": "a3169a8d0b59d5d741f5a1d71bae2d0c5586a21591d609674459f4cc1e5be0de",
+    "methodsExecuted": 55,
+    "totalMethods": 60,
+    "notExecuted": [
+      "destroyWebviewAtHostRequest",
+      "disposeCurrentWebviewHost",
+      "isBrowserUseActive",
+      "isBrowserUseTab",
+      "removeConversationBrowserStateIfEmpty"
+    ],
+    "instrumentedOutputsEqualUninstrumented": true,
+    "completeCoverage": false
   }
 }

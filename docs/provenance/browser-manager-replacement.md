@@ -78,3 +78,26 @@ fencing, presentation transitions, prewarm/destroy or constructor router payload
 The class remains unchanged and those coverage gaps still block replacement
 authoring. State calls and default getters are evidence for only their exercised
 inputs; they are not a claim that all sixty methods have been validated.
+
+## Host and invocation inventory before authoring
+
+A second run uses the actual independent CodexPresentationHost and transition,
+with synthetic guest/DOM ports, controllable Host readiness and a frame queue.
+Its 53 observations create six Hosts, exercise rapid A/B/C presentation, delayed
+registration across replacement and final disposal, automation/capture viewport
+state, focus/visibility notifications, empty prewarm, reassociation and close.
+Zero frames or timers remain after teardown. The initial observer passed owner/
+tab strings to detach and received two sanitized TypeErrors; the exploratory
+output is retained separately. Calling the same port with Host/reference/surface/
+generation succeeds. No historical class body or emitted diagnostics were read.
+
+Prototype invocation counters across state and Host runs reached 55 of 60 method
+declarations. With counters removed, complete serialized outputs equal their
+uninstrumented runs. Default-only observations additionally cover the two
+browser-use predicates, but there is no claim of full branch coverage. The exact
+five not-invoked names and artifact digests are retained in the baseline. Host-
+request destruction, current-identity disposal and empty-conversation cleanup
+still need valid consumer-driven scenarios; constructor router payloads, rejected
+registration and genuine browser coordinator/guest behavior also remain gaps.
+A running counter is not completion evidence for those cases. No replacement
+implementation or current provenance classification has changed.
