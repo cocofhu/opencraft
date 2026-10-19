@@ -43,7 +43,7 @@ The [replacement contract](../../docs/provenance/timeline-follow-replacement.md)
 records authoring order, retained interfaces/constants, behavior comparisons and
 verification limits. Historical source records above remain historical facts.
 
-The shared response-positioning controller, window/layout,
+The shared response-positioning controller, other window/layout,
 restoration and platform adapters retain their current implementations. This
 single-module disposition does not establish rights for them, the recovered
 reference, or historical commits. It does not claim strict author isolation or
@@ -67,6 +67,25 @@ shared loading policy and Web/Native adapters retain their implementations.
 This disposition does not clear other package files, recovered references or
 historical commits, and does not claim strict author isolation or Native hardware
 acceptance. Historical restoration records above remain historical facts.
+
+## Current measurement transaction disposition (2026-10-20)
+
+Only `createTurnMeasurementTransaction` in `src/measurement.ts` is independently
+replaced from frozen OpenCraft requirements, public ports, existing tests and
+complete black-box observations. Its explicit recovered-transaction declaration,
+historical function SHA256
+`2a0e140a43839c79a97390de1492050084d428e4c28cf5ebafd7160bfb304fb3`
+and all declaration hashes remain in the
+[baseline inventory](../../docs/provenance/timeline-measurement-baseline.json).
+The [replacement contract](../../docs/provenance/timeline-measurement-replacement.md)
+records the original module hash, author exposure, frozen policy/actual Web
+observations and retained initial differences. Imports, interfaces, the adjacent
+rekey/reconciliation/positive-height helpers and every consumer stay unchanged.
+
+This partial-file disposition does not reclassify those neighboring implementations,
+the remainder of the package, recovered references or historical commits. It does
+not establish strict author isolation, historical rights or Native hardware
+acceptance. Compatibility names and ordinary numeric data remain unchanged.
 
 ## Platform rule
 

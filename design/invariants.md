@@ -1651,6 +1651,18 @@ ports, shared load policy and platform geometry ownership remain unchanged.
 The [bounded replacement record](../docs/provenance/timeline-backfill-replacement.md)
 separates current implementation evidence from historical source rights.
 
+## Shared measurement transaction ownership
+
+One measurement batch publishes a coherent height table, layout, viewport and
+scroll decision. The synchronous controller distance and any pending transaction
+own compensation; a callback's presence remains distinct from its current restore
+value. Per-input baseline accumulation, latest-row notifications, pending restore
+priority and platform-preservation/fast-path decisions retain their observed
+boundaries. Web and Native keep their scheduling, lease and commit mechanics;
+neighboring helpers and consumers are not rewritten. The
+[bounded replacement record](../docs/provenance/timeline-measurement-replacement.md)
+keeps current implementation verification separate from historical source rights.
+
 ## Conversation presentation contributions
 
 Optional conversation subtitles share the existing title rail and constrained

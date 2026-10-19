@@ -112,3 +112,47 @@ restore/preservation handoffs, including repeated latest-row batches. All
 no selected implementation body has yet been read or authored. The existing
 current synchronous distance (excluding padding) gates measured-row compensation,
 and previous latest-height notification accumulates across uncommitted batches.
+
+## Independently expressed implementation
+
+The selected function now collects one copy-on-write measurement table and
+per-input layout/position deltas, carries uncommitted owner decisions, then uses
+the unchanged shared layout and viewport ports for one projection. All imports,
+public type declarations and adjacent function bodies are byte-identical.
+Current module SHA256: `7c55cfba4e0826ecda4139f16b8ca52ce30eacc8feb548db1bd36ec4ee9ffc79`.
+No original selected body or recovered reference body was read for authoring.
+
+The first candidate differed in 164 of the 6,189 cases. The second differed in
+15. Retained evidence records callback-presence delegation, pending scroll-clock
+eligibility, unconditional viewport projection, zero-delta platform preservation
+and negative restore fast-path boundaries. Only implementation changes corrected
+these differences. The complete final raw policy output now matches byte for
+byte, SHA256 `b3262256fa2989ceafe00898e88274d74df9f6d968123d582f178cc45d04ff0f`.
+No observer, input or assertion changed after first replacement authoring.
+Real Web consumer comparisons and final build/type/test evidence follow separately.
+
+## Actual Web and final source verification
+
+All three actual Conversation scenes/28 checkpoints and all ten actual history
+checkpoints exactly match the complete raw baseline bytes, with the hashes frozen
+above. Captured page errors remain empty. The history observer emitted two Vite
+ResizeObserver notification-loop warnings after replacement versus one before;
+they are retained, not described as a warning-free run. Inputs are synthetic;
+components, shared owners, DOM metrics and real wheel input are actual Web code.
+
+Whitespace checking then found one extra final blank line. Removing only that
+blank line leaves every declaration text, including the selected function,
+identical; external eof-whitespace-proof records both hashes. Observed module
+SHA256 `fd1267dd02e222454c7cdde414f1ae20af4c552b2bbc4a2755da6618d69acfb5`;
+final module SHA256 `7c55cfba4e0826ecda4139f16b8ca52ce30eacc8feb548db1bd36ec4ee9ffc79`. All nonselected declarations also match their
+original baseline hashes. No behavioral code changed after observations.
+
+All 141 existing focused tests, shared/React/Web/Expo typechecks, typography and
+platform boundaries pass. Native hardware and complete employee/model/Host chains
+remain unverified. Eight source groups remain unresolved. Official Web build,
+secret scan and normal protected PR acceptance are recorded as they complete.
+
+Official Web build completed: 791 runtime source files, zero compatibility issues.
+The final local-submit and history-fixture screenshots were inspected. Source
+inventory validation passes with eight unresolved groups and releaseReady=false.
+This is bounded implementation verification, not historical-rights clearance.
