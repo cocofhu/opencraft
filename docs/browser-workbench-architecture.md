@@ -18,9 +18,9 @@ scope/reduced-motion 使用端点。退出期间保存同 scope 的布局描述�
 resize 不冻结内容。原生 guest 上方的临时 resize 捕获层只在拖动事务存续期间存在，
 松手/取消/失焦结束，避免 guest 吞掉主页面 pointermove。
 
-2026-09-14 源实现迁移：ApplicationSupervisor 创建的 BrowserPresentationCoordinator
-直接实例化迁入的 BrowserSidebarStateManager 与 PagePresentationTransition。
-源管理器拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
+2026-09-14 源实现迁移为历史起点；2026-10-20 的有界替换后，ApplicationSupervisor
+创建的 BrowserPresentationCoordinator 经原薄 adapter 实例化独立 Host registry 与
+PagePresentationTransition。管理器仍拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
 独立 body root、标准 guest、导航及持久化端口。面板仅申领挂载并提交几何，park/unmount 不销毁页面，
 显式 close 才销毁。逻辑 Page、持久化 browserStorageId、rendererInstanceId、
 host generation 与 mount generation 分离。存储分区采用标准 Electron partition；
@@ -1289,6 +1289,20 @@ Historical source digests and exact replacement/verification limits are recorded
 in [the module provenance](provenance/browser-transition-replacement.md); this
 replaces only prior descriptions of the transition as an unmodified source class.
 
+
+### Browser Host registry contract (2026-10-20)
+
+The explicitly copied manager class is independently expressed from frozen
+consumer contracts and opaque execution. It owns stable storage modes, Host
+registration attempts, mount claims, browser-use projection, transfer/prewarm
+and cleanup; the existing independent transition continues to own paint handoff.
+Current Host reference and registration-attempt identity fence asynchronous
+results. A presentation release does not close its logical Page or backing.
+The real Web consumer baseline preserves iframe/document/draft identity across
+remount, rapid switching, live resize and a device/floating presentation.
+Historical hashes and the current module lock remain separate. Native teardown
+policy was observed through an explicit synthetic port, not a new Web Host
+capability. See [the bounded implementation record](provenance/browser-manager-replacement.md).
 
 ### Viewport preset compatibility data (2026-10-20)
 

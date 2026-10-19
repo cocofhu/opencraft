@@ -369,7 +369,6 @@
       "paths": [
         "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
         "apps/workbench-web/src/browser/codex-presentation-host.ts",
-        "apps/workbench-web/src/browser/codex/browser-manager.js",
         "apps/workbench-web/src/browser/codex/source-manifest.json"
       ],
       "evidence": [
@@ -383,7 +382,7 @@
         "docs/provenance/browser-viewport-presets-baseline.json",
         "docs/provenance/browser-viewport-presets-review.md"
       ],
-      "reason": "The remaining browser manager explicitly claims a copied class body. Its historical manifest and related toolbar/Host contracts remain review inventory, not proof of whole-file copying. Viewport drag, preset helper/initialization and presentation handoff have separate bounded dispositions.",
+      "reason": "The explicitly copied manager class has a separate bounded replacement disposition. Its historical manifest and related toolbar/Host contracts remain review inventory, not proof of whole-file copying. Viewport drag, preset helpers/initialization and presentation handoff likewise retain their separate dispositions.",
       "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementations and behavioral references. Do not turn directory membership into a rewrite mandate. Historical source/class hashes remain unchanged; replacement module locks are separate. Remaining browser regions and historical rights are not cleared."
     },
     {
@@ -780,6 +779,22 @@
       "reason": "The complete module directly claimed semantic adoption from recovered recording controls. Express the frozen UI, elapsed-time and sample-buffer presentation from public transaction contracts, consumer requirements and executable observations. Working audio/recognition, draft ownership and Composer submission remain unchanged.",
       "resolution": "Retain exact historical hash, direct annotation, frozen observations and actual prior JSX exposure. Original shared styles, licensed icons and ProgressIndicator retain their owners. Eight unresolved groups and historical rights remain open.",
       "conclusion": "Current module independently owns phase presentation, elapsed-time sampling, bounded waveform rendering and action delegation. This is not strict author isolation, native microphone/recognition validation, whole-composer or historical-rights clearance."
+    },
+    {
+      "id": "browser-host-registry",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/browser/codex/browser-manager.js"
+      ],
+      "evidence": [
+        "docs/provenance/browser-manager-baseline.json",
+        "docs/provenance/browser-manager-replacement.md",
+        "apps/workbench-web/src/browser/codex/source-manifest.json",
+        "tests/codex-browser-manager.test.ts"
+      ],
+      "reason": "Only the complete explicitly copied class is replaced. The factory/port wrapper, adapter, independent Host/transition, presets and toolbar retain their implementations. Consumer contracts and initial state/Host/router/Web baselines were frozen before authoring; supplemental idempotence and prewarm observations followed authoring and are recorded separately.",
+      "resolution": "Preserve historical source/class hashes and actual author exposure. Lock current module bytes separately. Remaining browser inventory and all eight unresolved groups stay open; no directory-wide rewrite or historical-rights conclusion.",
+      "conclusion": "Current code independently expresses Host/storage/mount ownership, asynchronous registration fencing, automation state, transfer and teardown. Exact observations and real Web iframe/draft/layout continuity bound the claim; no strict author isolation, full Workbench, Electron/native guest or historical rights clearance."
     }
   ]
 }
