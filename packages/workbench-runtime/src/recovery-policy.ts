@@ -1,3 +1,5 @@
+import { advanceRecoveryProgress, type RecoveryProgress, type RecoveryStage } from "./recovery-observation";
+
 /** Recovery scheduling only. Session/Replica keep data and authority ownership. */
 export type RecoveryDemand = "visible" | "open" | "cache";
 export interface RecoveryClock {
@@ -19,6 +21,29 @@ let episodeSequence = 0;
 
 /** One owner per Host, independent of DOM retention and physical transport. */
 export class ConversationRecoveryOwner {
+  private notify() { try { this.input.changed?.(); } catch { /* Diagnostics cannot affect recovery. */ } }
+  private connectionProgress: RecoveryProgress | undefined;
+  private historyProgress = new WeakMap<object, RecoveryProgress>();
+  getProgress(key?: object): RecoveryProgress | undefined {
+    return key === undefined ? this.connectionProgress : this.historyProgress.get(key);
+  }
+  private observe(stage: RecoveryStage, key?: object, options: { startAttempt?: boolean; retryAt?: number; error?: unknown } = {}) {
+    if (this.disposed) return;
+    const value = advanceRecoveryProgress(this.getProgress(key), {
+      recoveryId: this.episode?.id ?? `recovery-${this.now().toString(36)}-${++episodeSequence}`,
+      now: this.now(), stage, ...options,
+    });
+    if (key === undefined) this.connectionProgress = value;
+    else this.historyProgress.set(key, value);
+    this.notify();
+  }
+  connectionStage(stage: "connecting" | "initializing") {
+    if (!this.episode) this.begin("connecting");
+    if (this.connectionProgress?.stage === stage) return;
+    this.observe(stage, undefined, { startAttempt: stage === "connecting" });
+    this.stage(stage);
+  }
+  connectionFailed(error: unknown) { this.observe("failed", undefined, { error }); }
   private attempt = 0;
   private connectionTimer: unknown = null;
   private stableTimer: unknown = null;
@@ -36,6 +61,7 @@ export class ConversationRecoveryOwner {
   constructor(private readonly input: {
     hostId: string; clock: RecoveryClock; reconnect(): Promise<unknown>;
     delaysMs?: readonly number[]; stableMs?: number; concurrency?: number;
+    changed?(): void;
     log?(event: Readonly<Record<string, string | number>>): void;
   }) {}
   get reconnectAttempt() { return this.attempt; }
@@ -54,7 +80,8 @@ export class ConversationRecoveryOwner {
       id: `recovery-${this.now().toString(36)}-${++episodeSequence}`, start: this.now(),
       requests: 0, bytes: 0, projectionMs: 0, extraConversations: new Set(),
     };
-    this.stage(reason);
+    if (reason === "connecting") this.connectionStage("connecting");
+    else { this.stage(reason); if (reason === "manual-block") this.observe("blocked"); }
   }
   stage(stage: string, fields: Record<string, string | number> = {}) {
     if (!this.episode) return;
@@ -90,6 +117,8 @@ export class ConversationRecoveryOwner {
   }
   ready(stillReady: () => boolean, stable = true) {
     this.connected = true;
+    this.connectionProgress = undefined;
+    this.notify();
     this.unstable();
     this.stage("host-ready");
     if (!stable) return;
@@ -108,6 +137,7 @@ export class ConversationRecoveryOwner {
     const schedule = this.input.delaysMs ?? delays;
     const delayMs = schedule[Math.min(this.attempt++, schedule.length - 1)] ?? 60_000;
     this.stage("backoff", { attempt: this.attempt, delayMs });
+    this.observe("backoff", undefined, { retryAt: this.now() + delayMs });
     const ticket = ++this.connectionTicket;
     this.connectionTimer = this.input.clock.setTimeout(() => {
       if (ticket !== this.connectionTicket || this.disposed) return;
@@ -121,6 +151,8 @@ export class ConversationRecoveryOwner {
     this.timers.clear();
     for (const work of this.work.values()) work.resolve();
     this.work.clear();
+    this.historyProgress = new WeakMap();
+    this.notify();
     // In-flight operations are fenced by the runtime's connection revision.
     this.active.clear();
   }
@@ -129,6 +161,8 @@ export class ConversationRecoveryOwner {
     if (timer !== undefined) this.input.clock.clearTimeout(timer);
     this.timers.delete(key);
     this.work.get(key)?.resolve(); this.work.delete(key);
+    this.historyProgress.delete(key);
+    this.notify();
   }
   recover(task: RecoveryTask, immediate = false): Promise<void> {
     if (this.disposed || task.demand() === "cache") return Promise.resolve();
@@ -151,6 +185,8 @@ export class ConversationRecoveryOwner {
     }
     let resolve!: (error?: unknown) => void;
     const promise = new Promise<void>((done, reject) => { resolve = error => error === undefined ? done() : reject(error); });
+    if (!this.episode) this.begin("resources");
+    this.observe("queued", task.key);
     this.work.set(task.key, { task, attempt: 0, retryTicket: 0, propagateFailure: task.propagateFailure === true, resolve, promise });
     this.pump();
     return promise;
@@ -169,6 +205,8 @@ export class ConversationRecoveryOwner {
       if (work.task.demand() !== "visible" && [...this.active].some(key => this.work.get(key)?.task.demand() === "visible")) break;
       const key = work.task.key, generation = this.generation;
       this.active.add(key);
+      this.observe("history", key, { startAttempt: true });
+      this.stage("history-started", { demand: work.task.demand(), attempt: this.getProgress(key)!.attempt });
       const started = this.now(), demand = work.task.demand();
       if (demand !== "visible" && this.episode) this.episode.extraConversations.add(key);
       void Promise.resolve().then(() => {
@@ -178,11 +216,15 @@ export class ConversationRecoveryOwner {
         if (generation !== this.generation || this.work.get(key) !== work) return;
         this.stage("history-authoritative", { demand, durationMs: this.now() - started });
         work.resolve(); this.work.delete(key);
+        this.historyProgress.delete(key); this.notify();
       }, error => {
         if (generation !== this.generation || this.work.get(key) !== work) return;
         this.stage("history-failed", { demand, durationMs: this.now() - started });
+        this.observe("failed", key, { error });
         if (work.attempt < 3 && work.task.retryable(error)) {
           const delayMs = (this.input.delaysMs ?? delays)[Math.min(work.attempt++, 6)] ?? 5_000;
+          this.observe("backoff", key, { retryAt: this.now() + delayMs });
+          this.stage("history-backoff", { demand, delayMs, attempt: this.getProgress(key)!.attempt });
           const ticket = ++work.retryTicket;
           this.timers.set(key, this.input.clock.setTimeout(() => {
             if (generation !== this.generation || this.work.get(key) !== work || ticket !== work.retryTicket) return;

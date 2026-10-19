@@ -150,6 +150,7 @@ export interface ThreadRuntimeResidencySnapshot {
   readonly hydrating: boolean;
   readonly authoritative: boolean;
   readonly touchedAt: number;
+  readonly recovery?: import("./recovery-observation").RecoveryProgress;
 }
 
 export interface AppServerWorkbenchSnapshot {
@@ -158,6 +159,7 @@ export interface AppServerWorkbenchSnapshot {
   readonly hostId: HostId;
   readonly connectionGeneration: number;
   readonly transport: TransportStatus;
+  readonly recovery?: import("./recovery-observation").RecoveryProgress;
   /** Host-owned Thread runtimes, including inactive background work. */
   readonly residentThreads: readonly ThreadRuntimeResidencySnapshot[];
   readonly error: Error | null;
@@ -532,7 +534,7 @@ export function createAppServerWorkbenchRuntime(
   let connectionRevision = 0;
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
     reconnect: () => runtime.reconnect(), delaysMs: config.reconnectDelaysMs,
-    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent,
+    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent, changed: () => publish(),
   });
   let automaticReconnectBlock: TransportStatus | null = null;
   // Presentation only: initialization cleanup must not erase the failed attempt ID.
@@ -642,9 +644,10 @@ export function createAppServerWorkbenchRuntime(
     connectionGeneration: client?.connectionGeneration ?? 0,
     // Manual failure belongs to the Host attempt, not the disposed transport.
     transport: automaticReconnectBlock ?? client?.status ?? currentTransport?.status ?? initializationFailureStatus ?? { state: "idle" },
+    recovery: recovery.getProgress(),
     residentThreads: [...bindings.values()]
       .filter((binding) => !binding.disposed)
-      .map(residencySnapshot),
+      .map(binding => ({ ...residencySnapshot(binding), recovery: recovery.getProgress(binding) })),
     error,
   });
   snapshot = derive();
@@ -658,7 +661,7 @@ export function createAppServerWorkbenchRuntime(
         return (Object.keys(entry) as (keyof ThreadRuntimeResidencySnapshot)[])
           .every(key => entry[key] === previous[key]);
       });
-    if (next.phase === snapshot.phase && next.error === snapshot.error
+    if (next.recovery === snapshot.recovery && next.phase === snapshot.phase && next.error === snapshot.error
       && next.connectionGeneration === snapshot.connectionGeneration
       && next.transport.state === snapshot.transport.state
       && next.transport.reason === snapshot.transport.reason
@@ -1246,6 +1249,7 @@ export function createAppServerWorkbenchRuntime(
   ): Promise<void> => {
     ensureLifecycle(generation);
     const currentClient = requireClient();
+    if (currentClient.initializeResult === null) recovery.connectionStage(currentTransport?.status.state === "open" ? "initializing" : "connecting");
     await currentClient.connect(config.initialize ?? defaultInitialize);
     ensureLifecycle(generation);
     clearReconnectTimer();
@@ -1368,6 +1372,7 @@ export function createAppServerWorkbenchRuntime(
       });
       removeClientHandlers = config.installClientHandlers?.(client) ?? null;
       removeTransportListener = client.subscribeStatus((status) => {
+        if (!disposed && status.state === "open" && client?.initializeResult == null) recovery.connectionStage("initializing");
         if (status.state !== "open") clearReconnectStability();
         if (status.state === "open" || status.state === "connecting") {
           automaticReconnectBlock = null;
@@ -1383,6 +1388,7 @@ export function createAppServerWorkbenchRuntime(
           connectionRevision += 1;
           recovery.invalidate();
           recovery.begin("transport-unavailable");
+          recovery.connectionFailed(status.failure);
           if (status.failure?.recovery === "manual") automaticReconnectBlock = status;
           console.log("[appserver-reconnect] transport-unavailable", { hostId, state: status.state });
           phase = status.failure?.recovery === "manual" ? "error" : "reconnecting";
@@ -1936,6 +1942,7 @@ export function createAppServerWorkbenchRuntime(
       automaticReconnectBlock = null;
       initializationFailureStatus = null;
       phase = "connecting";
+      recovery.begin("connecting");
       error = null;
       publish();
       const operation = (async () => {
@@ -1946,6 +1953,7 @@ export function createAppServerWorkbenchRuntime(
           markReconnectReady();
           publish();
         } catch (cause) {
+          recovery.connectionFailed(cause);
           error = cause instanceof Error ? cause : new Error(String(cause));
           phase = "error";
           publish();
@@ -1989,6 +1997,7 @@ export function createAppServerWorkbenchRuntime(
           publish();
           restoreResources();
         } catch (cause) {
+          recovery.connectionFailed(cause);
           console.log("[appserver-reconnect] failed", {
             hostId,
             attempt,
