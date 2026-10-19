@@ -1701,3 +1701,18 @@ in [command/review provenance](../docs/provenance/command-review-replacement.md)
 No new tests/harness are added; existing actual Conversation, spacing, type and
 boundary checks remain acceptance evidence. Shared ports and historical rights
 remain independent unresolved matters; native hardware is not claimed verified.
+
+
+## Tool, image and subagent presentation replacement (2026-10-20)
+
+The six tool/image/subagent exports remain presentation consumers of core summaries,
+typed content, group state and reported handoff steps. Product-owned content may
+claim null; fallback is only for undefined. Nested WebMCP disclosure choice is
+independent of its parent. Images use the existing Host media loader and resource
+port, with Host/conversation/cwd/document/source identity invalidating old previews.
+View expansion does not grant tool approval, execute output or own thread state.
+Subagent grouping uses current core-derived agent state; individual instructions
+remain available without repeating stale historical prompts in grouped rows.
+Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
+See [the whole-module record](../docs/provenance/tool-renderers-replacement.md) for
+exposure, decorative avatar hue assignment and finite validation limits.

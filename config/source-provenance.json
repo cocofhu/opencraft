@@ -373,7 +373,7 @@
     },
     {
       "id": "codex-renderer-expression-followup",
-      "status": "unverified",
+      "status": "independently-reimplemented",
       "paths": [
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
       ],
@@ -393,10 +393,17 @@
         "docs/provenance/appearance-runtime-replacement.md",
         "docs/provenance/appearance-runtime-baseline.json",
         "docs/provenance/command-review-replacement.md",
-        "docs/provenance/command-review-baseline.json"
+        "docs/provenance/command-review-baseline.json",
+        "docs/provenance/tool-renderers-replacement.md",
+        "docs/provenance/tool-renderers-baseline.json",
+        "tests/chat-thread-tool-activity.test.ts",
+        "tests/conversation-media.test.ts",
+        "scripts/smoke-thread-tool-activity.ts",
+        "scripts/smoke-conversation-activity-metrics.ts",
+        "design/invariants.md"
       ],
-      "reason": "One remaining renderer candidate concerns tool rendering. Separately recorded complete appearance, command/review, code-surface, floating-composer, group-disclosure and shell-host replacements preserve dependency and historical evidence. The command/review accessory uses licensed Lucide primitives. Remaining annotations identify review boundaries, not established copying or whole-file source conclusions.",
-      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
+      "reason": "All nine originally identified renderer-expression paths have bounded replacement records. The final current path is the complete six-export tool/image/subagent presentation module, replaced after frozen requirements and executable public observations while retaining usable engine and Host integrations. Eight earlier partial dispositions remain recorded.",
+      "resolution": "Preserve immutable historical hashes/annotations, the requirements and implementation commits, explicit shared-source exposure, supplementary post-authoring observations, existing tests, finite browser evidence and prior partial dispositions. Keep the eight other unresolved groups open; this does not establish historical or dependency rights.",
       "partialDispositions": [
         {
           "path": "apps/workbench-web/src/chrome-actions/new-task-icon.tsx",
@@ -443,8 +450,15 @@
           "replacement": "command-review-renderers",
           "evidence": "docs/provenance/command-review-replacement.md",
           "historicalBlob": "e5bf0721a3a0e9799e41d6f5b8a13bb239601082"
+        },
+        {
+          "path": "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
+          "replacement": "tool-image-subagent-renderers",
+          "evidence": "docs/provenance/tool-renderers-replacement.md",
+          "historicalBlob": "d6200896dc5afdd8c0c58282530415375841f0dc"
         }
-      ]
+      ],
+      "conclusion": "Current tool, inspected/generated image and individual/group subagent views are independently authored presentation consumers of unchanged core, media, resource, modal and product ports. Decorative avatar hue assignment is newly authored. This is not strict author isolation, historical rights clearance, a whole-renderer or native-device conclusion, or public release readiness."
     },
     {
       "id": "licensed-activity-artwork",
