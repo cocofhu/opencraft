@@ -35,7 +35,12 @@ export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 /** Optional public profile reference, never authentication or an access grant. */
 export interface TaskMemberIdentity { readonly kind: string; readonly id: string; }
 export interface TaskMember { readonly id: string; readonly name: string; readonly revision: number; readonly identity?: TaskMemberIdentity | null; }
+export const TASK_AI_RESEARCH = ["unassessed", "proactive", "needs_context", "needs_decision"] as const;
+export type TaskAiResearch = (typeof TASK_AI_RESEARCH)[number];
 export interface TaskProperties {
+  /** First-round triage only; never launches work or starts decision waiting. */
+  readonly aiResearch?: string;
+  readonly aiResearchReason?: string;
   readonly assigneeId: string | null;
   readonly priority: TaskPriority;
   /** Calendar date, YYYY-MM-DD. No timezone conversion. */
@@ -138,7 +143,7 @@ export interface TasksMethodMap {
   };
   "opencraft/tasks/capabilities": {
     params: Record<string, never>;
-    result: { version: 1; storage: "sqlite-rows"; archive?: true; properties?: true; memberIdentity?: true; planning?: true; supportedKinds?: readonly string[]; activity?: true; progress?: true; recycleBinRetentionMs?: number };
+    result: { version: 1; storage: "sqlite-rows"; archive?: true; aiResearch?: true; properties?: true; memberIdentity?: true; planning?: true; supportedKinds?: readonly string[]; activity?: true; progress?: true; recycleBinRetentionMs?: number };
   };
   "opencraft/tasks/list": {
     params: Record<string, never>;

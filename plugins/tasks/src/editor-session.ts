@@ -1,7 +1,7 @@
 import type { TaskContent, TaskDetail, TaskStatus } from "@opencraft/appserver-protocol";
 export interface TaskDraft extends TaskContent { readonly id: string; readonly status: TaskStatus; readonly revision: number | null }
 export function taskDraft(task?: TaskDetail, status: TaskStatus = "backlog"): TaskDraft {
-  return { id: task?.id ?? crypto.randomUUID(), title: task?.title ?? "", description: task?.description ?? "", status: task?.status ?? status, revision: task?.revision ?? null, projectServerId: task?.projectServerId ?? null, projectId: task?.projectId ?? null, assigneeId: task?.assigneeId ?? null, priority: task?.priority ?? "none", dueDate: task?.dueDate ?? null, kind: task?.kind ?? "unclassified", acceptanceCriteria: task?.acceptanceCriteria ?? "" };
+  return { id: task?.id ?? crypto.randomUUID(), title: task?.title ?? "", description: task?.description ?? "", status: task?.status ?? status, revision: task?.revision ?? null, projectServerId: task?.projectServerId ?? null, projectId: task?.projectId ?? null, assigneeId: task?.assigneeId ?? null, priority: task?.priority ?? "none", dueDate: task?.dueDate ?? null, aiResearch: task?.aiResearch ?? "unassessed", aiResearchReason: task?.aiResearchReason ?? "", kind: task?.kind ?? "unclassified", acceptanceCriteria: task?.acceptanceCriteria ?? "" };
 }
 /** Activation-scoped owner; quick/full presentation and navigation share one draft. */
 export class TasksEditorSession {

@@ -1684,3 +1684,14 @@ also owns product presentation and theme-color metadata. Explicit element projec
 preserves unrelated styles and does not claim document/product ownership. Legacy
 preference keys and IDs remain compatibility data. See
 [the whole-module replacement and exposure record](../docs/provenance/appearance-runtime-replacement.md).
+
+
+## Tasks first-round research disposition
+
+AI research triage is a task property independent of workflow, assignment and
+conversation execution. One authority event projection feeds card/list summaries,
+filters and the existing editor draft. An unassessed default is distinct from
+missing context or a pending human decision. Assessment changes never create a
+conversation, claim a research result or start decision-wait timing. Capability
+absence hides unsupported controls; saved rationale and disposition survive
+legacy edits and view changes. See docs/tasks-model.md.

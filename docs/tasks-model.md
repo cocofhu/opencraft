@@ -367,3 +367,34 @@ while code arrives; read state, account scope and periodic refresh stay with the
 same statistics component. Opening Tasks alone does not load this optional view. Its native read adapter
 also loads only on the first read; cancellation is checked after import before
 any request can begin.
+
+
+## First-round AI research triage
+
+The optional capability `aiResearch:true` exposes the board field AI research.
+`aiResearch` is `unassessed`, `proactive`, `needs_context` or `needs_decision`;
+`aiResearchReason` is at most 2048 characters and required for assessed modes.
+It describes whether AI can initiate preliminary research, independently of task
+status, ownership, priority and conversation activity. It neither starts work nor
+measures decision waiting. A coordinator assesses the actual goal and available
+context, identifies missing material or a precise human decision, and records a
+concise rationale. Lack of an assignee alone does not prevent read-only research.
+
+Existing tasks project unassessed with an empty reason; no historical assessment
+is fabricated. API create/update/properties accept the optional fields; omission
+preserves the latest pair, and a nonempty rationale is required for assessed
+modes. CAS and existing archive read-only rules apply. Successful changes append
+one structured created/updated event in the same transaction as task revision
+and time changes. The event stores the complete small assessment pair. The latest
+assessment is projected from that task's event sequence; batch snapshots fetch
+latest assessments in one scoped query, not one query per card. No new schema,
+column, migration checksum or second storage owner is introduced. Legacy writers
+preserve the assessment; rollback readers ignore the additional event payload and
+can continue to use the same v5 database. Read-only event history retains prior
+judgments. Existing progress reports remain independent.
+
+UI uses one existing task draft for the selector and rationale; save is explicit,
+unknown values survive unrelated edits, filters and card/list summaries use the
+same authority projection. Capability-absent Hosts hide editing/filter controls.
+The CLI exposes disposition in summaries and `list {aiResearch}` filtering; read
+returns the rationale and properties updates the assessment.

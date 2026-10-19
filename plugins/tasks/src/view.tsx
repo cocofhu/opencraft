@@ -33,6 +33,7 @@ import {
   TASK_STATUSES,
   TASK_PRIORITIES,
   TASK_KINDS,
+  TASK_AI_RESEARCH,
   type TaskKind,
   type TaskMember,
   type TasksMethodMap,
@@ -50,6 +51,14 @@ import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
 const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
+  aiResearch: ["AI 主动预研", "AI research"],
+  allResearch: ["全部预研判断", "All research dispositions"],
+  researchUnassessed: ["未判断", "Unassessed"],
+  researchProactive: ["可主动预研", "AI can start research"],
+  researchContext: ["需补充上下文", "Needs context"],
+  researchDecision: ["需人判断", "Needs a decision"],
+  researchReason: ["判断依据／缺少的信息", "Rationale / missing information"],
+  researchHint: ["主管家先分流；此字段不启动会话，也不开始等待计时。", "Initial triage only; this field does not start a conversation or a waiting clock."],
   archive: ["归档任务", "Archive task"],
   archivedTasks: ["归档", "Archived tasks"],
   archiveHint: ["归档任务长期留底，不占用当前看板。恢复后回到原状态列。", "Archived tasks are retained outside the board. Restore an item to its original status column."],
@@ -298,6 +307,14 @@ interface ViewDraft {
   assignee: string;
   overdue: boolean;
   kind: string;
+  aiResearch: string;
+}
+function researchLabel(mode: string, t: ReturnType<typeof useText>): string {
+  return mode === "unassessed" ? t("researchUnassessed") : mode === "proactive" ? t("researchProactive") : mode === "needs_context" ? t("researchContext") : mode === "needs_decision" ? t("researchDecision") : mode;
+}
+function ResearchBadge({ task }: { task: TaskDetail }) {
+  const t = useText();
+  return task.aiResearch && task.aiResearch !== "unassessed" ? <span className="tasks-research" data-research={task.aiResearch} title={task.aiResearchReason}>{researchLabel(task.aiResearch, t)}</span> : null;
 }
 function isOverdue(task: TaskDetail): boolean {
   const now = new Date();
@@ -364,6 +381,7 @@ function TaskCardContents({ task, members, onEdit, onQuick, onArchive, onOpen, a
       </div>
       {task.latestProgress ? <p className="tasks-card__progress" title={task.latestProgress.text}>{task.latestProgress.text}</p> : null}
       <TaskConversationShortcut task={task} activity={activity} onOpen={onOpen} onEdit={onEdit} />
+      <ResearchBadge task={task} />
       <TaskMeta task={task} members={members} compactOwner />
   </>;
 }
@@ -422,7 +440,7 @@ function TaskRow({ task, members, pending, onEdit, onMove, activity }: {
         </SettingsSelect>
       </div>
       <button type="button" className="tasks-row__title" onClick={onEdit}>{task.title}</button>
-      <TaskMeta task={task} members={members} />
+      <div><TaskMeta task={task} members={members} /><ResearchBadge task={task} /></div>
       <span className="tasks-row__activity">{task.conversations.length ? `${t("links")} ${task.conversations.length} · ${states.map(state => t(state)).join(" / ")}` : ""}</span>
     </article>
   );
@@ -543,7 +561,7 @@ function MemberIdentityEditor({ member, busy, onMember }: { member: TaskMember; 
   </details>;
 }
 function Editor({
-  planning, supportedKinds, activityModel, session, canPostProgress,
+  planning, supportedKinds, aiResearch, activityModel, session, canPostProgress,
   draft,
   members,
   properties,
@@ -567,7 +585,7 @@ function Editor({
   onBeginConversation,
   onStatus,
 }: {
-  planning: boolean; supportedKinds: readonly string[]; activityModel?: TaskActivityController; session: TasksEditorSession; canPostProgress: boolean;
+  planning: boolean; supportedKinds: readonly string[]; aiResearch: boolean; activityModel?: TaskActivityController; session: TasksEditorSession; canPostProgress: boolean;
   draft: Draft;
   members: readonly TaskMember[];
   properties: boolean;
@@ -800,6 +818,14 @@ function Editor({
           value={draft.description}
           onChange={(description) => update({ description })}
         />
+        {aiResearch ? <div className="tasks-research-fields">
+          <label>{t("aiResearch")}<SettingsSelect aria-label={t("aiResearch")} value={draft.aiResearch ?? "unassessed"} disabled={blocked} onChange={event => update({ aiResearch: event.target.value })}>
+            {draft.aiResearch && !TASK_AI_RESEARCH.some(mode => mode === draft.aiResearch) ? <option value={draft.aiResearch}>{draft.aiResearch}</option> : null}
+            {TASK_AI_RESEARCH.map(mode => <option key={mode} value={mode}>{researchLabel(mode, t)}</option>)}
+          </SettingsSelect></label>
+          <label>{t("researchReason")}<textarea aria-label={t("researchReason")} maxLength={2048} disabled={blocked} required={(draft.aiResearch ?? "unassessed") !== "unassessed"} value={draft.aiResearchReason ?? ""} onChange={event => update({ aiResearchReason: event.target.value })} /></label>
+          <p>{t("researchHint")}</p>
+        </div> : null}
         {planning ? <>
           <label className="tasks-acceptance">{t("acceptance")}<textarea aria-label={t("acceptance")} maxLength={16384} value={draft.acceptanceCriteria ?? ""} onChange={event => update({ acceptanceCriteria: event.target.value })} /></label>
           {!draft.description.trim() && !draft.acceptanceCriteria?.trim() ? <SettingsButton type="button" variant="quiet" disabled={blocked} onClick={() => update(starterTemplate(draft.kind ?? "unclassified", intl.locale.startsWith("zh")))}>{t("template")}</SettingsButton> : null}
@@ -1120,7 +1146,7 @@ export function createTasksView(
   let remembered: ViewDraft = {
     mode: "board",
     status: "todo",
-    project: "", search: "", assignee: "", overdue: false, kind: "",
+    project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "",
   };
   activationSignal.addEventListener(
     "abort",
@@ -1133,7 +1159,7 @@ export function createTasksView(
       for (const activity of activities.values()) activity.dispose();
       activities.clear();
       localSelections.clear();
-      remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "" };
+      remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "" };
     },
     { once: true },
   );
@@ -1366,6 +1392,7 @@ export function createTasksView(
       const d = editorSession.getSnapshot().draft;
       if (!d) return null;
       const content: TaskContent = {
+        ...(state.aiResearch ? { ...(d.aiResearch !== (task?.aiResearch ?? "unassessed") || !d.revision ? { aiResearch: d.aiResearch ?? "unassessed" } : {}), ...(d.aiResearchReason !== (task?.aiResearchReason ?? "") || !d.revision ? { aiResearchReason: d.aiResearchReason ?? "" } : {}) } : {}),
         ...(state.properties ? { assigneeId: d.assigneeId ?? null, priority: d.priority ?? "none", dueDate: d.dueDate ?? null } : {}),
         ...(state.planning ? { ...(d.kind !== (task?.kind ?? "unclassified") || !d.revision ? { kind: d.kind ?? "unclassified" } : {}), acceptanceCriteria: d.acceptanceCriteria ?? "" } : {}),
         title: d.title.trim(),
@@ -1451,7 +1478,8 @@ export function createTasksView(
         && (!draft.search.trim() || `${task.title} ${task.description}`.toLocaleLowerCase().includes(draft.search.trim().toLocaleLowerCase()))
         && (!draft.assignee || (draft.assignee === "mine" ? !!myMemberId && task.assigneeId === myMemberId : draft.assignee === "unassigned" ? !task.assigneeId : task.assigneeId === draft.assignee.slice(7)))
         && (!draft.overdue || isOverdue(task))
-        && (!draft.kind || (task.kind ?? "unclassified") === draft.kind),
+        && (!draft.kind || (task.kind ?? "unclassified") === draft.kind)
+        && (!draft.aiResearch || (task.aiResearch ?? "unassessed") === draft.aiResearch),
     );
     const archiveTask = async (item: TaskDetail) => {
       const saved = await model.mutate(TASKS.archive, { id: item.id, expectedRevision: item.revision });
@@ -1520,10 +1548,11 @@ export function createTasksView(
             }}><UserRound size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("myTasks")}</span></SettingsButton> : null}
             <SettingsButton className="tasks-filter-trigger" variant="quiet" aria-label={t("filters")} title={t("filters")} aria-expanded={filtersOpen} aria-controls={filterId} onClick={()=>setFiltersOpen(value=>!value)}>
               <SlidersHorizontal size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("filters")}</span>
-              {(draft.assignee || draft.project || draft.overdue || draft.kind) ? <span className="tasks-filter-count" aria-hidden="true">{Number(!!draft.assignee)+Number(!!draft.project)+Number(draft.overdue)+Number(!!draft.kind)}</span> : null}
+              {(draft.assignee || draft.project || draft.overdue || draft.kind || draft.aiResearch) ? <span className="tasks-filter-count" aria-hidden="true">{Number(!!draft.assignee)+Number(!!draft.project)+Number(draft.overdue)+Number(!!draft.kind)+Number(!!draft.aiResearch)}</span> : null}
             </SettingsButton>
             <SettingsButton className="tasks-refresh tasks-icon-action" variant="ghost" aria-label={t("refreshBoard")} title={t("refreshBoard")} aria-busy={refreshing} disabled={state.pending || refreshing || state.phase === "loading"} onClick={() => void refreshTasks()}><RefreshCw size={18} aria-hidden="true" /></SettingsButton>
             <div id={filterId} className="tasks-filters" hidden={!filtersOpen} role="group" aria-label={t("filters")}>
+            {state.aiResearch ? <label>{t("aiResearch")}<SettingsSelect aria-label={t("aiResearch")} value={draft.aiResearch} onChange={event => change({ aiResearch: event.target.value })}><option value="">{t("allResearch")}</option>{TASK_AI_RESEARCH.map(mode => <option key={mode} value={mode}>{researchLabel(mode, t)}</option>)}</SettingsSelect></label> : null}
             {state.planning ? <label>{t("kind")}<SettingsSelect aria-label={t("kind")} value={draft.kind} onChange={event => change({ kind: event.target.value })}><option value="">{t("allKinds")}</option>{[...new Set([...TASK_KINDS, ...state.tasks.map(task => task.kind ?? "unclassified")])].map(kind => <option key={kind} value={kind}>{kt(kind)}</option>)}</SettingsSelect></label> : null}
             {state.properties ? <>
               <label>{t("assignee")}<SettingsSelect aria-label={t("assignee")} value={draft.assignee} onChange={e=>change({assignee:e.target.value})}>
@@ -1609,8 +1638,8 @@ export function createTasksView(
               }))}
             />
           ) : null}
-          {(draft.search || draft.assignee || draft.project || draft.overdue || draft.kind) ? <div className="tasks-filter-result" role="status"><span>{draft.assignee === "mine" && !myMemberId ? t("chooseMyMember") : tasks.length ? `${tasks.length} ${t("results")}` : t("noResults")}</span><SettingsButton variant="quiet" onClick={()=>change({search:"",assignee:"",project:"",overdue:false,kind:""})}>{t("clearFilters")}</SettingsButton></div> : null}
-          {hiddenCreated ? <div className="tasks-filter-result" role="status"><span>{t("hiddenCreated")}</span><SettingsButton variant="quiet" onClick={() => { change({ search: "", assignee: "", project: "", overdue: false, kind: "" }); setHiddenCreated(false); }}>{t("clearFilters")}</SettingsButton></div> : null}
+          {(draft.search || draft.assignee || draft.project || draft.overdue || draft.kind || draft.aiResearch) ? <div className="tasks-filter-result" role="status"><span>{draft.assignee === "mine" && !myMemberId ? t("chooseMyMember") : tasks.length ? `${tasks.length} ${t("results")}` : t("noResults")}</span><SettingsButton variant="quiet" onClick={()=>change({search:"",assignee:"",project:"",overdue:false,kind:"",aiResearch:""})}>{t("clearFilters")}</SettingsButton></div> : null}
+          {hiddenCreated ? <div className="tasks-filter-result" role="status"><span>{t("hiddenCreated")}</span><SettingsButton variant="quiet" onClick={() => { change({ search: "", assignee: "", project: "", overdue: false, kind: "", aiResearch: "" }); setHiddenCreated(false); }}>{t("clearFilters")}</SettingsButton></div> : null}
             {draft.mode === "board" ? (
               <div className="tasks-columns">
                 {TASK_STATUSES.map((status) => {
@@ -1654,7 +1683,7 @@ export function createTasksView(
                   <Editor
                     key={edit.id}
                     draft={edit}
-                    planning={state.planning} supportedKinds={state.supportedKinds} session={editorSession} canPostProgress={state.progress}
+                    planning={state.planning} supportedKinds={state.supportedKinds} aiResearch={state.aiResearch} session={editorSession} canPostProgress={state.progress}
                     activityModel={task && state.activity ? (() => { let activity = activities.get(task.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, task.id, () => { void model.refresh(); }); activities.set(task.id, activity); } return activity; })() : undefined}
                     members={state.members}
                     properties={state.properties}

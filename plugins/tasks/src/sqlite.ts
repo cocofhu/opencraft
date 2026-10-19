@@ -90,6 +90,8 @@ export class TasksSqliteStore {
       if (existing) {
         if (
           existing.deletedAt !== null || existing.archivedAt !== null ||
+          (input.aiResearch !== undefined && this.research(input.id).aiResearch !== input.aiResearch) ||
+          (input.aiResearchReason !== undefined && this.research(input.id).aiResearchReason !== input.aiResearchReason) ||
           existing.title !== input.title ||
           existing.description !== input.description ||
           existing.status !== input.status ||
@@ -114,6 +116,7 @@ export class TasksSqliteStore {
         ) >= 1000
       )
         throw new TasksFault(-32054, "Task workspace is full");
+      const research = this.researchInput(input);
       this.checkAssignee(input.assigneeId ?? null);
       const now = this.now();
       this.db
@@ -132,13 +135,14 @@ export class TasksSqliteStore {
           now,
           input.assigneeId ?? null, input.priority ?? "none", input.dueDate ?? null, input.kind ?? "unclassified", input.acceptanceCriteria ?? "",
         );
-      this.appendEvent(input.id, "created", { title: input.title, status: input.status }, context);
+      this.appendEvent(input.id, "created", { title: input.title, status: input.status, ...research }, context);
       return this.snapshot();
     });
   }
   update(input: Params<"opencraft/tasks/update">, context: TaskEventContext = systemContext): TasksSnapshot {
     return this.transaction(() => {
       const current = this.task(input.id, input.expectedRevision);
+      const research = this.researchInput(input, current);
       const assigneeId = input.assigneeId === undefined ? current.assigneeId ?? null : input.assigneeId;
       this.checkAssignee(assigneeId);
       this.db
@@ -155,9 +159,9 @@ export class TasksSqliteStore {
           this.now(),
           input.id,
         );
-      const fields = ["title", "description", "projectServerId", "projectId", "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria"] as const;
+      const fields = ["title", "description", "projectServerId", "projectId", "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria", "aiResearch", "aiResearchReason"] as const;
       const changed = fields.filter(field => input[field] !== undefined && input[field] !== current[field]);
-      if (changed.length) this.appendEvent(input.id, "updated", { fields: changed }, context);
+      if (changed.length) this.appendEvent(input.id, "updated", { fields: changed, ...research }, context);
       return this.snapshot();
     });
   }
@@ -298,14 +302,15 @@ export class TasksSqliteStore {
   properties(input: Params<"opencraft/tasks/properties/update">, context: TaskEventContext = systemContext): TasksSnapshot {
     return this.transaction(() => {
       const current = this.task(input.id, input.expectedRevision);
+      const research = this.researchInput(input, current);
       const assigneeId = input.assigneeId === undefined ? current.assigneeId ?? null : input.assigneeId;
       const priority = input.priority ?? current.priority ?? "none";
       const dueDate = input.dueDate === undefined ? current.dueDate ?? null : input.dueDate;
       this.checkAssignee(assigneeId);
-      this.db.prepare("UPDATE tasks SET assignee_id=?,priority=?,due_date=?,revision=revision+1,updated_at=? WHERE id=? AND (assignee_id IS NOT ? OR priority<>? OR due_date IS NOT ?)")
-        .run(assigneeId, priority, dueDate, this.now(), input.id, assigneeId, priority, dueDate);
-      const fields = (["assigneeId", "priority", "dueDate"] as const).filter(field => input[field] !== undefined && input[field] !== current[field]);
-      if (fields.length) this.appendEvent(input.id, "updated", { fields }, context);
+      this.db.prepare("UPDATE tasks SET assignee_id=?,priority=?,due_date=?,revision=revision+1,updated_at=? WHERE id=? AND (assignee_id IS NOT ? OR priority<>? OR due_date IS NOT ? OR ?)")
+        .run(assigneeId, priority, dueDate, this.now(), input.id, assigneeId, priority, dueDate, Number(!!research));
+      const fields = (["assigneeId", "priority", "dueDate", "aiResearch", "aiResearchReason"] as const).filter(field => input[field] !== undefined && input[field] !== current[field]);
+      if (fields.length) this.appendEvent(input.id, "updated", { fields, ...research }, context);
       return this.snapshot();
     });
   }
@@ -331,6 +336,19 @@ export class TasksSqliteStore {
         .get(status)?.value,
     );
   }
+  private researchInput(input: { aiResearch?: string; aiResearchReason?: string }, current?: TaskDetail): { aiResearch: string; aiResearchReason: string } | undefined {
+    if (input.aiResearch === undefined && input.aiResearchReason === undefined) return undefined;
+    const aiResearch = input.aiResearch ?? current?.aiResearch ?? "unassessed";
+    const aiResearchReason = input.aiResearchReason ?? current?.aiResearchReason ?? "";
+    if (aiResearch !== "unassessed" && !aiResearchReason.trim()) throw new TasksFault(-32602, "A research assessment requires a reason");
+    if (current && aiResearch === current.aiResearch && aiResearchReason === current.aiResearchReason) return undefined;
+    return { aiResearch, aiResearchReason };
+  }
+  private research(id: string): { aiResearch: string; aiResearchReason: string } {
+    const row = this.db.prepare("SELECT payload FROM task_events WHERE task_id=? AND type IN ('created','updated') AND json_type(payload,'$.aiResearch')='text' ORDER BY seq DESC LIMIT 1").get(id);
+    const payload = row ? JSON.parse(String(row.payload)) : null;
+    return { aiResearch: payload?.aiResearch ?? "unassessed", aiResearchReason: payload?.aiResearchReason ?? "" };
+  }
   private detail(row: Record<string, unknown>): TaskDetail {
     const conversations = this.db
       .prepare(
@@ -338,7 +356,7 @@ export class TasksSqliteStore {
       )
       .all(String(row.id)).map(row => ({ ...row }));
     const progress = this.db.prepare("SELECT event_id, payload, created_at FROM task_events WHERE task_id=? AND type='progress' ORDER BY seq DESC LIMIT 1").get(String(row.id));
-    return { ...row, conversations, latestProgress: progress ? { eventId: String(progress.event_id), text: String(JSON.parse(String(progress.payload)).text), createdAt: Number(progress.created_at) } : null } as unknown as TaskDetail;
+    return { ...row, ...this.research(String(row.id)), conversations, latestProgress: progress ? { eventId: String(progress.event_id), text: String(JSON.parse(String(progress.payload)).text), createdAt: Number(progress.created_at) } : null } as unknown as TaskDetail;
   }
   private task(id: string, revision?: number, includeArchived = false): TaskDetail {
     const row = this.db
@@ -360,7 +378,12 @@ export class TasksSqliteStore {
     const progress = new Map<string, TaskProgressSummary>();
     for (const row of this.db.prepare("SELECT task_id,event_id,payload,created_at FROM task_events WHERE seq IN (SELECT max(seq) FROM task_events WHERE type='progress' AND task_id IN (SELECT value FROM json_each(?)) GROUP BY task_id)").all(ids))
       progress.set(String(row.task_id), { eventId: String(row.event_id), text: String(JSON.parse(String(row.payload)).text), createdAt: Number(row.created_at) });
-    return rows.map(row => ({ ...row, conversations: links.get(String(row.id)) ?? [], latestProgress: progress.get(String(row.id)) ?? null }) as unknown as TaskDetail);
+    const assessments = new Map<string, { aiResearch: string; aiResearchReason: string }>();
+    for (const event of this.db.prepare("SELECT task_id,payload FROM task_events WHERE seq IN (SELECT max(seq) FROM task_events WHERE type IN ('created','updated') AND json_type(payload,'$.aiResearch')='text' AND task_id IN (SELECT value FROM json_each(?)) GROUP BY task_id)").all(ids)) {
+      const payload = JSON.parse(String(event.payload));
+      assessments.set(String(event.task_id), { aiResearch: payload.aiResearch, aiResearchReason: payload.aiResearchReason ?? "" });
+    }
+    return rows.map(row => ({ ...row, ...(assessments.get(String(row.id)) ?? { aiResearch: "unassessed", aiResearchReason: "" }), conversations: links.get(String(row.id)) ?? [], latestProgress: progress.get(String(row.id)) ?? null }) as unknown as TaskDetail);
   }
   private snapshot(): TasksSnapshot {
     const rows = this.db.prepare(`${select} WHERE (deleted_at IS NULL AND archived_at IS NULL) OR deleted_at > ? ORDER BY sort_order,id`).all(this.now() - TASK_RECYCLE_RETENTION_MS);

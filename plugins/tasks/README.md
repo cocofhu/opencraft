@@ -125,3 +125,13 @@ and `restore` for the existing recycle contract. Progress uses a stable eventId
 and does not change task revisions. After an uncertain write, read that eventId
 before retrying with the same content. A report is explicit collaboration text;
 it does not complete the task or imply a conversation has finished.
+
+
+## AI research triage
+
+AI research is a four-way initial disposition with a short rationale: unassessed,
+AI can start research, needs context, or needs a decision. Edit it in task details
+and filter it from Board/List. The coordinator may assess unowned tasks; the
+field itself does not launch execution. Hosts must advertise `aiResearch:true`.
+Assessments reuse the existing transactional event authority, retaining v5 storage
+and rollback compatibility. See docs/tasks-model.md for the exact contract.
