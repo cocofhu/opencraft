@@ -1122,7 +1122,7 @@ The built-in resource plugin owns one Files creation action for both empty-panel
 
 分支会话的参与者不继承父会话：新分支头像先显示已认证创建者，后续实际接收的用户消息增加参与者。历史消息继续保留原作者。继承来源由Host持久化，刷新、重连与再次分支不能将历史作者恢复为新分支成员；创建者在头像列表去重。证据：`tests/enterprise-identity-participants.test.ts`、`tests/codex-message-senders.test.ts`、`scripts/smoke-fork-participants.ts`。
 
-- PDF workspace previews default to a collapsed file tree; the header folder
+- Workspace resource panels default to a collapsed file tree for all file types; the header folder
   toggle remains available. Manual visibility takes precedence for that panel
   lifetime, preserving mounted viewer/tree state while browsing files.
 
