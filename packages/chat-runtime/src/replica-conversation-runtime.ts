@@ -447,8 +447,8 @@ function interactionPayload(interaction: PendingInteraction): {
           approvalKind: "command",
           title:
             destination === null
-              ? (reason ?? "Allow ChatGPT to run this command?")
-              : `Allow ChatGPT to connect to ${destination}?`,
+              ? (reason ?? "Allow this command to run?")
+              : `Allow a connection to ${destination}?`,
           detail:
             destination === null
               ? string(params.command)
