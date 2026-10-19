@@ -83,7 +83,7 @@ interface Session {
 
 let session: Session = { ownerId: "", cwd: "", threadId: "" };
 let quote: (text: string) => boolean = () => false;
-let insertText: (text: string) => void = () => undefined;
+let submitText: (text: string) => boolean = () => false;
 let panels: { open(ownerId: string, kind: string, params: Record<string, never>, options?: { activate?: boolean }): void } | null = null;
 
 export function bindPageHarnessPanels(service: {
@@ -106,12 +106,17 @@ export function setPageHarnessQuote(handler: (text: string) => boolean) {
   quote = handler;
 }
 
-export function setPageHarnessInsert(handler: (text: string) => void) {
-  insertText = handler;
+export function setPageHarnessSubmit(handler: (text: string) => boolean) {
+  submitText = handler;
 }
 
+export function previewRequestText(names: string) {
+  return `用 page_harness_preview 预览刚改的 ${names}。如果它说页面还没起来，只执行它给的那一条命令、在它给的目录里，等端口通了再用同一个地址调用一次。`;
+}
+
+/** Sends the start-and-preview instruction. Confirmation does not leave an unsent draft. */
 export function askAgentToPreview(names: string) {
-  insertText(`用 page_harness_preview 预览刚改的 ${names}。如果它说页面还没起来，只执行它给的那一条命令、在它给的目录里，等端口通了再用同一个地址调用一次。`);
+  return submitText(previewRequestText(names)) === true;
 }
 
 export function openPageHarness(view: "list" | "page" = "list") {

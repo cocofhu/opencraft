@@ -122,14 +122,23 @@ export function redactSecrets(value) {
     .replace(/([?&]t=)[^&\s"#]+/g, "$1[redacted]");
 }
 
-export function sameOrigin(headers) {
-  const origin = headers.origin;
+function hostMatches(header, expected) {
+  return typeof header === "string" && header.split(",")[0].trim().toLowerCase() === expected;
+}
+
+/**
+ * Direct workbench requests compare Host with Origin only.
+ * Pass trustedForwardedHost only when a reverse proxy overwrote X-Forwarded-Host.
+ * A client-supplied X-Forwarded-Host is not that value.
+ */
+export function sameOrigin(headers, trustedForwardedHost) {
+  const origin = headers?.origin;
   if (typeof origin !== "string") return false;
   let from;
   try { from = new URL(origin).host.toLowerCase(); }
   catch { return false; }
-  return [headers.host, headers["x-forwarded-host"]].some((header) =>
-    typeof header === "string" && header.split(",")[0].trim().toLowerCase() === from);
+  if (hostMatches(headers.host, from)) return true;
+  return hostMatches(trustedForwardedHost, from);
 }
 
 const escAttr = (value) => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, " ");

@@ -17,7 +17,7 @@ export function renderNotes(result: { project?: string; items?: readonly { n?: n
 export function normalizeTarget(raw: unknown): string;
 export function assertLocalTarget(raw: unknown): string;
 export function redactSecrets(value: unknown): string;
-export function sameOrigin(headers: { origin?: string; host?: string; "x-forwarded-host"?: string }): boolean;
+export function sameOrigin(headers: { origin?: string; host?: string }, trustedForwardedHost?: string | null): boolean;
 export function serializeQuote(pick: { outerHTML?: string; text?: string; url?: string; selector?: string; tagName?: string; tag?: string } | null | undefined): string;
 export function appendPreviewQuote(controller: { appendQuote?: (text: string) => boolean } | null | undefined, pick: { outerHTML?: string; text?: string; url?: string; selector?: string; tagName?: string }): { ok: boolean; text?: string; message?: string };
 export function previewFrame(status: { running?: boolean; page?: string; appUrl?: string; embedToken?: string } | null | undefined, pageProtocol: string): { src: string; mixed: boolean };

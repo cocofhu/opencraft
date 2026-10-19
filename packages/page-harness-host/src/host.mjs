@@ -7,7 +7,6 @@ import https from "node:https";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   DEFAULT_PREVIEW_PORT,
   DEV_PORTS,
@@ -76,8 +75,6 @@ export function createSettingsStore(file = defaultSettingsFile()) {
 
 export function resolveCli(configured) {
   if (configured) return existsSync(configured) ? path.resolve(configured) : null;
-  const sibling = fileURLToPath(new URL("../../dist/cli.js", import.meta.url));
-  if (existsSync(sibling)) return sibling;
   try {
     const pkg = createRequire(import.meta.url).resolve("page-harness/package.json");
     const cli = path.join(path.dirname(pkg), "dist", "cli.js");
@@ -630,7 +627,8 @@ export function createPageHarnessHost(options = {}) {
         const url = new URL(request.url || "/", "http://127.0.0.1");
         if (url.pathname !== "/page-harness") return false;
         if (request.method !== "POST") { sendJson(response, 405, { ok: false, error: "POST only" }); return true; }
-        if (!sameOrigin(request.headers)) { sendJson(response, 403, { ok: false, error: "same-origin requests only" }); return true; }
+        const trustedForwardedHost = options.trustForwardedHost === true ? request.headers["x-forwarded-host"] : undefined;
+        if (!sameOrigin(request.headers, trustedForwardedHost)) { sendJson(response, 403, { ok: false, error: "same-origin requests only" }); return true; }
         if (!/^application\/json\b/i.test(String(request.headers["content-type"] ?? ""))) {
           sendJson(response, 415, { ok: false, error: "JSON only" });
           return true;

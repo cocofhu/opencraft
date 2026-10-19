@@ -64,7 +64,12 @@ export function PageHarnessTurnTail({ turn }: { readonly turn: TimelineTurnView 
     text = `改了 ${offer.scripts.slice(0, 3).map(fileName).join("、")}，要开启预览吗？`;
     action = {
       label: "启动服务并预览",
-      run: () => askAgentToPreview(offer.scripts.slice(0, 3).map(fileName).join(", ")),
+      run: () => {
+        setError("");
+        if (!askAgentToPreview(offer.scripts.slice(0, 3).map(fileName).join(", "))) {
+          setError("没能把启动请求发给 Agent。");
+        }
+      },
     };
   } else if (offer?.mode === "server") {
     const named = offer.servers.map((server) => server.port).filter(Boolean);

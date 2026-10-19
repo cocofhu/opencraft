@@ -1,5 +1,6 @@
 import { Monitor } from "lucide-react";
-import { setPageHarnessInsert, setPageHarnessQuote, setPageHarnessSession } from "./page-harness/client";
+import { setPageHarnessQuote, setPageHarnessSession, setPageHarnessSubmit } from "./page-harness/client";
+import { submitPageHarnessText } from "./page-harness/submit-preview";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
@@ -1550,8 +1551,13 @@ export function App({
       threadId: activeThreadId ?? "",
     });
     setPageHarnessQuote((text) => composerController.appendQuote(text));
-    setPageHarnessInsert((text) => composerController.insertText(text));
-  }, [activeThreadId, composerController, panelOwnerId, panelToolbarContext.cwd]);
+    setPageHarnessSubmit((text) => submitPageHarnessText(
+      composerController,
+      (intent, followUp) => appSendMessageRef.current(intent, { followUpAction: followUp }),
+      activeThreadLease?.getSnapshot().activeTurn != null,
+      text,
+    ));
+  }, [activeThreadId, activeThreadLease, composerController, panelOwnerId, panelToolbarContext.cwd]);
   // The installed adapter owns availability and rechecks authority on launch.
   const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
   const composerDesktopEntry = presentation.composerDesktopEntry === true && conversationRouteOpen && cloudDesktopAction

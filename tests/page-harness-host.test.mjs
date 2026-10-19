@@ -15,6 +15,7 @@ import {
   createSettingsStore,
   detectDevServers,
   readNotes,
+  resolveCli,
 } from "../packages/page-harness-host/src/host.mjs";
 import {
   MIXED_CONTENT_MESSAGE,
@@ -26,6 +27,7 @@ import {
   previewSurface,
   renderNotes,
   renderPreview,
+  sameOrigin,
 } from "../packages/page-harness-host/src/shared.mjs";
 
 const cliPath = fileURLToPath(new URL("./fixtures/page-harness-fake-cli.mjs", import.meta.url));
@@ -200,6 +202,7 @@ test("the control route rejects cross-origin and non-JSON requests", async () =>
   const port = server.address().port;
   const send = (headers, body) => fetch(`http://127.0.0.1:${port}/page-harness`, { method: "POST", headers, body });
   assert.equal((await send({ origin: "http://evil.example", host: `127.0.0.1:${port}`, "content-type": "application/json" }, "{}")).status, 403);
+  assert.equal((await send({ origin: "http://evil.example", host: `127.0.0.1:${port}`, "x-forwarded-host": "evil.example", "content-type": "application/json" }, "{}")).status, 403);
   assert.equal((await send({ origin: `http://127.0.0.1:${port}`, host: `127.0.0.1:${port}`, "content-type": "text/plain" }, "{}")).status, 415);
   assert.equal((await send({ origin: `http://127.0.0.1:${port}`, host: `127.0.0.1:${port}`, "content-type": "application/json" }, "not-json")).status, 400);
   const ok = await send({ origin: `http://127.0.0.1:${port}`, host: `127.0.0.1:${port}`, "content-type": "application/json" }, JSON.stringify({ method: "settings" }));
@@ -259,6 +262,20 @@ test("tool contract, quote append, and preview surface stay exclusive", () => {
   assert.equal(offer.servers[0].port, 5173);
 });
 
+test("direct clients cannot satisfy origin with X-Forwarded-Host, and CLI lookup skips the packages sibling", () => {
+  assert.equal(sameOrigin({ origin: "http://evil.example", host: "127.0.0.1:4173", "x-forwarded-host": "evil.example" }), false);
+  assert.equal(sameOrigin({ origin: "http://127.0.0.1:4173", host: "127.0.0.1:4173" }), true);
+  assert.equal(sameOrigin({ origin: "http://public.example", host: "127.0.0.1:4173" }, "public.example"), true);
+  assert.equal(sameOrigin({ origin: "http://public.example", host: "127.0.0.1:4173" }), false);
+  const hostSource = readFileSync(new URL("../packages/page-harness-host/src/host.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(hostSource, /\.\.\/\.\.\/dist\/cli\.js/);
+  const sibling = path.resolve(fileURLToPath(new URL("../packages/dist/cli.js", import.meta.url)));
+  const found = resolveCli("");
+  assert.notEqual(found, sibling);
+  assert.equal(resolveCli(cliPath), path.resolve(cliPath));
+  assert.equal(resolveCli(path.join(tmp(), "missing.js")), null);
+});
+
 test("web and electron share one renderer panel and one host module", () => {
   const web = readFileSync(new URL("../scripts/serve-workbench-web.mjs", import.meta.url), "utf8");
   const desktop = readFileSync(new URL("../scripts/serve-workbench-static.mjs", import.meta.url), "utf8");
@@ -270,7 +287,19 @@ test("web and electron share one renderer panel and one host module", () => {
   assert.match(panel, /取点/);
   assert.match(panel, /引用/);
   assert.match(panel, /意见/);
+  assert.match(panel, /ph:quote/);
+  assert.match(panel, /ph:hello/);
+  assert.match(panel, /ph:highlight/);
+  assert.doesNotMatch(panel, /ph:pick/);
   assert.doesNotMatch(panel, /分享|邀请|评审者/);
+  const client = readFileSync(new URL("../apps/workbench-web/src/page-harness/client.ts", import.meta.url), "utf8");
+  const turn = readFileSync(new URL("../apps/workbench-web/src/page-harness/turn-tail.tsx", import.meta.url), "utf8");
+  const submit = readFileSync(new URL("../apps/workbench-web/src/page-harness/submit-preview.ts", import.meta.url), "utf8");
+  assert.match(client, /submitText\(previewRequestText/);
+  assert.match(turn, /启动服务并预览/);
+  assert.match(turn, /askAgentToPreview/);
+  assert.match(submit, /createSubmitIntent/);
+  assert.doesNotMatch(client, /insertText/);
   assert.equal(readFileSync(new URL("../packages/browser-appserver/src/dynamic-tools.ts", import.meta.url), "utf8").includes("page_harness"), false);
 });
 
