@@ -21,6 +21,11 @@ test("optional theme surfaces override only named semantic roles and reset to de
     assert.equal(themed["--color-background-input"], "#444444");
     assert.equal(themed["--color-background-elevated-primary-opaque"], "#555555");
     assert.equal(themed["--color-text"], defaults["--color-text"]);
+    // A registered popover surface is an explicit readable override, not a tint.
+    for (const role of ["base", "panel", "menu", "floating"]) {
+      assert.equal(themed[`--material-glass-${role}`], "#555555");
+    }
+    assert.notEqual(defaults["--material-glass-panel"], themed["--material-glass-panel"]);
     assert.deepEqual(build(mode, { ...base, surfaces: {}, material: {} }), defaults);
     assert.equal(build(mode, velaThemePalette[mode])["--codex-sidebar-material-filter"], "none");
     assert.equal(build(mode, { ...base, opaqueWindows: true })["--codex-sidebar-material-filter"], "none");

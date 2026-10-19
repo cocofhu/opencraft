@@ -406,3 +406,39 @@ adapter resolves every registered name in both standard and classic presentation
 classic sizing, stroke and explicit artwork variants remain presentation-owned.
 Classic presentation must not replace a supported contribution icon with the
 fallback glyph. Missing or unknown names retain the existing per-surface fallback.
+
+
+## Neutral frosted glass
+
+The design-system `material.web` mixins and theme-engine `--material-glass-*`
+roles own floating materials. The backing is neutral white in light mode and
+neutral charcoal in dark mode, never a brand-blue fill. Color comes from the
+actual page behind the surface. Only the outer surface filters that backdrop:
+32px blur, saturation 1.06. Do not blur the whole page or add another filter to
+nested cards. Children separate with quiet tonal fills and existing theme text
+roles, not independent palettes or opaque card stacks.
+
+Use readable frost for panels: 64% neutral veil in light mode and 62% in dark.
+Menus and search/navigation use the denser 82% veil for compact text. Floating
+circular chrome keeps its lighter 32% optical layer and inset-only edge; it has
+no outer shadow. Panels and menus may use the shared soft elevation. Their
+radius, hit area, sizing, presence and focus stay with existing primitives.
+This is a material hierarchy, not a requirement to make ordinary pages glass.
+An explicit extension popover color remains authoritative and opaque.
+
+The shared menu material, mobile search/navigation adapter and default
+ModalSurface consume these roles. Modal scrims dim without blurring the page;
+utility forms, full-screen surfaces and management Settings keep opaque
+backings. Reduced transparency, forced colors and unsupported backdrop filters
+use readable solid fallbacks. Theme window opacity still describes application
+chrome; it does not silently disable popup material. Native Expo retains its
+existing static semantic palette adapter; these Web rules do not claim native
+blur support or new native appearance behavior.
+
+Validate real portalled menus and ModalSurface in light/dark/custom palettes,
+phone and desktop containers, with keyboard focus/dismissal, changing backdrops
+and reduced-transparency/forced-colors/unsupported-filter fallback. The approved
+reference is readable frost, not a nearly clear pane; background shapes should
+be soft color, not readable competing text. Data accents and usage accounting
+remain separate from material. A material update does not implement a usage
+backend, historical trace or session dashboard.

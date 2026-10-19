@@ -1,6 +1,13 @@
 @use "./typography/generated.web";
 
 :root {
+  // Neutral frost: backdrop supplies color, never the brand accent.
+  --material-glass-base: #fff;
+  --material-glass-floating: color-mix(in srgb, var(--material-glass-base) 32%, transparent);
+  --material-glass-panel: color-mix(in srgb, var(--material-glass-base) 64%, transparent);
+  --material-glass-menu: color-mix(in srgb, var(--material-glass-base) 82%, transparent);
+  --material-glass-filter: blur(32px) saturate(1.06);
+  --material-glass-shadow: 0 24px 80px rgb(0 0 0 / 15%), inset 0 1px rgb(255 255 255 / 40%);
   --size-icon-composer-input: 20px;
   --size-control-hit-min: 0px;
   --gap-control-density-min: 0px;

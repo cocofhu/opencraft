@@ -1,5 +1,17 @@
 # 工作区不变量
 
+## Floating material ownership
+
+Shared floating surfaces consume design-system `material.web` and theme-owned
+neutral frost roles. Backdrop color may show softly through the panel; a brand
+fill or page-wide blur cannot substitute for glass. Menus/search are denser
+than panels; circular touch chrome has inset-only shading. Geometry, Radix
+focus and modal lifetime retain their owners. Solid accessibility/unsupported
+filter fallbacks and explicit extension popover surfaces remain readable.
+See the workbench language and `scripts/smoke-frosted-materials.ts` for real
+consumer, backdrop and fallback verification. Native appearance is unchanged.
+
+
 ## Discrete slider fill
 
 The shared track owns capsule clipping. Its selected range has a square inner
