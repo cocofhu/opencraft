@@ -112,5 +112,13 @@
         "mobile-exit-false.json": "42ddf4c8628a8e21c3b29b8949ad5b2ca2ef9768b638a66ef4973a2211b6ccbc"
       }
     }
+  },
+  "supplementalAfterFirstCandidateBeforeWashCorrection": {
+    "phase": "before",
+    "moduleSha256": "28dea6be1939f9a2f2d386068b7919e041237eca67ea238b2601b336ae2cf6f5",
+    "loads": 1,
+    "states": 20,
+    "rawSha256": "ac19ccfd850020b0cf6eef80db0cf126d15ba26ab2c6314bb3d4e57140140422",
+    "observerSha256": "2e13f166df6e1dfa47bb54fcca809e0184357cbf73f529a51a4ff3be8231ec2d"
   }
 }

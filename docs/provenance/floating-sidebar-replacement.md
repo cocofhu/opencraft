@@ -94,3 +94,89 @@ a horizontal or depth animation: it keeps the externally supplied depth until
 removal, with immediate inertness. Both ordinary/reduced modes have zero page
 errors. Hashes and full traces were frozen before authoring; no selected bodies
 changed during either supplement. The original 46-state comparison remains fixed.
+
+## Independent replacement and first verification
+
+After the requirements, 46-state complete observation freeze and supplemental
+entry/18-state resize/mobile freeze were committed, both selected components were
+independently authored. Public import/interface bytes are identical. The Shell
+still owns visibility, live width, mobile progress and content identity. The
+existing resize handle retains transactions; the wrapper only opts out of
+collapse, as the below-minimum baseline requires. The container owns presence
+projection and header counter-translation, with no copied reference body, new
+dependency, second width/progress owner or business-state policy. The historical
+header is replaced by this record's link; its original text and hashes remain in
+the committed baseline.
+
+The first candidate matches all 46 primary and 18 supplemental complete raw
+states byte-for-byte, including full DOM/style, slot geometry, drafts, focus,
+mount counts and callback order. The fixed pre-authoring structural comparator
+also reports zero differences. Ordinary/reduced exit frames retain immediate
+inertness and disabled input, equal-and-opposite header translation and removal;
+individual animation sample timing is not claimed byte-identical. Synthetic
+component screenshots in both modes were inspected. All 56 existing focused
+sidebar/control/Shell-geometry tests, Web typecheck, platform boundaries and
+official Web build pass (791 runtime sources, zero browser compatibility issues).
+The unchanged full Shell footer smoke failure remains an explicit limitation;
+supplemental full-Shell checks, if completed, are separate evidence and must not
+be represented as that original smoke passing.
+
+## Corrected first-frame initialization and final evidence
+
+The first candidate's settled observations matched, but the extra entry trace
+found that its header counter-translation appeared one frame late. Initializing
+the horizontal MotionValue from the same desktop entrance geometry fixes that
+first frame. The observer and expected contracts were not changed. Final entry
+traces begin with surface -8px/header +8px/opacity zero in ordinary motion and
+zero/full opacity in reduced motion. Every sampled entry/exit frame preserves
+counter-translation and exiting input withdrawal. Timing/sample counts vary and
+are not claimed byte-identical. The corrected candidate still has zero differences
+under the fixed 46-state structural projection; its full raw output differs only
+in the explicitly frame-dependent exit translation/x fields. All 18 supplemental
+resize/mobile states remain byte-identical to their frozen baseline.
+
+A supplemental actual AppShell observer, authored after the first implementation,
+executes the historical component through a sealed hash-checked Vite load hook
+and then the corrected component. All 22 complete ordinary/reduced legacy Shell
+states match byte-for-byte, including held resizing/reversals/cancellation,
+re-docking, narrow open/close, content identity, drafts, scroll and mount counts.
+Both component modes and representative full Shell screenshots were inspected.
+This uses synthetic slots and does not exercise employee accounts or remote Hosts.
+
+Initial supplemental attempts incorrectly used unified desktop edge-hover, which
+the current unchanged Shell explicitly disables. That failure was retained; the
+legacy hover observer and current mobile trigger are used for their actual
+owning paths. The legacy baseline also loses its 500px list scroll offset in
+reduced-motion reparenting. Its failed scroll expectation remains recorded; the
+final supplemental comparison retains the complete scroll field and verifies the
+candidate has the same behavior. This is not a passing assertion of scroll
+preservation. No product owner, footer, smoke script or assertion was modified.
+
+All 56 existing focused tests and ten provenance tests pass. Final Web typecheck
+and official build pass (791 runtime sources, zero compatibility issues). Original
+full Shell footer smoke remains failed. The separate existing mobile stack smoke
+fails while reading a missing backdrop element; historical-component reproduction
+is tracked separately and must not be counted as passed. These known failures do
+not justify expanding this source replacement into unrelated Shell/style work.
+
+## Coverage correction before the mobile wash implementation
+
+The initial 46-state observer serialized the selected panel root, not every
+sibling rendered by the component. The existing full mobile stack smoke caught
+a real omission in the first replacement: the stationary wash sibling was absent.
+The same unchanged smoke with a hash-checked historical-component Vite loader
+passes. Its live transformed-module source map was checked against the historical
+module SHA256, proving that reproduction actually loaded the old component. This
+is a replacement regression, not an existing Shell failure. Neither the mobile
+script nor its assertions were weakened.
+
+Before correcting the missing sibling, a separate 20-state ordinary/reduced
+observer executes the hash-checked historical module and captures the complete
+fixture root including siblings. It observes a sibling div after the panel,
+aria-hidden=true, class app-shell-mobile-sidebar-wash. Ordinary progress
+0/0.25/0.5/0.75/1 maps its opacity to 0.65/0.4875/0.325/0.1625/0, with clamping.
+Reduced motion keeps the sibling but sets opacity zero. It mounts only for
+mobile presentation and disappears with that presence. The existing Shell CSS
+owns stationary material/placement/hit-testing. These supplemental requirements
+were recorded after the first replacement and before the missing-wash correction;
+they must not be described as part of the initial pre-authoring freeze.
