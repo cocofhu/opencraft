@@ -269,7 +269,7 @@ boundaries, not conclusions that all code in each file was copied:
 | --- | --- | --- |
 | `codex-chat-semantics-followup` | User-message Web layout, activity/Thinking ownership, MCP elicitation, realtime transcript, turn diff, user-message normalization and wrapper parsing | Fix public requirements and actual input/output contracts per module, establish lineage, then replace or license only bounded expression |
 | `codex-document-streaming-followup` | Markdown compilation/preprocessing and streaming segment identity | Separate standard Markdown behavior from source-specific tokenization/reconciliation; verify complete rendered documents and streaming identity |
-| `codex-client-host-followup` | Lab journal, hook projection, interrupt cleanup, dictation footer and panel geometry | Distinguish reference-inspired observations from retained expression; preserve runtime cancellation, dictation and layout behavior |
+| `codex-client-host-followup` | Lab journal, hook projection, dictation footer and panel geometry; interrupt response helper has a separate bounded disposition | Distinguish reference-inspired observations from retained expression; preserve runtime cancellation, dictation and layout behavior |
 
 With these additions the earlier “five unverified groups” is a historical count,
 not the current complete total. The manifest/report is the authority for current
@@ -571,3 +571,15 @@ device brands and adjacent original/behavioral code are retained. Historical
 annotation/hash, observed data and actual author exposure remain recorded.
 Four browser inventory files and all eight unresolved groups stay unverified;
 this is not strict author isolation or historical rights clearance.
+
+
+## Interrupt response protocol policy (2026-10-20)
+
+The directly annotated interrupt response module now expresses an exhaustive
+policy over the existing eight-method server-request union. The public function,
+wire method names and cancellation response facts remain compatible. Historical
+blob/annotation and prior full-body author exposure are recorded in the
+[implementation evidence](provenance/interaction-interrupt-replacement.md);
+this is not strict author isolation or historical rights clearance. Only this
+module is replaced. Four client/Host inventory files and all eight unresolved
+groups remain open; source-inspired descriptions alone do not mandate rewrites.
