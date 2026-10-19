@@ -37,3 +37,30 @@ Inline start hints locate backslash-parentheses anywhere; token creation require
 offset zero and rejects LF before its first closure while allowing CR and Unicode
 line separators. These are measured application contracts, not new Markdown rules.
 The two historical tokenizer declarations remain unchanged at this checkpoint.
+
+## Implementation findings
+
+The first replacement missed display closure line-tail admission and produced
+106 differences: 58 tokenizer observations and 48 full compiler trees. The original
+corpus and first failed replacement remain external evidence. Another 42 sealed
+historical tokenizer calls clarified the rule: after the first closing delimiter,
+spaces/tabs may precede LF or end-of-source; other content, CR/CRLF and Unicode
+line separators reject the candidate. Horizontal whitespace is not consumed in
+`raw`. Later closures do not rescue an invalid first closure. This refines the
+pre-authoring contract; the original observations were not rewritten.
+
+The replacement expresses block-start eligibility and inline delimiter admission
+with explicit forward scans, retaining the existing extension registration and
+compiler owners. All 8,925 frozen tokenizer inputs, 1,440 public compiler outputs
+and 42 focused closure-tail cases now match exactly. Non-target compiler prefix
+and suffix bytes remain identical; historical region SHA256 is
+`b516965509b684b82e8c8c5f9fed3d2a5af823f140c91369489d56af822c2ab9`.
+No new tests or observer harness are committed. This is current implementation
+provenance, not strict author isolation or historical-rights clearance.
+
+The document typecheck, platform boundaries, 35 existing document/cache/resource
+preview tests and ten existing provenance tests passed. Public Web built with
+791 runtime source files and zero compatibility issues. The existing JSDOM
+link-to-resource flow is included; no employee/native session, physical device
+or real-model invocation is claimed. Inventory validation retains eight unresolved
+groups and does not establish release readiness.

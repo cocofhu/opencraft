@@ -250,9 +250,11 @@
         "packages/chat-document/src/preprocess.ts",
         "packages/chat-document/src/streaming/identity.ts",
         "docs/provenance/markdown-link-scanner-baseline.json",
-        "docs/provenance/markdown-link-scanner-replacement.md"
+        "docs/provenance/markdown-link-scanner-replacement.md",
+        "docs/provenance/math-delimiters-baseline.json",
+        "docs/provenance/math-delimiters-replacement.md"
       ],
-      "reason": "Remaining compiler inline-token mapping and math delimiter regions, preprocessing and streaming identity carry source-equivalent/recovery annotations. The separately recorded findMarkdownLink replacement does not clear this file or group. Review actual regions individually; annotations alone do not establish whole-file copying or authorization.",
+      "reason": "Remaining compiler inline-token mapping, preprocessing and streaming identity carry source-equivalent/recovery annotations. The separately recorded link scanner and math delimiter replacements do not clear compiler.ts or this group. Review actual regions individually; annotations alone do not establish whole-file copying or authorization.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -677,6 +679,26 @@
       "reason": "Only the exported scanner carried the direct source-identical annotation. Independently express its observed application grammar using a monotonic search/label/path scan, retaining the existing API and caller-owned unescaping.",
       "resolution": "Historical file/region hashes, annotation, frozen corpus and actual exposure remain recorded. Prior author exposure to adjacent material and sealed historical-function observations preclude any strict-isolation claim. Other compiler regions and all eight unresolved groups remain open.",
       "conclusion": "This disposition covers only the current findMarkdownLink function, not compiler.ts as a whole. Matching values and independent current authoring do not establish historical rights, a source license or release readiness."
+    },
+    {
+      "id": "application-math-delimiters",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-document/src/compiler.ts"
+      ],
+      "regions": [
+        "mathBlockTokenizer and mathInlineTokenizer only; other compiler regions remain under codex-document-streaming-followup"
+      ],
+      "evidence": [
+        "docs/provenance/math-delimiters-baseline.json",
+        "docs/provenance/math-delimiters-replacement.md",
+        "tests/chat-document.test.ts",
+        "tests/chat-document-cache.test.ts",
+        "tests/inline-markdown-file-preview.test.mjs"
+      ],
+      "reason": "The two math delimiter tokenizers share a direct source-equivalent annotation. Express the frozen application grammar through explicit line-eligibility and delimiter scans, preserving the registration and public compiler contract.",
+      "resolution": "Retain historical hashes, direct annotation and actual author exposure, including later sealed focused observations after the first mismatch. This covers the two current tokenizer declarations, not compiler.ts, strict author isolation or historical source rights.",
+      "conclusion": "Only display/inline math delimiter tokenization is replaced. Dollar prose, code fences, raw consumption, compiler placement and streaming ownership remain stable. Other annotated regions and all eight unresolved groups remain open."
     }
   ]
 }

@@ -595,3 +595,13 @@ bytes remain unchanged. Historical file/region hashes and actual exposure remain
 recorded; no strict author-isolation or historical-rights clearance is asserted.
 The same compiler file remains unverified for its other source-attributed regions,
 and all eight unresolved groups remain open. This is not a whole-file rewrite.
+
+
+## Application math delimiter boundary (2026-10-20)
+
+Only the compiler's directly attributed block/inline math tokenizer declarations
+are replaced from [frozen application observations](provenance/math-delimiters-replacement.md).
+Display line admission, inline LF rejection, trimming and raw consumption remain
+compatible; compiler structure and code-fence handling keep their owners. The
+first failed comparison, historical hashes and actual exposure remain recorded.
+Other compiler regions and all eight unresolved groups remain open.
