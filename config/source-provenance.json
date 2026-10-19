@@ -360,16 +360,17 @@
         "apps/workbench-web/src/browser/codex/browser-manager.js",
         "apps/workbench-web/src/browser/codex/presentation-transition.js",
         "apps/workbench-web/src/browser/codex/source-manifest.json",
-        "apps/workbench-web/src/browser/codex/viewport-presets.js",
-        "apps/workbench-web/src/browser/codex/viewport-resize.js"
+        "apps/workbench-web/src/browser/codex/viewport-presets.js"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
         "docs/provenance/annotation-coverage-20261019.json",
-        "apps/workbench-web/src/browser/codex/source-manifest.json"
+        "apps/workbench-web/src/browser/codex/source-manifest.json",
+        "docs/provenance/browser-viewport-resize-baseline.json",
+        "docs/provenance/browser-viewport-resize-replacement.md"
       ],
-      "reason": "Browser implementation comments explicitly claim copied class/function bodies, identical viewport helpers and an unmodified recovered state machine. The source manifest pins two historical references. Wrapper/path references identify review boundaries, not proof that each whole file was copied.",
-      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status."
+      "reason": "Two remaining implementation modules explicitly claim copied class bodies and the viewport-preset module claims identical helpers. Their historical manifest and related toolbar/host comments identify bounded review targets, not proof that every whole file was copied. The explicitly source-attributed viewport drag helper now has its own bounded independent replacement disposition.",
+      "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementation and mere behavioral references where appropriate. Do not expand a directory or package inventory into a rewrite mandate. Preserve historical bindings; the viewport helper replacement does not clear remaining browser code or historical rights."
     },
     {
       "id": "codex-renderer-expression-followup",
@@ -584,6 +585,22 @@
       "reason": "The complete seven-export module is replaced after frozen requirements, public declarations and executable public observations; the formerly source-identical review accessory is replaced by a composition of licensed Lucide primitives.",
       "resolution": "Retain exact historical hashes, public annotation, author exposure, requirement and implementation commits, observed refinements and actual Web verification. Shared classifier, formatter, disclosure and document ports are reused unchanged and not reclassified.",
       "conclusion": "Current code independently owns reasoning view choice/projection, review presentation, command details/live clock and action-local copy feedback while preserving working engine protocols. This does not establish strict author isolation, historical rights clearance, native-device acceptance, entire renderer provenance or release readiness."
+    },
+    {
+      "id": "browser-viewport-drag-geometry",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/browser/codex/viewport-resize.js"
+      ],
+      "evidence": [
+        "docs/provenance/browser-viewport-resize-baseline.json",
+        "docs/provenance/browser-viewport-resize-replacement.md",
+        "apps/workbench-web/src/browser/codex/viewport-resize.d.ts",
+        "tests/browser-device-toolbar.test.ts"
+      ],
+      "reason": "The complete 26-line module explicitly claimed source function bodies. Replacement was authored only after frozen requirements and public baseline observations; its pure axis computation preserves the existing declaration and toolbar-owned capture/cancellation. No adjacent module was rewritten.",
+      "resolution": "Retain exact historical target hash and source annotation, finite observation artifacts and the scoped method. Verify all existing device handles, bounds and scaling through the existing tests and consumer types; keep untouched browser regions unverified.",
+      "conclusion": "Current viewport drag geometry is independently authored from a frozen public contract and finite black-box observations using signed axis movement and bounded dimensions. This is not strict author isolation, historical rights clearance, proof of universal equivalence or validation of a native browser host."
     }
   ]
 }

@@ -151,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Seven files: four browser implementation modules claiming copied bodies/identical helpers, their pinned source manifest, and two related toolbar/host contracts |
+| `codex-browser-source-followup` | Six unresolved files: three browser implementation modules, their historical source manifest, and two toolbar/host contracts; the viewport drag helper has a separate bounded disposition |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -525,3 +525,22 @@ handoff-step behavior outside that table. The new unresolved
 still require review** despite the native table replacement. The previous
 table-specific finding was not a complete review of the tool presentation file.
 Historical commits and public redistribution remain unresolved.
+
+
+## Bounded source review: no automatic package rewrites (2026-10-20)
+
+Only an actual recorded source reference identifies a review target. Absence of
+such a reference is not a reason to rewrite working code. Even an explicit
+reference may describe behavior, standard facts or an already licensed/original
+implementation; review the actual region and keep those implementations rather
+than replacing a whole file, package or directory by association. The unresolved
+group count is an inventory, not a promise to rewrite that many groups.
+
+The browser viewport drag helper had an explicit claim that its function bodies
+came from a named reference. Its complete small module is independently replaced
+after [frozen requirements and observed contracts](provenance/browser-viewport-resize-replacement.md).
+The [baseline](provenance/browser-viewport-resize-baseline.json) retains its exact
+historical blob/hash and source annotation. Preset facts, toolbar behavior,
+manager and transition implementations are unchanged; the remaining browser
+group stays unverified. This bounded disposition does not clear historical
+commits or grant distribution rights to adjacent code.
