@@ -63,6 +63,9 @@ export function parseCodexUsage(value: unknown, now = Date.now()): ParsedCodexUs
     ? payload.plan_type.trim()
     : null;
   const rateLimit = object(payload.rate_limit);
+  const credits = object(payload.credits);
+  const creditsAvailable = credits !== null && credits.overage_limit_reached !== true
+    && (credits.unlimited === true || credits.has_credits === true);
   const windows = rateLimit === null ? [] : [
     usageWindow("primary", rateLimit.primary_window, now),
     usageWindow("secondary", rateLimit.secondary_window, now),
@@ -71,7 +74,7 @@ export function parseCodexUsage(value: unknown, now = Date.now()): ParsedCodexUs
   const count = finite(resetCredits?.available_count);
   return {
     subscriptionType: plan,
-    limitWindows: windows,
+    limitWindows: windows.map(window => credits === null ? window : { ...window, creditsAvailable }),
     resetCreditCount: count !== null && Number.isSafeInteger(count) && count >= 0 ? count : null,
   };
 }

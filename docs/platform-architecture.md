@@ -3068,3 +3068,14 @@ same provider instance and releases that per-call lease on success or failure.
 Retirement publishes removal immediately and drains already accepted calls.
 No command registry or asynchronous lookup of the selected Host is introduced.
 See [Composer semantics](chat-ui-architecture.md).
+
+### Codex subscription windows and extra credits
+
+Account pooling preserves subscription percentages even when extra credits remain.
+Verified usage `credits.has_credits` or `credits.unlimited`, without an overage cap,
+permits an enabled account beyond a full subscription window. Window JSON persists
+this optional fact without resetting utilization or changing credential ownership.
+Successful upstream responses can update the credit fact; omitted headers retain
+the latest observation. A real upstream429 explicitly removes that exception.
+Unknown/exhausted credits, authentication errors, disabled accounts and retry
+backoff retain the existing admission rules. Usage refresh owns later recovery.
