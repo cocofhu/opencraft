@@ -21,8 +21,11 @@ and establishing clean history at the canonical address. Initial commit
 `b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`, with complete Web/Electron/Expo
 clients. The old accepted PR #32 and its commits/tags/releases belong to the
 archived repository identity; do not interpret old canonical links as commits
-in the new history. Existing runtime owners and data are preserved; there is
-no independently maintained duplicate core baseline.
+in the new history. Existing runtime owners and data are preserved. This records
+the migrated downstream consumer, not completion of every legacy downstream
+baseline. Each remaining migration must preserve its own behavior, adopt a fixed
+source plus recorded patches, and verify reconstruction and product integration;
+do not establish a second writable core.
 
 ## Ownership
 
@@ -42,6 +45,14 @@ private product. Native product code must still be packaged, not fetched as
 remote executable code.
 
 ## Boundary migration record and remaining review
+
+Product native-audio bridge globals and authenticated speech HTTP adapters are
+owned by downstream composition, together with their native/protocol/browser
+regressions. Core retains `AudioCapturePort`, `SpeechServicePort`, the cloud speech
+input provider and Composer's transient-input ownership. The shared workbench
+does not choose product speech routes, a fixed product model or a product bridge
+global. Removing these adapters does not change the reusable public speech-model
+configuration or public Hunyuan provider.
 
 Product-only embedded draft heading decoration, including narrow and short
 container rules, is owned by the downstream embedded composition. It reuses the
