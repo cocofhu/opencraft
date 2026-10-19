@@ -443,6 +443,19 @@ export function useConversationViewIdentity(): {
   ]);
 }
 
+/** Local display identity; acquiring this binding does not acquire a Thread lease. */
+export function useConversationViewDisplayKey() {
+  const application = useContext(ApplicationRuntimeContext);
+  const view = useContext(ConversationViewRuntimeContext);
+  if (application === null || view === null) throw new Error("ConversationViewRuntimeProvider is missing");
+  const bindings = useSyncExternalStore(
+    application.conversationBindings.subscribe,
+    application.conversationBindings.getSnapshot,
+    application.conversationBindings.getSnapshot,
+  );
+  return bindings.bindings.find(binding => binding.scopeId === view.scopeId)?.conversationKey ?? null;
+}
+
 export function useConversationViewActivation(): {
   readonly phase: "idle" | "resolving" | "ready" | "error";
   readonly error: Error | null;

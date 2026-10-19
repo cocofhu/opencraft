@@ -148,6 +148,7 @@ import {
   useConversationScopeRegistry,
   useConversationScopeRegistrySnapshot,
   useConversationViewActivation,
+  useConversationViewDisplayKey,
   useConversationViewIdentity,
   useHostConnectionPhase,
   useRootComposerController,
@@ -666,6 +667,11 @@ export function App({
     });
   }, [dispatchPanel, panelState.right.open, panelState.right.tabs.length]);
   const timeline = snapshot.conversation?.timeline ?? null;
+  // The committed View has a display identity before network lease acquisition.
+  // This local binding never grants execution or authoritative history access.
+  const displayKey = useConversationViewDisplayKey();
+  const displayHostId = displayKey?.hostId ?? null;
+  const displayThreadId = displayKey?.threadId ?? null;
   const displayScope = useSyncExternalStore(
     hostCatalog.displayContinuity.subscribe,
     hostCatalog.displayContinuity.getScope,
@@ -675,20 +681,20 @@ export function App({
   useEffect(() => {
     let current = true;
     setCachedTimeline(null);
-    if (activeThreadId !== null) {
-      void hostCatalog.displayContinuity.load(snapshot.hostId, activeThreadId).then(value => {
+    if (displayHostId !== null && displayThreadId !== null) {
+      void hostCatalog.displayContinuity.load(displayHostId, displayThreadId).then(value => {
         if (current) setCachedTimeline(value === null ? null : { scope: displayScope, timeline: value });
       });
     }
     return () => { current = false; };
-  }, [activeThreadId, displayScope, hostCatalog.displayContinuity, snapshot.hostId]);
+  }, [displayHostId, displayThreadId, displayScope, hostCatalog.displayContinuity]);
   useEffect(() => {
     if (timeline?.authoritative) void hostCatalog.displayContinuity.observe(timeline).catch(() => undefined);
   }, [hostCatalog.displayContinuity, timeline]);
-  const firstSubmissionTimeline = activeThreadId === null ? null
-    : hostCatalog.displayContinuity.peekSubmission(snapshot.hostId, activeThreadId);
-  const memoryTimeline = activeThreadId === null ? null
-    : hostCatalog.displayContinuity.peek(snapshot.hostId, activeThreadId);
+  const firstSubmissionTimeline = displayKey === null ? null
+    : hostCatalog.displayContinuity.peekSubmission(displayKey.hostId, displayKey.threadId);
+  const memoryTimeline = displayKey === null ? null
+    : hostCatalog.displayContinuity.peek(displayKey.hostId, displayKey.threadId);
   const visibleTimeline = (timeline?.frames.length ?? 0) > 0
     ? timeline
     : firstSubmissionTimeline !== null ? firstSubmissionTimeline
@@ -696,8 +702,8 @@ export function App({
     ? timeline
     : memoryTimeline !== null ? memoryTimeline
     : cachedTimeline?.scope === displayScope
-      && cachedTimeline.timeline.key.hostId === snapshot.hostId
-      && cachedTimeline.timeline.key.threadId === activeThreadId
+      && cachedTimeline.timeline.key.hostId === displayHostId
+      && cachedTimeline.timeline.key.threadId === displayThreadId
       ? cachedTimeline.timeline
       : timeline;
   const showingDisplayCache = visibleTimeline !== null && visibleTimeline !== timeline;
@@ -1990,7 +1996,7 @@ export function App({
           />
         ) : (
           <div className="local-conversation-page">
-            {activeThreadLease === null && firstSubmissionTimeline === null ? (
+            {activeThreadLease === null && (visibleTimeline?.frames.length ?? 0) === 0 ? (
                 <div className="conversation-recovery-cold-stage">
                   <ConversationRecoveryEmptyState
                     failed={recoveryPresentation === "cold-error"}
