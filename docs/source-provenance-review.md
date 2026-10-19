@@ -1,5 +1,45 @@
 # Source provenance review
 
+## Continuing independent replacements and inventory coverage (2026-10-19)
+
+The owner now requests continued clean-room-style work and normal upstream
+integration. Targeted requirements-driven replacements are active; preserve
+complete clients and working integrations. Each record must state actual author
+exposure. No strict clean-room separation or redistribution-rights conclusion
+follows merely from a new implementation, test pass or annotation removal.
+Historical migration exclusions remain historical; they do not cancel this task.
+
+[Skill path replacement](provenance/skill-path-replacement.md) records the
+accepted bounded replacement. Hook statistics have their own requirements-first
+PR/disposition; its actual acceptance and current inventory entry must be checked
+separately. Neither is permission to reclassify unrelated modules.
+
+The coverage follow-up is based on `c4d9915554708e04e1ec1d1c92177e166927712c`.
+The previous marker pattern missed `Source-equivalent` and semantic-adoption
+annotations; it also omitted plugins and JavaScript files. A regression fixture
+with an otherwise resolved manifest and untracked annotated source incorrectly
+reported `releaseReady: true` before the fix. The scanner now requires those
+annotations to be inventoried, including specific recovery assertions. Mere
+product names, ordinary behavior comparisons and statements that a module is
+independent from the recovered renderer do not trigger a copy finding.
+
+The following three groups add 15 previously untracked review candidates after
+the separate skill-path and hook-statistics replacements. These are annotation
+boundaries, not conclusions that all code in each file was copied:
+
+| New unresolved group | Actual scope | Next review |
+| --- | --- | --- |
+| `codex-chat-semantics-followup` | User-message Web layout, activity/Thinking ownership, MCP elicitation, realtime transcript, turn diff, user-message normalization and wrapper parsing | Fix public requirements and actual input/output contracts per module, establish lineage, then replace or license only bounded expression |
+| `codex-document-streaming-followup` | Markdown compilation/preprocessing and streaming segment identity | Separate standard Markdown behavior from source-specific tokenization/reconciliation; verify complete rendered documents and streaming identity |
+| `codex-client-host-followup` | Lab journal, hook projection, interrupt cleanup, dictation footer and panel geometry | Distinguish reference-inspired observations from retained expression; preserve runtime cancellation, dictation and layout behavior |
+
+With these additions the earlier “five unverified groups” is a historical count,
+not the current complete total. The manifest/report is the authority for current
+membership and status. The new records deliberately remain unverified; the
+release check still refuses an unresolved inventory. This fixes a demonstrated
+coverage gap, not the general limits of keyword scanning. Code without a marker,
+unidentified references and historical commits still require separate review.
+
 ## Keyword and source-risk cleanup (2026-10-19)
 
 The current request resumes targeted source-risk review of Codex, ChatGPT, BB
