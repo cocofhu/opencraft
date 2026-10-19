@@ -203,7 +203,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.deepEqual(
       appearance.getAppearanceThemeSnapshot().availableThemes.slice(0, 5).map(({ label }) => label),
-      ["Codex", "Canvas", "Frost", "Lavender", "ZenCode"],
+      ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode"],
     );
     assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.zenCodeThemeId)?.label, "ZenCode");
     assert.equal(properties.get("--codex-base-surface"), "#ffffff");
