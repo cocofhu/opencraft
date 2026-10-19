@@ -727,6 +727,8 @@ export interface CodexComposerProps {
   chromeHeader?: ReactNode;
   /** Host projection rendered after the queue in the shared attached rail. */
   attachedContent?: ReactNode;
+  /** Independent host projection above the attached rail and editor. */
+  floatingContent?: ReactNode;
   /** Host-owned Add items. An optional continuation opens the next surface after menu focus cleanup. */
   addMenuContent?: ReactNode | ((closeMenu: (afterClose?: () => void) => void) => ReactNode);
   /** Host-scoped slash commands shown in the editor and its shortcut menu. */
@@ -801,6 +803,7 @@ export const CodexComposer = forwardRef<
     controller,
     chromeHeader,
     attachedContent,
+    floatingContent,
     addMenuContent,
     shortcutCommands,
     endActions,
@@ -1984,6 +1987,7 @@ export const CodexComposer = forwardRef<
       }
       aria-busy={composerSnapshot.draft.lifecycle.phase === "submitting"}
     >
+      {floatingContent}
       <ComposerAttachedRail>
         <ComposerQueueTray
           portalContainer={portalContainer}

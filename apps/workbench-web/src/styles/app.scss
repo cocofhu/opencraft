@@ -7269,11 +7269,17 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 .thread-live-changes {
   display: flex;
+  width: fit-content;
+  max-width: calc(100% - var(--inset-composer-rail) * 2);
   min-width: 0;
   min-height: var(--height-composer-rail-row);
   align-items: center;
-  justify-content: flex-start;
-  padding: var(--padding-composer-rail-row);
+  margin: 0 auto var(--gap-composer-floating-summary);
+  padding: var(--padding-composer-floating-summary);
+  border: var(--width-composer-rail-border) solid var(--color-border-composer-rail);
+  border-radius: var(--radius-full);
+  background: var(--color-background-composer-rail-opaque);
+  box-shadow: var(--shadow-100);
 
   .thread-turn-diff__stats { line-height: inherit; }
 }
