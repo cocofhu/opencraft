@@ -39,3 +39,43 @@ printing the old target body as authoring text, then independently implement the
 required owner/lease behavior. The longer session has exposure to other recovered
 modules, so this cannot claim strict author isolation or historical rights
 clearance. No implementation has been authored at this checkpoint.
+
+## Frozen public observations (before implementation)
+
+Runtime-only observation of the fixed baseline covered 53 sequences through the
+8 externally used methods. The observer is outside the repository; it emits
+Host-port calls, visible/blocked/reference/generation state, registration
+subscriptions, frame queues and timeout durations, never the old target body.
+Its SHA-256 is `da0c87e600a830b904cc9bc90aa243f60ec345befdf136fb0a6a483bec1b4918`.
+The public factory accepts the existing logger port. `sync`/`detach` have four
+arguments, attachment acknowledgement three, host removal/transfer one,
+conversation removal one, and global disposal none.
+
+Observed normal behavior: owner plus surface isolate transfers; direct sync
+needs no transition when no painted predecessor exists. A pending transfer
+blocks both surfaces, registers an incoming readiness listener, covers incoming
+bounds with the predecessor and places the incoming surface behind it. A
+matching attachment acknowledgement (including one received before staging),
+or a 100ms fallback, starts two prewarm frames followed by one release frame.
+Registration updates stacking without acknowledging an attachment. Detaching
+the outgoing view releases its reference while retaining its paint until release.
+Removing the outgoing tab finishes the incoming transfer immediately; removing
+the incoming tab, disposing either host, transferring its route or removing its
+conversation cancels the transfer. Returning to the outgoing view restores it;
+rapid replacement retains the original outgoing view. Hidden/nonpainting sync
+cancels a pending transfer involving that view. Stable Host disposal remains the
+manager's responsibility; this layer only forgets its presentation claim.
+
+Sampled adversarial sequences also exposed old behavior that is not a required
+compatibility guarantee: wrong-reference/generation detach cancelled a pending
+transfer, cross-surface reuse could later restore an old reference, and already
+acknowledged prewarm could reveal a newer generation without its own ack. These
+conflict with the frozen identity/lease requirements and actual coordinator's
+stale-detach guards. The replacement must fence these cases, explicitly record
+the differences and verify them; do not change expected output to disguise them.
+The synthetic Host intentionally has simpler paint/block behavior than the DOM
+Host; its detached `blocked` bit is not proof of actual DOM interaction state.
+
+Only declared caller contracts and the observations above are authoring inputs.
+The historical source lock will retain its original digests and distinguish a
+current independently authored module digest from the historical class digest.
