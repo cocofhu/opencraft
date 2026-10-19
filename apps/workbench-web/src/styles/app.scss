@@ -9694,6 +9694,10 @@ html[data-codex-window-type="electron"] .thread-scroll {
   white-space: nowrap;
 }
 
+.codex-composer-mode__model-icon {
+  flex: 0 0 auto;
+}
+
 .codex-composer-mode__effort-label {
   @include typography.role(control-compact, secondary);
   display: inline-flex;
@@ -12212,6 +12216,26 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
     &[data-composer-has-header="true"] .codex-composer-shell { --newera-input-row: 2; }
     .codex-composer-chrome-header { grid-column: 1 / -1; grid-row: 1; }
+    .codex-composer-footer__controls { display: none; }
+    &[data-composer-has-header="true"]:has(.codex-composer-footer[data-model-selection-policy="user"], .codex-composer-footer[data-model-selection-policy="session"]) {
+      .codex-composer-chrome-header { padding-inline-end: 42px; }
+      .codex-composer-footer__controls {
+        position: absolute;
+        z-index: 1;
+        inset-block-start: 4px;
+        inset-inline-end: 7px;
+        display: flex;
+        width: 30px;
+        height: 30px;
+        overflow: visible;
+      }
+      .codex-composer-footer__controls > :not(.codex-composer-picker-region) { display: none; }
+      .codex-composer-picker-region { overflow: visible; }
+      .codex-composer-mode--intelligence { width: 30px; height: 30px; padding: 0; justify-content: center; }
+      .codex-composer-mode__model-label,
+      .codex-composer-mode__effort-label,
+      .codex-composer-mode__chevron { display: none; }
+    }
     .codex-composer-input-row {
       grid-column: 2; grid-row: var(--newera-input-row);
       padding: 0; min-width: 0;
@@ -12225,7 +12249,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
     .codex-composer-footer { display: contents; }
     .codex-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
     .codex-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .codex-composer-footer__controls,
     .codex-composer-shortcut-trigger,
     .codex-composer-icon-button--context,
     .codex-composer-icon-button--attachment { display: none; }
