@@ -243,17 +243,21 @@ function mapInlineTokens(
           nodes.push(...mapText(raw, sourceRange.start));
         }
         break;
-      case "link":
-        nodes.push({
+      case "link": {
+        const { href, title, text: label, tokens: labelTokens } = token;
+        // A link owns its action; label text must not create another action.
+        const labelNodes = mapInlineTokens(
+          tokens(labelTokens), string(label), sourceRange.start, false,
+        );
+        const linkNode: Extract<ChatDocumentNode, { kind: "link" }> = {
           ...emptyBase("link", sourceRange),
-          href: string(token.href),
-          title: typeof token.title === "string" ? token.title : null,
-          // Source-equivalent to Codex renderInlineTokens(..., false): link
-          // labels remain text and cannot contain nested interactive
-          // decorations such as workspace mentions or file citations.
-          children: mapInlineTokens(tokens(token.tokens), string(token.text), sourceRange.start, false),
-        });
+          href: string(href),
+          title: typeof title === "string" ? title : null,
+          children: labelNodes,
+        };
+        nodes.push(linkNode);
         break;
+      }
       case "image":
         nodes.push({
           ...emptyBase("image", sourceRange),

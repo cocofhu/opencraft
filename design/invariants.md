@@ -186,6 +186,16 @@ clear a different conversation's input. Mobile software Return remains newline.
 - TSK-09：会话顶部菜单的重命名与置顶操作消费已有 ThreadTitleWriter 和原生 thread management port，与侧栏共享持久状态。只显示 Host 支持的动作；不依赖 Tasks 插件可用性来授权会话管理。重命名使用共享 ModalSurface，失败保留输入、处理中禁用重复提交；置顶失败留在菜单可重试，不伪造已成功状态。菜单/编辑会话按账号、Host、Thread 隔离，切换撤销旧 UI。
 
 
+## Link label action ownership
+
+A link owns its resource action. Its label retains Markdown formatting and image
+children but suppresses text decorations that would create nested interactive
+mentions. The document compiler preserves target/title and source-range contracts;
+the renderer owns target safety, streaming activation and semantic open intent.
+Changing node construction must not create a second resource or identity owner.
+The [bounded link replacement](../docs/provenance/document-inline-link-replacement.md)
+records exact scope and verification limits.
+
 ## Conversation recovery feedback
 
 - Conversation background synchronization uses the shared neutral loading ring in

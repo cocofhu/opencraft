@@ -1,5 +1,15 @@
 # Source provenance review
 
+## Inline link construction replacement (2026-10-20)
+
+Only the [directly source-attributed link case](provenance/document-inline-link-replacement.md)
+in the compiler is independently replaced. All 5,788 full compiler observations,
+six committed streaming sessions and 560 sealed private-port combinations match
+byte-for-byte. Every byte outside that case remains unchanged. Existing resource
+policy and renderer owners retain their implementations. Historical annotation,
+hashes and actual author exposure remain recorded; eight groups stay unresolved.
+This does not establish strict isolation, historical rights or release readiness.
+
 ## Turn measurement transaction replacement (2026-10-20)
 
 Only the [explicitly recovered measurement transaction function](provenance/timeline-measurement-replacement.md)

@@ -25,6 +25,18 @@ and frame scheduling. Neither platform adds another compensation policy. The
 limits replacement to this explicitly recovered function; adjacent helpers,
 public interfaces and consumers remain unchanged.
 
+## Inline link label construction
+
+The document compiler preserves link label Markdown children while disabling
+interactive text decorations within that label, including nested formatting.
+The link has one resource action; mentions and color decorations do not create
+additional actions in its text. Raw target/title values and existing UTF-16 source
+ranges stay parser compatibility data. Sanitization, streaming activation and
+opening belong to the existing renderer/resource owners. Only the directly
+attributed link construction case has a
+[bounded implementation replacement](provenance/document-inline-link-replacement.md);
+neighboring compiler and streaming implementations are unchanged.
+
 ## Trusted Web renderer composition
 
 A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.
