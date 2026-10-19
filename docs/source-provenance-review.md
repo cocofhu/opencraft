@@ -1,5 +1,15 @@
 # Source provenance review
 
+## Complete activity group disclosure replacement (2026-10-19)
+
+[Both exports of the group disclosure module](provenance/activity-group-disclosure-replacement.md)
+are replaced after frozen requirements, preserving the phase, trigger, summary,
+streaming layout and viewport lease contracts. Historical hashes/annotations and
+author exposure remain recorded. The renderer-expression group retains **four**
+unresolved paths with five partial dispositions; all **nine** unresolved groups
+remain open. No strict isolation, historical rights or release readiness is claimed.
+
+
 ## Complete floating composer state replacement (2026-10-19)
 
 [The complete presentation state module](provenance/floating-composer-replacement.md)

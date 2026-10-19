@@ -1633,3 +1633,17 @@ showing the entry never grants viewing or input authority.
 ## Product composer desktop entry
 
 An installed desktop panel adapter does not imply a composer shortcut. Only an explicit containing-product presentation opts into that entry; adapter availability and launch authority remain mandatory. Full and generic embedded presentations leave it disabled.
+
+
+## Activity group disclosure replacement (2026-10-19)
+
+The complete group disclosure component and four-phase reducer are independently
+reimplemented after frozen requirements. The viewport remains the only scroll
+writer; the existing reflow lease and height projection ports own integration.
+Open content keeps natural height and DOM identity during streaming and reversals;
+summary key changes are separately cadenced. Historical source references remain
+in [the bounded replacement record](../docs/provenance/activity-group-disclosure-replacement.md).
+The reflow smoke fixture now supplies current activity-unit metadata and inner
+choice callbacks without weakening its geometry/cancellation assertions. This
+replaces only this module's implementation disposition, not the consuming activity
+renderer, shared hooks, native platform or historical rights status.
