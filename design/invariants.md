@@ -1684,3 +1684,20 @@ also owns product presentation and theme-color metadata. Explicit element projec
 preserves unrelated styles and does not claim document/product ownership. Legacy
 preference keys and IDs remain compatibility data. See
 [the whole-module replacement and exposure record](../docs/provenance/appearance-runtime-replacement.md).
+
+
+## Command and review presentation replacement (2026-10-20)
+
+The complete command/review module owns only Item presentation and mounted View
+choice: reasoning content selection comes from shared core, existing document
+ports own Markdown/resources, ActivityDisclosure owns reflow, and timeline/core
+retain chronology and single Thinking ownership. Commands initially fold, retain
+choice across completion, delegate semantic read/search/skill policy and expose
+reported output/result state without executing text. Review disclosures grant no
+permissions; a generic licensed shield/terminal replaces historical custom artwork.
+Copy delegates to shared clipboard ports with action-scoped 1500ms feedback and
+cleanup. The implementation and exact authoring/verification limits are recorded
+in [command/review provenance](../docs/provenance/command-review-replacement.md).
+No new tests/harness are added; existing actual Conversation, spacing, type and
+boundary checks remain acceptance evidence. Shared ports and historical rights
+remain independent unresolved matters; native hardware is not claimed verified.

@@ -1,5 +1,16 @@
 # Source provenance review
 
+## Complete command and review renderer replacement (2026-10-20)
+
+[All seven exports of the command/review module](provenance/command-review-replacement.md)
+are replaced after frozen requirements and executable public observations. The
+historically source-identical accessory uses a new licensed Lucide composition;
+full historical hashes/annotations and author exposure remain evidence. Shared
+classification, document, disclosure and engine integration ports remain unchanged
+and are not reclassified. One renderer-expression path and all nine unresolved
+groups remain open. Finite browser comparisons and existing checks establish only
+the documented behavior, not strict isolation, historical rights or release readiness.
+
 ## Complete appearance runtime replacement (2026-10-19)
 
 [The entire appearance runtime](provenance/appearance-runtime-replacement.md)
