@@ -12282,7 +12282,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     border-top-color: transparent;
     --composer-seam-highlight: transparent;
   }
-  .codex-composer-stack[data-composer-empty="true"] {
+  .codex-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"] {
     .codex-composer-shell {
       --newera-input-row: 1;
       display: grid;
@@ -12292,28 +12292,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
       min-height: var(--height-composer-newera);
       padding: var(--padding-composer-newera);
     }
-    &[data-composer-has-header="true"] .codex-composer-shell { --newera-input-row: 2; }
-    .codex-composer-chrome-header { grid-column: 1 / -1; grid-row: 1; }
     .codex-composer-footer__controls { display: none; }
-    &[data-composer-has-header="true"]:has(.codex-composer-footer[data-model-selection-policy="user"], .codex-composer-footer[data-model-selection-policy="session"]) {
-      .codex-composer-chrome-header { padding-inline-end: 42px; }
-      .codex-composer-footer__controls {
-        position: absolute;
-        z-index: 1;
-        inset-block-start: 4px;
-        inset-inline-end: 7px;
-        display: flex;
-        width: 30px;
-        height: 30px;
-        overflow: visible;
-      }
-      .codex-composer-footer__controls > :not(.codex-composer-picker-region) { display: none; }
-      .codex-composer-picker-region { overflow: visible; }
-      .codex-composer-mode--intelligence { width: 30px; height: 30px; padding: 0; justify-content: center; }
-      .codex-composer-mode__model-label,
-      .codex-composer-mode__effort-label,
-      .codex-composer-mode__chevron { display: none; }
-    }
     .codex-composer-input-row {
       grid-column: 2; grid-row: var(--newera-input-row);
       padding: 0; min-width: 0;
