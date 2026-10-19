@@ -2217,9 +2217,12 @@ snapshot carries connection progress; each resident Thread carries only its own
 history progress. UI never substitutes background Thread work for the current
 conversation. Timestamps, actual starts, the scheduler's retry deadline and a
 bounded machine-code failure are local metadata, with at most twelve stage events.
-A visible recovery notice and cold-history surface expose elapsed time and a
-collapsed copyable report before failure as well as during automatic retries.
-The presentation clock pauses in background tabs and never schedules work.
+Loading and automatic retry surfaces show only their concise loading, syncing
+or reconnecting status. Elapsed time, attempts, retry deadlines, machine failure
+codes and the technical disclosure/copy action remain out of the loading DOM.
+Terminal failures retain their actionable retry/update instruction and collapsed
+copyable diagnostic report. The presentation clock is mounted only with failure
+details, pauses in background tabs and never schedules work.
 Authoritative recovery removes the notice; invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
