@@ -380,16 +380,17 @@
         "apps/workbench-web/src/components/app-shell-right-panel.tsx",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
-        "apps/workbench-web/src/components/floating-composer-state.ts",
-        "packages/chat-render-react/src/code-surface-model.ts"
+        "apps/workbench-web/src/components/floating-composer-state.ts"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
         "docs/provenance/annotation-coverage-20261019.json",
         "docs/provenance/activity-icon-replacement.md",
-        "docs/provenance/activity-icon-baseline.json"
+        "docs/provenance/activity-icon-baseline.json",
+        "docs/provenance/code-surface-replacement.md",
+        "docs/provenance/code-surface-baseline.json"
       ],
-      "reason": "Seven remaining renderer candidates concern theme presentation, reconstructed disclosure, panel/composer contracts, tool rendering and code-surface policy. The separately recorded activity/resource and new-task glyphs have been replaced with existing licensed Lucide artwork; their historical source-shaped/source-faithful claims and hashes remain as evidence. Remaining annotations identify review boundaries, not established retained expression or a whole-file copying conclusion.",
+      "reason": "Six remaining renderer candidates concern theme presentation, reconstructed disclosure, panel/composer contracts and tool rendering. The separately recorded activity/resource and new-task glyphs use licensed Lucide artwork, and the complete shared code-surface model has a requirements-first independent replacement. Historical annotations and hashes remain as evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -401,6 +402,12 @@
           "path": "apps/workbench-web/src/components/codex-activity-icons.tsx",
           "replacement": "licensed-activity-artwork",
           "evidence": "docs/provenance/activity-icon-replacement.md"
+        },
+        {
+          "path": "packages/chat-render-react/src/code-surface-model.ts",
+          "replacement": "code-surface-policy",
+          "evidence": "docs/provenance/code-surface-replacement.md",
+          "historicalBlob": "1bfdda6b978c2f96ccd977376cdebc2ca04f58a4"
         }
       ]
     },
@@ -423,6 +430,23 @@
       "reason": "Complete custom activity/resource artwork and classic new-task artwork are substituted with semantic icons from the existing locked lucide-react 1.58.0 dependency. The duplicate recovered new-task test function is removed; unrelated fixture artwork is not classified.",
       "resolution": "Retain the full dependency ISC and Feather-derived MIT notices, exact historical blobs/hashes, author exposure and actual visual verification. Keep unrelated renderer and historical source rights unverified.",
       "conclusion": "Current artwork is provided through lucide-react imports under its retained license notices; no historical custom SVG paths are retained in these two current modules. The wrappers select task meanings and preserve consumer SVG contracts. This is licensed resource substitution, not independent authorship of Lucide artwork, strict clean-room isolation, classification of other artwork or clearance of historical commits."
+    },
+    {
+      "id": "code-surface-policy",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-render-react/src/code-surface-model.ts"
+      ],
+      "evidence": [
+        "docs/provenance/code-surface-replacement.md",
+        "docs/provenance/code-surface-baseline.json",
+        "tests/chat-render-runtime.test.ts",
+        "packages/chat-render-web/src/renderers/code/code-block.tsx",
+        "packages/chat-render-native/src/renderers/code.tsx"
+      ],
+      "reason": "The complete module formerly carried a source-faithful policy annotation. All four runtime exports, including the observable wrap preference, SVG recognition, label display and surface policy, are replaced after frozen requirements using public declarations/consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain exact historical hashes, requirements commit, partial old-body exposure and actual verification. Preserve both Web/Native contracts and all other unresolved groups; no source-history or renderer-wide rights conclusion follows.",
+      "conclusion": "Current implementation uses a closure-owned observable preference, explicit lexical SVG recognition, independent surface projection and canonical display-name data learned through public behavior. It is a bounded independent implementation with recorded author exposure, not strict clean-room isolation, historical rights clearance or classification of the consuming renderer."
     }
   ]
 }

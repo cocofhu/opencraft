@@ -1,5 +1,19 @@
 # Source provenance review
 
+## Complete shared code-surface policy replacement (2026-10-19)
+
+[The complete shared model](provenance/code-surface-replacement.md) has a bounded
+requirements-first independent replacement record covering wrap preference, SVG
+recognition, language labels and surface policy. Both Web and Native consumers
+retain their public contracts. Recorded declaration-extraction exposure prevents
+any strict clean-room claim; historical blobs and hashes remain available.
+
+The renderer-expression group now retains six unresolved paths and all three
+prior dispositions. All **nine** unresolved groups remain open. Finite black-box
+comparisons, renderer tests, cross-platform types and actual Web controls/layout
+checks are documented with their limits; this does not classify the consuming
+renderers, dependency rights or historical source.
+
 ## Licensed activity and new-task artwork replacement (2026-10-19)
 
 [The bounded artwork record](provenance/activity-icon-replacement.md) documents
