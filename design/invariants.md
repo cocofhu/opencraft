@@ -1647,3 +1647,20 @@ The reflow smoke fixture now supplies current activity-unit metadata and inner
 choice callbacks without weakening its geometry/cancellation assertions. This
 replaces only this module's implementation disposition, not the consuming activity
 renderer, shared hooks, native platform or historical rights status.
+
+
+## Shell right-panel host replacement (2026-10-19)
+
+The complete host is independently reimplemented after frozen requirements.
+Shell owns visibility progress and content geometry; the host projects occupied
+width separately from the atomic target surface width. Closed content becomes
+inert immediately, while exit, keepMounted and an active resize can retain DOM.
+Only the shared handle owns pointer capture and resizing feedback. Raw sizes
+below the 160px shelf close without erasing the last preferred ratio; reaching
+160 or above can reopen during the same held gesture. The parent and shared
+geometry ports retain responsibility for actual width and minimums. Progress
+and content-width changes publish invalidation ticks with effect cleanup.
+Historical annotations, author exposure and bounded verification remain in
+[the replacement record](../docs/provenance/shell-panel-host-replacement.md).
+Shared animation, resize, browser and geometry implementations are unchanged;
+this disposition does not classify those dependencies or native platform behavior.

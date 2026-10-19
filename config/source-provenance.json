@@ -376,7 +376,6 @@
       "status": "unverified",
       "paths": [
         "apps/workbench-web/src/appearance-theme.ts",
-        "apps/workbench-web/src/components/app-shell-right-panel.tsx",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
       ],
@@ -390,9 +389,11 @@
         "docs/provenance/floating-composer-replacement.md",
         "docs/provenance/floating-composer-baseline.json",
         "docs/provenance/activity-group-disclosure-replacement.md",
-        "docs/provenance/activity-group-disclosure-baseline.json"
+        "docs/provenance/activity-group-disclosure-baseline.json",
+        "docs/provenance/shell-panel-host-replacement.md",
+        "docs/provenance/shell-panel-host-baseline.json"
       ],
-      "reason": "Four remaining renderer candidates concern theme presentation, panel contracts and tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state and activity-group disclosure modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
+      "reason": "Three remaining renderer candidates concern theme presentation and tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state, activity-group disclosure and shell right-panel host modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -422,6 +423,12 @@
           "replacement": "activity-group-disclosure",
           "evidence": "docs/provenance/activity-group-disclosure-replacement.md",
           "historicalBlob": "a4a4971be4529c5f9e94f3af4241905c595047e4"
+        },
+        {
+          "path": "apps/workbench-web/src/components/app-shell-right-panel.tsx",
+          "replacement": "shell-panel-host",
+          "evidence": "docs/provenance/shell-panel-host-replacement.md",
+          "historicalBlob": "3b2e297730a8fc98a2ff155496982fb135748676"
         }
       ]
     },
@@ -495,6 +502,24 @@
       "reason": "The complete group disclosure module previously described itself as reconstructed from an external phase machine. Its reducer and React component are replaced after frozen requirements using public declarations, existing ports, consumer contracts and executable baseline behavior.",
       "resolution": "Preserve historical hashes, author exposure, requirements/implementation commits and actual bounded verification. Keep existing viewport ownership and all other unresolved groups.",
       "conclusion": "Current implementation independently expresses a finite phase transition table, local/external presentation synchronization, natural-height motion with existing viewport leases, and cadenced summary updates. This bounded disposition does not establish strict clean-room isolation, historical rights or source status of consuming renderers and shared ports."
+    },
+    {
+      "id": "shell-panel-host",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/components/app-shell-right-panel.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/shell-panel-host-replacement.md",
+        "docs/provenance/shell-panel-host-baseline.json",
+        "tests/workbench-timeline-host.test.ts",
+        "scripts/smoke-readable-chat-pane.ts",
+        "scripts/smoke-workspace-presentation.ts",
+        "design/invariants.md"
+      ],
+      "reason": "The complete right-panel presentation host previously described itself as a typed semantic restoration from recovered references. It is replaced after frozen requirements using declaration-only API extraction, consumers, existing shared ports and executable public baseline observations.",
+      "resolution": "Retain historical hashes and annotations, requirements and implementation commits, author exposure and bounded browser verification. Shared animation, resize, geometry and browser ports are reused unchanged and remain subject to their own unresolved dispositions.",
+      "conclusion": "Current implementation independently expresses external-geometry projection, animation retention, atomic surface sizing, tick subscriptions and shelf-based resize intent. It does not establish strict author isolation, historical rights, native-device acceptance or source status of consuming Shell and shared ports."
     }
   ]
 }
