@@ -66,3 +66,42 @@ test("Host and active Thread recover independently of a rejected Thread and stal
     missing.release(); healthy.release();
   } finally { await runtime.dispose(); }
 });
+
+for (const mode of ["acquire", "retry"] as const) {
+  test(`${mode}: a history timeout recovers automatically while Host stays ready`, async () => {
+    let drop = mode === "acquire", resumes = 0, initializes = 0;
+    const methods: string[] = [];
+    const transport = new MemoryTransport({ receive(frame, peer) {
+      const request = JSON.parse(frame); if (request.id === undefined) return;
+      methods.push(request.method);
+      const send = (result: unknown) => peer.send(JSON.stringify({id:request.id,result}));
+      if (request.method === "initialize") { initializes++;send({codexHome:"/tmp",platformFamily:"unix",platformOs:"linux",userAgent:"timeout-test"}); }
+      else if (request.method === "thread/read") send({thread:thread("history")});
+      else if (request.method === "thread/resume") {
+        resumes++; if (drop) { drop=false;return; }
+        send({thread:thread("history"),model:"test",modelProvider:"test",cwd:"/workspace",serviceTier:"default",
+          reasoningEffort:"medium",approvalsReviewer:"user",runtimeWorkspaceRoots:["/workspace"],instructionSources:[],
+          activePermissionProfile:{id:"workspace"},approvalPolicy:"on-request",sandbox:{type:"workspaceWrite",writableRoots:["/workspace"]},
+          initialTurnsPage:{data:[],nextCursor:null},turnsBackwardsCursor:null,itemsBackwardsCursor:null});
+      } else if (request.method.endsWith("/list")) send({data:[],nextCursor:null});
+      else send({});
+    }});
+    const runtime=createAppServerWorkbenchRuntime({hostId:`timeout-${mode}`,transport,autoReconnect:false,
+      requestTimeoutMs:25,reconnectDelaysMs:[5,10]});
+    try {
+      await runtime.connect(); const lease=await runtime.acquireThread("history");lease.setRecoveryVisibility(true);
+      const waitReady=async()=>{
+        for(let i=0;i<100&&!lease.getSnapshot().authoritative;i++) await new Promise(resolve=>setTimeout(resolve,5));
+        assert.equal(lease.getSnapshot().authoritative,true,lease.getSnapshot().error?.message);
+      };
+      await waitReady();
+      if(mode==="retry") { drop=true;await lease.retryRestore(); }
+      assert.equal(resumes,mode==="acquire"?2:3);
+      assert.equal(lease.getSnapshot().authoritative,true);
+      assert.equal(lease.getSnapshot().error,null);
+      assert.equal(runtime.getSnapshot().phase,"ready");assert.equal(initializes,1);
+      assert.equal(methods.some(method=>["turn/start","turn/steer","thread/start"].includes(method)),false);
+      lease.release();
+    } finally { await runtime.dispose(); }
+  });
+}

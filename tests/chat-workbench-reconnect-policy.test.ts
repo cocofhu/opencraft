@@ -51,6 +51,7 @@ class TerminalFailureTransport implements DuplexTransport {
 }
 
 class GenerationTransport implements DuplexTransport {
+  connectCalls = 0;
   private readonly recoveryListeners = new Set<() => void>();
   subscribeRecoveryHint(listener: () => void): () => void { this.recoveryListeners.add(listener); return () => this.recoveryListeners.delete(listener); }
   recoveryHint(): void { for (const listener of this.recoveryListeners) listener(); }
@@ -66,6 +67,7 @@ class GenerationTransport implements DuplexTransport {
   }
 
   connect(): Promise<void> {
+    this.connectCalls++;
     if (this.closed) return Promise.reject(new Error("transport generation is closed"));
     if (!this.connectSucceeds) {
       this.setStatus({ state: "failed", reason: "first generation failed" });
@@ -326,11 +328,6 @@ test("short-lived reconnects retain escalation, stable readiness resets it and d
     for (const delay of [500, 1_000, 2_000, 5_000, 15_000, 30_000, 60_000, 60_000]) {
       generations.at(-1)!.setStatus({ state: "failed", failure: { code: "SSH_LINK_LOST", recovery: "automatic" } });
       assert.deepEqual(scheduled.map(timer => timer.delay), [delay]);
-      const created = generations.length;
-      generations.at(-1)!.recoveryHint();
-      await new Promise<void>(resolve => setImmediate(resolve));
-      assert.equal(generations.length, created, "recovery hint cannot bypass backoff");
-      assert.deepEqual(scheduled.map(timer => timer.delay), [delay]);
       scheduled.shift()!.callback();
       for (let i = 0; i < 20 && runtime.getSnapshot().phase !== "ready"; i++) await new Promise<void>(resolve => setImmediate(resolve));
       assert.equal(runtime.getSnapshot().phase, "ready");
@@ -345,4 +342,30 @@ test("short-lived reconnects retain escalation, stable readiness resets it and d
     assert.equal(scheduled.length, 1);
   } finally { await runtime.dispose(); }
   assert.equal(scheduled.length, 0);
+});
+
+test("foreground advances a scheduled reconnect; duplicate hints do not bypass the cooldown", async () => {
+  const scheduled = new Set<unknown>();
+  const generations: GenerationTransport[] = [];
+  const runtime = createAppServerWorkbenchRuntime({
+    hostId: "foreground-host", autoReconnect: true, reconnectDelaysMs: [60_000],
+    createTransport: () => { const transport = new GenerationTransport(true); generations.push(transport); return transport; },
+    clock: { setTimeout(callback, delay) { const timer = { callback, delay }; scheduled.add(timer); return timer; },
+      clearTimeout(timer) { scheduled.delete(timer); } },
+  });
+  try {
+    await runtime.connect();
+    const old = generations[0]!;
+    old.setStatus({ state: "failed", failure: { code: "SSH_LINK_LOST", recovery: "automatic" } });
+    assert.equal(scheduled.size, 1);
+    old.recoveryHint(); old.recoveryHint();
+    for (let i=0;i<20 && runtime.getSnapshot().phase!=="ready";i++) await new Promise<void>(resolve=>setImmediate(resolve));
+    assert.equal(runtime.getSnapshot().phase,"ready");
+    assert.equal(old.connectCalls,2);
+    old.setStatus({state:"failed",failure:{code:"SSH_LINK_LOST",recovery:"automatic"}});
+    old.recoveryHint(); await new Promise<void>(resolve=>setImmediate(resolve));
+    assert.equal(old.connectCalls,2,"event burst does not bypass cooldown after a short-lived reconnect");
+    assert.equal(runtime.getSnapshot().phase,"reconnecting");
+  } finally { await runtime.dispose(); }
+  assert.equal(scheduled.size,0);
 });

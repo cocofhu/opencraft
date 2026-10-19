@@ -33,12 +33,17 @@ const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"err
  });
 }}]});
 let browser:any; const sockets=new WebSocketServer({noServer:true});
+let dropNextResume = false, resumeRequests = 0;
 try {
  await vite.listen();vite.httpServer!.on("upgrade",(req,socket,head)=>{
  if(req.url==="/fixture-rpc")sockets.handleUpgrade(req,socket,head,ws=>sockets.emit("connection",ws,req));
  });
  sockets.on("connection",ws=>ws.on("message",async frame=>{
   const request=JSON.parse(frame.toString());if(request.id===undefined)return;
+  if(request.method === "thread/resume") {
+    resumeRequests++;
+    if(dropNextResume){dropNextResume=false;return;}
+  }
   try { const result=request.method==="initialize"?{codexHome:"/tmp",platformFamily:"unix",platformOs:"linux",userAgent:"fixture",capabilities:{extensions:{"opencraft/resume-history":{version:1,mode:"paginated",initialTurnsPage:true,boundedRecovery:true}}}}:await adapter.dispatch(request.method,request.params);
    ws.send(JSON.stringify({id:request.id,result}));
   }catch(error){ws.send(JSON.stringify({id:request.id,error:{code:-32000,message:String(error)}}));}
@@ -68,6 +73,16 @@ try {
   assert.equal(new Set(trace.map((e:any)=>e.recoveryId)).size,1);
   assert.ok(trace.find((e:any)=>e.stage==='settled'&&e.requests>=2&&e.responseBytes>0));
   const unchangedReads=calls.length-before;
+  const resumedBefore = resumeRequests;
+  const timeoutStart = Date.now();
+  dropNextResume = true;
+  await page.evaluate(()=>(window as any).recovery.revalidate());
+  const timeoutRecoveryMs = Date.now()-timeoutStart;
+  assert.equal(resumeRequests-resumedBefore,2,'one timed-out history request retries without a page reload');
+  assert.equal(await page.evaluate(()=>(window as any).recovery.runtime().phase),'ready');
+  assert.equal(await page.evaluate(()=>(window as any).recovery.snapshot().authoritative),true);
+  assert.equal(await page.evaluate(()=>document.querySelector('[data-turn-key="dsh-turn-s-9"]')===(window as any).originalRow),true);
+  assert.equal(await page.getByRole('textbox',{name:'Unsent draft'}).inputValue(),'Preserve my unsent words');
   for(let turn=10;turn<110;turn++)addTurn(turn);
   const gapStart=calls.length;
   await page.evaluate(()=>(window as any).recovery.revalidate());
@@ -79,7 +94,7 @@ try {
   assert.equal(await page.getByRole('textbox',{name:'Unsent draft'}).inputValue(),'Preserve my unsent words');
   await page.evaluate(()=>(window as any).recovery.loadOlder());
   await page.screenshot({path:`${output}/gap-${width}.png`});
-  assert.deepEqual(errors,[]);results.push({width,unchangedReads,gapReads:2,retainedDOM:true,draftPreserved:true,trace});
+  assert.deepEqual(errors,[]);results.push({width,unchangedReads,gapReads:2,timeoutRecoveryMs,timeoutReads:2,retainedDOM:true,draftPreserved:true,trace});
   await page.close();
  }
  await writeFile(`${output}/results.json`,JSON.stringify({results,diagnostics},null,2));console.log(JSON.stringify(results));

@@ -15,7 +15,7 @@ await ctx.plugin(BuiltinTimelineRendererPlugin);
 document.documentElement.dataset.theme = "light";
 for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 const trace: Record<string, string | number>[] = [];
-const runtime = createAppServerWorkbenchRuntime({hostId:"fixture",autoReconnect:true,reconnectDelaysMs:[50,100,250],
+const runtime = createAppServerWorkbenchRuntime({hostId:"fixture",autoReconnect:true,reconnectDelaysMs:[50,100,250],requestTimeoutMs:500,
   createTransport:()=>new WebSocketTransport({url:location.origin.replace(/^http/,"ws")+"/fixture-rpc"}),
   onRecoveryEvent:event=>{trace.push({...event});reportRecoveryEvent(event);},
 });

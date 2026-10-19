@@ -296,8 +296,10 @@ acknowledge unread results. Removing the feature requires only its documented
 UI/setting/source integration points and no account or execution migration.
 Automatic reconnect uses 500ms/1s/2s/5s/15s/30s/60s delays, capped at 60s.
 Short successful connections do not reset retry history: readiness must remain
-continuous for 60s. Lifecycle/recovery hints respect an already scheduled retry;
-explicit user retry remains immediate and manual failures remain blocked.
+continuous for 60s. Visible foreground/online recovery hints can advance an
+already scheduled retry, at most once per five seconds per Host; they retain
+the escalation counter and coalesce with an active connection attempt. Explicit
+user retry remains immediate and manual failures remain blocked.
 Protocol incompatibility is a permanent failure for the loaded client. The Web
 bridge sends the existing `fatal` envelope with `APP_HOST_PROTOCOL_MISMATCH` and
 `retryable: false` before closing a rejected hello; no Host or lease is admitted.
@@ -315,6 +317,12 @@ responses, matching the standard WebSocket receiver budget. Outbound mutations
 and backpressure remain bounded at 16MiB; administrator/test overrides remain
 backend-only. Frames exceeding the receive budget are a manual compatibility
 failure, not an endless link retry.
+Transient history read failures (timeout, queue pressure or link unavailability)
+use the same bounded three-retry policy for acquisition, reconnect and explicit
+revalidation. RPC rejections do not retry automatically. An explicit history
+retry wakes delayed work with its current policy and shares an active read;
+foreground hints also wake visible non-authoritative conversations. No history
+recovery resends a user command or reconnects a healthy Host.
 Failed automatic attempts stay in the reconnecting phase, preserving cached
 content instead of alternating error/loading UI. Stability timers are generation
 fenced and cancelled on disconnect and disposal. Reconnect

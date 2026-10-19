@@ -1236,6 +1236,10 @@ export function createAppServerWorkbenchRuntime(
         || activity.activeStreamCount > 0 || activity.pendingInteractionCount > 0 ? "open" : "cache";
   };
 
+  const retryableHistoryFailure = (cause: unknown) => !disposed && phase === "ready"
+    && cause instanceof AppServerClientError
+    && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code);
+
   // Resource restoration is not part of Host readiness. A missing Thread
   // must not reconnect the Host or delay another Thread's restoration.
   const restoreResources = () => {
@@ -1251,9 +1255,8 @@ export function createAppServerWorkbenchRuntime(
           requireSession().resume.markNeedsResume(binding.threadId);
           await hydrateBinding(binding, true);
         },
-        retryable: cause => current() && cause instanceof AppServerClientError
-          && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code),
-      });
+        retryable: cause => current() && retryableHistoryFailure(cause),
+      }).catch(() => undefined);
     }
     recovery.scheduled();
   };
@@ -1367,8 +1370,16 @@ export function createAppServerWorkbenchRuntime(
       });
       removeRecoveryHintListener = currentTransport?.subscribeRecoveryHint?.(() => {
         if (disposed || config.autoReconnect === false || automaticReconnectBlock?.failure?.recovery === "manual") return;
-        if (phase !== "ready" && startOperation === null && reconnectOperation === null && !recovery.waiting) {
+        if (startOperation !== null || reconnectOperation !== null || !recovery.admitRecoveryHint()) return;
+        if (phase !== "ready") {
           void runtime.reconnect().catch(() => undefined);
+        } else {
+          for (const binding of bindings.values()) {
+            if (binding.visibleCount === 0 || binding.runtime.getSnapshot().authoritative) continue;
+            void recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
+              run: () => hydrateBinding(binding, true, true), retryable: retryableHistoryFailure,
+            }, true).catch(() => undefined);
+          }
         }
       }) ?? null;
       await connectPhysicalHost(generation);
@@ -1976,8 +1987,8 @@ export function createAppServerWorkbenchRuntime(
         // adapter must publish no persisted Timeline before Resume. The single
         // authoritative promotion happens after Resume + history settle.
         if (client?.status.state === "open") void recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
-          run: () => hydrateBinding(binding, false), retryable: () => false,
-        });
+          run: () => hydrateBinding(binding, false), retryable: retryableHistoryFailure,
+        }).catch(() => undefined);
       }
       let released = false;
       let visible = false;
@@ -1995,8 +2006,8 @@ export function createAppServerWorkbenchRuntime(
           recovery.begin("revalidate");
           return recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
             run: () => recovery.span("history-authoritative", () => hydrateBinding(binding, true, true)),
-            retryable: () => false, propagateFailure: true,
-          });
+            retryable: retryableHistoryFailure, propagateFailure: true,
+          }, true);
         },
         subscribe(listener) {
           if (released || binding.disposed)
