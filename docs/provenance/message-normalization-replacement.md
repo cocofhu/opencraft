@@ -12,7 +12,8 @@ Inputs: declaration-only extraction from the earlier investigation, existing
 projection/tests and outgoing-message documentation, and black-box observations
 of the pinned OpenCraft module. A usage search additionally exposed several
 internal helper call-site lines (comparison calls and a preserve flag branch),
-not their definitions. No old helper/function body or recovered Desktop/BB/Paseo
+not their definitions. Those search-result fragments were old implementation
+lines; apart from them, no old implementation body or recovered Desktop/BB/Paseo
 implementation was opened as an authoring input. The author has previously
 inspected other recovery-related modules: this is a requirements-driven
 independent replacement, not strict clean-room separation or historical rights
