@@ -2109,6 +2109,16 @@ unmount; controller and draft identity reject stale restoration.
 Successful final text returns focus to the same editor only after the editable
 projection commits. No recording state is inferred from CSS or a second draft.
 
+The dictation footer is a presentation consumer of the current transient
+interaction. Its independent module buffers at most 512 valid numeric samples,
+coalesces paint requests and releases the subscription, resize observer and pending
+frame when the source changes or disappears. It does not capture audio or write
+draft content. Stop delegates to finish, retry to the failed transaction and send
+to the existing Composer submission owner. Duration updates only while listening;
+startup uses shared neutral progress and failure retains the existing retry slot.
+[The bounded source record](provenance/dictation-footer-replacement.md) retains
+actual exposure, historical hashes and validation limits.
+
 
 The existing Radix model-menu surface owns the available collision height, including
 its padding. Its shared inner grid and both scrollable panes have a zero minimum
