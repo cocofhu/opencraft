@@ -52,6 +52,8 @@ export interface ReplicaConversationRuntimeConfig {
   readonly key: ConversationKey;
   readonly outbox?: ConversationOutboxStorage;
   readonly canDispatchOutbox?: () => boolean;
+  /** Compatibility retry while a connected Codex Host does not own capacity continuation. */
+  readonly canAutoContinueCapacity?: () => boolean;
   readonly replica: ConversationReplicaReader;
   readonly commands: ConversationCommandPort;
   readonly history: ConversationHistoryPort;
@@ -1280,6 +1282,68 @@ export function createReplicaConversationRuntime(
   let continuationPending = false;
   let continuationError: Error | null = null;
   let continuedFromTurnId: string | null = null;
+  let capacityRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  let capacityRetrySource: TurnId | null = null;
+  let capacityRetryDispatched: TurnId | null = null;
+  let capacityRetryAttempt = 0;
+
+  const clearCapacityRetryTimer = () => {
+    if (capacityRetryTimer !== null) clearTimeout(capacityRetryTimer);
+    capacityRetryTimer = null;
+    capacityRetrySource = null;
+  };
+  const resetCapacityRetry = () => {
+    clearCapacityRetryTimer();
+    capacityRetryDispatched = null;
+    capacityRetryAttempt = 0;
+  };
+  const scheduleCapacityRetry = () => {
+    const source = snapshot.continuation.turnId;
+    if (disposed || !config.canAutoContinueCapacity?.() || source === null || snapshot.queuedSubmissions.length > 0) {
+      clearCapacityRetryTimer();
+      return;
+    }
+    if (capacityRetryDispatched === source || capacityRetrySource === source) return;
+    clearCapacityRetryTimer();
+    capacityRetrySource = source;
+    const delayMs = Math.min(1_000 * 2 ** Math.min(capacityRetryAttempt, 7), 120_000);
+    capacityRetryTimer = setTimeout(() => {
+      capacityRetryTimer = null;
+      capacityRetrySource = null;
+      if (disposed || !config.canAutoContinueCapacity?.() || snapshot.continuation.turnId !== source
+        || snapshot.queuedSubmissions.length > 0) return;
+      capacityRetryDispatched = source;
+      capacityRetryAttempt += 1;
+      void continueTurnImpl(source).catch(() => undefined);
+    }, delayMs);
+  };
+
+  async function continueTurnImpl(turnId: TurnId): Promise<SubmissionReceipt> {
+    if (disposed || snapshot.continuation.turnId !== turnId) {
+      throw new Error("This turn cannot be continued in the current conversation state");
+    }
+    clearCapacityRetryTimer();
+    capacityRetryDispatched = turnId;
+    continuationPending = true;
+    continuationError = null;
+    localRevision += 1;
+    publish();
+    try {
+      const receipt = await config.commands.continueTurn(config.key, turnId);
+      continuedFromTurnId = turnId;
+      return receipt;
+    } catch (cause) {
+      if (!(cause instanceof ContinuationCommandError) || cause.outcome === "unknown") {
+        continuedFromTurnId = turnId;
+      }
+      continuationError = cause instanceof Error ? cause : new Error(String(cause));
+      throw cause;
+    } finally {
+      continuationPending = false;
+      localRevision += 1;
+      publish();
+    }
+  }
 
   let outbox: ReturnType<typeof createConversationOutbox> | undefined;
   const derive = (): ConversationRuntimeSnapshot => {
@@ -1455,9 +1519,11 @@ export function createReplicaConversationRuntime(
   const publish = () => {
     if (disposed) return;
     snapshot = derive();
+    scheduleCapacityRetry();
     for (const listener of listeners) listener();
   };
   snapshot = derive();
+  scheduleCapacityRetry();
   const removeReplicaListener = config.replica.subscribe(() => { publish(); outbox?.wake(); });
 
   const submitOnline = async (intent: SubmitIntent, options?: { readonly canDispatch: () => boolean }): Promise<SubmissionReceipt> => {
@@ -1652,6 +1718,7 @@ export function createReplicaConversationRuntime(
     },
     async submit(intent) {
       assertIntentTarget(config.key, intent);
+      resetCapacityRetry();
       if (outbox && (outbox.hasPending() || !snapshot.authoritative || config.canDispatchOutbox?.() === false))
         return outbox.admit(intent);
       return submitOnline(intent);
@@ -1683,32 +1750,7 @@ export function createReplicaConversationRuntime(
         publish();
       }
     },
-    async continueTurn(turnId) {
-      if (disposed || snapshot.continuation.turnId !== turnId) {
-        throw new Error("This turn cannot be continued in the current conversation state");
-      }
-      continuationPending = true;
-      continuationError = null;
-      localRevision += 1;
-      publish();
-      try {
-        const receipt = await config.commands.continueTurn(config.key, turnId);
-        continuedFromTurnId = turnId;
-        return receipt;
-      } catch (cause) {
-        // A timeout/disconnect does not prove the host rejected turn/start.
-        // Fence this source turn until authoritative progress is observed.
-        if (!(cause instanceof ContinuationCommandError) || cause.outcome === "unknown") {
-          continuedFromTurnId = turnId;
-        }
-        continuationError = cause instanceof Error ? cause : new Error(String(cause));
-        throw cause;
-      } finally {
-        continuationPending = false;
-        localRevision += 1;
-        publish();
-      }
-    },
+    continueTurn: continueTurnImpl,
     respond: (response) => config.commands.respond(config.key, response),
     replaceQueuedSubmissions(submissions, steeringSubmissions = []) {
       const previousQueue = new Map(authoritativeQueue);
@@ -2048,6 +2090,7 @@ export function createReplicaConversationRuntime(
     dispose() {
       if (disposed) return;
       disposed = true;
+      clearCapacityRetryTimer();
       removeReplicaListener();
       listeners.clear();
       outbox?.dispose();
