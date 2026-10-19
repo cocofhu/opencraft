@@ -252,9 +252,11 @@
         "docs/provenance/markdown-link-scanner-baseline.json",
         "docs/provenance/markdown-link-scanner-replacement.md",
         "docs/provenance/math-delimiters-baseline.json",
-        "docs/provenance/math-delimiters-replacement.md"
+        "docs/provenance/math-delimiters-replacement.md",
+        "docs/provenance/user-message-blocks-baseline.json",
+        "docs/provenance/user-message-blocks-replacement.md"
       ],
-      "reason": "Remaining compiler inline-token mapping, preprocessing and streaming identity carry source-equivalent/recovery annotations. The separately recorded link scanner and math delimiter replacements do not clear compiler.ts or this group. Review actual regions individually; annotations alone do not establish whole-file copying or authorization.",
+      "reason": "Remaining compiler inline-token mapping, streaming identity and streaming-preprocessing behavioral/recovery records require region-level expression review. Link scanning, math delimiters and user-message block normalization have separate current-implementation records. Behavioral references alone do not mandate rewriting helpers or clear whole files.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -699,6 +701,25 @@
       "reason": "The two math delimiter tokenizers share a direct source-equivalent annotation. Express the frozen application grammar through explicit line-eligibility and delimiter scans, preserving the registration and public compiler contract.",
       "resolution": "Retain historical hashes, direct annotation and actual author exposure, including later sealed focused observations after the first mismatch. This covers the two current tokenizer declarations, not compiler.ts, strict author isolation or historical source rights.",
       "conclusion": "Only display/inline math delimiter tokenization is replaced. Dollar prose, code fences, raw consumption, compiler placement and streaming ownership remain stable. Other annotated regions and all eight unresolved groups remain open."
+    },
+    {
+      "id": "user-message-block-normalization",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-document/src/preprocess.ts"
+      ],
+      "regions": [
+        "preprocessUserMessageMarkdown only; private helpers and general preprocessing unchanged"
+      ],
+      "evidence": [
+        "docs/provenance/user-message-blocks-baseline.json",
+        "docs/provenance/user-message-blocks-replacement.md",
+        "tests/chat-document.test.ts",
+        "tests/chat-document-cache.test.ts"
+      ],
+      "reason": "The selected public normalizer directly claimed source-equivalent block normalization. Preserve its observed application list/fence/newline contract through an independently authored line-state projection, without rewriting neighboring helpers.",
+      "resolution": "Historical file/function hashes, direct annotation and frozen observations remain. The first focused extraction diagnostic exposed historical function content after initial authoring; actual exposure is recorded, not strict isolation or source-rights clearance.",
+      "conclusion": "This covers only the current normalizer body and its direct annotation. Other preprocessing/compiler/streaming regions and all eight unresolved inventory groups remain open. No whole-file or public-release clearance is claimed."
     }
   ]
 }

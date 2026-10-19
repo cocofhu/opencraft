@@ -254,6 +254,12 @@ consumption and trimmed formula source remain distinct. Compiler placement,
 code fences and streaming identity keep their owners; see the [bounded math
 record](provenance/math-delimiters-replacement.md).
 
+User-message block normalization retains one list context through indented
+continuations and indented fences, separates unindented kind/prose transitions,
+and resets on a zero-length line. CR/CRLF normalize globally to LF before this
+projection, including fenced lines. It does not own general streaming repair,
+compiler identity or resource admission; see the [bounded normalization record](provenance/user-message-blocks-replacement.md).
+
 ## 跨桌面、手机和平板的会话连续性
 
 Conversation Scope 是会话身份，View 是具体窗口或页面的呈现与滚动状态；任务输入槽位以 View ID 标识，但其 Application 级草稿所有权独立于页面缓存。`workbench-runtime` 的 `ConversationDraftOwnerRegistry` 保留原 Controller 与附件资源，`ConversationDraftContinuity` 管理同一输入槽文档的保存、恢复、发送成功后的丢弃和迟到读取仲裁；平台只提供本地存储。移动端用 SQLite，并以区域、凭证摘要和 Bot 实例/Profile 分区；Web/Electron 用浏览器本地存储，并以产品和账号服务的凭证作用域分区。退出登录或切换凭证时撤销旧存储、清除所有草稿所有者及其内部目标缓存，包括已无页面的草稿。附件与临时文件引用不从文档缓存恢复；会话切换保留内存附件不等于刷新恢复字节。
