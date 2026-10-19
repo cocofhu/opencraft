@@ -303,7 +303,7 @@ function RealtimeTranscriptTimelineRenderer({ block }: TimelineBlockRendererProp
       <div className="thread-realtime-transcript__entries">
         {block.entries.map((entry, index) => (
           <p data-role={entry.role} key={`${entry.role}:${index}`}>
-            <span>{entry.role === "user" ? "You" : "Codex"}</span>
+            <span>{entry.role === "user" ? "You" : "Assistant"}</span>
             {entry.text}
           </p>
         ))}

@@ -51,3 +51,35 @@ or old implementation body is an authoring input for this replacement.
 Message normalization is outside this replacement. Its attachment, identity and
 steering reconciliation remain unverified, as does Agent Activity; all eight
 unresolved inventory groups remain open after this bounded change.
+
+## Implementation and verification
+
+Requirements were committed as `06fff44` before implementation. The replacement
+uses literal envelope/tag boundaries, a single named-entity substitution, and
+line-based role accumulation. It has no DOM, I/O or execution dependencies.
+The Web speaker label is now Assistant; the consuming conversation renderer
+remains in its original unresolved inventory group.
+
+- 14,195 black-box calls against the pinned historical OpenCraft module had zero
+  differences. Inputs covered mixed text parts, 352 delta variants, ten input
+  variants, four source variants, malformed tags/envelopes and handoff IDs. No
+  old function body was read during authoring or compatibility correction.
+- 109 parser/projection tests passed, including five new boundary-focused tests.
+  The complete `npm run test:chat` passed all 745 tests.
+- Core and Web workspace typechecks, platform/typography boundaries, and all
+  eight inventory regression tests passed. Inventory integrity passed; the
+  release readiness result remains unresolved with eight groups.
+- `scripts/smoke-realtime-transcript.ts` passed at 390px and 1200px with the real
+  Web transcript renderer and synthetic projected turn data. It verifies two
+  transcript sections, leading/follow-up handoff attributes, speaker labels,
+  final-input deduplication, literal markup rendering without image creation or
+  script execution, no horizontal overflow and no page errors. The narrow
+  screenshot was visually inspected; roles, wrapping and transcript text remain
+  readable. Existing projection tests cover activity placement/collapse ownership.
+
+These are synthetic browser and shared-core checks. Actual microphone/voice
+service, authenticated engine, packaged Electron and native-device behavior were
+not exercised. No full-renderer, historical commit or distribution-rights
+clearance follows. The message-normalization investigation only inspected
+public declarations, tests and black-box behavior; its implementation is unchanged
+and unverified. All notices, source bindings and working integrations are retained.

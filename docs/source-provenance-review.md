@@ -1,5 +1,16 @@
 # Source provenance review
 
+## Realtime transcript replacement (2026-10-19)
+
+[The complete realtime transcript parser](provenance/realtime-transcript-replacement.md)
+has a bounded requirements-first independent replacement record. Its historical
+blob remains in partial dispositions. Agent Activity and user-message
+normalization remain unverified in the chat-semantics group, and all eight
+unresolved groups stay open. The Web/Electron voice renderer uses the generic
+Assistant speaker label; engine integration identifiers remain intact. This does
+not reclassify that renderer or clear historical code or distribution rights.
+
+
 ## MCP elicitation replacement (2026-10-19)
 
 [The complete shared elicitation module](provenance/mcp-elicitation-replacement.md)
