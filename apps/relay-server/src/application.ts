@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { HubNetwork } from '../../../packages/hub-network/src/node.js';
 import { publicOrigin } from '../../../packages/hub-network/src/contract.js';
-import { parseSelectionDefaults } from './selection.js';
+import { parseSelectionDefaults, parseServerPaths, type ServerPaths } from './selection.js';
 
 export interface RelayAuthenticationConfiguration {
   issuer: string;
@@ -25,6 +25,7 @@ export interface RelayConfiguration {
   tlsTermination?: 'trusted-proxy';
   serverSelection?: boolean;
   serverSelectionDefaultsFile?: string;
+  serverPaths?: ServerPaths;
   hubNetwork?: { stateFile: string; operatorCredentialFile: string; caFile?: string; tlsCertFile?: string; tlsKeyFile?: string; port?: number };
 }
 /** Trusted server composition, never a module named by browser or private JSON input. */
@@ -45,9 +46,13 @@ function file(value: unknown) { return typeof value === 'string' && value.starts
 
 export function parseRelayConfiguration(value: unknown): RelayConfiguration {
   if (!record(value) || value.schemaVersion !== 1 || !port(value.port) || !['127.0.0.1', '0.0.0.0'].includes(String(value.host)) || !Array.isArray(value.routes)
-    || !only(value, ['schemaVersion', 'authentication', 'port', 'host', 'routes', 'tlsCertFile', 'tlsKeyFile', 'tlsTermination', 'hubNetwork', 'serverSelection', 'serverSelectionDefaultsFile'])) throw new Error('Invalid relay configuration');
+    || !only(value, ['schemaVersion', 'authentication', 'port', 'host', 'routes', 'tlsCertFile', 'tlsKeyFile', 'tlsTermination', 'hubNetwork', 'serverSelection', 'serverSelectionDefaultsFile', 'serverPaths'])) throw new Error('Invalid relay configuration');
   if (value.serverSelection !== undefined && typeof value.serverSelection !== 'boolean') throw new Error('Invalid server selection policy');
   if (value.serverSelectionDefaultsFile !== undefined && (value.serverSelection !== true || !file(value.serverSelectionDefaultsFile))) throw new Error('Invalid selection defaults configuration');
+  if (value.serverPaths !== undefined) {
+    if (value.serverSelection !== true) throw new Error('Server paths require server selection');
+    parseServerPaths(value.serverPaths);
+  }
   if (value.tlsTermination !== undefined && value.tlsTermination !== 'trusted-proxy') throw new Error('Invalid TLS termination policy');
   if ((value.tlsCertFile !== undefined || value.tlsKeyFile !== undefined) && (!file(value.tlsCertFile) || !file(value.tlsKeyFile))) throw new Error('Incomplete TLS configuration');
   if (!value.tlsCertFile && !(value.host === '127.0.0.1' || value.tlsTermination === 'trusted-proxy')) throw new Error('Public relay requires TLS or explicit trusted TLS termination');
@@ -127,7 +132,7 @@ export async function startRelayApplication(input: unknown, composition: RelayCo
     const operatorCredential = record(operator) ? operator.credential : null;
     if (network && (typeof operatorCredential !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(operatorCredential))) throw new Error('Invalid private operator credential');
     hub = network ? new HubNetwork(network.stateFile, { ...(authority ? { authority } : {}), localService: false, ...(network.caFile ? { ca: await readFile(network.caFile, 'utf8') } : {}) }) : undefined;
-    app = createRelayServer(routes, { serverSelection: config.serverSelection === true, selectionDefaults, ...(provider ? { authentication: { origin: auth!.origin, provider } } : {}),
+    app = createRelayServer(routes, { serverSelection: config.serverSelection === true, selectionDefaults, serverPaths: config.serverPaths, ...(provider ? { authentication: { origin: auth!.origin, provider } } : {}),
       ...(hub ? { hub, operator: { credential: operatorCredential as string }, networkRoute: service => {
         if (!authority || !provider || JSON.stringify(service.authority) !== JSON.stringify(authority)) return null;
         return { instanceId: service.hubId, hubId: service.hubId, origin: service.origin, credential: '', identityProvider: provider,

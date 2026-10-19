@@ -417,13 +417,26 @@ export class ThreadResumeCoordinatorService extends Service {
         } : {}),
       };
       if (typeof params.historyPreviewToken === "string") this.previewTokens.set(threadId, params.historyPreviewToken);
-      const response = requireResumeResponse(await this.client.request("thread/resume", params, {
+      const requestResume = (request: ThreadResumeParams) => this.client.request("thread/resume", request, {
         // The message-window provider owns independent gateway and HTTP-idle
         // deadlines. An outer wall-clock limit would cancel a healthy body
         // download merely because its transport is slow.
         timeoutMs: historyMode === "message-window" ? 0 : this.requestTimeoutMs,
         priority: "user-blocking",
-      }), threadId);
+      });
+      let resumed: Awaited<ReturnType<typeof requestResume>>;
+      try {
+        resumed = await requestResume(params);
+      } catch (error) {
+        if (!params.initialTurnsPage || !(error instanceof Error)
+          || !error.message.includes("decoded message length too large")) throw error;
+        this.ensureGeneration(generation);
+        // A merged window can exceed a transport limit. Resume without the
+        // window, then let the normal adaptive history reader fetch it.
+        const { initialTurnsPage: _oversizedPage, ...withoutPage } = params;
+        resumed = await requestResume(withoutPage);
+      }
+      const response = requireResumeResponse(resumed, threadId);
       this.ensureGeneration(generation);
 
       const historyContext: ResumeHistoryContext = {

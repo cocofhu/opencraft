@@ -1,6 +1,7 @@
 import type { SshConnectionView, SshCodexServerDescriptor } from "@opencraft/app-host-protocol";
 import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
 import type { AppServerWorkbenchRuntime, HostRuntimeRegistry } from "@opencraft/workbench-runtime";
+import type { ThreadListResponse } from "@opencraft/appserver-protocol/generated/v2";
 import { managedCatalogDiscoveryPhase, mergeThreadCatalogPages } from "./thread-catalog-query";
 
 /** Read-only application projection; the backend remains the SSH authority. */
@@ -86,11 +87,15 @@ export async function readHostThreadCatalog(input: {
   readonly currentProfile: () => HostConnectionProfile | undefined;
   readonly management: ManagedHostCatalogSource | null;
   readonly registry: Pick<HostRuntimeRegistry<AppServerWorkbenchRuntime>, "peekRuntime" | "ensureConnected">;
+  /** Transient cold-start presentation only; the returned promise still owns completion. */
+  readonly onInitialPage?: (page: ThreadListResponse) => void;
+  readonly signal?: AbortSignal;
 }) {
   // SSH authorization cannot revoke or invalidate a different Host's reads.
   const management = input.profile.hostKind === "remote-ssh" ? input.management : null;
   const authorizationEpoch = management?.getAuthorizationEpoch();
   const assertCurrent = () => {
+    input.signal?.throwIfAborted();
     const current = input.currentProfile();
     if (!current || current.hostId !== input.profile.hostId
       || management?.getAuthorizationEpoch() !== authorizationEpoch || current.revision !== input.profile.revision
@@ -118,6 +123,7 @@ export async function readHostThreadCatalog(input: {
     cursor = page.nextCursor ?? null;
     if (cursor !== null && cursors.has(cursor)) throw new Error("Repeated thread catalog cursor");
     if (cursor !== null) cursors.add(cursor);
+    if (pages.length === 1 && cursor !== null && page.data.length > 0) input.onInitialPage?.(page);
   } while (cursor !== null);
   // The first page backfills old pins, which can recur in later recent pages.
   return { ...pages[0]!, data: mergeThreadCatalogPages(pages), nextCursor: null };

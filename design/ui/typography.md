@@ -135,3 +135,5 @@ its owned plugins and Native renderers, not a redesign of independent downstream
 
 These commits illustrate the failure mode, not contributor intent. Existing token
 ownership was useful; enforcement coverage and role guidance were incomplete.
+
+Shared control Sass imports the stylesheet-free `typography-mixins.web.scss` owner. The public `typography.web.scss` entry forwards the same mixins and continues to emit semantic `.ui-text` utilities for the global shell. Incidental control imports must not emit additional copies of those utilities into startup CSS. Existing five metric-owner exceptions follow the extracted implementation; their declarations and scope are unchanged.

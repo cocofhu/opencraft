@@ -99,7 +99,10 @@ function responseHeaders(upstream: Headers): Headers {
   return headers;
 }
 
-function quotaFromHeaders(headers: Headers, now: number): AccountPoolQuotaObservation | null {
+function quotaFromHeaders(headers: Headers, now: number, status: number): AccountPoolQuotaObservation | null {
+  const credits = headers.get("x-codex-credits-has-credits"), unlimited = headers.get("x-codex-credits-unlimited");
+  const creditsAvailable = status === 429 ? false
+    : credits !== null || unlimited !== null ? status >= 200 && status < 300 && (credits === "true" || unlimited === "true") : undefined;
   const windows = (["primary", "secondary"] as const).flatMap<AccountPoolLimitWindow>(slot => {
     const prefix = `x-codex-${slot}`;
     const raw = headers.get(`${prefix}-used-percent`);
@@ -127,6 +130,7 @@ function quotaFromHeaders(headers: Headers, now: number): AccountPoolQuotaObserv
       status: overLimit || utilization === 1 ? "rejected" : null,
       observedAt: now,
       source: "header",
+      ...(creditsAvailable === undefined ? {} : { creditsAvailable }),
     }];
   });
   if (windows.length === 0) return null;
@@ -285,7 +289,7 @@ export class CodexAccountPoolProxy {
           status: upstream.status,
         }));
       }
-      const quota = quotaFromHeaders(upstream.headers, this.now());
+      const quota = quotaFromHeaders(upstream.headers, this.now(), upstream.status);
       if (quota !== null) this.store.observeQuota(selection.account.id, quota);
       if (isQuotaRejection(upstream)) {
         lastFailure = { status: 429, message: "Codex account quota exhausted" };

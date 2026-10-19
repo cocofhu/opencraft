@@ -95,6 +95,15 @@ it is not a complete phone network-recovery or foreground-probing implementation
 
 ### Panel presentation
 
+An authorized desktop action is also available next to the Composer command menu.
+The shortcut reads “Cloud computer” in English and “云电脑” in Simplified Chinese;
+its task label is independent of the desktop tab title.
+It consumes the same filtered Panel action and current Conversation scope, and launch
+rechecks the backend target. Without an installed adapter, a permitted presentation
+action or a current target, no Composer desktop entry is rendered. Embedded products
+select their allowed panel actions at the product composition; file preview mode
+retains the desktop renderer and its existing lifetime and input authority.
+
 The panel follows the rich `CloudAeonComputerPanel` composition in the original
 Codex 26.930.31428 / build 12913 renderer, not its separate simple
 `CloudDesktopPanel` toolbar. The shared Design System `desktop-view.web` primitive

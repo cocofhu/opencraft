@@ -17,6 +17,7 @@
     "./tokens.native": "./src/tokens.native.ts",
     "./tokens.web": "./src/tokens.web.scss",
     "./toolbar.web": "./src/toolbar.web.scss",
+    "./material.web": "./src/material.web.scss",
     "./menu.web": "./src/menu.web.scss",
     "./selection.web": "./src/selection.web.scss",
     "./controls.web": "./src/controls.web.scss",

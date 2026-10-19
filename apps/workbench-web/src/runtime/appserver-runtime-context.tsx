@@ -83,12 +83,13 @@ import { composerCapabilitiesOptions, invalidateComposerCapabilities } from "./c
 import { catalogCachedAt, managedCatalogDiscoveryPhase, mergeThreadCatalogPages, sidebarThreadCatalogQueryKey, threadCatalogPhase, type HostThreadCatalogState } from "./thread-catalog-query";
 
 import { subscribeHostCatalogReadiness } from "./host-catalog-readiness";
-import { canDisplayHostThreadCatalog, canReadHostThreadCatalog, managedHostCatalogSignature, readHostThreadCatalog, type ManagedHostCatalogSource } from "./host-thread-catalog";
+import { canDisplayHostThreadCatalog, canReadHostThreadCatalog, managedHostCatalogSignature, type ManagedHostCatalogSource } from "./host-thread-catalog";
 import { PlatformAccountContributionRegistry } from "./platform-account-contributions";
 import { sidebarGoalActive, observeSidebarThreadGoals, sidebarGoalSignature, type SidebarGoalSource } from "./sidebar-thread-goals";
 
 
 import { ActiveWebWorkbenchApplicationSupervisor, AppServerHostCatalog, retryQuery } from './workbench-application-services';
+import { useHostThreadCatalogQueries } from "./use-host-thread-catalog-queries";
 
 export * from "./workbench-application-services";
 const subscribeNoManagedCatalog = () => () => {};
@@ -583,8 +584,8 @@ export function useMultiHostThreadCatalog(): {
     phases[index],
     management,
   ));
-  const queries = useQueries({
-    queries: hosts.map((host, index) => ({
+  const queries = useHostThreadCatalogQueries(
+    hosts.map((host, index) => ({
       // Discovery may attach a reader to an explicitly connected managed
       // Server, but cannot dial an idle remote merely to paint Chat.
       enabled: admitted[index],
@@ -592,18 +593,12 @@ export function useMultiHostThreadCatalog(): {
         revision: application.profiles.find(profile => profile.hostId === host.hostId)!.revision,
         authorizationEpoch: host.kind === "remote-ssh" ? application.managedHostCatalog?.getAuthorizationEpoch() ?? null : null,
       }),
-      queryFn: async () => {
-        return readHostThreadCatalog({
-          profile: application.profiles.find(profile => profile.hostId === host.hostId)!,
-          currentProfile: () => application.hostProfiles.getSnapshot().profiles.find(profile => profile.hostId === host.hostId),
-          management: application.managedHostCatalog,
-          registry: application.registry,
-        });
-      },
-      staleTime: 30_000,
-      retry: retryQuery,
+      profile: application.profiles.find(profile => profile.hostId === host.hostId)!,
+      currentProfile: () => application.hostProfiles.getSnapshot().profiles.find(profile => profile.hostId === host.hostId),
+      management: application.managedHostCatalog,
+      registry: application.registry,
     })),
-  });
+  );
   // One projection per admitted Host, independent of visible rows and selected conversation.
   const scheduleKeys = hosts.map(host => [...sidebarThreadCatalogQueryKey(host.hostId, {
     revision: application.profiles.find(profile => profile.hostId === host.hostId)!.revision,
@@ -654,7 +649,7 @@ export function useMultiHostThreadCatalog(): {
   const goalSources = useMemo(() => hosts.flatMap((host, index): SidebarGoalSource[] => {
     const profile = application.profiles.find(value => value.hostId === host.hostId)!;
     const runtime = application.registry.peekRuntime(host.hostId);
-    if (!runtime || !admitted[index] || !displayable[index] || phases[index] !== "ready") return [];
+    if (!runtime || !admitted[index] || !displayable[index] || phases[index] !== "ready" || queries[index]?.isPlaceholderData) return [];
     const epoch = profile.hostKind === "remote-ssh" ? application.managedHostCatalog?.getAuthorizationEpoch() : undefined;
     return [{
       goals: runtime.resources.goals,
@@ -678,7 +673,7 @@ export function useMultiHostThreadCatalog(): {
   useEffect(() => {
     const scope = application.threadAttention.getScope();
     for (const [index, host] of hosts.entries()) {
-      if (!admitted[index] || !displayable[index]) continue;
+      if (!admitted[index] || !displayable[index] || queries[index]?.isPlaceholderData) continue;
       const profile = application.profiles.find(value => value.hostId === host.hostId)!;
       void application.threadAttention.catchUp(profile, queries[index]?.data?.data ?? [], () => {
         const current = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === host.hostId);
@@ -755,6 +750,7 @@ export function useMultiHostThreadCatalog(): {
       hostId: host.hostId,
       label: host.label,
       phase: threadCatalogPhase({ admitted: admitted[index]!, status: queries[index]!.status, isFetching: queries[index]!.isFetching }),
+      ...(queries[index]!.isPlaceholderData ? { partial: true } : {}),
       ...(displayable[index] && catalogCachedAt(queries[index]!.data) !== undefined ? { cachedAt: catalogCachedAt(queries[index]!.data) } : {}),
     })),
     [hosts, querySignature]);

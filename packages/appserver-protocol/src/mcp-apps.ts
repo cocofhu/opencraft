@@ -3,6 +3,8 @@ export const MCP_APPS_SERVER = "opencraft-app-builder";
 export const MCP_APPS_URI = "ui://opencraft/app-builder/v1.html";
 export const MCP_APPS_METHOD = "opencraft/mcpApps/manage";
 export const MCP_APPS_NAMESPACE = "opencraft_apps";
+/** Optional metadata selects an exact card without changing legacy server names. */
+export const MCP_APP_RESOURCE_META = "opencraft/app-resource-uri";
 export const MCP_APPS_DYNAMIC_TOOLS = [
   {
     type: "namespace" as const,

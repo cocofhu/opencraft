@@ -134,3 +134,60 @@ test("attachment-only first submission stays visible and transient handoffs are 
     assert.equal(block.attachments.length, 1);
   }
 });
+
+test("completed display is available synchronously before persistence completes", async () => {
+  const local = storage();
+  let release!: () => void;
+  let entered!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  local.save = async () => new Promise<void>(resolve => { release = resolve; entered(); });
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const writing = cache.observe(timeline(true));
+  const painted = cache.peek("host", "thread");
+  assert.equal(painted?.authoritative, false);
+  assert.equal(painted?.frames.length, 2);
+  assert.equal(cache.peek("other-host", "thread"), null);
+  await started; release(); await writing;
+  local.load = async () => { throw Error("warm display must not wait on storage"); };
+  assert.equal(await cache.load("host", "thread"), painted);
+});
+
+test("display memory is bounded, expires and is cleared by an authoritative empty transcript", async () => {
+  let now = 1_000;
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: storage(), now: () => now });
+  for (let i = 0; i < 65; i++) await cache.observe({ ...timeline(true), key: createConversationKey("host", `thread-${i}`) });
+  assert.equal(cache.peek("host", "thread-0"), null);
+  assert.ok(cache.peek("host", "thread-64"));
+  await cache.observe({ ...timeline(true), key: createConversationKey("host", "thread-64"), frames: [] });
+  assert.equal(cache.peek("host", "thread-64"), null);
+  now += 8 * 24 * 60 * 60 * 1_000;
+  assert.equal(cache.peek("host", "thread-63"), null);
+});
+
+
+test("a delayed disk read cannot replace a newer authoritative display", async () => {
+  const local = storage();
+  const original = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await original.observe(timeline(true));
+  const old = [...local.data.values()][0]!;
+  let release!: (value: string) => void;
+  local.load = async () => new Promise<string>(resolve => { release = resolve; });
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const reading = cache.load("host", "thread");
+  await new Promise(resolve => setImmediate(resolve));
+  const next = { ...timeline(true), frames: [] };
+  await cache.observe(next);
+  release(old);
+  assert.equal(await reading, null);
+  assert.equal(cache.peek("host", "thread"), null);
+});
+
+test("synchronous display memory cannot cross account namespaces", async () => {
+  const local = storage();
+  const a = createConversationDisplayContinuity({ namespace: "account-a", storage: local });
+  const b = createConversationDisplayContinuity({ namespace: "account-b", storage: local });
+  await a.observe(timeline(true));
+  assert.ok(a.peek("host", "thread"));
+  assert.equal(b.peek("host", "thread"), null);
+  assert.equal(await b.load("host", "thread"), null);
+});

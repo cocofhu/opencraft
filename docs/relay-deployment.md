@@ -28,6 +28,37 @@ use their peer name or enrolled hostname. The explicit chooser is `/servers`; a 
 the same scoped issuer and target admission contract. A user may access another
 instance even when the entry instance denies that user membership.
 
+Operators can separate public route labels from immutable instance IDs:
+
+```json
+{
+  "serverSelection": true,
+  "serverPaths": {
+    "aliases": { "entry-instance": "main", "hub-instance": "research" },
+    "defaultServer": "entry-instance"
+  }
+}
+```
+
+Aliases are unique lowercase labels, up to 63 ASCII letters, digits or hyphens,
+starting with a letter. They are local entry configuration, including for discovered
+Hub IDs; they do not rename a Hub, grant access or change issuer scopes. Configured
+aliases are the public routing keys, not additional aliases for the old ID URLs.
+Ambiguous routes fail closed. An omitted alias uses the instance ID. Cookie names,
+preference values and browser storage continue to use immutable instance IDs.
+
+`defaultServer` must identify the explicitly configured authentication-entry
+instance. Its Workbench, settings, API and WebSockets run without a server prefix.
+The chooser links to its explicit named route; **after successful HTML admission**
+the document replaces that URL with its unprefixed path, preserving query/fragment,
+before Workbench starts. This avoids a root-entry redirect loop and commits the
+successful explicit selection. Other servers keep `/servers/<label>/…`. A visit
+to `/` is still automatic entry: it consumes the verified user's last successful
+choice, or the configured default on first use. An unprefixed deep link explicitly
+belongs to the default instance and never follows another remembered server.
+No API, upload or WebSocket request is redirected to canonicalize its address.
+Deploy compatible Workbench clients before enabling this routing configuration.
+
 Legacy `/__opencraft_servers` document links redirect to `/servers`, preserving
 the selected instance, deep path and query. Old API, upload, stream and WebSocket
 requests keep working at their original prefix until navigation. Updated clients
@@ -42,7 +73,7 @@ does not require the server-administration build flag. Direct deployments withou
 relay context do not advertise a chooser. The relay-supplied selector path also
 preserves compatibility with legacy deployments.
 
-Existing unprefixed entry Workbench bookmarks, such as `/settings/remote-connections`,
+Without `serverPaths.defaultServer`, unprefixed entry Workbench bookmarks, such as `/settings/remote-connections`,
 redirect after target admission to that same instance's `/servers/<instanceId>/`
 path, preserving the deep path and query. This applies only to successful GET
 HTML navigations; API requests, uploads and WebSockets retain their existing
@@ -50,7 +81,7 @@ behavior. It does not consult another saved server choice or grant membership.
 Reload an already-open unscoped page to receive the deployment context and the
 **Settings → Servers** entry.
 
-The URL `/servers/<instanceId>/…` always selects that server, including deep
+The URL `/servers/<label-or-instanceId>/…` always selects that server, including deep
 links and reloads, regardless of a saved choice. After a successful admitted
 top-level document opens, the browser remembers that server under a key derived
 from verified provider and stable subject, within that entry origin. This includes

@@ -1167,6 +1167,44 @@ test("continuation rejection is observable and does not silently disappear", asy
   } finally { runtime.dispose(); }
 });
 
+test("older Codex Hosts automatically continue capacity failures after a delay", async () => {
+  let calls = 0;
+  const runtime = createReplicaConversationRuntime({
+    key: createConversationKey("local", "thread-one"),
+    replica: new FakeReplica(failedConversation()),
+    canAutoContinueCapacity: () => true,
+    commands: commands({ async continueTurn() { calls++; return receipt("capacity-retry", "capacity-message"); } }),
+    history: { async loadOlder() {} },
+  });
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(calls, 0);
+    await new Promise(resolve => setTimeout(resolve, 650));
+    assert.equal(calls, 1);
+    assert.equal(runtime.getSnapshot().continuation.turnId, null);
+  } finally { runtime.dispose(); }
+});
+
+test("a Host-owned capacity retry capability suppresses the client timer", async () => {
+  let calls = 0;
+  let hostOwnsRetry = true;
+  const replica = new FakeReplica(failedConversation());
+  const runtime = createReplicaConversationRuntime({
+    key: createConversationKey("local", "thread-one"), replica,
+    canAutoContinueCapacity: () => !hostOwnsRetry,
+    commands: commands({ async continueTurn() { calls++; return receipt("capacity-retry", "capacity-message"); } }),
+    history: { async loadOlder() {} },
+  });
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal(calls, 0);
+    hostOwnsRetry = false;
+    replica.setEntity(failedConversation());
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal(calls, 1);
+  } finally { runtime.dispose(); }
+});
+
 test("a lost continuation acknowledgement is not permission to send it again", async () => {
   const replica = new FakeReplica(failedConversation());
   const runtime = createReplicaConversationRuntime({
