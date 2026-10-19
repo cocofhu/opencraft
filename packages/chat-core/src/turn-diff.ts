@@ -1,71 +1,83 @@
 import type { TimelineStatus, TurnDiffFileSummary, TurnDiffTimelineBlock } from "./timeline";
 
-/** Resource identity belongs to the Turn, never to an invented protocol Item. */
-export function createTurnChangeSummary(
-  turnId: string, status: TimelineStatus, unifiedDiff: string | null,
-): TurnDiffTimelineBlock | null {
-  if (unifiedDiff === null || unifiedDiff.trim().length === 0) return null;
-  return {
-    type: "turn-diff", id: `${turnId}:turn-diff`, sourceItemIds: [], unifiedDiff,
-    ...summarizeTurnDiff(unifiedDiff),
-    status: status === "streaming" || status === "pending" ? "running"
-      : status === "failed" ? "failed" : status === "interrupted" ? "interrupted" : "complete",
-  };
-}
-
+/** Replacement method and historical boundary: docs/provenance/turn-diff-replacement.md. */
 export interface TurnDiffSummary {
   readonly files: readonly TurnDiffFileSummary[];
   readonly additions: number;
   readonly deletions: number;
 }
 
-function normalizeDiffPath(value: string): string {
-  const unquoted = value.startsWith('"') && value.endsWith('"')
-    ? value.slice(1, -1).replace(/\\([\\"])/gu, "$1")
-    : value;
-  if (unquoted === "/dev/null") return unquoted;
-  return unquoted.replace(/^[ab]\//u, "");
-}
-
-function diffHeaderPath(line: string): string | null {
-  const match = /^diff --git\s+("(?:\\.|[^"])+"|\S+)\s+("(?:\\.|[^"])+"|\S+)$/u.exec(line);
-  if (match === null) return null;
-  const next = normalizeDiffPath(match[2]!);
-  return next === "/dev/null" ? normalizeDiffPath(match[1]!) : next;
-}
-
-/** Source-equivalent aggregate used by Codex's TurnDiff card and live chip. */
-export function summarizeTurnDiff(unifiedDiff: string): TurnDiffSummary {
-  const files = new Map<string, { path: string; additions: number; deletions: number }>();
-  let current: { path: string; additions: number; deletions: number } | null = null;
-  const commit = () => {
-    if (current === null) return;
-    const previous = files.get(current.path);
-    if (previous === undefined) files.set(current.path, current);
-    else {
-      previous.additions += current.additions;
-      previous.deletions += current.deletions;
+function destination(line: string): string | null {
+  // Git emits either a whitespace-free token or a quoted path for each side.
+  if (/\s$/u.test(line)) return null;
+  const words: string[] = [];
+  let cursor = "diff --git ".length;
+  while (cursor < line.length) {
+    if (/\s/u.test(line[cursor])) { cursor++; continue; }
+    if (words.length === 2) return null;
+    const start = cursor;
+    if (line[cursor] === '"') {
+      cursor++;
+      let closed = false;
+      while (cursor < line.length) {
+        const character = line[cursor++];
+        if (character === "\\") cursor = Math.min(cursor + 1, line.length);
+        else if (character === '"') { closed = true; break; }
+      }
+      if (!closed) return null;
+    } else {
+      while (cursor < line.length && !/\s/u.test(line[cursor])) cursor++;
     }
-  };
+    words.push(line.slice(start, cursor));
+  }
+  if (words.length !== 2) return null;
+  let path = words[1];
+  if (path.startsWith('"')) {
+    const quoted = path.slice(1, -1);
+    path = "";
+    for (let index = 0; index < quoted.length; index++) {
+      const character = quoted[index];
+      const next = quoted[index + 1];
+      if (character === "\\" && (next === "\\" || next === '"')) {
+        path += next;
+        index++;
+      } else {
+        path += character;
+      }
+    }
+  }
+  return path.replace(/^[ab]\//u, "");
+}
 
-  for (const line of unifiedDiff.replace(/\r\n?/gu, "\n").split("\n")) {
-    const path = diffHeaderPath(line);
-    if (path !== null) {
-      commit();
-      current = { path, additions: 0, deletions: 0 };
+export function summarizeTurnDiff(unifiedDiff: string): TurnDiffSummary {
+  const byPath = new Map<string, { path: string; additions: number; deletions: number }>();
+  let current: { path: string; additions: number; deletions: number } | null = null;
+  for (const line of unifiedDiff.split(/\r?\n/u)) {
+    if (line.startsWith("diff --git ")) {
+      const path = destination(line);
+      current = path === null ? null : byPath.get(path) ?? { path, additions: 0, deletions: 0 };
+      if (current !== null) byPath.set(current.path, current);
       continue;
     }
     if (current === null) continue;
-    if (line.startsWith("rename to ")) current.path = normalizeDiffPath(line.slice("rename to ".length));
-    else if (line.startsWith("+") && !line.startsWith("+++")) current.additions += 1;
-    else if (line.startsWith("-") && !line.startsWith("---")) current.deletions += 1;
+    if (line.startsWith("+") && !line.startsWith("+++")) current.additions++;
+    if (line.startsWith("-") && !line.startsWith("---")) current.deletions++;
   }
-  commit();
-
-  const entries = [...files.values()];
+  const files = [...byPath.values()];
   return {
-    files: entries,
-    additions: entries.reduce((sum, file) => sum + file.additions, 0),
-    deletions: entries.reduce((sum, file) => sum + file.deletions, 0),
+    files,
+    additions: files.reduce((total, file) => total + file.additions, 0),
+    deletions: files.reduce((total, file) => total + file.deletions, 0),
+  };
+}
+
+export function createTurnChangeSummary(
+  turnId: string, status: TimelineStatus, unifiedDiff: string | null,
+): TurnDiffTimelineBlock | null {
+  if (unifiedDiff === null || !unifiedDiff.trim()) return null;
+  return {
+    type: "turn-diff", id: `${turnId}:turn-diff`, sourceItemIds: [], unifiedDiff,
+    ...summarizeTurnDiff(unifiedDiff),
+    status: status === "pending" || status === "streaming" ? "running" : status,
   };
 }
