@@ -80,9 +80,10 @@ export function AgentActivityGroupDisclosure({
   const [label, setLabel] = useState({ key: summaryKey, content: summary });
   const lastLabelCommit = useRef(Date.now());
   useEffect(() => {
+    if (label.key === summaryKey) return;
     const remaining = 1000 - (Date.now() - lastLabelCommit.current);
-    if (label.key === summaryKey || summaryTransition !== "deferred" || remaining <= 0) {
-      if (label.key !== summaryKey) lastLabelCommit.current = Date.now();
+    if (summaryTransition !== "deferred" || remaining <= 0) {
+      lastLabelCommit.current = Date.now();
       setLabel({ key: summaryKey, content: summary });
       return;
     }
@@ -111,7 +112,7 @@ export function AgentActivityGroupDisclosure({
         labelId={labelId} open={open} onToggle={toggle} reflowOwned>
         {icon != null ? <ActivityIcon>{icon}</ActivityIcon> : null}
         <span className="thread-activity-item__summary" id={labelId}>
-          {summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.content}</span>}
+          {summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.key === summaryKey || summaryTransition === "immediate" ? summary : label.content}</span>}
         </span>
         {canExpand ? <ChevronRight size={13} className="thread-activity-item__chevron" aria-hidden="true" /> : null}
       </OverlayDisclosureTrigger>
