@@ -2271,6 +2271,18 @@ history, scroll and drafts. Protocol mismatch still requires an update rather
 than a retry loop. The clipboard-only package export avoids importing renderers
 and their styles for this utility.
 
+## Web search activity detail projection
+
+The shared tool detail formatter owns only display-field selection and compact
+search text. It preserves the current nested action envelope, operation aliases,
+query/pattern/URL precedence and existing hostname/first-query helper contracts.
+Ordered site facets and ordinary punctuation are presentation compatibility data.
+The presenter continues to own phase, summary, grouping and expandability; the
+Timeline owns protocol projection and call identity. A detail string neither
+executes a search nor authorizes or opens a resource. Web and Native consume the
+same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
+retains original annotations, hashes, authoring order and finite verification.
+
 ## External conversation presentation and history reads
 
 Trusted local application composition may provide `conversationPresentation` to
@@ -2313,16 +2325,3 @@ Coalesced retries of an active work item still share the original observation.
 ### Product desktop composer shortcut
 
 The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
-
-
-## Web search activity detail projection
-
-The shared tool detail formatter owns only display-field selection and compact
-search text. It preserves the current nested action envelope, operation aliases,
-query/pattern/URL precedence and existing hostname/first-query helper contracts.
-Ordered site facets and ordinary punctuation are presentation compatibility data.
-The presenter continues to own phase, summary, grouping and expandability; the
-Timeline owns protocol projection and call identity. A detail string neither
-executes a search nor authorizes or opens a resource. Web and Native consume the
-same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
-retains original annotations, hashes, authoring order and finite verification.
