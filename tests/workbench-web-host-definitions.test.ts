@@ -29,7 +29,8 @@ Object.defineProperty(globalThis, "window", {
 const {
   createWebHostId,
   parseWebHostDefinitions,
-  refreshBundledHostBrowseRoots,
+  hostDefinitionProfile,
+  refreshBundledHostProfiles,
   productDatabaseName,
   productStorageKey,
   activeThreadStorageKey,
@@ -307,15 +308,15 @@ test("an older bundled Host gains its Linux root without overwriting user profil
   initial.close();
   const reopened = await IndexedDbHostConnectionProfileStore.open({ databaseName, factory: indexedDB });
   try {
-    await refreshBundledHostBrowseRoots(reopened, [definition!]);
+    await refreshBundledHostProfiles(reopened, [definition!]);
     const updated = reopened.getSnapshot().profiles[0]!;
     assert.deepEqual(updated.workspaceBrowseRoots, ["/"]);
     assert.equal(updated.displayName, "My Linux node");
     assert.equal(updated.revision, 3);
-    await refreshBundledHostBrowseRoots(reopened, [definition!]);
+    await refreshBundledHostProfiles(reopened, [definition!]);
     assert.equal(reopened.getSnapshot().profiles[0]?.revision, 3);
     await reopened.put({ ...updated, workspaceBrowseRoots: ["/srv/projects"], revision: 4 });
-    await refreshBundledHostBrowseRoots(reopened, [definition!]);
+    await refreshBundledHostProfiles(reopened, [definition!]);
     assert.deepEqual(reopened.getSnapshot().profiles[0]?.workspaceBrowseRoots, ["/srv/projects"]);
   } finally {
     reopened.close();
@@ -483,5 +484,37 @@ test("website machine labels validate display-only aliases without editing Host 
   assert.deepEqual(parseWebDeploymentConfig(JSON.stringify({ ...base, machineDisplayNames: { "ssh:test": " Server " } }))?.machineDisplayNames, { "ssh:test": "Server" });
   for (const machineDisplayNames of [null, [], "Server", { a: " " }, { a: 1 }, { a: "x".repeat(65) }, { a: "Server\n" }]) {
     assert.throws(() => parseWebDeploymentConfig(JSON.stringify({ ...base, machineDisplayNames })), /machine display names/);
+  }
+});
+
+
+test("a saved same-instance relay endpoint is refreshed without resetting Host preferences", async () => {
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  Object.defineProperty(globalThis, "document", { configurable: true, value: {
+    getElementById(id: string) { return id === "opencraft-server-context" ? { textContent: JSON.stringify({
+      id: "stable-lighthouse", name: "Lighthouse", basePath: "/servers/lighthouse", selectorPath: "/servers",
+    }) } : null; },
+  } });
+  const databaseName = `relay-endpoint-${crypto.randomUUID()}`;
+  const store = await IndexedDbHostConnectionProfileStore.open({ databaseName, factory: indexedDB });
+  try {
+    const [definition] = parseWebHostDefinitions(JSON.stringify([{
+      hostId: "opencraft-server", label: "Server", kind: "durable", url: "/appserver", workspaceBrowseRoots: ["/"],
+    }]));
+    const saved = { ...hostDefinitionProfile(definition!), displayName: "My server", enabled: false,
+      workspaceBrowseRoots: ["/srv/my-projects"], revision: 7,
+      providerConfig: { url: "wss://ui.example/__opencraft_servers/stable-lighthouse/appserver", protocols: ["custom.v1"] } };
+    await store.put(saved);
+    const persisted = store.getSnapshot().profiles[0]!;
+    await refreshBundledHostProfiles(store, [definition!]);
+    const updated = store.getSnapshot().profiles[0]!;
+    assert.equal((updated.providerConfig as { url: string }).url, "wss://ui.example/servers/lighthouse/appserver");
+    assert.deepEqual(updated, { ...persisted, providerConfig: { ...saved.providerConfig, url: definition!.url }, revision: 8 });
+    await refreshBundledHostProfiles(store, [definition!]);
+    assert.equal(store.getSnapshot().profiles[0]!.revision, 8);
+  } finally {
+    store.close();
+    if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument);
+    else Reflect.deleteProperty(globalThis, "document");
   }
 });

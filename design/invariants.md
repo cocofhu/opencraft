@@ -1627,3 +1627,7 @@ The command-adjacent desktop entry invokes the existing filtered Panel action fo
 the current Conversation. No adapter or resolved target means no entry. Preview-only
 embedded layouts may retain a desktop renderer without exposing file-tree management;
 showing the entry never grants viewing or input authority.
+
+## Product composer desktop entry
+
+An installed desktop panel adapter does not imply a composer shortcut. Only an explicit containing-product presentation opts into that entry; adapter availability and launch authority remain mandatory. Full and generic embedded presentations leave it disabled.

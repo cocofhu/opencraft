@@ -968,6 +968,17 @@ read cannot replace a newer observation. Account scope replacement discards the
 owner. This memory is a projection cache, not a second history authority, Replica
 checkpoint, execution lease, or source for tool/approval actions.
 
+The Web Application resolves display identity from its committed View Scope
+binding before a network Thread lease exists, and renders a nonempty display
+while the initial lease is still being acquired. Display identity remains
+separate from the active execution lease. The cold-stage spinner is reserved for a missing lease
+and no visible history; it must not hide a valid account-scoped display behind
+Host initialization. Persisted display restoration after a page reload follows
+the same rule as the transient first-submission handoff. Canonical history still
+replaces the display, and command admission still waits on the existing baseline.
+`scripts/smoke-session-cold-open.ts` exercises the built Application with held
+initialization, canonical replacement and a separate uncached browser profile.
+
 ### History positions and concurrent observations
 
 Execution ownership and transcript grouping are different boundaries. One
@@ -2214,3 +2225,7 @@ No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
 its correlation ID and attempt count cannot inherit the completed report.
 Coalesced retries of an active work item still share the original observation.
+
+### Product desktop composer shortcut
+
+The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
