@@ -85,6 +85,20 @@ interface PendingServerRequest {
 }
 
 const MAX_PENDING_SERVER_REQUESTS = 256;
+const CAPACITY_RETRY_BASE_MS = 1_000;
+const CAPACITY_RETRY_MAX_MS = 120_000;
+
+export function capacityRetryDelayMs(attempt: number): number {
+  return Math.min(CAPACITY_RETRY_BASE_MS * 2 ** Math.min(attempt, 7), CAPACITY_RETRY_MAX_MS);
+}
+
+interface CapacityRetry {
+  attempt: number;
+  failedTurnId: string;
+  timer: ReturnType<typeof setTimeout> | null;
+  inFlight: boolean;
+  autoTurnId: string | null;
+}
 
 interface SharedCodexRoutingOptions {
   readonly onStorageOpened?: (outcomes: readonly { name: string; outcome: DatabaseOutcome }[]) => void;
@@ -210,6 +224,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   private readonly activeTurns = new Map<string, string>();
   private readonly activeGoalThreads = new Set<string>();
   private readonly goalContinuationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly capacityRetries = new Map<string, CapacityRetry>();
   private queue: CodexHostQueue | null = null;
   private schedules: ConversationSchedules | null = null;
   private hostState: CodexHostStateDatabase | null = null;
@@ -698,6 +713,9 @@ export class CodexEngineAdapter implements DuplexTransport {
         event: "turn-interrupt", clientId, requestId: physicalId,
         threadId: string(params.threadId), turnId: string(params.turnId), pid: this.child?.pid ?? null,
       });
+      if (typeof message.method === "string" && ["turn/start", "thread/delete", "thread/archive"].includes(message.method)) {
+        this.clearCapacityRetry(string(params.threadId));
+      }
       if (message.method === "thread/resume") this.diagnostic({
         event: "thread-resume-start", clientId, requestId: physicalId,
         threadId: string(params.threadId), pid: this.child?.pid ?? null,
@@ -842,6 +860,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.activeTurns.clear();
       for (const timer of this.goalContinuationTimers.values()) clearTimeout(timer);
       this.goalContinuationTimers.clear();
+      this.clearAllCapacityRetries();
       this.activeGoalThreads.clear();
       this.threadOperations.clear();
       this.publishStatus({ state: "closed" });
@@ -1082,9 +1101,15 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (message.method === "turn/started" && threadId) {
       const turnId = string(record(record(message.params).turn).id);
       if (turnId) this.activeTurns.set(threadId, turnId);
+      const retry = this.capacityRetries.get(threadId);
+      if (retry && !retry.inFlight && retry.autoTurnId !== turnId) this.clearCapacityRetry(threadId);
     }
     if (message.method === "turn/completed" && threadId) {
       this.activeTurns.delete(threadId);
+      const turn = record(record(message.params).turn);
+      if (turn.status === "failed" && record(turn.error).codexErrorInfo === "serverOverloaded") {
+        this.scheduleCapacityRetry(threadId, string(turn.id));
+      } else this.clearCapacityRetry(threadId);
       this.scheduleQueueMaintenance(threadId);
       if (!record(record(message.params).turn).error) this.scheduleGoalContinuation(threadId);
       this.scheduleNativeRelease(threadId);
@@ -1094,6 +1119,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.scheduleQueueMaintenance(threadId);
       this.scheduleNativeRelease(threadId);
     }
+    if ((message.method === "thread/archived" || message.method === "thread/deleted") && threadId) this.clearCapacityRetry(threadId);
     if (message.method === "serverRequest/resolved") {
       const requestId = responseId(record(message.params).requestId);
       if (requestId !== null) {
@@ -1254,6 +1280,7 @@ export class CodexEngineAdapter implements DuplexTransport {
 
   private hasHostThreadDemand(threadId: string): boolean {
     if (this.activeGoalThreads.has(threadId)) return true;
+    if (this.capacityRetries.has(threadId)) return true;
     if (this.activeTurns.has(threadId) || this.queue?.firstUnsettled(threadId) != null) return true;
     if ([...this.serverRequests.values()].some(request => request.threadId === threadId)) return true;
     if ([...this.pending.values()].some(request => request.params.threadId === threadId
@@ -1664,6 +1691,59 @@ export class CodexEngineAdapter implements DuplexTransport {
     this.goalContinuationTimers.set(threadId, timer);
   }
 
+  private clearCapacityRetry(threadId: string): void {
+    const retry = this.capacityRetries.get(threadId);
+    if (retry?.timer) clearTimeout(retry.timer);
+    this.capacityRetries.delete(threadId);
+    if (retry) this.scheduleNativeRelease(threadId);
+  }
+
+  private clearAllCapacityRetries(): void {
+    for (const threadId of this.capacityRetries.keys()) this.clearCapacityRetry(threadId);
+  }
+
+  private scheduleCapacityRetry(threadId: string, failedTurnId: string): void {
+    if (!threadId || !failedTurnId) return;
+    const previous = this.capacityRetries.get(threadId);
+    if (previous?.failedTurnId === failedTurnId) return;
+    if (previous?.timer) clearTimeout(previous.timer);
+    const attempt = previous ? previous.attempt + 1 : 0;
+    const retry: CapacityRetry = { attempt, failedTurnId, timer: null, inFlight: false, autoTurnId: null };
+    const delayMs = capacityRetryDelayMs(attempt);
+    retry.timer = setTimeout(() => {
+      retry.timer = null;
+      void this.withThreadOperation(threadId, async () => {
+        if (this.capacityRetries.get(threadId) !== retry) return;
+        if (this.activeTurns.has(threadId) || this.queue?.firstAwaitingAdmission(threadId)
+          || !(await this.queueThreadIsIdle(threadId))) {
+          this.clearCapacityRetry(threadId);
+          return;
+        }
+        const response = record(await this.requestPhysical("thread/read", { threadId, includeTurns: true }));
+        const turns = record(response.thread).turns;
+        const latest = Array.isArray(turns) ? record(turns.at(-1)) : {};
+        if (latest.id !== failedTurnId || latest.status !== "failed"
+          || record(latest.error).codexErrorInfo !== "serverOverloaded") {
+          this.clearCapacityRetry(threadId);
+          return;
+        }
+        retry.inFlight = true;
+        const started = record(await this.requestPhysical("turn/start", {
+          threadId, input: [], clientUserMessageId: `capacity-retry:${randomUUID()}`,
+        }));
+        retry.autoTurnId = string(record(started.turn).id);
+        retry.inFlight = false;
+        if (!retry.autoTurnId) throw new Error("Codex returned an invalid capacity retry acknowledgement");
+      }).catch(error => {
+        if (this.capacityRetries.get(threadId) === retry) this.clearCapacityRetry(threadId);
+        this.diagnostic({ event: "capacity-retry-failed", threadId, reason: errorMessage(error) });
+      });
+    }, delayMs);
+    retry.timer.unref();
+    this.capacityRetries.set(threadId, retry);
+    this.diagnostic({ event: "capacity-retry-scheduled", threadId, attempt: attempt + 1, delayMs });
+  }
+
   /** Rebuild the Host's active Goal index from Codex's durable Thread state. */
   private async discoverActiveGoals(): Promise<void> {
     let cursor: string | null = null;
@@ -2045,6 +2125,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     this.rejectInternalRequests(error);
     for (const timer of this.goalContinuationTimers.values()) clearTimeout(timer);
     this.goalContinuationTimers.clear();
+    this.clearAllCapacityRetries();
     this.publishStatus({ state: "failed", reason: error.message, failure: { code: "codex-appserver-exited", recovery: "automatic" } });
   };
 

@@ -3068,3 +3068,13 @@ same provider instance and releases that per-call lease on success or failure.
 Retirement publishes removal immediately and drains already accepted calls.
 No command registry or asynchronous lookup of the selected Host is introduced.
 See [Composer semantics](chat-ui-architecture.md).
+
+### Codex model capacity retry
+
+The Codex Host continues only a failed Turn whose native error code is
+`serverOverloaded`. It starts an empty continuation after 1, 2, 4, … seconds,
+capped at 120 seconds between attempts. A successful or different failure ends
+the sequence. New user input, an active Turn, or queued input takes precedence;
+the Host checks the latest authoritative Turn before starting a retry and keeps
+the native subscription while a retry is pending. An unconfirmed `turn/start`
+outcome stops automatic retries so the Host cannot duplicate execution.

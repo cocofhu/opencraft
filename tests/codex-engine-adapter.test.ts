@@ -8,7 +8,7 @@ import test from "node:test";
 import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol";
 import { AccountPoolStore } from "@opencraft/account-pool-host";
 import { OPENCRAFT_ATTACHMENT_STAGING_EXTENSION, OPENCRAFT_THREAD_LIFECYCLE_EXTENSION, OPENCRAFT_THREAD_QUEUE_EXTENSION, OPENCRAFT_THREAD_START_DURABILITY_EXTENSION, OPENCRAFT_PERMISSION_MODES_EXTENSION } from "@opencraft/appserver-protocol";
-import { CodexEngineAdapter } from "../apps/opencraft-daemon/src/codex-engine-adapter.js";
+import { CodexEngineAdapter, capacityRetryDelayMs } from "../apps/opencraft-daemon/src/codex-engine-adapter.js";
 import { CodexHostQueue } from "../apps/opencraft-daemon/src/codex-host-queue.js";
 import { LocalDesktopService } from "../apps/local-agent-host/src/desktop/local-desktop-service.js";
 import { OPENCRAFT_DESKTOP_ATTACH, OPENCRAFT_DESKTOP_RELEASE, OPENCRAFT_DESKTOP_EXTENSION } from "@opencraft/appserver-protocol/desktop";
@@ -51,6 +51,57 @@ async function initializeClient(adapter: CodexEngineAdapter, frames: Array<Recor
   await adapter.send(JSON.stringify({ id: `${clientId}:init`, method: "initialize", params: {}, [LOGICAL_CLIENT_FIELD]: clientId }));
   await waitFor(frames, frame => frame.id === `${clientId}:init`);
 }
+
+test("model capacity failures continue with exponential backoff capped at 120 seconds", async () => {
+  assert.deepEqual([0, 1, 2, 6, 7, 20].map(capacityRetryDelayMs), [1_000, 2_000, 4_000, 64_000, 120_000, 120_000]);
+  const root = await mkdtemp(join(tmpdir(), "opencraft-capacity-retry-")), frames: Array<Record<string, unknown>> = [];
+  const adapter = createRoutingAdapter(root, frames);
+  const request = async (id: string, method: string, params: Record<string, unknown>) => {
+    await adapter.send(JSON.stringify({ id, method, params, [LOGICAL_CLIENT_FIELD]: "writer" }));
+    const response = await waitFor(frames, frame => frame.id === id);
+    assert.equal(response.error, undefined);
+    return response.result as any;
+  };
+  try {
+    await adapter.connect(); await initializeClient(adapter, frames, "writer");
+    const threadId = (await request("capacity:create", "thread/start", { cwd: root, testNoServerRequest: true })).thread.id;
+    await request("capacity:initial", "turn/start", { threadId, input: [{ type: "text", text: "Continue this task" }] });
+    await request("capacity:fail", "test/completeTurn", { threadId, codexErrorInfo: "serverOverloaded" });
+    const retry = await waitFor(frames, frame => frame.method === "turn/started" && (frame.params as any).turn.id === "turn-2");
+    assert.equal((retry.params as any).threadId, threadId);
+    const accepted = (await request("capacity:inputs", "test/readAcceptedInputs", {})).data;
+    assert.deepEqual(accepted.at(-1).params.input, []);
+    assert.match(accepted.at(-1).params.clientUserMessageId, /^capacity-retry:/);
+    await request("capacity:fail-again", "test/completeTurn", { threadId, codexErrorInfo: "serverOverloaded" });
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal((await request("capacity:before-second-backoff", "test/readAcceptedInputs", {})).data.length, 2);
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal((await request("capacity:second-retry", "test/readAcceptedInputs", {})).data.length, 3);
+    await request("capacity:done", "test/completeTurn", { threadId });
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal((await request("capacity:after-success", "test/readAcceptedInputs", {})).data.length, 3);
+  } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("new user input cancels a pending capacity continuation", async () => {
+  const root = await mkdtemp(join(tmpdir(), "opencraft-capacity-cancel-")), frames: Array<Record<string, unknown>> = [];
+  const adapter = createRoutingAdapter(root, frames);
+  const request = async (id: string, method: string, params: Record<string, unknown>) => {
+    await adapter.send(JSON.stringify({ id, method, params, [LOGICAL_CLIENT_FIELD]: "writer" }));
+    const response = await waitFor(frames, frame => frame.id === id);
+    assert.equal(response.error, undefined);
+    return response.result as any;
+  };
+  try {
+    await adapter.connect(); await initializeClient(adapter, frames, "writer");
+    const threadId = (await request("cancel:create", "thread/start", { cwd: root, testNoServerRequest: true })).thread.id;
+    await request("cancel:initial", "turn/start", { threadId, input: [{ type: "text", text: "First" }] });
+    await request("cancel:fail", "test/completeTurn", { threadId, codexErrorInfo: "serverOverloaded" });
+    await request("cancel:manual", "turn/start", { threadId, input: [{ type: "text", text: "New direction" }] });
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal((await request("cancel:inputs", "test/readAcceptedInputs", {})).data.length, 2);
+  } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
+});
 
 test("Codex Host titles a new conversation after its View disconnects, without leaking the inference Thread", async () => {
   const root = await mkdtemp(join(tmpdir(), "opencraft-auto-title-")), frames: Array<Record<string, unknown>> = [];
