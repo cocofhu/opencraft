@@ -1,5 +1,40 @@
 # Source provenance review
 
+## Keyword and source-risk cleanup (2026-10-19)
+
+The current request resumes targeted source-risk review of Codex, ChatGPT, BB
+and Paseo references in the GitHub upstream. Preserve working integrations and
+the complete client. The earlier removal of cleanup from the migration
+prerequisites remains a historical migration decision; it does not resolve the
+outstanding inventory or prevent this separate cleanup. Blanket rewriting is
+still outside this bounded pass.
+
+The reviewed baseline is `13498b18b258fb7f4a95d7de6d98e8e3b712706d`.
+Case-insensitive searches of tracked source and documentation distinguish:
+
+| Occurrence | Treatment and remaining evidence |
+| --- | --- |
+| Codex engine adapters, ChatGPT authentication, provider endpoints and generated AppServer protocol | Retained compatibility interfaces. Do not rename wire values, account headers, credential fields or durable identifiers as cosmetic cleanup. A valid integration name does not establish rights in other implementations. |
+| Generic command/network approval prompts and automatic-review fallback summaries | Remove the hardcoded ChatGPT identity. Fallback review summaries now derive from the reported review status, with separate approval and denial outcomes; a supplied rationale still takes precedence. This is a bounded presentation change, not disposition of a recovery inventory group. |
+| BB and Paseo comments, design comparisons and source records | Retained as review evidence. Current keyword matches do not establish imported expression, its license, or independent authorship. Review actual lineage before changing their disposition; deleting the names would not establish rights. |
+| Codex renderer recovery/adaptation annotations and import map | Retained. Five inventory groups remain unverified: renderer import map, shell follow-up, timeline virtualizer, timeline adapters and tool-surface fallbacks. The first follow-up should inspect the mapped Shell/Composer/theme/conversation targets and their pinned source bindings, then the timeline packages and remaining tool regions. |
+| Existing third-party licenses, notices, excluded artwork records and historical source bindings | Retained. Neither a text edit nor a passing integrity check clears historical source or distribution rights. |
+
+Authoring inputs for the new fallback summaries are the existing
+`AutomaticApprovalReview.status` and `rationale` fields; for approval prompts,
+the existing command/reason and network destination fields. No external reference
+implementation is introduced by this pass. Tests cover all five review states,
+blank versus supplied rationale and the replica's default command prompt.
+Existing network projection tests continue to verify protocol-supplied titles.
+This does not assert clean-room development or classify either entire module.
+
+`check-source-provenance.mjs` validates inventory integrity. Its `--release`
+mode still reports the five unresolved groups; this pass changes none of their
+statuses. No license grant, repository visibility change, release, npm publication,
+history rewrite or downstream deployment is part of this cleanup. Actual rights
+assessment remains separate from keyword counts and software tests.
+
+
 > Historical source inventory. On 2026-10-18 the owner removed source cleanup
 > from the migration scope. No further replacement work is required for the
 > GitHub upstream cutover; existing records are retained without changing their

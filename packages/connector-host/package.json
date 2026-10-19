@@ -13,6 +13,6 @@
     "@opencraft/connector-core": "0.1.0",
     "@opencraft/sqlite-node": "0.1.0",
     "@modelcontextprotocol/sdk": "1.32.1",
-    "undici": "^7.16.0"
+    "undici": "^8.12.2"
   }
 }
