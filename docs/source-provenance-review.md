@@ -1,5 +1,19 @@
 # Source provenance review
 
+## Turn diff summary replacement (2026-10-19)
+
+[The complete turn-diff summary module](provenance/turn-diff-replacement.md) now
+has its own bounded replacement record. Its historical path is retained as a
+partial disposition of `codex-chat-semantics-followup`; the other six files in
+that group stay unverified. The three-group, 15-file inventory snapshot below
+is historical: replacing one file does not retire any unresolved group. Eight
+unresolved groups still block source-provenance release readiness.
+
+The requirement commit precedes implementation. Tests and black-box observations
+cover summaries; actual browser probes cover the synthetic change-card fixture.
+The unchanged full visual smoke also fails on baseline (header geometry), as
+recorded in the disposition. No strict clean-room or legal clearance is claimed.
+
 ## Continuing independent replacements and inventory coverage (2026-10-19)
 
 The owner now requests continued clean-room-style work and normal upstream

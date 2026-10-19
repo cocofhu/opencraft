@@ -174,7 +174,6 @@
         "packages/chat-core/src/agent-activity.ts",
         "packages/chat-core/src/mcp-elicitation.ts",
         "packages/chat-core/src/realtime-transcript.ts",
-        "packages/chat-core/src/turn-diff.ts",
         "packages/chat-core/src/turn-user-message-normalization.ts",
         "packages/chat-core/src/user-message.ts"
       ],
@@ -189,7 +188,15 @@
         "packages/chat-core/src/user-message.ts"
       ],
       "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
-      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
+      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion.",
+      "partialDispositions": [
+        {
+          "path": "packages/chat-core/src/turn-diff.ts",
+          "replacement": "turn-diff-presentation",
+          "evidence": "docs/provenance/turn-diff-replacement.md",
+          "historicalBlob": "96c4954432fafbf0675c2ee1d66e20197f7c0291"
+        }
+      ]
     },
     {
       "id": "codex-document-streaming-followup",
@@ -228,6 +235,21 @@
       ],
       "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
+    },
+    {
+      "id": "turn-diff-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/turn-diff.ts"
+      ],
+      "evidence": [
+        "docs/provenance/turn-diff-replacement.md",
+        "tests/chat-turn-diff-summary.test.ts",
+        "tests/workbench-turn-diff-review.test.ts"
+      ],
+      "reason": "The complete summary module formerly carried a source-equivalent annotation. It is replaced from frozen public requirements, consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain the historical blob, requirements commit and actual author exposure. The remaining chat semantics and seven other unresolved groups stay unverified.",
+      "conclusion": "The current module uses Git-section observations and ordered per-path counters for summary presentation. Its entire implementation was independently authored within the documented exposure boundary. This is not strict clean-room isolation, historical-rights clearance or a whole-renderer classification; see the compatibility evidence and browser-validation limits in the disposition."
     }
   ]
 }
