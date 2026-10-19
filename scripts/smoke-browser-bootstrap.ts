@@ -99,10 +99,12 @@ try {
     assert.deepEqual(errors, []);
     // Actual built public Workbench, including application creation/restore.
     await page.goto(`http://127.0.0.1:${port}/`);
-    await page.waitForFunction("document.querySelector('#root')?.childElementCount > 0 && !document.querySelector('#opencraft-bootstrap')", null, { timeout: 60_000 });
+    await page.locator(".app-shell-root").waitFor({ state: "visible", timeout: 60_000 });
+    assert.equal(await page.locator(".runtime-error, .startup-shell").count(), 0);
     assert.equal(await page.locator("#opencraft-release-failure").count(), 0);
     await page.reload();
-    await page.waitForFunction("document.querySelector('#root')?.childElementCount > 0 && !document.querySelector('#opencraft-bootstrap')", null, { timeout: 60_000 });
+    await page.locator(".app-shell-root").waitFor({ state: "visible", timeout: 60_000 });
+    assert.equal(await page.locator(".runtime-error, .startup-shell").count(), 0);
     assert.equal(await page.locator("#opencraft-release-failure").count(), 0);
     assert.deepEqual(errors, []);
     await context.close();
