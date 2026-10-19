@@ -17,5 +17,10 @@
     "suffixSha256": "a848372e5c418f74e38849c4c2ccd8792a43c1a4eaaf26726bcc9a244bcc9186"
   },
   "scope": "Complete explicitly copied manager class only, preserving the factory/port binding wrapper, existing adapter, host, transition, presets and toolbar. Every class method/property consumer contract must be inventoried, not only the currently tested storage/claim methods.",
-  "exposure": "Selected source header/declaration, one-line generic declaration, historical manifest, AST member names/parameter metadata, existing tests, complete thin port adapter and formal architecture inspected. The old target body is not printed as authoring input in this bounded pass. Other recovered modules and manager/host call sites have been visible during the long session. No strict author isolation or historical-rights claim."
+  "exposure": "Selected source header/declaration, one-line generic declaration, historical manifest, AST member names/parameter metadata, existing tests, complete thin port adapter and formal architecture inspected. The old target body is not printed as authoring input in this bounded pass. Other recovered modules and manager/host call sites have been visible during the long session. No strict author isolation or historical-rights claim. Subsequently inspected the complete BrowserPresentationCoordinator and untouched factory port bindings outside the selected class. Initial opaque execution records constructor events and 16 default getters; this is not complete method/lifecycle coverage.",
+  "initialObservations": {
+    "sha256": "255f898d6c766de7259cea5b47d6713278a784641084d05f51118cb6d90353f4",
+    "getterCalls": 16,
+    "completeCoverage": false
+  }
 }

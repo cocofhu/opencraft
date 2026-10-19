@@ -40,3 +40,22 @@ current source classification or a rights conclusion. Prior author exposure is
 recorded; strict author isolation and historical rights remain unverified. Eight
 unresolved groups remain open. No Join pin or running version is changed by this
 next candidate, which follows the separate Hook/dictation batch already in CI.
+
+## Consumer inventory and initial execution
+
+The current adapter is instantiated only by BrowserPresentationCoordinator and
+the existing manager test. The coordinator owns Page/backing/use factories,
+logical close, present/measure/dispose handles, page snapshot subscriptions,
+storage restore, layout projection and deferred mount detach. Its late ready
+callback checks the same current presentation record before attachment. The
+manager class has 60 method declarations plus state fields and subscribe; direct
+consumer call counts alone do not cover constructor-routed events and internal
+lifecycle helpers. No target body has been printed in this bounded pass; the
+factory port bindings outside the class were read as integration contract.
+
+Opaque initial execution records nine router topics, window focus/document
+visibility handlers and sixteen default getter observations. Renderer/storage IDs
+are mocked as deterministic opaque identities. This initial sample does not
+exercise Host creation, asynchronous registration, transfer, destruction, media
+projection or the complete class. Those remain explicit observation work before
+implementation. No runtime implementation or source classification has changed.
