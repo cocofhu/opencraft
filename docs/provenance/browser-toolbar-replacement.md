@@ -109,3 +109,13 @@ inputs; it does not reset them to the preset catalog's default size. These are
 consumer compatibility facts locked before authoring, not inferred specifications
 for a new validation owner. The initial rotation wording above is corrected using
 the wider pre-authoring matrix, with all original observation files retained.
+
+
+## Controlled parent without immediate acknowledgement
+
+Before implementation, the same 258-case browser matrix also runs with mode
+actions recorded but not acknowledged through props. This preserves the separation
+between local numeric text and parent-owned mode values; the complete callback,
+focus, validity and input outputs are locked separately. No product code changed
+for either observer. Both acknowledgement variants are required comparisons for
+the replacement; neither can substitute for the other.

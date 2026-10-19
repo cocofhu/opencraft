@@ -69,6 +69,14 @@
       "cases": 258,
       "actualChromium": true,
       "performedBeforeAuthoring": true
+    },
+    {
+      "path": "matrix-noack-before/observations.json",
+      "sha256": "8fd8364f15994af25e965e9cff59020cddb4ee6fb75aa04609d7503b3fb690c1",
+      "cases": 258,
+      "actualChromium": true,
+      "performedBeforeAuthoring": true,
+      "parentAcknowledges": false
     }
   ]
 }
