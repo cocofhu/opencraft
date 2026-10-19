@@ -105,3 +105,10 @@ The complete combined 5793 cases have raw SHA256 `5d820d436c86b1ecab8d245ad2d3ef
 Original 4,065-case evidence remains retained. Inspection also confirmed duplicate
 measurements retain per-input baseline accumulation and pending decisions carry
 across batches; neither is replaced by deduplication or a guessed final-height delta.
+
+Final before-authoring refinement adds row bottom/top/distance edges and pending
+restore/preservation handoffs, including repeated latest-row batches. All
+6189 cases have raw SHA256 `b3262256fa2989ceafe00898e88274d74df9f6d968123d582f178cc45d04ff0f`. Earlier files remain retained;
+no selected implementation body has yet been read or authored. The existing
+current synchronous distance (excluding padding) gates measured-row compensation,
+and previous latest-height notification accumulates across uncommitted batches.
