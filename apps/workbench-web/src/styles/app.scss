@@ -12646,6 +12646,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
     .codex-composer-mode__effort-label,
     .codex-composer-mode--permissions,
     .codex-composer-mode--static { display: none; }
-    .codex-composer-editor { text-align: center; }
+    // Vertical row centering must not move the empty native caret
+    // away from the placeholder at the paragraph start.
+    .codex-composer-editor { text-align: start; }
   }
 }

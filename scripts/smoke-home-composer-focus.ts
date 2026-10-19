@@ -39,7 +39,6 @@ try {
     assert(geometry.box.height<=70,'default Composer must remain one control row: '+JSON.stringify(geometry));
     assert(Math.max(...geometry.children.map(x=>x.center))-Math.min(...geometry.children.map(x=>x.center))<=2,'default row vertical alignment: '+JSON.stringify(geometry));
     assert(geometry.children.every(x=>x.x>=geometry.box.x&&x.right<=geometry.box.right),'default row stays inside shell');
-    assert.equal(await editor.evaluate(el=>getComputedStyle(el).textAlign),'center');
     const trigger=page.locator('.codex-composer-mode--depth');await trigger.tap();
     const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
     await menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true}).tap();
@@ -49,6 +48,25 @@ try {
     assert(await editor.evaluate(el=>el===(window as any).keptEditor),'empty menu keeps editor identity');
     await page.screenshot({path:`${output}/${label}-empty.png`});
   }
+  const assertEmptyCaretOrigin=async()=>{
+    const geometry=await editor.evaluate(el=>{
+      const selection=getSelection()!,native=selection.getRangeAt(0);
+      const paragraph=el.querySelector('.codex-composer-placeholder')!;
+      const box=paragraph.getBoundingClientRect(),style=getComputedStyle(paragraph);
+      // Chromium exposes an empty line through its BR box when a collapsed
+      // native Range has no rectangle. This probe never changes Selection/DOM.
+      const line=native.cloneRange();line.selectNodeContents(paragraph);
+      const caret=native.getClientRects()[0]??line.getClientRects()[0];
+      return {collapsed:selection.isCollapsed,inside:el.contains(selection.anchorNode),focused:document.activeElement===el,
+        caret:caret?.toJSON(),start:box.left+parseFloat(style.paddingLeft),box:box.toJSON()};
+    });
+    assert(geometry.collapsed&&geometry.inside&&geometry.focused,'empty editor retains native selection: '+JSON.stringify(geometry));
+    assert(geometry.caret&&geometry.caret.height>0,'empty native line has measurable geometry: '+JSON.stringify(geometry));
+    assert(Math.abs(geometry.caret.x-geometry.start)<=1,'empty caret must meet placeholder start: '+JSON.stringify(geometry));
+    return geometry;
+  };
+  const emptyCaretEvidence=[];
+  emptyCaretEvidence.push(await assertEmptyCaretOrigin());
   await editor.pressSequentially("保留当前草稿");
 
   const assertNativeSelection=async()=>{
@@ -97,8 +115,15 @@ try {
    await page.evaluate(()=>{(window as any).fixture.controller.dispatch({type:"remove-attachment",id:"image"});(window as any).setViewport(844,0);});await page.waitForTimeout(150);
   }
   await editor.focus();await editor.press("ControlOrMeta+A");await editor.press("Backspace");await page.waitForFunction(()=>document.querySelector<HTMLElement>(".codex-composer-stack")?.dataset.composerEmpty==="true");await page.waitForTimeout(150);assert.equal((await shell.boundingBox())!.height,initial.height,JSON.stringify({initial,final:await shell.boundingBox(),parts:await shell.evaluate(el=>Array.from(el.children).map(c=>({class:c.className,box:c.getBoundingClientRect().toJSON()})))}));
+  // Delete the last character with the keyboard raised, rather than fill('').
+  await page.evaluate(()=>(window as any).setViewport(360,54));
+  await editor.pressSequentially('删空');await editor.press('Backspace');await editor.press('Backspace');
+  await page.waitForFunction(()=>document.querySelector<HTMLElement>('.codex-composer-stack')?.dataset.composerEmpty==='true');
+  emptyCaretEvidence.push(await assertEmptyCaretOrigin());
+  assert(await editor.evaluate(el=>el===(window as any).keptEditor),'deleting to empty keeps editor identity');
+  await page.evaluate(()=>(window as any).setViewport(844,0));
   if(test.width===390&&!test.ordinary)await page.screenshot({path:`${output}/${label}.png`});assert.deepEqual(errors,[]);
-  evidence.push({test,initial,focused,content,header,viewportEvidence});console.log("PASS",label);await context.close();
+  evidence.push({test,initial,focused,content,header,viewportEvidence,emptyCaretEvidence});console.log("PASS",label);await context.close();
  }
  await writeFile(`${output}/${before?"before":"after"}.json`,JSON.stringify(evidence,null,2));
 }finally{await browser.close();await vite.close();}

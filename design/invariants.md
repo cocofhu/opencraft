@@ -1690,3 +1690,8 @@ with a one-line editor minimum and no flex-grown blank input area. Clearing text
 and attachments restores the row with the same editor node. Selection bounds are
 checked within each layout; equal coordinates across intentionally different
 content layouts are not a caret-correctness contract.
+
+Vertical row alignment never centers the editor's inline text. The empty native
+caret and placeholder share the paragraph's logical start; typing and deleting
+the final character (also with the keyboard raised) must restore that origin
+without replacing the editor, moving Selection or drawing a substitute caret.
