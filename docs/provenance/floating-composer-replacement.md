@@ -58,7 +58,8 @@ Implementation and actual verification will follow this separate requirements co
 ## Implementation and compatibility refinements
 
 Frozen requirements commit: `9d41771`.
-Complete implementation and four added contract tests: `3f6a6004a76bb9b72dcdface7042d8801ff7c689`.
+Initial complete implementation and four added contract tests: `3f6a6004a76bb9b72dcdface7042d8801ff7c689`.
+Release/eviction settling refinement and fifth contract test: `7ba4dd4`.
 The requirements commit precedes implementation. No previous target body was
 opened during this replacement; the public declarations include inferred cleanup
 return types, avoiding the earlier code-surface extraction ambiguity.
@@ -85,19 +86,26 @@ rewriting the frozen requirements above:
   initiating magnitude. The decay observation latches for the gesture lifetime;
   acceleration checks start at 200 ms, with a strict increase above last delta + 8.
 
+A final lifecycle audit found release and eviction must settle pending animation,
+even for subscribed owners being released. The merge watcher was stopped before
+this correction; the expanded registry matrix also tracks retained store snapshots
+through animated hide/show. The initial registry matrix checked only identity and
+subscriber retention, so it did not detect this omission. The corrected head is
+validated and pushed before normal merge.
+
 Initial development comparisons exposed these differences, and were corrected
 before final acceptance. No assertion was weakened to hide a mismatch.
 
 ## Verification and limits
 
-- An untracked deterministic black-box harness compares **21,412** old/new cases:
+- An untracked deterministic black-box harness compares **21,812** old/new cases:
   6,912 snapshot/input projections, 2,400 operation sequences with fake timers,
   snapshot/map identity, publications and queued deadlines, 12,000 wheel event
-  sequences and 100 registry/subscriber operation sequences. Zero final
+  sequences and 500 registry/subscriber/transition operation sequences. Zero final
   differences. This is finite compatibility evidence, not exhaustive equivalence
   or proof of source rights.
-- **31 tests pass**: 11 floating composer tests, 10 workspace presentation tests
-  and 10 provenance tests. The four added contracts cover readiness/global intent,
+- **32 tests pass**: 12 floating composer tests, 10 workspace presentation tests
+  and 10 provenance tests. The five added contracts cover release/eviction settling, readiness/global intent,
   focus/automatic intent, retention recency and wheel timing/peak boundaries.
 - Web typecheck and platform/typography/activity boundary checks pass. The updated
   provenance inventory has no uncovered known annotations; its 10 tests also pass
@@ -110,7 +118,9 @@ before final acceptance. No assertion was weakened to hide a mismatch.
   reveal, bounded response preview and light/dark panel layouts at 1280/800 widths.
 - An untracked copy adds explicit DOM object identity assertions through panel
   relocation, browser presentation, hide/reveal and before submit. It passes with
-  normal animation. The latest-turn dark screenshot was visually inspected.
+  normal animation. The DOM continuity probe, Web types, expanded matrix and all
+  32 tests pass again after the release/eviction refinement. The latest-turn dark
+  screenshot was visually inspected.
   Local logs/artifacts are `/tmp/opencraft-floating-web-{reduced,normal}.log`,
   `/tmp/opencraft-floating-dom-continuity.log` and
   `/tmp/opencraft-floating-dom-continuity/`; these are local evidence, not portable
