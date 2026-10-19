@@ -52,7 +52,7 @@ test("all workspace packages use OpenCraft without old scope aliases", () => {
 });
 
 
-test("three hosts agree on branding but retain installed application identity", () => {
+test("three public hosts agree on OpenCraft branding and identity", () => {
   const electron = json("apps/workbench-electron/package.json");
   const expo = json("apps/workbench-expo/app.json").expo;
   assert.equal(electron.build.productName, desktopProduct.displayName);
@@ -63,7 +63,7 @@ test("three hosts agree on branding but retain installed application identity", 
   assert.equal(expo.ios.bundleIdentifier, "dev.opencraft.workbench");
   assert.match(read("apps/workbench-web/index.html"), /<title>OpenCraft<\/title>/u);
   assert.equal(desktopProduct.profileDirectoryName, "OpenCraft");
-  assert.deepEqual(desktopProduct.legacyProfileDirectoryNames, ["@vela/workbench-electron"]);
+  assert.deepEqual(desktopProduct.legacyProfileDirectoryNames, []);
   const main = read("apps/workbench-electron/src/main.ts");
   assert.ok(main.indexOf("prepareDesktopDirectories") < main.indexOf("app.requestSingleInstanceLock()"));
   assert.ok(main.indexOf('appendSwitch("user-data-dir"') < main.indexOf("app.requestSingleInstanceLock()"));
@@ -73,9 +73,9 @@ test("three hosts agree on branding but retain installed application identity", 
   assert.match(main, /preparedDirectories\.status === "legacy-active"/u);
   assert.deepEqual(resolveDesktopProduct("OpenCraft"), desktopProduct);
   assert.deepEqual(resolveDesktopProduct("OpenCraft Preview"), desktopPreviewProduct);
-  assert.equal(desktopPreviewProduct.applicationId, "ai.lightvela.vela.preview");
+  assert.equal(desktopPreviewProduct.applicationId, "dev.opencraft.workbench.preview");
   assert.equal(desktopPreviewProduct.profileDirectoryName, "OpenCraft Preview");
-  assert.deepEqual(desktopPreviewProduct.legacyProfileDirectoryNames, ["@vela/workbench-electron-preview"]);
+  assert.deepEqual(desktopPreviewProduct.legacyProfileDirectoryNames, []);
   assert.match(main, /resolveDesktopProduct\(executableName\)/u);
 });
 

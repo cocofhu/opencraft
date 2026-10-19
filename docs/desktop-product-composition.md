@@ -4,20 +4,28 @@ The public Electron client owns the window, tray, profile directories, trusted
 top-level-frame admission, protocol registration and daemon connection. It does
 not create a private product account or expose a private account preload bridge.
 
-A downstream build selects a **pair of local source entries**:
+A downstream build selects **three local source entries**:
 
 ```sh
 OPENCRAFT_DESKTOP_PRODUCT_MAIN_ENTRY=/absolute/product/main-entry.ts \
 OPENCRAFT_DESKTOP_PRODUCT_PRELOAD_ENTRY=/absolute/product/preload-entry.ts \
+OPENCRAFT_DESKTOP_PRODUCT_IDENTITY_ENTRY=/absolute/product/identity-entry.ts \
+OPENCRAFT_DESKTOP_PRODUCT_IDENTITY_CONFIG=/absolute/product/identity.json \
 npm run build:electron:host
 ```
 
-Both entries are required when either is supplied. Invalid, missing or remote
+All three entries and the matching identity config are required. Invalid, missing or remote
 entries fail the build. They are statically bundled into Main/Preload, not loaded
 from a runtime URL or renderer configuration. Relative paths resolve from the
 core repository root. The normal public build requires no downstream checkout.
 
-Main exports `createDesktopProduct: DesktopProductFactory`; Preload exports
+Identity exports `resolveDesktopProduct(name): DesktopProductIdentity` and reads
+the selected JSON config. The packaging hook checks the selected application ID
+and product name against the identity recorded with the built Main bundle.
+The downstream product owns
+installed application IDs and legacy profile migration inputs. Core provides an
+independent OpenCraft default with no Vela migration path. Main exports
+`createDesktopProduct: DesktopProductFactory`; Preload exports
 `createDesktopPreload: DesktopPreloadFactory`. The typed contract is
 `apps/workbench-electron/src/product-contract.ts`. A trusted product receives its
 resolved profile directory, application-owned private file storage, system-browser
