@@ -36,6 +36,8 @@
   --height-composer-rail-row: 28px;
   --height-composer-queue-row: var(--height-composer-rail-row);
   --padding-composer-rail-row: 0 10px;
+  --gap-composer-floating-summary: calc(var(--spacing) * 2);
+  --padding-composer-floating-summary: 0 calc(var(--spacing) * 3);
   --blur-composer-rail: 20px;
   --saturation-composer-rail: 112%;
   --color-background-composer-rail-opaque: var(--color-background-elevated-secondary-opaque);

@@ -1141,10 +1141,11 @@ Touch Header panel entrances use one shared outer-edge spacing token (2px), boun
 - Conversation list schedule markers consume the Host schedule summary rather than issuing row-owned reads. Active/paused use one neutral 16px clock after the truncating title and before participant chrome, with no animation, extra row height or independent touch target. The tooltip/accessibility label conveys next-run, paused or needs-checking state. Execution activity retains its separate owner and slot; configuring a plan never changes a conversation’s section; running is row feedback, not a section.
 
 ## Composer attached rail
-The queue and live file summary are siblings in the above-composer rail, after queue then live summary; they are not transcript blocks or independently floating cards. One rail owns the soft theme-derived translucent material, 80% border, top 16px corners and 4px tuck behind the foreground editor. The live file summary aligns to the rail content start using the shared row inset, including narrow and floating composers. Internal projections are transparent rows with separators; no per-item pill, shadow or perimeter. Geometry belongs to design-system rail tokens and colors to the theme engine, including custom input surface overrides. Empty content produces no height, border or tuck. The rail follows the composer through floating/keyboard placements; queue mutation and diff review ownership remain unchanged.
+The queue and goal remain in the attached rail. The active Turn's file summary is a separate, content-width pill centered above that rail and editor, with the shared floating-summary gap, full radius, theme opaque elevated material, subtle border and low elevation. It never shares the attached rail's perimeter, tuck or mask. Long labels truncate while diff counts remain visible; narrow/floating/keyboard placements follow the actual Composer. Empty summary adds no height. Approval replacement retains the same independent summary. File review, counters, draft and queue ownership do not change. Geometry and material consume design-system tokens. `scripts/smoke-composer-attached-rail.ts` covers occupancy, separation, themes, review and draft identity.
+
 
 ## Touch Newera composer
-`chat.touchNewera` is an installation UI preference: absent a saved choice, standalone workbench defaults on and embedded workbench defaults off; only the conjunction of enabled preference and touch density selects this presentation. The existing density binding projects it to the document; components do not read storage or create a second draft. Theme-derived Newera tokens own the restrained translucent material, highlight, blur, radius and geometry, with opaque fallbacks for unsupported/reduced transparency and forced colors. The attached queue/diff rail has its own translucent material in both desktop and touch layouts, independently of Newera and editor material.
+`chat.touchNewera` is an installation UI preference: absent a saved choice, standalone workbench defaults on and embedded workbench defaults off; only the conjunction of enabled preference and touch density selects this presentation. The existing density binding projects it to the document; components do not read storage or create a second draft. Theme-derived Newera tokens own the restrained translucent material, highlight, blur, radius and geometry, with opaque fallbacks for unsupported/reduced transparency and forced colors. The attached queue/goal rail has its own translucent material in both desktop and touch layouts, independently of Newera and editor material.
 An empty editing draft with no attachments, transient text or suggestions stays
 one line through editor focus, autofocus, toolbar and portaled menu focus. Focus
 is input ownership, not a layout expansion signal. Actual draft content,
@@ -1167,8 +1168,9 @@ focus; material variables select ordinary/Newera and opaque accessibility fallba
 Scrolling or keyboard viewport updates must not rewrite the selection, recreate the
 EditorView or blur/refocus it to repair painting.
 
-Desktop Web keeps the editor opaque while touch editors use glass; queue and file
-summary rails use their own theme glass on both, independent of the Newera switch.
+Desktop Web keeps the editor opaque while touch editors use glass; queue/goal
+rails use their own theme glass on both, independent of the Newera switch. The
+separate live file pill uses an opaque theme elevated surface.
 The footer must not put an opaque gradient between rails and scrolling content.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices

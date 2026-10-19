@@ -277,7 +277,7 @@ controls without resetting the objective draft. User objectives remain unchanged
 
 
 Existing Goals occupy a quiet row in the Composer's existing attached rail,
-sharing its perimeter/material with the queue and file summary. Desktop capacity
+sharing its perimeter/material with the queue. The independent live file pill sits above the rail. Desktop capacity
 shows status, truncated objective, compact localized elapsed time, pause/resume,
 edit and an actions menu. A narrow Composer container hides the objective and
 inline edit action; the same actions remain available in the menu and touch
@@ -418,7 +418,7 @@ Native 的实时 Thinking 在 Turn 等待占位与 Activity 组之间交接时�
 
 ### Changed-file review
 
-The Turn's existing unified diff remains the read authority for its changed-file summary. ChatUI renders a lightweight in-progress entry and a completed resource card; it only emits an open intent. In the Web Workbench, the actual Composer owns the active Turn's live entry above the editor, including when that Composer floats over a panel. The live entry aligns to the start of the attached rail’s content inset, alongside the queue and goal text axis, rather than centering a separate status line. Its exact Turn identity suppresses duplicate live resources in the main and mini transcript; it is presentation routing, not a second execution or resource owner. Standalone Conversation consumers retain inline presentation. On completion, the same resource appears as the transcript's completed card. The Workbench owns the read-only Review dialog, keeps it tied to the active Thread, and projects the current Timeline block while streaming. File selection filters that existing diff for display; it does not create a second TurnDiff model or mutate the workspace. Undo/Reapply is not advertised until a real Host apply-patch capability is connected.
+The Turn's existing unified diff remains the read authority for its changed-file summary. ChatUI renders a lightweight in-progress entry and a completed resource card; it only emits an open intent. In the Web Workbench, the actual Composer owns the active Turn's live entry above the editor, including when that Composer floats over a panel. The live entry is a compact, content-width pill centered above the Composer with a visible gap, independent of the attached queue/goal rail and its material. The same placement remains when approval replaces the editor. Its exact Turn identity suppresses duplicate live resources in the main and mini transcript; it is presentation routing, not a second execution or resource owner. Standalone Conversation consumers retain inline presentation. On completion, the same resource appears as the transcript's completed card. The Workbench owns the read-only Review dialog, keeps it tied to the active Thread, and projects the current Timeline block while streaming. File selection filters that existing diff for display; it does not create a second TurnDiff model or mutate the workspace. Undo/Reapply is not advertised until a real Host apply-patch capability is connected.
 
 The Web resource presentation follows Codex 26.930.31428/build 12913's original
 Renderer, not recovered analysis modules: square-plus-minus glyph in a 40px
@@ -1990,20 +1990,20 @@ Scroll/viewport regressions verify selection and adjacent-character geometry wit
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.
 
-Queue/diff rails use independent theme glass tokens on desktop Web and touch,
+Queue/goal rails use independent theme glass tokens on desktop Web and touch,
 regardless of Newera. Desktop editors stay opaque; touch editors use their own glass.
 Both have non-interactive background layers and opaque accessibility fallbacks;
 no footer gradient may mask the rail's backdrop. The rail glass ends at the editor
 seam to avoid double tinting the tuck. Material choices do not alter queue ownership.
 
-Queue and live-diff accessory rows have their own compact density: 28px on desktop,
+Queue rows and the independent live-diff pill have their own compact density: 28px on desktop,
 36px for touch queue rows and 32px for touch diff summaries, with no block padding.
 The queue viewport is bounded to three rows plus its optional status header and
 scrolls internally. Keep text roles, count animation and queue actions intact;
 do not compress the Goal surface or editor to obtain this density. The shared rail
 uses 94% theme material coverage (editor glass is independent), so the moving
 transcript does not compete with accessory text. Reduced-transparency and
-unsupported-filter fallbacks remain opaque.
+unsupported-filter fallbacks remain opaque. The live-diff pill uses its own opaque elevated theme surface and does not share the rail glass.
 
 Newera defaults belong to the Workbench entry's preference runtime: standalone on,
 embedded off when no valid user choice exists. Defaults are not stored on startup;

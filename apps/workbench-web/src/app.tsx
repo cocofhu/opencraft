@@ -36,7 +36,6 @@ import {
 import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
 import {
   CodexComposer,
-  ComposerAttachedRail,
   type ComposerSelectionCatalog,
 } from "@opencraft/codex-composer";
 import { asHostId, asTurnId, deriveAsyncQuestionStates, findPendingInteraction, parseAsyncQuestionReply, renderAsyncQuestionReply, type AsyncQuestion, type TimelineSnapshot, type TurnDiffTimelineBlock } from "@opencraft/chat-core";
@@ -2076,7 +2075,8 @@ export function App({
                         portalContainer={portalContainer}
                       >{(goalMenuItem, _goalBusy, goalContent) => (
                       <CodexComposer
-                        attachedContent={<>{goalContent}{composerChangeSummary}</>}
+                        attachedContent={goalContent}
+                        floatingContent={composerChangeSummary}
                         controller={composerController}
                         defaultFollowUpAction={embedded ? "queue" : defaultFollowUpAction}
                         availableFollowUpActions={snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
@@ -2139,7 +2139,7 @@ export function App({
                       )}</ThreadGoalSurface>
                     ) : (
                       <div className="codex-composer-stack">
-                        <ComposerAttachedRail>{composerChangeSummary}</ComposerAttachedRail>
+                        {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}
                           onRespondInteraction={respondToInteraction}
