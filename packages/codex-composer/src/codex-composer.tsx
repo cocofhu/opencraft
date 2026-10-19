@@ -734,6 +734,8 @@ export interface CodexComposerProps {
   addMenuContent?: ReactNode | ((closeMenu: (afterClose?: () => void) => void) => ReactNode);
   /** Host-scoped slash commands shown in the editor and its shortcut menu. */
   shortcutCommands?: readonly ComposerShortcutCommand[];
+  /** Host-owned actions immediately after the shortcut command menu. */
+  entryActions?: ReactNode;
   /** Host-owned trusted extension actions placed before built-in end actions. */
   endActions?: ReactNode;
   catalog?: ComposerCatalog;
@@ -807,6 +809,7 @@ export const CodexComposer = forwardRef<
     floatingContent,
     addMenuContent,
     shortcutCommands,
+    entryActions,
     endActions,
     catalog,
     mentionSuggestionsEnabled = true,
@@ -2321,6 +2324,7 @@ export const CodexComposer = forwardRef<
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             ) : null}
+            {entryActions}
           </div>
           <div
             ref={footerLayout.controlsRef}

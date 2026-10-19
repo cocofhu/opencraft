@@ -291,6 +291,8 @@
   "desktop.paste": "粘贴",
   "panel.close": "关闭预览面板",
   "panel.newBrowser": "新建网页标签",
+  "composer.cloudComputer": "云电脑",
+  "panel.desktopEntry": "云电脑",
   "panel.browser": "网页",
   "panel.fileHint": "点击对话中的文件，即可在这里预览。",
   "panel.restore": "还原面板",

@@ -1614,3 +1614,10 @@ owners. Changing pages does not stop execution.
 Registered navigation and settings icon names remain effective in every
 presentation style. Classic artwork variants, sizes and selected-state strokes
 may differ; generic fallbacks apply only to missing or unsupported names.
+
+### Authorized desktop Composer entry
+
+The command-adjacent desktop entry invokes the existing filtered Panel action for
+the current Conversation. No adapter or resolved target means no entry. Preview-only
+embedded layouts may retain a desktop renderer without exposing file-tree management;
+showing the entry never grants viewing or input authority.

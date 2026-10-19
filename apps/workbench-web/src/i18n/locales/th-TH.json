@@ -48,6 +48,8 @@
   "composer.commands.stop": "หยุดงานปัจจุบัน",
   "composer.commands.help": "คำสั่งทั้งหมด",
   "panel.newBrowser": "แท็บเบราว์เซอร์ใหม่",
+  "composer.cloudComputer": "คอมพิวเตอร์คลาวด์",
+  "panel.desktopEntry": "เดสก์ท็อป",
   "panel.browser": "เบราว์เซอร์",
   "panel.newTab": "แท็บใหม่",
   "panel.fileHint": "คลิกไฟล์ในบทสนทนาเพื่อดูตัวอย่างที่นี่",
