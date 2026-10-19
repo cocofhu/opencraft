@@ -1,5 +1,16 @@
 # Source provenance review
 
+## Turn measurement transaction replacement (2026-10-20)
+
+Only the [explicitly recovered measurement transaction function](provenance/timeline-measurement-replacement.md)
+is independently replaced after frozen requirements, public ports and 6,189
+complete policy/callback/identity cases. All imports, types, adjacent functions
+and Web/Native/shared wrapper implementations stay unchanged. Original hashes,
+source annotation and actual author exposure remain in the bounded record.
+Initial comparison differences are retained and corrected, not hidden by changing
+observers or assertions. Eight inventory groups remain unresolved; this does not
+establish strict author isolation, historical rights or release readiness.
+
 ## History backfill coordinator replacement (2026-10-20)
 
 The complete [explicitly restored coordinator](provenance/timeline-backfill-replacement.md)

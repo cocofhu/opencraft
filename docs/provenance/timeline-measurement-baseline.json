@@ -1,0 +1,132 @@
+{
+  "path": "packages/timeline-virtualizer/src/measurement.ts",
+  "moduleSha256": "604701370aea7d30124ae030f4b3b6e5bf38845b4794514056eb328a9525b7a3",
+  "lines": 268,
+  "declarations": [
+    {
+      "name": null,
+      "kind": "ImportDeclaration",
+      "start": 0,
+      "end": 126,
+      "sha256": "192509de45e7eb9b01563ed97a4b2b83e18c02fb988ad5f36d071382545cb877",
+      "text": "import type {\n  TurnLayout,\n  TurnVirtualizerConfig,\n  VirtualizedTurnEntry,\n  VirtualizedTurnViewportState,\n} from \"./types\";"
+    },
+    {
+      "name": null,
+      "kind": "ImportDeclaration",
+      "start": 127,
+      "end": 300,
+      "sha256": "1460da1f58990e7e7517c039b6ed1d360c43338f951631332961334fc46b1f3a",
+      "text": "import {\n  buildTurnLayout,\n  CODEX_TURN_VIRTUALIZER_CONFIG,\n  compensateDistanceFromBottom,\n  findMeasuredViewportAnchor,\n  updateTurnViewportState,\n} from \"./virtualizer\";"
+    },
+    {
+      "name": null,
+      "kind": "ImportDeclaration",
+      "start": 301,
+      "end": 382,
+      "sha256": "97466fb0e0f98e6b005f8d1cf9fc871e8004d8cd526e84d8e3268a9b04803681",
+      "text": "import { distanceExcludingBottomPadding, isAtVirtualizedBottom } from \"./scroll\";"
+    },
+    {
+      "name": "TurnHeightMeasurement",
+      "kind": "InterfaceDeclaration",
+      "start": 384,
+      "end": 483,
+      "sha256": "fcd48b6362b04c7243d366cbf104a3bc30293d3feab65988a9371077e02cd54a",
+      "text": "export interface TurnHeightMeasurement {\n  readonly turnKey: string;\n  readonly heightPx: number;\n}"
+    },
+    {
+      "name": "LatestTurnMeasurementChange",
+      "kind": "InterfaceDeclaration",
+      "start": 485,
+      "end": 624,
+      "sha256": "8c67a8bb1fee4e5181e96cf6fd507f544fba19693959364963d513c3994f1a96",
+      "text": "export interface LatestTurnMeasurementChange {\n  readonly turnKey: string;\n  readonly heightDeltaPx: number;\n  readonly heightPx: number;\n}"
+    },
+    {
+      "name": "TurnMeasurementTransaction",
+      "kind": "InterfaceDeclaration",
+      "start": 626,
+      "end": 1143,
+      "sha256": "d35b5f90a0b2c4c010cc19dca87a9485d17f8a9567ebcf5f5218865e8843216e",
+      "text": "export interface TurnMeasurementTransaction {\n  readonly measuredHeightsByKey: Readonly<Record<string, number>>;\n  readonly layout: TurnLayout;\n  readonly viewport: VirtualizedTurnViewportState;\n  readonly latestTurnHeightChange: LatestTurnMeasurementChange | null;\n  readonly restoreScrollDistanceFromBottom: boolean;\n  readonly scrollDistanceFromBottomPx: number | null;\n  readonly preservePlatformScrollForNextLayout: boolean;\n  readonly canUseLatestTurnFastPath: boolean;\n  readonly layoutHeightDeltaPx: number;\n}"
+    },
+    {
+      "name": "CreateTurnMeasurementTransactionOptions",
+      "kind": "InterfaceDeclaration",
+      "start": 1145,
+      "end": 1921,
+      "sha256": "fb0f129a3bd878fe4fffbb0036e0df323addacb786b239dde2b61be24a223da3",
+      "text": "export interface CreateTurnMeasurementTransactionOptions<TEntry extends VirtualizedTurnEntry> {\n  readonly entries: readonly TEntry[];\n  readonly measurements: readonly TurnHeightMeasurement[];\n  readonly measuredHeightsByKey: Readonly<Record<string, number>>;\n  readonly layout: TurnLayout;\n  readonly viewport: VirtualizedTurnViewportState;\n  readonly currentDistanceFromBottomPx: number;\n  readonly bottomPaddingPx: number;\n  readonly preserveMeasuredTurnViewport: boolean;\n  /** Stable delegation to the latest-Turn owner. Presence survives restoration. */\n  readonly getPendingRestoreScrollDistanceFromBottomPx: (() => number | null) | null;\n  readonly previousPendingTransaction?: TurnMeasurementTransaction | null;\n  readonly config?: Readonly<TurnVirtualizerConfig>;\n}"
+    },
+    {
+      "name": "ReconcileTurnLayoutViewportOptions",
+      "kind": "InterfaceDeclaration",
+      "start": 1923,
+      "end": 2594,
+      "sha256": "c88103758b43d9da921dc86fe896160a2fbed55205884ba26c5b0165aff8b4d5",
+      "text": "export interface ReconcileTurnLayoutViewportOptions {\n  readonly previousLayout: TurnLayout;\n  readonly nextLayout: TurnLayout;\n  readonly measuredHeightsByKey: Readonly<Record<string, number>>;\n  readonly currentDistanceFromBottomPx: number;\n  readonly viewportHeightPx: number;\n  readonly bottomPaddingPx: number;\n  /** False while follow/response placement owns the viewport. */\n  readonly preserveViewport: boolean;\n  /** A measurement transaction already issued the sole correction for this layout. */\n  readonly layoutOwnedByMeasurement: boolean;\n  /** Restore owns the next platform position and fences normal compensation. */\n  readonly restorePending: boolean;\n}"
+    },
+    {
+      "name": "rekeyTurnMeasurements",
+      "kind": "FunctionDeclaration",
+      "start": 2678,
+      "end": 3819,
+      "sha256": "a63baff907a8907d905d9dd04f87a1c47209f546d6dbc3fc0c288c3b6286ab29",
+      "signature": "export function rekeyTurnMeasurements<TEntry extends VirtualizedTurnEntry>(\n  previousEntries: readonly TEntry[],\n  nextEntries: readonly TEntry[],\n  measuredHeightsByKey: Readonly<Record<string, number>>,\n  stableIdentity: (entry: TEntry) => string,\n): Readonly<Record<string, number>>",
+      "annotation": [
+        "/** Transfer known geometry when a stable row acquires a new protocol locator. */"
+      ]
+    },
+    {
+      "name": "reconcileTurnLayoutViewport",
+      "kind": "FunctionDeclaration",
+      "start": 4054,
+      "end": 5413,
+      "sha256": "c27c576beff64f399ea5e374f4d7ebcd543ac9b8112758a3c301ea6c9ae9770c",
+      "signature": "export function reconcileTurnLayoutViewport({\n  previousLayout,\n  nextLayout,\n  measuredHeightsByKey,\n  currentDistanceFromBottomPx,\n  viewportHeightPx,\n  bottomPaddingPx,\n  preserveViewport,\n  layoutOwnedByMeasurement,\n  restorePending,\n}: ReconcileTurnLayoutViewportOptions): number | null",
+      "annotation": [
+        "/**\n * Reconcile an entry-list layout change that did not originate in a\n * measurement batch. This is the virtualizer's only non-measurement scroll\n * decision; renderers execute its result but do not select anchors themselves.\n */"
+      ]
+    },
+    {
+      "name": "positiveHeight",
+      "kind": "FunctionDeclaration",
+      "start": 5415,
+      "end": 5523,
+      "sha256": "e7d430cca628a78172ec868d4067c7f330a88b42bfa3b15745df5896f97acb67",
+      "signature": "function positiveHeight(value: number): number",
+      "annotation": []
+    },
+    {
+      "name": "createTurnMeasurementTransaction",
+      "kind": "FunctionDeclaration",
+      "start": 5746,
+      "end": 10519,
+      "sha256": "2a0e140a43839c79a97390de1492050084d428e4c28cf5ebafd7160bfb304fb3",
+      "signature": "export function createTurnMeasurementTransaction<TEntry extends VirtualizedTurnEntry>({\n  entries,\n  measurements,\n  measuredHeightsByKey,\n  layout,\n  viewport,\n  currentDistanceFromBottomPx,\n  bottomPaddingPx,\n  preserveMeasuredTurnViewport,\n  getPendingRestoreScrollDistanceFromBottomPx,\n  previousPendingTransaction = null,\n  config = CODEX_TURN_VIRTUALIZER_CONFIG,\n}: CreateTurnMeasurementTransactionOptions<TEntry>): TurnMeasurementTransaction | null",
+      "annotation": [
+        "/**\n * Recovered Codex measurement transaction (the virtualizer's `nt` path) in a\n * platform-neutral form. Every ResizeObserver batch produces one coherent\n * height table, layout, render window and scroll decision.\n */"
+      ]
+    }
+  ],
+  "selected": [
+    "createTurnMeasurementTransaction"
+  ],
+  "selectionBasis": "Only this function has an explicit recovered measurement-transaction declaration; adjacent helpers/types/exports and consumer implementations stay unchanged. Original selected body was not printed or read for authoring.",
+  "beforeAuthoringObservations": {
+    "policy": {
+      "observerSha256": "65c84123156e80ddfc7eeb8e4b8c257d42567f6ea938563feb766defa7f843e1",
+      "outputSha256": "b3262256fa2989ceafe00898e88274d74df9f6d968123d582f178cc45d04ff0f",
+      "cases": 6189
+    },
+    "conversation": {
+      "observerSha256": "d31dd42c81749c4b7ce48fca8040377717607615b5bd1cbbce910796662c3cfc",
+      "outputSha256": "9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5"
+    },
+    "history": {
+      "observerSha256": "1871807a6db3f57973cc90a4e90d9989370da27997c7377a1b20311650f82fbb",
+      "outputSha256": "c287759a150719db6d34c72ec5c9799bd183f267084b6b7d0457f82bc7c66cb9"
+    }
+  }
+}

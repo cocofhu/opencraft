@@ -12,6 +12,19 @@ and frame scheduling. The [bounded replacement contract](provenance/timeline-bac
 records frozen observations and historical provenance without reclassifying other
 timeline code or treating callback identity changes as a new owner.
 
+## Shared Turn measurement transactions
+
+`createTurnMeasurementTransaction` projects one measured batch into the height
+table, layout, viewport and pending scroll/restore decision. It consumes the
+synchronous controller distance, retaining already pending scroll and latest-row
+height notifications across uncommitted batches. Callback presence grants its
+existing ownership even when no restore target is pending. Web executes the
+unchanged synchronous/pending commit paths; Native retains measurement leases
+and frame scheduling. Neither platform adds another compensation policy. The
+[bounded implementation record](provenance/timeline-measurement-replacement.md)
+limits replacement to this explicitly recovered function; adjacent helpers,
+public interfaces and consumers remain unchanged.
+
 ## Trusted Web renderer composition
 
 A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.

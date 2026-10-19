@@ -64,8 +64,8 @@
       "evidence": [
         "packages/timeline-virtualizer/PROVENANCE.md"
       ],
-      "reason": "Historical package inventory records restored reducers, layout and scrolling mechanisms from recovered desktop modules. The current follow.ts and history-backfill.ts have separate bounded independent replacement records; remaining files and historical rights stay unverified.",
-      "resolution": "Review remaining specifically attributed regions individually. Keep historical references, licensed/original code and ordinary compatibility constants; the follow-policy and backfill dispositions does not clear the package or mandate blanket replacement."
+      "reason": "Historical package inventory records restored reducers, layout and scrolling mechanisms from recovered desktop modules. The current follow.ts, history-backfill.ts and the selected createTurnMeasurementTransaction function have separate bounded independent replacement records; remaining files and historical rights stay unverified.",
+      "resolution": "Review remaining specifically attributed regions individually. Keep historical references, licensed/original code and ordinary compatibility constants; the follow-policy, backfill and selected measurement-transaction dispositions does not clear the package or mandate blanket replacement."
     },
     {
       "id": "codex-timeline-adapters",
@@ -841,6 +841,22 @@
       "reason": "The complete explicitly restored history coordinator is replaced after freezing OpenCraft requirements, public declarations, 446 full call-order/Promise/error observations and ten actual Conversation checkpoints. Imports, shared policy and platform adapters are unchanged.",
       "resolution": "Retain historical module/class/member hashes, actual author exposure, failed first parameter mapping and complete raw comparison results. Review other specifically attributed regions separately; eight unresolved groups remain open.",
       "conclusion": "Current independently expressed operation and epoch ownership serialize loads across invalidations and preserve layout barriers, error callbacks and Promise semantics. This bounded implementation replacement does not establish strict author isolation, Native hardware acceptance or historical-rights clearance."
+    },
+    {
+      "id": "timeline-measurement-transaction",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/timeline-virtualizer/src/measurement.ts"
+      ],
+      "evidence": [
+        "packages/timeline-virtualizer/PROVENANCE.md",
+        "docs/provenance/timeline-measurement-baseline.json",
+        "docs/provenance/timeline-measurement-replacement.md",
+        "tests/chat-timeline-virtualizer.test.ts"
+      ],
+      "reason": "Only the explicitly recovered createTurnMeasurementTransaction function is independently replaced after frozen requirements, 6189 complete policy/identity/callback cases and actual Conversation/history baselines. Imports, public types, adjacent functions and all consumers retain their implementations.",
+      "resolution": "Retain historical function/module/declaration hashes, actual exposure and initial 164/15 case differences; compare complete raw outputs and platform consumers. This partial-file disposition does not clear neighboring functions; eight groups remain unresolved.",
+      "conclusion": "Current batch ownership preserves per-input deltas, pending restore/scroll/latest-height decisions and one coherent layout/window projection. Verification remains bounded, without strict author isolation, historical-rights or Native-device claims."
     }
   ]
 }
