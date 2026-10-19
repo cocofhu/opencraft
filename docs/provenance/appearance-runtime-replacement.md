@@ -58,3 +58,45 @@ artwork. This is requirements-first independent replacement with recorded exposu
 not strict clean-room isolation. No external recovered renderer/BB/Paseo body is
 used as an authoring input. Implementation follows this requirements commit;
 public observations, refinements, failures and completed validation follow below.
+
+
+## Public behavior observations before implementation
+
+The original runtime was executed through its exported API in Chromium, using the
+real immutable contribution store. The ordinary lifecycle probe records 27
+snapshots, and fresh-context bootstrap probes record 22 cases × 6 reads for each
+of default presentation and a product policy that defaults to Canvas and hides
+Neutral/Frost. All 264 bootstrap reads completed without page errors.
+
+- Missing/invalid mode storage selects light even when the OS is dark. Only an
+  explicit system preference follows media changes. Existing preference keys
+  remain `vela.appearance-theme` and `vela.appearance-theme-id` in both policies.
+- Missing or whitespace-only theme ID chooses the presentation default. An
+  unavailable persisted ID remains requested while the visible fallback is the
+  presentation default. Reappearing contributions restore the retained intent.
+- Import creates the immutable snapshot without applying document CSS. Repeated
+  initialization reapplies document/native projections without duplicating the
+  media subscription or emitting unchanged snapshot notifications.
+- Descriptors, catalog and snapshots are frozen. Explicit unavailable selection
+  throws without changing selection. Repeating a selection does not notify or
+  write. Connecting an empty contribution store refreshes the catalog and notifies.
+- The explicit-element projection applies mode/classes/theme/compiler CSS only;
+  product presentation belongs to document initialization. Preview returns the
+  selected-mode compiler properties without mutating selection or document CSS.
+- `defaultAppearanceThemeId` preserves a supplied default verbatim, including
+  empty/whitespace strings. This helper behavior is distinct from stored-ID
+  normalization. Compatibility IDs remain internal persisted identifiers.
+
+Probe corrections retained in the working evidence: a real store rejects a
+second live registration with the same ID, so replacement removes the owner
+first; unavailable explicit selection is asserted as a rejection. Initial probe
+startup timeouts are not attributed to the runtime without evidence. A no-window
+Node invocation failed with `ReferenceError: window is not defined`; no SSR
+compatibility claim follows from these browser observations. No target body was
+read to diagnose these probes. Shared compiler/palettes remain unresolved ports.
+
+Evidence digests (temporary executable observations, not a committed new harness):
+
+- `opencraft-appearance-baseline.json` SHA-256 `802a523b3693d68e1097db4014c65e134f7846d4e2ca7df553a7d1a1b909f022`.
+- `opencraft-appearance-bootstrap-baseline.json` SHA-256 `f08e35c7dbf3f20aec686b29b39c4ff0c003affb6305155e45f029d99d6882ac`.
+- `opencraft-appearance-policy-baseline.json` SHA-256 `1ca211de6f06891fe69eacd215cea5f96afce2a708d6449fffcecd616a92b234`.
