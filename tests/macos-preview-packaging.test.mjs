@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
@@ -8,15 +12,35 @@ import {
   previewBuilderArguments,
 } from "../scripts/package-macos-preview.mjs";
 import { signMacosPreview } from "../scripts/sign-macos-preview.mjs";
+const beforePack = createRequire(import.meta.url)("../scripts/check-desktop-target.cjs");
+
+test("packaging rejects a bundle and installer with different identities", async t => {
+  const root = await mkdtemp(join(tmpdir(), "opencraft-package-identity-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, "dist-host"));
+  await writeFile(join(root, "dist-host/main.cjs"), "synthetic main");
+  await writeFile(join(root, "dist-host/desktop-identity.json"), JSON.stringify({
+    production: { displayName: "OpenCraft", applicationId: "dev.opencraft.workbench" },
+    preview: { displayName: "OpenCraft Preview", applicationId: "dev.opencraft.workbench.preview" },
+    mainSha256: createHash("sha256").update("synthetic main").digest("hex"),
+  }));
+  const context = { appDir: root, arch: process.arch === "arm64" ? 3 : 1, electronPlatformName: process.platform,
+    packager: { appInfo: { productName: "OpenCraft", id: "dev.opencraft.workbench" } } };
+  await beforePack(context);
+  context.packager.appInfo.id = "ai.lightvela.vela";
+  await assert.rejects(beforePack(context), /identity mismatch/u);
+  await writeFile(join(root, "dist-host/main.cjs"), "different main");
+  await assert.rejects(beforePack(context), /bundle differs/u);
+});
 
 test("macOS preview packaging isolates identity, output, and signing discovery", () => {
-  assert.equal(PREVIEW_APP_ID, "ai.lightvela.vela.preview");
+  assert.equal(PREVIEW_APP_ID, "dev.opencraft.workbench.preview");
   assert.equal(PREVIEW_PRODUCT_NAME, "OpenCraft Preview");
   assert.deepEqual(previewBuilderArguments("arm64"), [
     "--mac",
     "zip",
     "--arm64",
-    "--config.appId=ai.lightvela.vela.preview",
+    "--config.appId=dev.opencraft.workbench.preview",
     "--config.productName=OpenCraft Preview",
     "--config.directories.output=release/preview",
     "--config.artifactName=OpenCraft-Preview-${version}-${os}-${arch}.${ext}",

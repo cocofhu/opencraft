@@ -48,7 +48,7 @@
     "typescript": "^5.9.3"
   },
   "build": {
-    "appId": "ai.lightvela.vela",
+    "appId": "dev.opencraft.workbench",
     "productName": "OpenCraft",
     "protocols": [{ "name": "OpenCraft login", "schemes": ["opencraft"] }],
     "asar": true,
