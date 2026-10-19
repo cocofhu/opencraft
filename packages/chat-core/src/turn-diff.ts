@@ -10,8 +10,27 @@ export interface TurnDiffSummary {
 function destination(line: string): string | null {
   // Git emits either a whitespace-free token or a quoted path for each side.
   if (/\s$/u.test(line)) return null;
-  const words = line.slice("diff --git ".length).match(/"(?:\\.|[^"\\])*"|[^\s]+/gu);
-  if (words?.length !== 2) return null;
+  const words: string[] = [];
+  let cursor = "diff --git ".length;
+  while (cursor < line.length) {
+    if (/\s/u.test(line[cursor])) { cursor++; continue; }
+    if (words.length === 2) return null;
+    const start = cursor;
+    if (line[cursor] === '"') {
+      cursor++;
+      let closed = false;
+      while (cursor < line.length) {
+        const character = line[cursor++];
+        if (character === "\\") cursor = Math.min(cursor + 1, line.length);
+        else if (character === '"') { closed = true; break; }
+      }
+      if (!closed) return null;
+    } else {
+      while (cursor < line.length && !/\s/u.test(line[cursor])) cursor++;
+    }
+    words.push(line.slice(start, cursor));
+  }
+  if (words.length !== 2) return null;
   let path = words[1];
   if (path.startsWith('"')) {
     const quoted = path.slice(1, -1);

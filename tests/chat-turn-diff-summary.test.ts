@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { createTurnChangeSummary, summarizeTurnDiff } from "../packages/chat-core/src/turn-diff";
 
 const git = (path: string, body: string) => `diff --git a/${path} b/${path}\n${body}`;
@@ -44,4 +45,18 @@ test("card identity, raw diff and execution state retain the public projection c
   }
   assert.equal(createTurnChangeSummary("turn", "complete", "plain text")?.unifiedDiff, "plain text");
   assert.deepEqual(summarizeTurnDiff(diff.replaceAll("\n", "\r\n")), summarizeTurnDiff(diff));
+});
+
+
+test("adversarial quoted headers complete within an isolated process budget", () => {
+  const result = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", String.raw`
+    import { summarizeTurnDiff } from './packages/chat-core/src/turn-diff.ts';
+    for (const slashCount of [1, 2]) {
+      const fragment = String.fromCharCode(92).repeat(slashCount) + '"';
+      summarizeTurnDiff('diff --git "' + fragment.repeat(100_000) + '\n+x');
+    }
+  `], { cwd: new URL("..", import.meta.url), encoding: "utf8", timeout: 5000 });
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
 });

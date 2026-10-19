@@ -79,3 +79,12 @@ not the renderer, other chat semantics, historical commits or legal rights.
 After integrating the hook-statistics and scanner follow-ups, the combined turn-diff,
 chat-core, review, hook, skill-path and provenance suite passed 132 tests. The
 inventory has no structural errors, and all eight unresolved groups remain.
+
+## Security review follow-up
+
+PR #103 CodeQL identified polynomial backtracking in the initial quoted-token
+regular expression on adversarial input. It was replaced with a bounded forward
+character scan, with no dismissal or suppression of the finding. A subprocess
+regression covers 100,000 escaped-quote fragments with one/two backslashes and a
+five-second process timeout. The 160-case compatibility matrix still matches.
+The final combined suite contains 133 passing cases, including this regression.
