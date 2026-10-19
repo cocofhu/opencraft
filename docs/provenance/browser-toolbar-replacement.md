@@ -73,8 +73,9 @@ Observed input semantics are live updates: valid edit changes the caller's mode
 while retaining its raw input text during focus. Enter/blur may submit the current
 value again; Escape does not undo an already acknowledged live update. Empty blur
 restores the prop without issuing a mode action. Preset selection also resets zoom
-to 100 when supported; rotation exchanges current dimensions and selects the
-custom/responsive preset. These observations supersede a speculative transaction
+to 100 when supported. The later fresh-mode rotation matrix establishes that
+rotation exchanges dimensions while preserving the original mode/preset identity,
+including additional fields; the first scene had already selected custom mode. These observations supersede a speculative transaction
 cancellation interpretation in the initial plan; retain caller identity and the
 actual outputs rather than inventing a new interaction contract. The full result
 hashes are locked in the baseline. Supplemental boundaries may be frozen before
@@ -92,3 +93,19 @@ values/validity, focus and bubbled keyboard default-prevention are retained.
 There are no page errors. These are a finite compatibility baseline, not an
 exhaustive branch claim or a new authorization/validation owner. The selected
 source remains at its original hash; no implementation has yet been authored.
+
+
+## Boundary interpretation before authoring
+
+The fresh-component matrix corrects two assumptions in the initial interpretation.
+Live numeric callbacks occur only when the raw numeric value is within the field's
+range, then round to an integer. Below/above-bound input stays local until blur,
+which clamps and commits; blank input restores the current prop without a callback.
+Enter and Escape blur without consuming the bubbled keyboard event. Preset choices
+produce a fresh standard device-mode object (dropping unrelated input fields),
+whereas rotation preserves all existing mode fields and swaps the dimensions.
+Choosing responsive retains exact current dimensions, including zero or fractional
+inputs; it does not reset them to the preset catalog's default size. These are
+consumer compatibility facts locked before authoring, not inferred specifications
+for a new validation owner. The initial rotation wording above is corrected using
+the wider pre-authoring matrix, with all original observation files retained.
