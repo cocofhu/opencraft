@@ -11964,6 +11964,16 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 .app-shell-floating-overlay-root[data-mobile-sidebar] {
+  // Keep all conversation rows in the same DOM and scroll order, but let the
+  // browser skip layout and paint for rows outside the mobile drawer viewport.
+  // Large catalogs otherwise delay the first frame when the drawer opens.
+  @supports (content-visibility: auto) and (contain-intrinsic-size: auto 56px) {
+    .sidebar-activity-row {
+      content-visibility: auto;
+      // The complete touch row measures 56px (including its action lane).
+      contain-intrinsic-size: auto 56px;
+    }
+  }
   // A portal has no window-material ancestor. Composite the theme's Sidebar
   // material over its window backing once, rather than borrowing main content.
   --shell-mobile-sidebar-background: linear-gradient(var(--codex-sidebar-material-background), var(--codex-sidebar-material-background)), var(--codex-window-material);
