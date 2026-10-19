@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "02661de9ecbee52acfdb0f0766e3914c2d5493ef",
+  "path": "apps/workbench-web/src/browser/codex/browser-manager.js",
+  "fileSha256": "10b07a4b867fe29025b918f1005aade59e374c54f789799081a9b34e9e781c46",
+  "selectedClassSha256": "e1b6237a3ae698287e7c6abe9f06f0bc6012ca52115e6e629346227926d8d54e",
+  "historicalReference": {
+    "source": "ref/codex/features/browser/browser-sidebar-webview-manager.ts",
+    "sourceSha256": "d064aa6843e5fc60f121cb4a4a389ab38daec1549a52bdaa06c4b91e68727c99",
+    "classSha256": "e1b6237a3ae698287e7c6abe9f06f0bc6012ca52115e6e629346227926d8d54e"
+  },
+  "annotation": "Source class body copied from ref/codex/features/browser/browser-sidebar-webview-manager.ts.",
+  "selectedRegion": {
+    "start": 1090,
+    "end": 40769,
+    "prefixSha256": "66b07c6ff8dea32f60484fc38314a4ed1c9ec9e9959ccdb58ffef713e479efc2",
+    "suffixSha256": "a848372e5c418f74e38849c4c2ccd8792a43c1a4eaaf26726bcc9a244bcc9186"
+  },
+  "scope": "Complete explicitly copied manager class only, preserving the factory/port binding wrapper, existing adapter, host, transition, presets and toolbar. Every class method/property consumer contract must be inventoried, not only the currently tested storage/claim methods.",
+  "exposure": "Selected source header/declaration, one-line generic declaration, historical manifest, AST member names/parameter metadata, existing tests, complete thin port adapter and formal architecture inspected. The old target body is not printed as authoring input in this bounded pass. Other recovered modules and manager/host call sites have been visible during the long session. No strict author isolation or historical-rights claim."
+}
