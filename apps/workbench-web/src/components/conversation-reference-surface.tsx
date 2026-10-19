@@ -65,7 +65,7 @@ export function ConversationReferenceSurface({catalog,hostId,children}:{catalog:
       setRequestId(String(r.requestId));setDelivery("accepted");setDraft("");sendKey.current=crypto.randomUUID();
     }catch{if(mounted.current)failure();}finally{if(mounted.current)setPending(false);}
   };
-  const status=async()=>{if(!target||!requestId)return;try{const r=await command(target.hostId,{action:"delivery",requestId});if(mounted.current)setDelivery(String(r.state));}catch{failure();}};
+  const status=async()=>{if(!target||!requestId)return;const current=target;try{const r=await command(current.hostId,{action:"delivery",requestId});if(mounted.current&&current===activeTarget.current)setDelivery(String(r.state));}catch{if(mounted.current&&current===activeTarget.current)failure();}};
   const statusText=delivery===null?null:delivery==="submitted"||delivery==="injected"?text("conversation.reference.submitted","The target accepted the message")
     :delivery==="cancelled"?text("conversation.reference.cancelled","Cancelled")
     :delivery==="rejected"?text("conversation.reference.rejected","The message could not be delivered")
