@@ -187,7 +187,7 @@ function collectSegmentContents(nodes: readonly ChatDocumentNode[]): string[] {
   return result;
 }
 
-/** Source-equivalent global fade-segment reconciliation from Codex. */
+/** Reconcile presentation segments without changing syntax or session ownership. */
 function reconcileGlobalSegments(
   documentId: string,
   segments: readonly string[],
@@ -195,38 +195,33 @@ function reconcileGlobalSegments(
   streaming: boolean,
   identity: { value: number },
 ): readonly ChatTextSegment[] {
-  const available = new Set(previous.keys());
-  const indexesByContent = new Map<string, number[]>();
-  for (let index = previous.length - 1; index >= 0; index -= 1) {
-    const prior = previous[index];
-    if (prior === undefined) continue;
-    const indexes = indexesByContent.get(prior.text) ?? [];
-    indexes.push(index);
-    indexesByContent.set(prior.text, indexes);
-  }
-  return segments.map((segment, index) => {
-    const prior = previous[index];
-    if (
-      prior !== undefined
-      && available.has(index)
-      && (prior.text === segment || (prior.text.length > 0 && segment.startsWith(prior.text)))
-    ) {
-      available.delete(index);
-      return { key: prior.key, text: segment, entering: false };
+  const occurrences = new Map<string, { positions: number[]; cursor: number }>();
+  previous.forEach((segment, position) => {
+    const bucket = occurrences.get(segment.text);
+    if (bucket) bucket.positions.push(position);
+    else occurrences.set(segment.text, { positions: [position], cursor: 0 });
+  });
+  const assigned = new Set<number>();
+  return segments.map((text, position) => {
+    const positional = previous[position];
+    let matched: number | undefined;
+    if (positional && !assigned.has(position) && (text === positional.text
+      || (positional.text.length > 0 && text.startsWith(positional.text)))) {
+      matched = position;
+    } else {
+      const bucket = occurrences.get(text);
+      if (bucket) {
+        while (bucket.cursor < bucket.positions.length
+          && assigned.has(bucket.positions[bucket.cursor]!)) bucket.cursor++;
+        matched = bucket.positions[bucket.cursor++];
+      }
     }
-    const sameContentIndexes = indexesByContent.get(segment);
-    let candidateIndex = sameContentIndexes?.pop();
-    while (candidateIndex !== undefined && !available.has(candidateIndex)) candidateIndex = sameContentIndexes?.pop();
-    const candidate = candidateIndex === undefined ? undefined : previous[candidateIndex];
-    if (candidateIndex !== undefined && candidate !== undefined) {
-      available.delete(candidateIndex);
-      return { key: candidate.key, text: segment, entering: false };
+    if (matched !== undefined) {
+      assigned.add(matched);
+      return { key: previous[matched]!.key, text, entering: false };
     }
-    return {
-      key: `${documentId}:segment:${identity.value++}`,
-      text: segment,
-      entering: streaming,
-    };
+    const key = documentId + ":segment:" + identity.value++;
+    return { key, text, entering: streaming };
   });
 }
 

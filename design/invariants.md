@@ -696,6 +696,13 @@ compatibility; indented continuations retain list context and empty lines reset
 it. Source replacement must not silently adopt another Markdown dialect. See the
 [bounded normalization contract](../docs/provenance/user-message-blocks-replacement.md).
 
+Global streaming segment keys survive Markdown container reparsing through the
+shared reconciler: same-position exact/growing text wins before unconsumed global
+exact occurrences. Reused text settles, new text enters only while streaming,
+and completed text stays visible. This pure projection cannot commit a session,
+change syntax identity, schedule animation or own execution. See the [bounded
+record](../docs/provenance/streaming-segments-replacement.md).
+
 ## Markdown 文件预览
 - 文件标题栏提供文件树显隐开关；收起后内容占满宽度，树保持挂载以保留展开、搜索和滚动位置，不重建预览或编辑器。只读嵌入预览仍无目录入口。验证：`scripts/smoke-file-tree-toggle.ts`。
 - 文件树的目录数据归Host作用域Query缓存，展开/键盘活动项/滚动归当前面板；按数据版本排序、展开分支拍平，DOM仅挂载可视窗口和overscan。侧栏/聊天更新不得触发未变化目录排序或每目录会话订阅。隐藏和搜索保留展开/滚动，键盘上下/Home/End/左右/Enter与选中文件仍可达；目录折叠后迟到数据不恢复子行。验证：`tests/workspace-file-tree-model.test.ts`、`scripts/smoke-workspace-file-tree.ts`。

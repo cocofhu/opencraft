@@ -616,3 +616,13 @@ CR/CRLF normalization remain compatible. Helpers and other preprocessing bytes
 are unchanged. Historical hashes, failed comparisons and later diagnostic exposure
 remain recorded; strict author isolation and historical rights are unverified.
 Other regions and all eight unresolved groups remain open.
+
+
+## Bounded global streaming segment reconciliation (2026-10-20)
+
+[Only the directly attributed reconciliation function](provenance/streaming-segments-replacement.md)
+has a current independent implementation disposition. Frozen positional and exact
+occurrence behavior, counters, entering flags and session CAS outputs are retained.
+The first empty-string mismatch evidence and historical hashes remain available.
+Other identity/compiler/preprocessing regions and eight unresolved inventory groups
+remain open; this does not establish strict author isolation or historical rights.

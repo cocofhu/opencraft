@@ -91,7 +91,11 @@ Sessions reuse committed stable node/segment identities and reconcile only
 the remaining tail, with cached word segmentation. Immutable parsing memo is
 safe for abandoned renders; committed parsed nodes and identity counters move
 only under the existing candidate CAS. Reused segments cease to be new entrants
-without changing their keys. Completion first uses the full parser, then retains
+without changing their keys. The bounded global segment reconciler preserves
+same-position exact/growing text before globally reusing unconsumed exact text
+occurrences. It owns segment keys and entering flags only; word segmentation,
+semantic node identity and commit CAS remain separate. See the [implementation
+boundary](provenance/streaming-segments-replacement.md). Completion first uses the full parser, then retains
 pure completed syntax by exact source and dialect in an LRU capped at 100 entries
 and six million key characters. Streaming repairs never enter that memo. A
 Session can reuse its committed completed snapshot; Host, theme, resource policy
