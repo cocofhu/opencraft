@@ -1,5 +1,17 @@
 # Source provenance review
 
+## Complete floating composer state replacement (2026-10-19)
+
+[The complete presentation state module](provenance/floating-composer-replacement.md)
+now has a bounded independent implementation disposition. Snapshot projection,
+route state, subscribed-owner retention and wheel continuity were replaced after
+frozen requirements. Historical hashes and source annotations remain recorded;
+active integrations and consumer Shell/browser implementations remain intact.
+The renderer-expression group retains **five** unresolved paths, four recorded
+partial dispositions, and all **nine** unresolved groups remain open. This does
+not establish strict author isolation, historical rights or release readiness.
+
+
 ## Complete shared code-surface policy replacement (2026-10-19)
 
 [The complete shared model](provenance/code-surface-replacement.md) has a bounded
