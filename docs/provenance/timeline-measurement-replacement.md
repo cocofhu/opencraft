@@ -98,3 +98,10 @@ a new viewport or issue an immediate scroll correction. A shrinking row may requ
 platform preservation for the next layout instead. These branches, latest-row delta
 and pending-transaction state are frozen in full observations, rather than replaced
 by a guessed general compensation formula.
+
+Before authoring, 1,728 additional cases freeze fully measured visible anchors,
+nonzero viewports, padding/gaps and a controller clock ahead of the viewport mirror.
+The complete combined 5793 cases have raw SHA256 `5d820d436c86b1ecab8d245ad2d3efce4afd86e78f4c6c5418545852f0e257e4`.
+Original 4,065-case evidence remains retained. Inspection also confirmed duplicate
+measurements retain per-input baseline accumulation and pending decisions carry
+across batches; neither is replaced by deduplication or a guessed final-height delta.

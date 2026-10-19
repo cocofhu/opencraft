@@ -116,8 +116,9 @@
   "selectionBasis": "Only this function has an explicit recovered measurement-transaction declaration; adjacent helpers/types/exports and consumer implementations stay unchanged. Original selected body was not printed or read for authoring.",
   "beforeAuthoringObservations": {
     "policy": {
-      "observerSha256": "812fd439cb5a843bdb289e0a5e33f52b87825270e51564fa4e9581c2dc08ac1a",
-      "outputSha256": "7b907bda4455cbf0d63d713e4f8baab5b1e95b3ae67ee0756732f2730101645e"
+      "observerSha256": "563ea546e4edac231e1558814e529d16c9823fdb1fc8763e3d195c09cf3aa412",
+      "outputSha256": "5d820d436c86b1ecab8d245ad2d3efce4afd86e78f4c6c5418545852f0e257e4",
+      "cases": 5793
     },
     "conversation": {
       "observerSha256": "d31dd42c81749c4b7ce48fca8040377717607615b5bd1cbbce910796662c3cfc",
