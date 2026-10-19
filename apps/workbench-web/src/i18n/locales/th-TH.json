@@ -199,6 +199,7 @@
   "sidebar.empty": "ยังไม่มีงาน",
   "sidebar.catalog.showMore": "ดูเพิ่มเติม",
   "sidebar.catalog.less": "แสดงน้อยลง",
+  "sidebar.catalog.end": "ไม่มีการสนทนาเพิ่มเติม",
   "sidebar.catalog.moreRemote": "แสดงเพิ่มเติม ({count} ระยะไกล)",
   "sidebar.catalog.more": "โหลดเพิ่มเติม",
   "chat.thinking": "กำลังคิด",
