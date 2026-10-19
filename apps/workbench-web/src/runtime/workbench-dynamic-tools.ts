@@ -14,9 +14,15 @@ import {
   installConnectorDynamicToolHandler,
   type ConnectorRuntime,
 } from "@opencraft/workbench-runtime";
+import type { DynamicToolSpec } from "@opencraft/appserver-protocol/generated/v2";
+import { PAGE_HARNESS_DYNAMIC_TOOLS } from "@opencraft/page-harness-host/shared";
+import { installPageHarnessDynamicToolHandler } from "../page-harness/tools";
+
+const pageHarnessDynamicTools = PAGE_HARNESS_DYNAMIC_TOOLS as unknown as readonly DynamicToolSpec[];
 
 export const OPENCRAFT_WORKBENCH_DYNAMIC_TOOLS = Object.freeze([
   ...OPENCRAFT_BROWSER_DYNAMIC_TOOLS,
+  ...pageHarnessDynamicTools,
   ...OPENCRAFT_TERMINAL_DYNAMIC_TOOLS,
   ...OPENCRAFT_CONNECTOR_DYNAMIC_TOOLS,
   ...MCP_APPS_DYNAMIC_TOOLS,
@@ -45,7 +51,9 @@ export function installWorkbenchDynamicToolHandlers(
   );
   const removeApps = installMcpAppsDynamicToolHandler(client);
   const removeConnectors = installConnectorDynamicToolHandler(client, hosts.connectors, options);
+  const removePageHarness = installPageHarnessDynamicToolHandler(client);
   return () => {
+    removePageHarness();
     removeApps();
     removeConnectors();
     removeTerminal();

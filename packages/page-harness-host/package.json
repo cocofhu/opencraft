@@ -1,0 +1,13 @@
+{
+  "name": "@opencraft/page-harness-host",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./shared": {
+      "types": "./src/shared.d.ts",
+      "default": "./src/shared.mjs"
+    },
+    "./host": "./src/host.mjs"
+  }
+}

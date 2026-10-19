@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { createServer } from "node:http";
+import { createPageHarnessHost } from "../packages/page-harness-host/src/host.mjs";
 import { extname, join, resolve, sep } from "node:path";
 
 const contentTypes = new Map([
@@ -81,6 +82,7 @@ async function serveFile(request, response, path, pathname) {
 export async function createWorkbenchStaticServer({ root }) {
   const staticRoot = await realpath(resolve(root));
   const runtimeReports = [];
+  const pageHarness = createPageHarnessHost();
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://vela.invalid");
@@ -98,6 +100,10 @@ export async function createWorkbenchStaticServer({ root }) {
         runtimeReports.splice(0, Math.max(0, runtimeReports.length - 20));
         console.error("[opencraft runtime error]", report);
         sendJson(response, 202, { ok: true });
+        return;
+      }
+      if (url.pathname === "/page-harness") {
+        await pageHarness.handle(request, response);
         return;
       }
       if (request.method !== "GET" && request.method !== "HEAD") {
@@ -138,11 +144,14 @@ export async function createWorkbenchStaticServer({ root }) {
         server.once("error", reject);
         server.listen(port, host, () => {
           server.off("error", reject);
-          resolvePromise(server.address());
+          const address = server.address();
+          pageHarness.noteWorkbenchPort(typeof address === "object" && address ? address.port : port);
+          resolvePromise(address);
         });
       });
     },
     close() {
+      void pageHarness.dispose();
       return new Promise((resolvePromise, reject) => {
         server.close((error) => error ? reject(error) : resolvePromise());
       });
