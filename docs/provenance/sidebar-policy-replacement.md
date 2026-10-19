@@ -41,3 +41,24 @@ tests and real Web/mobile checks; add no repository tests or harness. Preserve
 pre-existing footer/scroll findings and initial authoring failures. Historical
 rights and eight provenance groups remain unresolved; matching finite behavior
 does not establish release readiness or Native hardware acceptance.
+
+## Observed boundary freeze
+
+Before authoring, the unchanged external observer records 4,408 complete outputs
+and all retained hover/toggle/constant outputs. Suppression vetoes both pointer
+and delayed-trigger intent; a peek can hold intent even without a pointer.
+The acquired boundary is max(0, panelWidth), inclusive at both ends. NaN retains
+ordinary comparison behavior; an unacquired pointer uses the existing edge
+constant independently of panel width. No observer or assertion is changed to
+make this contract pass.
+
+The actual legacy AppShell observer records 22 full states with no page errors.
+The existing mobile stack smoke completes all light/dark, normal/reduced-motion
+and 320/390/430-width combinations. These use actual Shell components and
+synthetic slots, not a real account or native hardware. The copied Shell observer
+was first created during the earlier floating-container replacement; both policy
+observations use the same current floating container (its metadata phase is
+`after`). Its pre-existing footer assertion and reduced-motion scroll finding
+remain recorded rather than claimed fixed. Full outputs, immutable observer
+hashes and script hashes are frozen in the baseline before this implementation.
+The 50 existing targeted policy/geometry/Shell tests pass before authoring.

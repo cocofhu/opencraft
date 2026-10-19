@@ -39,5 +39,19 @@
   ],
   "scope": "Only the three historical restoration declarations and direct header; later hover/toggle functions, types and ordinary constants unchanged",
   "exposure": "Old selected bodies and reference implementations were not printed in this bounded pass. Prior review may have exposed this module; no strict author-isolation claim.",
-  "lineage": "The earliest recorded restored module contains only the three selected functions; later revisions add hover capability and toggle policy. Private repository metadata is retained outside the public repository, not reproduced here."
+  "lineage": "The earliest recorded restored module contains only the three selected functions; later revisions add hover capability and toggle policy. Private repository metadata is retained outside the public repository, not reproduced here.",
+  "observations": {
+    "cases": 4408,
+    "shellStates": 22,
+    "mobileEvidenceRows": 36,
+    "existingTests": 50,
+    "sha256": {
+      "before/observations.json": "7b7bc4e2a1c18154c6207c7dd187cf1525f9b18ace6fd93d9d939c17d2f737ce",
+      "shell-before/observations.json": "f66628f15e3c7ce02419dd920317152493594104f9fb330c5bd962fdcbdf83e5",
+      "mobile-before/result.json": "a4f97d99441fb47a7d7ad738c4ba9bd48852fd91926d53c3332cb6ba3b0a2b2d",
+      "observe.mts": "ab9024fb67df71e898765b445b8a0280b56954e0f56e64ccab0270aa617eb71e",
+      "shell.mjs": "cc7ea7bcc9f57f0555f1dea68a0bd8a390880fe4bce6eb6a53d5c3ebe64d02f4",
+      "existingMobileScript": "41298f34c245af96fe1845cd645f7a55bb300b0085158ee177306e909184216d"
+    }
+  }
 }
