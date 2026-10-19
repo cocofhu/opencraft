@@ -1,5 +1,22 @@
 # Source provenance review
 
+## Floating sidebar presentation replacement (2026-10-20)
+
+Both [explicitly restored container components](provenance/floating-sidebar-replacement.md)
+are independently replaced from frozen public props and real component behavior.
+The fixed 46-state structural comparison has zero differences; 18 supplemental
+resize/mobile-exit states and 22 actual legacy AppShell states match byte-for-byte.
+The initial one-frame header offset and missing stationary wash were caught
+and corrected. Supplemental 20-state complete fixture-root and all twelve
+existing full mobile-stack combinations pass; varying exit-frame translations
+are retained separately rather than claimed identical. Imports/interfaces, Shell,
+resize transactions, styles and ordinary spring data remain unchanged. The
+original full Shell footer assertion already failed before authoring and stays
+unchanged. Historical hashes, annotation and actual author exposure are retained;
+eight inventory groups remain unresolved. This bounded disposition does not
+establish strict isolation, historical rights, native hardware acceptance or
+release readiness.
+
 ## Inline link construction replacement (2026-10-20)
 
 Only the [directly source-attributed link case](provenance/document-inline-link-replacement.md)

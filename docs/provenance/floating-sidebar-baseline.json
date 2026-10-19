@@ -1,0 +1,124 @@
+{
+  "base": "cf4a3bd8fcc36abbf4bb08faf80303875cf03ce3",
+  "path": "apps/workbench-web/src/components/floating-left-panel.tsx",
+  "moduleSha256": "28dea6be1939f9a2f2d386068b7919e041237eca67ea238b2601b336ae2cf6f5",
+  "historicalAnnotation": [
+    "Structure and motion restored from Codex r1532:",
+    "shared/finalize-floating-panel-size-06083.ts."
+  ],
+  "selected": [
+    "FloatingLeftPanel",
+    "FloatingLeftPanelContent"
+  ],
+  "declarations": [
+    {
+      "kind": "ImportDeclaration",
+      "start": 100,
+      "end": 250,
+      "line": 3,
+      "sha256": "193a1f9d34ce69e0952e4c26c814b50731cb0c0dc0d0c2c7e749e48423ac26a8",
+      "contract": "import {\n  AnimatePresence,\n  motion,\n  useIsPresent,\n  useMotionValue,\n  useReducedMotion,\n  useTransform,\n  type MotionValue,\n} from \"motion/react\";"
+    },
+    {
+      "kind": "ImportDeclaration",
+      "start": 251,
+      "end": 290,
+      "line": 12,
+      "sha256": "bf8a004f9c9a2e4ad359d35a1041c8fa6746049281a77388b1db6491f7eb6322",
+      "contract": "import type { ReactNode } from \"react\";"
+    },
+    {
+      "kind": "ImportDeclaration",
+      "start": 292,
+      "end": 356,
+      "line": 14,
+      "sha256": "dc134fa296f14aaacf5f8c9fbd8b016376cccc6bae9c968976ae708f7480a01a",
+      "contract": "import { PANEL_SPRING_TRANSITION } from \"./use-panel-animation\";"
+    },
+    {
+      "kind": "ImportDeclaration",
+      "start": 357,
+      "end": 419,
+      "line": 15,
+      "sha256": "00d86c9667cfbcc26853ccfceb50c09b496f327b6324a0c4cbfb640a7a6714e9",
+      "contract": "import { SidebarResizeHandle } from \"./sidebar-resize-handle\";"
+    },
+    {
+      "kind": "InterfaceDeclaration",
+      "name": "FloatingLeftPanelProps",
+      "start": 421,
+      "end": 945,
+      "line": 17,
+      "sha256": "a62cb295106d1823c2c417e1d2fc0d3d9615ff3e32391208ac61082f6673b7ec",
+      "contract": "interface FloatingLeftPanelProps {\n  readonly unified?: boolean;\n  readonly children: ReactNode;\n  readonly header: ReactNode;\n  readonly footer?: ReactNode;\n  readonly visible: boolean;\n  readonly onExitComplete?: () => void;\n  readonly width: number;\n  readonly widthPx: MotionValue<string>;\n  readonly mobileProgress?: MotionValue<number>;\n  getCurrentWidth(): number;\n  getMaximumWidth?(): number;\n  onResize(width: number): void;\n  onResizeEnd(width: number | null): void;\n  onResizingChange(resizing: boolean): void;\n}"
+    },
+    {
+      "kind": "FunctionDeclaration",
+      "name": "FloatingLeftPanel",
+      "start": 947,
+      "end": 1786,
+      "line": 34,
+      "sha256": "8c88269c67c12076bfc846f520179200f7f0a88b635a0f57ab99acf4f614d1d1",
+      "signature": "export function FloatingLeftPanel({ unified,\n  children,\n  header,\n  footer,\n  visible,\n  onExitComplete,\n  width,\n  widthPx,\n  mobileProgress,\n  getCurrentWidth,\n  getMaximumWidth,\n  onResize,\n  onResizeEnd,\n  onResizingChange,\n}: FloatingLeftPanelProps) "
+    },
+    {
+      "kind": "FunctionDeclaration",
+      "name": "FloatingLeftPanelContent",
+      "start": 1788,
+      "end": 4855,
+      "line": 70,
+      "sha256": "872f2095b80b84415f8b33311332d40da6ec4c04699e8f4072e718b0e141729a",
+      "signature": "function FloatingLeftPanelContent({ unified,\n  children,\n  header,\n  footer,\n  width,\n  widthPx,\n  mobileProgress,\n  getCurrentWidth,\n  getMaximumWidth,\n  onResize,\n  onResizeEnd,\n  onResizingChange,\n}: Omit<FloatingLeftPanelProps, \"visible\" | \"onExitComplete\">) "
+    }
+  ],
+  "authorExposure": "Current module comments, AST declarations/signatures/types, AppShell consumer and existing test source assertions were read. Neither selected component body nor recovered reference body printed in this bounded pass. Previous session source exposures remain; no strict-isolation claim.",
+  "frozenObservations": {
+    "scenes": 2,
+    "states": 46,
+    "rawSha256": "87cf30846428dcc6137b99d7d1d25703d4baa8b9948ac2571dcd31b744dd5156",
+    "observerSha256": "68d10eb00955ab99ba9762eba5634871bbe0da5bae40a61c28967dc1153a20b2",
+    "comparisonSha256": "5d4e2fe6e5d4da88d87f138eb4a8b1b4f4feeabd2620fe3af61248a5a7f143a5",
+    "pageErrors": [],
+    "focusedTestsPassed": 28,
+    "motionFrameTraceSha256": {
+      "false": "c0e31b5955741dba1028d9105d31b1dc6424e2606417e953e5e998f0788ca00b",
+      "true": "09a7a15d37f931dec30e9111acb38155e2b418ccfefeb6f4187f19bbbf98d5b0"
+    },
+    "fullShellSmoke": "failed before authoring at docked footer rightInset12/paddingRight0; assertion unchanged; original navigation8s timeout also retained",
+    "screenshots": "Both reduced and ordinary component scenes inspected; synthetic slots, not complete Workbench"
+  },
+  "supplementalBeforeAuthoring": {
+    "entry-before": {
+      "moduleSha256": "28dea6be1939f9a2f2d386068b7919e041237eca67ea238b2601b336ae2cf6f5",
+      "scenes": 2,
+      "states": 46,
+      "sha256": "e495a50b7d202a5cb202e8f7bf2824d6188bfb8337c6fd9521c670221d3b669f",
+      "errors": [],
+      "traces": {
+        "exit-frames-true.json": "09a7a15d37f931dec30e9111acb38155e2b418ccfefeb6f4187f19bbbf98d5b0",
+        "entry-frames-true.json": "dff5f54a1385bef4d375e0386de8db7f6ffb749a503e8965c56e2d17520717a8",
+        "entry-frames-false.json": "6e538329fc36ba359aaa5af5c90d065e7eadbed76627b2773e7833cb855ea53a",
+        "exit-frames-false.json": "8ffd9f8b23f396967b3ee0e62eb813ce5aed60d16a088f94bf945590a85c45b3"
+      }
+    },
+    "ports-before": {
+      "moduleSha256": "28dea6be1939f9a2f2d386068b7919e041237eca67ea238b2601b336ae2cf6f5",
+      "scenes": 2,
+      "states": 18,
+      "sha256": "79b978879846a0565609eef7a0679aff652fd1818de22fc553a039a35517caca",
+      "errors": [],
+      "traces": {
+        "mobile-exit-true.json": "d2635d5d921397c7dca5122219a789f33eb4e3c3fac76bac5060212ceb27e33f",
+        "mobile-exit-false.json": "42ddf4c8628a8e21c3b29b8949ad5b2ca2ef9768b638a66ef4973a2211b6ccbc"
+      }
+    }
+  },
+  "supplementalAfterFirstCandidateBeforeWashCorrection": {
+    "phase": "before",
+    "moduleSha256": "28dea6be1939f9a2f2d386068b7919e041237eca67ea238b2601b336ae2cf6f5",
+    "loads": 1,
+    "states": 20,
+    "rawSha256": "ac19ccfd850020b0cf6eef80db0cf126d15ba26ab2c6314bb3d4e57140140422",
+    "observerSha256": "2e13f166df6e1dfa47bb54fcca809e0184357cbf73f529a51a4ff3be8231ec2d"
+  }
+}
