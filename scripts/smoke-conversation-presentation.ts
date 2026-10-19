@@ -159,6 +159,21 @@ try {
     "2023-11-14T22:13:20.000Z",
   );
   await page.screenshot({ path: `${screenshotRoot}/conversation-presentation-answer.png` });
+  await page.evaluate(() => (window as any).hooks());
+  await page.evaluate(() => (window as any).detail("STEPS_COMMANDS"));
+  const hook = page.getByRole("img", { name: "Hooks", exact: true });
+  await hook.hover();
+  const hookTooltip = page.getByRole("tooltip").filter({ hasText: "UserPromptSubmit" });
+  await hookTooltip.waitFor();
+  assert.match(await hookTooltip.innerText(), /Project · 2 runs/);
+  assert.match(await hookTooltip.innerText(), /Audit failed/);
+  assert.doesNotMatch(await hookTooltip.innerText(), /hidden context/);
+  await page.screenshot({ path: `${screenshotRoot}/conversation-presentation-hooks.png` });
+  await page.evaluate(() => (window as any).detail("STEPS_PROSE"));
+  await hook.hover();
+  const hookSummary = page.getByRole("tooltip").filter({ hasText: "Hooks summary" });
+  await hookSummary.waitFor();
+  assert.deepEqual(await hookSummary.locator(".thread-hook-stats__counts b").allTextContents(), ["3", "2", "1"]);
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({
@@ -175,6 +190,7 @@ try {
         "failed-turn message actions",
         "HTML clipboard",
         "timestamp",
+        "independent hook statistics in real Conversation",
       ],
       errors,
     }),

@@ -135,6 +135,21 @@
         }
       ],
       "conclusion": "No connector brand image remains in the current public core source. This is exclusion of the identified image files, not a claim of brand authorization or a license determination for historical commits. Full clients, service catalog/recipes and runtime capabilities remain. See the retained exact-source list and current disposition."
+    },
+    {
+      "id": "hook-statistics-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/hook-stats.ts"
+      ],
+      "evidence": [
+        "docs/provenance/hook-statistics-replacement.md",
+        "tests/chat-hook-statistics.test.ts",
+        "tests/chat-core.test.ts"
+      ],
+      "reason": "The historical source-equivalent hook-run reducer was outside the initial inventory. The complete module is replaced from frozen requirements, public types, consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain baseline source hashes and the requirements-first commit. Keep other unresolved and untracked source regions separate; this is neither blanket clearance nor strict clean-room isolation.",
+      "conclusion": "Current implementation separates untrusted observation validation, aggregate facts, delivery-event routing and adjacent display compression. Source and event labels retain protocol compatibility. No recovered Desktop/BB/Paseo implementation was opened for this replacement; author exposure and bounded validation are documented. Historical source rights remain unverified."
     }
   ]
 }

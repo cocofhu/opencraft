@@ -46,3 +46,21 @@ Validation will include existing chat/runtime consumers, malformed input and
 coalescing boundaries, bounded black-box comparisons, the shared-core typecheck,
 platform boundary checks and real browser presentation with synthetic hook data.
 Other unresolved source groups and previously untracked files remain separate.
+
+## Compatibility follow-up and verification
+
+Requirements were committed first in `5a5347f`. An initial 1,134-case black-box
+comparison found that requirement 4 above overstated delivery routing: only
+`stop` feedback belongs in `feedbackMessages`. Nonblocked userPromptSubmit,
+tool-use and unknown-event feedback remains visible in aggregate entries but
+must not be delivered as stop feedback. The replacement and explicit regression
+were corrected from those outputs without reading the earlier helper bodies.
+All 1,134 comparisons then matched, varying statuses, event names, sources,
+entry kinds and direct/wrapped/separated observations. This is bounded evidence,
+not proof for every malformed or future protocol value.
+
+The replacement validates observations, accumulates facts and delivery data,
+and compresses adjacent display projections using a serialized value tuple.
+It retains the exported data types and protocol event/source labels. This is a
+new implementation of the specified data transformation, not cosmetic renaming
+of the historical reducer. The earlier historical source is not reclassified.
