@@ -51,6 +51,7 @@ compatibility and any refinements.
 
 Frozen requirements commit: `cca79570792c010cef4a7e486353617b7c4dd53f`.
 Implementation commit: `aa160af4cc225db191f9a3110383d7888781dda5`.
+Cleanup-contract refinement: `2f78219098d704624a25b3635cf825bc8ed0bef6`.
 The requirements commit is verified as an ancestor of implementation.
 
 The replacement uses a closure-owned boolean and observer membership, a lexical
@@ -66,6 +67,15 @@ labels are behavior observations, not copied implementation/table text. The firs
 finite matrix exposed 46 label differences; expanding to installed Shiki public
 language/alias names exposed eight additional wasm display differences. Both
 failed development comparisons were corrected before final acceptance.
+
+A later API audit included the cleanup function's return, which was not explicit
+in the declaration-only extraction. The baseline reports true for successful
+removal and false for repeated/duplicate removal. The replacement now preserves
+that inferred public return type and value, with focused assertions; the final
+matrix also compares these results. A separate reentrant observation (observer
+removes another, adds a callback and updates the preference while publishing)
+matches the baseline notification sequence. The merge watcher was stopped while
+this refinement was incomplete, and is resumed only for the corrected PR head.
 
 ## Verification and limits
 
@@ -90,6 +100,8 @@ failed development comparisons were corrected before final acceptance.
   Clipboard writing alone is a synthetic boundary capturing exact code text;
   actual OS clipboard permission/contents are not claimed. Both the initial
   control probe and the stronger layout-measurement rerun pass all four cases.
+  The full measured four-case probe, matrix, 23 renderer tests and all three
+  renderer typechecks pass again after the cleanup-return refinement.
 - Narrow dark wrapped/unwrapped and wide light screenshots were visually
   inspected. These are real Web component probes, not native iPhone/Electron,
   live model/account or full application/release acceptance. The local probes
