@@ -123,3 +123,32 @@ remain available and accurately release automation. This run does not execute
 that Electron smoke, native guest navigation/storage, full Workbench or employee
 sessions. The other lifecycle/router rejection gaps above remain explicit. No
 new repository harness or test is added and no implementation is authored yet.
+
+## Final edge requirements before authoring
+
+Twenty-four further opaque cases record session/Host registration false and
+rejection cleanup, current/superseded/untracked Host references, delegated destroy
+acceptance/refusal and all nine constructor router topics. Router payload field
+reads are observed with a Proxy, without printing target bodies. Each case clears
+the synthetic router scope; an initial exploratory run reused raw class router
+listeners, unlike the real adapter which owns their disposal, so that earlier
+output is retained separately and is not the final contract. Identity helpers
+consume Host objects, not plain registration identities; invalid exploratory
+inputs are also retained separately.
+
+The current independent Web Host does not implement shouldDestroyForHostRequest.
+A test-only subclass method supplies controlled true/false policy for observing
+manager delegation; its recorded argument trace does not prove native teardown.
+Keep policy delegation, mount/Host reference fencing, failed-registration cleanup,
+late-result rejection, transfer and prewarm ownership in the replacement. No
+new native capability or neighboring Host rewrite is implied. Together the
+observations inventory all sixty methods, with declared synthetic/dormant edges;
+this does not claim every branch, unknown Owl adoption implementation, native
+guest behavior or historical rights has been verified.
+
+Author the selected class from these frozen consumer contracts and observations.
+Compare the complete state, Host, edge and real Web consumer suites; retain any
+first differences. The historical module/class manifest stays immutable and the
+new module receives a separate implementation digest. Outside the selected class,
+only its obsolete copied-body annotation changes; no other implementation is
+selected by association with the feature.

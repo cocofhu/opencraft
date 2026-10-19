@@ -105,5 +105,11 @@
     "steps": 10,
     "scope": "Actual BrowserPresentationCoordinator, thin manager adapter, historical manager, independent Host/transition, WebBrowserPageRuntime and WebIframeSurfaceHost in local Chromium; real same-origin local iframe document/draft and layout. No Electron/native guest, full Workbench, employee session or remote website claim.",
     "completeCoverage": false
+  },
+  "edgeObservations": {
+    "sha256": "7b28d8e05a3cf6650d0a980984f28fc3b8e514d233695461d63d5bd000aedc46",
+    "cases": 24,
+    "scope": "Synthetic session/host registration false/rejection, current/superseded/untracked Host object references, delegated destroy policy and nine router payloads. Actual independent Host plus explicitly synthetic shouldDestroyForHostRequest port; current Web Host lacks that native API. Proxy property reads describe opaque execution, not reference source. Initial malformed identity inputs and accumulated raw router subscribers retained outside final run. No complete native claim.",
+    "completeCoverage": false
   }
 }
