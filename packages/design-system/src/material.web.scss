@@ -3,15 +3,16 @@
 // separate @supports/media rule set for every menu and nested Sass consumer.
 @mixin opaque {
   background: var(--color-background-elevated-primary-opaque);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @mixin surface($role: panel) {
   background: var(--material-background-panel);
   @if $role == menu { background: var(--material-background-menu); }
-  backdrop-filter: var(--material-backdrop-filter);
+  // Standard last: Lightning CSS otherwise retains only the WebKit alias.
   -webkit-backdrop-filter: var(--material-backdrop-filter);
+  backdrop-filter: var(--material-backdrop-filter);
   box-shadow: var(--material-shadow);
   @media (forced-colors: active) {
     color: CanvasText;

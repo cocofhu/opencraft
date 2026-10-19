@@ -442,3 +442,5 @@ reference is readable frost, not a nearly clear pane; background shapes should
 be soft color, not readable competing text. Data accents and usage accounting
 remain separate from material. A material update does not implement a usage
 backend, historical trace or session dashboard.
+
+Release material checks must exercise the minified CSS through the same real consumers. Keep prefixed backdrop-filter before the standard declaration so CSS optimization preserves both browser contracts.

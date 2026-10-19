@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "vite";
 
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const output = process.env.OPENCRAFT_MATERIAL_REPORT ?? await mkdtemp(join(tmpdir(), "opencraft-frost-"));
-const source = `
+const compiledCss = process.env.OPENCRAFT_MATERIAL_CSS ? await readFile(process.env.OPENCRAFT_MATERIAL_CSS, "utf8") : null;
+let source = `
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import * as Menu from '@radix-ui/react-dropdown-menu';
@@ -27,6 +28,9 @@ return <main><div className="scene"><span>CONVERSATION · 128,420</span></div><b
 {open&&<ModalSurface label="Session overview" presentation={presentation} appearance={appearance} onDismiss={()=>setOpen(false)}>
 <section style={{padding:28}}><h2>Session overview</h2><p>Readable frost · 中性雾面玻璃</p><p>128,420 tokens</p><input aria-label="Draft" defaultValue="Keep this draft"/><button>Inspect turn</button></section></ModalSurface>}</main>}
 createRoot(document.getElementById('root')).render(<App/>);`;
+// The same real consumers can validate minified release CSS. Source-only checks
+// cannot detect a minifier collapsing vendor aliases into an unsupported property.
+if (compiledCss !== null) source = source.replaceAll(/^import '\/apps\/workbench-web\/.*\.scss';$/gm, '');
 const styles = `@use '@opencraft/design-system/material.web' as material;
 .scene{position:fixed;inset:0;z-index:-1;background:linear-gradient(35deg,#dda973,#a0c4b9 45%,#bd9cc3)}
 .scene span{position:absolute;top:40%;left:8%;font-size:60px;opacity:.5}body{margin:0;color:var(--color-text)}main{padding:24px}.frost-floating{position:fixed;bottom:24px;left:24px;border-radius:50%;width:44px;height:44px;display:grid;place-items:center;@include material.floating}
@@ -34,7 +38,7 @@ const styles = `@use '@opencraft/design-system/material.web' as material;
 const vite = await createServer({configFile:false,root:process.cwd(),logLevel:"error",resolve:{dedupe:["react","react-dom"]},cacheDir:"node_modules/.vite-frost-probe",esbuild:{jsx:"automatic"},server:{host:"127.0.0.1",port:0,hmr:false},plugins:[{
   name:"frost-probe",resolveId:id=>["/frost-probe.tsx","/frost-probe.scss"].includes(id)?id:null,
   load:id=>id==="/frost-probe.tsx"?source:id==="/frost-probe.scss"?styles:null,
-  configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url!=="/")return next();res.setHeader("content-type","text/html");res.end('<html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body><div id="root"></div><script type="module" src="/frost-probe.tsx"></script></body></html>')})},
+  configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url==="/compiled.css" && compiledCss!==null){res.setHeader("content-type","text/css");res.end(compiledCss);return;}if(req.url!=="/")return next();res.setHeader("content-type","text/html");res.end('<html><head>'+(compiledCss!==null?'<link rel="stylesheet" href="/compiled.css"/>':'')+'<meta name="viewport" content="width=device-width,initial-scale=1"/></head><body><div id="root"></div><script type="module" src="/frost-probe.tsx"></script></body></html>')})},
 }]});
 let browser: any;
 const evidence: unknown[] = [], errors: string[] = [];
