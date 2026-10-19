@@ -25,6 +25,21 @@ test("same-name published cards select their own tools and exact URI metadata", 
 });
 
 const identity = { server: "apps", uri: "ui://counter/app.html", callId: "call1", name: "Counter" };
+test("cached built-in cards share one canonical history read; resources retry once, tool calls never retry", async () => {
+  let hydrated = false, hydrations = 0, reads = 0, writes = 0;
+  const owner = createMcpAppOwner({ key: "host:thread:1", threadId: "thread", assertCurrent() {},
+    request: (async (method: string) => {
+      if (method === "thread/read") { hydrations++; await new Promise(r => setTimeout(r, 0)); hydrated = true; return {}; }
+      if (method === "mcpServer/resource/read") { reads++; if (!hydrated) throw Error("inactive"); return { contents: [] }; }
+      writes++; throw Error("write failed");
+    }) as any, sendMessage: async () => {}, openLink() {},
+  });
+  await Promise.all([owner.readResource("opencraft-app-example-r1", "ui://opencraft/apps/first", null),
+    owner.readResource("opencraft-app-example-r1", "ui://opencraft/apps/second", null)]);
+  assert.equal(hydrations, 1); assert.equal(reads, 4);
+  await assert.rejects(owner.callTool("opencraft-app-example-r1", "write", {}), /write failed/);
+  assert.equal(writes, 1);
+});
 function fixture() {
   let current = true;
   const calls: unknown[] = [], messages: unknown[] = [], sent: any[] = [];

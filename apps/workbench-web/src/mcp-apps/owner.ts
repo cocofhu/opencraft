@@ -16,12 +16,24 @@ export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment
   const context = new Map<string, string>();
   let catalogReadAt = 0;
   let catalog: Promise<Record<string, Record<string, unknown>>> | null = null;
+  let historyHydration: Promise<unknown> | null = null;
   const assertCurrent = options.assertCurrent;
   return {
     key: options.key, assertCurrent,
     async readResource(server, uri, callId) {
       assertCurrent();
-      const result = await options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });
+      const read = () => options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });
+      let result;
+      try { result = await read(); }
+      catch (error) {
+        assertCurrent();
+        if (!server.startsWith("opencraft-app-") || !uri.startsWith("ui://opencraft/apps/")) throw error;
+        // A restored card may precede this connection's canonical history. Share
+        // one read-only hydration; only gateway-observed output can grant access.
+        historyHydration ??= options.request("thread/read", { threadId: options.threadId, includeTurns: true });
+        try { await historyHydration; } catch { throw error; }
+        assertCurrent(); result = await read();
+      }
       assertCurrent(); catalog = null; return result;
     },
     async listTools(server, resourceUri) {

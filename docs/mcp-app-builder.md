@@ -68,7 +68,11 @@ definition or using builder management as its creator.
 History evidence cannot revive an unpublished, deleted or replaced release.
 Every resource/tool access checks the creator's current active revision, and
 worker completion rechecks revocation. Reconnection reacquires evidence from
-the canonical history; browser display caches never authorize access.
+the canonical history; browser display caches never authorize access. If a cached
+built-in card is restored before that read completes, its first failed resource
+read shares one canonical thread hydration per view owner and retries the
+resource once. Gateway-observed history still determines access. External App
+resources, tool invocations and chat messages do not acquire automatic retries.
 
 ## Persistence and versions
 

@@ -102,7 +102,7 @@ const client=new JsonRpcAppServerClient({hostId:'host',transport:new WebSocketTr
 const stop=installMcpAppsDynamicToolHandler(client);await client.connect({clientInfo:{name:'builder-browser',version:'1'},capabilities:{experimentalApi:true}});
 const registry=createDefaultTimelineProjectorRegistry();let items=[];
 function App(){const [revision,setRevision]=useState(0);const port=useMemo(()=>createMcpAppOwner({key:'host:fixture-thread:1',threadId:'fixture-thread',assertCurrent:()=>{if(client.status.state!=='open')throw Error('closed')},request:(method,params)=>client.requestRaw(method,params),sendMessage:async text=>{window.fixture.messages.push(text)},openLink:()=>{}}),[]);
-window.fixture={client,messages:[],async restore(server){const r=await client.requestRaw('thread/read',{threadId:'fixture-thread',includeTurns:true});items=r.thread.turns.flatMap(t=>t.items).filter(i=>{try{return JSON.parse(i.contentItems[0].text).server===server}catch{return false}}).slice(-1).map(({id,type,...payload})=>({id,type,payload}));setRevision(x=>x+1);},async tool(input,shape='native'){const r=await client.requestRaw('fixture/model-tool',input);if(!r.success)throw Error(r.contentItems[0].text);const data=JSON.parse(r.contentItems[0].text);if(data.kind==='opencraft-mcp-app'){items=[{id:'launch-'+revision,type:'dynamicToolCall',payload:{namespace:shape==='native'?'opencraft_apps':'deepseek-harness',tool:shape==='native'?'manage':'opencraft_apps__manage',status:'completed',success:true,arguments:input,contentItems:r.contentItems}}];setRevision(x=>x+1)}return data;},hide(hidden){Object.defineProperty(document,"visibilityState",{configurable:true,value:hidden?"hidden":"visible"});document.dispatchEvent(new Event("visibilitychange"));},close(){stop();client.close()}};
+window.fixture={client,messages:[],cached(envelope){items=[{id:'cached-card',type:'dynamicToolCall',payload:{namespace:'opencraft_apps',tool:'manage',status:'completed',success:true,arguments:{},contentItems:[{type:'inputText',text:JSON.stringify(envelope)}]}}];setRevision(x=>x+1);},async tool(input,shape='native'){const r=await client.requestRaw('fixture/model-tool',input);if(!r.success)throw Error(r.contentItems[0].text);const data=JSON.parse(r.contentItems[0].text);if(data.kind==='opencraft-mcp-app'){items=[{id:'launch-'+revision,type:'dynamicToolCall',payload:{namespace:shape==='native'?'opencraft_apps':'deepseek-harness',tool:shape==='native'?'manage':'opencraft_apps__manage',status:'completed',success:true,arguments:input,contentItems:r.contentItems}}];setRevision(x=>x+1)}return data;},hide(hidden){Object.defineProperty(document,"visibilityState",{configurable:true,value:hidden?"hidden":"visible"});document.dispatchEvent(new Event("visibilitychange"));},close(){stop();client.close()}};
 const timeline=useMemo(()=>projectTimeline({key:createConversationKey('host','fixture-thread'),revision,authoritative:true,phase:'live',turns:[{id:'turn',status:'complete',items}]},registry),[revision]);
 return <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><Conversation timeline={timeline} scrollPolicy='natural' documentContext={{conversationId:'fixture-thread',cwd:null,hostId:'host',theme:'light',mcpApps:port}}/></TimelineBlockRendererProvider>}
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
@@ -276,7 +276,7 @@ try {
       expectedVersion: 0,
     });
     assert.equal(published.activeRevision, 1);
-    await tool(
+    const firstOpen = await tool(
       { action: "open", appId: spec.appId },
       width === 390 ? "dsh" : "native",
     );
@@ -297,7 +297,7 @@ try {
     await other.goto(app.url);
     await other.waitForFunction(() => !!(window as any).fixture);
     assert.deepEqual((await other.evaluate(() => (window as any).fixture.tool({ action: "list" }))).apps, []);
-    await other.evaluate(server => (window as any).fixture.restore(server), `opencraft-app-${spec.appId}-r1`);
+    await other.evaluate(envelope => (window as any).fixture.cached(envelope), firstOpen);
     const otherFrame = other.frameLocator("iframe");
     await otherFrame.locator("#go").click();
     await otherFrame.locator("#value").filter({ hasText: "15" }).waitFor();
@@ -308,7 +308,7 @@ try {
     await other.screenshot({ path: path.join(output, `historical-shared-${width}.png`) });
     await other.reload();
     await other.waitForFunction(() => !!(window as any).fixture);
-    await other.evaluate(server => (window as any).fixture.restore(server), `opencraft-app-${spec.appId}-r1`);
+    await other.evaluate(envelope => (window as any).fixture.cached(envelope), firstOpen);
     await otherFrame.locator("#go").click();
     await otherFrame.locator("#value").filter({ hasText: "15" }).waitFor();
     const beforeGlobals = listRequests;
