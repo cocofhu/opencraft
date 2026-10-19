@@ -20,6 +20,7 @@ import {
 import { asHostId, createConversationKey } from "@opencraft/chat-core";
 
 import { createBrowserWorkbenchPanelPlugin } from "../browser/browser-panel-plugin";
+import { createPageHarnessPanelPlugin } from "../page-harness/plugin";
 import { HostDesktopBackend } from "./host-desktop-backend";
 import { BrowserPresentationCoordinator } from "../browser/browser-presentation-coordinator";
 import { BrowserWorkbenchCoordinator } from "../browser/browser-workbench-coordinator";
@@ -177,6 +178,7 @@ export async function createWebWorkbenchApplication(
         panelOwnerId: context.ownerId,
       }),
     ));
+    await panelRuntime.install(createPageHarnessPanelPlugin());
     const browserToolHost = new WebBrowserDynamicToolHost(
       browserPages,
       browserWorkbench,

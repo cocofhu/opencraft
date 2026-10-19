@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 
 import react from "@vitejs/plugin-react";
+import { createPageHarnessHost } from "../../packages/page-harness-host/src/host.mjs";
 import { pluginBranding } from "./plugin-branding.vite";
 import { loadEnv, defineConfig, type ConfigEnv, type Connect, type Plugin, type UserConfig } from "vite";
 
@@ -25,6 +26,26 @@ export interface WorkbenchWebBuildFeatures {
   readonly builtinAgents?: boolean;
   readonly tasks?: boolean;
   readonly pluginBranding?: boolean;
+}
+
+function pageHarnessDevApi(): Plugin {
+  return {
+    name: "opencraft-page-harness",
+    configureServer(server) {
+      const host = createPageHarnessHost();
+      server.httpServer?.once("close", () => { void host.dispose(); });
+      server.middlewares.use((req, res, next) => {
+        if ((req.url ?? "").split("?")[0] !== "/page-harness") { next(); return; }
+        void host.handle(req, res).catch((error: unknown) => {
+          if (!res.headersSent) {
+            res.statusCode = 500;
+            res.setHeader("content-type", "application/json; charset=utf-8");
+            res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : String(error) }));
+          }
+        });
+      });
+    },
+  };
 }
 
 export function createWorkbenchWebConfig(
@@ -364,6 +385,7 @@ export function createWorkbenchWebConfig(
     base: isEmbeddedWorkbenchBuild ? "/__opencraft/" : process.env.VITE_INCLUDE_HEADLESS_CODEX === "true" ? "./" : "/",
     define: { "process.env.NODE_ENV": JSON.stringify(mode), "process.env.PROD": JSON.stringify(mode === "production") },
     plugins: [
+      pageHarnessDevApi(),
       ...(!isElectronRenderer && !isEmbeddedWorkbenchBuild && (features.pluginBranding ?? true) ? [pluginBranding(workspaceRoot,
         (process.env.VITE_WEB_EXTENSIONS ?? loadEnv(mode, process.cwd()).VITE_WEB_EXTENSIONS ?? "").split(",").map(id => id.trim()).filter(Boolean),
       )] : []),

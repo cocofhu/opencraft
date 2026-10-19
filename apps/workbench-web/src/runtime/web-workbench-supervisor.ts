@@ -125,6 +125,7 @@ import { createWorkbenchEntryResolver, resolveRetainedWorkbenchLocation } from "
 import { createApplicationNavigation, createRouteScopeId, parseApplicationRouteUrl, readWorkbenchBootstrapLocation } from "./workbench-navigation";
 
 import { BuiltinThemePackExtension } from "./builtin-theme-extension";
+import { PageHarnessExtension } from "../page-harness/extension";
 import { createComposerActionRendererContributionAdapter } from "./composer-action-renderers";
 import { HostProfileContributionRegistry } from "./host-profile-contributions";
 import { PlatformAccountContributionRegistry } from "./platform-account-contributions";
@@ -304,6 +305,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     startupRollback.push(() => sidebarLayout.close());
     await extensions.activate(BuiltinWebSocketHostConnectionExtension);
     await extensions.activateOptional(BuiltinThemePackExtension);
+    await extensions.activateOptional(PageHarnessExtension);
     const loadPresentationExtension = async (
       id: string,
       load: (signal?: AbortSignal) => ReturnType<Parameters<ExtensionSupervisor["loadOptional"]>[1]>,

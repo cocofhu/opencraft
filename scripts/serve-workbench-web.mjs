@@ -5,6 +5,7 @@ import { APP_HOST_PROTOCOL_VERSION } from "@opencraft/app-host-protocol/version"
 import { createReadStream } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { createServer } from "node:http";
+import { createPageHarnessHost } from "../packages/page-harness-host/src/host.mjs";
 import { randomUUID } from "node:crypto";
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -381,6 +382,7 @@ export async function createWorkbenchWebServer({
   const sameOrigin = (request, requireOrigin) => allowedSameOriginRequest(request, requireOrigin, true)
     || (!!accessService?.trustedOrigin(request) && (request.headers.origin === accessService.trustedOrigin(request) || (!requireOrigin && request.headers.origin === undefined)));
   const runtimeReports = [];
+  const pageHarness = createPageHarnessHost();
   const emitAppHostDiagnostic = diagnostic => {
     try { onAppHostDiagnostic({ serverProtocolVersion: APP_HOST_PROTOCOL_VERSION, ...diagnostic }); }
     catch { /* Observability must not affect the connection. */ }
@@ -422,6 +424,10 @@ export async function createWorkbenchWebServer({
           } else sendJson(response, status, { error: status === 401 ? "authentication_required" : "instance_access_denied" });
           return;
         }
+      }
+      if (url.pathname === "/page-harness") {
+        await pageHarness.handle(request, response);
+        return;
       }
       if (!["/health", "/__opencraft_health"].includes(url.pathname) && actorService?.legacyAdmissionStatus(request) === 403) {
         sendJson(response, 403, { error: 'actor_access_denied' }); return;
@@ -775,11 +781,14 @@ export async function createWorkbenchWebServer({
         server.once("error", reject);
         server.listen(port, host, () => {
           server.off("error", reject);
-          resolvePromise(server.address());
+          const address = server.address();
+          pageHarness.noteWorkbenchPort(typeof address === "object" && address ? address.port : port);
+          resolvePromise(address);
         });
       });
     },
     close() {
+      void pageHarness.dispose();
       speechService?.close();
       unsubscribeRevocation?.();
       if (heartbeat !== null) clearInterval(heartbeat);

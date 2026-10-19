@@ -1,3 +1,4 @@
+import { PageHarnessTurnTail } from "../page-harness/turn-tail";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -605,6 +606,7 @@ function Turn({
       ))}
       {turn.status === "complete" || turn.status === "failed" || turn.status === "interrupted"
         ? <VisibleTurnReceipt turnId={turn.turnId} /> : null}
+      <PageHarnessTurnTail turn={turn} />
     </section>
   );
 }
