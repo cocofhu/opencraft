@@ -1544,3 +1544,14 @@ The read adapter loads on first read and checks cancellation after import.
 - A session without an explicit model inherits the current Host default for creation and its existing model for continuation; choosing a model never writes deployment defaults.
 - Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
+
+## Conversation presentation contributions
+
+Optional conversation subtitles share the existing title rail and constrained
+width; renaming and ordinary headers retain their controls. Trusted product
+contributions before/after Composer cannot replace its draft owner. Visible
+history refresh changes durable history without Resume, page reload or Composer
+remount. Hidden/retired views stop scheduling reads; cancelled or stale-generation
+results cannot update the new conversation. Browser evidence uses the real
+Shell/Header/hook with a synthetic lease, alongside actual runtime/protocol tests;
+it does not establish external account or channel delivery acceptance.

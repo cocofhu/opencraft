@@ -38,6 +38,8 @@ export interface DraftHarness {
   releaseUnsubscribe(): void;
   failNextUnsubscribe(): void;
   holdFork(): void;
+  holdInterrupt(): void;
+  releaseInterrupt(): void;
   releaseFork(): void;
   publishFork(): void;
   notifySkillsChanged(): void;
@@ -64,7 +66,7 @@ export function createHarness(
   historyTurns: readonly unknown[] = [],
   delayUnsubscribe = false,
   models: readonly Record<string, unknown>[] = [{ id: "codex", model: "codex", isDefault: true, inputModalities: ["text"], supportedReasoningEfforts: [{reasoningEffort:"medium",description:"Medium"}], defaultReasoningEffort:"medium" }],
-  declareResumeHistory = false,
+  declareResumeHistory: boolean | "message-window" = false,
   delayCapabilityRegistration = false,
   firstTurnDurability = false,
   rejectTurn = false,
@@ -79,8 +81,11 @@ export function createHarness(
   let failUnsubscribe = false;
   let releaseFork = () => undefined;
   let holdFork = false;
+  let holdInterrupt = false;
+  let releaseInterrupt = () => undefined;
   let forkPublished = false;
   let activePeer: InMemoryAppServerPeer | null = null;
+  const fixtureThread = (id: string) => ({ ...protocolThread(id), historyMode: declareResumeHistory === "message-window" ? "message-window" : "paginated" });
   const server: InMemoryAppServer = {
     connected(peer) {
       activePeer = peer;
@@ -97,7 +102,7 @@ export function createHarness(
         send({ codexHome: "/tmp", platformFamily: "unix", platformOs: "linux", userAgent: "draft-test",
           capabilities: { extensions: {
             ...(declareResumeHistory
-              ? { [OPENCRAFT_RESUME_HISTORY_EXTENSION]: { version: 1, mode: "paginated" } }
+              ? { [OPENCRAFT_RESUME_HISTORY_EXTENSION]: { version: 1, mode: declareResumeHistory === "message-window" ? "message-window" : "paginated" } }
               : {}),
             ...(delayCapabilityRegistration
               ? { "opencraft/host-capabilities": { version: 1 } }
@@ -125,20 +130,20 @@ export function createHarness(
           overriddenMetadata: null,
         });
       } else if (message.method === "thread/list") {
-        send({ data: [protocolThread("thread-created"), ...(forkPublished ? [protocolThread("thread-fork")] : [])], nextCursor: null });
+        send({ data: [fixtureThread("thread-created"), ...(forkPublished ? [fixtureThread("thread-fork")] : [])], nextCursor: null });
       } else if (message.method === "thread/fork") {
         const ephemeral = (message.params as { ephemeral?: boolean }).ephemeral === true;
-        const respond = () => send({ thread: { ...protocolThread(ephemeral ? "thread-fork-ephemeral" : "thread-fork"), forkedFromId: "thread-created", ephemeral },
+        const respond = () => send({ thread: { ...fixtureThread(ephemeral ? "thread-fork-ephemeral" : "thread-fork"), forkedFromId: "thread-created", ephemeral },
           model: "codex", modelProvider: "openai", cwd: "/workspace", approvalPolicy: "on-request", approvalsReviewer: "user",
           sandbox: { type: "workspaceWrite", writableRoots: ["/workspace"] }, runtimeWorkspaceRoots: ["/workspace"],
         });
         if (holdFork) releaseFork = respond;
         else respond();
-      } else if (message.method === "thread/read" && historyTurns.length > 0) {
+      } else if (message.method === "thread/read" && (historyTurns.length > 0 || declareResumeHistory === "message-window")) {
         const threadId = (message.params as { threadId?: string }).threadId ?? "thread-created";
-        send({ thread: protocolThread(threadId) });
+        send({ thread: fixtureThread(threadId) });
       } else if (message.method === "thread/start") {
-        send({ thread: protocolThread("thread-created") });
+        send({ thread: fixtureThread("thread-created") });
       } else if (message.method === "turn/start") {
         const respond = () => rejectTurn
           ? peer.send(encodeJsonRpcMessage({ id: message.id, error: { code: -32000, message: "first turn rejected" } }))
@@ -148,7 +153,7 @@ export function createHarness(
       } else if (message.method === "thread/resume") {
         const threadId = (message.params as { threadId?: string }).threadId ?? "thread-created";
         const respond = () => send({
-          thread: protocolThread(threadId),
+          thread: fixtureThread(threadId),
           model: "codex",
           modelProvider: "openai",
           serviceTier: "default",
@@ -243,6 +248,8 @@ export function createHarness(
         send({ dataBase64: btoa("hello from sandbox\n") });
       } else if (message.method === "fs/writeFile") {
         send({});
+      } else if (message.method === "turn/interrupt" && holdInterrupt) {
+        releaseInterrupt = () => send({});
       } else if (message.method === "fs/watch") {
         send({ path: (message.params as { path: string }).path });
       } else if (message.method === "fs/unwatch") {
@@ -282,6 +289,8 @@ export function createHarness(
     releaseUnsubscribe: () => releaseUnsubscribe(),
     failNextUnsubscribe: () => { failUnsubscribe = true; },
     holdFork: () => { holdFork = true; },
+    holdInterrupt: () => { holdInterrupt = true; },
+    releaseInterrupt: () => releaseInterrupt(),
     releaseFork: () => releaseFork(),
     publishFork: () => { forkPublished = true; },
     notifySchedulesChanged: () => activePeer?.send(encodeJsonRpcMessage({ method: "opencraft/schedules/changed", params: {} })),

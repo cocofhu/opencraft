@@ -1,3 +1,5 @@
+import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
+import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut, shortcutLabel } from "./workbench-shortcuts";
 import { WorkbenchShortcutHelp } from "./components/workbench-shortcut-help";
@@ -256,9 +258,11 @@ export interface EmbeddedWorkbenchAppPresentation {
 
 export function App({
   embedded,
+  conversationPresentation,
   presentation = FULL_WORKBENCH_PRESENTATION,
 }: {
   readonly embedded?: EmbeddedWorkbenchAppPresentation;
+  readonly conversationPresentation?: ConversationPresentationProvider;
   readonly presentation?: WorkbenchPresentationPolicy;
 } = {}) {
   const intl = useIntl();
@@ -1594,9 +1598,30 @@ export function App({
   const schedulesAvailable = scheduleCapability?.version === 1 && runtime.resources.host.canRequest?.("opencraft/schedules/read") === true;
   const conversationMenuAvailable = conversationSurfaceVisible && draft === null && activeThreadId !== null
         && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
+  const refreshConversationCatalog = useCallback(() => queryClient.invalidateQueries({
+    queryKey: ["appserver", snapshot.hostId, "threads"],
+  }), [queryClient, snapshot.hostId]);
+  const conversationContribution = conversationSurfaceVisible && draft === null && activeThreadId !== null
+    ? conversationPresentation?.({
+      hostId: snapshot.hostId, threadId: activeThreadId, extra: activeProtocolThread?.extra,
+      ready: snapshot.phase === "ready", authoritative: snapshot.conversation?.authoritative === true,
+      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId).fork,
+      readExtra: async () => (await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", {
+        threadId: activeThreadId, includeTurns: false,
+      })).thread.extra,
+      fork: () => forkAndOpenThread({
+        routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+        fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId),
+        refreshThreads: refreshConversationCatalog,
+        openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+      }),
+    }) : null;
+  useConversationHistoryRefresh(activeThreadLease,
+    conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
   const header = (
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
+      subtitle={conversationContribution?.subtitle}
       navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
       headerActionCount={conversationMenuAvailable ? 1 : 0}
       headerAction={conversationMenuAvailable ? (
@@ -2037,6 +2062,7 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
+                    {conversationContribution?.beforeComposer}
                     {snapshot.conversation?.continuation.error ? (
                       <p role="alert">{snapshot.conversation.continuation.error.message}</p>
                     ) : null}
@@ -2117,6 +2143,7 @@ export function App({
                         />
                       </div>
                         )}
+                    {conversationContribution?.afterComposer}
                     </div>
                     </ThreadComposerPresentation>
                   }

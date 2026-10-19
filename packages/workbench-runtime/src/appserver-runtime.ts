@@ -406,6 +406,8 @@ export interface AppServerThreadRuntimeLease {
   subscribe(listener: () => void): () => void;
   /** Retry this Thread's baseline without navigating or reconnecting its Host. */
   retryRestore(): Promise<void>;
+  /** Read durable message-window history without Resume or execution ownership changes. */
+  refreshHistory(signal?: AbortSignal): Promise<boolean>;
   submit(intent: SubmitIntent): Promise<SubmissionReceipt>;
   interrupt(turnId: TurnId, provenance?: TurnInterruptProvenance): Promise<void>;
   continueTurn(turnId: TurnId): Promise<SubmissionReceipt>;
@@ -2042,6 +2044,12 @@ export function createAppServerWorkbenchRuntime(
             run: () => recovery.span("history-authoritative", () => hydrateBinding(binding, true, true)),
             retryable: retryableHistoryFailure, propagateFailure: true,
           }, true);
+        },
+        async refreshHistory(signal) {
+          if (released || binding.disposed || signal?.aborted) return false;
+          const snapshot = binding.runtime.getSnapshot();
+          if (phase !== "ready" || !snapshot.authoritative || snapshot.activeTurn !== null || binding.pendingCommandCount > 0 || binding.acceptedTurnIds.size > 0) return false;
+          return requireSession().resume.refreshHistory(threadId, signal);
         },
         subscribe(listener) {
           if (released || binding.disposed)

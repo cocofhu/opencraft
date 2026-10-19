@@ -999,6 +999,28 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   gap: 8px;
 }
 
+/* Optional conversation metadata shares the title's existing constrained rail. */
+.thread-header-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thread-header-heading__main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.thread-header-heading__subtitle {
+  @include typography.role(metadata, secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .thread-header-rename {
   flex: 0 0 auto;
   align-self: center;

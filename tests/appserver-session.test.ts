@@ -1571,3 +1571,129 @@ test("bounded replacement accepts terminal authority, drops old running coverage
   assert.equal(result.find(turn => turn.id === "accepted"), unresolved);
   assert.equal(result.find(turn => turn.id === "notification"), fresh);
 });
+
+
+test("message-window refresh rejects a tail from an older connection generation", async () => {
+  let respond!: () => void;
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: null },
+    turnsPages: { null: { data: [{ id: "new-tail", items: [], status: "completed" }], nextCursor: null } },
+    holdTurnsResponse: send => { respond = send; } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    const refresh = h.runtime.resume.refreshHistory("thread-one");
+    for (let i = 0; i < 30 && !respond; i++) await new Promise(r => setTimeout(r, 0));
+    assert.ok(respond);
+    const generation = h.client.connectionGeneration;
+    Object.defineProperty(h.client, "connectionGeneration", { configurable: true, value: generation + 1 });
+    respond(); assert.equal(await refresh, false);
+    assert.equal(h.runtime.views.get("thread-one")!.turns.some(t => t.id === "new-tail"), false);
+  } finally { delete (h.client as unknown as Record<string, unknown>).connectionGeneration; await h.close(); }
+});
+
+test("loadOlder waits for an active message-window tail refresh", async () => {
+  const pending: Array<() => void> = [];
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: "older" },
+    turnsPages: { null: { data: [{ id: "tail", items: [], status: "completed" }], nextCursor: "older" },
+      older: { data: [{ id: "older", items: [], status: "completed" }], nextCursor: null } },
+    holdTurnsResponse: send => { pending.push(send); } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    const refresh = h.runtime.resume.refreshHistory("thread-one");
+    for (let i = 0; i < 30 && !pending.length; i++) await new Promise(r => setTimeout(r, 0));
+    assert.equal(pending.length, 1);
+    const older = h.runtime.resume.loadOlder("thread-one");
+    await new Promise(r => setTimeout(r, 0)); assert.equal(pending.length, 1, "older read cannot invalidate an in-flight tail");
+    pending.shift()!(); await refresh;
+    for (let i = 0; i < 30 && !pending.length; i++) await new Promise(r => setTimeout(r, 0));
+    assert.equal(pending.length, 1); pending.shift()!(); await older;
+    assert.deepEqual(h.runtime.views.get("thread-one")!.turns.map(t => t.id), ["older", "tail"]);
+  } finally { for (const respond of pending) respond(); await h.close(); }
+});
+
+test("message-window refresh advances history without Resume and skips an unchanged revision", async () => {
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: null },
+    turnsPages: { null: { data: [{ id: "external-tail", items: [], status: "completed" }], nextCursor: null } } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    assert.equal(await h.runtime.resume.refreshHistory("thread-one"), true);
+    assert.deepEqual(h.runtime.views.get("thread-one")!.turns.map(turn => turn.id), ["external-tail"]);
+    assert.equal(h.requests.filter(request => request.method === "thread/resume").length, 1);
+    const reads = h.requests.filter(request => request.method === "thread/turns/list").length;
+    assert.equal(await h.runtime.resume.refreshHistory("thread-one"), false);
+    assert.equal(h.requests.filter(request => request.method === "thread/turns/list").length, reads);
+    assert.equal(h.runtime.views.get("thread-one")!.resumeState, "resumed");
+  } finally { await h.close(); }
+});
+
+test("a cancelled history refresh cannot publish its delayed tail", async () => {
+  let respond!: () => void;
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: null },
+    turnsPages: { null: { data: [{ id: "cancelled-tail", items: [] }], nextCursor: null } },
+    holdTurnsResponse: send => { respond = send; } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    const controller = new AbortController();
+    const refresh = h.runtime.resume.refreshHistory("thread-one", controller.signal);
+    const settled = refresh.catch(() => false);
+    for (let i = 0; i < 30 && !respond; i++) await new Promise(r => setTimeout(r, 0));
+    assert.ok(respond); controller.abort(); respond();
+    assert.equal(await settled, false);
+    assert.deepEqual(h.runtime.views.get("thread-one")!.turns, []);
+    assert.equal(h.runtime.views.get("thread-one")!.resumeState, "resumed");
+  } finally { await h.close(); }
+});
+
+test("a released history owner cannot be recreated by a delayed refresh", async () => {
+  let respond!: () => void;
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: null },
+    turnsPages: { null: { data: [{ id: "retired-tail", items: [] }], nextCursor: null } },
+    holdTurnsResponse: send => { respond = send; } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    const refresh = h.runtime.resume.refreshHistory("thread-one");
+    for (let i = 0; i < 30 && !respond; i++) await new Promise(r => setTimeout(r, 0));
+    assert.ok(respond); h.runtime.resume.release("thread-one"); respond();
+    assert.equal(await refresh, false);
+    assert.equal(h.runtime.views.get("thread-one"), null);
+  } finally { await h.close(); }
+});
+
+test("history refresh coalesces reads and preserves notifications arriving during a tail fetch", async () => {
+  let respond!: () => void;
+  const h = await createHarness({ historyMode: "message-window", initialTurnsPage: { data: [], nextCursor: null },
+    turnsPages: { null: { data: [{ id: "external", status: "completed", items: [] }], nextCursor: null } },
+    holdTurnsResponse: send => { respond = send; } });
+  try {
+    await h.runtime.resume.resume({ threadId: "thread-one" });
+    h.runtime.views.update("thread-one", view => ({ ...view, thread: { ...view.thread!, updatedAt: -1 } }));
+    const first = h.runtime.resume.refreshHistory("thread-one");
+    const second = h.runtime.resume.refreshHistory("thread-one");
+    assert.equal(first, second);
+    for (let i = 0; i < 30 && !respond; i++) await new Promise(r => setTimeout(r, 0));
+    assert.ok(respond);
+    await h.emit("turn/started", { threadId: "thread-one", turn: { id: "live", status: "inProgress", items: [] } });
+    await h.emit("item/started", { threadId: "thread-one", turnId: "live", item: { id: "answer", type: "agentMessage", text: "new observation" } });
+    respond(); assert.equal(await first, true);
+    const turns = h.runtime.views.get("thread-one")!.turns;
+    assert.deepEqual(turns.map(turn => turn.id), ["external", "live"]);
+    assert.equal(turns[1]?.items[0]?.text, "new observation");
+    assert.equal(h.requests.filter(request => request.method === "thread/turns/list").length, 1);
+  } finally { respond?.(); await h.close(); }
+});
+
+test("history refresh does not request paginated or legacy transcripts", async () => {
+  for (const historyMode of ["paginated", "legacy"] as const) {
+    const h = await createHarness({ historyMode, useTailHydration: false });
+    try {
+      await h.runtime.resume.resume({ threadId: "thread-one" });
+      const reads = h.requests.length;
+      assert.equal(await h.runtime.resume.refreshHistory("thread-one"), false);
+      assert.equal(h.requests.length, reads);
+    } finally { await h.close(); }
+  }
+});

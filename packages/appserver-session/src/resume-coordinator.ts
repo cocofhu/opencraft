@@ -110,6 +110,7 @@ export class ThreadResumeCoordinatorService extends Service {
   private readonly historyContexts = new Map<string, ResumeHistoryContext>();
   private readonly backgroundHistory = new Map<string, Promise<void>>();
   private readonly olderPageRequests = new Map<string, Promise<ThreadView>>();
+  private readonly historyRefreshes = new Map<string, Promise<boolean>>();
   private disposed = false;
   private previewSequence = 0;
   private readonly previewTokens = new Map<string, string>();
@@ -169,6 +170,7 @@ export class ThreadResumeCoordinatorService extends Service {
       this.historyContexts.clear();
       this.backgroundHistory.clear();
       this.olderPageRequests.clear();
+      this.historyRefreshes.clear();
       this.previewTokens.clear();
     });
   }
@@ -230,6 +232,7 @@ export class ThreadResumeCoordinatorService extends Service {
   release(threadId: string): void {
     if (this.inFlight.has(threadId)) throw new Error("Cannot release a resuming Thread");
     this.historyContexts.delete(threadId);
+    this.historyRefreshes.delete(threadId);
     this.backgroundHistory.delete(threadId);
     this.olderPageRequests.delete(threadId);
     this.previewTokens.delete(threadId);
@@ -249,7 +252,56 @@ export class ThreadResumeCoordinatorService extends Service {
     return this.backgroundHistory.get(threadId) ?? Promise.resolve();
   }
 
+  /** Refresh only durable message-window history; never Resume or reclaim execution. */
+  refreshHistory(threadId: string, signal?: AbortSignal): Promise<boolean> {
+    const existing = this.historyRefreshes.get(threadId);
+    if (existing) return existing;
+    const operation = this.refreshHistoryOnce(threadId, signal).finally(() => {
+      if (this.historyRefreshes.get(threadId) === operation) this.historyRefreshes.delete(threadId);
+    });
+    this.historyRefreshes.set(threadId, operation);
+    return operation;
+  }
+
+  private async refreshHistoryOnce(threadId: string, signal?: AbortSignal): Promise<boolean> {
+    await this.olderPageRequests.get(threadId);
+    if (this.disposed || signal?.aborted) return false;
+    const initial = this.ctx.threadViews.get(threadId);
+    const context = this.historyContexts.get(threadId);
+    if (!initial || !context || initial.resumeState !== "resumed" || initial.historySource !== "message-window") return false;
+    const generation = this.client.connectionGeneration;
+    const current = () => !this.disposed && !signal?.aborted
+      && generation === this.client.connectionGeneration
+      && this.historyContexts.get(threadId) === context
+      && this.ctx.threadViews.get(threadId)?.resumeState === "resumed";
+    if (!current()) return false;
+    const { thread } = await this.client.request("thread/read", { threadId, includeTurns: false }, {
+      timeoutMs: this.requestTimeoutMs, priority: "background", signal,
+    });
+    if (!current()) return false;
+    requireThread(thread, "thread/read");
+    if (thread.id !== threadId) throw new Error("History refresh returned a different Thread");
+    const revision = (value: AppServerThread | null) => value === null ? null
+      : JSON.stringify([value.updatedAt, value.preview, value.extra]);
+    if (revision(initial.thread) === revision(thread)) return false;
+    // Ignore the initial Resume page/cursor: this read must fetch the current tail.
+    const history = await this.ctx.threadHistoryStrategies.load({
+      ...context, signal, response: { ...context.response, thread, initialTurnsPage: null, turnsBackwardsCursor: null },
+    });
+    if (!current()) return false;
+    this.ctx.threadViews.update(threadId, view => ({
+      ...view, thread,
+      turns: reconcileHistoryWindow(view.turns, history.turns, initial.turns),
+      turnsPagination: { ...view.turnsPagination, olderCursor: history.olderCursor,
+        oldestLoadedTurnId: history.turns[0]?.id ?? null, hasLoadedOldest: history.complete },
+      historyError: null,
+    }));
+    return true;
+  }
+
   loadOlder(threadId: string): Promise<ThreadView> {
+    const refreshing = this.historyRefreshes.get(threadId);
+    if (refreshing) return refreshing.catch(() => false).then(() => this.loadOlder(threadId));
     const existing = this.olderPageRequests.get(threadId);
     if (existing !== undefined) return existing;
     const operation = this.loadOlderOnce(threadId).finally(() => {
