@@ -12,6 +12,24 @@ See the workbench language and `scripts/smoke-frosted-materials.ts` for real
 consumer, backdrop and fallback verification. Native appearance is unchanged.
 
 
+## Floating sidebar presentation boundary
+
+Shell owns visibility, live width, mobile progress and content identity. The
+floating container projects those ports into stable header/body/footer slots;
+ordinary prop and width changes preserve drafts and mount identity. Exit presence
+immediately becomes inert, aria-hidden and pointer-disabled. Desktop entrance
+translates the surface by -8px while its header counter-translates, then settles;
+exit translation keeps opacity. Reduced motion skips settling. Mobile depth
+consumes the same Shell progress, clamps 90–100% scale and 45–100% opacity, and
+adds no separate exit animation. Its stationary wash remains a sibling outside
+the scaled layer, consumes the same progress from 65% to zero opacity, and stays
+transparent in reduced motion; Shell CSS retains material and hit-test ownership.
+Existing resize transactions own bounds,
+keyboard/default width, commits and cancellation; the floating resize port cannot
+collapse the sidebar. The [bounded replacement record](../docs/provenance/floating-sidebar-replacement.md)
+retains pre-authoring observations and the pre-existing full Shell footer failure.
+Other Shell, navigation, style and spring implementations retain their owners.
+
 ## Discrete slider fill
 
 The shared track owns capsule clipping. Its selected range has a square inner
@@ -185,6 +203,16 @@ clear a different conversation's input. Mobile software Return remains newline.
 - TSK-08：已有会话的顶部“…”位于右面板按钮左侧，通过固定任务 authority 设定多个归属任务；使用稳定 Server/Thread 身份，不把当前聊天 Host 当任务库。每个关联行单独反馈写入，冲突或未知结果重新读取而不重放。草稿不显示入口，切会话/账号关闭旧选择器，解除关系不改变会话执行。
 - TSK-09：会话顶部菜单的重命名与置顶操作消费已有 ThreadTitleWriter 和原生 thread management port，与侧栏共享持久状态。只显示 Host 支持的动作；不依赖 Tasks 插件可用性来授权会话管理。重命名使用共享 ModalSurface，失败保留输入、处理中禁用重复提交；置顶失败留在菜单可重试，不伪造已成功状态。菜单/编辑会话按账号、Host、Thread 隔离，切换撤销旧 UI。
 
+
+## Link label action ownership
+
+A link owns its resource action. Its label retains Markdown formatting and image
+children but suppresses text decorations that would create nested interactive
+mentions. The document compiler preserves target/title and source-range contracts;
+the renderer owns target safety, streaming activation and semantic open intent.
+Changing node construction must not create a second resource or identity owner.
+The [bounded link replacement](../docs/provenance/document-inline-link-replacement.md)
+records exact scope and verification limits.
 
 ## Conversation recovery feedback
 
@@ -561,6 +589,11 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 ## 听写输入所有权
 
+底栏仅消费当前瞬时事务，独立呈现阶段、计时和有界音量历史；录音、重试、最终
+写入与提交仍由原owner负责。采样源替换/卸载释放订阅、观察器及待绘制帧；停止
+调用finish，发送交回Composer提交入口，不新增麦克风或草稿状态。当前替换的
+[来源与验证边界](../docs/provenance/dictation-footer-replacement.md)单独保留。
+
 - DIC-01：听写Footer由当前Composer瞬时输入事务拥有；切换草稿、清空、物理View替换或卸载同时释放文本与呈现。旧事务不能更新新Footer。
 - DIC-02：普通与听写操作互斥；普通内容保持挂载但inert/aria-hidden，不重建编辑器。Composer拥有区域几何、主题控件和提交编译，插件只提供状态/采样/完成动作。
 - DIC-03：停止只写入；Enter/确认发送必须等最终文本，并核对同一草稿与View。取消、失败或失去归属不能迟到发送；重复停止复用同一完成事务。
@@ -611,17 +644,18 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 | ID | 不变量 | 责任/验证 |
 |---|---|---|
-| BRW-01 | Source BrowserSidebarStateManager 唯一管理 backing host、挂载 claim、持久化状态及交接；React 只提供 slot 与测量 | codex/browser-manager.js；原类体比对、codex-browser-manager.test.ts |
+| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | codex/browser-manager.js；历史来源与当前模块分开锁定、冻结行为及实际 Web consumer、codex-browser-manager.test.ts |
 | BRW-02 | 上一个页面在新页面收到对应代次的 attachment ack、预热完成前继续承载画面；提交后一帧才释放旧画面与新页面交互 | codex/presentation-transition.js；确定性调度测试 |
 | BRW-03 | 替换/取消 pending handoff 后，旧 ack、timer、frame callback 不得重新显示旧 incoming 或清理新页面 | A→B→C 和迟到回调回归 |
-| BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 源状态机＋标准 host port；原生多标签回归 |
-| BRW-05 | Page storage ID 与 renderer/host/mount generation 分离；源管理器拥有 ephemeral→persistent 与 restore-expected 状态，平台负责持久化同一分区 | manager storage tests＋桌面重启 Cookie 回归 |
+| BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 独立状态机＋标准 host port；原生多标签回归 |
+| BRW-05 | Page storage ID 与 renderer/host/mount generation 分离；管理器拥有 ephemeral→persistent 与 restore-expected 状态，平台负责持久化同一分区 | manager storage tests＋桌面重启 Cookie 回归 |
 | BRW-06 | 弹窗请求经 Main 验证并按原 Page Scope 创建标签；不改写原页面、不生成不受管窗口 | native managed popup smoke |
 | BRW-07 | 权限按 partition/origin/type 隔离；旧页面与撤销后的迟到授权不得生效 | browser-permissions.test.ts＋原生拒绝/撤销/清除数据回归 |
 | BRW-08 | browser-use 与 UI 挂载独立；操作互斥且 finally 释放；隐藏页仍可渲染/截图，无面板激活副作用 | browser-background.test.ts＋原生后台读取/截图/关闭回归 |
 | BRW-09 | 恢复未完成不是用户关闭；close 与清除站点数据分离，重启不因 localhost 端口变化丢失归属 | desktop metadata＋native restart smoke |
+| BRW-10 | 设备工具栏只投影父层 viewport mode/zoom；聚焦数字草稿独立，范围内编辑即时提交、失焦规范化，预设/旋转不夺取 Page 或持久化所有权 | 独立 toolbar/input；136 静态、64 Web 检查点及两组258边界；手柄/布局保持原owner |
 
-当前迁移状态：源类体哈希校验、66 项聚焦测试、完整门禁，以及最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。
+历史迁移验收：当时源类体哈希校验、66 项聚焦测试、完整门禁，以及当时最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与当时源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。当前 registry 与 toolbar 的有界独立替换各有 provenance 记录，不沿用旧原生验收证明新实现。
 
 模型成立、编译通过、真实控件通过、真实 Host 通过、Mac 产物通过是不同级别。未经相应验证不得提升状态。恢复源码没有明确承诺的行为不得擅自增加约束；结构互斥、稳定前缀和同步移交本身可构成合法保证。
 # 会话生命周期补充（2026-09-15）
@@ -680,6 +714,28 @@ Connector 目录浏览不套用设置行：采用限宽品牌卡片，已配置�
 手机宽度（不超过 640px）不展示会话标题旁的 Project/工作区附文，标题与操作按钮保留。桌面继续展示附文。已有“…”菜单的会话详情以只读方式展示实际项目名与工作目录：优先当前会话执行信息，目录尚未恢复时可用同一会话的规范 Thread 元数据；未知字段不伪造，不更改执行目录或启动会话。
 
 会话信息使用共享 InformationPanel 两行元数据和 ModalSurface 自适应呈现：可用视口不超过 640px 为贴底 sheet，超过 640px（含 iPad 常规横竖屏和宽分屏）为至多 420px 居中弹窗；不按设备型号或 UA 分支。标题、右上关闭与目录复制均本地化，不保留重复底部关闭栏。长项目名/路径完整换行且可选，目录复制沿用共享控件的成功/失败反馈与非安全上下文回退。Radix 继续拥有模态、焦点、Escape 和遮罩关闭；窄屏仅顶部手柄拥有下拉关闭，短拖/取消回弹，不拦截信息区的选择与滚动，减少动态效果关闭进出动画。下拉手势由Web平台可选AdaptiveSheetHandle持有，与信息内容一起按需加载，通用ModalSurface不将手势实现加入首屏。主题、排版与触控命中尺寸由共享设计系统持有；不更改会话或执行状态。
+
+Application Markdown link scanning is a pure raw-text projection. UTF-16 source
+ranges, escape compatibility and later-candidate recovery stay stable; unescaping
+and Host-scoped resource admission remain caller responsibilities. Scanner matches
+do not open a resource or grant navigation. See [the bounded scanner contract](../docs/provenance/markdown-link-scanner-replacement.md).
+
+Formula delimiter projection preserves application syntax and raw source ranges;
+code-fence precedence and structural placement remain compiler responsibilities.
+Display line-tail admission and inline LF rejection cannot silently change during
+source replacement. See [the bounded math contract](../docs/provenance/math-delimiters-replacement.md).
+
+User-message list/block projection preserves the existing newline and fence
+compatibility; indented continuations retain list context and empty lines reset
+it. Source replacement must not silently adopt another Markdown dialect. See the
+[bounded normalization contract](../docs/provenance/user-message-blocks-replacement.md).
+
+Global streaming segment keys survive Markdown container reparsing through the
+shared reconciler: same-position exact/growing text wins before unconsumed global
+exact occurrences. Reused text settles, new text enters only while streaming,
+and completed text stays visible. This pure projection cannot commit a session,
+change syntax identity, schedule animation or own execution. See the [bounded
+record](../docs/provenance/streaming-segments-replacement.md).
 
 ## Markdown 文件预览
 - 文件标题栏提供文件树显隐开关；收起后内容占满宽度，树保持挂载以保留展开、搜索和滚动位置，不重建预览或编辑器。只读嵌入预览仍无目录入口。验证：`scripts/smoke-file-tree-toggle.ts`。
@@ -1600,6 +1656,44 @@ The read adapter loads on first read and checks cancellation after import.
 - Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
 - A Composer with machine/workspace context chrome uses stacked context, input and footer rows, including when empty. Model and permission controls remain in the measured footer; they never borrow an absolute slot from the context row. Empty composers without context chrome retain their existing inline touch presentation. Layout changes preserve the editor, selection state and menus.
+
+
+## Shared Turn follow policy
+
+The renderer-neutral `timeline-virtualizer/src/follow.ts` is the single follow
+ownership policy for Web and Native. Static/watch modes preserve reading; only
+explicit bottom intent or the permitted watched-content overflow acquires follow.
+Completion alone does not acquire ownership. Restore capture projects a saved
+checkpoint without mutating the live controller. Placement/spacer thresholds,
+public mode/event names and spring data remain compatibility contracts. The
+[bounded replacement contract](../docs/provenance/timeline-follow-replacement.md)
+records historical origin and current verification separately; neighboring
+window, restoration, history and platform owners retain their implementations.
+
+
+## Shared history backfill ownership
+
+One renderer-neutral coordinator serializes history pages across layout epochs.
+Repeated current requests share the active Promise; invalidation fences continuation
+and replacement work waits for old work to settle. Every successful page finishes
+the host layout barrier before ownership, enabled state or explicit stop decides
+continuation. Unchanged height ends the fill pass. Error callbacks retain stale
+failure reporting; they cannot grant old work a new layout generation. Public
+ports, shared load policy and platform geometry ownership remain unchanged.
+The [bounded replacement record](../docs/provenance/timeline-backfill-replacement.md)
+separates current implementation evidence from historical source rights.
+
+## Shared measurement transaction ownership
+
+One measurement batch publishes a coherent height table, layout, viewport and
+scroll decision. The synchronous controller distance and any pending transaction
+own compensation; a callback's presence remains distinct from its current restore
+value. Per-input baseline accumulation, latest-row notifications, pending restore
+priority and platform-preservation/fast-path decisions retain their observed
+boundaries. Web and Native keep their scheduling, lease and commit mechanics;
+neighboring helpers and consumers are not rewritten. The
+[bounded replacement record](../docs/provenance/timeline-measurement-replacement.md)
+keeps current implementation verification separate from historical source rights.
 
 ## Conversation presentation contributions
 

@@ -1,5 +1,42 @@
 # ChatUI integration architecture
 
+## Shared history backfill coordinator
+
+`TurnHistoryBackfillCoordinator` owns one history-load operation and layout epoch
+through the existing `timeline-react` adapter. Same-generation requests share the
+operation; replacement generations wait for old work, including failures, before
+starting another load. A completed page always reaches the platform layout
+barrier, then current ownership/enabled state, explicit stop, missing geometry or
+unchanged height ends continuation. Web and Native retain their own measurements
+and frame scheduling. The [bounded replacement contract](provenance/timeline-backfill-replacement.md)
+records frozen observations and historical provenance without reclassifying other
+timeline code or treating callback identity changes as a new owner.
+
+## Shared Turn measurement transactions
+
+`createTurnMeasurementTransaction` projects one measured batch into the height
+table, layout, viewport and pending scroll/restore decision. It consumes the
+synchronous controller distance, retaining already pending scroll and latest-row
+height notifications across uncommitted batches. Callback presence grants its
+existing ownership even when no restore target is pending. Web executes the
+unchanged synchronous/pending commit paths; Native retains measurement leases
+and frame scheduling. Neither platform adds another compensation policy. The
+[bounded implementation record](provenance/timeline-measurement-replacement.md)
+limits replacement to this explicitly recovered function; adjacent helpers,
+public interfaces and consumers remain unchanged.
+
+## Inline link label construction
+
+The document compiler preserves link label Markdown children while disabling
+interactive text decorations within that label, including nested formatting.
+The link has one resource action; mentions and color decorations do not create
+additional actions in its text. Raw target/title values and existing UTF-16 source
+ranges stay parser compatibility data. Sanitization, streaming activation and
+opening belong to the existing renderer/resource owners. Only the directly
+attributed link construction case has a
+[bounded implementation replacement](provenance/document-inline-link-replacement.md);
+neighboring compiler and streaming implementations are unchanged.
+
 ## Trusted Web renderer composition
 
 A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.
@@ -91,7 +128,11 @@ Sessions reuse committed stable node/segment identities and reconcile only
 the remaining tail, with cached word segmentation. Immutable parsing memo is
 safe for abandoned renders; committed parsed nodes and identity counters move
 only under the existing candidate CAS. Reused segments cease to be new entrants
-without changing their keys. Completion first uses the full parser, then retains
+without changing their keys. The bounded global segment reconciler preserves
+same-position exact/growing text before globally reusing unconsumed exact text
+occurrences. It owns segment keys and entering flags only; word segmentation,
+semantic node identity and commit CAS remain separate. See the [implementation
+boundary](provenance/streaming-segments-replacement.md). Completion first uses the full parser, then retains
 pure completed syntax by exact source and dialect in an LRU capped at 100 entries
 and six million key characters. Streaming repairs never enter that memo. A
 Session can reuse its committed completed snapshot; Host, theme, resource policy
@@ -237,6 +278,28 @@ settles all response attempts before interrupt, carries the original provenance
 and releases its transient interrupt state on failure. The helper does not grant
 permissions or own pending-request removal. See the [bounded implementation
 record](provenance/interaction-interrupt-replacement.md).
+
+The shared compiler's application link scanner returns raw label/destination and
+UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
+`](` boundary takes priority even after a backslash, while escaped destination
+parentheses remain content. CR/LF reject a candidate; malformed candidates do
+not prevent a later valid link. Tokenizer unescaping, renderer resource admission
+and Host selection keep their existing owners. This grammar is a compatibility
+contract, not a claim to implement every Markdown dialect; see the [bounded
+scanner record](provenance/markdown-link-scanner-replacement.md).
+
+The compiler's math extensions retain the application grammar: display uses
+`$$` or backslash-brackets with horizontal-only trailing line admission; inline
+uses backslash-parentheses and rejects LF inside the first closure. Raw token
+consumption and trimmed formula source remain distinct. Compiler placement,
+code fences and streaming identity keep their owners; see the [bounded math
+record](provenance/math-delimiters-replacement.md).
+
+User-message block normalization retains one list context through indented
+continuations and indented fences, separates unindented kind/prose transitions,
+and resets on a zero-length line. CR/CRLF normalize globally to LF before this
+projection, including fenced lines. It does not own general streaming repair,
+compiler identity or resource admission; see the [bounded normalization record](provenance/user-message-blocks-replacement.md).
 
 ## 跨桌面、手机和平板的会话连续性
 
@@ -1274,7 +1337,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `chat-runtime` | Replica-derived snapshots and command/history ports | protocol storage and rendering |
 | `composer-core` | portable document, draft, target and submit intent | DOM/Native editor state |
 | `codex-composer` | Web ProseMirror adapter and Codex visual surface | authoritative drafts |
-| `timeline-virtualizer` | Codex Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
+| `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
 | `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
@@ -1595,7 +1658,9 @@ mouse/touch animation path; they do not claim Native or Electron acceptance.
 - Web and RN Timeline renderers consuming the same Turn/Frame/Block projection.
 - Codex `VirtualizedTurnList` constants and algorithms: one full-height list,
   Turn-count overscan, measured-height anchor compensation, route restore,
-  common geometry/scroll API, and parent latest-Turn follow reducer.
+  common geometry/scroll API. The parent latest-Turn follow module now has a
+  [separate bounded independent replacement](provenance/timeline-follow-replacement.md);
+  its compatibility constants/interfaces and all neighboring implementations remain.
 
 ### Turn identity handoff and mounted window
 
@@ -1868,7 +1933,7 @@ boundaries remains an editor gap.
 - Add Remote RPC/SFTP and Cloud object-store attachment-staging adapters
   without changing Composer lifecycle semantics.
 - Tune platform-specific response-spacer animation curves while retaining the
-  shared Codex placement and follow state machine.
+  shared placement and follow state machine.
 - Split the large desktop renderer chunk at explicit capability boundaries.
 
 ## Evidence required for completion
@@ -2084,6 +2149,16 @@ unmount; controller and draft identity reject stale restoration.
 Successful final text returns focus to the same editor only after the editable
 projection commits. No recording state is inferred from CSS or a second draft.
 
+The dictation footer is a presentation consumer of the current transient
+interaction. Its independent module buffers at most 512 valid numeric samples,
+coalesces paint requests and releases the subscription, resize observer and pending
+frame when the source changes or disappears. It does not capture audio or write
+draft content. Stop delegates to finish, retry to the failed transaction and send
+to the existing Composer submission owner. Duration updates only while listening;
+startup uses shared neutral progress and failure retains the existing retry slot.
+[The bounded source record](provenance/dictation-footer-replacement.md) retains
+actual exposure, historical hashes and validation limits.
+
 
 The existing Radix model-menu surface owns the available collision height, including
 its padding. Its shared inner grid and both scrollable panes have a zero minimum
@@ -2239,3 +2314,16 @@ Coalesced retries of an active work item still share the original observation.
 ### Product desktop composer shortcut
 
 The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
+
+
+## Web search activity detail projection
+
+The shared tool detail formatter owns only display-field selection and compact
+search text. It preserves the current nested action envelope, operation aliases,
+query/pattern/URL precedence and existing hostname/first-query helper contracts.
+Ordered site facets and ordinary punctuation are presentation compatibility data.
+The presenter continues to own phase, summary, grouping and expandability; the
+Timeline owns protocol projection and call identity. A detail string neither
+executes a search nor authorizes or opens a resource. Web and Native consume the
+same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
+retains original annotations, hashes, authoring order and finite verification.

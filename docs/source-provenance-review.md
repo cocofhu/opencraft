@@ -1,5 +1,66 @@
 # Source provenance review
 
+## Floating sidebar presentation replacement (2026-10-20)
+
+Both [explicitly restored container components](provenance/floating-sidebar-replacement.md)
+are independently replaced from frozen public props and real component behavior.
+The fixed 46-state structural comparison has zero differences; 18 supplemental
+resize/mobile-exit states and 22 actual legacy AppShell states match byte-for-byte.
+The initial one-frame header offset and missing stationary wash were caught
+and corrected. Supplemental 20-state complete fixture-root and all twelve
+existing full mobile-stack combinations pass; varying exit-frame translations
+are retained separately rather than claimed identical. Imports/interfaces, Shell,
+resize transactions, styles and ordinary spring data remain unchanged. The
+original full Shell footer assertion already failed before authoring and stays
+unchanged. Historical hashes, annotation and actual author exposure are retained;
+eight inventory groups remain unresolved. This bounded disposition does not
+establish strict isolation, historical rights, native hardware acceptance or
+release readiness.
+
+## Inline link construction replacement (2026-10-20)
+
+Only the [directly source-attributed link case](provenance/document-inline-link-replacement.md)
+in the compiler is independently replaced. All 5,788 full compiler observations,
+six committed streaming sessions and 560 sealed private-port combinations match
+byte-for-byte. Every byte outside that case remains unchanged. Existing resource
+policy and renderer owners retain their implementations. Historical annotation,
+hashes and actual author exposure remain recorded; eight groups stay unresolved.
+This does not establish strict isolation, historical rights or release readiness.
+
+## Turn measurement transaction replacement (2026-10-20)
+
+Only the [explicitly recovered measurement transaction function](provenance/timeline-measurement-replacement.md)
+is independently replaced after frozen requirements, public ports and 6,189
+complete policy/callback/identity cases. All imports, types, adjacent functions
+and Web/Native/shared wrapper implementations stay unchanged. Original hashes,
+source annotation and actual author exposure remain in the bounded record.
+Initial comparison differences are retained and corrected, not hidden by changing
+observers or assertions. Eight inventory groups remain unresolved; this does not
+establish strict author isolation, historical rights or release readiness.
+
+## History backfill coordinator replacement (2026-10-20)
+
+The complete [explicitly restored coordinator](provenance/timeline-backfill-replacement.md)
+is independently replaced after freezing public declarations, existing tests,
+446 call-order/Promise/error cases and ten actual Conversation checkpoints.
+The full raw outputs match. The first parameter-mapping error was caught and
+corrected without altering observers, helper policy or assertions. Imports,
+public types and React/Web/Native adapters remain unchanged. Historical hashes,
+source annotations and actual author exposure remain recorded; eight groups
+remain unverified. This is not strict author isolation, Native-device acceptance,
+historical-rights clearance or release readiness.
+
+## Timeline follow policy replacement (2026-10-20)
+
+Only the [explicitly restored follow-policy module](provenance/timeline-follow-replacement.md)
+is independently replaced from frozen OpenCraft contracts and complete policy,
+shared-controller and actual Conversation observations. Public types, mode/event
+names, ordinary numeric/spring data and all consumer implementations are retained.
+The old module/function hashes, actual author exposure and baseline legacy-smoke
+failure remain evidence. Other virtualizer files and adapters are not reclassified;
+**eight groups remain unverified**. This does not establish strict author isolation,
+Native hardware acceptance, historical rights or release readiness.
+
 ## Complete tool, image and subagent renderer replacement (2026-10-20)
 
 [All six exports of the tool/image/subagent module](provenance/tool-renderers-replacement.md)
@@ -151,7 +212,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Four unresolved files: manager implementation, its historical source manifest, and two toolbar/host contracts; viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
+| `codex-browser-source-followup` | Two remaining inventory files: the historical source manifest and Host contract; the toolbar/input has its own bounded replacement record; the explicitly attributed manager class, viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -346,7 +407,7 @@ evidence, rather than treating this generated file list as a rights opinion.
 | `codex-timeline-virtualizer` | `packages/timeline-virtualizer/PROVENANCE.md` | Unverified | Establish rights or independently implement against OpenCraft's requirements; verify scrolling, history prepend, measurement and restoration |
 | `codex-timeline-adapters` | `packages/timeline-react/PROVENANCE.md` and `packages/timeline-host-web/PROVENANCE.md` | Unverified; these were missing from the initial machine inventory | Review the React ownership and Web measurement/reflow adapters individually; separate behavioral references, retained expression and original browser additions |
 | `codex-tool-presentation-labels` | Historical exact bindings and [bounded disposition](provenance/thread-tool-presentation.md) | Identified native table replaced by protocol-derived operation titles and explicit states | Keep navigation/results and verify failure/interruption; this is not whole-module or historical clearance |
-| `codex-tool-surface-fallbacks` | [Exact source/target bindings and bounded replacement](provenance/tool-surface-disposition.md) | Known fallback catalogs and handoff inference replaced; wider annotated regions remain unverified | Review web-search compaction, command summaries, content interpretation and specialized presenters individually |
+| `codex-tool-surface-fallbacks` | [Exact source/target bindings and bounded replacement](provenance/tool-surface-disposition.md) | Known fallback catalogs and handoff inference replaced; wider annotated regions remain unverified | Web-search detail has a separate bounded record; review remaining command summaries, content interpretation and specialized presenters individually |
 | `product-and-brand-assets` | Retained exact-source hashes and [artwork disposition](provenance/connector-artwork.md) | Current image files excluded; private product artwork downstream; historical rights unverified | Verify no image files/imports remain in source and distributable assets; retain source notices and full connector operations |
 
 ## Recording a resolution
@@ -540,8 +601,8 @@ The browser viewport drag helper had an explicit claim that its function bodies
 came from a named reference. Its complete small module is independently replaced
 after [frozen requirements and observed contracts](provenance/browser-viewport-resize-replacement.md).
 The [baseline](provenance/browser-viewport-resize-baseline.json) retains its exact
-historical blob/hash and source annotation. Preset facts, toolbar behavior,
-the manager implementation is unchanged. Presentation handoff was subsequently
+historical blob/hash and source annotation. At that viewport checkpoint, preset facts, toolbar behavior and
+the manager implementation were unchanged. Presentation handoff was subsequently
 replaced as recorded below; the remaining browser group stays unverified. This bounded disposition does not clear historical
 commits or grant distribution rights to adjacent code.
 
@@ -550,7 +611,8 @@ commits or grant distribution rights to adjacent code.
 
 The complete explicitly source-attributed transition module is replaced from
 [frozen requirements and public observations](provenance/browser-transition-replacement.md).
-The manager, presets, toolbar and Host implementation are retained; the Host's
+At that transition checkpoint, the manager, presets, toolbar and Host
+implementations were retained; the Host's
 stale documentation comment is corrected. Owner/surface leases preserve painted
 continuity, acknowledgement, prewarm, cancellation and interaction ownership.
 Adversarial stale-reference/generation cases are fenced and separately documented
@@ -583,3 +645,109 @@ blob/annotation and prior full-body author exposure are recorded in the
 this is not strict author isolation or historical rights clearance. Only this
 module is replaced. Four client/Host inventory files and all eight unresolved
 groups remain open; source-inspired descriptions alone do not mandate rewrites.
+
+
+## Markdown link scanner boundary (2026-10-20)
+
+Only the directly source-identical `findMarkdownLink` function in compiler.ts is
+replaced from [frozen application observations](provenance/markdown-link-scanner-replacement.md).
+The current scanner preserves raw label/destination values and UTF-16 search
+positions; the caller retains unescaping and resource policy. Non-target compiler
+bytes remain unchanged. Historical file/region hashes and actual exposure remain
+recorded; no strict author-isolation or historical-rights clearance is asserted.
+The same compiler file remains unverified for its other source-attributed regions,
+and all eight unresolved groups remain open. This is not a whole-file rewrite.
+
+
+## Application math delimiter boundary (2026-10-20)
+
+Only the compiler's directly attributed block/inline math tokenizer declarations
+are replaced from [frozen application observations](provenance/math-delimiters-replacement.md).
+Display line admission, inline LF rejection, trimming and raw consumption remain
+compatible; compiler structure and code-fence handling keep their owners. The
+first failed comparison, historical hashes and actual exposure remain recorded.
+Other compiler regions and all eight unresolved groups remain open.
+
+
+## User-message block normalization boundary (2026-10-20)
+
+Only the directly attributed `preprocessUserMessageMarkdown` function is replaced
+from [frozen application observations](provenance/user-message-blocks-replacement.md).
+List adjacency, continuation across indented fences, zero-length reset and global
+CR/CRLF normalization remain compatible. Helpers and other preprocessing bytes
+are unchanged. Historical hashes, failed comparisons and later diagnostic exposure
+remain recorded; strict author isolation and historical rights are unverified.
+Other regions and all eight unresolved groups remain open.
+
+
+## Bounded global streaming segment reconciliation (2026-10-20)
+
+[Only the directly attributed reconciliation function](provenance/streaming-segments-replacement.md)
+has a current independent implementation disposition. Frozen positional and exact
+occurrence behavior, counters, entering flags and session CAS outputs are retained.
+The first empty-string mismatch evidence and historical hashes remain available.
+Other identity/compiler/preprocessing regions and eight unresolved inventory groups
+remain open; this does not establish strict author isolation or historical rights.
+
+
+## Bounded browser Host registry (2026-10-20)
+
+[Only the explicitly copied manager class](provenance/browser-manager-replacement.md)
+is independently expressed from frozen contracts and opaque state, Host, router
+and actual Web consumer observations. The current module lock is separate from
+immutable historical source/class digests. Storage/mount ownership, registration
+fencing, prewarm, transfer, automation and cleanup remain with this registry;
+existing adapter, Host, transition, presets and toolbar retain their own scope.
+Post-authoring state/idempotence and prewarm extensions, first differences and
+actual exposure are recorded. Eight unresolved groups remain open, including the
+three neighboring browser inventory files; no strict author isolation, native
+acceptance or historical rights clearance is claimed.
+
+
+## Bounded Hook execution upsert (2026-10-20)
+
+[Only the directly attributed `upsertHookRun`](provenance/hook-upsert-replacement.md)
+is independently expressed from frozen contracts and observations. Protocol IDs,
+active/completed matching, duplicate handling, suffixes and structural sharing
+remain compatible. Notification validation and Turn routing retain their existing
+owners. Historical hashes and actual exposure remain recorded; eight unresolved
+groups remain, without whole-file, strict isolation or historical-rights clearance.
+
+
+## Bounded dictation footer presentation (2026-10-20)
+
+[Only the directly attributed footer module](provenance/dictation-footer-replacement.md)
+is independently expressed from frozen transaction/consumer requirements and
+executable DOM, timer, canvas and browser observations. Capture, recognition,
+retry ownership, draft writes and Composer submission remain unchanged. Historical
+hashes and actual JSX exposure are retained; this does not establish strict
+author isolation, native acceptance or historical rights. Eight unresolved groups
+remain open; adjacent client/Host modules are reviewed individually.
+
+
+## Device toolbar and numeric input — 2026-10-20
+
+The [bounded replacement](provenance/browser-toolbar-replacement.md) selects only
+two components under an explicit recovered-renderer adaptation annotation. The
+[baseline](provenance/browser-toolbar-baseline.json) keeps original module/function
+hashes and actual author exposure separately from the current module lock. All
+136 static outputs, 64 actual Chromium checkpoints and both 258-case numeric/preset
+matrices match. Enter default prevention was missed initially and restored using
+the frozen pre-authoring observations; all initial differences remain recorded.
+Imports, compatibility labels/data, app styles and BrowserDeviceHandles are unchanged.
+The historical manifest/Host review inventory and eight unresolved groups remain;
+this does not clear adjacent expression, native behavior or historical rights.
+
+
+## Bounded web search detail disposition (2026-10-20)
+
+Only the two specifically attributed query/detail functions in `tool-activity.ts`
+have a current [independent replacement record](provenance/web-search-detail-replacement.md).
+The [baseline](provenance/web-search-detail-baseline.json) retains exact historical
+module/declaration hashes and annotations, complete frozen observation hashes,
+the initially missed unknown-action fallback and unchanged outside-region proof.
+The hostname/first-query helpers and every other tool presenter remain unchanged.
+No exact reference source binding was found in this bounded pass. This is not a
+whole-module copying finding, historical-rights clearance or strict author
+isolation. All eight unresolved inventory groups remain open; behavior-only
+references and ordinary protocol/compatibility data are not blanket rewrite targets.

@@ -1,86 +1,133 @@
-// Semantically adopted from Codex RecordingWaveformControls / BB VoiceRecordingBar.
 import { ArrowUp, LoaderCircle, RotateCcw, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { ComposerAudioLevels, ComposerDictationInteraction } from "@opencraft/composer-core";
 
-function DictationWaveform({ levels, active }: { levels: ComposerAudioLevels; active: boolean }) {
+const sampleCapacity = 512;
+
+/** A bounded presentation buffer. Capture and recognition belong to the provider. */
+function AudioSignal({ levels }: { levels: ComposerAudioLevels }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
-    const canvas = canvasRef.current, context = canvas?.getContext("2d");
-    if (!canvas || !context) return;
-    const samples: number[] = [];
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let frame = 0, visible = true;
-    const draw = () => {
-      frame = 0;
-      const { width, height } = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.round(width * dpr)); canvas.height = Math.max(1, Math.round(height * dpr));
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      context.strokeStyle = getComputedStyle(canvas).color; context.lineWidth = 2; context.lineCap = "round";
-      const count = Math.floor(width / 5);
-      // No fabricated waveform while waiting, silent, or using a provider without meters.
-      for (let index = 0; index < count; index++) {
-        const x = width - index * 5 - 2, sample = reducedMotion.matches ? 0 : samples[samples.length - 1 - index] ?? 0;
-        const half = Math.max(1, sample * (height / 2 - 2));
-        context.globalAlpha = Math.min(1, Math.max(0.18, x / Math.max(1, width * 0.15)));
-        context.beginPath(); context.moveTo(x, height / 2 - half); context.lineTo(x, height / 2 + half); context.stroke();
+    const canvas = canvasRef.current;
+    if (canvas === null) return;
+    const context = canvas.getContext("2d");
+    if (context === null) return;
+
+    const samples: number[] = new Array(sampleCapacity).fill(0);
+    let cursor = 0;
+    let frame: number | null = null;
+    let disposed = false;
+
+    const paint = () => {
+      frame = null;
+      if (disposed) return;
+      const bounds = canvas.getBoundingClientRect();
+      const pixelRatio = window.devicePixelRatio || 1;
+      // Setting the bitmap dimensions also clears the preceding sample drawing.
+      canvas.width = Math.max(1, Math.round(bounds.width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(bounds.height * pixelRatio));
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.strokeStyle = getComputedStyle(canvas).color;
+      context.lineWidth = 2;
+      context.lineCap = "round";
+      const count = Math.floor(bounds.width / 5);
+      for (let age = 0; age < count; age += 1) {
+        const x = bounds.width - 2 - age * 5;
+        const sample = age < sampleCapacity
+          ? samples[(cursor - age - 1 + sampleCapacity) % sampleCapacity]!
+          : 0;
+        const barHeight = Math.max(2, sample * (bounds.height - 4));
+        context.globalAlpha = Math.max(0.18, Math.min(1, x / (bounds.width * 0.15)));
+        context.beginPath();
+        context.moveTo(x, (bounds.height - barHeight) / 2);
+        context.lineTo(x, (bounds.height + barHeight) / 2);
+        context.stroke();
       }
       context.globalAlpha = 1;
     };
     const schedule = () => {
-      if (frame || !visible || document.visibilityState === "hidden") return;
-      frame = requestAnimationFrame(draw);
+      if (!disposed && frame === null) frame = requestAnimationFrame(paint);
     };
-    const resize = new ResizeObserver(schedule); resize.observe(canvas);
-    const intersection = new IntersectionObserver(entries => {
-      visible = entries[0]?.isIntersecting ?? true;
-      if (!visible && frame) { cancelAnimationFrame(frame); frame = 0; }
-      if (visible) schedule();
-    }); intersection.observe(canvas);
-    const unsubscribe = active ? levels.subscribe(level => {
-      if (!Number.isFinite(level) || level < 0 || level > 1) return;
-      samples.push(level); if (samples.length > 512) samples.shift();
-      if (!reducedMotion.matches) schedule();
-    }) : () => {};
-    document.addEventListener("visibilitychange", schedule);
-    reducedMotion.addEventListener("change", schedule); schedule();
+    const releaseSamples = levels.subscribe((sample) => {
+      if (disposed || !Number.isFinite(sample) || sample < 0 || sample > 1) return;
+      samples[cursor] = sample;
+      cursor = (cursor + 1) % sampleCapacity;
+      schedule();
+    });
+    const observer = new ResizeObserver(schedule);
+    observer.observe(canvas);
+    schedule();
     return () => {
-      unsubscribe(); resize.disconnect(); intersection.disconnect(); if (frame) cancelAnimationFrame(frame);
-      document.removeEventListener("visibilitychange", schedule); reducedMotion.removeEventListener("change", schedule);
+      disposed = true;
+      releaseSamples();
+      observer.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
     };
-  }, [levels, active]);
+  }, [levels]);
+
   return <canvas ref={canvasRef} className="codex-composer-voice-waveform" aria-hidden="true" />;
 }
 
-export function DictationFooter({ interaction, canSend, onSend, onCancel }: {
-  interaction: ComposerDictationInteraction; canSend: boolean; onSend(): void; onCancel(): void;
-}) {
-  const [now, setNow] = useState(Date.now);
-  const listening = interaction.phase === "listening";
+function elapsedSeconds(startedAt: number | null): number {
+  return startedAt === null ? 0 : Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+function useRecordingDuration(interaction: ComposerDictationInteraction) {
+  const { phase, startedAt } = interaction;
+  const [seconds, setSeconds] = useState(() => elapsedSeconds(startedAt));
   useEffect(() => {
-    if (!listening) return;
-    setNow(Date.now()); const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [listening]);
-  const seconds = interaction.startedAt === null ? 0 : Math.max(0, Math.floor((now - interaction.startedAt) / 1000));
-  const failed = interaction.phase === "failed";
-  const starting = interaction.phase === "starting";
-  // Startup includes device acquisition and provider readiness, not necessarily
-  // a permission prompt. Keep the announcement accessible and the slot quiet.
-  const status = listening ? "正在听写" : failed ? "转写失败" : starting ? "正在准备录音" : "正在完成语音识别";
-  return <div className="codex-composer-voice-footer" data-voice-phase={interaction.phase} aria-label="语音输入控制">
-    <button type="button" className="codex-composer-icon-button" aria-label="取消语音输入" title="取消语音输入 · Esc" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
+    if (phase !== "listening") return;
+    const update = () => setSeconds(elapsedSeconds(startedAt));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [phase, startedAt]);
+  return { minutes: Math.floor(seconds / 60), seconds: String(seconds % 60).padStart(2, "0") };
+}
+
+export function DictationFooter({ interaction, canSend, onSend, onCancel }: {
+  interaction: ComposerDictationInteraction;
+  canSend: boolean;
+  onSend(): void;
+  onCancel(): void;
+}) {
+  const duration = useRecordingDuration(interaction);
+  const phase = interaction.phase;
+  const status = {
+    starting: "正在准备录音",
+    listening: "正在听写",
+    transcribing: "正在完成语音识别",
+    failed: "转写失败",
+  }[phase];
+
+  const finishControl = phase === "failed"
+    ? <button type="button" className="codex-composer-icon-button" aria-label="重试语音识别"
+        title={interaction.message} onClick={() => interaction.retry()}>
+        <RotateCcw size={14} aria-hidden="true" />
+      </button>
+    : <button type="button" className="codex-composer-icon-button" aria-label="停止并写入文字"
+        title="停止并写入文字" disabled={phase !== "listening"} onClick={() => { void interaction.finish(); }}>
+        <Square size={14} fill="currentColor" aria-hidden="true" />
+      </button>;
+
+  return <div className="codex-composer-voice-footer" data-voice-phase={phase} aria-label="语音输入控制">
+    <button type="button" className="codex-composer-icon-button" aria-label="取消语音输入"
+      title="取消语音输入 · Esc" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
     <div className="codex-composer-voice-footer__signal">
-      {listening ? <DictationWaveform levels={interaction.audioLevels} active /> : <span className="codex-composer-voice-footer__status" title={failed ? interaction.message : undefined}>
-        {starting ? <ProgressIndicator /> : !failed && <LoaderCircle size={14} aria-hidden="true" />}
-        {!starting && <span className="codex-composer-voice-footer__status-label" aria-hidden="true">{status}</span>}
-      </span>}
+      {phase === "listening" ? <AudioSignal levels={interaction.audioLevels} />
+        : <span className="codex-composer-voice-footer__status" title={phase === "failed" ? interaction.message : undefined}>
+          {phase === "starting" ? <ProgressIndicator /> : phase === "transcribing" ? <LoaderCircle size={14} aria-hidden="true" /> : null}
+          {phase !== "starting" && <span className="codex-composer-voice-footer__status-label" aria-hidden="true">{status}</span>}
+        </span>}
       <span className="sr-only" role="status">{status}</span>
     </div>
-    <span className="codex-composer-voice-footer__duration" aria-label="录音时长">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span>
-    {failed ? <button type="button" className="codex-composer-icon-button" aria-label="重试语音识别" title={interaction.message} onClick={() => interaction.retry()}><RotateCcw size={14} aria-hidden="true" /></button>
-      : <button type="button" className="codex-composer-icon-button" aria-label="停止并写入文字" title="停止并写入文字" disabled={!listening} onClick={() => { void interaction.finish(); }}><Square size={14} fill="currentColor" aria-hidden="true" /></button>}
-    <button type="button" className="codex-composer-submit" aria-label="识别完成后发送" title="识别完成后发送" disabled={!listening || !canSend} onClick={onSend}><ArrowUp size={17} aria-hidden="true" /></button>
+    <span className="codex-composer-voice-footer__duration" aria-label="录音时长">{duration.minutes}:{duration.seconds}</span>
+    {finishControl}
+    <button type="button" className="codex-composer-submit" aria-label="识别完成后发送"
+      title="识别完成后发送" disabled={!canSend || phase !== "listening"} onClick={onSend}>
+      <ArrowUp size={17} aria-hidden="true" />
+    </button>
   </div>;
 }

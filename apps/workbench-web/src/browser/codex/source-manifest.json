@@ -2,7 +2,13 @@
   "browser-manager": {
     "source": "ref/codex/features/browser/browser-sidebar-webview-manager.ts",
     "sourceSha256": "d064aa6843e5fc60f121cb4a4a389ab38daec1549a52bdaa06c4b91e68727c99",
-    "classSha256": "e1b6237a3ae698287e7c6abe9f06f0bc6012ca52115e6e629346227926d8d54e"
+    "classSha256": "e1b6237a3ae698287e7c6abe9f06f0bc6012ca52115e6e629346227926d8d54e",
+    "implementation": {
+      "status": "independently-reimplemented",
+      "moduleSha256": "54f194c14a27297df366da49dfe9c53e143df670297a77b0c0f0b835479a2c13",
+      "baseline": "docs/provenance/browser-manager-baseline.json",
+      "requirements": "docs/provenance/browser-manager-replacement.md"
+    }
   },
   "presentation-transition": {
     "source": "ref/codex/browser/internal/is-different-host-in-conversation.js",

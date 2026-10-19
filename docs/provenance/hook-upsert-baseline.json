@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "61bd1391b5e707d6afbc0b582efa3bc3df39bd41",
+  "path": "packages/appserver-session/src/projectors.ts",
+  "fileSha256": "cc438159e3f7d77ea1285afb7f669187c553e60e9742df3e0373fc9ff947d4c6",
+  "selectedDeclaration": "upsertHookRun",
+  "declarationSha256": "d9685f1b107f0b53dd64f6a358f915729fe1179f59fca2c13cacad73cde8a8c3",
+  "annotation": "Source-equivalent reconstruction of Codex's hook-run `upsertItem`.",
+  "scope": "Only upsertHookRun and its direct annotation; notification validation/Turn routing, registry, resume and other projectors remain unchanged.",
+  "exposure": "Public interface, existing runtime hook-notification test, notification consumer and AST metadata inspected; narrow rg showed the selected declaration and external callers. No old target body printed in this bounded pass. Prior exposure to other recovery-related modules remains; no strict isolation or historical rights assertion.",
+  "observations": {
+    "inputCases": 21830,
+    "statefulSequences": 150,
+    "sha256": "83e0c7481aad0b0d0e5679653ca52e9c3aecc9a204a66ddd1c1860459fe2f7a3"
+  },
+  "regionProof": {
+    "start": 7764,
+    "end": 9060,
+    "historicalRegionSha256": "bbe05ad7592f882ca1a244da2514e63ed72de8b55d1afa17509ad649d66e7b09",
+    "replacementRegionSha256": "9cdc474d71322eae60064fdd70004661535f5d04208822b7f00452d03772cf17",
+    "prefixUnchanged": true,
+    "suffixUnchanged": true
+  }
+}

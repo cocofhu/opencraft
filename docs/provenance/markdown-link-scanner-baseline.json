@@ -1,0 +1,10 @@
+{
+  "commit": "12129b84f6dcb3e41241fee36542daf3912e931d",
+  "path": "packages/chat-document/src/compiler.ts",
+  "fileBlob": "b06f61cc7fe766db6217e8a5493aa046c6c60603",
+  "fileSha256": "7ae7a0eec6b1e345ac72d6d7d9579508413cc52dd94590299253b96a6931b0a0",
+  "regionSha256": "2056bc77c33b4a2f92a7f6fe6aadd91230a3a4d93be6d35b326b320c5e6269ad",
+  "annotation": "Source-identical scanner used by Codex's composerLink tokenizer.",
+  "region": "findMarkdownLink function and direct source-identical annotation; surrounding compiler, tokenizer and other regions excluded",
+  "authorExposure": "During this bounded pass, the public interface, caller tokenizer and existing tests were displayed, not the old scanner body. Other renderer/compiler material may have been read in earlier work. No strict author isolation or historical rights clearance is claimed."
+}

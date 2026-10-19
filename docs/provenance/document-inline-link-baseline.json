@@ -1,0 +1,140 @@
+{
+  "path": "packages/chat-document/src/compiler.ts",
+  "head": "6b59a74e4e9278ccff3c986280afdfff05b98fe0",
+  "moduleSha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8",
+  "annotationLine": 251,
+  "scopeChain": [
+    {
+      "kind": "SourceFile",
+      "start": 0,
+      "end": 27183,
+      "line": 1,
+      "bytes": 27211,
+      "sha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8"
+    },
+    {
+      "kind": "FunctionDeclaration",
+      "start": 6312,
+      "end": 9767,
+      "line": 185,
+      "bytes": 3455,
+      "sha256": "15489fc606ebfc23d9597000e99e821708a5f46c1156e376d9232793c7832a80",
+      "name": "mapInlineTokens",
+      "signature": "function mapInlineTokens(\n  entries: readonly MarkdownToken[],\n  fallbackText: string,\n  sourceStart: number,\n  decorateText = true,\n): readonly ChatDocumentNode[] "
+    },
+    {
+      "kind": "Block",
+      "start": 6476,
+      "end": 9767,
+      "line": 190,
+      "bytes": 3291,
+      "sha256": "1f0f401e61fd39b60de729d8756ad7a72cb1b66d9dd58c48a8668c8a3f25c7cf"
+    },
+    {
+      "kind": "ForOfStatement",
+      "start": 6811,
+      "end": 9749,
+      "line": 197,
+      "bytes": 2938,
+      "sha256": "ad33318ef6445397c7494bf32ee955ea0173a80f330c26b719693a5c213ea22e"
+    },
+    {
+      "kind": "Block",
+      "start": 6840,
+      "end": 9749,
+      "line": 197,
+      "bytes": 2909,
+      "sha256": "bc94073dca5781bc0c1009a2cbfb0580bb1942895028ebd46ecac569772fcf7d"
+    },
+    {
+      "kind": "SwitchStatement",
+      "start": 7040,
+      "end": 9745,
+      "line": 202,
+      "bytes": 2705,
+      "sha256": "05b78b994ccf784648aa42a5340b94c4b89623fa7ab4c1d041cf4f31c98f0159"
+    },
+    {
+      "kind": "CaseBlock",
+      "start": 7054,
+      "end": 9745,
+      "line": 202,
+      "bytes": 2691,
+      "sha256": "9fde0e206c3c718b1519b5bc8187ed2b40f12db26319e234c7c7d205d8eec771"
+    },
+    {
+      "kind": "CaseClause",
+      "start": 8656,
+      "end": 9191,
+      "line": 246,
+      "bytes": 535,
+      "sha256": "2cdbdfa42b0642d582edd742575ef98fd4d62d3373578686138d4c1c09465571",
+      "case": "link"
+    },
+    {
+      "kind": "ExpressionStatement",
+      "start": 8677,
+      "end": 9176,
+      "line": 247,
+      "bytes": 499,
+      "sha256": "295ca492ebbe0cecd5c2c3b15687d98ef40019368d2bc5633a343785388d8938"
+    },
+    {
+      "kind": "CallExpression",
+      "start": 8677,
+      "end": 9175,
+      "line": 247,
+      "bytes": 498,
+      "sha256": "1b4f37ef81e1c1f9ff16a9485977e320d2469eef4e8df732e5bd7a99fefcd7b9"
+    },
+    {
+      "kind": "ObjectLiteralExpression",
+      "start": 8688,
+      "end": 9174,
+      "line": 247,
+      "bytes": 486,
+      "sha256": "af9b6a91550de13f19b93e84ee77e4b4355ac0dada140175f0102b2caeefcca8"
+    },
+    {
+      "kind": "PropertyAssignment",
+      "start": 9070,
+      "end": 9163,
+      "line": 254,
+      "bytes": 93,
+      "sha256": "af67e8b4832ab772c38cebb2291b0bd17e4507294502a22164d99007ec82f100",
+      "name": "children"
+    },
+    {
+      "kind": "Identifier",
+      "start": 9070,
+      "end": 9078,
+      "line": 254,
+      "bytes": 8,
+      "sha256": "10910087de24bfcabe854fda62b5023a61fe531705043b9979fdf00f12c4c0ec"
+    }
+  ],
+  "implementationBodyPrinted": false,
+  "selectedForAuthoring": true,
+  "base": "8ad4e7cb63f5a53ed2586c458ed9eabf1e28a217",
+  "scope": "Only mapInlineTokens switch case link, JS UTF-16 offsets 8656..9191; adjacent declarations untouched",
+  "historicalAnnotation": [
+    "Source-equivalent to Codex renderInlineTokens(..., false): link",
+    "labels remain text and cannot contain nested interactive decorations such as workspace mentions or file citations."
+  ],
+  "authorExposure": "AST metadata and comments/public signatures, document model, compiler helpers before mapInlineTokens and existing tests reviewed in this pass. No selected case body or recovered reference printed. Earlier session exposures documented elsewhere remain; no strict isolation claim.",
+  "frozenObservations": {
+    "publicCompiler": {
+      "moduleSha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8",
+      "cases": 5788,
+      "streams": 6,
+      "sha256": "42cda1de84394157963b3ffef970fa27063f647132ec46ea43fa52779fd5aec7"
+    },
+    "sealedPrivatePort": {
+      "moduleSha256": "84145a829188b3b69e32b06e9f26ba232cd7719e5471fa99ea169a2b830783d8",
+      "cases": 560,
+      "sha256": "b777b7b0e64930ab7766b2db6ee9e46fddccfb65f3b1c0e5f31cb7e590efc714"
+    },
+    "existingTestsPassed": 35,
+    "actualWebUrlSmoke": "passed before authoring; screenshot inspected"
+  }
+}

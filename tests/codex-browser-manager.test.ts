@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import ts from "typescript";
 import { createImplementation } from "../apps/workbench-web/src/browser/codex/presentation-transition.js";
 import { createCodexBrowserManager } from "../apps/workbench-web/src/browser/codex-browser-manager";
 import { CodexPresentationHost } from "../apps/workbench-web/src/browser/codex-presentation-host";
@@ -37,29 +36,18 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
   } finally { env.close(); }
 });
 
-test("manager class lock and independent transition module lock preserve historical provenance", () => {
+test("independent browser module locks preserve historical provenance", () => {
   const directory = new URL("../apps/workbench-web/src/browser/codex/", import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL("source-manifest.json", directory), "utf8"));
   for (const name of ["browser-manager", "presentation-transition"]) {
     const text = readFileSync(new URL(name + ".js", directory), "utf8");
-    if (name === "presentation-transition") {
-      const baseline = JSON.parse(readFileSync(new URL("../docs/provenance/browser-transition-baseline.json", import.meta.url), "utf8"));
-      const { implementation, ...historical } = manifest[name];
-      assert.deepEqual(historical, baseline.historicalReference);
-      assert.equal(implementation.status, "independently-reimplemented");
-      assert.equal(createHash("sha256").update(text).digest("hex"), implementation.moduleSha256);
-      assert.notEqual(implementation.moduleSha256, baseline.sha256);
-      continue;
-    }
-    const tree = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-    let body = "";
-    const walk = (node: ts.Node) => {
-      if (ts.isClassExpression(node)) body = node.getText(tree);
-      ts.forEachChild(node, walk);
-    };
-    walk(tree);
-    assert.ok(body);
-    assert.equal(createHash("sha256").update(body).digest("hex"), manifest[name].classSha256);
+    const baselineName = name === "presentation-transition" ? "browser-transition" : "browser-manager";
+    const baseline = JSON.parse(readFileSync(new URL(`../docs/provenance/${baselineName}-baseline.json`, import.meta.url), "utf8"));
+    const { implementation, ...historical } = manifest[name];
+    assert.deepEqual(historical, baseline.historicalReference);
+    assert.equal(implementation.status, "independently-reimplemented");
+    assert.equal(createHash("sha256").update(text).digest("hex"), implementation.moduleSha256);
+    assert.notEqual(implementation.moduleSha256, baseline.fileSha256 ?? baseline.sha256);
   }
 });
 
@@ -145,7 +133,7 @@ test("A to B to C fences a late B prewarm callback and preserves the correct out
   } finally { env.close(); }
 });
 
-test("original Codex manager owns storage modes and mount claims", () => {
+test("browser manager owns storage modes and mount claims", () => {
   const env = environment();
   try {
     const manager = createCodexBrowserManager(Host as any);

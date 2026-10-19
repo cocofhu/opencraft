@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "771a27b52326f9956d4fb599a7e4b881afaca11d",
+  "path": "packages/chat-document/src/streaming/identity.ts",
+  "fileSha256": "242a8ee5b430323b07ef828cfe1019448463feaaca18b10ebf211f3cb79151bb",
+  "selectedDeclaration": "reconcileGlobalSegments",
+  "annotation": "Source-equivalent global fade-segment reconciliation from Codex.",
+  "scope": "Only the attributed global segment reconciliation function and direct annotation. Preserve segmentation, semantic node matching, session CAS, parsing, caches, renderers and scheduling.",
+  "exposure": "Public types, existing tests, consumers and AST declaration metadata read. No selected old function body printed during this bounded authoring pass; no strict author-isolation or historical-rights assertion.",
+  "observations": {
+    "selectedRegionSha256": "168ecf24852aa6331d5c68363195277cbf37296371abef7cfa1115360e4a4a6f",
+    "functionCases": 50176,
+    "sessionTransitions": 800,
+    "observationSha256": "fa7797e2bb9c20d0c66b6bf0494f20df4767fdeeadefd2caa53ff3e426af2a18"
+  }
+}

@@ -1,6 +1,6 @@
 # Timeline virtualizer provenance
 
-This package is a typed, renderer-neutral restoration of the Codex Desktop
+The package historically began as a typed, renderer-neutral restoration of the Codex Desktop
 `VirtualizedTurnList` model. The behavior baseline is:
 
 - `reference://codex/.runtime/source-tree-build-r1316-owner-adoption-abi/lazy/app-initial/thread-virtualizer-D5BSbZuA.js`
@@ -12,7 +12,7 @@ The shared package intentionally contains no React, DOM, Expo, or React Native
 imports. Web and Native adapters must supply measurement, scrolling, and layout
 scheduling through the ports in `src/ports.ts`.
 
-`src/history-backfill.ts` restores the history-loading control mechanism from
+Historical `src/history-backfill.ts` restored the history-loading control mechanism from
 the latest recovered source:
 
 - `reference://codex/.runtime/source-tree-build-r1973-initializer-state-control-closure/lazy/app-initial/thread-scroll-layout-xQ2_L08y.js:145-182`
@@ -23,13 +23,69 @@ layout barrier, viewport-fill loop, and unchanged-height stop condition. The
 React callback-identity boundary lives in `@opencraft/timeline-react`; DOM and Native
 hosts continue to provide their own metrics and frame scheduler.
 
-`src/follow.ts` restores the parent `LocalConversationThread` policy that sits
+Historical `src/follow.ts` restored the parent `LocalConversationThread` policy that sits
 above the list itself. Its `static`, `prework_watch`, `prework_follow`, and
-`user_follow` reducer is the typed form of the recovered `OD` state machine at
+`user_follow` reducer was the typed form of the recovered `OD` state machine at
 `local-conversation-thread-CShhuS2f.js:8896-8933`. Latest-Turn placement,
 response-spacer geometry, and restore normalization retain the recovered
 24/300/2⁄3/240 constants. They stay renderer-neutral; Web and RN adapters own
 only their scroll calls, measurement events, and animation primitives.
+
+## Current follow policy disposition (2026-10-20)
+
+Only `src/follow.ts` is independently replaced from the frozen OpenCraft public
+contract, existing tests, consumer interfaces and complete black-box observations.
+The old module SHA256 is
+`ae0646da9193e00fe3a4d99f663863072806956e4c4e476a7b3e39abde37e472`;
+individual historical function hashes and actual author exposure remain in the
+[baseline inventory](../../docs/provenance/timeline-follow-baseline.json).
+The [replacement contract](../../docs/provenance/timeline-follow-replacement.md)
+records authoring order, retained interfaces/constants, behavior comparisons and
+verification limits. Historical source records above remain historical facts.
+
+The shared response-positioning controller, other window/layout,
+restoration and platform adapters retain their current implementations. This
+single-module disposition does not establish rights for them, the recovered
+reference, or historical commits. It does not claim strict author isolation or
+Native device acceptance. Compatibility export names and numeric/spring data
+remain unchanged; changing a name is not the implementation replacement.
+
+## Current history backfill disposition (2026-10-20)
+
+Only the complete `TurnHistoryBackfillCoordinator` class in `src/history-backfill.ts`
+is independently replaced from frozen OpenCraft requirements, public types,
+existing tests, the unchanged React adapter and black-box observations. Its
+historical module SHA256 is
+`5819a01f20431c320b5b07b54537ad39320fbda6de42176e03068a5a29fd5ead`.
+The [baseline inventory](../../docs/provenance/timeline-backfill-baseline.json)
+retains class/member hashes and actual author exposure. The
+[replacement contract](../../docs/provenance/timeline-backfill-replacement.md)
+records complete policy and real Conversation comparisons, the initial rejected
+parameter-mapping attempt and finite verification limits. Imports, public types,
+shared loading policy and Web/Native adapters retain their implementations.
+
+This disposition does not clear other package files, recovered references or
+historical commits, and does not claim strict author isolation or Native hardware
+acceptance. Historical restoration records above remain historical facts.
+
+## Current measurement transaction disposition (2026-10-20)
+
+Only `createTurnMeasurementTransaction` in `src/measurement.ts` is independently
+replaced from frozen OpenCraft requirements, public ports, existing tests and
+complete black-box observations. Its explicit recovered-transaction declaration,
+historical function SHA256
+`2a0e140a43839c79a97390de1492050084d428e4c28cf5ebafd7160bfb304fb3`
+and all declaration hashes remain in the
+[baseline inventory](../../docs/provenance/timeline-measurement-baseline.json).
+The [replacement contract](../../docs/provenance/timeline-measurement-replacement.md)
+records the original module hash, author exposure, frozen policy/actual Web
+observations and retained initial differences. Imports, interfaces, the adjacent
+rekey/reconciliation/positive-height helpers and every consumer stay unchanged.
+
+This partial-file disposition does not reclassify those neighboring implementations,
+the remainder of the package, recovered references or historical commits. It does
+not establish strict author isolation, historical rights or Native hardware
+acceptance. Compatibility names and ordinary numeric data remain unchanged.
 
 ## Platform rule
 
