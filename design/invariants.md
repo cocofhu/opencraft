@@ -1770,3 +1770,16 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+
+### Shared Turn follow policy
+
+The renderer-neutral `timeline-virtualizer/src/follow.ts` is the single follow
+ownership policy for Web and Native. Static/watch modes preserve reading; only
+explicit bottom intent or the permitted watched-content overflow acquires follow.
+Completion alone does not acquire ownership. Restore capture projects a saved
+checkpoint without mutating the live controller. Placement/spacer thresholds,
+public mode/event names and spring data remain compatibility contracts. The
+[bounded replacement contract](../docs/provenance/timeline-follow-replacement.md)
+records historical origin and current verification separately; neighboring
+window, restoration, history and platform owners retain their implementations.

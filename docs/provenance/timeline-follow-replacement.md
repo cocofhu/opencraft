@@ -21,7 +21,7 @@ The author has read public declarations, existing focused tests, package provena
 
 Before authoring: freeze transition/initialization/geometry/restore observations and actual shared-controller sequences, with immutable input/output hashes. Validate both Web and Native type contracts, existing focused tests, boundaries, official Web build and an actual browser consumer. External observers stay outside Git; no new committed tests or harnesses. Historical provenance remains readable, and replacement disposition is limited to this module rather than clearing the package or history.
 
-Status: contract frozen; implementation not authored. Observations and validation are recorded in later events.
+Initial contract status: implementation not yet authored. Later events below record the actual replacement and validation.
 
 ## Frozen policy observations, before authoring
 
@@ -36,3 +36,34 @@ All 141 existing focused virtualizer, Native-host and Workbench timeline tests p
 The replacement body was first authored outside the checkout after policy/controller observations were frozen, while the unchanged-module browser observer was running. No original follow function body or recovered reference was read. The replacement will be installed only after the browser observer's source hash guard completes. The external observer initially selected the Playwright CommonJS namespace incorrectly; that observer-only error was retained and corrected to its actual default export, without changing product code.
 
 Unchanged-module actual Conversation baseline completed: three scenes, 28 checkpoints, no page errors. Complete raw observation SHA256: `9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5`. No per-case payload normalization is applied. The screenshots and raw geometry/scroll/restore output remain external evidence; this is local synthetic content in a real Web consumer, not employee-session, model or Native-device acceptance.
+
+## Replacement and verified outcome
+
+The whole selected module is now independently expressed as one mode transition
+projection, identity-preserving state update, placement/geometry helpers and pure
+checkpoint projection. Types, compatibility exports, all constants and frozen
+spring data are byte-identical declarations. All neighboring modules and test
+files are unchanged. Current module SHA256:
+`006e38c7637ccb880735e092e21631e9b5dc50cb43c1299892e86d0002054a70`.
+
+The first replacement exactly matches the entire frozen policy/controller output
+file (SHA256 `f26f90dfc6477f96ef381a38952b47f8b40679763e69126b73dc0ee073942f0e`).
+All three actual Conversation scenes and 28 checkpoints also match raw output
+bytes exactly (SHA256 `9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5`),
+including scroll position/height, measured row geometry, spacer, restore
+checkpoint, pending submit snapshot, placement reads and text. No page errors;
+the local-submit final screenshot was viewed. Input content is synthetic, but
+the Conversation, shared owner/controller, virtualizer, ResizeObserver, scrollport
+and real mouse-wheel input are actual Web implementations. No employee login,
+paid model, remote Host or Native hardware claim follows.
+
+All 141 existing focused tests pass, as do shared, Web and Expo/Native typechecks,
+typography/activity/platform boundaries and the official Web build (791 runtime
+source files, zero compatibility issues). The earlier legacy browser-script
+failure remains an explicitly unpassed older expectation; neither its assertion
+nor current response-watch behavior was changed to conceal it. The finite
+observations and current contract establish the bounded result. Provenance
+inventory validation has no errors, retains eight unresolved groups and correctly
+keeps `releaseReady=false`. No committed tests/harness, dependencies, reference
+modules, adapters or history are changed. Protected upstream PR and fixed-source
+Join consumption are subsequent distinct delivery steps.

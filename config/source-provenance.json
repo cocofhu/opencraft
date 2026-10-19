@@ -64,8 +64,8 @@
       "evidence": [
         "packages/timeline-virtualizer/PROVENANCE.md"
       ],
-      "reason": "Package explicitly records restored reducers, layout and scrolling mechanisms from recovered desktop modules.",
-      "resolution": "Establish rights or independently replace the implementation against documented OpenCraft requirements and tests."
+      "reason": "Historical package inventory records restored reducers, layout and scrolling mechanisms from recovered desktop modules. The current follow.ts has a separate bounded independent replacement record; remaining files and historical rights stay unverified.",
+      "resolution": "Review remaining specifically attributed regions individually. Keep historical references, licensed/original code and ordinary compatibility constants; the follow-policy disposition does not clear the package or mandate blanket replacement."
     },
     {
       "id": "codex-timeline-adapters",
@@ -809,6 +809,22 @@
       "reason": "Only the two explicitly adapted toolbar and numeric-input components are independently replaced from the frozen consumer contract, static output and actual Web observations. Imports, preset compatibility data, CSS and BrowserDeviceHandles remain unchanged.",
       "resolution": "Keep immutable historical module/function hashes, actual author exposure and complete comparison outputs. Review remaining annotated regions individually; behavioral references and shared-file membership do not mandate rewriting.",
       "conclusion": "Current implementation separates parent-owned mode/zoom from local focused numeric text. 136 static outputs, four actual Web scenes/64 checkpoints and both acknowledged/unacknowledged 258-case matrices match after restoring Enter default prevention. No strict author isolation, full panel/native acceptance or historical-rights clearance."
+    },
+    {
+      "id": "timeline-follow-policy",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/timeline-virtualizer/src/follow.ts"
+      ],
+      "evidence": [
+        "packages/timeline-virtualizer/PROVENANCE.md",
+        "docs/provenance/timeline-follow-baseline.json",
+        "docs/provenance/timeline-follow-replacement.md",
+        "tests/chat-timeline-virtualizer.test.ts"
+      ],
+      "reason": "The complete explicitly restored follow-policy module is replaced after freezing public types, OpenCraft requirements, complete policy/controller outputs and an actual Conversation browser baseline. Shared consumers, window/history/restoration modules and adapters remain unchanged.",
+      "resolution": "Retain exact historical function/module hashes, exposure and authoring order, original failing legacy browser expectation and full comparison results. Compatibility names/constants remain ordinary data. Eight unresolved groups stay open.",
+      "conclusion": "Current code independently owns mode transitions, placement snapshots, signed resize compensation, response-spacer geometry and pure restore projections. Verification is bounded; no strict author isolation, Native hardware or historical rights clearance."
     }
   ]
 }

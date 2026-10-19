@@ -1301,7 +1301,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `chat-runtime` | Replica-derived snapshots and command/history ports | protocol storage and rendering |
 | `composer-core` | portable document, draft, target and submit intent | DOM/Native editor state |
 | `codex-composer` | Web ProseMirror adapter and Codex visual surface | authoritative drafts |
-| `timeline-virtualizer` | Codex Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
+| `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
 | `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
@@ -1622,7 +1622,9 @@ mouse/touch animation path; they do not claim Native or Electron acceptance.
 - Web and RN Timeline renderers consuming the same Turn/Frame/Block projection.
 - Codex `VirtualizedTurnList` constants and algorithms: one full-height list,
   Turn-count overscan, measured-height anchor compensation, route restore,
-  common geometry/scroll API, and parent latest-Turn follow reducer.
+  common geometry/scroll API. The parent latest-Turn follow module now has a
+  [separate bounded independent replacement](provenance/timeline-follow-replacement.md);
+  its compatibility constants/interfaces and all neighboring implementations remain.
 
 ### Turn identity handoff and mounted window
 
@@ -1895,7 +1897,7 @@ boundaries remains an editor gap.
 - Add Remote RPC/SFTP and Cloud object-store attachment-staging adapters
   without changing Composer lifecycle semantics.
 - Tune platform-specific response-spacer animation curves while retaining the
-  shared Codex placement and follow state machine.
+  shared placement and follow state machine.
 - Split the large desktop renderer chunk at explicit capability boundaries.
 
 ## Evidence required for completion
