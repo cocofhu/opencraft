@@ -1,3 +1,4 @@
+/** Requirements and historical source boundary: docs/provenance/user-message-replacement.md. */
 export interface CodexUserMessageSemantics {
   readonly message: string;
   readonly goal: boolean;
@@ -13,42 +14,45 @@ export const CODEX_PULL_REQUEST_FIX_HEADER = "## Pull request fix:";
 export const CODEX_AUTO_RESOLVE_MERGE_HEADER = "## Auto resolve merge:";
 export const CODEX_PRIOR_CONVERSATION_HEADER = "## Prior conversation with Codex:";
 
-/** Source-equivalent `extractLastUserRequest` used by Codex's UserMessage projection. */
+const requestHeaders = ["## My request:", "## My request for Codex:"] as const;
+
+function requestBoundary(text: string): { first: number; end: number } | null {
+  let first = text.length;
+  let end = -1;
+  for (const header of requestHeaders) {
+    const start = text.indexOf(header);
+    if (start === -1) continue;
+    first = Math.min(first, start);
+    end = Math.max(end, text.lastIndexOf(header) + header.length);
+  }
+  return end === -1 ? null : { first, end };
+}
+
 export function extractLastCodexUserRequest(promptContext: string): string {
-  const sections = promptContext.split(CODEX_USER_REQUEST_MARKER);
-  return sections.length <= 1 ? promptContext : (sections.at(-1) ?? "").trim();
+  const boundary = requestBoundary(promptContext);
+  return boundary === null ? promptContext : promptContext.slice(boundary.end).trim();
 }
 
-function contextBeforeUserRequest(promptContext: string): string {
-  const match = /## My request(?: for Codex)?:/.exec(promptContext);
-  return match === null ? promptContext.trim() : promptContext.slice(0, match.index);
-}
-
-/** Source-equivalent leading `/goal` recognition without owning Goal persistence. */
 export function stripCodexGoalDirective(message: string): string | null {
-  const trimmed = message.trimStart();
-  const match = /^\/goal(?=$| )/.exec(trimmed);
-  return match === null ? null : trimmed.slice(match[0].length).trimStart();
+  const candidate = message.trimStart();
+  if (candidate === "/goal") return "";
+  return candidate.startsWith("/goal ") ? candidate.slice(6).trimStart() : null;
 }
 
-/**
- * Renderer-neutral recovery of the semantics Codex derives before rendering a
- * UserMessage. Product-only attachment parsing stays outside this function.
- */
 export function deriveCodexUserMessageSemantics(rawMessage: string): CodexUserMessageSemantics {
-  const context = contextBeforeUserRequest(rawMessage);
+  const boundary = requestBoundary(rawMessage);
+  const context = boundary === null ? rawMessage : rawMessage.slice(0, boundary.first);
+  const request = boundary === null ? rawMessage : rawMessage.slice(boundary.end).trim();
+  const directive = stripCodexGoalDirective(request);
   const reviewMode = context.includes(CODEX_REVIEW_MODE_HEADER);
   const pullRequestFixMode = context.includes(CODEX_PULL_REQUEST_FIX_HEADER);
-  const request = extractLastCodexUserRequest(rawMessage);
-  const goalMessage = stripCodexGoalDirective(request);
   return {
-    message: goalMessage ?? request,
-    goal: goalMessage !== null,
-    referencesPriorConversation: !reviewMode
-      && !pullRequestFixMode
-      && context.includes(CODEX_PRIOR_CONVERSATION_HEADER),
+    message: directive ?? request,
+    goal: directive !== null,
     reviewMode,
     pullRequestFixMode,
     autoResolveSync: context.includes(CODEX_AUTO_RESOLVE_MERGE_HEADER),
+    referencesPriorConversation: !reviewMode && !pullRequestFixMode
+      && context.includes(CODEX_PRIOR_CONVERSATION_HEADER),
   };
 }

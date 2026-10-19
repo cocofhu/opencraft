@@ -54,3 +54,40 @@ a determination of historical redistribution rights.
    statuses, empty/media/file/context-only messages and sender labels, at desktop
    and narrow widths. Keep sender ownership and attachment interactions intact.
    This does not claim live authenticated engine or full native-client testing.
+
+## Implementation and compatibility evidence
+
+Requirements were committed as `61d0a02` before authoring either replacement.
+The semantic parser uses literal first/last boundary searches and a separate
+leading directive recognizer; it does not depend on mutable RegExp lastIndex.
+The Web layout builds typed output buckets in one pass over each input family,
+then derives message/status visibility without reinterpreting payload text.
+
+A local black-box comparison against the pinned previous OpenCraft modules
+matched 1,248 semantic input strings (all three exports checked for each) and
+38,400 layout combinations, with zero differences. The inputs combine all header
+flags, separators, request forms, directive boundaries, multiline/blank text,
+all seven semantic layout booleans, six delivery states, typed content and
+attachment variants. This comparison observes behavior, not old helper bodies.
+It is broad compatibility evidence, not proof for every possible input.
+
+Validation:
+
+- `node --import tsx --test tests/chat-user-message-semantics.test.ts tests/chat-core.test.ts tests/workbench-user-message-layout.test.ts tests/chat-user-message-collapse.test.ts tests/source-provenance.test.mjs`: 134 passed. New cases cover context boundaries, all header flag combinations, exact Goal syntax, shared marker state, frozen objects and status-only messages.
+- `npm run typecheck --workspace @opencraft/chat-core`, `npm run typecheck --workspace @opencraft/workbench-web` and `npm run check:boundaries`: passed.
+- `node scripts/check-source-provenance.mjs`: inventory has no structural errors; eight unresolved groups remain. Only these two paths move to the replacement entry, preserving their historical partial dispositions. The four remaining chat-semantics paths stay unverified.
+
+No historical rights, complete renderer, native app or authenticated service
+clearance follows from this bounded replacement. Do not remove historical source
+records or licensed integrations on the basis of these tests.
+
+- `scripts/smoke-user-message-semantics.ts`: passed at 390px and 1200px in
+  light/dark scenarios, with no page errors. It exercises the real
+  `UserMessageBlock`: wrapped Goal/review visibility, hidden context omission,
+  clipboard handoff, empty/status/attachment-only rows, duplicate mention
+  suppression, file and skill resource navigation, image viewer open/Escape and
+  sender-above-bubble geometry. The narrow dark screenshot was visually reviewed.
+  Fixture media/clipboard/Host resource handoffs are synthetic; no audio playback,
+  authenticated engine, full native client or product-wide theme conformance is
+  claimed. The probe waits for asynchronous Markdown compilation and asserts
+  canonical `file:` handoff targets rather than guessing raw path callbacks.

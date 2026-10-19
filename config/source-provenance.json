@@ -170,12 +170,10 @@
       "id": "codex-chat-semantics-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/components/conversation/user-message-layout.ts",
         "packages/chat-core/src/agent-activity.ts",
         "packages/chat-core/src/mcp-elicitation.ts",
         "packages/chat-core/src/realtime-transcript.ts",
-        "packages/chat-core/src/turn-user-message-normalization.ts",
-        "packages/chat-core/src/user-message.ts"
+        "packages/chat-core/src/turn-user-message-normalization.ts"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
@@ -195,6 +193,18 @@
           "replacement": "turn-diff-presentation",
           "evidence": "docs/provenance/turn-diff-replacement.md",
           "historicalBlob": "96c4954432fafbf0675c2ee1d66e20197f7c0291"
+        },
+        {
+          "path": "packages/chat-core/src/user-message.ts",
+          "replacement": "user-message-presentation",
+          "evidence": "docs/provenance/user-message-replacement.md",
+          "historicalBlob": "a8753035c98fe552820900ab974a397422104aac"
+        },
+        {
+          "path": "apps/workbench-web/src/components/conversation/user-message-layout.ts",
+          "replacement": "user-message-presentation",
+          "evidence": "docs/provenance/user-message-replacement.md",
+          "historicalBlob": "4b0b054ca039ce0b549e60e095190ec43f7cc28e"
         }
       ]
     },
@@ -250,6 +260,23 @@
       "reason": "The complete summary module formerly carried a source-equivalent annotation. It is replaced from frozen public requirements, consumer contracts and black-box OpenCraft observations.",
       "resolution": "Retain the historical blob, requirements commit and actual author exposure. The remaining chat semantics and seven other unresolved groups stay unverified.",
       "conclusion": "The current module uses Git-section observations and ordered per-path counters for summary presentation. Its entire implementation was independently authored within the documented exposure boundary. This is not strict clean-room isolation, historical-rights clearance or a whole-renderer classification; see the compatibility evidence and browser-validation limits in the disposition."
+    },
+    {
+      "id": "user-message-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/user-message.ts",
+        "apps/workbench-web/src/components/conversation/user-message-layout.ts"
+      ],
+      "evidence": [
+        "docs/provenance/user-message-replacement.md",
+        "tests/chat-user-message-semantics.test.ts",
+        "tests/workbench-user-message-layout.test.ts",
+        "scripts/smoke-user-message-semantics.ts"
+      ],
+      "reason": "Both complete modules formerly carried source-equivalent annotations. They are replaced from frozen public requirements, shared timeline/consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain the two historical blobs, requirements commit and author exposure. The remaining four chat-semantics files and seven other unresolved groups stay unverified.",
+      "conclusion": "Current request/directive parsing uses literal boundaries and typed display semantics; Web layout partitions existing typed inputs and derives visibility. Both implementations were independently authored within the documented exposure boundary. This is not strict clean-room isolation, historical-rights clearance or a whole-renderer classification; see the scope, method and evidence in the disposition."
     }
   ]
 }

@@ -1,5 +1,15 @@
 # Source provenance review
 
+## User message semantics and Web layout (2026-10-19)
+
+[The two complete modules](provenance/user-message-replacement.md) now have a
+bounded independent replacement record. Their previous paths and Git blobs are
+retained as partial dispositions. Four other files in the chat-semantics group
+remain unverified, and all eight unresolved groups remain open. Wrapper parsing,
+Goal display and typed attachment/status layout use the frozen requirements;
+protocol constants and working integrations remain. This disposition neither
+clears historical code nor asserts strict clean-room separation.
+
 ## Turn diff summary replacement (2026-10-19)
 
 [The complete turn-diff summary module](provenance/turn-diff-replacement.md) now
