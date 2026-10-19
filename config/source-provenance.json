@@ -379,8 +379,7 @@
         "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
         "apps/workbench-web/src/components/app-shell-right-panel.tsx",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
-        "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
-        "apps/workbench-web/src/components/floating-composer-state.ts"
+        "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
@@ -388,9 +387,11 @@
         "docs/provenance/activity-icon-replacement.md",
         "docs/provenance/activity-icon-baseline.json",
         "docs/provenance/code-surface-replacement.md",
-        "docs/provenance/code-surface-baseline.json"
+        "docs/provenance/code-surface-baseline.json",
+        "docs/provenance/floating-composer-replacement.md",
+        "docs/provenance/floating-composer-baseline.json"
       ],
-      "reason": "Six remaining renderer candidates concern theme presentation, reconstructed disclosure, panel/composer contracts and tool rendering. The separately recorded activity/resource and new-task glyphs use licensed Lucide artwork, and the complete shared code-surface model has a requirements-first independent replacement. Historical annotations and hashes remain as evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
+      "reason": "Five remaining renderer candidates concern theme presentation, reconstructed disclosure, panel contracts and tool rendering. Separately recorded activity/new-task artwork uses licensed Lucide glyphs; complete shared code-surface and floating-composer state modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -408,6 +409,12 @@
           "replacement": "code-surface-policy",
           "evidence": "docs/provenance/code-surface-replacement.md",
           "historicalBlob": "1bfdda6b978c2f96ccd977376cdebc2ca04f58a4"
+        },
+        {
+          "path": "apps/workbench-web/src/components/floating-composer-state.ts",
+          "replacement": "floating-composer-policy",
+          "evidence": "docs/provenance/floating-composer-replacement.md",
+          "historicalBlob": "f4f6a0100f82eda865a1abcae01bb3dda7e25677"
         }
       ]
     },
@@ -447,6 +454,23 @@
       "reason": "The complete module formerly carried a source-faithful policy annotation. All four runtime exports, including the observable wrap preference, SVG recognition, label display and surface policy, are replaced after frozen requirements using public declarations/consumer contracts and black-box OpenCraft observations.",
       "resolution": "Retain exact historical hashes, requirements commit, partial old-body exposure and actual verification. Preserve both Web/Native contracts and all other unresolved groups; no source-history or renderer-wide rights conclusion follows.",
       "conclusion": "Current implementation uses a closure-owned observable preference, explicit lexical SVG recognition, independent surface projection and canonical display-name data learned through public behavior. It is a bounded independent implementation with recorded author exposure, not strict clean-room isolation, historical rights clearance or classification of the consuming renderer."
+    },
+    {
+      "id": "floating-composer-policy",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/components/floating-composer-state.ts"
+      ],
+      "evidence": [
+        "docs/provenance/floating-composer-replacement.md",
+        "docs/provenance/floating-composer-baseline.json",
+        "tests/floating-composer-state.test.ts",
+        "scripts/smoke-workspace-presentation.ts",
+        "design/invariants.md"
+      ],
+      "reason": "The complete presentation state module previously attributed overlay state and wheel policy to recovered references. Its projection, route state, retention registry and gesture controller are replaced after frozen requirements using public declarations, consumers and executable baseline observations.",
+      "resolution": "Keep historical hashes, requirements commit, author exposure and actual bounded verification. Preserve all other unresolved groups and active integrations.",
+      "conclusion": "Current implementation independently expresses route-owned immutable presentation intent, derived visibility, cancelable transitions, subscribed-owner retention and wheel gesture continuity. This bounded implementation disposition does not claim strict clean-room isolation, historical rights clearance or replacement of consuming Shell/Electron implementations."
     }
   ]
 }

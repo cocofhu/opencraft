@@ -589,6 +589,8 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 迁移基线：Codex 26.908.40834 的 `right-panel-composer-overlay-f770dcfd060a.js`、`right-panel-composer-overlay-c2ae7a9bcecb.css`，并以 ref/codex 可读恢复树交叉核对状态与手势。OpenCraft 的 scope registry、主题、标准 Electron tracking 是适配层，不声称为私有宿主源码。最终矩阵记录于 2026-09-14-floating-composer-replacement Task Pack。
 
+2026-10-19 状态模块替换：`floating-composer-state.ts` 的投影、路由状态、保留注册表与滚轮策略已按冻结需求独立重写。范围、旧版本哈希、作者接触边界及实际验证见 [替换记录](../docs/provenance/floating-composer-replacement.md)。上述迁移基线保留为历史记录；本次不重分类 Shell、浏览器或原生 tracking 的实现来源，不把 Web 验证视为 native 验收。
+
 ## Shell pane ownership（Codex 26.908.40834）
 
 2026-10-14 主工作台导航拓扑更新：Web/Electron 的应用入口与当前页面上下文合并为单个 Sidebar（`ShellNavigationConfig.layout=unified`），桌面内部60px图标栏承载Home/扩展目的地，既有移动抽屉信号下同一组入口改为列表上方纵向全宽菜单（新建/设置在底部悬浮、列表全宽），桌面邻接列承载会话或设置列表，Settings/账户在竖栏底部。在任务等未提供上下文列表的桌面页面，Sidebar 仅保留图标栏宽度，主区域紧邻图标栏填满释放的空间；不显示空上下文的 resize 入口，不写回会话列表的保存宽度，切回会话恢复原宽度。窄屏保留完整抽屉与同一组应用导航动作，新建与设置在底部独立悬浮，隐藏个人头像/账号入口且不保留底板。整个 Sidebar 只有一个宽度、一个显隐入口；不显示独立 Applications 抽屉、Pin 或 compact 应用栏。旧 rail 偏好不参与该布局的空间预算，也不改写它们。浮动/固定呈现移动同一组 portal 内容，不复制上下文、草稿或滚动 owner；窄屏选择目的地关闭浮层。此条替代主工作台原有并排 Primary/Context 呈现，嵌入产品无 Shell 导航时沿用原契约。借鉴的是命名参考 `ref/codex/terminal/use-app-shell-layout-motion-04358.ts` 的单一 leftPanelSlot 拓扑，保留 OpenCraft 的路由、扩展与空间策略。
