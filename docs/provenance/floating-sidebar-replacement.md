@@ -81,3 +81,16 @@ were inspected. Synthetic slot controls and browser emulation do not establish
 full Workbench, real-account, remote or native hardware acceptance.
 
 The two selected component bodies are still unchanged at this freeze.
+
+## Supplemental pre-authoring motion and resize ports
+
+An unchanged-component entry trace starts ordinary desktop presentation at -8px
+with opacity zero and the header at +8px, then settles at zero/opaque. Reduced
+motion starts fully visible. Exit translation retains opacity one. An additional
+18-state real-component observation verifies below-minimum held width clamps to
+240px and commits 240 rather than collapse/null, keyboard Home/End consume the
+existing width bounds, and double-click restores 275px. Mobile exit does not add
+a horizontal or depth animation: it keeps the externally supplied depth until
+removal, with immediate inertness. Both ordinary/reduced modes have zero page
+errors. Hashes and full traces were frozen before authoring; no selected bodies
+changed during either supplement. The original 46-state comparison remains fixed.
