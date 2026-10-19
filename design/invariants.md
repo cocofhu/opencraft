@@ -1170,6 +1170,9 @@ EditorView or blur/refocus it to repair painting.
 Desktop Web keeps the editor opaque while touch editors use glass; queue and file
 summary rails use their own theme glass on both, independent of the Newera switch.
 The footer must not put an opaque gradient between rails and scrolling content.
+The safe-area gutter below the Composer uses the main surface color so timeline
+rows never remain visible beneath the input; this cover does not extend behind
+the translucent Composer or its attached surfaces.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices
 win; reset/invalid-record fallback use that entry default. Explicitly choosing the
