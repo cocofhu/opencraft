@@ -165,6 +165,8 @@ npm run gate:server-updates -- --scenario self-upgrade
 
 包模板版本必须与tag相同；tag必须位于main历史中。预检再次核对tag内来源清单、安装锁定依赖、执行相关测试和浏览器回归，然后构建一个execution tgz、核对公开包内容并生成SHA256 manifest。发布job只下载并发布这份归档，不重建；npm版本已存在时只接受字节完全一致的归档。最后核对npm下载/安装及GitHub Release归档、manifest和release notes。全发布workflow串行，`npm-release` Environment仍只允许main。已上传后若最终校验失败，用 `gh run rerun <run-id> --failed` 复用原归档，核对远端字节后继续，不重建或重复上传。操作技能见 [opencraft-release](../.agents/skills/opencraft-release/SKILL.md)，迁移边界见[上游迁移](upstream-transition.md)。
 
+正式发布预检还执行 `npm run gate:performance`，在打包前比较版本化基线并保留30天原始样本、JSON/Markdown报告及失败截图；回退或证据不完整阻断后续发布。该完整套件不接日常服务器更新/普通PR流水线，开发可独立执行；场景、阈值及校准流程见 [performance regression gate](startup-performance.md#formal-release-performance-regression-gate)。
+
 预检按 `package-lock.json` 缓存 npm 下载内容，仍执行 `npm ci`；按操作系统、架构与锁定的 Playwright 版本缓存浏览器，每次仍安装所需系统依赖。依赖安装、类型检查、翻译检查、各组测试、浏览器安装、打包、上传和发布后验证分别记录 Actions step 时间。浏览器回归使用 2 个 worker，各自拥有独立 registry、状态目录和动态端口。依赖审计由 security workflow 执行，不重复放在 release 的依赖安装中。
 
 npm 上传返回成功后，公开 metadata 可能延迟出现。整包 metadata 可能受 CDN 缓存影响；发布烟测显式使用 `--metadata-source version-api` 查询公共精确版本接口 `/包名/版本`，验证返回的包名和版本，并记录缓存状态、等待及安装耗时。该模式不发送 npm 凭据；需要认证或没有此接口的 registry 继续使用默认 npm CLI 查询。精确接口的 HTTP 404 最多重试 30 次、间隔 10 秒，然后仍在独立临时目录运行 `npm install 包名@版本 --prefer-online`。安装 CLI 自身仍可能读取受缓存影响的整包 metadata；仅对明确的 `ETARGET` 且错误指向本次精确版本进行同样的有界重试，认证、网络、其他包缺失、错误版本和其他安装错误立即失败。用新 workflow 复核旧 tag 时，若 tag 内的 kit 尚未提供此参数，则使用原 npm CLI 查询。已存在版本的烟测不能证明新版本上传后的同步耗时，需在下一次真实发布中观察。

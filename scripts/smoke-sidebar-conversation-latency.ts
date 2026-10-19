@@ -3,6 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 
 const output = process.env.OPENCRAFT_SIDEBAR_UPDATE_OUTPUT ?? "/tmp/opencraft-sidebar-conversation-latency";
+const sampleCount = Number(process.env.OPENCRAFT_PERFORMANCE_SAMPLES ?? 3);
+assert.ok(Number.isSafeInteger(sampleCount) && sampleCount >= 3 && sampleCount <= 100);
 const source = `
 import React,{useState,useMemo,useCallback} from 'react';
 import {useSidebarCommands} from '/apps/workbench-web/src/components/use-sidebar-commands.ts';
@@ -80,7 +82,7 @@ try {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     const samples = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < sampleCount; i++) {
       const sample = await page.evaluate(async () => {
         const w = window as any;
         const before = { rows: w.rowsProcessed, projections: w.projections };
@@ -96,7 +98,7 @@ try {
     // Cached command identity still dispatches to the latest committed render.
     await page.locator('.sidebar-activity-item').first().click({button:'right'});
     await page.getByRole('menuitem',{name:'Archive',exact:true}).click();
-    assert.deepEqual(await page.evaluate(()=>(window as any).actions),[['archive',3]]);
+    assert.deepEqual(await page.evaluate(()=>(window as any).actions),[['archive',sampleCount]]);
     await page.evaluate(()=>(window as any).fixture.setTitle('Renamed in flight'));
     await page.getByText('Renamed in flight',{exact:true}).first().waitFor();
     await page.evaluate(()=>(window as any).fixture.setCanRename(false));
@@ -111,7 +113,7 @@ try {
     assert.equal(await page.getByRole('menuitem',{name:'Pin',exact:true}).count(),0);
     await page.keyboard.press('Escape');
     await page.locator('.sidebar-activity-item').nth(1).click();
-    assert.deepEqual((await page.evaluate(()=>(window as any).actions))[1],['select',3,'t1']);
+    assert.deepEqual((await page.evaluate(()=>(window as any).actions))[1],['select',sampleCount,'t1']);
     await page.evaluate(()=>(window as any).fixture.setRows((window as any).fixture.initial.filter((r:any)=>r.id!=='t0')));
     await page.waitForFunction(count=>document.querySelectorAll('.sidebar-activity-item').length===count-1,rows);
     assert.deepEqual(errors,[]);evidence.push({rows,samples});await page.close();
