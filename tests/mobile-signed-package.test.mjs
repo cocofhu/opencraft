@@ -99,6 +99,7 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 with tempfile.TemporaryDirectory() as directory:
     module.APK = Path(directory) / "release.apk"
+    module.DOWNLOAD_PATH = "/release.apk"
     module.APK.write_bytes(b"test-apk")
     server = ThreadingHTTPServer(("127.0.0.1", 0), module.ApkHandler)
     thread = threading.Thread(target=server.serve_forever)

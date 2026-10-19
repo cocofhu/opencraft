@@ -285,7 +285,21 @@ Pages are read sequentially under the same recipe/authorization admission,
 deduplicating native pin backfill by Thread ID. An empty page with a cursor is
 not completion; repeated cursors or failed/revoked later pages fail that Host's
 read without publishing a partial complete catalog. These reads do not resume
-Threads or load message history, and retain the runtime's indexed SSH policy.
+Threads or load message history, and retain the runtime's indexed SSH policy. Cold observers may display the authoritative initial page (including old pin backfill)
+while subsequent metadata pages load. This observer-only placeholder never enters
+the complete directory cache, never reports complete search, and is removed on a
+failed cold read. Refreshes retain the last complete snapshot; recipe/authorization
+keys, cancellation and live admission fence initial pages as well as final results.
+The Sidebar exposes partial loading in its fixed-height toolbar, with an accessible
+status label and reduced-motion-aware progress glyph. It adds no status row that
+could displace already visible conversations on completion. Completion replaces it with the entire
+catalog without an empty frame. Goal enrichment and unread catch-up wait for the
+complete catalog, preserving their existing request schedule. First usable rows
+and complete directory readiness are separate performance metrics. Cold in-flight
+invalidations (for example, edits to already visible rows) are coalesced into one
+ordinary refresh after complete success is committed. They cannot be swallowed by
+the pending Query or indefinitely postpone the first complete cache; scope and
+cancellation still fence the scheduled refresh.
 
 The optional conversation overview is isolated in
 `apps/workbench-web/src/features/conversation-overview`. Appearance controls its
@@ -2116,20 +2130,14 @@ and late restoration from undoing sign-out.
 
 ### Authentication ownership
 
-The optional `enterprise.identity` plugin contributes a separate employee provider,
-settings page and the account entrance when its server endpoint is configured.
-The entrance displays the verified employee login name automatically and opens
-identity details/refresh without a fixed login URL. Account contributions have
-explicit presentation precedence (`entrancePriority`, default 0; enterprise OA 100);
-equal priorities remain exclusive, and unloading the higher-priority contribution
-restores the product entrance. Provider session/storage authority is unchanged.
-Gateway-owned identities omit `signOut` when no logout operation is supported.
-An anonymous employee entrance remains useful for identity details and refresh.
-Its Node-only
-verifier owns the private TAI application key and independently validates each
-request's signature, authenticated JWE and expiration. Browser projections are
-memory-only and generation-fenced. Recognition does not authorize shared resources.
-Verified employee message provenance is owned by the Hub, not the Turn
+Trusted product assembly can contribute an external identity provider and an
+account entrance without changing core Actor, membership or resource authority.
+Account contributions have explicit presentation precedence (`entrancePriority`,
+default 0); equal priorities remain exclusive, and unloading a contribution
+restores the next eligible entrance. A provider omits `signOut` when its gateway
+has no logout operation. It owns credential verification and expiry; browser
+projections are memory-only and generation-fenced. Recognition does not authorize
+shared resources. Verified message provenance is owned by the Hub, not the Turn
 or Renderer. Codex, SSH and the built-in DSH path share `ThreadIdentity`, the
 immutable sender store, message projection and bounded native-history reader. The Web gateway derives a trusted connection context from signed
 WebSocket handshake headers; AppHost passes it through an in-process submission
@@ -2138,7 +2146,7 @@ Only the English login name is persisted. Codex/SSH retain the existing Host que
 SQLite and transaction owner; queue admission and provenance share a transaction.
 For DSH, the Headless `/appserver` identity overlay owns a separate managed
 `thread-identities/opencraft-server/thread-identity.sqlite` v1 under the Hub data
-root. It records attribution and derived enterprise identity metadata, never message bodies or
+root. It records attribution and derived provider metadata, never message bodies or
 execution state, and does not open the independent Host stores. Native messages
 remain the evidence for participation; queued or rejected submissions do not count.
 The overlay resolves the current native address for its read-only history client;
@@ -2147,11 +2155,10 @@ the original submitter. History/live/shared Chat projection carry hidden sender
 metadata; the native model input remains free of employee provenance.
 Forked history preserves immutable author attribution separately from membership:
 the Host records inherited message origins atomically with cloned sender bindings,
-and exposes an optional inherited-message query to its metadata provider. enterprise identity
-presence excludes inherited messages; the badge includes the new authenticated
-creator and subsequently observed senders. Origin records survive restart and nested
+and exposes an optional inherited-message query to its metadata provider. A product
+participant projection can exclude inherited messages. Origin records survive restart and nested
 forks in the same Host-state database (additive migration v4).
-See [enterprise OA authentication](enterprise-authentication.md).
+See [external identity and provenance](enterprise-authentication.md).
 
 The hostless and configured-Host Application supervisors share one explicit
 service-disposal plan, including the client extension persistence backend and
@@ -3068,3 +3075,28 @@ same provider instance and releases that per-call lease on success or failure.
 Retirement publishes removal immediately and drains already accepted calls.
 No command registry or asynchronous lookup of the selected Host is introduced.
 See [Composer semantics](chat-ui-architecture.md).
+
+### Codex subscription windows and extra credits
+
+Account pooling preserves subscription percentages even when extra credits remain.
+Verified usage `credits.has_credits` or `credits.unlimited`, without an overage cap,
+permits an enabled account beyond a full subscription window. Window JSON persists
+this optional fact without resetting utilization or changing credential ownership.
+Successful upstream responses can update the credit fact; omitted headers retain
+the latest observation. A real upstream429 explicitly removes that exception.
+Unknown/exhausted credits, authentication errors, disabled accounts and retry
+backoff retain the existing admission rules. Usage refresh owns later recovery.
+
+### Codex model capacity retry
+
+The Codex Host continues only a failed Turn whose native error code is
+`serverOverloaded`. It starts an empty continuation after 1, 2, 4, … seconds,
+capped at 120 seconds between attempts. A successful or different failure ends
+the sequence. New user input, an active Turn, or queued input takes precedence;
+the Host checks the latest authoritative Turn before starting a retry and keeps
+the native subscription while a retry is pending. An unconfirmed `turn/start`
+outcome stops automatic retries so the Host cannot duplicate execution.
+An older Host without the `opencraft/capacity-retry` capability is supported by
+the active Conversation runtime using the same delay cap and empty continuation.
+When the Host advertises version 1, the client cancels its fallback timer and
+leaves retry ownership with the Host.

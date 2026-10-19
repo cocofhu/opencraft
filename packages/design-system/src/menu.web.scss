@@ -1,18 +1,21 @@
 @use "./controls.web" as controls;
+@use "./material.web" as frost;
 
 // Shared floating material, independent of menu geometry and interaction.
 // Popovers must not consume translucent page/sidebar background tokens.
-@mixin material {
+%floating-menu-material {
   border: 0.5px solid var(--color-border-default);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-background-elevated-secondary) 90%, transparent);
-  box-shadow: 0 0 0 0.5px var(--color-border-default), 0 8px 16px -4px rgb(0 0 0 / 12%);
-  backdrop-filter: blur(8px);
+  @include frost.surface(menu);
 }
+
+// Menu consumers are top-level surfaces. Group identical optical declarations
+// once per stylesheet instead of expanding them into every feature selector.
+@mixin material { @extend %floating-menu-material; }
 
 // Shared menu geometry and interaction surface. Feature menus own only content
 // and width; typography must not inherit from the surrounding page or portal.
-@mixin surface {
+%floating-menu-surface {
   max-width: min(var(--radix-dropdown-menu-content-available-width), calc(100vw - 16px));
   max-height: min(376px, var(--radix-dropdown-menu-content-available-height), calc(100vh - 16px));
   padding: var(--menu-surface-padding);
@@ -34,6 +37,8 @@
 
   letter-spacing: var(--typography-control-compact-tracking);
 }
+
+@mixin surface { @extend %floating-menu-surface; }
 
 @mixin item {
   display: flex;

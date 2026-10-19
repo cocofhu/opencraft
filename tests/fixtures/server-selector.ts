@@ -10,7 +10,7 @@ import WebSocket from 'ws';
 import { AssertionProvider, AssertionSigner, ASSERTION_HEADER } from '../../packages/identity-core/src/node';
 import { MembershipStore, InstanceAccess } from '../../packages/access-control/src';
 import { createRelayServer } from '../../apps/relay-server/src/server';
-import { selectionIdentity } from '../../apps/relay-server/src/selection';
+import { selectionIdentity, type ServerPaths } from '../../apps/relay-server/src/selection';
 import { connectRelay } from '../../plugins/relay-connect/src/server';
 import { SshManagement } from '../../apps/opencraft-daemon/src/ssh-management';
 import { FixtureRequestIdentity } from './request-identity';
@@ -28,7 +28,7 @@ export async function virtualFetch(url:string, init:{headers?:Record<string,stri
     });req.on('error',reject);req.end(init.body);
   });
 }
-export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string;sshPublicAccess?:boolean}={}) {
+export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string;sshPublicAccess?:boolean;serverPaths?:ServerPaths}={}) {
   const directory=await mkdtemp(join(tmpdir(),'server-selector-')),cleanup:(()=>unknown)[]=[];
   cleanup.push(()=>rm(directory,{recursive:true,force:true}));
   const pair=generateKeyPairSync('ed25519'),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'}).toString(),publicKey=pair.publicKey.export({format:'pem',type:'spki'}).toString();
@@ -53,11 +53,12 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
     const address=await web.listen({host:'127.0.0.1',port:0});
     // Business streaming endpoint behind the same target authorization; no identity bypass.
     const target=createServer(async(req,res)=>{
-      if(req.url==='/fixture/headers'||req.url==='/fixture/upload'||req.url==='/fixture/stream'||req.url==='/fixture/compressed.html'){
+      const fixturePath = (req.url ?? '/').split('?')[0];
+      if(fixturePath==='/fixture/headers'||fixturePath==='/fixture/upload'||fixturePath==='/fixture/stream'||fixturePath==='/fixture/compressed.html'){
         const status=access.admissionStatus(req);if(status!==204){res.writeHead(status);res.end();return;}
-        if(req.url==='/fixture/compressed.html'){res.writeHead(200,{'content-type':'text/html','content-encoding':'gzip'});res.end(gzipSync('<html><head><title>Compressed</title></head><body>Compressed document</body></html>'));return;}
-        if(req.url==='/fixture/headers'){res.setHeader('content-type','application/json');res.end(JSON.stringify({id,cookie:req.headers.cookie??null,assertion:typeof req.headers[ASSERTION_HEADER]==='string',origin:req.headers.origin??null}));return;}
-        if(req.url==='/fixture/stream'){res.writeHead(200,{'content-type':'text/event-stream','set-cookie':'private-target=not-shared; HttpOnly'});res.write('first\n');setTimeout(()=>res.end('last\n'),250);return;}
+        if(fixturePath==='/fixture/compressed.html'){res.writeHead(200,{'content-type':'text/html','content-encoding':'gzip'});res.end(gzipSync('<html><head><title>Compressed</title></head><body>Compressed document</body></html>'));return;}
+        if(fixturePath==='/fixture/headers'){res.setHeader('content-type','application/json');res.end(JSON.stringify({id,cookie:req.headers.cookie??null,assertion:typeof req.headers[ASSERTION_HEADER]==='string',origin:req.headers.origin??null}));return;}
+        if(fixturePath==='/fixture/stream'){res.writeHead(200,{'content-type':'text/event-stream','set-cookie':'private-target=not-shared; HttpOnly'});res.write('first\n');setTimeout(()=>res.end('last\n'),250);return;}
         let size=0;const hash=createHash('sha256');for await(const data of req){size+=data.length;hash.update(data);}res.end(JSON.stringify({size,hash:hash.digest('hex')}));return;
       }
       const upstream=request(`http://127.0.0.1:${address.port}${req.url}`,{method:req.method,headers:req.headers},result=>{res.writeHead(result.statusCode!,result.headers);result.pipe(res);});upstream.on('error',()=>res.destroy());req.pipe(upstream);
@@ -68,7 +69,7 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
     target.listen(0,'127.0.0.1');await once(target,'listening');cleanup.push(()=>new Promise<void>(r=>{target.close(()=>r());target.closeAllConnections();}));
     const route={...scope,name:id==='join'?(options.entryName??'Server'):'Lighthouse',credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,privateKey),identityProvider:provider};routes.push(route);targets.push((target.address() as any).port);
   }
-  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
+  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,serverPaths:options.serverPaths,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
   for(let i=0;i<routes.length;i++)clients.push(connectRelay({relay:base,credential:routes[i]!.credential,targetPort:targets[i],allowLoopbackInsecure:true}));cleanup.push(()=>clients.forEach(c=>c.close()));
   await waitFor(()=>routes.every(r=>relay.connected(r.instanceId)));
   const get=(path:string,headers:Record<string,string>={},method='GET',body?:Buffer)=>virtualFetch(base+path,{headers:{host,...headers},method,body});

@@ -250,11 +250,42 @@ test("Conversation Runtime derives its complete UI snapshot from Replica authori
     if (approval?.type === "approval") {
       assert.equal(approval.approvalKind, "command");
       assert.equal(approval.command, "npm test");
+      assert.equal(approval.title, "Allow this command to run?");
     }
     assert.equal(snapshot.history.cursor, "older:1");
     assert.equal(snapshot.history.hasOlder, true);
   } finally {
     runtime.dispose();
+  }
+});
+
+test("replica approval prompts retain the reason and network destination without assuming a provider", () => {
+  for (const [extra, title] of [
+    [{}, "Allow this command to run?"],
+    [{ reason: "Inspect the workspace" }, "Inspect the workspace"],
+    [{ networkApprovalContext: { host: "api.example.com", protocol: "https" } }, "Allow a connection to https://api.example.com?"],
+    [{ networkApprovalContext: { host: "api.example.com", protocol: "tcp" } }, "Allow a connection to api.example.com?"],
+  ] as const) {
+    const initial = threadView();
+    const runtime = createReplicaConversationRuntime({
+      key: createConversationKey("local", "thread-one"),
+      replica: new FakeReplica({
+        ...initial,
+        pendingInteractions: initial.pendingInteractions.map(interaction => ({
+          ...interaction, params: { ...interaction.params, ...extra },
+        })),
+      }),
+      commands: commands(),
+      history: { async loadOlder() {} },
+    });
+    try {
+      const approval = runtime.getSnapshot().timeline.frames
+        .flatMap(frame => frame.blocks).find(block => block.type === "approval");
+      assert.equal(approval?.type, "approval");
+      if (approval?.type === "approval") assert.equal(approval.title, title);
+    } finally {
+      runtime.dispose();
+    }
   }
 });
 
@@ -1164,6 +1195,44 @@ test("continuation rejection is observable and does not silently disappear", asy
     assert.equal(runtime.getSnapshot().continuation.error, failure);
     assert.equal(runtime.getSnapshot().continuation.pending, false);
     assert.equal(runtime.getSnapshot().continuation.turnId, "failed");
+  } finally { runtime.dispose(); }
+});
+
+test("older Codex Hosts automatically continue capacity failures after a delay", async () => {
+  let calls = 0;
+  const runtime = createReplicaConversationRuntime({
+    key: createConversationKey("local", "thread-one"),
+    replica: new FakeReplica(failedConversation()),
+    canAutoContinueCapacity: () => true,
+    commands: commands({ async continueTurn() { calls++; return receipt("capacity-retry", "capacity-message"); } }),
+    history: { async loadOlder() {} },
+  });
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(calls, 0);
+    await new Promise(resolve => setTimeout(resolve, 650));
+    assert.equal(calls, 1);
+    assert.equal(runtime.getSnapshot().continuation.turnId, null);
+  } finally { runtime.dispose(); }
+});
+
+test("a Host-owned capacity retry capability suppresses the client timer", async () => {
+  let calls = 0;
+  let hostOwnsRetry = true;
+  const replica = new FakeReplica(failedConversation());
+  const runtime = createReplicaConversationRuntime({
+    key: createConversationKey("local", "thread-one"), replica,
+    canAutoContinueCapacity: () => !hostOwnsRetry,
+    commands: commands({ async continueTurn() { calls++; return receipt("capacity-retry", "capacity-message"); } }),
+    history: { async loadOlder() {} },
+  });
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal(calls, 0);
+    hostOwnsRetry = false;
+    replica.setEntity(failedConversation());
+    await new Promise(resolve => setTimeout(resolve, 1_100));
+    assert.equal(calls, 1);
   } finally { runtime.dispose(); }
 });
 

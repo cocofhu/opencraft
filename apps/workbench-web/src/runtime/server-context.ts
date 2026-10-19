@@ -5,7 +5,9 @@ export function parseServerContext(raw: string | null): BrowserServerContext | n
   const value = JSON.parse(raw) as BrowserServerContext;
   if (!value || !/^[A-Za-z0-9._-]{1,128}$/u.test(value.id) || typeof value.name !== 'string'
     || !['/servers', '/__opencraft_servers'].includes(value.selectorPath)
-    || value.basePath !== value.selectorPath + '/' + encodeURIComponent(value.id)) throw new Error('Invalid server context');
+    || (value.basePath !== '' && (typeof value.basePath !== 'string' || !value.basePath.startsWith(value.selectorPath + '/')
+      || !/^[A-Za-z0-9._-]{1,128}$/u.test(value.basePath.slice(value.selectorPath.length + 1))
+      || ['.', '..'].includes(value.basePath.slice(value.selectorPath.length + 1))))) throw new Error('Invalid server context');
   if (value.targetOrigin !== undefined) {
     const origin = new URL(value.targetOrigin);
     if (!['http:', 'https:'].includes(origin.protocol) || origin.origin !== value.targetOrigin || origin.username || origin.password) throw new Error('Invalid server context');

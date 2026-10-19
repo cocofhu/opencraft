@@ -1,5 +1,17 @@
 # 工作区不变量
 
+## Floating material ownership
+
+Shared floating surfaces consume design-system `material.web` and theme-owned
+neutral frost roles. Backdrop color may show softly through the panel; a brand
+fill or page-wide blur cannot substitute for glass. Menus/search are denser
+than panels; circular touch chrome has inset-only shading. Geometry, Radix
+focus and modal lifetime retain their owners. Solid accessibility/unsupported
+filter fallbacks and explicit extension popover surfaces remain readable.
+See the workbench language and `scripts/smoke-frosted-materials.ts` for real
+consumer, backdrop and fallback verification. Native appearance is unchanged.
+
+
 ## Discrete slider fill
 
 The shared track owns capsule clipping. Its selected range has a square inner
@@ -1018,7 +1030,7 @@ Participant popovers and model/toolbar menus consume `menu.web.scss` `material`:
 
 ### Desktop navigation surface (2026-10-15)
 
-Unified Shell uses a 60px icon rail with 36px desktop controls, 16px glyphs, and 18px account avatars. Controls consume the shared application-navigation row/density token, expanding to at least 44px in touch-friendly density; labeled mobile rows retain their original 20px glyphs and neutral current-page highlighting. Home is the single conversation-area destination for both existing chat and draft routes, invoking openChat without creating a new draft. Desktop retains a full-width New chat row directly below Conversations. Mobile projects the same creation action into a Shell-owned floating pill over the bottom of the scroll track, with a circular settings button on its right. The floating settings button composites its secondary state tint over the existing theme opaque elevated surface in resting, hover and pressed states, so list content cannot show through. The mobile account/avatar entrance and bottom plate are omitted; desktop retains its rail footer. The list reserves space so its last row can clear both controls. New chat dismisses the mobile drawer. The generic Settings entrance retains the open mobile drawer while its shared left slot becomes settings-category navigation; only an explicit category selection dismisses it, including selecting the already active category. Desktop keeps its direct default Appearance route; route normalization and explicit deep links do not create a new drawer or a second navigation owner. Filters retain their existing scroll lifetime; mobile search is a floating header action. Real Shell browser coverage: `OPENCRAFT_GESTURE_FAB_ONLY=1` in `scripts/smoke-mobile-sidebar-gesture.ts`. The toolbar exposes the sidebar toggle and preserves the measured native-window safe area; history remains in the router/browser without rendered arrow controls. A standalone managed site has a mascot/wordmark brand region in compact layout, sized from the default sidebar metric and capped by viewport space, with collapse at its trailing edge. Touch layout hides both the mark and wordmark in the persistent page header and releases the reserved rail width in visible and measurement copies, retaining navigation controls. Drawer headers retain the wordmark and a plugin-provided leading mark; plugins can opt out of their mark. The managed site retains its mascot there, replacing the internal mobile collapse button. The closed page retains its plain sidebar entrance, matching right-panel chrome. Search keeps its separate glass circular control. The existing data-ui-density preference owns this presentation, independent of viewport width. The browser header uses the shared surface color, avoiding a separate gray empty strip. The context column and context-free main frame meet the toolbar and rail with square top-start seams; context presence changes neither saved width nor DOM ownership. Cards and modal surfaces retain their own semantic corner tokens. Tasks owns its single title above its Board/List toolbar; shell chrome omits duplicate management titles. Embedded shells retain their host presentation.
+Unified Shell uses a 60px icon rail with 36px desktop controls, 16px glyphs, and 18px account avatars. Controls consume the shared application-navigation row/density token, expanding to at least 44px in touch-friendly density; labeled mobile rows retain their original 20px glyphs and neutral current-page highlighting. Home is the single conversation-area destination for both existing chat and draft routes, invoking openChat without creating a new draft. Desktop retains a full-width New chat row directly below Conversations. Mobile projects the same creation action into a Shell-owned floating pill over the bottom of the scroll track, with a circular settings button on its right. The floating settings button composites its secondary state tint over the existing theme opaque elevated surface in resting, hover and pressed states, so list content cannot show through. The mobile account/avatar entrance and bottom plate are omitted; desktop retains its rail footer. The list reserves space so its last row can clear both controls. New chat dismisses the mobile drawer. The generic Settings entrance retains the open mobile drawer while its shared left slot becomes settings-category navigation; only an explicit category selection dismisses it, including selecting the already active category. Desktop keeps its direct default Appearance route; route normalization and explicit deep links do not create a new drawer or a second navigation owner. Filters retain their existing scroll lifetime; mobile search is a floating header action. Real Shell browser coverage: `OPENCRAFT_GESTURE_FAB_ONLY=1` in `scripts/smoke-mobile-sidebar-gesture.ts`. The toolbar exposes the sidebar toggle and preserves the measured native-window safe area; history remains in the router/browser without rendered arrow controls. A standalone managed site has a mascot/wordmark brand region in compact layout, sized from the default sidebar metric and capped by viewport space, with collapse at its trailing edge. Touch layout or a browser window whose unified sidebar has moved into its narrow drawer hides both the mark and wordmark in the persistent page header and releases the reserved rail width in visible and measurement copies, retaining navigation controls. The narrow browser rule also applies with compact density; wide compact browser and native desktop branding remain visible. Drawer headers retain the wordmark and a plugin-provided leading mark; plugins can opt out of their mark. The managed site retains its mascot there, replacing the internal mobile collapse button. The closed page retains its plain sidebar entrance, matching right-panel chrome. Search keeps its separate glass circular control. The existing data-ui-density preference owns interaction density; Shell owns the separate narrow-browser branding condition from its existing docking decision. The browser header uses the shared surface color, avoiding a separate gray empty strip. The context column and context-free main frame meet the toolbar and rail with square top-start seams; context presence changes neither saved width nor DOM ownership. Cards and modal surfaces retain their own semantic corner tokens. Tasks owns its single title above its Board/List toolbar; shell chrome omits duplicate management titles. Embedded shells retain their host presentation.
 
 ### Right-panel toolbar divider alignment
 
@@ -1141,10 +1153,11 @@ Touch Header panel entrances use one shared outer-edge spacing token (2px), boun
 - Conversation list schedule markers consume the Host schedule summary rather than issuing row-owned reads. Active/paused use one neutral 16px clock after the truncating title and before participant chrome, with no animation, extra row height or independent touch target. The tooltip/accessibility label conveys next-run, paused or needs-checking state. Execution activity retains its separate owner and slot; configuring a plan never changes a conversation’s section; running is row feedback, not a section.
 
 ## Composer attached rail
-The queue and live file summary are siblings in the above-composer rail, after queue then live summary; they are not transcript blocks or independently floating cards. One rail owns the soft theme-derived translucent material, 80% border, top 16px corners and 4px tuck behind the foreground editor. The live file summary aligns to the rail content start using the shared row inset, including narrow and floating composers. Internal projections are transparent rows with separators; no per-item pill, shadow or perimeter. Geometry belongs to design-system rail tokens and colors to the theme engine, including custom input surface overrides. Empty content produces no height, border or tuck. The rail follows the composer through floating/keyboard placements; queue mutation and diff review ownership remain unchanged.
+The queue and goal remain in the attached rail. The active Turn's file summary is a separate, content-width pill centered above that rail and editor, with the shared floating-summary gap, full radius, theme opaque elevated material, subtle border and low elevation. It never shares the attached rail's perimeter, tuck or mask. Long labels truncate while diff counts remain visible; narrow/floating/keyboard placements follow the actual Composer. Empty summary adds no height. Approval replacement retains the same independent summary. File review, counters, draft and queue ownership do not change. Geometry and material consume design-system tokens. `scripts/smoke-composer-attached-rail.ts` covers occupancy, separation, themes, review and draft identity.
+
 
 ## Touch Newera composer
-`chat.touchNewera` is an installation UI preference: absent a saved choice, standalone workbench defaults on and embedded workbench defaults off; only the conjunction of enabled preference and touch density selects this presentation. The existing density binding projects it to the document; components do not read storage or create a second draft. Theme-derived Newera tokens own the restrained translucent material, highlight, blur, radius and geometry, with opaque fallbacks for unsupported/reduced transparency and forced colors. The attached queue/diff rail has its own translucent material in both desktop and touch layouts, independently of Newera and editor material.
+`chat.touchNewera` is an installation UI preference: absent a saved choice, standalone workbench defaults on and embedded workbench defaults off; only the conjunction of enabled preference and touch density selects this presentation. The existing density binding projects it to the document; components do not read storage or create a second draft. Theme-derived Newera tokens own the restrained translucent material, highlight, blur, radius and geometry, with opaque fallbacks for unsupported/reduced transparency and forced colors. The attached queue/goal rail has its own translucent material in both desktop and touch layouts, independently of Newera and editor material.
 An empty editing draft with no attachments, transient text or suggestions stays
 one line through editor focus, autofocus, toolbar and portaled menu focus. Focus
 is input ownership, not a layout expansion signal. Actual draft content,
@@ -1167,9 +1180,13 @@ focus; material variables select ordinary/Newera and opaque accessibility fallba
 Scrolling or keyboard viewport updates must not rewrite the selection, recreate the
 EditorView or blur/refocus it to repair painting.
 
-Desktop Web keeps the editor opaque while touch editors use glass; queue and file
-summary rails use their own theme glass on both, independent of the Newera switch.
+Desktop Web keeps the editor opaque while touch editors use glass; queue/goal
+rails use their own theme glass on both, independent of the Newera switch. The
+separate live file pill uses an opaque theme elevated surface.
 The footer must not put an opaque gradient between rails and scrolling content.
+The safe-area gutter below the Composer uses the main surface color so timeline
+rows never remain visible beneath the input; this cover does not extend behind
+the translucent Composer or its attached surfaces.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices
 win; reset/invalid-record fallback use that entry default. Explicitly choosing the
@@ -1569,6 +1586,7 @@ The read adapter loads on first read and checks cancellation after import.
 - A session without an explicit model inherits the current Host default for creation and its existing model for continuation; choosing a model never writes deployment defaults.
 - Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
+- The empty touch Newera Composer keeps the existing model menu reachable through an icon beside its machine and workspace row; expanding the editor restores the labelled footer picker. Both presentations use the same Composer selection state and menu.
 
 ## Conversation presentation contributions
 
@@ -1602,3 +1620,10 @@ owners. Changing pages does not stop execution.
 Registered navigation and settings icon names remain effective in every
 presentation style. Classic artwork variants, sizes and selected-state strokes
 may differ; generic fallbacks apply only to missing or unsupported names.
+
+### Authorized desktop Composer entry
+
+The command-adjacent desktop entry invokes the existing filtered Panel action for
+the current Conversation. No adapter or resolved target means no entry. Preview-only
+embedded layouts may retain a desktop renderer without exposing file-tree management;
+showing the entry never grants viewing or input authority.

@@ -1348,3 +1348,53 @@ test("a late success cannot overwrite a newer fallback assignment or rewind new-
     assert.equal(pool.select({ provider: "codex", hostId: "local", affinityId: "new" }).account.id, "c");
   } finally { pool.close(); await rm(root, { recursive: true, force: true }); }
 });
+
+
+test("subscription exhaustion can use verified extra credits and persists across restart", async () => {
+  const root = await mkdtemp(join(tmpdir(), "opencraft-extra-credits-"));
+  const options = { databasePath: join(root, "pool.sqlite"), secretsDirectory: join(root, "secrets"), now: () => 2_000_000 };
+  let pool = new AccountPoolStore(options);
+  try {
+    pool.addAccount({ id: "paid", provider: "codex", label: "Paid", upstreamAccountId: "paid", priority: 1, enabled: true },
+      { accessToken: "private", refreshToken: null, expiresAt: null });
+    let credits: unknown;
+    const usage = () => new CodexSubscriptionService({ store: pool, now: options.now, resolveCredential: async (_account, secret) => secret, fetch: async () => Response.json({
+      rate_limit: { allowed: false, primary_window: { used_percent: 100, reset_after_seconds: 600, limit_window_seconds: 604800 } }, credits,
+    }) });
+    for (const [value, eligible] of [
+      [{ has_credits: true, unlimited: false, overage_limit_reached: false }, true],
+      [{ has_credits: false, unlimited: true }, true],
+      [{ has_credits: false, unlimited: false }, false],
+      [{ has_credits: true, overage_limit_reached: true }, false],
+      [{ has_credits: "true", unlimited: 1 }, false],
+      [undefined, false],
+    ] as const) {
+      credits = value; const service = usage();
+      await service.refreshAccount("paid"); await service.dispose();
+      assert.equal(pool.listAccountStates()[0]?.status, eligible ? "ready" : "exhausted");
+      assert.equal(pool.listAccountStates()[0]?.limitWindows[0]?.utilization, 1, "never reset the real subscription usage");
+      if (eligible) assert.equal(pool.select({ provider: "codex", hostId: "local", affinityId: "test" }).account.id, "paid");
+      else assert.throws(() => pool.select({ provider: "codex", hostId: "local", affinityId: "test" }), /eligible/);
+    }
+    credits = { has_credits: true }; const service = usage();
+    await service.refreshAccount("paid"); await service.dispose();
+    pool.close(); pool = new AccountPoolStore(options);
+    assert.equal(pool.listAccountStates()[0]?.status, "ready");
+    assert.equal(pool.listAccountStates()[0]?.limitWindows[0]?.creditsAvailable, true);
+    const token = pool.issueHostToken("local"); let calls = 0;
+    const proxy = new CodexAccountPoolProxy({ store: pool, now: options.now, upstreamBaseUrl: "https://codex.example.test", fetch: async () => {
+      calls++;
+      return new Response(null, { status: calls < 3 ? 200 : 429, headers: {
+        "x-codex-primary-used-percent": "100", "x-codex-primary-reset-after-seconds": "600",
+        ...(calls === 3 ? { "x-codex-credits-has-credits": "true" } : {}),
+      } });
+    } });
+    const request = () => new Request("http://localhost/v1/responses", { method: "POST", body: "{}", headers: { "x-opencraft-account-pool-token": token } });
+    assert.equal((await proxy.handle(request())).status, 200);
+    assert.equal((await proxy.handle(request())).status, 200, "ordinary headers without credits must preserve the usage fact");
+    assert.equal((await proxy.handle(request())).status, 429);
+    assert.equal(pool.listAccountStates()[0]?.status, "exhausted", "a real upstream rejection overrides the credits flag");
+    assert.equal((await proxy.handle(request())).status, 429);
+    assert.equal(calls, 3, "do not retry a rejected exhausted account");
+  } finally { pool.close(); await rm(root, { recursive: true, force: true }); }
+});

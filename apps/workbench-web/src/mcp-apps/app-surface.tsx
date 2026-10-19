@@ -92,7 +92,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
   }, [theme, locale]);
   if (error || documentSource.error) return <div className="mcp-app__error" role="alert">{intl.formatMessage({ id: "mcpApp.failed", defaultMessage: "App unavailable" })}: {error ?? documentSource.error}</div>;
   if (!resource) return <div role="status">{intl.formatMessage({ id: "mcpApp.loading", defaultMessage: "Loading app…" })}</div>;
-  return <iframe ref={iframe} className="mcp-app__frame" title={identity.name} sandbox="allow-scripts" referrerPolicy="no-referrer"
+  return <iframe ref={iframe} className="mcp-app__frame" title={identity.name} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer"
     allow="camera 'none'; microphone 'none'; geolocation 'none'; clipboard-read 'none'; clipboard-write 'none'" srcDoc={documentSource.html}
     onLoad={() => { if (++loads.current > 1) { bridgeRef.current?.dispose(); setError("App navigation is not allowed"); } }} />;
 }

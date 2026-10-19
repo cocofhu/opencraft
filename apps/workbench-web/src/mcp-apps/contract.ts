@@ -3,8 +3,8 @@ export interface McpAppPort {
   readonly key: string;
   assertCurrent(): void;
   readResource(server: string, uri: string, callId: string | null): Promise<unknown>;
-  listTools(server: string): Promise<Record<string, unknown>>;
-  callTool(server: string, tool: string, args: Record<string, unknown>): Promise<unknown>;
+  listTools(server: string, resourceUri?: string): Promise<Record<string, unknown>>;
+  callTool(server: string, tool: string, args: Record<string, unknown>, resourceUri?: string): Promise<unknown>;
   sendMessage(text: string): Promise<void>;
   updateContext(id: string, value: string | null): void;
   openLink(url: string): void;

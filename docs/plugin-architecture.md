@@ -116,9 +116,9 @@ Headless 通过可信服务端 composition 创建身份适配器；受管站点�
 
 - 随标准 Headless 分发的 `opencraft.account`：每部署独立本地账号的服务端凭据插件，拥有密码策略、验证及凭据版本证明；通过核心提供的窄存储端口保留既有账号库，不依赖统一账号中心。核心仍拥有浏览器登录态、自然人绑定、成员与资源授权，停用插件不能绕过准入。由私有配置启用，非浏览器扩展安装；见[服务器登录](server-authentication.md#自部署账号插件)。
 
-- 可选 `enterprise.identity`：后端逐请求太湖验签与 TOF 身份解密，独立员工
-  Authentication provider 与共享控件设置页；不取代平台账户，不自动授权资源。
-  详见 [员工身份插件](./enterprise-authentication.md)。
+- 可信产品装配可提供外部身份 provider、账户入口和设置页；凭据验证、员工目录与
+  企业界面由下游插件持有，核心保留主体绑定、成员与资源授权。
+  详见 [外部身份与消息来源契约](./enterprise-authentication.md)。
 
 - `packages/extension-contract`：renderer-free manifest V1、activation identity、Command、Settings、
   location-neutral View、Navigation、Sidebar Catalog、Settings Page、Workbench Surface、双明暗

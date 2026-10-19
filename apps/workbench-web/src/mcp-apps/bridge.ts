@@ -43,16 +43,16 @@ export function createAppBridge(options: BridgeOptions) {
     }
     if (!legacy && !initialized) throw new Error("Initialize the App first");
     switch (method) {
-      case "tools/list": return { tools: Object.values(await options.port.listTools(options.identity.server)) };
+      case "tools/list": return { tools: Object.values(await options.port.listTools(options.identity.server, options.identity.uri)) };
       case "tools/call": {
         if (typeof params.name !== "string" || (params.arguments !== undefined && (params.arguments === null || Array.isArray(params.arguments) || typeof params.arguments !== "object"))) throw new Error("Invalid tool call");
-        const tools = await options.port.listTools(options.identity.server);
+        const tools = await options.port.listTools(options.identity.server, options.identity.uri);
         check();
         const tool = record(tools[params.name]);
         const visibility = record(record(tool._meta).ui).visibility;
         if (!Object.prototype.hasOwnProperty.call(tools, params.name)
           || (Array.isArray(visibility) && visibility.includes("model") && !visibility.includes("app"))) throw new Error("Tool is not available to this App");
-        return options.port.callTool(options.identity.server, params.name, record(params.arguments));
+        return options.port.callTool(options.identity.server, params.name, record(params.arguments), options.identity.uri);
       }
       case "resources/read": {
         if (typeof params.uri !== "string" || params.uri !== options.identity.uri) throw new Error("Resource is outside this App");

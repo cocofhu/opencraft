@@ -462,7 +462,7 @@ test("application Settings owns route slots while target management owns a modal
   );
   assert.match(
     modalStyles,
-    /\.modal-surface__scrim\s*\{[^}]*position:\s*fixed;[^}]*backdrop-filter:\s*blur\(7px\)/u,
+    /\.modal-surface__scrim\s*\{[^}]*position:\s*fixed;/u,
   );
   assert.match(
     modalStyles,
@@ -470,7 +470,7 @@ test("application Settings owns route slots while target management owns a modal
   );
   assert.match(
     modalStyles,
-    /\.modal-surface\s*\{[^}]*isolation:\s*isolate;[^}]*background:\s*var\(--color-background-elevated-primary-opaque,\s*var\(--color-background-surface\)\);/u,
+    /\.modal-surface\s*\{[^}]*isolation:\s*isolate;[^}]*@include material\.surface;/u,
   );
   assert.doesNotMatch(
     modalStyles,

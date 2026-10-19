@@ -5,6 +5,7 @@ let initialized = 0;
 let nextServerRequestId = 901;
 let nextTurnId = 1;
 const turns = new Map();
+const threadTurns = new Map();
 const history = new Map();
 const acceptedInputs = [];
 const deferredSteerHistory = new Map();
@@ -66,7 +67,7 @@ input.on("line", line => {
   if (message.method === "thread/read") {
     const active = turns.get(message.params.threadId);
     const type = !loadedThreads.has(message.params.threadId) ? "notLoaded" : active ? "active" : "idle";
-    send({ id: message.id, result: { thread: { id: message.params.threadId, path: loadedThreads.has(message.params.threadId) ? `/synthetic/${message.params.threadId}.jsonl` : null, createdAt: 123, name: threadNames.get(message.params.threadId) ?? null, status: { type, ...(active ? { activeFlags: [] } : {}) }, turns: [] } } });
+    send({ id: message.id, result: { thread: { id: message.params.threadId, path: loadedThreads.has(message.params.threadId) ? `/synthetic/${message.params.threadId}.jsonl` : null, createdAt: 123, name: threadNames.get(message.params.threadId) ?? null, status: { type, ...(active ? { activeFlags: [] } : {}) }, turns: message.params.includeTurns ? threadTurns.get(message.params.threadId) ?? [] : [] } } });
     return;
   }
   if (message.method === "thread/items/list") {
@@ -85,6 +86,7 @@ input.on("line", line => {
     }
     const turnId = `turn-${nextTurnId++}`;
     turns.set(threadId, turnId);
+    threadTurns.set(threadId, [...(threadTurns.get(threadId) ?? []), { id: turnId, status: "inProgress", items: [] }]);
     subscribedThreads.add(threadId);
     if (message.params.clientUserMessageId) {
       const entries = history.get(threadId) ?? [];
@@ -130,6 +132,8 @@ input.on("line", line => {
     const threadId = message.params.threadId;
     const turnId = turns.get(threadId);
     turns.delete(threadId);
+    const completed = { id: turnId, status: message.params.codexErrorInfo ? "failed" : "completed", items: [], ...(message.params.codexErrorInfo ? { error: { message: "Selected model is at capacity.", codexErrorInfo: message.params.codexErrorInfo } } : {}) };
+    threadTurns.set(threadId, (threadTurns.get(threadId) ?? []).map(turn => turn.id === turnId ? completed : turn));
     const deferred = deferredSteerHistory.get(threadId) ?? [];
     if (deferred.length > 0) {
       history.set(threadId, [...(history.get(threadId) ?? []), ...deferred]);
@@ -137,7 +141,7 @@ input.on("line", line => {
     }
     send({ id: message.id, result: {} });
     if (turnId && subscribedThreads.has(threadId)) {
-      send({ method: "turn/completed", params: { threadId, turn: { id: turnId, status: "completed", items: [] } } });
+      send({ method: "turn/completed", params: { threadId, turn: completed } });
       send({ method: "thread/status/changed", params: { threadId, status: { type: "idle" } } });
     }
     return;

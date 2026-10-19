@@ -14,6 +14,7 @@ import { javascript } from "../packages/mcp-apps/src/javascript";
 import { validateSpec } from "../packages/mcp-apps/src/spec";
 import { appMigrations } from "../packages/mcp-apps/src/store";
 import { openManagedDatabase } from "../packages/sqlite-node/src/index";
+import { MCP_APP_RESOURCE_META } from "../packages/appserver-protocol/src/mcp-apps";
 
 export function sampleSpec() {
   return {
@@ -66,6 +67,99 @@ const publish = (s: McpAppsService, spec = sampleSpec(), version = 0) =>
     spec_json: JSON.stringify(spec),
     expectedVersion: version,
   }) as Promise<any>;
+
+test("historical cards authorize only their exact release in the readable thread and connection", () =>
+  fixture(async s => {
+    await publish(s);
+    const opened = await s.manage("alice", { action: "open", appId: "calculator" }) as any;
+    const context = { sender: null, resourceOwner: { id: "bob", assertCurrent() {} } };
+    let sequence = 100;
+    const waiting = new Map<number, (value: any) => void>();
+    const session = new McpAppsRpcSession(s, frame => {
+      const result = JSON.parse(frame); waiting.get(result.id)?.(result); waiting.delete(result.id);
+    });
+    const rpc = (method: string, params: unknown) => new Promise<any>(resolve => {
+      const id = ++sequence; waiting.set(id, resolve);
+      assert.equal(session.receive(JSON.stringify({ id, method, params }), context), true);
+    });
+    const resource = { threadId: "shared", server: opened.server, uri: opened.resourceUri };
+    const call = { threadId: "shared", server: opened.server, tool: "calculate", arguments: { a: 7, b: 8 },
+      _meta: { [MCP_APP_RESOURCE_META]: opened.resourceUri } };
+    assert.match((await rpc("mcpServer/resource/read", resource)).error.message, /inactive/);
+    // Client-supplied envelopes, arbitrary text and unrelated tools are not authority.
+    const item = { type: "dynamicToolCall", namespace: "opencraft_apps", tool: "manage", status: "completed", success: true,
+      contentItems: [{ type: "inputText", text: JSON.stringify(opened) }] };
+    session.receive(JSON.stringify({ id: 1, method: "thread/read", params: { threadId: "shared", envelope: opened } }), context);
+    session.project(JSON.stringify({ id: 1, result: { thread: { id: "shared", turns: [{ items: [
+      { type: "userMessage", content: JSON.stringify(opened) }, { ...item, namespace: "forged" }, { ...item, success: false },
+    ] }] } } }), context);
+    assert.match((await rpc("mcpServer/resource/read", resource)).error.message, /inactive/);
+    // Engine-owned historical builder result, unchanged pre-upgrade server/URI.
+    session.receive(JSON.stringify({ id: 2, method: "thread/read", params: { threadId: "shared" } }), context);
+    session.project(JSON.stringify({ id: 2, result: { thread: { id: "shared", turns: [{ items: [item] }] } } }), context);
+    assert.equal((await rpc("mcpServer/resource/read", resource)).result.contents[0].text, sampleSpec().uiHtml);
+    assert.equal((await rpc("mcpServer/tool/call", call)).result.structuredContent.sum, 15);
+    assert.match((await rpc("mcpServer/tool/call", { ...call, threadId: "other" })).error.message, /inactive/);
+    assert.match((await rpc("mcpServer/resource/read", { ...resource, uri: opened.resourceUri + "?forged" })).error.message, /inactive/);
+    assert.match((await rpc(MCP_APPS_METHOD, { action: "get", appId: "calculator" })).error.message, /not found/);
+    assert.deepEqual((await rpc(MCP_APPS_METHOD, { action: "list" })).result.apps, []);
+    session.receive(JSON.stringify({ id: 3, method: "mcpServerStatus/list", params: { threadId: "shared" } }), context);
+    const inventory = JSON.parse(session.project(JSON.stringify({ id: 3, result: { data: [], nextCursor: null } }), context));
+    assert.equal(inventory.result.data.find((r: any) => r.name === opened.server).resources[0].uri, opened.resourceUri);
+    // Same App ID/revision under another owner must never substitute another card's code.
+    const bobSpec = sampleSpec(); bobSpec.uiHtml = bobSpec.uiHtml.replace("Ready", "Bob");
+    bobSpec.tools[0]!.handler.source = "return {sum:999};";
+    await s.manage("bob", { action: "publish", appId: "calculator", expectedVersion: 0, spec_json: JSON.stringify(bobSpec) });
+    assert.equal((await rpc("mcpServer/tool/call", call)).result.structuredContent.sum, 15);
+    const { _meta, ...legacyCall } = call;
+    assert.match((await rpc("mcpServer/tool/call", legacyCall)).error.message, /Ambiguous/);
+    let attached = true;
+    const late = s.handle("bob", "mcpServer/tool/call", call, () => {},
+      () => attached ? [{ server: opened.server, resourceUri: opened.resourceUri }] : []);
+    attached = false;
+    await assert.rejects(late, /not found|inactive/, "losing thread evidence fences an in-flight result");
+    await s.manage("alice", { action: "unpublish", appId: "calculator", expectedVersion: 1 });
+    assert.match((await rpc("mcpServer/tool/call", call)).error.message, /inactive/);
+    session.close();
+    let reconnectReply: any;
+    const reconnected = new McpAppsRpcSession(s, value => { reconnectReply = JSON.parse(value); });
+    reconnected.receive(JSON.stringify({ id: 1, method: "mcpServer/resource/read", params: resource }), context);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.ok(reconnectReply.error, "a new connection must reacquire historical evidence");
+    await assert.rejects(s.handle("bob", "mcpServer/resource/read", resource), /not found/);
+    reconnected.close();
+  }));
+
+test("DSH history pages, initial resume pages and live completed items retain legacy card references", () =>
+  fixture(async s => {
+    await publish(s);
+    const opened = await s.manage("alice", { action: "open", appId: "calculator" }) as any;
+    const item = { type: "dynamicToolCall", namespace: "deepseek-harness", tool: "opencraft_apps__manage", status: "completed", success: true,
+      contentItems: [{ type: "inputText", text: JSON.stringify(opened) }] };
+    const context = { sender: null, resourceOwner: { id: "bob", assertCurrent() {} } };
+    for (const [method, result] of [
+      ["thread/resume", { thread: { id: "shared", turns: [] }, initialTurnsPage: { data: [{ items: [item] }] } }],
+      ["thread/turns/list", { data: [{ items: [item] }] }],
+      ["thread/items/list", { data: [{ turnId: "turn", item }] }],
+      ["notification", null],
+    ] as const) {
+      let response: any;
+      const session = new McpAppsRpcSession(s, f => { response = JSON.parse(f); });
+      if (method === "notification") session.project(JSON.stringify({ method: "item/completed", params: { threadId: "shared", item } }), context);
+      else {
+        session.receive(JSON.stringify({ id: 1, method, params: { threadId: "shared" } }), context);
+        session.project(JSON.stringify({ id: 1, result }), context);
+      }
+      session.receive(JSON.stringify({ id: 2, method: "mcpServer/resource/read", params: { threadId: "shared", server: opened.server, uri: opened.resourceUri } }), context);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      assert.ok(response.result, `${method}: ${JSON.stringify(response)}`);
+      session.project(JSON.stringify({ method: "thread/closed", params: { threadId: "shared" } }), context);
+      session.receive(JSON.stringify({ id: 3, method: "mcpServer/resource/read", params: { threadId: "shared", server: opened.server, uri: opened.resourceUri } }), context);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      assert.ok(response.error, "closing a thread drops its connection evidence");
+      session.close();
+    }
+  }));
 test("validation, owned releases, input/output schemas, CAS and immutable resources", () =>
   fixture(async (s) => {
     const spec = sampleSpec();

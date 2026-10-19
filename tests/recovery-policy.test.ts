@@ -95,3 +95,73 @@ test("a cancelled history timer cannot consume the replacement retry delay", asy
  stale();await tick();assert.equal(reads,2);assert.equal(f.timers.size,1);
  f.owner.invalidate();await first;f.owner.dispose();
 });
+
+test("observable progress distinguishes connection backoff and per-conversation history without advancing work", async () => {
+ const f=fixture();
+ f.owner.begin("connecting");
+ assert.equal(f.owner.getProgress()?.stage,"connecting");
+ assert.equal(f.owner.getProgress()?.attempt,1);
+ const id=f.owner.getProgress()?.recoveryId;
+ await f.advance(123);
+ f.owner.connectionStage("initializing");
+ assert.equal(f.owner.getProgress()?.stageStartedAt,123);
+ f.owner.connectionFailed({code:"TIMEOUT",message:"secret",data:{token:"secret"}});
+ f.owner.schedule(false);
+ assert.equal(f.owner.getProgress()?.recoveryId,id);
+ assert.equal(f.owner.getProgress()?.retryAt,623);
+ assert.equal(f.owner.getProgress()?.lastFailure?.code,"TIMEOUT");
+ assert.equal(f.connects,0);
+ for(let i=0;i<100;i++)f.owner.getProgress();
+ assert.equal(f.connects,0);assert.equal(f.timers.size,1);
+ f.owner.cancelConnection();f.owner.ready(()=>true,false);
+ assert.equal(f.owner.getProgress(),undefined);
+ const key={},other={};let reads=0,release!:()=>void;
+ const done=f.owner.recover({key,demand:()=>"visible",retryable:()=>true,run:async()=>{
+  if(++reads===1)throw {code:"TIMEOUT",message:"secret-body"};
+  await new Promise<void>(resolve=>{release=resolve;});
+ }});
+ await tick();
+ assert.equal(f.owner.getProgress(key)?.stage,"backoff");
+ assert.equal(f.owner.getProgress(key)?.attempt,1);
+ assert.equal(f.owner.getProgress(key)?.retryAt,623);
+ assert.equal(f.owner.getProgress(other),undefined);
+ assert.doesNotMatch(JSON.stringify(f.owner.getProgress(key)),/secret|token|message/);
+ await f.advance(500);
+ assert.equal(f.owner.getProgress(key)?.stage,"history");
+ assert.equal(f.owner.getProgress(key)?.attempt,2);
+ assert.equal(f.owner.getProgress(key)?.retryAt,undefined);
+ assert.equal(f.owner.getProgress(key)?.lastFailure?.code,"TIMEOUT");
+ release();await done;await tick();
+ assert.equal(f.owner.getProgress(key),undefined);
+ f.owner.dispose();
+});
+
+test("diagnostic history is bounded, manual stop has no retry deadline and invalidation fences late work",async()=>{
+ const f=fixture();
+ for(let i=0;i<20;i++){f.owner.begin("connecting");f.owner.connectionFailed({code:"private text"});f.owner.schedule(false);f.owner.cancelConnection();}
+ assert.equal(f.owner.getProgress()?.events.length,12);
+ assert.equal(f.owner.getProgress()?.attempt,20);
+ assert.equal(f.owner.getProgress()?.lastFailure?.code,"UNCLASSIFIED");
+ f.owner.schedule(true);
+ assert.equal(f.owner.getProgress()?.stage,"blocked");assert.equal(f.owner.getProgress()?.retryAt,undefined);
+ const key={};let reject!:(error:unknown)=>void;
+ const done=f.owner.recover({key,demand:()=>"visible",retryable:()=>true,run:()=>new Promise<void>((_,fail)=>{reject=fail;})});
+ await tick();f.owner.invalidate();await done;reject({code:"TIMEOUT"});await tick();
+ assert.equal(f.owner.getProgress(key),undefined);
+ f.owner.dispose();
+});
+
+test("a new explicit recovery after terminal failure has its own correlation and attempt count",async()=>{
+ const f=fixture(),key={};
+ const failed=f.owner.recover({key,demand:()=>"visible",retryable:()=>false,run:async()=>{throw {code:"TIMEOUT"};}});
+ await failed;await tick();
+ const previous=f.owner.getProgress(key)!;assert.equal(previous.stage,"failed");
+ f.owner.begin("revalidate");
+ let release!:()=>void;
+ const retry=f.owner.recover({key,demand:()=>"visible",retryable:()=>false,run:()=>new Promise<void>(resolve=>{release=resolve;})},true);
+ await tick();const current=f.owner.getProgress(key)!;
+ assert.notEqual(current.recoveryId,previous.recoveryId);
+ assert.equal(current.recoveryId,f.events.filter(e=>e.stage==='history-started').at(-1)?.recoveryId);
+ assert.equal(current.attempt,1);assert.equal(current.lastFailure,undefined);
+ release();await retry;f.owner.dispose();
+});

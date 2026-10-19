@@ -8,7 +8,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const electronAppRoot = resolve(repositoryRoot, "apps/workbench-electron");
 const electronBuilderCli = resolve(repositoryRoot, "node_modules/electron-builder/out/cli/cli.js");
 
-export const PREVIEW_APP_ID = "ai.lightvela.vela.preview";
+export const PREVIEW_APP_ID = "dev.opencraft.workbench.preview";
 export const PREVIEW_PRODUCT_NAME = "OpenCraft Preview";
 
 export function previewBuilderArguments(arch) {

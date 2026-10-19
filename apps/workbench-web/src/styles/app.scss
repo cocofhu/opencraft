@@ -246,13 +246,42 @@ body {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.conversation-recovery-notice--syncing {
+.conversation-recovery-notice--syncing:not(:has(.conversation-recovery-progress)) {
   padding: 4px;
   border: 0;
   background: transparent;
   box-shadow: none;
 }
 
+.conversation-recovery-progress {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 100%;
+  min-width: 0;
+  gap: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: var(--typography-metadata-font);
+  letter-spacing: var(--typography-metadata-tracking);
+}
+.conversation-recovery-progress__time,
+.conversation-recovery-progress__failure { color: var(--color-text-secondary); }
+.conversation-recovery-loading--observable {
+  pointer-events: auto;
+  align-content: center;
+  gap: 12px;
+  padding: 24px var(--padding-toolbar);
+  box-sizing: border-box;
+  .conversation-recovery-progress { width: min(100%, 420px); }
+}
+.conversation-recovery-loading--observable button {
+  min-height: 44px;
+  color: var(--color-text);
+  background: var(--color-background-elevated-primary-opaque);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
 .conversation-recovery-details {
   flex-basis: 100%;
   min-width: 0;
@@ -261,6 +290,7 @@ body {
   font: var(--typography-metadata-font);
   letter-spacing: var(--typography-metadata-tracking);
 
+  &[open] { max-height: min(50dvh, 420px); overflow-y: auto; overscroll-behavior: contain; }
   summary { cursor: pointer; padding-block: 6px; }
   summary:focus-visible { outline: 2px solid var(--color-border-focus); }
   pre { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; user-select: text; }
@@ -811,9 +841,11 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   min-width: max-content;
 }
 
-// Touch layout spends its leading space on navigation and the conversation title.
-// Apply to the persistent header and its measurement twin; drawers retain branding.
-:root[data-ui-density="touch"] .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand] {
+// Touch density and a space-constrained browser page both give the leading
+// header space to navigation and the conversation title. The floating drawer
+// keeps its own brand. Match the measurement twin as well as the visible rail.
+:root[data-ui-density="touch"] .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand],
+.app-shell-root.has-mobile-sidebar-gestures .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand] {
   width: max-content;
   > .application-brand { display: none; }
 }
@@ -1786,6 +1818,23 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   border-radius: var(--radius-lg);
 
   &:hover { color: var(--color-text); }
+}
+
+.sidebar-catalog-progress {
+  display: inline-flex;
+  margin-inline-start: var(--gap-control-group);
+  vertical-align: middle;
+
+  > svg { display: block; }
+  &__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) { > svg { animation: none; } }
 }
 
 .sidebar-catalog-feedback {
@@ -4117,6 +4166,19 @@ html[data-codex-window-type="electron"] .thread-scroll {
   flex: 0 0 auto;
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+
+  // The safe-area gutter sits below the translucent Composer. Cover only that
+  // gutter so a scrolled activity row cannot appear beneath the input.
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset-inline: 0;
+    bottom: 0;
+    height: max(16px, env(safe-area-inset-bottom, 0px));
+    background: var(--color-surface);
+    pointer-events: none;
+  }
 }
 
 .thread-scroll-footer__gradient {
@@ -7269,11 +7331,17 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 .thread-live-changes {
   display: flex;
+  width: fit-content;
+  max-width: calc(100% - var(--inset-composer-rail) * 2);
   min-width: 0;
   min-height: var(--height-composer-rail-row);
   align-items: center;
-  justify-content: flex-start;
-  padding: var(--padding-composer-rail-row);
+  margin: 0 auto var(--gap-composer-floating-summary);
+  padding: var(--padding-composer-floating-summary);
+  border: var(--width-composer-rail-border) solid var(--color-border-composer-rail);
+  border-radius: var(--radius-full);
+  background: var(--color-background-composer-rail-opaque);
+  box-shadow: var(--shadow-100);
 
   .thread-turn-diff__stats { line-height: inherit; }
 }
@@ -9692,6 +9760,10 @@ html[data-codex-window-type="electron"] .thread-scroll {
   @include typography.role(control-compact, secondary);
   flex: 1 1 auto;
   white-space: nowrap;
+}
+
+.codex-composer-mode__model-icon {
+  flex: 0 0 auto;
 }
 
 .codex-composer-mode__effort-label {
@@ -12222,6 +12294,26 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
     &[data-composer-has-header="true"] .codex-composer-shell { --newera-input-row: 2; }
     .codex-composer-chrome-header { grid-column: 1 / -1; grid-row: 1; }
+    .codex-composer-footer__controls { display: none; }
+    &[data-composer-has-header="true"]:has(.codex-composer-footer[data-model-selection-policy="user"], .codex-composer-footer[data-model-selection-policy="session"]) {
+      .codex-composer-chrome-header { padding-inline-end: 42px; }
+      .codex-composer-footer__controls {
+        position: absolute;
+        z-index: 1;
+        inset-block-start: 4px;
+        inset-inline-end: 7px;
+        display: flex;
+        width: 30px;
+        height: 30px;
+        overflow: visible;
+      }
+      .codex-composer-footer__controls > :not(.codex-composer-picker-region) { display: none; }
+      .codex-composer-picker-region { overflow: visible; }
+      .codex-composer-mode--intelligence { width: 30px; height: 30px; padding: 0; justify-content: center; }
+      .codex-composer-mode__model-label,
+      .codex-composer-mode__effort-label,
+      .codex-composer-mode__chevron { display: none; }
+    }
     .codex-composer-input-row {
       grid-column: 2; grid-row: var(--newera-input-row);
       padding: 0; min-width: 0;
@@ -12235,7 +12327,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
     .codex-composer-footer { display: contents; }
     .codex-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
     .codex-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .codex-composer-footer__controls,
     .codex-composer-shortcut-trigger,
     .codex-composer-icon-button--context,
     .codex-composer-icon-button--attachment { display: none; }

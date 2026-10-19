@@ -1,9 +1,11 @@
 import { useMemo } from "react";
+import type { RecoveryProgress } from "@opencraft/workbench-runtime";
 import type { TransportStatus } from "@opencraft/appserver-client/transport";
 
 export interface ConversationRecoveryDiagnostic {
   /** Local view fence, excluded from copied details. */
   readonly viewKey?: string;
+  readonly progress?: RecoveryProgress;
   readonly stage: "connection" | "activation" | "history";
   readonly code: string;
   readonly occurredAt: string;
@@ -47,6 +49,8 @@ export function createConversationRecoveryDiagnostic(input: {
 export function useConversationRecoveryDiagnostic(input: {
   readonly scope: string;
   readonly failed: boolean;
+  readonly active?: boolean;
+  readonly progress?: RecoveryProgress;
   readonly stage: ConversationRecoveryDiagnostic["stage"];
   readonly error: unknown;
   readonly runtime: string;
@@ -55,14 +59,27 @@ export function useConversationRecoveryDiagnostic(input: {
   const { scope, failed, stage, error, runtime, transport } = input;
   const failure = transport.failure;
   const observedAt = useMemo(() => new Date().toISOString(), [scope, failed, stage, error, failure]);
-  return failed ? { ...createConversationRecoveryDiagnostic({ stage, error, runtime, transport }, observedAt), viewKey: scope } : undefined;
+  return failed || input.active ? {
+    ...createConversationRecoveryDiagnostic({ stage, error, runtime, transport }, observedAt),
+    ...(!failed ? { code: "PENDING" } : {}), progress: input.progress, viewKey: scope,
+  } : undefined;
 }
 
 /** Explicit allowlist; never stringify Error, transport reason or protocol payload. */
-export function conversationRecoveryDiagnosticText(diagnostic: ConversationRecoveryDiagnostic): string {
+export function conversationRecoveryDiagnosticText(diagnostic: ConversationRecoveryDiagnostic, now = Date.now()): string {
   return [
     ["stage", diagnostic.stage], ["code", diagnostic.code], ["occurredAt", diagnostic.occurredAt],
     ["runtime", diagnostic.runtime], ["transport", diagnostic.transport],
+    ["recoveryId", diagnostic.progress?.recoveryId], ["currentStage", diagnostic.progress?.stage],
+    ["startedAt", diagnostic.progress ? new Date(diagnostic.progress.startedAt).toISOString() : undefined],
+    ["stageStartedAt", diagnostic.progress ? new Date(diagnostic.progress.stageStartedAt).toISOString() : undefined],
+    ["attemptsStarted", diagnostic.progress?.attempt],
+    ["elapsedMs", diagnostic.progress ? Math.max(0, now - diagnostic.progress.startedAt) : undefined],
+    ["stageElapsedMs", diagnostic.progress ? Math.max(0, now - diagnostic.progress.stageStartedAt) : undefined],
+    ["retryAt", diagnostic.progress?.retryAt === undefined ? undefined : new Date(diagnostic.progress.retryAt).toISOString()],
+    ["lastFailureCode", diagnostic.progress?.lastFailure?.code],
+    ["lastFailureAt", diagnostic.progress?.lastFailure ? new Date(diagnostic.progress.lastFailure.occurredAt).toISOString() : undefined],
+    ["recentStages", diagnostic.progress?.events.map(event => `${new Date(event.at).toISOString()} ${event.stage} #${event.attempt}`).join("; ")],
     ["recoveryPolicy", diagnostic.recovery], ["attemptId", diagnostic.attemptId],
     ["connectionPhase", diagnostic.connectionPhase], ["failure", diagnostic.failure], ["closeCode", diagnostic.closeCode],
   ].filter(([, value]) => value !== undefined).map(([key, value]) => `${key}: ${value}`).join("\n");

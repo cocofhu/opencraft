@@ -16,6 +16,7 @@ export interface DesktopDirectoryPlan {
   readonly platform: NodeJS.Platform;
   readonly userDataDirectory: string;
   readonly legacyUserDataDirectory: string | null;
+  readonly legacyDaemonName: string | null;
   readonly runtimeDirectory: string;
   readonly dshDataDirectory: string;
   readonly codexDataDirectory: string;
@@ -123,7 +124,9 @@ export async function prepareDesktopDirectories(
     return { paths: plan, status: "fresh" };
   }
 
-  const legacyEndpoint = endpointFor(legacy, plan.platform, "vela-daemon");
+  const legacyDaemonName = plan.legacyDaemonName;
+  if (legacyDaemonName === null) throw new Error("Legacy profile requires a daemon name");
+  const legacyEndpoint = endpointFor(legacy, plan.platform, legacyDaemonName);
   if (await legacyDaemonIsActive(legacyEndpoint)) {
     const fallback = withUserDataDirectory(plan, legacy);
     await ensureDirectoryRoots(fileSystem, fallback);
@@ -134,8 +137,8 @@ export async function prepareDesktopDirectories(
     };
   }
 
-  const legacyToken = join(plan.userDataDirectory, "vela-daemon.token");
-  const legacySocket = join(plan.userDataDirectory, "vela-daemon.sock");
+  const legacyToken = join(plan.userDataDirectory, `${legacyDaemonName}.token`);
+  const legacySocket = join(plan.userDataDirectory, `${legacyDaemonName}.sock`);
   let movedProfile = false;
   let movedToken = false;
   let compatibilityLink = false;
@@ -191,6 +194,7 @@ export function resolveDesktopDirectoryPlan(input: {
     platform,
     userDataDirectory,
     legacyUserDataDirectory,
+    legacyDaemonName: legacyUserDataDirectory === null ? null : input.product.legacyDaemonName ?? "opencraft-daemon",
     runtimeDirectory: join(userDataDirectory, "runtime"),
     dshDataDirectory: join(userDataDirectory, "dsh"),
     codexDataDirectory: join(userDataDirectory, "codex"),

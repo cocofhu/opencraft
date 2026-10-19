@@ -1,3 +1,4 @@
+import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
@@ -36,7 +37,6 @@ import {
 import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
 import {
   CodexComposer,
-  ComposerAttachedRail,
   type ComposerSelectionCatalog,
 } from "@opencraft/codex-composer";
 import { asHostId, asTurnId, deriveAsyncQuestionStates, findPendingInteraction, parseAsyncQuestionReply, renderAsyncQuestionReply, type AsyncQuestion, type TimelineSnapshot, type TurnDiffTimelineBlock } from "@opencraft/chat-core";
@@ -622,12 +622,15 @@ export function App({
     .map(action => action.id === "vela.browser.new-tab" ? { ...action,
       label: intl.formatMessage({ id: "panel.newBrowser", defaultMessage: "New browser tab" }),
       creationLabel: intl.formatMessage({ id: "panel.browser", defaultMessage: "Browser" }),
+    } : action.id === "opencraft.cloud-desktop.open" ? { ...action,
+      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
+      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
     } : action.id === "workspace.files.open" ? { ...action,
       label: intl.formatMessage({ id: "panel.openFiles", defaultMessage: "Open files" }),
       creationLabel: intl.formatMessage({ id: "panel.files", defaultMessage: "Files" }),
     } : action);
   const presentedPanelRenderers = presentation.filePreviewOnly
-    ? panelRenderers.filter(renderer => renderer.kind === "browser" || renderer.kind === "resource")
+    ? panelRenderers.filter(renderer => renderer.kind === "browser" || renderer.kind === "resource" || renderer.kind === "cloud-desktop")
       .map(renderer => renderer.kind === "resource" ? { ...renderer, Component: WorkspaceResourcePreviewPanel } : renderer)
     : panelRenderers;
   const requestClosePanel = (tab: PanelTabDescriptor) => {
@@ -684,11 +687,14 @@ export function App({
   }, [hostCatalog.displayContinuity, timeline]);
   const firstSubmissionTimeline = activeThreadId === null ? null
     : hostCatalog.displayContinuity.peekSubmission(snapshot.hostId, activeThreadId);
+  const memoryTimeline = activeThreadId === null ? null
+    : hostCatalog.displayContinuity.peek(snapshot.hostId, activeThreadId);
   const visibleTimeline = (timeline?.frames.length ?? 0) > 0
     ? timeline
     : firstSubmissionTimeline !== null ? firstSubmissionTimeline
     : timeline?.authoritative
     ? timeline
+    : memoryTimeline !== null ? memoryTimeline
     : cachedTimeline?.scope === displayScope
       && cachedTimeline.timeline.key.hostId === snapshot.hostId
       && cachedTimeline.timeline.key.threadId === activeThreadId
@@ -718,7 +724,10 @@ export function App({
   const recoveryDiagnostic = useConversationRecoveryDiagnostic({
     scope: JSON.stringify([displayScope, snapshot.hostId, activeThreadId]),
     failed: recoveryPresentation === "cold-error" || recoveryPresentation === "warm-error",
-    stage: snapshot.phase === "error" || snapshot.transport.state === "failed" ? "connection"
+    active: recoveryPresentation !== "none",
+    progress: snapshot.phase !== "ready" ? snapshot.recovery
+      : snapshot.residentThreads.find(thread => thread.threadId === activeThreadId)?.recovery,
+    stage: snapshot.phase !== "ready" ? "connection"
       : activeThreadLease === null ? "activation" : "history",
     error: snapshot.phase === "error" ? snapshot.error
       : activeThreadLease === null ? conversationViewActivation.error : snapshot.conversation?.error,
@@ -1527,12 +1536,29 @@ export function App({
     cwd: snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd
       ?? draft?.target.execution.workspace.cwd ?? activeHost.workspaceBrowseRoots[0] ?? null,
   };
+  // The installed adapter owns availability and rechecks authority on launch.
+  const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
+  const composerDesktopEntry = conversationRouteOpen && cloudDesktopAction
+    && (cloudDesktopAction.isAvailable?.(panelToolbarContext) ?? true) ? (
+    <button type="button" className="codex-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
+      onClick={() => {
+        try {
+          void Promise.resolve(cloudDesktopAction.run(panelToolbarContext)).catch(() => {
+            window.dispatchEvent(new CustomEvent("opencraft-panel-action-failed"));
+          });
+        } catch { window.dispatchEvent(new CustomEvent("opencraft-panel-action-failed")); }
+      }}>
+      <Monitor size={15} aria-hidden="true" />
+      <span>{intl.formatMessage({ id: "composer.cloudComputer", defaultMessage: "Cloud computer" })}</span>
+    </button>
+  ) : null;
   const panelHostProjection: HostPanelState = {
     ownerId: panelOwnerId, available: conversationRightPanelAvailable,
     open: panelState.right.open, fullWidth: panelState.rightPanelFullWidth,
     activeTabId: panelState.right.activeTabId,
     tabs: panelState.right.tabs.map(tab => ({ id: tab.id,
-      title: tab.kind === "browser" && tab.title === "New tab"
+      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" })
+        : tab.kind === "browser" && tab.title === "New tab"
         ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title.slice(0, 512),
       kind: tab.kind, closable: tab.closable, preview: tab.preview })),
     actions: (conversationRouteOpen ? panelToolbarActions : []).filter(action => action.region === "right"
@@ -2073,7 +2099,8 @@ export function App({
                         portalContainer={portalContainer}
                       >{(goalMenuItem, _goalBusy, goalContent) => (
                       <CodexComposer
-                        attachedContent={<>{goalContent}{composerChangeSummary}</>}
+                        attachedContent={goalContent}
+                        floatingContent={composerChangeSummary}
                         controller={composerController}
                         defaultFollowUpAction={embedded ? "queue" : defaultFollowUpAction}
                         availableFollowUpActions={snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
@@ -2115,6 +2142,7 @@ export function App({
                           {goalMenuItem(closeMenu)}
                         </>}
                         shortcutCommands={hostShortcutCommands}
+                        entryActions={composerDesktopEntry}
                         endActions={composerEndActions}
                         modelSelectionPolicy={modelSelectionPolicy}
                         placeholder={embedded ? intl.formatMessage({
@@ -2136,7 +2164,7 @@ export function App({
                       )}</ThreadGoalSurface>
                     ) : (
                       <div className="codex-composer-stack">
-                        <ComposerAttachedRail>{composerChangeSummary}</ComposerAttachedRail>
+                        {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}
                           onRespondInteraction={respondToInteraction}
