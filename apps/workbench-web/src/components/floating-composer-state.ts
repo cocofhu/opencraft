@@ -144,10 +144,14 @@ export class FloatingComposerRegistry {
     return state;
   }
 
-  release(_scopeId: string): void {
+  release(scopeId: string): void {
+    this.recent.get(scopeId)?.settle();
     for (const [key, state] of this.recent) {
       if (this.recent.size <= 20) break;
-      if (!state.hasSubscribers) this.recent.delete(key);
+      if (!state.hasSubscribers) {
+        state.settle();
+        this.recent.delete(key);
+      }
     }
   }
 }

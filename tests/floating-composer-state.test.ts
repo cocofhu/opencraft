@@ -157,3 +157,21 @@ test("wheel idle boundaries and acceleration use the gesture peak and rolling cl
   assert.equal(swipe.isContinuation({ deltaY: 38, timeStamp: 200 }), true);
   assert.equal(swipe.isContinuation({ deltaY: -47, timeStamp: 210 }), false);
 });
+
+test("route release and eviction settle pending presentation without erasing intent", () => {
+  const registry = new FloatingComposerRegistry();
+  const active = registry.get("active");
+  const off = active.subscribe(() => {});
+  active.hide("tab");
+  registry.release("active");
+  assert.equal(active.getSnapshot().phase, "hidden");
+  assert.equal(active.getSnapshot().collapsedTabs.get("tab"), "manual");
+  const oldest = registry.get("oldest");
+  oldest.hide("tab");
+  for (let i = 0; i < 22; i++) registry.get(`route-${i}`);
+  registry.release("missing");
+  assert.notEqual(registry.get("oldest"), oldest);
+  assert.equal(oldest.getSnapshot().phase, "hidden");
+  assert.equal(registry.get("active"), active);
+  off();
+});
