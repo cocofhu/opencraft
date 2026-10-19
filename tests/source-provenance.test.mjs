@@ -87,3 +87,39 @@ test('ordinary independent implementations and reference-product names remain re
   assert.deepEqual(report.errors, []);
   assert.equal(report.releaseReady, true);
 });
+
+test('explicit copied bodies, recovered shapes and pinned source paths require inventory coverage', async t => {
+  const root = await fixture(t, 'original', { conclusion: 'Only the fixture example is resolved.' });
+  const examples = {
+    'apps/browser.js': '// Source class body copied from ref/codex/features/browser.ts.',
+    'apps/resize.mjs': '// Source function bodies from a historical renderer.',
+    'packages/constants.ts': '// Source-identical viewport constants/helpers.',
+    'packages/glyph.tsx': '/** Source-faithful Write glyph used by Codex. */',
+    'packages/activity.tsx': '/** Source-shaped activity glyphs recovered from the Codex renderer. */',
+    'packages/panel.tsx': '// Typed semantic restoration of Codex layout contract.',
+    'packages/disclosure.tsx': '// Disclosure reconstructed from Codex r2440 phase machine.',
+    'packages/host.ts': '/** Standard DOM port for the unmodified Codex state machine. */',
+    'packages/source-manifest.json': '{"source":"ref/codex/features/browser.ts","sourceSha256":"pinned-source"}',
+    'plugins/adapter.cjs': '// Contract reference ref/codex/browser/sidebar.js.',
+  };
+  await mkdir(join(root, 'apps'));
+  await mkdir(join(root, 'plugins'));
+  for (const [path, content] of Object.entries(examples)) await writeFile(join(root, path), content);
+  const report = await inspectProvenance(root);
+  assert.equal(report.releaseReady, false);
+  assert.deepEqual(report.errors, Object.keys(examples).sort().map(path => `Untracked source provenance annotation: ${path}`));
+});
+
+test('ordinary recovery, protocol integrations and product-name comparisons do not become provenance findings', async t => {
+  const root = await fixture(t, 'original', { conclusion: 'Fixture independently authored.' });
+  await writeFile(join(root, 'packages/ordinary.ts'), [
+    '// Recover the connection and restore keyboard focus after reconnect.',
+    '// Codex-style compact layout; compare behavior with BB and Paseo.',
+    '// Independent from the recovered renderer.',
+    'export const login = { type: "chatgpt", provider: "codex" };',
+  ].join('\n'));
+  await writeFile(join(root, 'packages/protocol.json'), '{"type":"chatgpt","provider":"codex"}');
+  const report = await inspectProvenance(root);
+  assert.deepEqual(report.errors, []);
+  assert.equal(report.releaseReady, true);
+});

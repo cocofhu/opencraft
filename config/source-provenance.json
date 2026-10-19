@@ -337,6 +337,47 @@
       "reason": "The entire module formerly carried a source-equivalent normalization annotation. Both exports are replaced from frozen requirements, declarations/consumer contracts and black-box OpenCraft observations.",
       "resolution": "Retain the historical blob, requirements commit and actual author exposure. Agent Activity remains unverified in the same group; all eight unresolved source groups stay open.",
       "conclusion": "The current implementation separates comparison keys, attachment display acknowledgement, local echo association and canonical/history presentation. The bounded replacement preserves message identity, metadata and navigation anchors. It is not strict clean-room isolation, historical-rights clearance or a whole-client classification; see the documented authoring inputs, compatibility refinements and verification limits."
+    },
+    {
+      "id": "codex-browser-source-followup",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
+        "apps/workbench-web/src/browser/codex-presentation-host.ts",
+        "apps/workbench-web/src/browser/codex/browser-manager.js",
+        "apps/workbench-web/src/browser/codex/presentation-transition.js",
+        "apps/workbench-web/src/browser/codex/source-manifest.json",
+        "apps/workbench-web/src/browser/codex/viewport-presets.js",
+        "apps/workbench-web/src/browser/codex/viewport-resize.js"
+      ],
+      "evidence": [
+        "docs/source-provenance-review.md",
+        "docs/provenance/annotation-coverage-20261019.json",
+        "apps/workbench-web/src/browser/codex/source-manifest.json"
+      ],
+      "reason": "Browser implementation comments explicitly claim copied class/function bodies, identical viewport helpers and an unmodified recovered state machine. The source manifest pins two historical references. Wrapper/path references identify review boundaries, not proof that each whole file was copied.",
+      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status."
+    },
+    {
+      "id": "codex-renderer-expression-followup",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/appearance-theme.ts",
+        "apps/workbench-web/src/chrome-actions/new-task-icon.tsx",
+        "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
+        "apps/workbench-web/src/components/app-shell-right-panel.tsx",
+        "apps/workbench-web/src/components/codex-activity-icons.tsx",
+        "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
+        "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
+        "apps/workbench-web/src/components/floating-composer-state.ts",
+        "packages/chat-render-react/src/code-surface-model.ts"
+      ],
+      "evidence": [
+        "docs/source-provenance-review.md",
+        "docs/provenance/annotation-coverage-20261019.json"
+      ],
+      "reason": "Previously untracked annotations claim source-faithful or source-shaped glyphs/policy, a reconstructed disclosure phase machine, semantic restoration of panel layout and recovered composer symbol names. The appearance theme also makes a source-faithful presentation claim. These identify review candidates, not established retained expression or a whole-file copying conclusion.",
+      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status."
     }
   ]
 }

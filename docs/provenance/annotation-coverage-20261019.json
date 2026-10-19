@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "f979bb477180a2346d2e96dba21314eb7ff50f8c",
+  "scope": "Previously untracked explicit source-lineage annotations; not a copying or license determination.",
+  "files": [
+    {
+      "path": "apps/workbench-web/src/appearance-theme.ts",
+      "gitBlob": "9d09c901a20970e6aa904e554f45896bc8e259f0",
+      "sha256": "e901db8a371539d1283ea9db4868ad02a0aee67d36dc5ff031f7f6206306ac2d"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
+      "gitBlob": "730173b8c3ca29517a371a36a5f84bfc0f893b9a",
+      "sha256": "1dccc26b8a4563c8ce0bfd9f8686870f3622f546641d8ee25d6d36c50f2a0093"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex-presentation-host.ts",
+      "gitBlob": "0a90f4b97c18d2ce3f74edafe4f6a847bbfb6d16",
+      "sha256": "5bb5656398e598dad4c2d47253b95ed4c53c0a627b4f09dcd8742af5fb1dc828"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex/browser-manager.js",
+      "gitBlob": "219c17063dd3a0c64f6b8276c2438df9847a671c",
+      "sha256": "10b07a4b867fe29025b918f1005aade59e374c54f789799081a9b34e9e781c46"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex/presentation-transition.js",
+      "gitBlob": "c7a596266b8711d2839acdde2cf032ae12b6f3fc",
+      "sha256": "4dc91020726f730bc96721ce8861e9b70bdfcc6871b29d83e17c2bd90c642ec1"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex/source-manifest.json",
+      "gitBlob": "631cbcd4ac5963f57d590859b829aa1f95fc9b11",
+      "sha256": "57e56eed3ab10878a78a1211ab3bd1cee641b660fe689b9da6d61d6ad92716a9"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex/viewport-presets.js",
+      "gitBlob": "8c85578a4b3b540a8b7f7a25be9d1edb671fc303",
+      "sha256": "c3d7e88cabc0fe0b68f45f67c6bb09e1223896361505e9e5c6afe73d51df62e0"
+    },
+    {
+      "path": "apps/workbench-web/src/browser/codex/viewport-resize.js",
+      "gitBlob": "b881fdac67d387f4e2604b13ee3ac944ea96228d",
+      "sha256": "d9e4aea663e289d88730e2650a10eb950b7338e95cdf285122784bd43a9bf4f3"
+    },
+    {
+      "path": "apps/workbench-web/src/chrome-actions/new-task-icon.tsx",
+      "gitBlob": "61da9c83f2a35e7616cdb1ffc8425616fd10cc0a",
+      "sha256": "cf3733db62a73cb9088c870b8418b545736f124f4c158d18fe22a8ef70cb02f3"
+    },
+    {
+      "path": "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
+      "gitBlob": "a4a4971be4529c5f9e94f3af4241905c595047e4",
+      "sha256": "c0a2a2359735352492ea64e7afec999a60bbfec8cab824a8112e2a6ab39eb84f"
+    },
+    {
+      "path": "apps/workbench-web/src/components/app-shell-right-panel.tsx",
+      "gitBlob": "3b2e297730a8fc98a2ff155496982fb135748676",
+      "sha256": "4b11e9cb5c6d57c3da214e7207874ae89d695e2558314df7eb173217de4e144b"
+    },
+    {
+      "path": "apps/workbench-web/src/components/codex-activity-icons.tsx",
+      "gitBlob": "bf051549f8b596d88806f22674653e48aa0ba803",
+      "sha256": "fa24d477ebb63b4e4028a1e03040d50cd084ed7a7f157f2573625546370dbde4"
+    },
+    {
+      "path": "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
+      "gitBlob": "e5bf0721a3a0e9799e41d6f5b8a13bb239601082",
+      "sha256": "6138391b8cff2175b208438251542fb9c1215fe1cc2d82908f09860ea6f2374f"
+    },
+    {
+      "path": "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
+      "gitBlob": "d6200896dc5afdd8c0c58282530415375841f0dc",
+      "sha256": "a19244add61528fc1d9d11fb3786afa02add39afb09fa01252d6a36fc1c7c81e"
+    },
+    {
+      "path": "apps/workbench-web/src/components/floating-composer-state.ts",
+      "gitBlob": "f4f6a0100f82eda865a1abcae01bb3dda7e25677",
+      "sha256": "82500b063cf8add9f4dfc2f3eaa0f9a502d79fb6abe4cd1b94caaa89ffa963b0"
+    },
+    {
+      "path": "packages/chat-render-react/src/code-surface-model.ts",
+      "gitBlob": "1bfdda6b978c2f96ccd977376cdebc2ca04f58a4",
+      "sha256": "e15b2a4f8b92427b8339dca3df4b2703c9610b12506ec4829d020b02e2c66d99"
+    }
+  ]
+}
