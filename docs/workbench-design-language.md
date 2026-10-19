@@ -397,3 +397,12 @@ Conversation row actions share the same Lucide SVG icons in right-click and More
 menus: Pin/PinOff, Pencil, GitFork, Archive and Trash2 at 16px, inheriting the
 menu text color and existing icon spacing. Display-mode and filter rows retain
 their reserved check-indicator column; action icons do not replace selection state.
+
+
+### Contributed navigation icons
+
+Extensions declare semantic icon names for navigation and settings pages. The Web
+adapter resolves every registered name in both standard and classic presentation;
+classic sizing, stroke and explicit artwork variants remain presentation-owned.
+Classic presentation must not replace a supported contribution icon with the
+fallback glyph. Missing or unknown names retain the existing per-surface fallback.

@@ -30,10 +30,8 @@ export type WorkbenchIconName = keyof typeof workbenchIconRegistry;
 
 export type WorkbenchIconPurpose = "navigation" | "settings" | "settings-page" | "panel" | "work";
 const legacyIconOverrides = { chat: MessageSquare, appearance: Palette, brain: Brain };
-/** One semantic mapping, with only explicit classic artwork overrides. */
+/** Presentation may select classic artwork, but registered contribution names remain authoritative. */
 export function resolveWorkbenchIcon(name: string | undefined, classic: boolean, purpose: WorkbenchIconPurpose = "settings") {
-  if (classic && purpose === "settings-page") return Blocks;
-  if (classic && purpose === "navigation" && !["home", "chat", "write", "start", "message-circle", "cloud", "database", "folder", "hard-drive", "server", "bot", "settings", "applications", "columns", "keyboard"].includes(name ?? "")) return Blocks;
   if (classic && purpose === "panel" && !["chat", "terminal", "browser", "desktop"].includes(name ?? "")) return Plus;
   if (classic && purpose === "work") return name === "sparkles" ? Sparkles : Cloud;
   if (classic && name && Object.hasOwn(legacyIconOverrides, name)) return legacyIconOverrides[name as keyof typeof legacyIconOverrides];
