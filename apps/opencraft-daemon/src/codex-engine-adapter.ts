@@ -1214,6 +1214,10 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private receiveServerRequest(id: string | number, message: RpcRecord): void {
+    if (this.threadTitles?.owns(string(record(message.params).threadId))) {
+      void this.writePhysical({ id, error: { code: -32601, message: "Title generation does not support tools or user interaction" } })?.catch(() => undefined);
+      return;
+    }
     const params = record(message.params);
     if (message.method === "item/tool/call" && CONVERSATION_TOOLS.some(t=>t.name===params.tool) && (params.namespace === undefined || params.namespace === null || params.namespace === "")) {
       const key=String(id),token=Symbol(key);
@@ -1228,10 +1232,6 @@ export class CodexEngineAdapter implements DuplexTransport {
         if (!this.options.collaboration) throw new Error("Conversation tools unavailable");
         return this.options.collaboration.tool(string(params.threadId),string(params.turnId),string(params.tool),record(params.arguments));
       }).then(value=>respond(true,value),()=>respond(false,{error:"Conversation operation unavailable or unauthorized. Inspect the original receipt before retrying."})).catch(()=>{}).finally(()=>{if(this.collaborationCalls.get(key)===token)this.collaborationCalls.delete(key);});
-      return;
-    }
-    if (this.threadTitles?.owns(string(record(message.params).threadId))) {
-      void this.writePhysical({ id, error: { code: -32601, message: "Title generation does not support tools or user interaction" } })?.catch(() => undefined);
       return;
     }
     const key = JSON.stringify(id);
