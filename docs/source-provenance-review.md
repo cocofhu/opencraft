@@ -1,5 +1,19 @@
 # Source provenance review
 
+## Licensed activity and new-task artwork replacement (2026-10-19)
+
+[The bounded artwork record](provenance/activity-icon-replacement.md) documents
+replacement of the entire custom activity/resource glyph module and classic
+new-task glyph with the existing licensed Lucide dependency. Its full ISC and
+Feather-derived MIT notices are retained in `vendor/lucide/LICENSE` and indexed
+by NOTICE. The duplicate recovered new-task SVG fixture is also removed.
+
+The renderer-expression group retains seven unresolved paths and both historical
+artwork dispositions; all **nine** unresolved groups remain open. This is licensed
+resource substitution, not strict clean-room isolation, creation of Lucide artwork
+or clearance of historical commits. Actual metrics, disclosure, navigation and
+change-review browser evidence and author exposure are recorded in the disposition.
+
 ## Neutral theme presentation correction (2026-10-19)
 
 The built-in neutral theme is now presented as **Neutral**, with the description

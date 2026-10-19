@@ -5,7 +5,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useContext, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement } from "react";
-import { CodexChangeResourceIcon } from "../codex-activity-icons";
+import { ChangeResourceIcon } from "../activity-glyphs";
 import { UnifiedDiffPreview } from "../conversation-renderers/unified-diff-preview";
 import { Button } from "../ui/button";
 import { useDisclosureReflow } from "../use-disclosure-reflow";
@@ -139,7 +139,7 @@ export function TurnDiffBlock({ block }: { readonly block: TurnDiffTimelineBlock
   return <Tooltip.Provider><section className="thread-turn-diff" data-status={block.status}>
     <div className="thread-turn-diff__header">
       {single === null ? headerTarget : <DiffHover path={single.path} diff={block.unifiedDiff} additions={single.additions} deletions={single.deletions}>{headerTarget}</DiffHover>}
-      <span className="thread-turn-diff__icon"><CodexChangeResourceIcon aria-hidden="true" /></span>
+      <span className="thread-turn-diff__icon"><ChangeResourceIcon aria-hidden="true" /></span>
       <span className="thread-turn-diff__copy"><strong>{single === null
         ? intl.formatMessage({ id: "chat.changes.editedFiles", defaultMessage: "{count, plural, one {Edited a file} other {Edited # files}}" }, { count: block.files.length })
         : intl.formatMessage({ id: "chat.changes.editedFile", defaultMessage: "Edited {filename}" }, { filename: displayPath(single.path).basename })}</strong>

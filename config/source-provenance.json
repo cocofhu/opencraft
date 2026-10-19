@@ -376,10 +376,8 @@
       "status": "unverified",
       "paths": [
         "apps/workbench-web/src/appearance-theme.ts",
-        "apps/workbench-web/src/chrome-actions/new-task-icon.tsx",
         "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
         "apps/workbench-web/src/components/app-shell-right-panel.tsx",
-        "apps/workbench-web/src/components/codex-activity-icons.tsx",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx",
         "apps/workbench-web/src/components/floating-composer-state.ts",
@@ -387,10 +385,44 @@
       ],
       "evidence": [
         "docs/source-provenance-review.md",
-        "docs/provenance/annotation-coverage-20261019.json"
+        "docs/provenance/annotation-coverage-20261019.json",
+        "docs/provenance/activity-icon-replacement.md",
+        "docs/provenance/activity-icon-baseline.json"
       ],
-      "reason": "Previously untracked annotations claim source-faithful or source-shaped glyphs/policy, a reconstructed disclosure phase machine, semantic restoration of panel layout and recovered composer symbol names. The appearance theme also makes a source-faithful presentation claim. These identify review candidates, not established retained expression or a whole-file copying conclusion.",
-      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status."
+      "reason": "Seven remaining renderer candidates concern theme presentation, reconstructed disclosure, panel/composer contracts, tool rendering and code-surface policy. The separately recorded activity/resource and new-task glyphs have been replaced with existing licensed Lucide artwork; their historical source-shaped/source-faithful claims and hashes remain as evidence. Remaining annotations identify review boundaries, not established retained expression or a whole-file copying conclusion.",
+      "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
+      "partialDispositions": [
+        {
+          "path": "apps/workbench-web/src/chrome-actions/new-task-icon.tsx",
+          "replacement": "licensed-activity-artwork",
+          "evidence": "docs/provenance/activity-icon-replacement.md"
+        },
+        {
+          "path": "apps/workbench-web/src/components/codex-activity-icons.tsx",
+          "replacement": "licensed-activity-artwork",
+          "evidence": "docs/provenance/activity-icon-replacement.md"
+        }
+      ]
+    },
+    {
+      "id": "licensed-activity-artwork",
+      "status": "third-party-licensed",
+      "paths": [
+        "apps/workbench-web/src/components/activity-glyphs.tsx",
+        "apps/workbench-web/src/chrome-actions/new-task-icon.tsx"
+      ],
+      "evidence": [
+        "vendor/lucide/LICENSE",
+        "package-lock.json",
+        "NOTICE",
+        "docs/provenance/activity-icon-replacement.md",
+        "docs/provenance/activity-icon-baseline.json",
+        "tests/workbench-product-icons.test.tsx",
+        "scripts/smoke-conversation-activity-metrics.ts"
+      ],
+      "reason": "Complete custom activity/resource artwork and classic new-task artwork are substituted with semantic icons from the existing locked lucide-react 1.58.0 dependency. The duplicate recovered new-task test function is removed; unrelated fixture artwork is not classified.",
+      "resolution": "Retain the full dependency ISC and Feather-derived MIT notices, exact historical blobs/hashes, author exposure and actual visual verification. Keep unrelated renderer and historical source rights unverified.",
+      "conclusion": "Current artwork is provided through lucide-react imports under its retained license notices; no historical custom SVG paths are retained in these two current modules. The wrappers select task meanings and preserve consumer SVG contracts. This is licensed resource substitution, not independent authorship of Lucide artwork, strict clean-room isolation, classification of other artwork or clearance of historical commits."
     }
   ]
 }
