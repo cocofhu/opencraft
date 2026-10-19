@@ -375,7 +375,6 @@
       "id": "codex-renderer-expression-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/appearance-theme.ts",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
       ],
@@ -391,9 +390,11 @@
         "docs/provenance/activity-group-disclosure-replacement.md",
         "docs/provenance/activity-group-disclosure-baseline.json",
         "docs/provenance/shell-panel-host-replacement.md",
-        "docs/provenance/shell-panel-host-baseline.json"
+        "docs/provenance/shell-panel-host-baseline.json",
+        "docs/provenance/appearance-runtime-replacement.md",
+        "docs/provenance/appearance-runtime-baseline.json"
       ],
-      "reason": "Three remaining renderer candidates concern theme presentation and tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state, activity-group disclosure and shell right-panel host modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
+      "reason": "Two remaining renderer candidates concern tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state, activity-group disclosure shell right-panel host and appearance runtime modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -429,6 +430,12 @@
           "replacement": "shell-panel-host",
           "evidence": "docs/provenance/shell-panel-host-replacement.md",
           "historicalBlob": "3b2e297730a8fc98a2ff155496982fb135748676"
+        },
+        {
+          "path": "apps/workbench-web/src/appearance-theme.ts",
+          "replacement": "appearance-runtime",
+          "evidence": "docs/provenance/appearance-runtime-replacement.md",
+          "historicalBlob": "31c7c04fb996edc92111ff6ae9c91013be55deb9"
         }
       ]
     },
@@ -520,6 +527,24 @@
       "reason": "The complete right-panel presentation host previously described itself as a typed semantic restoration from recovered references. It is replaced after frozen requirements using declaration-only API extraction, consumers, existing shared ports and executable public baseline observations.",
       "resolution": "Retain historical hashes and annotations, requirements and implementation commits, author exposure and bounded browser verification. Shared animation, resize, geometry and browser ports are reused unchanged and remain subject to their own unresolved dispositions.",
       "conclusion": "Current implementation independently expresses external-geometry projection, animation retention, atomic surface sizing, tick subscriptions and shelf-based resize intent. It does not establish strict author isolation, historical rights, native-device acceptance or source status of consuming Shell and shared ports."
+    },
+    {
+      "id": "appearance-runtime",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/appearance-theme.ts"
+      ],
+      "evidence": [
+        "docs/provenance/appearance-runtime-replacement.md",
+        "docs/provenance/appearance-runtime-baseline.json",
+        "tests/workbench-appearance-theme.test.ts",
+        "tests/theme-material-capabilities.test.ts",
+        "scripts/smoke-theme-materials.ts",
+        "design/invariants.md"
+      ],
+      "reason": "The entire appearance runtime is replaced after freezing declarations, consumer/dependency contracts and executable public behavior. Persisted identifiers remain compatibility data; misleading brand wording was corrected separately.",
+      "resolution": "Retain exact historical hashes, author exposure, requirements and implementation commits, compatibility observations and browser evidence. Shared theme compiler/palettes remain unchanged unresolved dependencies.",
+      "conclusion": "Current module independently owns the immutable appearance snapshot, preference persistence, policy-filtered catalog, extension source lifecycle, semantic CSS projection and native appearance messages. It is not strict clean-room isolation, historical rights clearance, native-device acceptance or resolution of the shared compiler and palette provenance."
     }
   ]
 }
