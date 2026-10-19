@@ -39,6 +39,7 @@ import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, com
 import {
   ArrowUp,
   AtSign,
+  BrainCircuit,
   Check,
   ChevronDown,
   CircleStop,
@@ -727,10 +728,14 @@ export interface CodexComposerProps {
   chromeHeader?: ReactNode;
   /** Host projection rendered after the queue in the shared attached rail. */
   attachedContent?: ReactNode;
+  /** Independent host projection above the attached rail and editor. */
+  floatingContent?: ReactNode;
   /** Host-owned Add items. An optional continuation opens the next surface after menu focus cleanup. */
   addMenuContent?: ReactNode | ((closeMenu: (afterClose?: () => void) => void) => ReactNode);
   /** Host-scoped slash commands shown in the editor and its shortcut menu. */
   shortcutCommands?: readonly ComposerShortcutCommand[];
+  /** Host-owned actions immediately after the shortcut command menu. */
+  entryActions?: ReactNode;
   /** Host-owned trusted extension actions placed before built-in end actions. */
   endActions?: ReactNode;
   catalog?: ComposerCatalog;
@@ -801,8 +806,10 @@ export const CodexComposer = forwardRef<
     controller,
     chromeHeader,
     attachedContent,
+    floatingContent,
     addMenuContent,
     shortcutCommands,
+    entryActions,
     endActions,
     catalog,
     mentionSuggestionsEnabled = true,
@@ -1984,6 +1991,7 @@ export const CodexComposer = forwardRef<
       }
       aria-busy={composerSnapshot.draft.lifecycle.phase === "submitting"}
     >
+      {floatingContent}
       <ComposerAttachedRail>
         <ComposerQueueTray
           portalContainer={portalContainer}
@@ -2316,6 +2324,7 @@ export const CodexComposer = forwardRef<
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             ) : null}
+            {entryActions}
           </div>
           <div
             ref={footerLayout.controlsRef}
@@ -2350,6 +2359,7 @@ export const CodexComposer = forwardRef<
                       aria-label={intelligenceLabel}
                       title={selectionCatalog?.modelError ?? intelligenceLabel}
                     >
+                      <BrainCircuit className="codex-composer-mode__model-icon" size={16} aria-hidden="true" />
                       <span className="codex-composer-mode__model-label">
                         {compactSelectedModelLabel}
                       </span>

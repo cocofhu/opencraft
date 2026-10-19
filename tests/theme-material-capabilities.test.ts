@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import * as sass from "sass";
+import { transform } from "lightningcss";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { validateThemeOptions } from "@opencraft/design-system/theme-options";
@@ -21,6 +24,11 @@ test("optional theme surfaces override only named semantic roles and reset to de
     assert.equal(themed["--color-background-input"], "#444444");
     assert.equal(themed["--color-background-elevated-primary-opaque"], "#555555");
     assert.equal(themed["--color-text"], defaults["--color-text"]);
+    // A registered popover surface is an explicit readable override, not a tint.
+    for (const role of ["base", "panel", "menu", "floating"]) {
+      assert.equal(themed[`--material-glass-${role}`], "#555555");
+    }
+    assert.notEqual(defaults["--material-glass-panel"], themed["--material-glass-panel"]);
     assert.deepEqual(build(mode, { ...base, surfaces: {}, material: {} }), defaults);
     assert.equal(build(mode, velaThemePalette[mode])["--codex-sidebar-material-filter"], "none");
     assert.equal(build(mode, { ...base, opaqueWindows: true })["--codex-sidebar-material-filter"], "none");
@@ -65,4 +73,16 @@ test("extension palettes freeze nested options and reject invalid activation ato
   assert.equal(palette.surfaces!.panel,"#eeeeee");
   assert.ok(Object.isFrozen(palette.surfaces)); assert.ok(Object.isFrozen(palette.material));
   await supervisor.dispose();
+});
+
+test("release material preserves standard blur and opacity overrides after minification", () => {
+  const material = readFileSync(new URL("../packages/design-system/src/material.web.scss", import.meta.url), "utf8");
+  const compiled = sass.compileString(material + "\n.release-material{@include surface;} .opaque-material{@include opaque;}").css;
+  const css = transform({filename:"material.css",code:Buffer.from(compiled),minify:true,
+    targets:{safari:(16<<16)+(6<<8),chrome:116<<16,firefox:115<<16}}).code.toString();
+  const surface = css.match(/\.release-material\{([^}]+)\}/u)?.[1] ?? "";
+  assert.match(surface, /(?:^|;)backdrop-filter:var\(--material-backdrop-filter\)/u);
+  assert.match(surface, /-webkit-backdrop-filter:var\(--material-backdrop-filter\)/u);
+  const opaque = css.match(/\.opaque-material\{([^}]+)\}/u)?.[1] ?? "";
+  assert.match(opaque, /(?:^|;)backdrop-filter:none/u);
 });

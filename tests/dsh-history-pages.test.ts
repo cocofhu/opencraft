@@ -14,11 +14,15 @@ function fixture() {
   }
   const calls: number[] = [];
   const client = { call: async (method: string, params: any) => {
+    if (method === "host.describe") return { home: "/" };
     if (method === "session.models") return { groups: [], failures: [], routable: true };
     assert.equal(method, "session.history");
     const candidates = all.filter(entry => params.beforeSeq === undefined || entry.event.seq < params.beforeSeq);
     calls.push(params.beforeSeq ?? 0);
     return { events: candidates.slice(-3), hasMore: candidates.length > 3 };
+  }, stream: async (_path: string, _sink: unknown, signal: AbortSignal, ready: () => void) => {
+    ready();
+    await new Promise<void>(resolve => { if (signal.aborted) resolve(); else signal.addEventListener("abort", () => resolve(), { once: true }); });
   } } as unknown as DshClient;
   const adapter = new DshAppServerAdapter(client, undefined, undefined, false, {
     read: async () => ({ approval: "ask", sandbox: { mode: "workspace-write", workspaceRoot: "/" }, preset: "custom", networkPolicy: "external" }),
@@ -132,4 +136,42 @@ test("non-advancing native history is rejected rather than looping", async () =>
   (adapter as any).summaries.set("s", { sessionId: "s", running: false, blank: false, cwd: "/", updatedAt: 1 });
   try { await assert.rejects(adapter.dispatch("thread/items/list", { threadId: "s" }), /no progress/); }
   finally { adapter.close(); }
+});
+
+test("durable Session consumes DSH's initial window without re-reading native history", async () => {
+  const { JsonRpcAppServerClient } = await import("@opencraft/appserver-client");
+  const { createCordisThreadSessionRuntime } = await import("@opencraft/appserver-session");
+  const { MemoryTransport } = await import("@opencraft/appserver-transport-memory");
+  const { adapter, calls } = fixture();
+  adapter.setThreadEngine({
+    describe: async () => ({ selection: { provider: "p", model: "m" }, permissions: {
+      approval: "ask", sandbox: { mode: "workspace-write", workspaceRoot: "/" }, preset: "custom",
+    } }),
+    resume: async () => { throw Error("Display cannot activate execution"); },
+    create: async () => {}, fork: async () => {}, inject: async () => {}, release: async () => {},
+  });
+  const requests: string[] = [];
+  let readsAtResume = -1;
+  const transport = new MemoryTransport({ server: { async receive(frame, peer) {
+    const request = JSON.parse(frame);
+    if (request.id === undefined) return;
+    requests.push(request.method);
+    try {
+      const result = await adapter.dispatch(request.method, request.params);
+      if (request.method === "thread/resume") readsAtResume = calls.length;
+      peer.send(JSON.stringify({ id: request.id, result }));
+    } catch (error) { peer.send(JSON.stringify({ id: request.id, error: { code: -32000, message: String(error) } })); }
+  } } });
+  const client = new JsonRpcAppServerClient({ hostId: "durable", transport });
+  let session: Awaited<ReturnType<typeof createCordisThreadSessionRuntime>> | undefined;
+  try {
+    await client.connect({ clientInfo: { name: "dsh-loading-regression", version: "1" }, capabilities: { experimentalApi: true } });
+    session = await createCordisThreadSessionRuntime({ client, hostKind: "durable", historyModeHint: "paginated" });
+    const view = await session.resume.resume({ threadId: "s" });
+    assert.equal(view.turns.length, 3);
+    assert.equal(view.turns[2]?.items?.at(-1)?.type, "agentMessage");
+    assert.ok(readsAtResume > 0);
+    assert.equal(calls.length, readsAtResume, "first history window must be projected once");
+    assert.equal(requests.filter(method => method === "thread/turns/list" || method === "thread/items/list").length, 0);
+  } finally { await session?.dispose(); await client.close(); adapter.close(); }
 });

@@ -1,4 +1,5 @@
 @use "./announcement-dialog";
+@use "@opencraft/design-system/material.web" as material;
 
 .modal-surface.modal-confirmation { display: flex; flex-direction: column; overflow-y: auto; }
 .modal-confirmation__actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 24px 24px; }
@@ -26,8 +27,8 @@
   z-index: calc(var(--modal-layer-base) + var(--modal-stack-offset, 0));
   inset: 0;
   background: color-mix(in srgb, #000 44%, transparent);
-  backdrop-filter: blur(7px) saturate(.82);
-  -webkit-backdrop-filter: blur(7px) saturate(.82);
+  // Blur belongs inside the panel, not across the page.
+
 }
 
 .modal-surface {
@@ -42,8 +43,7 @@
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   border-radius: 20px;
-  background: var(--color-background-elevated-primary-opaque, var(--color-background-surface));
-  box-shadow: 0 28px 90px color-mix(in srgb, #000 34%, transparent);
+  @include material.surface;
   color: var(--color-text);
   outline: none;
 }
@@ -59,6 +59,7 @@
   -webkit-backdrop-filter: none;
 }
 .modal-surface[data-appearance="utility"] {
+  @include material.opaque;
   display: flex;
   max-height: min(720px, calc(100dvh - 48px));
   border-radius: 12px;
@@ -74,6 +75,7 @@
 }
 
 .modal-surface[data-presentation="fullscreen"] {
+  @include material.opaque;
   inset: 0;
   width: 100vw;
   max-width: none;
@@ -99,6 +101,7 @@
 
 @media (max-width: 640px) {
   .modal-surface[data-presentation="inspector"] {
+    @include material.opaque;
     inset: 0;
     width: 100vw;
     height: 100dvh;
@@ -143,6 +146,7 @@
 }
 
 .modal-surface.management-settings-dialog {
+  @include material.opaque;
   display: grid;
   width: min(1120px, calc(100vw - 48px));
   height: min(840px, calc(100vh - 64px));

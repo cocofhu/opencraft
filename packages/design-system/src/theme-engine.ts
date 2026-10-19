@@ -587,6 +587,16 @@ export function buildCodexThemeCssProperties(
 
   return {
     ...badgeColors(mode, definition.surfaces?.panel ?? definition.surface),
+    // Floating surfaces are neutral by default. An explicit popover surface is
+    // authoritative and remains opaque instead of being silently diluted.
+    "--material-glass-base": surfaces.popover ?? (mode === "light" ? "#ffffff" : "#181818"),
+    "--material-glass-floating": surfaces.popover ?? "color-mix(in srgb, var(--material-glass-base) 32%, transparent)",
+    "--material-glass-panel": surfaces.popover ?? `color-mix(in srgb, var(--material-glass-base) ${mode === "light" ? 64 : 62}%, transparent)`,
+    "--material-glass-menu": surfaces.popover ?? "color-mix(in srgb, var(--material-glass-base) 82%, transparent)",
+    "--material-glass-filter": "blur(32px) saturate(1.06)",
+    "--material-glass-shadow": mode === "light"
+      ? "0 24px 80px rgb(0 0 0 / 15%), inset 0 1px rgb(255 255 255 / 40%)"
+      : "0 28px 90px rgb(0 0 0 / 40%), inset 0 1px rgb(255 255 255 / 9%)",
     "--codex-base-accent": definition.accent,
     "--codex-base-contrast": String(definition.contrast),
     "--codex-base-ink": definition.ink,

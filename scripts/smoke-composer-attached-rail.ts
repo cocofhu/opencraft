@@ -9,55 +9,56 @@ try {
  const quick = process.argv.includes("--quick");
  for (const width of [390, 1280]) for (const palette of quick ? ["codex"] : ["codex", "vela", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
   const page = await browser.newPage({ viewport: { width, height: 700 }, hasTouch: width === 390 });
-  const errors: string[] = []; page.on("pageerror", (e: Error) => errors.push(e.message));
+  const errors: string[] = []; page.on("pageerror", (e: Error) => { errors.push(e.message); console.error(e.message); });
+  page.on("console", m => { if(m.type() === "error") console.error(m.text()); });
+  page.on("response", r => { if(r.status() >= 400) console.error(r.status(),r.url()); });
   await page.addInitScript("window.__name=value=>value");
   await page.goto(`${vite.resolvedUrls!.local[0]}?palette=${palette}&mode=${mode}`);
   await page.evaluate(width=>{document.documentElement.dataset.uiDensity=width===390?'touch':'compact'},width);
   await page.locator('.codex-composer-queue-item').waitFor(); await page.waitForTimeout(250);
-  const rowHeights = () => page.evaluate(() => ({
-   queue: document.querySelector('.codex-composer-queue-item')!.getBoundingClientRect().height,
-   summary: document.querySelector('.thread-live-changes')!.getBoundingClientRect().height,
-   font: getComputedStyle(document.querySelector('.codex-composer-queue-item')!).fontSize,
-  }));
-  const beforeStyle = await page.addStyleTag({content: `:root[data-ui-density] { --height-composer-rail-row: max(32px, var(--size-control-hit-min)); --height-composer-queue-row: var(--height-composer-rail-row); --padding-composer-rail-row: 2px 10px; } .codex-composer-queue-item__drag { height:30px; margin:-3px -6px; } @media(pointer: coarse) { .codex-composer-queue-item,.codex-composer-queue-item__drag { min-height:44px; height:44px; } }`});
-  const beforeHeights = await rowHeights(); await beforeStyle.evaluate(node => node.remove());
-  const afterHeights = await rowHeights();
-  assert.equal(afterHeights.queue, width===390 ? 36 : 28);
-  assert.equal(afterHeights.summary, width===390 ? 32 : 28);
-  assert.equal(afterHeights.font, beforeHeights.font);
-  assert(afterHeights.queue < beforeHeights.queue && afterHeights.summary < beforeHeights.summary,JSON.stringify({beforeHeights,afterHeights}));
-  console.log(JSON.stringify({width,palette,mode,beforeHeights,afterHeights}));
   await page.evaluate(() => (window as any).setRailCount(8));
   const tray = page.locator('.codex-composer-queue-tray');
   await page.locator('.codex-composer-queue-item').last().scrollIntoViewIfNeeded();
   assert(await tray.evaluate((node:HTMLElement) => node.scrollTop > 0 && node.clientHeight < node.scrollHeight));
   await page.evaluate(() => (window as any).setRailCount(1));
+  const editor = page.locator(".codex-composer-editor");
+  await editor.fill("Keep this draft");
+  const originalEditor = await editor.elementHandle();
   for (const state of ["both", "summary", "queue", "empty"]) {
    await page.evaluate((state: string) => (window as any).setRailState(state), state); await page.waitForTimeout(30);
-   const geometry = await page.locator('.codex-composer-attached-rail').evaluate((rail: HTMLElement) => {
-    const editor = rail.nextElementSibling as HTMLElement; const r = rail.getBoundingClientRect(), e = editor.getBoundingClientRect(), css = getComputedStyle(rail);
-    return { children: [...rail.children].map(n => n.className), height: r.height, bottom: r.bottom, editorTop: e.top, left: r.left, editorLeft: e.left, right: r.right, editorRight: e.right, background: getComputedStyle(rail,"::before").backgroundColor, blur:getComputedStyle(rail,"::before").backdropFilter, editorBackground:getComputedStyle(editor,"::before").backgroundColor, editorBlur:getComputedStyle(editor,"::before").backdropFilter, radius: css.borderTopLeftRadius, border: css.borderTopWidth, display: css.display };
+   const geometry = await page.evaluate(() => {
+    const rail = document.querySelector<HTMLElement>('.codex-composer-attached-rail')!;
+    const shell = document.querySelector<HTMLElement>('.codex-composer-shell')!;
+    const summary = document.querySelector<HTMLElement>('.thread-live-changes');
+    const r = rail.getBoundingClientRect(), e = shell.getBoundingClientRect(), p = summary?.getBoundingClientRect();
+    const css = summary && getComputedStyle(summary);
+    return { railVisible: getComputedStyle(rail).display !== 'none', railHeight: r.height,
+     overlap: r.bottom - e.top, railChildren: [...rail.children].map(n => n.className),
+     pill: p && { width:p.width, height:p.height, gap:(getComputedStyle(rail).display === 'none' ? e.top : r.top)-p.bottom,
+      center: (p.left+p.right-e.left-e.right)/2, shellWidth:e.width,
+      radius:css!.borderTopLeftRadius, shadow:css!.boxShadow, background:css!.backgroundColor,
+      independent:!rail.contains(summary), overflow:summary!.scrollWidth > summary!.clientWidth } };
    });
-   if (state === "empty") { assert.equal(geometry.display, "none"); assert.equal(geometry.height, 0); }
-   else {
-    assert.equal(geometry.bottom - geometry.editorTop, 16, JSON.stringify(geometry));
-    assert.equal(geometry.left - geometry.editorLeft, 10); assert.equal(geometry.editorRight - geometry.right, 10);
-    assert.equal(geometry.radius, "16px"); assert.equal(geometry.border, "1px");
-    assert(geometry.background.includes('0.94'), geometry.background);
-    assert(geometry.blur.includes('20px'));
-    if(width===1280){assert.equal(geometry.editorBlur,'none');assert(!geometry.editorBackground.includes('0.62'));}
-    else assert(geometry.editorBlur.includes('18px'));
-    const rail=page.locator('.codex-composer-attached-rail');
-    const before=await rail.screenshot();
-    await page.locator('[aria-hidden]').first().evaluate((node:HTMLElement)=>{node.style.background='rgb(220,40,80)'});
-    const after=await rail.screenshot();assert(!before.equals(after), state+' must reveal the scrolling backdrop');
-    await page.locator('[aria-hidden]').first().evaluate((node:HTMLElement)=>{node.style.background=''});
-    assert.equal(geometry.children.length, state === "both" ? 2 : 1);
-    if (state === "both") assert.deepEqual(geometry.children, ["codex-composer-queue-tray", "thread-live-changes"]);
+   const hasQueue = state === 'both' || state === 'queue';
+   const hasSummary = state === 'both' || state === 'summary';
+   assert.equal(geometry.railVisible,hasQueue,JSON.stringify(geometry));
+   if(hasQueue){ assert.equal(geometry.overlap,16); assert.deepEqual(geometry.railChildren,['codex-composer-queue-tray']); }
+   else assert.equal(geometry.railHeight,0);
+   assert.equal(!!geometry.pill,hasSummary);
+   if(geometry.pill){
+    const p=geometry.pill;
+    assert.equal(p.independent,true); assert.equal(p.gap,8); assert(Math.abs(p.center)<1);
+    assert(p.width < p.shellWidth-20); assert.equal(p.height,width===390?32:28);
+    assert.equal(p.radius,'9999px'); assert.notEqual(p.shadow,'none');
+    assert(!p.background.startsWith('rgba('),p.background); assert.equal(p.overflow,false);
+    await page.locator('.thread-turn-diff-live').click();
+    assert(await page.evaluate(()=>(window as any).reviewCount>0));
    }
-   if (state === "both" && (width === 390 || palette === "codex")) await page.screenshot({ path: `/tmp/rail-${width}-${palette}-${mode}.png` });
+   assert(await editor.evaluate((node, original) => node === original, originalEditor));
+   assert.equal(await editor.innerText(), "Keep this draft");
+   if (state === 'both') await page.screenshot({ path: `/tmp/rail-${width}-${palette}-${mode}.png` });
   }
   assert.deepEqual(errors, []); await page.close();
  }
- console.log(`PASS: ${quick ? 4 : 24} browser combinations, 4 occupancy states; shared perimeter/order, 16px contour tuck, 10px inset, compact queue/summary heights, bounded queue scroll, 94% material; desktop opaque editor/touch glass editor, 16px top radius, empty rail zero geometry`);
+ console.log(`PASS: ${quick ? 4 : 24} browser combinations, 4 occupancy states; separate centered content-width pill, 8px gap, opaque theme surface, review action, queue perimeter and bounded scroll.`);
 } finally { await browser?.close(); await vite.close(); }

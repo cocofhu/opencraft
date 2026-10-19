@@ -32,16 +32,13 @@ export function formatAutomaticApprovalReviewTitle(review: AutomaticApprovalRevi
 export function formatAutomaticApprovalReviewSummary(review: AutomaticApprovalReview): string {
   const rationale = review.rationale?.trim();
   if (rationale) return rationale;
-  if (review.status === "inProgress") {
-    return "A carefully prompted reviewer agent is reviewing this request before ChatGPT runs it";
+  switch (review.status) {
+    case "inProgress": return "Reviewing this request.";
+    case "approved": return "This request was approved.";
+    case "denied": return "This request was denied.";
+    case "timedOut": return "Review timed out.";
+    case "aborted": return "Review was stopped.";
   }
-  if (review.status === "aborted") {
-    return "A carefully prompted reviewer agent stopped reviewing this request before ChatGPT ran it";
-  }
-  if (review.status === "timedOut") {
-    return "A carefully prompted reviewer agent timed out before ChatGPT ran this request";
-  }
-  return "A carefully prompted reviewer agent reviewed this request.";
 }
 
 export function isAutomaticApprovalReviewWarning(review: AutomaticApprovalReview): boolean {

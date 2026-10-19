@@ -6,9 +6,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
-RELEASE_DIR = Path(__file__).resolve().parents[1] / "release"
-APK = RELEASE_DIR / "LightVela-app.opencraft.workbench-android-release.apk"
-DOWNLOAD_PATH = "/LightVela-app.opencraft.workbench.apk"
+APK = None
+DOWNLOAD_PATH = None
 
 
 class ApkHandler(BaseHTTPRequestHandler):
@@ -22,7 +21,7 @@ class ApkHandler(BaseHTTPRequestHandler):
         if self.path != DOWNLOAD_PATH:
             self.send_error(404)
             return
-        if not APK.is_file():
+        if APK is None or not APK.is_file():
             self.send_error(404, "APK has not been built")
             return
 
@@ -44,14 +43,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bind", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--edition", choices=("cn", "intl"), default="cn")
+    parser.add_argument("--apk", type=Path, required=True, help="APK file to serve")
     args = parser.parse_args()
-    package = "app.opencraft.workbench" if args.edition == "cn" else "app.opencraft.workbench.intl"
     global APK, DOWNLOAD_PATH
-    APK = RELEASE_DIR / f"LightVela-{package}-android-release.apk"
-    DOWNLOAD_PATH = f"/LightVela-{package}.apk"
-    if not APK.is_file():
+    APK = args.apk.resolve()
+    if not APK.is_file() or APK.suffix.lower() != ".apk":
         parser.error(f"Build the APK first: {APK}")
+    DOWNLOAD_PATH = f"/{APK.name}"
     server = ThreadingHTTPServer((args.bind, args.port), ApkHandler)
     print(f"Serving {APK.name} on {args.bind}:{args.port}{DOWNLOAD_PATH}", flush=True)
     server.serve_forever()

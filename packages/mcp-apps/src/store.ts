@@ -80,6 +80,11 @@ export class AppStore {
         .get(owner, id, revision) as unknown as Release) ?? null
     );
   }
+  /** Exact immutable URI lookup, usable only after connection-local history authorization. */
+  referencedRelease(uri: string, id: string, revision: number): Release | null {
+    return (this.database.prepare("SELECT * FROM releases WHERE uri=? AND id=? AND revision=? LIMIT 1")
+      .get(uri, id, revision) as unknown as Release) ?? null;
+  }
   mutate(
     owner: string,
     id: string,

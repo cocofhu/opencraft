@@ -10,7 +10,7 @@ import { createDesktopProduct } from "./desktop-product-main-entry.js";
 import { activateDesktopProduct } from "./desktop-product-lifetime.js";
 import type { DesktopProductSession } from "./product-contract.js";
 import { desktopSkillHubPublicError, requestDesktopSkillHub } from "./skillhub-http.js";
-import { resolveDesktopProduct } from "./product-identity.js";
+import { resolveDesktopProduct } from "./desktop-product-identity-entry.js";
 import {
   prepareDesktopDirectories,
   resolveDesktopDirectoryPlan,

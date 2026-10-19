@@ -277,7 +277,7 @@ controls without resetting the objective draft. User objectives remain unchanged
 
 
 Existing Goals occupy a quiet row in the Composer's existing attached rail,
-sharing its perimeter/material with the queue and file summary. Desktop capacity
+sharing its perimeter/material with the queue. The independent live file pill sits above the rail. Desktop capacity
 shows status, truncated objective, compact localized elapsed time, pause/resume,
 edit and an actions menu. A narrow Composer container hides the objective and
 inline edit action; the same actions remain available in the menu and touch
@@ -418,7 +418,7 @@ Native 的实时 Thinking 在 Turn 等待占位与 Activity 组之间交接时�
 
 ### Changed-file review
 
-The Turn's existing unified diff remains the read authority for its changed-file summary. ChatUI renders a lightweight in-progress entry and a completed resource card; it only emits an open intent. In the Web Workbench, the actual Composer owns the active Turn's live entry above the editor, including when that Composer floats over a panel. The live entry aligns to the start of the attached rail’s content inset, alongside the queue and goal text axis, rather than centering a separate status line. Its exact Turn identity suppresses duplicate live resources in the main and mini transcript; it is presentation routing, not a second execution or resource owner. Standalone Conversation consumers retain inline presentation. On completion, the same resource appears as the transcript's completed card. The Workbench owns the read-only Review dialog, keeps it tied to the active Thread, and projects the current Timeline block while streaming. File selection filters that existing diff for display; it does not create a second TurnDiff model or mutate the workspace. Undo/Reapply is not advertised until a real Host apply-patch capability is connected.
+The Turn's existing unified diff remains the read authority for its changed-file summary. ChatUI renders a lightweight in-progress entry and a completed resource card; it only emits an open intent. In the Web Workbench, the actual Composer owns the active Turn's live entry above the editor, including when that Composer floats over a panel. The live entry is a compact, content-width pill centered above the Composer with a visible gap, independent of the attached queue/goal rail and its material. The same placement remains when approval replaces the editor. Its exact Turn identity suppresses duplicate live resources in the main and mini transcript; it is presentation routing, not a second execution or resource owner. Standalone Conversation consumers retain inline presentation. On completion, the same resource appears as the transcript's completed card. The Workbench owns the read-only Review dialog, keeps it tied to the active Thread, and projects the current Timeline block while streaming. File selection filters that existing diff for display; it does not create a second TurnDiff model or mutate the workspace. Undo/Reapply is not advertised until a real Host apply-patch capability is connected.
 
 The Web resource presentation follows Codex 26.930.31428/build 12913's original
 Renderer, not recovered analysis modules: square-plus-minus glyph in a 40px
@@ -945,6 +945,28 @@ execution policy. See [migration contract](../design/dsh-engine-migration.md).
    can execute Agent work still awaits the binding's generation-scoped
    capability lease, and a failed prewarm is retried there rather than
    invalidating already-restored history.
+
+### Initial history and display reuse
+
+Durable paginated providers that explicitly advertise initial-page support may
+return the newest five full Turns in Resume. The Session consumes that page once;
+it does not issue another Turn/Item read for the same initial window. Providers without this advertisement keep bounded per-Turn Item reads:
+a single large native full-Turn response can regress low-latency restoration. Headers-only replies
+retain the existing per-Turn Item reader, and transport frame-limit errors fall
+back to that reader's adaptive Item pages. An oversized merged Resume retries
+without the page before using this reader. Legacy providers keep full-history
+compatibility. Full pages retain all Items, older cursors and chronological order;
+no tool output or interaction is truncated to improve timing.
+
+ConversationDisplayContinuity keeps at most 64 already-projected text displays
+in its existing account/Host/Thread scope. `peek` exposes a synchronous paint-only
+snapshot, including before an asynchronous persistence write finishes. Web and
+Native consult it during render before starting disk restoration. The same
+seven-day age and 24-message/text limits apply; disk loads keep the original
+expiry time, authoritative empty history removes a display, and a delayed disk
+read cannot replace a newer observation. Account scope replacement discards the
+owner. This memory is a projection cache, not a second history authority, Replica
+checkpoint, execution lease, or source for tool/approval actions.
 
 ### History positions and concurrent observations
 
@@ -1990,20 +2012,20 @@ Scroll/viewport regressions verify selection and adjacent-character geometry wit
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.
 
-Queue/diff rails use independent theme glass tokens on desktop Web and touch,
+Queue/goal rails use independent theme glass tokens on desktop Web and touch,
 regardless of Newera. Desktop editors stay opaque; touch editors use their own glass.
 Both have non-interactive background layers and opaque accessibility fallbacks;
 no footer gradient may mask the rail's backdrop. The rail glass ends at the editor
 seam to avoid double tinting the tuck. Material choices do not alter queue ownership.
 
-Queue and live-diff accessory rows have their own compact density: 28px on desktop,
+Queue rows and the independent live-diff pill have their own compact density: 28px on desktop,
 36px for touch queue rows and 32px for touch diff summaries, with no block padding.
 The queue viewport is bounded to three rows plus its optional status header and
 scrolls internally. Keep text roles, count animation and queue actions intact;
 do not compress the Goal surface or editor to obtain this density. The shared rail
 uses 94% theme material coverage (editor glass is independent), so the moving
 transcript does not compete with accessory text. Reduced-transparency and
-unsupported-filter fallbacks remain opaque.
+unsupported-filter fallbacks remain opaque. The live-diff pill uses its own opaque elevated theme surface and does not share the rail glass.
 
 Newera defaults belong to the Workbench entry's preference runtime: standalone on,
 embedded off when no valid user choice exists. Defaults are not stored on startup;
@@ -2174,3 +2196,21 @@ The Web hook polls every five seconds while visible, checks immediately on retur
 backs failures off to sixty seconds, aborts on conversation retirement, and leaves
 the transcript, draft DOM and reading position mounted. It is opt-in rather than a
 second automatic refresh policy for all conversations.
+
+### In-progress recovery observations
+
+The existing recovery owner also projects read-only progress while a connection
+or a conversation is still recovering. Connection, initialization, queued history,
+active history reads, retry backoff and manual stop are separate stages. A Host
+snapshot carries connection progress; each resident Thread carries only its own
+history progress. UI never substitutes background Thread work for the current
+conversation. Timestamps, actual starts, the scheduler's retry deadline and a
+bounded machine-code failure are local metadata, with at most twelve stage events.
+A visible recovery notice and cold-history surface expose elapsed time and a
+collapsed copyable report before failure as well as during automatic retries.
+The presentation clock pauses in background tabs and never schedules work.
+Authoritative recovery removes the notice; invalidation fences late observations.
+No remote error text, content, endpoint or credentials enter this report.
+A fresh work item after a terminal failure starts a new history observation;
+its correlation ID and attempt count cannot inherit the completed report.
+Coalesced retries of an active work item still share the original observation.

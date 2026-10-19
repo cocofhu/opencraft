@@ -154,6 +154,8 @@ export interface AccountPoolLimitWindow {
   readonly status: string | null;
   readonly observedAt: number;
   readonly source: "header" | "usage";
+  /** Server-confirmed extra credits; percentages still describe subscription usage. */
+  readonly creditsAvailable?: boolean;
 }
 
 export interface AccountPoolAccountState {
@@ -235,6 +237,7 @@ function parseLimitWindows(value: unknown): AccountPoolLimitWindow[] {
       status: nullableText(candidate.status),
       observedAt,
       source: candidate.source as "header" | "usage",
+      ...(typeof candidate.creditsAvailable === "boolean" ? { creditsAvailable: candidate.creditsAvailable } : {}),
     });
   }
   return windows;
@@ -548,7 +551,13 @@ export class AccountPoolStore {
       ? currentWindows
       : [
           ...currentWindows.filter(window => !observedSlots.has(window.slot)),
-          ...observation.limitWindows.map(window => ({ ...window })),
+          ...observation.limitWindows.map(window => {
+            const previous = currentWindows.find(value => value.slot === window.slot);
+            // Successful response headers may omit credits. A real rejection
+            // explicitly records false; a later usage refresh replaces the fact.
+            return window.creditsAvailable === undefined && window.source === "header" && previous?.creditsAvailable !== undefined
+              ? { ...window, creditsAvailable: previous.creditsAvailable } : { ...window };
+          }),
         ].sort((left, right) => left.slot.localeCompare(right.slot));
     parseLimitWindows(JSON.stringify(limitWindows));
     this.database.prepare(
@@ -667,7 +676,7 @@ export class AccountPoolStore {
         || status?.toLowerCase() === "rejected";
     };
     if (quota.limitWindows.length > 0) {
-      return quota.limitWindows.some(window => active(window.utilization, window.status, window.resetAt));
+      return quota.limitWindows.some(window => window.creditsAvailable !== true && active(window.utilization, window.status, window.resetAt));
     }
     return active(quota.utilization, null, quota.resetAt);
   }

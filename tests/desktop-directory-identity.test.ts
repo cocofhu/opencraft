@@ -17,15 +17,17 @@ import { daemonLaunchSpec } from "../apps/workbench-electron/src/daemon-client.t
 
 const appDataDirectory = "/Users/test/Library/Application Support";
 const homeDirectory = "/Users/test";
+const legacyProduct = { ...desktopProduct, legacyProfileDirectoryNames: ["Legacy Workbench"], legacyDaemonName: "legacy-daemon" };
+const legacyPreviewProduct = { ...desktopPreviewProduct, legacyProfileDirectoryNames: ["Legacy Workbench Preview"], legacyDaemonName: "legacy-daemon" };
 
 test("production and Preview resolve stable product-free directory identities", () => {
   const production = resolveDesktopDirectoryPlan({
     appDataDirectory,
     homeDirectory,
-    product: desktopProduct,
+    product: legacyProduct,
   });
   assert.equal(production.userDataDirectory, `${appDataDirectory}/OpenCraft`);
-  assert.equal(production.legacyUserDataDirectory, `${appDataDirectory}/@vela/workbench-electron`);
+  assert.equal(production.legacyUserDataDirectory, `${appDataDirectory}/Legacy Workbench`);
   assert.equal(production.runtimeDirectory, `${appDataDirectory}/OpenCraft/runtime`);
   assert.equal(production.dshDataDirectory, `${appDataDirectory}/OpenCraft/dsh`);
   assert.equal(production.codexDataDirectory, `${appDataDirectory}/OpenCraft/codex`);
@@ -37,10 +39,10 @@ test("production and Preview resolve stable product-free directory identities", 
   const preview = resolveDesktopDirectoryPlan({
     appDataDirectory,
     homeDirectory,
-    product: desktopPreviewProduct,
+    product: legacyPreviewProduct,
   });
   assert.equal(preview.userDataDirectory, `${appDataDirectory}/OpenCraft Preview`);
-  assert.equal(preview.legacyUserDataDirectory, `${appDataDirectory}/@vela/workbench-electron-preview`);
+  assert.equal(preview.legacyUserDataDirectory, `${appDataDirectory}/Legacy Workbench Preview`);
   assert.notEqual(preview.runtimeDirectory, production.runtimeDirectory);
 });
 
@@ -48,7 +50,7 @@ test("explicit profile and product-home overrides stay authoritative and skip mi
   const plan = resolveDesktopDirectoryPlan({
     appDataDirectory,
     homeDirectory,
-    product: desktopProduct,
+    product: legacyProduct,
     requestedUserDataDirectory: "/tmp/opencraft-test-profile",
     requestedProductHomeDirectory: "/tmp/opencraft-product-home",
   });
@@ -64,14 +66,14 @@ test("legacy production state migrates atomically and retains a rollback link", 
     const plan = resolveDesktopDirectoryPlan({
       appDataDirectory: root,
       homeDirectory: root,
-      product: desktopProduct,
+      product: legacyProduct,
       platform: "darwin",
     });
     assert.ok(plan.legacyUserDataDirectory);
     await mkdir(plan.legacyUserDataDirectory, { recursive: true });
     await writeFile(join(plan.legacyUserDataDirectory, "opencraft-ui.sqlite"), "durable");
-    await writeFile(join(plan.legacyUserDataDirectory, "vela-daemon.token"), "legacy-token");
-    await writeFile(join(plan.legacyUserDataDirectory, "vela-daemon.sock"), "stale-socket");
+    await writeFile(join(plan.legacyUserDataDirectory, "legacy-daemon.token"), "legacy-token");
+    await writeFile(join(plan.legacyUserDataDirectory, "legacy-daemon.sock"), "stale-socket");
 
     const prepared = await prepareDesktopDirectories(plan, {
       legacyDaemonIsActive: async () => false,
@@ -80,7 +82,7 @@ test("legacy production state migrates atomically and retains a rollback link", 
     assert.equal(prepared.status, "migrated");
     assert.equal(await readFile(join(plan.userDataDirectory, "opencraft-ui.sqlite"), "utf8"), "durable");
     assert.equal(await readFile(plan.daemonTokenPath, "utf8"), "legacy-token");
-    await assert.rejects(access(join(plan.userDataDirectory, "vela-daemon.sock")));
+    await assert.rejects(access(join(plan.userDataDirectory, "legacy-daemon.sock")));
     assert.equal((await lstat(plan.legacyUserDataDirectory)).isSymbolicLink(), true);
     assert.equal(await realpath(plan.legacyUserDataDirectory), await realpath(plan.userDataDirectory));
     assert.equal((await lstat(plan.runtimeDirectory)).isDirectory(), true);
@@ -92,7 +94,7 @@ test("legacy production state migrates atomically and retains a rollback link", 
 test("an active legacy daemon keeps the launch on the intact legacy profile", async () => {
   const root = await mkdtemp(join(tmpdir(), "opencraft-directory-active-"));
   try {
-    const plan = resolveDesktopDirectoryPlan({ appDataDirectory: root, homeDirectory: root, product: desktopProduct, platform: "darwin" });
+    const plan = resolveDesktopDirectoryPlan({ appDataDirectory: root, homeDirectory: root, product: legacyProduct, platform: "darwin" });
     assert.ok(plan.legacyUserDataDirectory);
     await mkdir(plan.legacyUserDataDirectory, { recursive: true });
     await writeFile(join(plan.legacyUserDataDirectory, "kept"), "yes");
@@ -109,23 +111,23 @@ test("an active legacy daemon keeps the launch on the intact legacy profile", as
 test("a failed post-rename migration rolls back and launches from the legacy profile", async () => {
   const root = await mkdtemp(join(tmpdir(), "opencraft-directory-rollback-"));
   try {
-    const plan = resolveDesktopDirectoryPlan({ appDataDirectory: root, homeDirectory: root, product: desktopProduct, platform: "darwin" });
+    const plan = resolveDesktopDirectoryPlan({ appDataDirectory: root, homeDirectory: root, product: legacyProduct, platform: "darwin" });
     assert.ok(plan.legacyUserDataDirectory);
     await mkdir(plan.legacyUserDataDirectory, { recursive: true });
-    await writeFile(join(plan.legacyUserDataDirectory, "vela-daemon.token"), "legacy-token");
+    await writeFile(join(plan.legacyUserDataDirectory, "legacy-daemon.token"), "legacy-token");
     const prepared = await prepareDesktopDirectories(plan, {
       legacyDaemonIsActive: async () => false,
       fileSystem: {
         ...nodeDesktopDirectoryFileSystem,
         async rename(source, destination) {
-          if (source.endsWith("vela-daemon.token")) throw new Error("injected token migration failure");
+          if (source.endsWith("legacy-daemon.token")) throw new Error("injected token migration failure");
           await nodeDesktopDirectoryFileSystem.rename(source, destination);
         },
       },
     });
     assert.equal(prepared.status, "legacy-fallback");
     assert.equal(prepared.paths.userDataDirectory, plan.legacyUserDataDirectory);
-    assert.equal(await readFile(join(plan.legacyUserDataDirectory, "vela-daemon.token"), "utf8"), "legacy-token");
+    assert.equal(await readFile(join(plan.legacyUserDataDirectory, "legacy-daemon.token"), "utf8"), "legacy-token");
     await assert.rejects(access(plan.userDataDirectory));
   } finally {
     await rm(root, { recursive: true, force: true });

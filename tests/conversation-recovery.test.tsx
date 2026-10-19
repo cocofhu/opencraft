@@ -89,3 +89,23 @@ test("technical details distinguish history errors and never copy remote text or
     }
   } finally { runtime.dispose(); }
 });
+
+test("in-progress cold and retained recovery expose safe readable progress and copy details", async () => {
+ const {createConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText}=await import("../apps/workbench-web/src/runtime/conversation-recovery-diagnostic");
+ const diagnostic={...createConversationRecoveryDiagnostic({stage:"history",error:null,runtime:"ready",transport:{state:"open"}}),code:"PENDING",progress:{
+  recoveryId:"local-episode",startedAt:1000,stage:"backoff" as const,stageStartedAt:2000,attempt:2,retryAt:5000,
+  lastFailure:{code:"TIMEOUT",occurredAt:2000},events:[{stage:"history" as const,at:1000,attempt:1}],
+ }};
+ const text=conversationRecoveryDiagnosticText(diagnostic,3000);
+ assert.match(text,/recoveryId: local-episode/);assert.match(text,/elapsedMs: 2000/);assert.match(text,/stageElapsedMs: 1000/);
+ assert.match(text,/lastFailureCode: TIMEOUT/);assert.match(text,/attemptsStarted: 2/);
+ const runtime=new LocaleRuntime([]);
+ try {
+  for(const child of [createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic})]){
+   const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
+   assert.match(html,/Waiting to retry/);assert.match(html,/Attempts started: 2/);assert.match(html,/Last failure: TIMEOUT/);
+   assert.match(html,/Technical details/);assert.match(html,/Copy details/);
+   assert.doesNotMatch(html,/<details[^>]*open/);
+  }
+ }finally{runtime.dispose();}
+});
