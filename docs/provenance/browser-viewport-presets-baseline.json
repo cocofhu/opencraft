@@ -1,0 +1,84 @@
+{
+  "baseline": "cb33821c8836a83ee7a379035e1d77e43bb32aa3",
+  "path": "apps/workbench-web/src/browser/codex/viewport-presets.js",
+  "blob": "8c85578a4b3b540a8b7f7a25be9d1edb671fc303",
+  "sha256": "c3d7e88cabc0fe0b68f45f67c6bb09e1223896361505e9e5c6afe73d51df62e0",
+  "sourceAnnotation": "// Source-identical viewport constants/helpers from ref/codex/browser/shared/is-adjacent-tab-index.js.",
+  "publicApplicationData": {
+    "default": {
+      "isEnabled": false,
+      "presetId": "responsive",
+      "width": 390,
+      "height": 844
+    },
+    "responsive": "responsive",
+    "presets": [
+      {
+        "id": "responsive",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "id": "4k",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "id": "laptop-l",
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "id": "laptop",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "id": "surface-pro-7",
+        "width": 912,
+        "height": 1368
+      },
+      {
+        "id": "ipad-air",
+        "width": 820,
+        "height": 1180
+      },
+      {
+        "id": "ipad-mini",
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "id": "surface-duo",
+        "width": 540,
+        "height": 720
+      },
+      {
+        "id": "iphone-15-pro-max",
+        "width": 430,
+        "height": 932
+      },
+      {
+        "id": "pixel-8",
+        "width": 412,
+        "height": 915
+      },
+      {
+        "id": "iphone-15-pro",
+        "width": 393,
+        "height": 852
+      },
+      {
+        "id": "samsung-galaxy-s24-ultra",
+        "width": 384,
+        "height": 824
+      },
+      {
+        "id": "iphone-se",
+        "width": 375,
+        "height": 667
+      }
+    ]
+  },
+  "authorExposure": "Header and declaration, existing consumers/tests, public export observations; initial four-line header inspection included the internal helper name and opening return-object syntax, no target expressions. Other recovered modules have been visible in the long session; no strict author isolation claim."
+}

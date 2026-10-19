@@ -151,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Five unresolved files: manager and preset implementations, their historical source manifest, and two toolbar/host contracts; viewport drag geometry and presentation handoff have separate bounded dispositions |
+| `codex-browser-source-followup` | Four unresolved files: manager implementation, its historical source manifest, and two toolbar/host contracts; viewport drag geometry, preset helpers and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -556,5 +556,18 @@ continuity, acknowledgement, prewarm, cancellation and interaction ownership.
 Adversarial stale-reference/generation cases are fenced and separately documented
 as intentional differences from the old behavior. Historical source/class hashes
 remain in the manifest alongside the separately identified current module hash.
-Five browser inventory files and all eight unresolved groups remain unverified;
+At that transition checkpoint, five browser inventory files and all eight unresolved groups remained unverified;
 this is not strict author isolation, historical rights clearance or release readiness.
+
+
+## Browser preset helper and legacy export review (2026-10-20)
+
+The directly source-attributed preset module now independently expresses the six
+[declared/consumed APIs](provenance/browser-viewport-presets-review.md), retaining
+all 13 application preset IDs, dimensions, order and initialization identities.
+These are compatibility values, not newly verified hardware specifications.
+Seven undeclared recovery exports without repository consumers are removed;
+device brands and adjacent original/behavioral code are retained. Historical
+annotation/hash, observed data and actual author exposure remain recorded.
+Four browser inventory files and all eight unresolved groups stay unverified;
+this is not strict author isolation or historical rights clearance.
