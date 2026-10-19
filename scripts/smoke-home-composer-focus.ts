@@ -18,7 +18,7 @@ try {
   const context=await browser.newContext({viewport:{width:test.width,height:844},hasTouch:!desktop,isMobile:!desktop,reducedMotion:test.reduce?"reduce":"no-preference",...(!desktop?{userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1"}:{})});
   await context.addInitScript(({width})=>{(window as any).__name=(value:unknown)=>value;const v=new EventTarget();Object.assign(v,{height:844,width,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,"visualViewport",{value:v});(window as any).setViewport=(height:number,offsetTop:number)=>{Object.assign(v,{height,offsetTop});v.dispatchEvent(new Event("resize"));v.dispatchEvent(new Event("scroll"));};},{width:test.width});
   const page=await context.newPage(),errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
-  const inline=!desktop&&test.width===390&&!test.ordinary&&!test.reduce;
+  const inline=!desktop&&!test.ordinary&&!test.reduce;
   page.setDefaultNavigationTimeout(90000);
   await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${test.theme}${inline?"&inline&toolbar":""}${desktop?"&desktop":""}${test.ordinary?"&ordinary":""}${before?"&legacyHeader":""}`);
   const editor=page.locator(".codex-composer-editor"),shell=page.locator(".codex-composer-shell");
@@ -30,9 +30,27 @@ try {
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
   assert(await page.locator(".codex-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
-  const formatting=await shell.evaluate(el=>getComputedStyle(el).display),emptyEditor=(await editor.boundingBox())!;
+  if(inline){
+    const geometry=await shell.evaluate(el=>{
+      const box=el.getBoundingClientRect();
+      const children=['.codex-composer-input-row','.codex-composer-footer__attachment','.codex-composer-footer__controls','.codex-composer-footer__end'].map(selector=>{const r=el.querySelector(selector)!.getBoundingClientRect();return {selector,x:r.x,right:r.right,center:r.y+r.height/2};});
+      return {box:box.toJSON(),children};
+    });
+    assert(geometry.box.height<=70,'default Composer must remain one control row: '+JSON.stringify(geometry));
+    assert(Math.max(...geometry.children.map(x=>x.center))-Math.min(...geometry.children.map(x=>x.center))<=2,'default row vertical alignment: '+JSON.stringify(geometry));
+    assert(geometry.children.every(x=>x.x>=geometry.box.x&&x.right<=geometry.box.right),'default row stays inside shell');
+    assert.equal(await editor.evaluate(el=>getComputedStyle(el).textAlign),'center');
+    const trigger=page.locator('.codex-composer-mode--depth');await trigger.tap();
+    const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
+    await menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true}).tap();
+    await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+    assert.equal((await shell.boundingBox())!.height,initial.height,'empty Fast toggle does not expand');
+    assert(await trigger.locator('.codex-composer-mode__fast').isVisible(),'empty row projects enabled Fast');
+    assert(await editor.evaluate(el=>el===(window as any).keptEditor),'empty menu keeps editor identity');
+    await page.screenshot({path:`${output}/${label}-empty.png`});
+  }
   await editor.pressSequentially("保留当前草稿");
-  if(!desktop&&!test.ordinary)assert.equal(await shell.evaluate(el=>getComputedStyle(el).display),formatting,'typing keeps shell formatting context');
+
   const assertNativeSelection=async()=>{
     const geometry=await editor.evaluate(el=>{
       const selection=getSelection()!,r=selection.getRangeAt(0),caret=r.getBoundingClientRect(),box=el.getBoundingClientRect();
@@ -44,7 +62,7 @@ try {
     assert.deepEqual(geometry.ancestors,[],'editor has no filtered ancestor');
     return geometry;
   };
-  if(inline){const typed=(await editor.boundingBox())!;assert(Math.abs(typed.x-emptyEditor.x)<=1&&Math.abs(typed.y-emptyEditor.y)<=1,'empty to typing preserves editor origin');}
+  if(inline){const typed=(await editor.boundingBox())!;assert(typed.height<32,'short draft must not reserve a second text line');}
   await assertNativeSelection();const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
@@ -66,6 +84,11 @@ try {
   // Real attachment state and long editor growth must share the keyboard budget.
   if(!desktop){
    await page.evaluate(()=>{(window as any).fixture.controller.dispatch({type:"add-attachment",attachment:{id:"image",name:"screenshot.png",mimeType:"image/png",size:68,uri:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",lifecycle:"ready",error:null}});(window as any).setViewport(360,54);});
+   if(inline){
+     await editor.fill('');await page.waitForTimeout(100);
+     const input=(await editor.boundingBox())!;assert(input.height<32,'attachment-only input stays one line');
+     await page.screenshot({path:`${output}/${label}-attachment-only.png`});
+    }
    await editor.fill(Array.from({length:18},(_,i)=>`草稿第${i}行`).join("\n"));await page.waitForTimeout(200);
    const visible=(await page.locator(".codex-composer-submit").boundingBox())!;
    assert(visible.y>=54&&visible.y+visible.height<=414,`${label}: attachment/long draft send clipped ${JSON.stringify(visible)}`);

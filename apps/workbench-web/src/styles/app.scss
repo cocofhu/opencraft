@@ -12622,11 +12622,30 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .codex-composer-mode--depth .codex-composer-mode__model-icon { display: none; }
 .codex-composer-footer[data-footer-density="minimal"] .codex-composer-mode--depth .codex-composer-mode__model-icon { display: block; }
 
-// User-selected model controls remain available in both empty and editing states.
-// Keep empty/editing spacing and flex allocation identical around native selection.
+// Content owns expansion. Empty touch drafts keep one centered control row;
+// model/Fast remains reachable without reserving a second toolbar row.
 :root[data-ui-density="touch"][data-touch-newera="on"] .codex-composer-stack[data-composer-layout="auto-single-line"]:has(.codex-composer-footer[data-model-selection-policy="user"][data-input-mode="standard"]) {
-  .codex-composer-shell { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; }
-  .codex-composer-input-row { flex: 1 1 auto; padding: 11px 13px 2px; }
-  .codex-composer-footer { display: flex; }
-  .codex-composer-footer__controls { display: flex; }
+  .codex-composer-input-row { flex: 0 1 auto; }
+  .codex-composer-editor { min-height: 1lh; }
+  &[data-composer-empty="true"] {
+    .codex-composer-shell {
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+    }
+    .codex-composer-footer__controls { display: flex; grid-column: 2; grid-row: 1; }
+    .codex-composer-input-row { grid-column: 3; }
+    .codex-composer-footer__end { grid-column: 4; }
+    .codex-composer-mode--depth {
+      min-width: var(--size-control-hit-min);
+      min-height: var(--size-control-hit-min);
+      justify-content: center;
+      gap: 2px;
+      padding-inline: 4px;
+    }
+    .codex-composer-mode--depth .codex-composer-mode__model-icon { display: block; }
+    .codex-composer-mode__model-label,
+    .codex-composer-mode__effort-label,
+    .codex-composer-mode--permissions,
+    .codex-composer-mode--static { display: none; }
+    .codex-composer-editor { text-align: center; }
+  }
 }

@@ -1679,3 +1679,14 @@ adds unsupported speed/effort choices, remounts the editor or writes a default
 by opening. The shared slider capsule variant retains Radix gesture/keyboard
 ownership and previews the title until a completed choice. Embedded session-only
 policy keeps Host-owned reasoning outside its model-only picker.
+
+## Touch Composer content geometry
+
+An empty auto-single-line user Composer is one vertically centered row, including
+its model/Fast entrance. Text labels yield to the existing model icon in that row;
+the full accessible name remains. Focus, keyboard and Fast alone never expand it.
+Attachments and editing use content-sized input above the measured action footer,
+with a one-line editor minimum and no flex-grown blank input area. Clearing text
+and attachments restores the row with the same editor node. Selection bounds are
+checked within each layout; equal coordinates across intentionally different
+content layouts are not a caret-correctness contract.
