@@ -388,7 +388,7 @@ test('Actor collaboration survives Headless overlay restart while native Core re
   let headless: any;
   try {
     const { ActorStore } = await import("../packages/access-control/src/actors.js");
-    const { ActorCollaboration } = await import("../packages/access-control/src/actor-collaboration.js");
+    const { Collaboration } = await import("../packages/access-control/src/collaboration.js");
     const inspector = await f.adapter(); await inspector.rpc('inspect', 'initialize');
     const { thread } = await inspector.rpc('inspect', 'thread/start');
     await inspector.rpc('inspect', 'turn/start', { threadId: thread.id, clientUserMessageId: 'original', input: [] });
@@ -396,7 +396,7 @@ test('Actor collaboration survives Headless overlay restart while native Core re
     const a = store.createSession('source', 'operator'), b = store.createSession('target', 'operator');
     const credential = store.issueCredential(a.id, Date.now() + 60_000, 'operator');
     for (const action of ['message.send', 'execution.queue']) store.setGrant(a.id, b.id, action, true, 'operator');
-    const seed = new ActorCollaboration(join(dataDirectory, 'actor-collaboration.sqlite'), store, { validate: async () => {}, receipt: async () => null, add: async () => { throw new Error('unused'); }, steer: async () => {}, cancel: async () => false });
+    const seed = new Collaboration(join(dataDirectory, 'actor-collaboration.sqlite'), store, { validate: async () => {}, receipt: async () => null, add: async () => { throw new Error('unused'); }, steer: async () => {}, cancel: async () => false });
     await seed.bind(b.id, thread.id, 0, () => {}); await seed.close(); store.close();
     const webRoot = join(f.root, 'web'); await mkdir(webRoot);
     await writeFile(join(webRoot, 'index.html'), '<!doctype html>Actor overlay fixture');

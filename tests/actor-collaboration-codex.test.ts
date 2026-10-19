@@ -5,11 +5,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ActorStore } from "../packages/access-control/src/actors";
-import { ActorCollaboration } from "../packages/access-control/src/actor-collaboration";
+import { Collaboration } from "../packages/access-control/src/collaboration";
 import { AppHostServer } from "../packages/app-host-server/src/index";
 import { CodexEngineAdapter } from "../apps/opencraft-daemon/src/codex-engine-adapter";
 import { LOGICAL_CLIENT_FIELD } from '@opencraft/app-host-protocol';
-import { createActorCodexExecution } from "../scripts/actor-codex-execution.mjs";
+import { createConversationExecution } from "../scripts/conversation-execution.mjs";
 
 async function fixture(t: any) {
   const root = await mkdtemp(join(tmpdir(), 'actor-codex-'));
@@ -17,24 +17,30 @@ async function fixture(t: any) {
   const a = actors.createSession('source', 'operator'), b = actors.createSession('target', 'operator');
   const credential = actors.issueCredential(a.id, Date.now() + 60_000, 'operator');
   const context = actors.authenticateSession(credential.token)!;
-  let service!: ActorCollaboration;
+  let service!: Collaboration;
   const frames: any[] = [];
   const adapter = new CodexEngineAdapter({ executable: process.execPath, runtimeDirectory: root, dataDirectory: join(root, 'data'), nativeCodexHomeDirectory: join(root, 'native'),
     upstreamBaseUrl: 'http://127.0.0.1:9/backend-api/codex', fetch: async () => Response.json({ ok: true }),
     spawnAppServer: ({ cwd, env }) => spawn(process.execPath, [new URL("./fixtures/fake-codex-stdio-appserver.mjs", import.meta.url).pathname], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] }),
     createMaintenanceClient: async () => { throw new Error('not used'); }, logDiagnostic: () => {},
-    actorExecution: { available: () => service.available, mode: id => service.inputMode(id), authorize: (thread, id, mode, turn) => service.authorizeInput(thread, id, mode, turn) },
+    collaboration: {
+      queuedContext: (thread,inputId,input)=>service.queuedReferenceContext(thread,inputId,input),
+      continued: (thread,previous,turn)=>service.executionContinued(thread,previous,turn),
+      prepare: (context,input)=>service.referenceContext(context,input),
+      command: (context,body)=>service.command(context,body), authorize:(context,thread,input)=>service.authorizeExecution(context,thread,input), started:(thread,input,turn)=>service.executionStarted(thread,input,turn), tool:(thread,turn,name,args)=>service.tool(thread,turn,name,args),
+    },
+    collaborationInput: { available: () => service.available, mode: id => service.inputMode(id), authorize: (thread, id, mode, turn) => service.authorizeInput(thread, id, mode, turn) },
   });
   adapter.subscribeMessage(frame => frames.push(JSON.parse(frame)));
   const host = new AppHostServer({ physicalHostLifetime: 'server', logicalClientRouting: true, createTransport: () => adapter });
-  service = new ActorCollaboration(join(root, 'collaboration.sqlite'), actors, createActorCodexExecution(() => host));
+  service = new Collaboration(join(root, 'collaboration.sqlite'), actors, createConversationExecution(() => host, {serverId:"fixture"}));
   t.after(async () => { await service.close(); await host.close(); actors.close(); await rm(root, { recursive: true, force: true }); });
   await host.ensureHostConnected('local-codex');
   let next = 0;
-  const rpc = async (method: string, params: any = {}, trusted?: string, raw = false) => {
+  const rpc = async (method: string, params: any = {}, trusted?: string, raw = false, actor?: any) => {
     const id = `controller-${next++}`, frame = JSON.stringify({ id, method, params, collaborationRequestId: trusted, [LOGICAL_CLIENT_FIELD]: 'controller' });
-    if (raw || !trusted) await adapter.send(frame);
-    else await adapter.sendWithContext(frame, { sender: null, collaborationRequestId: trusted });
+    if (raw || (!trusted && !actor)) await adapter.send(frame);
+    else await adapter.sendWithContext(frame, { sender: null, collaborationRequestId: trusted, actorContext:actor });
     const deadline = Date.now() + 5_000;
     while (Date.now() < deadline) { const result = frames.find(f => f.id === id); if (result) return result; await new Promise(resolve => setTimeout(resolve, 5)); }
     throw new Error('RPC timeout: ' + method);
@@ -88,7 +94,7 @@ test('wire fields cannot forge trusted Actor queue admission or mutate a managed
     const reply = await f.rpc(method, { threadId: f.threadId, queuedSubmissionId: queueId, input: [], expectedTurnId: 'turn-1' }, sent.requestId!, true);
     assert.equal(reply.error.code, -32600, method);
   }
-  assert.equal((await f.rpc('thread/queue/actorReceipt', { threadId: f.threadId }, sent.requestId!, true)).error.code, -32600);
+  assert.equal((await f.rpc('thread/queue/collaborationReceipt', { threadId: f.threadId }, sent.requestId!, true)).error.code, -32600);
   assert.ok((await f.rpc('thread/queue/add', { threadId: f.threadId, clientUserMessageId: 'actor-input:forged', input: [] }, 'forged', true)).error);
   assert.ok((await f.rpc('turn/start', { threadId: f.threadId, clientUserMessageId: 'actor-input:forged', input: [] })).error);
   await f.service.cancel(f.context, sent.requestId!, () => {});
@@ -115,7 +121,7 @@ test('actual Headless bundle persists authenticated messages, binds execution an
   const a = store.createSession('A', 'operator'), b = store.createSession('B', 'operator');
   const ca = store.issueCredential(a.id, Date.now() + 60_000, 'operator'), cb = store.issueCredential(b.id, Date.now() + 60_000, 'operator');
   for (const action of ['message.send', 'execution.queue']) store.setGrant(a.id, b.id, action, true, 'operator');
-  const seed = new ActorCollaboration(join(dataDirectory, 'actor-collaboration.sqlite'), store, { validate: async () => {}, receipt: async () => null, add: async () => { throw new Error('not used'); }, steer: async () => {}, cancel: async () => false });
+  const seed = new Collaboration(join(dataDirectory, 'actor-collaboration.sqlite'), store, { validate: async () => {}, receipt: async () => null, add: async () => { throw new Error('not used'); }, steer: async () => {}, cancel: async () => false });
   await seed.bind(b.id, 'durable-thread', 0, () => {}); await seed.close(); store.close();
   const options = { root, webRoot, dataDirectory, port: 0, codexExecutable: wrapper, runtimeDirectory: root,
     startAgentHost: async () => ({ websocketUrl: 'ws://127.0.0.1:9/rpc', async close() {} }) };
@@ -139,4 +145,36 @@ test('actual Headless bundle persists authenticated messages, binds execution an
   assert.equal((await (await call('inbox', cb.token)).json() as any).messages.length, 2);
   const replay = await (await call('messages', ca.token, { targetActorId: b.id, content: 'review from another Session', idempotencyKey: 'one', execution: { mode: 'queue' } })).json() as any;
   assert.equal(replay.replayed, true); assert.equal(replay.requestId, sent.requestId);
+});
+
+
+test('conversation tools execute in the server after the source viewer disconnects, with native history and the real target Host queue',async t=>{
+  const f=await fixture(t);
+  const human=f.actors.resolveHuman({provider:'local',subject:'source-user',displayName:'User',expiresAt:Date.now()+60000})!;
+  const reference={serverId:'fixture',threadId:'codex-fork-1'};
+  await f.rpc('thread/fork',{threadId:f.threadId});
+  await f.rpc('test/setHistory',{threadId:reference.threadId,turns:[{id:'saved',items:[{type:'agentMessage',id:'answer',text:'Verified target history'}]}]});
+  const started=await f.rpc('turn/start',{threadId:f.threadId,input:[{type:'text',text:'inspect target opencraft://conversation/v1/fixture/codex-fork-1'}],clientUserMessageId:'source-input'},undefined,false,human);
+  const turnId=started.result.turn.id;
+  const initial=(await f.rpc('test/readAcceptedInputs')).result.data.find((r:any)=>r.params.clientUserMessageId==='source-input');
+  assert.equal(initial.params.additionalContext['opencraft.conversations'].kind,'untrusted');
+  assert.match(initial.params.additionalContext['opencraft.conversations'].value,/Verified target history/);
+  const encoded='opencraft://conversation/v1/fixture/codex-fork-1';
+  await f.rpc('test/emitTool',{threadId:f.threadId,turnId,tool:'read_thread',arguments:{reference:encoded}});
+  const waitResult=async(count:number)=>{for(let i=0;i<100;i++){const r=await f.rpc('test/readToolResults');if(r.result.data.length>=count)return r.result.data;await new Promise(r=>setTimeout(r,10));}throw Error('tool result timeout');};
+  const reads=await waitResult(1);assert.equal(reads[0].result.success,true);assert.match(reads[0].result.contentItems[0].text,/Verified target history/);
+  // No logical viewer owns the following tool request. The same persistent delegation remains authoritative.
+  await f.rpc('thread/unsubscribe',{threadId:f.threadId});
+  await f.rpc('test/emitTool',{threadId:f.threadId,turnId,tool:'send_message_to_thread',arguments:{reference:encoded,message:'Review this change',idempotencyKey:'detached-send'}});
+  const results=await waitResult(2);assert.equal(results[1].result.success,true);
+  const receipt=JSON.parse(results[1].result.contentItems[0].text);
+  for(let i=0;i<100 && f.service.getRequest(human,receipt.requestId).state!=='submitted';i++){await f.service.pump();await new Promise(r=>setTimeout(r,10));}
+  assert.equal(f.service.getRequest(human,receipt.requestId).state,'submitted');
+  const accepted=(await f.rpc('test/readAcceptedInputs')).result.data;
+  assert.equal(accepted.filter((r:any)=>r.params.threadId===reference.threadId).length,1);
+  assert.equal(accepted.find((r:any)=>r.params.threadId===reference.threadId).params.input.some((p:any)=>p.text.includes('source opencraft://conversation/v1/fixture/')),true);
+  assert.equal((await f.rpc('opencraft/collaboration',{action:'reference',threadId:reference.threadId})).error.code,-32070);
+  f.actors.setEnabled(human.actorId,false,'operator');
+  await f.rpc('test/emitTool',{threadId:f.threadId,turnId,tool:'read_thread',arguments:{reference:encoded}});
+  assert.equal((await waitResult(3))[2].result.success,false);
 });

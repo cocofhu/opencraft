@@ -265,7 +265,7 @@ export interface StartThreadOptions {
 }
 
 export interface AppServerThreadResourcePort {
-  capabilities?(): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean };
+  capabilities?(): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean; reference?: boolean };
   setPinned?(threadId: string, pinned: boolean): Promise<void>;
   rename?(threadId: string, name: string): Promise<void>;
   delete?(threadId: string): Promise<void>;
@@ -1611,8 +1611,9 @@ export function createAppServerWorkbenchRuntime(
       },
       threads: {
         capabilities() {
+          const reference = client?.initializeResult?.capabilities?.extensions?.["opencraft/collaboration"] !== undefined;
           const capability = parseThreadLifecycleCapability(client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]);
-          return { fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
+          return { reference, fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
             pin: client !== null && threadPins?.client === client && threadPins.generation === client.connectionGeneration && threadPins.resource.available() };
         },
         async setPinned(threadId, pinned) { await pinResource(requireClient()).set(threadId, pinned); },

@@ -1,3 +1,5 @@
+import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
+import { copyConversationReference } from "./runtime/conversation-reference-actions";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -1746,6 +1748,7 @@ export function App({
     onRetryThreadCatalog: hostId => { void multiHostCatalog.retry(hostId); },
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
+      onCopyReference: target => copyConversationReference(body=>hostCatalog.agentRuntimes.request(target.hostId,"opencraft/collaboration",body),window.location.href,target),
       onSetPinned: async (target, pinned) => {
         try { await hostCatalog.threadManagement.setPinned(target.hostId, target.threadId, pinned); }
         finally { await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }); }
@@ -1794,6 +1797,7 @@ export function App({
 
   return (
     <IdentityAvatarContext.Provider value={identityAvatar}>
+    <ConversationReferenceSurface catalog={hostCatalog} hostId={snapshot.hostId}>
       <InternalDeveloperModeGate />
       <AppShellRouteRegionsProvider
         controller={routeHeader.controller}
@@ -2242,6 +2246,7 @@ export function App({
           onCancel={() => setWorkspacePickerOpen(false)}
           onChoose={chooseWorkspaceDirectory}
         />
+    </ConversationReferenceSurface>
     </IdentityAvatarContext.Provider>
   );
 }

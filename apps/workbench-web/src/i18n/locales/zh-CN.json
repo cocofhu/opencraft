@@ -648,5 +648,21 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "conversation.reference.copy": "复制会话引用",
+  "conversation.reference.label": "会话",
+  "conversation.reference.unavailable": "暂时无法确认操作结果。消息已保留，请核对投递状态后重试。",
+  "conversation.reference.open": "打开会话",
+  "conversation.reference.user": "用户",
+  "conversation.reference.assistant": "助手",
+  "conversation.reference.more": "继续读取",
+  "conversation.reference.message": "给这个会话发消息",
+  "conversation.reference.check": "查看投递状态",
+  "conversation.reference.send": "发送消息",
+  "conversation.reference.sending": "发送中…",
+  "conversation.reference.submitted": "对方已接纳消息",
+  "conversation.reference.cancelled": "已取消",
+  "conversation.reference.rejected": "消息未能投递",
+  "conversation.reference.unknown": "请核对投递结果",
+  "conversation.reference.queued": "等待对方会话处理"
 }

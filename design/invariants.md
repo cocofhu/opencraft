@@ -1627,3 +1627,8 @@ The command-adjacent desktop entry invokes the existing filtered Panel action fo
 the current Conversation. No adapter or resolved target means no entry. Preview-only
 embedded layouts may retain a desktop renderer without exposing file-tree management;
 showing the entry never grants viewing or input authority.
+
+
+## Conversation references
+
+Copy, paste, @ search and saved links share a stable server/thread codec. Display titles and Host routes cannot replace identity. A reference dialog owns its captured target and pending draft across asynchronous operations; failures preserve the draft and retry key. Core authorization and native history remain authoritative. Delivery uses the existing Host queue independently of page lifetime. See [conversation interoperability](../docs/architecture/conversation-interoperability.md).

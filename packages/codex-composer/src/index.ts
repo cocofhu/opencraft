@@ -29,3 +29,6 @@ export type {
 } from "@opencraft/composer-core";
 
 export { groupComposerModels } from "./session-model-picker";
+
+export { ConversationReferenceProvider } from "./conversation-references";
+export type { ConversationReferencePort } from "./conversation-references";

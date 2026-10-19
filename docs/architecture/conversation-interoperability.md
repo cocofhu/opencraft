@@ -1,144 +1,129 @@
-# 会话引用、读取与消息投递
+# Conversation references and delivery
 
-状态：目标架构，尚未实现。本文规定会话互通的最终所有权和迁移要求，不声明当前 Host 已具备所列能力。
+Headless exposes conversation references, bounded native history reads and durable
+message handoff through one core `Collaboration` service. The Web/Electron renderer
+supplies copy, paste, `@` search and a reference dialog. Codex source threads created
+with this service also receive server-owned `read_thread`, `send_message_to_thread`
+and `get_thread_delivery` tools. This is a capability of the configured Headless
+Codex adapter; SSH, DSH and federated resources do not inherit it.
 
-## 一个入口，两个不同的对象
+## Identity and ownership
 
-会话互通使用核心协作服务，不能在 Renderer、模型工具或引擎插件里各实现一份发送逻辑。
+`ConversationRef {serverId, threadId}` identifies a resource, independently of an
+Actor, connection URL or renderer Host route. Its versioned canonical encoding is
+`opencraft://conversation/v1/<encoded-server>/<encoded-thread>`. HTTPS navigation
+links carry that encoding in `conversation`; title and current page are display
+hints. Links never carry authentication or a transcript. The shared codec lives
+in `appserver-protocol/collaboration`. Opening a link checks the resource's stable
+server identity before selecting a local Host route.
 
-- Actor 是行动主体；Session Actor 可以持续行动，权限来自显式授权。
-- Conversation 是资源，其稳定地址为 `(serverId, threadId)`；它的历史和运行由目标 Server/Host 拥有。
+The Headless Codex server namespace uses its persisted installation identity plus
+an engine namespace. Moving its data retains that identity; connecting through
+another route does not create another resource. Cross-server resolution is not yet
+implemented, and an unknown server fails closed without requesting a supplied URL.
 
-二者通过显式、带 epoch 的运行绑定关联，不互为别名。一个可引用的历史会话不必正在运行，也不因被引用而注册新的主体、启动引擎、签发凭据或取得权限。
-Session 可以换引擎或绑定；已经发送的引用仍指向原 Conversation。多个连接路径访问同一 Server 不产生新的会话身份。
+Actor remains the acting subject. Referencing an old thread does not create a
+Session Actor, issue a credential or wake the target. An explicit Actor run binding
+and its epoch are separate from a conversation address. The configured target port
+owns native discovery, read, durable enqueue, receipt, cancellation and exact-Turn
+steer. The core does not own another runnable queue or native history mirror.
 
-```text
-用户界面 / Agent 工具 / 其他渠道
-                ↓
-         已验证的行动上下文
-                ↓
-       核心协作服务：解析、授权、交接
-                ↓
-         目标 Server 的会话能力
-          ├─ 读取原生历史
-          └─ 现有 Host 输入队列 → 引擎适配器
-```
+## User interaction and context
 
-Hub 负责寻址和受权路由；目标资源权威作最终授权决定。部署允许这些模块同进程，不要求额外 broker、微服务或后台消息总线。
+A capable conversation's context menu copies its reference. Pasting the plain link
+creates a removable thread mention; `@` search produces the same node. The compiler
+preserves its canonical address in native input. Both draft mentions and saved
+Markdown references open the shared dialog, which reads actual history and can
+send a follow-up. Failed sends retain their text and idempotency key; changing the
+text is a new command. The dialog uses the shared modal, clipboard and notices.
 
-## 稳定引用
+Submitting up to three references asks the core to attach a bounded native-history
+excerpt in `additionalContext` with `kind: untrusted`. This works for existing
+source threads as well as new ones. Queued user inputs resolve their original
+execution authority when the target turn begins, independently of the old page.
+Excerpts identify their source and history watermark; unavailable and truncated
+sources are explicit. A reference alone never proves content has been read, and
+old snapshots do not update automatically.
 
-唯一领域类型是 `ConversationRef { serverId, threadId }`。展示标题、项目、当前路由和 endpoint 不属于身份；它们可以变化，也不能提供授权。
-UI、剪贴板、消息持久化、CLI 与模型工具消费同一版本化引用编码。标准 HTTPS 深链包含引用，必要时携带导航提示；导航提示不能改写目标身份，也不能让工具对任意 URL 发请求。
+Native history pages expose only user/assistant text, with message/Turn IDs,
+chunk offsets, a content watermark and `nextCursor`. Pages contain at most thirty
+chunks and about 24 KiB of serialized entries; a very long message is split
+without dropping its tail. A changed watermark invalidates continuation rather
+than mixing two snapshots. The submission context has a separate total byte bound.
+Tool transcripts, credentials and binary attachments are not mirrored into these
+previews. The native history remains authoritative.
 
-复制只复制引用，不复制 transcript、Cookie、Session bearer 或模型凭据。粘贴及 `@` 选择使用相同的结构化输入节点；纯文本链接仍能按统一解析器恢复引用。消息保存引用本身，标题只作显示快照。
-目标被删除、不可达或失去权限时保留原引用，分别显示状态；不能按同名会话替换目标或切到另一 Server。
+## Commands, permission and audit
 
-## 读取与上下文
+`opencraft/collaboration` is the initialized Host command lane. `reference`,
+`discover`, `read`, `send`, `delivery` and `cancel` reuse the same core authority as
+model tools and the existing Actor HTTP channel adapter. The wire cannot supply
+an author, execution identity or source thread. Human authentication and Session
+credentials are verified at ingress; browser commands also recheck their live
+resource owner across asynchronous work.
 
-引用不等于已读取内容，也不自动唤醒目标。引用进入当前轮的结构化上下文，模型通过核心读取能力获取内容，不能仅凭标题宣称了解另一会话。
+The current shared-instance policy allows admitted human Actors to operate its
+native conversations, matching the existing native UI. Session Actors require
+explicit resource grants for read, send and execution actions. Discovery currently
+serves admitted humans only. ActorStore accepts a trusted resource-authority
+registration for this local server's canonical addresses; registration is not a
+grant and cannot authorize another server. Queue and steer are distinct grants;
+steer requires an exact expected Turn and never falls back to queue.
 
-读取由目标历史 adapter 提供：有界条数/字节、稳定游标、实际读到的历史水位及截断信息。原生日志仍是历史权威，不建立第二份可编辑 transcript 或全文镜像。
-UI 的卡片预览与模型读取复用资源授权；搜索只能返回当前调用者可发现的元数据。
-读到的历史是外部上下文，不能升级为当前系统指令、操作授权或用户的新任务。
+Model tools use a durable, bounded user delegation captured from the authenticated
+input that started their Turn. Its issuer, Actor generation, credential, source
+thread and expiry are stored and audited. The maximum lifetime is one day, bounded
+by the original authentication. A newly selected viewer or latest message author
+cannot replace it. Native capacity continuations retain that precise delegation
+and its send budget. Disable/revocation and instance admission are rechecked.
+Unbound turns fail closed. Incoming cross-conversation messages do not acquire the
+sender's execution identity or silently inherit a previous viewer's delegation.
 
-模型读取结果标注来源与水位。一次读取对应一致的历史窗口；再次询问最新进展时重新读取，不能把引用描述成自动实时同步。
+Tools may send at most eight distinct messages per originating delegation; retries
+with the same idempotency key do not consume another slot. Self-delivery is denied.
+No output, acknowledgment, read receipt or status query automatically sends a reply
+or wakes another model. Incoming messages show their real author and source link.
 
-## 消息、投递与执行
+## Persistence and execution
 
-核心协作服务保存一份不可变消息及交接事实：稳定消息 ID、作者 Actor、当前请求者/委托依据、来源会话（可缺省）、目标资源、正文、回复关联和幂等键。
-作者、来源会话和行动者分别建模。来源从可信调用上下文或已验证的资源关系建立，不接受 wire 自报作者。
+The existing `actor-collaboration.sqlite` receives an additive version 2 migration.
+Its original migration/checksum and all Actor messages, bindings, idempotency keys,
+unknown requests and receipts are preserved. New columns distinguish Actor and
+conversation targets, stable server addresses, source references and delegation
+provenance. Existing table names and `actor-input:` queue keys are retained as data
+identities. The implementation is `access-control/collaboration`; there is no second
+`ActorCollaboration` domain service.
 
-目标会话投递复用 `ActorCollaboration` 的消息/幂等/执行交接责任，扩展其资源寻址，而非另外建立 `ConversationMessageQueue`。
-直接联系人类/Session 的私聊仍保留 Channel 语义；“向一个会话继续输入”明确以 Conversation 资源为目标，不能为了投递强制为所有历史 Thread 创建 Session。
-默认的 UI “发送消息”是消息加 queue 意图的一个原子接纳操作；仅传递信息而不唤醒的动作必须显式区分。
+Message, idempotency receipt and optional execution intent are one SQLite
+transaction. `conversation-execution` is the narrow target adapter, using existing
+AppHost logical-client admission. The target's `CodexHostQueue` remains the sole
+claimant, owns its durable receipt and uses its own model, account, workspace and
+permissions. Target authorization is rechecked immediately before claim. A
+conversation target remains fixed even if an unrelated Session is rebound.
+Conversation routing is resolved from the current adapter rather than saved as
+its resource identity.
 
-执行仍由目标 Host 的既有队列独占领取。协作服务是持久交接记录，不拥有第二个可运行的任务列表。
-消息进入目标后使用目标自己的账号、模型、工作区、工具权限和运行配置；来源不能顺带修改这些配置。
+Accepted, queued, submitted/injected, rejected, cancelled and unknown are different
+facts. Submitted proves engine admission, not semantic completion. Cancellation
+checks the real queue claim, and an uncertain transfer is queried by its original
+ID after reconnection or restart. It is never resent merely because a response
+was lost. Historical submitted facts remain factual after revocation.
 
-发送方可查询的事实分层如下：
+## Supported boundary and verification
 
-| 事实 | 可证明什么 |
-| --- | --- |
-| 消息已接纳 | 核心已持久化消息与交接意图 |
-| 已入队 | 目标 Host 有持久回执 |
-| 已提交 / 已注入 | 引擎确认接纳了输入 / 指定 Turn 接纳了 steer |
-| 执行终态 | 关联 Turn 的权威终态；不等价于任务语义上完成 |
-| 结果未知 | 查询对账前不能重新执行 |
+Existing Codex threads can be read and receive messages, and references submitted
+from them receive bounded context. Native dynamic tools are registered at source
+thread creation; this adapter does not pretend that native resume can add tools
+to older source threads. The reference dialog remains available for direct reads
+and sends. New adapters must implement native history and durable handoff before
+advertising these capabilities; no renderer-only delivery fallback is provided.
 
-不能将“HTTP 成功”“已收到”或“已读”展示成“对方完成任务”。取消与处理结果也不通过自动发消息模拟回执。
-
-## 身份与权限
-
-核心接收可信的 Actor 调用上下文，UI 从当前认证建立上下文；模型工具从 Host 绑定的 Session 执行上下文建立上下文。工具参数不接收 bearer、作者 Actor 或任意 sourceThreadId。
-未建立可信 Session/受限委托绑定时拒绝模型跨会话工具，不能选择“最后打开页面的人”或“最近发消息的人”充当行动者。
-明确的自然人委托必须有可审计、可撤销、限定资源与动作的依据，不能把 Session 静默变成人类身份。
-
-发现、读历史、发消息、queue、steer 和 interrupt 是独立权限。粘贴引用不授予目标权限；引用本身不授权发送、不建立永久信任，也不授予中断。
-目标当前的共享实例策略可以明确授权其资源，不能把“能连上 Host”“创建了 Session”或“安装了工具”当作资源权限。
-延后执行在领取前复核行动主体、目标授权、运行绑定 epoch 和当前能力。撤销后的已提交事实保留，不能伪装为撤回成功。
-
-## 统一领域命令与持久化边界
-
-核心服务统一命名为 `Collaboration`，现有 `ActorCollaboration` 是迁移来源，不成为与新服务长期并存的实现。
-目标使用判别联合，明确区分联系主体与向历史会话输入：
-
-```ts
-type ConversationRef = { serverId: string; threadId: string };
-type CollaborationTarget =
-  | { kind: "actor"; actorId: string }
-  | { kind: "conversation"; ref: ConversationRef };
-type ExecutionIntent =
-  | { mode: "queue" }
-  | { mode: "steer"; expectedTurnId: string };
-```
-
-公共领域操作是 `discover`、`readConversation`、`sendMessage`、`getDelivery` 和 `cancelPending`。认证上下文为独立参数，不进入客户端可指定的 command body。
-`sendMessage` 接收目标、正文、可选回复关联、幂等键及可选 ExecutionIntent；来源会话由可信渠道绑定填入。
-两个不同入口重复投递同一命令仍返回同一事实；不能通过换 HTTP/工具入口绕过去重。
-
-现有库以追加迁移保存目标种类及不可变资源地址、来源会话、授权/委托依据和目标执行关联。
-Actor 目标执行在接纳时解析并固定运行绑定 epoch；Conversation 目标固定资源地址，不能因某个 Session 后来重绑而转投新会话。
-Session 运行绑定、消息目标与具体执行回执三者分别存储；持久记录不存 transport Host 路由、界面 lease 或函数闭包作为恢复凭据。
-目标 adapter 的解析结果只是本次路由，不能反写稳定引用。
-
-历史读取不写消息表，不创建执行请求；状态查询不制造回复消息；普通发送不包含 interrupt 操作。
-同一接纳事务保存不可变消息、幂等回执和可选交接意图，目标入队属于可对账交接，不声称两个数据库之间存在原子提交。
-所有可恢复授权依据都由核心验证，且目标领取前按当前策略复核；页面连接已断开不自动取消已经授权并持久接纳的工作。
-
-## 引擎与渠道适配
-
-核心会话能力端口只声明真实实现的 `read`、`enqueue`、`receipt`、`cancelPending` 和可选 `steer`。引擎 adapter 负责原生协议差异，不负责发明主体或自行授权。
-UI、CLI、HTTP 与 Agent 工具只是渠道适配，使用同一领域命令、幂等键和失败语义。工具名称可提供 Codex 的 `read_thread` / `send_message_to_thread` 兼容映射，但核心 contract 不依赖这些名字或 Codex 动态工具协议。
-工具注册及处理由服务端拥有；关闭来源或目标页面不卸载服务，不丢弃已接纳投递。客户端不能成为后台工具唯一处理者。
-
-queue 是默认跟进；steer 必须由 adapter 明确支持，携带 expectedTurnId 并独立授权。指定 Turn 已结束时明确拒绝，不能悄悄改为下一轮 queue。
-只支持读取的远端显示只读。没有持久队列/回执能力的 adapter 不声明可靠投递，也不在 Renderer 临时模拟。
-
-## 恢复与跨 Server
-
-稳定消息/交接 ID 贯穿路由、目标队列和引擎回执。同幂等键配不同内容拒绝；断线、超时、进程重启或换路由先查询原 ID，不创建第二条执行。
-目标领取前持久化 claim；无法区分“未发出”和“已发出但丢失回执”时保持 unknown，不能承诺任意引擎 exactly-once。
-同一目标的领取与取消由目标现有事务/串行边界裁决，不另造分布式锁。
-
-跨 Server 与本地使用同一 ConversationRef 和命令。经现有 Hub 信任/路由链路转发已验证、限定动作的调用；目标复核授权。
-不转发来源模型账号或浏览器凭据，不通过 SSRF 式任意 URL 调用，也不将仅有传输连通的旧目标宣告为支持会话投递。
-当前未实现完整资源联邦；实现可以在已接通的目标上启用能力，但不能建立只能用于本地的另一份领域模型。
-
-## 交互
-
-1. 会话菜单提供“复制会话引用”；粘贴为可移除的会话卡片，`@` 搜索产生同一节点。
-2. 发送引用后按需读内容；卡片可打开原会话，有权限时预览，失败保留输入和引用。
-3. 卡片提供“发送消息”，用户输入正文后提交；也可明确要求当前 Agent 向被引用会话发送。
-4. 目标输入显示来源会话和真实作者/委托关系，可回复来源；来源接收状态回执和结果关联。
-5. 普通引用、阅读和状态查询不触发对方回复。跨会话自动唤醒遵循有界因果链与预算；默认不自动回传每条模型输出、致谢或回执，避免互相唤醒。
-
-## 迁移与删除
-
-允许调整尚未稳定的内部 API，不保留重复入口作为永久兼容层。
-实施时将现有 `actor-codex-execution` 的进程内逻辑客户端交接收敛到通用目标能力端口，Codex 和 DSH 的 native 操作分别留在 adapter；核心不再用字面量 `local-codex` 表示所有运行绑定。
-现有 Actor 私聊、消息、幂等键、绑定 epoch、未知交接与队列回执必须迁移保留。破坏性接口调整不等于允许删除业务数据、改写已发布迁移或重放未知输入。
-旧接口如确有实际外部消费者，只保留有移除条件的协议转换，不保留第二份领域规则。
-
-验收必须覆盖引用解析/跨路由身份、搜索权限、分页截断、跨引擎、忙碌 queue、精确 steer、页面关闭、断线丢回执、重启、撤权/重绑竞态、取消与领取竞争、来源不可伪造及无自动互聊循环。
-至少一条完整链路使用真实核心、目标 Host 队列和浏览器组件；模型与身份替身的边界分别记录。源码、集成和实际运行分开报告。
+`conversation-collaboration.test.ts` verifies identity, grants, idempotency,
+revocation, restart and delegation budgets. `actor-collaboration-codex.test.ts`
+uses the real core, AppHost and persistent Codex queue with a synthetic native
+engine, including detached-viewer tools and untrusted reference context.
+`smoke-conversation-interoperability.ts` exercises real browser components and
+that core/queue with fixture human authentication and model output. It covers
+copy/paste/search, saved links, history, failed-send retention and successful
+handoff in narrow/wide light/dark views. These fixtures do not claim real employee
+login, physical mobile hardware, paid inference or cross-server federation.

@@ -60,7 +60,7 @@ Session bearer 仍被旧共享 HTTP / WebSocket 入口拒绝。自然人原有�
 
 ## 所有权、恢复与撤销
 
-`ActorCollaboration` 拥有独立受迁移管理的 `actor-collaboration.sqlite`：消息、每个接收者的投递状态、运行绑定、执行请求与输入引用、幂等键。消息与接收回执在同一事务提交。`received` 仅表示进入持久收件箱，`read` 表示接收客户端显式标记，均不表示模型已消费或任务完成。
+`Collaboration` 拥有独立受迁移管理的 `actor-collaboration.sqlite`：消息、每个接收者的投递状态、运行绑定、执行请求与输入引用、幂等键。消息与接收回执在同一事务提交。`received` 仅表示进入持久收件箱，`read` 表示接收客户端显式标记，均不表示模型已消费或任务完成。
 
 执行权威仍是 `CodexHostQueue`。协作服务保存交接过程，不另建能独立领取运行的队列；以稳定的 `actor-input:<requestId>` 关联现有队列。可信进程内上下文允许有限的入队、查询、steer 和取消；JSON / Wire 中伪造同名字段无效。管理中的输入不可通过旧队列界面编辑、删除、重排或手动启动；只能经协作接口操作，原消息不可变。
 
@@ -82,3 +82,6 @@ Session bearer 仍被旧共享 HTTP / WebSocket 入口拒绝。自然人原有�
 ## 当前边界
 
 本期提供 HTTP 后端与本地 Codex 适配，不提供新聊天 UI、自动给模型分发 Session 密钥、自动把每个历史 Thread 发行成 Actor、模型回复自动回传、Hermes 适配、多频道订阅或跨 Hub 联邦。主动 Session 客户端可用自己的受限凭据收发；模型工具如何代表绑定 Session 发起调用须经后续受限运行能力接口接入，不能把 bearer 塞入提示词。共享系统资源隔离仍是独立工作。
+
+
+会话资源使用同一核心服务，新增版本2迁移保留旧消息与回执。原Actor HTTP路由仍为渠道适配；初始化Host的`opencraft/collaboration`命令及服务端工具共用会话资源授权、幂等与交接。稳定引用、读取边界和实际能力见[会话互通](architecture/conversation-interoperability.md)。

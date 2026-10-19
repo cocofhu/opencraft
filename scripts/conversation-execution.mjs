@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { APP_HOST_PROTOCOL_VERSION } from '@opencraft/app-host-protocol/version';
 
 /** Narrow internal logical-client lane; no client-supplied RPC method or Host is forwarded. */
@@ -40,18 +40,45 @@ function call(appHost, binding, requestId, method, params) {
     } catch (error) { finish(error); }
   });
 }
-export function createActorCodexExecution(getAppHost) {
+export function createConversationExecution(getAppHost, {serverId, hostId = "local-codex"}) {
   const invoke = (binding, id, method, params) => {
-    if (binding.hostId !== 'local-codex') throw new Error('Unsupported Actor execution Host');
+    if (binding.hostId !== hostId) throw new Error('Unsupported Actor execution Host');
     const host = getAppHost(); if (!host) throw new Error('Actor Host unavailable');
     return call(host, binding, id, method, params);
   };
+  const binding = threadId => ({hostId, threadId});
   return {
+    serverId, hostId,
+    async discover(search, cursor) {
+      const result = await invoke(binding(''), 'catalog', 'thread/list', {limit:30, searchTerm:search.trim() || null, archived:false, cursor});
+      return {conversations:result.data.map(t=>({ref:{serverId,threadId:t.id},title:t.name || t.preview || t.id})),nextCursor:result.nextCursor ?? null};
+    },
+    async read(ref, cursor) {
+      if(ref.serverId !== serverId) throw new Error('Unknown conversation server');
+      const result = await invoke(binding(ref.threadId), 'history', 'thread/read', {includeTurns:true});
+      const thread = result.thread;
+      if(thread?.id !== ref.threadId) throw new Error('Conversation is unavailable');
+      const entries=[];
+      for(const turn of thread.turns ?? []) for(const item of turn.items ?? []) {
+        if(!['userMessage','agentMessage'].includes(item.type)) continue;
+        const content=item.type==='agentMessage' ? item.text : (item.content ?? []).filter(p=>p.type==='text').map(p=>p.text).join('\n');
+        if(typeof content !== 'string') continue;
+        // A bounded page also handles one very long native message without losing its tail.
+        const chunks=Array.from(content); for(let offset=0;offset<chunks.length;offset+=2000)
+          entries.push({turnId:turn.id,itemId:item.id,role:item.type==='userMessage'?'user':'assistant',offset,text:chunks.slice(offset,offset+2000).join('')});
+      }
+      const watermark=createHash('sha256').update(JSON.stringify(entries)).digest('hex');
+      let offset=0;
+      if(cursor) {const c=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8')); if(c.watermark!==watermark || !Number.isSafeInteger(c.offset) || c.offset<0 || c.offset>entries.length) throw new Error('History changed; read again without cursor');offset=c.offset;}
+      const page=[]; let bytes=0;
+      while(offset<entries.length && page.length<30) {const entry=entries[offset], size=Buffer.byteLength(JSON.stringify(entry));if(bytes+size>24000 && page.length) break;page.push(entry);bytes+=size;offset++;}
+      return {entries:page,watermark,latestTurnId:thread.turns?.at(-1)?.id ?? null,truncated:offset<entries.length,nextCursor:offset<entries.length?Buffer.from(JSON.stringify({watermark,offset})).toString('base64url'):null};
+    },
     async validate(binding) {
       const result = await invoke(binding, 'binding-validation', 'thread/read', { includeTurns: false });
       if (result?.thread?.id !== binding.threadId || result.thread.ephemeral === true) throw new Error('Durable Thread required');
     },
-    async receipt(binding, id) { return (await invoke(binding, id, 'thread/queue/actorReceipt', {})).receipt; },
+    async receipt(binding, id) { return (await invoke(binding, id, 'thread/queue/collaborationReceipt', {})).receipt; },
     async add(binding, id, input) {
       const result = await invoke(binding, id, 'thread/queue/add', { clientUserMessageId: `actor-input:${id}`, input: [{ type: 'text', text: input }] });
       return { id: result.queuedSubmission.id, state: 'queued', targetTurnId: null };
