@@ -23,7 +23,7 @@ export interface DesktopRfbSession {
   openChannel(): WebSocket;
   readonly control?: DesktopRfbControlPort;
   /** Adapter-owned classification; absent/retired failures are not retried. */
-  getTermination?(): "transport-lost" | "retired" | null;
+  getTermination?(): "transport-lost" | "control-released" | "retired" | null;
   /** Retire this viewer's transport only, never a shared Chat connection. */
   close(): void;
 }
@@ -143,6 +143,28 @@ class RfbConnection implements DesktopConnection {
       if (Observer) {
         const observer = new Observer(syncGeometry);
         observer.observe(canvas, { attributes: true, attributeFilter: ["width", "height"] });
+        this.disposers.push(() => observer.disconnect());
+      }
+      // noVNC 1.5 does not rescale across a container A→0→A round trip: while
+      // the host tab is hidden (display:none) the surface measures 0×0 and the
+      // cached scale is computed against zero; restoring the size never reruns
+      // _updateScale, and incremental RFB delivers no full-frame repaint, so
+      // the canvas stays blank. Watch the mount element and reassign
+      // scaleViewport (its public setter always reruns _updateScale) once the
+      // size recovers from zero. Zero-size frames are skipped so the scale
+      // factor can never collapse to 0.
+      const Resize = element.ownerDocument?.defaultView?.ResizeObserver;
+      if (Resize) {
+        let collapsed = true;
+        const observer = new Resize(entries => {
+          if (this.closed) return;
+          const [entry] = entries;
+          if (!entry || !(entry.contentRect.width > 0 && entry.contentRect.height > 0)) { collapsed = true; return; }
+          if (!collapsed) return;
+          collapsed = false;
+          client.scaleViewport = true;
+        });
+        observer.observe(element);
         this.disposers.push(() => observer.disconnect());
       }
       const fail = () => this.close(false, "authorization");
@@ -322,9 +344,10 @@ class RfbConnection implements DesktopConnection {
     if (this.closed) return;
     if (failure === "transport") this.capturePreview();
     else this.preview = null;
+    const resumeObserving = failure === "transport" && this.session.getTermination?.() === "control-released";
     this.closed = true;
     this.snapshot = { videoReady: false, inputReady: false, controlAvailable: false, ended: true,
-      failure, ...(retryable ? { retryable: true } : {}) };
+      ...(resumeObserving ? { resumeObserving: true } : { failure, ...(retryable ? { retryable: true } : {}) }) };
     this.abort.abort();
     this.releaseLeases();
     for (const dispose of this.disposers.splice(0).reverse()) cleanup(dispose);

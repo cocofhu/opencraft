@@ -818,3 +818,52 @@ test("real panel component mounts observe-only, releases on blur, and cleans up 
     }
   }
 });
+
+
+test("intentional release obtains a new observe-only viewer without retry opt-in or input", async () => {
+  const f = fixture(); let prepares = 0;
+  f.backend.prepare = async () => {
+    prepares++;
+    if (prepares > 1) f.setState({ ended: false, videoReady: false, inputReady: false, resumeObserving: undefined, controlAvailable: false });
+    return f.attachment;
+  };
+  try {
+    f.controller.start(); await flush();
+    f.setState({ videoReady: true, inputReady: true });
+    await f.controller.requestControl();
+    assert.equal(f.controller.getSnapshot().control, "controlling");
+    f.setState({ ended: true, resumeObserving: true }); await flush();
+    assert.equal(prepares, 2);
+    assert.equal(f.controller.getSnapshot().phase, "connecting");
+    assert.equal(f.controller.getSnapshot().control, "observing");
+    f.setState({ videoReady: true, inputReady: true });
+    assert.equal(f.controller.getSnapshot().phase, "ready");
+    assert.equal(f.controller.getSnapshot().canControl, false);
+    assert.equal(f.calls.filter(call => call === "control:request").length, 1, "fresh attachment never replays the old input intent");
+  } finally { f.controller.dispose(); }
+});
+
+test("an already-ended bootstrap cannot loop through observe-only reattachment", async () => {
+  const f = fixture();
+  try {
+    f.setState({ ended: true, resumeObserving: true });
+    f.controller.start(); await flush();
+    assert.equal(f.controller.getSnapshot().phase, "failed");
+    assert.equal(f.calls.filter(call => call === "prepare").length, 1);
+  } finally { f.controller.dispose(); }
+});
+
+test("the declared preparation budget never extends the independent media deadline", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(50); const pending = deferred<DesktopAttachment>();
+  Object.assign(f.backend, { prepareTimeoutMs: 1000 });
+  f.backend.prepare = () => pending.promise;
+  try {
+    f.controller.start(); t.mock.timers.tick(500);
+    assert.equal(f.controller.getSnapshot().phase, "connecting", "resource preparation can outlast the media budget");
+    pending.resolve(f.attachment); await flush();
+    t.mock.timers.tick(50);
+    assert.equal(f.controller.getSnapshot().phase, "failed");
+    assert.equal(f.controller.getSnapshot().failure, "timeout");
+  } finally { f.controller.dispose(); }
+});
