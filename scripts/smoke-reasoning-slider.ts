@@ -36,35 +36,32 @@ try {
   if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
   assert.equal(await page.locator('.codex-composer-selection-menu--intelligence').count(),0,'first layer has no model choices');
   const chooseModel=async(name:string)=>{
-    await menu.locator('.codex-composer-model-quick__title').click();
-    const sheet=page.getByRole('dialog');await sheet.waitFor();
     if(name==='Model 1'){
-      assert.equal(await sheet.locator('.codex-composer-model-config__row').count(),2);
-      await sheet.screenshot({path:'.local/reasoning-slider/sheet-full-'+palette+'-'+mode+'-'+touch+'.png'});
-      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
-      assert.equal(await page.getByRole('menuitemradio').count(),2);
-      await page.getByRole('menuitemradio',{name:'Fast',exact:true}).click();
+      const fast=menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true});
+      await fast.click();
       assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),'fast');
-      assert(await sheet.isVisible(),'choosing speed leaves configuration open');
-      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
-      await page.getByRole('menuitemradio',{name:'标准',exact:true}).click();
-      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'Standard explicitly resets Fast');
-      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
-      await page.getByRole('menuitemradio',{name:'Fast',exact:true}).click();
+      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),1,'Fast visible on Composer');
+      assert(await menu.isVisible());
+      await fast.click();
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'off explicitly cancels Fast');
+      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),0);
+      await fast.click();
     }
-    await sheet.screenshot({path:'.local/reasoning-slider/sheet-'+palette+'-'+mode+'-'+touch+'.png'});
-    await sheet.locator('.codex-composer-model-config__row').first().click();
-    await page.locator('.codex-composer-selection-menu--intelligence').waitFor();
+    await menu.locator('.codex-composer-model-quick__title').click();
+    const models=page.locator('.codex-composer-selection-menu--model-select');await models.waitFor();
+    assert.equal(await page.locator('.codex-composer-intelligence-detail').count(),0);
+    await page.evaluate(()=>new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done()))));
+    const box=(await models.boundingBox())!;assert(box.width<=300.5&&box.height<=320.5,JSON.stringify(box));
     await page.screenshot({path:'.local/reasoning-slider/configure-'+palette+'-'+mode+'-'+touch+'.png'});
-
-    await page.getByRole('menuitem',{name,exact:true}).click();
+    await models.getByRole('menuitem',{name,exact:true}).click();
     await page.keyboard.press('Escape');
+    await models.waitFor({state:'hidden'});
+    if(!await menu.isVisible()){if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();}
     if(name==='Model 1'){
-      assert.equal(await sheet.locator('.codex-composer-model-config__row').count(),1,'unsupported models have no Speed control');
-      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'switching models clears incompatible Fast');
+      assert.equal(await menu.getByRole('menuitemcheckbox').count(),0,'unsupported model hides Fast');
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null);
+      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),0);
     }
-    await sheet.locator('.codex-composer-model-config__done').click();
-    if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
   };
   const slider=menu.getByRole('slider'),control=menu.locator('.ui-discrete-slider__control');
   await slider.waitFor();assert.equal(await slider.getAttribute('aria-valuemax'),'5');assert.equal(await slider.getAttribute('aria-valuetext'),'Medium');
@@ -77,9 +74,11 @@ try {
    const sample=await control.evaluate(el=>{
     const range=el.querySelector('.ui-discrete-slider__range')!.getBoundingClientRect();
     const thumb=el.querySelector('.ui-discrete-slider__thumb')!.getBoundingClientRect();
-    return {value:el.querySelector('[role=slider]')!.getAttribute('aria-valuetext'),fillEnd:range.right,thumbCenter:thumb.x+thumb.width/2,thumbWidth:thumb.width};
+    return {value:el.querySelector('[role=slider]')!.getAttribute('aria-valuetext'),fillEnd:range.right,thumbCenter:thumb.x+thumb.width/2,thumbWidth:thumb.width,thumbHeight:thumb.height,paint:getComputedStyle(el.querySelector('.ui-discrete-slider__range')!,'::after').backgroundColor};
    });
    geometry.push(sample);
+   assert(Math.abs(sample.thumbWidth-sample.thumbHeight)<0.5,'thumb remains circular');
+   assert.notEqual(sample.paint,'rgba(0, 0, 0, 0)');
    assert(Math.abs(sample.fillEnd-sample.thumbCenter)<=0.5,'selected fill must reach the actual thumb center: '+JSON.stringify(sample));
   };
   await assertFillMeetsThumb();
@@ -106,6 +105,8 @@ try {
    await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.equal(await committed(),previous);
    await cdp.detach();
   }
+  const fast=menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true});
+  if(touch){await fast.tap();assert(await editor.evaluate(el=>el===document.activeElement));assert.equal(await page.evaluate(()=>getSelection()?.anchorOffset),3);await fast.tap();}
   assert(await menu.isVisible(),'adjustment keeps menu open');
   // Native Radix keyboard handling remains in this control, not menu roving focus.
   await menu.locator('.codex-composer-model-quick__title').focus();await page.keyboard.press('ArrowDown');
@@ -121,6 +122,7 @@ try {
    assert.equal(await committed(),effort);await assertFillMeetsThumb();
    await control.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'-'+effort+'.png'});
   }
+  if(touch)for(const width of [320,430,390]){await page.setViewportSize({width,height:844});await assertFillMeetsThumb();const bounds=(await menu.boundingBox())!;assert(bounds.x>=0&&bounds.x+bounds.width<=width+1,'menu remains inside resized viewport');}
   const metrics=await control.evaluate(el=>{const q=(s:string)=>getComputedStyle(el.querySelector(s)!);return {height:el.getBoundingClientRect().height,track:getComputedStyle(el.closest('.ui-discrete-slider__surface')!).backgroundColor,fill:q('.ui-discrete-slider__range').backgroundColor,thumb:q('.ui-discrete-slider__thumb').backgroundColor};});
   assert.notEqual(metrics.track,'rgba(0, 0, 0, 0)');assert.notEqual(metrics.fill,metrics.track);assert.notEqual(metrics.thumb,'rgba(0, 0, 0, 0)');
   await page.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'.png'});
@@ -139,6 +141,14 @@ try {
   await page.evaluate(()=>(window as any).fixture.controller.dispatch({type:'set-selections',patch:{effort:undefined}}));
   await slider.focus();await page.keyboard.press('Home');assert.equal(await committed(),'low');
   assert(await editor.evaluate(el=>el===(window as any).keptEditor));assert.equal(await editor.innerText(),'Keep this draft');
+  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await trigger.focus();await page.keyboard.press('ArrowDown');await menu.waitFor();
+  await menu.locator('.codex-composer-model-quick__title').focus();await page.keyboard.press('Enter');
+  const keyboardModels=page.locator('.codex-composer-selection-menu--model-select');await keyboardModels.waitFor();
+  await page.keyboard.press('ArrowDown');assert(await keyboardModels.evaluate(el=>el.contains(document.activeElement)),'keyboard stays in model choices');
+  await page.keyboard.press('Escape');await keyboardModels.waitFor({state:'hidden'});
+  if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
+  assert.equal(await page.locator('.codex-composer-selection-menu--model-select').count(),0,'next opening returns to depth');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});assert.deepEqual(errors,[]);
   results.push({palette,mode,touch,metrics,geometry});await context.close();
  }

@@ -216,18 +216,6 @@ function displayReasoningEffort(effort: ComposerReasoningEffortOption): string {
   }
 }
 
-function formatModelTokenLimit(value: number): string {
-  if (value >= 1_000_000) {
-    const millions = value / 1_000_000;
-    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    const thousands = value / 1_000;
-    return `${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}K`;
-  }
-  return String(value);
-}
-
 interface SelectionMenuItemContentProps {
   readonly description?: string | null;
   readonly label: ReactNode;
@@ -2421,60 +2409,6 @@ export const CodexComposer = forwardRef<
                             </div>
                           ) : null}
                         </div>
-                        {selectedModel ? (
-                          <>
-                            <DropdownMenu.Separator className="codex-composer-selection-menu__separator" />
-                            <div className="codex-composer-intelligence-detail">
-                              <div className="codex-composer-intelligence-detail__header">
-                                <strong>{modelLabel}</strong>
-                                {selectedModel.source === "custom" ? (
-                                  <span className="codex-composer-intelligence-detail__source">
-                                    <FormattedMessage id="composer.model.custom" defaultMessage="Custom" />
-                                  </span>
-                                ) : null}
-                              </div>
-                              {selectedModel.contextWindow != null ||
-                              selectedModel.maxTokens != null ? (
-                                <dl className="codex-composer-model-metadata">
-                                  {selectedModel.contextWindow != null ? (
-                                    <div>
-                                      <dt><FormattedMessage id="composer.model.context" defaultMessage="Context" /></dt>
-                                      <dd>{formatModelTokenLimit(selectedModel.contextWindow)}</dd>
-                                    </div>
-                                  ) : null}
-                                  {selectedModel.maxTokens != null ? (
-                                    <div>
-                                      <dt><FormattedMessage id="composer.model.output" defaultMessage="Max output" /></dt>
-                                      <dd>{formatModelTokenLimit(selectedModel.maxTokens)}</dd>
-                                    </div>
-                                  ) : null}
-                                </dl>
-                              ) : null}
-                              <div className="codex-composer-model-capabilities">
-                                <span className="codex-composer-selection-menu__heading">
-                                  <FormattedMessage id="composer.model.supports" defaultMessage="Supports" />
-                                </span>
-                                <div className="codex-composer-model-capabilities__list">
-                                  {(selectedModel.inputModalities ?? ["text"]).map((modality) => (
-                                    <span key={modality}>
-                                      {modality === "image" ? (
-                                        <FormattedMessage id="composer.model.image" defaultMessage="Image" />
-                                      ) : modality === "audio" ? (
-                                        <FormattedMessage id="composer.model.audio" defaultMessage="Audio" />
-                                      ) : (
-                                        <FormattedMessage id="composer.model.text" defaultMessage="Text" />
-                                      )}
-                                    </span>
-                                  ))}
-                                  {selectedModel.efforts.length ? (
-                                    <span><FormattedMessage id="composer.model.reasoning" defaultMessage="Reasoning" /></span>
-                                  ) : null}
-                                </div>
-                              </div>
-
-                            </div>
-                          </>
-                        ) : null}
                       </div>
               </ComposerModelPicker> : null}
 

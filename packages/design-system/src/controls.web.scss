@@ -252,9 +252,15 @@
   }
   .ui-discrete-slider__track { overflow: visible; background: transparent; box-shadow: none; height: 48px; }
   .ui-discrete-slider__range {
-    border-start-start-radius: var(--radius-full); border-end-start-radius: var(--radius-full);
-    &::after { content: ""; position: absolute; inset-block: 0; inset-inline-start: calc(100% - 24px); width: 48px; border-radius: var(--radius-full); background: inherit; }
+    background: transparent;
+    // One rounded paint box; joining a narrow range and a circle distorts the first stops.
+    &::after {
+      content: ""; position: absolute; inset-block: 0;
+      inset-inline-start: calc((var(--size-discrete-slider-thumb) - var(--height-discrete-slider-track)) / 2);
+      inset-inline-end: calc(var(--height-discrete-slider-track) / -2);
+      border-radius: var(--radius-full); background: var(--color-discrete-slider-fill);
+    }
   }
-  .ui-discrete-slider__thumb { box-shadow: none; }
+  .ui-discrete-slider__thumb { box-shadow: none; flex: none; aspect-ratio: 1; box-sizing: border-box; }
   .ui-discrete-slider__limits { display: none; }
 }

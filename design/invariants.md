@@ -1671,8 +1671,9 @@ this disposition does not classify those dependencies or native platform behavio
 
 ## Composer model/depth hierarchy
 
-Standalone Composer opens only its declared effort slider on first activation.
-The model/effort title opens configuration, whose Model row exposes the catalog.
+Standalone Composer opens its declared effort slider and an optional Fast lightning
+checkbox on first activation. Its model/effort title opens a compact model list
+without capability details. The Composer shows enabled Fast beside the model name.
 High frequency depth changes do not traverse a model list. Presentation never
 adds unsupported speed/effort choices, remounts the editor or writes a default
 by opening. The shared slider capsule variant retains Radix gesture/keyboard

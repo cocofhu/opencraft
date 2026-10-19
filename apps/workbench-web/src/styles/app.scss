@@ -12600,64 +12600,33 @@ html[data-codex-window-type="electron"] .thread-scroll {
   > svg { flex: none; }
 }
 .codex-composer-model-quick__effort { color: var(--color-text-secondary); }
-.codex-composer-model-config__scrim {
-  position: fixed; inset: 0; z-index: 80;
-  background: rgb(0 0 0 / 45%);
+.codex-composer-model-quick__header { display: flex; align-items: center; min-width: 0; }
+.codex-composer-model-quick__title { flex: 1; min-width: 0; }
+.codex-composer-model-quick__fast {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; border-radius: var(--radius-full); color: var(--color-text-secondary); cursor: pointer;
+  &[data-state="checked"] { color: var(--color-icon-accent); }
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
 }
-.codex-composer-model-config {
-  // Material stays on its paint layer so nested fixed menus keep viewport geometry.
-  isolation: isolate;
-  &::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; @include material.surface; }
-  position: fixed; z-index: 81;
-  inset-inline: 0; margin-inline: auto; inset-block-end: max(8px, env(safe-area-inset-bottom));
-  width: min(440px, calc(100vw - 16px)); max-height: calc(100dvh - 24px);
-  overflow: visible;
-  padding: 28px 24px 32px;
-  border: 1px solid var(--color-border-default); border-radius: 38px;
-}
-.codex-composer-model-config__handle {
-  position: absolute; top: 5px; left: calc(50% - 17px);
-  width: 34px; height: 5px; border-radius: var(--radius-full); background: var(--color-text-tertiary);
-}
-.codex-composer-model-config__title {
-  @include typography.role(settings-section-title, primary);
-  margin: 0 0 22px; text-align: center;
-}
-.codex-composer-model-config__rows {
-  overflow: hidden; border-radius: 24px; background: var(--color-background-primary-ghost-hover);
-}
-.codex-composer-model-config__row {
-  @include typography.role(control, primary);
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; min-height: 52px; padding: 12px 16px;
-  border: 0; background: transparent; text-align: start;
-  &:hover, &[data-state="open"] { background: var(--color-background-primary-ghost-hover); }
-  &:disabled { opacity: 0.5; }
-  & + & { border-top: 0.5px solid var(--color-border-default); }
-  > svg { color: var(--color-text-secondary); flex: none; }
-}
-.codex-composer-model-config__value {
-  color: var(--color-text-secondary); margin-inline-start: auto;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.codex-composer-model-config__done {
-  @include typography.role(control, null);
-  display: block; width: 100%; min-height: 46px; margin-top: 30px;
-  border: 0; border-radius: var(--radius-full);
-  background: var(--color-background-button-primary); color: var(--color-text-button-primary);
-  cursor: pointer;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .codex-composer-model-config[data-state="open"] { animation: composer-model-sheet-in 160ms ease-out; }
-  @keyframes composer-model-sheet-in { from { opacity: 0; } to { opacity: 1; } }
+.codex-composer-mode__fast { flex: none; color: var(--color-icon-accent); }
+.codex-composer-selection-menu--model-select {
+  box-sizing: border-box;
+  z-index: 91;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(320px, var(--radix-dropdown-menu-content-available-height), calc(100dvh - 24px));
+  overflow-y: auto;
+  .codex-composer-intelligence-view { display: block; max-height: none; }
+  .codex-composer-intelligence-models { overflow: visible; max-height: none; }
 }
 
 .codex-composer-mode--depth .codex-composer-mode__model-icon { display: none; }
 .codex-composer-footer[data-footer-density="minimal"] .codex-composer-mode--depth .codex-composer-mode__model-icon { display: block; }
 
-:root[data-ui-density="touch"][data-touch-newera="on"] .codex-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"]:has(.codex-composer-footer[data-model-selection-policy="user"]) {
-  .codex-composer-shell { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-  .codex-composer-input-row { flex: none; }
+// User-selected model controls remain available in both empty and editing states.
+// Keep empty/editing spacing and flex allocation identical around native selection.
+:root[data-ui-density="touch"][data-touch-newera="on"] .codex-composer-stack[data-composer-layout="auto-single-line"]:has(.codex-composer-footer[data-model-selection-policy="user"][data-input-mode="standard"]) {
+  .codex-composer-shell { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; }
+  .codex-composer-input-row { flex: 1 1 auto; padding: 11px 13px 2px; }
   .codex-composer-footer { display: flex; }
   .codex-composer-footer__controls { display: flex; }
 }

@@ -1209,12 +1209,12 @@ its Session-owned effort through the existing AppServer model/Turn fields;
 provider-specific wire clamping remains inside Hermes Runtime.
 The standalone Web Composer prioritizes frequent reasoning changes. Its current
 model/effort label opens a focused capsule slider with only the selected model's
-declared efforts. The label above the track is a second action: it opens a Radix
-configuration sheet; its Model row opens the existing catalog and authoritative
-model details. Model switching is deliberately absent from the first layer. The
-configuration's optional Speed row projects only model-declared serviceTiers.
-Standard explicitly clears the previous tier with null; Fast uses the server's
-declared ID. Models without tiers hide Speed, and model switches clear incompatible
+declared efforts. Its title opens a compact Radix model list without capability
+or metadata detail panels. Model switching remains a second action. A lightning
+checkbox at the track's upper right projects only a declared Fast serviceTier,
+and the Composer label shows a lightning icon while enabled. Turning it off
+explicitly clears the previous tier with null; Fast uses the server's declared ID.
+Models without Fast hide the checkbox, and model switches clear incompatible
 tiers. Embedded session-only policy retains its model-only
 picker and Host-owned reasoning policy.
 
@@ -1223,11 +1223,11 @@ selected fill/round thumb. The model/effort title previews the held choice;
 dragging never writes defaults until release. Cancellation discards preview.
 Arrow/Home/End/Page keys remain slider-owned; ArrowDown from the title enters the
 slider. Touch-origin adjustment preserves the editor's existing native focus and
-selection through the auxiliary focus lease. Configuration uses a modal focus
-scope and restores its opener on dismissal. Opening either layer writes no
+selection through the auxiliary focus lease, including Fast toggles. Radix owns
+menu keyboard navigation and dismissal. Opening either layer writes no
 selection. No choices hides the slider; one choice is disabled. Model selection
 continues to preserve a compatible effort and otherwise resolves through that
-model's default. Catalog loading, failures, retry, metadata and Agent switching
+model's default. Catalog loading, failures, retry and Agent switching
 retain their existing owners, as do account defaults and the mounted editor.
 
 
@@ -2017,7 +2017,9 @@ normal navigation and to conversations opened from linked Tasks alike.
 The shared shell paints ordinary/Newera glass in a pointer-transparent background
 pseudo-element. Backdrop filters must not wrap the ProseMirror editing subtree;
 layout, keyboard viewport projection and the browser's native selection remain
-separate owners. Material variables consume theme tokens and opaque fallbacks.
+separate owners. User-selected model controls use one flex formatting context
+and consistent padding/gaps in empty and nonempty touch layouts around
+the mounted editor. Material variables consume theme tokens and opaque fallbacks.
 Scroll/viewport regressions verify selection and adjacent-character geometry without
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.

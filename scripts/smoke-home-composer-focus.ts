@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { createServer } from "vite";
-const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
+const engines = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const before=process.argv.includes("--record-before"), output=process.env.OPENCRAFT_SMOKE_OUTPUT??".local/home-composer-focus";
 await mkdir(output,{recursive:true});
 const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"error",esbuild:{jsx:"automatic"},resolve:{dedupe:["react","react-dom"]},server:{host:"127.0.0.1",port:0},plugins:[{name:"home-focus",configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith("/?"))return next();res.setHeader("content-type","text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/home-composer-focus.tsx"></script>');});}}]});
 await vite.listen();
-const browser=await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
+const browser=await (process.env.OPENCRAFT_SMOKE_ENGINE === "webkit" ? engines.webkit : engines.chromium).launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
 const evidence:unknown[]=[];
 try {
  if(!before)assert.match(await readFile("apps/workbench-web/src/app.tsx","utf8"),/conversationHeader=\{conversationSurfaceVisible\}/,"production Home uses shared chrome");
@@ -18,6 +18,7 @@ try {
   const context=await browser.newContext({viewport:{width:test.width,height:844},hasTouch:!desktop,isMobile:!desktop,reducedMotion:test.reduce?"reduce":"no-preference",...(!desktop?{userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1"}:{})});
   await context.addInitScript(({width})=>{(window as any).__name=(value:unknown)=>value;const v=new EventTarget();Object.assign(v,{height:844,width,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,"visualViewport",{value:v});(window as any).setViewport=(height:number,offsetTop:number)=>{Object.assign(v,{height,offsetTop});v.dispatchEvent(new Event("resize"));v.dispatchEvent(new Event("scroll"));};},{width:test.width});
   const page=await context.newPage(),errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
+  page.setDefaultNavigationTimeout(90000);
   await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${test.theme}${desktop?"&desktop":""}${test.ordinary?"&ordinary":""}${before?"&legacyHeader":""}`);
   const editor=page.locator(".codex-composer-editor"),shell=page.locator(".codex-composer-shell");
   await editor.waitFor();await page.waitForTimeout(250);
@@ -28,13 +29,27 @@ try {
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
   assert(await page.locator(".codex-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
-  await editor.fill("保留当前草稿");const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
+  const formatting=await shell.evaluate(el=>getComputedStyle(el).display);
+  await editor.pressSequentially("保留当前草稿");
+  if(!desktop&&!test.ordinary)assert.equal(await shell.evaluate(el=>getComputedStyle(el).display),formatting,'typing keeps shell formatting context');
+  const assertNativeSelection=async()=>{
+    const geometry=await editor.evaluate(el=>{
+      const selection=getSelection()!,r=selection.getRangeAt(0),caret=r.getBoundingClientRect(),box=el.getBoundingClientRect();
+      const ancestors=[];for(let a:Element|null=el;a;a=a.parentElement){const style=getComputedStyle(a);if(style.filter!=='none'||style.backdropFilter&&style.backdropFilter!=='none')ancestors.push(a.className);}
+      return {inside:el.contains(selection.anchorNode),offset:selection.anchorOffset,caret:caret.toJSON(),box:box.toJSON(),ancestors,focused:document.activeElement===el};
+    });
+    assert(geometry.inside&&geometry.focused,JSON.stringify(geometry));
+    assert(geometry.caret.height>0&&geometry.caret.y>=geometry.box.y-1&&geometry.caret.bottom<=geometry.box.bottom+1,'native selection bounds remain in editor: '+JSON.stringify(geometry));
+    assert.deepEqual(geometry.ancestors,[],'editor has no filtered ancestor');
+    return geometry;
+  };
+  await assertNativeSelection();const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
    const send=page.locator(".codex-composer-submit");const visible=(await send.boundingBox())!;
    assert(visible.y>=top&&visible.y+visible.height<=top+height+1,`${label}: send clipped ${JSON.stringify({height,top,visible})}`);
-   assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible});
+   assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible,selection:await assertNativeSelection()});
   }
   // Real attachment state and long editor growth must share the keyboard budget.
   if(!desktop){
