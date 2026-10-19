@@ -82,8 +82,8 @@ export interface AppearanceThemeSnapshot {
 const coreTheme: AppearanceThemeRecord = Object.freeze({
   descriptor: Object.freeze({
     id: coreThemeId,
-    label: "Codex",
-    description: "OpenCraft's source-faithful neutral theme.",
+    label: "Neutral",
+    description: "A neutral palette with light and dark appearances.",
     source: "core",
   }),
   palettes: codexThemePalette,

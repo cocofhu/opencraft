@@ -1,5 +1,32 @@
 # Source provenance review
 
+## Neutral theme presentation correction (2026-10-19)
+
+The built-in neutral theme is now presented as **Neutral**, with the description
+"A neutral palette with light and dark appearances." The previous visible
+`Codex` name and "OpenCraft's source-faithful neutral theme." description are
+retained here as historical evidence and in the exact baseline record below.
+Those phrases described an OpenCraft appearance preset rather than an execution
+engine integration and could imply an affiliation or source status not established
+by this review.
+
+This bounded wording correction preserves the stored theme ID, palette, compiler
+APIs, CSS variables and fallback behavior so existing appearance preferences keep
+working. It does not classify or independently replace the theme implementation.
+`codex-renderer-expression-followup` remains **unverified**, with the same nine
+paths. Historical annotations, notices and source hashes remain available.
+
+Validation: 13 existing appearance/material tests and Web typecheck pass. An
+untracked Chromium probe renders the actual `SettingsContent` appearance page
+with the existing theme-material fixture: light/dark at widths 1000 and 390,
+including touch emulation at 390. All four cases show Neutral and the new
+description, omit the old Codex theme choice, restore the existing stored ID,
+switch away and back, and retain selection after reload with no page errors.
+The narrow dark screenshot was visually inspected. This is Web evidence, not
+native Electron/iPhone acceptance. The source-provenance inventory check passes
+without changing any group's disposition. This presentation correction does not
+establish distribution rights or release readiness.
+
 ## Complete Agent Activity replacement (2026-10-19)
 
 [The complete Agent Activity module](provenance/agent-activity-replacement.md)
@@ -33,8 +60,9 @@ This raises the current unresolved group count from eight to **ten**. Earlier
 counts below are dated snapshots, not the current total. No implementation is
 reclassified or independently replaced by this inventory change. Some claims
 refer to a bounded region or to behavior only; actual retained expression and
-rights still require review. In particular, the theme's visible `Codex` name
-and source-faithful description remain a pending presentation correction.
+rights still require review. The theme's visible `Codex` name and source-faithful
+description were identified here and later corrected in the presentation-only
+change recorded above; its implementation remains unverified.
 
 The scanner now catches explicit class/function-body claims, source-identical,
 source-faithful and source-shaped annotations, reconstruction/restoration claims
