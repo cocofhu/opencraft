@@ -6,16 +6,16 @@
   "exports": { ".": "./src/index.tsx", "./panel.web": "./src/panel.web.scss", "./contract": "./src/contract.ts", "./rfb": "./src/rfb.ts", "./session-wire": "./src/session-wire.ts" },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": {
-    "@novnc/novnc": "1.5.0",
-    "@deepseek-ai/cordis": "4.0.1",
+    "@novnc/novnc": "1.7.0",
+    "@deepseek-ai/cordis": "4.0.4",
     "@opencraft/i18n": "0.1.0",
     "@opencraft/design-system": "0.1.0",
     "@opencraft/design-system-web": "0.1.0",
     "@opencraft/extension-react": "0.1.0",
     "@opencraft/workbench-panels": "0.1.0",
     "@opencraft/workbench-panels-react": "0.1.0",
-    "react": "19.2.3",
-    "lucide-react": "^1.35.0"
+    "react": "19.3.1",
+    "lucide-react": "^1.58.0"
   },
-  "devDependencies": { "@types/react": "~19.2.2", "typescript": "^5.9.3" }
+  "devDependencies": { "@types/react": "~19.3.0", "typescript": "^5.9.3" }
 }

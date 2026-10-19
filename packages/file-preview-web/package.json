@@ -10,14 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis": "4.0.4",
     "@opencraft/file-preview-core": "0.1.0",
     "@opencraft/i18n": "0.1.0",
-    "react": "19.2.3"
+    "react": "19.3.1"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
-    "@types/react-dom": "~19.2.2",
+    "@types/react": "~19.3.0",
+    "@types/react-dom": "~19.3.0",
     "typescript": "^5.9.3"
   }
 }
