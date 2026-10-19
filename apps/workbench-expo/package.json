@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis": "4.0.4",
     "@expo/metro-runtime": "^57.0.14",
     "@gorhom/bottom-sheet": "5.2.14",
     "@opencraft/appserver-protocol": "0.1.0",
