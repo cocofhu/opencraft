@@ -70,3 +70,54 @@ clearance. Record compatibility refinements from observed outputs explicitly.
 Only this complete module receives a replacement disposition. Agent Activity
 and all eight unresolved source groups remain open; no notice or history removal,
 release, npm publication or downstream deployment follows from this replacement.
+
+## Implementation and compatibility observations
+
+Requirements were committed as `bf9df0f` before implementation. The replacement
+separates exact comparison keys, staged-display acknowledgement, earlier local
+steering associations, canonical message construction and ordered presentation.
+Echo association scans eligible local steering rows only; ordinary history items
+do not add comparisons. Caller-owned inputs remain unchanged.
+
+The 31,337-case matrix covers canonical input variants, two-item combinations,
+5,000 deterministic longer sequences, preserve flags, hidden IDs and metadata.
+The separate 9,120-case matrix covers client aliases, malformed payloads, local
+statuses, competing content/input fields, Unicode filenames, exact legacy locator
+matching and UTF-8 span boundaries. Both compare complete values, including own
+undefined properties, against the pinned historical OpenCraft module. The final
+40,457 comparisons have zero differences.
+
+Observed refinements: the params client ID participates in redundant-echo hiding
+even without canonical input; preserveServerUserMessages makes leading server
+messages accepted steering too; local steering matching uses input while server
+messages use content with an input fallback. These were compatibility corrections
+from outputs, without opening old helper definitions. Full marked spans may
+contain any display text; the legacy unmarked exception remains an exact locator
+plus matching mention. Durable attachments alone do not authorize server prose
+to overwrite Composer/local input.
+
+## Verification and limits
+
+- `tests/chat-message-normalization.test.ts` plus `tests/chat-core.test.ts`: 115
+  passed, including 11 new cases for ownership, flags, aliases, ordering, repeated
+  acknowledgements, metadata, UTF-8 spans and frozen caller inputs.
+- Complete `npm run test:chat`: 756 passed. Shared core/Web workspace typechecks
+  and platform/typography boundaries passed.
+- Eight inventory regression tests and inventory integrity passed. The explicit
+  release check still exits unsuccessfully with eight unresolved groups; only
+  this module moves to a new independent replacement record.
+- `scripts/smoke-message-normalization.ts`: passed at 390px/1200px using the real
+  Web UserMessage component with synthetic shared projection snapshots. The
+  primary row and its text bubble retain actual DOM identity through params,
+  ordinary acknowledgement and staged-file phases; the steering row survives
+  pending, accepted and repeated echoes. The fixture verifies exact source IDs,
+  searchable primary/local/latest-server anchors, no duplicate visible message,
+  hidden model locator, standard file-URL navigation, no horizontal overflow and
+  no page errors. The narrow screenshot was visually inspected; both message
+  bubbles and attachment controls remain readable and reachable.
+
+The fixture replaces the transport/data source, not projection or the rendered
+UserMessage component. It does not cover the complete live conversation shell,
+virtualizer, Host persistence, microphone, authenticated engine, packaged
+Electron or native devices. Other renderer/source groups remain unverified.
+No historical commits, retained notices or distribution rights are cleared.

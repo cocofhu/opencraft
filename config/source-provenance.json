@@ -170,8 +170,7 @@
       "id": "codex-chat-semantics-followup",
       "status": "unverified",
       "paths": [
-        "packages/chat-core/src/agent-activity.ts",
-        "packages/chat-core/src/turn-user-message-normalization.ts"
+        "packages/chat-core/src/agent-activity.ts"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
@@ -215,6 +214,12 @@
           "replacement": "realtime-transcript-presentation",
           "evidence": "docs/provenance/realtime-transcript-replacement.md",
           "historicalBlob": "0b2f83bfdd78627fe75b23fdccc66802a204c55b"
+        },
+        {
+          "path": "packages/chat-core/src/turn-user-message-normalization.ts",
+          "replacement": "turn-user-message-normalization",
+          "evidence": "docs/provenance/message-normalization-replacement.md",
+          "historicalBlob": "69e7d9439ab8711cf8d2a0112f801f4edfea57f5"
         }
       ]
     },
@@ -317,6 +322,21 @@
       "reason": "The complete module formerly carried a source-equivalent annotation. All three exported functions are replaced from frozen requirements, declaration-only extraction, consumer contracts and black-box OpenCraft observations.",
       "resolution": "Retain the historical blob, requirements commit and actual author exposure. Agent Activity and message normalization in the same group, plus seven other unresolved groups, remain unverified.",
       "conclusion": "The current data-only recognizer extracts typed text, literal protocol tags, entities and role messages; handoff placement remains a projection concern. The replacement covers this module only. The accompanying generic speaker wording edit does not classify its consuming renderer. No strict clean-room isolation, historical-rights clearance or whole-client classification is claimed."
+    },
+    {
+      "id": "turn-user-message-normalization",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-core/src/turn-user-message-normalization.ts"
+      ],
+      "evidence": [
+        "docs/provenance/message-normalization-replacement.md",
+        "tests/chat-message-normalization.test.ts",
+        "scripts/smoke-message-normalization.ts"
+      ],
+      "reason": "The entire module formerly carried a source-equivalent normalization annotation. Both exports are replaced from frozen requirements, declarations/consumer contracts and black-box OpenCraft observations.",
+      "resolution": "Retain the historical blob, requirements commit and actual author exposure. Agent Activity remains unverified in the same group; all eight unresolved source groups stay open.",
+      "conclusion": "The current implementation separates comparison keys, attachment display acknowledgement, local echo association and canonical/history presentation. The bounded replacement preserves message identity, metadata and navigation anchors. It is not strict clean-room isolation, historical-rights clearance or a whole-client classification; see the documented authoring inputs, compatibility refinements and verification limits."
     }
   ]
 }
