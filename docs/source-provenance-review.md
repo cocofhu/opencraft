@@ -1,5 +1,18 @@
 # Source provenance review
 
+## Complete tool, image and subagent renderer replacement (2026-10-20)
+
+[All six exports of the tool/image/subagent module](provenance/tool-renderers-replacement.md)
+are wholly replaced from recorded requirements, public interfaces and executable
+observations. Core still owns summaries/content/group state, Host ports own
+resources and navigation, and existing media/modal/activity owners retain their
+boundaries. Original hashes, historical annotation and all eight earlier partial
+renderer-expression dispositions remain recorded. This resolves the final current
+path of that inventory group; **eight other groups remain unverified**. Shared
+ports and historical rights are not reclassified. This bounded implementation
+conclusion does not establish strict author isolation or release readiness.
+
+
 ## Complete command and review renderer replacement (2026-10-20)
 
 [All seven exports of the command/review module](provenance/command-review-replacement.md)

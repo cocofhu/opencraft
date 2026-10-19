@@ -65,3 +65,13 @@ MCP App URI without a Host capability. The final native thread-tool Conversation
 matrix passes all four narrow/wide light/dark cases after using shared presenter
 summary/icon ownership. Ten existing provenance tests pass. This bounded result
 does not classify the reused tool-activity/codex-app-tools or MCP App modules.
+
+
+## Current implementation disposition
+
+Implementation commit: b64058e2cb6b5c79368f1ec706806e757a3c2c81; target blob: 14f5ed97bed38617d23bc7319c482c17d750e6d6. Requirements precede this
+commit at 6e2b726 and executable contracts at 3277167. This resolves only the final
+current path in codex-renderer-expression-followup, retaining all eight earlier
+partial dispositions and the exact baseline. Eight other inventory groups remain
+unverified; licenses, notices and historical records remain unchanged. Upstream
+acceptance and Join consumption/deployment are not claimed by this disposition.
