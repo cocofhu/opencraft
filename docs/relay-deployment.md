@@ -123,6 +123,15 @@ login cookies and other instances' cookies are never forwarded. Uploads, SSE and
 binary responses remain streams; only HTML documents are buffered (maximum 2 MiB)
 to inject context. Update/deployment control paths remain unavailable.
 
+Saved bundled WebSocket profiles use the stable instance namespace. Before opening
+transports, the client reconciles a profile whose same-origin AppServer URL still
+uses that instance's former stable-ID prefix to the current deployment URL. This
+updates only the endpoint and retains the profile identity, enabled state, custom
+browse roots and other preferences. Other instances, origins, custom paths and
+URLs carrying credentials or query parameters are never retargeted. This is a
+saved-recipe repair; retired public routes are not enabled or redirected. Reloading
+the client is sufficient and does not clear its conversation or profile databases.
+
 This mode reuses the existing entry DNS/TLS/enterprise identity configuration; no target DNS record
 is required. The enrolled target origin remains a virtual identity audience.
 Both relay and target Workbench must be upgraded together before enabling it.
