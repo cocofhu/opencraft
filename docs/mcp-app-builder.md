@@ -91,6 +91,81 @@ The current client host retains foreground/viewport lazy loading and background
 frame disposal. No new polling or subscriptions run while Apps are closed.
 The builder UI is an explicit management resource, not a startup page.
 
+## Visual authoring in the conversation
+
+Generated Apps are tools embedded in an existing conversation, whose host already
+provides a border, rounded frame, title and open/close action. Prefer a compact
+content-first composition. A fruit picker needs two clear choices, quantity and
+one send action; a calculator needs aligned inputs and a prominent result. Neither
+needs a hero, repeated page title, nested white card or promotional copy.
+
+Use a deliberate hierarchy, consistent spacing, aligned labels and a restrained
+neutral palette with one purposeful accent. Avoid default gradients, large shadows,
+oversized emoji, decorative badges and making every label bold. Emoji can identify
+a fruit alongside a text label. Do not make all Apps identical: let the user's task
+and requested visual direction determine the composition. For an explicitly playful
+App, expressive color and illustration are appropriate when they support the task.
+
+The Workbench [typography contract](../design/ui/typography.md) favors regular
+reading/control text and modest emphasis, and the [design language](workbench-design-language.md)
+keeps surfaces calm. The sandbox does not inherit these CSS tokens, bundled fonts,
+React components or icon libraries. Generated HTML therefore uses a self-contained
+system/CJK font stack, native semantic controls and local semantic CSS variables;
+never invent a host token bridge or rely on CDN scripts/fonts. An example palette
+is a starting point, not a second platform token registry:
+
+```css
+:root {
+  color-scheme: light;
+  --surface: #ffffff; --text: #242424; --muted: #636363;
+  --border: #d6d6d6; --accent: #245d42; --selected: #edf5ef;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #202020; --text: #eeeeee; --muted: #b5b5b5;
+  --border: #555555; --accent: #9ed8b6; --selected: #283b30;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: var(--surface);
+  color: var(--text); font: 14px/1.5 system-ui, "PingFang SC",
+  "Microsoft YaHei", sans-serif; }
+button, input, select, textarea { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+```
+
+Read the actual host theme initially and on changes; do not remount the form or
+send a message in response to theme updates. The current compatibility API exposes
+`theme` and `openai:set_globals`, not `styles.variables`:
+
+```js
+const systemTheme = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme(theme) {
+  document.documentElement.dataset.theme =
+    theme === "dark" || theme === "light" ? theme :
+    systemTheme.matches ? "dark" : "light";
+}
+applyTheme(window.openai?.theme);
+window.addEventListener("openai:set_globals", event => {
+  const theme = event.detail?.globals?.theme;
+  if (theme !== undefined) applyTheme(theme);
+});
+systemTheme.addEventListener("change", () => applyTheme(window.openai?.theme));
+```
+
+Use the current container width and natural content height. Avoid fixed page widths,
+viewport-height layouts and nested scrolling in a small form: the host measures the
+content and limits the inline frame to 1600px. Check at 320px and a wider chat pane,
+with long labels and large values; do not solve overflow by shrinking essential text.
+Provide comfortable touch targets, explicit labels and a visible radio/check/outline
+for selection, not color alone. Support keyboard focus, disabled/pending, empty and
+error states with adequate contrast. Motion should clarify an action and respect
+reduced motion, never run idle decorative animations.
+
+Before declaring a generated App polished, inspect its actual light/dark rendering,
+narrow/wide layout, keyboard path and failure/pending states. Check that switching
+theme or size preserves input. Spec validation alone cannot establish visual quality.
+These authoring rules do not restyle existing published Apps automatically.
+
 ## Verification
 
 `npm run test:mcp-apps` covers store versions, CAS, ownership, revocation, worker
