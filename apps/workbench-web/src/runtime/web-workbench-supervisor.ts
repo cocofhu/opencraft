@@ -138,7 +138,7 @@ import {
   createWorkbenchNavigationTransaction
 } from "./workbench-navigation-transaction";
 
-import { appServerUrl, BoundedCheckpointMap, BrowserDisplayContinuity, createWebWorkbenchCommands, createWorkbenchQueryClient, currentProductDatabaseName, currentProductStorageKey, currentWorkbenchPlatform, hostDefinitionProfile, HostlessWebWorkbenchApplicationSupervisor, parseWebHostDefinitions, persistProvisionedHost, profileDescriptor, provisionWebSocketHost, refreshBundledHostBrowseRoots, rememberedThreadId, WebWorkbenchApplicationSupervisor, WebWorkbenchSupervisorOptions } from './workbench-application-services';
+import { appServerUrl, BoundedCheckpointMap, BrowserDisplayContinuity, createWebWorkbenchCommands, createWorkbenchQueryClient, currentProductDatabaseName, currentProductStorageKey, currentWorkbenchPlatform, hostDefinitionProfile, HostlessWebWorkbenchApplicationSupervisor, parseWebHostDefinitions, persistProvisionedHost, profileDescriptor, provisionWebSocketHost, refreshBundledHostProfiles, rememberedThreadId, WebWorkbenchApplicationSupervisor, WebWorkbenchSupervisorOptions } from './workbench-application-services';
 export async function createWebWorkbenchApplicationSupervisor(
   browserToolHost: BrowserDynamicToolHost,
   terminalToolHost: ConversationTerminalToolHost,
@@ -560,7 +560,7 @@ export async function createWebWorkbenchApplicationSupervisor(
         transportEndpoint: null, executionLocation: server.displayName, workspaceBrowseRoots: server.workspaceBrowseRoots, revision: server.revision,
       })))
     : storedHostProfiles;
-  if (!fixedPresentation) await refreshBundledHostBrowseRoots(configuredHostProfiles, bootstrapDefinitions);
+  if (!fixedPresentation) await refreshBundledHostProfiles(configuredHostProfiles, bootstrapDefinitions);
   const hostProfiles: HostConnectionProfileStore = options.hostProfileMode === "configured"
     ? configuredHostProfiles
     : new EnvironmentProfileStore(configuredHostProfiles, environmentDirectory);
