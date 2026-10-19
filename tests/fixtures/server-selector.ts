@@ -12,6 +12,7 @@ import { MembershipStore, InstanceAccess } from '../../packages/access-control/s
 import { createRelayServer } from '../../apps/relay-server/src/server';
 import { selectionIdentity } from '../../apps/relay-server/src/selection';
 import { connectRelay } from '../../plugins/relay-connect/src/server';
+import { SshManagement } from '../../apps/opencraft-daemon/src/ssh-management';
 import { FixtureRequestIdentity } from './request-identity';
 import { createWorkbenchWebServer } from '../../scripts/serve-workbench-web.mjs';
 
@@ -27,7 +28,7 @@ export async function virtualFetch(url:string, init:{headers?:Record<string,stri
     });req.on('error',reject);req.end(init.body);
   });
 }
-export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string}={}) {
+export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string;sshPublicAccess?:boolean}={}) {
   const directory=await mkdtemp(join(tmpdir(),'server-selector-')),cleanup:(()=>unknown)[]=[];
   cleanup.push(()=>rm(directory,{recursive:true,force:true}));
   const pair=generateKeyPairSync('ed25519'),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'}).toString(),publicKey=pair.publicKey.export({format:'pem',type:'spki'}).toString();
@@ -45,7 +46,9 @@ export async function selectorFixture(options:{webRoot?:string;appHost?:()=>unkn
     const root=options.webRoot??join(directory,id);if(!options.webRoot){await mkdir(root);await writeFile(join(root,'index.html'),`<!doctype html><html><head><title>${id}</title></head><body><h1>${id}</h1><a id="switch" href="/servers">切换服务器</a></body></html>`);}
     const oa=new FixtureRequestIdentity(req=>access.authenticate(req));cleanup.push(()=>oa.close());
     const appHost=options.appHost?.();if(appHost)cleanup.push(()=>(appHost as any).close());
-    const web=await createWorkbenchWebServer({root,appHostServer:appHost,appServerTarget:null,loopbackOnly:false,desktopAccess:'trusted-internal',accessService:access,identityService:oa,
+    const sshManagement=options.sshPublicAccess === undefined ? null : new SshManagement({directory:join(directory,id+'-ssh'),publicAccess:options.sshPublicAccess,resetConnection:async()=>{},connectConnection:async()=>{}});
+    if(sshManagement)cleanup.push(()=>sshManagement.close());
+    const web=await createWorkbenchWebServer({root,sshManagement,appHostServer:appHost,appServerTarget:null,loopbackOnly:false,desktopAccess:'trusted-internal',accessService:access,identityService:oa,
       desktopService:{accept(ws:WebSocket){ws.send('connected-'+id);ws.on('message',(data,binary)=>ws.send(data,{binary}));},close(){}}});cleanup.push(()=>web.close());
     const address=await web.listen({host:'127.0.0.1',port:0});
     // Business streaming endpoint behind the same target authorization; no identity bypass.

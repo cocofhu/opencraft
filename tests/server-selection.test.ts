@@ -21,6 +21,12 @@ test('same-origin selection retains target authority, including users who cannot
   assert.equal((await f.get('/servers/join/__opencraft_access/session',{cookie:carol})).status,403);
   const context=await f.get('/servers/lighthouse/',{cookie:alice,accept:'text/html'});const html=await context.text();
   assert.equal(context.status,200);assert.match(html,/<base href="\/servers\/lighthouse\/">/u);assert.match(html,/id="opencraft-server-context"/u);
+  assert.ok(html.includes('localStorage.setItem("opencraft.last-server.v1:'+selectionIdentity(f.principals.alice!)+'","lighthouse")'));
+  assert.doesNotMatch(html,/login:alice/u);
+  const background=await f.get('/servers/join/fixture/compressed.html',{cookie:alice,accept:'application/json'});
+  assert.doesNotMatch(await background.text(),/localStorage.setItem/u);
+  const chooser=await(await f.get('/servers',{cookie:alice})).text();
+  assert.doesNotMatch(chooser,/localStorage.setItem/u,'chooser does not commit a target before successful navigation');
   const compressed=await f.get('/servers/lighthouse/fixture/compressed.html',{cookie:alice,accept:'text/html','accept-encoding':'gzip'});
   assert.equal(compressed.headers.get('content-encoding'),null);assert.match(await compressed.text(),/opencraft-server-context/u);
   const sanitized=await f.get('/servers/lighthouse/fixture/headers',{cookie:alice+'; opencraft.account.session=do-not-share',origin:f.origin,'x-opencraft-relay-assertion':'forged','staffid':'carol'});
@@ -113,4 +119,51 @@ test('verified legacy aliases provide navigation hints without replacing stable 
   assert.equal(selectionDefault({...p,aliases:[]},hints),undefined);
   assert.equal(selectionDefault({...p,provider:'different'},hints),undefined);
   hints.set(selectionIdentity(p),'current-team');assert.equal(selectionDefault(p,hints),'current-team');
+});
+
+
+test('relay SSH discovery requires explicit public ingress and reuses its origin-bound grant',async t=>{
+  const disabled=await selectorFixture({sshPublicAccess:false});
+  try {
+    const cookie=await disabled.login('alice');
+    assert.equal((await disabled.get('/servers/lighthouse/__opencraft_ssh/session',{cookie})).status,403);
+  } finally {await disabled.close();}
+  const f=await selectorFixture({sshPublicAccess:true});t.after(()=>f.close());
+  const cookie=await f.login('alice'),origin='http://lighthouse.selection.test:'+new URL(f.origin).port;
+  const html=await (await f.get('/servers/lighthouse/',{cookie,accept:'text/html'})).text();
+  const context=JSON.parse(/id="opencraft-server-context" type="application\/json">([^<]+)/u.exec(html)![1]!);
+  assert.equal(context.targetOrigin,origin);
+  const grant=await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie,origin:f.origin,'content-type':'application/json'},'POST',Buffer.from('{}'));
+  assert.equal(grant.status,200);
+  const targetCookie=grant.headers.getSetCookie()[0]!.split(';')[0]!;
+  for(let i=0;i<3;i++) {
+    const headers={cookie:cookie+'; '+targetCookie,referer:f.origin+'/servers/lighthouse/chat/42'};
+    const session=await f.get('/servers/lighthouse/__opencraft_ssh/session',headers);
+    assert.deepEqual(await session.json(),{available:true,authenticated:true,accessMode:'shared',authenticatedOrigin:origin});
+    assert.deepEqual(await (await f.get('/servers/lighthouse/__opencraft_ssh/connections',headers)).json(),[]);
+  }
+  for(const referer of [f.origin+'/servers/join/', 'http://evil.test/servers/lighthouse/']) {
+    const session=await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie:cookie+'; '+targetCookie,referer});
+    assert.equal((await session.json()).authenticated,false);
+  }
+  const other=await f.get('/servers/join/__opencraft_ssh/session',{cookie:cookie+'; '+targetCookie,referer:f.origin+'/servers/join/'});
+  assert.equal((await other.json()).authenticated,false);
+  assert.equal((await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie,origin:'http://evil.test'},'POST',Buffer.from('{}'))).status,403);
+});
+
+
+test('unprefixed entry document bookmarks retain their instance and gain selection context',async t=>{
+  const f=await selectorFixture();t.after(()=>f.close());const cookie=await f.login('alice');
+  const path='/settings/remote-connections?retained=one%2Ftwo';
+  const legacy=await f.get(path,{cookie,accept:'text/html'});
+  assert.equal(legacy.status,303);
+  assert.equal(legacy.headers.get('location'),'/servers/join'+path);
+  assert.equal(legacy.headers.get('cache-control'),'private, no-store');
+  const scoped=await f.get(legacy.headers.get('location')!,{cookie,accept:'text/html'});
+  assert.equal(scoped.status,200);assert.match(await scoped.text(),/opencraft-server-context/u);
+  const api=await f.get('/fixture/headers',{cookie,accept:'application/json'});
+  assert.equal(api.status,200);assert.equal(api.headers.get('location'),null);assert.equal((await api.json()).id,'join');
+  const unadmitted=await f.login('carol');
+  assert.equal((await f.get(path,{cookie:unadmitted,accept:'text/html'})).status,403);
+  assert.equal((await f.get(path,{cookie,accept:'text/html',origin:'http://evil.test'})).status,403);
 });

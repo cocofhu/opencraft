@@ -424,7 +424,7 @@
   "sidebar.status.goal": "กำลังดำเนินการตามเป้าหมาย",
   "sidebar.status.running": "กำลังทำงาน",
   "sidebar.status.review": "พร้อมให้ตรวจสอบ",
-  "sidebar.status.error": "เชื่อมต่อล้มเหลว",
+  "sidebar.status.error": "การสนทนาเกิดข้อผิดพลาด",
   "sidebar.status.unread": "มีคำตอบใหม่",
   "sidebar.rail.start": "เริ่ม",
   "sidebar.rail.chat": "แชต",

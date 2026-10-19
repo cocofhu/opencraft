@@ -42,9 +42,21 @@ does not require the server-administration build flag. Direct deployments withou
 relay context do not advertise a chooser. The relay-supplied selector path also
 preserves compatibility with legacy deployments.
 
-The browser remembers the last choice under a key derived from verified provider
-and stable subject, within that entry origin. Future root visits reopen it only
-while target admission succeeds. Explicitly opening the chooser never redirects
+Existing unprefixed entry Workbench bookmarks, such as `/settings/remote-connections`,
+redirect after target admission to that same instance's `/servers/<instanceId>/`
+path, preserving the deep path and query. This applies only to successful GET
+HTML navigations; API requests, uploads and WebSockets retain their existing
+behavior. It does not consult another saved server choice or grant membership.
+Reload an already-open unscoped page to receive the deployment context and the
+**Settings → Servers** entry.
+
+The URL `/servers/<instanceId>/…` always selects that server, including deep
+links and reloads, regardless of a saved choice. After a successful admitted
+top-level document opens, the browser remembers that server under a key derived
+from verified provider and stable subject, within that entry origin. This includes
+direct links, not just chooser clicks. Future root visits reopen it only while
+target admission succeeds. Failed navigation, background requests and embedded
+frames do not change the preference; a different tab remains bound to its own URL. Explicitly opening the chooser never redirects
 automatically. Another browser, cleared browser data or a different identity
 requires another choice unless an operator configured an identity migration default. Offline or revoked targets return document navigation
 to the chooser; APIs/WS return errors and never silently switch servers. Existing
@@ -368,3 +380,22 @@ Chromium login handoff and target membership revocation, entirely with isolated
 `.test` names and synthetic enterprise identity fixtures. Neither domain registration nor real
 employee credentials are required. It proves the transport, not external firewall
 reachability or real corporate enterprise identity gateway configuration.
+
+### Origin-bound installation sessions behind a selected server
+
+The injected server context includes the enrolled `targetOrigin`, distinct from
+the browser entry origin. Clients use it only to validate installation session
+metadata; all requests still go through the scoped same-origin relay path. The
+relay translates a Referer only when it belongs to this entry and this selected
+server. Other target and foreign references never acquire target authority.
+
+A headless target reached through a public relay origin must explicitly enable
+its existing SSH management ingress policy (`--ssh-public-access`, or a fixed
+HTTPS `--ssh-public-origin`). A loopback listener alone does not opt in to a
+public Host. The outer instance admission, origin-bound SSH grants, cross-site
+checks and namespaced cookies still apply. This does not grant team membership
+or enable a remote SSH connection automatically.
+
+The sidebar conversation error label describes a failed conversation state; it
+does not prove that its Host transport is disconnected. Read the conversation's
+actual error to distinguish provider quota from connection failure.
