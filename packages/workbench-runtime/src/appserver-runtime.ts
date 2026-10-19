@@ -975,6 +975,7 @@ export function createAppServerWorkbenchRuntime(
       conversation = createReplicaConversationRuntime({
         outbox: config.outbox,
         canDispatchOutbox: () => phase === "ready" && !requiresManualRecovery() && currentTransport?.status.state === "open",
+        canAutoContinueCapacity: () => currentClient.initializeResult?.capabilities?.extensions?.["opencraft/capacity-retry"] === undefined,
         getSubmissionSender: config.getSubmissionSender,
         key: createConversationKey(hostId, threadId),
         replica,

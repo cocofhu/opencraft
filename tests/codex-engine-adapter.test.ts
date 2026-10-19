@@ -64,6 +64,7 @@ test("model capacity failures continue with exponential backoff capped at 120 se
   };
   try {
     await adapter.connect(); await initializeClient(adapter, frames, "writer");
+    assert.deepEqual((frames.find(frame => frame.id === "writer:init")?.result as any).capabilities.extensions["opencraft/capacity-retry"], { version: 1 });
     const threadId = (await request("capacity:create", "thread/start", { cwd: root, testNoServerRequest: true })).thread.id;
     await request("capacity:initial", "turn/start", { threadId, input: [{ type: "text", text: "Continue this task" }] });
     await request("capacity:fail", "test/completeTurn", { threadId, codexErrorInfo: "serverOverloaded" });

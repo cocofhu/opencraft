@@ -196,6 +196,7 @@ function withCodexHostCapabilities(value: unknown, attachmentStaging: Attachment
           perItemPause: false,
         } satisfies OpenCraftThreadQueueCapability,
         [OPENCRAFT_THREAD_GOAL_EXTENSION]: { version: 1, read: true, write: true },
+        "opencraft/capacity-retry": { version: 1 },
         [OPENCRAFT_PERMISSION_MODES_EXTENSION]: OPENCRAFT_PERMISSION_MODES_CAPABILITY,
       },
     },

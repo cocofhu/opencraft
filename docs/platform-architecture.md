@@ -3078,3 +3078,7 @@ the sequence. New user input, an active Turn, or queued input takes precedence;
 the Host checks the latest authoritative Turn before starting a retry and keeps
 the native subscription while a retry is pending. An unconfirmed `turn/start`
 outcome stops automatic retries so the Host cannot duplicate execution.
+An older Host without the `opencraft/capacity-retry` capability is supported by
+the active Conversation runtime using the same delay cap and empty continuation.
+When the Host advertises version 1, the client cancels its fallback timer and
+leaves retry ownership with the Host.
