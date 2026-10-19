@@ -1,5 +1,23 @@
 # 工作区不变量
 
+## Discrete slider fill
+
+The shared track owns capsule clipping. Its selected range has a square inner
+edge beneath the circular thumb, so the accent fills the entire track to the
+thumb without a rounded notch. The range end must coincide with the **actual
+thumb center**, including Radix's radius-based in-bounds offset at each stop.
+A raw percentage aligns only at the midpoint: use the selected fraction and the
+shared thumb-size token to correct the logical end margin, so density changes
+and RTL retain the same geometry without another DOM measurement owner.
+Radix retains value, pointer and keyboard ownership.
+
+Visual regression checks measure fill end versus rendered thumb center at every
+stop and during held preview, with a subpixel tolerance. A CSS-property assertion
+or screenshots of one favorable stop cannot establish this invariant. Preserve
+a failing pre-fix case; inspect near-start, middle and near-end output in addition
+to theme/density/DPR coverage. `scripts/smoke-reasoning-slider.ts` verifies the real
+Composer consumer and keeps per-stop screenshots and geometric samples.
+
 ## Composer input action icons
 
 The shared voice action consumes the design-system composer input icon role:

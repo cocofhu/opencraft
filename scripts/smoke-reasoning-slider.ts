@@ -25,7 +25,7 @@ await mkdir('.local/reasoning-slider',{recursive:true});await vite.listen();
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const results=[];
 try {
  for(const palette of ['codex','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
-  const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,reducedMotion:"reduce"});
+  const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"reduce"});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript('window.__name=v=>v');
   await page.goto(vite.resolvedUrls!.local[0]+'?mode='+mode+'&palette='+palette+(touch?'&touch':''));
@@ -38,11 +38,24 @@ try {
   await slider.waitFor();assert.equal(await slider.getAttribute('aria-valuemax'),'5');assert.equal(await slider.getAttribute('aria-valuetext'),'Medium');
   await page.evaluate(()=>document.fonts.ready);await control.screenshot();
   const rect=await control.boundingBox();assert(rect);assert(rect.height>=44,JSON.stringify(await control.evaluate(el=>({rect:el.getBoundingClientRect().toJSON(),height:getComputedStyle(el).height,token:getComputedStyle(el).getPropertyValue("--height-discrete-slider-hit")}))));
+  const geometry:unknown[]=[];
+  const assertFillMeetsThumb=async()=>{
+   // ResizeObserver delivers a remounted thumb size after layout; sample its next rendered frame.
+   await page.evaluate(()=>new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done()))));
+   const sample=await control.evaluate(el=>{
+    const range=el.querySelector('.ui-discrete-slider__range')!.getBoundingClientRect();
+    const thumb=el.querySelector('.ui-discrete-slider__thumb')!.getBoundingClientRect();
+    return {value:el.querySelector('[role=slider]')!.getAttribute('aria-valuetext'),fillEnd:range.right,thumbCenter:thumb.x+thumb.width/2,thumbWidth:thumb.width};
+   });
+   geometry.push(sample);
+   assert(Math.abs(sample.fillEnd-sample.thumbCenter)<=0.5,'selected fill must reach the actual thumb center: '+JSON.stringify(sample));
+  };
+  await assertFillMeetsThumb();
   const committed=()=>page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.effort);
   // Drag through stops while held: label previews but no domain/default write.
   if(!touch){
    await page.mouse.move(rect.x+rect.width*.3,rect.y+rect.height/2);await page.mouse.down();
-   for(const fraction of [.55,.95,.72]){await page.mouse.move(rect.x+rect.width*fraction,rect.y+rect.height/2,{steps:3});assert.equal(await committed(),undefined);assert.equal(await page.evaluate(()=>(window as any).fixture.remembered.length),0);}
+   for(const fraction of [.55,.95,.72]){await page.mouse.move(rect.x+rect.width*fraction,rect.y+rect.height/2,{steps:3});assert.equal(await committed(),undefined);assert.equal(await page.evaluate(()=>(window as any).fixture.remembered.length),0);await assertFillMeetsThumb();}
    await page.evaluate(()=>(window as any).fixture.rerender());
    await page.waitForFunction(()=>document.querySelector('main')?.getAttribute('data-frame')==='1');
    assert.equal(await slider.getAttribute('aria-valuetext'),'Max','parent rerender retains held preview');
@@ -73,14 +86,18 @@ try {
   for(const [position,effort] of ['low','medium','high','xhigh','max','ultra'].entries()){
    const r=await control.boundingBox();assert(r);const point={x:Math.max(2,Math.min(r.width-2,r.width*position/5)),y:r.height/2};
    if(touch)await control.tap({position:point});else await control.click({position:point});
-   assert.equal(await committed(),effort);
+   assert.equal(await committed(),effort);await assertFillMeetsThumb();
+   await control.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'-'+effort+'.png'});
   }
   const metrics=await control.evaluate(el=>{const q=(s:string)=>getComputedStyle(el.querySelector(s)!);return {height:el.getBoundingClientRect().height,track:q('.ui-discrete-slider__track').backgroundColor,fill:q('.ui-discrete-slider__range').backgroundColor,thumb:q('.ui-discrete-slider__thumb').backgroundColor};});
   assert.notEqual(metrics.track,'rgba(0, 0, 0, 0)');assert.notEqual(metrics.fill,metrics.track);assert.notEqual(metrics.thumb,'rgba(0, 0, 0, 0)');
   await page.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'.png'});
   for(const [name,count] of [['Model 1',3],['Model 2',1],['Model 3',0]] as const){
    const item=menu.getByRole('menuitem',{name,exact:true});if(touch)await item.tap();else await item.click();
-   if(!count)assert.equal(await slider.count(),0);else{assert.equal(await slider.getAttribute('aria-valuemax'),String(count-1));if(count===1)assert.equal(await control.getAttribute('aria-disabled'),'true');}
+   if(!count)assert.equal(await slider.count(),0);else{assert.equal(await slider.getAttribute('aria-valuemax'),String(count-1));if(count===1){assert.equal(await control.getAttribute('aria-disabled'),'true');await assertFillMeetsThumb();}else{
+     await slider.focus();await page.keyboard.press('Home');await assertFillMeetsThumb();
+     for(let stop=1;stop<count;stop++){await page.keyboard.press('ArrowRight');await assertFillMeetsThumb();}
+    }}
   }
   await menu.getByRole('menuitem',{name:'Model 4',exact:true}).click();
   assert.equal(await committed(),undefined);assert.equal(await menu.locator('.ui-discrete-slider').getAttribute('data-unset'),'true');
@@ -91,7 +108,7 @@ try {
   await slider.focus();await page.keyboard.press('Home');assert.equal(await committed(),'low');
   assert(await editor.evaluate(el=>el===(window as any).keptEditor));assert.equal(await editor.innerText(),'Keep this draft');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});assert.deepEqual(errors,[]);
-  results.push({palette,mode,touch,metrics});await context.close();
+  results.push({palette,mode,touch,metrics,geometry});await context.close();
  }
- await writeFile('.local/reasoning-slider/results.json',JSON.stringify(results,null,2));console.log('PASS '+results.length+' real Composer slider scenes: held drag/commit, touch focus/selection, cancel, keys, dynamic 6/3/1/0 options, themes and draft.');
+ await writeFile('.local/reasoning-slider/results.json',JSON.stringify(results,null,2));console.log('PASS '+results.length+' real Composer slider scenes: held drag/commit, touch focus/selection, cancel, keys, dynamic 6/3/1/0 options, themes, per-stop fill/thumb geometry and draft.');
 }finally{await browser.close();await vite.close();}

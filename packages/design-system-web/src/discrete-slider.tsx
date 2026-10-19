@@ -57,7 +57,11 @@ export function DiscreteSlider({ options, value, label, unsetLabel, disabled = f
         setPreview(null);
       }}>
       <Slider.Track className="ui-discrete-slider__track">
-        <Slider.Range className="ui-discrete-slider__range" />
+        {/* Radix bounds the thumb center by its radius, but leaves Range at the
+            raw track percentage. Match that inset at every stop, including RTL. */}
+        <Slider.Range className="ui-discrete-slider__range" style={{
+          marginInlineEnd: `calc(${index / Math.max(1, options.length - 1) - 0.5} * var(--size-discrete-slider-thumb))`,
+        }} />
         <span className="ui-discrete-slider__ticks" aria-hidden="true">
           {options.map((option, position) => <span key={option.value} data-filled={position <= index || undefined} title={option.label} />)}
         </span>

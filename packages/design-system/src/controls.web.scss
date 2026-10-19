@@ -197,7 +197,7 @@
 .ui-discrete-slider__range {
   position: absolute;
   height: 100%;
-  border-radius: inherit;
+  // The track clips the outer capsule; the fill must meet the thumb squarely.
   background: var(--color-discrete-slider-fill);
 }
 .ui-discrete-slider__ticks {
