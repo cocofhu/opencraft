@@ -968,6 +968,17 @@ read cannot replace a newer observation. Account scope replacement discards the
 owner. This memory is a projection cache, not a second history authority, Replica
 checkpoint, execution lease, or source for tool/approval actions.
 
+The Web Application resolves display identity from its committed View Scope
+binding before a network Thread lease exists, and renders a nonempty display
+while the initial lease is still being acquired. Display identity remains
+separate from the active execution lease. The cold-stage spinner is reserved for a missing lease
+and no visible history; it must not hide a valid account-scoped display behind
+Host initialization. Persisted display restoration after a page reload follows
+the same rule as the transient first-submission handoff. Canonical history still
+replaces the display, and command admission still waits on the existing baseline.
+`scripts/smoke-session-cold-open.ts` exercises the built Application with held
+initialization, canonical replacement and a separate uncached browser profile.
+
 ### History positions and concurrent observations
 
 Execution ownership and transcript grouping are different boundaries. One
