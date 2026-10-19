@@ -48,3 +48,34 @@ and this record does not classify the untouched handles or adjacent files.
 This commit freezes scope and observable requirements only. Both selected functions
 and the surrounding source remain unchanged. SSR, interaction and actual browser
 baselines must be completed and committed as requirements before implementation.
+
+
+## Frozen initial component observations
+
+Before implementation, the actual component produced 136 complete static markup
+outputs across all 13 preset entries, unknown and fit modes, zero/out-of-bound
+dimensions, four zoom values and supported/unsupported zoom. Rendering invoked no
+action callbacks and did not mutate any supplied mode object. First SSR setup
+failed because the observer omitted the classic JSX React binding; the external
+observer supplied that binding and passed without changing product code.
+
+Actual Chromium with the original app stylesheet and licensed Lucide icons records
+four scenes (390/1100 widths, light/dark), each with 16 complete checkpoints.
+They include preset selection, decimal live input, Enter, minimum/maximum and empty
+blur, Escape, rotation, zoom, external props while editing, another preset, close,
+unsupported zoom and disposal. Full rendered DOM, input values, focus, callbacks,
+props and control geometry are retained. All scenes have no page errors; the narrow
+dark screenshot was viewed. Narrow hidden zoom was exercised by a programmatic
+select event, not described as a visible narrow control. The controlled parent
+acknowledges callbacks; this is not a complete panel, Page service or native guest.
+
+Observed input semantics are live updates: valid edit changes the caller's mode
+while retaining its raw input text during focus. Enter/blur may submit the current
+value again; Escape does not undo an already acknowledged live update. Empty blur
+restores the prop without issuing a mode action. Preset selection also resets zoom
+to 100 when supported; rotation exchanges current dimensions and selects the
+custom/responsive preset. These observations supersede a speculative transaction
+cancellation interpretation in the initial plan; retain caller identity and the
+actual outputs rather than inventing a new interaction contract. The full result
+hashes are locked in the baseline. Supplemental boundaries may be frozen before
+authoring; no implementation is changed in this checkpoint.

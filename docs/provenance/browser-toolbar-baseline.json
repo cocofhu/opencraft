@@ -48,5 +48,20 @@
     "React compiler caches/i18n wrappers removed; product tokens/icons substituted."
   ],
   "strictIsolation": false,
-  "status": "contract-only; implementation unchanged"
+  "status": "contract-only; implementation unchanged",
+  "observations": [
+    {
+      "path": "static-observations.json",
+      "sha256": "a8dd9a1de62e7f2c5da2172a197496d7d7f82a086646ba76fe743a41637101a4",
+      "cases": 136
+    },
+    {
+      "path": "browser-before/observations.json",
+      "sha256": "70200f0307f89c3091ed1ad7f9b2ecedc2c21c191a84a8b020bdcecb1623047e",
+      "scenes": 4,
+      "checkpoints": 64,
+      "actualChromium": true,
+      "nativeVerified": false
+    }
+  ]
 }
