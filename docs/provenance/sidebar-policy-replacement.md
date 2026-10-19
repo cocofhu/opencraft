@@ -62,3 +62,22 @@ observations use the same current floating container (its metadata phase is
 remain recorded rather than claimed fixed. Full outputs, immutable observer
 hashes and script hashes are frozen in the baseline before this implementation.
 The 50 existing targeted policy/geometry/Shell tests pass before authoring.
+
+## Current implementation
+
+The three selected declarations now project the frozen OpenCraft contract from
+one typed input each: pointer acquisition uses an inclusive interval, layout
+ownership precedes floating presentation, and absence of docked layout ownership
+permits a floating presence lifetime. No reference implementation bodies were
+printed in this bounded authoring pass; earlier exposure remains possible.
+The replaced historical header and function annotations remain in the baseline.
+No new helper, state owner, dependency, repository test or harness is introduced.
+Every byte outside these three declarations and their direct module header is
+unchanged, including later hover/toggle policy, all public types and constants.
+The current module SHA256 is `f2fb948b4719bc5c54562af0d40ad0befd2524253a7e2bbcdb890a9d76f6e88d`.
+
+All 4,408 complete outputs, including retained additions, match byte-for-byte.
+The earlier baseline-freeze utility initially expected a nonexistent `passed`
+field in mobile records and stopped before changing files. It was corrected to
+validate the existing 36-row/12-combination schema and successful terminal output;
+product inputs, assertions and observations stayed unchanged.

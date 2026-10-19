@@ -27,16 +27,17 @@
       "paths": [
         "apps/workbench-web/src/components/sidebar.tsx",
         "apps/workbench-web/src/components/use-panel-animation.ts",
-        "apps/workbench-web/src/sidebar-dock-model.ts",
         "packages/appserver-protocol/src/resume-history.ts"
       ],
       "evidence": [
         "apps/workbench-web/src/sidebar-dock-model.ts",
         "packages/appserver-protocol/src/resume-history.ts",
         "docs/provenance/floating-sidebar-baseline.json",
-        "docs/provenance/floating-sidebar-replacement.md"
+        "docs/provenance/floating-sidebar-replacement.md",
+        "docs/provenance/sidebar-policy-baseline.json",
+        "docs/provenance/sidebar-policy-replacement.md"
       ],
-      "reason": "Remaining source comments refer to recovered renderer behavior; review must distinguish independent behavior modeling from adapted expression. The explicitly restored floating sidebar container has a separate bounded replacement record; its historical annotation and hashes remain evidence.",
+      "reason": "Remaining source comments refer to recovered renderer behavior; review must distinguish independent behavior modeling from adapted expression. The explicitly restored floating sidebar container has a separate bounded replacement record; its historical annotation and hashes remain evidence. The three historical restored sidebar policy declarations now have their own bounded replacement record; later original additions and all historical evidence are retained.",
       "resolution": "Review remaining specifically attributed regions and actual source lineage individually. The floating container replacement does not clear other Shell code or mandate rewriting ordinary spring data."
     },
     {
@@ -892,6 +893,21 @@
       "reason": "Both explicitly restored container components are independently replaced after frozen public props and complete DOM, geometry, lifecycle, motion and resize-port observations. Imports/interfaces, Shell ownership, existing resize helper, styles and ordinary spring data remain unchanged.",
       "resolution": "Retain historical annotations/declaration hashes, actual exposure and chronological freezes. Preserve the failing pre-existing full Shell footer assertion. Eight other groups remain unresolved.",
       "conclusion": "Current presentation projects Shell visibility, live width and mobile depth while preserving slots, presence/inertness, interrupted-exit continuity and resize callback ownership. Bounded verification does not establish strict author isolation, historical rights, native hardware acceptance or release readiness."
+    },
+    {
+      "id": "sidebar-presentation-policy",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/sidebar-dock-model.ts"
+      ],
+      "evidence": [
+        "docs/provenance/sidebar-policy-baseline.json",
+        "docs/provenance/sidebar-policy-replacement.md",
+        "tests/workbench-sidebar-dock.test.ts"
+      ],
+      "reason": "Only the three historically restored declarations are replaced after frozen requirements, complete policy observations and actual Shell/mobile baseline evidence. Later hover/toggle functions, types and constants remain byte-identical.",
+      "resolution": "Retain historical header, declaration hashes, actual exposure and bounded scope. Eight other inventory groups remain unresolved; this disposition does not establish historical rights or release readiness.",
+      "conclusion": "The existing Shell and intent hook remain the only owners of request, timers, gestures, resize, animation and shared content. These synchronous projections preserve the selected public contract; no strict author-isolation or native-device acceptance is claimed."
     }
   ]
 }
