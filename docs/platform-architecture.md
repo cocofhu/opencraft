@@ -3004,6 +3004,8 @@ episode is active.
 
 Headless 将 `access-control/actor-collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/actor-codex-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
 
+会话引用与跨会话投递的[目标架构](architecture/conversation-interoperability.md)将 Actor 和 Conversation 资源分开：统一 Collaboration 接纳与交接，目标 Host 继续拥有执行队列，引擎及渠道通过窄端口接入。该文档规定下一步迁移，不表示当前已支持任意会话引用、后台模型工具或跨引擎/跨 Server 投递。
+
 ### Read-only Office resource previews
 
 Host file authorization, byte reads, resource identity and download remain in the
