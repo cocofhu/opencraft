@@ -13,5 +13,7 @@
     "waveforms": 147,
     "rebindings": 7,
     "sha256": "6a49d8925bddba530eae5c4df41aa2573d7e0a94be88aa53fd8afc4f623e3d6c"
-  }
+  },
+  "replacementSha256": "6370cd767f9fd9058cf7cafdcd9d47bba9b6ef4650358d3750a96ae8812d3147",
+  "scopeProof": "Only the selected module changes runtime code; all other runtime and stylesheet paths remain unchanged."
 }

@@ -44,10 +44,36 @@ Repaint is scheduled by valid samples or resize, coalescing pending frames; no
 continual synthetic waveform is generated. Source replacement resets history and
 releases its subscription/frame/observer. DPR and fractional widths remain covered.
 
-The observer executes the historical module without printing its body; four
+The observer executes the historical module without printing its body; three
 initial attempts exposed missing JSDOM browser APIs (matchMedia, getAnimations,
 IntersectionObserver), with sanitized errors and no emitted-source diagnostics.
 Those are environment repairs, not historical-module or requirement changes.
 Canvas method traces and finite observations do not establish real microphone,
 ASR, native platform or universal pixel equivalence. Real Chromium verification
 will follow authoring. No repository tests or observer are added.
+
+## Independently authored replacement and validation
+
+The current module uses a fixed-capacity circular sample buffer, one pending
+paint lease and an explicit disposed flag. Subscription changes create a new
+buffer and teardown releases all three presentation resources. Elapsed time has
+a separate listening-only hook; state projection and action delegation consume
+the existing transaction. The complete sealed DOM/timer/canvas corpus matches
+on the first comparison. No capture, recognition, draft or submission code changes.
+
+Actual Chromium scenes use the existing app stylesheet, ProgressIndicator and
+licensed Lucide icons in 390/1100 widths and light/dark themes. All four phases,
+stop/send/retry/cancel callbacks and waveform pixels are checked. An initial
+browser comparison exposed a 1/64 CSS-pixel width change from combining duration
+text nodes; keep the original node boundaries. After fonts and the unchanged
+entrance animation settle, all four scene sets have identical control geometry,
+SVG attributes, exact canvas PNGs, statuses and callback sequences. Initial
+differences are retained externally. The narrow dark listening screenshot was
+viewed. This is a real footer component with synthetic audio/transactions, not
+full Composer, actual microphone/ASR, employee or native-client acceptance.
+
+Composer typecheck, 46 existing native-speech/ledger/startup/composer tests, the
+final two startup tests, ten provenance tests and typography/platform boundaries
+pass. No tests or observer are committed. The final public Web build completes with 791 runtime source files and zero
+compatibility issues. The same eight unresolved inventory groups remain; historical rights
+and strict author isolation are not established.

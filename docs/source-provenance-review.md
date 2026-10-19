@@ -636,3 +636,14 @@ active/completed matching, duplicate handling, suffixes and structural sharing
 remain compatible. Notification validation and Turn routing retain their existing
 owners. Historical hashes and actual exposure remain recorded; eight unresolved
 groups remain, without whole-file, strict isolation or historical-rights clearance.
+
+
+## Bounded dictation footer presentation (2026-10-20)
+
+[Only the directly attributed footer module](provenance/dictation-footer-replacement.md)
+is independently expressed from frozen transaction/consumer requirements and
+executable DOM, timer, canvas and browser observations. Capture, recognition,
+retry ownership, draft writes and Composer submission remain unchanged. Historical
+hashes and actual JSX exposure are retained; this does not establish strict
+author isolation, native acceptance or historical rights. Eight unresolved groups
+remain open; adjacent client/Host modules are reviewed individually.

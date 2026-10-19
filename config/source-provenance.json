@@ -267,7 +267,6 @@
       "paths": [
         "apps/appserver-lab/src/request-journal.ts",
         "packages/appserver-session/src/projectors.ts",
-        "packages/codex-composer/src/dictation-footer.tsx",
         "packages/workbench-panels/src/model.ts"
       ],
       "evidence": [
@@ -280,9 +279,11 @@
         "docs/provenance/interaction-interrupt-baseline.json",
         "docs/provenance/interaction-interrupt-replacement.md",
         "docs/provenance/hook-upsert-baseline.json",
-        "docs/provenance/hook-upsert-replacement.md"
+        "docs/provenance/hook-upsert-replacement.md",
+        "docs/provenance/dictation-footer-baseline.json",
+        "docs/provenance/dictation-footer-replacement.md"
       ],
-      "reason": "Diagnostic, dictation and panel annotations still require bounded review. The directly attributed hook upsert function and interrupt response module have separate current-implementation dispositions. Other projector functions are not classified or selected for rewriting merely because they share this file; historical rights remain unverified.",
+      "reason": "Diagnostic and panel annotations still require bounded review. The directly attributed dictation footer module, hook upsert function and interrupt response module have separate current-implementation dispositions. Other projector functions are not classified or selected for rewriting merely because they share this file; historical rights remain unverified.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -762,6 +763,23 @@
       "reason": "Only the selected execution-list helper directly claimed source-equivalent reconstruction. Replace it from frozen typed consumer requirements and executable observations with one explicit execution summary and immutable list update.",
       "resolution": "Retain historical file/function/region hashes, direct annotation, requirements commits and actual exposure. Protocol identities, timestamps and metadata remain application compatibility facts.",
       "conclusion": "Current disposition covers only upsertHookRun. Frozen matching, suffixes, order and object sharing are preserved. Eight unresolved groups and historical rights remain open; no whole-file or strict author-isolation claim."
+    },
+    {
+      "id": "dictation-footer-presentation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/codex-composer/src/dictation-footer.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/dictation-footer-baseline.json",
+        "docs/provenance/dictation-footer-replacement.md",
+        "tests/dictation-startup-feedback.test.tsx",
+        "tests/native-speech.test.ts",
+        "tests/composer-core.test.ts"
+      ],
+      "reason": "The complete module directly claimed semantic adoption from recovered recording controls. Express the frozen UI, elapsed-time and sample-buffer presentation from public transaction contracts, consumer requirements and executable observations. Working audio/recognition, draft ownership and Composer submission remain unchanged.",
+      "resolution": "Retain exact historical hash, direct annotation, frozen observations and actual prior JSX exposure. Original shared styles, licensed icons and ProgressIndicator retain their owners. Eight unresolved groups and historical rights remain open.",
+      "conclusion": "Current module independently owns phase presentation, elapsed-time sampling, bounded waveform rendering and action delegation. This is not strict author isolation, native microphone/recognition validation, whole-composer or historical-rights clearance."
     }
   ]
 }
