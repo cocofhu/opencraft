@@ -10,17 +10,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis": "4.0.4",
     "@opencraft/chat-document": "0.1.0",
     "@opencraft/chat-render-react": "0.1.0",
     "@opencraft/design-system": "0.1.0",
     "expo-clipboard": "~57.0.1",
-    "lucide-react-native": "1.35.0",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
+    "lucide-react-native": "1.58.0",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "react-native-webview": "^13.16.1"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2"
+    "@types/react": "~19.3.0"
   }
 }
