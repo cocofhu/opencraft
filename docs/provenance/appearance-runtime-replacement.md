@@ -78,8 +78,8 @@ Neutral/Frost. All 264 bootstrap reads completed without page errors.
   initialization reapplies document/native projections without duplicating the
   media subscription or emitting unchanged snapshot notifications.
 - Descriptors, catalog and snapshots are frozen. Explicit unavailable selection
-  throws without changing selection. Repeating a selection does not notify or
-  write. Connecting an empty contribution store refreshes the catalog and notifies.
+  throws without changing selection. Repeating a selection does not notify; the later storage-instrumented
+  observation confirms it still writes the selected preference. Connecting an empty contribution store refreshes the catalog and notifies.
 - The explicit-element projection applies mode/classes/theme/compiler CSS only;
   product presentation belongs to document initialization. Preview returns the
   selected-mode compiler properties without mutating selection or document CSS.
@@ -100,3 +100,27 @@ Evidence digests (temporary executable observations, not a committed new harness
 - `opencraft-appearance-baseline.json` SHA-256 `802a523b3693d68e1097db4014c65e134f7846d4e2ca7df553a7d1a1b909f022`.
 - `opencraft-appearance-bootstrap-baseline.json` SHA-256 `f08e35c7dbf3f20aec686b29b39c4ff0c003affb6305155e45f029d99d6882ac`.
 - `opencraft-appearance-policy-baseline.json` SHA-256 `1ca211de6f06891fe69eacd215cea5f96afce2a708d6449fffcecd616a92b234`.
+
+## Additional lifecycle observations (before implementation)
+
+Storage instrumentation corrects the earlier uninstrumented no-write inference:
+repeating either selection writes its preference key, without applying or notifying.
+Storage read/write exceptions do not prevent in-memory selection. Synchronous
+native bridge exceptions propagate after snapshot/storage/document updates and
+before subscriber notification. This replacement preserves that failure boundary.
+
+Replacing contribution sources first disconnects the old source, then publishes
+the new catalog (two notifications). Old disposers and callbacks cannot clear the
+new source. Extension catalog ordering follows registration order, not label sort.
+When policy hides all built-ins, the runtime retains Neutral as its safety catalog;
+a missing custom default remains requested and activates when contributed. Unknown
+preview IDs fall back through the current available catalog, including hidden IDs.
+These are browser public-port observations, not implementation-body inspection.
+
+Additional temporary evidence (not a committed harness):
+
+- `opencraft-appearance-lifecycle-baseline.json` SHA-256 `4c2f927da4bea5216c88d85d8844e80e5bafe6bd70af2d59a306e5555acea4fd`.
+
+- `opencraft-appearance-custom-default-baseline.json` SHA-256 `88aff9af499cfa4585df982c271f9bf2bf043e8a7187cb5f44c713487000aa21`.
+
+- `opencraft-appearance-policy-edges.json` SHA-256 `e19ab62e8fa6be9811b61905614381d36d55ecc4c8a1c6eae7c258d69b432d3f`.
