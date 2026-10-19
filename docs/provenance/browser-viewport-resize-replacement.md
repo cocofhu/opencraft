@@ -36,3 +36,24 @@ session has exposure to other recovered modules, so this is not strict author
 isolation, historical rights clearance or a determination about untouched code.
 The existing browser group stays unverified until its other actual regions
 are reviewed. Implementation and validation evidence will be added separately.
+
+
+## Pre-authoring observations
+
+The fixed module was called through its public export for 1,371 recorded inputs
+before replacement authoring. The finite sample set covers all exposed handles,
+unknown edge names, positive fit scales, zero/tiny fit regions, fractional
+pointer motion and fit limits, growth and reversal. Additional out-of-contract
+zero/negative scale calls are recorded without treating them as UI support.
+Only outputs and input immutability were inspected, not the old function body.
+
+Observed geometry uses two units of width change for each scaled horizontal
+pointer unit because the viewport remains centered, and one unit vertically.
+Left handles invert horizontal displacement. Bottom-only leaves width intact;
+side-only leaves height intact. Changed axes round after bounding to minimum
+240 by 160 and maximum 4096, additionally limited by positive available physical
+space divided by captured scale; a nonpositive fit dimension adds no fit limit.
+Unknown edges retain the historical right-side behavior, without adding new UI
+handles. The consumer continues to own admission, capture and cancellation.
+The baseline records exact artifact hashes; these finite calls are evidence,
+not a universal equivalence proof or a rights determination.

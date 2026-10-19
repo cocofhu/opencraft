@@ -6,5 +6,22 @@
   "sourceAnnotation": "// Source function bodies from ref/codex/lazy/app-initial/is-adjacent-tab-index.js.",
   "publicContract": "apps/workbench-web/src/browser/codex/viewport-resize.d.ts",
   "consumer": "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
-  "authorExposure": "Only target header, export declaration and public consumer observed; no target function body printed as authoring input. Existing session contains unrelated recovered implementations. Not strict author isolation."
+  "authorExposure": "Only target header, export declaration and public consumer observed; no target function body printed as authoring input. Existing session contains unrelated recovered implementations. Not strict author isolation.",
+  "observations": [
+    {
+      "artifact": "viewport-baseline.json",
+      "sha256": "e6ad3d15dd98ce1f1b31e39a1519b3028922247f3ba1f544b22e158f186a995b",
+      "samples": 1280
+    },
+    {
+      "artifact": "viewport-extra-baseline.json",
+      "sha256": "fe018dcd85f2515823f5489c570327dd0ddcb74c213d5ec04d3ebe5a4b3cbde3",
+      "samples": 70
+    },
+    {
+      "artifact": "viewport-boundary-baseline.json",
+      "sha256": "69911493cebf7f3dde3a418c49234c87c3cd1f35c9ce6089da198e20c61b1695",
+      "samples": 21
+    }
+  ]
 }
