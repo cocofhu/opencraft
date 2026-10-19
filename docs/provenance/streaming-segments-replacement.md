@@ -70,3 +70,10 @@ compatibility issues. Final inventory validation and its ten existing tests pass
 eight unresolved groups remain. Final AST-bounded byte comparison proves the
 identity module prefix and suffix outside the selected declaration/annotation
 are unchanged. All validation artifacts and retained failures are external.
+
+A further actual WebChatDocument observer verifies user-message lists/fences/link
+callbacks and streaming quote reparenting, append entry and visible completion
+at 390/1100 light/dark. It uses real session/renderer components with synthetic
+inputs and a resource callback. The invariant paragraph is placed in the chat
+section so a downstream unrelated end-of-file Composer patch can replay without
+conflict; no runtime expression or existing patch is changed for this adjustment.
