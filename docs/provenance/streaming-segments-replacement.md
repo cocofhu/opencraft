@@ -40,3 +40,33 @@ segments settle; new segments enter only while streaming. Returned records are
 fresh even when their key/text are reused. Historical arguments are frozen to
 detect mutation. Public sequences include an abandoned candidate, a newer committed
 candidate and completion. This finite corpus supplements existing consumer tests.
+
+## Replacement and retained failure evidence
+
+The replacement builds per-text occurrence queues and tracks consumed prior
+positions. A same-position exact or nonempty growing string wins; otherwise the
+next unconsumed exact occurrence is selected. New keys consume the caller's
+identity counter, and every output record is fresh. No parsing or fade timer moves
+into this function. This avoids repeated whole-history search for duplicate text.
+
+The first comparison found 564 differences, all involving empty strings: exact
+same-position empty matches also have positional priority. The frozen corpus
+already contained them. The correction adds that exact case without weakening
+inputs; original mismatches remain external. Final comparison has zero differences
+across 50,176 pure inputs and 800 full committed/abandoned/completed session sequences.
+No historical function body was printed by the sealed observer. This bounded pass
+does not erase prior author exposure or establish strict isolation.
+
+Document typecheck, 44 existing document/cache/provenance tests, three existing
+Workbench recovery tests and typography/platform boundaries pass. The real Web
+streaming smoke renders 5,000 segments: maximum delay 96ms, no hidden spans after
+500ms or completion, 37,513 DOM characters and no page errors. It uses synthetic
+text and local Chromium, not employee login, native clients or real-provider
+throughput. No repository tests or harness are added. Public Web build status is
+recorded separately after its terminal result.
+
+The public Web build completed with 791 runtime sources and zero browser
+compatibility issues. Final inventory validation and its ten existing tests pass;
+eight unresolved groups remain. Final AST-bounded byte comparison proves the
+identity module prefix and suffix outside the selected declaration/annotation
+are unchanged. All validation artifacts and retained failures are external.

@@ -1757,3 +1757,11 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+
+Global streaming segment keys survive Markdown container reparsing through the
+shared reconciler: same-position exact/growing text wins before unconsumed global
+exact occurrences. Reused text settles, new text enters only while streaming,
+and completed text stays visible. This pure projection cannot commit a session,
+change syntax identity, schedule animation or own execution. See the [bounded
+record](../docs/provenance/streaming-segments-replacement.md).

@@ -254,9 +254,11 @@
         "docs/provenance/math-delimiters-baseline.json",
         "docs/provenance/math-delimiters-replacement.md",
         "docs/provenance/user-message-blocks-baseline.json",
-        "docs/provenance/user-message-blocks-replacement.md"
+        "docs/provenance/user-message-blocks-replacement.md",
+        "docs/provenance/streaming-segments-baseline.json",
+        "docs/provenance/streaming-segments-replacement.md"
       ],
-      "reason": "Remaining compiler inline-token mapping, streaming identity and streaming-preprocessing behavioral/recovery records require region-level expression review. Link scanning, math delimiters and user-message block normalization have separate current-implementation records. Behavioral references alone do not mandate rewriting helpers or clear whole files.",
+      "reason": "Remaining compiler inline-token, semantic node identity and general preprocessing behavioral/recovery records require region-level review. Link scanning, math delimiters, user-message normalization and global fade-segment reconciliation have bounded current-implementation records. Behavioral references alone do not mandate helper or whole-file rewriting.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -720,6 +722,25 @@
       "reason": "The selected public normalizer directly claimed source-equivalent block normalization. Preserve its observed application list/fence/newline contract through an independently authored line-state projection, without rewriting neighboring helpers.",
       "resolution": "Historical file/function hashes, direct annotation and frozen observations remain. The first focused extraction diagnostic exposed historical function content after initial authoring; actual exposure is recorded, not strict isolation or source-rights clearance.",
       "conclusion": "This covers only the current normalizer body and its direct annotation. Other preprocessing/compiler/streaming regions and all eight unresolved inventory groups remain open. No whole-file or public-release clearance is claimed."
+    },
+    {
+      "id": "global-streaming-segment-reconciliation",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-document/src/streaming/identity.ts"
+      ],
+      "regions": [
+        "reconcileGlobalSegments only; semanticClass, segmentation, node matching and session commit remain unchanged"
+      ],
+      "evidence": [
+        "docs/provenance/streaming-segments-baseline.json",
+        "docs/provenance/streaming-segments-replacement.md",
+        "tests/chat-document.test.ts",
+        "tests/chat-document-cache.test.ts"
+      ],
+      "reason": "The selected function directly claimed source-equivalent global fade-segment reconciliation. Independently express frozen positional growth and global exact-occurrence matching using indexed occurrence queues and consumed positions.",
+      "resolution": "Retain original file/region hashes, direct annotation, frozen inputs and actual author exposure. No whole-file classification, strict author isolation or historical-rights clearance.",
+      "conclusion": "Only the current global reconciliation function is covered. Parsing, word segmentation, semantic node identity, session CAS and renderer scheduling retain their owners. Eight unresolved groups remain."
     }
   ]
 }
