@@ -3,6 +3,21 @@ export const SERVERS_PATH = '/servers';
 export const LEGACY_SERVERS_PATH = '/__opencraft_servers';
 export const isServerPath = (path: string): boolean => [SERVERS_PATH, LEGACY_SERVERS_PATH].some(base => path === base || path.startsWith(base + '/') || path.startsWith(base + '?'));
 export function serverBase(id: string): string { return SERVERS_PATH + '/' + encodeURIComponent(id); }
+export interface ServerPaths { readonly aliases?: Readonly<Record<string, string>>; readonly defaultServer?: string; }
+/** Operator-owned routing labels. Stable instance IDs remain the authorization/storage key. */
+export function parseServerPaths(input: unknown): ServerPaths {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid server paths');
+  const value = input as Record<string, unknown>;
+  const id = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9._-]{1,128}$/u.test(v) && !['.', '..'].includes(v);
+  if (Object.keys(value).some(k => !['aliases', 'defaultServer'].includes(k)) || (value.defaultServer !== undefined && !id(value.defaultServer))) throw new Error('Invalid server paths');
+  const aliases = value.aliases;
+  if (aliases !== undefined && (!aliases || typeof aliases !== 'object' || Array.isArray(aliases))) throw new Error('Invalid server aliases');
+  const entries = Object.entries(aliases ?? {});
+  if (entries.length > 1000 || entries.some(([key, label]) => !id(key) || typeof label !== 'string' || !/^[a-z][a-z0-9-]{0,62}$/u.test(label))
+    || new Set(entries.map(([, label]) => label)).size !== entries.length
+    || entries.some(([key, label]) => entries.some(([other]) => other === label && other !== key))) throw new Error('Invalid or duplicate server alias');
+  return Object.freeze({ ...(aliases ? { aliases: Object.freeze(Object.fromEntries(entries)) as Readonly<Record<string, string>> } : {}), ...(value.defaultServer ? { defaultServer: value.defaultServer as string } : {}) });
+}
 function cookiePrefix(id: string): string { return 'opencraft-server-' + createHash('sha256').update(id).digest('hex').slice(0,32) + '-'; }
 /** Namespace installation cookies; root login and other installations never cross the tunnel. */
 export function targetCookies(header: string | undefined, id: string): string | undefined {
@@ -62,15 +77,16 @@ export function parseSelectionDefaults(input: unknown): ReadonlyMap<string, stri
     || typeof id!=='string' || !/^[A-Za-z0-9._-]{1,128}$/u.test(id))) throw new Error('Invalid selection defaults');
   return new Map(entries as [string,string][]);
 }
-export function selectorPage(principal: { provider: string; subject: string }, servers: readonly { id: string; name: string }[], automatic: boolean, defaultServer?: string): string {
+export function selectorPage(principal: { provider: string; subject: string }, servers: readonly { id: string; name: string; route?: string }[], automatic: boolean, defaultServer?: string): string {
   const key = preferenceKey(principal);
-  return `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>选择服务器 · OpenCraft</title><style>:root{color-scheme:light dark;font:15px system-ui;background:#f9f9f9;color:#262626}body{max-width:480px;margin:10vh auto;padding:24px}h1{font-size:24px}p{color:#737373;line-height:1.7}ul{padding:0;list-style:none}a{display:block;padding:18px;margin:12px 0;border:1px solid #8885;border-radius:12px;color:inherit;text-decoration:none;background:#fff}a:hover{background:#eee}a:focus-visible{outline:2px solid currentColor;outline-offset:3px}@media(prefers-color-scheme:dark){:root{background:#161616;color:#eee}a{background:#222}a:hover{background:#333}}</style><body><h1>选择服务器</h1><p>各服务器独立管理访问权限。选择后会记住，下次直接进入。</p><ul>${servers.map(s => `<li><a data-server="${escape(s.id)}" href="${serverBase(s.id)}/">${escape(s.name)}</a></li>`).join('')}</ul>${servers.length ? '' : '<p>暂时没有可访问的服务器，请联系服务器管理员。</p>'}<script>const key=${json(key)},automatic=${automatic},initial=${json(defaultServer ?? null)};let previous=null;try{previous=localStorage.getItem(key)}catch{}const links=[...document.querySelectorAll('[data-server]')];if(automatic){const target=previous===null?initial:previous;if(target){const a=links.find(a=>a.dataset.server===target);if(a){location.replace(a.href)}else document.querySelector('p').textContent='上次使用的服务器当前不可用，请重新选择。'}}</script></body></html>`;
+  return `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>选择服务器 · OpenCraft</title><style>:root{color-scheme:light dark;font:15px system-ui;background:#f9f9f9;color:#262626}body{max-width:480px;margin:10vh auto;padding:24px}h1{font-size:24px}p{color:#737373;line-height:1.7}ul{padding:0;list-style:none}a{display:block;padding:18px;margin:12px 0;border:1px solid #8885;border-radius:12px;color:inherit;text-decoration:none;background:#fff}a:hover{background:#eee}a:focus-visible{outline:2px solid currentColor;outline-offset:3px}@media(prefers-color-scheme:dark){:root{background:#161616;color:#eee}a{background:#222}a:hover{background:#333}}</style><body><h1>选择服务器</h1><p>各服务器独立管理访问权限。选择后会记住，下次直接进入。</p><ul>${servers.map(s => `<li><a data-server="${escape(s.id)}" href="${serverBase(s.route ?? s.id)}/">${escape(s.name)}</a></li>`).join('')}</ul>${servers.length ? '' : '<p>暂时没有可访问的服务器，请联系服务器管理员。</p>'}<script>const key=${json(key)},automatic=${automatic},initial=${json(defaultServer ?? null)};let previous=null;try{previous=localStorage.getItem(key)}catch{}const links=[...document.querySelectorAll('[data-server]')];if(automatic){const target=previous===null?initial:previous;if(target){const a=links.find(a=>a.dataset.server===target);if(a){location.replace(a.href)}else document.querySelector('p').textContent='上次使用的服务器当前不可用，请重新选择。'}}</script></body></html>`;
 }
-export function scopedHtml(html: string, server: { id: string; name: string; base: string; targetOrigin?: string }, principal?: { provider: string; subject: string }): string {
+export function scopedHtml(html: string, server: { id: string; name: string; base: string; targetOrigin?: string; canonicalPath?: string }, principal?: { provider: string; subject: string }): string {
   // Only an admitted top-level document commits the preference. The URL remains
   // this tab's authority; neither other tabs nor a stored choice can retarget it.
   const remember = principal ? `<script>try{if(window===window.top)localStorage.setItem(${json(preferenceKey(principal))},${json(server.id)})}catch{}</script>` : '';
-  const context = `<base href="${server.base}/"><script id="opencraft-server-context" type="application/json">${json({ id: server.id, name: server.name, targetOrigin: server.targetOrigin, basePath: server.base, selectorPath: server.base.startsWith(LEGACY_SERVERS_PATH + '/') ? LEGACY_SERVERS_PATH : SERVERS_PATH })}</script>${remember}`;
+  const canonical = server.canonicalPath ? `<script>if(window===window.top)history.replaceState(history.state,"",${json(server.canonicalPath)}+location.hash)</script>` : '';
+  const context = `<base href="${server.base}/"><script id="opencraft-server-context" type="application/json">${json({ id: server.id, name: server.name, targetOrigin: server.targetOrigin, basePath: server.base, selectorPath: server.base.startsWith(LEGACY_SERVERS_PATH + '/') ? LEGACY_SERVERS_PATH : SERVERS_PATH })}</script>${canonical}${remember}`;
   // Only the bounded HTML document is rewritten. Uploads, SSE and other bodies stream unchanged.
   return html.replace(/\s(?:href|src)=(['"])\/(?!\/)/gu, match => match.slice(0, -1) + server.base + '/')
     .replace(/<base\b[^>]*>/giu, '').replace(/<head(?:\s[^>]*)?>/iu, head => head + context);

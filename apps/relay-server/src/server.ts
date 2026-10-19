@@ -8,7 +8,7 @@ import { AssertionSigner, ASSERTION_HEADER, type IdentityProvider } from "@openc
 import { CONTROL_PATH, DATA_PATH, STREAM_HEADER, RELAY_PROTOCOL, MAX_STREAMS, relayPathAllowed } from "@opencraft/relay-protocol";
 import { RelayAuthentication } from './authentication.js';
 import type { HubNetwork } from '../../../packages/hub-network/src/node.js';
-import { SERVERS_PATH, LEGACY_SERVERS_PATH, isServerPath, selectedPath, serverBase, selectorPage, scopedHtml, targetCookies, scopedCookies, selectionDefault } from './selection.js';
+import { SERVERS_PATH, LEGACY_SERVERS_PATH, isServerPath, selectedPath, serverBase, selectorPage, scopedHtml, targetCookies, scopedCookies, selectionDefault, parseServerPaths, type ServerPaths } from './selection.js';
 import type { Principal } from '@opencraft/identity-core';
 import type { HubService } from '../../../packages/hub-network/src/contract.js';
 
@@ -32,7 +32,7 @@ function failure(response: ServerResponse, status: number) {
 function reject(socket: Duplex, code: number) { socket.end(`HTTP/1.1 ${code} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); }
 const identityHeaders = new Set(['timestamp', 'signature', 'x-rio-seq', 'staffid', 'staffname', 'x-ext-data', 'x-tai-identity']);
 export function createRelayServer(routes: readonly RelayRoute[], options: { authentication?: { origin: string; provider: IdentityProvider }; build?: { sourceRevision: string | null; buildId: string | null };
-  hub?: HubNetwork; networkRoute?: (service: HubService) => RelayRoute | null; operator?: { credential: string }; serverSelection?: boolean; selectionDefaults?: ReadonlyMap<string, string> } = {}) {
+  hub?: HubNetwork; networkRoute?: (service: HubService) => RelayRoute | null; operator?: { credential: string }; serverSelection?: boolean; selectionDefaults?: ReadonlyMap<string, string>; serverPaths?: ServerPaths } = {}) {
   if ((!routes.length && !options.hub) || routes.length > 1000) throw new Error('Relay requires explicit routes');
   const byHost = new Map<string, RelayRoute>(), byId = new Map<string, RelayRoute>();
   for (const route of routes) {
@@ -44,13 +44,23 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
     byHost.set(url.host, route); byId.set(route.instanceId, route);
   }
   if (options.serverSelection && (!options.authentication || !routes.some(route => route.origin === options.authentication!.origin))) throw new Error('Server selection requires an authenticated entry route');
+  const paths = options.serverPaths === undefined ? undefined : parseServerPaths(options.serverPaths);
+  if (paths && (!options.serverSelection || (paths.defaultServer !== undefined
+    && !routes.some(r => r.instanceId === paths.defaultServer && r.origin === options.authentication?.origin))
+    || Object.entries(paths.aliases ?? {}).some(([id, label]) => routes.some(r => r.instanceId === label && r.instanceId !== id)))) throw new Error('Ambiguous or invalid server paths');
+  const routeLabel = (id: string) => paths?.aliases && Object.hasOwn(paths.aliases, id) ? paths.aliases[id]! : id;
+  const canonicalBase = (id: string) => paths?.defaultServer === id ? '' : serverBase(routeLabel(id));
+  const resolveRoute = (key: string) => {
+    const matches = availableRoutes().filter(r => routeLabel(r.instanceId) === key);
+    return matches.length === 1 ? matches[0] : undefined;
+  };
   const connections = new Map<string, Connection>(), pending = new Map<string, Pending>();
   const availableRoutes = () => [...routes, ...(options.hub?.routes() ?? []).flatMap(r => {
     const route = options.networkRoute?.(r.service); return route && !byHost.has(new URL(route.origin).host) && !byId.has(route.instanceId)
       && (!options.authentication || new URL(route.origin).host !== new URL(options.authentication.origin).host) ? [route] : [];
   })];
   const names = () => new Map((options.hub?.snapshot().peers ?? []).filter(p => p.hubId).map(p => [p.hubId!, p.name]));
-  const selected = new WeakMap<IncomingMessage, { route: RelayRoute; principal: Principal; base: string; name: string }>();
+  const selected = new WeakMap<IncomingMessage, { route: RelayRoute; principal: Principal; base: string; name: string; canonicalPath?: string }>();
   const findRoute = (host: string) => availableRoutes().find(r => new URL(r.origin).host === host);
   const authentication = options.authentication ? new RelayAuthentication(options.authentication.origin, options.authentication.provider, availableRoutes) : null;
   const controls = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
@@ -112,14 +122,19 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
   }
   function prepareSelection(req: IncomingMessage): number {
     const path = req.url ?? '/';
-    if (!options.serverSelection || !isServerPath(path)) return 0;
-    const target = selectedPath(path), entry = findRoute(req.headers.host ?? '');
+    if (!options.serverSelection) return 0;
+    const entry = findRoute(req.headers.host ?? '');
+    const unprefixed = !isServerPath(path) && paths?.defaultServer === entry?.instanceId && entry?.origin === options.authentication?.origin;
+    if (!isServerPath(path) && !unprefixed) return 0;
+    const target = unprefixed ? { id: routeLabel(entry!.instanceId), path, base: '' } : selectedPath(path);
     if (!target || !entry || !relayPathAllowed(target.path) || isServerPath(target.path)) return 403;
     if (req.headers.origin !== undefined && req.headers.origin !== entry.origin) return 403;
-    const route = availableRoutes().find(r => r.instanceId === target.id); if (!route) return 404;
+    const route = resolveRoute(target.id); if (!route) return 404;
     const principal = authentication ? authentication.authenticate(req, entry) : entry.identityProvider.authenticate(req);
     if (!principal || principal.expiresAt <= Date.now()) return 401;
-    selected.set(req, { route, principal, base: target.base, name: route.name ?? (names().get(route.hubId ?? '')?.trim() || new URL(route.origin).hostname) });
+    const document = req.method === 'GET' && req.headers.accept?.includes('text/html');
+    const base = document && paths ? canonicalBase(route.instanceId) : target.base;
+    selected.set(req, { route, principal, base, ...(document && base !== target.base ? { canonicalPath: base + target.path } : {}), name: route.name ?? (names().get(route.hubId ?? '')?.trim() || new URL(route.origin).hostname) });
     req.url = target.path; req.headers.host = new URL(route.origin).host;
     if (req.headers.origin !== undefined) req.headers.origin = route.origin;
     // SSH session grants are origin-bound. A browser's Referer still uses the
@@ -128,8 +143,9 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
       try {
         const reference = new URL(req.headers.referer);
         const scope = selectedPath(reference.pathname + reference.search);
-        if (reference.origin === entry.origin && scope?.id === route.instanceId) {
-          req.headers.referer = route.origin + scope.path;
+        if (reference.origin === entry.origin && ((scope && resolveRoute(scope.id)?.instanceId === route.instanceId)
+          || (!scope && !isServerPath(reference.pathname) && paths?.defaultServer === route.instanceId))) {
+          req.headers.referer = route.origin + (scope?.path ?? reference.pathname + reference.search);
         }
       } catch { /* Untrusted/malformed references never gain a target origin. */ }
     }
@@ -166,17 +182,17 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
       const location = url.pathname.startsWith(LEGACY_SERVERS_PATH) ? SERVERS_PATH + url.pathname.slice(LEGACY_SERVERS_PATH.length).replace(/^\/$/u, '') + url.search : SERVERS_PATH + url.search;
       res.writeHead(308, {location, 'cache-control':'no-store'}); res.end(); return true;
     }
-    if (req.method !== 'GET' || !((url.pathname === '/' && req.headers.accept?.includes('text/html')) || url.pathname === SERVERS_PATH)) return false;
+    if (req.method !== 'GET' || !((url.pathname === '/' && req.headers.accept?.includes('text/html') && (!paths?.defaultServer || !url.search)) || url.pathname === SERVERS_PATH)) return false;
     if (req.headers.origin !== undefined && req.headers.origin !== entry.origin) { failure(res,403); return true; }
     const principal = authentication.authenticate(req, entry);
     if (!principal || principal.expiresAt <= Date.now()) { authentication.begin(req,res,entry); return true; }
-    const candidates = availableRoutes().slice(0,128), visible: { id: string; name: string }[] = [], labels = names();
+    const candidates = availableRoutes().slice(0,128), visible: { id: string; name: string; route?: string }[] = [], labels = names();
     for (let i=0; i<candidates.length; i+=8) {
       const group = candidates.slice(i,i+8), access = await Promise.all(group.map(route => admitted(route,principal)));
-      for (let j=0; j<group.length; j++) if (access[j]) { const route=group[j]!; visible.push({id:route.instanceId,name:route.name ?? (labels.get(route.hubId ?? '')?.trim() || new URL(route.origin).hostname)}); }
+      for (let j=0; j<group.length; j++) if (access[j]) { const route=group[j]!; visible.push({id:route.instanceId,route:routeLabel(route.instanceId),name:route.name ?? (labels.get(route.hubId ?? '')?.trim() || new URL(route.origin).hostname)}); }
     }
     res.writeHead(200, {'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','referrer-policy':'no-referrer','x-frame-options':'DENY'});
-    res.end(selectorPage(principal,visible,url.pathname === '/',selectionDefault(principal,options.selectionDefaults))); return true;
+    res.end(selectorPage(principal,visible,url.pathname === '/',selectionDefault(principal,options.selectionDefaults) ?? paths?.defaultServer)); return true;
   }
   const server = createServer(async (req, res) => {
     if (req.url === '/__opencraft_hub/operator') {
@@ -236,7 +252,7 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
           });
           result.on('error', () => res.destroy());document.on('error', () => res.destroy());result.on('aborted',()=>res.destroy()); document.on('end', () => {
             const navigation = req.method === 'GET' && req.headers.accept?.includes('text/html') && result.statusCode === 200;
-            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base,targetOrigin:context.route.origin},navigation ? auth.principal : undefined);
+            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base,targetOrigin:context.route.origin,canonicalPath:context.canonicalPath},navigation ? auth.principal : undefined);
             const output = {...result.headers}; delete output['content-length']; delete output['content-encoding']; delete output['transfer-encoding']; delete output.etag;
             if(output['set-cookie'])output['set-cookie']=scopedCookies(output['set-cookie'],context.route.instanceId,context.base);
             res.writeHead(result.statusCode ?? 502,{...output,'cache-control':'private, no-store','content-length':Buffer.byteLength(html)});res.end(html);
