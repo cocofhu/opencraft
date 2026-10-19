@@ -1,5 +1,16 @@
 # Source provenance review
 
+## MCP elicitation replacement (2026-10-19)
+
+[The complete shared elicitation module](provenance/mcp-elicitation-replacement.md)
+has a bounded independent replacement record for metadata, field normalization,
+drafts, validation and display values. Its historical blob remains in the chat
+semantics partial dispositions. Agent Activity, realtime transcript and message
+normalization remain unverified in that group; all eight unresolved groups remain
+open. Existing Web/Expo contracts, protocol identifiers and working integrations
+are preserved. This does not reclassify the consuming UI, historical code or
+other recorded sources.
+
 ## User message semantics and Web layout (2026-10-19)
 
 [The two complete modules](provenance/user-message-replacement.md) now have a
