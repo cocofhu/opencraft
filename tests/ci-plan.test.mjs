@@ -7,7 +7,7 @@ import test from 'node:test';
 import { changedPaths, planChanges, portableTargets } from '../scripts/ci-plan.mjs';
 
 const webTargets = ['web-browser'];
-const emptyPlan = { targets: [], audits: [], managedWeb: false, native: false, headlessTests: false, headlessPackage: false };
+const emptyPlan = { targets: [], audits: [], managedWeb: false, native: false, headlessTests: false, headlessPackage: false, extensions: false };
 test('selected targets exist in the build artifact contract', () => {
   const matrix = JSON.parse(readFileSync(new URL('../config/build-matrix.json', import.meta.url), 'utf8'));
   for (const target of portableTargets) assert(matrix.targets.some(entry => entry.id === target), target);
@@ -86,14 +86,14 @@ test('managed Web is selected for update UI, deployment, protocol and Vite chang
 });
 test('manual Web is the default, and missing diffs conservatively validate the Linux server archive', () => {
   const automatic = { ...emptyPlan, targets: webTargets, audits: ['.', 'runtime/dsh', 'hemesclient'],
-    managedWeb: true, headlessTests: true };
+    managedWeb: true, headlessTests: true, extensions: true };
   assert.deepEqual(planChanges([], { event: 'workflow_dispatch' }), automatic);
   assert.deepEqual(planChanges([], { unknownDiff: true }), { ...automatic, headlessPackage: true });
 });
 test('only explicit manual full requests restore other platforms and macOS', () => {
   assert.deepEqual(planChanges([], { event: 'workflow_dispatch', fullMatrix: true }), {
     targets: portableTargets, audits: ['.', 'runtime/dsh', 'hemesclient'], managedWeb: true,
-    native: true, headlessTests: true, headlessPackage: true,
+    native: true, headlessTests: true, headlessPackage: true, extensions: true,
   });
   for (const event of ['pull_request', 'push', 'schedule']) {
     assert.equal(planChanges(['package-lock.json'], { event, fullMatrix: true }).native, false);
@@ -168,4 +168,22 @@ test('CLI propagates explicit manual full-matrix requests without widening PRs',
       assert.equal(values['headless-package'], String(full === 'true'));
     }
   } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+
+
+test('extension guide and example select contract tests without platform builds', () => {
+  for (const path of ['CONTRIBUTING.md', 'docs/extension-development.md', 'docs/plugin-architecture.md',
+    'examples/extensions/README.md', 'examples/extensions/hello.mjs', 'examples/extensions/serve.mjs', 'tests/extension-example.test.ts']) {
+    assert.deepEqual(planChanges([path]), { ...emptyPlan, extensions: true }, path);
+  }
+});
+test('contract, runtime, loader and regression changes retain builds and add extension tests', () => {
+  for (const path of ['packages/extension-contract/src/index.ts', 'packages/extension-runtime/src/manager.ts',
+    'apps/workbench-web/src/runtime/module-url-extension-loader.ts', 'tests/extension-installations.test.ts']) {
+    const plan = planChanges([path]);
+    assert.equal(plan.extensions, true, path);
+    assert.deepEqual(plan.targets, webTargets, path);
+  }
+  assert.equal(planChanges(['README.md']).extensions, false);
+  assert.equal(planChanges(['package-lock.json']).extensions, true);
 });
