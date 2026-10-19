@@ -10,6 +10,8 @@ export interface WorkbenchPresentationPolicy {
   readonly panelActions: "all" | readonly string[];
   readonly filePreviewOnly: boolean;
   readonly connectorLauncher: boolean;
+  /** Product opt-in for the desktop shortcut beside the composer. */
+  readonly composerDesktopEntry?: boolean;
   readonly composerActions: "all" | readonly string[];
 }
 

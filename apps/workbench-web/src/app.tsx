@@ -1544,7 +1544,7 @@ export function App({
   };
   // The installed adapter owns availability and rechecks authority on launch.
   const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
-  const composerDesktopEntry = conversationRouteOpen && cloudDesktopAction
+  const composerDesktopEntry = presentation.composerDesktopEntry === true && conversationRouteOpen && cloudDesktopAction
     && (cloudDesktopAction.isAvailable?.(panelToolbarContext) ?? true) ? (
     <button type="button" className="codex-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
       onClick={() => {
