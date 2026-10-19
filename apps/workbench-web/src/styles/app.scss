@@ -4167,8 +4167,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 
-  // The safe-area gutter sits below the translucent Composer. Cover only that
-  // gutter so a scrolled activity row cannot appear beneath the input.
+  // Desktop cuts off transcript paint at a straight horizontal gutter edge.
+  // Touch keeps the Composer floating, including its surrounding safe area.
   &::after {
     content: "";
     position: absolute;
@@ -4179,6 +4179,10 @@ html[data-codex-window-type="electron"] .thread-scroll {
     background: var(--color-surface);
     pointer-events: none;
   }
+}
+
+:root[data-ui-density="touch"] .thread-scroll-footer::after {
+  content: none;
 }
 
 .thread-scroll-footer__gradient {
