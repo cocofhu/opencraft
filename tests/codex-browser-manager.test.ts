@@ -24,7 +24,7 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
     assert.equal(actions.includes("focus"), false);
     host.setAutomationActive(true);
     host.setAutomationActive(false);
-    assert.equal(actions.includes("focus"), false, "automation release must not revoke the source handoff's interaction block");
+    assert.equal(actions.includes("focus"), false, "automation release must not revoke the handoff's interaction block");
     host.finishReveal();
     assert.equal(actions.includes("focus"), true);
     host.sync({ ...state, layout, mountGeneration: 2 }, newRef);
@@ -37,11 +37,20 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
   } finally { env.close(); }
 });
 
-test("vendored manager and transition class bodies match the source lock", () => {
+test("manager class lock and independent transition module lock preserve historical provenance", () => {
   const directory = new URL("../apps/workbench-web/src/browser/codex/", import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL("source-manifest.json", directory), "utf8"));
   for (const name of ["browser-manager", "presentation-transition"]) {
     const text = readFileSync(new URL(name + ".js", directory), "utf8");
+    if (name === "presentation-transition") {
+      const baseline = JSON.parse(readFileSync(new URL("../docs/provenance/browser-transition-baseline.json", import.meta.url), "utf8"));
+      const { implementation, ...historical } = manifest[name];
+      assert.deepEqual(historical, baseline.historicalReference);
+      assert.equal(implementation.status, "independently-reimplemented");
+      assert.equal(createHash("sha256").update(text).digest("hex"), implementation.moduleSha256);
+      assert.notEqual(implementation.moduleSha256, baseline.sha256);
+      continue;
+    }
     const tree = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
     let body = "";
     const walk = (node: ts.Node) => {
@@ -94,7 +103,7 @@ class Host {
 }
 const state = { mountGeneration: 1, isVisible: true, shouldPaint: true, bounds: { x: 0, y: 0, width: 500, height: 500 }, scale: 1 };
 
-test("original Codex transition keeps outgoing until ack, prewarm, and next-frame release", () => {
+test("presentation transition keeps outgoing until ack, prewarm, and next-frame release", () => {
   const env = environment();
   try {
     const Transition = createImplementation({ logger__Kp_mubr: { info() {} } });

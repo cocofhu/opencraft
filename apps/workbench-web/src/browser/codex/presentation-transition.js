@@ -1,401 +1,240 @@
-// Source class body copied from ref/codex/browser/internal/is-different-host-in-conversation.js.
-// Changes are limited to dependency injection and eager class export.
-export function createImplementation(ports) {
-const {createLoggerFacade,logger__Kp_mubr}=ports;
-const handoffTimeoutMs=100, prewarmFrameCount=2, panelKinds=["right-panel","bottom-panel"];
-function isDifferentHostInConversation(e, t) {
-    return e.host !== t.host && e.host.getConversationId() === t.host.getConversationId() && e.host.isPainted();
-}
-function extractTabHandoffData(e) {
-    return {
-        incomingBrowserTabId: e.incoming.host.getBrowserTabId(),
-        incomingConversationId: e.incoming.host.getConversationId(),
-        incomingMountGeneration: e.incoming.mountGeneration,
-        outgoingBrowserTabId: e.outgoing.host.getBrowserTabId(),
-        outgoingConversationId: e.outgoing.host.getConversationId(),
-        outgoingMountGeneration: e.outgoing.mountGeneration
-    };
-}
-function filterHiddenBrowserUse(inputValue__e_2fjfg) {
-    if (inputValue__e_2fjfg === `hidden-browser-use`) {
-        return null;
+// OpenCraft presentation handoff. Authoring inputs and historical provenance:
+// docs/provenance/browser-transition-replacement.md
+
+/** Presentations are leases; browser backing state remains owned by the manager. */
+export function createImplementation(_ports) {
+  return class {
+    #lanes = new Map();
+    #acknowledged = new Map();
+
+    #key(owner, surface) { return JSON.stringify([owner, surface]); }
+    #claim(host, state, reference, surface) {
+      return { host, state, reference, surface, owner: host.getConversationId(),
+        generation: state.mountGeneration };
     }
-    return inputValue__e_2fjfg;
-}
-return class {
-        paintedWebviews = {
-            "bottom-panel": null,
-            "right-panel": null
-        };
-        pendingHandoffs = {
-            "bottom-panel": null,
-            "right-panel": null
-        };
-        acknowledgedMountGenerations = new WeakMap;
-        sync(conversationId__e_2fjnq, t, n, r) {
-            let i = {
-                host: conversationId__e_2fjnq,
-                mountGeneration: t.mountGeneration ?? conversationId__e_2fjnq.getMountGeneration(),
-                webviewRef: n
-            };
-            let a = filterHiddenBrowserUse(r);
-            if (a == null || !t.isVisible || t.bounds == null || t.shouldBootstrap === true || t.shouldPaint === false) {
-                if (a != null) {
-                    this.clearAcknowledgements(conversationId__e_2fjnq, i.mountGeneration);
-                    let t = this.pendingHandoffs[a];
-                    if (t?.incoming.host === conversationId__e_2fjnq || t?.outgoing.host === conversationId__e_2fjnq) {
-                        this.cancel(a, `incoming-hidden`, true);
-                    }
-                }
-                conversationId__e_2fjnq.sync(t, n);
-                if (a != null && this.paintedWebviews[a]?.host === conversationId__e_2fjnq && !conversationId__e_2fjnq.isPainted()) {
-                    this.paintedWebviews[a] = null;
-                }
-                return;
-            }
-            let o = this.pendingHandoffs[a];
-            if (o != null) {
-                if (o.incoming.host === conversationId__e_2fjnq) {
-                    o.incoming = i;
-                    if (o.releaseFrameId == null) {
-                        this.stageIncomingBehindOutgoing(o, t);
-                    } else {
-                        conversationId__e_2fjnq.sync(t, n);
-                        this.paintedWebviews[a] = i;
-                    }
-                    return;
-                }
-                if (o.releaseFrameId != null) {
-                    window.cancelAnimationFrame(o.releaseFrameId);
-                    this.releaseOutgoing(a, o, `incoming-replaced`);
-                } else {
-                    let { outgoing: pendingHandoff__r_2fk9t } = o;
-                    this.cancel(a, `incoming-replaced`, false);
-                    if (pendingHandoff__r_2fk9t.host === conversationId__e_2fjnq) {
-                        conversationId__e_2fjnq.sync(t, n);
-                        this.paintedWebviews[a] = i;
-                        return;
-                    }
-                    if (isDifferentHostInConversation(pendingHandoff__r_2fk9t, i)) {
-                        this.stage(a, pendingHandoff__r_2fk9t, i, t);
-                        return;
-                    }
-                }
-            }
-            let paintedWebview = this.paintedWebviews[a];
-            if (paintedWebview != null && isDifferentHostInConversation(paintedWebview, i)) {
-                this.stage(a, paintedWebview, i, t);
-                return;
-            }
-            conversationId__e_2fjnq.sync(t, n);
-            this.paintedWebviews[a] = conversationId__e_2fjnq.isPainted() ? i : null;
+    #owns(claim) {
+      return claim.host.getMountGeneration() === claim.generation
+        && claim.host.getConversationId() === claim.owner;
+    }
+    #detach(claim) {
+      if (this.#owns(claim)) claim.host.detach(claim.reference, claim.generation);
+    }
+    #clearWork(waiting) {
+      ++waiting.epoch;
+      if (waiting.frame !== null) window.cancelAnimationFrame(waiting.frame);
+      if (waiting.timer !== null) window.clearTimeout(waiting.timer);
+      waiting.frame = waiting.timer = null;
+      waiting.started = false;
+    }
+    #unsubscribe(waiting) {
+      const stop = waiting.unsubscribe;
+      waiting.unsubscribe = null;
+      stop?.();
+    }
+    #cancel(lane, keepFront) {
+      const waiting = lane.waiting;
+      if (!waiting) return;
+      // Revoke the lease before calling ports, which may synchronously reenter.
+      lane.waiting = null;
+      this.#clearWork(waiting);
+      this.#unsubscribe(waiting);
+      this.#detach(waiting.claim);
+      if (lane.front) {
+        if (keepFront && this.#owns(lane.front)) {
+          lane.front.host.clearStagedCoverBounds();
+          lane.front.host.restoreInteraction();
+        } else {
+          this.#detach(lane.front);
+          lane.front = null;
         }
-        detach(host__e_2fkht, t, n, r) {
-            let i = filterHiddenBrowserUse(n);
-            if (i != null) {
-                let incomingMountGeneration = this.pendingHandoffs[i];
-                if (incomingMountGeneration?.outgoing.host === host__e_2fkht) {
-                    host__e_2fkht.releaseRef(t, r);
-                    return;
-                }
-                if (incomingMountGeneration?.incoming.host === host__e_2fkht) {
-                    this.cancel(i, `incoming-detached`, true);
-                    return;
-                }
-                if (this.paintedWebviews[i]?.host === host__e_2fkht) {
-                    this.paintedWebviews[i] = null;
-                }
-            }
-            host__e_2fkht.detach(t, r);
+      }
+    }
+    #valid(lane, waiting, epoch = waiting.epoch) {
+      return lane.waiting === waiting && waiting.epoch === epoch
+        && this.#owns(waiting.claim);
+    }
+    #position(lane, waiting) {
+      if (lane.waiting !== waiting) return;
+      const incoming = waiting.claim;
+      if (incoming.host.getConversationId() !== incoming.owner) return;
+      incoming.host.stage(incoming.state, incoming.reference);
+      if (!this.#valid(lane, waiting)) return;
+      lane.front.host.expandToCoverStagedBounds(incoming.state.bounds);
+      incoming.host.placeImmediatelyBehind(lane.front.host);
+      incoming.host.reveal(incoming.reference, true);
+      incoming.host.placeImmediatelyBehind(lane.front.host);
+    }
+    #release(lane, waiting) {
+      if (!this.#valid(lane, waiting)) return;
+      const previous = lane.front;
+      lane.waiting = null;
+      lane.front = waiting.claim;
+      this.#clearWork(waiting);
+      this.#unsubscribe(waiting);
+      if (previous) this.#detach(previous);
+      // finishReveal owns focus, including the Host's separate automation lock.
+      if (lane.front === waiting.claim && this.#owns(waiting.claim)) {
+        waiting.claim.host.finishReveal();
+      }
+    }
+    #prewarm(lane, waiting) {
+      if (!this.#valid(lane, waiting) || waiting.started) return;
+      waiting.started = true;
+      const epoch = waiting.epoch;
+      const frame = (step) => {
+        waiting.frame = window.requestAnimationFrame(() => {
+          if (!this.#valid(lane, waiting, epoch)) return;
+          waiting.frame = null;
+          if (step === 3) { this.#release(lane, waiting); return; }
+          if (step === 2) {
+            if (waiting.timer !== null) window.clearTimeout(waiting.timer);
+            waiting.timer = null;
+            const { host, reference } = waiting.claim;
+            host.reveal(reference, true);
+            if (!this.#valid(lane, waiting, epoch)) return;
+          }
+          frame(step + 1);
+        });
+      };
+      frame(1);
+    }
+    #arm(lane, waiting) {
+      const epoch = waiting.epoch;
+      waiting.timer = window.setTimeout(() => {
+        if (!this.#valid(lane, waiting, epoch)) return;
+        waiting.timer = null;
+        this.#prewarm(lane, waiting);
+      }, 100);
+      const ack = this.#acknowledged.get(waiting.claim.host);
+      if (ack?.owner === waiting.claim.owner && ack.generation === waiting.claim.generation) {
+        this.#acknowledged.delete(waiting.claim.host);
+        this.#prewarm(lane, waiting);
+      }
+    }
+
+    sync(host, state, reference, surface) {
+      if (state.mountGeneration < host.getMountGeneration()) return;
+      const claim = this.#claim(host, state, reference, surface);
+      const key = this.#key(claim.owner, surface);
+      // A Host has one presentation owner even when its surface changes.
+      for (const [otherKey, other] of this.#lanes) {
+        if (otherKey === key) continue;
+        if (other.waiting?.claim.host === host) this.#cancel(other, true);
+        if (other.front?.host === host) {
+          if (other.waiting) this.#cancel(other, false);
+          other.front = null;
         }
-        acknowledgeAttachment(e, t, n) {
-            if (e == null || n !== t) {
-                return;
-            }
-            for (let hostKind__r_2fkqv of panelKinds){
-                let pendingHandoff__i_2fkr9 = this.pendingHandoffs[hostKind__r_2fkqv];
-                if (pendingHandoff__i_2fkr9?.incoming.host === e && pendingHandoff__i_2fkr9.incoming.mountGeneration === t && n === t) {
-                    logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer acknowledged Owl webview handoff`, {
-                        safe: {
-                            ...extractTabHandoffData(pendingHandoff__i_2fkr9),
-                            acknowledgedMountGeneration: t,
-                            currentMountGeneration: n,
-                            hostKind: hostKind__r_2fkqv
-                        },
-                        sensitive: {}
-                    });
-                    this.scheduleCommitAfterPrewarm(hostKind__r_2fkqv, pendingHandoff__i_2fkr9);
-                    return;
-                }
-                if (pendingHandoff__i_2fkr9 != null) {
-                    logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer ignored stale Owl webview handoff acknowledgement`, {
-                        safe: {
-                            ...extractTabHandoffData(pendingHandoff__i_2fkr9),
-                            acknowledgedMountGeneration: t,
-                            currentMountGeneration: n,
-                            hostKind: hostKind__r_2fkqv
-                        },
-                        sensitive: {}
-                    });
-                }
-            }
-            let r = this.acknowledgedMountGenerations.get(e);
-            r ?? (r = new Set, this.acknowledgedMountGenerations.set(e, r));
-            r.add(t);
+        if (!other.front && !other.waiting) this.#lanes.delete(otherKey);
+      }
+      let lane = this.#lanes.get(key);
+      if (!lane) { lane = { front: null, waiting: null }; this.#lanes.set(key, lane); }
+      if (!state.isVisible || !state.shouldPaint) {
+        if (lane.waiting && (lane.front?.host === host || lane.waiting.claim.host === host)) {
+          this.#cancel(lane, false);
         }
-        removeTab(browserTabId__e_2fl8b) {
-            this.clearAcknowledgements(browserTabId__e_2fl8b);
-            for (let t of panelKinds){
-                let n = this.pendingHandoffs[t];
-                if (n?.outgoing.host === browserTabId__e_2fl8b) {
-                    this.commit(t, n);
-                    if (n.releaseFrameId != null) {
-                        window.cancelAnimationFrame(n.releaseFrameId);
-                        n.releaseFrameId = null;
-                    }
-                    this.releaseOutgoing(t, n, `tab-removed`);
-                    continue;
-                }
-                if (n?.incoming.host === browserTabId__e_2fl8b) {
-                    this.cancel(t, `tab-removed`, true);
-                    continue;
-                }
-                let r = this.paintedWebviews[t];
-                if (r?.host === browserTabId__e_2fl8b) {
-                    this.paintedWebviews[t] = null;
-                    browserTabId__e_2fl8b.detach(r.webviewRef, r.mountGeneration);
-                }
-            }
+        if (lane.front?.host === host) lane.front = null;
+        host.sync(state, reference);
+        return;
+      }
+      if (lane.waiting?.claim.host === host) {
+        const waiting = lane.waiting;
+        const changedGeneration = waiting.claim.generation !== claim.generation;
+        if (changedGeneration) this.#clearWork(waiting);
+        waiting.claim = claim;
+        this.#position(lane, waiting);
+        if (changedGeneration) this.#arm(lane, waiting);
+        return;
+      }
+      if (lane.waiting) this.#cancel(lane, true);
+      if (!lane.front || lane.front.host === host || !lane.front.host.isPainted()) {
+        lane.front = claim;
+        host.sync(state, reference);
+        return;
+      }
+      const waiting = { claim, frame: null, timer: null, epoch: 0,
+        started: false, unsubscribe: null };
+      lane.waiting = waiting;
+      lane.front.host.blockInteraction();
+      waiting.unsubscribe = host.listenForDidRegister(() => {
+        if (this.#valid(lane, waiting)) host.placeImmediatelyBehind(lane.front.host);
+      });
+      this.#position(lane, waiting);
+      if (this.#valid(lane, waiting)) this.#arm(lane, waiting);
+    }
+
+    detach(host, reference, surface, generation) {
+      const lane = this.#lanes.get(this.#key(host.getConversationId(), surface));
+      const matches = (claim) => claim?.host === host && claim.reference === reference
+        && claim.generation === generation && this.#owns(claim);
+      if (matches(lane?.waiting?.claim)) { this.#cancel(lane, false); return; }
+      if (lane?.waiting && matches(lane.front)) {
+        host.releaseRef(reference, generation);
+        return;
+      }
+      // Stale refs/generations/surfaces cannot revoke a different current lease.
+      if (matches(lane?.front)) {
+        lane.front = null;
+        host.detach(reference, generation);
+      }
+    }
+
+    acknowledgeAttachment(host, acknowledgedGeneration, currentGeneration) {
+      if (!host || acknowledgedGeneration !== currentGeneration) return;
+      this.#acknowledged.set(host, {
+        owner: host.getConversationId(), generation: acknowledgedGeneration,
+      });
+      for (const lane of this.#lanes.values()) {
+        const waiting = lane.waiting;
+        if (waiting?.claim.host === host && waiting.claim.generation === acknowledgedGeneration
+          && this.#owns(waiting.claim)) {
+          this.#acknowledged.delete(host);
+          this.#prewarm(lane, waiting);
         }
-        transferRoute(webview__e_2fll5) {
-            for (let t of panelKinds){
-                let n = this.pendingHandoffs[t];
-                if (n?.incoming.host === webview__e_2fll5 || n?.outgoing.host === webview__e_2fll5) {
-                    this.cancel(t, `route-transferred`, true);
-                }
-            }
+      }
+    }
+
+    removeTab(host) {
+      for (const [key, lane] of this.#lanes) {
+        if (lane.waiting?.claim.host === host) this.#cancel(lane, false);
+        else if (lane.front?.host === host && lane.waiting) {
+          const waiting = lane.waiting;
+          if (this.#valid(lane, waiting)) {
+            waiting.claim.host.reveal(waiting.claim.reference, true);
+            this.#release(lane, waiting);
+          } else this.#cancel(lane, false);
+        } else if (lane.front?.host === host) lane.front = null;
+        if (!lane.front && !lane.waiting) this.#lanes.delete(key);
+      }
+      this.#acknowledged.delete(host);
+    }
+    #forgetHost(host) {
+      for (const [key, lane] of this.#lanes) {
+        if (lane.waiting && (lane.waiting.claim.host === host || lane.front?.host === host)) {
+          this.#cancel(lane, false);
         }
-        removeConversation(viewportSize__e_2flpg) {
-            for (let t of panelKinds){
-                let n = this.pendingHandoffs[t];
-                if (n?.incoming.host.getConversationId() === viewportSize__e_2flpg || n?.outgoing.host.getConversationId() === viewportSize__e_2flpg) {
-                    this.cancel(t, `conversation-removed`, true);
-                }
-                if (this.paintedWebviews[t]?.host.getConversationId() === viewportSize__e_2flpg) {
-                    this.paintedWebviews[t] = null;
-                }
-            }
-        }
-        disposeHost(surfaceSize) {
-            this.clearAcknowledgements(surfaceSize);
-            for (let t of panelKinds){
-                let n = this.pendingHandoffs[t];
-                if (n?.incoming.host === surfaceSize || n?.outgoing.host === surfaceSize) {
-                    this.cancel(t, `host-disposed`, true);
-                }
-                if (this.paintedWebviews[t]?.host === surfaceSize) {
-                    this.paintedWebviews[t] = null;
-                }
-            }
-        }
-        disposeAll() {
-            for (let e of panelKinds){
-                this.cancel(e, `manager-disposed`, true);
-                let t = this.paintedWebviews[e];
-                if (t != null) {
-                    this.clearAcknowledgements(t.host);
-                }
-                this.paintedWebviews[e] = null;
-            }
-        }
-        stage(e, t, n, r) {
-            t.host.blockInteraction();
-            let i = {
-                incoming: n,
-                outgoing: t,
-                prewarmFrameId: null,
-                releaseFrameId: null,
-                removeIncomingDidRegisterListener: null,
-                timeoutId: null
-            };
-            this.pendingHandoffs[e] = i;
-            i.removeIncomingDidRegisterListener = n.host.listenForDidRegister(()=>{
-                if (this.pendingHandoffs[e] === i) {
-                    logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer observed Owl webview registration during handoff`, {
-                        safe: {
-                            ...extractTabHandoffData(i),
-                            hostKind: e
-                        },
-                        sensitive: {}
-                    });
-                    i.incoming.host.placeImmediatelyBehind(i.outgoing.host);
-                }
-            });
-            i.timeoutId = window.setTimeout(()=>{
-                if (this.pendingHandoffs[e] === i) {
-                    logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer timed out Owl webview handoff`, {
-                        safe: {
-                            ...extractTabHandoffData(i),
-                            hostKind: e
-                        },
-                        sensitive: {}
-                    });
-                    i.timeoutId = null;
-                    this.scheduleCommitAfterPrewarm(e, i);
-                }
-            }, handoffTimeoutMs);
-            logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer staged Owl webview handoff`, {
-                safe: {
-                    ...extractTabHandoffData(i),
-                    hostKind: e
-                },
-                sensitive: {}
-            });
-            this.stageIncomingBehindOutgoing(i, r);
-            if (this.consumeAcknowledgement(n.host, n.mountGeneration)) {
-                this.scheduleCommitAfterPrewarm(e, i);
-            }
-        }
-        stageIncomingBehindOutgoing(e, t) {
-            e.incoming.host.stage(t, e.incoming.webviewRef);
-            e.outgoing.host.expandToCoverStagedBounds(t.bounds, t.scale, t.windowZoom);
-            e.incoming.host.placeImmediatelyBehind(e.outgoing.host);
-            e.incoming.host.reveal(e.incoming.webviewRef, true);
-            e.incoming.host.placeImmediatelyBehind(e.outgoing.host);
-        }
-        scheduleCommitAfterPrewarm(e, t, n = prewarmFrameCount) {
-            if (!(this.pendingHandoffs[e] !== t || t.prewarmFrameId != null || t.releaseFrameId != null)) {
-                if (n === 0) {
-                    logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer prewarmed Owl webview handoff before reveal`, {
-                        safe: {
-                            ...extractTabHandoffData(t),
-                            hostKind: e
-                        },
-                        sensitive: {}
-                    });
-                    this.commit(e, t);
-                    return;
-                }
-                logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer prewarming Owl webview handoff before reveal`, {
-                    safe: {
-                        ...extractTabHandoffData(t),
-                        hostKind: e,
-                        remainingFrames: n
-                    },
-                    sensitive: {}
-                });
-                t.prewarmFrameId = window.requestAnimationFrame(()=>{
-                    if (this.pendingHandoffs[e] === t) {
-                        t.prewarmFrameId = null;
-                        this.scheduleCommitAfterPrewarm(e, t, n - 1);
-                    }
-                });
-            }
-        }
-        commit(e, t) {
-            if (!(this.pendingHandoffs[e] !== t || t.releaseFrameId != null)) {
-                if (t.timeoutId != null) {
-                    window.clearTimeout(t.timeoutId);
-                    t.timeoutId = null;
-                }
-                if (t.prewarmFrameId != null) {
-                    window.cancelAnimationFrame(t.prewarmFrameId);
-                    t.prewarmFrameId = null;
-                }
-                t.incoming.host.reveal(t.incoming.webviewRef, true);
-                this.paintedWebviews[e] = t.incoming;
-                logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer committed Owl webview handoff`, {
-                    safe: {
-                        ...extractTabHandoffData(t),
-                        hostKind: e
-                    },
-                    sensitive: {}
-                });
-                t.releaseFrameId = window.requestAnimationFrame(()=>{
-                    this.releaseOutgoing(e, t, `next-animation-frame`);
-                });
-            }
-        }
-        releaseOutgoing(e, t, timing) {
-            if (this.pendingHandoffs[e] === t) {
-                this.pendingHandoffs[e] = null;
-                t.removeIncomingDidRegisterListener?.();
-                t.removeIncomingDidRegisterListener = null;
-                t.outgoing.host.detach(t.outgoing.webviewRef, t.outgoing.mountGeneration);
-                t.incoming.host.finishReveal();
-                logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer released outgoing Owl webview handoff`, {
-                    safe: {
-                        ...extractTabHandoffData(t),
-                        hostKind: e,
-                        timing
-                    },
-                    sensitive: {}
-                });
-            }
-        }
-        cancel(e, reason, n) {
-            let r = this.pendingHandoffs[e];
-            if (r != null) {
-                this.pendingHandoffs[e] = null;
-                if (r.timeoutId != null) {
-                    window.clearTimeout(r.timeoutId);
-                }
-                if (r.prewarmFrameId != null) {
-                    window.cancelAnimationFrame(r.prewarmFrameId);
-                }
-                if (r.releaseFrameId != null) {
-                    window.cancelAnimationFrame(r.releaseFrameId);
-                }
-                r.removeIncomingDidRegisterListener?.();
-                this.clearAcknowledgements(r.incoming.host);
-                r.incoming.host.detach(r.incoming.webviewRef, r.incoming.mountGeneration);
-                if (n) {
-                    r.outgoing.host.detach(r.outgoing.webviewRef, r.outgoing.mountGeneration);
-                    this.paintedWebviews[e] = null;
-                } else if (r.outgoing.host.isConnected()) {
-                    r.outgoing.host.clearStagedCoverBounds();
-                    r.outgoing.host.restoreInteraction();
-                    this.paintedWebviews[e] = r.outgoing;
-                } else {
-                    this.paintedWebviews[e] = null;
-                }
-                logger__Kp_mubr.info(`IAB_TAB_SWITCH renderer cancelled Owl webview handoff`, {
-                    safe: {
-                        ...extractTabHandoffData(r),
-                        detachOutgoing: n,
-                        hostKind: e,
-                        reason
-                    },
-                    sensitive: {}
-                });
-            }
-        }
-        consumeAcknowledgement(e, t) {
-            let n = this.acknowledgedMountGenerations.get(e);
-            if (n?.delete(t) === true) {
-                if (n.size === 0) {
-                    this.acknowledgedMountGenerations.delete(e);
-                }
-                return true;
-            }
-            return false;
-        }
-        clearAcknowledgements(e, t) {
-            if (t == null) {
-                this.acknowledgedMountGenerations.delete(e);
-                return;
-            }
-            let n = this.acknowledgedMountGenerations.get(e);
-            if (n != null) {
-                for (let e of n){
-                    if (e !== t) {
-                        n.delete(e);
-                    }
-                }
-                if (n.size === 0) {
-                    this.acknowledgedMountGenerations.delete(e);
-                }
-            }
-        }
-    };
+        if (lane.front?.host === host) lane.front = null;
+        if (!lane.front && !lane.waiting) this.#lanes.delete(key);
+      }
+      this.#acknowledged.delete(host);
+    }
+    transferRoute(host) { this.#forgetHost(host); }
+    disposeHost(host) { this.#forgetHost(host); }
+    removeConversation(owner) {
+      for (const [host, ack] of this.#acknowledged) {
+        if (ack.owner === owner) this.#acknowledged.delete(host);
+      }
+      for (const [key, lane] of this.#lanes) {
+        if (lane.front?.owner !== owner && lane.waiting?.claim.owner !== owner) continue;
+        if (lane.front) this.#acknowledged.delete(lane.front.host);
+        if (lane.waiting) this.#acknowledged.delete(lane.waiting.claim.host);
+        this.#cancel(lane, false);
+        this.#lanes.delete(key);
+      }
+    }
+    disposeAll() {
+      for (const lane of this.#lanes.values()) this.#cancel(lane, false);
+      this.#lanes.clear();
+      this.#acknowledged = new Map();
+    }
+  };
 }

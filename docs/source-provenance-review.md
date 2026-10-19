@@ -151,7 +151,7 @@ Two additional **unverified** groups now cover them:
 
 | Group | Review boundary |
 | --- | --- |
-| `codex-browser-source-followup` | Six unresolved files: three browser implementation modules, their historical source manifest, and two toolbar/host contracts; the viewport drag helper has a separate bounded disposition |
+| `codex-browser-source-followup` | Five unresolved files: manager and preset implementations, their historical source manifest, and two toolbar/host contracts; viewport drag geometry and presentation handoff have separate bounded dispositions |
 | `codex-renderer-expression-followup` | Nine files: theme presentation, activity/new-task glyphs, disclosure, panel/composer contracts, tool rendering and code-surface policy |
 
 This raises the current unresolved group count from eight to **ten**. Earlier
@@ -541,6 +541,20 @@ came from a named reference. Its complete small module is independently replaced
 after [frozen requirements and observed contracts](provenance/browser-viewport-resize-replacement.md).
 The [baseline](provenance/browser-viewport-resize-baseline.json) retains its exact
 historical blob/hash and source annotation. Preset facts, toolbar behavior,
-manager and transition implementations are unchanged; the remaining browser
-group stays unverified. This bounded disposition does not clear historical
+the manager implementation is unchanged. Presentation handoff was subsequently
+replaced as recorded below; the remaining browser group stays unverified. This bounded disposition does not clear historical
 commits or grant distribution rights to adjacent code.
+
+
+## Browser presentation handoff replacement (2026-10-20)
+
+The complete explicitly source-attributed transition module is replaced from
+[frozen requirements and public observations](provenance/browser-transition-replacement.md).
+The manager, presets, toolbar and Host implementation are retained; the Host's
+stale documentation comment is corrected. Owner/surface leases preserve painted
+continuity, acknowledgement, prewarm, cancellation and interaction ownership.
+Adversarial stale-reference/generation cases are fenced and separately documented
+as intentional differences from the old behavior. Historical source/class hashes
+remain in the manifest alongside the separately identified current module hash.
+Five browser inventory files and all eight unresolved groups remain unverified;
+this is not strict author isolation, historical rights clearance or release readiness.

@@ -79,3 +79,48 @@ Host; its detached `blocked` bit is not proof of actual DOM interaction state.
 Only declared caller contracts and the observations above are authoring inputs.
 The historical source lock will retain its original digests and distinguish a
 current independently authored module digest from the historical class digest.
+
+
+## Current implementation and bounded verification
+
+Requirements were committed in `fee8306`, then the 53-sequence public observation
+and explicit fencing requirements in `c9a0f70`, before implementation authoring.
+The replacement uses owner/surface lanes with one painted front claim and one
+revocable waiting claim. Each claim captures Host identity, reference and mount
+generation; an epoch invalidates delayed frame/deadline callbacks. Browser backing
+state and the manager are retained. Registration maintains stacking, a matching
+ack or 100ms deadline starts two prewarm frames, and the next frame releases the
+predecessor. Route/Host/conversation teardown clears pending work and cached acks.
+The logger factory argument remains accepted without requiring diagnostic output.
+
+Of 53 recorded sequences, 47 match Host paint/block/reference/generation/listener
+state and frame/timer queues at every recorded step. Port call ordering and log
+text are not claimed identical. Six deliberately differ: stale generation/ref
+or surface detach no longer cancels/detaches a current claim; moving an incoming
+Host to a different surface cannot later restore its old reference; an externally
+changed Host generation cannot consume the old ack; and a generation changed
+after prewarm starts requires a new ack/deadline and fresh frame sequence. These
+are the identity requirements frozen before implementation, not altered baselines.
+All observations finish without errors and with disposed queues empty.
+
+Existing browser manager/device toolbar/runtime/core tests pass (20), as do the
+10 existing provenance tests, Web typecheck and platform/typography boundaries.
+The standard release Web build passes with 791 runtime sources and zero browser
+compatibility findings. The provenance inventory has no integrity errors; eight
+unresolved groups remain and the release-source gate must still refuse clearance.
+
+The existing actual workspace presentation smoke passes, including local iframe
+counter continuity through panel maximize/restore and parent draft/focus/overlay
+behavior. A separate external-only observation uses the actual DOM Host and new
+transition with a controlled scheduler and synthetic guest port: 10 scenarios
+in each of 390/1100px and light/dark (40 runs) cover ack/prewarm/release, late
+replacement, stale ref/generation/surface detach, generation change during
+prewarm, moving either participant across surfaces, cached ack removal,
+automation input/focus locking, deadline fallback and disposal. Guest DOM nodes
+are retained, no backing close is requested, and no page errors occur.
+Native Electron WebContents, physical hardware and authenticated/remote service
+paths were not verified. No new tests or harness are committed. Only the existing
+source-lock test is updated to verify the retained historical record separately
+from the current module digest; the manager's historical class lock is unchanged.
+These finite observations do not establish strict clean-room isolation, rights
+clearance or correctness of unreviewed neighboring modules.
