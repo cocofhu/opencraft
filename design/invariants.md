@@ -1563,6 +1563,7 @@ The read adapter loads on first read and checks cancellation after import.
 - A session without an explicit model inherits the current Host default for creation and its existing model for continuation; choosing a model never writes deployment defaults.
 - Product directory reads stay behind the model projection port. Ordinary sends do not depend on those reads; explicit sends use cached advisory data and the Host authorizes execution.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
+- The empty touch Newera Composer keeps the existing model menu reachable through an icon beside its machine and workspace row; expanding the editor restores the labelled footer picker. Both presentations use the same Composer selection state and menu.
 
 ## Conversation presentation contributions
 

@@ -39,6 +39,7 @@ import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, com
 import {
   ArrowUp,
   AtSign,
+  BrainCircuit,
   Check,
   ChevronDown,
   CircleStop,
@@ -2350,6 +2351,7 @@ export const CodexComposer = forwardRef<
                       aria-label={intelligenceLabel}
                       title={selectionCatalog?.modelError ?? intelligenceLabel}
                     >
+                      <BrainCircuit className="codex-composer-mode__model-icon" size={16} aria-hidden="true" />
                       <span className="codex-composer-mode__model-label">
                         {compactSelectedModelLabel}
                       </span>
