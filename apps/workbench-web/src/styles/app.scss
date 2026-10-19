@@ -792,6 +792,11 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   --application-brand-mark-size: 26px;
   display: inline-flex; align-items: center; gap: 7px;
   white-space: nowrap; user-select: none;
+  &:is(button) {
+    appearance: none; padding: 0; border: 0; background: transparent;
+    color: inherit; font: inherit; text-align: start; cursor: pointer;
+    border-radius: var(--radius-sm); pointer-events: auto;
+  }
   .application-brand__mark { width: var(--application-brand-mark-size); height: var(--application-brand-mark-size); flex: 0 0 auto; object-fit: contain; }
   .application-brand__wordmark { @include typography.role(navigation-title, primary); }
 }

@@ -1148,6 +1148,8 @@ Conversation filter triggers use primary button fill and matching foreground whi
 
 Unified Shell sidebar controls share one SidebarToggleButton contract. Docked mode presents it at the sidebar navigation rail top; floating/mobile mode presents it in the fixed sidebar header and dismisses the drawer. The persistent Header only renders the closed-state entrance, with compact brand geometry. No duplicate floating pin/toggle or collapsed Write action is synthesized for unified Shell. Existing gesture, resize and stateful sidebar portal owners remain authoritative.
 
+Application branding with a Home action is a native keyboard-accessible button. The mark and wordmark invoke the existing conversation-area Home destination, preserving the selected conversation or draft rather than creating a new task. Mobile drawers dismiss through the Shell selection owner. The hidden header measurement copy is inert; narrow-page brand visibility and rail alignment stay unchanged.
+
 Desktop browser application branding centers the plugin-provided mark on the shared sidebar icon rail, deriving the offset from rail width, mascot size and leading chrome padding. Header measurement and collapsed routes use the same alignment; labeled mobile drawers and native window safe insets retain their own presentation.
 
 Unified sidebar recovery: desktop visibility is explicit dock open/closed, with no
