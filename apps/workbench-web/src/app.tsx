@@ -718,7 +718,10 @@ export function App({
   const recoveryDiagnostic = useConversationRecoveryDiagnostic({
     scope: JSON.stringify([displayScope, snapshot.hostId, activeThreadId]),
     failed: recoveryPresentation === "cold-error" || recoveryPresentation === "warm-error",
-    stage: snapshot.phase === "error" || snapshot.transport.state === "failed" ? "connection"
+    active: recoveryPresentation !== "none",
+    progress: snapshot.phase !== "ready" ? snapshot.recovery
+      : snapshot.residentThreads.find(thread => thread.threadId === activeThreadId)?.recovery,
+    stage: snapshot.phase !== "ready" ? "connection"
       : activeThreadLease === null ? "activation" : "history",
     error: snapshot.phase === "error" ? snapshot.error
       : activeThreadLease === null ? conversationViewActivation.error : snapshot.conversation?.error,

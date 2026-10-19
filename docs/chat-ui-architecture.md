@@ -2174,3 +2174,21 @@ The Web hook polls every five seconds while visible, checks immediately on retur
 backs failures off to sixty seconds, aborts on conversation retirement, and leaves
 the transcript, draft DOM and reading position mounted. It is opt-in rather than a
 second automatic refresh policy for all conversations.
+
+### In-progress recovery observations
+
+The existing recovery owner also projects read-only progress while a connection
+or a conversation is still recovering. Connection, initialization, queued history,
+active history reads, retry backoff and manual stop are separate stages. A Host
+snapshot carries connection progress; each resident Thread carries only its own
+history progress. UI never substitutes background Thread work for the current
+conversation. Timestamps, actual starts, the scheduler's retry deadline and a
+bounded machine-code failure are local metadata, with at most twelve stage events.
+A visible recovery notice and cold-history surface expose elapsed time and a
+collapsed copyable report before failure as well as during automatic retries.
+The presentation clock pauses in background tabs and never schedules work.
+Authoritative recovery removes the notice; invalidation fences late observations.
+No remote error text, content, endpoint or credentials enter this report.
+A fresh work item after a terminal failure starts a new history observation;
+its correlation ID and attempt count cannot inherit the completed report.
+Coalesced retries of an active work item still share the original observation.
