@@ -1,5 +1,17 @@
 # Source provenance review
 
+## Complete appearance runtime replacement (2026-10-19)
+
+[The entire appearance runtime](provenance/appearance-runtime-replacement.md)
+is independently replaced after frozen requirements and public-port observations.
+Preference keys, theme IDs, Settings controls, system mode and extension
+load/unload intent are preserved. The renderer-expression group retains **two**
+unresolved paths and seven partial dispositions; all **nine** unresolved groups
+remain open. Shared palette/compiler ports are unchanged and remain unresolved.
+Historical hashes, annotations, author exposure and finite browser evidence are
+retained; strict author isolation, historical rights and release readiness are not
+established by this bounded replacement.
+
 ## Complete Shell right-panel host replacement (2026-10-19)
 
 [The complete presentation host](provenance/shell-panel-host-replacement.md)

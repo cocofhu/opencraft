@@ -124,3 +124,45 @@ Additional temporary evidence (not a committed harness):
 - `opencraft-appearance-custom-default-baseline.json` SHA-256 `88aff9af499cfa4585df982c271f9bf2bf043e8a7187cb5f44c713487000aa21`.
 
 - `opencraft-appearance-policy-edges.json` SHA-256 `e19ab62e8fa6be9811b61905614381d36d55ecc4c8a1c6eae7c258d69b432d3f`.
+
+## Implementation and compatibility refinement
+
+The new implementation owns one frozen snapshot, a policy-filtered catalog and
+one active contribution subscription. It adapts validated extension palettes at
+that boundary, delegates CSS compilation unchanged, and projects only owned styles
+and the existing native message. Root initialization owns product/meta projection;
+React subscribes without controlling lifetime or remounting consumers.
+
+The all-hidden/custom-default observation exposed a distinction during replacement:
+an unrelated unavailable stored ID falls back to a built-in even after the custom
+policy default becomes available. Only a matching requested custom ID activates
+that extension. The replacement now implements that observed built-in fallback.
+The complete custom-default comparison was rerun successfully. Initial new-source
+checks also caught an incorrect presentation import and missing local bridge type;
+both were corrected before final verification. Probe failures are not discarded or
+represented as baseline product failures. No previous target body was consulted.
+
+## Completed verification and limits
+
+- Existing appearance/material/presentation tests: 13 passed; no added tests.
+- Web TypeScript and platform-boundary checks passed.
+- Complete JSON comparison against the original public executable behavior:
+  27 operation snapshots plus previews/explicit-element projection; 396 bootstrap
+  reads across default, downstream Canvas and all-hidden/custom-default policies;
+  all seven storage/source/bridge lifecycle scenarios. Snapshots, CSS, classes,
+  metadata, frozen objects, subscriptions, native messages and instrumented writes
+  match for every recorded case. This finite comparison is not exhaustive proof.
+- Actual SettingsContent in Chromium: 15 radio selections (five palettes × three
+  modes), retained edited input and DOM identity, extension unload/reappearance,
+  OS media changes and no page errors. The fixture reuses the existing material
+  smoke's real component and extension supervisor. Temporary probes remain untracked;
+  no tests or harness are added to the repository.
+- Source inventory has no errors and still nine unresolved groups. Appearance alone
+  leaves two unresolved renderer-expression paths; shared compiler/palettes and
+  other consumers are not reclassified.
+
+The browser/native-message observations do not constitute macOS vibrancy, Windows,
+iOS/Android, real account login, paid inference or existing Join deployment
+acceptance. Historical source rights, prior distribution and source dependencies
+remain separately unresolved. Ordinary upstream CI/merge and Join runtime delivery
+are separate events, recorded after they actually occur.
