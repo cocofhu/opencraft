@@ -168,7 +168,7 @@
     },
     {
       "id": "codex-chat-semantics-followup",
-      "status": "unverified",
+      "status": "independently-reimplemented",
       "paths": [
         "packages/chat-core/src/agent-activity.ts"
       ],
@@ -180,10 +180,15 @@
         "packages/chat-core/src/realtime-transcript.ts",
         "packages/chat-core/src/turn-diff.ts",
         "packages/chat-core/src/turn-user-message-normalization.ts",
-        "packages/chat-core/src/user-message.ts"
+        "packages/chat-core/src/user-message.ts",
+        "docs/provenance/agent-activity-replacement.md",
+        "tests/chat-agent-activity-contract.test.ts",
+        "tests/chat-reasoning-performance.test.ts",
+        "scripts/smoke-activity-disclosure.ts",
+        "scripts/smoke-reasoning-disclosure.ts"
       ],
-      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
-      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion.",
+      "reason": "All seven originally identified chat-semantics paths now have bounded requirements-first independent replacement records. Agent Activity was the final current path: the entire module and all 15 exports are replaced, preserving complete consumer contracts and working integrations. The six earlier partial dispositions remain recorded below.",
+      "resolution": "Preserve the historical Agent Activity blob/hash, frozen requirements commit, author exposure and all prior partial dispositions. Keep the nine other unresolved groups open. Verify complete Chat tests, Core/Web types, boundaries, finite compatibility matrices and actual Conversation/Activity browser behavior; this replacement does not establish historical source or dependency rights.",
       "partialDispositions": [
         {
           "path": "packages/chat-core/src/turn-diff.ts",
@@ -221,7 +226,15 @@
           "evidence": "docs/provenance/message-normalization-replacement.md",
           "historicalBlob": "69e7d9439ab8711cf8d2a0112f801f4edfea57f5"
         }
-      ]
+      ],
+      "conclusion": "Current Agent Activity implementation is independently authored from frozen requirements, public declarations and existing consumer/dependency contracts, refined through black-box OpenCraft observations. It orders response slices, inner work/reasoning groups, partition/disclosure policy, source summaries and one Turn Thinking/clock owner without mutating protocol state. Six earlier chat-semantics paths have their separately retained dispositions. This is neither strict clean-room isolation nor historical rights clearance or a whole-renderer classification; see the authoring boundary, compatibility refinements and actual verification limits.",
+      "historicalImplementation": {
+        "path": "packages/chat-core/src/agent-activity.ts",
+        "baselineCommit": "f979bb477180a2346d2e96dba21314eb7ff50f8c",
+        "gitBlob": "28b420f360a72989763db126b1491f2593e940de",
+        "sha256": "b6664198e2096a3c1d168accc41d8a39f1b6c20b412593215233d6f63ed8a18f",
+        "requirementsCommit": "ac746b5e17de90a45c532f01816d30ac0af8edf5"
+      }
     },
     {
       "id": "codex-document-streaming-followup",
