@@ -38,7 +38,7 @@ await page.evaluate(()=>{(window as any).busySeen=false;(window as any).spinnerS
 await scroll.dispatchEvent('wheel',{deltaY:-20});await scroll.dispatchEvent('wheel',{deltaX:80,deltaY:5});await page.waitForTimeout(50);assert.equal(await rows.count(),10);
 let revealScroll=topBefore;
 if(touch){
- const box=await more.boundingBox();const x=box!.x+box!.width/2,y=box!.y+box!.height/2;
+ const box=await scroll.boundingBox();const x=box!.x+box!.width/2,y=box!.y+box!.height-60;
  const cdp=await page.context().newCDPSession(page);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-50}]});

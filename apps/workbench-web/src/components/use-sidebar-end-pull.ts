@@ -33,7 +33,7 @@ export function useSidebarEndPull(footerRef: RefObject<HTMLDivElement | null>, e
       action.current.reveal();
     };
     const withinList = (event: Event) => event.target instanceof Node
-      && panel.querySelector(".sidebar-activity-list")?.contains(event.target);
+      && (event.target === viewport() || panel.querySelector(".sidebar-activity-list")?.contains(event.target));
     const wheel = (event: WheelEvent) => {
       if (!withinList(event)) return;
       downward = event.deltaY > 0 && Math.abs(event.deltaY) > Math.abs(event.deltaX);
