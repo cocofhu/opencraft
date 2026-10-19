@@ -1591,6 +1591,20 @@ See [Tasks initial loading](../docs/workbench-design-language.md#tasks-initial-l
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 
+## Sidebar presentation policy ownership
+
+Sidebar presentation projections consume the existing Shell and intent-hook
+state without acquiring pointer, timer, resize or content lifetime ownership.
+Docked layout precedes outgoing layout presence/resize, which precedes floating
+request/resize presence; hidden is the remaining state. Floating presence can
+mount only after docked layout ownership ends. Suppression vetoes edge and peek
+acquisition; retained intent uses the nonnegative live panel boundary.
+The bounded source replacement preserves later hover/toggle additions, public
+types and ordinary constants. Evidence: existing sidebar-dock/Shell geometry
+tests and the frozen policy, actual AppShell and mobile-stack records in
+`docs/provenance/sidebar-policy-replacement.md`. Synthetic browser verification
+does not establish native-device acceptance or clear historical source rights.
+
 ## Sidebar menu rendering isolation
 
 A Sidebar keeps one stable menu owner across row context, More and participant

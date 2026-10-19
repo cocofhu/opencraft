@@ -1,5 +1,15 @@
 # Source provenance review
 
+## Bounded sidebar policy replacement (2026-10-20)
+
+The [three historically restored policy declarations](provenance/sidebar-policy-replacement.md)
+are independently replaced after frozen requirements and complete public/Shell/
+mobile baseline observations. The later hover/toggle functions, types, constants
+and all neighboring bytes stay unchanged. All 4,408 full outputs match; historical
+annotations, hashes and actual author exposure remain recorded. Eight inventory
+groups remain unresolved. This does not establish strict isolation, historical
+rights, native hardware acceptance or release readiness.
+
 ## Floating sidebar presentation replacement (2026-10-20)
 
 Both [explicitly restored container components](provenance/floating-sidebar-replacement.md)
