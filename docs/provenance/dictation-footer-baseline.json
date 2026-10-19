@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "0012dcb4e5f61160fc084868311db66250ae222f",
+  "path": "packages/codex-composer/src/dictation-footer.tsx",
+  "fileSha256": "cb94cdc664d98b909e7c681e3b9485bab8f5e068a6070a7c2ef4d1e987abb04f",
+  "annotation": "Semantically adopted from Codex RecordingWaveformControls / BB VoiceRecordingBar.",
+  "scope": "Complete dictation-footer.tsx only; speech providers, Composer transaction ownership, draft writes, keyboard routing and stylesheet remain unchanged.",
+  "exposure": "Public interaction type, consumer call sites, existing startup-feedback tests and shared CSS inspected. Earlier narrow searches exposed selected JSX footer lines and canvas return, including phase/status/action structure. Other recovery-related modules have been inspected previously. No strict author isolation or historical-rights clearance is claimed."
+}
