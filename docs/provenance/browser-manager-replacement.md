@@ -59,3 +59,22 @@ are mocked as deterministic opaque identities. This initial sample does not
 exercise Host creation, asynchronous registration, transfer, destruction, media
 projection or the complete class. Those remain explicit observation work before
 implementation. No runtime implementation or source classification has changed.
+
+## State observations before authoring
+
+A separate opaque run records 153 calls with two owners and two tabs: storage ID
+allocation/reuse, promotion and required restoration, shared and stale mount
+claims, snapshot/toolbar notifications, browser-use viewport/capture/cursor state,
+transfer source/consumption, tab removal and conversation cleanup. The exact
+results, notification counts and serialized observable state are frozen by the
+baseline digest. Ordinary ports and snapshots are synthetic; no Host was created.
+The old implementation throws on a null cursor update (`visible` is required);
+this is retained as an invalid-input observation, not asserted to be a current
+consumer operation. An audible snapshot alone produced no media tab in this run;
+that does not establish complete media projection behavior.
+
+This run still does not cover Host registration readiness, stale identity
+fencing, presentation transitions, prewarm/destroy or constructor router payloads.
+The class remains unchanged and those coverage gaps still block replacement
+authoring. State calls and default getters are evidence for only their exercised
+inputs; they are not a claim that all sixty methods have been validated.

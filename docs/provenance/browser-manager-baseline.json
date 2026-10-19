@@ -22,5 +22,58 @@
     "sha256": "255f898d6c766de7259cea5b47d6713278a784641084d05f51118cb6d90353f4",
     "getterCalls": 16,
     "completeCoverage": false
+  },
+  "stateObservations": {
+    "sha256": "a75e62c81c3f29e119307ddff1dbd82cb5572854ccd306d670498d23aa0ff3bb",
+    "calls": 153,
+    "methodsInvoked": [
+      "claimMountGeneration",
+      "clearBrowserUseState",
+      "consumePendingElectronTransfer",
+      "disposeAll",
+      "emitChange",
+      "getBrowserStorageId",
+      "getBrowserUseActiveBrowserTabId",
+      "getBrowserUseBrowserTabIds",
+      "getBrowserUseBrowserTabIdsKey",
+      "getBrowserUseCursorState",
+      "getBrowserUseTabs",
+      "getConversationBrowserTabIds",
+      "getDeviceToolbarTabState",
+      "getExistingBrowserStorageId",
+      "getMediaTabs",
+      "getMountGeneration",
+      "getPagePersistence",
+      "getSnapshot",
+      "hasOtherMountGenerationClaim",
+      "peekPendingElectronTransfer",
+      "reassociateTabState",
+      "releaseBrowserUseTab",
+      "releaseMountGeneration",
+      "removeConversationTabs",
+      "removeTab",
+      "restorePersistedPageState",
+      "setBrowserUseActive",
+      "setBrowserUseCaptureSurfaceSize",
+      "setBrowserUseCursorState",
+      "setBrowserUseViewportSize",
+      "setConversationOwnerRoutePath",
+      "setDeviceToolbarTabState",
+      "setPersistentBrowserStorageId",
+      "setSnapshot",
+      "setTabCaptureActive"
+    ],
+    "notifications": 40,
+    "invalidInputObservations": [
+      {
+        "method": "setBrowserUseCursorState",
+        "error": {
+          "name": "TypeError",
+          "message": "Cannot read properties of null (reading 'visible')"
+        }
+      }
+    ],
+    "scope": "synthetic state ports, no Host construction/native browser or complete lifecycle claim",
+    "completeCoverage": false
   }
 }
