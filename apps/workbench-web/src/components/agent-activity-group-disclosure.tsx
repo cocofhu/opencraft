@@ -1,101 +1,37 @@
-import { ActivityIcon } from "./conversation-renderers/activity/activity-icon";
+import React, { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
+import { ActivityIcon } from "./conversation-renderers/activity/activity-icon";
 import { OverlayDisclosureTrigger } from "./overlay-disclosure-trigger";
-import { useDisclosureReflow } from "./use-disclosure-reflow";
 import { useDisclosureHeight } from "./use-disclosure-height";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { useDisclosureReflow } from "./use-disclosure-reflow";
 
 export type AgentActivityDisclosurePhase = "collapsed" | "opening" | "expanded" | "closing";
 export type AgentActivityDisclosureEvent = "toggle" | "animation-frame" | "animation-complete" | "disable";
 export type AgentActivitySummaryTransition = "static" | "immediate" | "deferred";
 
-const SUMMARY_DEFER_MS = 1_000;
-
+/** Four-phase presentation contract; historical evidence is retained in
+ * docs/provenance/activity-group-disclosure-replacement.md. */
 export function reduceAgentActivityDisclosurePhase(
   phase: AgentActivityDisclosurePhase,
   event: AgentActivityDisclosureEvent,
 ): AgentActivityDisclosurePhase {
   if (event === "disable") return "collapsed";
-  if (event === "animation-frame") return phase === "opening" ? "expanded" : phase;
-  if (event === "animation-complete") return phase === "closing" ? "collapsed" : phase;
-  if (phase === "opening" || phase === "expanded") return "closing";
-  if (phase === "closing") return "expanded";
-  return "opening";
+  if (event === "toggle") {
+    const toggled: Record<AgentActivityDisclosurePhase, AgentActivityDisclosurePhase> = {
+      collapsed: "opening", opening: "closing", expanded: "closing", closing: "expanded",
+    };
+    return toggled[phase];
+  }
+  if (phase === "opening" && event === "animation-frame") return "expanded";
+  if (phase === "closing" && event === "animation-complete") return "collapsed";
+  return phase;
 }
 
-function DeferredActivitySummary({
-  children,
-  summaryKey,
-  transition,
-}: {
-  children: ReactNode;
-  summaryKey: string;
-  transition: Exclude<AgentActivitySummaryTransition, "static">;
-}) {
-  const [committed, setCommitted] = useState(() => ({ key: summaryKey, node: children }));
-  const lastCommitAt = useRef<number | null>(null);
-  const timer = useRef<number | null>(null);
-
-  useEffect(() => {
-    const now = Date.now();
-    lastCommitAt.current ??= now;
-    if (committed.key === summaryKey) return;
-    const next = { key: summaryKey, node: children };
-    const commit = () => {
-      timer.current = null;
-      lastCommitAt.current = Date.now();
-      setCommitted(next);
-    };
-    if (transition === "immediate") {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-      commit();
-      return;
-    }
-    const remaining = SUMMARY_DEFER_MS - (now - lastCommitAt.current);
-    if (remaining <= 0) {
-      commit();
-      return;
-    }
-    timer.current = window.setTimeout(commit, remaining);
-    return () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-      timer.current = null;
-    };
-  }, [children, committed.key, summaryKey, transition]);
-
-  const visible = transition === "immediate" || committed.key === summaryKey
-    ? children
-    : committed.node;
-  return <span className="thread-agent-activity__deferred-summary">{visible}</span>;
-}
-
-/**
- * Group-level disclosure reconstructed from Codex r2440's phase machine.
- *
- * It deliberately does not observe or tween scrollHeight. Once open, height
- * is `auto`, so streaming descendants grow as ordinary layout and the outer
- * Turn virtualizer receives one authoritative measurement per content change.
- */
 export function AgentActivityGroupDisclosure({
-  canExpand = true,
-  children,
-  defaultExpanded = false,
-  collapsed,
-  icon,
-  onExpand,
-  onCollapsedChange,
-  shouldAnimateInitialCollapse = false,
-  summary,
-  summaryKey,
-  summaryTransition = "static",
+  canExpand = true, children, defaultExpanded = false, collapsed, icon,
+  onExpand, onCollapsedChange, shouldAnimateInitialCollapse = false,
+  summary, summaryKey, summaryTransition = "static",
 }: {
   canExpand?: boolean;
   children: ReactNode | (() => ReactNode);
@@ -109,109 +45,89 @@ export function AgentActivityGroupDisclosure({
   summaryKey: string;
   summaryTransition?: AgentActivitySummaryTransition;
 }) {
-  const reduceMotion = useReducedMotion();
-  const reflow = useDisclosureReflow();
-  const summaryId = useId();
+  const reduced = useReducedMotion();
+  const labelId = useId();
   const [phase, setPhase] = useState<AgentActivityDisclosurePhase>(() => {
     if (!canExpand) return "collapsed";
     if (collapsed === false || (collapsed === undefined && defaultExpanded)) return "expanded";
-    return shouldAnimateInitialCollapse && typeof children !== "function"
-      ? "closing"
-      : "collapsed";
+    return shouldAnimateInitialCollapse ? "expanded" : "collapsed";
   });
-  const expanded = phase === "opening" || phase === "expanded";
-  const fullyExpanded = phase === "expanded";
-  const animatedHeight = useDisclosureHeight(fullyExpanded ? "auto" : 0);
+  const previousCollapsed = useRef(collapsed);
+  const previousCanExpand = useRef(canExpand);
+  const initialCollapse = useRef(shouldAnimateInitialCollapse && (collapsed === true || (collapsed === undefined && !defaultExpanded)));
+  const reflow = useDisclosureReflow();
+  const height = useDisclosureHeight(phase === "expanded" || phase === "closing" ? "auto" : 0);
+  const open = phase === "opening" || phase === "expanded";
+
+  useEffect(() => {
+    if (!canExpand) { reflow.cancel(); setPhase("collapsed"); }
+    else if (initialCollapse.current) {
+      setPhase(reduced ? "collapsed" : "closing");
+    } else if ((previousCollapsed.current !== collapsed || previousCanExpand.current !== canExpand) && collapsed !== undefined) {
+      setPhase(current => collapsed ? current === "collapsed" ? current : "closing" : "expanded");
+    }
+    previousCollapsed.current = collapsed;
+    previousCanExpand.current = canExpand;
+    initialCollapse.current = false;
+  }, [canExpand, collapsed, reflow.cancel]);
 
   useEffect(() => {
     if (phase !== "opening") return;
-    const frame = window.requestAnimationFrame(() => {
-      setPhase((current) => reduceAgentActivityDisclosurePhase(current, "animation-frame"));
-    });
-    return () => window.cancelAnimationFrame(frame);
+    const frame = requestAnimationFrame(() => setPhase(current => reduceAgentActivityDisclosurePhase(current, "animation-frame")));
+    return () => cancelAnimationFrame(frame);
   }, [phase]);
 
+  const [label, setLabel] = useState({ key: summaryKey, content: summary });
+  const lastLabelCommit = useRef(Date.now());
   useEffect(() => {
-    if (!canExpand) {
-      reflow.cancel();
-      setPhase((current) => reduceAgentActivityDisclosurePhase(current, "disable"));
+    const remaining = 1000 - (Date.now() - lastLabelCommit.current);
+    if (label.key === summaryKey || summaryTransition !== "deferred" || remaining <= 0) {
+      if (label.key !== summaryKey) lastLabelCommit.current = Date.now();
+      setLabel({ key: summaryKey, content: summary });
+      return;
     }
-  }, [canExpand, reflow.cancel]);
+    const timer = setTimeout(() => {
+      lastLabelCommit.current = Date.now();
+      setLabel({ key: summaryKey, content: summary });
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [summary, summaryKey, summaryTransition, reduced, label.key]);
 
-  // The View owns the user's choice; this component only owns its animation.
-  // Restore that choice when an outer work disclosure remounts this group.
-  useEffect(() => {
-    if (!canExpand || collapsed === undefined) return;
-    setPhase(current => {
-      const currentlyExpanded = current === "opening" || current === "expanded";
-      return currentlyExpanded === !collapsed
-        ? current
-        : reduceAgentActivityDisclosurePhase(current, "toggle");
-    });
-  }, [canExpand, collapsed]);
-
-  const toggle = useCallback((anchor: HTMLButtonElement) => {
+  const toggle = (anchor: HTMLButtonElement) => {
     reflow.begin(anchor);
-    if (!expanded) onExpand?.();
-    onCollapsedChange?.(expanded);
-    setPhase((current) => reduceAgentActivityDisclosurePhase(current, "toggle"));
-  }, [expanded, onExpand, onCollapsedChange, reflow.begin]);
-
-  const visibleSummary = summaryTransition === "static"
-    ? summary
-    : (
-      <DeferredActivitySummary summaryKey={summaryKey} transition={summaryTransition}>
-        {summary}
-      </DeferredActivitySummary>
-    );
-  const body = canExpand && phase !== "collapsed"
-    ? (
-      <motion.div
-        animate={fullyExpanded ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
-        aria-hidden={!fullyExpanded}
-        className="thread-activity-item__body-clip"
-        data-disclosure-phase={phase}
-        initial={false}
-        inert={!fullyExpanded}
-        onAnimationComplete={(definition) => {
-          if (phase === "opening" || typeof definition !== "object" || Array.isArray(definition)
-            || definition.height !== (fullyExpanded ? "auto" : 0)) return;
-          reflow.complete();
-          setPhase((current) => reduceAgentActivityDisclosurePhase(current, "animation-complete"));
-        }}
-        style={{ height: animatedHeight, overflow: "hidden", pointerEvents: fullyExpanded ? "auto" : "none" }}
-        transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.19, 1, 0.22, 1] }}
-      >
-        <div className="thread-activity-item__body">
-          {typeof children === "function" ? children() : children}
-        </div>
-      </motion.div>
-    )
-    : null;
-
+    const next = reduceAgentActivityDisclosurePhase(phase, "toggle");
+    const nextOpen = next === "opening" || next === "expanded";
+    setPhase(next);
+    if (nextOpen) onExpand?.();
+    onCollapsedChange?.(!nextOpen);
+  };
   return (
-    <div
-      className="thread-activity-item thread-agent-activity__group-disclosure"
-      data-conversation-row="activity"
-      data-body-variant="group"
-      data-disclosure-phase={phase}
-      data-open={expanded || undefined}
-    >
+    <div className="thread-activity-item thread-agent-activity__group-disclosure"
+      data-conversation-row="activity" data-body-variant="group"
+      data-disclosure-phase={phase} data-open={open || undefined}>
       <OverlayDisclosureTrigger
-        buttonClassName="thread-activity-item__hit-target"
-        className="thread-activity-item__header"
-        contentClassName="thread-activity-item__header-content"
-        interactive={canExpand}
-        labelId={summaryId}
-        onToggle={toggle}
-        open={expanded}
-        reflowOwned
-      >
-          {icon == null ? null : <ActivityIcon>{icon}</ActivityIcon>}
-          <span className="thread-activity-item__summary" id={summaryId}>{visibleSummary}</span>
-          {canExpand ? <ChevronRight aria-hidden="true" className="thread-activity-item__chevron" size={13} /> : null}
+        className="thread-activity-item__header" contentClassName="thread-activity-item__header-content"
+        buttonClassName="thread-activity-item__hit-target" interactive={canExpand}
+        labelId={labelId} open={open} onToggle={toggle} reflowOwned>
+        {icon != null ? <ActivityIcon>{icon}</ActivityIcon> : null}
+        <span className="thread-activity-item__summary" id={labelId}>
+          {summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.content}</span>}
+        </span>
+        {canExpand ? <ChevronRight size={13} className="thread-activity-item__chevron" aria-hidden="true" /> : null}
       </OverlayDisclosureTrigger>
-      {body}
+      {phase !== "collapsed" ? (
+        <motion.div className="thread-activity-item__body-clip" data-disclosure-phase={phase}
+          aria-hidden={!open} initial={false}
+          style={{ height, overflow: "hidden", pointerEvents: open ? "auto" : "none" }}
+          animate={{ height: phase === "expanded" ? "auto" : 0, opacity: phase === "expanded" ? 1 : 0 }}
+          transition={{ duration: reduced ? 0 : 0.15, ease: [0.4, 0, 0.2, 1] }}
+          onAnimationComplete={() => {
+            setPhase(current => reduceAgentActivityDisclosurePhase(current, "animation-complete"));
+            reflow.complete();
+          }}>
+          <div className="thread-activity-item__body">{typeof children === "function" ? children() : children}</div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }
