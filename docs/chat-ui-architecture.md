@@ -1,5 +1,17 @@
 # ChatUI integration architecture
 
+## Trusted Web renderer composition
+
+A local Application may declare `chatRenderExtensions` as Cordis renderer plugins.
+`createWebChatRenderRuntime` installs them after the standard Web renderers,
+using the same registries and resource-policy service. The runtime owns their
+fibers: startup failure rolls back preceding installations, and Application
+disposal releases them. No extension is installed into the library fallback or
+another Application. This is trusted build composition, not an HTTP-supplied
+module loader or a product ID switch. Product parsers, dictionaries and artwork
+stay downstream. `smoke-product-render-extensions.ts` exercises the real
+Application and documents, default isolation and startup/disposal failures.
+
 ## User message sender display
 
 Web/Electron show each user message's verified employee `loginName` above its

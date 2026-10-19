@@ -1555,3 +1555,7 @@ remount. Hidden/retired views stop scheduling reads; cancelled or stale-generati
 results cannot update the new conversation. Browser evidence uses the real
 Shell/Header/hook with a synthetic lease, alongside actual runtime/protocol tests;
 it does not establish external account or channel delivery acceptance.
+
+Trusted local chat renderer extensions belong to the Application render runtime.
+They share its resource policies, roll back on startup failure, and release with
+the Application; they never mutate the default library fallback or other apps.
