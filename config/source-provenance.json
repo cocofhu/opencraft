@@ -375,7 +375,6 @@
       "id": "codex-renderer-expression-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
       ],
       "evidence": [
@@ -392,9 +391,11 @@
         "docs/provenance/shell-panel-host-replacement.md",
         "docs/provenance/shell-panel-host-baseline.json",
         "docs/provenance/appearance-runtime-replacement.md",
-        "docs/provenance/appearance-runtime-baseline.json"
+        "docs/provenance/appearance-runtime-baseline.json",
+        "docs/provenance/command-review-replacement.md",
+        "docs/provenance/command-review-baseline.json"
       ],
-      "reason": "Two remaining renderer candidates concern tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state, activity-group disclosure shell right-panel host and appearance runtime modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
+      "reason": "One remaining renderer candidate concerns tool rendering. Separately recorded complete appearance, command/review, code-surface, floating-composer, group-disclosure and shell-host replacements preserve dependency and historical evidence. The command/review accessory uses licensed Lucide primitives. Remaining annotations identify review boundaries, not established copying or whole-file source conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -436,6 +437,12 @@
           "replacement": "appearance-runtime",
           "evidence": "docs/provenance/appearance-runtime-replacement.md",
           "historicalBlob": "31c7c04fb996edc92111ff6ae9c91013be55deb9"
+        },
+        {
+          "path": "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
+          "replacement": "command-review-renderers",
+          "evidence": "docs/provenance/command-review-replacement.md",
+          "historicalBlob": "e5bf0721a3a0e9799e41d6f5b8a13bb239601082"
         }
       ]
     },
@@ -545,6 +552,24 @@
       "reason": "The entire appearance runtime is replaced after freezing declarations, consumer/dependency contracts and executable public behavior. Persisted identifiers remain compatibility data; misleading brand wording was corrected separately.",
       "resolution": "Retain exact historical hashes, author exposure, requirements and implementation commits, compatibility observations and browser evidence. Shared theme compiler/palettes remain unchanged unresolved dependencies.",
       "conclusion": "Current module independently owns the immutable appearance snapshot, preference persistence, policy-filtered catalog, extension source lifecycle, semantic CSS projection and native appearance messages. It is not strict clean-room isolation, historical rights clearance, native-device acceptance or resolution of the shared compiler and palette provenance."
+    },
+    {
+      "id": "command-review-renderers",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/command-review-replacement.md",
+        "docs/provenance/command-review-baseline.json",
+        "scripts/smoke-reasoning-disclosure.ts",
+        "scripts/smoke-activity-spacing.ts",
+        "tests/chat-reasoning-performance.test.ts",
+        "design/invariants.md"
+      ],
+      "reason": "The complete seven-export module is replaced after frozen requirements, public declarations and executable public observations; the formerly source-identical review accessory is replaced by a composition of licensed Lucide primitives.",
+      "resolution": "Retain exact historical hashes, public annotation, author exposure, requirement and implementation commits, observed refinements and actual Web verification. Shared classifier, formatter, disclosure and document ports are reused unchanged and not reclassified.",
+      "conclusion": "Current code independently owns reasoning view choice/projection, review presentation, command details/live clock and action-local copy feedback while preserving working engine protocols. This does not establish strict author isolation, historical rights clearance, native-device acceptance, entire renderer provenance or release readiness."
     }
   ]
 }
