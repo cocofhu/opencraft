@@ -1537,3 +1537,14 @@ Tasks loads its optional conversation statistics renderer and styles only after
 the statistics tab is selected. Suspense uses the existing loading status; it
 does not introduce another data owner or relax the startup resource budget.
 The read adapter loads on first read and checks cancellation after import.
+
+### Relay server selection in Settings
+
+Relayed Web clients expose current deployment and Switch server under Settings →
+Servers, including narrow layouts. Shell application/account navigation does not
+duplicate it. Presence comes from validated browser deployment context, not an
+administrator role or the Headless administration build flag. Direct deployments
+without that context do not show an unsupported switch. Navigation uses the
+context selector path, including legacy deployments; target admission, remembered
+choice and per-tab execution ownership remain authoritative at their existing
+owners. Changing pages does not stop execution.

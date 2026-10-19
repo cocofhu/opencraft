@@ -37,7 +37,11 @@ try{
   assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);assert.match(other.url(),/\/join(?:\/|\?|$)/u);
   const joinRole=await other.evaluate(()=>fetch('/servers/join/__opencraft_access/session').then(r=>r.json()));assert.equal(joinRole.role,'admin');const otherCookies=await other.evaluate(()=>fetch('/servers/join/fixture/headers').then(r=>r.json()));assert.equal(otherCookies.cookie,null);
   await page.goto(fixture.origin);await page.waitForURL(url=>url.pathname.startsWith('/servers/join'));await page.locator('[data-action-id]').first().waitFor();
-  // The real switch control always opens the chooser, even though a last choice exists.
+  // Settings owns server switching; the chooser still opens with a saved choice.
+  assert.equal(await page.locator('.shell-navigation__items').getByRole('button',{name:/切换服务器|Switch server/u}).count(),0);
+  await page.getByRole('button',{name:'设置',exact:true}).first().click();
+  await page.getByRole('navigation',{name:'Settings sections',exact:true}).getByRole('button',{name:'服务器',exact:true}).click();
+  await page.getByText('当前服务器',{exact:true}).waitFor();
   await page.getByRole('button',{name:/切换服务器|Switch server/u}).click();await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
   await page.locator('[data-server="lighthouse"]').click();await page.locator('[data-action-id]').first().waitFor();
   fixture.stores[1]!.set(fixture.principals.alice!,'member',false,'fixture-administrator');await page.goto(fixture.origin);await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
