@@ -38,3 +38,38 @@ not strict clean-room separation or clearance of historical rights.
 6. Remain renderer-neutral and keep the dedicated Turn resource distinct from
    live patch Activity. Validate selected-file review and the real change-card
    component, with synthetic input clearly distinguished from a live engine.
+
+## Implementation and compatibility observations
+
+The replacement uses a file-section iterator and an insertion-ordered map of
+per-path counters. Git headers supply identity; additions/deletions are derived
+from the active section. It does not import recovered code or retain the prior
+module's implementation body.
+
+A 160-case black-box matrix covered eight header variants, LF/CRLF, five content
+bodies and repeated sections. Initial discrepancies corrected two presentation
+requirements: trailing whitespace makes a Git header invalid, and quoted paths
+retain wire escapes such as `\\t` and octal sequences while unescaping only quotes
+and backslashes. These are observed OpenCraft compatibility requirements; no old
+parser/helper implementation was inspected to make these corrections. The final
+matrix matched all 160 cases.
+
+Validation of the implementation:
+
+- `node --import tsx --test tests/chat-turn-diff-summary.test.ts tests/chat-core.test.ts tests/workbench-turn-diff-review.test.ts`: 113 passed.
+- `npm run typecheck --workspace @opencraft/chat-core` and `npm run check:boundaries`: passed.
+- A local Playwright probe of the existing change-card fixture passed at 390px
+  and 1000px in light and dark themes. It exercised expansion, binary zero counts,
+  selected-file review, streaming counts with stable DOM identity, removal and
+  remount, with no page errors. This used synthetic data in the real component,
+  not a live model or authenticated engine session. The 390px light screenshot
+  was also visually inspected.
+- The existing full `scripts/smoke-codex-change-card.ts` fails its header-height
+  assertion (68px observed against the script's 64–66px expectation). The same
+  assertion fails on the unchanged parser baseline after PR #99. This replacement
+  changes no CSS and does not weaken that assertion. The targeted semantic
+  browser checks passed; complete visual-smoke clearance is **not** claimed.
+
+Historical source remains available by the recorded blob and in Git history.
+This disposition applies only to the complete current turn-diff summary module,
+not the renderer, other chat semantics, historical commits or legal rights.
