@@ -2232,3 +2232,12 @@ Coalesced retries of an active work item still share the original observation.
 ### Product desktop composer shortcut
 
 The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
+
+
+### Recovery correlation and socket liveness
+
+Recovery observations carry the local physical `attemptId` and `eventAtMs`; the server receipt time is not the client event time. `history-started`, `history-backoff`, and allowlisted slow/failed history RPC metadata are accepted by the diagnostic endpoint. A rejected metadata record is discarded instead of blocking later reports. No request params, conversation text, credentials, URLs or Thread IDs are added.
+
+The renderer logs the full allowlisted clipboard diagnostic to `console.log` on recovery state transitions, without an elapsed-time logging timer. Copying details logs the exact copied snapshot. Loading UI stays concise and retains existing messages and drafts.
+
+A WebSocket Ping queued behind a large frame does not start a peer response deadline. The full heartbeat interval starts when the Ping write callback succeeds. Queued writes with decreasing buffered bytes retain the connection; four heartbeat intervals without write progress terminate as `heartbeat-write-stalled`. Delayed write, actual send, recovery and peer timeout diagnostics include the attempt ID, queued duration, buffered bytes and relevant timing; healthy idle heartbeats stay quiet. Closing a socket fences late write callbacks. This mitigates a demonstrated disconnect mechanism without claiming all reconnect failures have the same cause.

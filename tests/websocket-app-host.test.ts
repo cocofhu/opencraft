@@ -61,6 +61,8 @@ test("foreground probes share the socket, pause in background, and cannot affect
     const a = client.createTransport("a"), b = client.createTransport("b");
     const ca = a.connect(); await accept(first, true); await ca;
     const cb = b.connect(); await accept(first, false); await cb;
+    assert.equal(a.status.attemptId, JSON.parse(first.sent[0]!).rendererId);
+    assert.equal(b.status.attemptId, a.status.attemptId);
     events.fire(); events.fire();
     const probes = () => first.sent.map(frame => JSON.parse(frame)).filter(message => message.type === "connection/probe");
     assert.equal(probes().length, 1);
@@ -75,7 +77,10 @@ test("foreground probes share the socket, pause in background, and cannot affect
     context.mock.timers.tick(5_000);
     assert.equal(a.status.state, "failed");
     assert.equal(b.status.state, "failed");
+    const oldAttemptId = a.status.attemptId;
     const reconnect = a.connect(); await accept(next, true); await reconnect;
+    assert.notEqual(a.status.attemptId, oldAttemptId);
+    assert.equal(a.status.attemptId, JSON.parse(next.sent[0]!).rendererId);
     first.receive({ type: "response", requestId: probes()[1].requestId, ok: true, result: null });
     context.mock.timers.tick(5_000);
     assert.equal(a.status.state, "open");

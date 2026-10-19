@@ -534,7 +534,9 @@ export function createAppServerWorkbenchRuntime(
   let connectionRevision = 0;
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
     reconnect: () => runtime.reconnect(), delaysMs: config.reconnectDelaysMs,
-    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent, changed: () => publish(),
+    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent ? event => config.onRecoveryEvent!({
+      ...event, eventAtMs: clock.now?.() ?? Date.now(), ...(currentTransport?.status.attemptId ? { attemptId: currentTransport.status.attemptId } : {}),
+    }) : undefined, changed: () => publish(),
   });
   let automaticReconnectBlock: TransportStatus | null = null;
   // Presentation only: initialization cleanup must not erase the failed attempt ID.
@@ -664,6 +666,7 @@ export function createAppServerWorkbenchRuntime(
     if (next.recovery === snapshot.recovery && next.phase === snapshot.phase && next.error === snapshot.error
       && next.connectionGeneration === snapshot.connectionGeneration
       && next.transport.state === snapshot.transport.state
+      && next.transport.attemptId === snapshot.transport.attemptId
       && next.transport.reason === snapshot.transport.reason
       && next.transport.failure === snapshot.transport.failure && sameResidency) return;
     revision += 1;
@@ -1362,8 +1365,13 @@ export function createAppServerWorkbenchRuntime(
       removeRecoveryMetrics = client.subscribeRequestLifecycle(event => {
         if (!recovery.observing) return;
         if (event.type === "started") recovery.requestStarted();
-        if (event.type !== "completed" && event.type !== "failed") return;
+        if (event.type !== "completed" && event.type !== "failed" && event.type !== "timed-out" && event.type !== "aborted") return;
         recovery.response(event.responseBytes ?? 0);
+        if (["initialize", "thread/resume", "thread/read", "thread/turns/list", "thread/items/list"].includes(event.method)
+          && (event.type !== "completed" || event.durationMs >= 1_000))
+          recovery.stage(event.type !== "completed" ? "request-failed" : "request-slow", {
+            method: event.method, durationMs: event.durationMs, responseBytes: event.responseBytes ?? 0,
+          });
         if (event.type !== "completed") return;
         if (event.method === "thread/resume") {
           const metrics = (event.result as { historyMetrics?: { nativeReads: number; nativeEvents: number; projectionMs: number } })?.historyMetrics;

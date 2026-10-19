@@ -65,7 +65,7 @@ class WebSocketAppHostPort {
 
   constructor(
     url: string,
-    private readonly attemptId: string,
+    readonly attemptId: string,
     createSocket: (url: string) => WebSocket = value => new WebSocket(value),
     handshakeTimeoutMs = 10_000,
     private readonly reportFailure = reportAppHostConnectionFailure,
@@ -196,7 +196,7 @@ class RenewableAppHostTransport implements DuplexTransport {
   private connectOperation: Promise<void> | null = null;
   private closed = false;
 
-  constructor(private readonly createLease: () => { transport: DuplexTransport; diagnostic: () => TransportFailureDiagnostic | undefined }, private readonly onClose: () => void) {}
+  constructor(private readonly createLease: () => { transport: DuplexTransport; attemptId: string; diagnostic: () => TransportFailureDiagnostic | undefined }, private readonly onClose: () => void) {}
 
   get status(): TransportStatus { return this.currentStatus; }
 
@@ -219,10 +219,10 @@ class RenewableAppHostTransport implements DuplexTransport {
         });
         this.removeStatusListener = next.subscribeStatus(status => {
           const diagnostic = acquired.diagnostic();
-          this.setStatus(status.failure && diagnostic
-            ? { ...status, failure: { ...status.failure, diagnostic } } : status);
+          this.setStatus({ ...status, attemptId: acquired.attemptId, ...(status.failure && diagnostic
+            ? { failure: { ...status.failure, diagnostic } } : {}) });
         });
-        this.setStatus(next.status);
+        this.setStatus({ ...next.status, attemptId: acquired.attemptId });
       }
       await this.lease!.connect(signal);
       if (this.closed) throw new Error("App Host transport is closed");
@@ -334,7 +334,7 @@ export function connectWebSocketAppHost(
           catch (error) { port.close(); throw error; }
         }
         const leaseOwner = current;
-        return { transport: leaseOwner.client.createTransport(hostId), diagnostic: () => leaseOwner.port.failureDiagnostic };
+        return { transport: leaseOwner.client.createTransport(hostId), attemptId: leaseOwner.port.attemptId, diagnostic: () => leaseOwner.port.failureDiagnostic };
       }, () => transports.delete(transport));
       transports.add(transport);
       return transport;

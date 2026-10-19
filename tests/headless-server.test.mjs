@@ -596,13 +596,20 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   });
   assert.equal(accepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-failure"), { serverProtocolVersion: 2, event: "client-failure", ...valid });
-  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "settled", elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
+  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "history-started", attemptId: attempts[1], eventAtMs: 1792411504000, elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
   const recoveryAccepted = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(recovery),
   });
   assert.equal(recoveryAccepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-recovery"), { serverProtocolVersion: 2, event: "client-recovery", ...recovery });
-  for (const invalid of [{ ...recovery, params: "private-thread-content" }, { ...recovery, requests: -1 }, { ...recovery, stage: "private-thread-content" }]) {
+  for (const stage of ["initializing", "history-backoff", "request-slow", "request-failed"]) {
+    const acceptedStage = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...recovery, stage, method: "thread/resume", durationMs: 1100 }),
+    });
+    assert.equal(acceptedStage.status, 202, stage);
+  }
+  for (const invalid of [{ ...recovery, params: "private-thread-content" }, { ...recovery, requests: -1 }, { ...recovery, eventAtMs: "private" }, { ...recovery, attemptId: "private-content" }, { ...recovery, stage: "private-thread-content" }]) {
     const rejected = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(invalid),
     });

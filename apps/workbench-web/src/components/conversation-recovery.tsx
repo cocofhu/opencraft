@@ -35,6 +35,7 @@ function RecoveryTechnicalDetails({ diagnostic, pending = false }: { readonly di
     {!pending ? <p><RecoveryFailureStage stage={diagnostic.stage} /></p> : null}
     <pre>{text}</pre>
     <button type="button" onClick={() => {
+      try { console.log("[conversation-recovery] copied details\n" + text); } catch { /* Logging cannot prevent copying. */ }
       void writeTextToClipboard(text).then(() => setCopyState("copied"), () => setCopyState("failed"));
     }}><FormattedMessage id="chat.recovery.copy" defaultMessage="Copy details" /></button>
     <span role="status">{copyState === "copied"

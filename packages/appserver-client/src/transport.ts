@@ -39,6 +39,8 @@ export interface TransportFailureDisposition {
 }
 
 export interface TransportStatus {
+  /** Locally generated physical connection correlation; no remote identity. */
+  readonly attemptId?: string;
   state: TransportState;
   reason?: string;
   /** Omitted by legacy transports, which remain automatically recoverable. */

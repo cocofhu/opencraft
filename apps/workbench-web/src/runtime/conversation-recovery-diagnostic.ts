@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { RecoveryProgress } from "@opencraft/workbench-runtime";
 import type { TransportStatus } from "@opencraft/appserver-client/transport";
 
@@ -34,12 +34,14 @@ export function createConversationRecoveryDiagnostic(input: {
 }, now = new Date().toISOString()): ConversationRecoveryDiagnostic {
   const failure = input.stage === "connection" ? input.transport.failure : undefined;
   const diagnostic = failure?.diagnostic;
+  const attemptId = input.transport.attemptId ?? diagnostic?.attemptId;
   return {
     stage: input.stage, code: machineCode(failure) ?? machineCode(input.error) ?? "UNCLASSIFIED",
     occurredAt: diagnostic?.occurredAt ?? now, runtime: input.runtime, transport: input.transport.state,
     ...(failure ? { recovery: failure.recovery } : {}),
+    ...(attemptId ? { attemptId } : {}),
     ...(diagnostic ? {
-      attemptId: diagnostic.attemptId, connectionPhase: diagnostic.phase, failure: diagnostic.failure,
+      connectionPhase: diagnostic.phase, failure: diagnostic.failure,
       ...(diagnostic.closeCode === undefined ? {} : { closeCode: diagnostic.closeCode }),
     } : {}),
   };
@@ -59,10 +61,20 @@ export function useConversationRecoveryDiagnostic(input: {
   const { scope, failed, stage, error, runtime, transport } = input;
   const failure = transport.failure;
   const observedAt = useMemo(() => new Date().toISOString(), [scope, failed, stage, error, failure]);
-  return failed || input.active ? {
+  const result: ConversationRecoveryDiagnostic | undefined = failed || input.active ? {
     ...createConversationRecoveryDiagnostic({ stage, error, runtime, transport }, observedAt),
     ...(!failed ? { code: "PENDING" } : {}), progress: input.progress, viewKey: scope,
   } : undefined;
+  // Only state transitions log; renders and elapsed-time ticks do not flood console.
+  const previous = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const key = result ? JSON.stringify([scope, result.stage, result.code, result.runtime, result.transport, result.attemptId,
+      result.progress?.recoveryId, result.progress?.stage, result.progress?.stageStartedAt, result.progress?.attempt,
+      result.progress?.retryAt, result.progress?.lastFailure?.occurredAt]) : undefined;
+    if (key !== undefined && key !== previous.current) logConversationRecoveryDiagnostic(result!);
+    previous.current = key;
+  });
+  return result;
 }
 
 /** Explicit allowlist; never stringify Error, transport reason or protocol payload. */
@@ -83,4 +95,11 @@ export function conversationRecoveryDiagnosticText(diagnostic: ConversationRecov
     ["recoveryPolicy", diagnostic.recovery], ["attemptId", diagnostic.attemptId],
     ["connectionPhase", diagnostic.connectionPhase], ["failure", diagnostic.failure], ["closeCode", diagnostic.closeCode],
   ].filter(([, value]) => value !== undefined).map(([key, value]) => `${key}: ${value}`).join("\n");
+}
+
+/** The same allowlisted text is used for console and the clipboard. */
+export function logConversationRecoveryDiagnostic(diagnostic: ConversationRecoveryDiagnostic, now = Date.now()): string {
+  const text = conversationRecoveryDiagnosticText(diagnostic, now);
+  try { console.log("[conversation-recovery] details\n" + text); } catch { /* Logging is observational. */ }
+  return text;
 }

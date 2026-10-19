@@ -3,7 +3,7 @@ import { serverFetch } from "./server-context";
 const pending = new Map<string, Record<string, string | number>>();
 let sending = false;
 let listening = false;
-const fields = new Set(["recoveryId", "stage", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
+const fields = new Set(["recoveryId", "stage", "attemptId", "eventAtMs", "method", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
 async function flush() {
   if (sending || typeof fetch !== "function") return;
   sending = true;
@@ -14,16 +14,17 @@ async function flush() {
         body: JSON.stringify({ kind: "recovery", ...report }), keepalive: true,
         signal: AbortSignal.timeout(5_000),
       });
-      if (!response.ok) break;
+      // A rejected observation must not poison every subsequent recovery record.
+      if (!response.ok && response.status !== 400 && response.status !== 413) break;
       if (pending.get(id) === report) pending.delete(id);
     }
   } catch { /* Next lifecycle/report flushes the latest bounded summary. */ }
   finally { sending = false; }
 }
 export function reportRecoveryEvent(event: Readonly<Record<string, string | number>>) {
-  console.info("[appserver-recovery]", event);
   const report = Object.fromEntries(Object.entries(event).filter(([key]) => fields.has(key)));
   if (typeof report.recoveryId !== "string") return;
+  console.log("[appserver-recovery]", report);
   pending.set(`${report.recoveryId}:${report.stage}`, report);
   while (pending.size > 32) pending.delete(pending.keys().next().value!);
   if (!listening && typeof window !== "undefined") {
