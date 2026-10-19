@@ -1430,7 +1430,7 @@ Shell keeps its existing header measurements, safe-area clearance, 44px touch ta
 
 ### Reasoning effort discrete slider
 
-The Composer detail pane projects only the selected model's declared, ordered
+The first Composer picker layer projects only the selected model's declared, ordered
 reasoning choices through the shared Web DiscreteSlider. Track/round thumb/ticks,
 readout and endpoints consume shared geometry, typography and theme tokens.
 Held drag changes preview only; release commits through existing selection and
@@ -1438,6 +1438,10 @@ remember-default actions. Escape/outside closes the existing menu, not each step
 Touch editing keeps its focus lease and native selection; keyboard adjustment is
 Radix-owned and must not become menu navigation. No choices hides, one disables,
 and an unset value remains explicitly unset until chosen.
+The model title opens configuration; its optional Speed row projects serviceTiers
+from the model catalog. A Standard choice sends null to clear Fast, including
+queued/reloaded messages. Unsupported models hide Speed and clear incompatible
+tiers; speed and reasoning never substitute for each other.
 
 ## Common workbench keyboard commands
 

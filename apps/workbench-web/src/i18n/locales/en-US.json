@@ -626,5 +626,7 @@
   "composer.model.fallbackShort": "Backup",
   "composer.model.empty": "No models available. Check Model Settings.",
   "composer.model.configureTitle": "Configure",
+  "composer.model.speed": "Speed",
+  "composer.model.standardSpeed": "Standard",
   "composer.model.done": "Done"
 }

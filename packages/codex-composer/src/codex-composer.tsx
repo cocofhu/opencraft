@@ -138,6 +138,7 @@ export interface ComposerModelOption {
   readonly source?: "builtin" | "custom" | null;
   readonly defaultEffort: string | null;
   readonly efforts: readonly ComposerReasoningEffortOption[];
+  readonly serviceTiers?: readonly { readonly id: string; readonly name: string; readonly description: string }[];
 }
 
 export interface ComposerPermissionOption {
@@ -186,6 +187,7 @@ export interface ComposerSelectionCatalog {
 }
 
 export interface ComposerEffectiveSelections {
+  readonly serviceTier?: string | null;
   readonly agentId?: string | null;
   readonly model?: string | null;
   readonly effort?: string | null;
@@ -994,6 +996,10 @@ export const CodexComposer = forwardRef<
     reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),
     composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort,
   ) ?? null : null;
+  const requestedServiceTier = composerSnapshot.draft.selections.serviceTier !== undefined
+    ? composerSnapshot.draft.selections.serviceTier : effectiveSelections?.serviceTier;
+  const selectedServiceTier = selectedModel?.serviceTiers?.some(tier => tier.id === requestedServiceTier)
+    ? requestedServiceTier ?? null : null;
   // Null means inherit, including drafts saved by the former default option.
   // Display the resolved policy without writing it back as an explicit choice.
   const effectivePermissionValue = effectiveSelections?.permissionProfile ?? null;
@@ -1265,6 +1271,7 @@ export const CodexComposer = forwardRef<
             // Preserve an unavailable explicit choice so Runtime rejects it instead
             // of silently resolving the Host default model.
             model: selectedModel?.value ?? selectedModelValue,
+            ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedServiceTier } : {}),
             ...(selectedModel ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
           } };
         }
@@ -1372,6 +1379,8 @@ export const CodexComposer = forwardRef<
       editingQueuedSubmissionId,
       selectedModel,
       selectedModelValue,
+      requestedServiceTier,
+      selectedServiceTier,
       modelSelectionPolicy,
       effectiveSelections?.effort,
     ],
@@ -1874,6 +1883,8 @@ export const CodexComposer = forwardRef<
       patch: {
         model: model.value,
         effort,
+        ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined
+          ? { serviceTier: model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier : null } : {}),
       },
     });
     selectionCatalog?.onRememberModelDefaults?.({
@@ -2346,6 +2357,8 @@ export const CodexComposer = forwardRef<
                 disabled={disabled} open={openPicker === "intelligence"} onOpenChange={changePicker("intelligence")}
                 portalContainer={portalContainer} focus={intelligenceFocus}
                 efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
+                serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier}
+                onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
                 effort={selectedEffortValue} onEffortChange={value => {
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);

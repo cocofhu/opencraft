@@ -2161,6 +2161,7 @@ export function App({
                         effectiveSelections={{
                           model: snapshot.conversation?.execution.model,
                           effort: snapshot.conversation?.execution.effort,
+                          serviceTier: snapshot.conversation?.execution.serviceTier,
                           permissionProfile:
                             snapshot.conversation?.execution.permissionProfile,
                         }}

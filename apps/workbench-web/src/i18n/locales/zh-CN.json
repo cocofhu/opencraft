@@ -650,5 +650,7 @@
   "composer.model.fallbackShort": "备用",
   "composer.model.empty": "没有可用模型，请检查模型配置。",
   "composer.model.configureTitle": "配置",
+  "composer.model.speed": "速度",
+  "composer.model.standardSpeed": "标准",
   "composer.model.done": "完成"
 }

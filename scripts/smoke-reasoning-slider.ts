@@ -16,7 +16,7 @@ for(const [k,v] of Object.entries(themes.buildCodexThemeCssProperties(mode,palet
 bindTouchInteractionMode(document);
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const counts=[6,3,1,0,3],values=['low','medium','high','xhigh','max','ultra'];
-const models=counts.map((count,i)=>({id:'model'+i,value:'model'+i,label:i===0?'GPT-6.1-Sol':'Model '+i,description:null,isDefault:i===0,defaultEffort:count&&i!==4?values[Math.min(1,count-1)]:null,efforts:values.slice(0,count).map(value=>({value,label:value[0].toUpperCase()+value.slice(1),description:null}))}));
+const models=counts.map((count,i)=>({id:'model'+i,value:'model'+i,label:i===0?'GPT-6.1-Sol':'Model '+i,description:null,isDefault:i===0,defaultEffort:count&&i!==4?values[Math.min(1,count-1)]:null,serviceTiers:i===0?[{id:'fast',name:'Fast',description:'Host-declared fast tier'}]:[],efforts:values.slice(0,count).map(value=>({value,label:value[0].toUpperCase()+value.slice(1),description:null}))}));
 window.fixture={controller,remembered:[]};
 function App(){const [frame,setFrame]=useState(0);window.fixture.rerender=()=>setFrame(f=>f+1);return <main data-frame={frame} style={{padding:16,paddingTop:200,maxWidth:800,margin:'auto'}}><CodexComposer controller={controller} selectionCatalog={{models,permissionProfiles:[],onRememberModelDefaults:value=>window.fixture.remembered.push(value)}} onSubmit={()=>false} onCancel={()=>{}} /></main>}
 createIntlTestRoot(document.getElementById('root'),undefined,'zh-CN').render(<App/>);`;
@@ -42,10 +42,15 @@ try {
       assert.equal(await sheet.locator('.codex-composer-model-config__row').count(),2);
       await sheet.screenshot({path:'.local/reasoning-slider/sheet-full-'+palette+'-'+mode+'-'+touch+'.png'});
       await sheet.locator('.codex-composer-model-config__row').nth(1).click();
-      assert.equal(await page.getByRole('menuitemradio').count(),6);
-      await page.getByRole('menuitemradio',{name:'High',exact:true}).click();
-      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.effort),'high');
-      assert(await sheet.isVisible(),'choosing effort leaves configuration open');
+      assert.equal(await page.getByRole('menuitemradio').count(),2);
+      await page.getByRole('menuitemradio',{name:'Fast',exact:true}).click();
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),'fast');
+      assert(await sheet.isVisible(),'choosing speed leaves configuration open');
+      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
+      await page.getByRole('menuitemradio',{name:'标准',exact:true}).click();
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'Standard explicitly resets Fast');
+      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
+      await page.getByRole('menuitemradio',{name:'Fast',exact:true}).click();
     }
     await sheet.screenshot({path:'.local/reasoning-slider/sheet-'+palette+'-'+mode+'-'+touch+'.png'});
     await sheet.locator('.codex-composer-model-config__row').first().click();
@@ -54,6 +59,10 @@ try {
 
     await page.getByRole('menuitem',{name,exact:true}).click();
     await page.keyboard.press('Escape');
+    if(name==='Model 1'){
+      assert.equal(await sheet.locator('.codex-composer-model-config__row').count(),1,'unsupported models have no Speed control');
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'switching models clears incompatible Fast');
+    }
     await sheet.locator('.codex-composer-model-config__done').click();
     if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
   };

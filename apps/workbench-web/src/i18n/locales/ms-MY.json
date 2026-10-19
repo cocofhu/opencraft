@@ -628,5 +628,7 @@
   "composer.model.fallbackShort": "Sandaran",
   "composer.model.empty": "Tiada model tersedia. Semak tetapan model.",
   "composer.model.configureTitle": "Konfigurasi",
+  "composer.model.speed": "Kelajuan",
+  "composer.model.standardSpeed": "Standard",
   "composer.model.done": "Selesai"
 }

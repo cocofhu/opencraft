@@ -1212,8 +1212,10 @@ model/effort label opens a focused capsule slider with only the selected model's
 declared efforts. The label above the track is a second action: it opens a Radix
 configuration sheet; its Model row opens the existing catalog and authoritative
 model details. Model switching is deliberately absent from the first layer. The
-configuration's optional Reasoning row exposes the same declared choices, never
-an invented speed setting. Embedded session-only policy retains its model-only
+configuration's optional Speed row projects only model-declared serviceTiers.
+Standard explicitly clears the previous tier with null; Fast uses the server's
+declared ID. Models without tiers hide Speed, and model switches clear incompatible
+tiers. Embedded session-only policy retains its model-only
 picker and Host-owned reasoning policy.
 
 The shared DiscreteSlider owns the capsule geometry, tick marks and themed

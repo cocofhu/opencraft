@@ -8,7 +8,7 @@ import type { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focu
 
 /** Presentation only. Catalog, selection and remembered defaults retain their owners. */
 export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, open, onOpenChange, portalContainer, focus,
-  efforts, effort, onEffortChange, children }: {
+  efforts, effort, onEffortChange, serviceTiers, serviceTier, onServiceTierChange, children }: {
   readonly label: string;
   readonly fullLabel: string;
   readonly effortLabel?: string;
@@ -20,16 +20,22 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
   readonly efforts: readonly DiscreteSliderOption[];
   readonly effort: string | null;
   readonly onEffortChange: (value: string) => void;
+  readonly serviceTiers: readonly { readonly id: string; readonly name: string; readonly description: string }[];
+  readonly serviceTier: string | null;
+  readonly onServiceTierChange: (value: string | null) => void;
   readonly children: ReactNode;
 }) {
   const intl = useIntl();
   const [configure, setConfigure] = useState(false);
-  const [submenu, setSubmenu] = useState<"model" | "effort" | null>(null);
+  const [submenu, setSubmenu] = useState<"model" | "speed" | null>(null);
   const [sheetContainer, setSheetContainer] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const quick = useRef<HTMLDivElement | null>(null);
   const modelLabel = intl.formatMessage({ id: "chat.model", defaultMessage: "Model" });
   const reasoningLabel = intl.formatMessage({ id: "chat.reasoning", defaultMessage: "Reasoning" });
+  const speedLabel = intl.formatMessage({ id: "composer.model.speed", defaultMessage: "Speed" });
+  const standardLabel = intl.formatMessage({ id: "composer.model.standardSpeed", defaultMessage: "Standard" });
+  const speedOptions = [{ id: "", name: standardLabel, description: "" }, ...serviceTiers];
   const configureLabel = intl.formatMessage({ id: "composer.model.configureTitle", defaultMessage: "Configure" });
   const title = (current?: string) => (
 <DropdownMenu.Item className="codex-composer-model-quick__title" onSelect={() => setConfigure(true)}
@@ -85,15 +91,15 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-            {efforts.length ? <DropdownMenu.Root modal={false} open={submenu === "effort"} onOpenChange={next => setSubmenu(next ? "effort" : null)}>
-              <DropdownMenu.Trigger className="codex-composer-model-config__row" disabled={efforts.length === 1}>
-                <span>{reasoningLabel}</span><span className="codex-composer-model-config__value">{effortLabel ?? reasoningLabel}</span><ChevronsUpDown size={16} aria-hidden="true" />
+            {serviceTiers.length ? <DropdownMenu.Root modal={false} open={submenu === "speed"} onOpenChange={next => setSubmenu(next ? "speed" : null)}>
+              <DropdownMenu.Trigger className="codex-composer-model-config__row">
+                <span>{speedLabel}</span><span className="codex-composer-model-config__value">{speedOptions.find(tier => tier.id === (serviceTier ?? ""))?.name ?? standardLabel}</span><ChevronsUpDown size={16} aria-hidden="true" />
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal container={sheetContainer}>
-                <DropdownMenu.Content className="codex-composer-selection-menu" aria-label={reasoningLabel} side="top" align="end" sideOffset={8} collisionPadding={12}>
-                  <DropdownMenu.RadioGroup value={effort ?? ""} onValueChange={onEffortChange}>
-                    {efforts.map(option => <DropdownMenu.RadioItem key={option.value} value={option.value} className="codex-composer-selection-menu__item">
-                      <span className="codex-composer-selection-menu__copy">{option.label}</span>
+                <DropdownMenu.Content className="codex-composer-selection-menu" aria-label={speedLabel} side="top" align="end" sideOffset={8} collisionPadding={12}>
+                  <DropdownMenu.RadioGroup value={serviceTier ?? ""} onValueChange={value => onServiceTierChange(value || null)}>
+                    {speedOptions.map(tier => <DropdownMenu.RadioItem key={tier.id} value={tier.id} title={tier.description || undefined} className="codex-composer-selection-menu__item">
+                      <span className="codex-composer-selection-menu__copy">{tier.name}</span>
                       <DropdownMenu.ItemIndicator><Check size={16} aria-hidden="true" /></DropdownMenu.ItemIndicator>
                     </DropdownMenu.RadioItem>)}
                   </DropdownMenu.RadioGroup>
