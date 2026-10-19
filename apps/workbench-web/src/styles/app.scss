@@ -841,9 +841,11 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   min-width: max-content;
 }
 
-// Touch layout spends its leading space on navigation and the conversation title.
-// Apply to the persistent header and its measurement twin; drawers retain branding.
-:root[data-ui-density="touch"] .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand] {
+// Touch density and a space-constrained browser page both give the leading
+// header space to navigation and the conversation title. The floating drawer
+// keeps its own brand. Match the measurement twin as well as the visible rail.
+:root[data-ui-density="touch"] .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand],
+.app-shell-root.has-mobile-sidebar-gestures .app-shell-header .app-shell-header__window-controls-rail[data-navigation-brand] {
   width: max-content;
   > .application-brand { display: none; }
 }
