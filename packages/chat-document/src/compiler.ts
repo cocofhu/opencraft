@@ -544,28 +544,36 @@ const composerLinkTokenizer: TokenizerExtension = {
   },
 };
 
-/** Source-equivalent Codex delimiters: dollar pairs are display-only blocks. */
+/** Application formula delimiters; frozen grammar and historical provenance:
+ * docs/provenance/math-delimiters-replacement.md. Placement remains compiler-owned.
+ */
 const mathBlockTokenizer: TokenizerExtension = {
   name: "math",
   level: "block",
   start(source) {
-    // Marked asks every extension about each remaining paragraph suffix.
-    // Most prose has no display-math delimiter; avoid a regex scan of every
-    // suffix while retaining the exact boundary rule when a delimiter exists.
-    if (!source.includes("\\[") && !source.includes("$$")) return undefined;
-    const match = /(?:^|\n)[ \t]*(?:\\\[|\$\$)/u.exec(source);
-    return match?.index;
+    if (!source.includes("$$") && !source.includes("\\[")) return undefined;
+    let candidate = 0;
+    let eligible = true;
+    for (let position = 0; position < source.length; position += 1) {
+      if (eligible && (source.startsWith("$$", position) || source.startsWith("\\[", position))) return candidate;
+      const character = source[position];
+      if (character === "\n") {
+        candidate = position;
+        eligible = true;
+      } else if (character !== " " && character !== "\t") eligible = false;
+    }
+    return undefined;
   },
   tokenizer(source) {
-    if (source.startsWith("\\[")) {
-      const end = source.indexOf("\\]", 2);
-      if (end === -1 || !/^[ \t]*(?:\n|$)/u.test(source.slice(end + 2))) return undefined;
-      return { type: "math", raw: source.slice(0, end + 2), text: source.slice(2, end).trim(), display: true } as Token;
-    }
-    if (!source.startsWith("$$")) return undefined;
-    const end = source.indexOf("$$", 2);
-    if (end === -1 || !/^[ \t]*(?:\n|$)/u.test(source.slice(end + 2))) return undefined;
-    return { type: "math", raw: source.slice(0, end + 2), text: source.slice(2, end).trim(), display: true } as Token;
+    const closing = source.startsWith("$$") ? "$$" : source.startsWith("\\[") ? "\\]" : null;
+    if (closing === null) return undefined;
+    const boundary = source.indexOf(closing, 2);
+    if (boundary < 0) return undefined;
+    let remainder = boundary + closing.length;
+    while (source[remainder] === " " || source[remainder] === "\t") remainder += 1;
+    if (remainder < source.length && source[remainder] !== "\n") return undefined;
+    const raw = source.substring(0, boundary + closing.length);
+    return { type: "math", raw, text: raw.substring(2, raw.length - 2).trim(), display: true } as Token;
   },
 };
 
@@ -573,16 +581,19 @@ const mathInlineTokenizer: TokenizerExtension = {
   name: "math",
   level: "inline",
   start(source) {
-    const index = source.indexOf("\\(");
-    return index === -1 ? undefined : index;
+    const position = source.indexOf("\\(");
+    return position < 0 ? undefined : position;
   },
   tokenizer(source) {
     if (!source.startsWith("\\(")) return undefined;
-    const end = source.indexOf("\\)", 2);
-    if (end === -1) return undefined;
-    const raw = source.slice(0, end + 2);
-    if (raw.includes("\n")) return undefined;
-    return { type: "math", raw, text: source.slice(2, end).trim(), display: false } as Token;
+    for (let position = 2; position < source.length; position += 1) {
+      if (source[position] === "\n") return undefined;
+      if (source.startsWith("\\)", position)) {
+        const raw = source.substring(0, position + 2);
+        return { type: "math", raw, text: raw.substring(2, raw.length - 2).trim(), display: false } as Token;
+      }
+    }
+    return undefined;
   },
 };
 

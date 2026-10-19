@@ -247,6 +247,13 @@ and Host selection keep their existing owners. This grammar is a compatibility
 contract, not a claim to implement every Markdown dialect; see the [bounded
 scanner record](provenance/markdown-link-scanner-replacement.md).
 
+The compiler's math extensions retain the application grammar: display uses
+`$$` or backslash-brackets with horizontal-only trailing line admission; inline
+uses backslash-parentheses and rejects LF inside the first closure. Raw token
+consumption and trimmed formula source remain distinct. Compiler placement,
+code fences and streaming identity keep their owners; see the [bounded math
+record](provenance/math-delimiters-replacement.md).
+
 ## 跨桌面、手机和平板的会话连续性
 
 Conversation Scope 是会话身份，View 是具体窗口或页面的呈现与滚动状态；任务输入槽位以 View ID 标识，但其 Application 级草稿所有权独立于页面缓存。`workbench-runtime` 的 `ConversationDraftOwnerRegistry` 保留原 Controller 与附件资源，`ConversationDraftContinuity` 管理同一输入槽文档的保存、恢复、发送成功后的丢弃和迟到读取仲裁；平台只提供本地存储。移动端用 SQLite，并以区域、凭证摘要和 Bot 实例/Profile 分区；Web/Electron 用浏览器本地存储，并以产品和账号服务的凭证作用域分区。退出登录或切换凭证时撤销旧存储、清除所有草稿所有者及其内部目标缓存，包括已无页面的草稿。附件与临时文件引用不从文档缓存恢复；会话切换保留内存附件不等于刷新恢复字节。

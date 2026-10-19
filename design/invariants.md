@@ -686,6 +686,11 @@ ranges, escape compatibility and later-candidate recovery stay stable; unescapin
 and Host-scoped resource admission remain caller responsibilities. Scanner matches
 do not open a resource or grant navigation. See [the bounded scanner contract](../docs/provenance/markdown-link-scanner-replacement.md).
 
+Formula delimiter projection preserves application syntax and raw source ranges;
+code-fence precedence and structural placement remain compiler responsibilities.
+Display line-tail admission and inline LF rejection cannot silently change during
+source replacement. See [the bounded math contract](../docs/provenance/math-delimiters-replacement.md).
+
 ## Markdown 文件预览
 - 文件标题栏提供文件树显隐开关；收起后内容占满宽度，树保持挂载以保留展开、搜索和滚动位置，不重建预览或编辑器。只读嵌入预览仍无目录入口。验证：`scripts/smoke-file-tree-toggle.ts`。
 - 文件树的目录数据归Host作用域Query缓存，展开/键盘活动项/滚动归当前面板；按数据版本排序、展开分支拍平，DOM仅挂载可视窗口和overscan。侧栏/聊天更新不得触发未变化目录排序或每目录会话订阅。隐藏和搜索保留展开/滚动，键盘上下/Home/End/左右/Enter与选中文件仍可达；目录折叠后迟到数据不恢复子行。验证：`tests/workspace-file-tree-model.test.ts`、`scripts/smoke-workspace-file-tree.ts`。
