@@ -45,6 +45,15 @@ The shared Vite preload helper stays separate from entry-only polyfill effects;
 query-suffixed Workbench loaders have their own chunk. Presentation context does
 not re-export the bootstrap factory: consumers use its composition module. This
 keeps optional feature updates from invalidating unrelated shared startup chunks.
+Renderer realm initialization belongs to the core Web build factory. Both the
+HTML entry and trusted embedded product loader finish the shared curated
+ECMAScript compatibility module before dynamically importing application/product
+code. Product dependencies cannot race shim installation through static module
+evaluation. The policy and real minimum-engine startup regression are documented
+in [browser compatibility](build-matrix.md#browser-compatibility). This boundary
+does not emulate DOM/device capabilities, cover Workers or relax owned-source
+compatibility checks.
+
 The Vite renderer is the precision desktop surface used by browsers and
 Electron. The default Expo entry composes the existing RN Workbench, presentation runtime
 and direct WebSocket Host for iOS, Android and Expo Web. Host configuration uses
