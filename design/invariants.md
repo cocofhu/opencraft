@@ -12,6 +12,21 @@ See the workbench language and `scripts/smoke-frosted-materials.ts` for real
 consumer, backdrop and fallback verification. Native appearance is unchanged.
 
 
+## Floating sidebar presentation boundary
+
+Shell owns visibility, live width, mobile progress and content identity. The
+floating container projects those ports into stable header/body/footer slots;
+ordinary prop and width changes preserve drafts and mount identity. Exit presence
+immediately becomes inert, aria-hidden and pointer-disabled. Desktop entrance
+translates the surface by -8px while its header counter-translates, then settles;
+exit translation keeps opacity. Reduced motion skips settling. Mobile depth
+consumes the same Shell progress, clamps 90–100% scale and 45–100% opacity, and
+adds no separate exit animation. Existing resize transactions own bounds,
+keyboard/default width, commits and cancellation; the floating resize port cannot
+collapse the sidebar. The [bounded replacement record](../docs/provenance/floating-sidebar-replacement.md)
+retains pre-authoring observations and the pre-existing full Shell footer failure.
+Other Shell, navigation, style and spring implementations retain their owners.
+
 ## Discrete slider fill
 
 The shared track owns capsule clipping. Its selected range has a square inner
