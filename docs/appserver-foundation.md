@@ -79,6 +79,16 @@ physical link, while the renderer owns a `hostId`-scoped request client and
 manager. OpenCraft permits direct WebSocket in browser/Expo as an additional
 physical adapter; that does not change the semantic boundary.
 
+## Hook execution notification projection
+
+The session notification projector owns explicit/latest Turn selection and run
+validation. Its pure execution-list upsert prioritizes the latest active run of
+the same protocol ID, then a matching non-null completion timestamp, otherwise
+appending a count-suffixed presentation ID. It replaces the matched wrapper with
+the complete incoming run while retaining unrelated entry identities. This does
+not own hook execution, retry, notification order or transport authority. See the
+[bounded implementation record](provenance/hook-upsert-replacement.md).
+
 ## Recovered-source consultation ledger
 
 The initial model was checked against r1116. The ownership review was rechecked

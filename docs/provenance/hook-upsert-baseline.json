@@ -12,5 +12,13 @@
     "inputCases": 21830,
     "statefulSequences": 150,
     "sha256": "83e0c7481aad0b0d0e5679653ca52e9c3aecc9a204a66ddd1c1860459fe2f7a3"
+  },
+  "regionProof": {
+    "start": 7764,
+    "end": 9060,
+    "historicalRegionSha256": "bbe05ad7592f882ca1a244da2514e63ed72de8b55d1afa17509ad649d66e7b09",
+    "replacementRegionSha256": "9cdc474d71322eae60064fdd70004661535f5d04208822b7f00452d03772cf17",
+    "prefixUnchanged": true,
+    "suffixUnchanged": true
   }
 }

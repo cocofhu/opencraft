@@ -45,3 +45,27 @@ complete incoming run object; unrelated entries retain object identity. Previous
 run metadata is not silently merged into the incoming record. Sparse legacy
 wrapper suffixes retain this count-based compatibility policy. These are observed
 application contracts, not a new protocol specification or historical-rights claim.
+
+## Implemented boundary and compatibility verification
+
+The replacement summarizes matching executions in one pass: count, latest active
+position and latest completed-timestamp position. It then copies the list and
+updates that one presentation wrapper or appends a count-suffixed execution.
+The incoming run object is retained directly; unrelated wrapper/run identities
+are preserved. All 21,830 inputs and 150 continuous sequences match on the first
+comparison, including values and reference-sharing observations. The module's
+prefix/suffix outside the selected function/annotation are byte-identical.
+
+The AppServer session typecheck, typography/platform boundaries and 118 existing
+AppServer session/Chat runtime/provenance tests pass. The actual runtime test
+projects start/completion/duplicate/reused-ID notifications to explicit/latest
+Turns and the Chat consumer retains hook statistics and entries. These execute
+real consumer services with synthetic transport, not employee/native/real-model
+validation. The public Web build result and final inventory checks are recorded
+separately at completion. No repository tests or harness are added.
+
+The public Web build completed with 791 runtime sources and zero compatibility
+issues. Inventory validation and its ten existing tests pass, with the same eight
+unresolved groups. Exact selected-region hashes and unchanged prefix/suffix proof
+are retained in the baseline. Source integration checks do not establish native,
+employee login or real-provider execution, and historical rights remain unverified.

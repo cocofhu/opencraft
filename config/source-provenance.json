@@ -278,9 +278,11 @@
         "packages/codex-composer/src/dictation-footer.tsx",
         "packages/workbench-panels/src/model.ts",
         "docs/provenance/interaction-interrupt-baseline.json",
-        "docs/provenance/interaction-interrupt-replacement.md"
+        "docs/provenance/interaction-interrupt-replacement.md",
+        "docs/provenance/hook-upsert-baseline.json",
+        "docs/provenance/hook-upsert-replacement.md"
       ],
-      "reason": "The remaining diagnostic, hook projection, dictation and panel files contain source-equivalent, recovery, inspiration or semantic-adoption annotations. These select individual review regions, not whole-file copying. The interrupt response module has a separate bounded current-implementation disposition; other regions and historical rights remain unverified.",
+      "reason": "Diagnostic, dictation and panel annotations still require bounded review. The directly attributed hook upsert function and interrupt response module have separate current-implementation dispositions. Other projector functions are not classified or selected for rewriting merely because they share this file; historical rights remain unverified.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -741,6 +743,25 @@
       "reason": "The selected function directly claimed source-equivalent global fade-segment reconciliation. Independently express frozen positional growth and global exact-occurrence matching using indexed occurrence queues and consumed positions.",
       "resolution": "Retain original file/region hashes, direct annotation, frozen inputs and actual author exposure. No whole-file classification, strict author isolation or historical-rights clearance.",
       "conclusion": "Only the current global reconciliation function is covered. Parsing, word segmentation, semantic node identity, session CAS and renderer scheduling retain their owners. Eight unresolved groups remain."
+    },
+    {
+      "id": "hook-run-upsert-projection",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/appserver-session/src/projectors.ts"
+      ],
+      "regions": [
+        "upsertHookRun only; notification validation, Turn routing, registries, other projectors and resume remain unchanged"
+      ],
+      "evidence": [
+        "docs/provenance/hook-upsert-baseline.json",
+        "docs/provenance/hook-upsert-replacement.md",
+        "tests/appserver-session.test.ts",
+        "tests/chat-runtime.test.ts"
+      ],
+      "reason": "Only the selected execution-list helper directly claimed source-equivalent reconstruction. Replace it from frozen typed consumer requirements and executable observations with one explicit execution summary and immutable list update.",
+      "resolution": "Retain historical file/function/region hashes, direct annotation, requirements commits and actual exposure. Protocol identities, timestamps and metadata remain application compatibility facts.",
+      "conclusion": "Current disposition covers only upsertHookRun. Frozen matching, suffixes, order and object sharing are preserved. Eight unresolved groups and historical rights remain open; no whole-file or strict author-isolation claim."
     }
   ]
 }

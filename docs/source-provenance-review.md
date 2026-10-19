@@ -626,3 +626,13 @@ occurrence behavior, counters, entering flags and session CAS outputs are retain
 The first empty-string mismatch evidence and historical hashes remain available.
 Other identity/compiler/preprocessing regions and eight unresolved inventory groups
 remain open; this does not establish strict author isolation or historical rights.
+
+
+## Bounded Hook execution upsert (2026-10-20)
+
+[Only the directly attributed `upsertHookRun`](provenance/hook-upsert-replacement.md)
+is independently expressed from frozen contracts and observations. Protocol IDs,
+active/completed matching, duplicate handling, suffixes and structural sharing
+remain compatible. Notification validation and Turn routing retain their existing
+owners. Historical hashes and actual exposure remain recorded; eight unresolved
+groups remain, without whole-file, strict isolation or historical-rights clearance.
