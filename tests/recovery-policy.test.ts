@@ -45,3 +45,53 @@ test("failed visible recovery settles and permits hidden recovery; duplicate tri
  let hidden=false; await f.owner.recover({key:{},demand:()=>"open",retryable:()=>false,run:async()=>{hidden=true;}});
  assert.equal(runs,1);assert.equal(hidden,true);f.owner.dispose();
 });
+
+test("foreground hints can advance a long backoff once per burst without resetting escalation", async () => {
+ const f=fixture();
+ for(let i=0;i<7;i++){f.owner.schedule(false);await f.advance(60_000);}
+ f.owner.schedule(false);
+ assert.equal(f.events.filter(e=>e.stage==='backoff').at(-1)?.delayMs,60_000);
+ assert.equal(f.owner.admitRecoveryHint(),true);
+ f.owner.cancelConnection();
+ assert.equal(f.owner.waiting,false);
+ assert.equal(f.owner.admitRecoveryHint(),false);
+ f.owner.schedule(false);
+ assert.equal(f.events.filter(e=>e.stage==='backoff').at(-1)?.delayMs,60_000);
+ await f.advance(5_000);assert.equal(f.owner.admitRecoveryHint(),true);
+ f.owner.dispose();assert.equal(f.owner.admitRecoveryHint(),false);
+});
+
+test("explicit retry wakes delayed history, applies the new policy and shares the active read", async () => {
+ const f=fixture(),key={};let reads=0,retried=0,release!:()=>void;
+ const first=f.owner.recover({key,demand:()=>"visible",retryable:()=>true,
+   run:async()=>{reads++;throw Error('timeout');}});
+ await tick();assert.equal(reads,1);assert.equal(f.timers.size,1);
+ const retry={key,demand:()=>"visible" as const,retryable:()=>false,
+   run:()=>new Promise<void>(resolve=>{retried++;release=resolve;})};
+ assert.equal(f.owner.recover(retry,true),first);
+ await tick();assert.equal(retried,1);assert.equal(f.timers.size,0);
+ assert.equal(f.owner.recover(retry,true),first);await tick();assert.equal(retried,1);
+ release();await first;await f.advance(60_000);assert.equal(reads,1);assert.equal(retried,1);
+ f.owner.dispose();
+});
+
+test("transient history retries are bounded and explicit callers receive the final failure", async () => {
+ const f=fixture();let reads=0;
+ const done=assert.rejects(f.owner.recover({key:{},demand:()=>"visible",retryable:()=>true,propagateFailure:true,
+   run:async()=>{reads++;throw Error('still unavailable');}}),/still unavailable/);
+ await tick();
+ for(const delay of [500,1000,2000])await f.advance(delay);
+ await done;assert.equal(reads,4);assert.equal(f.timers.size,0);
+ await f.advance(60_000);assert.equal(reads,4);f.owner.dispose();
+});
+
+test("a cancelled history timer cannot consume the replacement retry delay", async () => {
+ const f=fixture(),key={};let reads=0;
+ const task={key,demand:()=>"visible" as const,retryable:()=>true,run:async()=>{reads++;throw Error('timeout');}};
+ const first=f.owner.recover(task);await tick();
+ const stale=[...f.timers.values()][0]!.run;
+ assert.equal(f.owner.recover(task,true),first);await tick();
+ assert.equal(reads,2);assert.equal(f.timers.size,1);
+ stale();await tick();assert.equal(reads,2);assert.equal(f.timers.size,1);
+ f.owner.invalidate();await first;f.owner.dispose();
+});

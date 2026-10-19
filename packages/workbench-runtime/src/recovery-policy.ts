@@ -12,7 +12,7 @@ export interface RecoveryTask {
   retryable(error: unknown): boolean;
   readonly propagateFailure?: boolean;
 }
-interface Work { task: RecoveryTask; attempt: number; propagateFailure: boolean; resolve(error?: unknown): void; promise: Promise<void> }
+interface Work { task: RecoveryTask; attempt: number; retryTicket: number; propagateFailure: boolean; resolve(error?: unknown): void; promise: Promise<void> }
 const rank = { visible: 0, open: 1, cache: 2 } as const;
 const delays = [500, 1_000, 2_000, 5_000, 15_000, 30_000, 60_000];
 let episodeSequence = 0;
@@ -30,6 +30,7 @@ export class ConversationRecoveryOwner {
   private active = new Set<object>();
   private disposed = false;
   private connected = true;
+  private lastHintAt = Number.NEGATIVE_INFINITY;
   private stages = 0;
   private episode: { id: string; start: number; requests: number; bytes: number; projectionMs: number; extraConversations: Set<object> } | null = null;
   constructor(private readonly input: {
@@ -40,6 +41,12 @@ export class ConversationRecoveryOwner {
   get reconnectAttempt() { return this.attempt; }
   get observing() { return this.episode !== null; }
   get waiting() { return this.connectionTimer !== null; }
+  /** Foreground/online bursts may advance one attempt, without resetting backoff. */
+  admitRecoveryHint() {
+    if (this.disposed || this.now() - this.lastHintAt < 5_000) return false;
+    this.lastHintAt = this.now();
+    return true;
+  }
   private now() { return this.input.clock.now?.() ?? Date.now(); }
   begin(reason: string) {
     if (["transport-unavailable", "waiting", "connecting", "manual-block"].includes(reason)) this.connected = false;
@@ -123,13 +130,28 @@ export class ConversationRecoveryOwner {
     this.timers.delete(key);
     this.work.get(key)?.resolve(); this.work.delete(key);
   }
-  recover(task: RecoveryTask): Promise<void> {
+  recover(task: RecoveryTask, immediate = false): Promise<void> {
     if (this.disposed || task.demand() === "cache") return Promise.resolve();
     const previous = this.work.get(task.key);
-    if (previous) { previous.propagateFailure ||= task.propagateFailure === true; this.pump(); return previous.promise; }
+    if (previous) {
+      previous.propagateFailure ||= task.propagateFailure === true;
+      if (immediate) {
+        // A user retry replaces the queued policy, but shares any active read.
+        previous.task = task;
+        previous.retryTicket++;
+        const timer = this.timers.get(task.key);
+        if (timer !== undefined) {
+          this.input.clock.clearTimeout(timer);
+          this.timers.delete(task.key);
+          previous.attempt = 0;
+        }
+      }
+      this.pump();
+      return previous.promise;
+    }
     let resolve!: (error?: unknown) => void;
     const promise = new Promise<void>((done, reject) => { resolve = error => error === undefined ? done() : reject(error); });
-    this.work.set(task.key, { task, attempt: 0, propagateFailure: task.propagateFailure === true, resolve, promise });
+    this.work.set(task.key, { task, attempt: 0, retryTicket: 0, propagateFailure: task.propagateFailure === true, resolve, promise });
     this.pump();
     return promise;
   }
@@ -161,8 +183,9 @@ export class ConversationRecoveryOwner {
         this.stage("history-failed", { demand, durationMs: this.now() - started });
         if (work.attempt < 3 && work.task.retryable(error)) {
           const delayMs = (this.input.delaysMs ?? delays)[Math.min(work.attempt++, 6)] ?? 5_000;
+          const ticket = ++work.retryTicket;
           this.timers.set(key, this.input.clock.setTimeout(() => {
-            if (generation !== this.generation || this.work.get(key) !== work) return;
+            if (generation !== this.generation || this.work.get(key) !== work || ticket !== work.retryTicket) return;
             this.timers.delete(key); this.pump();
           }, delayMs));
         } else { work.resolve(work.propagateFailure ? error : undefined); this.work.delete(key); }
