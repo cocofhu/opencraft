@@ -63,3 +63,27 @@ test('invalid paths, absent evidence and unknown statuses cannot silently clear 
   assert.equal(missing.releaseReady, false);
   assert.match(missing.errors.join('\n'), /missing evidence/);
 });
+
+test('source-equivalent and semantic-adoption annotations cannot silently pass outside the inventory', async t => {
+  const root = await fixture(t, 'original', { conclusion: 'Only the fixture example is independently authored.' });
+  const examples = {
+    'packages/parser.ts': '/** Source-equivalent global reconciliation from Codex. */',
+    'apps/renderer.tsx': '// The recovered renderer builds this semantic plan before DOM.',
+    'packages/voice.tsx': '// Semantically adopted from Codex controls / BB VoiceRecordingBar.',
+    'plugins/adapter.mjs': '// Restored from Codex',
+  };
+  await mkdir(join(root, 'apps'));
+  await mkdir(join(root, 'plugins'));
+  for (const [path, content] of Object.entries(examples)) await writeFile(join(root, path), content);
+  const report = await inspectProvenance(root);
+  assert.equal(report.releaseReady, false);
+  assert.deepEqual(report.errors, Object.keys(examples).sort().map(path => `Untracked source provenance annotation: ${path}`));
+});
+
+test('ordinary independent implementations and reference-product names remain review evidence, not copy findings', async t => {
+  const root = await fixture(t, 'original', { conclusion: 'Fixture independently authored.' });
+  await writeFile(join(root, 'packages/independent.ts'), '// Typed and independent from the recovered renderer.\n// Compare the behavior with BB and Paseo.\n');
+  const report = await inspectProvenance(root);
+  assert.deepEqual(report.errors, []);
+  assert.equal(report.releaseReady, true);
+});

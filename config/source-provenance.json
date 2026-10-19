@@ -150,6 +150,69 @@
       "reason": "The historical module carried a source-equivalent display-title annotation outside the original inventory. The entire module is replaced from frozen requirements, public export/consumer contracts and black-box OpenCraft behavior observations.",
       "resolution": "Retain the historical blob and requirement commit. This bounded replacement does not resolve the five other unverified inventory groups or other previously untracked annotations.",
       "conclusion": "Current replacement implements lexical component normalization and explicit recognized skill-directory layouts without reading recovered Desktop or BB/Paseo implementation source. The author previously inspected other recovery-related modules and saw two old display-helper lines during interface extraction, so no strict clean-room isolation or historical rights clearance is claimed. See the authoring boundary, compatibility evidence and limits in the disposition."
+    },
+    {
+      "id": "codex-chat-semantics-followup",
+      "status": "unverified",
+      "paths": [
+        "apps/workbench-web/src/components/conversation/user-message-layout.ts",
+        "packages/chat-core/src/agent-activity.ts",
+        "packages/chat-core/src/mcp-elicitation.ts",
+        "packages/chat-core/src/realtime-transcript.ts",
+        "packages/chat-core/src/turn-diff.ts",
+        "packages/chat-core/src/turn-user-message-normalization.ts",
+        "packages/chat-core/src/user-message.ts"
+      ],
+      "evidence": [
+        "docs/source-provenance-review.md",
+        "apps/workbench-web/src/components/conversation/user-message-layout.ts",
+        "packages/chat-core/src/agent-activity.ts",
+        "packages/chat-core/src/mcp-elicitation.ts",
+        "packages/chat-core/src/realtime-transcript.ts",
+        "packages/chat-core/src/turn-diff.ts",
+        "packages/chat-core/src/turn-user-message-normalization.ts",
+        "packages/chat-core/src/user-message.ts"
+      ],
+      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
+      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
+    },
+    {
+      "id": "codex-document-streaming-followup",
+      "status": "unverified",
+      "paths": [
+        "packages/chat-document/src/compiler.ts",
+        "packages/chat-document/src/preprocess.ts",
+        "packages/chat-document/src/streaming/identity.ts"
+      ],
+      "evidence": [
+        "docs/source-provenance-review.md",
+        "packages/chat-document/src/compiler.ts",
+        "packages/chat-document/src/preprocess.ts",
+        "packages/chat-document/src/streaming/identity.ts"
+      ],
+      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
+      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
+    },
+    {
+      "id": "codex-client-host-followup",
+      "status": "unverified",
+      "paths": [
+        "apps/appserver-lab/src/request-journal.ts",
+        "packages/appserver-session/src/projectors.ts",
+        "packages/chat-runtime/src/interaction-lifecycle.ts",
+        "packages/codex-composer/src/dictation-footer.tsx",
+        "packages/workbench-panels/src/model.ts"
+      ],
+      "evidence": [
+        "docs/source-provenance-review.md",
+        "apps/appserver-lab/src/request-journal.ts",
+        "packages/appserver-session/src/projectors.ts",
+        "packages/chat-runtime/src/interaction-lifecycle.ts",
+        "packages/codex-composer/src/dictation-footer.tsx",
+        "packages/workbench-panels/src/model.ts"
+      ],
+      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
+      "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     }
   ]
 }
