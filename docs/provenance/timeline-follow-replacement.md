@@ -67,3 +67,12 @@ inventory validation has no errors, retains eight unresolved groups and correctl
 keeps `releaseReady=false`. No committed tests/harness, dependencies, reference
 modules, adapters or history are changed. Protected upstream PR and fixed-source
 Join consumption are subsequent distinct delivery steps.
+
+### Composition follow-up
+
+Downstream replay found a documentation-only EOF insertion conflict between the
+new follow invariant and an existing independent Composer invariant. The new
+section was moved beside the existing Conversation presentation section, keeping
+both contents and all runtime bytes unchanged. The normal PR checks apply to
+the new documentation commit; implementation observations and hashes still refer
+to identical source. No downstream patch is removed or reclassified.
