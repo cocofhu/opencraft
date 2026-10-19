@@ -29,6 +29,7 @@ const useCatalog = params.get('legacy') === '1' ? useLegacy : useHostThreadCatal
 const started = performance.now();
 const observations: any[] = [];
 const actions: string[] = [];
+const metrics: { firstPaintMs?: number; completePaintMs?: number } = {};
 function App() {
   const [revision, setRevision] = useState(1);
   const [enabled, setEnabled] = useState(true);
@@ -38,7 +39,15 @@ function App() {
   const threads = rows.map((thread: any) => ({ ...projectAppServerThread(thread), ...legacyDirectServerProjectionFromHost({ hostId: 'fixture', hostKind: 'local', label: 'Fixture' }), connectionHostId: 'fixture', connectionHostLabel: 'Fixture', interactionAvailable: enabled && phase === 'ready' }));
   const catalog = { hostId: 'fixture', label: 'Fixture', phase: threadCatalogPhase({ admitted: enabled, status: query!.status, isFetching: query!.isFetching }), partial: query!.isPlaceholderData };
   observations.push({ ms: performance.now() - started, rows: rows.length, status: query!.status, fetching: query!.isFetching, partial: query!.isPlaceholderData, cached: client.getQueryData(key) !== undefined, revision, enabled });
-  (window as any).catalogEntry = { observations, calls, actions, started, snapshot: () => observations.at(-1),
+  React.useLayoutEffect(() => {
+    if (!rows.length) return;
+    const complete = !query!.isFetching && !query!.isPlaceholderData && query!.status === 'success';
+    requestAnimationFrame(() => {
+      metrics.firstPaintMs ??= performance.now() - started;
+      if (complete) metrics.completePaintMs ??= performance.now() - started;
+    });
+  }, [rows.length, query!.isFetching, query!.isPlaceholderData, query!.status]);
+  (window as any).catalogEntry = { observations, calls, actions, started, metrics, snapshot: () => observations.at(-1),
     refresh: () => client.invalidateQueries({ queryKey: key }),
     cached: () => client.getQueryData(key),
     revoke: () => { current = { ...current, enabled: false }; setEnabled(false); },

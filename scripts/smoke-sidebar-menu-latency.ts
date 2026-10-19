@@ -3,6 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 
 const output = process.env.OPENCRAFT_MENU_LATENCY_OUTPUT ?? "/tmp/opencraft-sidebar-menu-latency";
+const sampleCount = Number(process.env.OPENCRAFT_PERFORMANCE_SAMPLES ?? 3);
+assert.ok(Number.isSafeInteger(sampleCount) && sampleCount >= 3 && sampleCount <= 100);
 const source = `
 import React,{useState} from 'react';
 import * as Popover from '@radix-ui/react-popover';
@@ -63,7 +65,7 @@ try {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     const samples = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < sampleCount; i++) {
       const sample = await page.evaluate(async () => {
         const w = window as any;
         const before = { rows: w.rowsProcessed, projections: w.projections };
