@@ -188,3 +188,49 @@ test("a non-text current frame transitions the transport to failed", async () =>
   assert.equal(fixture.transport.status.state, "failed");
   await fixture.transport.close();
 });
+
+
+test("closing an unfinished connect rejects its wait even when the close event is omitted", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = transportFixture(1000);
+  let settled = false;
+  const connecting = fixture.transport.connect();
+  const rejected = assert.rejects(connecting, /closed before opening/).then(() => { settled = true; });
+  const old = fixture.sockets[0]!; old.autoClose = false;
+  const closing = fixture.transport.close();
+  context.mock.timers.tick(1000); await closing; await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, true, "close must settle the original caller as well as its own wait");
+  await rejected;
+  const current = await connectCurrent(fixture);
+  old.emitOpen(); old.emitClose(1006, "late close");
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("successor"); assert.deepEqual(current.sent, ["successor"]);
+  await fixture.transport.close();
+});
+
+test("a previous close fallback cannot close an already-open successor", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = transportFixture(1000);
+  const old = await connectCurrent(fixture); old.autoClose = false;
+  const closing = fixture.transport.close();
+  const current = await connectCurrent(fixture);
+  context.mock.timers.tick(1000); await closing;
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("still open"); assert.deepEqual(current.sent, ["still open"]);
+  await fixture.transport.close();
+});
+
+test("a retired socket's pending Blob failure cannot poison its successor", async () => {
+  const fixture = transportFixture();
+  let rejectDecode!: (error: Error) => void;
+  const decoding = new Promise<ArrayBuffer>((_resolve, reject) => { rejectDecode = reject; });
+  class HeldBlob extends Blob { override arrayBuffer() { return decoding; } }
+  const old = await connectCurrent(fixture);
+  old.emitMessage(new HeldBlob()); await new Promise(resolve => setImmediate(resolve));
+  await fixture.transport.close();
+  const current = await connectCurrent(fixture);
+  rejectDecode(new Error("retired Blob decode failed")); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("current"); assert.deepEqual(current.sent, ["current"]);
+  await fixture.transport.close();
+});

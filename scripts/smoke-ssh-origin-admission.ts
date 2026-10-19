@@ -14,6 +14,7 @@ import { SshManagement } from '../apps/opencraft-daemon/src/ssh-management.js';
 const directory = await mkdtemp(join(tmpdir(), 'opencraft-origin-smoke-'));
 let management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
 let originFreeStatus = 0, grants = 0, accepted = 0, rejected = 0;
+let saturationReady = false;
 const bundled = await build({ stdin: { contents: 'export { SshConnectionsController } from "./plugins/builtin-agents/src/ssh-connections/controller.ts"; export { connectWebSocketAppHost } from "./apps/workbench-web/src/runtime/websocket-app-host.ts";', resolveDir: resolve('.') }, bundle: true, format: 'esm', platform: 'browser', write: false });
 const handler = async (req: any, res: any) => {
   if (req.url === '/controller.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundled.outputFiles[0]!.text); return; }
@@ -40,7 +41,9 @@ secure.on('upgrade', (req, socket, head) => {
         releasedClaims.add(message.leaseId);
         ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
       }
+      if (message.type === 'host/send') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
       if (message.type === 'host/connect') {
+        if (message.hostId === 'ssh:saturated' && !saturationReady) return;
         const grant = () => ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
         if (message.hostId === 'ssh:held') heldClaim = { leaseId: message.leaseId, grant };
         else grant();
@@ -103,6 +106,40 @@ try {
     const { client, peer } = (window as any).lateGrantFixture; await peer.close(); client.close();
   });
   console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, lateGrantReleased: true, peerUnaffected: true, grants, originFreeStatus }));
+  await page.evaluate(() => { document.body.innerHTML = '<textarea>retained draft</textarea>'; });
+  // Exhaust the default budget with expired claims while the bridge remains
+  // reachable. Only shorten claim deadlines after the peer is connected.
+  const saturated = await page.evaluate(async () => {
+    const { connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', reportFailure: () => {} });
+    const slow = client.createTransport('ssh:saturated'), peer = client.createTransport('ssh:peer');
+    await peer.connect();
+    const draft = document.querySelector('textarea');
+    const originalTimer = window.setTimeout;
+    window.setTimeout = ((callback: TimerHandler, delay?: number, ...args: unknown[]) => originalTimer(callback, delay === 30000 ? 5 : delay, ...args)) as typeof window.setTimeout;
+    try {
+      for (let index = 0; index < 256; index++) {
+        try { await slow.connect(); throw new Error('stalled claim unexpectedly opened'); }
+        catch (cause) { if (!(cause instanceof Error) || !cause.message.includes('host/connect timed out')) throw cause; }
+      }
+      let failure = '';
+      try { await slow.connect(); } catch (cause) { failure = (cause as Error).message; }
+      (window as any).saturationFixture = { client, slow, peer, draft };
+      return { failure, peerState: peer.status.state, peerFailure: peer.status.failure };
+    } finally { window.setTimeout = originalTimer; }
+  });
+  assert.deepEqual(saturated, { failure: 'App Host pending request limit reached', peerState: 'failed', peerFailure: { code: 'APP_HOST_REQUEST_LIMIT', recovery: 'automatic' } });
+  saturationReady = true;
+  const saturationRecovered = await page.evaluate(async () => {
+    const { client, slow, peer, draft } = (window as any).saturationFixture;
+    await Promise.all([slow.connect(), peer.connect()]);
+    await peer.send('healthy forwarding after bridge renewal');
+    const result = { slow: slow.status.state, peer: peer.status.state, sharedAttempt: slow.status.attemptId === peer.status.attemptId,
+      sameDraft: draft === document.querySelector('textarea') && draft.value === 'retained draft' };
+    await Promise.all([slow.close(), peer.close()]); client.close(); return result;
+  });
+  assert.deepEqual(saturationRecovered, { slow: 'open', peer: 'open', sharedAttempt: true, sameDraft: true });
+  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, saturationRecovered, grants, originFreeStatus }));
   await context.close();
 } finally {
   await browser.close(); sockets.close(); plain.closeAllConnections(); secure.closeAllConnections();
