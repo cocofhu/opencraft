@@ -62,7 +62,12 @@ function Demo() {
       id: "turn",
       status: scenario === "answer" ? "failed" : "streaming",
       items:
-        scenario === "todo"
+        scenario === "skill"
+          ? [{ id: "skill-read", type: "commandExecution", payload: {
+              command: "cat SKILL.md", status: "inProgress",
+              commandActions: [{ type: "read", command: "cat SKILL.md", name: "SKILL.md", path: "/workspace/.agents/skills/review/SKILL.md" }],
+            } }]
+          : scenario === "todo"
           ? [
               {
                 id: "todo-old",

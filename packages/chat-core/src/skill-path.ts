@@ -1,21 +1,4 @@
-const KNOWN_ACRONYMS = new Set([
-  "GH", "IA", "MCP", "API", "CI", "CLI", "LLM", "PDF", "PR", "UI", "URL", "SQL", "TW", "GPU", "CPU",
-]);
-
-const CANONICAL_NAMES = new Map<string, string>([
-  ["openai", "OpenAI"],
-  ["openaideveloperdocs", "OpenAI Developer Docs"],
-  ["openapi", "OpenAPI"],
-  ["github", "GitHub"],
-  ["pagerduty", "PagerDuty"],
-  ["datadog", "DataDog"],
-  ["sharepoint", "SharePoint"],
-  ["sqlite", "SQLite"],
-  ["fastapi", "FastAPI"],
-]);
-
-const LOWERCASE_TITLE_WORDS = new Set(["and", "or", "to", "up", "with"]);
-
+/** Requirements and historical disposition: docs/provenance/skill-path-replacement.md. */
 export interface SkillPathInfo {
   readonly skillId: string;
   readonly skillRootPath: string;
@@ -28,129 +11,65 @@ export interface SkillPathInfo {
   readonly isSkillDefinitionFile: boolean;
 }
 
-function displayToken(token: string, index: number): string {
-  const upper = token.toLocaleUpperCase();
-  if (KNOWN_ACRONYMS.has(upper)) return upper;
-  if (token.toLocaleLowerCase().endsWith("s")) {
-    const singular = token.slice(0, -1).toLocaleUpperCase();
-    if (KNOWN_ACRONYMS.has(singular)) return `${singular}s`;
-  }
-  const lower = token.toLocaleLowerCase();
-  const canonical = CANONICAL_NAMES.get(lower);
-  if (canonical !== undefined) return canonical;
-  if (index > 0 && LOWERCASE_TITLE_WORDS.has(lower)) return lower;
-  return lower.length === 0 ? lower : lower.charAt(0).toLocaleUpperCase() + lower.slice(1);
-}
-
-/** Source-equivalent title formatting used by Codex for skill identifiers. */
 export function formatSkillDisplayName(value: string): string {
-  return value.split(":").map((part) => part
-    .replace(/[_-]+/gu, " ")
-    .split(/\s+/gu)
-    .filter(Boolean)
-    .map(displayToken)
-    .join(" "))
-    .join(": ");
+  return value.trim().split(/[\s_-]+/u).map(word => {
+    if (/^(?:api|ui|sql|mcp|cli|llm|url)$/iu.test(word)) return word.toUpperCase();
+    return word.slice(0, 1).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(" ");
 }
 
-function normalizePath(path: string): string {
-  const source = path.trim().replace(/^\.\/+/, "").replaceAll("\\", "/");
-  const prefix = source.startsWith("/") ? "/" : "";
+function components(path: string, cwd: string | null): string[] {
+  const portable = path.replaceAll("\\", "/");
+  const absolute = portable.startsWith("/") || /^[a-z]:\//iu.test(portable);
+  const combined = absolute || !cwd ? portable : `${cwd.replaceAll("\\", "/")}/${portable}`;
   const parts: string[] = [];
-  for (const part of source.split("/")) {
-    if (part.length === 0 || part === ".") continue;
-    if (part === ".." && parts.length > 0 && parts.at(-1) !== "..") parts.pop();
-    else parts.push(part);
+  for (const part of combined.split("/")) {
+    if (part === "." || (part === "" && parts.length > 0)) continue;
+    if (part === "..") {
+      if (parts.length > 0 && parts.at(-1) !== ".." && parts.at(-1) !== "" && !/^[a-z]:$/iu.test(parts.at(-1) ?? "")) parts.pop();
+      else if (parts[0] !== "" && !/^[a-z]:$/iu.test(parts[0] ?? "")) parts.push(part);
+    } else {
+      parts.push(part);
+    }
   }
-  return `${prefix}${parts.join("/")}`;
+  return parts;
 }
 
-function resolvePath(path: string, cwd: string | null): string {
-  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/u.test(path) || cwd === null || cwd.trim().length === 0) {
-    return normalizePath(path);
-  }
-  return normalizePath(`${cwd}/${path}`);
-}
-
-function buildSkillPathInfo({
-  isSystem = false,
-  pluginId,
-  pluginMarketplaceName = null,
-  relativePathSegments,
-  skillId,
-  skillRootPath,
-}: {
-  readonly isSystem?: boolean;
-  readonly pluginId: string | null;
-  readonly pluginMarketplaceName?: string | null;
-  readonly relativePathSegments: readonly string[];
-  readonly skillId: string;
-  readonly skillRootPath: string;
-}): SkillPathInfo {
-  const firstRelativeSegment = relativePathSegments[0]?.toLocaleLowerCase();
-  return {
-    skillId,
-    skillRootPath,
-    skillName: formatSkillDisplayName(skillId.replaceAll("_", "-")),
-    pluginId,
-    pluginDisplayName: pluginId === null ? null : formatSkillDisplayName(pluginId.replaceAll("_", "-")),
-    pluginMarketplaceName,
-    isSystem,
-    isInScriptsFolder: firstRelativeSegment === "scripts",
-    isSkillDefinitionFile: relativePathSegments.length === 1 && firstRelativeSegment === "skill.md",
-  };
-}
-
-/**
- * Parse Codex and plugin skill paths without importing Node path helpers, so
- * the same semantic rule runs in Web, Electron and React Native.
- */
 export function parseSkillPath(path: string, cwd: string | null = null): SkillPathInfo | null {
-  const normalized = resolvePath(path, cwd).replace(/\/+$/u, "");
-  const segments = normalized.split("/").filter(Boolean);
-  if (segments.length === 0) return null;
-  const leadingSlash = normalized.startsWith("/") ? "/" : "";
-
-  for (let index = 0; index < segments.length; index += 1) {
-    const directory = segments[index]?.toLocaleLowerCase();
-    const skills = segments[index + 1]?.toLocaleLowerCase();
-    if ((directory !== ".codex" && directory !== ".agents") || skills !== "skills") continue;
-    const scope = segments[index + 2]?.toLocaleLowerCase();
-    const skillIndex = index + (scope === "_import" || scope === ".system" ? 3 : 2);
-    const skillId = segments[skillIndex];
-    if (skillId === undefined || skillId.length === 0) continue;
-    return buildSkillPathInfo({
-      isSystem: scope === ".system",
-      pluginId: null,
-      relativePathSegments: segments.slice(skillIndex + 1),
+  if (!path.trim() || path.includes("\0")) return null;
+  const parts = components(path, cwd);
+  for (let owner = 0; owner < parts.length; owner++) {
+    if (parts[owner] !== ".codex" && parts[owner] !== ".agents") continue;
+    let root: number;
+    let pluginId: string | null = null;
+    let pluginMarketplaceName: string | null = null;
+    if (parts[owner + 1] === "skills") {
+      root = owner + 2;
+    } else if (parts[owner] === ".codex"
+      && parts[owner + 1] === "plugins" && parts[owner + 2] === "cache"
+      && parts[owner + 6] === "skills") {
+      pluginMarketplaceName = parts[owner + 3];
+      pluginId = parts[owner + 4];
+      root = owner + 7;
+    } else {
+      continue;
+    }
+    const isSystem = pluginId === null && parts[root] === ".system";
+    if (isSystem) root++;
+    const skillId = parts[root];
+    if (!skillId || skillId === "..") return null;
+    const resource = parts.slice(root + 1);
+    return {
       skillId,
-      skillRootPath: `${leadingSlash}${segments.slice(0, skillIndex + 1).join("/")}`,
-    });
-  }
-
-  for (let index = 0; index < segments.length; index += 1) {
-    if (segments[index]?.toLocaleLowerCase() !== "plugins") continue;
-    const cached = segments[index + 1]?.toLocaleLowerCase() === "cache";
-    const pluginIndex = index + (cached ? 3 : 1);
-    const pluginId = segments[pluginIndex];
-    if (pluginId === undefined) continue;
-    const firstSkillSearchIndex = pluginIndex + (cached ? 1 : 0);
-    const skillsIndex = segments.findIndex((segment, segmentIndex) => (
-      segmentIndex > firstSkillSearchIndex && segment.toLocaleLowerCase() === "skills"
-    ));
-    const pluginRootSkill = skillsIndex < 0;
-    const skillIndex = pluginRootSkill ? firstSkillSearchIndex : skillsIndex + 1;
-    const skillId = pluginRootSkill ? pluginId : segments[skillIndex];
-    const relativePathSegments = segments.slice(skillIndex + 1);
-    if (skillId === undefined || (pluginRootSkill
-      && (relativePathSegments.length !== 1 || relativePathSegments[0]?.toLocaleLowerCase() !== "skill.md"))) continue;
-    return buildSkillPathInfo({
+      skillRootPath: parts.slice(0, root + 1).join("/"),
+      skillName: formatSkillDisplayName(skillId),
       pluginId,
-      pluginMarketplaceName: cached ? segments[index + 2] ?? null : null,
-      relativePathSegments,
-      skillId,
-      skillRootPath: `${leadingSlash}${segments.slice(0, skillIndex + 1).join("/")}`,
-    });
+      pluginDisplayName: pluginId === null ? null : formatSkillDisplayName(pluginId),
+      pluginMarketplaceName,
+      isSystem,
+      isInScriptsFolder: resource[0] === "scripts",
+      isSkillDefinitionFile: resource.length === 1 && resource[0].toLowerCase() === "skill.md",
+    };
   }
   return null;
 }
