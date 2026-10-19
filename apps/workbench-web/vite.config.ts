@@ -41,6 +41,8 @@ export function createWorkbenchWebConfig(
   ));
   const workbenchHtmlPath = fileURLToPath(new URL("./index.html", import.meta.url));
   const embeddedWorkbenchEntryPath = resolveEmbeddedProductEntry(workspaceRoot, process.env.OPENCRAFT_EMBEDDED_PRODUCT_ENTRY);
+  const embeddedBootstrapId = "\0opencraft:embedded-bootstrap";
+  const browserCompatibilityPath = fileURLToPath(new URL("./src/runtime/browser-compatibility.ts", import.meta.url));
   const hostProxyServiceWorkerPath = fileURLToPath(new URL(
     "./public/opencraft-host-proxy-sw.js",
     import.meta.url,
@@ -299,6 +301,13 @@ export function createWorkbenchWebConfig(
   function embeddedWorkbenchDevEntry(entryPath: string): Plugin {
     return {
       name: "opencraft-embedded-workbench-dev-entry",
+      resolveId(id) {
+        if (id === embeddedBootstrapId) return id;
+      },
+      load(id) {
+        if (id !== embeddedBootstrapId) return;
+        return `import ${JSON.stringify(browserCompatibilityPath)};\nawait import(${JSON.stringify(entryPath)});\n`;
+      },
       configureServer(server) {
         server.middlewares.use("/__opencraft/embedded-workbench.js", (_request, response) => {
           response.setHeader("content-type", "text/javascript; charset=utf-8");
@@ -313,6 +322,7 @@ export function createWorkbenchWebConfig(
             + 'globalThis.$RefreshReg$ = () => {};\n'
             + 'globalThis.$RefreshSig$ = () => (type) => type;\n'
             + 'globalThis.__vite_plugin_react_preamble_installed__ = true;\n'
+            + `await import(new URL(${JSON.stringify(`/@fs/${browserCompatibilityPath}`)}, base).href);\n`
             + `await import(new URL(${JSON.stringify(`/@fs/${entryPath}`)}, base).href);\n`,
           );
         });
@@ -321,7 +331,7 @@ export function createWorkbenchWebConfig(
         const entry = Object.values(bundle).find((item) => (
           item.type === "chunk"
           && item.isEntry
-          && item.facadeModuleId === entryPath
+          && item.facadeModuleId === embeddedBootstrapId
         ));
         if (entry === undefined || entry.type !== "chunk") {
           throw new Error("Embedded Workbench entry chunk was not generated");
@@ -344,7 +354,7 @@ export function createWorkbenchWebConfig(
   // Keep absent entries out of Rolldown's input map, rather than assigning undefined.
   const rolldownInput: Record<string, string> = {
     ...(!isEmbeddedWorkbenchBuild ? { workbench: workbenchHtmlPath } : {}),
-    ...(embeddedWorkbenchEntryPath ? { "embedded-workbench": embeddedWorkbenchEntryPath } : {}),
+    ...(embeddedWorkbenchEntryPath ? { "embedded-workbench": embeddedBootstrapId } : {}),
   };
 
   return {
@@ -394,6 +404,18 @@ export function createWorkbenchWebConfig(
         "react-dom/client",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
+        // Deep CJS shim entries need explicit prebundling with noDiscovery.
+        "core-js/es/iterator/index.js",
+        "core-js/es/promise/with-resolvers.js",
+        "core-js/es/object/group-by.js",
+        "core-js/es/map/group-by.js",
+        "core-js/es/set/difference.js",
+        "core-js/es/set/intersection.js",
+        "core-js/es/set/is-disjoint-from.js",
+        "core-js/es/set/is-subset-of.js",
+        "core-js/es/set/is-superset-of.js",
+        "core-js/es/set/symmetric-difference.js",
+        "core-js/es/set/union.js",
         // CJS-only runtime dependencies, collected automatically — see
         // collectCjsOnlyDependencies(). Covers the packages the embedded
         // workbench previously had to list by hand (cookie,

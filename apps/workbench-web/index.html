@@ -213,7 +213,7 @@
     <div id="opencraft-bootstrap" role="status" aria-label="正在加载"><i aria-hidden="true"></i></div>
     <div id="root"></div>
     <script type="module">
-      import("/src/main.tsx?opencraft-entry=1").catch((error) => {
+      import("/src/main-bootstrap.ts?opencraft-entry=1").catch((error) => {
         globalThis.__opencraftRecoverRelease?.(error, "module-import");
         fetch("/__opencraft_runtime_error", {
           method: "POST",

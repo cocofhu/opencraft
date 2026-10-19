@@ -22,9 +22,14 @@ test("actual Vite configuration excludes private embedding unless explicitly sel
   await writeFile(entry, "export {};\n");
   process.env.OPENCRAFT_EMBEDDED_PRODUCT_ENTRY = entry;
   const selected = await load();
-  assert.equal(selected.build.rolldownOptions.input["embedded-workbench"], entry);
+  const bootstrap = selected.build.rolldownOptions.input["embedded-workbench"];
+  assert.notEqual(bootstrap, entry, "product evaluation is behind the core compatibility boundary");
   const plugin = selected.plugins.flat(Infinity).find(plugin => plugin?.name === "opencraft-embedded-workbench-dev-entry");
   assert.ok(plugin);
+  assert.equal(plugin.resolveId(bootstrap), bootstrap);
+  const bootstrapSource = plugin.load(bootstrap);
+  assert.match(bootstrapSource, /browser-compatibility\.ts/);
+  assert.ok(bootstrapSource.endsWith(`await import(${JSON.stringify(entry)});\n`));
   let loader;
   plugin.configureServer({ middlewares: { use(url, handler) {
     assert.equal(url, "/__opencraft/embedded-workbench.js");
@@ -35,7 +40,7 @@ test("actual Vite configuration excludes private embedding unless explicitly sel
 
   process.env.OPENCRAFT_BUILD_TARGET = "embedded-workbench";
   const embedded = await load();
-  assert.deepEqual(embedded.build.rolldownOptions.input, { "embedded-workbench": entry });
+  assert.deepEqual(embedded.build.rolldownOptions.input, { "embedded-workbench": bootstrap });
   delete process.env.OPENCRAFT_EMBEDDED_PRODUCT_ENTRY;
   await assert.rejects(load(), /Embedded Workbench build requires OPENCRAFT_EMBEDDED_PRODUCT_ENTRY/);
 });

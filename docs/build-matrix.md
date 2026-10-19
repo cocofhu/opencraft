@@ -59,10 +59,28 @@ the evidence for inspection. Browser selection still uses
 ## Browser compatibility
 
 The browser baseline is Safari 16.6 / iOS Safari 16.6–16.7 (including iPadOS
-16.7.x), Chrome 120 and Firefox 115. Core flows must work; optional device
+16.7.x), Chrome 116 and Firefox 115. Core flows must work; optional device
 features may degrade through capability detection and a usable fallback.
 `config/browser-compatibility.mjs` is the shared build/lint source of truth.
-Vite uses its browser targets for syntax lowering; that does not polyfill APIs.
+Vite uses its browser targets for syntax lowering. Before application or trusted
+product modules evaluate, both the HTML and embedded entry load the shared
+`runtime/browser-compatibility.ts` boundary. It installs curated core-js standard
+Iterator helpers, Promise.withResolvers, Object/Map.groupBy and Set operations
+using feature detection. Existing native implementations are retained when
+conformant. A dynamic import separates application evaluation from these effects,
+including third-party top-level calls. Product configs inherit this core entry
+contract. Web and Electron renderers share it; Workers and Expo are separate
+realms and are not covered. DOM, CSS, device APIs and proposals are not shimmed.
+The typed gate continues rejecting newer APIs in owned application code; these
+shims defend dependency/product startup rather than relaxing the baseline.
+
+`npm run smoke:browser-bootstrap` launches an actual browser against the built
+Web release, checks missing/native API behavior and reloads the real workbench.
+Set `OPENCRAFT_CHROMIUM_EXECUTABLE` to a Chrome 116 binary for the minimum-engine
+regression; without it the script tests the installed Playwright Chromium and
+reports its actual version. The embedded bootstrap is also built and run with a
+synthetic product whose top-level code needs these APIs. No account credentials
+or model calls are used. CI pins Chromium 116 for this startup regression.
 
 Every workbench renderer build runs `scripts/check-browser-compatibility.mjs`
 after Vite exits, including release builds in CI. Vite records actual runtime
@@ -99,8 +117,8 @@ editing. Adding imports requires a new build. For an explicit captured graph,
 run `node scripts/check-browser-compatibility.mjs /path/to/module-graph.json`.
 Malformed graphs, missing files and ignored/unparsed files fail the check. `npm run test:browser-compatibility`
 contains positive/negative examples; CI's `test:web-release` also runs the lint
-regressions. Node follows `.nvmrc`; tooling is development-only, adds no runtime
-polyfill, and does not change the installed web package dependencies.
+regressions. Node follows `.nvmrc`; the lint tooling remains development-only. The curated runtime shims above are
+renderer dependencies, separate from the static checker.
 
 Compatibility exceptions belong in `eslint.browser.config.mjs`, with a reason
 and a tested fallback, rather than inline disables. The injected motion replay
