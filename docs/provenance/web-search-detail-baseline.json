@@ -1,0 +1,30 @@
+{
+  "path": "packages/chat-core/src/tool-activity.ts",
+  "base": "15c621c3093010957d57dc65b9d606961aa1291c",
+  "moduleSha256": "0e6389ba93616cc1722e2975cd6009ac3bc4fda5e814bb4d59f5382a21d47f20",
+  "regions": [
+    {
+      "name": "formatWebSearchQuery",
+      "kind": "FunctionDeclaration",
+      "start": 15986,
+      "end": 16639,
+      "sha256": "7ad40492aad00a58b748578bca243cd1ed8a6509a29240de2600465cee9ebb3d",
+      "signature": "function formatWebSearchQuery(value: string): string"
+    },
+    {
+      "name": "extractWebSearchDetail",
+      "kind": "FunctionDeclaration",
+      "start": 17188,
+      "end": 18255,
+      "sha256": "44f1223c17dce0b64219dd510818ff443bcc28a4c02fb49c5b725d1be53c78e7",
+      "signature": "export function extractWebSearchDetail(value: unknown): string | null"
+    }
+  ],
+  "annotations": [
+    "/** Mirrors Codex's compact query label, including its extracted `site:` facets. */",
+    "/** Extracts the exact compact detail used by Codex for every WebSearchAction. */\n"
+  ],
+  "scope": "Only the two named function declarations and their direct annotations; all neighboring implementation bytes stay unchanged",
+  "exposure": "Current selected historical bodies and recovered references were not printed in this bounded pass. Prior review may have exposed the broader module; no strict author-isolation claim. AST parsing executes no historical implementation.",
+  "sourceBinding": "Function-specific behavioral/source attribution retained. No exact recovered source file was located in this pass; no claim that a license or copying assessment has been established."
+}
