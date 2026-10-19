@@ -13,8 +13,9 @@ export function planChanges(paths, { event = 'pull_request', unknownDiff = false
   let native = false;
   let headlessTests = false;
   let headlessPackage = false;
+  let extensions = false;
   const web = () => builds.add('web-browser');
-  const automaticChecks = () => { web(); auditDirectories.forEach(dir => audits.add(dir)); managedWeb = true; headlessTests = true; };
+  const automaticChecks = () => { extensions = true; web(); auditDirectories.forEach(dir => audits.add(dir)); managedWeb = true; headlessTests = true; };
   if (unknownDiff || event === 'workflow_dispatch') automaticChecks();
   // An unreadable diff must still exercise the server archive, without starting macOS/Expo.
   if (unknownDiff) headlessPackage = true;
@@ -26,6 +27,15 @@ export function planChanges(paths, { event = 'pull_request', unknownDiff = false
   // Advisory databases change even when lockfiles do not.
   if (event === 'push' || event === 'schedule') auditDirectories.forEach(dir => audits.add(dir));
   for (const path of paths) {
+    if (/^examples\/extensions\//.test(path) || path === 'tests/extension-example.test.ts'
+      || path === 'docs/extension-development.md' || path === 'docs/plugin-architecture.md'
+      || path === 'CONTRIBUTING.md') {
+      extensions = true;
+      continue;
+    }
+    if (/^packages\/extension-(contract|runtime)\//.test(path)
+      || /^tests\/extension-.*\.test\.ts$/.test(path)
+      || path === 'apps/workbench-web/src/runtime/module-url-extension-loader.ts') extensions = true;
     if (/^(docs|design|\.agents)\//.test(path) || /^[^/]+\.md$/i.test(path) || /(?:^|\/)(?:README|AGENTS)\.md$/i.test(path) || /^(LICENSE|NOTICE)(\.|$)/.test(path)) continue;
     if (/^(packaging\/web-server\/|scripts\/server-deployment\/)/.test(path)
       || /^(scripts\/(package-headless-linux\.mjs|install-headless-linux\.sh|headless-(codex-launcher|server-launcher)\.sh|smoke-headless-package\.mjs|headless-web-release\.mjs)|config\/build-matrix\.json)$/.test(path)
@@ -63,7 +73,7 @@ export function planChanges(paths, { event = 'pull_request', unknownDiff = false
   return {
     targets: portableTargets.filter(target => builds.has(target)),
     audits: auditDirectories.filter(dir => audits.has(dir)),
-    managedWeb, native, headlessTests, headlessPackage,
+    managedWeb, native, headlessTests, headlessPackage, extensions,
   };
 }
 
@@ -94,12 +104,12 @@ function main() {
     targets: JSON.stringify(plan.targets), audits: JSON.stringify(plan.audits),
     'has-builds': plan.targets.length > 0, 'has-audits': plan.audits.length > 0,
     'managed-web': plan.managedWeb, native: plan.native,
-    'headless-tests': plan.headlessTests, 'headless-package': plan.headlessPackage,
+    'headless-tests': plan.headlessTests, 'headless-package': plan.headlessPackage, extensions: plan.extensions,
   };
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
     Object.entries(outputs).map(([key, value]) => `${key}=${value}\n`).join(''));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `## Selected CI work\n\n- Portable builds: ${plan.targets.join(', ') || 'none'}\n- Dependency audits: ${plan.audits.join(', ') || 'none'}\n- Managed Web: ${plan.managedWeb}\n- Server tests: ${plan.headlessTests}\n- Server archive: ${plan.headlessPackage}\n- macOS native compile: ${plan.native}\n- Full matrix requested: ${eventName === 'workflow_dispatch' && fullMatrix}\n- Diff unavailable: ${unknownDiff}\n`);
+    `## Selected CI work\n\n- Portable builds: ${plan.targets.join(', ') || 'none'}\n- Dependency audits: ${plan.audits.join(', ') || 'none'}\n- Managed Web: ${plan.managedWeb}\n- Extension contracts: ${plan.extensions}\n- Server tests: ${plan.headlessTests}\n- Server archive: ${plan.headlessPackage}\n- macOS native compile: ${plan.native}\n- Full matrix requested: ${eventName === 'workflow_dispatch' && fullMatrix}\n- Diff unavailable: ${unknownDiff}\n`);
   console.log(JSON.stringify(plan, null, 2));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

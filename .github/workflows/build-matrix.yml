@@ -50,6 +50,27 @@ jobs:
       - run: npm run matrix:check
       - run: npm run matrix:build -- ${{ matrix.target }}
 
+  extensions:
+    needs: plan
+    if: needs.plan.outputs.extensions == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:extension-example
+      - run: npm run test:extensions
+      - run: npm run test:extension-storage
+      - run: npm run typecheck --workspace @opencraft/extension-contract
+      - run: npm run typecheck --workspace @opencraft/extension-runtime
+      - run: npm exec -- tsc --allowJs --checkJs --strict --noEmit --module ESNext --moduleResolution Bundler --target ES2022 --skipLibCheck examples/extensions/hello.mjs
+
   macos-native:
     needs: plan
     if: needs.plan.outputs.native == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.package_macos)
@@ -115,12 +136,14 @@ jobs:
 
   build-checks:
     if: always()
-    needs: [plan, portable, macos-native, macos-electron, linux-headless]
+    needs: [plan, portable, extensions, macos-native, macos-electron, linux-headless]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Require selected builds to succeed
         env:
+          EXTENSIONS_RESULT: ${{ needs.extensions.result }}
+          EXTENSIONS_SELECTED: ${{ needs.plan.outputs.extensions }}
           PLAN_RESULT: ${{ needs.plan.result }}
           BUILD_RESULT: ${{ needs.portable.result }}
           NATIVE_RESULT: ${{ needs.macos-native.result }}
@@ -139,6 +162,7 @@ jobs:
               test "$1" = false && test "$2" = skipped
             fi
           }
+          require_selected "$EXTENSIONS_SELECTED" "$EXTENSIONS_RESULT"
           require_selected "$BUILD_SELECTED" "$BUILD_RESULT"
           require_selected "$NATIVE_SELECTED" "$NATIVE_RESULT"
           require_selected "$PACKAGE_SELECTED" "$PACKAGE_RESULT"

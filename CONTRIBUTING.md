@@ -8,12 +8,58 @@ Read [the upstream boundaries](docs/upstream-transition.md) before transferring 
 from a downstream repository. Do not replace current downstream changes with an
 older snapshot or edit two copies of the same core feature independently.
 
+## Choose the right contribution
+
+| Change | Where it belongs | Start here |
+| --- | --- | --- |
+| Shared behavior, Actor authorization, Hub dispatch, lifecycle or a reusable integration port | OpenCraft core, with a focused PR against `main` | [AGENTS.md](AGENTS.md), then the affected package and its tests |
+| Commands, navigation, settings, themes or other supported client contributions | A client Extension using public API V1 | [Extension development](docs/extension-development.md) and the [runnable example](examples/extensions/README.md) |
+| Company login, branding, private services or deployment defaults | Downstream trusted product composition | [Boundary and compatibility guide](docs/extension-development.md#choose-a-boundary) |
+| Skills, MCP, hooks or execution-engine capabilities | The owning Host/AppServer plugin or adapter | [Execution-side versus client plugins](docs/plugin-architecture.md#3-先区分两种插件) |
+
+A client Extension does not need a core PR merely to be installed. Propose a
+small reusable port upstream when the existing contract cannot express a real
+consumer need; keep the product implementation downstream. Do not import app
+internals to extend the downloaded Extension API.
+
+## Develop and validate
+
 Read [AGENTS.md](AGENTS.md) for ownership and [the build matrix](docs/build-matrix.md)
 for the target platform. Use the pinned Node version in `.nvmrc` and `npm ci` in
 your own checkout. Run checks relevant to the changed contract; describe actual
 commands, results and limitations in the pull request. Platform behavior changes
 need evidence from the affected client, including cancellation and restoration
 when those lifecycles change. Do not claim a full platform build from unit tests.
+
+From a fresh clone, run `npm ci`, then `npm run dev:web` for the browser client.
+Use the URL printed by Vite. Building the public client needs no private product
+checkout or model key; execution needs a configured Host.
+
+Choose checks for the change instead of running every platform for every PR:
+
+| Change | Commands from the repository root |
+| --- | --- |
+| Public Extension example / install / lifecycle | `npm run test:extension-example`, `npm run test:extensions`, `npm run test:extension-storage` |
+| A workspace implementation | `npm run typecheck --workspace <package-name>` and its focused tests |
+| Cross-package contract or dependency boundary | Both consumers' typechecks/tests and `npm run check:boundaries` |
+| Web presentation or build integration | `npm run typecheck --workspace @opencraft/workbench-web` and `npm run matrix:build -- web-browser`, plus the actual affected interaction |
+| CI selection or aggregate gate | `node --test tests/ci-plan.test.mjs tests/ci-workflows.test.mjs` |
+
+The [build matrix](docs/build-matrix.md) describes explicit Electron/Expo/native
+validation. A browser build does not prove those platforms work. Extension CI
+runs on Linux when its contract, runtime, example or guide changes; other platform
+builds remain opt-in under the existing CI policy.
+
+## Open a pull request
+
+Explain the problem and resulting behavior, affected platforms, checks actually
+run and any unverified path. For an API change, identify the public versus trusted
+product boundary, compatibility with API V1 consumers, and activation, cancellation,
+replacement and disposal behavior. Include a regression for changed semantics;
+keep a working older consumer when testing backward compatibility. V1 additions
+must preserve existing behavior; incompatible changes need a new API version and
+an explicit migration proposal. Current host compatibility is API **1**, not a
+version-range resolver.
 
 Original contributions use Apache-2.0. Preserve third-party notices and record
 source provenance for imported/adapted material. Existing inventory entries are
