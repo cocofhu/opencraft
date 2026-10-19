@@ -898,8 +898,19 @@ export const CodexComposer = forwardRef<
     if (open && picker === "intelligence") selectionCatalog?.onModelMenuOpen?.();
     setOpenPicker(current => open ? picker : current === picker ? null : current);
   };
-  const intelligenceFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "intelligence", onOpenChange: changePicker("intelligence"), getEditor: () => editorViewRef.current?.dom ?? null });
-  const permissionsFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "permissions", onOpenChange: changePicker("permissions"), getEditor: () => editorViewRef.current?.dom ?? null });
+  const settleEditingFocusRef = useRef<() => void>(() => {});
+  const menuFocusPending = useRef(false);
+  const afterMenuCloseFocus = () => {
+    // FocusScope restores its trigger after this event returns. Keep the
+    // presentation lease until that synchronous cleanup has completed.
+    queueMicrotask(() => {
+      if (editorControllerRef.current !== controller) return;
+      menuFocusPending.current = false;
+      settleEditingFocusRef.current();
+    });
+  };
+  const intelligenceFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "intelligence", onOpenChange: changePicker("intelligence"), getEditor: () => editorViewRef.current?.dom ?? null, onCloseFocusSettling: afterMenuCloseFocus });
+  const permissionsFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "permissions", onOpenChange: changePicker("permissions"), getEditor: () => editorViewRef.current?.dom ?? null, onCloseFocusSettling: afterMenuCloseFocus });
   const agentSelectionEpoch = useRef(0);
   const [switchingAgentId, setSwitchingAgentId] = useState<string | null>(null);
   const [agentSelectionError, setAgentSelectionError] = useState<{ id: string; message: string } | null>(null);
@@ -917,6 +928,38 @@ export const CodexComposer = forwardRef<
   const [editingQueuedSubmissionId, setEditingQueuedSubmissionId] = useState<
     string | null
   >(null);
+  // Presentation follows an editing session, not whether the draft has text.
+  // Toolbar/owned menus retain that session; only editor focus starts one.
+  const [editingController, setEditingController] = useState<ComposerController | null>(null);
+  const editingActive = editingController === controller;
+  const auxiliaryMenuOpen = openPicker !== null || addMenuOpen || shortcutMenuOpen;
+  useLayoutEffect(() => {
+    if (auxiliaryMenuOpen) { menuFocusPending.current = true; return; }
+    if (!editingActive) return;
+    const root = stackRef.current;
+    if (!root) return;
+    const doc = root.ownerDocument;
+    let frame = 0;
+    const settle = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!menuFocusPending.current && !root.contains(doc.activeElement)) {
+          setEditingController(current => current === controller ? null : current);
+        }
+      });
+    };
+    doc.addEventListener("focusin", settle);
+    doc.addEventListener("focusout", settle);
+    // Do not settle on open=false: Radix restores focus later in its own
+    // close cleanup. Its callback starts this check after that boundary.
+    settleEditingFocusRef.current = settle;
+    return () => {
+      settleEditingFocusRef.current = () => {};
+      cancelAnimationFrame(frame);
+      doc.removeEventListener("focusin", settle);
+      doc.removeEventListener("focusout", settle);
+    };
+  }, [controller, editingActive, auxiliaryMenuOpen]);
   const footerLayout = useMeasuredComposerFooterLayout();
   const inputInteraction = useSyncExternalStore(controller.subscribeInputInteraction, controller.getInputInteractionSnapshot, controller.getInputInteractionSnapshot);
   const voiceActive = inputInteraction !== null;
@@ -1976,6 +2019,10 @@ export const CodexComposer = forwardRef<
       }}
       onKeyDownCapture={() => { inputPointerEntrance.current = null; }}
       className="codex-composer-stack"
+      onFocusCapture={event => {
+        if (event.target === editorViewRef.current?.dom) setEditingController(controller);
+      }}
+      data-composer-editing={editingActive ? "true" : "false"}
       data-composer-layout={chromeHeader != null ? "stacked" : "auto-single-line"}
       data-composer-empty={!composerSnapshot.hasContent && !showSuggestions
         && composerSnapshot.draft.attachments.length === 0
@@ -2252,6 +2299,7 @@ export const CodexComposer = forwardRef<
                     sideOffset={6}
                     collisionPadding={6}
                     onCloseAutoFocus={(event) => {
+                      afterMenuCloseFocus();
                       const afterClose = afterAddMenuClose.current;
                       afterAddMenuClose.current = null;
                       if (afterClose !== null) {
@@ -2302,6 +2350,7 @@ export const CodexComposer = forwardRef<
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
                   <DropdownMenu.Content className="codex-composer-selection-menu codex-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
+                    afterMenuCloseFocus();
                     if (!refocusAfterShortcutSelectionRef.current) return;
                     refocusAfterShortcutSelectionRef.current = false;
                     event.preventDefault();
@@ -2503,6 +2552,11 @@ export const CodexComposer = forwardRef<
             </div>
           </div>
           <div ref={footerLayout.endRef} className="codex-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
+            {selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast")) ? (
+              <span className="codex-composer-collapsed-fast" role="img" aria-label="Fast">
+                <Zap size={15} fill="currentColor" aria-hidden="true" />
+              </span>
+            ) : null}
             {endActions}
             {mentionSuggestionsEnabled ? (
               <button
@@ -2516,7 +2570,7 @@ export const CodexComposer = forwardRef<
             ) : null}
             {addMenuContent === undefined || addMenuContent === null ? (
               <button
-                className="codex-composer-icon-button codex-composer-icon-button--context"
+                className="codex-composer-icon-button codex-composer-icon-button--context codex-composer-icon-button--attachment"
                 type="button"
                 title={intl.formatMessage({ id: "chat.attach", defaultMessage: "Attach files" })}
                 onClick={openAttachmentPicker}

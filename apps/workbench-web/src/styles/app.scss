@@ -12295,7 +12295,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     border-top-color: transparent;
     --composer-seam-highlight: transparent;
   }
-  .codex-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"] {
+  .codex-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"][data-composer-editing="false"] {
     .codex-composer-shell {
       --newera-input-row: 1;
       display: grid;
@@ -12634,32 +12634,26 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .codex-composer-mode--depth .codex-composer-mode__model-icon { display: none; }
 .codex-composer-footer[data-footer-density="minimal"] .codex-composer-mode--depth .codex-composer-mode__model-icon { display: block; }
 
-// Content owns expansion. Empty touch drafts keep one centered control row;
-// model/Fast remains reachable without reserving a second toolbar row.
-:root[data-ui-density="touch"][data-touch-newera="on"] .codex-composer-stack[data-composer-layout="auto-single-line"]:has(.codex-composer-footer[data-model-selection-policy="user"][data-input-mode="standard"]) {
+// Empty idle touch drafts use a single row without a model entrance. Editor
+// focus opens the ordinary footer; content retains its own expansion policy.
+.codex-composer-collapsed-fast { display: none; color: var(--color-text-accent); }
+:root[data-ui-density="touch"][data-touch-newera="on"] .codex-composer-stack[data-composer-layout="auto-single-line"]:has(.codex-composer-footer[data-input-mode="standard"]) {
   .codex-composer-input-row { flex: 0 1 auto; }
-  .codex-composer-editor { min-height: 1lh; }
-  &[data-composer-empty="true"] {
-    .codex-composer-shell {
-      grid-template-columns: auto auto minmax(0, 1fr) auto;
+  .codex-composer-editor { min-height: 1lh; text-align: start; }
+  // Add already owns attachments. Avoid a duplicate action consuming the
+  // model/depth budget after the idle row opens.
+  .codex-composer-icon-button--attachment { display: none; }
+  .codex-composer-footer[data-footer-density="tight"] {
+    .codex-composer-mode__model-label { max-width: 60px; }
+    .codex-composer-mode__effort-label {
+      display: block;
+      max-width: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .codex-composer-footer__controls { display: flex; grid-column: 2; grid-row: 1; }
-    .codex-composer-input-row { grid-column: 3; }
-    .codex-composer-footer__end { grid-column: 4; }
-    .codex-composer-mode--depth {
-      min-width: var(--size-control-hit-min);
-      min-height: var(--size-control-hit-min);
-      justify-content: center;
-      gap: 2px;
-      padding-inline: 4px;
-    }
-    .codex-composer-mode--depth .codex-composer-mode__model-icon { display: block; }
-    .codex-composer-mode__model-label,
-    .codex-composer-mode__effort-label,
-    .codex-composer-mode--permissions,
-    .codex-composer-mode--static { display: none; }
-    // Vertical row centering must not move the empty native caret
-    // away from the placeholder at the paragraph start.
-    .codex-composer-editor { text-align: start; }
+  }
+  &[data-composer-empty="true"][data-composer-editing="false"] {
+    .codex-composer-collapsed-fast { display: inline-flex; align-items: center; }
   }
 }

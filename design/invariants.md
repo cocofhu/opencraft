@@ -1783,14 +1783,14 @@ policy keeps Host-owned reasoning outside its model-only picker.
 
 ## Touch Composer content geometry
 
-An empty auto-single-line user Composer is one vertically centered row, including
-its model/Fast entrance. Text labels yield to the existing model icon in that row;
-the full accessible name remains. Focus, keyboard and Fast alone never expand it.
-Attachments and editing use content-sized input above the measured action footer,
-with a one-line editor minimum and no flex-grown blank input area. Clearing text
-and attachments restores the row with the same editor node. Selection bounds are
-checked within each layout; equal coordinates across intentionally different
-content layouts are not a caret-correctness contract.
+An empty idle auto-single-line touch Composer is one vertically centered row,
+with no model entrance. An enabled Fast tier remains a compact status icon.
+Entering the editor starts its local editing presentation and reveals the normal
+model/depth/Fast footer before typing. Toolbar and owned portal focus retain the
+session; focus leaving both ends it after menu close cleanup. Clearing while
+editing stays expanded; clearing and leaving restores the idle row. Attachments
+and editing use content-sized input with a one-line minimum, never flex-grown
+blank space. The same editor and native Selection survive all transitions.
 
 Vertical row alignment never centers the editor's inline text. The empty native
 caret and placeholder share the paragraph's logical start; typing and deleting
