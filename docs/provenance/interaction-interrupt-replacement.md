@@ -46,3 +46,13 @@ implementation. Existing response/runtime/ledger tests and external protocol
 observations will verify actual behavior. Ordinary protocol data and response
 facts are retained; neither a different syntax nor passing tests proves legal
 clearance or resolves other source inventory groups.
+
+
+## Pre-implementation public observations
+
+External native TypeScript invocation covered all eight protocol methods, five
+opaque request IDs and three metadata variants (120 cases). Input objects were
+frozen and parameter access deliberately threw; all calls passed. Returned nested
+objects/arrays were distinct and mutation of one response did not affect a later
+response. The frozen external observation SHA256 is `288da8d74cb9cd3887a0e827091295f8162a94e9700f59e9751e4cffe34f40e4`.
+No new implementation is present at this checkpoint.
