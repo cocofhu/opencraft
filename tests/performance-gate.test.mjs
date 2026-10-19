@@ -45,6 +45,7 @@ test('formal release gate is unconditional, before packaging, with retained fail
   assert.doesNotMatch(step, /if:|continue-on-error/);
   assert.ok(preflight.indexOf('Gate formal releases') < preflight.indexOf('Package once'));
   assert.match(preflight, /name: Retain performance samples and failure evidence\n        if: always\(\)/);
+  assert.ok(preflight.includes('name: performance-${{ needs.request.outputs.tag }}-${{ github.run_attempt }}'), 'Failed preflight reruns retain a distinct artifact for every attempt');
   assert.match(source, /needs: \[request, preflight\]/);
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.doesNotMatch(pkg.scripts.gate, /gate:performance/);
