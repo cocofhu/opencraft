@@ -40,6 +40,8 @@ try {
   const rect=await control.boundingBox();assert(rect);assert(rect.height>=44,JSON.stringify(await control.evaluate(el=>({rect:el.getBoundingClientRect().toJSON(),height:getComputedStyle(el).height,token:getComputedStyle(el).getPropertyValue("--height-discrete-slider-hit")}))));
   const geometry:unknown[]=[];
   const assertFillMeetsThumb=async()=>{
+   // Sample a rendered frame after React/Radix have projected the input event.
+   await page.evaluate(()=>new Promise<void>(done=>requestAnimationFrame(()=>done())));
    const sample=await control.evaluate(el=>{
     const range=el.querySelector('.ui-discrete-slider__range')!.getBoundingClientRect();
     const thumb=el.querySelector('.ui-discrete-slider__thumb')!.getBoundingClientRect();
