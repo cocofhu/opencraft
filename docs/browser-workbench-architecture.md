@@ -1259,3 +1259,17 @@ DNS label boundary, not arbitrary URL text. Other destinations open with
 Electron workbench supplies no policy and retains its native browsing behavior. This is a
 policy for OpenCraft-initiated navigation, not a security boundary for redirects or
 navigation initiated inside an inaccessible cross-origin guest.
+
+
+### Viewport drag geometry replacement (2026-10-20)
+
+The small `viewport-resize.js` pure helper now uses independently authored axis
+geometry after frozen requirements and observed contracts; its former explicit
+source-body attribution is retained in the provenance baseline. This supersedes
+only the earlier statement that drag calculation itself directly uses the
+reference implementation. Device preset facts, source manager, toolbar and
+transition ownership are unchanged and are not cleared by this replacement.
+Horizontal handles resize around a fixed center, bottom handles alter height,
+and the captured scale maps pointer movement into bounded viewport dimensions.
+Pointer capture, cancellation, keyboard and persistence remain in their current
+owners. See [bounded replacement](provenance/browser-viewport-resize-replacement.md).
