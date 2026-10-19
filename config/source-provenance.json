@@ -358,8 +358,7 @@
         "apps/workbench-web/src/browser/browser-device-toolbar.tsx",
         "apps/workbench-web/src/browser/codex-presentation-host.ts",
         "apps/workbench-web/src/browser/codex/browser-manager.js",
-        "apps/workbench-web/src/browser/codex/source-manifest.json",
-        "apps/workbench-web/src/browser/codex/viewport-presets.js"
+        "apps/workbench-web/src/browser/codex/source-manifest.json"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
@@ -368,10 +367,12 @@
         "docs/provenance/browser-viewport-resize-baseline.json",
         "docs/provenance/browser-viewport-resize-replacement.md",
         "docs/provenance/browser-transition-baseline.json",
-        "docs/provenance/browser-transition-replacement.md"
+        "docs/provenance/browser-transition-replacement.md",
+        "docs/provenance/browser-viewport-presets-baseline.json",
+        "docs/provenance/browser-viewport-presets-review.md"
       ],
-      "reason": "The remaining manager explicitly claims a copied class body and the viewport-preset module claims identical helpers. Their historical manifest and related toolbar/host contracts remain review inventory, not proof of whole-file copying. Viewport drag geometry and presentation transitions have separate bounded independent dispositions.",
-      "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementation and mere behavioral references where appropriate. Do not turn directory membership into a rewrite mandate. Historical source/class hashes remain unchanged; replacement module hashes are identified separately. Remaining browser regions and historical rights are not cleared."
+      "reason": "The remaining browser manager explicitly claims a copied class body. Its historical manifest and related toolbar/Host contracts remain review inventory, not proof of whole-file copying. Viewport drag, preset helper/initialization and presentation handoff have separate bounded dispositions.",
+      "resolution": "Review actual source-attributed regions individually, retaining original/licensed implementations and behavioral references. Do not turn directory membership into a rewrite mandate. Historical source/class hashes remain unchanged; replacement module locks are separate. Remaining browser regions and historical rights are not cleared."
     },
     {
       "id": "codex-renderer-expression-followup",
@@ -618,6 +619,23 @@
       "reason": "The complete module carried an explicit copied-class annotation. The replacement was authored after frozen public contracts and 53 black-box baseline sequences, without printing the old target body as authoring text.",
       "resolution": "Retain the historical blob, original source/class digests, requirements commits and actual author exposure. The manifest separately locks current module bytes; remaining browser regions and all eight unresolved groups remain open.",
       "conclusion": "Current code independently expresses owner/surface presentation leases, attachment acknowledgement, bounded prewarm, cancellation and generation/reference fencing. This bounded implementation disposition does not establish strict author isolation, historical rights or public release readiness."
+    },
+    {
+      "id": "browser-viewport-preset-helpers",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/browser/codex/viewport-presets.js"
+      ],
+      "evidence": [
+        "docs/provenance/browser-viewport-presets-baseline.json",
+        "docs/provenance/browser-viewport-presets-review.md",
+        "apps/workbench-web/src/browser/codex/viewport-presets.d.ts",
+        "tests/browser-device-toolbar.test.ts",
+        "tests/codex-browser-manager.test.ts"
+      ],
+      "reason": "The module explicitly claimed source-identical constants/helpers. Preserve the observed application data while independently expressing the used initialization and bounded numeric helpers; remove seven undeclared recovery exports with no repository consumers.",
+      "resolution": "Retain the historical module hash, source annotation, observed compatibility data, frozen contracts and actual author exposure. Device names and neighboring files do not become rewrite targets. Eight unresolved groups remain open.",
+      "conclusion": "Current code independently expresses lazy/idempotent initialization and rounded width/height bounds, retaining all 13 application presets and six declared consumer exports. The catalog is compatibility data, not a new physical-device specification. This bounded implementation disposition does not establish strict author isolation, historical rights or public release readiness."
     }
   ]
 }

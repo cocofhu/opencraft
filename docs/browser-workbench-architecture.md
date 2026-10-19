@@ -1288,3 +1288,14 @@ the previous presentation claim. Automation input/focus locks remain on the Host
 Historical source digests and exact replacement/verification limits are recorded
 in [the module provenance](provenance/browser-transition-replacement.md); this
 replaces only prior descriptions of the transition as an unmodified source class.
+
+
+### Viewport preset compatibility data (2026-10-20)
+
+The preset module retains the existing ordered 13-entry application catalog,
+disabled responsive default and lazy/idempotent public initialization. The
+toolbar and manager consume the same six declared exports. Numeric helpers
+round and bound width/height without owning capture, persistence or scale.
+Unused, undeclared recovery utilities/tokens are removed; device names and
+application dimensions are retained. This catalog is not a hardware specification.
+See [the bounded review](provenance/browser-viewport-presets-review.md).

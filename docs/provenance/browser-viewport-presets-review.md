@@ -61,3 +61,28 @@ The replacement may represent the same values directly without reproducing the
 old helper expressions or initialization scaffolding. No implementation has been
 authored at this frozen checkpoint. Remaining neighboring/browser rights and
 strict author isolation remain outside the conclusion.
+
+
+## Implementation and verification
+
+The complete current module represents the observed application catalog directly,
+with one idempotent initializer and one private rounded bound helper. It retains
+all six declared exports and removes exactly the seven unused, undeclared exports
+listed above. The declaration and consumers are unchanged. The historical source
+annotation and blob remain in the baseline; this is a current implementation
+replacement, not a change to the provenance of historical commits.
+
+External native-module comparison matched all 6,021 numeric calls, catalog values
+and order, pre-initialization bindings/NaN, and repeated initialization identities.
+Actual toolbar/handle components in Chromium passed all 13 preset choices in
+390/1100-wide light/dark scenes (52 selections), five held resize handles in each
+scene (20 held-handle sequences), reversal, Escape restoration and keyboard input.
+The observer used a local DOM adapter; no native guest or employee session was
+verified. A narrow dark screenshot was inspected. No observer or new test harness
+is committed to the repository.
+
+The Web typecheck, platform/typography boundaries, 30 existing browser/provenance
+tests and source inventory passed. The public Web release build completed with
+791 runtime source files and zero compatibility issues. These checks cover the
+bounded preset implementation and current consumers, not remaining browser
+source areas, strict author isolation, historical rights or legal clearance.

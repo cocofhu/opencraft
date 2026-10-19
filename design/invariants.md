@@ -1729,3 +1729,10 @@ views, close/dispose, route transfer and superseding views revoke pending work;
 late callbacks and old references cannot mutate a newer lease. Browser backing,
 persistence, permissions and navigation retain their existing manager/Host owners.
 See [the bounded implementation record](../docs/provenance/browser-transition-replacement.md).
+
+
+Viewport presets remain application compatibility data: device IDs, dimensions
+and ordering do not change when implementation provenance is reviewed. The
+manager and toolbar share the declared lazy initialization and width/height
+bounds; unused recovery utilities do not introduce another padding or token
+owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
