@@ -26,6 +26,7 @@ try {
   const header=await page.locator(".app-shell-header").evaluate(el=>({background:getComputedStyle(el).backgroundImage,before:getComputedStyle(el,"::before").display}));
   if(before){assert(focused.height>initial.height+20);assert.notEqual(header.background,"none");await page.screenshot({path:`${output}/before.png`});evidence.push({test,initial,focused,header});await context.close();continue;}
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
+  assert(await page.locator(".codex-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
   await editor.fill("保留当前草稿");const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
   const viewportEvidence=[];

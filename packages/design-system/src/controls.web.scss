@@ -235,3 +235,26 @@
   .ui-discrete-slider__range { background: Highlight; }
   .ui-discrete-slider__thumb { background: Canvas; border: 1px solid CanvasText; }
 }
+
+// Large ordered choice used in the Composer's focused model surface.
+.ui-discrete-slider[data-appearance="capsule"] {
+  --height-discrete-slider-hit: 48px;
+  --height-discrete-slider-track: 48px;
+  --size-discrete-slider-thumb: 40px;
+  --size-discrete-slider-tick: 12px;
+  padding: 0;
+  .ui-discrete-slider__value { margin-bottom: 14px; }
+  .ui-discrete-slider__surface {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-full);
+    background: var(--color-discrete-slider-track);
+  }
+  .ui-discrete-slider__track { overflow: visible; background: transparent; box-shadow: none; height: 48px; }
+  .ui-discrete-slider__range {
+    border-start-start-radius: var(--radius-full); border-end-start-radius: var(--radius-full);
+    &::after { content: ""; position: absolute; inset-block: 0; inset-inline-start: calc(100% - 24px); width: 48px; border-radius: var(--radius-full); background: inherit; }
+  }
+  .ui-discrete-slider__thumb { box-shadow: none; }
+  .ui-discrete-slider__limits { display: none; }
+}

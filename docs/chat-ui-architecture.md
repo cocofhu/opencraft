@@ -1207,30 +1207,27 @@ set: an empty set hides the control, `none` means disable only when explicitly
 declared, and the model default must be a member of the same set. Hermes maps
 its Session-owned effort through the existing AppServer model/Turn fields;
 provider-specific wire clamping remains inside Hermes Runtime.
-The Web Composer presents model and reasoning through one Radix menu but keeps
-their hierarchy distinct. At desktop widths, models are the primary scrollable
-column and the selected model owns an adjacent detail column; narrow surfaces
-stack the same two regions without changing their state. The detail projection
-shows only catalog-authoritative metadata: user-authored display name, custom
-source, context/output limits, input modalities and declared reasoning efforts.
-It does not infer capabilities from a model name or render catalog descriptions
-in the compact picker. Selecting a model keeps the menu open so that this
-projection can refresh in place. Reasoning is a shared discrete slider: the current
-choice is named above a pill track with declared stops, filled range and a round
-thumb; endpoint labels show its range. The control derives order and count from
-the selected model, hides for no choices and is disabled for one choice. It does
-not infer unsupported options or write a default merely by opening the menu.
-Dragging previews locally; releasing commits once through the existing Composer
-selection/default action. Cancelled gestures discard preview. Arrow/Home/End/Page
-keys use Radix Slider semantics and are isolated from menu roving focus. Changes
-keep the menu open for further adjustment; Escape/outside dismiss as usual.
-Model changes preserve a compatible effort and otherwise resolve through that
-model's declared default rather than a global effort order. The shared Web Design
-System owns slider geometry, theme material, focus and disabled treatment.
-Its optional pointer-focus policy preserves the Composer's existing editor lease:
-a touch-origin drag temporarily removes thumb focusability so Radix focus calls
-cannot blur the editor; release/cancel restores keyboard access. It does not
-blur/refocus, rewrite native selection or implement another gesture controller.
+The standalone Web Composer prioritizes frequent reasoning changes. Its current
+model/effort label opens a focused capsule slider with only the selected model's
+declared efforts. The label above the track is a second action: it opens a Radix
+configuration sheet; its Model row opens the existing catalog and authoritative
+model details. Model switching is deliberately absent from the first layer. The
+configuration's optional Reasoning row exposes the same declared choices, never
+an invented speed setting. Embedded session-only policy retains its model-only
+picker and Host-owned reasoning policy.
+
+The shared DiscreteSlider owns the capsule geometry, tick marks and themed
+selected fill/round thumb. The model/effort title previews the held choice;
+dragging never writes defaults until release. Cancellation discards preview.
+Arrow/Home/End/Page keys remain slider-owned; ArrowDown from the title enters the
+slider. Touch-origin adjustment preserves the editor's existing native focus and
+selection through the auxiliary focus lease. Configuration uses a modal focus
+scope and restores its opener on dismissal. Opening either layer writes no
+selection. No choices hides the slider; one choice is disabled. Model selection
+continues to preserve a compatible effort and otherwise resolves through that
+model's default. Catalog loading, failures, retry, metadata and Agent switching
+retain their existing owners, as do account defaults and the mounted editor.
+
 
 
 The Composer permissions menu contains only declared permission profiles, without

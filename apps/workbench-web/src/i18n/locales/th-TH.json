@@ -626,5 +626,7 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "composer.model.configureTitle": "กำหนดค่า",
+  "composer.model.done": "เสร็จสิ้น"
 }

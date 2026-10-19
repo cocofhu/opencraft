@@ -624,5 +624,7 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "composer.model.configureTitle": "Configure",
+  "composer.model.done": "Done"
 }

@@ -26,14 +26,37 @@ const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMI
 try {
  for(const palette of ['codex','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
   const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"reduce"});
-  const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await context.newPage(),errors:string[]=[];page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(90000);page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript('window.__name=v=>v');
   await page.goto(vite.resolvedUrls!.local[0]+'?mode='+mode+'&palette='+palette+(touch?'&touch':''));
   console.log('scene',palette,mode,touch);
-  const editor=page.locator('.codex-composer-editor'),trigger=page.locator('.codex-composer-mode--intelligence'),menu=page.locator('.codex-composer-selection-menu--intelligence');
+  const editor=page.locator('.codex-composer-editor'),trigger=page.locator('.codex-composer-mode--intelligence'),menu=page.locator('.codex-composer-model-quick');
   try{await editor.fill('Keep this draft')}catch(e){console.log(errors,await page.locator('body').innerText());throw e};
   await editor.evaluate(el=>{(window as any).keptEditor=el;(window as any).blurs=0;el.addEventListener('blur',()=>{(window as any).blurs++});const r=document.createRange();r.setStart(el.firstChild!.firstChild!,3);r.collapse(true);const s=getSelection()!;s.removeAllRanges();s.addRange(r);});
   if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
+  assert.equal(await page.locator('.codex-composer-selection-menu--intelligence').count(),0,'first layer has no model choices');
+  const chooseModel=async(name:string)=>{
+    await menu.locator('.codex-composer-model-quick__title').click();
+    const sheet=page.getByRole('dialog');await sheet.waitFor();
+    if(name==='Model 1'){
+      assert.equal(await sheet.locator('.codex-composer-model-config__row').count(),2);
+      await sheet.screenshot({path:'.local/reasoning-slider/sheet-full-'+palette+'-'+mode+'-'+touch+'.png'});
+      await sheet.locator('.codex-composer-model-config__row').nth(1).click();
+      assert.equal(await page.getByRole('menuitemradio').count(),6);
+      await page.getByRole('menuitemradio',{name:'High',exact:true}).click();
+      assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.effort),'high');
+      assert(await sheet.isVisible(),'choosing effort leaves configuration open');
+    }
+    await sheet.screenshot({path:'.local/reasoning-slider/sheet-'+palette+'-'+mode+'-'+touch+'.png'});
+    await sheet.locator('.codex-composer-model-config__row').first().click();
+    await page.locator('.codex-composer-selection-menu--intelligence').waitFor();
+    await page.screenshot({path:'.local/reasoning-slider/configure-'+palette+'-'+mode+'-'+touch+'.png'});
+
+    await page.getByRole('menuitem',{name,exact:true}).click();
+    await page.keyboard.press('Escape');
+    await sheet.locator('.codex-composer-model-config__done').click();
+    if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
+  };
   const slider=menu.getByRole('slider'),control=menu.locator('.ui-discrete-slider__control');
   await slider.waitFor();assert.equal(await slider.getAttribute('aria-valuemax'),'5');assert.equal(await slider.getAttribute('aria-valuetext'),'Medium');
   await page.evaluate(()=>document.fonts.ready);await control.screenshot();
@@ -76,7 +99,7 @@ try {
   }
   assert(await menu.isVisible(),'adjustment keeps menu open');
   // Native Radix keyboard handling remains in this control, not menu roving focus.
-  await menu.getByRole('menuitem',{name:'GPT-6.1-Sol',exact:true}).focus();await page.keyboard.press('End');
+  await menu.locator('.codex-composer-model-quick__title').focus();await page.keyboard.press('ArrowDown');
   await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='slider');
   await page.keyboard.press('Home');assert.equal(await committed(),'low');
   await page.keyboard.press('ArrowRight');assert.equal(await committed(),'medium');
@@ -89,17 +112,17 @@ try {
    assert.equal(await committed(),effort);await assertFillMeetsThumb();
    await control.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'-'+effort+'.png'});
   }
-  const metrics=await control.evaluate(el=>{const q=(s:string)=>getComputedStyle(el.querySelector(s)!);return {height:el.getBoundingClientRect().height,track:q('.ui-discrete-slider__track').backgroundColor,fill:q('.ui-discrete-slider__range').backgroundColor,thumb:q('.ui-discrete-slider__thumb').backgroundColor};});
+  const metrics=await control.evaluate(el=>{const q=(s:string)=>getComputedStyle(el.querySelector(s)!);return {height:el.getBoundingClientRect().height,track:getComputedStyle(el.closest('.ui-discrete-slider__surface')!).backgroundColor,fill:q('.ui-discrete-slider__range').backgroundColor,thumb:q('.ui-discrete-slider__thumb').backgroundColor};});
   assert.notEqual(metrics.track,'rgba(0, 0, 0, 0)');assert.notEqual(metrics.fill,metrics.track);assert.notEqual(metrics.thumb,'rgba(0, 0, 0, 0)');
   await page.screenshot({path:'.local/reasoning-slider/'+palette+'-'+mode+'-'+(touch?'touch':'desktop')+'.png'});
   for(const [name,count] of [['Model 1',3],['Model 2',1],['Model 3',0]] as const){
-   const item=menu.getByRole('menuitem',{name,exact:true});if(touch)await item.tap();else await item.click();
+   await chooseModel(name);
    if(!count)assert.equal(await slider.count(),0);else{assert.equal(await slider.getAttribute('aria-valuemax'),String(count-1));if(count===1){assert.equal(await control.getAttribute('aria-disabled'),'true');await assertFillMeetsThumb();}else{
      await slider.focus();await page.keyboard.press('Home');await assertFillMeetsThumb();
      for(let stop=1;stop<count;stop++){await page.keyboard.press('ArrowRight');await assertFillMeetsThumb();}
     }}
   }
-  await menu.getByRole('menuitem',{name:'Model 4',exact:true}).click();
+  await chooseModel('Model 4');
   assert.equal(await committed(),undefined);assert.equal(await menu.locator('.ui-discrete-slider').getAttribute('data-unset'),'true');
   await control.screenshot();const r=await control.boundingBox();assert(r);
   if(touch)await control.tap({position:{x:2,y:r.height/2}});else await control.click({position:{x:2,y:r.height/2}});

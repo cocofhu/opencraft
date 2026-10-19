@@ -1,5 +1,5 @@
+import { ComposerModelPicker } from "./composer-model-picker";
 import { SessionModelPicker } from "./session-model-picker";
-import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
 // Semantically adapted from the recovered Codex Composer/editor, queue tray,
@@ -39,7 +39,6 @@ import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, com
 import {
   ArrowUp,
   AtSign,
-  BrainCircuit,
   Check,
   ChevronDown,
   CircleStop,
@@ -858,7 +857,6 @@ export const CodexComposer = forwardRef<
   const suggestionQueryRef = useRef<SuggestionQuery | null>(null);
   const dismissedSuggestionRef = useRef<SuggestionQuery | null>(null);
   const suggestionListId = useId();
-  const reasoningGroupLabelId = useId();
   const suggestionListRef = useRef<HTMLDivElement | null>(null);
   const filteredSuggestionsRef = useRef<readonly Suggestion[]>([]);
   const suggestionLoadingRef = useRef(false);
@@ -1942,7 +1940,6 @@ export const CodexComposer = forwardRef<
       ? { id: "composer.permissions.onSend", defaultMessage: "{profile} · on send" }
       : { id: "composer.permissions.nextTurn", defaultMessage: "{profile} · next turn" }, { profile: permissionSelectionLabel })
     : permissionSelectionLabel;
-  const modelPickerDisabled = disabled || (catalogModels.length === 0 && !selectionCatalog?.agentGroups?.length);
 
   const primaryAction = resolveComposerPrimaryAction({
     isResponseInProgress: isStreaming,
@@ -2344,46 +2341,15 @@ export const CodexComposer = forwardRef<
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
                 focus={intelligenceFocus} /> : null}
-              {modelSelectionPolicy === "user" ? <DropdownMenu.Root
-                modal={false}
-                open={openPicker === "intelligence"}
-                onOpenChange={changePicker("intelligence")}
-              >
-                <div className="codex-composer-picker codex-composer-picker--intelligence">
-                  <DropdownMenu.Trigger asChild>
-                    <button
-                      {...intelligenceFocus.triggerProps}
-                      className="codex-composer-mode codex-composer-mode--intelligence"
-                      type="button"
-                      disabled={modelPickerDisabled}
-                      aria-label={intelligenceLabel}
-                      title={selectionCatalog?.modelError ?? intelligenceLabel}
-                    >
-                      <BrainCircuit className="codex-composer-mode__model-icon" size={16} aria-hidden="true" />
-                      <span className="codex-composer-mode__model-label">
-                        {compactSelectedModelLabel}
-                      </span>
-                      {selectedModel?.efforts.length ? (
-                        <span className="codex-composer-mode__effort-label">
-                          {effortLabel}
-                        </span>
-                      ) : null}
-                      <ChevronDown
-                        className="codex-composer-mode__chevron"
-                        size={12}
-                      />
-                    </button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal container={portalContainer}>
-                    <DropdownMenu.Content
-                      className="codex-composer-selection-menu codex-composer-selection-menu--intelligence"
-                      data-has-detail={selectedModel === null ? "false" : "true"}
-                      aria-label={`${intl.formatMessage({ id: "chat.model", defaultMessage: "Model" })} · ${reasoningLabel}`}
-                      align="start"
-                      sideOffset={6}
-                      collisionPadding={6}
-                      {...intelligenceFocus.contentProps}
-                    >
+              {modelSelectionPolicy === "user" ? <ComposerModelPicker
+                label={compactSelectedModelLabel} fullLabel={intelligenceLabel} effortLabel={selectedModel?.efforts.length ? effortLabel : undefined}
+                disabled={disabled} open={openPicker === "intelligence"} onOpenChange={changePicker("intelligence")}
+                portalContainer={portalContainer} focus={intelligenceFocus}
+                efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
+                effort={selectedEffortValue} onEffortChange={value => {
+                  const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
+                  if (effort) selectEffort(effort);
+                }}>
                       <div className="codex-composer-intelligence-view">
                         <div className="codex-composer-intelligence-models">
                           <DropdownMenu.Label className="codex-composer-selection-menu__heading">
@@ -2492,44 +2458,12 @@ export const CodexComposer = forwardRef<
                                   ) : null}
                                 </div>
                               </div>
-                              {selectedModel.efforts.length ? (
-                                <div className="codex-composer-intelligence-reasoning">
-                                  <div className="codex-composer-reasoning-heading">
-                                    <DropdownMenu.Label id={reasoningGroupLabelId} className="codex-composer-selection-menu__heading">
-                                      <FormattedMessage id="chat.reasoning" defaultMessage="Reasoning" />
-                                    </DropdownMenu.Label>
-                                  </div>
-                                  <DropdownMenu.Item asChild disabled={selectedModel.efforts.length === 1}
-                                    onSelect={event => event.preventDefault()}>
-                                    <div role="group" aria-label={reasoningLabel} onFocus={event => {
-                                      // Enter the slider from the menu's roving collection. Its own
-                                      // adjustment keys then stop before the parent menu handlers.
-                                      if (event.target === event.currentTarget) event.currentTarget.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
-                                    }}>
-                                      <DiscreteSlider
-                                        key={JSON.stringify([selectedModel.value, selectedModel.efforts.map(effort => effort.value)])}
-                                        label={reasoningLabel}
-                                        unsetLabel={effortLabel}
-                                        value={selectedEffortValue}
-                                        options={selectedModel.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) }))}
-                                        preservePointerFocus={intelligenceFocus.preservesEditorFocus}
-                                        onValueChange={value => {
-                                          const effort = selectedModel.efforts.find(candidate => candidate.value === value);
-                                          if (effort) selectEffort(effort);
-                                        }}
-                                      />
-                                    </div>
-                                  </DropdownMenu.Item>
-                                </div>
-                              ) : null}
+
                             </div>
                           </>
                         ) : null}
                       </div>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </div>
-              </DropdownMenu.Root> : null}
+              </ComposerModelPicker> : null}
 
               {showPermissionPicker ? <DropdownMenu.Root
                 modal={false}

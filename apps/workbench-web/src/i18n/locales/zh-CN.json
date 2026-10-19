@@ -648,5 +648,7 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "composer.model.configureTitle": "配置",
+  "composer.model.done": "完成"
 }

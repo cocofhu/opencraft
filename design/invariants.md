@@ -1664,3 +1664,13 @@ Historical annotations, author exposure and bounded verification remain in
 [the replacement record](../docs/provenance/shell-panel-host-replacement.md).
 Shared animation, resize, browser and geometry implementations are unchanged;
 this disposition does not classify those dependencies or native platform behavior.
+
+## Composer model/depth hierarchy
+
+Standalone Composer opens only its declared effort slider on first activation.
+The model/effort title opens configuration, whose Model row exposes the catalog.
+High frequency depth changes do not traverse a model list. Presentation never
+adds unsupported speed/effort choices, remounts the editor or writes a default
+by opening. The shared slider capsule variant retains Radix gesture/keyboard
+ownership and previews the title until a completed choice. Embedded session-only
+policy keeps Host-owned reasoning outside its model-only picker.
