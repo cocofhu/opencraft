@@ -81,3 +81,25 @@ The earlier baseline-freeze utility initially expected a nonexistent `passed`
 field in mobile records and stopped before changing files. It was corrected to
 validate the existing 36-row/12-combination schema and successful terminal output;
 product inputs, assertions and observations stayed unchanged.
+
+## Candidate verification
+
+The 22 complete actual legacy AppShell states remain byte-identical, including
+held resize, cancellation, dock return, narrow Escape/reopen, shared node identity,
+mount count and both draft fields. Their full raw SHA256 remains
+`f66628f15e3c7ce02419dd920317152493594104f9fb330c5bd962fdcbdf83e5`.
+The 50 existing targeted tests, Workbench Web typecheck, platform/typography
+boundaries and 10 inventory tests pass. Accepted search-detail main is ordinarily
+merged into this feature. The inventory append conflict preserves both entries;
+it does not change either runtime replacement. Eight unresolved inventory groups
+and original footer/reduced-motion findings remain visible.
+
+The unchanged existing mobile stack script passes all 12 combinations after
+replacement (320/390/430, light/dark, normal/reduced motion), producing 36 full
+evidence rows and 48 screenshots. Raw mobile evidence is also byte-identical.
+The original script and observers remain unchanged. Before light 390 held-depth
+and after dark 390 held-depth screenshots are inspected. These are synthetic
+Chromium touch scenes, not physical-device acceptance.
+The official production Web build succeeds; its compatibility check examines
+791 runtime source files with zero issues. The normal chunk-size and config
+import-extension warnings remain warnings, not new failures.
