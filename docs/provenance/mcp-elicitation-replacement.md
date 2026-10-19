@@ -99,3 +99,9 @@ was authorized or executed, no connector account was linked, and no native-devic
 or authenticated service flow was tested. The shared public types and both
 platform consumers are retained; this bounded result does not classify the
 consuming renderer, other modules, historical commits or distribution rights.
+
+A further 192-context matrix exposed two fallback-boundary requirements: preserve
+explicit connector/tool identities when deriving computer-use app details, and
+reject line-separated engine sentences. Those corrections and regression cases
+were added; both the 192-context and original 8,198-call matrices now match with
+zero differences. These observations refine item 4 of the frozen requirements.

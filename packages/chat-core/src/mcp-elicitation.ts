@@ -127,9 +127,11 @@ export function normalizeMcpElicitationMetadata(
   if (toolSuggestion === null && context.serverName === "computer-use" && persist.includes("always")
     && Object.keys(data(data(context.requestedSchema).properties)).length === 0) {
     const message = context.message ?? "", prefix = "Allow Codex to use ";
-    if (message.startsWith(prefix) && message.endsWith("?") && message.length > prefix.length + 1) {
+    if (message.startsWith(prefix) && message.endsWith("?") && message.length > prefix.length + 1
+      && !/[\r\n\u2028\u2029]/u.test(message)) {
       const app = message.slice(prefix.length, -1);
-      toolApproval = { connectorId: "computer-use", connectorName: "Computer Use", toolName: null, toolTitle: null,
+      toolApproval = { connectorId: text(source.connector_id) ?? "computer-use", connectorName: text(source.connector_name) ?? "Computer Use",
+        toolName: text(source.tool_name), toolTitle: text(source.tool_title),
         toolParams: { app }, toolParamsDisplay: [{ name: "app", displayName: "App", value: app }] };
     }
   }

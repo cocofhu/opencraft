@@ -31,6 +31,11 @@ test("computer-use fallback is an exact engine contract and does not create auth
   const input = { codex_approval_kind: "mcp_tool_call", persist: "always", tool_params: { old: true } };
   assert.deepEqual(metadata("form", input, context).toolApproval?.toolParams, { app: "Notes" });
   assert.equal(metadata("form", {}, context).interactionKind, "form");
+  const explicit = metadata("form", { ...input, connector_id: "desktop", tool_name: "open_app", tool_title: "Open", connector_name: "Desktop" }, context).toolApproval;
+  assert.equal(explicit?.connectorId, "desktop");
+  assert.equal(explicit?.toolName, "open_app");
+  assert.equal(explicit?.connectorName, "Desktop");
+  assert.equal(metadata("form", { persist: "always" }, { ...context, message: "Allow Codex to use Notes\nNow?" }).interactionKind, "form");
   assert.equal(metadata("form", { persist: "always" }, { ...context, message: "Use Notes" }).interactionKind, "form");
   assert.equal(metadata("form", { persist: "always" }, { ...context, requestedSchema: { properties: { name: { type: "string" } } } }).interactionKind, "form");
 });
