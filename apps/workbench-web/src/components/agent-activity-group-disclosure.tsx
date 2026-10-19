@@ -77,6 +77,8 @@ export function AgentActivityGroupDisclosure({
     return () => cancelAnimationFrame(frame);
   }, [phase]);
 
+  // Live text for this key need not replace its committed snapshot while a
+  // later key waits for the next summary slot.
   const [label, setLabel] = useState({ key: summaryKey, content: summary });
   const lastLabelCommit = useRef(Date.now());
   useEffect(() => {

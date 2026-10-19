@@ -376,7 +376,6 @@
       "status": "unverified",
       "paths": [
         "apps/workbench-web/src/appearance-theme.ts",
-        "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
         "apps/workbench-web/src/components/app-shell-right-panel.tsx",
         "apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx",
         "apps/workbench-web/src/components/conversation-renderers/tool/tool-renderers.tsx"
@@ -389,9 +388,11 @@
         "docs/provenance/code-surface-replacement.md",
         "docs/provenance/code-surface-baseline.json",
         "docs/provenance/floating-composer-replacement.md",
-        "docs/provenance/floating-composer-baseline.json"
+        "docs/provenance/floating-composer-baseline.json",
+        "docs/provenance/activity-group-disclosure-replacement.md",
+        "docs/provenance/activity-group-disclosure-baseline.json"
       ],
-      "reason": "Five remaining renderer candidates concern theme presentation, reconstructed disclosure, panel contracts and tool rendering. Separately recorded activity/new-task artwork uses licensed Lucide glyphs; complete shared code-surface and floating-composer state modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
+      "reason": "Four remaining renderer candidates concern theme presentation, panel contracts and tool rendering. Separately recorded artwork uses licensed Lucide glyphs; complete shared code-surface, floating-composer state and activity-group disclosure modules have requirements-first independent replacements. Historical annotations and hashes remain evidence. Remaining annotations identify review boundaries, not established retained expression or whole-file copying conclusions.",
       "resolution": "Preserve exact baseline hashes and annotations. Establish actual implementation lineage and applicable rights per bounded region, or independently replace affected expression from frozen requirements while preserving complete clients and working integrations. Inventory coverage alone does not resolve the source status.",
       "partialDispositions": [
         {
@@ -415,6 +416,12 @@
           "replacement": "floating-composer-policy",
           "evidence": "docs/provenance/floating-composer-replacement.md",
           "historicalBlob": "f4f6a0100f82eda865a1abcae01bb3dda7e25677"
+        },
+        {
+          "path": "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx",
+          "replacement": "activity-group-disclosure",
+          "evidence": "docs/provenance/activity-group-disclosure-replacement.md",
+          "historicalBlob": "a4a4971be4529c5f9e94f3af4241905c595047e4"
         }
       ]
     },
@@ -471,6 +478,23 @@
       "reason": "The complete presentation state module previously attributed overlay state and wheel policy to recovered references. Its projection, route state, retention registry and gesture controller are replaced after frozen requirements using public declarations, consumers and executable baseline observations.",
       "resolution": "Keep historical hashes, requirements commit, author exposure and actual bounded verification. Preserve all other unresolved groups and active integrations.",
       "conclusion": "Current implementation independently expresses route-owned immutable presentation intent, derived visibility, cancelable transitions, subscribed-owner retention and wheel gesture continuity. This bounded implementation disposition does not claim strict clean-room isolation, historical rights clearance or replacement of consuming Shell/Electron implementations."
+    },
+    {
+      "id": "activity-group-disclosure",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/components/agent-activity-group-disclosure.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/activity-group-disclosure-replacement.md",
+        "docs/provenance/activity-group-disclosure-baseline.json",
+        "tests/workbench-agent-activity-disclosure.test.ts",
+        "scripts/smoke-disclosure-reflow.ts",
+        "scripts/smoke-activity-disclosure.ts"
+      ],
+      "reason": "The complete group disclosure module previously described itself as reconstructed from an external phase machine. Its reducer and React component are replaced after frozen requirements using public declarations, existing ports, consumer contracts and executable baseline behavior.",
+      "resolution": "Preserve historical hashes, author exposure, requirements/implementation commits and actual bounded verification. Keep existing viewport ownership and all other unresolved groups.",
+      "conclusion": "Current implementation independently expresses a finite phase transition table, local/external presentation synchronization, natural-height motion with existing viewport leases, and cadenced summary updates. This bounded disposition does not establish strict clean-room isolation, historical rights or source status of consuming renderers and shared ports."
     }
   ]
 }
