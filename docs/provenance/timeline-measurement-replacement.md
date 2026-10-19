@@ -62,3 +62,39 @@ employee/model/remote-Host chains remain separately unverified.
 Initial status: contract frozen, implementation not authored. Toolbar/follow is
 already deployed and verified on Join368; history backfill PR149 is upstream-merged
 but has not yet entered that runtime. These are distinct delivery stages.
+
+## Frozen observations before authoring
+
+The unchanged historical function produced 4,065 complete cases: 3,840 combinations
+of list size, existing measurement, ten batch patterns, synchronous distance,
+padding, preservation and restore callback; 180 sequential pending-transaction
+steps; and 45 signed/nonfinite/default-config cases. Full raw output SHA256:
+`7b907bda4455cbf0d63d713e4f8baab5b1e95b3ae67ee0756732f2730101645e`.
+Observations preserve Maps, NaN/infinities/negative zero and undefined explicitly,
+complete output values, input mutation, object identity/frozen state and callback
+call order/throws. All input snapshots remain unchanged. Callback throws are
+intentional synthetic observations, not a passing claim that exceptions disappear.
+An earlier before-authoring run lacked frozen-state fields and remains retained;
+no product code changed between the runs.
+
+Actual unchanged Conversation produced three scenes and 28 checkpoints for live
+content, local/remote submit, latest-row growth, real wheel takeover, completion,
+bottom intent and remount. Raw output SHA256:
+`9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5`.
+The actual history fixture produced ten checkpoints for underfill, callback changes,
+unmount/remount and growth; raw SHA256:
+`c287759a150719db6d34c72ec5c9799bd183f267084b6b7d0457f82bc7c66cb9`.
+Both external observers guarded the original measurement-module hash throughout.
+They report no captured page errors; the history fixture's existing Vite
+ResizeObserver notification-loop warning is retained. This uses real Conversation,
+shared owners/virtualizer, DOM/ResizeObserver and synthetic content, not employee,
+remote-model or Native hardware acceptance. All 141 existing focused tests pass
+on the unchanged implementation. Browser and policy observer hashes are in the
+baseline inventory. Implementation remains not authored.
+
+Observed boundaries refine the initial prose: a pending restore callback's presence
+is distinct from calling it, and a changed height table does not always allocate
+a new viewport or issue an immediate scroll correction. A shrinking row may request
+platform preservation for the next layout instead. These branches, latest-row delta
+and pending-transaction state are frozen in full observations, rather than replaced
+by a guessed general compensation formula.

@@ -113,5 +113,19 @@
   "selected": [
     "createTurnMeasurementTransaction"
   ],
-  "selectionBasis": "Only this function has an explicit recovered measurement-transaction declaration; adjacent helpers/types/exports and consumer implementations stay unchanged. Original selected body was not printed or read for authoring."
+  "selectionBasis": "Only this function has an explicit recovered measurement-transaction declaration; adjacent helpers/types/exports and consumer implementations stay unchanged. Original selected body was not printed or read for authoring.",
+  "beforeAuthoringObservations": {
+    "policy": {
+      "observerSha256": "812fd439cb5a843bdb289e0a5e33f52b87825270e51564fa4e9581c2dc08ac1a",
+      "outputSha256": "7b907bda4455cbf0d63d713e4f8baab5b1e95b3ae67ee0756732f2730101645e"
+    },
+    "conversation": {
+      "observerSha256": "d31dd42c81749c4b7ce48fca8040377717607615b5bd1cbbce910796662c3cfc",
+      "outputSha256": "9dbc4718ba2b720a37257dae757e03044b28ed250c04325b362e9cc90e82b9b5"
+    },
+    "history": {
+      "observerSha256": "1871807a6db3f57973cc90a4e90d9989370da27997c7377a1b20311650f82fbb",
+      "outputSha256": "c287759a150719db6d34c72ec5c9799bd183f267084b6b7d0457f82bc7c66cb9"
+    }
+  }
 }
