@@ -977,7 +977,7 @@ test("TurnDiff stays distinct from patch Activity and aggregates renamed files",
   }
 });
 
-test("automatic approval reviews use Codex labels, attach facts, and obey Activity grouping", () => {
+test("automatic approval reviews attach facts and obey Activity grouping", () => {
   const review = {
     reviewId: "review-one",
     targetItemId: "command-one",
@@ -1017,8 +1017,21 @@ test("automatic approval reviews use Codex labels, attach facts, and obey Activi
   assert.equal(standalone?.type, "automatic-approval-review");
   if (standalone?.type === "automatic-approval-review") {
     assert.equal(formatAutomaticApprovalReviewTitle(standalone.review), "Auto-review timed out");
-    assert.equal(formatAutomaticApprovalReviewSummary(standalone.review), "A carefully prompted reviewer agent timed out before ChatGPT ran this request");
+    assert.equal(formatAutomaticApprovalReviewSummary(standalone.review), "Review timed out.");
     assert.equal(summarizeAutomaticApprovalReviewAction(standalone.review.action), "Network access to api.example.com");
+    for (const [status, summary] of [
+      ["inProgress", "Reviewing this request."],
+      ["approved", "This request was approved."],
+      ["denied", "This request was denied."],
+      ["timedOut", "Review timed out."],
+      ["aborted", "Review was stopped."],
+    ] as const) {
+      const withoutRationale = { ...standalone.review, status, rationale: "  " };
+      assert.equal(formatAutomaticApprovalReviewSummary(withoutRationale), summary);
+      assert.equal(formatAutomaticApprovalReviewSummary({
+        ...withoutRationale, rationale: "  Host review explanation.  ",
+      }), "Host review explanation.");
+    }
   }
 });
 

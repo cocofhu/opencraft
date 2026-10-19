@@ -6,6 +6,8 @@
 
 Headless 已实现认证 Actor 的持久私聊消息、接收/已读回执、显式 Codex 运行绑定及 queue / 指定 Turn steer 请求；目标授权与绑定代次在接纳及队列领取前复核。消息、投递、执行请求和原生执行回执分别保留。范围、HTTP 契约、恢复和未实现边界见[主体协作接口](../actor-collaboration-api.md)。这不表示跨 Hub、共享 Shell/文件隔离或自主模型通信工具已接通。
 
+会话互通沿用本纲领，后续收敛到[会话引用、读取与投递](conversation-interoperability.md)规定的统一核心。Conversation 是资源，Session 是主体；稳定引用不随运行绑定变化，不强制将所有历史 Thread 发行成 Actor。
+
 ## 四个核心概念
 
 | 概念 | 要回答的问题 |

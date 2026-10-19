@@ -1325,6 +1325,12 @@ Acceptance: `node --import tsx scripts/smoke-sidebar-render-isolation.ts` checks
 zero list rebuilds during four mobile swipes, live business updates, selection
 and New Chat dismissal, DOM/draft continuity, and document/Shadow badge styles.
 
+For the mobile drawer, offscreen conversation rows may skip layout and paint via
+`content-visibility: auto`. The complete touch row reserves 56px before its
+actual size is known, so opening/closing or scrolling cannot shift the list.
+All rows remain in the same DOM, order and selection model; unsupported engines
+render them normally. Held swipes still use the single Shell progress value.
+
 
 ### Existing native desktop binding
 
