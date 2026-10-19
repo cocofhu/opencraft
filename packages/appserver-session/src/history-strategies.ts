@@ -291,6 +291,36 @@ async function readFullHistory(context: ResumeHistoryContext): Promise<HydratedT
   };
 }
 
+/** A provider may embed the initial page; otherwise read one full page before
+ * falling back to per-Turn Items for older headers-only implementations. */
+async function loadDurablePage(context: ResumeHistoryContext, cursor: string | null): Promise<HydratedThreadHistory> {
+  const embedded = cursor === null && context.supportsInitialTurnsPage === true
+    ? context.response.initialTurnsPage : null;
+  let page: ThreadTurnsListResponse;
+  try {
+    page = embedded == null ? await fetchTurns(context, cursor, context.pageSize, "full")
+      : requireTurnsPage(embedded, "thread/resume.initialTurnsPage");
+  } catch (error) {
+    // Retain the existing adaptive Item pagination for transport frame limits.
+    // Connection/permission failures remain failures, never hidden retries.
+    if (!(error instanceof Error) || !error.message.includes("decoded message length too large")) throw error;
+    page = await fetchTurns(context, cursor, context.pageSize, "notLoaded");
+  }
+  const turns = await mapConcurrent(page.data, 5, async turn => ({
+    ...turn,
+    items: turn.itemsView === "full" && Array.isArray(turn.items)
+      ? turn.items : await fetchAllTurnItems(context, turn.id),
+    itemsView: "full" as const,
+  }));
+  return {
+    source: "durable", turns: turns.slice().reverse(), complete: page.nextCursor === null,
+    olderCursor: page.nextCursor,
+    itemsPaginationByTurnId: Object.fromEntries(turns.map(turn => [turn.id, {
+      olderCursor: null, hasLoadedOldest: true,
+    }])),
+  };
+}
+
 export function registerBuiltinThreadHistoryStrategies(ctx: Context): () => void {
   const remove = [
     ctx.threadHistoryStrategies.register({
@@ -323,40 +353,10 @@ export function registerBuiltinThreadHistoryStrategies(ctx: Context): () => void
         // Host placement does not imply support for paginated Item history.
         // Server-owned native Codex currently declares the legacy read surface.
         if (context.response.thread.historyMode === "legacy") return readFullHistory(context);
-        const page = await fetchTurns(context, null, context.pageSize, "notLoaded");
-        const turns = await mapConcurrent(page.data, 5, async (turn) => ({
-          ...turn,
-          items: await fetchAllTurnItems(context, turn.id),
-          itemsView: "full" as const,
-        }));
-        return {
-          source: "durable",
-          turns: turns.slice().reverse(),
-          complete: page.nextCursor === null,
-          olderCursor: page.nextCursor,
-          itemsPaginationByTurnId: Object.fromEntries(turns.map((turn) => [turn.id, {
-            olderCursor: null,
-            hasLoadedOldest: true,
-          }])),
-        };
+        return loadDurablePage(context, null);
       },
       async loadOlder(context, cursor) {
-        const page = await fetchTurns(context, cursor, context.pageSize, "notLoaded");
-        const turns = await mapConcurrent(page.data, 5, async (turn) => ({
-          ...turn,
-          items: await fetchAllTurnItems(context, turn.id),
-          itemsView: "full" as const,
-        }));
-        return {
-          source: "durable",
-          turns: turns.slice().reverse(),
-          complete: page.nextCursor === null,
-          olderCursor: page.nextCursor,
-          itemsPaginationByTurnId: Object.fromEntries(turns.map((turn) => [turn.id, {
-            olderCursor: null,
-            hasLoadedOldest: true,
-          }])),
-        };
+        return loadDurablePage(context, cursor);
       },
     }),
     ctx.threadHistoryStrategies.register({

@@ -87,3 +87,11 @@ test("Durable history is loaded outside Resume", () => {
     excludeTurns: true,
   });
 });
+
+
+test("advertised initial-page support also applies to durable providers", () => {
+  assert.deepEqual(buildResumeHistoryRequest({ useTailHydration: true, isDurableHost: true,
+    supportsPaginatedHistory: false, supportsInitialTurnsPage: true }), {
+    excludeTurns: true, initialTurnsPage: { limit: 5, itemsView: "full", sortDirection: "desc" },
+  });
+});

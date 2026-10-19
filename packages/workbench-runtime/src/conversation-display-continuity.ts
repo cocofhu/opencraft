@@ -13,6 +13,8 @@ export interface ConversationDisplayContinuity {
   /** Synchronous, account-scoped handoff; never persisted or command-capable. */
   retainSubmission(intent: SubmitIntent, receipt: SubmissionReceipt): void;
   peekSubmission(hostId: string, threadId: string): TimelineSnapshot | null;
+  /** Bounded paint-only memory, available during render; never grants authority. */
+  peek(hostId: string, threadId: string): TimelineSnapshot | null;
   load(hostId: string, threadId: string): Promise<TimelineSnapshot | null>;
   observe(snapshot: TimelineSnapshot): Promise<void>;
 }
@@ -56,7 +58,7 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
   return messages.slice(-MAX_MESSAGES);
 }
 
-function parse(value: string | null, hostId: string, threadId: string, now: number): readonly DisplayMessage[] | null {
+function parse(value: string | null, hostId: string, threadId: string, now: number): { messages: readonly DisplayMessage[]; savedAt: number } | null {
   if (value === null || value.length > 64 * 1_024) return null;
   try {
     const parsed: unknown = JSON.parse(value);
@@ -75,7 +77,7 @@ function parse(value: string | null, hostId: string, threadId: string, now: numb
         || typeof message.text !== "string" || message.text.length > MAX_MESSAGE_CHARACTERS) return null;
       messages.push({ id: message.id, turnId: message.turnId, role: message.role, text: message.text });
     }
-    return messages;
+    return { messages, savedAt: candidate.savedAt };
   } catch { return null; }
 }
 
@@ -121,6 +123,21 @@ export function createConversationDisplayContinuity(input: {
   const pending = new Map<string, Promise<void>>();
   const lastProjection = new Map<string, string>();
   const submissions = new Map<string, TimelineSnapshot>();
+  const displays = new Map<string, { savedAt: number; timeline: TimelineSnapshot }>();
+  const remember = (key: string, messages: readonly DisplayMessage[], hostId: string, threadId: string, savedAt = now()) => {
+    displays.delete(key);
+    if (!messages.length) return null;
+    const timeline = paint(hostId, threadId, messages);
+    displays.set(key, { savedAt, timeline });
+    if (displays.size > 64) displays.delete(displays.keys().next().value!);
+    return timeline;
+  };
+  const peek = (hostId: string, threadId: string) => {
+    const key = storageKey(input.namespace, hostId, threadId), entry = displays.get(key);
+    if (!entry) return null;
+    if (now() < entry.savedAt || now() - entry.savedAt > MAX_AGE_MS) { displays.delete(key); return null; }
+    return entry.timeline;
+  };
   return {
     retainSubmission(intent, receipt) {
       if (intent.target.type !== "new-thread" || intent.target.execution.hostId !== receipt.hostId
@@ -144,12 +161,18 @@ export function createConversationDisplayContinuity(input: {
     peekSubmission(hostId, threadId) {
       return submissions.get(storageKey(input.namespace, hostId, threadId)) ?? null;
     },
+    peek,
     async load(hostId, threadId) {
+      const memory = peek(hostId, threadId);
+      if (memory !== null) return memory;
       const key = storageKey(input.namespace, hostId, threadId);
+      const observed = lastProjection.get(key);
       await pending.get(key)?.catch(() => undefined);
       try {
-        const messages = parse(await input.storage.load(key), hostId, threadId, now());
-        return messages?.length ? paint(hostId, threadId, messages) : null;
+        const stored = parse(await input.storage.load(key), hostId, threadId, now());
+        // An authoritative observation during I/O always wins over an old read.
+        if (lastProjection.get(key) !== observed) return peek(hostId, threadId);
+        return stored?.messages.length ? remember(key, stored.messages, hostId, threadId, stored.savedAt) : null;
       } catch { return null; }
     },
     observe(snapshot) {
@@ -163,6 +186,7 @@ export function createConversationDisplayContinuity(input: {
       const projection = JSON.stringify(messages);
       if (lastProjection.get(key) === projection) return pending.get(key) ?? Promise.resolve();
       lastProjection.set(key, projection);
+      remember(key, messages, snapshot.key.hostId, snapshot.key.threadId);
       const value = JSON.stringify({ version: VERSION, hostId: snapshot.key.hostId,
         threadId: snapshot.key.threadId, savedAt: now(), messages });
       const previous = pending.get(key) ?? Promise.resolve();

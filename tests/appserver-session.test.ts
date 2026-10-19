@@ -40,6 +40,8 @@ interface HarnessOptions {
   turnsDelayMs?: number;
   holdTurnsResponse?: (respond: () => void) => void;
   failResume?: boolean;
+  oversizedFullPage?: boolean;
+  oversizedResumePage?: boolean;
   malformedResume?: boolean;
   emitDuringResume?: boolean;
   emitItemDuringResume?: boolean;
@@ -132,6 +134,10 @@ async function createHarness(options: HarnessOptions = {}): Promise<{
         return;
       }
       if (message.method === "thread/resume") {
+        if (options.oversizedResumePage && params.initialTurnsPage) {
+          peer.send(encodeJsonRpcMessage({ id: message.id, error: { code: -32000, message: "decoded message length too large" } }));
+          return;
+        }
         if (options.emitDuringResume) {
           peer.send(encodeJsonRpcMessage({
             method: "thread/status/changed",
@@ -169,6 +175,10 @@ async function createHarness(options: HarnessOptions = {}): Promise<{
         return;
       }
       if (message.method === "thread/turns/list") {
+        if (options.oversizedFullPage && params.itemsView === "full") {
+          peer.send(encodeJsonRpcMessage({ id: message.id, error: { code: -32000, message: "decoded message length too large" } }));
+          return;
+        }
         const key = typeof params.cursor === "string" ? params.cursor : "null";
         const selected = options.turnsPages?.[key] ?? { data: [], nextCursor: null };
         const page = options.repeatTurnsCursor && typeof params.cursor === "string"
@@ -1696,4 +1706,61 @@ test("history refresh does not request paginated or legacy transcripts", async (
       assert.equal(h.requests.length, reads);
     } finally { await h.close(); }
   }
+});
+
+test("durable paginated restore consumes full Turns without Item request waterfalls", async () => {
+  const turns = [{ id: "new", itemsView: "full", items: [{ id: "answer", type: "agentMessage", text: "Latest answer" }] },
+    { id: "old", itemsView: "full", items: [{ id: "question", type: "userMessage" }] }];
+  const h = await createHarness({ hostKind: "durable", historyMode: "paginated",
+    turnsPages: { null: { data: turns, nextCursor: "older" } } });
+  try {
+    const view = await h.runtime.resume.resume({ threadId: "thread-one" });
+    assert.deepEqual(view.turns.map(t => t.id), ["old", "new"]);
+    assert.equal(view.turns[1]?.items?.[0]?.id, "answer");
+    assert.equal(view.turnsPagination.olderCursor, "older");
+    assert.equal(h.requests.filter(r => r.method === "thread/items/list").length, 0);
+    assert.equal(h.requests.find(r => r.method === "thread/turns/list")?.params.itemsView, "full");
+  } finally { await h.close(); }
+});
+
+test("durable provider's advertised initial page restores without a second history read", async () => {
+  const h = await createHarness({ hostKind: "durable", historyMode: "paginated", historyModeHint: "paginated",
+    historyRecovery: { mode: "replace", checkpoint: { epoch: "engine", nextSeq: 4 } },
+    initialTurnsPage: { data: [{ id: "tail", itemsView: "full", items: [{ id: "answer", type: "agentMessage", text: "Loaded once" }] }], nextCursor: "older" } });
+  try {
+    const view = await h.runtime.resume.resume({ threadId: "thread-one" });
+    assert.equal(view.turns[0]?.items?.[0]?.id, "answer");
+    assert.equal(view.turnsPagination.olderCursor, "older");
+    assert.ok(h.requests.find(r => r.method === "thread/resume")?.params.initialTurnsPage);
+    assert.equal(h.requests.filter(r => r.method === "thread/turns/list" || r.method === "thread/items/list").length, 0);
+  } finally { await h.close(); }
+});
+
+
+test("oversized durable full page retains adaptive Item pagination and all messages", async () => {
+  const h = await createHarness({ hostKind: "durable", historyMode: "paginated", oversizedFullPage: true,
+    turnsPages: { null: { data: [{ id: "tail", itemsView: "notLoaded" }], nextCursor: null } },
+    itemsByTurnId: { tail: [{ id: "answer", type: "agentMessage", text: "Still available" }] } });
+  try {
+    const view = await h.runtime.resume.resume({ threadId: "thread-one" });
+    assert.equal(view.turns[0]?.items?.[0]?.id, "answer");
+    assert.deepEqual(h.requests.filter(r => r.method === "thread/turns/list").map(r => r.params.itemsView), ["full", "notLoaded"]);
+    assert.equal(h.requests.filter(r => r.method === "thread/items/list").length, 1);
+  } finally { await h.close(); }
+});
+
+
+test("oversized advertised Resume page falls back without dropping history", async () => {
+  const h = await createHarness({ hostKind: "durable", historyMode: "paginated", oversizedResumePage: true,
+    historyRecovery: { mode: "replace", checkpoint: { epoch: "engine", nextSeq: 4 } },
+    turnsPages: { null: { data: [{ id: "tail", itemsView: "full", items: [{ id: "answer", type: "agentMessage", text: "Kept" }] }], nextCursor: null } } });
+  try {
+    const view = await h.runtime.resume.resume({ threadId: "thread-one" });
+    assert.equal(view.turns[0]?.items?.[0]?.id, "answer");
+    const requests = h.requests.filter(r => r.method === "thread/resume");
+    assert.equal(requests.length, 2);
+    assert.ok(requests[0]?.params.initialTurnsPage);
+    assert.equal(requests[1]?.params.initialTurnsPage, undefined);
+    assert.equal(h.requests.filter(r => r.method === "thread/turns/list").length, 1);
+  } finally { await h.close(); }
 });

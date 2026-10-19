@@ -105,7 +105,7 @@ export interface ResumeHistoryCapabilities {
   supportsInitialTurnsPage?: boolean;
 }
 
-/** Mirrors the recovered Desktop request policy without transport assumptions. */
+/** Prefer an explicitly advertised initial page regardless of Host placement. */
 export function buildResumeHistoryRequest({
   useTailHydration,
   isDurableHost,
@@ -114,7 +114,7 @@ export function buildResumeHistoryRequest({
 }: ResumeHistoryCapabilities): ThreadResumeHistoryRequest {
   return {
     excludeTurns: useTailHydration,
-    ...(useTailHydration && !isDurableHost && (!supportsPaginatedHistory || supportsInitialTurnsPage)
+    ...(useTailHydration && (supportsInitialTurnsPage || (!isDurableHost && !supportsPaginatedHistory))
       ? {
           initialTurnsPage: {
             limit: 5,

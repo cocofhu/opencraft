@@ -180,8 +180,11 @@ export function WorkbenchFrameShared({ platformLayout, embedded = false, keyboar
       void workbench.displayContinuity.observe(timeline).catch(() => undefined);
     }
   }, [timeline, workbench.displayContinuity]);
+  const memoryTimeline = snapshot.activeThreadId === null ? null
+    : workbench.displayContinuity?.peek(snapshot.hostId, snapshot.activeThreadId) ?? null;
   const visibleTimeline = timeline?.authoritative || (timeline?.frames.length ?? 0) > 0
     ? timeline
+    : memoryTimeline !== null ? memoryTimeline
     : cachedTimeline?.key.hostId === snapshot.hostId && cachedTimeline.key.threadId === snapshot.activeThreadId
       ? cachedTimeline
       : timeline;
