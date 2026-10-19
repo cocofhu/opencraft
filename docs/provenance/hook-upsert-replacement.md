@@ -27,3 +27,21 @@ sanitized error messages; never dump emitted code or its data URL on failure.
 This is a bounded independent implementation process, not strict author isolation,
 whole-file classification or clearance of historical rights. Eight unresolved
 source groups remain open.
+
+## Frozen observations before replacement
+
+The sealed corpus contains 21,830 list/incoming pairs and 150 six-update
+sequences, SHA256 `83e0c7481aad0b0d0e5679653ca52e9c3aecc9a204a66ddd1c1860459fe2f7a3`. Frozen inputs detect
+mutation; observations retain array, entry and incoming-run reference sharing.
+The latest running entry with the same protocol run ID has priority, independently
+of start time or event/source fields. Without one, the latest matching non-null
+completion timestamp can be updated. Missing/null timestamps do not deduplicate;
+zero and equal string metadata retain their observed raw equality behavior.
+Otherwise append using the number of prior executions with that protocol ID as
+the suffix, preserving list order and the matched wrapper ID.
+
+Updates create a fresh list and matched wrapper containing only its ID and the
+complete incoming run object; unrelated entries retain object identity. Previous
+run metadata is not silently merged into the incoming record. Sparse legacy
+wrapper suffixes retain this count-based compatibility policy. These are observed
+application contracts, not a new protocol specification or historical-rights claim.
