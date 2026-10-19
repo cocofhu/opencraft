@@ -1,5 +1,17 @@
 # Source provenance review
 
+## Complete Shell right-panel host replacement (2026-10-19)
+
+[The complete presentation host](provenance/shell-panel-host-replacement.md)
+is replaced after frozen requirements, preserving external geometry ownership,
+exit retention, atomic target sizing, resize intent and browser invalidation.
+Historical hashes/annotations and author exposure remain recorded. The renderer
+expression group retains **three** unresolved paths and six partial dispositions;
+all **nine** unresolved groups remain open. Shared animation, resize and geometry
+ports are reused unchanged and are not reclassified. This bounded disposition
+does not establish strict author isolation, historical rights or release readiness.
+
+
 ## Complete activity group disclosure replacement (2026-10-19)
 
 [Both exports of the group disclosure module](provenance/activity-group-disclosure-replacement.md)

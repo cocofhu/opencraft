@@ -1312,10 +1312,9 @@ test("right-panel surface width and minimum share one atomic target signal", () 
 });
 
 test("browser portal commits one dual-coordinate viewport transaction", () => {
-  assert.match(
-    rightPanelSource,
-    /progress\.on\("change",[\s\S]*?rightPanelLayoutTick\.set/u,
-  );
+  // A shared named invalidator may be declared before either subscription.
+  assert.match(rightPanelSource, /progress\.on\("change",/u);
+  assert.match(rightPanelSource, /rightPanelLayoutTick\.set\(/u);
   assert.match(
     browserPanelSource,
     /rightPanelLayoutTick\.on\([\s\S]*?"change",[\s\S]*?scheduleMeasure/u,
