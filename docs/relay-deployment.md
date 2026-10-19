@@ -368,3 +368,22 @@ Chromium login handoff and target membership revocation, entirely with isolated
 `.test` names and synthetic enterprise identity fixtures. Neither domain registration nor real
 employee credentials are required. It proves the transport, not external firewall
 reachability or real corporate enterprise identity gateway configuration.
+
+### Origin-bound installation sessions behind a selected server
+
+The injected server context includes the enrolled `targetOrigin`, distinct from
+the browser entry origin. Clients use it only to validate installation session
+metadata; all requests still go through the scoped same-origin relay path. The
+relay translates a Referer only when it belongs to this entry and this selected
+server. Other target and foreign references never acquire target authority.
+
+A headless target reached through a public relay origin must explicitly enable
+its existing SSH management ingress policy (`--ssh-public-access`, or a fixed
+HTTPS `--ssh-public-origin`). A loopback listener alone does not opt in to a
+public Host. The outer instance admission, origin-bound SSH grants, cross-site
+checks and namespaced cookies still apply. This does not grant team membership
+or enable a remote SSH connection automatically.
+
+The sidebar conversation error label describes a failed conversation state; it
+does not prove that its Host transport is disconnected. Read the conversation's
+actual error to distinguish provider quota from connection failure.

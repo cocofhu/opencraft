@@ -374,7 +374,7 @@
   "sidebar.serverFilter": "Filter by server",
   "sidebar.serverOrigin": "From {server}",
   "sidebar.start": "Start",
-  "sidebar.status.error": "Connection failed",
+  "sidebar.status.error": "Conversation error",
   "sidebar.status.review": "Ready for review",
   "sidebar.status.goal": "Pursuing goal",
   "sidebar.status.running": "Running",

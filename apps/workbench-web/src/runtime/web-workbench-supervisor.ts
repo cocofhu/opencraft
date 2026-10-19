@@ -1,7 +1,7 @@
 import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
-import { serverFetch, serverStorageKey } from "./server-context";
+import { serverAdmissionOrigin, serverFetch, serverStorageKey } from "./server-context";
 import { reportRecoveryEvent } from "./recovery-diagnostics";
 import { TurnCompletionObserver, WORKBENCH_RESOURCE_POLICIES } from "@opencraft/workbench-runtime";
 import { ApplicationBrandingRegistry } from "./application-branding";
@@ -243,7 +243,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     if (headlessAppHost !== null) startupRollback.push(() => headlessAppHost.close());
     const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, { path: "/ssh-apphost" }) : null;
     if (remoteAppHost) startupRollback.push(() => remoteAppHost.close());
-    const sshManagement = headlessAppHost ? new (await import("@opencraft/plugin-builtin-agents")).SshConnectionsController(serverFetch, window.location.origin) : null;
+    const sshManagement = headlessAppHost ? new (await import("@opencraft/plugin-builtin-agents")).SshConnectionsController(serverFetch, serverAdmissionOrigin()) : null;
     if (sshManagement) { startupRollback.push(() => sshManagement.dispose()); await sshManagement.startDiscovery(webSshDiscoveryLifecycle); }
     const clientProduct = await options.clientProduct?.create({ platform, hostProfileMode: options.hostProfileMode, defaultExtensions: deployment.extensions });
     if (clientProduct) startupRollback.push(() => clientProduct.dispose());

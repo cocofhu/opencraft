@@ -114,3 +114,33 @@ test('verified legacy aliases provide navigation hints without replacing stable 
   assert.equal(selectionDefault({...p,provider:'different'},hints),undefined);
   hints.set(selectionIdentity(p),'current-team');assert.equal(selectionDefault(p,hints),'current-team');
 });
+
+
+test('relay SSH discovery requires explicit public ingress and reuses its origin-bound grant',async t=>{
+  const disabled=await selectorFixture({sshPublicAccess:false});
+  try {
+    const cookie=await disabled.login('alice');
+    assert.equal((await disabled.get('/servers/lighthouse/__opencraft_ssh/session',{cookie})).status,403);
+  } finally {await disabled.close();}
+  const f=await selectorFixture({sshPublicAccess:true});t.after(()=>f.close());
+  const cookie=await f.login('alice'),origin='http://lighthouse.selection.test:'+new URL(f.origin).port;
+  const html=await (await f.get('/servers/lighthouse/',{cookie,accept:'text/html'})).text();
+  const context=JSON.parse(/id="opencraft-server-context" type="application\/json">([^<]+)/u.exec(html)![1]!);
+  assert.equal(context.targetOrigin,origin);
+  const grant=await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie,origin:f.origin,'content-type':'application/json'},'POST',Buffer.from('{}'));
+  assert.equal(grant.status,200);
+  const targetCookie=grant.headers.getSetCookie()[0]!.split(';')[0]!;
+  for(let i=0;i<3;i++) {
+    const headers={cookie:cookie+'; '+targetCookie,referer:f.origin+'/servers/lighthouse/chat/42'};
+    const session=await f.get('/servers/lighthouse/__opencraft_ssh/session',headers);
+    assert.deepEqual(await session.json(),{available:true,authenticated:true,accessMode:'shared',authenticatedOrigin:origin});
+    assert.deepEqual(await (await f.get('/servers/lighthouse/__opencraft_ssh/connections',headers)).json(),[]);
+  }
+  for(const referer of [f.origin+'/servers/join/', 'http://evil.test/servers/lighthouse/']) {
+    const session=await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie:cookie+'; '+targetCookie,referer});
+    assert.equal((await session.json()).authenticated,false);
+  }
+  const other=await f.get('/servers/join/__opencraft_ssh/session',{cookie:cookie+'; '+targetCookie,referer:f.origin+'/servers/join/'});
+  assert.equal((await other.json()).authenticated,false);
+  assert.equal((await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie,origin:'http://evil.test'},'POST',Buffer.from('{}'))).status,403);
+});

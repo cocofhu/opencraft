@@ -122,6 +122,17 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
     selected.set(req, { route, principal, base: target.base, name: route.name ?? (names().get(route.hubId ?? '')?.trim() || new URL(route.origin).hostname) });
     req.url = target.path; req.headers.host = new URL(route.origin).host;
     if (req.headers.origin !== undefined) req.headers.origin = route.origin;
+    // SSH session grants are origin-bound. A browser's Referer still uses the
+    // entry address; translate only a same-entry reference to this exact target.
+    if (req.headers.referer) {
+      try {
+        const reference = new URL(req.headers.referer);
+        const scope = selectedPath(reference.pathname + reference.search);
+        if (reference.origin === entry.origin && scope?.id === route.instanceId) {
+          req.headers.referer = route.origin + scope.path;
+        }
+      } catch { /* Untrusted/malformed references never gain a target origin. */ }
+    }
     // Preserve only this installation's namespaced cookies; never the entry login.
     const cookies=targetCookies(req.headers.cookie,route.instanceId);
     if(cookies)req.headers.cookie=cookies;else delete req.headers.cookie;
@@ -214,7 +225,7 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
             bytes+=Buffer.byteLength(chunk); if(bytes>2_097_152){upstream.destroy(new Error('Relay document limit'));document.destroy();return;} body+=chunk;
           });
           result.on('error', () => res.destroy());document.on('error', () => res.destroy());result.on('aborted',()=>res.destroy()); document.on('end', () => {
-            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base});
+            const html = scopedHtml(body,{id:context.route.instanceId,name:context.name,base:context.base,targetOrigin:context.route.origin});
             const output = {...result.headers}; delete output['content-length']; delete output['content-encoding']; delete output['transfer-encoding']; delete output.etag;
             if(output['set-cookie'])output['set-cookie']=scopedCookies(output['set-cookie'],context.route.instanceId,context.base);
             res.writeHead(result.statusCode ?? 502,{...output,'cache-control':'private, no-store','content-length':Buffer.byteLength(html)});res.end(html);
