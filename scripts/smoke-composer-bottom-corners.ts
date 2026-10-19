@@ -61,7 +61,7 @@ try {
   await editor.click();
   assert(await editor.evaluate(node => node === (window as any).keptEditor && node.contains(document.activeElement)), "same editor retains focus");
   assert.equal(await editor.innerText(), "保留草稿与焦点");
-  await page.locator(".codex-composer-mode--intelligence").click();
+  await page.locator(".codex-composer-mode--intelligence").focus(); await page.keyboard.press("Enter");
   await page.locator(".codex-composer-selection-menu--intelligence[data-state=open]").waitFor(); await page.keyboard.press("Escape");
   await page.evaluate(() => (window as any).setQueue(true)); await page.waitForTimeout(60);
   assert.equal(await shell.evaluate(node => getComputedStyle(node).overflow), "visible", "menus are not clipped");
