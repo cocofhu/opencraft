@@ -8,7 +8,7 @@ import { AssertionSigner, ASSERTION_HEADER, type IdentityProvider } from "@openc
 import { CONTROL_PATH, DATA_PATH, STREAM_HEADER, RELAY_PROTOCOL, MAX_STREAMS, relayPathAllowed } from "@opencraft/relay-protocol";
 import { RelayAuthentication } from './authentication.js';
 import type { HubNetwork } from '../../../packages/hub-network/src/node.js';
-import { SERVERS_PATH, LEGACY_SERVERS_PATH, isServerPath, selectedPath, selectorPage, scopedHtml, targetCookies, scopedCookies, selectionDefault } from './selection.js';
+import { SERVERS_PATH, LEGACY_SERVERS_PATH, isServerPath, selectedPath, serverBase, selectorPage, scopedHtml, targetCookies, scopedCookies, selectionDefault } from './selection.js';
 import type { Principal } from '@opencraft/identity-core';
 import type { HubService } from '../../../packages/hub-network/src/contract.js';
 
@@ -213,6 +213,16 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
       const upstream = httpRequest({ host: new URL(auth.route.origin).hostname, method: req.method, path: req.url,
         createConnection: () => stream!, headers: headers(req, auth.route.signer.issue(auth.principal, req.method!, req.url!)) }, result => {
         const context = selected.get(req);
+        // Old entry bookmarks can load the Workbench without deployment context,
+        // hiding Settings → Servers. Canonicalize only admitted HTML navigation,
+        // preserving this instance and deep link; never replay API request bodies.
+        if (!context && options.serverSelection && auth.route.origin === options.authentication?.origin
+          && req.method === 'GET' && req.headers.accept?.includes('text/html')
+          && result.statusCode === 200 && String(result.headers['content-type']).includes('text/html')) {
+          result.resume();
+          res.writeHead(303, { location: serverBase(auth.route.instanceId) + req.url!, 'cache-control': 'private, no-store' });
+          res.end(); return;
+        }
         if (context && (result.statusCode ?? 502) >= 400 && req.method === 'GET' && req.headers.accept?.includes('text/html')) {
           result.resume(); res.writeHead(303, {location:SERVERS_PATH,'cache-control':'no-store'});res.end();return;
         }

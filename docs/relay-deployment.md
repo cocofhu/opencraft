@@ -42,6 +42,14 @@ does not require the server-administration build flag. Direct deployments withou
 relay context do not advertise a chooser. The relay-supplied selector path also
 preserves compatibility with legacy deployments.
 
+Existing unprefixed entry Workbench bookmarks, such as `/settings/remote-connections`,
+redirect after target admission to that same instance's `/servers/<instanceId>/`
+path, preserving the deep path and query. This applies only to successful GET
+HTML navigations; API requests, uploads and WebSockets retain their existing
+behavior. It does not consult another saved server choice or grant membership.
+Reload an already-open unscoped page to receive the deployment context and the
+**Settings → Servers** entry.
+
 The browser remembers the last choice under a key derived from verified provider
 and stable subject, within that entry origin. Future root visits reopen it only
 while target admission succeeds. Explicitly opening the chooser never redirects

@@ -144,3 +144,20 @@ test('relay SSH discovery requires explicit public ingress and reuses its origin
   assert.equal((await other.json()).authenticated,false);
   assert.equal((await f.get('/servers/lighthouse/__opencraft_ssh/session',{cookie,origin:'http://evil.test'},'POST',Buffer.from('{}'))).status,403);
 });
+
+
+test('unprefixed entry document bookmarks retain their instance and gain selection context',async t=>{
+  const f=await selectorFixture();t.after(()=>f.close());const cookie=await f.login('alice');
+  const path='/settings/remote-connections?retained=one%2Ftwo';
+  const legacy=await f.get(path,{cookie,accept:'text/html'});
+  assert.equal(legacy.status,303);
+  assert.equal(legacy.headers.get('location'),'/servers/join'+path);
+  assert.equal(legacy.headers.get('cache-control'),'private, no-store');
+  const scoped=await f.get(legacy.headers.get('location')!,{cookie,accept:'text/html'});
+  assert.equal(scoped.status,200);assert.match(await scoped.text(),/opencraft-server-context/u);
+  const api=await f.get('/fixture/headers',{cookie,accept:'application/json'});
+  assert.equal(api.status,200);assert.equal(api.headers.get('location'),null);assert.equal((await api.json()).id,'join');
+  const unadmitted=await f.login('carol');
+  assert.equal((await f.get(path,{cookie:unadmitted,accept:'text/html'})).status,403);
+  assert.equal((await f.get(path,{cookie,accept:'text/html',origin:'http://evil.test'})).status,403);
+});

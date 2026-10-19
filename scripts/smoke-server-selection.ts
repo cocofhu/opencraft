@@ -19,6 +19,13 @@ const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMI
 try{
   const context=await browser.newContext({extraHTTPHeaders:{'x-fixture-user':'alice'},locale:'zh-CN'}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;requests.push(path);if(r.method()==='POST'&&path.endsWith('/__opencraft_ssh/session'))sshGrants.push(path);});page.on('websocket',s=>sockets.push(new URL(s.url()).pathname));
+  // Existing direct settings bookmarks must gain context without changing server.
+  await page.goto(fixture.origin+'/settings/servers?retained=one%2Ftwo');
+  await page.waitForURL('**/servers/join/settings/servers?retained=one%2Ftwo');
+  await page.getByRole('navigation',{name:'Settings sections',exact:true}).getByRole('button',{name:'服务器',exact:true}).waitFor();
+  await page.getByText('当前服务器',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>JSON.parse(document.getElementById('opencraft-server-context')!.textContent!).id),'join');
+  await page.screenshot({path:join(output,'legacy-join-settings.png')});
   await page.goto(fixture.origin+'/__opencraft_servers');await page.waitForURL('**/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
   await page.goto(fixture.origin);await page.waitForURL('**/servers/join/**');await page.locator('[data-action-id]').first().waitFor({timeout:60_000});
   await page.goto(fixture.origin+'/servers');await page.getByRole('heading',{name:'选择服务器',exact:true}).waitFor();
@@ -33,6 +40,9 @@ try{
   const dataScope=await page.evaluate(()=>indexedDB.databases().then(xs=>xs.map(x=>x.name)));assert.ok(dataScope.some(x=>x?.includes('server:lighthouse:')));
   await page.reload();await page.locator('[data-action-id]').first().waitFor();assert.match(page.url(),/\/lighthouse(?:\/|\?|$)/u);
   // Choosing the managed site in a second tab changes only future entry preference, never tab A's URL or requests.
+  const bookmark=await context.newPage();await bookmark.goto(fixture.origin+'/settings/servers?existing=1');
+  await bookmark.waitForURL('**/servers/join/settings/servers?existing=1');await bookmark.getByText('当前服务器',{exact:true}).waitFor();
+  assert.equal(await bookmark.evaluate(()=>JSON.parse(document.getElementById('opencraft-server-context')!.textContent!).id),'join');await bookmark.close();
   const other=await context.newPage();await other.goto(fixture.origin+'/servers');await other.locator('[data-server="join"]').click();await other.locator('[data-action-id]').first().waitFor();
   // Exercise actual Workbench discovery against real SSH management and relay.
   await page.waitForTimeout(6500);
@@ -77,7 +87,7 @@ try{
   assert.equal(await freshPage.locator('[data-server="lighthouse"]').count(),1);
   assert.match(await freshPage.locator('p').first().innerText(),/不可用/u);await fresh.close();
   assert.deepEqual(errors,[]);
-  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,realSshDiscovery:discovery,sshGrantRequests:sshGrants,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
+  await writeFile(join(output,'receipt.json'),JSON.stringify({actualBuiltWorkbench:true,legacySettingsBookmark:true,realSshDiscovery:discovery,sshGrantRequests:sshGrants,existingUserDefault:true,defaultNeverOverridesChoice:true,newIdentityShowsChooser:true,unavailableDefaultNeverFallsBack:true,realRelayCoreMembership:true,rememberedChoice:true,multiTabIsolation:true,independentTargetRoles:true,revocationReturnsChooser:true,identitySwitchDoesNotReuseChoice:true,offlineReturnsChooser:true,dataScope,sockets,escaped,errors,boundary:'Synthetic verified identity and Codex transport only; actual packaged Workbench, Chromium, relay tunnel and target membership. No production employee identity or model inference.'},null,2));
   console.log(JSON.stringify({output,success:true}));
 } catch(error){await writeFile(join(output,'failure.json'),JSON.stringify({error:String(error),errors,requests,sockets},null,2));throw error;}
 finally{await browser.close();await fixture.close();}
