@@ -56,3 +56,31 @@ frozen and parameter access deliberately threw; all calls passed. Returned neste
 objects/arrays were distinct and mutation of one response did not affect a later
 response. The frozen external observation SHA256 is `288da8d74cb9cd3887a0e827091295f8162a94e9700f59e9751e4cffe34f40e4`.
 No new implementation is present at this checkpoint.
+
+
+## Current implementation and verification
+
+The complete helper now uses an exhaustive typed factory table over the existing
+server-request union. Each supported method creates a fresh cancellation payload
+or yields null for a dynamic tool; the runtime caller and protocol types are
+unchanged. Method names and response values are required integration data, not
+newly invented behavior. Prior full-body exposure remains disclosed above.
+
+All 120 external before/after observations matched exactly. The 59 existing
+response/ledger/conversation-runtime tests, runtime typecheck and platform/
+typography checks passed. External invocation of the actual conversation runtime
+with the existing synthetic Replica fixture verified mixed requests, other-turn
+filtering, dynamic-tool preservation, waiting for all response attempts despite
+one rejection, provenance and cleanup on interrupt success/rejection. The first
+external fixture omitted the other turn from history, making its pending request
+create the active turn; its wrong active-turn assertion failed. The failed log
+is retained; adding the actual completed other turn to the fixture restored the
+intended scenario without changing assertions or production code.
+
+No tests or observation harness are committed. This is a pure helper change;
+synthetic runtime observations do not prove real account/model/server behavior or
+clear any historical source rights. Remaining source groups stay unverified.
+
+The public Web release build completed with 791 runtime source files and zero
+compatibility issues. The source inventory and 10 existing provenance tests
+passed; the unresolved group count remains eight.

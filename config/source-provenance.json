@@ -259,7 +259,6 @@
       "paths": [
         "apps/appserver-lab/src/request-journal.ts",
         "packages/appserver-session/src/projectors.ts",
-        "packages/chat-runtime/src/interaction-lifecycle.ts",
         "packages/codex-composer/src/dictation-footer.tsx",
         "packages/workbench-panels/src/model.ts"
       ],
@@ -269,9 +268,11 @@
         "packages/appserver-session/src/projectors.ts",
         "packages/chat-runtime/src/interaction-lifecycle.ts",
         "packages/codex-composer/src/dictation-footer.tsx",
-        "packages/workbench-panels/src/model.ts"
+        "packages/workbench-panels/src/model.ts",
+        "docs/provenance/interaction-interrupt-baseline.json",
+        "docs/provenance/interaction-interrupt-replacement.md"
       ],
-      "reason": "Previously untracked source-equivalent, recovery or semantic-adoption annotations identify a review boundary in these files. The annotations do not prove retained expression or a whole-file copy, and no source license or authorization has been established for this boundary.",
+      "reason": "The remaining diagnostic, hook projection, dictation and panel files contain source-equivalent, recovery, inspiration or semantic-adoption annotations. These select individual review regions, not whole-file copying. The interrupt response module has a separate bounded current-implementation disposition; other regions and historical rights remain unverified.",
       "resolution": "Inspect actual expression and source lineage per file, retaining annotations and historical hashes. Preserve original or appropriately licensed implementations and notices; replace only bounded uncleared expression from independently stated requirements, with consumer verification. Do not treat adding an inventory entry as a rights conclusion."
     },
     {
@@ -636,6 +637,24 @@
       "reason": "The module explicitly claimed source-identical constants/helpers. Preserve the observed application data while independently expressing the used initialization and bounded numeric helpers; remove seven undeclared recovery exports with no repository consumers.",
       "resolution": "Retain the historical module hash, source annotation, observed compatibility data, frozen contracts and actual author exposure. Device names and neighboring files do not become rewrite targets. Eight unresolved groups remain open.",
       "conclusion": "Current code independently expresses lazy/idempotent initialization and rounded width/height bounds, retaining all 13 application presets and six declared consumer exports. The catalog is compatibility data, not a new physical-device specification. This bounded implementation disposition does not establish strict author isolation, historical rights or public release readiness."
+    },
+    {
+      "id": "interrupt-interaction-response-policy",
+      "status": "independently-reimplemented",
+      "paths": [
+        "packages/chat-runtime/src/interaction-lifecycle.ts"
+      ],
+      "evidence": [
+        "docs/provenance/interaction-interrupt-baseline.json",
+        "docs/provenance/interaction-interrupt-replacement.md",
+        "packages/appserver-protocol/src/server-requests.ts",
+        "packages/chat-runtime/src/models.ts",
+        "tests/chat-interaction-response.test.ts",
+        "tests/chat-runtime.test.ts"
+      ],
+      "reason": "The complete helper carried a source-equivalent Desktop cleanup annotation. Express current cancellation responses through an exhaustive typed protocol policy after freezing requirements and public observations. Protocol identifiers and response values remain integration facts.",
+      "resolution": "Retain the historical blob, annotation and actual prior full-body author exposure. Current contract-based implementation does not establish strict author isolation or clear historical rights. The remaining four client/Host inventory files and eight unresolved groups remain open.",
+      "conclusion": "The current helper has one explicit response factory per protocol method, fresh nested payloads and no access to parameters or runtime state. Conversation runtime retains cancellation sequencing, turn filtering, provenance and failure ownership. No neighboring implementation is rewritten."
     }
   ]
 }
