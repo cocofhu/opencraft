@@ -1309,7 +1309,7 @@ engine. Every known or unknown type keeps a visible badge and its text in light,
 dark, extension and forced-color themes; no database type or workflow state is
 changed by choosing a presentation tone.
 
-Web user-message navigation rail is inset 36px from the conversation viewport. Desktop Web conversation titles consume that same leading axis. The existing 36px hit target requires 72px content clearance, derived from the shared inset; insufficient space suppresses the rail rather than covering prose. Narrow headers retain measured control spacing and Electron retains its native title geometry and platform-specific 16px rail inset.
+Web user-message navigation rail is inset 36px from the conversation viewport. Desktop Web conversation titles consume that same leading axis. The existing 36px hit target requires 72px content clearance, derived from the shared inset; insufficient space suppresses the rail rather than covering prose. Narrow headers retain measured control spacing and Electron retains its native title geometry and platform-specific 16px rail inset. Browser navigation without branding or actions contributes zero measured width; restoring content restores its physical measurement. Header alignment consumes Shell host identity inside both document and ShadowRoot presentations, rather than relying on an outer html attribute.
 
 
 ## Tasks action hierarchy and recycle continuity

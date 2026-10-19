@@ -4,6 +4,9 @@ import { createServer } from "vite";
 import { pluginBranding } from "../apps/workbench-web/plugin-branding.vite";
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const output = process.env.OPENCRAFT_HEADER_MEASURE_OUTPUT ?? "/tmp/opencraft-header-measurement";
+interface HeaderFixtureWindow extends Window {
+  fixture: { setActions(actions: readonly string[]): void; setBrand(brand: string | null): void; readFitWidth(): number };
+}
 const source = `
 import React,{useState}from'react';
 import{createIntlTestRoot}from'/tests/fixtures/intl-root.tsx';
@@ -17,7 +20,7 @@ const navigation={layout:'unified',actions:[],onOpenSettings:noop,account:{snaps
 function Receipt(){const{headerLeftFitWidth}=useAppShellLayoutMotion();fixture.readFitWidth=()=>headerLeftFitWidth.get();return null}
 function App(){const[open,setOpen]=useState(false),[revision,setRevision]=useState(0),[brand,setBrand]=useState('Brand'),[actions,setActions]=useState(['sidebar-toggle']);Object.assign(fixture,{setOpen,setBrand,setActions,rerender:()=>setRevision(n=>n+1)});
 return <AppShell layoutScope='measurement' navigation={navigation} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={noop} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={noop}
-header={<><AppShellHeader navigationBrand={<span data-probe-brand style={{whiteSpace:'nowrap',fontSize:14}}>{brand}</span>} title='Measurement' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={false} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={noop} onHome={noop} canGoBack={false} canGoForward={false} onBack={noop} onForward={noop} navigationActions={[...actions]}/><Receipt/></>}
+header={<><AppShellHeader navigationBrand={brand===null?undefined:<span data-probe-brand style={{whiteSpace:'nowrap',fontSize:14}}>{brand}</span>} title='Measurement' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={false} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={noop} onHome={noop} canGoBack={false} canGoForward={false} onBack={noop} onForward={noop} navigationActions={[...actions]}/><Receipt/></>}
 floatingSidebarHeader={()=>null} leftPanel={<div>Sidebar</div>}><input aria-label='Draft' defaultValue='Keep draft'/><div data-pad style={{height:300}}>Swipe here</div></AppShell>}
 createIntlTestRoot(document.getElementById('root')).render(<App/>);
 `;
@@ -96,8 +99,38 @@ try {
     await page.evaluate(() => (window as any).fixture.setOpen(false)); await page.waitForTimeout(650); await correct("undocked");
     await page.setViewportSize({width:390,height:844}); await correct("mobile-again");
     assert.equal((await sample()).audit.observes, before.audit.observes, "actual geometry changes must retain the observer");
+    // Explicitly removing all navigation content is a real zero-width rail,
+    // unlike a transient zero measurement of a populated/detached header.
+    await page.evaluate(() => {
+      (window as HeaderFixtureWindow).fixture.setActions([]); (window as HeaderFixtureWindow).fixture.setBrand(null);
+      const measure=document.querySelector<HTMLElement>(".app-shell-header__window-controls-measure")!;
+      measure.style.paddingRight=""; measure.style.borderRight="";
+    });
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({width,height:844});
+      const empty=await correct("empty-"+width);
+      assert.equal(empty.width,0); assert.equal(empty.fit,0);
+      if(width===1280) assert.equal(await page.locator('.thread-header-title').evaluate((e:HTMLElement)=>e.getBoundingClientRect().x),36);
+    }
+    await page.evaluate(() => { (window as HeaderFixtureWindow).fixture.setBrand("Restored brand"); (window as HeaderFixtureWindow).fixture.setActions(["sidebar-toggle"]); });
+    assert.ok((await correct("content-restored")).width>0);
     assert.equal(await page.evaluate(() => (window as any).editor===document.querySelector("input")),true);
     assert.equal(await page.getByLabel("Draft").inputValue(),"Keep draft");
+    // A host may mount the same Shell under its own ShadowRoot without marking
+    // the outer document as a browser Shell. Geometry belongs to the Shell root.
+    await page.setViewportSize({width:1280,height:844});
+    await page.evaluate(() => {
+      const host=document.createElement("section");
+      const shadow=host.attachShadow({mode:"open"});
+      for(const style of document.querySelectorAll("style")) shadow.append(style.cloneNode(true));
+      shadow.append(document.getElementById("root")!); document.body.append(host);
+      document.documentElement.removeAttribute("data-codex-window-type");
+      (window as HeaderFixtureWindow).fixture.setActions([]); (window as HeaderFixtureWindow).fixture.setBrand(null);
+    });
+    await page.waitForFunction(() => (window as HeaderFixtureWindow).fixture.readFitWidth()===0);
+    assert.equal(await page.locator('.app-shell-header__window-controls-measure').evaluate((e:HTMLElement)=>e.offsetWidth),0);
+    assert.equal(await page.locator('.thread-header-title').evaluate((e:HTMLElement)=>e.getBoundingClientRect().x),36);
+    await page.screenshot({path:output+'/'+(fallback?'fallback':'native')+'-shadow.png'});
     assert.deepEqual(errors,[]);
     await page.screenshot({path:output+"/"+(fallback?"fallback":"native")+".png"});
     await context.close();
