@@ -31,18 +31,9 @@ try {
     }), 'visible icon and true hit region are circular, including microphone and send');
   }
   assert.equal(await page.locator('.thread-scroll-footer__gradient').evaluate((node: HTMLElement) => getComputedStyle(node).backgroundImage), 'none');
-  assert(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) => {
-    const footer = getComputedStyle(node);
-    const gutter = getComputedStyle(node, '::after');
-    const surface = document.createElement('span');
-    surface.style.background = 'var(--color-surface)';
-    node.append(surface);
-    const surfaceColor = getComputedStyle(surface).backgroundColor;
-    surface.remove();
-    return gutter.backgroundColor === surfaceColor
-      && Number.parseFloat(gutter.height) === Number.parseFloat(footer.paddingBottom)
-      && gutter.pointerEvents === 'none';
-  }), 'only the safe-area gutter covers scrolling rows below the Composer');
+  assert.equal(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) =>
+    getComputedStyle(node, '::after').content), 'none',
+    'touch safe area stays open beneath the floating Composer');
   assert(compact.background.includes('0.62'), compact.background);
   const shell = page.locator('.codex-composer-shell');
   const glassBefore = await shell.screenshot();
