@@ -4,7 +4,7 @@ import type {
 } from "@opencraft/appserver-client/transport";
 import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol/routing";
 import type { McpAppsService } from "./server";
-import { AppHistoryAccess } from "./history-access";
+import { AppHistoryAccess } from "@opencraft/mcp-apps/history-access";
 import {
   ownsServer,
   MCP_APPS_METHOD,

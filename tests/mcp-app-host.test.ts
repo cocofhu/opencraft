@@ -120,6 +120,7 @@ test("resource policy verifies provenance, MIME, size and CSP injection boundari
   const result = (overrides = {}) => ({ contents: [{ uri: identity.uri, mimeType: "text/html;profile=mcp-app", text: "<b>OK</b>", ...overrides }] });
   const resource = readAppResource(result(), identity.uri, "call1");
   assert.match(appCsp(resource), /connect-src 'none'/);
+  assert.match(appCsp(resource), /form-action 'none'/);
   assert.throws(() => readAppResource({ ...result(), originCallId: "other" }, identity.uri, "call1"), /provenance/);
   assert.throws(() => readAppResource(result({ mimeType: "application/javascript" }), identity.uri, "call1"));
   assert.throws(() => readAppResource(result({ text: "x".repeat(1048577) }), identity.uri, "call1"));

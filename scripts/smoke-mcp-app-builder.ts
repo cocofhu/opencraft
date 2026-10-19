@@ -212,7 +212,7 @@ try {
     ]);
     const page = await context.newPage(),
       errors: string[] = [];
-    let listRequests = 0;
+    let listRequests = 0, blockedFormRequests = 0;
     page.on("websocket", (socket) =>
       socket.on("framesent", (frame) => {
         try {
@@ -247,7 +247,7 @@ try {
       description: "Real server calculator",
       entryTool: "calculate",
       uiHtml:
-        '<!doctype html><html><body><h2>Calculator</h2><button id="go">7 + 8</button><output id="value">Ready</output><input id="draft" aria-label="Draft"><button id="send">Send choice</button><script>document.getElementById("send").onclick=()=>window.openai.sendFollowUpMessage({prompt:document.getElementById("draft").value});document.getElementById("go").onclick=async()=>{try{const r=await window.openai.callTool("calculate",{a:7,b:8});document.getElementById("value").textContent=r.structuredContent.sum}catch(e){document.getElementById("value").textContent="Inactive"}};</script></body></html>',
+        '<!doctype html><html><body><h2>Calculator</h2><button id="go">7 + 8</button><output id="value">Ready</output><form id="choice"><input id="draft" aria-label="Draft"><button id="send" type="submit">Send choice</button></form><script>document.getElementById("choice").onsubmit=e=>{e.preventDefault();window.openai.sendFollowUpMessage({prompt:document.getElementById("draft").value})};document.getElementById("go").onclick=async()=>{try{const r=await window.openai.callTool("calculate",{a:7,b:8});document.getElementById("value").textContent=r.structuredContent.sum}catch(e){document.getElementById("value").textContent="Inactive"}};</script></body></html>',
       tools: [
         {
           name: "calculate",
@@ -294,6 +294,7 @@ try {
     const bob = await browser.newContext({ viewport: { width, height: 844 }, hasTouch: width === 390 });
     await bob.addCookies([{ name: "fixture", value: "bob", url: app.url }]);
     const other = await bob.newPage();
+    other.on("request", request => { if (request.url().endsWith("/blocked-form-submit")) blockedFormRequests++; });
     await other.goto(app.url);
     await other.waitForFunction(() => !!(window as any).fixture);
     assert.deepEqual((await other.evaluate(() => (window as any).fixture.tool({ action: "list" }))).apps, []);
@@ -305,6 +306,15 @@ try {
     await otherFrame.locator("#send").click();
     await other.waitForFunction(() => (window as any).fixture.messages.length === 1);
     assert.deepEqual(await other.evaluate(() => (window as any).fixture.messages), ["Apple x 1"]);
+    await otherFrame.locator("body").evaluate(async (body, url) => {
+      const blocked = new Promise<void>(resolve => document.addEventListener("securitypolicyviolation", event => {
+        if (event.effectiveDirective === "form-action") resolve();
+      }, { once: true }));
+      const form = document.createElement("form"); form.action = url; form.method = "post";
+      body.append(form); form.requestSubmit(); form.remove();
+      await blocked;
+    }, new URL("blocked-form-submit", app.url).href);
+    assert.equal(blockedFormRequests, 0, "CSP blocks network submission even though local submit events work");
     await other.screenshot({ path: path.join(output, `historical-shared-${width}.png`) });
     await other.reload();
     await other.waitForFunction(() => !!(window as any).fixture);
@@ -386,6 +396,8 @@ try {
       sharedToolAndFollowup: true,
       reconnectHistory: true,
       sharedRevocation: true,
+      formSubmitEvent: true,
+      formNetworkBlocked: true,
       globalsNoRequery: true,
       pageerrors: errors,
     });

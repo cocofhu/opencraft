@@ -97,6 +97,12 @@ Limits: 64 non-deleted Apps, 256 lifetime IDs, 64 release numbers per App and
 16 MiB total definition text per owner; 650 KB input spec, 512 KB HTML, 16 tools.
 Lists are bounded and include compact titles/descriptions; get with revision reads the exact immutable spec. These are definition limits, not a durable business-data API.
 
+Local HTML forms may dispatch validated submit events inside the opaque sandbox.
+The iframe allows forms so existing `submit` listeners and Enter submission work;
+CSP still sets `form-action 'none'`, so a form cannot post to the network or
+navigate the iframe through a submission. Generated forms should prevent the
+browser default and use the narrow App bridge for the requested action.
+
 ## Generated code and UI
 
 Handlers run synchronously in a fresh QuickJS WASM realm in a separate worker,

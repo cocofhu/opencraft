@@ -6,6 +6,7 @@
   "exports": {
     "./server": "./src/server.ts",
     "./transport": "./src/transport.ts",
+    "./history-access": "./src/history-access.ts",
     "./dynamic-tools": "./src/dynamic-tools.ts"
   },
   "dependencies": {
