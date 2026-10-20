@@ -13,7 +13,7 @@ assert.equal(JSON.parse(await readFile(join(root,'version.json'),'utf8')).headle
 await mkdir(output,{recursive:true});
 const threadId='cold-open-fixture',question='Previously seen question',cachedAnswer='Previously seen answer',restoredAnswer='Fresh authoritative answer';
 const thread={id:threadId,name:'Cold open fixture',preview:question,cwd:'/fixture',path:null,historyMode:'paginated',modelProvider:'openai',createdAt:1,updatedAt:1,status:{type:'idle'},source:'appServer',turns:[]};
-let hold=false,fresh=false,active=false,previewStage=false;
+let hold=false,fresh=false,active=false,previewStage=false,longActive=false;
 const previewAnswer='Fresh preview answer';
 const heldResume:Array<()=>void>=[];
 const releaseResume=()=>{for(const deliver of heldResume.splice(0))deliver()};
@@ -31,6 +31,9 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
     {type:'userMessage',id:'fixture-question',sentAtMs:1700000000000,content:[{type:'text',text:question,textElements:[]}]},
     {type:'reasoning',id:'fixture-reasoning',summary:['Checking the answer'],content:[],startedAtMs:1700000000000},
     {type:'agentMessage',id:'fixture-answer',startedAtMs:1700000054000,text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
+   if (active && longActive) turn.items.splice(1, 0, ...Array.from({ length: 68 }, (_, i) => ({
+    type: 'reasoning', id: `long-reasoning-${i}`, summary: [`Long active reasoning ${i}`], content: [], startedAtMs: 1700000000000 + i,
+   })));
    switch(rpc.method){
     case 'initialize':result={userAgent:'cold-open-fixture',codexHome:'/fixture',platformFamily:'unix',platformOs:'linux',capabilities:{extensions:{'opencraft/resume-history':{version:1,mode:previewStage?'message-window':'paginated',initialTurnsPage:true}}}};break;
     case 'thread/list':result={data:[{...thread,historyMode:previewStage?'message-window':'paginated'}],nextCursor:null};break;
@@ -153,6 +156,23 @@ try{for(const width of [390,1100]){
  assert.equal(await live.getByText(cachedAnswer,{exact:true}).count(),0);
  assert.equal(await activeEditor.innerText(),'Draft while reconnecting');
  assert.deepEqual(liveErrors,[]);await running.close();
+ // More than 24 activity blocks must not evict the dated user question.
+ release();active=true;fresh=false;longActive=true;
+ const longContext=await browser.newContext({viewport:{width,height:850},hasTouch:width===390,isMobile:width===390});
+ const longPage=await longContext.newPage(),longErrors:string[]=[];
+ longPage.on('pageerror',error=>longErrors.push(error.message));await longPage.goto(url);
+ await longPage.getByText(cachedAnswer,{exact:true}).waitFor();
+ await longPage.waitForFunction(()=>Object.keys(localStorage).some(key=>{
+  if(!key.startsWith('opencraft.display.'))return false;
+  const value=JSON.parse(localStorage.getItem(key)!);
+  return value.messages?.some((message:any)=>message.id==='user-message:fixture-question')
+   && value.messages?.some((message:any)=>message.id==='reasoning:long-reasoning-67');
+ }));
+ hold=true;await longPage.reload();await longPage.getByText(question,{exact:true}).waitFor({timeout:3000});
+ await longPage.getByText(cachedAnswer,{exact:true}).waitFor();
+ assert.ok(held.length>0);await assertDatesVisible(longPage);
+ assert.equal(await longPage.locator('[data-work-status]').count(),0,'Long activity cannot resume a live clock');
+ assert.deepEqual(longErrors,[]);await longContext.close();release();active=false;fresh=true;longActive=false;
  // A separate browser profile cannot see the first profile's local display.
  hold=true;const cold=await browser.newContext({viewport:{width,height:850}}),empty=await cold.newPage();
  await empty.goto(url);await empty.locator('.local-conversation-page').waitFor();

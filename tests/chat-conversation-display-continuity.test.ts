@@ -385,3 +385,28 @@ test("partial previews retain exact message clocks while showing fresh text unti
   assert.equal(retainPreviewTiming(updated, display).frames[1]!.workStatus, complete.frames[1]!.workStatus,
     "newly supplied clocks win");
 });
+
+
+test("a long active activity tail cannot evict the question, dated replies or completed clocks", async () => {
+  const local = storage();
+  const before = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const prior = timedTimeline().frames.map(frame => ({ ...frame, id: `prior-${frame.id}`, turnId: asTurnId("prior-turn"),
+    blocks: frame.blocks.map(block => block.type === "text"
+      ? { ...block, id: `prior-${block.id}`, sentAtMs: 54_100 }
+      : { ...block, id: `prior-${block.id}` }) }));
+  const active = activeTimeline();
+  const frames = active.frames.map(frame => frame.type === "assistant" ? { ...frame,
+    blocks: Array.from({ length: 68 }, (_, i) => i % 2 === 0
+      ? { type: "reasoning" as const, id: `reason-${i}`, sourceItemIds: [], summary: `Reasoning ${i}`, detail: null, streaming: true }
+      : { type: "text" as const, id: `progress-${i}`, sourceItemIds: [], text: `Progress ${i}`, phase: "commentary" as const, streaming: true, completed: false }) } : frame);
+  await before.observe({ ...active, frames: [...prior, ...frames] });
+  const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const blocks = cached.frames.flatMap(frame => frame.blocks);
+  assert.ok(blocks.length <= 24, "existing storage bound is preserved");
+  assert.ok(blocks.some(block => block.id === "user" && block.type === "user-message" && block.sentAtMs === 100), "active input survives more than 24 activity blocks");
+  assert.ok(blocks.some(block => block.id === "prior-answer" && block.type === "text" && block.sentAtMs === 54_100), "dated final reply stays with its text");
+  assert.equal(cached.frames.find(frame => frame.blocks.some(block => block.id === "prior-answer"))?.workStatus?.status, "worked");
+  assert.equal(cached.frames.at(-1)?.blocks[0]?.id, "progress-67", "newest received progress remains visible");
+  assert.ok(cached.frames.every(frame => frame.workStatus?.status !== "working"), "activity never resumes a live clock");
+  assert.ok(blocks.findIndex(block => block.id === "prior-answer") < blocks.findIndex(block => block.id === "user"), "original conversation order is preserved");
+});

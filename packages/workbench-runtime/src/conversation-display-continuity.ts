@@ -113,7 +113,18 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
       }
     }
   }
-  return messages.slice(-MAX_MESSAGES);
+  // A long active Turn can contain dozens of reasoning/commentary blocks.
+  // A raw tail drops the question and previous replies (including their clocks)
+  // even though they remain the conversation the user is resuming.
+  const conversation = messages.filter(message => message.role === "user"
+    || (message.kind === "text" && (message.phase === "final_answer"
+      || message.sentAtMs !== null || message.workStatus !== null)));
+  const retained = new Set(conversation.slice(-Math.floor(MAX_MESSAGES / 2)));
+  for (let index = messages.length - 1; index >= 0 && retained.size < MAX_MESSAGES; index--) {
+    retained.add(messages[index]!);
+  }
+  // Keep source order; choosing a bounded subset never creates a new chronology.
+  return messages.filter(message => retained.has(message));
 }
 
 function parse(value: string | null, hostId: string, threadId: string, now: number): { messages: readonly DisplayMessage[]; savedAt: number } | null {

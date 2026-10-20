@@ -2341,3 +2341,10 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+The bounded display snapshot reserves half of its 24 message slots for recent
+user messages, final replies and text with known clocks, then fills the remaining
+slots from the latest activity. It retains source order. Long active reasoning
+must not evict the question, dated replies or already completed work clocks;
+activity remains static and never restarts a running clock.
