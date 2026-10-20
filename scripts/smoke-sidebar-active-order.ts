@@ -41,7 +41,7 @@ try {
   for(const touch of [false,true]) for(const theme of ['light','dark']) {
     const page=await browser.newPage({viewport:{width:touch?390:1000,height:1000},hasTouch:touch,isMobile:touch});
     const errors:string[]=[]; page.on('pageerror',(e:Error)=>errors.push(e.message));
-    await page.addInitScript(t=>{(window as any).__name=(v:any)=>v;localStorage.setItem('vela.appearance-theme',t);},theme);
+    await page.addInitScript(t=>{(window as any).__name=(v:any)=>v;localStorage.setItem('opencraft.appearance-theme',t);},theme);
     await page.goto('http://127.0.0.1:'+(vite.httpServer!.address() as any).port);
     const recent=page.getByRole('region',{name:'Recent',exact:true});
     const rows=recent.locator('.sidebar-activity-item');
