@@ -136,7 +136,7 @@ export class AppHostServer {
 
   hostState(hostId: string): string {
     const slot = this.slots.get(hostId);
-    return slot?.resetOperation ? "closing" : slot?.phase === "starting" ? "connecting" : slot?.record?.transport.status.state ?? slot?.lastState ?? "idle";
+    return slot?.resetOperation || slot?.phase === "closing" ? "closing" : slot?.phase === "starting" ? "connecting" : slot?.record?.transport.status.state ?? slot?.lastState ?? "idle";
   }
 
   /** Trusted explicit connection intent; never grants a Client lease or starts remote work. */
