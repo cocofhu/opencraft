@@ -305,10 +305,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
       || viewport.closest('[inert], [aria-hidden="true"]')) return;
     const bounds = viewport.getBoundingClientRect();
     const sticky = mobile ? column?.querySelector<HTMLElement>('[data-action-id="shell.home"]') : null;
-    const top = Math.max(bounds.top, sticky?.getBoundingClientRect().bottom ?? bounds.top);
+    const padding = getComputedStyle(viewport);
+    const top = Math.max(bounds.top + (parseFloat(padding.scrollPaddingTop) || 0), sticky?.getBoundingClientRect().bottom ?? bounds.top);
+    const bottom = bounds.bottom - (parseFloat(padding.scrollPaddingBottom) || 0);
     const item = row.getBoundingClientRect();
     if (item.top < top) viewport.scrollTop += item.top - top;
-    else if (item.bottom > bounds.bottom) viewport.scrollTop += Math.min(item.bottom - bounds.bottom, item.top - top);
+    else if (item.bottom > bottom) viewport.scrollTop += Math.min(item.bottom - bottom, item.top - top);
   }, [selectedKey, selectedSectionId, selectedVisible, pinnedLimit, recentLimit]);
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
