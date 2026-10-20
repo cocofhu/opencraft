@@ -1025,8 +1025,9 @@ their incomplete marker and commentary stays in Agent Activity; no streaming
 animation, active clock, tool output or interaction is replayed. Slow storage
 coalesces pending observations to the latest snapshot while memory updates
 synchronously. A fresh authoritative baseline replaces the snapshot as usual.
-User-message timestamps and terminal work clocks/durations are retained
-with the text, so a reload paints the date and worked-for label together with its
+User and assistant message timestamps and terminal work clocks/durations are retained
+with the text. Web timestamps remain visible independently of hover/focus action
+disclosure, including before the first touch, so a reload paints the date and worked-for label together with its
 message while the Host reconnects. Live work clocks are never restored from this
 cache. Legacy text-only entries remain readable with unknown clocks until the
 next authoritative observation refreshes them. Timing-only changes update the

@@ -82,7 +82,7 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
         messages.push({ id: block.id, turnId: frame.turnId, role: "assistant", text: block.text.slice(0, MAX_MESSAGE_CHARACTERS),
           kind: "text", phase: block.phase === "commentary" ? "commentary" : "final_answer",
           completed: active ? block.completed === true : true,
-          sentAtMs: null, durationMs: active ? null : nonnegativeNumber(frame.durationMs),
+          sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: active ? null : nonnegativeNumber(frame.durationMs),
           workStatus: active ? null : completedWork(frame.workStatus) });
       }
     }
@@ -147,7 +147,7 @@ function paint(hostId: string, threadId: string, messages: readonly DisplayMessa
         : message.kind === "reasoning"
           ? [{ type: "reasoning" as const, id: message.id, sourceItemIds: [], summary: message.text, detail: null, streaming: false }]
           : [{ type: "text" as const, id: message.id, sourceItemIds: [], text: message.text,
-              streaming: false, completed: message.completed, phase: message.phase }],
+              streaming: false, completed: message.completed, phase: message.phase, sentAtMs: message.sentAtMs }],
     })),
     anchorFrameIds: new Map(),
   };

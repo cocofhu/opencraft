@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimelineTurnPresentationPlan, type TimelineSnapshot } from "@opencraft/chat-core";
+import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimelineTurnPresentationPlan, type TimelineSnapshot, assistantMessageActions } from "@opencraft/chat-core";
 import {
   createConversationDisplayContinuity,
   type ConversationDisplayStorage,
@@ -326,4 +326,23 @@ test("failed display persistence can retry the same active snapshot", async () =
   local.save = save;
   await cache.observe(activeTimeline());
   assert.ok(await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"));
+});
+
+
+test("both completed and partial assistant timestamps survive reload and timing-only correction", async () => {
+  for (const source of [timedTimeline(), activeTimeline()]) {
+    const local = storage();
+    const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+    await cache.observe(source);
+    for (const sentAtMs of [54_100, 54_200]) {
+      await cache.observe({ ...source, frames: source.frames.map(frame => frame.type === "assistant"
+        ? { ...frame, blocks: frame.blocks.map(block => block.type === "text" ? { ...block, sentAtMs } : block) } : frame) });
+      const restored = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+      const assistant = restored.frames.at(-1)!;
+      assert.equal(assistant.type, "assistant");
+      if (assistant.type !== "assistant") throw Error("Expected assistant frame");
+      assert.equal(assistantMessageActions(assistant)?.sentAtMs, sentAtMs);
+      assert.equal(restored.authoritative, false);
+    }
+  }
 });

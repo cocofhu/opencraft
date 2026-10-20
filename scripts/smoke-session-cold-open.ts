@@ -52,6 +52,25 @@ const web=await createWorkbenchWebServer({root,appHostServer:appHost,appServerTa
 const address=await web.listen({host:'127.0.0.1',port:0});
 const url=`http://127.0.0.1:${address.port}/local/${threadId}?hostId=local-codex`;
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});const results=[];
+async function assertDatesVisible(page: Page) {
+  // DOM presence does not catch a timestamp inside transparent hover controls.
+  await page.mouse.move(0, 0);
+  for (const selector of ['.thread-user-message time', '[data-assistant-message-sent-time]']) {
+    const date = page.locator(selector).first();
+    await date.waitFor();
+    assert.equal(await date.evaluate(element => {
+      let opacity = 1;
+      for (let node: Element | null = element; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        opacity *= Number(style.opacity);
+      }
+      const rect = element.getBoundingClientRect();
+      return opacity > 0.99 && rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.bottom <= innerHeight;
+    }), true, `${selector} must be visibly painted without hover`);
+  }
+  assert.equal(await page.locator('[data-assistant-message-sent-time]').first().getAttribute('datetime'), '2023-11-14T22:14:14.000Z');
+}
 try{for(const width of [390,1100]){
  release();fresh=false;
  const context=await browser.newContext({viewport:{width,height:850}}),page=await context.newPage(),errors:string[]=[];
@@ -64,6 +83,7 @@ try{for(const width of [390,1100]){
  await page.getByText(cachedAnswer,{exact:true}).waitFor({timeout:3000});
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z','Date paints before initialization completes');
  assert.match(await page.locator('[data-work-status]').innerText(),/54/,'Completed clock paints with cached text');
+ await assertDatesVisible(page);
  assert.equal(await page.locator('.thread-agent-activity button').count(),0,'Cached work has no tool actions');
  assert.ok(held.length>0,'Cached history paints while connection initialization remains held');
  assert.equal(requests.slice(requestStart).includes('thread/resume'),false,'Cached paint cannot resume or authorize execution');
@@ -93,6 +113,7 @@ try{for(const width of [390,1100]){
  assert.ok(held.length>0);
  assert.equal(requests.slice(activeRequestStart).includes('thread/resume'),false);
  assert.equal(await live.locator('[data-work-status="working"]').count(),0);
+ await assertDatesVisible(live);
  const activeEditor=live.locator('[contenteditable="true"]').first();await activeEditor.fill('Draft while reconnecting');
  await live.screenshot({path:join(output,`active-before-connect-${width}.png`)});
  release();await live.getByText(restoredAnswer,{exact:true}).waitFor();
