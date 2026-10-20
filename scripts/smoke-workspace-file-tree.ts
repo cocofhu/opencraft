@@ -86,6 +86,7 @@ try {
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
     await page.waitForFunction(() => Boolean((window as any).fixture));
     await page.evaluate(() => (window as any).fixture.setPanelOpen(true));
+    await page.getByRole("button", { name: "Show file tree", exact: true }).click();
     await page.locator('.workspace-file-tree__row[title="/fixture/a-nested"]').waitFor();
     const initiallyMounted = await page.locator(".workspace-file-tree__row").count();
     assert.ok(initiallyMounted < 80, `5,004 entries mounted ${initiallyMounted} rows; expected a viewport-sized tree`);
