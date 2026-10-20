@@ -305,8 +305,8 @@ export function readUserMessageDisplayText(value: unknown): string | null {
   const source = record(value);
   if (source.type !== "userMessage" && source.type !== "steeringUserMessage") return null;
   if (["sending", "not-sent", "failed"].includes(String(source.deliveryStatus))) return null;
-  const steering = source.__velaSteeringStatus ?? source.steeringStatus
-    ?? (source.type === "steeringUserMessage" || source.__velaMessageKind === "steering" ? source.status : null);
+  const steering = source.__opencraftSteeringStatus ?? source.__velaSteeringStatus ?? source.steeringStatus
+    ?? (source.type === "steeringUserMessage" || (source.__opencraftMessageKind ?? source.__velaMessageKind) === "steering" ? source.status : null);
   if (steering != null && steering !== "accepted") return null;
   const rawContent = source.content ?? source.input ?? source.text ?? source.message;
   if (parseRealtimeDelegation(rawContent) !== null) return null;
@@ -361,10 +361,11 @@ function userMessageMetadata(
 
 function sourceIds(item: TimelineSourceItem) {
   const source = record(item.payload);
-  const explicit = Array.isArray(source.__velaSourceItemIds)
-    ? source.__velaSourceItemIds.filter((value): value is string => typeof value === "string")
+  const sourceItemIds = source.__opencraftSourceItemIds ?? source.__velaSourceItemIds;
+  const explicit = Array.isArray(sourceItemIds)
+    ? sourceItemIds.filter((value): value is string => typeof value === "string")
     : [];
-  return (explicit.length === 0 ? [string(source.__velaSourceItemId) ?? item.id] : explicit).map(asItemId);
+  return (explicit.length === 0 ? [string(source.__opencraftSourceItemId ?? source.__velaSourceItemId) ?? item.id] : explicit).map(asItemId);
 }
 
 function blockBase<TType extends TimelineBlock["type"]>(item: TimelineSourceItem, type: TType) {
@@ -757,7 +758,7 @@ export function createBuiltinTimelineProjectors(): readonly TimelineItemProjecto
           lane: "assistant",
           block: {
             ...blockBase(item, "realtime-transcript"),
-            handoffId: source.__velaTurnParamsMessage === true ? null : realtimeDelegationHandoffId(item.id),
+            handoffId: (source.__opencraftTurnParamsMessage ?? source.__velaTurnParamsMessage) === true ? null : realtimeDelegationHandoffId(item.id),
             entries: realtime.transcript,
           },
         };
@@ -765,7 +766,7 @@ export function createBuiltinTimelineProjectors(): readonly TimelineItemProjecto
       const content = userMessageContent(rawContent);
       const attachments = userMessageAttachments(source, content);
       const metadata = userMessageMetadata(source, content, attachments, context);
-      const messageKind = source.__velaMessageKind === "steering" ? "steering" : "user";
+      const messageKind = (source.__opencraftMessageKind ?? source.__velaMessageKind) === "steering" ? "steering" : "user";
       return {
         lane: messageKind === "steering" ? "assistant" : "user",
         block: {
@@ -776,7 +777,7 @@ export function createBuiltinTimelineProjectors(): readonly TimelineItemProjecto
           messageKind,
           clientId: string(source.clientId) ?? string(source.clientUserMessageId),
           steeringStatus: messageKind === "steering"
-            ? steeringStatus(source.__velaSteeringStatus ?? source.steeringStatus ?? source.status) ?? "accepted"
+            ? steeringStatus(source.__opencraftSteeringStatus ?? source.__velaSteeringStatus ?? source.steeringStatus ?? source.status) ?? "accepted"
             : null,
         },
         anchors: string(source.clientId) === null && string(source.clientUserMessageId) === null

@@ -1,7 +1,7 @@
 import {
   formatAutomaticApprovalReviewSummary,
   formatAutomaticApprovalReviewTitle,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatCommandActivitySummary,
   isAutomaticApprovalReviewWarning,
   presentReasoning,
@@ -200,7 +200,7 @@ export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: 
   const semanticAction = block.actions.length === 1 && block.actions[0]?.type !== "unknown";
   const isTerminal = !semanticAction;
   const label = isTerminal ? formatCommandActivitySummary(block, presentation.state, { expanded: open,
-    elapsedLabel: elapsed === null ? null : formatCodexToolDuration(elapsed, intl.locale) }) : skill?.summary ?? presentation.summary;
+    elapsedLabel: elapsed === null ? null : formatToolDuration(elapsed, intl.locale) }) : skill?.summary ?? presentation.summary;
   if (skill?.visible === false) return <></>;
   return <ActivityDisclosure icon={activityIcon(presentation.icon)} summary={label} detail={detail}
     running={running} status={presentation.state} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed

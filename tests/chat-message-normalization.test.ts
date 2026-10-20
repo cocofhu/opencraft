@@ -38,7 +38,7 @@ test("canonical metadata has separate content, side metadata and sender ownershi
   assert.deepEqual(data.commentAttachments, []);
   assert.deepEqual(data.mcpAppModelContextAttachments, [{ id: "mcp" }]);
   assert.equal(data.sender, "server");
-  assert.deepEqual(data.__velaSourceItemIds, ["server", "previous", ""]);
+  assert.deepEqual(data.__opencraftSourceItemIds, ["server", "previous", ""]);
 });
 
 test("display work closes the leading segment while hookPrompt and local steer do not", () => {
@@ -47,15 +47,15 @@ test("display work closes the leading segment while hookPrompt and local steer d
     user("leading", text("first")), { id: "boundary", type: "steered", payload: {} },
     user("identified", text("followup"), { clientUserMessageId: "client" }), user("unidentified", text("hidden")),
   ] });
-  assert.equal(payload(result.items[2]).__velaMessageKind, "user");
-  assert.equal(payload(result.items[3]).__velaSteeringStatus, "accepted");
+  assert.equal(payload(result.items[2]).__opencraftMessageKind, "user");
+  assert.equal(payload(result.items[3]).__opencraftSteeringStatus, "accepted");
   assert.deepEqual(result.nonVisualItemIds, ["old", "boundary", "unidentified"]);
 });
 
 test("preserving server messages presents leading and redundant echoes as accepted steering", () => {
   const result = normalize({ preserveServerUserMessages: true, items: [user("leading", text("first")), { id: "marker", type: "steered", payload: {} }] });
-  assert.equal(payload(result.items[0]).__velaMessageKind, "steering");
-  assert.equal(payload(result.items[0]).__velaSteeringStatus, "accepted");
+  assert.equal(payload(result.items[0]).__opencraftMessageKind, "steering");
+  assert.equal(payload(result.items[0]).__opencraftSteeringStatus, "accepted");
   assert.deepEqual(result.nonVisualItemIds, ["marker"]);
   const redundant = normalize({ params: { clientUserMessageId: "client" }, items: [{ id: "work", type: "agentMessage", payload: {} }, user("echo", text("x"), { clientId: "client" })] });
   assert.deepEqual(redundant.nonVisualItemIds, ["echo"]);
@@ -65,7 +65,7 @@ test("local steering retains status and uses the last later acknowledgement", ()
   const result = normalize({ items: [steer("local", text("request"), { clientUserMessageId: "client", status: "pending", sender: "local", __velaSourceItemIds: ["old"] }),
     user("first", text("echo one"), { clientId: "client" }), user("last", text("echo two"), { clientId: "client", sender: "server", attachments: [{ id: "file" }] })] });
   assert.equal(result.items.length, 1);
-  assert.deepEqual(payload(result.items[0]), { input: text("request"), clientUserMessageId: "client", status: "pending", sender: "server", __velaSourceItemIds: ["local", "old", "last"], attachments: [{ id: "file" }], __velaMessageKind: "steering", serverUserMessageId: "last" });
+  assert.deepEqual(payload(result.items[0]), { input: text("request"), clientUserMessageId: "client", status: "pending", sender: "server", __opencraftSourceItemIds: ["local", "old", "last"], attachments: [{ id: "file" }], __opencraftMessageKind: "steering", serverUserMessageId: "last" });
 });
 
 test("steering matching uses local input, excludes declined rows and never merges backward", () => {
@@ -113,4 +113,36 @@ test("normalization leaves caller-owned objects and unrelated Items untouched", 
   assert.deepEqual(turn, before);
   assert.equal(result.items[1], work);
   assert.deepEqual(payload(result.items[0]).content, text("request"));
+});
+
+
+test("saved projection aliases migrate without losing identity or external fields", () => {
+  const original = user("saved", text("request"), {
+    __velaSourceItemId: "original", __velaSourceItemIds: ["historic"],
+    __velaMessageKind: "user", __velaTurnParamsMessage: false,
+    __velaSteeringStatus: "accepted", external: { kind: "opaque" },
+  });
+  const before = structuredClone(original);
+  const result = normalize({ params: { input: text("request") }, items: [original] });
+  const data = payload(result.items[0]);
+  assert.deepEqual(data.__opencraftSourceItemIds, ["saved", "historic"]);
+  assert.equal(data.__opencraftSourceItemId, "original");
+  assert.equal(data.__opencraftSteeringStatus, "accepted");
+  assert.equal(data.__opencraftTurnParamsMessage, true);
+  assert.deepEqual(data.external, { kind: "opaque" });
+  assert.equal(Object.keys(data).some(key => key.startsWith("__vela")), false);
+  assert.deepEqual(original, before);
+});
+
+test("canonical saved identities take precedence over stale aliases", () => {
+  const result = normalize({ params: { input: text("request") }, items: [user("saved", text("request"), {
+    __opencraftSourceItemIds: ["canonical"], __velaSourceItemIds: ["stale"],
+    __opencraftSourceItemId: "canonical-id", __velaSourceItemId: "stale-id",
+    __opencraftSteeringStatus: "accepted", __velaSteeringStatus: "declined",
+  })] });
+  const data = payload(result.items[0]);
+  assert.deepEqual(data.__opencraftSourceItemIds, ["saved", "canonical"]);
+  assert.equal(data.__opencraftSourceItemId, "canonical-id");
+  assert.equal(data.__opencraftSteeringStatus, "accepted");
+  assert.equal(Object.keys(data).some(key => key.startsWith("__vela")), false);
 });

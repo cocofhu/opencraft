@@ -1,5 +1,15 @@
 # 工作区不变量
 
+## Internal projection metadata identity
+
+OpenCraft message projection writes use `__opencraft*` keys. The five exact
+legacy aliases remain readable for saved snapshots; canonical values take
+precedence. Normalization removes only those legacy aliases from newly derived
+message payloads, preserves opaque fields and never mutates the saved input.
+Source identity, steering acknowledgement and native protocol parsing retain
+their existing behavior. Compound-command projections use the same canonical
+source-item key as message projections.
+
 ## Floating material ownership
 
 Shared floating surfaces consume design-system `material.web` and theme-owned

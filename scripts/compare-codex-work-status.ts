@@ -7,7 +7,7 @@ import { requireReferenceDirectory } from "./lib/reference-input";
 import {
   deriveTurnWorkStatus,
   formatWorkDuration,
-  formatCodexToolDuration,
+  formatToolDuration,
   type TimelineSourceTurn,
 } from "@opencraft/chat-core";
 
@@ -116,7 +116,7 @@ for (const locale of ["en", "zh-CN", "hu", "de", "fr"])
   ]) {
     assert.equal(formatWorkDuration(ms, locale), original.short(ms, locale));
     assert.equal(
-      formatCodexToolDuration(ms, locale),
+      formatToolDuration(ms, locale),
       original.full(ms, { locale }),
     );
     durations += 2;
