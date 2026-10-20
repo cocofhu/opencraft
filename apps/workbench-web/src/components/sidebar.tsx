@@ -307,8 +307,8 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
                 <DropdownMenu.Separator />
                 <DropdownMenu.Label className="sidebar-display-mode-label">{text("sidebar.serverFilter", "Filter by server")}</DropdownMenu.Label>
                 <DropdownMenu.RadioGroup value={serverFilter.serverId} onValueChange={writeServerFilter}>
-                  {[["", allServersLabel], ...serverOptions].map(([id, name]) => <DropdownMenu.RadioItem key={id} value={id!}>
-                    <DropdownMenu.ItemIndicator><Check size={13} aria-hidden="true" /></DropdownMenu.ItemIndicator>{name}
+                  {[["", allServersLabel], ...serverOptions].map(([id, name]) => <DropdownMenu.RadioItem className="sidebar-list-mode-item" key={id} value={id!}>
+                    <DropdownMenu.ItemIndicator className="sidebar-list-mode-indicator"><Check size={13} aria-hidden="true" /></DropdownMenu.ItemIndicator><span className="sidebar-list-mode-text">{name}</span>
                   </DropdownMenu.RadioItem>)}
                 </DropdownMenu.RadioGroup>
               </DropdownMenu.Content></DropdownMenu.Portal>

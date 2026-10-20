@@ -791,3 +791,10 @@ to authenticated watch readiness and collapsed-row mounting differences. Complet
 56-state original/corrected raw output matches; initial failures and the inherited
 legacy fixture/count failure remain recorded. It does not expand the frozen
 baseline or resolve the eight remaining source groups.
+
+
+Server-filter alignment additionally restores the existing public indicator/text
+classes in the selected replacement. The full original/prospective four-locale
+consumer results match byte for byte (16 scenes,64 menus). Downstream Bot fixed-
+time sampling and separate settled-state evidence remain distinguished, along
+with inherited render/topology smoke limits; no broad passing or rights claim.
