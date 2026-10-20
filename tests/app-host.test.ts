@@ -631,3 +631,36 @@ test("targeted frames stay inside their lease even when same-page RPC IDs collid
     assert.equal(runtimeFrames.length, 1, "retired lease reply must not reach a successor or sibling");
   } finally { await probe.close(); await runtime.close(); client.close(); connection.close(); await server.close(); }
 });
+
+test("a hung physical cleanup settles admission as manual failure while preserving its barrier", async () => {
+  const timers = new Set<() => void>(), physical: ControlledTransport[] = [];
+  const server = new AppHostServer({ lifecycleTimeoutMs: 100,
+    lifecycleClock: {setTimeout(callback) {timers.add(callback); return callback;},clearTimeout(handle) {timers.delete(handle as () => void);}},
+    createTransport: () => {const value = new ControlledTransport();value.waitForConnect = false;physical.push(value);return value;},
+  });
+  const pair = createPortPair(), connection = server.accept(pair.host,"bounded-cleanup"), client = new MessagePortAppHostClient(pair.browser,"bounded-cleanup");
+  try {
+    const first = client.createTransport("local");await first.connect();physical[0]!.waitForClose = true;
+    const closing = first.close();await new Promise(resolve=>setImmediate(resolve));
+    const second = client.createTransport("local");const pending = second.connect();
+    const failed = assert.rejects(pending, (error: any) => error.code === "APP_HOST_CLEANUP_TIMEOUT");
+    await new Promise(resolve=>setImmediate(resolve));for(const timer of [...timers]) timer();await failed;
+    assert.equal(second.status.failure?.recovery,"manual");assert.equal(physical.length,1);
+    assert.equal(server.hostState("local"),"closing");
+    physical[0]!.closeGate.resolve();await closing;await second.close();
+    const third = client.createTransport("local");await third.connect();assert.equal(physical.length,2);assert.equal(third.status.state,"open");await third.close();
+  }finally{physical[0]?.closeGate.resolve();client.close();connection.close();await server.close();}
+});
+
+test("a hung physical startup settles admission without opening a concurrent transport", async () => {
+  const timers = new Set<() => void>(), physical: ControlledTransport[] = [];
+  const server = new AppHostServer({physicalHostLifetime:"server",lifecycleClock:{setTimeout(callback){timers.add(callback);return callback;},clearTimeout(handle){timers.delete(handle as () => void);}},
+    createTransport:()=>{const value=new ControlledTransport();physical.push(value);return value;}});
+  const pair=createPortPair(),connection=server.accept(pair.host,"bounded-start"),client=new MessagePortAppHostClient(pair.browser,"bounded-start");
+  try {
+    const channel=client.createTransport("local"),pending=channel.connect();const rejected=assert.rejects(pending,(error:any)=>error.code==='APP_HOST_START_TIMEOUT');
+    await new Promise(resolve=>setImmediate(resolve));for(const timer of [...timers])timer();await rejected;
+    assert.equal(channel.status.failure?.recovery,"manual");assert.equal(physical.length,1);
+    physical[0]!.connectGate.resolve();await new Promise(resolve=>setImmediate(resolve));assert.notEqual(server.hostState('local'),'open','late startup has no admitted claim');await channel.close();
+  }finally{physical[0]?.connectGate.resolve();client.close();connection.close();await server.close();}
+});

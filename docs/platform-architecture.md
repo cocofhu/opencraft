@@ -3142,3 +3142,10 @@ retain their physical serial lane; timeout does not cancel them. A late cache
 completion cannot publish or reenable writes. clear still rejects when completion
 cannot be established. Source protocol and authority-storage errors remain errors;
 this policy never skips an authority transaction or replays a mutation.
+
+Physical AppHost startup, close and reset barriers remain serialized. Their callers
+have a thirty-second admission deadline: expiration returns a classified manual
+failure instead of an endless reconnect, without releasing the physical barrier
+or starting a competing generation. After the dependency actually settles, an
+explicit retry can be admitted normally. This is bounded failure, not a claim
+that an unavailable external process has recovered.
