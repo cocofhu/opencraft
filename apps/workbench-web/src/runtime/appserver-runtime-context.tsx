@@ -907,7 +907,7 @@ export function useComposerCatalog(
     readonly model: string;
     readonly effort: string | null;
   }, hostId: string = snapshot.hostId) => {
-    if (!runtimeHostConfiguration
+    if (!runtimeHostConfiguration || threadId !== null
       || readAccountScope() !== accountScope
       || application.displayContinuity.getScope() !== displayScope) return;
     if (personalDefaults.authoritative) {
@@ -917,7 +917,7 @@ export function useComposerCatalog(
     // Standalone clients without an account authority retain installation memory.
     // Personal selections never mutate shared Host configuration.
     void rememberModelSelection(preferences, { displayScope, accountScope, hostId }, next).catch(() => undefined);
-  }, [runtimeHostConfiguration, accountScope, readAccountScope, displayScope, application, preferences, snapshot.hostId, personalDefaults.authoritative, personalDefaults.remember]);
+  }, [runtimeHostConfiguration, threadId, accountScope, readAccountScope, displayScope, application, preferences, snapshot.hostId, personalDefaults.authoritative, personalDefaults.remember]);
   const catalogActions = useMemo(() => ({
     onModelMenuOpen: () => {
       if (!enabled) return;
@@ -964,7 +964,8 @@ export function useComposerCatalog(
     newThreadDefaults: rememberedSelection ?? (defaults.data?.supported === true
       ? { model: defaults.data.model, effort: defaults.data.effort }
       : null),
-    rememberModelDefaults: runtimeHostConfiguration
+    // Historical conversation edits belong only to their existing Composer.
+    rememberModelDefaults: runtimeHostConfiguration && threadId === null
       ? rememberModelDefaults
       : undefined,
     ...catalogActions,
