@@ -108,8 +108,8 @@
   "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
   "rangeUnit": "TypeScript UTF-16 text offsets",
   "currentReplacement": {
-    "moduleSha256": "193fd9f903a41108578dabf29ccf84179922bc8b5cd8ecb765e4b8c277777ed2",
-    "selectedDeclarationSha256": "6205ab67ebf528450490865a8441c3318e51c8d8b1b60250f73258f4ac3ade35",
+    "moduleSha256": "f4fb6a7d7892f435ec5b02f091218b69049cefda25061a703c2ab45f38358543",
+    "selectedDeclarationSha256": "6db0ef6fed0958a316756fccde122aff4c85eaa4d06a413db9042433a854b0f7",
     "outsideBoundary": {
       "unchangedExceptHistoricalHeaderClarification": true,
       "retainedDeclarations": [
@@ -135,7 +135,35 @@
       "supplementalSettled48RawByteEqual": true,
       "supplementalAuthoredAfterReplacement": true,
       "settledRawOutputSha256": "03a9d64ca75420c47e9c300ea8866b169ee741ab99ba908426eb79e5cfd8c146",
-      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate."
+      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate.",
+      "postAuthoringParticipationNavigation": {
+        "states": 24,
+        "scenes": 4,
+        "rawByteEqual": true,
+        "rawOutputSha256": "b4ed54efb735a398352bb09747f7a97eaa0dd6f4f98df1b635dccac2c722bbf2",
+        "observerSha256": "a50df2c08fd89cbac7f9d8841287470c081de697721297450d0fd10a14b7f21d",
+        "coverage": [
+          "Absent or unspecified participation method preserves unread",
+          "Explicit false suppresses unread; personal filter state does not determine participation",
+          "Six rendered navigation items each retain one28pxleading slot"
+        ],
+        "timing": "Supplement authored after initial replacement, not part of the216-state frozen baseline"
+      },
+      "postAuthoringRealCreator": {
+        "states": 56,
+        "scenes": 4,
+        "rawByteEqual": true,
+        "rawOutputSha256": "0eaff8914467710462485aa3410a9bcc21e5e339207f5bdd8301abd3d687bd3d",
+        "observerSha256": "0fc136451fe4a867b6e33190eeb9afaf3c56e8ed0cd1ec0ce86588b8c19bcb91",
+        "coverage": [
+          "Anonymous to authenticated watch acquisition",
+          "Personal filter pending/error/ready recovery",
+          "Creator grouping collapse/reopen",
+          "Account preference isolation and restoration",
+          "Cross-Host equal Thread IDs"
+        ],
+        "timing": "Post-authoring actual downstream provider with synthetic RPC/identity; not part of frozen216 states"
+      }
     },
     "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."
   }

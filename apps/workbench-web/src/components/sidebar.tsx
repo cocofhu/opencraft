@@ -179,7 +179,20 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const references = useMemo(() => threads.map(thread => ({
     hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
   })), [threads]);
-  useEffect(() => threadListGrouping?.watch(references), [threadListGrouping, references]);
+  const groupingWatch = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    // A contribution can become ready without changing identity. Acquire its
+    // current watch before releasing the previous lease so metadata updates do
+    // not briefly drop the last subscriber or cancel an in-flight read.
+    const next = threadListGrouping?.watch(references);
+    const previous = groupingWatch.current;
+    groupingWatch.current = next;
+    previous?.();
+  }, [threadListGrouping, references, grouping.revision]);
+  useEffect(() => () => {
+    groupingWatch.current?.();
+    groupingWatch.current = undefined;
+  }, []);
   useEffect(() => () => menus.close(), [menus]);
   useEffect(() => { menus.close(); }, [menus, activeHostId, activeThreadId, pendingHostId, pendingThreadId, grouping.mode, grouping.hideRowBadge]);
 
@@ -226,18 +239,20 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
       store={menus} contribution={threadBadge} hostId={thread.connectionHostId} threadId={thread.id}
       portalContainer={presentationRoot} onOpenChange={open => changeOverlay("badge", open)}
-      onCloseAutoFocus={event => event.preventDefault()}
+      onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}
     /> : null;
     const metadata = sidebarActivityMetadata(thread);
     return <SidebarThreadRowMenu key={identity(thread)} store={menus} target={target} owner={actionOwner}
       capabilities={capabilities} disabled={disabled} activityLabelId={activityId}
       contextMenuExtra={threadListGrouping ? modeItems("context") : undefined}
       onOpenMenuChange={(kind, open) => changeOverlay(kind, open)}
-      onCloseAutoFocus={event => event.preventDefault()}>
+      onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
       <SidebarActivityItem activityId={activityId} active={active} selected={selected} pending={pending}
         disabled={disabled} title={title} project={metadata.project}
         tooltip={[title, metadata.project, thread.connectionHostLabel, thread.id].join(" · ")}
-        status={thread.status} unread={thread.unread ?? false} goalActive={thread.goalActive}
+        status={thread.status} unread={Boolean(thread.unread) && (threadListGrouping?.isParticipant?.({
+          hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
+        }) ?? true)} goalActive={thread.goalActive}
         schedule={thread.schedule} twoLine={attention} badge={badge} badgePlacement={threadBadge?.placement}
         onInvoke={() => dismissAfter(() => onSelectThread(thread.connectionHostId, thread.id))} />
     </SidebarThreadRowMenu>;
@@ -311,7 +326,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
                 <span className="sidebar-thread-group-label">{label(group.label)}</span><ChevronDown size={12} className={group.collapsed ? "is-collapsed" : undefined} />
               </button></h3>
               <div className="sidebar-activity-group__items" hidden={group.collapsed}>
-                {group.threads.map(ref => { const thread = matchingById.get(JSON.stringify([ref.hostId, ref.threadId])); return thread ? renderThread(thread) : null; })}
+                {!group.collapsed && group.threads.map(ref => { const thread = matchingById.get(JSON.stringify([ref.hostId, ref.threadId])); return thread ? renderThread(thread) : null; })}
               </div>
             </section>) : <>
               {renderFlowSection("attention", text("sidebar.flow.attention", "Needs your attention"), taskFlow.attention)}
