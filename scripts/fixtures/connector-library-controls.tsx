@@ -9,7 +9,7 @@ import { ConnectorLibrary } from "../../apps/workbench-web/src/components/connec
 import { useConnectorPresentation } from "../../apps/workbench-web/src/components/connectors/connector-panel";
 import { ModalHost } from "../../apps/workbench-web/src/components/modal/modal-host";
 import { createComposerController } from "@opencraft/composer-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { initializeAppearanceTheme, setThemePreference } from "../../apps/workbench-web/src/appearance-theme";
 import "../../apps/workbench-web/src/styles/app.scss";
 
@@ -29,7 +29,7 @@ Object.assign(window, { connectorProbe: probe }); initializeAppearanceTheme();
 function App() {
   const presentation = useConnectorPresentation(manager, approvals, { hostId, scopeId }, () => undefined);
   return <main style={{ padding: 24, height: "100dvh", overflowY: "auto", background: "var(--color-background-surface)" }}>
-    <div style={{ width: "min(720px, 100%)", marginBottom: 24 }}><CodexComposer controller={composer} isStreaming={false}
+    <div style={{ width: "min(720px, 100%)", marginBottom: 24 }}><OpenCraftComposer controller={composer} isStreaming={false}
       addMenuContent={presentation.addMenuContent} endActions={presentation.launcher}
       selectionCatalog={{ models: [], permissionProfiles: [] }} onSubmit={async () => {}} onCancel={() => {}} /></div>
     <ConnectorLibrary hostId={hostId} manager={manager} /><ModalHost requests={presentation.requests} />

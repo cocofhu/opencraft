@@ -21,16 +21,16 @@ try {
   const inline=!desktop&&!test.ordinary&&!test.reduce;
   page.setDefaultNavigationTimeout(90000);
   await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${test.theme}${inline?"&inline&toolbar":""}${desktop?"&desktop":""}${test.ordinary?"&ordinary":""}${before?"&legacyHeader":""}`);
-  const editor=page.locator(".codex-composer-editor"),shell=page.locator(".codex-composer-shell");
+  const editor=page.locator(".opencraft-composer-editor"),shell=page.locator(".opencraft-composer-shell");
   await editor.waitFor();await page.waitForTimeout(250);
   await editor.evaluate(el=>{(window as any).keptEditor=el;(el as HTMLElement).blur();});
   await page.waitForTimeout(100);
   const initial=(await shell.boundingBox())!;
   if(inline){
-    assert(!(await page.locator('.codex-composer-mode--depth').isVisible()),'idle row hides model entrance');
+    assert(!(await page.locator('.opencraft-composer-mode--depth').isVisible()),'idle row hides model entrance');
     const geometry=await shell.evaluate(el=>{
       const box=el.getBoundingClientRect();
-      const children=['.codex-composer-input-row','.codex-composer-footer__attachment','.codex-composer-footer__end'].map(selector=>{const r=el.querySelector(selector)!.getBoundingClientRect();return {selector,x:r.x,right:r.right,center:r.y+r.height/2};});
+      const children=['.opencraft-composer-input-row','.opencraft-composer-footer__attachment','.opencraft-composer-footer__end'].map(selector=>{const r=el.querySelector(selector)!.getBoundingClientRect();return {selector,x:r.x,right:r.right,center:r.y+r.height/2};});
       return {box:box.toJSON(),children};
     });
     assert(geometry.box.height<=70,'idle Composer remains one row');
@@ -38,7 +38,7 @@ try {
     assert(geometry.children.every(x=>x.x>=geometry.box.x&&x.right<=geometry.box.right),'idle row stays inside shell');
     // Fast status remains visible without bringing back a model button.
     await page.evaluate(()=>(window as any).fixture.controller.dispatch({type:'set-selections',patch:{serviceTier:'fast'}}));
-    await page.locator('.codex-composer-collapsed-fast').waitFor({state:'visible'});
+    await page.locator('.opencraft-composer-collapsed-fast').waitFor({state:'visible'});
     assert.equal((await shell.boundingBox())!.height,initial.height,'Fast status cannot expand idle row');
     await page.screenshot({path:`${output}/${label}-collapsed.png`});
   }
@@ -50,33 +50,33 @@ try {
     assert(focused.height>initial.height,'entering editor expands before typing');
     assert(focused.height<=115,'expanded empty input cannot reserve blank lines');
     assert((await editor.boundingBox())!.height<32,'expanded empty editor is one text line');
-    assert(!(await page.locator('.codex-composer-collapsed-fast').isVisible()),'expanded row uses existing model Fast status');
+    assert(!(await page.locator('.opencraft-composer-collapsed-fast').isVisible()),'expanded row uses existing model Fast status');
   }else assert.equal(focused.height,initial.height,`${label}: stacked/desktop focus geometry`);
-  assert(await page.locator(".codex-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
+  assert(await page.locator(".opencraft-composer-mode--depth").isVisible(),`${label}: model/depth entry remains available in empty Composer`);
   if(inline&&test.width>=390){
-    const budget = await page.locator('.codex-composer-footer').evaluate(el => ({
+    const budget = await page.locator('.opencraft-composer-footer').evaluate(el => ({
       density: (el as HTMLElement).dataset.footerDensity, width: el.clientWidth,
-      children: Array.from(el.querySelectorAll('.codex-composer-footer__attachment,.codex-composer-footer__end,.codex-composer-mode--intelligence,.codex-composer-mode--permissions')).map(n => ({class:n.className,width:(n as HTMLElement).offsetWidth,scroll:n.scrollWidth,display:getComputedStyle(n).display})),
+      children: Array.from(el.querySelectorAll('.opencraft-composer-footer__attachment,.opencraft-composer-footer__end,.opencraft-composer-mode--intelligence,.opencraft-composer-mode--permissions')).map(n => ({class:n.className,width:(n as HTMLElement).offsetWidth,scroll:n.scrollWidth,display:getComputedStyle(n).display})),
     }));
-    assert(await page.locator('.codex-composer-mode--depth .codex-composer-mode__model-label').isVisible(),JSON.stringify(budget));
-    assert(await page.locator('.codex-composer-mode--depth .codex-composer-mode__effort-label').isVisible(),'expanded depth text is visible');
+    assert(await page.locator('.opencraft-composer-mode--depth .opencraft-composer-mode__model-label').isVisible(),JSON.stringify(budget));
+    assert(await page.locator('.opencraft-composer-mode--depth .opencraft-composer-mode__effort-label').isVisible(),'expanded depth text is visible');
   }
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
   if(inline){
-    const trigger=page.locator('.codex-composer-mode--depth');await trigger.tap();
-    const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
+    const trigger=page.locator('.opencraft-composer-mode--depth');await trigger.tap();
+    const menu=page.locator('.opencraft-composer-model-quick');await menu.waitFor();
     await menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true}).tap();
     await menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true}).tap();
     await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
     assert.equal((await shell.boundingBox())!.height,focused.height,'empty editing Fast toggle keeps expanded geometry');
-    assert(await trigger.locator('.codex-composer-mode__fast').isVisible(),'empty row projects enabled Fast');
+    assert(await trigger.locator('.opencraft-composer-mode__fast').isVisible(),'empty row projects enabled Fast');
     assert(await editor.evaluate(el=>el===(window as any).keptEditor),'empty menu keeps editor identity');
     await page.screenshot({path:`${output}/${label}-empty.png`});
   }
   const assertEmptyCaretOrigin=async()=>{
     const geometry=await editor.evaluate(el=>{
       const selection=getSelection()!,native=selection.getRangeAt(0);
-      const paragraph=el.querySelector('.codex-composer-placeholder')!;
+      const paragraph=el.querySelector('.opencraft-composer-placeholder')!;
       const box=paragraph.getBoundingClientRect(),style=getComputedStyle(paragraph);
       // Chromium exposes an empty line through its BR box when a collapsed
       // native Range has no rectangle. This probe never changes Selection/DOM.
@@ -111,16 +111,16 @@ try {
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
    if(inline){
-    const trigger=page.locator('.codex-composer-mode--depth');await trigger.tap();
-    const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
+    const trigger=page.locator('.opencraft-composer-mode--depth');await trigger.tap();
+    const menu=page.locator('.opencraft-composer-model-quick');await menu.waitFor();
     const fast=menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true});await fast.tap();
-    assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),await fast.getAttribute('aria-checked')==='true'?1:0);
+    assert.equal(await trigger.locator('.opencraft-composer-mode__fast').count(),await fast.getAttribute('aria-checked')==='true'?1:0);
     const control=menu.locator('.ui-discrete-slider__control'),box=(await control.boundingBox())!;
     await control.tap({position:{x:box.width-2,y:box.height/2}});
     await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
     assert(await editor.evaluate(el=>el===document.activeElement),'keyboard plus depth/Fast preserves native editing focus');
    }
-   const send=page.locator(".codex-composer-submit");const visible=(await send.boundingBox())!;
+   const send=page.locator(".opencraft-composer-submit");const visible=(await send.boundingBox())!;
    assert(visible.y>=top&&visible.y+visible.height<=top+height+1,`${label}: send clipped ${JSON.stringify({height,top,visible})}`);
    assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible,selection:await assertNativeSelection()});
   }
@@ -133,17 +133,17 @@ try {
      await page.screenshot({path:`${output}/${label}-attachment-only.png`});
     }
    await editor.fill(Array.from({length:18},(_,i)=>`草稿第${i}行`).join("\n"));await page.waitForTimeout(200);
-   const visible=(await page.locator(".codex-composer-submit").boundingBox())!;
+   const visible=(await page.locator(".opencraft-composer-submit").boundingBox())!;
    assert(visible.y>=54&&visible.y+visible.height<=414,`${label}: attachment/long draft send clipped ${JSON.stringify(visible)}`);
    assert(await editor.evaluate(el=>el===(window as any).keptEditor));
    if(test.width===390&&!test.ordinary&&!test.reduce)await page.screenshot({path:`${output}/${label}-keyboard-attachment.png`});
    await page.evaluate(()=>{(window as any).fixture.controller.dispatch({type:"remove-attachment",id:"image"});(window as any).setViewport(844,0);});await page.waitForTimeout(150);
   }
-  await editor.focus();await editor.press("ControlOrMeta+A");await editor.press("Backspace");await page.waitForFunction(()=>document.querySelector<HTMLElement>(".codex-composer-stack")?.dataset.composerEmpty==="true");await page.waitForTimeout(150);assert.equal((await shell.boundingBox())!.height,focused.height,JSON.stringify({initial,focused,final:await shell.boundingBox(),parts:await shell.evaluate(el=>Array.from(el.children).map(c=>({class:c.className,box:c.getBoundingClientRect().toJSON()})))}));
+  await editor.focus();await editor.press("ControlOrMeta+A");await editor.press("Backspace");await page.waitForFunction(()=>document.querySelector<HTMLElement>(".opencraft-composer-stack")?.dataset.composerEmpty==="true");await page.waitForTimeout(150);assert.equal((await shell.boundingBox())!.height,focused.height,JSON.stringify({initial,focused,final:await shell.boundingBox(),parts:await shell.evaluate(el=>Array.from(el.children).map(c=>({class:c.className,box:c.getBoundingClientRect().toJSON()})))}));
   // Delete the last character with the keyboard raised, rather than fill('').
   await page.evaluate(()=>(window as any).setViewport(360,54));
   await editor.pressSequentially('删空');await editor.press('Backspace');await editor.press('Backspace');
-  await page.waitForFunction(()=>document.querySelector<HTMLElement>('.codex-composer-stack')?.dataset.composerEmpty==='true');
+  await page.waitForFunction(()=>document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEmpty==='true');
   emptyCaretEvidence.push(await assertEmptyCaretOrigin());
   assert(await editor.evaluate(el=>el===(window as any).keptEditor),'deleting to empty keeps editor identity');
   await page.evaluate(()=>(window as any).setViewport(844,0));
@@ -152,9 +152,9 @@ try {
     await page.screenshot({path:`${output}/${label}-expanded-empty.png`});
     // Keyboard entry into a portal may move focus; its close returns to the
     // same footer without collapsing the active editing session.
-    const trigger=page.locator('.codex-composer-mode--depth');
+    const trigger=page.locator('.opencraft-composer-mode--depth');
     await trigger.focus();await trigger.press('Enter');
-    const menu=page.locator('.codex-composer-model-quick');await menu.waitFor();
+    const menu=page.locator('.opencraft-composer-model-quick');await menu.waitFor();
     await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});await page.waitForTimeout(100);
     assert.equal((await shell.boundingBox())!.height,focused.height,'menu close retains Composer focus session');
     // Leaving the complete Composer ends empty editing, not the last deletion.

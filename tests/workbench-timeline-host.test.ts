@@ -373,7 +373,7 @@ const builtinPanelSource = readFileSync(
   "utf8",
 );
 const composerSource = readFileSync(
-  new URL("../packages/codex-composer/src/codex-composer.tsx", import.meta.url),
+  new URL("../packages/composer-editor/src/composer-editor.tsx", import.meta.url),
   "utf8",
 );
 test("theme bootstrap is owned by the application root, not a removable header control", () => {
@@ -549,12 +549,12 @@ test("light primary action hover remains an opaque inverted surface", () => {
   assert.notEqual(hover, lightTheme["--color-text-button-primary"]);
   assert.match(
     workbenchStyles,
-    /\.codex-composer-submit\s*\{[\s\S]*?&:not\(:disabled\):not\(\.is-stop\):hover\s*\{[^}]*var\(--color-background-button-primary-hover\)[\s\S]*?&\.is-stop:not\(:disabled\):hover\s*\{[^}]*var\(--color-background-button-secondary-hover\)/u,
+    /\.opencraft-composer-submit\s*\{[\s\S]*?&:not\(:disabled\):not\(\.is-stop\):hover\s*\{[^}]*var\(--color-background-button-primary-hover\)[\s\S]*?&\.is-stop:not\(:disabled\):hover\s*\{[^}]*var\(--color-background-button-secondary-hover\)/u,
   );
 });
 
 test("Composer material does not encode editor focus", () => {
-  const shellStart = workbenchStyles.indexOf(".codex-composer-shell {");
+  const shellStart = workbenchStyles.indexOf(".opencraft-composer-shell {");
   const shellEnd = workbenchStyles.indexOf("@supports not", shellStart);
 
   assert.notEqual(shellStart, -1);
@@ -564,8 +564,8 @@ test("Composer material does not encode editor focus", () => {
   assert.doesNotMatch(shellRules, /:focus-within|:hover/u);
   assert.doesNotMatch(shellRules, /transition\s*:/u);
   assert.match(shellRules, /box-shadow\s*:/u);
-  assert.match(workbenchStyles, /\.codex-composer-editor\s*\{[^}]*outline:\s*none/u);
-  assert.match(workbenchStyles, /\.codex-composer-submit\s*\{[\s\S]*?&:focus-visible/u);
+  assert.match(workbenchStyles, /\.opencraft-composer-editor\s*\{[^}]*outline:\s*none/u);
+  assert.match(workbenchStyles, /\.opencraft-composer-submit\s*\{[\s\S]*?&:focus-visible/u);
 });
 
 test("renderer measurement requests are generation fenced before Web layout work", () => {
@@ -765,7 +765,7 @@ test("Composer menus live in the root overlay plane with Codex viewport constrai
   );
   assert.match(
     workbenchStyles,
-    /\.codex-composer-selection-menu\s*\{[^}]*@include menu\.surface/u,
+    /\.opencraft-composer-selection-menu\s*\{[^}]*@include menu\.surface/u,
   );
   assert.match(workbenchStyles, /\.right-panel-creation-menu\s*\{[^}]*@include menu\.surface/u);
   const menuStyles = readFileSync(new URL("../packages/design-system/src/menu.web.scss", import.meta.url), "utf8");
@@ -775,14 +775,14 @@ test("Composer menus live in the root overlay plane with Codex viewport constrai
   assert.match(menuStyles, /font: var\(--typography-control-compact-font\)/);
   assert.doesNotMatch(
     workbenchStyles,
-    /\.codex-composer-selection-menu\s*\{[^}]*position:\s*absolute/u,
+    /\.opencraft-composer-selection-menu\s*\{[^}]*position:\s*absolute/u,
   );
   assert.match(
     composerSource,
-    /codex-composer-selection-menu__trailing[\s\S]*?<Check size=\{16\}/u,
+    /opencraft-composer-selection-menu__trailing[\s\S]*?<Check size=\{16\}/u,
   );
   assert.match(composerSource, /const permissionsLabel = intl\.formatMessage\(\{ id: "composer\.permissions", defaultMessage: "Permissions" \}\)/u);
-  assert.match(composerSource, /className="codex-composer-selection-menu codex-composer-selection-menu--permissions"\s+aria-label=\{permissionsLabel\}/u);
+  assert.match(composerSource, /className="opencraft-composer-selection-menu opencraft-composer-selection-menu--permissions"\s+aria-label=\{permissionsLabel\}/u);
   assert.doesNotMatch(composerSource, /How should OpenCraft actions be approved\?/u);
   assert.match(
     workbenchStyles,
@@ -796,15 +796,15 @@ test("Composer menus live in the root overlay plane with Codex viewport constrai
   assert.doesNotMatch(composerSource, /openPicker === "(?:model|effort)"/u);
   assert.match(
     workbenchStyles,
-    /\.codex-composer-footer__attachment,[\s\S]{0,120}?\.codex-composer-footer__end\s*\{[\s\S]{0,120}?flex:\s*0 0 auto/u,
+    /\.opencraft-composer-footer__attachment,[\s\S]{0,120}?\.opencraft-composer-footer__end\s*\{[\s\S]{0,120}?flex:\s*0 0 auto/u,
   );
   assert.match(
     workbenchStyles,
-    /\.codex-composer-mode__model-label\s*\{[\s\S]{0,120}?flex:\s*1 1 auto/u,
+    /\.opencraft-composer-mode__model-label\s*\{[\s\S]{0,120}?flex:\s*1 1 auto/u,
   );
   assert.doesNotMatch(
     workbenchStyles,
-    /codex-composer-selection-menu__item\.is-selected/u,
+    /opencraft-composer-selection-menu__item\.is-selected/u,
   );
 });
 
@@ -812,11 +812,11 @@ test("Composer intelligence keeps model and reasoning in one catalog-owned menu"
   assert.doesNotMatch(composerSource, /<DropdownMenu\.Sub(?:Trigger|Content)/u);
   assert.match(
     composerSource,
-    /codex-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.model" defaultMessage="Model"/u,
+    /opencraft-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.model" defaultMessage="Model"/u,
   );
   assert.match(
     composerSource,
-    /codex-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.reasoning" defaultMessage="Reasoning"/u,
+    /opencraft-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.reasoning" defaultMessage="Reasoning"/u,
   );
   assert.doesNotMatch(composerSource, /Power presets|>\s*Advanced\s*</u);
   assert.doesNotMatch(
@@ -825,8 +825,8 @@ test("Composer intelligence keeps model and reasoning in one catalog-owned menu"
     // shared discrete slider, still fed by the model's catalog-owned efforts.
     /buildPowerOptions|powerPreviewId/u,
   );
-  assert.doesNotMatch(workbenchStyles, /\.codex-composer-power-track\s*\{/u);
-  assert.doesNotMatch(workbenchStyles, /codex-composer-selection-menu__item--field/u);
+  assert.doesNotMatch(workbenchStyles, /\.opencraft-composer-power-track\s*\{/u);
+  assert.doesNotMatch(workbenchStyles, /opencraft-composer-selection-menu__item--field/u);
   assert.match(
     composerModelCatalogSource,
     /function reasoningEffortLabel\(value: string\)/u,

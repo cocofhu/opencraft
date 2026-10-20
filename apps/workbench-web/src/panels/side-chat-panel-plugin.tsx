@@ -1,6 +1,6 @@
 import type { Context } from "@deepseek-ai/cordis";
 import { useState, useSyncExternalStore } from "react";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createInteractionResponse, type ConversationBindingStore, type ConversationScopeId, type SideChatService, type SideChatSession } from "@opencraft/workbench-runtime";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { Conversation } from "../components/conversation";
@@ -23,7 +23,7 @@ function SideChatContent({ session, service }: { session: SideChatSession; servi
       onLoadOlder={snapshot.history.hasOlder ? () => session.lease.loadOlder() : undefined}
       footer={<div className="thread-composer-region">
         {error ? <p role="alert">{error}</p> : null}
-        <CodexComposer controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} submissionDisabled={!snapshot.authoritative}
+        <OpenCraftComposer controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} submissionDisabled={!snapshot.authoritative}
           effectiveSelections={{ model: snapshot.execution.model, effort: snapshot.execution.effort, permissionProfile: snapshot.execution.permissionProfile }}
           onSubmit={(intent, context) => {
             setError(null);

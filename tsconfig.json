@@ -36,7 +36,7 @@
     { "path": "./packages/chat-runtime" },
     { "path": "./packages/composer-core" },
     { "path": "./packages/composer-appserver" },
-    { "path": "./packages/codex-composer" },
+    { "path": "./packages/composer-editor" },
     { "path": "./packages/design-system" },
     { "path": "./packages/react-runtime" },
     { "path": "./packages/timeline-render-react" },

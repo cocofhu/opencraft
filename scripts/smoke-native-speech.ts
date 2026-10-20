@@ -33,7 +33,7 @@ try {
   await desktop.close(); desktop = undefined;
   page = await launch(true);
   console.log("SYNTHETIC_DESKTOP_READY");
-  await page.waitForFunction(() => document.querySelector(".codex-composer-mode__model-label")?.textContent?.trim() === "Model");
+  await page.waitForFunction(() => document.querySelector(".opencraft-composer-mode__model-label")?.textContent?.trim() === "Model");
   const voice = page.locator(".opencraft-voice-input-action");
   const microphone = voice;
   const cancel = page.getByRole("button", { name: "取消语音输入", exact: true });
@@ -41,7 +41,7 @@ try {
   const original = "Existing typed text. ";
   await editor.fill(original);
   await microphone.click();
-  await page.locator('.codex-composer-voice-footer[data-voice-phase="listening"]').waitFor();
+  await page.locator('.opencraft-composer-voice-footer[data-voice-phase="listening"]').waitFor();
   assert.equal(await editor.textContent(), original);
   assert.equal(await page.locator("[data-transient-text]").count(), 0);
   assert.equal(await editor.getAttribute("contenteditable"), "false");
@@ -51,12 +51,12 @@ try {
   const committed = original + "Native fixture transcript";
   assert.equal(await editor.textContent(), committed);
   await microphone.click();
-  await page.locator('.codex-composer-voice-footer[data-voice-phase="listening"]').waitFor();
+  await page.locator('.opencraft-composer-voice-footer[data-voice-phase="listening"]').waitFor();
   assert.equal(await editor.textContent(), committed);
   await cancel.click();
   assert.equal(await editor.textContent(), committed);
   await microphone.click();
-  await page.locator('.codex-composer-voice-footer[data-voice-phase="listening"]').waitFor();
+  await page.locator('.opencraft-composer-voice-footer[data-voice-phase="listening"]').waitFor();
   assert.equal(await editor.textContent(), committed);
   await page.getByRole("button", { name: "New chat", exact: true }).first().click();
   await page.waitForFunction(() => !document.querySelector(".ProseMirror")?.textContent?.includes("Native fixture transcript")

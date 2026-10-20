@@ -39,37 +39,37 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
   const fastEnabled = !!fast && serviceTier === fast.id;
   const triggerLabel = fastEnabled ? `${fullLabel} · ${fast.name}` : fullLabel;
   const title = (current?: string) => (
-<div className="codex-composer-model-quick__header">
-    <DropdownMenu.Item className="codex-composer-model-quick__title" onSelect={event => { event.preventDefault(); setModelsOpen(true); }}
+<div className="opencraft-composer-model-quick__header">
+    <DropdownMenu.Item className="opencraft-composer-model-quick__title" onSelect={event => { event.preventDefault(); setModelsOpen(true); }}
       onKeyDown={event => {
         if (event.key === "ArrowDown" && efforts.length > 1) {
           event.preventDefault(); event.stopPropagation();
           quick.current?.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
         }
       }}>
-            <span>{label} {current ? <span className="codex-composer-model-quick__effort">{current}</span> : null}</span>
+            <span>{label} {current ? <span className="opencraft-composer-model-quick__effort">{current}</span> : null}</span>
             <ChevronRight size={18} aria-hidden="true" />
           </DropdownMenu.Item>
-  {fast ? <DropdownMenu.CheckboxItem className="codex-composer-model-quick__fast" aria-label={fast.name} title={fast.description || fast.name}
+  {fast ? <DropdownMenu.CheckboxItem className="opencraft-composer-model-quick__fast" aria-label={fast.name} title={fast.description || fast.name}
     checked={fastEnabled} onSelect={event => event.preventDefault()} onCheckedChange={checked => onServiceTierChange(checked ? fast.id : null)}>
     <Zap size={20} fill={fastEnabled ? "currentColor" : "none"} aria-hidden="true" />
   </DropdownMenu.CheckboxItem> : null}</div>
   );
   return <>
     <DropdownMenu.Root modal={false} open={open} onOpenChange={next => { if (!next) setModelsOpen(false); onOpenChange(next); }}>
-      <div className="codex-composer-picker codex-composer-picker--intelligence">
+      <div className="opencraft-composer-picker opencraft-composer-picker--intelligence">
         <DropdownMenu.Trigger asChild>
-          <button {...focus.triggerProps} className="codex-composer-mode codex-composer-mode--intelligence codex-composer-mode--depth"
+          <button {...focus.triggerProps} className="opencraft-composer-mode opencraft-composer-mode--intelligence opencraft-composer-mode--depth"
             type="button" disabled={disabled} aria-label={triggerLabel} title={triggerLabel}>
-            <BrainCircuit className="codex-composer-mode__model-icon" size={16} aria-hidden="true" />
-            <span className="codex-composer-mode__model-label">{label}</span>
-            {effortLabel ? <span className="codex-composer-mode__effort-label">{effortLabel}</span> : null}
-            {fastEnabled ? <Zap className="codex-composer-mode__fast" size={14} fill="currentColor" aria-label={fast.name} /> : null}
+            <BrainCircuit className="opencraft-composer-mode__model-icon" size={16} aria-hidden="true" />
+            <span className="opencraft-composer-mode__model-label">{label}</span>
+            {effortLabel ? <span className="opencraft-composer-mode__effort-label">{effortLabel}</span> : null}
+            {fastEnabled ? <Zap className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label={fast.name} /> : null}
           </button>
         </DropdownMenu.Trigger>
       </div>
       <DropdownMenu.Portal container={portalContainer}>
-        <DropdownMenu.Content {...focus.contentProps} ref={node => { quick.current = node; focus.contentProps.ref(node); }} className={modelsOpen ? "codex-composer-selection-menu codex-composer-selection-menu--model-select" : "codex-composer-model-quick"} aria-label={modelsOpen ? modelLabel : fullLabel}
+        <DropdownMenu.Content {...focus.contentProps} ref={node => { quick.current = node; focus.contentProps.ref(node); }} className={modelsOpen ? "opencraft-composer-selection-menu opencraft-composer-selection-menu--model-select" : "opencraft-composer-model-quick"} aria-label={modelsOpen ? modelLabel : fullLabel}
           side="top" align="center" sideOffset={12} collisionPadding={12}>
           {modelsOpen ? children : efforts.length ? <div role="group" aria-label={reasoningLabel}>
               <DiscreteSlider key={JSON.stringify(efforts.map(option => option.value))} appearance="capsule"

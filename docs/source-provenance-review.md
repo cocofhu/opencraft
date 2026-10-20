@@ -1,5 +1,15 @@
 # Source provenance review
 
+## Bounded sidebar policy replacement (2026-10-20)
+
+The [three historically restored policy declarations](provenance/sidebar-policy-replacement.md)
+are independently replaced after frozen requirements and complete public/Shell/
+mobile baseline observations. The later hover/toggle functions, types, constants
+and all neighboring bytes stay unchanged. All 4,408 full outputs match; historical
+annotations, hashes and actual author exposure remain recorded. Eight inventory
+groups remain unresolved. This does not establish strict isolation, historical
+rights, native hardware acceptance or release readiness.
+
 ## Floating sidebar presentation replacement (2026-10-20)
 
 Both [explicitly restored container components](provenance/floating-sidebar-replacement.md)
@@ -751,3 +761,40 @@ No exact reference source binding was found in this bounded pass. This is not a
 whole-module copying finding, historical-rights clearance or strict author
 isolation. All eight unresolved inventory groups remain open; behavior-only
 references and ordinary protocol/compatibility data are not blanket rewrite targets.
+
+
+## Bounded Sidebar content projection (2026-10-20)
+
+Only the exported memoized Sidebar declaration has an
+[independent replacement record](provenance/sidebar-content-replacement.md).
+The [baseline](provenance/sidebar-content-baseline.json) retains pre-authoring
+requirements/observation commits, immutable historical hashes and current locks.
+All108 core and60 Bot states match complete raw outputs. One fixed100ms optional
+transition capture differs; a post-authoring settled48-state comparison matches
+and is explicitly separate. Existing catalog smoke failures reproduce on the
+sealed original and are retained, not called a passing gate. Imports, interfaces,
+constants and three neighboring helpers remain unchanged; the old header is
+quoted with its current bounded scope. All eight unresolved groups stay open,
+without strict isolation, hardware acceptance or historical-rights clearance.
+
+
+Sidebar product-consumer follow-up found participation-based unread and keyboard
+focus-return omissions beyond the original frozen inputs. The bounded replacement
+record retains both failures, a24-state post-authoring participation/navigation
+comparison, original full consumer control and the corrected ownership policy.
+This supplements rather than retroactively expands the216-state baseline; Join
+fixed-source validation and actual delivery remain separate requirements.
+
+
+The actual-provider creator supplement additionally found and corrected anonymous
+to authenticated watch readiness and collapsed-row mounting differences. Complete
+56-state original/corrected raw output matches; initial failures and the inherited
+legacy fixture/count failure remain recorded. It does not expand the frozen
+baseline or resolve the eight remaining source groups.
+
+
+Server-filter alignment additionally restores the existing public indicator/text
+classes in the selected replacement. The full original/prospective four-locale
+consumer results match byte for byte (16 scenes,64 menus). Downstream Bot fixed-
+time sampling and separate settled-state evidence remain distinguished, along
+with inherited render/topology smoke limits; no broad passing or rights claim.

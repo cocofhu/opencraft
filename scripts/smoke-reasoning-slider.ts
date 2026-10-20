@@ -6,7 +6,7 @@ const {chromium} = playwright.default ?? playwright;
 const source = `import React,{useState} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {createComposerController} from '@opencraft/composer-core';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
 import * as themes from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
@@ -18,9 +18,9 @@ const controller=createComposerController({type:'existing-thread',key:{hostId:'f
 const counts=[6,3,1,0,3],values=['low','medium','high','xhigh','max','ultra'];
 const models=counts.map((count,i)=>({id:'model'+i,value:'model'+i,label:i===0?'GPT-6.1-Sol':'Model '+i,description:null,isDefault:i===0,defaultEffort:count&&i!==4?values[Math.min(1,count-1)]:null,serviceTiers:i===0?[{id:'fast',name:'Fast',description:'Host-declared fast tier'}]:[],efforts:values.slice(0,count).map(value=>({value,label:value[0].toUpperCase()+value.slice(1),description:null}))}));
 window.fixture={controller,remembered:[]};
-function App(){const [frame,setFrame]=useState(0);window.fixture.rerender=()=>setFrame(f=>f+1);return <main data-frame={frame} style={{padding:16,paddingTop:200,maxWidth:800,margin:'auto'}}><CodexComposer controller={controller} selectionCatalog={{models,permissionProfiles:[],onRememberModelDefaults:value=>window.fixture.remembered.push(value)}} onSubmit={()=>false} onCancel={()=>{}} /></main>}
+function App(){const [frame,setFrame]=useState(0);window.fixture.rerender=()=>setFrame(f=>f+1);return <main data-frame={frame} style={{padding:16,paddingTop:200,maxWidth:800,margin:'auto'}}><OpenCraftComposer controller={controller} selectionCatalog={{models,permissionProfiles:[],onRememberModelDefaults:value=>window.fixture.remembered.push(value)}} onSubmit={()=>false} onCancel={()=>{}} /></main>}
 createIntlTestRoot(document.getElementById('root'),undefined,'zh-CN').render(<App/>);`;
-const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',cacheDir:'node_modules/.vite-reasoning-slider',optimizeDeps:{force:true,exclude:['@opencraft/codex-composer','@opencraft/design-system-web/discrete-slider']},resolve:{dedupe:['react','react-dom']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0},plugins:[{name:'fixture',resolveId:id=>id==='/reasoning-slider.tsx'?id:null,load:id=>id==='/reasoning-slider.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith('/?'))return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/reasoning-slider.tsx"></script>');});}}]});
+const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',cacheDir:'node_modules/.vite-reasoning-slider',optimizeDeps:{force:true,exclude:['@opencraft/composer-editor','@opencraft/design-system-web/discrete-slider']},resolve:{dedupe:['react','react-dom']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0},plugins:[{name:'fixture',resolveId:id=>id==='/reasoning-slider.tsx'?id:null,load:id=>id==='/reasoning-slider.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith('/?'))return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/reasoning-slider.tsx"></script>');});}}]});
 await mkdir('.local/reasoning-slider',{recursive:true});await vite.listen();
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const results=[];
 try {
@@ -30,26 +30,26 @@ try {
   await page.addInitScript('window.__name=v=>v');
   await page.goto(vite.resolvedUrls!.local[0]+'?mode='+mode+'&palette='+palette+(touch?'&touch':''));
   console.log('scene',palette,mode,touch);
-  const editor=page.locator('.codex-composer-editor'),trigger=page.locator('.codex-composer-mode--intelligence'),menu=page.locator('.codex-composer-model-quick');
+  const editor=page.locator('.opencraft-composer-editor'),trigger=page.locator('.opencraft-composer-mode--intelligence'),menu=page.locator('.opencraft-composer-model-quick');
   try{await editor.fill('Keep this draft')}catch(e){console.log(errors,await page.locator('body').innerText());throw e};
   await editor.evaluate(el=>{(window as any).keptEditor=el;(window as any).blurs=0;el.addEventListener('blur',()=>{(window as any).blurs++});const r=document.createRange();r.setStart(el.firstChild!.firstChild!,3);r.collapse(true);const s=getSelection()!;s.removeAllRanges();s.addRange(r);});
   if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
-  assert.equal(await page.locator('.codex-composer-selection-menu--intelligence').count(),0,'first layer has no model choices');
+  assert.equal(await page.locator('.opencraft-composer-selection-menu--intelligence').count(),0,'first layer has no model choices');
   const chooseModel=async(name:string)=>{
     if(name==='Model 1'){
       const fast=menu.getByRole('menuitemcheckbox',{name:'Fast',exact:true});
       await fast.click();
       assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),'fast');
-      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),1,'Fast visible on Composer');
+      assert.equal(await trigger.locator('.opencraft-composer-mode__fast').count(),1,'Fast visible on Composer');
       assert(await menu.isVisible());
       await fast.click();
       assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null,'off explicitly cancels Fast');
-      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),0);
+      assert.equal(await trigger.locator('.opencraft-composer-mode__fast').count(),0);
       await fast.click();
     }
-    await menu.locator('.codex-composer-model-quick__title').click();
-    const models=page.locator('.codex-composer-selection-menu--model-select');await models.waitFor();
-    assert.equal(await page.locator('.codex-composer-intelligence-detail').count(),0);
+    await menu.locator('.opencraft-composer-model-quick__title').click();
+    const models=page.locator('.opencraft-composer-selection-menu--model-select');await models.waitFor();
+    assert.equal(await page.locator('.opencraft-composer-intelligence-detail').count(),0);
     await page.evaluate(()=>new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done()))));
     const box=(await models.boundingBox())!;assert(box.width<=300.5&&box.height<=320.5,JSON.stringify(box));
     await page.screenshot({path:'.local/reasoning-slider/configure-'+palette+'-'+mode+'-'+touch+'.png'});
@@ -60,7 +60,7 @@ try {
     if(name==='Model 1'){
       assert.equal(await menu.getByRole('menuitemcheckbox').count(),0,'unsupported model hides Fast');
       assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null);
-      assert.equal(await trigger.locator('.codex-composer-mode__fast').count(),0);
+      assert.equal(await trigger.locator('.opencraft-composer-mode__fast').count(),0);
     }
   };
   const slider=menu.getByRole('slider'),control=menu.locator('.ui-discrete-slider__control');
@@ -109,7 +109,7 @@ try {
   if(touch){await fast.tap();assert(await editor.evaluate(el=>el===document.activeElement));assert.equal(await page.evaluate(()=>getSelection()?.anchorOffset),3);await fast.tap();}
   assert(await menu.isVisible(),'adjustment keeps menu open');
   // Native Radix keyboard handling remains in this control, not menu roving focus.
-  await menu.locator('.codex-composer-model-quick__title').focus();await page.keyboard.press('ArrowDown');
+  await menu.locator('.opencraft-composer-model-quick__title').focus();await page.keyboard.press('ArrowDown');
   await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='slider');
   await page.keyboard.press('Home');assert.equal(await committed(),'low');
   await page.keyboard.press('ArrowRight');assert.equal(await committed(),'medium');
@@ -143,12 +143,12 @@ try {
   assert(await editor.evaluate(el=>el===(window as any).keptEditor));assert.equal(await editor.innerText(),'Keep this draft');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
   await trigger.focus();await page.keyboard.press('ArrowDown');await menu.waitFor();
-  await menu.locator('.codex-composer-model-quick__title').focus();await page.keyboard.press('Enter');
-  const keyboardModels=page.locator('.codex-composer-selection-menu--model-select');await keyboardModels.waitFor();
+  await menu.locator('.opencraft-composer-model-quick__title').focus();await page.keyboard.press('Enter');
+  const keyboardModels=page.locator('.opencraft-composer-selection-menu--model-select');await keyboardModels.waitFor();
   await page.keyboard.press('ArrowDown');assert(await keyboardModels.evaluate(el=>el.contains(document.activeElement)),'keyboard stays in model choices');
   await page.keyboard.press('Escape');await keyboardModels.waitFor({state:'hidden'});
   if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
-  assert.equal(await page.locator('.codex-composer-selection-menu--model-select').count(),0,'next opening returns to depth');
+  assert.equal(await page.locator('.opencraft-composer-selection-menu--model-select').count(),0,'next opening returns to depth');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});assert.deepEqual(errors,[]);
   results.push({palette,mode,touch,metrics,geometry});await context.close();
  }

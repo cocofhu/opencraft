@@ -51,7 +51,7 @@ try {
     await request("thread/name/set", { threadId: thread.id, name: "Lifecycle desktop fixture" });
     return thread.id;
   }, directory);
-  await page.waitForFunction(() => document.querySelector(".codex-composer-mode__model-label")?.textContent?.trim() === "Model");
+  await page.waitForFunction(() => document.querySelector(".opencraft-composer-mode__model-label")?.textContent?.trim() === "Model");
   const row = page.locator(".sidebar-activity-item").filter({ hasText: "Lifecycle desktop fixture" }); await row.waitFor();
   await row.click({ button: "right" }); await page.getByRole("menuitem", { name: "重命名", exact: true }).click();
   await page.getByRole("textbox", { name: "会话名称" }).fill("Desktop renamed fixture");

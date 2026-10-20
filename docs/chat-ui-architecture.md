@@ -216,7 +216,7 @@ recency. Promotion updates every slot of the Scope, including slots whose View
 has been evicted; the owner holds no Scope, Thread or Host lease. Clear/accepted
 settlement releases assets, failed settlement retains input, and account
 revocation clears all slots and target caches. Tests: `test:task-draft-switching`
-and `smoke:task-draft-switching` (real CodexComposer, synthetic remote boundaries).
+and `smoke:task-draft-switching` (real OpenCraftComposer, synthetic remote boundaries).
 New-chat Scope metadata uses a separate 20-empty-record budget; records with
 retained input and in-flight first submissions cannot be pruned by that budget.
 It queries input ownership rather than retaining an execution lease. Evicted
@@ -1336,7 +1336,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `chat-core` | identities, Frames, Blocks and pure projector registry | transport and React |
 | `chat-runtime` | Replica-derived snapshots and command/history ports | protocol storage and rendering |
 | `composer-core` | portable document, draft, target and submit intent | DOM/Native editor state |
-| `codex-composer` | Web ProseMirror adapter and Codex visual surface | authoritative drafts |
+| `composer-editor` | OpenCraft Web ProseMirror editor | authoritative drafts |
 | `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
 | `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
@@ -2010,7 +2010,7 @@ full-code metadata first so a partial code selection stays partial.
 
 ComposerController.appendQuote is an optional View capability with an explicit
 acceptance result. Submission, active transient input and detached Views reject
-it. CodexComposer inserts literal text into a quote block and appends an empty
+it. OpenCraftComposer inserts literal text into a quote block and appends an empty
 paragraph in one isolated undo transaction. It retains prior draft content,
 attachments/context and focuses the trailing paragraph; it never submits. The
 existing AppServer compiler retains `> ` prefixes in native input. This Web/Electron
@@ -2130,7 +2130,7 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 
 ### Mobile Composer content bounds
 
-CodexComposer owns a local editing-focus presentation session, independent of
+OpenCraftComposer owns a local editing-focus presentation session, independent of
 draft and auxiliary menu open state. Only entering the editor starts it; toolbar
 and owned portal focus may retain it until focus leaves. Empty single-line Add
 open/close, submenu and keyboard navigation keep the same shell/anchor geometry.
@@ -2251,7 +2251,7 @@ not merely because a conversation is retained in the cache.
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 
-CodexComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Editor focus expands the empty automatic touch presentation; context chrome still requires stacked rows. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
+OpenCraftComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Editor focus expands the empty automatic touch presentation; context chrome still requires stacked rows. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
 In short visual viewports, the Home grid reserves the Composer’s measured content height instead of fixed hero/composer row minima, keeping the send action above the keyboard.
 
 ### Recovery technical details
@@ -2271,6 +2271,18 @@ announced failure. Narrow and themed layouts wrap technical fields while retaini
 history, scroll and drafts. Protocol mismatch still requires an update rather
 than a retry loop. The clipboard-only package export avoids importing renderers
 and their styles for this utility.
+
+## Web search activity detail projection
+
+The shared tool detail formatter owns only display-field selection and compact
+search text. It preserves the current nested action envelope, operation aliases,
+query/pattern/URL precedence and existing hostname/first-query helper contracts.
+Ordered site facets and ordinary punctuation are presentation compatibility data.
+The presenter continues to own phase, summary, grouping and expandability; the
+Timeline owns protocol projection and call identity. A detail string neither
+executes a search nor authorizes or opens a resource. Web and Native consume the
+same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
+retains original annotations, hashes, authoring order and finite verification.
 
 ## External conversation presentation and history reads
 
@@ -2316,14 +2328,11 @@ Coalesced retries of an active work item still share the original observation.
 The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
 
 
-## Web search activity detail projection
+## Owned Composer naming
 
-The shared tool detail formatter owns only display-field selection and compact
-search text. It preserves the current nested action envelope, operation aliases,
-query/pattern/URL precedence and existing hostname/first-query helper contracts.
-Ordered site facets and ordinary punctuation are presentation compatibility data.
-The presenter continues to own phase, summary, grouping and expandability; the
-Timeline owns protocol projection and call identity. A detail string neither
-executes a search nor authorizes or opens a resource. Web and Native consume the
-same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
-retains original annotations, hashes, authoring order and finite verification.
+The shared editor lives in `@opencraft/composer-editor` and exports
+`OpenCraftComposer`, `OpenCraftComposerHandle` and `OpenCraftComposerProps`.
+Its DOM/style namespace is `opencraft-composer`. The naming migration changes
+no draft, selection, queue, submission or lifecycle ownership. Runtime consumers
+and existing smoke selectors move together; Codex AppServer wire identifiers
+remain external integration contracts.

@@ -446,7 +446,7 @@ export function ThreadComposerPresentation({
       )
         return;
       const editor = composerElement.querySelector<HTMLElement>(
-        ".codex-composer-editor"
+        ".opencraft-composer-editor"
       );
       if (!editor) return;
       if (view.density === "compact") {

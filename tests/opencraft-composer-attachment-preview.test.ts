@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createConversationKey } from "@opencraft/chat-core";
 import { createComposerController, type ComposerAttachment } from "@opencraft/composer-core";
-import { attachmentPreviewSession } from "../packages/codex-composer/src/attachment-preview-session";
+import { attachmentPreviewSession } from "../packages/composer-editor/src/attachment-preview-session";
 
 function createController() {
   let id = 0;

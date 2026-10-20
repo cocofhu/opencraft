@@ -2,8 +2,7 @@ import { ComposerModelPicker } from "./composer-model-picker";
 import { SessionModelPicker } from "./session-model-picker";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
-// Semantically adapted from the recovered Codex Composer/editor, queue tray,
-// and responsive footer boundaries. AppServer state remains externally owned.
+// AppServer state remains externally owned.
 import { baseKeymap, newlineInCode, splitBlock } from "prosemirror-commands";
 import { defineMessages, type IntlShape } from "@opencraft/i18n";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
@@ -233,23 +232,23 @@ function SelectionMenuItemContent({
     <>
       {leading === undefined ? null : (
         <span
-          className="codex-composer-selection-menu__leading"
+          className="opencraft-composer-selection-menu__leading"
           aria-hidden="true"
         >
           {leading}
         </span>
       )}
-      <span className="codex-composer-selection-menu__copy">
-        <span className="codex-composer-selection-menu__label">{label}</span>
+      <span className="opencraft-composer-selection-menu__copy">
+        <span className="opencraft-composer-selection-menu__label">{label}</span>
         {description ? (
-          <span className="codex-composer-selection-menu__description">
+          <span className="opencraft-composer-selection-menu__description">
             {description}
           </span>
         ) : null}
       </span>
       {selected ? (
         <span
-          className="codex-composer-selection-menu__trailing"
+          className="opencraft-composer-selection-menu__trailing"
           aria-hidden="true"
         >
           <Check size={16} strokeWidth={1.75} />
@@ -333,9 +332,9 @@ const localCommandSuggestions: Suggestion[] = [
   },
 ];
 
-const suggestionPluginKey = new PluginKey("codex-composer-suggestions");
+const suggestionPluginKey = new PluginKey("opencraft-composer-suggestions");
 const transientTextPluginKey = new PluginKey<TransientTextDecorationState | null>(
-  "codex-composer-transient-text",
+  "opencraft-composer-transient-text",
 );
 
 interface TransientTextDecorationState {
@@ -383,7 +382,7 @@ function createTransientTextPlugin(): Plugin<TransientTextDecorationState | null
           transient.from,
           () => {
             const span = document.createElement("span");
-            span.className = "codex-composer-transient-text";
+            span.className = "opencraft-composer-transient-text";
             span.dataset.transientText = "true";
             span.textContent = transient.text;
             return span;
@@ -447,7 +446,7 @@ const tokenNode: NodeSpec = {
         ...(node.attrs.payload === null
           ? {}
           : { "data-payload": JSON.stringify(node.attrs.payload) }),
-        class: `codex-composer-token codex-composer-token--${node.attrs.kind}`,
+        class: `opencraft-composer-token opencraft-composer-token--${node.attrs.kind}`,
       },
       `${prefix}${node.attrs.label}`,
     ];
@@ -546,7 +545,7 @@ export const composerSchema = new Schema({
 
 function createPlaceholderPlugin(placeholder: () => string): Plugin {
   return new Plugin({
-    key: new PluginKey("codex-composer-placeholder"),
+    key: new PluginKey("opencraft-composer-placeholder"),
     props: {
       decorations(state) {
         const transient = transientTextPluginKey.getState(state);
@@ -564,7 +563,7 @@ function createPlaceholderPlugin(placeholder: () => string): Plugin {
         // Keep the empty paragraph natively editable. An inline noneditable
         // widget adds a caret boundary where iOS needs its empty editing target.
         return DecorationSet.create(state.doc, [Decoration.node(0, first.nodeSize, {
-          class: "codex-composer-placeholder",
+          class: "opencraft-composer-placeholder",
           "data-placeholder": placeholder(),
         })]);
       },
@@ -661,7 +660,7 @@ function filesFromTransfer(dataTransfer: DataTransfer | null): File[] {
 
 function createStableListItemIdPlugin(): Plugin {
   return new Plugin({
-    key: new PluginKey("codex-composer-stable-list-item-ids"),
+    key: new PluginKey("opencraft-composer-stable-list-item-ids"),
     appendTransaction(_transactions, _oldState, newState) {
       let transaction = newState.tr;
       let changed = false;
@@ -682,7 +681,7 @@ function createStableListItemIdPlugin(): Plugin {
   });
 }
 
-export interface CodexComposerHandle {
+export interface OpenCraftComposerHandle {
   focus(): void;
   clear(): void;
   getDocument(): ComposerDocument;
@@ -711,7 +710,7 @@ export interface ComposerQueuedSubmissionContent {
   readonly context: readonly ComposerContextReference[];
 }
 
-export interface CodexComposerProps {
+export interface OpenCraftComposerProps {
   controller: ComposerController;
   /** Composer-owned chrome rendered above attachments and the editor. */
   chromeHeader?: ReactNode;
@@ -787,10 +786,10 @@ export interface CodexComposerProps {
   }): void;
 }
 
-export const CodexComposer = forwardRef<
-  CodexComposerHandle,
-  CodexComposerProps
->(function CodexComposer(
+export const OpenCraftComposer = forwardRef<
+  OpenCraftComposerHandle,
+  OpenCraftComposerProps
+>(function OpenCraftComposer(
   {
     controller,
     chromeHeader,
@@ -1635,7 +1634,7 @@ export const CodexComposer = forwardRef<
       attributes: {
         "aria-label": placeholderRef.current,
         "aria-multiline": "true",
-        class: "codex-composer-editor",
+        class: "opencraft-composer-editor",
         dir: "auto",
         role: "textbox",
         spellcheck: "true",
@@ -2014,11 +2013,11 @@ export const CodexComposer = forwardRef<
       onPointerDownCapture={event => {
         // Touch browsers need not focus tapped buttons. Capture the actual
         // entrance before a voice extension reserves input on press or click.
-        const target = event.target instanceof Element ? event.target.closest<HTMLElement>("button, .codex-composer-editor") : null;
+        const target = event.target instanceof Element ? event.target.closest<HTMLElement>("button, .opencraft-composer-editor") : null;
         inputPointerEntrance.current = target && event.currentTarget.contains(target) ? target : null;
       }}
       onKeyDownCapture={() => { inputPointerEntrance.current = null; }}
-      className="codex-composer-stack"
+      className="opencraft-composer-stack"
       onFocusCapture={event => {
         if (event.target === editorViewRef.current?.dom) setEditingController(controller);
       }}
@@ -2065,12 +2064,12 @@ export const CodexComposer = forwardRef<
         />
         {attachedContent}
       </ComposerAttachedRail>
-      <div className="codex-composer-shell">
+      <div className="opencraft-composer-shell">
         {chromeHeader === undefined ? null : (
-          <div className="codex-composer-chrome-header">{chromeHeader}</div>
+          <div className="opencraft-composer-chrome-header">{chromeHeader}</div>
         )}
         {composerSnapshot.draft.lifecycle.phase === "failed" && (
-          <div className="codex-composer-error" role="alert">
+          <div className="opencraft-composer-error" role="alert">
             <span>
               {composerSnapshot.draft.lifecycle.error ??
                 "Message could not be sent"}
@@ -2087,7 +2086,7 @@ export const CodexComposer = forwardRef<
           </div>
         )}
         {attachments.length > 0 && (
-          <div className="codex-composer-attachments" aria-label="Attachments" inert={voiceActive ? true : undefined}>
+          <div className="opencraft-composer-attachments" aria-label="Attachments" inert={voiceActive ? true : undefined}>
             {attachments.map((attachment) => {
               const image = attachment.mimeType.startsWith("image/");
               const workInError = attachment.metadata?.workInAttachmentError === "interrupted"
@@ -2098,17 +2097,17 @@ export const CodexComposer = forwardRef<
               const previewUrl = attachmentSession.previewUrl(composerSnapshot.draft.id, attachment.id)
                 ?? (attachment.uri !== null && /^data:image\//iu.test(attachment.uri) ? attachment.uri : null);
               if (image) return (
-                <div aria-label={attachment.name} className="codex-composer-image-attachment" data-state={attachment.lifecycle} key={attachment.id} role="group" title={attachment.error ?? attachment.name}>
+                <div aria-label={attachment.name} className="opencraft-composer-image-attachment" data-state={attachment.lifecycle} key={attachment.id} role="group" title={attachment.error ?? attachment.name}>
                   {previewUrl === null
-                    ? <Image aria-hidden="true" className="codex-composer-image-attachment__fallback" size={24} />
+                    ? <Image aria-hidden="true" className="opencraft-composer-image-attachment__fallback" size={24} />
                     : <img alt="" draggable={false} src={previewUrl} />}
                   {attachment.lifecycle === "pending" || attachment.lifecycle === "processing" || attachment.lifecycle === "uploading" ? (
-                    <span aria-label={`Preparing ${attachment.name}`} className="codex-composer-image-attachment__status" role="status">
+                    <span aria-label={`Preparing ${attachment.name}`} className="opencraft-composer-image-attachment__status" role="status">
                       <LoaderCircle aria-hidden="true" size={22} />
                     </span>
                   ) : null}
                   {attachment.lifecycle === "failed" ? (
-                    <span className="codex-composer-image-attachment__status is-failed">
+                    <span className="opencraft-composer-image-attachment__status is-failed">
                       {attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
                         <button aria-label={`Retry ${attachment.name}: ${attachment.error ?? "Image preparation failed"}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)} type="button">
                           <RotateCcw aria-hidden="true" size={20} />
@@ -2117,27 +2116,27 @@ export const CodexComposer = forwardRef<
                     </span>
                   ) : null}
                   {attachment.lifecycle === "failed" ? (
-                    <span className="codex-composer-image-attachment__error" role="alert">
+                    <span className="opencraft-composer-image-attachment__error" role="alert">
                       {workInError ?? attachment.error ?? "Image preparation failed"}
                     </span>
-                  ) : workInError !== null ? <span className="codex-composer-image-attachment__error" role="alert">{workInError}</span> : null}
-                  <button className="codex-composer-image-attachment__remove" type="button" aria-label={`Remove ${attachment.name}`} onClick={() => removeAttachment(attachment.id)}>
+                  ) : workInError !== null ? <span className="opencraft-composer-image-attachment__error" role="alert">{workInError}</span> : null}
+                  <button className="opencraft-composer-image-attachment__remove" type="button" aria-label={`Remove ${attachment.name}`} onClick={() => removeAttachment(attachment.id)}>
                     <X aria-hidden="true" size={14} />
                   </button>
                 </div>
               );
               const preparing = attachment.lifecycle === "pending" || attachment.lifecycle === "processing" || attachment.lifecycle === "uploading";
               return (
-                <div aria-busy={preparing} className="codex-composer-attachment" data-state={attachment.lifecycle} key={attachment.id}>
-                  <span className="codex-composer-attachment__icon"><FileText size={15} /></span>
-                  <span className="codex-composer-attachment__copy">
+                <div aria-busy={preparing} className="opencraft-composer-attachment" data-state={attachment.lifecycle} key={attachment.id}>
+                  <span className="opencraft-composer-attachment__icon"><FileText size={15} /></span>
+                  <span className="opencraft-composer-attachment__copy">
                     <strong>{attachment.name}</strong>
                     <small>{Math.max(1, Math.ceil(attachment.size / 1024))} KB</small>
                     {preparing ? <small role="status">Adding file…</small> : null}
                     {workInError !== null ? <small role="alert">{workInError}</small>
                       : attachment.lifecycle === "failed" ? <small role="alert">{attachment.error ?? "Could not add file"}</small> : null}
                   </span>
-                  <span className="codex-composer-attachment__actions">
+                  <span className="opencraft-composer-attachment__actions">
                     {attachment.lifecycle === "failed" && attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
                       <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><RotateCcw size={13} /></button>
                     ) : null}
@@ -2153,12 +2152,12 @@ export const CodexComposer = forwardRef<
             <div
               ref={suggestionListRef}
               id={suggestionListId}
-              className="codex-composer-suggestions"
+              className="opencraft-composer-suggestions"
               data-kind={suggestionQuery.kind}
               role="listbox"
               aria-label={`${suggestionQuery.kind} suggestions`}
             >
-              <div className="codex-composer-suggestions__label">
+              <div className="opencraft-composer-suggestions__label">
                 {suggestionQuery.kind === "command"
                   ? "Commands"
                   : suggestionQuery.kind === "skill"
@@ -2168,7 +2167,7 @@ export const CodexComposer = forwardRef<
               {suggestionQuery.kind === "mention" &&
               catalogQueryText.length === 0 ? (
                 <div
-                  className="codex-composer-suggestions__status"
+                  className="opencraft-composer-suggestions__status"
                   role="status"
                 >
                   Type to search for files
@@ -2176,7 +2175,7 @@ export const CodexComposer = forwardRef<
               ) : null}
               {catalogLoading && filteredSuggestions.length === 0 ? (
                 <div
-                  className="codex-composer-suggestions__status"
+                  className="opencraft-composer-suggestions__status"
                   role="status"
                 >
                   {suggestionQuery.kind === "mention"
@@ -2186,7 +2185,7 @@ export const CodexComposer = forwardRef<
               ) : null}
               {catalogError !== null ? (
                 <div
-                  className="codex-composer-suggestions__status is-error"
+                  className="opencraft-composer-suggestions__status is-error"
                   role="status"
                 >
                   {suggestionQuery.kind === "mention"
@@ -2200,7 +2199,7 @@ export const CodexComposer = forwardRef<
                 </div>
               ) : null}
               {suggestionQuery.kind === "skill" && !catalogLoading && catalogError === null && filteredSuggestions.length === 0 ? (
-                <div className="codex-composer-suggestions__status" role="status"><FormattedMessage id="composer.skills.empty" defaultMessage="No skills found" /></div>
+                <div className="opencraft-composer-suggestions__status" role="status"><FormattedMessage id="composer.skills.empty" defaultMessage="No skills found" /></div>
               ) : null}
               {filteredSuggestions.map((suggestion, index) => (
                 <button
@@ -2250,13 +2249,13 @@ export const CodexComposer = forwardRef<
             </div>
           )}
 
-        <div className="codex-composer-input-row" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
-          <div ref={mountRef} className="codex-composer-editor-mount" />
+        <div className="opencraft-composer-input-row" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
+          <div ref={mountRef} className="opencraft-composer-editor-mount" />
         </div>
 
         <div
           ref={footerLayout.footerRef}
-          className="codex-composer-footer"
+          className="opencraft-composer-footer"
           data-footer-density={footerLayout.density}
           data-model-selection-policy={modelSelectionPolicy}
           data-input-mode={voiceActive ? "dictation" : "standard"}
@@ -2266,12 +2265,12 @@ export const CodexComposer = forwardRef<
             onSend={() => { void submit(); }} onCancel={cancelInputInteraction} />}
           <div
             ref={footerLayout.attachmentRef}
-            className="codex-composer-footer__attachment"
+            className="opencraft-composer-footer__attachment"
             inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}
           >
             {addMenuContent === undefined || addMenuContent === null ? (
               <button
-                className="codex-composer-icon-button"
+                className="opencraft-composer-icon-button"
                 type="button"
                 aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                 onClick={openAttachmentPicker}
@@ -2285,7 +2284,7 @@ export const CodexComposer = forwardRef<
               }}>
                 <DropdownMenu.Trigger asChild>
                   <button
-                    className="codex-composer-icon-button"
+                    className="opencraft-composer-icon-button"
                     type="button"
                     aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                   >
@@ -2294,7 +2293,7 @@ export const CodexComposer = forwardRef<
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
                   <DropdownMenu.Content
-                    className="codex-composer-selection-menu codex-composer-add-menu"
+                    className="opencraft-composer-selection-menu opencraft-composer-add-menu"
                     align="start"
                     sideOffset={6}
                     collisionPadding={6}
@@ -2309,7 +2308,7 @@ export const CodexComposer = forwardRef<
                     }}
                   >
                     <DropdownMenu.Item
-                      className="codex-composer-selection-menu__item codex-composer-add-menu__item"
+                      className="opencraft-composer-selection-menu__item opencraft-composer-add-menu__item"
                       onSelect={openAttachmentPicker}
                     >
                       <Paperclip size={15} aria-hidden="true" />
@@ -2342,14 +2341,14 @@ export const CodexComposer = forwardRef<
             {shortcutCommands && shortcutCommands.length > 0 ? (
               <DropdownMenu.Root modal={false} open={shortcutMenuOpen} onOpenChange={setShortcutMenuOpen}>
                 <DropdownMenu.Trigger asChild>
-                  <button className="codex-composer-shortcut-trigger" type="button" disabled={disabled}>
+                  <button className="opencraft-composer-shortcut-trigger" type="button" disabled={disabled}>
                     <Sparkles size={15} aria-hidden="true" />
                     <span><FormattedMessage id="composer.commands" defaultMessage="Commands" /></span>
                     <ChevronDown size={13} aria-hidden="true" />
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
-                  <DropdownMenu.Content className="codex-composer-selection-menu codex-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
+                  <DropdownMenu.Content className="opencraft-composer-selection-menu opencraft-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
                     afterMenuCloseFocus();
                     if (!refocusAfterShortcutSelectionRef.current) return;
                     refocusAfterShortcutSelectionRef.current = false;
@@ -2357,12 +2356,12 @@ export const CodexComposer = forwardRef<
                     controller.focus();
                   }}>
                     {shortcutCommands.map((command) => (
-                      <DropdownMenu.Item key={command.name} className="codex-composer-selection-menu__item" onSelect={() => {
+                      <DropdownMenu.Item key={command.name} className="opencraft-composer-selection-menu__item" onSelect={() => {
                         refocusAfterShortcutSelectionRef.current = true;
                         controller.insertText(`/${command.name} `);
                       }}>
-                        <span className="codex-composer-shortcut-menu__command">/{command.name}</span>
-                        <span className="codex-composer-shortcut-menu__description">{command.description}</span>
+                        <span className="opencraft-composer-shortcut-menu__command">/{command.name}</span>
+                        <span className="opencraft-composer-shortcut-menu__description">{command.description}</span>
                       </DropdownMenu.Item>
                     ))}
                   </DropdownMenu.Content>
@@ -2373,18 +2372,18 @@ export const CodexComposer = forwardRef<
           </div>
           <div
             ref={footerLayout.controlsRef}
-            className="codex-composer-footer__controls"
+            className="opencraft-composer-footer__controls"
             inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}
           >
             {executionTarget === undefined ? null : (
               <span
-                className="codex-composer-mode codex-composer-mode--static"
+                className="opencraft-composer-mode opencraft-composer-mode--static"
                 title={`Execution node: ${executionTarget.hostLabel}`}
               >
                 {executionTarget.hostLabel}
               </span>
             )}
-            <div className="codex-composer-picker-region">
+            <div className="opencraft-composer-picker-region">
               {modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
@@ -2400,42 +2399,42 @@ export const CodexComposer = forwardRef<
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);
                 }}>
-                      <div className="codex-composer-intelligence-view">
-                        <div className="codex-composer-intelligence-models">
-                          <DropdownMenu.Label className="codex-composer-selection-menu__heading">
+                      <div className="opencraft-composer-intelligence-view">
+                        <div className="opencraft-composer-intelligence-models">
+                          <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">
                             <FormattedMessage id="chat.model" defaultMessage="Model" />
                           </DropdownMenu.Label>
                           {(selectionCatalog?.agentGroups ?? [{ id: "active", label: "", active: true, models: catalogModels, select: selectModel }]).map(group => (
                             <DropdownMenu.Group key={group.id}>
-                              {group.label ? <DropdownMenu.Label className="codex-composer-selection-menu__heading">{group.label}</DropdownMenu.Label> : null}
+                              {group.label ? <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">{group.label}</DropdownMenu.Label> : null}
                               {group.models.map(model => (
-                                <DropdownMenu.Item key={model.id} className="codex-composer-selection-menu__item"
+                                <DropdownMenu.Item key={model.id} className="opencraft-composer-selection-menu__item"
                                   data-selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue) ? "true" : undefined}
                                   onSelect={event => { event.preventDefault(); if (group.active) { if (selectionCatalog?.agentGroups) void selectAgentModel(group, model); selectModel(model); } else void selectAgentModel(group, model); }}>
                                   <SelectionMenuItemContent description={null} label={model.label}
                                     selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue)} />
                                 </DropdownMenu.Item>
                               ))}
-                              {switchingAgentId === group.id ? <div className="codex-composer-selection-menu__status"><FormattedMessage id="workIn.switchingAgent" defaultMessage="Switching Agent…" /></div> : null}
-                              {agentSelectionError?.id === group.id ? <div className="codex-composer-selection-menu__status is-error" role="alert">{agentSelectionError.message}</div> : null}
-                              {group.loading ? <div className="codex-composer-selection-menu__status"><FormattedMessage id="workIn.loadingModels" defaultMessage="Loading models…" /></div> : null}
-                              {group.error ? <div className="codex-composer-selection-menu__status is-error" role="alert">
-                                {group.error}<DropdownMenu.Item className="codex-composer-selection-menu__item" onSelect={event => { event.preventDefault(); group.retry?.(); }}><FormattedMessage id="workIn.retry" defaultMessage="Retry" /></DropdownMenu.Item>
+                              {switchingAgentId === group.id ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.switchingAgent" defaultMessage="Switching Agent…" /></div> : null}
+                              {agentSelectionError?.id === group.id ? <div className="opencraft-composer-selection-menu__status is-error" role="alert">{agentSelectionError.message}</div> : null}
+                              {group.loading ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.loadingModels" defaultMessage="Loading models…" /></div> : null}
+                              {group.error ? <div className="opencraft-composer-selection-menu__status is-error" role="alert">
+                                {group.error}<DropdownMenu.Item className="opencraft-composer-selection-menu__item" onSelect={event => { event.preventDefault(); group.retry?.(); }}><FormattedMessage id="workIn.retry" defaultMessage="Retry" /></DropdownMenu.Item>
                               </div> : null}
                             </DropdownMenu.Group>
                           ))}
                           {!selectionCatalog?.agentGroups && selectionCatalog?.isFetching &&
                           catalogModels.length === 0 ? (
-                            <div className="codex-composer-selection-menu__status">
+                            <div className="opencraft-composer-selection-menu__status">
                               <FormattedMessage id="workIn.loadingModels" defaultMessage="Loading models…" />
                             </div>
                           ) : null}
                           {!selectionCatalog?.agentGroups && selectionCatalog?.modelError ? (
-                            <div className="codex-composer-selection-menu__status is-error">
+                            <div className="opencraft-composer-selection-menu__status is-error">
                               {selectionCatalog.modelError}
                               {selectionCatalog.retryModels ? (
                                 <DropdownMenu.Item
-                                  className="codex-composer-selection-menu__item"
+                                  className="opencraft-composer-selection-menu__item"
                                   onSelect={(event) => {
                                     event.preventDefault();
                                     selectionCatalog.retryModels?.();
@@ -2447,13 +2446,13 @@ export const CodexComposer = forwardRef<
                             </div>
                           ) : null}
                           {selectionCatalog?.agentGroups?.find(group => group.active)?.manage ? <>
-                            <DropdownMenu.Separator className="codex-composer-selection-menu__separator" />
-                            <DropdownMenu.Item className="codex-composer-selection-menu__item" onSelect={selectionCatalog.agentGroups.find(group => group.active)!.manage}><FormattedMessage id="workIn.manageModels" defaultMessage="Manage models…" /></DropdownMenu.Item>
+                            <DropdownMenu.Separator className="opencraft-composer-selection-menu__separator" />
+                            <DropdownMenu.Item className="opencraft-composer-selection-menu__item" onSelect={selectionCatalog.agentGroups.find(group => group.active)!.manage}><FormattedMessage id="workIn.manageModels" defaultMessage="Manage models…" /></DropdownMenu.Item>
                           </> : null}
                           {!selectionCatalog?.isFetching &&
                           selectedModelValue !== null &&
                           selectedModel === null ? (
-                            <div className="codex-composer-selection-menu__status is-error">
+                            <div className="opencraft-composer-selection-menu__status is-error">
                               <FormattedMessage id="composer.model.unavailable" defaultMessage="The selected model is unavailable. Choose another model." />
                             </div>
                           ) : null}
@@ -2466,11 +2465,11 @@ export const CodexComposer = forwardRef<
                 open={openPicker === "permissions"}
                 onOpenChange={changePicker("permissions")}
               >
-                <div className="codex-composer-picker codex-composer-picker--permissions">
+                <div className="opencraft-composer-picker opencraft-composer-picker--permissions">
                   <DropdownMenu.Trigger asChild>
                     <button
                       {...permissionsFocus.triggerProps}
-                      className="codex-composer-mode codex-composer-mode--permissions"
+                      className="opencraft-composer-mode opencraft-composer-mode--permissions"
                       type="button"
                       disabled={disabled}
                       title={
@@ -2479,7 +2478,7 @@ export const CodexComposer = forwardRef<
                       }
                     >
                       <ShieldCheck size={14} />
-                      <span className="codex-composer-mode__permission-label">
+                      <span className="opencraft-composer-mode__permission-label">
                         {permissionSelectionLabel}
                       </span>
                       <ChevronDown size={12} />
@@ -2488,7 +2487,7 @@ export const CodexComposer = forwardRef<
                   <DropdownMenu.Portal container={portalContainer}>
                     <DropdownMenu.Content
                       {...permissionsFocus.contentProps}
-                      className="codex-composer-selection-menu codex-composer-selection-menu--permissions"
+                      className="opencraft-composer-selection-menu opencraft-composer-selection-menu--permissions"
                       aria-label={permissionsLabel}
                       align="start"
                       sideOffset={1}
@@ -2500,11 +2499,11 @@ export const CodexComposer = forwardRef<
                         return (
                           <Fragment key={permission.id}>
                           {permission.mode == null && (index === 0 || catalogPermissions[index - 1]?.mode != null) ? (
-                            <div className="codex-composer-selection-menu__status">{intl.formatMessage({ id: "composer.permissions.engineProfiles", defaultMessage: "Engine profiles" })}</div>
+                            <div className="opencraft-composer-selection-menu__status">{intl.formatMessage({ id: "composer.permissions.engineProfiles", defaultMessage: "Engine profiles" })}</div>
                           ) : null}
                           <DropdownMenu.Item
                             className={[
-                              "codex-composer-selection-menu__item",
+                              "opencraft-composer-selection-menu__item",
                               "has-leading",
                               permission.mode === "full"
                                 ? "is-dangerous"
@@ -2536,12 +2535,12 @@ export const CodexComposer = forwardRef<
                       })}
                       {selectionCatalog?.isFetching &&
                       catalogPermissions.length === 0 ? (
-                        <div className="codex-composer-selection-menu__status">
+                        <div className="opencraft-composer-selection-menu__status">
                           {intl.formatMessage({ id: "composer.permissions.loading", defaultMessage: "Loading permission profiles…" })}
                         </div>
                       ) : null}
                       {selectionCatalog?.permissionProfileError ? (
-                        <div className="codex-composer-selection-menu__status is-error">
+                        <div className="opencraft-composer-selection-menu__status is-error">
                           {intl.formatMessage({ id: "composer.permissions.refreshError", defaultMessage: "Could not refresh permission profiles. Try again when connected. Current permissions remain unchanged." })}
                         </div>
                       ) : null}
@@ -2551,16 +2550,16 @@ export const CodexComposer = forwardRef<
               </DropdownMenu.Root> : null}
             </div>
           </div>
-          <div ref={footerLayout.endRef} className="codex-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
+          <div ref={footerLayout.endRef} className="opencraft-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
             {selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast")) ? (
-              <span className="codex-composer-collapsed-fast" role="img" aria-label="Fast">
+              <span className="opencraft-composer-collapsed-fast" role="img" aria-label="Fast">
                 <Zap size={15} fill="currentColor" aria-hidden="true" />
               </span>
             ) : null}
             {endActions}
             {mentionSuggestionsEnabled ? (
               <button
-                className="codex-composer-icon-button codex-composer-icon-button--context"
+                className="opencraft-composer-icon-button opencraft-composer-icon-button--context"
                 type="button"
                 title={intl.formatMessage({ id: "composer.mentionContext", defaultMessage: "Mention files and context" })}
                 onClick={() => insertTrigger("@")}
@@ -2570,7 +2569,7 @@ export const CodexComposer = forwardRef<
             ) : null}
             {addMenuContent === undefined || addMenuContent === null ? (
               <button
-                className="codex-composer-icon-button codex-composer-icon-button--context codex-composer-icon-button--attachment"
+                className="opencraft-composer-icon-button opencraft-composer-icon-button--context opencraft-composer-icon-button--attachment"
                 type="button"
                 title={intl.formatMessage({ id: "chat.attach", defaultMessage: "Attach files" })}
                 onClick={openAttachmentPicker}
@@ -2580,7 +2579,7 @@ export const CodexComposer = forwardRef<
             ) : null}
             {primaryAction === "stop" ? (
               <button
-                className="codex-composer-submit is-stop"
+                className="opencraft-composer-submit is-stop"
                 type="button"
                 aria-label={primaryActionLabel}
                 title={primaryActionTitle}
@@ -2598,7 +2597,7 @@ export const CodexComposer = forwardRef<
               </button>
             ) : (
               <button
-                className="codex-composer-submit"
+                className="opencraft-composer-submit"
                 type="button"
                 aria-label={primaryActionLabel}
                 title={primaryActionTitle}
@@ -2620,7 +2619,7 @@ export const CodexComposer = forwardRef<
         </div>
       </div>
       {waitingForHostWithContent ? (
-        <p className="codex-composer-connection-hint" role="status">
+        <p className="opencraft-composer-connection-hint" role="status">
           {intl.formatMessage({ id: "chat.waitingForHostToSend", defaultMessage: "Connecting. You can send once connected." })}
         </p>
       ) : null}

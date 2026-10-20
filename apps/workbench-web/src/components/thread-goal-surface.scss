@@ -79,7 +79,7 @@
 
 // Capacity, not platform identity, selects which controls fit. A narrow desktop
 // pane has the same disclosure; the original Goal and Composer stay mounted.
-@container codex-composer (max-width: 540px) {
+@container opencraft-composer (max-width: 540px) {
   .thread-goal__bar { padding-inline: 6px; }
   .thread-goal__preview, .thread-goal__edit { display: none; }
   .thread-goal__summary { display: grid; grid-template-columns: 16px minmax(0, 1fr) 14px; column-gap: 8px; row-gap: 0; }

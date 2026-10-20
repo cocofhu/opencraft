@@ -149,7 +149,7 @@ r826 audit, build, browser-differential, and hydration gates.
 - `packages/appserver-protocol`: host-aware Codex app-server transport types.
 - `packages/chat-core`: typed `Turn -> DisplayItem` projection.
 - `packages/composer-core`: serializable cross-platform composer blocks.
-- `packages/codex-composer`: ProseMirror composer with IME-safe input,
+- `packages/composer-editor`: ProseMirror composer with IME-safe input,
   attachments, mentions, skills, commands, history, and send/stop semantics.
 - `packages/design-system`: typed Codex theme compiler plus Web and Native tokens.
 - `packages/workbench-runtime`: renderer-free session store, commands and

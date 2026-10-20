@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { skillIconUrl } from "../packages/codex-composer/src/skill-icon";
+import { skillIconUrl } from "../packages/composer-editor/src/skill-icon";
 
 test("Skill icons accept explicit image sources but never renderer-local files or credentials", () => {
   assert.equal(skillIconUrl("https://example.test/icon.png"),"https://example.test/icon.png");

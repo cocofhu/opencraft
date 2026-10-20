@@ -32,9 +32,9 @@ try {
     await page.goto(`${vite.resolvedUrls!.local[0]}?addMenu&pickerFocus&mode=${test.mode}&palette=${test.palette}`);
     await page.waitForFunction(() => typeof (window as any).setTouch === "function");
     await page.evaluate(async ({ touch, newera }) => { await (window as any).setTouch(touch); await (window as any).setNewera(newera); }, test);
-    const editor = page.locator(".codex-composer-editor"), shell = page.locator(".codex-composer-shell");
-    const add = page.locator(".codex-composer-footer__attachment > button").first();
-    const menu = page.locator(".codex-composer-add-menu"), outside = page.getByLabel("Outside input");
+    const editor = page.locator(".opencraft-composer-editor"), shell = page.locator(".opencraft-composer-shell");
+    const add = page.locator(".opencraft-composer-footer__attachment > button").first();
+    const menu = page.locator(".opencraft-composer-add-menu"), outside = page.getByLabel("Outside input");
     const activate = async (target: any) => test.touch ? target.tap() : target.click();
     const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await outside.focus(); await settle();
