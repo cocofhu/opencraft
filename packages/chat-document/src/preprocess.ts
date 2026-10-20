@@ -179,7 +179,7 @@ function closeOddDelimiter(text: string, delimiter: "**" | "*"): string {
 }
 
 /**
- * Streaming normalization follows Codex r1381's parser-stability contract:
+ * Streaming normalization preserves parser stability:
  * incomplete syntax is hidden or temporarily closed without changing the
  * canonical source stored by the session. Math normalization remains OpenCraft's
  * typed extension and is deliberately excluded from fenced source.

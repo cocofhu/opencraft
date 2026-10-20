@@ -43,7 +43,7 @@ export function normalizeTurnViewportMetrics({
   };
 }
 
-/** Codex Desktop's flex-column-reverse DOM exposes distance as -scrollTop. */
+/** A flex-column-reverse viewport exposes distance as -scrollTop. */
 export function normalizeInvertedWebViewportMetrics({
   contentHeightPx,
   viewportHeightPx,

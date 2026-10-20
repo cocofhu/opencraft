@@ -1,11 +1,11 @@
 // Platform-neutral Codex design primitives. The explicit `.shared` basename
 // prevents Metro from resolving this module back to `tokens.native.ts`.
 import {
-  codexTypographyTokens,
+  opencraftTypographyTokens,
   typographyRegistry,
 } from "./typography/typography.shared";
 
-export { codexTypographyTokens } from "./typography/typography.shared";
+export { opencraftTypographyTokens } from "./typography/typography.shared";
 export const spacing = {
   unit: 4,
   0: 0,
@@ -81,7 +81,7 @@ export const frame = {
  * prevents PingFang, Inter, and Android fallbacks from remapping ad-hoc values.
  */
 export const typography = Object.freeze({
-  weight: codexTypographyTokens.weight,
+  weight: opencraftTypographyTokens.weight,
   tracking: typographyRegistry.tracking,
 });
 
@@ -113,7 +113,7 @@ export const darkPalette = {
   orange: "#ff9e6c",
 } as const;
 
-export const codexDesignTokens = {
+export const opencraftDesignTokens = {
   spacing,
   radii,
   typography,
@@ -178,7 +178,7 @@ const darkAlpha = {
 
 // Semantic values mirror tokens.web.scss. Renderers consume these roles rather
 // than rebuilding opacity, hierarchy, or state colors inside components.
-export const codexColorTokens = {
+export const opencraftColorTokens = {
   light: {
     accent: {
       blue: "#339cff",
@@ -287,7 +287,7 @@ export const codexColorTokens = {
   },
 } as const;
 
-export const codexGeometryTokens = {
+export const opencraftGeometryTokens = {
   header: {
     titleMaximumWidth: 420,
     contextInlineGap: 7,
@@ -374,7 +374,7 @@ export const codexGeometryTokens = {
   },
 } as const;
 
-export const codexShadowTokens = {
+export const opencraftShadowTokens = {
   light: {
     prominent: { color: "#000000", opacity: 0.05, radius: 20, offsetY: 0, elevation: 3 },
     composer: { color: "#000000", opacity: 0.12, radius: 10, offsetY: 4, elevation: 5 },
