@@ -59,6 +59,7 @@ test("disconnect revokes synchronization before delayed or already-complete cach
     if (prepared) { load.resolve(null); await replica.prepare(); }
     const pending = replica.synchronize(ownedSource("old", subscribed));
     const canceled = assert.rejects(pending, /superseded/);
+    await Promise.resolve(); // Enter prepare before revoking this source generation.
     replica.disconnect(); await canceled; load.resolve(null);
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(subscribed, []);

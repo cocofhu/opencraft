@@ -349,6 +349,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
         priority: options.priority,
         queuedAtMs,
       });
+      if (this.pending.get(id) !== pending) return;
       pending.startedAtMs = this.clock.now();
       this.emitRequestLifecycle({
         type: "started",
@@ -362,6 +363,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
         timeoutMs,
       });
 
+      if (this.pending.get(id) !== pending) return;
       const fail = (error: unknown) => {
         if (this.pending.get(id) !== pending) return;
         this.rejectPending(id, new AppServerClientError("TRANSPORT_ERROR", `Failed to send AppServer request ${method}`, {
