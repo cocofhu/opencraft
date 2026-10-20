@@ -49,25 +49,23 @@ export function AgentActivityGroupDisclosure({
   const [phase, setPhase] = useState<AgentActivityDisclosurePhase>(() => {
     if (!canExpand) return "collapsed";
     if (collapsed === false || (collapsed === undefined && defaultExpanded)) return "expanded";
-    return shouldAnimateInitialCollapse ? "expanded" : "collapsed";
+    // Lazy bodies have no prior visible layout to collapse. Restore their
+    // folded state immediately instead of exposing commands for one paint.
+    return shouldAnimateInitialCollapse && typeof children !== "function" ? "closing" : "collapsed";
   });
   const previousCollapsed = useRef(collapsed);
   const previousCanExpand = useRef(canExpand);
-  const initialCollapse = useRef(shouldAnimateInitialCollapse && (collapsed === true || (collapsed === undefined && !defaultExpanded)));
   const reflow = useDisclosureReflow();
-  const height = useDisclosureHeight(phase === "expanded" || phase === "closing" ? "auto" : 0);
+  const height = useDisclosureHeight(phase === "expanded" ? "auto" : 0);
   const open = phase === "opening" || phase === "expanded";
 
   useEffect(() => {
     if (!canExpand) { reflow.cancel(); setPhase("collapsed"); }
-    else if (initialCollapse.current) {
-      setPhase(reduced ? "collapsed" : "closing");
-    } else if ((previousCollapsed.current !== collapsed || previousCanExpand.current !== canExpand) && collapsed !== undefined) {
+    else if ((previousCollapsed.current !== collapsed || previousCanExpand.current !== canExpand) && collapsed !== undefined) {
       setPhase(current => collapsed ? current === "collapsed" ? current : "closing" : "expanded");
     }
     previousCollapsed.current = collapsed;
     previousCanExpand.current = canExpand;
-    initialCollapse.current = false;
   }, [canExpand, collapsed, reflow.cancel]);
 
   useEffect(() => {

@@ -2015,7 +2015,10 @@ restored content is visible at its final geometry on the first DOM commit. Once
 that baseline has committed, live insertion and user disclosure opening retain
 existing transitions. This does not delay content, change elapsed-time authority,
 add a cache or require backend protocol changes. A settled collapsed work header
-remains synchronous. Verification: `scripts/smoke-conversation-entry-motion.ts`
+remains synchronous. Lazy inner tool groups also restore directly into their
+collapsed or explicitly expanded state. Mounting a folded Thinking group must
+never expose command bodies before an effect closes them; only actual disclosure
+changes have prior visible geometry to animate. Verification: `scripts/smoke-conversation-entry-motion.ts`
 uses the real Conversation, checks first-commit opacity/height, repeated remounts,
 in-place scope switches, progressive preview/authority promotion, live work entry
 and manual expansion in light/dark and desktop/touch.

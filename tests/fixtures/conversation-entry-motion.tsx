@@ -15,7 +15,8 @@ const start = Date.now() - 2500;
 function running(id: string): TimelineSourceTurn {
   return {id, status: "streaming", startedAtMs: start, firstTurnWorkItemStartedAtMs: start,
     items: [{id: `${id}:user`, type: "userMessage", payload: {content: [{type: "text", text: "Run tests"}]}},
-      {id: `${id}:tool`, type: "commandExecution", payload: {command: "pwd", status: "inProgress"}}]};
+      {id: `${id}:tool`, type: "commandExecution", payload: {command: "pwd", status: "completed"}},
+      {id: `${id}:tool2`, type: "commandExecution", payload: {command: "bash -lc echo-running", status: "inProgress"}}]};
 }
 function Demo() {
   const [revision, setRevision] = useState(0);
