@@ -1,4 +1,3 @@
-// Platform-neutral Codex design primitives. The explicit `.shared` basename
 // prevents Metro from resolving this module back to `tokens.native.ts`.
 import {
   opencraftTypographyTokens,

@@ -8,7 +8,6 @@ import {
 } from "./tokens.shared";
 import { nativeTypographyTokens } from "./typography/typography.shared";
 
-// Codex owns semantic color roles; iPad owns density, material and navigation
 // geometry. Keeping these layers separate prevents the native app from
 // becoming a scaled desktop renderer while preserving one visual vocabulary.
 export const ipadMetrics = {

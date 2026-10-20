@@ -653,7 +653,6 @@ export interface ConversationProps {
   readonly renderToolCallIcon?: ToolCallIconRenderer;
   /** Host/layout capabilities; protocol and conversation data never infer these. */
   readonly surfaceCapabilities?: TimelineSurfaceCapabilities;
-  /** Mirrors Codex's conversationDetailMode; commands is the desktop default. */
   readonly threadDetailLevel?: ConversationDetailLevel;
 }
 

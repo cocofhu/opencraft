@@ -653,7 +653,6 @@ export function AppShell({
       setDrawerRequested(false);
       return;
     }
-    // Codex pins the floating panel without replaying the layout entrance.
     sidebarProgress.stop();
     sidebarProgress.set(1);
     setDrawerRequested(false);

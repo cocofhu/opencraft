@@ -1,9 +1,3 @@
-/**
- * Renderer-neutral viewport model for a Codex-style conversation timeline.
- *
- * DOM, Electron and React Native adapters all publish this shape. The
- * virtualizer consumes geometry and policy, never browser globals.
- */
 export type TimelineRenderHostKind = "browser" | "electron" | "native";
 
 export type TimelineRenderPlatform =

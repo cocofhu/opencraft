@@ -12,7 +12,6 @@ function optionVisual(visual: "local" | "remote" | undefined) {
   return null;
 }
 
-/** Codex-style compact selector owned by the AppShell, not by feature CSS. */
 export function AppShellToolbarSelect({
   value,
   options,

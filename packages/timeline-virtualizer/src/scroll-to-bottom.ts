@@ -9,12 +9,6 @@ export interface ScrollToBottomActionVisibilityInput {
   readonly responseSpacerHeightPx: number | null;
 }
 
-/**
- * Recovered Codex visibility invariant for the Composer's floating bottom action.
- *
- * A response spacer deliberately moves the physical bottom away while the latest
- * Turn is being placed. That synthetic distance must not make the action appear.
- */
 export function shouldShowScrollToBottomAction({
   isScrolledFromBottom,
   responseSpacerHeightPx,

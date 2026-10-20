@@ -758,7 +758,6 @@ export interface ConversationPendingInteractionPanelProps {
   readonly onConnectSetupContextSource?: (source: SetupCodexContextSource) => Promise<void>;
 }
 
-/** Codex replaces the Composer body with the active request surface. */
 export function ConversationPendingInteractionPanel({
   block,
   onRespondInteraction,

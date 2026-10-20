@@ -1,5 +1,4 @@
 export const RIGHT_PANEL_MINIMUM_WIDTH = 320;
-// Codex deliberately separates the visible minimum from the magnetic close
 // shelf. app-shell-right-panel-06052 compares against
 // scalePanelDimension(320), whose recovered AppShell scale is 0.5. Width
 // normalization still clamps to 320, so the pointer can travel through the
@@ -102,7 +101,6 @@ export type PanelAction =
       readonly region: PanelRegionId;
       readonly open: boolean;
       readonly reason?: "manual" | "resize";
-      /** Codex may reveal the side-panel outlet before a concrete tab exists. */
       readonly allowEmpty?: boolean;
     }
   | {

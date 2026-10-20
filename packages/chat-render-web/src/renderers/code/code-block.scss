@@ -4,7 +4,6 @@
   width: 100%;
   min-width: 0;
   margin-block: 14px;
-  // `<figure>` carries a browser-default 40px inline margin. Codex's utility
   // reset removes it; without the reset every fence drifts off the transcript
   // reading axis even though the Markdown AST is correct.
   margin-inline: 0;
@@ -27,7 +26,6 @@
     letter-spacing: var(--typography-metadata-tracking);
   }
 
-  // Codex's code action bar is a surface capability (Statsig gate
   // 2910064124), not an intrinsic property of a code fence. Its negative
   // offset cancels the thread scrollport's retained sticky-header padding;
   // the generic floating-content inset belongs to PIP/rails and is not this
@@ -151,7 +149,6 @@
   overflow: auto;
   outline: none;
   font-family: var(--font-family-mono);
-  // Codex's ordinary fenced body inherits the 14px ChatUI reading scale.
   // Small monospace tokens remain reserved for metadata and terminal chrome.
   font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-prose-code-line-height);

@@ -142,7 +142,6 @@ interface DragState {
   moved: boolean;
 }
 
-/** Codex-style overflow owner: one axis, pointer capture and click suppression. */
 function ComposerUtilityScrollArea({ children }: { readonly children: ReactNode }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);

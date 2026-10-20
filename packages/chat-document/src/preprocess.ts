@@ -78,7 +78,6 @@ function lastUnescapedIndex(text: string, delimiter: string): number {
   return -1;
 }
 
-/** Codex ignores inline backticks that belong to complete or open fenced blocks. */
 function hasOddInlineBackticks(text: string): boolean {
   let count = 0;
   for (let cursor = 0; cursor < text.length;) {
