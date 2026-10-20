@@ -264,6 +264,8 @@ export class JsonRpcAppServerClient implements AppServerClient {
     // Transport status observers may synchronously call connect again.
     // Own the shared initialization before entering any transport code.
     const operation = Promise.resolve().then(async () => {
+      if (this.closed) throw new AppServerClientError("CLOSED", "AppServer client is closed");
+      if (signal?.aborted) throw new AppServerClientError("ABORTED", "AppServer connection was aborted");
       await this.transport.connect(signal);
       const revision = this.transportRevision;
       const result = await this.request("initialize", params, { signal, priority: "user-blocking" });

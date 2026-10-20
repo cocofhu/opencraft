@@ -325,7 +325,8 @@ may clear its promise, and old close callbacks settle before publishing status
 that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
 Client initialization, deferred transport acquisition and logical Host connection
 also install their single owner before notifying synchronous observers. Reentrant
-connect calls join that operation. Outbound request observers can cancel before
+connect calls join that operation. A delayed initializer rechecks close and abort
+before acquiring a transport. Outbound request observers can cancel before
 encoding or sending; the request must still own its pending entry after each
 notification, and a WebSocket checks cancellation before physical delivery.
 

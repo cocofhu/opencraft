@@ -9,6 +9,20 @@ import { WebSocket, WebSocketServer } from "ws";
 
 const params = { clientInfo: { name: "lifecycle-test", version: "1" }, capabilities: { experimentalApi: true } };
 const initialized = { codexHome: "/tmp/lifecycle-fixture", platformFamily: "unix", platformOs: "linux", userAgent: "fixture" };
+for (const revoke of ["close", "abort"] as const) test(`initialization revoked before acquisition by ${revoke} allocates no transport`, async () => {
+  let allocations = 0;
+  const transport = new MemoryTransport({ receive() {} });
+  const connect = transport.connect.bind(transport);
+  transport.connect = signal => { allocations++; return connect(signal); };
+  const client = new JsonRpcAppServerClient({ hostId: "revoked", transport });
+  const abort = new AbortController();
+  const rejected = assert.rejects(client.connect(params, abort.signal), error =>
+    error instanceof Error && (error as Error & { code?: string }).code === (revoke === "close" ? "CLOSED" : "ABORTED"));
+  if (revoke === "close") await client.close(); else abort.abort();
+  await rejected;
+  assert.equal(allocations, 0);
+  await client.close();
+});
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 function deferred<T>() {
   let resolve!: (value: T) => void;
