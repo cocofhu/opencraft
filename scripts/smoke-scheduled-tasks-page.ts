@@ -24,11 +24,24 @@ const nav=supervisor.navigation;nav.openSettings('opencraft.schedules');
 createIntlTestRoot(document.getElementById('app'),undefined,'zh-CN').render(<WorkbenchRoot application={application}/>);
 window.proof={route:()=>nav.getSnapshot().applicationRoute,open:()=>nav.openSettings('opencraft.schedules'),back:()=>nav.back(),forward:()=>nav.forward(),theme:setThemePreference,registry:supervisor.registry};document.body.dataset.ready='true';
 `;
+const feedbackSource = `
+import React from 'react';
+import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
+import {ScheduledTasksPage} from '/apps/workbench-web/src/components/scheduled-tasks-page.tsx';
+import {ScheduledTaskCatalogContext} from '/apps/workbench-web/src/runtime/scheduled-task-catalog-context.ts';
+import {AsyncNoticesContext} from '/apps/workbench-web/src/components/async-notices-context.ts';
+import '/apps/workbench-web/src/styles/app.scss';
+const notices={error:()=>{document.body.dataset.error='true';}};
+const host={hostId:'fixture',hostLabel:'Fixture',scope:'fixture',phase:'ready',cached:true,port:null,retry:async()=>{},schedules:[{threadId:'retained',status:'paused',nextRunAt:1,needsReview:false}]};
+function Proof(){const [discovery,setDiscovery]=React.useState(null);window.failDiscovery=()=>setDiscovery('error');
+return <AsyncNoticesContext.Provider value={notices}><ScheduledTaskCatalogContext.Provider value={{scheduleCatalogs:[host],threads:[],discovery,retryDiscovery:async()=>{},openConversation:async()=>true}}><ScheduledTasksPage/></ScheduledTaskCatalogContext.Provider></AsyncNoticesContext.Provider>;}
+createIntlTestRoot(document.getElementById('app'),undefined,'zh-CN').render(<Proof/>);
+`;
 const vite = await createServer({ configFile: false, root: process.cwd(), cacheDir: output + "/vite", logLevel: "error",
   define: { 'process.env.NEXT_PUBLIC_REGION': '"cn"', 'process.env.NEXT_PUBLIC_PREVIEW_LOCALES':'""', 'import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN':'"false"','import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN':'"false"' },
   esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, server: { host: "127.0.0.1", port: 0, hmr: false },
-  plugins: [{ name: "schedule-catalog-proof", resolveId: id => id === "/proof.tsx" ? id : null, load: id => id === "/proof.tsx" ? source : null,
-    configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/") return next(); res.setHeader("content-type", "text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="app"></div><script type="module" src="/proof.tsx"></script>'); }); } }] });
+  plugins: [{ name: "schedule-catalog-proof", resolveId: id => ["/proof.tsx", "/feedback-proof.tsx"].includes(id) ? id : null, load: id => id === "/proof.tsx" ? source : id === "/feedback-proof.tsx" ? feedbackSource : null,
+    configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/" && req.url !== "/feedback") return next(); res.setHeader("content-type", "text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="app"></div><script type="module" src="'+(req.url === "/feedback" ? "/feedback-proof.tsx" : "/proof.tsx")+'"></script>'); }); } }] });
 const ws = new WebSocketServer({ noServer: true });
 const thread = { id: "scheduled-thread", name: "Synthetic scheduled conversation", preview: "Catalog fixture", cwd: "/synthetic", createdAt: 1, updatedAt: 1, historyMode: "legacy", status: { type: "idle" }, turns: [] };
 function summaries() { return [{ threadId: thread.id, status: paused ? "paused" : "active", nextRunAt: stamp, needsReview: false }, { threadId: "not-paginated", status: "paused", nextRunAt: stamp + 1, needsReview: false }]; }
@@ -83,7 +96,7 @@ try {
   assert.equal(await catalog.getByText("无法刷新定时任务。", { exact: true }).count(), 0, "error is delivered by Toast outside the catalog");
   const afterFailure = await catalog.locator(".settings-control-group").boundingBox();
   assert.deepEqual(afterFailure, beforeFailure, "error Toast does not shift catalog geometry");
-  failList = false; await catalog.getByRole("button", { name: "刷新", exact: true }).click();
+  failList = false; await catalog.getByRole("button", { name: "刷新", exact: true }).first().click();
   await catalog.getByRole("button", { name: "管理", exact: true }).first().waitFor();
   const closeToast = page.locator('.workbench-notices button[data-close-button]'); if (await closeToast.count()) await closeToast.first().click();
   const evidence = [];
@@ -94,6 +107,12 @@ try {
     assert.ok(geometry.scroll <= geometry.width + 1, JSON.stringify(geometry)); assert.ok(geometry.page <= geometry.viewport + 1);
     await page.screenshot({ path: `${output}/${theme}-${width}.png` }); evidence.push({ theme, width, geometry });
   }
+  await page.goto(url + "feedback");
+  await page.locator(".settings-control-list-item").waitFor();
+  const discoveryBefore = await page.locator(".settings-control-group").boundingBox();
+  await page.evaluate(() => (window as any).failDiscovery());
+  await page.locator('body[data-error="true"]').waitFor();
+  assert.deepEqual(await page.locator(".settings-control-group").boundingBox(), discoveryBefore, "discovery failure uses the notice port without inserting layout");
   assert.deepEqual(errors, []);
   await writeFile(`${output}/result.json`, JSON.stringify({ evidence, counts, errors }, null, 2));
   console.log(JSON.stringify({ output, scenarios: evidence.length, counts, passed: true }));

@@ -28,9 +28,11 @@ export function ScheduledTasksPage() {
     catch { notices.error({ key: "schedule-catalog-navigation", message: text("openError") }); }
   };
   return <section className="scheduled-tasks-page" aria-label={text("title")}>
-    <SettingsPageHeader title={text("title")} description={text("description")} />
+    <div className="scheduled-tasks-page__header">
+      <SettingsPageHeader title={text("title")} description={text("description")} />
+      <SettingsButton disabled={catalog.discovery === "loading"} onClick={() => void Promise.allSettled([catalog.retryDiscovery(), ...catalog.scheduleCatalogs.map(host => host.retry())])}>{text("refresh")}</SettingsButton>
+    </div>
     {catalog.discovery === "loading" ? <SettingsNotice role="status">{text("loading")}</SettingsNotice> : null}
-    {catalog.discovery === "error" ? <SettingsNotice><SettingsButton onClick={() => void catalog.retryDiscovery()}>{text("retry")}</SettingsButton></SettingsNotice> : null}
     {catalog.scheduleCatalogs.filter(host => host.phase !== "unsupported").map(host => <SettingsSection key={host.scope} title={host.hostLabel}
       action={<SettingsButton disabled={host.phase === "offline" || host.phase === "loading"} onClick={() => void host.retry()}>{text("refresh")}</SettingsButton>}>
       {host.phase === "offline" || host.phase === "loading" ? <SettingsNotice role="status">{text(issue(host))} {host.cached ? text("cached") : ""}</SettingsNotice> : null}

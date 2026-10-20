@@ -10,3 +10,10 @@
   flex-wrap: wrap;
   gap: var(--space-2, 8px);
 }
+
+.scheduled-tasks-page__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  > :first-child { flex: 1; min-width: 0; }
+}
