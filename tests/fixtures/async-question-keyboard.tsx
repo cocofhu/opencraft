@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline, renderAsyncQuestionReply, type AsyncQuestion } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { Conversation } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
@@ -15,7 +15,7 @@ await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
 const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
 const question: AsyncQuestion = { id: JSON.stringify(["request_user_input_async", "question", 0]), title: "How should we proceed?",
   options: new URLSearchParams(location.search).has("suggested") ? ["Suggested answer"] : [] };

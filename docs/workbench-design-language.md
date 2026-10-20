@@ -65,7 +65,7 @@ content lifetime, never paint timing. Expanded/context and floating materials
 remain unchanged; main content retains its surface and edge-scroll policy.
 Child navigation and conversation components do not paint their own seam.
 The main surface always consumes the existing theme's
-`--codex-main-surface-elevation`: soft shadows, thin strokes and flat variants
+`--opencraft-main-surface-elevation`: soft shadows, thin strokes and flat variants
 must all survive unchanged. The titlebar treatment cannot disable full-surface
 elevation. Its compact titlebar lip consumes that same elevation, including
 flat/none; only the lower exposed edge casts into Sidecar, with the joining

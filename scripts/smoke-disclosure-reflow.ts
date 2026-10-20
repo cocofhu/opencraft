@@ -45,7 +45,7 @@ function App(){
   </div>
  </DisclosureReflowContext.Provider>;
 }
-document.documentElement.style.setProperty('--codex-chat-line-height','24px');
+document.documentElement.style.setProperty('--opencraft-chat-line-height','24px');
 createIntlTestRoot(document.getElementById('root')).render(<App/>);
 `;
 const vite = await createServer({

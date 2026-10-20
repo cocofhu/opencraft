@@ -38,7 +38,7 @@ const block: UserMessageTimelineBlock = {
   hasExternalAttachments: false,
 };
 
-presentationRoot.style.cssText = "--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:#fff;--codex-chat-font-size:15px;width:min(880px,100%);margin:32px auto;padding:24px;background:var(--color-background-surface);display:flex;flex-direction:column;gap:24px";
+presentationRoot.style.cssText = "--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:#fff;--opencraft-chat-font-size:15px;width:min(880px,100%);margin:32px auto;padding:24px;background:var(--color-background-surface);display:flex;flex-direction:column;gap:24px";
 const examples = [
   { id: "first", message: "将发送者身份绑定到每条消息 ID", content: [], sender: { kind: "employee" as const, loginName: "alice" } },
   { id: "steer", message: "队列里的消息也保留原发送者", content: [], sender: { kind: "employee" as const, loginName: "alexli" }, messageKind: "steering" as const },

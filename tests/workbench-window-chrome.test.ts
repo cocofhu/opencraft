@@ -60,7 +60,7 @@ test("renderer host identity is installed above body for the viewport contract",
     platform: "darwin",
   });
 
-  assert.equal(root.dataset.codexWindowType, "browser");
+  assert.equal(root.dataset.opencraftWindowType, "browser");
   assert.equal(root.dataset.codexOs, "darwin");
 });
 

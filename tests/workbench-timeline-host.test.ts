@@ -4,7 +4,7 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { menuGeometry } from "@opencraft/design-system/tokens";
 
 import {
@@ -390,7 +390,7 @@ test("theme bootstrap is owned by the application root, not a removable header c
   );
   assert.doesNotMatch(webConversationSource, /toolJsonTheme/u);
 
-  const lightTheme = buildCodexThemeCssProperties("light");
+  const lightTheme = buildOpenCraftThemeCssProperties("light");
   for (const token of [
     "--color-background-button-tertiary-hover",
     "--color-surface-tertiary",
@@ -527,7 +527,7 @@ test("Draft menus consume one design-system rhythm and stay out of the hero titl
 });
 
 test("dark primary actions preserve inverted foreground contrast", () => {
-  const darkTheme = buildCodexThemeCssProperties("dark");
+  const darkTheme = buildOpenCraftThemeCssProperties("dark");
 
   assert.equal(darkTheme["--color-background-button-primary"], "#ffffff");
   assert.equal(darkTheme["--color-text-button-primary"], "#181818");
@@ -539,7 +539,7 @@ test("dark primary actions preserve inverted foreground contrast", () => {
 });
 
 test("light primary action hover remains an opaque inverted surface", () => {
-  const lightTheme = buildCodexThemeCssProperties("light");
+  const lightTheme = buildOpenCraftThemeCssProperties("light");
   const primary = lightTheme["--color-background-button-primary"];
   const hover = lightTheme["--color-background-button-primary-hover"];
 
@@ -1429,7 +1429,7 @@ test("thread edge-scroll is one measured AppShell state", () => {
   );
   assert.match(
     workbenchStyles,
-    /html\[data-codex-window-type="browser"\]\s+\.main-content-top-fade\s*\{[\s\S]*?display:\s*none;[\s\S]*?\}/u,
+    /html\[data-opencraft-window-type="browser"\]\s+\.main-content-top-fade\s*\{[\s\S]*?display:\s*none;[\s\S]*?\}/u,
   );
   assert.match(
     workbenchStyles,

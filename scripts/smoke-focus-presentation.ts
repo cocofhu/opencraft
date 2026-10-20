@@ -14,13 +14,13 @@ import {SettingsButton} from '@opencraft/extension-react';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import * as Dialog from '@radix-ui/react-dialog';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
-import {buildCodexThemeCssProperties,codexThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
 bindTouchInteractionMode(document);
 window.focusFixture={theme:(mode,family)=>{
  document.documentElement.dataset.theme=mode;
- const base=family==='custom'?lavenderThemePalette[mode]:codexThemePalette[mode];
- for(const [key,value] of Object.entries(buildCodexThemeCssProperties(mode,base)))document.documentElement.style.setProperty(key,value);
+ const base=family==='custom'?lavenderThemePalette[mode]:opencraftNeutralThemePalette[mode];
+ for(const [key,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,base)))document.documentElement.style.setProperty(key,value);
 }};
 const controller=createComposerController({type:'existing-thread',key:createConversationKey('fixture','focus')},{now:Date.now,createId:()=>crypto.randomUUID()});
 createIntlTestRoot(document.getElementById('root')).render(<main style={{padding:32,background:'var(--color-background-surface)',color:'var(--color-text)'}}>

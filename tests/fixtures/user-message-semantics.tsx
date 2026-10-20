@@ -13,7 +13,7 @@ style.textContent = styles;
 document.head.append(style);
 document.body.style.margin = "0";
 root.className = "opencraft-embedded-workbench-root";
-root.style.cssText = `padding:16px;max-width:860px;margin:auto;background:${dark ? "#17191c" : "white"};color:${dark ? "#eee" : "#21272b"};--color-text:${dark ? "#eee" : "#21272b"};--color-text-tertiary:#77818a;--color-background-surface:${dark ? "#17191c" : "white"};--codex-chat-font-size:15px;display:flex;flex-direction:column;gap:20px`;
+root.style.cssText = `padding:16px;max-width:860px;margin:auto;background:${dark ? "#17191c" : "white"};color:${dark ? "#eee" : "#21272b"};--color-text:${dark ? "#eee" : "#21272b"};--color-text-tertiary:#77818a;--color-background-surface:${dark ? "#17191c" : "white"};--opencraft-chat-font-size:15px;display:flex;flex-direction:column;gap:20px`;
 const base: UserMessageTimelineBlock = { type: "user-message", id: "base", sourceItemIds: [], message: "", content: [], attachments: [],
   messageKind: "user", clientId: null, steeringStatus: null, sentAtMs: null, deliveryStatus: null,
   referencesPriorConversation: false, reviewMode: false, pullRequestFixMode: false, autoResolveSync: false, goal: false,

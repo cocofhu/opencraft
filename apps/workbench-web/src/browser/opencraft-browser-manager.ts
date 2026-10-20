@@ -1,11 +1,11 @@
-import { createImplementation as managerImplementation } from "./codex/browser-manager.js";
-import { createImplementation as transitionImplementation } from "./codex/presentation-transition.js";
+import { createImplementation as managerImplementation } from "./opencraft/browser-manager.js";
+import { createImplementation as transitionImplementation } from "./opencraft/presentation-transition.js";
 import { DEFAULT_WEBVIEW_STATE, RESPONSIVE_PRESET_ID, initializeBrowserViewportPresets,
-  getDefaultPanelWidth, clampPanelWidth__rBr_2f54e } from "./codex/viewport-presets.js";
+  getDefaultPanelWidth, clampPanelWidth__rBr_2f54e } from "./opencraft/viewport-presets.js";
 
 type Value = Record<string, any>;
 const logger = { info() {} };
-export function createCodexBrowserManager(Host: new (options: Value) => any) {
+export function createOpenCraftBrowserManager(Host: new (options: Value) => any) {
   initializeBrowserViewportPresets();
   const removals: Array<() => void> = [];
   const eventScope = (target: Window | Document) => ({
@@ -63,7 +63,7 @@ export function createCodexBrowserManager(Host: new (options: Value) => any) {
   manager = new Manager();
   const disposeSource = manager.disposeAll.bind(manager);
   manager.disposeAll = () => {
-    // Source manager has renderer-wide lifetime; our app supervisor can be
+    // The manager has renderer-wide lifetime; the app supervisor can be
     // disposed independently of the renderer, so release its event ports too.
     for (const remove of removals.splice(0)) remove();
     listeners.clear();

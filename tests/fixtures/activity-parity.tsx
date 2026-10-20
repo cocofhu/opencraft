@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { createIntlTestRoot as createRoot } from "./intl-root";
 import { flushSync } from "react-dom";
 import { Context } from "@deepseek-ai/cordis";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import {
   createConversationKey,
   createDefaultTimelineProjectorRegistry,
@@ -34,7 +34,7 @@ ctx.timelineBlockRenderers.register({
   ),
 });
 for (const [key, value] of Object.entries(
-  buildCodexThemeCssProperties("light"),
+  buildOpenCraftThemeCssProperties("light"),
 ))
   document.documentElement.style.setProperty(key, value);
 const start = Date.now() - 41_000;

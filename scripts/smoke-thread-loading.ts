@@ -10,7 +10,7 @@ import React,{useState} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {Context} from '@deepseek-ai/cordis';
 import {createConversationKey,createDefaultTimelineProjectorRegistry,projectTimeline} from '@opencraft/chat-core';
-import {buildCodexThemeCssProperties,codexThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
 import {TimelineBlockRendererProvider,TimelineBlockRendererRegistryService} from '@opencraft/timeline-render-react';
 import {BuiltinTimelineRendererPlugin} from '/apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin.ts';
 import {Conversation} from '/apps/workbench-web/src/components/conversation.tsx';
@@ -27,8 +27,8 @@ const history=projectTimeline({key,revision:1,authoritative:true,phase:'live',tu
 ]}))},createDefaultTimelineProjectorRegistry());
 function theme(mode,family){
  document.documentElement.dataset.theme=mode;
- const palette=family==='custom'?lavenderThemePalette[mode]:codexThemePalette[mode];
- for(const [name,value] of Object.entries(buildCodexThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
+ const palette=family==='custom'?lavenderThemePalette[mode]:opencraftNeutralThemePalette[mode];
+ for(const [name,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
 }
 theme('light','codex');
 window.loadingFixture={theme};

@@ -12,7 +12,7 @@ import * as themes from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
 const params=new URLSearchParams(location.search),mode=params.get('mode')||'light',palette=themes[(params.get('palette')||'codex')+'ThemePalette'];
 document.documentElement.dataset.theme=mode;document.documentElement.dataset.uiDensity=params.has('touch')?'touch':'compact';
-for(const [k,v] of Object.entries(themes.buildCodexThemeCssProperties(mode,palette[mode])))document.documentElement.style.setProperty(k,v);
+for(const [k,v] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode,palette[mode])))document.documentElement.style.setProperty(k,v);
 bindTouchInteractionMode(document);
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const counts=[6,3,1,0,3],values=['low','medium','high','xhigh','max','ultra'];

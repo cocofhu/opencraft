@@ -80,7 +80,7 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: calc(var(--spacing) * 4);
   background: var(--color-background-elevated-primary-opaque);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   transition: opacity var(--transition-duration-basic) var(--ease-enter-snappy),
     translate var(--transition-duration-basic) var(--ease-enter-snappy);
   &[data-visible="false"] {
@@ -141,7 +141,7 @@
   padding: 0;
   color: var(--color-text-secondary);
   background: var(--color-background-elevated-primary-opaque);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   cursor: pointer;
   transition: color var(--transition-duration-basic),
     scale var(--transition-duration-basic),

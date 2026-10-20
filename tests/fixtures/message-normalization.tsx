@@ -9,7 +9,7 @@ import styles from "../../apps/workbench-web/src/styles/app.scss?inline";
 const root = document.getElementById("root")!;
 const style = document.createElement("style"); style.textContent = styles; document.head.append(style);
 root.className = "opencraft-embedded-workbench-root";
-root.style.cssText = "padding:16px;max-width:860px;margin:auto;--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:white;--codex-chat-font-size:15px;display:flex;flex-direction:column;gap:20px";
+root.style.cssText = "padding:16px;max-width:860px;margin:auto;--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:white;--opencraft-chat-font-size:15px;display:flex;flex-direction:column;gap:20px";
 const name = "受众😀.md", path = "/host/attachments/file/content-note.md";
 const text = (value: string) => ({ type: "text", text: value });
 const mention = { type: "mention", name, path };

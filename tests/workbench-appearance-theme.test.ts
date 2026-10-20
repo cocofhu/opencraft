@@ -3,19 +3,19 @@ import test from "node:test";
 
 import { ExtensionContributionStore } from "@opencraft/extension-runtime";
 import {
-  buildCodexThemeCssProperties,
-  codexThemePalette,
+  buildOpenCraftThemeCssProperties,
+  opencraftNeutralThemePalette,
   frostThemePalette,
   lavenderThemePalette,
   zenCodeThemePalette,
-  velaThemePalette,
+  opencraftCanvasThemePalette,
 } from "@opencraft/design-system/theme-engine";
 
 test("keyboard focus is neutral and independent of brand accent, including legacy aliases", () => {
   for (const mode of ["light", "dark"] as const) {
-    for (const base of [codexThemePalette[mode], velaThemePalette[mode], lavenderThemePalette[mode]]) {
-      const css = buildCodexThemeCssProperties(mode, base);
-      const recolored = buildCodexThemeCssProperties(mode, { ...base, accent: "#ff0088" });
+    for (const base of [opencraftNeutralThemePalette[mode], opencraftCanvasThemePalette[mode], lavenderThemePalette[mode]]) {
+      const css = buildOpenCraftThemeCssProperties(mode, base);
+      const recolored = buildOpenCraftThemeCssProperties(mode, { ...base, accent: "#ff0088" });
       const focus = css["--color-border-focus"];
       assert.match(focus, mode === "light" ? /^rgba\(0, 0, 0, /u : /^rgba\(255, 255, 255, /u);
       assert.equal(recolored["--color-border-focus"], focus);
@@ -28,14 +28,14 @@ test("keyboard focus is neutral and independent of brand accent, including legac
 
 test("utility controls receive semantic status colors in both themes and accept theme overrides", () => {
   for (const mode of ["light", "dark"] as const) {
-    for (const definition of [codexThemePalette[mode], velaThemePalette[mode], frostThemePalette[mode], lavenderThemePalette[mode]]) {
-      const css = buildCodexThemeCssProperties(mode, definition);
+    for (const definition of [opencraftNeutralThemePalette[mode], opencraftCanvasThemePalette[mode], frostThemePalette[mode], lavenderThemePalette[mode]]) {
+      const css = buildOpenCraftThemeCssProperties(mode, definition);
       for (const key of ["--color-text-warning", "--color-text-danger", "--color-status-success", "--color-usage-track", "--color-dialog-scrim", "--elevation-dialog-utility"]) {
         assert.ok(css[key], `${mode} must define ${key}`);
       }
     }
-    const custom = buildCodexThemeCssProperties(mode, {
-      ...codexThemePalette[mode], semanticColors: { ...codexThemePalette[mode].semanticColors, warning: "#9b4a00", error: "#b42318", success: "#18743b" },
+    const custom = buildOpenCraftThemeCssProperties(mode, {
+      ...opencraftNeutralThemePalette[mode], semanticColors: { ...opencraftNeutralThemePalette[mode].semanticColors, warning: "#9b4a00", error: "#b42318", success: "#18743b" },
     });
     assert.equal(custom["--color-text-warning"], "#9b4a00");
     assert.equal(custom["--color-text-danger"], "#b42318");
@@ -51,11 +51,11 @@ test("badge pairs stay readable across palettes, overridden surfaces and brand a
     return channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722;
   };
   for (const mode of ["light", "dark"] as const) {
-    for (const palette of [codexThemePalette, velaThemePalette, frostThemePalette, lavenderThemePalette, zenCodeThemePalette]) {
+    for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette, frostThemePalette, lavenderThemePalette, zenCodeThemePalette]) {
       for (const panel of [undefined, "#ffffff", "#101020", "#777777"]) {
         const definition = { ...palette[mode], surfaces: { ...palette[mode].surfaces, ...(panel ? { panel } : {}) } };
-        const css = buildCodexThemeCssProperties(mode, definition);
-        const recolored = buildCodexThemeCssProperties(mode, { ...definition, accent: "#ff0088" });
+        const css = buildOpenCraftThemeCssProperties(mode, definition);
+        const recolored = buildOpenCraftThemeCssProperties(mode, { ...definition, accent: "#ff0088" });
         for (const tone of ["blue", "cyan", "red", "indigo", "green", "purple", "orange", "neutral"]) {
           const foregroundKey = `--color-badge-${tone}-foreground` as const;
           const backgroundKey = `--color-badge-${tone}-background` as const;
@@ -72,51 +72,51 @@ test("badge pairs stay readable across palettes, overridden surfaces and brand a
 });
 
 test("ZenCode uses layered neutral surfaces without changing shared geometry", () => {
-  const light = buildCodexThemeCssProperties("light", zenCodeThemePalette.light);
-  const dark = buildCodexThemeCssProperties("dark", zenCodeThemePalette.dark);
+  const light = buildOpenCraftThemeCssProperties("light", zenCodeThemePalette.light);
+  const dark = buildOpenCraftThemeCssProperties("dark", zenCodeThemePalette.dark);
   assert.equal(light["--color-background-surface"], "#f8f8f8");
-  assert.equal(light["--codex-sidebar-material-background"], "#f0f0f0");
+  assert.equal(light["--opencraft-sidebar-material-background"], "#f0f0f0");
   assert.equal(light["--color-background-panel"], "#ffffff");
   assert.equal(dark["--color-background-surface"], "#161616");
   assert.equal(dark["--color-background-panel"], "#202020");
   assert.equal(dark["--color-background-input"], "#2b2b2b");
   assert.equal(dark["--color-background-elevated-primary-opaque"], "#2b2b2b");
   for (const css of [light, dark]) {
-    assert.equal(css["--codex-sidebar-material-filter"], "none");
-    assert.equal(css["--codex-main-surface-elevation"], "none");
+    assert.equal(css["--opencraft-sidebar-material-filter"], "none");
+    assert.equal(css["--opencraft-main-surface-elevation"], "none");
     assert.ok(Object.keys(css).every(key => !/height|width|font-size/u.test(key)));
   }
 });
 
 test("Frost owns a fixed half-opacity cool Sidebar material", () => {
-  const light = buildCodexThemeCssProperties("light", frostThemePalette.light);
-  const dark = buildCodexThemeCssProperties("dark", frostThemePalette.dark);
-  assert.equal(light["--codex-sidebar-material-background"], "rgb(226 244 250 / 35%)");
-  assert.equal(dark["--codex-sidebar-material-background"], "rgb(20 37 46 / 35%)");
-  assert.equal(light["--codex-sidebar-material-filter"], "blur(28px) saturate(145%)");
-  assert.doesNotMatch(light["--codex-sidebar-material-background"], /color-mix|calc|var\(/u);
+  const light = buildOpenCraftThemeCssProperties("light", frostThemePalette.light);
+  const dark = buildOpenCraftThemeCssProperties("dark", frostThemePalette.dark);
+  assert.equal(light["--opencraft-sidebar-material-background"], "rgb(226 244 250 / 35%)");
+  assert.equal(dark["--opencraft-sidebar-material-background"], "rgb(20 37 46 / 35%)");
+  assert.equal(light["--opencraft-sidebar-material-filter"], "blur(28px) saturate(145%)");
+  assert.doesNotMatch(light["--opencraft-sidebar-material-background"], /color-mix|calc|var\(/u);
 });
 
 test("Lavender projects a complete soft-purple surface hierarchy without geometry", () => {
-  const light = buildCodexThemeCssProperties("light", lavenderThemePalette.light);
-  const dark = buildCodexThemeCssProperties("dark", lavenderThemePalette.dark);
-  assert.equal(light["--codex-window-material"], "#f8f6ff");
-  assert.equal(light["--codex-sidebar-material-background"], "#f1ecff");
+  const light = buildOpenCraftThemeCssProperties("light", lavenderThemePalette.light);
+  const dark = buildOpenCraftThemeCssProperties("dark", lavenderThemePalette.dark);
+  assert.equal(light["--opencraft-window-material"], "#f8f6ff");
+  assert.equal(light["--opencraft-sidebar-material-background"], "#f1ecff");
   assert.equal(light["--color-background-panel"], "#ffffff");
   assert.equal(light["--color-background-input"], "#f7f4ff");
   assert.equal(light["--color-accent-blue"], "#6d5ce7");
-  assert.equal(dark["--codex-window-material"], "#17141f");
-  assert.equal(dark["--codex-sidebar-material-background"], "#1d1828");
+  assert.equal(dark["--opencraft-window-material"], "#17141f");
+  assert.equal(dark["--opencraft-sidebar-material-background"], "#1d1828");
   assert.equal(dark["--color-background-panel"], "#221d2e");
   for (const css of [light, dark]) {
-    assert.equal(css["--codex-sidebar-material-filter"], "none");
+    assert.equal(css["--opencraft-sidebar-material-filter"], "none");
     assert.ok(Object.keys(css).every(key => !/height|width|font-size/u.test(key)));
   }
 });
 
 test("The canvas theme defines a web-native shell material without changing the Codex fallback", () => {
-  const vela = buildCodexThemeCssProperties("light", velaThemePalette.light);
-  const extensionCompatible = buildCodexThemeCssProperties("light", {
+  const vela = buildOpenCraftThemeCssProperties("light", opencraftCanvasThemePalette.light);
+  const extensionCompatible = buildOpenCraftThemeCssProperties("light", {
     accent: "#3478f6",
     contrast: 46,
     fonts: { code: null, ui: null },
@@ -130,12 +130,12 @@ test("The canvas theme defines a web-native shell material without changing the 
     surface: "#fbfaf7",
   });
 
-  assert.equal(vela["--codex-sidebar-material-background"], "#ffffff");
-  assert.equal(vela["--codex-sidebar-material-filter"], "none");
-  assert.equal(vela["--codex-window-highlight"], "none");
-  assert.equal(vela["--codex-main-surface-elevation"], "-0.5px 0 0 rgb(0 0 0 / 5%)");
-  assert.match(extensionCompatible["--codex-sidebar-material-background"], /color-mix/u);
-  assert.equal(extensionCompatible["--codex-sidebar-material-filter"], "blur(28px) saturate(145%)");
+  assert.equal(vela["--opencraft-sidebar-material-background"], "#ffffff");
+  assert.equal(vela["--opencraft-sidebar-material-filter"], "none");
+  assert.equal(vela["--opencraft-window-highlight"], "none");
+  assert.equal(vela["--opencraft-main-surface-elevation"], "-0.5px 0 0 rgb(0 0 0 / 5%)");
+  assert.match(extensionCompatible["--opencraft-sidebar-material-background"], /color-mix/u);
+  assert.equal(extensionCompatible["--opencraft-sidebar-material-filter"], "blur(28px) saturate(145%)");
 });
 
 test("extension theme selection is root-owned and unload falls back atomically", async () => {
@@ -206,7 +206,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
       ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode"],
     );
     assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.zenCodeThemeId)?.label, "ZenCode");
-    assert.equal(properties.get("--codex-base-surface"), "#ffffff");
+    assert.equal(properties.get("--opencraft-base-surface"), "#ffffff");
     assert.deepEqual(desktopAppearances.at(-1), {
       themeSource: "light",
       resolvedTheme: "light",
@@ -234,17 +234,17 @@ test("extension theme selection is root-owned and unload falls back atomically",
 
     appearance.setAppearanceThemeId(appearance.velaThemeId);
     assert.equal(dataset.themeId, appearance.velaThemeId);
-    assert.equal(properties.get("--codex-sidebar-material-background"), "#ffffff");
-    assert.equal(properties.get("--codex-sidebar-material-filter"), "none");
+    assert.equal(properties.get("--opencraft-sidebar-material-background"), "#ffffff");
+    assert.equal(properties.get("--opencraft-sidebar-material-filter"), "none");
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#ffffff" });
     appearance.setAppearanceThemeId(appearance.coreThemeId);
-    assert.equal(properties.get("--codex-sidebar-material-filter"), "blur(28px) saturate(145%)");
+    assert.equal(properties.get("--opencraft-sidebar-material-filter"), "blur(28px) saturate(145%)");
     appearance.setAppearanceThemeId(appearance.frostThemeId);
     assert.equal(dataset.themeId, appearance.frostThemeId);
-    assert.equal(properties.get("--codex-sidebar-material-background"), "rgb(226 244 250 / 35%)");
+    assert.equal(properties.get("--opencraft-sidebar-material-background"), "rgb(226 244 250 / 35%)");
     appearance.setAppearanceThemeId(appearance.lavenderThemeId);
     assert.equal(dataset.themeId, appearance.lavenderThemeId);
-    assert.equal(properties.get("--codex-sidebar-material-background"), "#f1ecff");
+    assert.equal(properties.get("--opencraft-sidebar-material-background"), "#f1ecff");
     assert.equal(properties.get("--color-background-input"), "#f7f4ff");
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#f8f6ff" });
     appearance.setAppearanceThemeId(appearance.coreThemeId);
@@ -299,12 +299,12 @@ test("extension theme selection is root-owned and unload falls back atomically",
 
     appearance.setAppearanceThemeId("vela.test-theme.paper");
     assert.equal(dataset.themeId, "vela.test-theme.paper");
-    assert.equal(properties.get("--codex-base-surface"), "#fbfaf7");
+    assert.equal(properties.get("--opencraft-base-surface"), "#fbfaf7");
     assert.equal(metaColor, "#fbfaf7");
     assert.equal(properties.get("--color-background-input"), "#f8f8f8");
     assert.equal(properties.get("--color-background-panel"), "#ffffff");
     assert.equal(properties.get("--color-background-elevated-primary-opaque"), "#fafafa");
-    assert.equal(properties.get("--codex-sidebar-material-filter"), "none");
+    assert.equal(properties.get("--opencraft-sidebar-material-filter"), "none");
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#eeeeee" });
 
     contributions.removeOwner(owner);
@@ -312,11 +312,11 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.equal(fallback.requestedThemeId, "vela.test-theme.paper");
     assert.equal(fallback.themeId, appearance.coreThemeId);
     assert.equal(dataset.themeId, appearance.coreThemeId);
-    assert.equal(properties.get("--codex-base-surface"), "#ffffff");
+    assert.equal(properties.get("--opencraft-base-surface"), "#ffffff");
 
     disconnect();
-    assert.equal(properties.get("--color-background-input"), buildCodexThemeCssProperties("light")["--color-background-input"]);
-    assert.equal(properties.get("--codex-sidebar-material-filter"), "blur(28px) saturate(145%)");
+    assert.equal(properties.get("--color-background-input"), buildOpenCraftThemeCssProperties("light")["--color-background-input"]);
+    assert.equal(properties.get("--opencraft-sidebar-material-filter"), "blur(28px) saturate(145%)");
     contributions.close();
   } finally {
     Object.defineProperty(globalThis, "window", {

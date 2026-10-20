@@ -122,14 +122,14 @@
   // Keeping the value at the root lets the transcript and Composer consume
   // one reading axis instead of copying unrelated pixel constants.
   --padding-toolbar: calc(var(--spacing) * 4);
-  --codex-sidebar-preferred-width: 275px;
-  --spacing-token-sidebar: clamp(240px, var(--codex-sidebar-preferred-width), min(520px, calc(100vw - 320px)));
-  --codex-right-panel-preferred-width: 600px;
+  --opencraft-sidebar-preferred-width: 275px;
+  --spacing-token-sidebar: clamp(240px, var(--opencraft-sidebar-preferred-width), min(520px, calc(100vw - 320px)));
+  --opencraft-right-panel-preferred-width: 600px;
   --thread-content-max-width: 48rem;
-  --codex-thread-content-max-width: 48rem;
-  --codex-chat-font-size: var(--typography-chat-size);
-  --codex-chat-code-font-size: var(--typography-code-size);
-  --codex-chat-line-height: calc(var(--codex-chat-font-size) + var(--typography-chat-leading));
+  --opencraft-thread-content-max-width: 48rem;
+  --opencraft-chat-font-size: var(--typography-chat-size);
+  --opencraft-chat-code-font-size: var(--typography-code-size);
+  --opencraft-chat-line-height: calc(var(--opencraft-chat-font-size) + var(--typography-chat-leading));
   // Codex's compact desktop chrome still uses the 14/20 and 12/18 type
   // steps. Smaller values belong to badges, never Conversation identity.
   --transition-duration-basic: 150ms;
@@ -174,28 +174,28 @@
   // Theme-owned shell defaults preserve the native Client-family material.
   // First-party web themes may replace the complete material contract without
   // reaching into AppShell or Sidecar component selectors.
-  --codex-window-material: color-mix(
+  --opencraft-window-material: color-mix(
     in srgb,
     var(--color-background-surface-under) 92%,
     var(--color-text) 8%
   );
-  --codex-window-highlight: radial-gradient(
+  --opencraft-window-highlight: radial-gradient(
     circle at 12% -8%,
     color-mix(in srgb, var(--color-surface-tertiary) 72%, transparent),
     transparent 34%
   );
-  --codex-main-surface-elevation: var(--elevation-prominent);
+  --opencraft-main-surface-elevation: var(--elevation-prominent);
   // Compact navigation does not divide the native titlebar reservation.
   --background-shell-compact-titlebar: var(--color-surface);
   // AppShell owns the material; Sidebar content never owns opacity. On the
   // web this emulates the native macOS sidebar material, while Electron lets
   // the BrowserWindow vibrancy surface show through directly.
-  --codex-sidebar-material-background: color-mix(
+  --opencraft-sidebar-material-background: color-mix(
     in srgb,
     var(--color-surface-tertiary) 70%,
     transparent
   );
-  --codex-sidebar-material-filter: blur(28px) saturate(145%);
+  --opencraft-sidebar-material-filter: blur(28px) saturate(145%);
   // Codex keeps one direction-stable gray scale and builds semantic colors on
   // top of it. Theme switching never reverses numeric token meanings.
   --gray-0: #fff;

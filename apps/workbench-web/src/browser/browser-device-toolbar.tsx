@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject, type PointerEvent } from "react";
 import { RotateCcw, X } from "lucide-react";
 import { computeBrowserViewportLayout, type BrowserViewportMode } from "@opencraft/browser-core";
-import { DEVICE_PRESETS, initializeBrowserViewportPresets, clampPanelWidth__rBr_2f54e, getDefaultPanelWidth } from "./codex/viewport-presets.js";
-import { computeDragResizeDimensions } from "./codex/viewport-resize.js";
+import { DEVICE_PRESETS, initializeBrowserViewportPresets, clampPanelWidth__rBr_2f54e, getDefaultPanelWidth } from "./opencraft/viewport-presets.js";
+import { computeDragResizeDimensions } from "./opencraft/viewport-resize.js";
 initializeBrowserViewportPresets();
 
 type DeviceMode = Exclude<BrowserViewportMode, {type:"responsive"}>;
