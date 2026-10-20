@@ -225,21 +225,21 @@ export function AppServerRuntimeProvider({
   }
   const composerController = conversationView.composer;
   const threadManagement = useMemo<AppServerHostCatalog["threadManagement"]>(() => {
-    const manager = async (hostId: string, operation: "rename" | "archive" | "delete" | "fork" | "pin") => {
+    const manager = async (hostId: string, operation: "rename" | "archive" | "delete" | "fork" | "pin", threadId?: string) => {
       // A stale menu/dialog cannot reconnect an offline Host to mutate it.
       const host = registry.peekRuntime(hostId);
       if (!host || host.getSnapshot().phase !== "ready") throw new Error("服务器暂时不可用，请连接恢复后重试。");
-      if (!host.resources.threads.capabilities?.()[operation]) throw new Error("此宿主未接通该会话操作");
+      if (!host.resources.threads.capabilities?.(threadId)[operation]) throw new Error("此宿主未接通该会话操作");
       return host.resources.threads;
     };
     return {
-      capabilities: hostId => registry.peekRuntime(hostId)?.resources.threads.capabilities?.() ?? { rename: false, archive: false, delete: false, fork: false },
-      rename: async (hostId, id, name) => { const port = await manager(hostId, "rename"); await port.rename!(id, name); },
-      setPinned: async (hostId, id, pinned) => { const port = await manager(hostId, "pin"); await port.setPinned!(id, pinned); },
-      delete: async (hostId, id) => { const port = await manager(hostId, "delete"); await port.delete!(id); },
-      archive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.archive!(id); },
-      unarchive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.unarchive!(id); },
-      fork: async (hostId, id) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id })).id; },
+      capabilities: (hostId, threadId) => registry.peekRuntime(hostId)?.resources.threads.capabilities?.(threadId) ?? { rename: false, archive: false, delete: false, fork: false },
+      rename: async (hostId, id, name) => { const port = await manager(hostId, "rename", id); await port.rename!(id, name); },
+      setPinned: async (hostId, id, pinned) => { const port = await manager(hostId, "pin", id); await port.setPinned!(id, pinned); },
+      delete: async (hostId, id) => { const port = await manager(hostId, "delete", id); await port.delete!(id); },
+      archive: async (hostId, id) => { const port = await manager(hostId, "archive", id); await port.archive!(id); },
+      unarchive: async (hostId, id) => { const port = await manager(hostId, "archive", id); await port.unarchive!(id); },
+      fork: async (hostId, id) => { const port = await manager(hostId, "fork", id); return (await port.fork!({ threadId: id })).id; },
       listArchived: async hostId => {
         const port = await manager(hostId, "archive");
         const all: Array<{ id: string; name?: string | null; preview?: string }> = [];

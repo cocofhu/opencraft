@@ -95,7 +95,7 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   const read = useCallback(() => threadId === null ? NO_THREAD_GOAL : goals.getSnapshot(threadId), [goals, threadId]);
   const snapshot = useSyncExternalStore(subscribe, read, read);
   const goal = snapshot.goal ?? snapshot.completedGoal;
-  const capability = goals.capability();
+  const capability = goals.capability(threadId ?? undefined);
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
   const [expanded, setExpanded] = useState(false);

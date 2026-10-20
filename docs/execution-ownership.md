@@ -305,3 +305,37 @@ The marker has no effect on activity grouping, unread or execution state.
 ## 主体协作输入
 
 Headless 的主体协作服务将执行请求交给现有 CodexHostQueue，以稳定 clientUserMessageId 查询回执和恢复，不拥有第二个运行领取者。queue 与 steer 分别授权，steer 固定 expectedTurnId；Actor 代次、实例准入、目标 grant 和运行绑定在入队及领取前复核。协作提交不等于任务完成，结果不明先查询，绝不自动换成另一种执行模式。完整契约见[主体协作接口](actor-collaboration-api.md)。
+
+## Optional execution engines in one Host
+
+Headless can enable `--engines dsh,pi` (default engine DSH), or `--engines pi`
+without allocating DSH. `--default-engine pi` changes new-conversation defaults;
+restoring an existing conversation always uses its native engine. Engine identity
+is distinct from machine identity and model provider. The model menu groups the
+available models by engine; a live thread receives only its own engine's catalog.
+The `runtime/engines/list` endpoint describes the enabled engine registry.
+
+`plugins/pi-engine` embeds the pinned experimental `pi-durable` 1.3.0 SDK in the
+server execution owner. It does not start the legacy Pi CLI RPC process. The owner
+holds each session's SQLite database, writer lock, scheduler and model/tool environment.
+Closing the owner suspends work; explicit stop aborts it. On startup the owner checks
+recovery hints against native durable records and resumes unfinished inputs. Native
+entries, submissions and committed partials are the history authority; the adjacent
+JSON index contains routing and display metadata only. Different engines do not
+resume or translate one another's ledgers.
+
+Pi uses deployment-local `pi/auth.json` and `pi/models.json` under the server data
+directory, in the coding-agent formats. These are distinct from DSH connection
+settings. Do not copy credentials into thread metadata. The initial integration
+accepts text, native coding tools and client-declared platform tools. Platform tool
+leases expire on client disconnect; they are not marked replay-safe, so recovery
+cannot repeat an external side effect on that assumption. Workspace AGENTS.md files
+are loaded by the coding-agent context loader. Projects, fork/side chat, injected
+history, profile skills, schedules and alternative permission profiles are not yet
+implemented by this provider. Native tools run with the execution owner's filesystem
+and process permissions; this provider does not advertise a sandbox.
+
+Engine registration is trusted server composition, not installable client code or
+an authorization grant. Actor admission and Host access stay at the existing ingress.
+The current registry composes the local DSH/Pi endpoint; Codex's existing endpoint
+continues independently. Enabling this registry does not migrate Codex into it.

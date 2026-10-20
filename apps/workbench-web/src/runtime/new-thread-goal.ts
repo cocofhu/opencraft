@@ -23,7 +23,7 @@ export function createNewThreadGoalFlow(config: {
     if (!objective || !isCurrent()) return Promise.reject(new Error("The new conversation is no longer active"));
     const target = intent.target;
     const goals = config.goals(target.execution.hostId);
-    if (!goals.capability()?.write) return Promise.reject(new Error("This Host cannot create goals"));
+    if (!goals.capability(intent.selections.model)?.write) return Promise.reject(new Error("This Host cannot create goals"));
     let attempt = attempts.get(target);
     if (attempt?.pending) return attempt.pending;
     if (attempt?.unknownCreation) return Promise.reject(attempt.unknownCreation);
