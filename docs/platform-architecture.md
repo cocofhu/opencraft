@@ -335,7 +335,9 @@ this after activation, before granting and immediately before acknowledging the
 claim. The channel retains terminal statuses seen before acknowledgement by their
 generation: a matching grant is rejected and released, preserving any manual
 failure classification. A different generation neither revokes that grant nor
-gives the channel authority. A late acknowledgement cannot revive a lost Host;
+gives the channel authority. Termination of the shared bridge revokes every
+pending channel attempt, including a grant already delivered to its promise.
+A late acknowledgement cannot revive a lost Host;
 automatic recovery obtains a new claim through the existing retry policy.
 
 An inbound JSON-RPC request owns a delivery receipt and a connection revision.

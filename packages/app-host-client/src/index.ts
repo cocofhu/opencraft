@@ -360,7 +360,7 @@ class AppHostChannelTransport implements DuplexTransport {
     const operation = Promise.resolve().then(() => this.client.connectHost(this.hostId, leaseId,
       signal ? AbortSignal.any([signal, this.closeAbort.signal]) : this.closeAbort.signal))
       .then((result) => {
-        const revoked = attempt.terminal.get(result.generation);
+        const revoked = attempt.revoked ?? attempt.terminal.get(result.generation);
         if (this.closed || this.connectingAttempt !== attempt || revoked !== undefined) {
           // Channel disposal does not close the shared client. A grant that
           // arrives afterwards still belongs to this retired lease only.
@@ -430,8 +430,10 @@ class AppHostChannelTransport implements DuplexTransport {
     if (event.leaseId !== undefined && event.leaseId !== this.leaseId) return;
     if (event.terminalReason !== undefined) {
       this.generation = 0;
-      this.setStatus({ state: "failed", reason: event.terminalReason,
-        ...(event.terminalFailure ? { failure: event.terminalFailure } : {}) });
+      const status: TransportStatus = { state: "failed", reason: event.terminalReason,
+        ...(event.terminalFailure ? { failure: event.terminalFailure } : {}) };
+      if (this.connectingAttempt) this.connectingAttempt.revoked = status;
+      this.setStatus(status);
       return;
     }
     // Only this lease's connect acknowledgement grants a generation. Shared

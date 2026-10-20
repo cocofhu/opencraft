@@ -151,6 +151,29 @@ test("AppHost channel connecting observers share one owned claim", async () => {
   } finally { await channel.close(); client.close(); await server.close(); }
 });
 
+for (const terminal of ["close", "fatal"] as const) test(`bridge ${terminal} after grant delivery cannot revive a channel`, async () => {
+  let listener: ((event: MessageEvent<unknown>) => void) | undefined;
+  const sent: any[] = [];
+  const client = new MessagePortAppHostClient({ postMessage(message) { sent.push(message); },
+    addEventListener(_type, next) { listener = next; }, removeEventListener() {}, start() {}, close() {},
+  }, "terminal-after-grant");
+  const receive = (message: unknown) => listener?.({ data: message } as MessageEvent<unknown>);
+  const channel = client.createTransport("local");
+  try {
+    receive({ type: "ready", protocolVersion: 2, services: ["appserver"] });
+    const connecting = channel.connect();
+    const rejected = assert.rejects(connecting, /closed|retired/);
+    await new Promise(resolve => setImmediate(resolve));
+    const claim = sent.find(message => message.type === "host/connect");
+    receive({ type: "response", requestId: claim.requestId, ok: true, result: { hostId: "local", generation: 1 } });
+    if (terminal === "close") client.close();
+    else receive({ type: "fatal", error: { code: "SSH_AUTH_EXPIRED", message: "bridge retired", retryable: false } });
+    await rejected;
+    assert.equal(channel.status.state, "failed");
+    if (terminal === "fatal") assert.equal(channel.status.failure?.recovery, "manual");
+  } finally { await channel.close(); client.close(); }
+});
+
 for (const matching of [false, true]) for (const manual of [false, true]) {
   test(`pre-acknowledgement terminal status only revokes its granted generation (matching=${matching}, manual=${manual})`, async () => {
     const granted = deferred<void>(); const release = deferred<void>();
@@ -769,6 +792,7 @@ test("close between grant delivery and its promise callback releases exactly tha
     receive({ type: "response", requestId: releases[0]!.requestId, ok: true });
   } finally { client.close(); }
 });
+
 
 test("expired claim saturation retires the bridge, preserves service Hosts and fences old grants", async context => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
