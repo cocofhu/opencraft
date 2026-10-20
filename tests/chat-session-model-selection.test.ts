@@ -170,7 +170,7 @@ test("session model choices never write Host defaults through the catalog port",
 
 
 test("personal speed selection preserves Fast and explicit standard through new and existing requests", async () => {
-  for (const serviceTier of ["priority", null]) for (const existing of [false, true]) {
+  for (const serviceTier of ["priority", null, undefined]) for (const existing of [false, true]) {
     const harness = createHarness();
     const runtime = createAppServerWorkbenchRuntime({ hostId: "local", transport: harness.transport, autoReconnect: false });
     try {
@@ -188,6 +188,7 @@ test("personal speed selection preserves Fast and explicit standard through new 
       for (const method of existing ? ["turn/start"] : ["thread/start"]) {
         const request = harness.requests.find(request => request.method === method)!;
         assert.equal((request.params as { serviceTier?: string | null }).serviceTier, serviceTier, method);
+        assert.equal(Object.hasOwn(request.params!, "serviceTier"), serviceTier !== undefined, "unknown tier preserves Host inheritance");
       }
       assert.equal(harness.requests.some(request => request.method === "config/batchWrite"), false);
     } finally { await runtime.dispose(); }

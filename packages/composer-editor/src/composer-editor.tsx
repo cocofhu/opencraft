@@ -1302,7 +1302,7 @@ export const OpenCraftComposer = forwardRef<
             // Preserve an unavailable explicit choice so Runtime rejects it instead
             // of silently resolving the Host default model.
             model: selectedModel?.value ?? selectedModelValue,
-            ...(modelSelectionPolicy === "user" ? { serviceTier: selectedServiceTier } : {}),
+            ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedServiceTier } : {}),
             ...(selectedModel ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
           } };
         }

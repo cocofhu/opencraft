@@ -89,3 +89,6 @@ pins the resolved model/effort/tier in that draft, and remembers the same person
 default for later conversations. Thread execution settings remain authoritative
 for existing conversations; refreshing personal defaults never rewrites them.
 Models without the selected tier resolve to standard through the Composer owner.
+
+If neither personal nor Host data resolves a tier, submission leaves the wire
+field absent. An unknown legacy/default choice must not be converted to standard.
