@@ -35,6 +35,25 @@ const initializeParams = {
   capabilities: { experimentalApi: true },
 } as const;
 
+test("encoding failures and synchronous send throws settle and release the exact receipt", async () => {
+  const transport = new MemoryTransport({ server: createTestServer() });
+  const client = new JsonRpcAppServerClient({ hostId: "encode-receipt", transport, requestTimeoutMs: 0 });
+  try {
+    await client.connect(initializeParams);
+    const circular: Record<string, unknown> = {}; circular.self = circular;
+    for (const invalid of [1n, circular, { toJSON() { throw Error("encode failed"); } }]) {
+      await assert.rejects(client.requestRaw("echo", invalid));
+      assert.equal(client.getPendingRequestCount(), 0);
+    }
+    const send = transport.send.bind(transport);
+    transport.send = () => { throw Error("sync send failed"); };
+    await assert.rejects(client.requestRaw("echo", {}));
+    assert.equal(client.getPendingRequestCount(), 0);
+    transport.send = send;
+    assert.deepEqual(await client.requestRaw("echo", { recovered: true }), { recovered: true });
+  } finally { await client.close(); }
+});
+
 test("initialize cannot publish readiness when its reply is followed by connection loss", async () => {
   const transport = new MemoryTransport({
     schedule: callback => callback(),

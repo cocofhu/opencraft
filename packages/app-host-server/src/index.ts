@@ -390,12 +390,18 @@ export class AppHostServer {
     if (slot === undefined || claim === undefined || claim.generation !== generation) {
       throw new Error(`Host lease ${leaseId} does not own ${hostId}`);
     }
-    if (this.options.logicalClientRouting && slot.record) {
-      await slot.record.transport.send(stampLogicalClientFrame(JSON.stringify({ jsonrpc: "2.0", method: "runtime/client/disconnect" }), key));
-    }
+    const record = slot.record;
     slot.claims.delete(key);
     connection.forgetLease(hostId, leaseId, generation);
-    if (slot.claims.size === 0) await this.stopSlot(slot, false);
+    try {
+      if (this.options.logicalClientRouting && record) {
+        await record.transport.send(stampLogicalClientFrame(JSON.stringify({ jsonrpc: "2.0", method: "runtime/client/disconnect" }), key));
+      }
+    } finally {
+      // A late notification cannot remove a successor claim. stopSlot rechecks
+      // all remaining claims and preserves service-owned physical lifetimes.
+      if (slot.claims.size === 0) await this.stopSlot(slot, false);
+    }
   }
 
   private publish(hostId: string, generation: number, message: AppHostToRendererMessage): void {

@@ -61,6 +61,8 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
   private readonly listeners = new Set<() => void>();
   private snapshot: ReplicaClientSnapshot<TValue>;
   private prepared: Promise<void> | null = null;
+  private cancelSync: (() => void) | null = null;
+  private storageTail: Promise<void> = Promise.resolve();
   private syncOperation: Promise<ReplicaClientSnapshot<TValue>> | null = null;
   private unsubscribeSource: (() => void) | null = null;
   private source: ReplicaSource<TValue> | null = null;
@@ -119,10 +121,18 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       return Promise.reject(new ReplicaError("PROTOCOL_ERROR", `Replica source belongs to ${source.scope}`));
     }
     if (this.syncOperation !== null) return this.syncOperation;
-    const operation = this.synchronizeOnce(source).finally(() => {
-      if (this.syncOperation === operation) this.syncOperation = null;
+    const generation = ++this.sourceGeneration;
+    let cancel!: () => void;
+    const operation = new Promise<ReplicaClientSnapshot<TValue>>((resolve, reject) => {
+      cancel = () => reject(new ReplicaError("DISPOSED", "Replica source generation was superseded"));
+      void Promise.resolve().then(() => this.synchronizeOnce(source, generation)).then(resolve, reject);
     });
+    this.cancelSync = cancel;
     this.syncOperation = operation;
+    // Register ownership before prepare, subscriptions or synchronous observers.
+    void operation.finally(() => {
+      if (this.syncOperation === operation) { this.syncOperation = null; this.cancelSync = null; }
+    }).catch(() => undefined);
     return operation;
   }
 
@@ -135,23 +145,29 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     if (source?.mutate === undefined) {
       throw new ReplicaError("PROTOCOL_ERROR", "Replica source does not support writes");
     }
+    const generation = this.sourceGeneration;
     const cursor = this.cursor();
     const response = await source.mutate({ commandId, expectedCursor: cursor, mutations });
+    this.ensureGeneration(generation);
     if (response.scope !== this.scope) throw new ReplicaError("PROTOCOL_ERROR", "Replica write returned wrong scope");
     await this.enqueue(async () => {
-      await this.catchUp(source, this.sourceGeneration);
+      await this.catchUp(source, generation);
     });
     return response;
   }
 
   disconnect(): void {
-    this.unsubscribeSource?.();
+    const unsubscribe = this.unsubscribeSource;
+    const cancel = this.cancelSync;
     this.unsubscribeSource = null;
     this.source = null;
     this.sourceGeneration += 1;
     this.syncOperation = null;
+    this.cancelSync = null;
+    cancel?.();
     this.bufferingLive = false;
     this.liveBuffer = [];
+    try { unsubscribe?.(); } catch { /* Revocation cannot depend on source cleanup. */ }
     if (this.snapshot.phase !== "empty") {
       this.publish({ phase: "offline", authoritative: false });
     }
@@ -188,11 +204,13 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
 
   async clear(): Promise<void> {
     this.disconnect();
+    const generation = this.sourceGeneration;
     try {
-      await this.storage.clearClient(this.storageKey);
+      await this.serializeStorage(() => this.storage.clearClient(this.storageKey));
     } catch (error) {
       throw new ReplicaError("STORAGE_ERROR", "Failed to clear Replica client state", { cause: error });
     }
+    this.ensureGeneration(generation);
     this.publish({
       phase: "empty",
       authoritative: false,
@@ -206,19 +224,20 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
 
   dispose(): void {
     if (this.disposed) return;
-    this.disconnect();
     this.disposed = true;
+    this.disconnect();
     this.listeners.clear();
   }
 
   private async prepareOnce(): Promise<void> {
+    const generation = this.sourceGeneration;
     let stored: ReplicaClientState<TValue> | null;
     try {
       stored = await this.storage.loadClient(this.storageKey);
     } catch (error) {
       throw new ReplicaError("STORAGE_ERROR", "Failed to load Replica client state", { cause: error });
     }
-    if (stored === null) return;
+    if (stored === null || this.disposed || generation !== this.sourceGeneration) return;
     validateClientState(stored, this.storageKey, this.scope);
     this.publish({
       phase: "painted",
@@ -231,25 +250,31 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     });
   }
 
-  private async synchronizeOnce(source: ReplicaSource<TValue>): Promise<ReplicaClientSnapshot<TValue>> {
+  private async synchronizeOnce(source: ReplicaSource<TValue>, generation: number): Promise<ReplicaClientSnapshot<TValue>> {
+    this.ensureGeneration(generation);
     await this.prepare();
+    this.ensureGeneration(generation);
     this.unsubscribeSource?.();
     this.source = source;
-    const generation = ++this.sourceGeneration;
     this.bufferingLive = true;
     this.liveBuffer = [];
-    this.unsubscribeSource = source.subscribe((event) => {
-      if (generation !== this.sourceGeneration) return;
-      if (this.bufferingLive) {
-        this.liveBuffer.push(event);
-        return;
-      }
-      void this.enqueue(() => this.applyLiveEvent(event, source, generation)).catch((error: unknown) => {
-        this.fail(error);
-      });
-    });
-    this.publish({ phase: "syncing", authoritative: false, lastError: null });
     try {
+      const unsubscribe = source.subscribe((event) => {
+        if (generation !== this.sourceGeneration) return;
+        if (this.bufferingLive) {
+          this.liveBuffer.push(event);
+          return;
+        }
+        void this.enqueue(() => this.applyLiveEvent(event, source, generation)).catch((error: unknown) => {
+          if (generation === this.sourceGeneration && !this.disposed) this.fail(error);
+        });
+      });
+      if (generation !== this.sourceGeneration || this.disposed) {
+        unsubscribe();
+        this.ensureGeneration(generation);
+      }
+      this.unsubscribeSource = unsubscribe;
+      this.publish({ phase: "syncing", authoritative: false, lastError: null });
       await this.catchUp(source, generation);
       while (this.liveBuffer.length > 0) {
         const buffered = this.liveBuffer.splice(0);
@@ -263,10 +288,11 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       if (generation === this.sourceGeneration) {
         this.bufferingLive = false;
         this.liveBuffer = [];
-        this.unsubscribeSource?.();
+        const unsubscribe = this.unsubscribeSource;
         this.unsubscribeSource = null;
         if (this.source === source) this.source = null;
-        this.fail(error);
+        try { unsubscribe?.(); } catch { /* Preserve the original synchronization error. */ }
+        if (generation === this.sourceGeneration && !this.disposed) this.fail(error);
       }
       throw error;
     }
@@ -279,7 +305,7 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       const response = await source.sync(cursor, this.pageSize);
       this.ensureGeneration(generation);
       validateSyncResponse(response, this.scope);
-      await this.applySyncResponse(response);
+      await this.applySyncResponse(response, generation);
       if (response.kind === "snapshot" || !response.hasMore) return;
       const nextCursor = this.cursor();
       if (nextCursor === null || (cursor !== null && nextCursor.nextSeq === cursor.nextSeq)) {
@@ -290,9 +316,9 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     throw new ReplicaError("PROTOCOL_ERROR", "Replica catch-up exceeded the page safety bound");
   }
 
-  private async applySyncResponse(response: ReplicaSyncResponse<TValue>): Promise<void> {
+  private async applySyncResponse(response: ReplicaSyncResponse<TValue>, generation: number): Promise<void> {
     if (response.kind === "snapshot") {
-      await this.installSnapshot(response);
+      await this.installSnapshot(response, generation);
       return;
     }
     const cursor = this.cursor();
@@ -312,10 +338,10 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       journalStartSeq: response.bounds.journalStartSeq,
       entities,
       lastError: null,
-    });
+    }, generation);
   }
 
-  private async installSnapshot(response: ReplicaSnapshotResponse<TValue>): Promise<void> {
+  private async installSnapshot(response: ReplicaSnapshotResponse<TValue>, generation: number): Promise<void> {
     validateSnapshot(response, this.scope);
     await this.persistAndPublish({
       epoch: response.epoch,
@@ -323,7 +349,7 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       journalStartSeq: response.bounds.journalStartSeq,
       entities: new Map(response.entities.map((entity) => [entity.entityId, entity.value])),
       lastError: null,
-    });
+    }, generation);
   }
 
   private async applyLiveEvent(
@@ -333,7 +359,7 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
   ): Promise<void> {
     this.ensureGeneration(generation);
     if (event.kind === "snapshot") {
-      await this.installSnapshot(event.snapshot);
+      await this.installSnapshot(event.snapshot, generation);
       return;
     }
     const entry = event.entry;
@@ -355,7 +381,7 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       journalStartSeq: this.snapshot.journalStartSeq ?? recovered.nextSeq,
       entities: applyMutation(this.snapshot.entities, entry.mutation),
       lastError: null,
-    });
+    }, generation);
   }
 
   private cursor(): ReplicaCursor | null {
@@ -370,7 +396,8 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     journalStartSeq: number;
     entities: ReadonlyMap<string, TValue>;
     lastError: Error | null;
-  }): Promise<void> {
+  }, generation: number): Promise<void> {
+    this.ensureGeneration(generation);
     const state: ReplicaClientState<TValue> = {
       schemaVersion: REPLICA_STORAGE_SCHEMA_VERSION,
       storageKey: this.storageKey,
@@ -381,11 +408,21 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       entities: [...update.entities].map(([entityId, value]) => ({ entityId, value })),
     };
     try {
-      await this.storage.commitClient(state);
+      await this.serializeStorage(async () => {
+        this.ensureGeneration(generation);
+        await this.storage.commitClient(state);
+      });
     } catch (error) {
       throw new ReplicaError("STORAGE_ERROR", "Failed to commit Replica client state", { cause: error });
     }
+    this.ensureGeneration(generation);
     this.publish(update);
+  }
+
+  private serializeStorage(run: () => Promise<void>): Promise<void> {
+    const operation = this.storageTail.then(run, run);
+    this.storageTail = operation.catch(() => undefined);
+    return operation;
   }
 
   private fail(error: unknown): void {

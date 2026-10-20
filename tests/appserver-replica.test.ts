@@ -39,6 +39,57 @@ import { indexedDB } from "fake-indexeddb";
 
 const SCOPE = "threads:local";
 
+function controlled<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; });
+  return { promise, resolve };
+}
+function ownedSource(epoch: string, subscribed: string[]): ReplicaSource {
+  return { scope: SCOPE,
+    subscribe: () => { subscribed.push(epoch); return () => {}; },
+    sync: async () => ({ kind: "snapshot", scope: SCOPE, epoch,
+      bounds: { nextSeq: 1, journalStartSeq: 1 }, entities: [{ entityId: "row", value: epoch }] }),
+  };
+}
+
+test("disconnect revokes synchronization before delayed or already-complete cache preparation", async () => {
+  for (const prepared of [false, true]) {
+    const load = controlled<null>(), subscribed: string[] = [];
+    const replica = client({ loadClient: () => load.promise, commitClient: async () => {}, clearClient: async () => {} });
+    if (prepared) { load.resolve(null); await replica.prepare(); }
+    const pending = replica.synchronize(ownedSource("old", subscribed));
+    const canceled = assert.rejects(pending, /superseded/);
+    replica.disconnect(); await canceled; load.resolve(null);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(subscribed, []);
+    assert.equal(replica.getSnapshot().authoritative, false);
+    replica.dispose();
+  }
+});
+
+test("old persistence cannot overtake or publish into a successor source", async () => {
+  const entered = controlled<void>(), release = controlled<void>(), subscribed: string[] = [];
+  const writes: string[] = []; let diskEpoch = "";
+  const replica = client({ loadClient: async () => null, clearClient: async () => {},
+    commitClient: async state => {
+      writes.push(state.epoch);
+      if (state.epoch === "old") { entered.resolve(); await release.promise; }
+      diskEpoch = state.epoch;
+    },
+  });
+  const old = replica.synchronize(ownedSource("old", subscribed));
+  const canceled = assert.rejects(old, /superseded/);
+  await entered.promise; replica.disconnect(); await canceled;
+  const next = replica.synchronize(ownedSource("new", subscribed));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(writes, ["old"], "new write waits for accepted old I/O instead of racing it");
+  release.resolve(); await next;
+  assert.equal(replica.getSnapshot().epoch, "new");
+  assert.equal(replica.getSnapshot().authoritative, true);
+  assert.equal(diskEpoch, "new"); assert.deepEqual(writes, ["old", "new"]);
+  replica.dispose();
+});
+
 function value(name: string, revision = 1): ReplicaJsonValue {
   return { name, revision };
 }

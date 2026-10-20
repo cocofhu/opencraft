@@ -2676,9 +2676,16 @@ cancellation releases its pending acknowledgement without cancelling or replayin
 remote execution. AppServer initialization rejects results from a revoked transport.
 
 Workbench Host readiness ends at lease acquisition plus AppServer initialize.
-`workbench-runtime/recovery-policy.ts` owns connection backoff, foreground
-admission, coalescing and conversation recovery scheduling. It is one Host-scoped
-owner, not another data authority. Explicit visible leases recover first; explicit
+`workbench-runtime/connection-lifecycle.ts` is the single connection owner for
+cold start, reconnect and implicit Thread acquisition. It registers attempts and
+promises before notifying observers, bounds each attempt, and owns retry tickets,
+foreground admission and stability timers. Revocation synchronously invalidates
+child sources before publishing connection loss. Readiness commits require the
+current client, initialized protocol, open transport, connection revision and
+assembled local services. A late initializer cannot cancel a successor retry.
+`workbench-runtime/recovery-policy.ts` retains observation and demand-prioritized
+conversation recovery; it has no connection timer or writable readiness authority.
+Both owners remain scoped to the existing Runtime connection domain. Explicit visible leases recover first; explicit
 open leases, running work and unresolved interactions recover in the background
 with concurrency one and at most three transient retries. Cache residency and DOM
 subscription counts alone do not create recovery demand. A reserved foreground
@@ -2694,6 +2701,20 @@ query keys are retained across connections. This coordination is independent of
 menu mounting; late cancelled reads cannot overwrite recovered catalog data.
 Execution requests keep their existing admission and reconciliation policies and
 are not replayed by connection or cache recovery.
+
+Replica source operations register their generation before the first preparation
+await. Disconnect settles synchronization callers immediately; late preparation,
+pages, mutations and live-event failures cannot adopt or change a successor source.
+Storage writes and clears use one queue across source generations for the same
+client/cache key. Accepted external writes may finish after revocation, but cannot
+overtake a newer write, and publication rechecks source ownership after storage.
+The V3 ThreadView projection remains volatile. Negotiated history and queue
+capabilities are read from the current initialized client, not a cold-start copy.
+Logical AppHost claim removal precedes remote disconnect notification; notification
+failure cannot retain local authorization or close a peer's service-owned Host.
+The raw and logical-client Core adapters share a socket owner that revokes before
+close and checks its identity after health and socket-open waits. RPC encoding,
+synchronous send throws and asynchronous send failures settle the same receipt.
 
 The app-like iPhone Web surface requests a fixed viewport scale for embedded
 browsers and keeps focused editable text at a 16px minimum on coarse-pointer
