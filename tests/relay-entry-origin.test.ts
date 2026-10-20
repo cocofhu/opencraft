@@ -30,6 +30,8 @@ test('request-local entry origins keep login, callback, session, writes and WebS
   }
   assert.equal((await f.get('/fixture/headers',{host:'two.entry.test',cookie:one})).status,401,'copied cookie is bound to its browser origin');
   assert.equal((await f.get('/fixture/headers',{host:'evil.test',cookie:one})).status,403);
+  assert.equal((await f.get('/__opencraft_relay/logout',{host:'one.entry.test',cookie:two,origin:'http://one.entry.test'},'POST')).status,204);
+  assert.equal((await f.get('/fixture/headers',{host:'two.entry.test',cookie:two})).status,200,'logout cannot revoke a session belonging to another origin');
   const socket = new WebSocket(f.base.replace('http:','ws:') + '/servers/lighthouse/desktop/connect',{headers:{host:'one.entry.test',cookie:one,origin:'http://one.entry.test'}});
   t.after(()=>socket.terminate()); const first = once(socket,'message'); await once(socket,'open'); assert.equal(String((await first)[0]),'connected-lighthouse');
   const echoed = once(socket,'message'); socket.send('same-entry'); assert.equal(String((await echoed)[0]),'same-entry'); socket.close();

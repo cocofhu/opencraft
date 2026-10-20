@@ -88,7 +88,7 @@ export class RelayAuthentication {
     if (!route || (request.headers.origin !== undefined && request.headers.origin !== route.origin)) { send(403); return true; }
     if (url.pathname === LOGOUT) {
       if (request.method !== 'POST' || request.headers.origin !== route.origin) { send(403); return true; }
-      const token = cookie(request, cookieName(route.origin,'session')); if (token) this.#sessions.delete(digest(token));
+      const token = cookie(request, cookieName(route.origin,'session')); if (token && this.authenticate(request, route)) this.#sessions.delete(digest(token));
       response.writeHead(204, {'set-cookie':setCookie(route.origin,'session','',0),'cache-control':'no-store'});response.end();return true;
     }
     const code = url.searchParams.get('ticket'), ticket = code && /^[A-Za-z0-9_-]{43}$/u.test(code) ? this.#tickets.get(digest(code)) : undefined;
