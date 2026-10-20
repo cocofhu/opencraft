@@ -108,8 +108,8 @@
   "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
   "rangeUnit": "TypeScript UTF-16 text offsets",
   "currentReplacement": {
-    "moduleSha256": "f4fb6a7d7892f435ec5b02f091218b69049cefda25061a703c2ab45f38358543",
-    "selectedDeclarationSha256": "6db0ef6fed0958a316756fccde122aff4c85eaa4d06a413db9042433a854b0f7",
+    "moduleSha256": "864976c9b129800dc922bfda03634a0e8692d48d6e99861616d100603a2a84a5",
+    "selectedDeclarationSha256": "44250a7a3b38a056a399e9fecf1e80f9fe4e154e9ed7fba6b1e94f8c19b71a73",
     "outsideBoundary": {
       "unchangedExceptHistoricalHeaderClarification": true,
       "retainedDeclarations": [
@@ -163,6 +163,21 @@
           "Cross-Host equal Thread IDs"
         ],
         "timing": "Post-authoring actual downstream provider with synthetic RPC/identity; not part of frozen216 states"
+      },
+      "postAuthoringLocaleAlignment": {
+        "scenes": 16,
+        "menuChecks": 64,
+        "originalAndProspectiveRawResultEqual": true,
+        "rawResultSha256": "07973d81dfe4863c11834b614e103b40e5fb52ed5c0159d3839038607fe50956",
+        "scope": "Existing four-locale actual consumer, synthetic data, prospective component rather than deployed fixed combination"
+      },
+      "downstreamBotTimingSupplement": {
+        "sourceRevision": "7983cef2221a226cc6ba0249f4636d4be8fd6655",
+        "frozen60RawByteEqual": false,
+        "difference": "One creation-open body-text capture includes the exiting drag overlay in the original; other59 states agree.",
+        "postAuthoringSettled60RawByteEqual": true,
+        "settledRawOutputSha256": "0367d472528f932e239dbd9500d9252800edf18b00cbfe50bac6a3cb6260cbf3",
+        "scope": "Same inputs and output fields, await actual overlay removal before creation-open capture; not a retroactive frozen baseline or identical animation timing claim."
       }
     },
     "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."

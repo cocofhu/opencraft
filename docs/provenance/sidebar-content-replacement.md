@@ -166,3 +166,34 @@ continues to retain existing menu/action exclusivity, metadata lease continuity,
 composite identity and page budgets; it does not relax behavior comparisons or
 rewrite unattributed neighboring owners. Integration/build/deployment locks remain
 part of the downstream delivery procedure, separate from this component change.
+
+
+## Server filter alignment follow-up
+
+The unchanged four-locale downstream menu smoke found another replacement gap:
+server filter radio rows omitted the existing shared indicator/text classes. The
+sealed original passes the full16-scene/64-menu check; the replacement sees only
+three consistently styled mode/filter rows instead of five. The corrected rows
+consume the same classes and text span used by the public mode-menu helper and
+shared stylesheet. No old selected body supplies the correction, and no shared
+style, neighboring helper or test assertion changes. The full prospective check
+passes and its complete result bytes equal the sealed original across four
+languages, both theme and input/viewport modes. Fixed combination and deployment
+remain separate from this prospective consumer evidence.
+
+The fixed-source downstream Bot observer also retains one fixed100ms creation-open
+text difference: an exiting drag overlay remains in one original capture. The
+other59 states agree. A separate post-authoring original/candidate60-state
+supplement awaits actual overlay removal at that capture and matches complete raw
+outputs. It does not retroactively replace the frozen baseline or claim identical
+animation timing. Existing drag owners and transition code remain unchanged.
+
+The full legacy render smoke fails its standalone shadow badge geometry on both
+the fixed replacement and sealed original. The unchanged style mirror excludes
+the private provider stylesheet path. A separate main-flow-only probe passes both
+motion modes for Shell render isolation, row identity, selection/new dismissal,
+business refresh and draft preservation; it does not make the full shadow smoke
+green. The default legacy topology assertion also fails in its synthetic context
+before it mounts Sidebar; its separate original-control acquisition failure is
+retained without claiming an original pass or identical failure. These boundaries
+do not justify unrelated unattributed rewrites.
