@@ -1,3 +1,5 @@
+import { displayTimingCounts } from "./runtime/display-timing-diagnostics";
+import { reportDisplayEvent } from "./runtime/recovery-diagnostics";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -705,6 +707,28 @@ export function App({
     ? timeline
     : displayTimeline ?? timeline;
   const showingDisplayCache = visibleTimeline !== null && (visibleTimeline !== timeline || !visibleTimeline.authoritative);
+  const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
+  const displaySignature = JSON.stringify(displayCounts);
+  useEffect(() => {
+    if (!displayCounts.messages) return;
+    const frame = requestAnimationFrame(() => {
+      const times = [...document.querySelectorAll(".thread-user-message time, [data-assistant-message-sent-time]")];
+      const visibleTimes = times.filter(element => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return false;
+        for (let node: Element | null = element; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+        }
+        return true;
+      }).length;
+      reportDisplayEvent("display-paint", { ...displayCounts, renderedTimes: times.length, visibleTimes });
+    });
+    return () => cancelAnimationFrame(frame);
+    // The signature reports coverage transitions, not every streaming delta.
+  }, [displaySignature, displayScope, displayHostId, displayThreadId]);
+
+
   const [turnDiffReview, setTurnDiffReview] = useState<{
     readonly block: TurnDiffTimelineBlock;
     readonly path: string | null;

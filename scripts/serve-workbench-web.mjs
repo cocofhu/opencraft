@@ -210,8 +210,8 @@ const appHostFailureKinds = new Set(["socket-error", "socket-close", "handshake-
 const appHostPhases = new Set(["connecting", "socket-open", "ready"]);
 const appHostDiagnosticKeys = new Set(["attemptId", "failure", "phase", "readyState", "ageMs", "closeCode"]);
 
-const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
-const recoveryStages = new Set(["transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "host-ready", "resources", "revalidate", "provider-history", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
+const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents", "displayVersion", "messages", "timestamps", "workClocks", "authoritative", "cacheHit", "storageFailure", "renderedTimes", "visibleTimes", "touch", "viewportWidth"]);
+const recoveryStages = new Set(["display-load", "display-save", "display-paint", "transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "host-ready", "resources", "revalidate", "provider-history", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
 function validRecoveryDiagnostic(report) {
   return report && report.kind === "recovery" && Object.keys(report).every(key => recoveryDiagnosticKeys.has(key))
     && typeof report.recoveryId === "string" && /^recovery-[a-z0-9]{1,20}-[0-9]{1,12}$/.test(report.recoveryId)

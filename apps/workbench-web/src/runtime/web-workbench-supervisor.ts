@@ -2,7 +2,8 @@ import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
 import { serverAdmissionOrigin, serverFetch, serverStorageKey } from "./server-context";
-import { reportRecoveryEvent } from "./recovery-diagnostics";
+import { displayTimingCounts } from "./display-timing-diagnostics";
+import { reportDisplayEvent, reportRecoveryEvent } from "./recovery-diagnostics";
 import { TurnCompletionObserver, WORKBENCH_RESOURCE_POLICIES } from "@opencraft/workbench-runtime";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createApplicationDisposer, disposeOwnedSteps } from "./application-disposal";
@@ -928,7 +929,11 @@ export async function createWebWorkbenchApplicationSupervisor(
     retainSubmission: (intent, receipt) => currentDisplayContinuity.retainSubmission(intent, receipt),
     peekSubmission: (hostId, threadId) => currentDisplayContinuity.peekSubmission(hostId, threadId),
     peek: (hostId, threadId) => currentDisplayContinuity.peek(hostId, threadId),
-    load: (hostId, threadId) => currentDisplayContinuity.load(hostId, threadId),
+    async load(hostId, threadId) {
+      const timeline = await currentDisplayContinuity.load(hostId, threadId);
+      reportDisplayEvent("display-load", { ...displayTimingCounts(timeline), cacheHit: Number(timeline !== null) });
+      return timeline;
+    },
     observe(snapshot) {
       if (displayWritesSuspended) {
         if (coordinator.getRuntime().getSnapshot().connectionGeneration <= displayResumeAfterGeneration) {

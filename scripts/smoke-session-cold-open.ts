@@ -88,6 +88,17 @@ async function assertDatesVisible(page: Page) {
 try{for(const width of [390,1100]){
  releaseResume();previewStage=false;release();fresh=false;
  const context=await browser.newContext({viewport:{width,height:850}}),page=await context.newPage(),errors:string[]=[];
+ await page.addInitScript('window.__name = value => value');
+ await page.addInitScript(() => {
+  requestAnimationFrame(function capture() {
+   if (!document.querySelector('.thread-frame')) { requestAnimationFrame(capture); return; }
+   (window as any).firstTimingPaint = {
+    user: document.querySelectorAll('.thread-user-message time').length,
+    assistant: document.querySelectorAll('[data-assistant-message-sent-time]').length,
+    work: document.querySelector('[data-work-status]')?.textContent ?? '',
+   };
+  });
+ });
  page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
  await page.getByText(cachedAnswer,{exact:true}).waitFor();
  await page.waitForFunction(()=>Object.keys(localStorage).some(key=>key.startsWith('opencraft.display.')&&localStorage.getItem(key)?.includes('Previously seen answer')));
@@ -95,6 +106,10 @@ try{for(const width of [390,1100]){
  await page.locator('[data-work-status]').filter({hasText:'54'}).waitFor();
  hold=true;fresh=true;previewStage=true;const requestStart=requests.length;await page.reload();await page.locator('.local-conversation-page').waitFor();
  await page.getByText(cachedAnswer,{exact:true}).waitFor({timeout:3000});
+ const first = await page.evaluate(() => (window as any).firstTimingPaint);
+ assert.equal(first.user,1,'User date exists at the first text paint');
+ assert.equal(first.assistant,1,'Assistant date exists at the first text paint');
+ assert.match(first.work,/54/,'Completed clock exists at the first text paint');
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z','Date paints before initialization completes');
  assert.match(await page.locator('[data-work-status]').innerText(),/54/,'Completed clock paints with cached text');
  await assertDatesVisible(page);
