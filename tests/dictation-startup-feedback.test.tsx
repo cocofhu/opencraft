@@ -3,7 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
-import { DictationFooter } from "../packages/codex-composer/src/dictation-footer";
+import { DictationFooter } from "../packages/composer-editor/src/dictation-footer";
 
 function render(phase: "starting" | "listening" | "transcribing") {
   const previous = (globalThis as any).React;
@@ -20,9 +20,9 @@ test("startup is decorative progress, neutral announcement and cancellable, neve
   const dom = render("starting"), document = dom.window.document;
   try {
     assert.equal(document.querySelectorAll(".ui-progress-indicator[aria-hidden='true']").length, 1);
-    assert.equal(document.querySelectorAll(".codex-composer-voice-footer__status-label, canvas").length, 0);
+    assert.equal(document.querySelectorAll(".opencraft-composer-voice-footer__status-label, canvas").length, 0);
     assert.equal(document.querySelector("[role='status']")?.textContent, "正在准备录音");
-    assert.equal(document.querySelector(".codex-composer-voice-footer__duration")?.textContent, "0:00");
+    assert.equal(document.querySelector(".opencraft-composer-voice-footer__duration")?.textContent, "0:00");
     assert.equal(document.body.textContent?.includes("授权"), false);
     assert.equal(document.querySelector("button[aria-label='取消语音输入']")?.hasAttribute("disabled"), false);
     assert.equal(document.querySelector("button[aria-label='停止并写入文字']")?.hasAttribute("disabled"), true);

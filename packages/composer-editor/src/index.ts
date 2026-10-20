@@ -1,8 +1,8 @@
 export { ComposerAttachedRail } from "./attached-rail";
-export { CodexComposer, composerSchema } from "./codex-composer";
+export { OpenCraftComposer, composerSchema } from "./composer-editor";
 export type {
-  CodexComposerHandle,
-  CodexComposerProps,
+  OpenCraftComposerHandle,
+  OpenCraftComposerProps,
   ComposerShortcutCommand,
   ComposerQueuedSubmissionPresentation,
   ComposerEffectiveSelections,
@@ -11,7 +11,7 @@ export type {
   ComposerPermissionOption,
   ComposerReasoningEffortOption,
   ComposerSelectionCatalog,
-} from "./codex-composer";
+} from "./composer-editor";
 export * from "./prosemirror-codec";
 export { resolveComposerFooterDensity } from "./responsive-footer";
 export type {

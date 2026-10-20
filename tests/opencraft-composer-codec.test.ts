@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveComposerFooterDensity } from "@opencraft/codex-composer";
+import { resolveComposerFooterDensity } from "@opencraft/composer-editor";
 
 import type { ComposerDocument } from "@opencraft/composer-core";
 import {
   composerDocumentToProseMirror,
   composerSchema,
   proseMirrorToComposerDocument,
-} from "@opencraft/codex-composer";
+} from "@opencraft/composer-editor";
 
 const document: ComposerDocument = {
   version: 1,

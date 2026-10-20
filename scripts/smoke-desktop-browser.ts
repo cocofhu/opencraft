@@ -24,7 +24,7 @@ try {
   const launchArgs = [...(process.env.OPENCRAFT_PACKAGED_SMOKE === "1" ? [] : [resolve("apps/workbench-electron")]), `--user-data-dir=${join(root, "profile")}`];
   app = await _electron.launch({ executablePath, args: launchArgs, env });
   const page = await app.firstWindow();
-  await page.locator(".codex-composer-editor").first().waitFor({ timeout: 30000 }).catch(async (error: unknown) => {
+  await page.locator(".opencraft-composer-editor").first().waitFor({ timeout: 30000 }).catch(async (error: unknown) => {
     console.log("startup", page.url(), (await page.locator("body").innerText()).slice(0, 1500));
     throw error;
   });
@@ -207,7 +207,7 @@ try {
   await app.close();
   app = await _electron.launch({ executablePath, args: launchArgs, env });
   const restored = await app.firstWindow();
-  await restored.locator(".codex-composer-editor").first().waitFor({ timeout: 30000 });
+  await restored.locator(".opencraft-composer-editor").first().waitFor({ timeout: 30000 });
   const restoredMetadata = await restored.evaluate(() => (window as any).opencraftDesktop.browserState.read());
   assert.equal(restoredMetadata["opencraft.browser-storage.v1"], metadata["opencraft.browser-storage.v1"]);
   const cookies = await app.evaluate(({ session }: any, params: any) => session.fromPartition(params.partition).cookies.get({url: params.url}), {partition: before.partition, url: base});

@@ -101,13 +101,13 @@ try{
    page.on('console',(message:any)=>{if(message.type()==='error'&&message.text().includes('[opencraft runtime error]'))errors.push(message.text());});
    await page.goto(`http://127.0.0.1:${uiServer.httpServer.address().port}/local/${thread.id}?hostId=reasoning-test`);
    await page.getByText('OK',{exact:true}).first().waitFor({timeout:30000});
-   const editor=page.locator('.codex-composer-editor').first();
+   const editor=page.locator('.opencraft-composer-editor').first();
    const observed=await runtime.acquireThread(thread.id);
    const profileCatalog=await runtime.resources.composerCatalog.listPermissionProfiles();
    const selectedProfile=profileCatalog.data.find((profile:any)=>/full|danger/i.test(profile.id))??profileCatalog.data.at(-1);
    assert.ok(selectedProfile);
-   await page.locator('.codex-composer-mode--permissions').first().click();
-   const permissionMenu=page.locator('.codex-composer-selection-menu--permissions[role="menu"]');
+   await page.locator('.opencraft-composer-mode--permissions').first().click();
+   const permissionMenu=page.locator('.opencraft-composer-selection-menu--permissions[role="menu"]');
    assert.doesNotMatch(await permissionMenu.innerText(),/AppServer default|How should OpenCraft actions be approved/);
    assert.equal(await permissionMenu.getByRole('menuitem').count(),profileCatalog.data.length);
    const displayedProfile=(profile:any)=>profile.openCraftLabel??profile.id.replace(/^:/,'').replace(/[-_]+/g,' ');
@@ -125,7 +125,7 @@ try{
    await page.reload();
    await page.getByText('OK',{exact:true}).first().waitFor();
    assert.equal(observed.getSnapshot().timeline.frames.filter(frame=>frame.type==='assistant'&&frame.status==='complete').length,2);
-   await page.locator('.codex-composer-mode--permissions').first().click();
+   await page.locator('.opencraft-composer-mode--permissions').first().click();
    const restoredSelection=permissionMenu.locator('[data-selected="true"]');
    assert.equal(await restoredSelection.count(),1);
    assert.match(await restoredSelection.innerText(),new RegExp(displayedProfile(selectedProfile),'i'));

@@ -16,14 +16,14 @@ import {createRoot} from 'react-dom/client';
 import {LocaleRuntime} from '@opencraft/i18n';
 import {IntlRuntimeProvider} from '@opencraft/i18n/react';
 import {createComposerController} from '@opencraft/composer-core';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {embeddedLocaleCatalogs} from './apps/workbench-web/src/i18n/catalogs';
 import {resolveBrowserAttachment} from './apps/workbench-web/src/runtime/browser-attachment-resolver';
 const locale=new LocaleRuntime(embeddedLocaleCatalogs);await locale.update({localeOverride:'en-US'});
 const controller=createComposerController({type:'new-thread',draftId:'embedded',execution:{hostId:'test',workspace:{cwd:'/test',runtimeWorkspaceRoots:['/test']}}},{now:Date.now,createId:()=>crypto.randomUUID()});
 globalThis.snapshot=()=>controller.getSnapshot();globalThis.reset=()=>controller.dispatch({type:'reset-all'});
 globalThis.reads=0;
-createRoot(document.getElementById('root')).render(<IntlRuntimeProvider runtime={locale}><CodexComposer controller={controller} modelSelectionPolicy="session" onSubmit={()=>false} onCancel={()=>{}}
+createRoot(document.getElementById('root')).render(<IntlRuntimeProvider runtime={locale}><OpenCraftComposer controller={controller} modelSelectionPolicy="session" onSubmit={()=>false} onCancel={()=>{}}
 onResolveAttachment={(file,pending,signal)=>{const slice=file.slice.bind(file);file.arrayBuffer=()=>{throw new Error('Whole-file read forbidden')};file.slice=(start,end)=>{globalThis.reads++;return slice(start,end)};return resolveBrowserAttachment(file,pending,{maxBytes:1024**3,chunkBytes:1024**2,stage:()=>{throw new Error('One-shot forbidden')},uploadChunk:params=>globalThis.rpc('attachment/uploadChunk',params),uploadCancel:uploadId=>globalThis.rpc('attachment/uploadCancel',{uploadId})},undefined,signal);}} /></IntlRuntimeProvider>);
 ` }, bundle: true, write: false, format: "esm", platform: "browser", jsx: "automatic", loader: { ".scss": "empty", ".css": "empty" } });
 const server = createServer((req, res) => {

@@ -35,7 +35,7 @@ try {
     const page = await context.newPage();
     const errors: string[] = []; page.on("pageerror", e => { errors.push(e.message); console.error("PAGEERROR", e.message); });
     await page.goto(vite.resolvedUrls!.local[0]!);
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     await editor.waitFor({state:"attached"});
     await page.waitForTimeout(250);
     if (!(await page.locator(".terminal-panel").isVisible())) await page.locator("button.app-shell-header__right-panel-toggle").click();
@@ -78,7 +78,7 @@ try {
       const a = anchor.getBoundingClientRect(), o = overlay.getBoundingClientRect();
       return { anchorTop: a.top, overlayTop: o.top, anchorBottom: a.bottom, overlayBottom: o.bottom,
         bottomGap: a.bottom - content.bottom, localOwner: overlay.parentElement === anchor && overlay.offsetParent === anchor,
-        focused: document.activeElement === document.querySelector(".codex-composer-editor"),
+        focused: document.activeElement === document.querySelector(".opencraft-composer-editor"),
         scrolledClips: [...document.querySelectorAll<HTMLElement>(".app-shell-root,.main-content-body,.thread-composer-overlay-host,.terminal-panel__host")].filter(e => e.scrollTop !== 0).map(e => e.className) };
     });
     for (const offset of [0, 170, 65, 0]) {
@@ -110,7 +110,7 @@ try {
       assert.ok(await page.evaluate(() => document.querySelector(".terminal-panel__host")!.getBoundingClientRect().bottom > document.querySelector(".thread-composer-overlay__content")!.getBoundingClientRect().top), "negative control reproduces original overlap");
       await oldLayout.evaluate(e => e.remove());
     }
-    await page.evaluate(() => { (window as any).keptEditor = document.querySelector(".codex-composer-editor"); (window as any).keptTerminal = document.querySelector(".xterm"); });
+    await page.evaluate(() => { (window as any).keptEditor = document.querySelector(".opencraft-composer-editor"); (window as any).keptTerminal = document.querySelector(".xterm"); });
     for (const [height, top, scale] of [[device.height, 0, 1], [Math.round(device.height * .52), 0, 1], [Math.round(device.height * .52), 65, 1], [device.height, 0, 1], [Math.round(device.height * .7), 0, 1.5]]) {
       await page.locator(".xterm-helper-textarea").focus();
       await page.evaluate(([h, t, s]) => (window as any).setViewport(h, t, s, t > 0), [height, top, scale]);
@@ -121,7 +121,7 @@ try {
         const root = document.querySelector(".app-shell-root")!.getBoundingClientRect();
         const latest = document.querySelector(".thread-composer-overlay__latest")!;
         return { terminalBottom: h.bottom, screenBottom: s.bottom, composerTop: Math.min(c.top, latest.getClientRects().length ? latest.getBoundingClientRect().top : c.top), composerBottom: c.bottom, rootBottom: root.bottom, keyboard: document.documentElement.dataset.timelineKeyboardOpen,
-          rows: (window as any).fixture.sizes.at(-1)?.rows, sameTerminal: document.querySelector(".xterm") === (window as any).keptTerminal, sameEditor: document.querySelector(".codex-composer-editor") === (window as any).keptEditor };
+          rows: (window as any).fixture.sizes.at(-1)?.rows, sameTerminal: document.querySelector(".xterm") === (window as any).keptTerminal, sameEditor: document.querySelector(".opencraft-composer-editor") === (window as any).keptEditor };
       });
       assert.ok(geometry.terminalBottom <= geometry.composerTop + 1, JSON.stringify({ device: device.name, height, top, geometry }));
       assert.ok(geometry.screenBottom <= geometry.composerTop + 1, "last terminal row stays outside composer occlusion");
@@ -158,9 +158,9 @@ try {
     await page.evaluate(() => (window as any).fixture.setOverlayEnabled(true));
     await page.waitForTimeout(300);
     assert.equal(await editor.innerText(), "Keep terminal draft");
-    assert.ok(await page.evaluate(() => document.querySelector(".xterm") === (window as any).keptTerminal && document.querySelector(".codex-composer-editor") === (window as any).keptEditor));
+    assert.ok(await page.evaluate(() => document.querySelector(".xterm") === (window as any).keptTerminal && document.querySelector(".opencraft-composer-editor") === (window as any).keptEditor));
     await page.waitForTimeout(50);
-    const readMaterial = () => page.locator(".codex-composer-shell").evaluate(element => {
+    const readMaterial = () => page.locator(".opencraft-composer-shell").evaluate(element => {
       const style = getComputedStyle(element, "::before");
       const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
       const paint = canvas.getContext("2d")!; paint.fillStyle = style.backgroundColor; paint.fillRect(0, 0, 1, 1);

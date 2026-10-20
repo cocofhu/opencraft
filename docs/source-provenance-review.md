@@ -798,3 +798,21 @@ classes in the selected replacement. The full original/prospective four-locale
 consumer results match byte for byte (16 scenes,64 menus). Downstream Bot fixed-
 time sampling and separate settled-state evidence remain distinguished, along
 with inherited render/topology smoke limits; no broad passing or rights claim.
+
+
+## Composer naming and source-comment disposition
+
+The owned editor package is now `@opencraft/composer-editor`, exporting
+`OpenCraftComposer` and using the `opencraft-composer` CSS namespace. The source
+entry moved from `packages/codex-composer/src/codex-composer.tsx` to
+`packages/composer-editor/src/composer-editor.tsx`; neighboring modules moved
+with the package. This is a naming migration, not an implementation replacement.
+The former source header is retained here verbatim as historical provenance:
+
+> Semantically adapted from the recovered Codex Composer/editor, queue tray,
+> and responsive footer boundaries. AppServer state remains externally owned.
+
+The renderer import-map entry remains unverified. Existing historical hashes,
+reference records, licenses and notices remain unchanged; moving this annotation
+does not establish source rights. Normal Codex AppServer wiring retains its
+external protocol, authentication and transport identity.

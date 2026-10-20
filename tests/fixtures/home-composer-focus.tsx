@@ -37,7 +37,7 @@ function App() {
     onRightPanelOpenChange={noop} rightPanel={null}>
     <NewThreadDraftPage draft={draft} controller={controller} selectionCatalog={{ models: toolbar ? models : [], permissionProfiles: toolbar ? permissionProfiles : [] }}
       modelSelectionPolicy={params.get("policy") === "session" ? "session" : params.get("policy") === "host-default" ? "host-default" : "user"}
-      composerEndActions={toolbar ? <button className="codex-composer-icon-button" aria-label="Microphone"><Mic size={16} /></button> : undefined}
+      composerEndActions={toolbar ? <button className="opencraft-composer-icon-button" aria-label="Microphone"><Mic size={16} /></button> : undefined}
       catalog={{ search: async () => [] }} workspaceOptions={[]} activeHostId="fixture" hostOptions={[]}
       connectionPhase="ready" onSelectHost={noop} onSelectWorkspace={noop} onBrowseWorkspace={noop}
       onSubmit={() => false} heading="要做点什么？" placeholder="聊聊你的想法，或交给我一件事" />

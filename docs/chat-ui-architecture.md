@@ -2325,3 +2325,14 @@ Coalesced retries of an active work item still share the original observation.
 ### Product desktop composer shortcut
 
 The desktop panel adapter owns availability and launch authority. Installing it does not opt the workbench into a composer shortcut. A containing product may explicitly enable `WorkbenchPresentationPolicy.composerDesktopEntry` and include `opencraft.cloud-desktop.open` in its panel actions; full and generic embedded presentations leave the shortcut disabled by default.
+
+
+## Owned Composer naming
+
+The shared editor lives in `@opencraft/composer-editor` and exports
+`OpenCraftComposer`, `OpenCraftComposerHandle` and `OpenCraftComposerProps`.
+Its DOM/style namespace is `opencraft-composer`. The naming migration changes
+no draft, selection, queue, submission or lifecycle ownership. Runtime consumers
+and existing smoke selectors move together; Codex AppServer wire identifiers
+remain external integration contracts. Historical source attribution remains in
+the source provenance review.

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(new URL("../packages/codex-composer/src/codex-composer.tsx", import.meta.url), "utf8");
-const sessionSource = readFileSync(new URL("../packages/codex-composer/src/attachment-preview-session.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../packages/composer-editor/src/composer-editor.tsx", import.meta.url), "utf8");
+const sessionSource = readFileSync(new URL("../packages/composer-editor/src/attachment-preview-session.ts", import.meta.url), "utf8");
 const append = source.slice(source.indexOf("  const appendFiles ="), source.indexOf("  const openAttachmentPicker ="));
 
 test("attachment input restores editor focus synchronously, never on upload settlement", () => {
