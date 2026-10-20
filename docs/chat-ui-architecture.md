@@ -269,6 +269,21 @@ settles all response attempts before interrupt, carries the original provenance
 and releases its transient interrupt state on failure. The helper does not grant
 permissions or own pending-request removal.
 
+### MCP elicitation presentation
+
+The shared elicitation normalizer owns field options and metadata routing for
+the existing interaction views. Array fields retain titled string constants
+from `items.anyOf`, including their order and defaults; explicit field `oneOf`
+choices take precedence. Required selections must remain selectable before the
+existing typed form response is submitted.
+
+An empty-field request from `browser` or `browser-use` with a nonblank metadata
+`origin` and offered persistence scopes uses the tool-approval view. Its existing
+actions submit once, session or always responses only as offered by the request.
+Valid tool suggestions and URL requests retain their own routing. Presentation
+classification does not grant permissions; the Host remains the authority for
+the request and its response.
+
 The shared compiler's application link scanner returns raw label/destination and
 UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
 `](` boundary takes priority even after a backslash, while escaped destination
