@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { resolve } from "node:path";
-import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { readFile, readdir } from "node:fs/promises";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 import { WebSocketServer } from "ws";
@@ -11,10 +11,18 @@ import { WebSocketServer } from "ws";
 const bundle = process.env.OPENCRAFT_LIFECYCLE_MODULE
   ? await readFile(process.env.OPENCRAFT_LIFECYCLE_MODULE, "utf8")
   : (await build({ stdin: { contents: 'export { JsonRpcAppServerClient } from "./packages/appserver-client/src/client.ts"; export { WebSocketTransport } from "./packages/appserver-transport-websocket/src/websocket-transport.ts"; export { installBrowserDynamicToolHandler } from "./packages/browser-appserver/src/dynamic-tools.ts";', resolveDir: resolve(".") }, bundle: true, format: "esm", platform: "browser", write: false })).outputFiles[0]!.text;
+const artifactAssets = new Map<string, string>();
+if (process.env.OPENCRAFT_LIFECYCLE_ASSETS) {
+  const directory = join(process.env.OPENCRAFT_LIFECYCLE_ASSETS, "assets");
+  for (const filename of await readdir(directory)) {
+    if (/^[A-Za-z0-9._-]+\.js$/.test(filename)) artifactAssets.set(`/assets/${filename}`, join(directory, filename));
+  }
+}
 const server = createServer(async (req, res) => {
   if (req.url === "/module.js") { res.setHeader("content-type", "text/javascript"); res.end(bundle); return; }
-  if (process.env.OPENCRAFT_LIFECYCLE_ASSETS && /^\/assets\/[A-Za-z0-9._-]+\.js$/.test(req.url ?? "")) {
-    res.setHeader("content-type", "text/javascript"); res.end(await readFile(process.env.OPENCRAFT_LIFECYCLE_ASSETS + req.url)); return;
+  const assetFile = artifactAssets.get(req.url ?? "");
+  if (assetFile !== undefined) {
+    res.setHeader("content-type", "text/javascript"); res.end(await readFile(assetFile)); return;
   }
   res.setHeader("content-type", "text/html"); res.end('<!doctype html><title>Connection lifecycle</title><textarea aria-label="Draft">retained draft</textarea>');
 });
