@@ -61,7 +61,7 @@ test("renderer host identity is installed above body for the viewport contract",
   });
 
   assert.equal(root.dataset.opencraftWindowType, "browser");
-  assert.equal(root.dataset.codexOs, "darwin");
+  assert.equal(root.dataset.opencraftPlatform, "darwin");
 });
 
 test("ordinary browsers do not inherit a macOS renderer safe area", () => {

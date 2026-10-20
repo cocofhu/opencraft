@@ -138,7 +138,7 @@ export function applyWindowChromeDocumentAttributes(
   snapshot: Pick<WindowChromeSnapshot, "kind" | "platform">,
 ): void {
   root.dataset.opencraftWindowType = snapshot.kind;
-  root.dataset.codexOs = snapshot.platform;
+  root.dataset.opencraftPlatform = snapshot.platform;
 }
 
 export function getWindowChromePolicy(

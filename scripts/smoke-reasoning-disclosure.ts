@@ -333,7 +333,7 @@ try {
       const toggle = group.getByRole('button').first();
       if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
     }
-    await page.locator('.thread-activity-item__icon > [data-codex-activity-icon="read"]').waitFor();
+    await page.locator('.thread-activity-item__icon > [data-opencraft-activity-icon="read"]').waitFor();
     await page.evaluate(() => document.fonts.ready);
     const measureScale = () => page.evaluate(() => Array.from(document.querySelectorAll<SVGSVGElement>(
       '.thread-activity-item__icon > svg')).map(svg => {
@@ -342,7 +342,7 @@ try {
       const summary = header.querySelector('.thread-activity-item__summary')!;
       const box = svg.getBBox(), screen = svg.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const type = getComputedStyle(summary);
-      return { glyph: svg.getAttribute('data-codex-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
+      return { glyph: svg.getAttribute('data-opencraft-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
         fontSize: parseFloat(type.fontSize), weight: type.fontWeight,
         width: screen.width, visibleWidth: box.width * screen.width / svg.viewBox.baseVal.width,
         centerOffset: Math.abs(screen.x + screen.width / 2 - slot.x - slot.width / 2),
@@ -367,7 +367,7 @@ try {
       .thread-activity-item__icon > svg { width:16px; height:16px; }
       .thread-activity-item__icon > .lucide { stroke-width:2; }
       .thread-activity-item__icon > .lucide-brain { width:14px; height:14px; stroke-width:1.8; }
-      .thread-activity-item__icon > [data-codex-activity-icon="read"] { width:15px; height:15px; }
+      .thread-activity-item__icon > [data-opencraft-activity-icon="read"] { width:15px; height:15px; }
     ` });
     await page.waitForFunction(() => Array.from(document.querySelectorAll('.thread-activity-item__summary'))
       .every(node => getComputedStyle(node).fontSize === getComputedStyle(document.documentElement).getPropertyValue('--typography-chat-size').trim()));
