@@ -24,6 +24,7 @@ const app = await createManagedWebServer({
   headlessBackendTarget: process.env.OPENCRAFT_HEADLESS_BACKEND_URL || null,
   relayIngressTarget: process.env.OPENCRAFT_RELAY_INGRESS_URL || null,
   relayInternalPort: process.env.OPENCRAFT_RELAY_INTERNAL_PORT ? Number(process.env.OPENCRAFT_RELAY_INTERNAL_PORT) : null,
+  localAccessFile: process.env.OPENCRAFT_LOCAL_ACCESS_FILE || null,
   registry: process.env.OPENCRAFT_NPM_REGISTRY,
   channel: process.env.OPENCRAFT_UPDATE_CHANNEL,
   userconfig: process.env.OPENCRAFT_NPM_USERCONFIG,
