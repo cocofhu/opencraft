@@ -10,11 +10,6 @@ import type {
   ConversationPanelState,
 } from "@opencraft/workbench-panels";
 
-function panelTitle(tab: PanelTabDescriptor, intl: IntlShape): string {
-  if (tab.kind === "cloud-desktop") return intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" });
-  return tab.kind === "browser" && tab.title === "New tab"
-    ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title;
-}
 import type { PanelRendererRegistration } from "@opencraft/workbench-panels-react";
 import {
   FileCode2,
@@ -63,6 +58,12 @@ import {
   resolvePanelTabCommit,
   RIGHT_PANEL_TAB_DROP_TAIL_ID,
 } from "./right-panel-tab-drag";
+
+function panelTitle(tab: PanelTabDescriptor, intl: IntlShape): string {
+  if (tab.kind === "cloud-desktop") return intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" });
+  return tab.kind === "browser" && tab.title === "New tab"
+    ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title;
+}
 
 interface RightPanelProps {
   /** Host supplies container geometry; this view retains the full toolbar and renderer residency. */
