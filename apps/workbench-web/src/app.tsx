@@ -1,3 +1,4 @@
+import { ScheduledTaskCatalogContext } from "./runtime/scheduled-task-catalog-context";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -1800,6 +1801,9 @@ export function App({
 
   return (
     <IdentityAvatarContext.Provider value={identityAvatar}>
+    <ScheduledTaskCatalogContext.Provider value={{ ...multiHostCatalog,
+      openConversation: (hostId, threadId) => hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, threadId)),
+    }}>
       <InternalDeveloperModeGate />
       <AppShellRouteRegionsProvider
         controller={routeHeader.controller}
@@ -2248,6 +2252,7 @@ export function App({
           onCancel={() => setWorkspacePickerOpen(false)}
           onChoose={chooseWorkspaceDirectory}
         />
+    </ScheduledTaskCatalogContext.Provider>
     </IdentityAvatarContext.Provider>
   );
 }

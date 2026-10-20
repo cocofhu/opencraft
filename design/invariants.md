@@ -1850,3 +1850,11 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+## Scheduled task workbench entry
+
+Scheduled tasks use the existing workbench tool-page declaration, Router and
+shared settings controls. The application catalog projects Host summaries rather
+than filtering the currently paginated conversation rows. Opening a task uses its
+Host/thread identity; management reuses the existing per-conversation editor.
+The catalog owns neither execution timers nor a separate draft or mutation model.

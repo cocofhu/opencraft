@@ -625,5 +625,17 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "schedules.catalog.title": "Scheduled tasks",
+  "schedules.catalog.description": "Schedules across available servers. Create new schedules from a conversation’s menu.",
+  "schedules.catalog.empty": "No current scheduled tasks on this server.",
+  "schedules.catalog.unsupported": "No available server supports scheduled tasks.",
+  "schedules.catalog.offline": "Server is not connected. Its schedules cannot be refreshed.",
+  "schedules.catalog.loadError": "Could not refresh scheduled tasks.",
+  "schedules.catalog.cached": "Showing the last known schedules.",
+  "schedules.catalog.next": "Next run: {time}",
+  "schedules.catalog.conversation": "Open conversation",
+  "schedules.catalog.manage": "Manage",
+  "schedules.catalog.openError": "Could not open the conversation.",
+  "schedules.catalog.refresh": "Refresh"
 }
