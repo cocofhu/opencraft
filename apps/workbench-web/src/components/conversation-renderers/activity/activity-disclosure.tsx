@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
-export function useCodexActivityOpen(
+export function useActivityOpen(
   running: boolean,
   defaultExpanded = false,
 ): readonly [boolean, (next: boolean) => void] {

@@ -33,7 +33,7 @@ function measure({
   return transaction;
 }
 
-test("r3562: first measurement establishes a baseline, estimate correction is a different delta", () => {
+test("first measurement establishes a baseline, estimate correction is a different delta", () => {
   const first = measure();
   assert.equal(first.layoutHeightDeltaPx, 140);
   assert.equal(first.latestTurnHeightChange?.heightDeltaPx, 0);
@@ -42,45 +42,45 @@ test("r3562: first measurement establishes a baseline, estimate correction is a 
   assert.equal(growth.latestTurnHeightChange?.heightDeltaPx, 30);
 });
 
-test("r3562: a settled restore delegate still leaves historical rows owned by the virtualizer", () => {
+test("a settled restore delegate still leaves historical rows owned by the virtualizer", () => {
   const result = measure({ heights: { old: 800, latest: 280 }, measurements: [{ turnKey: "old", heightPx: 920 }] });
   assert.equal(result.scrollDistanceFromBottomPx, 520);
   assert.equal(result.latestTurnHeightChange, null);
   assert.equal(result.restoreScrollDistanceFromBottom, false);
 });
 
-test("r3562: no correction for growth above the reading anchor", () => {
+test("no correction for growth above the reading anchor", () => {
   const result = measure({ heights: { old: 800, latest: 280 }, measurements: [{ turnKey: "old", heightPx: 920 }], distance: 100 });
   assert.equal(result.scrollDistanceFromBottomPx, null);
 });
 
-test("r3562: historical and latest growth in the same batch have disjoint compensation owners", () => {
+test("historical and latest growth in the same batch have disjoint compensation owners", () => {
   const result = measure({ heights: { old: 800, latest: 280 }, measurements: [{ turnKey: "old", heightPx: 920 }, { turnKey: "latest", heightPx: 310 }] });
   assert.equal(result.scrollDistanceFromBottomPx, 520);
   assert.equal(result.latestTurnHeightChange?.heightDeltaPx, 30);
 });
 
-test("r3562: pending restoration wins over ordinary compensation", () => {
+test("pending restoration wins over ordinary compensation", () => {
   const result = measure({ restore: () => 700 });
   assert.equal(result.restoreScrollDistanceFromBottom, true);
   assert.equal(result.scrollDistanceFromBottomPx, null);
   assert.equal(result.viewport.distanceFromBottomPx, 700);
 });
 
-test("r3562: generic preservation does not request the delegated restore target", () => {
+test("generic preservation does not request the delegated restore target", () => {
   const result = measure({ preserve: true, restore: () => { throw new Error("must not be sampled"); } });
   assert.equal(result.restoreScrollDistanceFromBottom, false);
   assert.equal(result.scrollDistanceFromBottomPx, 540);
 });
 
-test("r3562: queued measurements accumulate latest growth, not just the last batch", () => {
+test("queued measurements accumulate latest growth, not just the last batch", () => {
   const first = measure({ heights: { old: 800, latest: 280 }, measurements: [{ turnKey: "latest", heightPx: 300 }] });
   const next = measure({ previous: first, measurements: [{ turnKey: "latest", heightPx: 350 }] });
   assert.equal(next.latestTurnHeightChange?.heightDeltaPx, 70);
   assert.equal(next.latestTurnHeightChange?.heightPx, 350);
 });
 
-test("r3562: preserved bottom remains bottom through first measurement and shrink", () => {
+test("preserved bottom remains bottom through first measurement and shrink", () => {
   const first = measure({ preserve: true, distance: 0 });
   const shrink = measure({ preserve: true, distance: 0, heights: first.measuredHeightsByKey, measurements: [{ turnKey: "latest", heightPx: 300 }] });
   assert.equal(first.scrollDistanceFromBottomPx, 0);

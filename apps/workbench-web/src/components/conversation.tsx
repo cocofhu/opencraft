@@ -92,7 +92,7 @@ import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-previe
 import {
   ActivityDisclosure,
   CadencedShimmer,
-  useCodexActivityOpen,
+  useActivityOpen,
 } from "./conversation-renderers/activity/activity-disclosure";
 import {
   ConversationInteractionContext,
@@ -168,7 +168,7 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useCodexActivityOpen(presentation.state === "running");
+  const [open, setOpen] = useActivityOpen(presentation.state === "running");
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -686,7 +686,7 @@ function AnimatedTurn({
   readonly threadDetailLevel: ConversationDetailLevel;
   readonly turn: TimelineTurnView;
 }) {
-  // r3562 cO: latest/historical is a position, not a React lifetime boundary.
+  // Latest/historical is a position, not a React lifetime boundary.
   return <motion.div style={{ y: offset ?? 0 }}><Turn activityCollapsedById={activityCollapsedById} isMostRecentTurn={isMostRecentTurn} onActivityCollapsedChange={onActivityCollapsedChange} onRetry={onRetry} threadDetailLevel={threadDetailLevel} turn={turn} /></motion.div>;
 }
 
@@ -801,7 +801,7 @@ export function Conversation({
     setScrollElement(element);
   }, [viewportOwner]);
   useLayoutEffect(() => {
-    // r3562 ThreadScrollLayout owns initialOffset in BOTH policies. Never
+    // Thread scroll layout owns initialOffset in both policies. Never
     // reapply it on phase/content changes or a policy branch change.
     scrollController.scrollToDistanceFromBottomPx(
       normalizeInitialScrollDistance(initialRestoreSnapshot?.distanceFromBottomPx), "instant",
@@ -846,7 +846,7 @@ export function Conversation({
   const loadOlderUntilScrollable = historyBackfill.request;
 
 
-  // r3562 _k/wk: selection precedes policy construction. Baseline never owns
+  // Selection precedes policy construction. Baseline never owns
   // response state, even if a checkpoint from another policy contains it.
   const responseApiRef = useRef<ResponsePositionedTurnsApi | null>(null);
   const responseRestoreRef = useRef<ReturnType<ResponsePositionedTurnsApi["captureRestoreSnapshot"]> | null>(null);

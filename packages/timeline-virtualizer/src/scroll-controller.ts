@@ -5,7 +5,7 @@ import type {
 } from "./ports";
 import {
   accumulatePreservedWheelDelta,
-  CODEX_SCROLL_NEAR_BOTTOM_PX,
+  OPENCRAFT_SCROLL_NEAR_BOTTOM_PX,
   createPreservedScrollLayout,
   normalizeInitialScrollDistance,
   restoredDistanceAfterLayout,
@@ -66,7 +66,7 @@ export class TurnScrollController {
     return {
       ...metrics,
       distanceFromBottomPx: this.#distanceFromBottomPx,
-      isScrolledFromBottom: this.#distanceFromBottomPx > CODEX_SCROLL_NEAR_BOTTOM_PX,
+      isScrolledFromBottom: this.#distanceFromBottomPx > OPENCRAFT_SCROLL_NEAR_BOTTOM_PX,
       isScrollAnimationActive: this.#animationFrame !== null,
     };
   }
@@ -111,7 +111,7 @@ export class TurnScrollController {
         })
       : originOrResolver;
     this.#distanceFromBottomPx = current;
-    if (this.#distanceFromBottomPx <= CODEX_SCROLL_NEAR_BOTTOM_PX) this.cancelScrollAnimation();
+    if (this.#distanceFromBottomPx <= OPENCRAFT_SCROLL_NEAR_BOTTOM_PX) this.cancelScrollAnimation();
     const snapshot: TurnPlatformScrollReport = {
       ...this.getSnapshot(),
       origin,
@@ -134,7 +134,7 @@ export class TurnScrollController {
     const distance = Math.max(0, distanceFromBottomPx);
     const previous = this.#distanceFromBottomPx;
     this.#cancelPendingLayoutPreservation();
-    if (distance > CODEX_SCROLL_NEAR_BOTTOM_PX) this.cancelScrollAnimation();
+    if (distance > OPENCRAFT_SCROLL_NEAR_BOTTOM_PX) this.cancelScrollAnimation();
     this.#host.writeDistanceFromBottomPx(distance, behavior);
     this.#distanceFromBottomPx = Math.max(0, this.#host.getMetrics().distanceFromBottomPx);
     const snapshot = this.getSnapshot();
@@ -155,11 +155,11 @@ export class TurnScrollController {
       this.#host.cancelFrame(this.#preserveFrame);
       this.#preserveFrame = null;
     }
-    // r3562 Ge reads u(element) at command time. The confirmed distance owns
+    // Read the physical origin at command time. The confirmed distance owns
     // cross-event layout preservation, but must not become a stale animation
     // origin when the browser has moved before delivering its scroll event.
     const initialDistance = Math.max(0, this.#host.getMetrics().distanceFromBottomPx);
-    if (initialDistance <= CODEX_SCROLL_NEAR_BOTTOM_PX) {
+    if (initialDistance <= OPENCRAFT_SCROLL_NEAR_BOTTOM_PX) {
       this.#host.writeDistanceFromBottomPx(0, "instant");
       this.#distanceFromBottomPx = 0;
       this.cancelScrollAnimation();
@@ -174,7 +174,7 @@ export class TurnScrollController {
       this.#host.writeDistanceFromBottomPx(distance, "instant");
       this.#distanceFromBottomPx = Math.max(0, this.#host.getMetrics().distanceFromBottomPx);
       this.#publish();
-      if (distance > 0 && this.#distanceFromBottomPx > CODEX_SCROLL_NEAR_BOTTOM_PX) {
+      if (distance > 0 && this.#distanceFromBottomPx > OPENCRAFT_SCROLL_NEAR_BOTTOM_PX) {
         this.#animationFrame = this.#host.requestFrame(step);
         return;
       }

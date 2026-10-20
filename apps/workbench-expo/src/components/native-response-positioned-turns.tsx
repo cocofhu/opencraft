@@ -5,7 +5,7 @@ import {
 } from "@opencraft/chat-core";
 import { NativeConversationViewportOwner, nativeFollowContentOverflowPx } from "@opencraft/timeline-host-native";
 import {
-  CODEX_LATEST_TURN_PLACEMENT_SPRING,
+  OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING,
   createLatestTurnPlacementSnapshot,
   distanceAfterUnplacedLatestTurnContentResize,
   isViewportPreservingTurnFollowMode,
@@ -643,10 +643,10 @@ export function NativeResponsePositionedTurns({
             latestTurnOffset.setValue(currentSpacer);
             applyDistance(1);
             const placementSpring = {
-              damping: CODEX_LATEST_TURN_PLACEMENT_SPRING.damping,
-              mass: CODEX_LATEST_TURN_PLACEMENT_SPRING.mass,
+              damping: OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING.damping,
+              mass: OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING.mass,
               overshootClamping: true,
-              stiffness: CODEX_LATEST_TURN_PLACEMENT_SPRING.stiffness,
+              stiffness: OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING.stiffness,
               useNativeDriver: false,
             } as const;
             Animated.parallel([

@@ -654,7 +654,7 @@ test("Native virtualizer publishes live Turn height while response policy owns c
     /Animated\.spring\(latestTurnOffset,[\s\S]{0,520}?Animated\.spring\(responseSpacerHeight/u,
     "Native translation and spacer height must share the recovered zero-bounce spring",
   );
-  assert.match(webResponseSource, /CODEX_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
+  assert.match(webResponseSource, /OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
 });
 
 test("footer geometry and response placement have disjoint Codex owners", () => {

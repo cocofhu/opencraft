@@ -17,7 +17,7 @@ import { useConversationMediaSource } from "../../conversation/conversation-medi
 import { ModalSurface } from "../../modal";
 import { ActivityIcon, activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
-import { ActivityDisclosure, CadencedShimmer, useCodexActivityOpen } from "../activity/activity-disclosure";
+import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "../activity/activity-disclosure";
 import {
   SubagentNavigationContext, ToolCallContentRendererContext, ToolCallIconRendererContext,
   useToolActivityPresentation,
@@ -270,7 +270,7 @@ function Agents({ blocks, grouped, renderToggle }: {
   const presentation = grouped ? deriveSubagentActivityGroupPresentation(blocks)
     : deriveSubagentActivityPresentation(blocks[0]!);
   const running = blocks.some(block => block.status === "running" || block.status === "pending");
-  const [open, setOpen] = useCodexActivityOpen(running);
+  const [open, setOpen] = useActivityOpen(running);
   const reflow = useDisclosureReflow();
   const height = useDisclosureHeight("auto");
   return <section className="thread-subagent-activity" data-status={blocks.at(-1)?.status} data-open={open || undefined}>
