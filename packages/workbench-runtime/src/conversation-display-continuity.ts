@@ -58,6 +58,32 @@ function completedWork(value: unknown): WorkStatusItem | null {
   return { type: "worked-for", status: work.status, startedAtMs: start, completedAtMs: end };
 }
 
+/** Keep known static clocks through a partial history preview, never through authority. */
+export function retainPreviewTiming(preview: TimelineSnapshot, display: TimelineSnapshot | null): TimelineSnapshot {
+  if (preview.authoritative || display === null || preview.key.hostId !== display.key.hostId
+    || preview.key.threadId !== display.key.threadId) return preview;
+  const known = new Map(display.frames.flatMap(frame => frame.blocks.map(block =>
+    [JSON.stringify([frame.turnId, frame.type, block.type, block.id]), { frame, block }] as const)));
+  return { ...preview, frames: preview.frames.map(frame => {
+    let durationMs = frame.durationMs, workStatus = frame.workStatus;
+    const blocks = frame.blocks.map(block => {
+      const prior = known.get(JSON.stringify([frame.turnId, frame.type, block.type, block.id]));
+      if (!prior) return block;
+      if (block.type === "user-message" && prior.block.type === "user-message") {
+        return block.sentAtMs == null ? { ...block, sentAtMs: prior.block.sentAtMs } : block;
+      }
+      if (block.type !== "text" || prior.block.type !== "text") return block;
+      if (frame.status === "complete" && !block.streaming && block.completed !== false && block.phase === "final_answer"
+        && prior.block.completed !== false && prior.block.phase === "final_answer") {
+        durationMs ??= prior.frame.durationMs;
+        workStatus ??= completedWork(prior.frame.workStatus);
+      }
+      return block.sentAtMs == null ? { ...block, sentAtMs: prior.block.sentAtMs } : block;
+    });
+    return { ...frame, blocks, durationMs, workStatus };
+  }) };
+}
+
 function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] {
   const messages: DisplayMessage[] = [];
   for (const frame of snapshot.frames) {

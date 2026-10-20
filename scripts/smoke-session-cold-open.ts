@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
-import {chromium} from 'playwright';
+import {chromium,type Page} from 'playwright';
 import {AppHostServer} from '../packages/app-host-server/src/index';
 import {createWorkbenchWebServer} from './serve-workbench-web.mjs';
 
@@ -13,7 +13,10 @@ assert.equal(JSON.parse(await readFile(join(root,'version.json'),'utf8')).headle
 await mkdir(output,{recursive:true});
 const threadId='cold-open-fixture',question='Previously seen question',cachedAnswer='Previously seen answer',restoredAnswer='Fresh authoritative answer';
 const thread={id:threadId,name:'Cold open fixture',preview:question,cwd:'/fixture',path:null,historyMode:'paginated',modelProvider:'openai',createdAt:1,updatedAt:1,status:{type:'idle'},source:'appServer',turns:[]};
-let hold=false,fresh=false,active=false;
+let hold=false,fresh=false,active=false,previewStage=false;
+const previewAnswer='Fresh preview answer';
+const heldResume:Array<()=>void>=[];
+const releaseResume=()=>{for(const deliver of heldResume.splice(0))deliver()};
 const held:Array<()=>void>=[],requests:string[]=[],mutations:string[]=[];
 const release=()=>{hold=false;for(const deliver of held.splice(0))deliver()};
 const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
@@ -29,10 +32,10 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
     {type:'reasoning',id:'fixture-reasoning',summary:['Checking the answer'],content:[],startedAtMs:1700000000000},
     {type:'agentMessage',id:'fixture-answer',startedAtMs:1700000054000,text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
    switch(rpc.method){
-    case 'initialize':result={userAgent:'cold-open-fixture',codexHome:'/fixture',platformFamily:'unix',platformOs:'linux',capabilities:{extensions:{'opencraft/resume-history':{version:1,mode:'paginated',initialTurnsPage:true}}}};break;
+    case 'initialize':result={userAgent:'cold-open-fixture',codexHome:'/fixture',platformFamily:'unix',platformOs:'linux',capabilities:{extensions:{'opencraft/resume-history':{version:1,mode:previewStage?'message-window':'paginated',initialTurnsPage:true}}}};break;
     case 'thread/list':result={data:[thread],nextCursor:null};break;
-    case 'thread/read':result={thread};break;
-    case 'thread/resume':result={thread,model:'fixture-model',modelProvider:'openai',cwd:'/fixture',runtimeWorkspaceRoots:['/fixture'],approvalPolicy:'on-request',approvalsReviewer:'user',sandbox:{type:'readOnly'},initialTurnsPage:{data:[turn],nextCursor:null}};break;
+    case 'thread/read':result={thread:{...thread,historyMode:previewStage?'message-window':'paginated'}};break;
+    case 'thread/resume':result={thread:{...thread,historyMode:previewStage?'message-window':'paginated'},model:'fixture-model',modelProvider:'openai',cwd:'/fixture',runtimeWorkspaceRoots:['/fixture'],approvalPolicy:'on-request',approvalsReviewer:'user',sandbox:{type:'readOnly'},initialTurnsPage:{data:[turn],nextCursor:null}};break;
     case 'thread/turns/list':result={data:[turn],nextCursor:null};break;
     case 'thread/items/list':result={data:turn.items.map(item=>({turnId:turn.id,item})),nextCursor:null};break;
     case 'thread/loaded/list':result={data:[threadId]};break;
@@ -45,6 +48,15 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
    }
    const reply=JSON.stringify({id:rpc.id,...(error?{error}:{result}),__opencraftClient:rpc.__opencraftClient});
    const deliver=()=>{for(const listener of messages)listener(reply)};
+   if(previewStage&&rpc.method==='thread/resume') {
+    const {startedAtMs,firstTurnWorkItemStartedAtMs,finalAssistantStartedAtMs,durationMs,...partial}=turn;
+    const preview={...partial,items:turn.items.map(item=>{
+      const {startedAtMs,sentAtMs,...message}=item as any;
+      return message.type==='agentMessage'?{...message,text:previewAnswer}:message;
+    })};
+    for(const listener of messages) listener(JSON.stringify({method:'thread/history/preview',params:{threadId,token:rpc.params.historyPreviewToken,turns:[preview]},__opencraftClient:rpc.__opencraftClient}));
+    heldResume.push(deliver); return;
+   }
    if(hold&&rpc.method==='initialize')held.push(deliver);else deliver();
   },async close(){status={state:'closed'};for(const listener of statuses)listener(status)}};
 }});
@@ -72,14 +84,14 @@ async function assertDatesVisible(page: Page) {
   assert.equal(await page.locator('[data-assistant-message-sent-time]').first().getAttribute('datetime'), '2023-11-14T22:14:14.000Z');
 }
 try{for(const width of [390,1100]){
- release();fresh=false;
+ releaseResume();previewStage=false;release();fresh=false;
  const context=await browser.newContext({viewport:{width,height:850}}),page=await context.newPage(),errors:string[]=[];
  page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
  await page.getByText(cachedAnswer,{exact:true}).waitFor();
  await page.waitForFunction(()=>Object.keys(localStorage).some(key=>key.startsWith('opencraft.display.')&&localStorage.getItem(key)?.includes('Previously seen answer')));
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z');
  await page.locator('[data-work-status]').filter({hasText:'54'}).waitFor();
- hold=true;fresh=true;const requestStart=requests.length;await page.reload();await page.locator('.local-conversation-page').waitFor();
+ hold=true;fresh=true;previewStage=true;const requestStart=requests.length;await page.reload();await page.locator('.local-conversation-page').waitFor();
  await page.getByText(cachedAnswer,{exact:true}).waitFor({timeout:3000});
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z','Date paints before initialization completes');
  assert.match(await page.locator('[data-work-status]').innerText(),/54/,'Completed clock paints with cached text');
@@ -91,7 +103,11 @@ try{for(const width of [390,1100]){
  const editor=page.locator('[contenteditable="true"]').first();
  await editor.fill('Keep this unsent draft');
  await page.screenshot({path:join(output,`cached-before-connect-${width}.png`)});
- release();await page.getByText(restoredAnswer,{exact:true}).waitFor();
+ release();await page.getByText(previewAnswer,{exact:true}).waitFor();
+ assert.ok(heldResume.length>0);await assertDatesVisible(page);
+ assert.match(await page.locator('[data-work-status]').innerText(),/54/);
+ await page.screenshot({path:join(output,`preview-before-resume-${width}.png`)});
+ releaseResume();previewStage=false;await page.getByText(restoredAnswer,{exact:true}).waitFor();
  assert.equal(await editor.innerText(),'Keep this unsent draft','Canonical restoration preserves the unsent draft');
  assert.equal(await page.getByText(cachedAnswer,{exact:true}).count(),0,'Canonical history replaces old display');assert.deepEqual(errors,[]);await context.close();
  // A streaming Turn also paints its received input/progress/answer on reload.
@@ -126,9 +142,9 @@ try{for(const width of [390,1100]){
  assert.equal(await empty.getByText(cachedAnswer,{exact:true}).count(),0);assert.equal(await empty.getByText(restoredAnswer,{exact:true}).count(),0);
  assert.equal(await empty.locator('.conversation-recovery-cold-stage').count(),1);
  release();await empty.getByText(restoredAnswer,{exact:true}).waitFor();await cold.close();
- results.push({width,cacheBeforeConnection:true,baselineStillRequired:true,canonicalReplacement:true,draftPreserved:true,isolatedProfile:true,activeTurnBeforeConnection:true});
+ results.push({width,cacheBeforeConnection:true,baselineStillRequired:true,canonicalReplacement:true,draftPreserved:true,isolatedProfile:true,activeTurnBeforeConnection:true,previewTimingContinuous:true});
  }
  assert.deepEqual(mutations,[]);
  await writeFile(join(output,'receipt.json'),JSON.stringify({results,mutations,boundary:'Built Workbench Application; isolated protocol and identity. Held initialization tests behavior, not real-network speed.'},null,2));
  console.log(JSON.stringify({success:true,results}));
-}finally{release();await browser.close();await web.close();await appHost.close()}
+}finally{releaseResume();release();await browser.close();await web.close();await appHost.close()}

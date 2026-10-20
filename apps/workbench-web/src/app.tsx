@@ -69,6 +69,7 @@ import {
   equalWorkbenchLocation,
   findHostConnectionInterventionError,
   projectComposerModelChoices,
+  retainPreviewTiming,
 } from "@opencraft/workbench-runtime";
 import { OPENCRAFT_THREAD_QUEUE_EXTENSION, OPENCRAFT_PERMISSION_MODES_EXTENSION, supportsAtomicQueuedSteer, supportsUnconfirmedSteerDiscard, type OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
 import {
@@ -693,18 +694,17 @@ export function App({
     : hostCatalog.displayContinuity.peekSubmission(displayKey.hostId, displayKey.threadId);
   const memoryTimeline = displayKey === null ? null
     : hostCatalog.displayContinuity.peek(displayKey.hostId, displayKey.threadId);
-  const visibleTimeline = (timeline?.frames.length ?? 0) > 0
-    ? timeline
+  const displayTimeline = memoryTimeline ?? (cachedTimeline?.scope === displayScope
+    && cachedTimeline.timeline.key.hostId === displayHostId
+    && cachedTimeline.timeline.key.threadId === displayThreadId ? cachedTimeline.timeline : null);
+  const previewTimeline = useMemo(() => timeline === null ? null : retainPreviewTiming(timeline, displayTimeline), [timeline, displayTimeline]);
+  const visibleTimeline = timeline !== null && timeline.frames.length > 0
+    ? previewTimeline
     : firstSubmissionTimeline !== null ? firstSubmissionTimeline
     : timeline?.authoritative
     ? timeline
-    : memoryTimeline !== null ? memoryTimeline
-    : cachedTimeline?.scope === displayScope
-      && cachedTimeline.timeline.key.hostId === displayHostId
-      && cachedTimeline.timeline.key.threadId === displayThreadId
-      ? cachedTimeline.timeline
-      : timeline;
-  const showingDisplayCache = visibleTimeline !== null && visibleTimeline !== timeline;
+    : displayTimeline ?? timeline;
+  const showingDisplayCache = visibleTimeline !== null && (visibleTimeline !== timeline || !visibleTimeline.authoritative);
   const [turnDiffReview, setTurnDiffReview] = useState<{
     readonly block: TurnDiffTimelineBlock;
     readonly path: string | null;

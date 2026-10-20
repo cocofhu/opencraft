@@ -1048,6 +1048,11 @@ and no visible history; it must not hide a valid account-scoped display behind
 Host initialization. Persisted display restoration after a page reload follows
 the same rule as the transient first-submission handoff. Canonical history still
 replaces the display, and command admission still waits on the existing baseline.
+A non-authoritative history preview retains missing static timestamps from the
+account-scoped display only for the exact Host, Thread, Turn and block identity.
+Its newer text and supplied clocks win; active frames never inherit terminal
+work labels. The authoritative baseline can correct or remove all cached clocks.
+This handoff remains paint-only and does not enable history or execution actions.
 `scripts/smoke-session-cold-open.ts` exercises the built Application with held
 initialization, canonical replacement and a separate uncached browser profile.
 

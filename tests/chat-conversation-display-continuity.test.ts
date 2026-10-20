@@ -4,6 +4,7 @@ import test from "node:test";
 import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimelineTurnPresentationPlan, type TimelineSnapshot, assistantMessageActions } from "@opencraft/chat-core";
 import {
   createConversationDisplayContinuity,
+  retainPreviewTiming,
   type ConversationDisplayStorage,
 } from "@opencraft/workbench-runtime";
 
@@ -345,4 +346,42 @@ test("both completed and partial assistant timestamps survive reload and timing-
       assert.equal(restored.authoritative, false);
     }
   }
+});
+
+
+test("partial previews retain exact message clocks while showing fresh text until authority", async () => {
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: storage() });
+  const source = timedTimeline();
+  const complete = { ...source, frames: source.frames.map(frame => frame.type === "assistant"
+    ? { ...frame, blocks: frame.blocks.map(block => block.type === "text" ? { ...block, sentAtMs: 54_100, completed: true } : block) } : frame) };
+  await cache.observe(complete);
+  const display = cache.peek("host", "thread")!;
+  const preview = { ...timeline(false), frames: timeline(false).frames.map(frame => frame.type === "assistant"
+    ? { ...frame, blocks: frame.blocks.map(block => block.type === "text" ? { ...block, text: "Fresher preview" } : block) } : frame) };
+  const result = retainPreviewTiming(preview, display);
+  assert.equal(result.authoritative, false);
+  const user = result.frames[0]!.blocks[0]!;
+  assert.equal(user.type === "user-message" && user.sentAtMs, 100);
+  const answer = result.frames[1]!.blocks[0]!;
+  assert.equal(answer.type === "text" && answer.text, "Fresher preview");
+  assert.equal(answer.type === "text" && answer.sentAtMs, 54_100);
+  assert.equal(result.frames[1]!.durationMs, 54_000);
+  assert.equal(result.frames[1]!.workStatus?.status, "worked");
+  assert.equal(retainPreviewTiming({ ...preview, authoritative: true }, display).frames, preview.frames,
+    "authority can correct or remove clocks");
+  assert.equal(retainPreviewTiming(preview, null), preview);
+  for (const key of [createConversationKey("other", "thread"), createConversationKey("host", "other")]) {
+    assert.equal(retainPreviewTiming(preview, { ...display, key }), preview);
+  }
+  const mismatched = { ...display, frames: display.frames.map(frame => ({ ...frame, turnId: asTurnId("other-turn") })) };
+  assert.equal(retainPreviewTiming(preview, mismatched).frames[1]!.durationMs, null);
+  const otherBlock = { ...preview, frames: preview.frames.map(frame => ({ ...frame,
+    blocks: frame.blocks.map(block => ({ ...block, id: "other-block" })) })) };
+  assert.equal(retainPreviewTiming(otherBlock, display).frames[1]!.durationMs, null);
+  const active = { ...preview, frames: preview.frames.map(frame => ({ ...frame, status: "streaming" as const })) };
+  assert.equal(retainPreviewTiming(active, display).frames[1]!.workStatus, undefined);
+  assert.equal(retainPreviewTiming(active, display).frames[1]!.durationMs, null);
+  const updated = { ...complete, authoritative: false };
+  assert.equal(retainPreviewTiming(updated, display).frames[1]!.workStatus, complete.frames[1]!.workStatus,
+    "newly supplied clocks win");
 });
