@@ -81,7 +81,7 @@ function SidebarVisibleIcon() {
 }
 
 export function ReferenceSidebarToggleIcon({ sidebarOpen }: SidebarToggleIconProps) {
-  // Codex chooses between hGr and vGr component types. Replacing the SVG
+  // Use separate component types for the two states. Replacing the SVG
   // atomically avoids WebKit's one-frame repaint when a complex path's `d`
   // attribute is mutated in place, while the owning button stays mounted.
   return sidebarOpen ? <SidebarVisibleIcon /> : <SidebarHiddenIcon />;

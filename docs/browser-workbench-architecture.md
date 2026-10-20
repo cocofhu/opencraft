@@ -1152,8 +1152,7 @@ Supervisor、多个有清晰所有权的 Runtime scope，以及可被两种以�
 
 ## 23. R6 复审结论
 
-本轮对照 Codex r2030 与 OpenCraft 当前实现后，以下问题已经定案，不再作为实现阶段的开放
-二选一：
+以下所有权与生命周期规则已经定案，不再作为实现阶段的开放二选一：
 
 1. View 只是 presentation claim；Session、Authority 与 Backing 生命周期不能由 React
    mount 数量推导。

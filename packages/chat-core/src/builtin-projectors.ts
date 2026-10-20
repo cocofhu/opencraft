@@ -403,7 +403,7 @@ function generatedImageUri(source: Readonly<Record<string, unknown>>): string | 
   if (result === null || result.length === 0) return null;
   if (/^(?:data:|blob:|https?:|file:)/iu.test(result)) return result;
   // The current AppServer ImageGenerationItem carries PNG bytes as base64 in
-  // `result`; Codex normalizes that transport field into display-item `src`.
+  // `result`; normalize that transport field into display-item `src`.
   return `data:image/png;base64,${result}`;
 }
 
@@ -1235,7 +1235,7 @@ export function createBuiltinTimelineProjectors(): readonly TimelineItemProjecto
     simpleProjector("compaction", ["contextCompaction"], (item, source, context) => ({
       // Context compaction participates in the Turn-level Activity plan. The
       // renderer suppresses a redundant Worked-for toggle when it is the only
-      // collapsible item, matching Codex's fixed-slot planner.
+      // collapsible item in the fixed presentation slot.
       lane: "assistant",
       block: { ...blockBase(item, "compaction"), summary: string(source.summary),
         // Unlike streamed text, historical compaction items can omit this flag.

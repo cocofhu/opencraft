@@ -73,7 +73,7 @@ export interface ThreadItemPageEntry {
 }
 
 /**
- * Latest recovered Codex tail-hydration extension for `thread/resume`.
+ * Optional tail-hydration extension for `thread/resume`.
  * The remaining resume fields stay owned by the generated AppServer schema.
  */
 /** Provider-owned history position; valid across client connections only. */

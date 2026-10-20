@@ -1157,15 +1157,12 @@ owners, not Thread storage or an execution preference. Stable segment/Item
 keys, the single Turn clock/Thinking owner and viewport reflow leases are
 unchanged. No new scroll writer, timeout, renderer sorting or remount is added.
 
-This ordinary task policy follows Codex 26.930.31428/build 12913's EO/DO
-separation, adapted to OpenCraft's ordered multi-response slices. Codex's
-Activity view may separately allow collapse before final; its continuous
-transcript caller does not equate input boundaries with fold grants. The
-distinct Bot chat renderer/viewport is not forcibly unified with task chat.
-The portable reviewed EO oracle validates only the pure task-state contract,
-not the complete original application. `chat-activity-disclosure` tests and
-`scripts/smoke-activity-disclosure.ts` cover the input sequences and real
-Conversation; deployment and native-device acceptance remain separate.
+The ordinary task policy applies to ordered multi-response slices. Input
+boundaries do not grant fold eligibility. The distinct Bot chat renderer and
+viewport retain their own presentation contract. The explicit eligibility and
+preference tables in `chat-activity-disclosure` cover all 96 ordinary-task state
+combinations; `scripts/smoke-activity-disclosure.ts` covers the input sequences
+and real Conversation. Deployment and native-device acceptance remain separate.
 
 ### Embedded submission and recovery
 

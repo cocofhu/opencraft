@@ -270,7 +270,7 @@ function sourceGuardianApprovalReviews(
   });
 }
 
-/** Codex's split phase attaches matched reviews to their reviewed Item. */
+/** The split phase attaches matched reviews to their reviewed Item. */
 function attachGuardianApprovalReviews(
   source: readonly TimelineSourceTurn[],
   reviews: readonly SourceGuardianApprovalReview[],
@@ -322,7 +322,7 @@ function attachGuardianApprovalReviews(
 }
 
 /**
- * Codex projects every parsed command action as its own exec activity. The
+ * Project every parsed command action as its own exec activity. The
  * synthetic call id is stable while the original Item id remains the source
  * identity so approvals, Guardian reviews and navigation still attach.
  */
@@ -707,14 +707,14 @@ function joinCommandTokens(value: ReplicaJsonValue | undefined): string {
 }
 
 /**
- * A command approval can arrive before its commandExecution Item. Codex does
- * not leave a visually orphaned approval in that interval: it derives one
+ * A command approval can arrive before its commandExecution Item. Avoid a
+ * visually orphaned approval in that interval by deriving one
  * unfinished exec row from the request itself. Keep that row view-only and
  * keyed by itemId so the authoritative Item can replace it without mutating
  * Replica state.
  *
  * Pending approvals intentionally expose only the first parsed action. This
- * mirrors Codex's `buildExecutionCommand` display model; the authoritative
+ * is the pending-request display contract; the authoritative
  * commandExecution Item may fan out into every action after execution starts.
  */
 function provisionalCommandApprovalItem(

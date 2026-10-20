@@ -1080,7 +1080,7 @@ test("capturing a restore checkpoint cannot grant live follow ownership", () => 
     scrollPaddingBottomPx: 160,
   });
 
-  // The checkpoint is normalized for a future mount, exactly like Codex fO,
+  // The checkpoint is normalized for a future mount,
   // while the mounted viewport keeps its existing read-position ownership.
   assert.equal(checkpoint.distanceFromBottomPx, 0);
   assert.equal(checkpoint.scrollState.followMode, "prework_follow");
