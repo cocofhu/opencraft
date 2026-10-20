@@ -45,7 +45,7 @@ export type ComposerAction =
       readonly phase: ComposerDraft["lifecycle"]["phase"];
       readonly error?: string | null;
     }
-  | { readonly type: "switch-target"; readonly target: ComposerTarget }
+  | { readonly type: "switch-target"; readonly target: ComposerTarget; readonly preserveDraft?: boolean }
   | { readonly type: "clear" }
   | { readonly type: "reset-all" };
 
@@ -456,6 +456,12 @@ export function createComposerController(
       }
       if (action.type === "switch-target") {
         submissionContinuation = null;
+        if (action.preserveDraft && draft.target.type === "new-thread" && action.target.type === "existing-thread"
+          && draft.target.execution.hostId === action.target.key.hostId && draft.lifecycle.phase === "editing") {
+          draftCache.delete(encodeComposerTarget(draft.target));
+          publish({ ...draft, target: action.target, updatedAt: services.now() });
+          return;
+        }
         const currentKey = encodeComposerTarget(draft.target);
         draftCache.set(currentKey, draft);
         const targetKey = encodeComposerTarget(action.target);

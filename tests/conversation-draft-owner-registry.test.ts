@@ -435,3 +435,34 @@ test("target-only storage is rejected instead of sharing content across editor s
     ...services(), drafts: { read: () => null, write: () => {} },
   } }), /editor-slot continuity/u);
 });
+
+
+test("promotion carries only the editable follow-up draft, preserving its identity and attachments", () => {
+  const registry = createConversationDraftOwnerRegistry({ composerServices: services() });
+  const draft: ComposerTarget = { type: "new-thread", draftId: "pending", execution: {
+    hostId, workspace: { cwd: "/a", runtimeWorkspaceRoots: ["/a"] },
+  } };
+  const composer = registry.ensure("slot", hostId, draft).composer;
+  const release = registry.retain("slot", "editor");
+  content(composer, "immutable first input");
+  composer.dispatch({ type: "set-lifecycle", phase: "submitting" });
+  registry.bindTarget("slot", target("first"));
+  assert.equal(text(composer), "", "unconsumed first submission must not migrate");
+  registry.bindTarget("slot", draft);
+  composer.dispatch({ type: "clear" });
+  content(composer, "next input typed while starting");
+  composer.dispatch({ type: "add-attachment", attachment: {
+    id: "followup-file", name: "file.txt", mimeType: "text/plain", size: 1,
+    uri: "fixture://file", lifecycle: "ready", error: null,
+  } });
+  const before = composer.getSnapshot().draft;
+  registry.bindTarget("slot", target("canonical"));
+  const after = composer.getSnapshot().draft;
+  assert.equal(after.id, before.id);
+  assert.equal(after.document, before.document);
+  assert.equal(after.attachments, before.attachments);
+  assert.equal(text(composer), "next input typed while starting");
+  registry.bindTarget("slot", target("unrelated"));
+  assert.equal(text(composer), "", "ordinary navigation remains target-isolated");
+  release(); registry.dispose();
+});

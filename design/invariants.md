@@ -1537,7 +1537,7 @@ Actual layout and source visibility are verified by
 
 ### First-submit presentation continuity
 
-PendingConversationPage renders the immutable submitted input with UserMessageBlock and the normal thread viewport, width and top inset. It must not maintain an independent bubble surface, font scale or geometry. All submitted attachment names remain visible, including attachment-only input. Loading/failure/retry stays in the conversation, without a Draft Composer or any new identity fetch; a current account is never substituted for a message-author snapshot. Thread creation, receipt ownership and retry/promotion semantics remain unchanged. Real component coverage: `scripts/smoke-pending-conversation.ts`.
+PendingConversationPage renders the immutable submitted input with UserMessageBlock and the normal thread viewport, width and top inset. It must not maintain an independent bubble surface, font scale or geometry. All submitted attachment names remain visible, including attachment-only input. Loading/failure/retry stays in the conversation, without redisplaying the submitted Draft or making any new identity fetch; a current account is never substituted for a message-author snapshot. Thread creation, receipt ownership and retry/promotion semantics remain unchanged. Real component coverage: `scripts/smoke-pending-conversation.ts`.
 
 ### Browser capability compatibility
 
@@ -1838,3 +1838,13 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+### New conversation follow-up input
+
+After the first submit, the pending message uses the normal Conversation viewport and footer.
+The follow-up Composer mounts immediately and receives focus, without waiting for Thread creation
+or Resume. Sending remains disabled until a Thread lease is available. Pending-to-ready promotion
+keeps the same Conversation View, physical editor, selection and follow-up document/attachments;
+only its semantic target is rebound. The submitted first Turn stays immutable and retryable.
+Other target switches continue to restore their own drafts. Validate with the first-submit handoff
+smoke and draft-owner tests; synthetic Host evidence does not assert employee or native-device coverage.

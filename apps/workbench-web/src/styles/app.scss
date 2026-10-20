@@ -1976,6 +1976,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .pending-conversation-content {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 

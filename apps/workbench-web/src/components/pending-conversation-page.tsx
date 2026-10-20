@@ -7,6 +7,7 @@ import { UserMessageBlock } from "./conversation/user-message";
 import { ConversationDocumentContext, type ConversationDocumentContextValue } from "./conversation/document-context";
 
 export interface PendingConversationPageProps {
+  readonly embedded?: boolean;
   readonly conversation: NewThreadDraftSnapshot;
   readonly documentContext: ConversationDocumentContextValue;
   readonly onRetry: (intent: SubmitIntent) => void | Promise<void>;
@@ -15,10 +16,12 @@ export interface PendingConversationPageProps {
 /**
  * Conversation-owned presentation used between the local submit commit and
  * the authoritative Thread binding. It deliberately contains no Draft
- * Composer: the immutable first Turn has already crossed that ownership seam.
+ * Composer for the submitted input: the immutable first Turn has already crossed
+ * that ownership seam. The Conversation footer owns the next input.
  */
 export function PendingConversationPage({
   conversation,
+  embedded = false,
   documentContext,
   onRetry,
 }: PendingConversationPageProps) {
@@ -32,15 +35,8 @@ export function PendingConversationPage({
   // evidence of this message's author, and rendering must never fetch identity.
   const message = submittedMessageDisplay(submission);
 
-  return (
-    <div
-      className="pending-conversation-page"
-      data-conversation-scope-id={conversation.scopeId}
-      data-pending-conversation-phase={conversation.phase}
-    >
-      <main className="pending-conversation-scroll thread-scroll" aria-label="Conversation">
-        <div className="thread-scroll-surface">
-          <div className="pending-conversation-content thread-content thread-layout-width">
+  const content = <div className="pending-conversation-content" data-conversation-scope-id={conversation.scopeId}
+    data-pending-conversation-phase={conversation.phase}>
             <ConversationDocumentContext.Provider value={documentContext}>
               <UserMessageBlock block={message} />
             </ConversationDocumentContext.Provider>
@@ -60,7 +56,15 @@ export function PendingConversationPage({
                 <span>Starting task…</span>
               </div>
             )}
-          </div>
+  </div>;
+  if (embedded) return content;
+
+  return (
+    <div className="pending-conversation-page" data-conversation-scope-id={conversation.scopeId}
+      data-pending-conversation-phase={conversation.phase}>
+      <main className="pending-conversation-scroll thread-scroll" aria-label="Conversation">
+        <div className="thread-scroll-surface">
+          <div className="thread-content thread-layout-width">{content}</div>
         </div>
       </main>
     </div>

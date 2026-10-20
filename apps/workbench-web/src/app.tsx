@@ -453,6 +453,13 @@ export function App({
     workbenchNavigationSnapshot.applicationRoute.kind === "extension-view";
   const conversationRouteOpen =
     workbenchNavigationSnapshot.applicationRoute.kind === "conversation";
+  const pendingFirstSubmission = draft?.submission ?? null;
+  useEffect(() => {
+    if (pendingFirstSubmission === null || !conversationRouteOpen) return;
+    const frame = requestAnimationFrame(() => composerController.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [composerController, pendingFirstSubmission, conversationRouteOpen]);
+
   useEffect(() => {
     hostCatalog.setConversationPresentationActive?.(conversationRouteOpen && !conversationOverview.open);
     return () => hostCatalog.setConversationPresentationActive?.(false);
@@ -1978,22 +1985,9 @@ export function App({
             shortcutCommands={hostShortcutCommands}
             onSubmit={sendMessage}
           />
-        ) : draft !== null ? (
-          <PendingConversationPage
-            conversation={draft}
-            documentContext={{
-              conversationId: null,
-              cwd: draft.target.execution.workspace.cwd,
-              hostId: draft.target.execution.hostId,
-              theme: appearanceTheme.resolvedTheme,
-              loadMediaSource,
-              onOpenResource: openChatResource,
-            }}
-            onRetry={(intent) => hostCatalog.submit(intent).then(() => undefined)}
-          />
         ) : (
           <div className="local-conversation-page">
-            {activeThreadLease === null && (visibleTimeline?.frames.length ?? 0) === 0 ? (
+            {draft === null && activeThreadLease === null && (visibleTimeline?.frames.length ?? 0) === 0 ? (
                 <div className="conversation-recovery-cold-stage">
                   <ConversationRecoveryEmptyState
                     failed={recoveryPresentation === "cold-error"}
@@ -2016,7 +2010,14 @@ export function App({
                     if (activeThreadId !== null) hostCatalog.threadAttention.acknowledge(
                       attentionScope, snapshot.hostId, activeThreadId, turnId);
                   }}
-                  emptyState={recoveryPresentation === "cold-loading" || recoveryPresentation === "cold-error"
+                  emptyState={draft !== null ? <PendingConversationPage
+                      embedded
+                      conversation={draft}
+                      documentContext={{ conversationId: null, cwd: draft.target.execution.workspace.cwd,
+                        hostId: draft.target.execution.hostId, theme: appearanceTheme.resolvedTheme,
+                        loadMediaSource, onOpenResource: openChatResource }}
+                      onRetry={(intent) => hostCatalog.submit(intent).then(() => undefined)}
+                    /> : recoveryPresentation === "cold-loading" || recoveryPresentation === "cold-error"
                     ? <ConversationRecoveryEmptyState
                         failed={recoveryPresentation === "cold-error"}
                         requiresUpdate={recoveryRequiresUpdate}
@@ -2036,7 +2037,7 @@ export function App({
                     composerChangeSummaryTurnId: snapshot.conversation?.activeTurn?.turnId ?? null,
                     theme: appearanceTheme.resolvedTheme,
                   }}
-                  timeline={visibleTimeline}
+                  timeline={draft === null ? visibleTimeline : null}
                   consumePendingLatestTurnSubmitPlacement={consumeLatestTurnPlacement}
                   navigationSource={showingDisplayCache ? null : navigationSource}
                   searchTarget={conversationSearchTarget?.hostId === snapshot.hostId && conversationSearchTarget.threadId === snapshot.activeThreadId ? conversationSearchTarget : null}
@@ -2111,9 +2112,9 @@ export function App({
                           ? ["queue"]
                           : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
-                        isStreaming={isStreaming}
+                        isStreaming={draft === null && isStreaming}
                         awaitSubmission
-                        submissionDisabled={activeThreadLease === null}
+                        submissionDisabled={draft !== null || activeThreadLease === null}
                         queuedSubmissions={[
                           ...(snapshot.conversation?.queuedSubmissions ?? []).map((submission) =>
                             queuedSubmissionPresentation(submission, queueReorderable, identityAvatar, intl)),
@@ -2179,7 +2180,7 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
+                {draft === null && ((recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error") ? (
                   <ConversationRecoveryNotice
                     failed={recoveryPresentation === "warm-error"}
                     requiresUpdate={recoveryRequiresUpdate}
