@@ -114,8 +114,8 @@ test("Lavender projects a complete soft-purple surface hierarchy without geometr
   }
 });
 
-test("The canvas theme defines a web-native shell material without changing the Codex fallback", () => {
-  const vela = buildOpenCraftThemeCssProperties("light", opencraftCanvasThemePalette.light);
+test("The canvas theme defines a web-native shell material without changing the neutral fallback", () => {
+  const canvas = buildOpenCraftThemeCssProperties("light", opencraftCanvasThemePalette.light);
   const extensionCompatible = buildOpenCraftThemeCssProperties("light", {
     accent: "#3478f6",
     contrast: 46,
@@ -130,16 +130,16 @@ test("The canvas theme defines a web-native shell material without changing the 
     surface: "#fbfaf7",
   });
 
-  assert.equal(vela["--opencraft-sidebar-material-background"], "#ffffff");
-  assert.equal(vela["--opencraft-sidebar-material-filter"], "none");
-  assert.equal(vela["--opencraft-window-highlight"], "none");
-  assert.equal(vela["--opencraft-main-surface-elevation"], "-0.5px 0 0 rgb(0 0 0 / 5%)");
+  assert.equal(canvas["--opencraft-sidebar-material-background"], "#ffffff");
+  assert.equal(canvas["--opencraft-sidebar-material-filter"], "none");
+  assert.equal(canvas["--opencraft-window-highlight"], "none");
+  assert.equal(canvas["--opencraft-main-surface-elevation"], "-0.5px 0 0 rgb(0 0 0 / 5%)");
   assert.match(extensionCompatible["--opencraft-sidebar-material-background"], /color-mix/u);
   assert.equal(extensionCompatible["--opencraft-sidebar-material-filter"], "blur(28px) saturate(145%)");
 });
 
 test("extension theme selection is root-owned and unload falls back atomically", async () => {
-  const stored = new Map<string, string>();
+  const stored = new Map<string, string>([["vela.appearance-theme", "light"], ["vela.appearance-theme-id", "vela.core.codex"]]);
   const properties = new Map<string, string>();
   const dataset: Record<string, string> = {};
   const classes = new Set<string>();
@@ -197,7 +197,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
 
   try {
     const appearance = await import("../apps/workbench-web/src/appearance-theme.ts");
-    assert.equal(appearance.defaultAppearanceThemeId({defaultThemeId: appearance.velaThemeId}), appearance.velaThemeId);
+    assert.equal(appearance.defaultAppearanceThemeId({defaultThemeId: appearance.canvasThemeId}), appearance.canvasThemeId);
     assert.equal(appearance.defaultAppearanceThemeId({}), appearance.coreThemeId);
     appearance.initializeAppearanceTheme();
     assert.equal(dataset.themeId, appearance.coreThemeId);
@@ -232,8 +232,14 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.equal(appearance.getAppearanceThemePreviewProperties(appearance.zenCodeThemeId)["--color-background-panel"], "#202020");
     appearance.setThemePreference("light");
 
-    appearance.setAppearanceThemeId(appearance.velaThemeId);
-    assert.equal(dataset.themeId, appearance.velaThemeId);
+    appearance.setAppearanceThemeId("vela.core.web");
+    assert.equal(dataset.themeId, appearance.canvasThemeId);
+    assert.equal(stored.get("opencraft.appearance-theme-id"), appearance.canvasThemeId);
+    assert.equal(stored.get("opencraft.appearance-theme"), "light");
+    assert.equal(stored.get("vela.appearance-theme-id"), "vela.core.codex");
+    assert.equal(stored.get("vela.appearance-theme"), "light");
+    appearance.setAppearanceThemeId(appearance.canvasThemeId);
+    assert.equal(dataset.themeId, appearance.canvasThemeId);
     assert.equal(properties.get("--opencraft-sidebar-material-background"), "#ffffff");
     assert.equal(properties.get("--opencraft-sidebar-material-filter"), "none");
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#ffffff" });
@@ -252,7 +258,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
     const contributions = new ExtensionContributionStore();
     const disconnect = appearance.connectAppearanceThemeContributions(contributions);
     const owner = {
-      extensionId: "vela.test-theme",
+      extensionId: "opencraft.test-theme",
       activationId: "theme-activation",
       generation: 1,
     };
@@ -265,7 +271,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
       settingsPages: [],
       workbenchSurfaces: [],
       themes: [{
-        id: "vela.test-theme.paper",
+        id: "opencraft.test-theme.paper",
         label: "Paper",
         palettes: {
           light: {
@@ -297,8 +303,8 @@ test("extension theme selection is root-owned and unload falls back atomically",
       bots: [],
     })();
 
-    appearance.setAppearanceThemeId("vela.test-theme.paper");
-    assert.equal(dataset.themeId, "vela.test-theme.paper");
+    appearance.setAppearanceThemeId("opencraft.test-theme.paper");
+    assert.equal(dataset.themeId, "opencraft.test-theme.paper");
     assert.equal(properties.get("--opencraft-base-surface"), "#fbfaf7");
     assert.equal(metaColor, "#fbfaf7");
     assert.equal(properties.get("--color-background-input"), "#f8f8f8");
@@ -309,7 +315,7 @@ test("extension theme selection is root-owned and unload falls back atomically",
 
     contributions.removeOwner(owner);
     const fallback = appearance.getAppearanceThemeSnapshot();
-    assert.equal(fallback.requestedThemeId, "vela.test-theme.paper");
+    assert.equal(fallback.requestedThemeId, "opencraft.test-theme.paper");
     assert.equal(fallback.themeId, appearance.coreThemeId);
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.equal(properties.get("--opencraft-base-surface"), "#ffffff");

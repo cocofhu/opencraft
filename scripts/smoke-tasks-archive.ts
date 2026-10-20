@@ -21,7 +21,7 @@ try {
  for (const name of ["light", "dark", "touch"] as const) {
   const page = await browser.newPage({ viewport: { width: name === "touch" ? 390 : 1440, height: 900 }, colorScheme: name === "dark" ? "dark" : "light", isMobile: name === "touch", hasTouch: name === "touch" });
   page.setDefaultTimeout(12000); page.on("pageerror", error => errors.push(error.message));
-  await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system"));
+  await page.addInitScript(() => localStorage.setItem("opencraft.appearance-theme", "system"));
   const card = page.locator(`.tasks-card[data-task-id="${name}"]`);
   const boardMore = page.locator('.tasks-heading-actions [aria-haspopup="menu"]');
   const archives = async () => { await boardMore.click(); await page.getByRole("menuitem", { name: "Archived tasks", exact: true }).click(); await page.locator(".tasks-archive").waitFor(); };
