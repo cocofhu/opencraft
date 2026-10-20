@@ -1383,8 +1383,7 @@ consume the same default policy: nonempty explicit summary text wins; when no
 summary is returned, the actual returned textual detail/content is available.
 The body selects that content once, without concatenating duplicate summary
 and detail. Empty Items and opaque/encrypted fields create no disclosure and
-cannot be used to fabricate an explanation. This product policy intentionally
-differs from the older recovered Codex tool classifier that hid reasoning.
+cannot be used to fabricate an explanation.
 
 Request policy and disclosure policy are different owners. The Codex Host's
 single native request writer supplies `summary: "auto"` on `turn/start` only

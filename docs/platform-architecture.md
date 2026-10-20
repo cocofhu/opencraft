@@ -182,7 +182,7 @@ Client ApplicationSupervisor
         ▼                           ▼
 Vite / React DOM              Expo / React Native
 apps/workbench-web            apps/workbench-expo
-Codex desktop frame           iOS · Android · Expo Web
+OpenCraft desktop frame           iOS · Android · Expo Web
         │                           │
 Electron bridge               native/web adapters
 ```
@@ -601,8 +601,7 @@ of this capability.
 ### Client voice input ownership
 
 Voice input is a client input service, not an Agent Host tool or chat model.
-Following BB's capture/transcription/Composer separation does not imply reusing
-its Codex authentication or transcription endpoint. On Mac Electron, Main owns
+On Mac Electron, Main owns
 one physical capture through a bundled Speech/AVAudioEngine/CoreAudio helper.
 A trusted top-level preload port exposes semantic probe/start/stop/cancel events,
 never executable paths, audio buffers or credentials. Web supports a selectable
@@ -618,7 +617,7 @@ Only explicit stop drains the active request and ends capture. Request routing i
 atomic; canceled/stale task callbacks cannot act on a replacement. Recognition
 quality and native handoff latency still require real microphone acceptance.
 
-BB-style final-only delivery means recording presents waveform, not editable ASR
+Final-only delivery means recording presents waveform, not editable ASR
 hypotheses. Browser recognition uses actual result indices as ledger identities;
 it never publishes partial text through the Composer observer. The completed
 ordered ledger is delivered once after successful session end. Unexpected end,
@@ -636,11 +635,11 @@ insertion transaction and presentation. The recording editor is read-only, retai
 its original document and is not fed provisional hypotheses.
 A released transaction cannot update a replacement Footer or insert late results.
 
-The recovered Codex path captures a concrete Composer controller, synchronously
-`appendText`s to its View, then sends that same controller's `getText`. Dictation
-therefore appends trimmed text at the document end, adding a separator only when
+Dictation captures a concrete Composer controller, synchronously appends to its
+View, then sends that same controller's `getText`. It appends trimmed text at the
+document end, adding a separator only when
 the existing text has no trailing whitespace; it does not replace arbitrary old
-selection. OpenCraft adopts that policy for dictation while retaining selection
+selection. Dictation retains this append policy while preserving selection
 replacement for generic transient producers.
 
 Because OpenCraft separates Store and physical View, its adaptation adds explicit
@@ -683,7 +682,7 @@ bounded numeric samples at at most approximately 20Hz; they bypass draft snapsho
 and feed a View-owned, bounded waveform buffer. No raw audio or second capture
 crosses into the renderer; meters without actual samples show a quiet baseline.
 See [the dictation interaction plan](../design/dictation-interaction/task_plan.md)
-for the recovered-Codex/BB comparison and acceptance evidence.
+for the interaction contract and acceptance evidence.
 
 Web cloud dictation separates `AudioCapturePort`, `SpeechServiceClient` and the
 existing `SpeechInputProvider`/Composer transaction. Browser capture owns a single
@@ -1054,7 +1053,7 @@ authorization or persistence boundary.
 
 ### Internationalization authority
 
-OpenCraft follows the recovered Codex application localization path: explicit
+Application localization uses an explicit
 locale override, an `IDE` / `SYSTEM` / `FIRST_AVAILABLE` source policy, canonical
 BCP-47 tags, regional catalog matching, lazy messages, and a cached FormatJS Intl
 instance. `FIRST_AVAILABLE` prefers a non-English IDE locale, then a non-English
@@ -1271,7 +1270,7 @@ Hermes Profile mutations continue through the Profile Skills Host protocol.
 For Settings layout, edge-to-edge is an inset policy rather than a scroll
 ownership transfer. The persistent AppShell Header remains outside the content
 viewport; the Settings viewport keeps `min-height: 0`, stable scrollbar gutter
-and the sole vertical `auto` overflow, matching Codex's Header-plus-scrollport
+and the sole vertical `auto` overflow in the Header-plus-scrollport
 topology. Only master-detail pages suppress that outer scroll and delegate it to
 their bounded internal panes. Feature content must not add a second page-level
 scroll container merely to compensate for Shell clipping.
@@ -1329,7 +1328,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `design-system` | semantic colors, spacing, radii and theme computation | none |
 | `design-system-web` | shared Web/SVG progress projection, document animation phase and motion preference cleanup; consumes renderer-free geometry | React and DOM only |
 | `composer-editor` | ProseMirror/DOM composer view | DOM only |
-| `workbench-web` | Codex frame, SCSS, Electron/browser adapters | React DOM |
+| `workbench-web` | Workbench frame, SCSS, Electron/browser adapters | React DOM |
 | `workbench-expo` | Expo Router routes, native views, Expo Web view | React Native |
 | `workbench-electron` | windows, tray, static origin and App Host byte relay | Electron main |
 | `opencraft-daemon` | native Host process, physical transports, local Agent and DSH lifecycle | Node only |
@@ -1756,7 +1755,7 @@ without forwarding it and returns HTTP 413, so a large Codex history produces
 an explicit size error instead of a disconnected stream.
 Account order, enablement, quota, admission cursor and reserved affinity survive Host restart.
 Affinity expires after 30 idle minutes and storage retains only the 4,096 most
-recent bindings, matching the bounded BB scheduling contract.
+recent bindings, within the bounded scheduling contract.
 
 Codex subscription state is distinct from credential presence. The Host reads
 the ChatGPT Usage endpoint with the selected account credential on add/enable,
@@ -2521,10 +2520,8 @@ after the sidebar trigger. The off-layout Header clone measures the same action
 count and geometry as the visible rail. Thread-edge header eligibility consumes
 Shell width minus live right-panel width; left animation is not its input.
 
-The reference is the single `leftPanelSlot` topology in the recovered
-`ref/codex/terminal/use-app-shell-layout-motion-04358.ts`. This adapts the topology
-to OpenCraft's existing router, extensions, space budget and account providers;
-it does not copy its backend or introduce another sidebar business model. Expo
+The single `leftPanelSlot` topology integrates the existing router, extensions,
+space budget and account providers without another sidebar business model. Expo
 keeps its existing native shell; this Web/Electron renderer change does not
 establish native parity.
 
@@ -3055,7 +3052,7 @@ The Host remains the sole owner of MCP execution, resource versions and canonica
 
 Automatic height distinguishes content invalidation from a height-only response to the iframe viewport. A viewport-dependent layout (such as body min-height:100vh with margins) cannot turn each applied height into another content request. DOM mutations, intrinsic media/font completion and width changes invalidate measurement; the observer callbacks share a single scheduled frame and are disposed with the view. Explicit App size notifications retain their existing bounded bridge semantics. The outer view observes the actual iframe width and coalesces changed-width host-context notifications; unchanged width or height-only changes do not replay context or tool results, fetch resources or rebuild the iframe.
 
-References: [MCP Apps specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx); Hypernode registry/launcher in `ref/hypernode`; Codex local reference observed for lifecycle/ownership patterns only, with no decompiled implementation copied.
+References: [MCP Apps specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx).
 
 The Headless gateway supplies an actor-owned [MCP App builder](mcp-app-builder.md).
 It reuses the existing dynamic-tool channel and MCP host, with one managed store

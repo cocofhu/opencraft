@@ -1,6 +1,4 @@
-# Worked for — Codex r3562 alignment
-
-Reference root: `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
+# Worked-for ownership
 
 ## Ownership
 
@@ -30,9 +28,6 @@ Reference root: `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
 
 ## Presentation
 
-`subagent-activity-chip-group-CC185tmV.js`: `ak/sk` (status clock), `ok`
-(standalone divider), `gA/_A` (label priority and toggle), `fA/DA` (partitioning).
-
 - Work item → duration fallback → previous-message count, in that order.
 - `Working` under one second; then `Working for`; settled `Worked for`; local
   stop `You stopped after`. Duration uses floor seconds and narrow localized
@@ -49,7 +44,7 @@ Reference root: `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
 ## Missing history facts
 
 An old history snapshot without work/final start timestamps cannot provide an
-exact work interval. A renderable disclosure can use Codex's existing Turn
+exact work interval. A renderable disclosure can use the existing Turn
 duration fallback. Hidden reasoning alone plus a duration does **not** create a
 synthetic empty disclosure. No browser persistence or guessed final timestamp
 was added to disguise missing provider data. Remount tests use retained facts;
@@ -57,9 +52,6 @@ they are not a claim that every upstream provider persists these new facts.
 
 ## Verification
 
-- `scripts/compare-codex-work-status.ts`: executes actual original pure
-  functions against our implementation: 176 interval cases, 110 localized
-  duration cases, zero differences. This is not a full original-app pixel test.
 - `tests/chat-work-status.test.ts`: eligibility, final readiness, partition
   ownership/count, stable identity, local stop, unknown history and formatting.
 - `tests/appserver-session.test.ts`: clocks survive authoritative membership

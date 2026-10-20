@@ -1,28 +1,19 @@
-# Codex AppShell layout invariants
+# OpenCraft Shell layout invariants
 
-This note records behavior recovered from the current Codex source tree at
-`reference://codex/.runtime/source-tree-build-r1884-popcorn-lineage-full`. The goal is
-not to copy local component names. It is to preserve the constraints that make
-the shell remain lossless while panels animate, resize, disappear, or change
-route.
+The Shell retains content and state while panels animate, resize, disappear or
+change route.
 
 ## The authoritative state path
 
 The right panel has one write path:
 
-1. `IO` stores semantic visibility.
-2. `M7n` stores route-scoped animation progress.
-3. `setRightPanelVisibility` changes `IO`, stops the current animation, and
-   retargets `M7n`.
+1. Shell state stores semantic visibility.
+2. The route-scoped animation owner stores progress.
+3. `setRightPanelVisibility` changes visibility, stops the current animation, and
+   retargets the shared progress.
 4. AppShell, HeaderSlot, floating bounds, and AppShellRightPanel only read the
    shared progress.
 
-Evidence:
-
-- `shared/set-right-panel-visibility-04372.js`
-- `routing/bottom-panel-launcher-visible-key-04381.js`
-- `shared/set-panel-state-04383.js`
-- `terminal/app-shell-right-panel-06052.js`
 
 The panel component does not create its own visibility MotionValue and does not
 publish its measured width back to its parent. This prevents a child remount,
@@ -50,7 +41,7 @@ No ResizeObserver snapshot or React state from a previous frame may take part
 in this equation. The right panel's header reservation is `A` in regular mode
 and `0` in full-width mode.
 
-Codex also exposes a separate semantic target width:
+The semantic target width is distinct from the physical viewport:
 
 ```text
 targetMain = open ? C - R : C
@@ -60,11 +51,6 @@ It is intentionally not the same value as the physical viewport during the
 transition. Stable content placement can reason about the destination while
 the DOM still renders the current animated frame.
 
-Evidence:
-
-- `terminal/use-app-shell-layout-motion-04358.js`
-- `shared/calculate-main-content-width-04348.js`
-- `shared/toggle-maximize-side-panel-button-01708.js`
 
 ## Mount lifetime follows progress
 
@@ -79,8 +65,6 @@ An `animationComplete` subscription causes the final render that unmounts the
 panel at zero. Mount lifetime is not controlled by a component-local Promise.
 The non-animated reduced-motion path forces the equivalent terminal update.
 
-Evidence: `shared/toggle-maximize-side-panel-button-01708.js`, function
-`usePanelAnimation`.
 
 ## The moving aperture and the stable surface are different elements
 
@@ -98,13 +82,11 @@ moving aperture during a resize.
 
 The regular panel divider and shadow belong to the panel plane. The resize
 handle is a sibling of the clipped content and uses the same target-width
-model. Codex separates the 320px visible minimum from its 160px magnetic close
-shelf: `scalePanelDimension(320)` evaluates to 160 with the recovered AppShell
-scale of 0.5. Between those values width normalization remains clamped at
-320px, so the pointer travels while the panel chrome stays stationary. Only a
-drag below 160px starts the close transaction.
+model. Visible minimum and magnetic close shelf are separate configured
+constraints. Between them, normalized width remains clamped while the pointer
+travels; crossing the close shelf starts the close transaction. Numeric limits
+belong to the current Shell geometry contract.
 
-Evidence: `terminal/app-shell-right-panel-06052.js`.
 
 ## Header ownership is measured independently
 
@@ -118,10 +100,6 @@ The visible animated slot is never used to measure its own minimum. This keeps
 the reopen control alive when panel width reaches zero and prevents a
 measurement feedback loop.
 
-Evidence:
-
-- `terminal/use-app-shell-layout-motion-04358.js`, `AppShellHeader`
-- `shared/toggle-maximize-side-panel-button-01708.js`, `HeaderSlot`
 
 ## Full width, responsive closure, and resize are explicit modes
 
@@ -134,11 +112,6 @@ intent separately. Manual closure clears that intent. Resizing, visibility,
 full-width state, and the active tab are separate state fields; none is inferred
 from a transient DOM width.
 
-Evidence:
-
-- `shared/set-right-panel-visibility-04372.js`
-- `shared/handle-window-resize-panel-mode-04375.js`
-- `shared/restore-panel-state-04376.js`
 
 ## Timeline and rich-block overflow stay local
 
@@ -148,8 +121,6 @@ horizontal overflow and the `pre` element may use `width: max-content` only
 inside that scroller. A long code line may scroll within the code block, but it
 must never widen the thread, main viewport, or AppShell.
 
-Evidence: `shared/render-connector-logo-with-memoization-06687.js`, component
-`CodeSnippetBlock`.
 
 ## OpenCraft acceptance rules
 

@@ -1,6 +1,5 @@
-# Conversation viewport: r3562 alignment
+# Conversation viewport ownership
 
-Reference root: `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
 This change concerns measurement, compensation and follow-content ownership; it
 does not change AppServer semantics, Composer layout or input-direction attribution.
 
@@ -59,9 +58,8 @@ their exact DOM lifetime and are cleaned up when the slot exits.
     measured-height table or render window. The old parent-side measurement
     fence is removed. Pending transactions are local virtualizer concerns.
 12. The controller publishes `isScrolledFromBottom` (>24px) independently of
-    bottom-button visibility. In r3562 this bit changes the controller context,
-    renewing response-spacer observation. The Web response consumer subscribes
-    to that exact bit and renews its observer on the same boundary. Completion
+    bottom-button visibility. The Web response consumer subscribes
+    to that bit and renews its spacer observer on the same boundary. Completion
     itself does not acquire permission to clear response space.
 
 The child publishes measurement facts and an imperative targeting / restore API.
@@ -73,7 +71,7 @@ but this Web split is **not** an implemented Expo lifecycle port.
 
 ## Long Turns are not a separate follow policy
 
-The reference `OD` reducer / `Ue` measurement callback distinguish intent from
+Follow decisions distinguish intent from
 length. A newly placed response starts in `static`. Work enters `prework_watch`;
 overflowing registered work content with response space enters `prework_follow`.
 That follow mode transfers to `user_follow` when the final answer starts.
@@ -84,17 +82,6 @@ even if the answer grows beyond one viewport. Length alone cannot acquire follow
 The tests exercise 1,800–7,600px rows, a real Chromium wheel event, continued
 growth while reading, bottom-button reacquisition, direct-answer static mode,
 and restoration of an active Turn without replaying initial placement.
-
-## Reference paths
-
-Under `lazy/app-initial/`:
-
-- `open-sources-side-panel-tab-CfgjOF5O.js`: virtualizer measurement transaction,
-  delegate-presence branch, row/follow observer classification, pre-paint mount queue.
-- `local-conversation-thread-CShhuS2f.js`: response placement and follow policy.
-- `local-conversation-turn-CaFyDx7G.js`: latest-turn render slots.
-- `subagent-activity-chip-group-CC185tmV.js`: activity follow-content selection.
-- `thread-scroll-layout-xQ2_L08y.js`: scroll controller and input attribution.
 
 ## Verification
 
@@ -125,11 +112,11 @@ content shrinking 900→20px, and a new 60px content row reproduced a 164px anch
 shift (280px estimate minus 116px measured row). The new row was absent at
 snapshot consumption. Merely reordering layout effects cannot fix that case.
 
-The reference `nt` transaction excludes the latest row from historical estimate
+The measurement transaction excludes the latest row from historical estimate
 compensation when a delegate exists, and reports zero content growth for its
 first measurement. Those rules remain unchanged here; claiming a blanket
 no-jump guarantee would be incorrect. This edge needs a separate ownership
-decision / original-runtime comparison, not a text-height-specific correction.
+decision and runtime verification, not a text-height-specific correction.
 
 For an externally installed browser, set `OPENCRAFT_PLAYWRIGHT_MODULE` to its
 Playwright module and `OPENCRAFT_CHROMIUM_EXECUTABLE` to Chromium's executable.
@@ -138,43 +125,3 @@ The local browser run observed two transient `ResizeObserver loop completed with
 undelivered notifications` warnings during geometry changes. Position assertions
 passed and idle sampling confirmed convergence; this is not a claim of zero
 browser warnings or production reproduction of every historical report.
-
-## Executed original-function differential
-
-`scripts/compare-codex-scroll.ts` now runs two browser endpoints: the production
-the downstream product Conversation and the r3562 original response, virtualizer and scroll-layout
-function bodies. `scripts/lib/codex-scroll-reference.ts` extracts the bodies by
-AST boundaries, without editing them, and records SHA-256 fingerprints. It does
-not implement a second rewritten reference policy.
-
-The harness explicitly injects React, Motion, application selectors, ResizeObserver
-dispatch and shared deterministic row presentation. Reference utility CSS is
-supplied only for layout. Therefore this verifies the selected original runtime
-functions under controlled geometry, **not** the complete Codex application,
-typography, provider event stream or Expo native rendering.
-
-The same events cover submit placement, prework overflow, final-answer transfer,
-long content growth, reading-distance takeover, completion, returning to bottom,
-consecutive direct answers, and simultaneous previous-row shrink/new submission.
-Both pages use aligned virtual clocks and 48 samples at 16ms per event. Native
-browser ResizeObserver/IntersectionObserver task delivery is not virtualized;
-frame discrepancies are retained separately from settled-state assertions. Use
-`CODEX_SCROLL_FULL_TRACE=1` to include every pair of frame samples in JSON output.
-The gate compares settled distance, scroll height, spacer height, reading anchors,
-rendered row identities and placement-consumption counts. It does not label a
-settled-state pass as a zero-difference, frame-for-frame application replica.
-
-This comparison exposed a concrete missing subscription: after a 60px direct
-answer completed, the reference changed `(distance, spacer)` from `(29, 348)`
-to `(0, 319)` while preserving the reading anchor. the downstream product remained at `(29, 348)`.
-Renewing observation on the controller's published 24px boundary fixes that
-discrepancy. No completion-specific pixel subtraction or extra scroll owner was
-introduced.
-
-The recorded run has 18 event boundaries / 864 paired samples. All settled
-coordinates, rendered row identities and placement counts match. Some completion
-samples differ by 29px for one observer-delivery interval. An original-versus-
-original control also reproduced that 29px transient (another control had zero
-differences), so this cross-page harness does not establish zero-difference
-frame parity. `CODEX_SCROLL_CONTROL=1` runs that control. Measurements and source
-fingerprints are recorded in `reports/conversation-scroll-r3562-comparison.json`.

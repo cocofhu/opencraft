@@ -1,8 +1,7 @@
-# OpenCraft In-App Browser 与 Browser Use 行为同构实施参考书
+# OpenCraft In-App Browser 与 Browser Use 契约
 
 > 状态：DSH/Web v1 与 Preview Bridge v1 已实现；Electron、Playwright、Expo Adapter 为后续契约  
 > 面向读者：后续负责实现 OpenCraft 浏览器能力的工程会话  
-> 参考基线：Codex Desktop 恢复树 `source-tree-build-r2030-eager-immediate-compact`  
 > 目标平台：Vite Web、Electron Desktop、Expo iOS/iPadOS、Expo Web  
 > 相关设计：[`browser-workbench-architecture.md`](./browser-workbench-architecture.md)、
 > [`platform-architecture.md`](./platform-architecture.md)、
@@ -10,16 +9,15 @@
 
 ## 0. 一句话结论
 
-是的，OpenCraft 应当实现一套与 Codex **产品行为同构**的 In-App Browser 与 Browser Use：
+OpenCraft In-App Browser 与 Browser Use 的平台边界如下：
 
 - 用户看见的是 OpenCraft 品牌；
 - Agent 使用的是 OpenCraft 工具名；
-- AppServer 线协议继续遵循 Codex 最新动态工具协议；
-- 生命周期、恢复、上下文注入、页面读取、浏览器控制和 ChatUI 投影遵循 Codex 的思想与不变量；
-- 代码、类型和包边界由 OpenCraft 独立实现，不复制 Codex 的 generated runtime，也不依赖其私有模块名。
+- AppServer 线协议遵循已接入的动态工具协议；
+- 生命周期、恢复、上下文注入、页面读取、浏览器控制和 ChatUI 投影遵循下文契约；
+- 代码、类型和包边界使用 OpenCraft 模型，原生协议由 adapter 接入。
 
-这里的“100%”是**可测试的行为、协议和安全语义相同**，不是逐字符复制私有源码、类名或
-内部资源。不同平台的物理控件能力不同，但共享产品语义不得分叉。
+不同平台的物理控件能力不同，共享的行为、协议和安全契约必须经过相应验证。
 
 ### 0.1 当前已落地基线（2026-09-01）
 
@@ -63,51 +61,11 @@ Controller Lease。纯 Web 任意跨域 iframe 仍只有呈现能力；只有安
 - 用 `open_in_vela` 一个工具代替页面读取和控制工具；
 - 把浏览器 UI 状态塞进 AppServer Replica。
 
-## 2. 证据等级
+## 2. 契约与验收边界
 
-实施时必须区分三类证据，不允许把推测写成 Codex 事实。
-
-### 2.1 官方公开事实
-
-OpenAI 公开材料确认 Codex 能构建并在 live browser 中测试应用，但没有公开 Desktop 内部的
-Browser Use 传输协议和生命周期实现。公开入口见
-[OpenAI Academy: Codex use cases](https://learn.chatgpt.com/use-cases)。
-
-### 2.2 当前恢复源码事实
-
-本书使用的最新本地参考树是：
-
-```text
-reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact
-```
-
-关键证据文件：
-
-```text
-browser/browser-sidebar-webview-manager-05645.js
-browser/get-or-create-browser-sidebar-webview-root-05632.js
-browser/compute-browser-panel-initial-state-09586.js
-browser/setup-browser-use-session-tracking-04594.js
-browser/dispatch-open-in-browser-message-03050.js
-browser/is-valid-browser-context-block-02580.js
-browser/check-in-app-browser-open-02581.js
-browser/pull-request-merge-conflict-section-header-02543.js
-composer/build-context-prompt-02520.js
-shared/get-tab-context-tool-definition-03750.js
-shared/get-tab-context-with-usage-03754.js
-shared/get-chrome-tab-context-03755.js
-shared/build-response-map-03779.js
-shared/initialize-tool-surface-schemas-04313.js
-shared/resolve-computer-use-app-info-04295.js
-```
-
-这些文件证明产品行为和状态划分；恢复后的符号名只是研究辅助，不是 OpenCraft 的公共 ABI。
-
-### 2.3 OpenCraft 自己的设计决定
-
-本文中的 `BrowserEngine`、稳定元素引用、OpenCraft 工具 namespace 和跨平台 Adapter 命名，是
-OpenCraft 为复现上述行为而制定的独立契约。若某处不是 Codex 的可验证原名，本文会明确写成
-“OpenCraft 契约”，不得对外宣称为 Codex 私有协议字段。
+`BrowserEngine`、稳定元素引用、工具 namespace 和跨平台 Adapter 由当前
+公开 contract 定义。能力声明、真实运行路径和外部服务验收应分别核对，
+不能由组件名称或静态实现推断已经接通。
 
 ## 3. 首先拆开三个经常被混淆的能力
 
@@ -120,7 +78,7 @@ Agent ── open_in_vela ──> OpenCraft Presentation Intent
                               └─ right / bottom / 当前 Thread
 ```
 
-这与当前 Codex 的 `open_in_codex` 思路一致：打开 UI 和检查/操作资源是两个能力面。
+打开 UI 和检查/操作资源是两个独立能力面。
 
 ### 3.2 Ambient browser context：只提供轻量线索
 
@@ -218,7 +176,7 @@ export interface BrowserSessionSnapshot {
 原则：Replica 记录 Agent 已经做过的事实；浏览器 Runtime 记录如何继续呈现浏览器；物理
 控件只存在于当前平台进程。
 
-## 6. Codex 行为中必须保留的不变量
+## 6. 浏览器行为不变量
 
 ### 6.1 身份与生命周期
 
@@ -982,9 +940,8 @@ Web 不能静默安装。大陆场景应支持离线包和企业策略，不把 
 
 可以将下面这一段原样交给另一个会话：
 
-> 按 `/vela/docs/opencraft-browser-use-reference.md` 实现 OpenCraft In-App Browser 与 Browser Use。
-> 先完成 P0，不修改 `/data/mia` 恢复树；`/data/hypernode` 只修改精确 owner routing 和能力
-> 协商所需位置。协议必须复用 `thread/start.dynamicTools`、`item/tool/call` 与
+> 按本页实现 OpenCraft In-App Browser 与 Browser Use。
+> 先完成 P0；只修改精确 owner routing 和能力协商所需位置。协议必须复用 `thread/start.dynamicTools`、`item/tool/call` 与
 > `DynamicToolCallResponse`，不得增加私有 `opencraft/browser/open` RPC。每阶段先补行为测试，再
 > 删除被正式状态机替代的 workaround。Web 第一条完整链路使用受控 Preview Bridge；跨域
 > iframe 只能声明真实降级。完成 P0 后继续 P1-P4，直到真实 9988 DSH 能打开、读取、操作并
@@ -992,8 +949,7 @@ Web 不能静默安装。大陆场景应支持离线包和企业策略，不把 
 
 ## 23. 还需要用户提供什么
 
-当前开工**不需要额外材料**。代码、最新 Codex 恢复参考、OpenCraft 现有 Runtime、9988 协议和
-HyperNode 路由位置都已明确。
+当前开工所需的 OpenCraft Runtime、9988 协议和 owner routing 契约已在本文明确。
 
 只有进入后续平台阶段时才需要产品决策：
 

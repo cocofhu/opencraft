@@ -143,54 +143,6 @@ sheet、safe area 和 native gesture。
 
 ## 3. 参考实现约束
 
-### 3.1 Codex 桌面实现提供的证据
-
-恢复源码显示，参考桌面实现将工作台标签、浏览器标签和物理 WebView 分开：
-
-- `shared/parse-tab-host-view-id-from-window-id-01015.js`：Panel 投影分别保留
-  `tabId` 与 `browserTabId`；
-- `browser/compute-browser-panel-initial-state-09586.js`：从 conversation browser
-  状态生成面板投影；
-- `browser/get-or-create-browser-sidebar-webview-root-05632.js`：应用级 fixed
-  WebView Root 不跟随 Panel 子树卸载；
-- `browser/browser-sidebar-webview-manager-05645.js`：管理 storage mode、mount
-  generation、renderer instance 与 conversation transfer；
-- 同一 manager 的 `browserUseTabKeys`、`webviews`、`tabCaptureActiveKeys` 和
-  `mountStates.claimKeys` 证明 agent 使用、Backing 存活、capture 与 UI mount 是相互独立
-  的生命周期事实；`getConversationBrowserTabIds()` 会合并 agent 与 WebView 两条来源；
-- `_virtual/safe-url-parse.js`：React 子树只 claim/release mount generation；最后一个
-  mount claim 释放后才允许 detach，并不等价于 close tab；
-- `_virtual/plan-browser-tab-activation.js`：逻辑 Browser tab 可以迁移所有权；
-- `_virtual/navigate-to-chat-home.js`：持久化 `browserTabId`、`browserStorageId`、布局与
-  `restoreUrl`，但不持久化 renderer/host/mount generation、adoption lease 或
-  WebContentsId；
-- `conversations/interrupted-command-ids-subscription-selector-04990.js`、
-  `service/app-server-manager-registry-06127.js` 和
-  `service/app-server-request-client-module-03167.js`：应用域按 `hostId` 创建一个逻辑
-  request client，Manager 校验 client/Host 一致性，Registry 索引 Manager；所有请求再
-  经一条携带 `hostId` 的 Host bridge 复用物理通道；
-- `browser/iframe-orchestrator-08353.js`：Assistant Visualization 使用独立沙箱协议。
-
-参考源码根目录：
-
-```text
-reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact
-```
-
-### 3.2 WorkBuddy 提供的证据
-
-WorkBuddy 的 `BrowserPreview -> LocalWebview | CloudIFrame` 证明平台 Adapter、Host
-Bridge、稳定尺寸后导航和 iframe 保活有价值，但单个 `currentUrl` Context 不是多标签
-Browser Domain。
-
-参考源码根目录：
-
-```text
-/data/wbwell/output/workbuddy-monorepo-v8-source
-```
-
-采用其 Bridge/Adapter 经验，不复制单 Preview 状态模型。
-
 ## 4. 产品级身份
 
 ```ts

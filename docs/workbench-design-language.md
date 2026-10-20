@@ -127,7 +127,7 @@ group may retain its own accessible navigation landmark without rendering a
 visual heading; section separation comes from the Shell spacing tokens rather
 than stacked feature margins.
 
-The persistent desktop titlebar rail mirrors Codex's disclosure rule: while the
+The persistent desktop titlebar rail has one disclosure rule: while the
 Sidebar is open, Start is the single new-task affordance; while it is hidden, a
 16px Write action appears immediately after the Sidebar toggle and dispatches
 the same `navigateToHome` intent. The transient floating Sidebar never renders a
@@ -152,7 +152,7 @@ it renders no duplicate `Back to chat` or ineffective width action.
 
 Frost is an optional core palette for the translucent desktop treatment. Its
 light Sidebar uses the fixed material `rgb(226 244 250 / 35%)`; this constant is
-intentionally independent of Codex's 70% client material. Theme identity remains
+fixed by the palette. Theme identity remains
 orthogonal to Light/Dark/System appearance mode.
 
 Lavender is an optional opaque core palette derived from the downstream product frontend's
@@ -373,8 +373,7 @@ Header and sidebar rename actions share `ConversationRenameDialog`, whose form
 stylesheet is imported with the component rather than through the lazy Settings
 page. The compact surface uses the existing ModalSurface/Radix focus and dismissal
 owner, shared typography, inputs and buttons: 384px maximum width, 20px padding,
-full-width input and right-aligned actions. Reference geometry comes from the
-pinned BB dialog; palette, localization and title authority remain OpenCraft's.
+full-width input and right-aligned actions. Palette, localization and title authority retain their current owners.
 The caller owns the draft and save. Blank names, composition Enter and repeat
 submits during saving do not write. Pending disables dismissal; failed writes
 retain the draft and use the shared asynchronous notice without changing layout.

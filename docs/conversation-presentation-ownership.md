@@ -1,38 +1,7 @@
-# ChatUI presentation alignment — Codex r3562
+# ChatUI presentation ownership
 
-Reference: `/data/mia/.runtime/lifecycle-authority-dead-contract-r3562`.
 Scope: the five remaining categories identified after the scroll/Worked-for
 refactors. This is not a claim of full application or pixel-for-pixel parity.
-
-## Source evidence
-
-- `features/conversations/app-server-manager-class.ts`: `turn/plan/updated`
-  appends an individually identified `todo-list` observation; it does not write
-  a proposed-plan body onto the Turn.
-- `shared/normalize-turn-to-display-items-04332.ts`: `plan` is a proposed plan;
-  `planImplementation` preserves `turnId`, `planContent`, `isCompleted`.
-  Todo steps use `plan[].step`. Compaction defaults missing `completed` to true
-  and missing source to `automatic`; terminal Turns settle compaction.
-- `lazy/app-initial/split-items-into-render-groups-B94biqvO.js`: the latest
-  proposed plan gets its own slot, and repeated `todo-list` observations reduce
-  to one latest `todoListItem`; implementation records are not message cards.
-- `lazy/app-initial/plan-summary-item-content-C62V_El9.js`, `xt`: initial
-  collapse follows completion; it is subsequently component-owned. Header is
-  40px; collapsed body is 320px; transition is 300ms `[.19,1,.22,1]`; writing,
-  Markdown, expansion, copy and download have distinct eligibility.
-- `lazy/app-initial/subagent-activity-chip-group-CC185tmV.js`: `MD/ND/LD`
-  select the compact todo progress/step popup (not the unreachable legacy
-  `zD` list); `ex/ix` gate copy on message completion and provide the MIME
-  pair and timestamp; `$k/nC/iC` distinguish command/skill detail modes.
-- `lazy/app-initial/content-reference-markers-odMp_wjH.js`, `U/G`, and
-  `local-conversation-turn-CaFyDx7G.js`, `ma`: active compaction suppresses
-  redundant Thinking; a live proposed plan uses Planning. Old todo snapshots
-  must not become permanent current work.
-
-The advertised maps for the inspected plan/activity chunks were unavailable.
-The audit used the readable reconstructed source and formatted bundled function
-bodies. No claim is made that sourcemaps or original authored component names
-were recovered.
 
 ## Ownership and invariants
 
@@ -95,6 +64,6 @@ were recovered.
 
 Native behavior was typechecked, not exercised on an iOS/Android device. The
 native touch disclosure is not a desktop hover-tooltip pixel comparison.
-Provider capabilities, native download/side-panel integration, and full-original
-application frame-by-frame visual comparison are outside these five fixes.
+Provider capabilities, native download/side-panel integration, and full-application
+frame-by-frame visual comparison are outside these five fixes.
 No deployment is performed by this change.

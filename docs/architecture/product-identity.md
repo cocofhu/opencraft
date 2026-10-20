@@ -10,11 +10,8 @@ variable readers. Electron remains pinned to 44.1.0.
 Brand, installation identity, product data, runtime state and task workspace are
 separate identities. No layer may derive one from another implicitly.
 
-Codex provides the reference shape: `CODEX_HOME`, otherwise `~/.codex`, is a
-stable product authority while each Thread carries an explicit workspace cwd.
-WorkBuddy likewise exposes a product-owned `dataFolderName`, normally
-`~/.workbuddy`, rather than treating Electron's launch directory as Agent state.
-OpenCraft follows the same model without copying either product's filenames.
+Product state roots are stable authorities; a Thread carries its explicit workspace cwd.
+The launch directory is not the product data root.
 
 ### Canonical roots
 
@@ -135,7 +132,7 @@ unchanged. Native deep links now use `opencraft:`.
 
 the downstream product remains a service-provider plugin. Its domains, OAuth callbacks,
 account identifiers, backend names and configuration do not become OpenCraft.
-Third-party DSH, Hermes and Codex reference sources are not rebranded.
+Third-party DSH, Hermes and Codex integrations retain their protocol identities.
 
 ## Checkout and release
 

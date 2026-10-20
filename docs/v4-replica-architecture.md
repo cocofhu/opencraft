@@ -78,15 +78,12 @@ compaction and server rewind all converge through the same snapshot install.
 
 ## Codex V3 compatibility
 
-The latest recovered Codex Desktop tree does not expose server-side
-`epoch/seq` Replica methods. Its mature behavior is a View hydration protocol:
+The Codex V3 compatibility path uses View hydration rather than server-side
+`epoch/seq` Replica methods:
 
-- `thread/resume` sends `excludeTurns` and optionally `initialTurnsPage` in
-  `reference://codex/.runtime/source-tree-build-r1273-natural-startup-ownership/conversations/resume-thread-with-catalog-hydration-04170.js`;
-- Durable, Paginated and ordinary Tail history are selected after Resume in the
-  same module;
-- reconnect marks mounted conversations `needs_resume` in
-  `reference://codex/.runtime/source-tree-build-r1273-natural-startup-ownership/conversations/app-server-manager-class-04231.js`.
+- `thread/resume` sends `excludeTurns` and optionally `initialTurnsPage`;
+- Durable, Paginated and ordinary Tail history are selected after Resume;
+- reconnect marks mounted conversations `needs_resume`.
 
 `createCodexThreadReplicaSource` therefore uses
 `codex-v3:<hostId>:<connectionGeneration>` as a compatibility epoch. Adjacent
