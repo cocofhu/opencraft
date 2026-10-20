@@ -138,7 +138,7 @@ try {
     await page.waitForFunction(height=>document.querySelector('iframe').clientHeight>height+400,viewportHeight);
     await app.locator("body").evaluate(element=>{element.style.minHeight='';element.querySelector('#size-probe')!.remove()});
     await page.waitForFunction(height=>Math.abs(document.querySelector('iframe').clientHeight-height)<4,initialHeight);
-    assert.equal(await page.locator("iframe").getAttribute("sandbox"),"allow-scripts");
+    assert.equal(await page.locator("iframe").getAttribute("sandbox"),"allow-scripts allow-forms");
     assert.equal(await app.locator("#theme").textContent(),"light state=null");
     const before=await page.evaluate(()=>window.fixture.calls.length);
     await page.evaluate(()=>window.postMessage({jsonrpc:"2.0",id:10,method:"tools/call",params:{name:"increment",arguments:{amount:99}}},"*"));
@@ -146,7 +146,7 @@ try {
     await page.evaluate(()=>window.fixture.setTheme("dark"));
     await app.locator("#theme").filter({hasText:"dark"}).waitFor();
     assert.equal(await page.evaluate(()=>window.fixture.reads.length),1);
-    assert.equal(await page.locator(".thread-agent-activity__persistent-content iframe").count(),1);
+    assert.equal(await page.locator(".mcp-app iframe").count(),1);
     assert.equal(await app.locator("body").evaluate(async()=>{try{await fetch("https://mcp-app-denied.invalid/leak");return false}catch{return true}}),true);
     await app.locator("#message").click(); await page.waitForFunction(()=>window.fixture.messages.length===1);
     await app.locator("#context").click();
