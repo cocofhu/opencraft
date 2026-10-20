@@ -24,6 +24,9 @@ interface DisplayMessage {
   readonly turnId: string;
   readonly role: "user" | "assistant";
   readonly text: string;
+  readonly kind: "text" | "reasoning";
+  readonly phase: "commentary" | "final_answer";
+  readonly completed: boolean;
   readonly sentAtMs: number | null;
   readonly durationMs: number | null;
   readonly workStatus: WorkStatusItem | null;
@@ -58,18 +61,29 @@ function completedWork(value: unknown): WorkStatusItem | null {
 function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] {
   const messages: DisplayMessage[] = [];
   for (const frame of snapshot.frames) {
-    if (frame.status !== "complete") continue;
+    const active = frame.status === "pending" || frame.status === "streaming";
     if (frame.type === "user") {
       for (const block of frame.blocks) {
         if (block.type !== "user-message" || block.messageKind !== "user" || !block.message.trim()) continue;
         messages.push({ id: block.id, turnId: frame.turnId, role: "user", text: block.message.slice(0, MAX_MESSAGE_CHARACTERS),
+          kind: "text", phase: "final_answer", completed: true,
           sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: null, workStatus: null });
       }
     } else if (frame.type === "assistant") {
       for (const block of frame.blocks) {
-        if (block.type !== "text" || block.streaming || block.phase === "commentary" || !block.text.trim()) continue;
+        if (block.type === "reasoning" && active) {
+          const text = block.summary.trim() || block.detail?.trim();
+          if (text) messages.push({ id: block.id, turnId: frame.turnId, role: "assistant", text: text.slice(0, MAX_MESSAGE_CHARACTERS),
+            kind: "reasoning", phase: "commentary", completed: false,
+            sentAtMs: null, durationMs: null, workStatus: null });
+          continue;
+        }
+        if (block.type !== "text" || (!active && (block.streaming || block.phase === "commentary")) || !block.text.trim()) continue;
         messages.push({ id: block.id, turnId: frame.turnId, role: "assistant", text: block.text.slice(0, MAX_MESSAGE_CHARACTERS),
-          sentAtMs: null, durationMs: nonnegativeNumber(frame.durationMs), workStatus: completedWork(frame.workStatus) });
+          kind: "text", phase: block.phase === "commentary" ? "commentary" : "final_answer",
+          completed: active ? block.completed === true : true,
+          sentAtMs: null, durationMs: active ? null : nonnegativeNumber(frame.durationMs),
+          workStatus: active ? null : completedWork(frame.workStatus) });
       }
     }
   }
@@ -94,6 +108,9 @@ function parse(value: string | null, hostId: string, threadId: string, now: numb
         || (message.role !== "user" && message.role !== "assistant")
         || typeof message.text !== "string" || message.text.length > MAX_MESSAGE_CHARACTERS) return null;
       messages.push({ id: message.id, turnId: message.turnId, role: message.role, text: message.text,
+        kind: message.kind === "reasoning" ? "reasoning" : "text",
+        phase: message.phase === "commentary" ? "commentary" : "final_answer",
+        completed: message.completed !== false,
         sentAtMs: nonnegativeNumber(message.sentAtMs), durationMs: nonnegativeNumber(message.durationMs),
         workStatus: message.role === "assistant" ? completedWork(message.workStatus) : null });
     }
@@ -127,8 +144,10 @@ function paint(hostId: string, threadId: string, messages: readonly DisplayMessa
             pullRequestFixMode: false, autoResolveSync: false, goal: false, hookFeedback: false,
             commentCount: 0, hasExternalAttachments: false,
           }]
-        : [{ type: "text" as const, id: message.id, sourceItemIds: [], text: message.text,
-            streaming: false, completed: true, phase: "final_answer" as const }],
+        : message.kind === "reasoning"
+          ? [{ type: "reasoning" as const, id: message.id, sourceItemIds: [], summary: message.text, detail: null, streaming: false }]
+          : [{ type: "text" as const, id: message.id, sourceItemIds: [], text: message.text,
+              streaming: false, completed: message.completed, phase: message.phase }],
     })),
     anchorFrameIds: new Map(),
   };
@@ -142,6 +161,9 @@ export function createConversationDisplayContinuity(input: {
   if (!input.namespace.trim()) throw new RangeError("Display namespace is required");
   const now = input.now ?? Date.now;
   const pending = new Map<string, Promise<void>>();
+  // Streaming observations replace the queued value instead of accumulating a
+  // storage write for every delta while a slower platform adapter is saving.
+  const queued = new Map<string, { value: string | null; projection: string }>();
   const lastProjection = new Map<string, string>();
   const submissions = new Map<string, TimelineSnapshot>();
   const displays = new Map<string, { savedAt: number; timeline: TimelineSnapshot }>();
@@ -210,13 +232,28 @@ export function createConversationDisplayContinuity(input: {
       remember(key, messages, snapshot.key.hostId, snapshot.key.threadId);
       const value = JSON.stringify({ version: VERSION, hostId: snapshot.key.hostId,
         threadId: snapshot.key.threadId, savedAt: now(), messages });
-      const previous = pending.get(key) ?? Promise.resolve();
-      const next = previous.catch(() => undefined).then(() => messages.length
-        ? input.storage.save(key, value)
-        : input.storage.remove(key));
+      queued.set(key, { value: messages.length ? value : null, projection });
+      const writing = pending.get(key);
+      if (writing) return writing;
+      const next = Promise.resolve().then(async () => {
+        let failure: unknown;
+        while (queued.has(key)) {
+          const update = queued.get(key)!;
+          queued.delete(key);
+          try {
+            if (update.value === null) await input.storage.remove(key);
+            else await input.storage.save(key, update.value);
+            failure = undefined;
+          } catch (error) {
+            failure = error;
+            if (lastProjection.get(key) === update.projection) lastProjection.delete(key);
+          }
+        }
+        pending.delete(key);
+        if (failure !== undefined) throw failure;
+      });
       pending.set(key, next);
-      void next.catch(() => { if (lastProjection.get(key) === projection) lastProjection.delete(key); });
-      void next.finally(() => { if (pending.get(key) === next) pending.delete(key); }).catch(() => undefined);
+      void next.catch(() => undefined);
       return next;
     },
   };

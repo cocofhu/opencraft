@@ -42,7 +42,7 @@ function timeline(authoritative: boolean): TimelineSnapshot {
   };
 }
 
-test("only authoritative completed text becomes a paint-only cached timeline", async () => {
+test("only authoritative text becomes a paint-only cached timeline", async () => {
   const local = storage();
   const cache = createConversationDisplayContinuity({ namespace: "account.bot", storage: local, now: () => 1_000 });
   await cache.observe(timeline(false));
@@ -249,4 +249,81 @@ test("legacy and malformed cached clocks remain unknown without losing text", as
     const user = restored.frames[0]!.blocks[0]!;
     assert.equal(user.type === "user-message" && user.sentAtMs, null);
   }
+});
+
+
+function activeTimeline(text = "Partial answer received so far"): TimelineSnapshot {
+  const source = timedTimeline();
+  return { ...source, frames: source.frames.map(frame => frame.type === "user"
+    ? { ...frame, status: "streaming" as const }
+    : { ...frame, status: "streaming" as const, durationMs: 54_000,
+      workStatus: { type: "worked-for" as const, status: "working" as const, startedAtMs: 100, completedAtMs: null },
+      blocks: [
+        { type: "reasoning" as const, id: "reasoning", sourceItemIds: [], summary: "Checking the result", detail: null, streaming: true },
+        { type: "text" as const, id: "progress", sourceItemIds: [], text: "Reading the source", phase: "commentary" as const, streaming: true, completed: false },
+        { type: "text" as const, id: "answer", sourceItemIds: [], text, phase: "final_answer" as const, streaming: true, completed: false },
+      ] }) };
+}
+
+test("reload retains an active Turn's input, progress and partial answer as static read-only text", async () => {
+  const local = storage();
+  const before = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await before.observe(activeTimeline());
+  const after = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const cached = (await after.load("host", "thread"))!;
+  assert.equal(cached.authoritative, false);
+  assert.equal(cached.phase, "painted");
+  const blocks = cached.frames.flatMap(frame => frame.blocks);
+  assert.deepEqual(blocks.map(block => block.type), ["user-message", "reasoning", "text", "text"]);
+  assert.equal(blocks[0]!.type === "user-message" && blocks[0]!.sentAtMs, 100);
+  assert.equal(blocks[1]!.type === "reasoning" && blocks[1]!.summary, "Checking the result");
+  assert.equal(blocks[2]!.type === "text" && blocks[2]!.phase, "commentary");
+  assert.equal(blocks[3]!.type === "text" && blocks[3]!.text, "Partial answer received so far");
+  assert.equal(blocks[3]!.type === "text" && blocks[3]!.completed, false, "partial text is not relabeled as a final reply");
+  assert.ok(blocks.every(block => !("streaming" in block) || !block.streaming));
+  assert.ok(cached.frames.every(frame => frame.status === "complete" && frame.durationMs === null && frame.workStatus === null), "cached progress never resumes a live animation or clock");
+  await after.observe(timedTimeline());
+  assert.deepEqual(after.peek("host", "thread")!.frames.flatMap(frame => frame.blocks.map(block => block.type)), ["user-message", "text"]);
+  assert.equal(after.peek("host", "thread")!.frames[1]!.workStatus?.status, "worked");
+  await after.observe({ ...timeline(true), frames: [] });
+  assert.equal(await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"), null);
+});
+
+test("streaming updates coalesce behind slow persistence and retain the newest received text", async () => {
+  const local = storage();
+  const writes: string[] = [];
+  let release!: () => void;
+  let entered!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  local.save = async (key, value) => {
+    writes.push(value);
+    if (writes.length === 1) await new Promise<void>(resolve => { release = resolve; entered(); });
+    local.data.set(key, value);
+  };
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const first = cache.observe(activeTimeline("first"));
+  await started;
+  const updates = Array.from({ length: 100 }, (_, i) => cache.observe(activeTimeline(`received ${i}`)));
+  const latest = cache.peek("host", "thread")!.frames.at(-1)!.blocks[0]!;
+  assert.equal(latest.type === "text" && latest.text, "received 99", "memory never waits for disk");
+  assert.equal(writes.length, 1);
+  release(); await Promise.all([first, ...updates]);
+  assert.equal(writes.length, 2, "only the latest queued snapshot is written after the in-flight snapshot");
+  const restored = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const answer = restored.frames.at(-1)!.blocks[0]!;
+  assert.equal(answer.type === "text" && answer.text, "received 99");
+  await cache.observe({ ...timeline(true), frames: [] });
+  assert.equal(local.data.size, 0, "an empty authoritative history supersedes streaming snapshots");
+});
+
+test("failed display persistence can retry the same active snapshot", async () => {
+  const local = storage();
+  const save = local.save;
+  local.save = async () => { throw Error("disk unavailable"); };
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await assert.rejects(cache.observe(activeTimeline()), /disk unavailable/);
+  assert.ok(cache.peek("host", "thread"));
+  local.save = save;
+  await cache.observe(activeTimeline());
+  assert.ok(await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"));
 });

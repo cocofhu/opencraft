@@ -295,7 +295,7 @@ Conversation Scope 是会话身份，View 是具体窗口或页面的呈现与�
 
 `recovery-policy.ts` 中的 `ConversationReturnProbe` 统一短暂离开、较长前台恢复和断网恢复的触发条件。iOS 把 AppState/Expo Network 事件交给它，Web/Electron 把 visibility/online 事件交给它；真正的追平仍调用当前 Thread lease 的 `retryRestore()`。追平不创建新会话，不重置可读历史。已经显示的内容是否权威，仍由 Replica/Session 决定。
 
-手机、iPad、折叠屏和桌面共享上述身份及状态转换。屏幕宽度、安全区、键盘和指针决定各自布局，不决定另一套业务流程。V3 ThreadView 的 revision/epoch 属于连接代次，不能把它写进持久 Replica 检查点。`ConversationDisplayContinuity` 只从权威时间线保存有界、已完成的用户消息与回答文本；冷启动重建 `painted / authoritative: false` 的只读 Timeline 供两端原有渲染器展示，当前 Host 恢复后整体替换。工具、审批、附件、交互以及 Replica 游标不进入展示缓存，不能从该缓存授权发送或其他操作。缓存按账号、Bot/Host 和 Thread 分区，并在退出登录时清除。
+手机、iPad、折叠屏和桌面共享上述身份及状态转换。屏幕宽度、安全区、键盘和指针决定各自布局，不决定另一套业务流程。V3 ThreadView 的 revision/epoch 属于连接代次，不能把它写进持久 Replica 检查点。`ConversationDisplayContinuity` 只从权威时间线保存有界的用户消息与回答文本，包括进行中已收到的文字、过程说明及推理摘要；冷启动重建 `painted / authoritative: false` 的只读 Timeline 供两端原有渲染器展示，当前 Host 恢复后整体替换。工具、审批、附件、交互以及 Replica 游标不进入展示缓存，不能从该缓存授权发送或其他操作。缓存按账号、Bot/Host 和 Thread 分区，并在退出登录时清除。
 
 会话定位共享 Turn 身份、最小时间线 revision 和对齐意图。Web 与 Native 都先挂载目标 Turn，等平台实测高度进入虚拟布局后才滚动；用户接管或 View 卸载会取消等待。两端用户消息使用共享 `getTimelineUserMessageTargetKey` 的 Item 锚点；Web 注册 DOM，Native 注册当前挂载行的局部布局。投影确定目标不存在时返回 unavailable；目标存在但尚未测量时继续等待，不能用经过几帧或整条 Turn 的估计位置冒充精确命中。Native 行高度是否已测量与项内锚点是否已注册是独立事实。
 
@@ -1019,7 +1019,13 @@ no tool output or interaction is truncated to improve timing.
 ConversationDisplayContinuity keeps at most 64 already-projected text displays
 in its existing account/Host/Thread scope. `peek` exposes a synchronous paint-only
 snapshot, including before an asynchronous persistence write finishes.
-Completed user-message timestamps and terminal work clocks/durations are retained
+The current Turn's received input, partial answer, commentary and returned
+reasoning text are retained as static paint-only blocks. Partial answers retain
+their incomplete marker and commentary stays in Agent Activity; no streaming
+animation, active clock, tool output or interaction is replayed. Slow storage
+coalesces pending observations to the latest snapshot while memory updates
+synchronously. A fresh authoritative baseline replaces the snapshot as usual.
+User-message timestamps and terminal work clocks/durations are retained
 with the text, so a reload paints the date and worked-for label together with its
 message while the Host reconnects. Live work clocks are never restored from this
 cache. Legacy text-only entries remain readable with unknown clocks until the
