@@ -36,7 +36,7 @@ export async function copyServerRuntime(destination, roots) {
     }
     versions[name] = manifest.version;
     await mkdir(dirname(join(destination, name)), { recursive: true });
-    await cp(root, join(destination, name), { recursive: true });
+    await cp(root, join(destination, name), { recursive: true, verbatimSymlinks: true });
     const resolver = createRequire(join(root, "package.json"));
     for (const dependency of Object.keys(manifest.dependencies || {}))
       await copy(dependency, resolver);

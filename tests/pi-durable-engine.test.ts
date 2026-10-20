@@ -137,3 +137,36 @@ test("engine capabilities override host defaults without changing legacy threads
   assert.equal(executionEngineExtension(extensions, "pi_session", "opencraft/thread-goal"), undefined);
   assert.equal(executionEngineExtension(extensions, piModel("faux", "faux-1"), "opencraft/thread-goal"), undefined);
 });
+
+
+test("durable Host clients send outbox input to Pi without DSH queue or history APIs", async t => {
+  const { createAppServerWorkbenchRuntime } = await import("../packages/workbench-runtime/src/appserver-runtime.js");
+  const { WebSocketTransport } = await import("../packages/appserver-transport-websocket/src/index.js");
+  const f = await fixture(t, [fauxAssistantMessage("outbox accepted")]);
+  const host = await startEngineHost({ providers: [f.engine], defaultEngine: "pi" }); t.after(() => host.close());
+  const sent: string[] = [];
+  let rows: any[] = [];
+  const runtime = createAppServerWorkbenchRuntime({ hostId: "pi-fixture", hostKind: "durable",
+    outbox: { read: () => rows, write: (_key, next) => { rows = [...next]; }, subscribe: () => () => {} },
+    createTransport: () => {
+      const transport = new WebSocketTransport(host.websocketUrl);
+      const send = transport.send.bind(transport);
+      transport.send = frame => { sent.push(JSON.parse(frame).method); return send(frame); };
+      return transport;
+    },
+  });
+  t.after(() => runtime.dispose());
+  await runtime.connect();
+  const thread = await runtime.resources.threads.start({ model: piModel("faux", "faux-1"), cwd: f.directory });
+  const lease = await runtime.acquireThread(thread.id); t.after(() => lease.release());
+  for (let i = 0; i < 100 && !lease.getSnapshot().authoritative; i++) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(lease.getSnapshot().authoritative, true);
+  const done = completed(f.engine);
+  await lease.submit({ commandId: "command-one", clientMessageId: "outbox-client", target: { type: "existing-thread", key: lease.getSnapshot().key },
+    document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "outbox input" }] }] },
+    attachments: [], context: [], selections: { model: piModel("faux", "faux-1"), permissionProfile: null }, options: { autoContext: true }, createdAt: 1 });
+  assert.equal((await done).status, "completed");
+  assert.ok(sent.includes("turn/start"));
+  assert.ok(!sent.includes("thread/queue/add"));
+  assert.ok(!sent.includes("thread/turns/list"));
+});

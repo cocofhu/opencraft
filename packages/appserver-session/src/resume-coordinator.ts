@@ -365,6 +365,7 @@ export class ThreadResumeCoordinatorService extends Service {
 
       const engineHistory = executionEngineExtension(this.client.initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_RESUME_HISTORY_EXTENSION);
       const historyMode = metadata?.historyMode ?? engineHistory?.mode ?? this.historyModeHint ?? initial.historyMode;
+      const isDurableHost = this.hostKind === "durable" && engineHistory?.mode !== "legacy";
       const supportsPaginatedHistory = this.useTailHydration
         && this.hostKind !== "durable"
         && historyMode === "paginated"
@@ -376,7 +377,7 @@ export class ThreadResumeCoordinatorService extends Service {
       const supportsBoundedRecovery = supportsMergedPage && capability?.boundedRecovery === true;
       const historyRequest = buildResumeHistoryRequest({
         useTailHydration: this.useTailHydration,
-        isDurableHost: this.hostKind === "durable",
+        isDurableHost,
         supportsPaginatedHistory,
         supportsInitialTurnsPage: supportsMergedPage,
       });
@@ -447,7 +448,7 @@ export class ThreadResumeCoordinatorService extends Service {
         response,
         metadata,
         useTailHydration: this.useTailHydration,
-        isDurableHost: this.hostKind === "durable",
+        isDurableHost,
         supportsPaginatedHistory,
         supportsInitialTurnsPage: historyRequest.initialTurnsPage !== undefined,
         pageSize: this.pageSize,
