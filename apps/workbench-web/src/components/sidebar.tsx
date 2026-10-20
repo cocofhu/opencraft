@@ -226,18 +226,20 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
       store={menus} contribution={threadBadge} hostId={thread.connectionHostId} threadId={thread.id}
       portalContainer={presentationRoot} onOpenChange={open => changeOverlay("badge", open)}
-      onCloseAutoFocus={event => event.preventDefault()}
+      onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}
     /> : null;
     const metadata = sidebarActivityMetadata(thread);
     return <SidebarThreadRowMenu key={identity(thread)} store={menus} target={target} owner={actionOwner}
       capabilities={capabilities} disabled={disabled} activityLabelId={activityId}
       contextMenuExtra={threadListGrouping ? modeItems("context") : undefined}
       onOpenMenuChange={(kind, open) => changeOverlay(kind, open)}
-      onCloseAutoFocus={event => event.preventDefault()}>
+      onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
       <SidebarActivityItem activityId={activityId} active={active} selected={selected} pending={pending}
         disabled={disabled} title={title} project={metadata.project}
         tooltip={[title, metadata.project, thread.connectionHostLabel, thread.id].join(" · ")}
-        status={thread.status} unread={thread.unread ?? false} goalActive={thread.goalActive}
+        status={thread.status} unread={Boolean(thread.unread) && (threadListGrouping?.isParticipant?.({
+          hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
+        }) ?? true)} goalActive={thread.goalActive}
         schedule={thread.schedule} twoLine={attention} badge={badge} badgePlacement={threadBadge?.placement}
         onInvoke={() => dismissAfter(() => onSelectThread(thread.connectionHostId, thread.id))} />
     </SidebarThreadRowMenu>;

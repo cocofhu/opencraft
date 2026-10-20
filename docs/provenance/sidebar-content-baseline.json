@@ -108,8 +108,8 @@
   "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
   "rangeUnit": "TypeScript UTF-16 text offsets",
   "currentReplacement": {
-    "moduleSha256": "193fd9f903a41108578dabf29ccf84179922bc8b5cd8ecb765e4b8c277777ed2",
-    "selectedDeclarationSha256": "6205ab67ebf528450490865a8441c3318e51c8d8b1b60250f73258f4ac3ade35",
+    "moduleSha256": "47dc9bf089730af9d00cc5bab43eab0767f099de9f1fffe501e222327e6c2801",
+    "selectedDeclarationSha256": "c15042150daf748421ea0f4d36e2c35d79e24e55fab3cd40708a935ada7ec048",
     "outsideBoundary": {
       "unchangedExceptHistoricalHeaderClarification": true,
       "retainedDeclarations": [
@@ -135,7 +135,20 @@
       "supplementalSettled48RawByteEqual": true,
       "supplementalAuthoredAfterReplacement": true,
       "settledRawOutputSha256": "03a9d64ca75420c47e9c300ea8866b169ee741ab99ba908426eb79e5cfd8c146",
-      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate."
+      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate.",
+      "postAuthoringParticipationNavigation": {
+        "states": 24,
+        "scenes": 4,
+        "rawByteEqual": true,
+        "rawOutputSha256": "b4ed54efb735a398352bb09747f7a97eaa0dd6f4f98df1b635dccac2c722bbf2",
+        "observerSha256": "a50df2c08fd89cbac7f9d8841287470c081de697721297450d0fd10a14b7f21d",
+        "coverage": [
+          "Absent or unspecified participation method preserves unread",
+          "Explicit false suppresses unread; personal filter state does not determine participation",
+          "Six rendered navigation items each retain one28pxleading slot"
+        ],
+        "timing": "Supplement authored after initial replacement, not part of the216-state frozen baseline"
+      }
     },
     "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."
   }

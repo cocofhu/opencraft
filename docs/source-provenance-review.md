@@ -776,3 +776,11 @@ sealed original and are retained, not called a passing gate. Imports, interfaces
 constants and three neighboring helpers remain unchanged; the old header is
 quoted with its current bounded scope. All eight unresolved groups stay open,
 without strict isolation, hardware acceptance or historical-rights clearance.
+
+
+Sidebar product-consumer follow-up found participation-based unread and keyboard
+focus-return omissions beyond the original frozen inputs. The bounded replacement
+record retains both failures, a24-state post-authoring participation/navigation
+comparison, original full consumer control and the corrected ownership policy.
+This supplements rather than retroactively expands the216-state baseline; Join
+fixed-source validation and actual delivery remain separate requirements.

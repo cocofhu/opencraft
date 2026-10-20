@@ -96,3 +96,39 @@ physical iPhone/Electron acceptance, live employee services or account/engine
 behavior. Adjacent helpers, other Shell files and all eight unresolved source
 groups retain their review status. Ordinary data, protocol/API names and behavior
 references alone remain insufficient grounds for unrelated rewrites.
+
+
+## Join consumer follow-up
+
+The first fixed29-patch Join combination exposed a missed optional interface:
+`ThreadListGroupingContribution.isParticipant` owns positive participation evidence
+independently of the personal filter. The initial replacement passed every raw
+pre-authoring observation but incorrectly displayed an unread dot on another
+conversation. The implementation now consumes the existing method with a composite
+Host/Thread reference; absence of the method retains ordinary unread behavior.
+A post-authoring sealed-original supplement verifies all six participation modes,
+four input/theme scenes and six actual navigation entries (24 complete states).
+The complete original/candidate raw outputs match, including one28pxleading slot
+per rendered entry. Its first uncached-snapshot fixture failure is retained and
+is not application evidence.
+
+The original full Join participant smoke passes against the sealed old module.
+The first prospective correction passes unread/hover/geometry but then exposes
+unconditional close-auto-focus cancellation: keyboard Escape cannot restore the
+participant trigger. Close handling now only cancels focus restoration when the
+shared menu store has another owner; ordinary Radix restoration and product hover
+focus suppression retain their owners. The full unchanged participant smoke now passes all four light/dark desktop/touch
+scenes with the corrected prospective module in the isolated Join consumer,
+including keyboard return, hover focus/draft preservation and menu exclusivity.
+Final fixed-source Join validation and delivery remain separate requirements;
+this component-consumer probe is not a deployed or complete fixed combination.
+No affected candidate was deployed.
+
+The existing workbench-sidebar-dock test counted four JSX source sites as a proxy
+for rendered entry ownership. A shared renderer reduces source sites to three
+without removing any entries. That obsolete assertion is removed rather than
+changing the product or expecting a different arbitrary source count; all existing
+token/style/account assertions remain. The actual original/candidate browser
+comparison above checks all six rendered entries. No test case, harness or
+dependency is added to the repository. The CSS-import SSR pilot failed before
+rendering and is retained externally without a passing claim.
