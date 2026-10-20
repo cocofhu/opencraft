@@ -24,7 +24,7 @@
 
 - 已读取根/OpenCraft 入口、维护总纲和验证清单；context 无匹配。
 - 工作树已有大量用户变更，按增量编辑保留。
-- 阅读 Codex 参考调用链与 OpenCraft 的 Chat、Browser、Plugin、Platform 相关设计。
+- 阅读 OpenCraft 的 Chat、Browser、Plugin、Platform 相关设计。
 - 尚未修改行为，尚未运行实现验证。
 
 ### 实施更新
