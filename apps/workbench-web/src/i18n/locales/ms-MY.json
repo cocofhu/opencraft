@@ -629,7 +629,7 @@
   "composer.model.fallbackShort": "Sandaran",
   "composer.model.empty": "Tiada model tersedia. Semak tetapan model.",
   "schedules.catalog.title": "Scheduled tasks",
-  "schedules.catalog.description": "Schedules across available servers. Create new schedules from a conversation’s menu.",
+  "schedules.catalog.description": "Create schedules from a conversation’s menu.",
   "schedules.catalog.empty": "No current scheduled tasks on this server.",
   "schedules.catalog.unsupported": "No available server supports scheduled tasks.",
   "schedules.catalog.offline": "Server is not connected. Its schedules cannot be refreshed.",
@@ -639,5 +639,10 @@
   "schedules.catalog.conversation": "Open conversation",
   "schedules.catalog.manage": "Manage",
   "schedules.catalog.openError": "Could not open the conversation.",
-  "schedules.catalog.refresh": "Refresh"
+  "schedules.catalog.refresh": "Refresh",
+  "schedules.catalog.connected": "Connected",
+  "schedules.catalog.disconnected": "Disconnected",
+  "schedules.catalog.failed": "Refresh failed",
+  "schedules.catalog.openNamed": "Open conversation: {title}",
+  "schedules.catalog.manageNamed": "Manage schedule: {title}"
 }
