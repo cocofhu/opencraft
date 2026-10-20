@@ -842,7 +842,11 @@ skipping it would lose atomic subscription and interaction ownership. A
 server-rejected Resume is retained for the current connection generation so
 automatic View reacquisition does not replay the same failed native request.
 An explicit user retry and a new physical generation may retry; transport
-failures are not memoized. The shorter Host grace is an additional release
+failures are not memoized. A provider may explicitly declare a transient RPC
+failure with `error.data.retryable: true`; it is also not memoized and the
+Workbench's existing bounded history recovery may retry it. Missing, false or
+malformed retryability retains the rejection behavior. This does not enable
+automatic replay of arbitrary commands. The shorter Host grace is an additional release
 policy, not a substitute for Codex's own idle-thread cleanup.
 
 Native Fork copies a complete, validated event/context prefix with opaque
