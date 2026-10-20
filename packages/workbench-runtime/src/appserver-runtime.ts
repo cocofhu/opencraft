@@ -1109,7 +1109,10 @@ export function createAppServerWorkbenchRuntime(
               steering.push(...(page.steering ?? []));
               cursor = page.nextCursor;
             } while (cursor !== null);
-            if (!disposed && !binding.disposed) {
+            // A change notification received during this read invalidates its
+            // snapshot. Publish only the next complete read, keeping the current
+            // queue visible while it refreshes (including optimistic additions).
+            if (!disposed && !binding.disposed && !binding.queueRefreshRequested) {
               conversation!.replaceQueuedSubmissions(submissions, steering);
             }
           } while (

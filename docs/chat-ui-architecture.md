@@ -76,6 +76,10 @@ identity (including null) wins, and restored/unrelated entries never inherit the
 current employee. Web resolves the enterprise identity contribution into generic name/avatar URL
 values; Composer owns only layout/fallback, not enterprise identity URLs or account policy. Queue
 editing/reordering never relabels its submitter; these values are display-only.
+Queue refresh keeps the current projection until a complete, current read succeeds.
+A queue-change notification received during a read invalidates that response;
+the coalesced follow-up read replaces it without publishing a stale empty list.
+A fresh empty response still removes consumed or deleted entries.
 
 ## Streaming projection and document reuse
 
