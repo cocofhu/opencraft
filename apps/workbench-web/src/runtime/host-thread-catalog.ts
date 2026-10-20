@@ -1,4 +1,4 @@
-import type { SshConnectionView, SshCodexServerDescriptor } from "@opencraft/app-host-protocol";
+import type { SshConnectionView, SshServerDescriptor } from "@opencraft/app-host-protocol";
 import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
 import type { AppServerWorkbenchRuntime, HostRuntimeRegistry } from "@opencraft/workbench-runtime";
 import type { ThreadListResponse } from "@opencraft/appserver-protocol/generated/v2";
@@ -9,7 +9,7 @@ export interface ManagedHostCatalogSnapshot {
   readonly available: boolean | null;
   readonly authenticated: boolean;
   readonly items: readonly SshConnectionView[];
-  readonly legacyServers: readonly SshCodexServerDescriptor[];
+  readonly legacyServers: readonly SshServerDescriptor[];
   readonly refreshing: boolean;
   readonly error: string | null;
 }

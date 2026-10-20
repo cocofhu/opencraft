@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { SshCodexServerDescriptor, SshManagementAccessMode } from "@opencraft/app-host-protocol";
+import type { SshServerDescriptor, SshManagementAccessMode } from "@opencraft/app-host-protocol";
 import { SshConnectionStore, SshManagementError, hostKeyFingerprint, parseSshConnectionInput, readPrivateSshFile } from "./ssh-connection-store.js";
 
 const COOKIE = "opencraft_ssh_session";
@@ -75,7 +75,7 @@ export class SshManagement {
     resetConnection: (serverId: string) => Promise<void>;
     connectConnection: (serverId: string, assertAdmission: () => void) => Promise<void>;
     connectionState?: (serverId: string) => string;
-    legacyServers?: readonly SshCodexServerDescriptor[];
+    legacyServers?: readonly SshServerDescriptor[];
   }) {
     if (options.publicAccess && options.publicOrigin) throw new Error("Choose either SSH public access or a fixed origin");
     this.accessMode = options.accessMode ?? (options.accessFile ? "access-key" : "shared");
@@ -143,7 +143,7 @@ export class SshManagement {
   }
   session(request: IncomingMessage): string | null { return this.findSession(request)?.id ?? null; }
   authorized(request: IncomingMessage): boolean { return this.sameOrigin(request, false) && this.session(request) !== null; }
-  catalog(request: IncomingMessage): readonly SshCodexServerDescriptor[] {
+  catalog(request: IncomingMessage): readonly SshServerDescriptor[] {
     if (!this.authorized(request)) return [];
     return this.store.list().filter(row => row.enabled).map(({ serverId, displayName, workspaceBrowseRoots }) => ({ serverId, displayName, workspaceBrowseRoots }));
   }

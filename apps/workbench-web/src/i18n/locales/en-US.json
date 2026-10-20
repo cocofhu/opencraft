@@ -471,7 +471,7 @@
   "notices.clear": "Clear history",
   "notices.scope": "This page session · Up to 50 recent notifications",
   "notices.empty": "No notifications yet",
-  "sidebar.search.scope": "All servers · Titles and Codex messages",
+  "sidebar.search.scope": "All servers · Titles and messages",
   "sidebar.search.count": "{count} conversations",
   "sidebar.search.loading": "Loading conversations…",
   "sidebar.search.empty": "No matching conversations",

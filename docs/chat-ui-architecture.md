@@ -550,7 +550,7 @@ protocol payload, not remote Skill installation or model execution.
 Model-response URLs are resources, not page-local anchors. `chat-document`
 preserves the model-authored paragraph/heading/list/table structure and raw
 Markdown label; `chat-render-react` alone classifies and sanitizes the target;
-the Web renderer projects an allowed HTTP(S) target as a Codex-style inline
+the Web renderer projects an allowed HTTP(S) target as an inline
 mention with origin favicon, globe fallback, URL tooltip and Radix context
 actions. It never demotes a heading merely because its child is a link.
 Restricted or unsafe targets receive no href, favicon request or open action.
@@ -592,7 +592,7 @@ trackpad/wheel scrolling and scrollbar dragging retain browser text selection,
 link activation and vertical timeline scrolling. Appending rows keeps the same
 table and scrollport; no JavaScript pan controller or document-wide overflow is
 introduced. `scripts/smoke-markdown-table-scroll.ts` verifies the real renderer.
-Wide blocks use Codex-style automatic expansion beyond the prose column, bounded
+Wide blocks use automatic expansion beyond the prose column, bounded
 by the current reading surface rather than window width. The timeline supplies
 `--chat-wide-content-available-width` and `--wide-block-panel-max-width`; its
 viewport already excludes docked panels and accounts for content shift. Tables
@@ -768,7 +768,7 @@ interruption and failure notifications are lifecycle summaries (`itemsView:
 "summary"`), never empty full Item snapshots. Full membership belongs to
 history reconstruction. Visible reasoning, assistant and tool Items settle
 before the Turn; only explicit completed output receives final-answer phase.
-Like Codex, `final_answer` is an optional Item rather than a prerequisite for a
+`final_answer` is an optional Item rather than a prerequisite for a
 completed Turn. A Turn with settled commentary or tool activity may complete
 without fabricating an answer; a completely empty completed Turn still fails
 closed as a provider/runtime contract violation.

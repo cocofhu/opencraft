@@ -473,7 +473,7 @@
   "notices.clear": "Kosongkan sejarah",
   "notices.scope": "Sesi halaman ini · Sehingga 50 pemberitahuan terkini",
   "notices.empty": "Belum ada pemberitahuan",
-  "sidebar.search.scope": "All servers · Titles and Codex messages",
+  "sidebar.search.scope": "All servers · Titles and messages",
   "sidebar.search.count": "{count} perbualan",
   "sidebar.search.loading": "Memuatkan perbualan…",
   "sidebar.search.empty": "Tiada perbualan yang sepadan",

@@ -473,7 +473,7 @@
   "notices.clear": "ล้างประวัติ",
   "notices.scope": "เซสชันหน้านี้ · เก็บการแจ้งเตือนล่าสุด 50 รายการ",
   "notices.empty": "ยังไม่มีการแจ้งเตือน",
-  "sidebar.search.scope": "All servers · Titles and Codex messages",
+  "sidebar.search.scope": "All servers · Titles and messages",
   "sidebar.search.count": "การสนทนา {count} รายการ",
   "sidebar.search.loading": "กำลังโหลดการสนทนา…",
   "sidebar.search.empty": "ไม่พบการสนทนาที่ตรงกัน",

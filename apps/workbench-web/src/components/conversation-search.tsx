@@ -123,7 +123,7 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
     </div>
     <div className="conversation-search__body">
     <h2 className="conversation-search__heading">{normalized ? label : intl.formatMessage({ id: "sidebar.flow.recent", defaultMessage: "Recent" })}</h2>
-    <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and Codex messages" })}</div>
+    <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and messages" })}</div>
     <div className="conversation-search__results" ref={list} role="listbox" id={listId} aria-label={label} aria-busy={busy || selecting}>
       {results.map((thread, index) => <button type="button" role="option" tabIndex={-1}
         key={JSON.stringify([thread.connectionHostId, thread.id])} id={`${listId}-${index}`}

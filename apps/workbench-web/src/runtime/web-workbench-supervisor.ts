@@ -238,7 +238,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     );
     const electronAppHost = platform === "electron" ? connectElectronAppHost() : null;
     if (electronAppHost !== null) startupRollback.push(() => electronAppHost.close());
-    const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === "true"
+    const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === "true"
       ? connectWebSocketAppHost() : null;
     if (headlessAppHost !== null) startupRollback.push(() => headlessAppHost.close());
     const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, { path: "/ssh-apphost" }) : null;
@@ -454,8 +454,8 @@ export async function createWebWorkbenchApplicationSupervisor(
         // Only this headless product queries its backend catalog. Credentials,
         // host-key trust and remote commands never enter a Renderer profile.
         const sshServers = await readSshServerCatalog();
-        const { createHeadlessCodexExtension } = await import("@opencraft/plugin-builtin-agents");
-        return createHeadlessCodexExtension({
+        const { createHeadlessServerExtension } = await import("@opencraft/plugin-builtin-agents");
+        return createHeadlessServerExtension({
           requestHost: (hostId, method, params) => agentRuntimes.request(hostId, method, params),
           createTransport: hostId => (hostId.startsWith("ssh:") && sshManagement && sshManagement.getSnapshot().available !== false ? remoteAppHost! : headlessAppHost).createTransport(hostId),
           workspaceBrowseRoots: bootstrapDefinitions.find((host) => host.hostId === "opencraft-server")?.workspaceBrowseRoots ?? [],

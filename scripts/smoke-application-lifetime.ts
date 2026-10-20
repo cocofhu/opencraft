@@ -59,7 +59,7 @@ document.body.dataset.ready='true';`;
 const server = await createServer({ configFile: false, cacheDir: ".local/application-lifetime/vite-cache", root: process.cwd(), logLevel: "error",
   define: { "process.env.NEXT_PUBLIC_REGION": '"cn"', "process.env.NEXT_PUBLIC_PREVIEW_LOCALES": '""',
     "import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN": '"false"',
-    "import.meta.env.VITE_INCLUDE_HEADLESS_CODEX": '"false"' },
+    "import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST": '"false"' },
   esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, server: { host: "127.0.0.1", port: 0, hmr: false },
   plugins: [{ name: "application-lifetime-proof", resolveId: id => id === "/application-proof.ts" ? id : null,
     load: id => id === "/application-proof.ts" ? source : null,

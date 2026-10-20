@@ -5,7 +5,7 @@ import { parseWebDeploymentConfig, resolveWebDeploymentConfig, resolveLegacyWebs
 
 import { ExtensionSupervisor } from "@opencraft/extension-runtime";
 import { PlatformViewRendererRegistry } from "@opencraft/extension-react";
-import { createHeadlessCodexExtension } from "@opencraft/plugin-builtin-agents";
+import { createHeadlessServerExtension } from "@opencraft/plugin-builtin-agents";
 import { createHyperNodeExtension } from "@opencraft/plugin-hypernode";
 import {
   HOST_PROFILE_CONTRIBUTION_CHANNEL,
@@ -260,7 +260,7 @@ test("headless Codex inherits the packaged Linux browse root instead of claiming
     },
   });
   try {
-    await extensions.activate(createHeadlessCodexExtension({
+    await extensions.activate(createHeadlessServerExtension({
       requestHost: async () => { throw new Error("No Host requests during activation"); },
       createTransport: () => { throw new Error("No transport during activation"); },
       workspaceBrowseRoots: ["/"],
