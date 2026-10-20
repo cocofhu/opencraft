@@ -115,7 +115,7 @@ function MeasuredTurnRow({
 }
 
 /**
- * r3562 Um/Ie: child owner of measured heights, virtual layout, render window
+ * Child owner of measured heights, virtual layout, render window
  * and targeting. It has no Activity identity, submit snapshot, follow mode,
  * response animation or provider state. Response policy lives in its parent.
  */
@@ -208,7 +208,7 @@ export function VirtualizedConversationTurns({
 
   const updateVirtualViewport = useCallback(
     (distance: number, element: HTMLDivElement) => {
-      // r3562: an in-flight measurement owns the coherent layout/window pair.
+      // An in-flight measurement owns the coherent layout/window pair.
       if (pendingMeasurementTransactionRef.current !== null) return;
       const virtualDistance = distanceExcludingBottomPadding(
         distance,
@@ -379,7 +379,7 @@ export function VirtualizedConversationTurns({
     const measurements = viewportOwner.measureNewlyMountedTurns();
     if (measurements.length > 0) commitTurnMeasurements(measurements, false);
   });
-  // r3562 conversation passes no latestTurnSynchronousMeasurementKey (the
+  // Conversation passes no latestTurnSynchronousMeasurementKey (the
   // response wrapper's synchronouslyMeasureLatestTurnUpdates is false).
   // A Turn object change is not permission to measure a transitional tree:
   // AnimatePresence may still contain outgoing work beside the new answer.

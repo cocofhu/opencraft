@@ -182,7 +182,7 @@ try {
     const placed = await geometry(oldIndex);
     assert.ok(frames.sameNode, "demotion to history must preserve the exact rendered subtree");
     assert.equal(placed.reads, before.reads + 1, "one Activity consumes one submission snapshot");
-    assert.ok(Math.abs(placed.distance - 1) < 1, "r3562 placement target is 1px");
+    assert.ok(Math.abs(placed.distance - 1) < 1, "placement target is 1px");
     const expectedShift = frames.newHeight + 12 + before.distance - 1 + placed.spacer - before.spacer;
     assert.ok(Math.abs((before.top - placed.top) - expectedShift) < 2, "history movement must be fully accounted for, with no extra compensation");
     assert.ok(frames.tops.every((value, i) => i === 0 || value <= frames.tops[i - 1]! + 2), "send animation must not jump up and recoil");

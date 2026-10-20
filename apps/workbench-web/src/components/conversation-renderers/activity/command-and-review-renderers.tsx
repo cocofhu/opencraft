@@ -27,7 +27,7 @@ import { ConversationDocumentContext } from "../../conversation/document-context
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
 import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
-import { ActivityDisclosure, CadencedShimmer, useCodexActivityOpen } from "./activity-disclosure";
+import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "./activity-disclosure";
 import { activityIcon } from "./activity-icon";
 
 
@@ -94,7 +94,7 @@ export function AutomaticApprovalReviewList({ reviews }: { readonly reviews: rea
 export function AutomaticApprovalReviewBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "automatic-approval-review" }> }) {
   const review = block.review;
   const running = review.status === "inProgress";
-  const [open, setOpen] = useCodexActivityOpen(running);
+  const [open, setOpen] = useActivityOpen(running);
   return <ActivityDisclosure icon={<AutomaticApprovalReviewIcon />} summary={summarizeAutomaticApprovalReviewAction(review.action)}
     running={running} status={running ? "running" : review.status === "denied" ? "failed" : review.status === "aborted" ? "interrupted" : "completed"}
     open={open} onOpenChange={setOpen}>

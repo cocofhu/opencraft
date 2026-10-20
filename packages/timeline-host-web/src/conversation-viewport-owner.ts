@@ -76,7 +76,7 @@ export type WebConversationMeasurementListener = (
   batch: WebConversationMeasurementBatch,
 ) => void;
 
-/** r3562 has two measurements, not two competing follow policies. */
+/** Separate the two measurements from follow-policy ownership. */
 export type WebConversationLatestTurnMeasurement =
   | (LatestTurnMeasurementChange & {
       readonly kind: "turn-height";
@@ -473,7 +473,7 @@ export class WebConversationViewportOwner {
   observeViewportGeometry(onChange: () => void): () => void {
     const element = this.scrollElementRef.current;
     if (element === null || this.disposed) return () => undefined;
-    // r3562 oO: initialize once, then coalesce scrollport/window resizes.
+    // Initialize once, then coalesce scrollport/window resizes.
     // Content height belongs to the virtualizer's row measurement transaction.
     // Observing its ancestor here creates a shallower, skipped RO notification
     // when a row callback synchronously commits the virtual layout.
@@ -527,7 +527,7 @@ export class WebConversationViewportOwner {
     return measurements;
   }
 
-  /** r3562's pre-paint mount queue, separate from asynchronous resize records. */
+  /** Pre-paint mount queue, separate from asynchronous resize records. */
   measureNewlyMountedTurns(): readonly WebConversationTurnMeasurement[] {
     const measurements: WebConversationTurnMeasurement[] = [];
     for (const [turnKey, element] of this.newlyMountedTurns) {

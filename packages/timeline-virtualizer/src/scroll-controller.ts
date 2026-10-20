@@ -155,7 +155,7 @@ export class TurnScrollController {
       this.#host.cancelFrame(this.#preserveFrame);
       this.#preserveFrame = null;
     }
-    // r3562 Ge reads u(element) at command time. The confirmed distance owns
+    // Read the physical origin at command time. The confirmed distance owns
     // cross-event layout preservation, but must not become a stale animation
     // origin when the browser has moved before delivering its scroll event.
     const initialDistance = Math.max(0, this.#host.getMetrics().distanceFromBottomPx);

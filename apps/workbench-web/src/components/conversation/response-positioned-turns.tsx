@@ -54,7 +54,7 @@ export interface ResponsePositionedTurnsApi extends ConversationScrollApi {
 }
 
 /**
- * r3562 oO: optional owner of latest-response placement/follow and response
+ * Optional owner of latest-response placement/follow and response
  * restore state. Never mounted by the natural viewport policy.
  */
 export function ResponsePositionedTurns({
@@ -100,7 +100,7 @@ export function ResponsePositionedTurns({
     restoredLatestTurn,
   });
   const responsePositioning = responsePositioningRef.current;
-  // r3562 U/ee: first live mount is an allowance consumed by the SAME
+  // First live mount is an allowance consumed by the SAME
   // Activity transition as subsequent submits, never a second placement path.
   const initialPlacementPendingRef = useRef(
     isLatestTurnInProgress
@@ -174,7 +174,7 @@ export function ResponsePositionedTurns({
     latestTurnOffset.set(0);
     responseSpacerHeight.set(nextHeight);
     if (element === null) return;
-    // Sample before changing geometry, as r3562 De does.
+    // Sample before changing geometry.
     const nextDistance = Math.max(0, previousDistance + nextHeight - currentHeight);
     scrollController.scrollToDistanceFromBottomPx(nextDistance, "instant");
   }, [latestTurnOffset, responseSpacerHeight, scrollController, stopResponseAnimations]);
@@ -353,10 +353,10 @@ export function ResponsePositionedTurns({
     },
   }), [clearResponseSpacer, isLatestTurnInProgress, latestTurnPhase, responsePositioning, responseSpacerHeight, scrollController, setFollowState, updateFooterPreservationPolicy]);
 
-  // r3562 ScrollLayout publishes this bit in the controller context. Crossing
+  // Scroll layout publishes this bit in the controller context. Crossing
   // its 24px boundary changes that context and renews the response observer.
   // Do not substitute button visibility: that additionally excludes spacer.
-  // This is the controller's read-only React context projection (r3562 Se),
+  // This is the controller's read-only React context projection,
   // not another distance owner. Preserve normal React publication timing;
   // useSyncExternalStore would impose external-store publication semantics.
   const [isScrolledFromBottom, setIsScrolledFromBottom] = useState(false);
@@ -381,7 +381,7 @@ export function ResponsePositionedTurns({
   }, [responsePositioning, scrollController]);
 
   /**
-   * r3562 oO/Ye: parent response policy, after the virtualizer child's layout
+   * Parent response policy, after the virtualizer child's layout
    * effects. It never inspects the child's layout or measurement transaction.
    */
   const updateLatestTurnLifecycle = useStableEvent((element: HTMLDivElement): void => {
@@ -421,7 +421,7 @@ export function ResponsePositionedTurns({
             "instant",
           );
         }
-        // r3562 returns here; don't let a simultaneous phase transition take
+        // Do not let a simultaneous phase transition take
         // back the reading position explicitly preserved by this submission.
         return;
       }

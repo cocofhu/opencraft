@@ -1269,7 +1269,7 @@ for (const [confirmed, physical] of [[0, 800], [400, 800], [400, 20]] as const) 
         const [id, callback] = frames.entries().next().value!;
         frames.delete(id);
         callback(130);
-        assert.equal(distance, physical / 8, "r3562 cubic animation must use the current physical origin");
+        assert.equal(distance, physical / 8, "cubic animation must use the current physical origin");
       }
     } finally {
       controller.dispose();

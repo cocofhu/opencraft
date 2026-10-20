@@ -1,11 +1,5 @@
-/** Recovered from join runtime SHA256
- * ac9737d51dfe4b5b9896f9de96070f5a69b115f71c7fdad1d5fe7217d6877686.
- * The surviving 2026-10-06 TypeScript covered only earlier rooms/receipts.
- * This module retains the deployed draft/native mapping, idempotency and slot
- * behavior; it borrows CodexHostStateDatabase rather than opening a second writer.
- * Recovery evidence and comparison boundaries: docs/managed-headless.md.
- */
-// apps/opencraft-daemon/src/codex-bot-bridge.ts
+/** Native message mapping, idempotency and slot ownership share the existing
+ * CodexHostStateDatabase writer. */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
