@@ -93,7 +93,7 @@ export function MorningOverview({ tasks, members, aiResearch, activity, port, on
           {group.items.map(task => {
             const report = handoffFor(task);
             const ageHours = report ? Math.max(0, Math.floor((now - report.readyAt) / 3_600_000)) : 0;
-            return <li className={`tasks-morning__item${group.id === "overdue" ? " tasks-morning__item--overdue" : ""}`} key={task.id}>
+            return <li className={`tasks-morning__item${group.id === "overdue" ? " tasks-morning__item--overdue" : ""}`} key={task.id} data-morning-task-id={task.id}>
               <div className="tasks-morning__item-heading"><h4>{task.title}</h4><SettingsButton variant="quiet" onClick={() => onOpen(task)} aria-label={text(`查看事项：${task.title}`, `Open task: ${task.title}`)}><ArrowUpRight size={16} aria-hidden="true" /></SettingsButton></div>
               {report ? <dl className="tasks-morning__handoff"><dt>{text("阶段产出", "Output")}</dt><dd>{report.output}</dd><dt>{text("需要判断", "Decision")}</dt><dd>{report.decision}</dd><dt>{text("判断后下一步", "Next step")}</dt><dd>{report.nextStep}</dd></dl> : <p>{task.aiResearchReason || text("预研依据待补充", "Research basis to be added")}</p>}
               <div className="tasks-morning__item-footer"><span>{members.find(member => member.id === task.assigneeId)?.name ?? text("尚未承接", "Unassigned")}</span>

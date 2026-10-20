@@ -383,7 +383,7 @@ function TaskCardContents({ task, members, onEdit, onQuick, onArchive, onOpen, a
           {task.title}
         </button>
       </div>
-      {task.latestProgress ? <p className="tasks-card__progress" title={task.latestProgress.text}>{task.latestProgress.text}</p> : null}
+      {task.latestProgress ? <p className="tasks-card__progress" title={parseResearchHandoff(task.latestProgress.text)?.output ?? task.latestProgress.text}>{parseResearchHandoff(task.latestProgress.text)?.output ?? task.latestProgress.text}</p> : null}
       <TaskConversationShortcut task={task} activity={activity} onOpen={onOpen} onEdit={onEdit} />
       <ResearchBadge task={task} />
       <TaskMeta task={task} members={members} compactOwner />
