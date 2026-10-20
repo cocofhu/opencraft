@@ -11,7 +11,7 @@ import type { DesktopBackend } from "./contract";
 import { DesktopViewController, type DesktopViewSnapshot } from "./controller";
 import type { DesktopSurfaceFactory } from "./viewer";
 import { useDesktopControlAction } from "./control-action";
-import { bindDesktopInteractionOwner, ownsDesktopFocus } from "./interaction-owner";
+import { bindDesktopInteractionOwner, bindDesktopHoverControl, ownsDesktopFocus } from "./interaction-owner";
 
 export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefined,
   controllers: Map<DesktopViewController, string>) {
@@ -21,6 +21,8 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
     const element = useRef<HTMLDivElement>(null);
     const trackpad = useRef<HTMLDivElement>(null);
     const controller = useRef<DesktopViewController | null>(null);
+    const activeRef = useRef(active);
+    activeRef.current = active;
     const [snapshot, setSnapshot] = useState<DesktopViewSnapshot>(() => {
       // A cached capability is a presentation hint, not authorization. Avoid
       // painting an unavailable frame before the real controller starts.
@@ -39,10 +41,11 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
      * window deactivation cancels it, so a late grant can never pull the user
      * back from another task. */
     const takeoverRef = useRef<(() => void) | null>(null);
+    const hoverRef = useRef<ReturnType<typeof bindDesktopHoverControl> | null>(null);
     const requestTakeover = useCallback(() => {
       const current = controller.current;
       const owner = panel.current;
-      if (!active || !current || !owner || !adapter?.backend.requestTakeover || current.getSnapshot().phase !== "ready") return;
+      if (!activeRef.current || !current || !owner || !adapter?.backend.requestTakeover || current.getSnapshot().phase !== "ready") return;
       takeoverRef.current?.();
       // Keep the explicit gesture on a stable owner while the reconnect hides
       // the toolbar. This runs now, never when a delayed grant arrives.
@@ -86,12 +89,24 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       controller.current = current;
       controllers.set(current, ownerId);
       current.setActive(active);
-      const unsubscribe = current.subscribe(() => setSnapshot(current.getSnapshot()));
-      const disposeInteraction = bindDesktopInteractionOwner(owner, () => current.releaseControl());
+      const hover = bindDesktopHoverControl(owner, element.current, () => {
+        const state = current.getSnapshot();
+        if (!activeRef.current || !owner.ownerDocument.hasFocus() || owner.ownerDocument.visibilityState !== "visible") return "retired";
+        if (state.phase === "connecting") return "waiting";
+        if (state.phase !== "ready" || state.control !== "observing") return "retired";
+        if (state.canControl) void current.requestControl();
+        else if (adapter.backend.requestTakeover) requestTakeover();
+        else return "retired";
+        return "requested";
+      }, () => { takeoverRef.current?.(); current.releaseControl(); });
+      hoverRef.current = hover;
+      const unsubscribe = current.subscribe(() => { setSnapshot(current.getSnapshot()); hover.ready(); });
+      const disposeInteraction = bindDesktopInteractionOwner(owner, () => { hover.retire(); current.releaseControl(); });
       current.start();
       setSnapshot(current.getSnapshot());
       return () => {
         takeoverRef.current?.();
+        hover.dispose(); hoverRef.current = null;
         unsubscribe();
         disposeInteraction();
         controller.current = null;
@@ -100,7 +115,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
       };
     }, [tab.resource, ownerId]);
     useLayoutEffect(() => {
-      if (!active) takeoverRef.current?.();
+      if (!active) { takeoverRef.current?.(); hoverRef.current?.retire(); }
       controller.current?.setActive(active);
     }, [active]);
 

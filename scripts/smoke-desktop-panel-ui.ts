@@ -412,6 +412,9 @@ try {
     const counts = await page.evaluate(() => (window as any).__desktopUi.counts());
     assert.equal(counts.preparations, 2); assert.equal(counts.mounts, 2);
     assert.equal(await page.evaluate(() => (window as any).__surfaceBefore === document.querySelector(".cloud-desktop-panel__surface")), true);
+    // The following assertions exercise explicit toolbar activation. Leave
+    // the media first so the new mouse-entry control intention is retired.
+    if (width !== 320) await page.mouse.move(0, 0);
     await page.evaluate(() => (window as any).__desktopUi.locale("zh-CN"));
     const chineseTake = page.getByRole("button", { name: "接管桌面", exact: true });
     await chineseTake.waitFor();

@@ -55,3 +55,33 @@ export function ownsDesktopFocus(owner: HTMLElement): boolean {
   const active = root.activeElement;
   return active !== null && owner.contains(active);
 }
+
+/** One mouse entry is one control intention, including initial media loading.
+ * Readiness notifications cannot re-arm a spent or cancelled entry. */
+export function bindDesktopHoverControl(owner: HTMLElement, surface: HTMLElement,
+  attempt: () => "waiting" | "requested" | "retired", release: () => void) {
+  let armed = false, requested = false, checking = false, revision = 0;
+  const ready = () => {
+    if (!armed || checking) return;
+    const ticket = revision;
+    checking = true;
+    try {
+      const result = attempt();
+      if (revision === ticket && result !== "waiting") { armed = false; requested = result === "requested"; }
+    } finally { checking = false; }
+  };
+  const enter = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse" || event.buttons !== 0 || requested) return;
+    armed = true; ready();
+  };
+  const retire = () => {
+    revision++; armed = false;
+    if (requested) { requested = false; release(); }
+  };
+  const leave = (event: PointerEvent) => { if (event.pointerType === "mouse") retire(); };
+  surface.addEventListener("pointerenter", enter);
+  owner.addEventListener("pointerleave", leave);
+  return { ready, retire, dispose() {
+    retire(); surface.removeEventListener("pointerenter", enter); owner.removeEventListener("pointerleave", leave);
+  } };
+}

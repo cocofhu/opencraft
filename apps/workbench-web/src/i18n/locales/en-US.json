@@ -260,7 +260,7 @@
   "panel.actionFailed": "Could not open the preview. Try again.",
   "panel.addressHint": "Enter an address above to navigate",
   "composer.cloudComputer": "Cloud computer",
-  "panel.desktopEntry": "Desktop",
+  "panel.desktopEntry": "Cloud computer",
   "panel.browser": "Browser",
   "panel.close": "Close preview panel",
   "panel.closeTab": "Close {title}",

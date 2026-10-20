@@ -624,8 +624,8 @@ export function App({
       label: intl.formatMessage({ id: "panel.newBrowser", defaultMessage: "New browser tab" }),
       creationLabel: intl.formatMessage({ id: "panel.browser", defaultMessage: "Browser" }),
     } : action.id === "opencraft.cloud-desktop.open" ? { ...action,
-      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
-      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
+      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
+      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
     } : action.id === "workspace.files.open" ? { ...action,
       label: intl.formatMessage({ id: "panel.openFiles", defaultMessage: "Open files" }),
       creationLabel: intl.formatMessage({ id: "panel.files", defaultMessage: "Files" }),
@@ -1563,7 +1563,7 @@ export function App({
     open: panelState.right.open, fullWidth: panelState.rightPanelFullWidth,
     activeTabId: panelState.right.activeTabId,
     tabs: panelState.right.tabs.map(tab => ({ id: tab.id,
-      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" })
+      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" })
         : tab.kind === "browser" && tab.title === "New tab"
         ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title.slice(0, 512),
       kind: tab.kind, closable: tab.closable, preview: tab.preview })),

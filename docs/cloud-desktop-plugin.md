@@ -546,18 +546,36 @@ gesture also focuses it without granting input. Toolbar-to-media focus movement
 stays inside the owner. Blur, cancellation and target/connection retirement abort
 clipboard intentions along with input.
 
-The Paste action, focused Ctrl/Meta+V and native paste gesture share one
-controller-owned clipboard transaction. Local text is read only on an explicit
+Mouse entry into ready media requests control once and focuses that surface before
+awaiting the backend grant. Entry during initial loading waits for readiness;
+leaving the panel, outside focus, hidden presentation or failure retires it.
+Stop does not re-arm a stationary pointer, and reconnect does not restore input.
+Touch continues to use explicit takeover. A read-only provider with takeover
+support consumes one entry for one authorized reconnect, without polling.
+The tab, overflow menu and drag label share the localized Cloud computer title.
+
+The Paste action and native Ctrl/Meta+V gesture share one controller-owned
+clipboard transaction. The shortcut suppresses the decoder's raw V while
+preserving the browser default paste event, then consumes its clipboardData;
+it does not request asynchronous clipboard-read permission on keydown. Local text is read only on an explicit
 gesture while this exact control lease is valid. Pending reads coalesce, time out
 after 5 seconds and are fenced across revocation/reconnection; text is limited to
-16,384 UTF-16 units. The decoder's `clipboardready` means basic ClientCutText or
-extended Provide has been sent on the ordered stream, NOT remote application
-acceptance. Only then does the media adapter emit paste keys. Provide waits are
+16,384 UTF-16 units. Notify/basic text is queued before the paste keys on the same stream. Extended
+peers may request Provide only after the application receives Ctrl+V; waiting for
+Provide before sending keys deadlocks such peers. `clipboardready` confirms basic
+ClientCutText or extended Provide has been sent, not remote application acceptance.
+The transaction waits for that completion after emitting the shortcut. Provide waits are
 bounded at 5 seconds; timeout/revoke clears retained local clipboard data and
 cannot emit late keys. Legacy Latin-1 clipboard rejects unsupported characters
 instead of silently corrupting text; extended clipboard transports UTF-8.
-No unsolicited peer-to-local OS clipboard writes or background reads are added.
-Remote copy-to-local remains unverified. Browser IME verification below is not an
+Ctrl/Cmd+C arms one bounded remote-copy transaction for the current grant. The
+decoder still delivers Ctrl+C; Cmd+C is translated to the remote Control shortcut.
+Only its peer clipboard response can satisfy the browser write. Where supported,
+the browser write starts synchronously with a promised text Blob to preserve the
+user gesture. Updates without a copy intention, oversized responses and responses
+after leave/revocation never write local clipboard data. No background reads or
+unsolicited peer-to-local writes are added. Native input-only providers retain
+their explicit lack of clipboard transport. Browser IME verification below is not an
 iPhone system-keyboard acceptance claim.
 
 ### Pointer, viewing gestures and mobile text input

@@ -1,7 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";
-import { bindDesktopInteractionOwner, ownsDesktopFocus } from "../plugins/cloud-desktop/src/interaction-owner";
+import { bindDesktopInteractionOwner, bindDesktopHoverControl, ownsDesktopFocus } from "../plugins/cloud-desktop/src/interaction-owner";
+
+test("mouse entry consumes one ready intention; leaving or stopping cannot re-arm it", () => {
+  const dom = new JSDOM('<section><canvas></canvas><button>Stop</button></section>');
+  const owner = dom.window.document.querySelector('section')!, surface = owner.querySelector('canvas')!;
+  let phase: "waiting" | "requested" | "retired" = "waiting", requests = 0, releases = 0;
+  const hover = bindDesktopHoverControl(owner, surface, () => {
+    if (phase === "requested") requests++;
+    return phase;
+  }, () => releases++);
+  const pointer = (target: HTMLElement, type: string, pointerType = "mouse", buttons = 0) => {
+    const event = new dom.window.MouseEvent(type, { buttons });
+    Object.defineProperty(event, 'pointerType', { value: pointerType }); target.dispatchEvent(event);
+  };
+  try {
+    pointer(surface, 'pointerenter', 'touch'); phase = 'requested'; hover.ready(); assert.equal(requests, 0);
+    pointer(surface, 'pointerenter', 'mouse', 1); hover.ready(); assert.equal(requests, 0, 'dragging from outside keeps its owner');
+    phase = 'waiting'; pointer(surface, 'pointerenter'); pointer(owner, 'pointerleave');
+    phase = 'requested'; hover.ready(); assert.equal(requests, 0, 'late media readiness cannot take control after leaving');
+    phase = 'waiting'; pointer(surface, 'pointerenter'); phase = 'requested'; hover.ready(); hover.ready();
+    assert.equal(requests, 1);
+    hover.retire(); hover.ready(); assert.equal(releases, 1); assert.equal(requests, 1);
+    pointer(surface, 'pointerenter'); assert.equal(requests, 2, 'fresh mouse entry can take again');
+    pointer(owner, 'pointerleave'); hover.ready(); assert.equal(releases, 2); assert.equal(requests, 2);
+    phase = 'retired'; pointer(surface, 'pointerenter'); phase = 'requested'; hover.ready();
+    assert.equal(requests, 2, 'failure or existing control consumes the old entry');
+  } finally { hover.dispose(); dom.window.close(); }
+});
 
 test("unknown mobile focusout is not an outside interaction; keyboard handoff retains scope", async () => {
   const dom = new JSDOM('<section><canvas tabindex="0"></canvas><button>Keyboard</button><textarea></textarea></section><button id="outside">Chat</button>');
