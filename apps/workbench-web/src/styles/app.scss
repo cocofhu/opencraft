@@ -11957,6 +11957,31 @@ html[data-codex-window-type="electron"] .thread-scroll {
   display: flex; align-items: center; justify-content: flex-end;
   &:empty { display: none; }
 }
+// Metadata contributions replace the project line without nesting interactive
+// controls inside the navigation button. Both siblings share the row tracks.
+.sidebar-activity-item-container[data-badge-placement="metadata"] {
+  grid-template-rows: auto auto;
+  row-gap: 1px;
+  .sidebar-activity-item {
+    grid-row: 1 / 3;
+    grid-template-rows: subgrid;
+    row-gap: 1px;
+    .sidebar-activity-item__body { display: contents; }
+    .sidebar-activity-item__title-line { grid-column: 1; grid-row: 1; }
+  }
+  .sidebar-activity-item__badge-slot {
+    grid-column: 1; grid-row: 2;
+    justify-self: start; justify-content: flex-start; gap: 4px;
+    margin-inline-start: var(--padding-sidebar-activity-row-inline);
+    margin-block-end: 6px;
+    min-width: 0; max-width: calc(100% - var(--padding-sidebar-activity-row-inline));
+    .sidebar-activity-item__state-label {
+      @include typography.role(metadata, tertiary);
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 0 1 auto;
+    }
+  }
+}
 .sidebar-activity-item__state-label { flex: 0 0 auto; }
 .sidebar-new-chat {
   @include controls.navigation-control;
@@ -12431,7 +12456,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &:has(.sidebar-activity-item__state-label) {
     --sidebar-secondary-line-height: var(--typography-metadata-line-height);
   }
-  .sidebar-activity-item__badge-slot,
+  .sidebar-activity-item__badge-slot:not([data-placement="metadata"]),
   .sidebar-activity-item__trailing { translate: 0 var(--sidebar-title-accessory-offset); }
   .sidebar-activity-item__menu-trigger {
     > svg { translate: 0 var(--sidebar-title-accessory-offset); }

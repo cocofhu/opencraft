@@ -78,13 +78,15 @@ export function SidebarActivityItem({
   readonly unread: boolean;
 }) {
   const intl = useIntl();
+  const metadataBadge = Boolean(badge) && badgePlacement === "metadata";
+  const stateLabel = twoLine ? <span className="sidebar-activity-item__state-label">{status === "running" ? <FormattedMessage id="sidebar.status.running" defaultMessage="Running" /> : status === "review" ? <FormattedMessage id="sidebar.status.review" defaultMessage="Ready for review" /> : status === "error" ? <FormattedMessage id="sidebar.status.error" defaultMessage="Conversation error" /> : <FormattedMessage id="sidebar.status.unread" defaultMessage="New reply" />}</span> : null;
   const scheduleLabel = !schedule ? null : schedule.needsReview
     ? intl.formatMessage({ id: "sidebar.schedule.review", defaultMessage: "Scheduled task: needs checking" })
     : schedule.status === "paused"
       ? intl.formatMessage({ id: "sidebar.schedule.paused", defaultMessage: "Scheduled task: paused" })
       : intl.formatMessage({ id: "sidebar.schedule.next", defaultMessage: "Scheduled task: next run {time}" }, { time: intl.formatDate(schedule.nextRunAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) });
   return (
-    <div className="sidebar-activity-item-container" data-has-badge={badge ? "true" : undefined} data-row-lines={twoLine || project ? "two" : "one"}><button
+    <div className="sidebar-activity-item-container" data-has-badge={badge ? "true" : undefined} data-badge-placement={metadataBadge ? "metadata" : undefined} data-row-lines={metadataBadge || twoLine || project ? "two" : "one"}><button
       type="button"
       disabled={disabled}
       className={[
@@ -101,8 +103,8 @@ export function SidebarActivityItem({
       <span className="sidebar-activity-item__body">
         <span className="sidebar-activity-item__title-line"><span className="sidebar-activity-item__title">{title}</span>
           {scheduleLabel ? <span className="sidebar-activity-item__schedule" role="img" aria-label={scheduleLabel} title={scheduleLabel}><Clock size={16} aria-hidden="true" /></span> : null}</span>
-        {twoLine || project ? <span className="sidebar-activity-item__metadata">
-          {twoLine ? <span className="sidebar-activity-item__state-label">{status === "running" ? <FormattedMessage id="sidebar.status.running" defaultMessage="Running" /> : status === "review" ? <FormattedMessage id="sidebar.status.review" defaultMessage="Ready for review" /> : status === "error" ? <FormattedMessage id="sidebar.status.error" defaultMessage="Conversation error" /> : <FormattedMessage id="sidebar.status.unread" defaultMessage="New reply" />}</span> : null}
+        {!metadataBadge && (twoLine || project) ? <span className="sidebar-activity-item__metadata">
+          {stateLabel}
           {twoLine && project ? <span aria-hidden="true">·</span> : null}
           {project ? <span className="sidebar-activity-item__project">{project}</span> : null}
         </span> : null}
@@ -110,6 +112,6 @@ export function SidebarActivityItem({
       <span className="sidebar-activity-item__trailing">
         <ThreadActivity id={activityId} pending={pending} status={status} unread={unread} goalActive={goalActive} />
       </span>
-    </button>{badge ? <div className="sidebar-activity-item__badge-slot" data-placement={badgePlacement}>{badge}</div> : null}</div>
+    </button>{badge ? <div className="sidebar-activity-item__badge-slot" data-placement={badgePlacement}>{badge}{metadataBadge ? stateLabel : null}</div> : null}</div>
   );
 }

@@ -1850,3 +1850,15 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+
+## Sidebar metadata badge placement (2026-10-20)
+
+A thread badge contribution may select `metadata` placement to replace the visible
+project line below the title. Shell owns shared row tracks and the existing
+activity/menu lane; the title consumes the released trailing width. The badge
+remains a sibling control, never a button nested in the navigation button.
+Attention text may follow the badge; workspace identity remains in the row tooltip
+and thread model. Missing/hidden contributions retain the default project line.
+Default `trailing` placement and menu/popover exclusivity are unchanged. Products
+own the content and select placement; Shell owns geometry across input modes.
