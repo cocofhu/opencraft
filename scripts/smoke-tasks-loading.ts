@@ -35,7 +35,7 @@ try {
   for (const width of [1440, 390]) for (const theme of ["light", "dark"] as const) {
     const context = await browser.newContext({ viewport: { width, height: 920 }, hasTouch: width === 390, isMobile: width === 390, colorScheme: theme });
     const page = await context.newPage(); page.setDefaultTimeout(15000);
-    await page.addInitScript(preference => localStorage.setItem("vela.appearance-theme", preference), theme);
+    await page.addInitScript(preference => localStorage.setItem("opencraft.appearance-theme", preference), theme);
     page.on("pageerror", e => errors.push(e.message));
     let heldMethod: string | null = TASKS.capabilities;
     type Reply = { route: WebSocketRoute; raw: string | Buffer };
