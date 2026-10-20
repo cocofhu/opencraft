@@ -170,3 +170,36 @@ test("durable Host clients send outbox input to Pi without DSH queue or history 
   assert.ok(!sent.includes("thread/queue/add"));
   assert.ok(!sent.includes("thread/turns/list"));
 });
+
+
+test("workspace first submission accepts native full access and retains project ownership on restart", async t => {
+  const f = await fixture(t, [fauxAssistantMessage("First workspace reply")]);
+  const permissions = "opencraft:permission-mode:full";
+  const created = await f.engine.request("thread/start", {
+    model: piModel("faux", "faux-1"), permissions, projectId: "workspace-project", cwd: f.directory,
+    runtimeWorkspaceRoots: [f.directory], serviceTier: null, historyMode: "paginated",
+  }, noTools);
+  assert.equal(created.thread.projectId, "workspace-project");
+  assert.equal(created.activePermissionProfile.id, permissions);
+  const done = completed(f.engine);
+  await f.engine.request("turn/start", { threadId: created.thread.id, permissions,
+    sandboxPolicy: { type: "dangerFullAccess" }, approvalPolicy: "never",
+    clientUserMessageId: "workspace-first", input: [{ type: "text", text: "hello workspace" }] }, noTools);
+  assert.equal((await done).status, "completed");
+  await f.engine.close();
+  const reopened = new PiEngine({ directory: f.directory, cwd: f.directory, models: fixtureModels([]).models });
+  t.after(() => reopened.close());
+  const restored = await reopened.request("thread/resume", { threadId: created.thread.id, permissions }, noTools);
+  assert.equal(restored.thread.projectId, "workspace-project");
+  assert.equal(restored.activePermissionProfile.id, permissions);
+  assert.equal(restored.thread.turns[0].items.find((item: any) => item.type === "agentMessage").text, "First workspace reply");
+  for (const method of ["thread/start", "thread/resume", "turn/start"]) {
+    for (const override of [{ permissions: "opencraft:permission-mode:read-only" }, { permissions: "custom-profile" },
+      { sandbox: "workspace-write" }, { sandboxPolicy: { type: "workspaceWrite" } }, { approvalPolicy: "on-request" }]) {
+      await assert.rejects(reopened.request(method, { threadId: created.thread.id, model: piModel("faux", "faux-1"),
+        input: [{ type: "text", text: "must not execute" }], ...override }, noTools), /Full access only/);
+    }
+  }
+  await assert.rejects(reopened.request("thread/start", { model: piModel("faux", "faux-1"), developerInstructions: "do not discard" }, noTools), /custom instructions/);
+  assert.equal((await reopened.request("thread/read", { threadId: created.thread.id, includeTurns: true }, noTools)).thread.turns.length, 1);
+});

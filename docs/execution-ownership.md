@@ -330,7 +330,7 @@ settings. Do not copy credentials into thread metadata. The initial integration
 accepts text, native coding tools and client-declared platform tools. Platform tool
 leases expire on client disconnect; they are not marked replay-safe, so recovery
 cannot repeat an external side effect on that assumption. Workspace AGENTS.md files
-are loaded by the coding-agent context loader. Projects, fork/side chat, injected
+are loaded by the coding-agent context loader. Workspace project IDs are retained as catalog metadata across restart; they do not enable project-specific runtime instructions or change the native cwd. The canonical Full access profile and equivalent never-approve/danger-full-access policy are accepted on creation, restore and turns; restricted/custom permission profiles are rejected before execution. Fork/side chat, injected
 history, profile skills, schedules and alternative permission profiles are not yet
 implemented by this provider. Native tools run with the execution owner's filesystem
 and process permissions; this provider does not advertise a sandbox.

@@ -1,3 +1,4 @@
+import { permissionModeProfileId } from "@opencraft/appserver-protocol";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -8,7 +9,7 @@ import type { ExecutionEngineClient as EngineClient } from "@opencraft/appserver
 type Value = Record<string, any>;
 interface Session {
   format: "pi-durable-1"; id: string; cwd: string; model: string; name: string | null; preview: string;
-  createdAt: number; updatedAt: number; archived: boolean; pendingRecovery?: boolean; tools: Value[];
+  createdAt: number; updatedAt: number; archived: boolean; projectId?: string | null; pendingRecovery?: boolean; tools: Value[];
   native?: PiDurableSession; starting?: Promise<PiDurableSession>; owner?: EngineClient;
   active?: Value; items?: Map<string, Value>; stopped?: boolean;
 }
@@ -18,6 +19,16 @@ const selection = (model: string) => {
   if (!match) throw new Error("Select a Pi model; changing an existing thread's engine requires a new thread");
   return { provider: decodeURIComponent(match[1]!), modelId: decodeURIComponent(match[2]!) };
 };
+const fullAccessProfile = permissionModeProfileId("full");
+function assertNativePermissions(params: Value) {
+  const sandbox = params.sandboxPolicy;
+  if (params.permissions != null && params.permissions !== fullAccessProfile
+    || params.sandbox != null && params.sandbox !== "danger-full-access"
+    || sandbox != null && (typeof sandbox !== "object" || sandbox.type !== "dangerFullAccess" || Object.keys(sandbox).some(key => key !== "type"))
+    || params.approvalPolicy != null && params.approvalPolicy !== "never") {
+    throw new Error("Pi supports Full access only; choose Full access or use another engine for restricted permissions");
+  }
+}
 const seconds = () => Math.floor(Date.now() / 1000);
 const textOf = (content: any) => typeof content === "string" ? content : (content ?? []).filter((part: Value) => part.type === "text").map((part: Value) => part.text).join("\n");
 
@@ -135,7 +146,7 @@ export class PiEngine {
   }
   private thread(session: Session, turns: Value[] = []) {
     return { id: session.id, sessionId: session.id, forkedFromId: null, parentThreadId: null,
-      name: session.name, preview: session.preview, ephemeral: false, projectId: null,
+      name: session.name, preview: session.preview, ephemeral: false, projectId: session.projectId ?? null,
       historyMode: "legacy", modelProvider: "pi", model: session.model, reasoningEffort: null,
       createdAt: session.createdAt, updatedAt: session.updatedAt, recencyAt: session.updatedAt,
       status: session.active ? { type: "active", activeFlags: [] } : { type: "idle" },
@@ -147,7 +158,7 @@ export class PiEngine {
   private response(session: Session, turns: Value[] = []) {
     return { thread: this.thread(session, turns), model: session.model, modelProvider: "pi", serviceTier: null,
       cwd: session.cwd, runtimeWorkspaceRoots: [session.cwd], instructionSources: [], disabledPluginIds: [],
-      approvalPolicy: "never", approvalsReviewer: "user", sandbox: { type: "dangerFullAccess" }, activePermissionProfile: null,
+      approvalPolicy: "never", approvalsReviewer: "user", sandbox: { type: "dangerFullAccess" }, activePermissionProfile: { id: fullAccessProfile, extends: null },
       reasoningEffort: null, multiAgentMode: "explicitRequestOnly" };
   }
   private async history(session: Session): Promise<Value[]> {
@@ -268,13 +279,14 @@ export class PiEngine {
       .filter(s => !params.searchTerm || `${s.name ?? ""} ${s.preview}`.toLowerCase().includes(params.searchTerm.toLowerCase()))
       .sort((a,b) => b.updatedAt - a.updatedAt).map(s => this.thread(s)), nextCursor: null };
     if (method === "thread/start") {
-      if (params.ephemeral || params.projectId || params.baseInstructions || params.developerInstructions || params.permissions
-        || params.sandbox && params.sandbox !== "danger-full-access" || params.approvalPolicy && params.approvalPolicy !== "never")
-        throw new Error("Pi currently supports persistent workspace sessions with native full access; custom instructions, projects and permission overrides are not available");
+      assertNativePermissions(params);
+      if (params.ephemeral || params.baseInstructions || params.developerInstructions)
+        throw new Error("Pi supports persistent workspace sessions; custom instructions and temporary sessions are not available");
+      if (params.projectId != null && (typeof params.projectId !== "string" || !params.projectId.trim())) throw new Error("Invalid workspace project identity");
       const selectedModel = params.model ?? (await this.models())[0]?.model;
       selection(selectedModel ?? "");
       const session: Session = { format: "pi-durable-1", id: `pi_${randomUUID()}`, cwd: resolve(params.cwd ?? this.options.cwd), model: selectedModel,
-        name: null, preview: "", createdAt: seconds(), updatedAt: seconds(), archived: false, tools: flattenPiTools(params.dynamicTools ?? []), owner: client };
+        projectId: params.projectId ?? null, name: null, preview: "", createdAt: seconds(), updatedAt: seconds(), archived: false, tools: flattenPiTools(params.dynamicTools ?? []), owner: client };
       this.sessions.set(session.id, session);
       try { await this.native(session); await this.save(session); return this.response(session); }
       catch (error) { this.sessions.delete(session.id); await session.native?.close(); throw error; }
@@ -283,6 +295,7 @@ export class PiEngine {
     if (params.model && !String(params.model).startsWith("pi:")) throw new Error("This thread belongs to Pi; create a new thread to change engines");
     if (method === "thread/read") return { thread: this.thread(session, params.includeTurns ? await this.history(session) : []) };
     if (method === "thread/resume") {
+      assertNativePermissions(params);
       if (!session.active) session.owner = client;
       const turns = await this.history(session);
       await (await this.native(session)).call("resume");
@@ -313,7 +326,7 @@ export class PiEngine {
       if (existing) return { turn: existing };
       if (session.active) throw new Error("Pi thread already has an active turn");
       if (session.archived) throw new Error("Unarchive the Pi thread before executing");
-      if (params.permissions || params.sandboxPolicy || params.approvalPolicy && params.approvalPolicy !== "never") throw new Error("Pi permission overrides are not supported");
+      assertNativePermissions(params);
       if (!Array.isArray(params.input) || params.input.some((part: Value) => part.type !== "text")) throw new Error("Pi currently accepts text input only");
       const rpc = await this.native(session);
       if (params.model) { await rpc.call("set_model", selection(params.model)); session.model = params.model; }
