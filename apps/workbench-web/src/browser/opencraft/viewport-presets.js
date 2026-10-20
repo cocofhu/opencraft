@@ -1,5 +1,4 @@
-// OpenCraft viewport configuration. Application compatibility data and
-// bounded helper authoring are recorded in docs/provenance/browser-viewport-presets-review.md.
+
 
 export let DEFAULT_WEBVIEW_STATE;
 export let RESPONSIVE_PRESET_ID;

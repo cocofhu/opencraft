@@ -375,13 +375,11 @@
       "id": "codex-browser-source-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/browser/opencraft-presentation-host.ts",
-        "apps/workbench-web/src/browser/opencraft/source-manifest.json"
+        "apps/workbench-web/src/browser/opencraft-presentation-host.ts"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
         "docs/provenance/annotation-coverage-20261019.json",
-        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
         "docs/provenance/browser-viewport-resize-baseline.json",
         "docs/provenance/browser-viewport-resize-replacement.md",
         "docs/provenance/browser-transition-baseline.json",
@@ -631,7 +629,6 @@
       "evidence": [
         "docs/provenance/browser-transition-baseline.json",
         "docs/provenance/browser-transition-replacement.md",
-        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
         "tests/opencraft-browser-manager.test.ts"
       ],
       "reason": "The complete module carried an explicit copied-class annotation. The replacement was authored after frozen public contracts and 53 black-box baseline sequences, without printing the old target body as authoring text.",
@@ -796,7 +793,6 @@
       "evidence": [
         "docs/provenance/browser-manager-baseline.json",
         "docs/provenance/browser-manager-replacement.md",
-        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
         "tests/opencraft-browser-manager.test.ts"
       ],
       "reason": "Only the complete explicitly copied class is replaced. The factory/port wrapper, adapter, independent Host/transition, presets and toolbar retained their implementations during that registry batch. The toolbar now has its own separate bounded replacement record. Consumer contracts and initial state/Host/router/Web baselines were frozen before authoring; supplemental idempotence and prewarm observations followed authoring and are recorded separately.",

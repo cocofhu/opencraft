@@ -5,9 +5,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ThreadListModeItems } from "./thread-list-mode-menu";
 import { AvatarImage, type ThreadBadgeContribution, type ThreadListGroupingContribution, type ThreadListGroupingSnapshot, type ThreadListLabel } from "@opencraft/extension-react";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
-// Historical annotation: "Semantically restored from the r1442 AppShell left-panel ownership model."
-// The exported Sidebar declaration has a bounded independent replacement; adjacent helpers remain under review.
-// See docs/provenance/sidebar-content-replacement.md.
+
 import { useIntl } from "@opencraft/i18n/react";
 import {
   ChevronDown,

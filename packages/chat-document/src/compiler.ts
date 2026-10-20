@@ -416,9 +416,7 @@ export interface MarkdownLinkMatch {
   readonly path: string;
 }
 
-/** Application link grammar; historical source and frozen observations:
- * docs/provenance/markdown-link-scanner-replacement.md. Unescaping belongs to the caller.
- */
+
 export function findMarkdownLink(text: string, startIndex: number): MarkdownLinkMatch | null {
   if (!(startIndex < text.length)) return null;
   let phase: "search" | "label" | "path" = "search";

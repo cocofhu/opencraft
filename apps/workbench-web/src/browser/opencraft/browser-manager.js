@@ -1,5 +1,4 @@
-// Independent browser Host registry; consumer contract and historical digests are
-// recorded in docs/provenance/browser-manager-replacement.md.
+
 export function createImplementation(ports) {
 const window = ports.window ?? globalThis.window;
 const document = ports.document ?? globalThis.document;
