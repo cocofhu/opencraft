@@ -41,13 +41,6 @@ Their spelling alone is not an import or a reason to migrate user data.
 
 ## Separate follow-up work
 
-The opt-in historical reference comparisons are not public-gate requirements.
-Against the installed r3562 snapshot, both the unchanged comparator/loader and
-the explicit-input version reproduce a duration-whitespace difference and an
-activity-collapse difference. Their assertions remain intact; these comparisons
-are not reported as passing. Reference inputs and usage are documented in the
-[build matrix](../build-matrix.md#optional-developer-references-and-browser-evidence).
-
 Downstream pin upgrades, replay/retirement of recorded product patches, product
 snapshot drift and deployment validation remain downstream work. This review
 does not integrate pending downstream MR candidates or deploy a product. Native

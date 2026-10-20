@@ -46,7 +46,7 @@
 - 不以修改公共协议适配 DSH，不将原生加载回执搬到 Host。
 
 ## risks
-- 已有 dirty Host/恢复修复必须保留；参考源码只读。
+- 已有 dirty Host/恢复修复必须保留。
 - Provider 层级优先于 rank，不能把 global 注册误当同层覆盖。
 
 ## evidence / scan_scope / scan_output

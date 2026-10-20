@@ -70,17 +70,6 @@ disposer and are owned by Cordis fibers.
 overridden through generic extension fields. They are controlled by explicit
 Resume options and the selected history strategy.
 
-## Recovered-source ledger
-
-The implementation follows the latest recovered fixed point:
-
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/conversations/resume-thread-with-catalog-hydration-04170.js`
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/shared/notification-buffer-04152.js`
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/conversations/fetch-thread-turns-with-items-03705.js`
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/lazy/app-initial/build-complete-thread-island.js`
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/lazy/app-initial/merge-turn-arrays.js`
-- `reference://codex/.runtime/source-tree-build-r1260-static-startup-final/conversations/thread-stream-manager-03715.js`
-
 The real 9988 gate restored 132 Turns for an active Thread, committed owner,
 model, workspace and approval projections, replayed buffered notifications, and
 completed ordinary Tail history drain.

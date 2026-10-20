@@ -39,14 +39,12 @@ Electron Main 三库仍按消费入口懒打开。Local Agent 基础五库及配
 
 Web preferences、Connector configuration 与插件文档继续使用各自 IndexedDB adapter；Web/Expo replica 保持原有平台语义。SQLite debug reader 是只读消费者，不建表、不迁移。DSH/Hermes/Codex 引擎私有存储、JSON 项目/模型配置不由本 runner 接管。`codex-thread-pins` 经原生 reserved section 协议操作，不是另一份本地自有 SQLite；Hermes pins 同样由远端协议 owner 持有。原生 `queue_1.sqlite` 只沿既有队列搬运语义读取/删除已确认导入记录，不接管其 schema；`.codex-writer.sqlite` 只承担 writer lock，排除于业务库清单。类名中的 DSH 不改变 routing/executions 的 OpenCraft 所有权。
 
-## 3. 参考证据与不能照搬的部分
+## 3. 存储边界
 
-- [Paseo](https://github.com/getpaseo/paseo) 固定研究版本 `3cc4ae28664493b2f1ad75a6a6ed1d318c76e944`：借鉴权威数据与 replica cache 分类、跨平台共享语义而非驱动、稳定迁移 ID 与失败重试。没有把其 cache 版本不一致就重建的方式用于有账本权威库。
-- BB：借鉴迁移账本、不可变历史校验与破坏性处置前保留数据，不复制分支修复特例或引入 Drizzle。
-- [Codex runtime migrations](https://github.com/openai/codex/blob/main/codex-rs/state/src/migrations.rs)：参考已知 checksum 校验；OpenCraft 当前严格拒绝未知新版，不沿用其新版记录容忍策略。
-- WB：仅借鉴迁移状态/恢复提示的责任分层，没有据此声称 OpenCraft 已有全局升级 UI 或任意降级能力。
-
-这些是设计参考，不是当前运行时验收证据；本轮未运行参考项目测试。OpenCraft 的事实以以下源码、测试和 smoke 为准。
+权威数据与可重建 replica cache 分开管理；cache 版本变化不授权重建权威库。
+平台共享存储语义，驱动和迁移代码由各 owner 持有。迁移 ID、历史 checksum
+不可改写；失败需可重试，破坏性处置前必须保留数据。未知新版仍严格拒绝打开。
+这不表示存在全局升级 UI 或任意降级能力。运行时验收以当前源码、测试和 smoke 为准。
 
 ## 4. 版本与兼容模型
 

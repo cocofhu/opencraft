@@ -66,7 +66,7 @@
 ### 明确未完成/不支持
 
 - 本机 DSH 0.1.1-rc.2 的 session.fork 只有 sessionId/atSeq，不支持 Codex 的 ephemeral fork；未用持久分支冒充临时侧聊。远端 Hermes 同样按实际协议能力执行。
-- Codex 实验性浏览器紧凑/peek 细节未完整复刻；输入选择/撤销历史跨呈现与完整 Side Chat 窗口确认流程尚未专门实机验收。
+- 浏览器紧凑/peek 细节尚未完整验证；输入选择/撤销历史跨呈现与完整 Side Chat 窗口确认流程尚未专门实机验收。
 - Expo 只通过共享内核/构建检查，本轮未移植桌面 Overlay 布局到 Native。
 - 未 commit、push 或发布，不将本次核心版本称为整个 Codex 产品的全量等价实现。
 
