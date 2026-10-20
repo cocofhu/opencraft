@@ -983,15 +983,8 @@ export function createAppServerWorkbenchRuntime(
       };
       conversation = createReplicaConversationRuntime({
         outbox: config.outbox,
-        canDispatchOutbox: () => {
-          if (phase !== "ready" || requiresManualRecovery() || currentTransport?.status.state !== "open") return false;
-          if (executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue !== false) return true;
-          // Local optimistic pending Turns include the input being admitted.
-          // Only native execution may hold a provider without a server queue.
-          const view = currentSession.views.get(threadId), status = view?.thread?.status;
-          return !(status && typeof status === "object" && "type" in status && status.type === "active"
-            || view?.turns.some(turn => turn.status === "inProgress"));
-        },
+        canDispatchOutbox: () => phase === "ready" && !requiresManualRecovery() && currentTransport?.status.state === "open"
+          && (executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue !== false || !conversation?.getSnapshot().activeTurn),
         canAutoContinueCapacity: () => currentClient.initializeResult?.capabilities?.extensions?.["opencraft/capacity-retry"] === undefined,
         getSubmissionSender: config.getSubmissionSender,
         key: createConversationKey(hostId, threadId),

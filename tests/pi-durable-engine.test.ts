@@ -204,7 +204,7 @@ test("workspace first submission accepts native full access and retains project 
   assert.equal((await reopened.request("thread/read", { threadId: created.thread.id, includeTurns: true }, noTools)).thread.turns.length, 1);
 });
 
-test("first Pi outbox submission drains after baseline without blocking on its own optimistic turn", async t => {
+test("Pi workspace outbox drains after baseline and waits for native completion before follow-up", async t => {
   const { createAppServerWorkbenchRuntime } = await import("../packages/workbench-runtime/src/appserver-runtime.js");
   const { WebSocketTransport } = await import("../packages/appserver-transport-websocket/src/index.js");
   const f = await fixture(t, [fauxAssistantMessage("workspace outbox replied ".repeat(10)), fauxAssistantMessage("queued follow-up replied")], 100);
@@ -249,6 +249,8 @@ test("first Pi outbox submission drains after baseline without blocking on its o
     options: { autoContext: true }, createdAt: 2 });
   assert.equal(rows.length, 1, "follow-up stays local while the native Pi turn is active");
   await done;
+  for (let i = 0; i < 100 && (lease.getSnapshot().threadStatus as any)?.type !== "idle"; i++) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal((lease.getSnapshot().threadStatus as any)?.type, "idle");
   assert.ok(methods.includes("runtime/capabilities/register")); assert.ok(methods.includes("turn/start"));
   assert.ok(!methods.includes("thread/queue/add"));
   const restored = await f.engine.request("thread/read", { threadId: thread.id, includeTurns: true }, noTools);

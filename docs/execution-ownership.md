@@ -318,9 +318,8 @@ The `runtime/engines/list` endpoint describes the enabled engine registry.
 `plugins/pi-engine` embeds the pinned experimental `pi-durable` 1.3.0 SDK in the
 server execution owner. It does not start the legacy Pi CLI RPC process. The owner
 holds each session's SQLite database, writer lock, scheduler and model/tool environment.
-For providers without a server queue, the browser outbox waits on authoritative
-native execution state. Its own optimistic pending Turn is presentation state
-and must not prevent the first locally saved input from reaching `turn/start`.
+For providers without a server queue, the browser outbox holds follow-ups while
+the current Turn is active and preserves input identity across baseline recovery.
 Pi publishes native idle status when a Turn settles so waiting local follow-ups
 can be admitted after the current execution completes.
 Closing the owner suspends work; explicit stop aborts it. On startup the owner checks
