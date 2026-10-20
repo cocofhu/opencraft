@@ -49,6 +49,7 @@ import type {
 import { useStableEvent } from "@opencraft/react-runtime";
 import { nativeProjectPicker } from "./runtime/project-folder-picker";
 import { workInAgentHosts, chooseWorkInHost, ThreadTitleWriter, legacyDirectServerProjectionFromHost } from "@opencraft/workbench-runtime";
+import { ThreadPinWriter } from "./runtime/thread-pin-writer";
 import { readCachedThreadName, writeCachedThreadName } from "./runtime/thread-title-cache";
 import { archiveThread } from "./runtime/thread-archive";
 import { forkAndOpenThread } from "./runtime/thread-fork-navigation";
@@ -381,8 +382,28 @@ export function App({
     },
     [runtime, snapshot.hostId, hostCatalog.agentRuntimes],
   );
-  const catalog = useThreadCatalog();
-  const multiHostCatalog = useMultiHostThreadCatalog();
+  const rawCatalog = useThreadCatalog();
+  const rawMultiHostCatalog = useMultiHostThreadCatalog();
+  const threadPinWriter = useMemo(() => new ThreadPinWriter(queryClient, {
+    capture: key => {
+      const owner = hostCatalog.registry.peekRuntime(key.hostId);
+      const generation = owner?.getSnapshot().connectionGeneration;
+      const profile = hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId);
+      const epoch = hostCatalog.managedHostCatalog?.getAuthorizationEpoch();
+      return () => owner !== undefined && hostCatalog.registry.peekRuntime(key.hostId) === owner
+        && owner.getSnapshot().phase === "ready" && owner.getSnapshot().connectionGeneration === generation
+        && hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId)?.revision === profile?.revision
+        && hostCatalog.managedHostCatalog?.getAuthorizationEpoch() === epoch;
+    },
+    persist: (key, pinned) => hostCatalog.threadManagement.setPinned(key.hostId, key.threadId, pinned),
+  }), [hostCatalog.registry, hostCatalog.hostProfiles, hostCatalog.managedHostCatalog, hostCatalog.threadManagement, queryClient]);
+  const pinRevision = useSyncExternalStore(threadPinWriter.subscribe, threadPinWriter.getSnapshot, threadPinWriter.getSnapshot);
+  const catalog = { ...rawCatalog, threads: useMemo(() => rawCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: snapshot.hostId, threadId: thread.id }, thread)),
+  [rawCatalog.threads, threadPinWriter, pinRevision, snapshot.hostId, snapshot.connectionGeneration, snapshot.phase]) };
+  const multiHostCatalog = { ...rawMultiHostCatalog, threads: useMemo(() => rawMultiHostCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: thread.connectionHostId, threadId: thread.id }, thread)),
+  [rawMultiHostCatalog.threads, threadPinWriter, pinRevision]) };
   const projectCatalog = useProjectCatalog();
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
   const { sidebarOpen, setSidebarOpen } = useResponsiveSidebarDock();
@@ -1347,11 +1368,10 @@ export function App({
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(embedded.hostId, threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }); }
+        await threadPinWriter.set({ hostId: embedded.hostId, threadId }, pinned);
       },
     });
-  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, navigateToHome, queryClient, sendMessage, snapshot.phase]);
+  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, threadPinWriter, navigateToHome, queryClient, sendMessage, snapshot.phase]);
   const workspaceSelectionEpoch = useRef(0);
   useLayoutEffect(() => {
     workspaceSelectionEpoch.current++;
@@ -1670,8 +1690,7 @@ export function App({
               ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
             onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
               ? async pinned => {
-                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, activeThreadId, pinned); }
-                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
+                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
               } : undefined}
             onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
               ? () => archiveThread({
@@ -1750,8 +1769,7 @@ export function App({
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
       onSetPinned: async (target, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(target.hostId, target.threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }); }
+        await threadPinWriter.set(target, pinned);
       },
       onRename: (target, title) => threadTitleWriter.rename(target, title),
       onFork: target => forkAndOpenThread({
