@@ -2131,6 +2131,10 @@ and late restoration from undoing sign-out.
 
 Trusted product assembly can contribute an external identity provider and an
 account entrance without changing core Actor, membership or resource authority.
+A branding-only client product can omit `ClientProductSession.persistenceScope`;
+the application then owns `LocalClientPersistenceScope`, using the active account
+contribution to partition caches and revoke old writes on identity changes.
+Products with credential-incarnation semantics can still supply their own port.
 Account contributions have explicit presentation precedence (`entrancePriority`,
 default 0); equal priorities remain exclusive, and unloading a contribution
 restores the next eligible entrance. A provider omits `signOut` when its gateway

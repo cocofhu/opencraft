@@ -247,7 +247,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     if (sshManagement) { startupRollback.push(() => sshManagement.dispose()); await sshManagement.startDiscovery(webSshDiscoveryLifecycle); }
     const clientProduct = await options.clientProduct?.create({ platform, hostProfileMode: options.hostProfileMode, defaultExtensions: deployment.extensions });
     if (clientProduct) startupRollback.push(() => clientProduct.dispose());
-    const localClientScope = clientProduct ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
+    const localClientScope = clientProduct?.persistenceScope ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
     if (localClientScope) startupRollback.push(() => localClientScope.dispose());
     const clientPersistenceScope = clientProduct?.persistenceScope ?? localClientScope!;
     // Existing task View continuity remains its sole persistence owner. Bot
