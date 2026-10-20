@@ -629,5 +629,6 @@
   "composer.model.configureTitle": "Configure",
   "composer.model.speed": "Speed",
   "composer.model.standardSpeed": "Standard",
-  "composer.model.done": "Done"
+  "composer.model.done": "Done",
+  "composer.resetEffort": "Reset reasoning to model default"
 }

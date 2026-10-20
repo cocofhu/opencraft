@@ -12596,29 +12596,55 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .opencraft-composer-model-quick {
   @include material.surface(menu);
   z-index: 90;
-  width: min(340px, calc(100vw - 24px));
-  padding: 16px 12px 12px;
+  box-sizing: border-box;
+  width: min(288px, calc(100vw - 24px));
+  padding: calc(var(--spacing) * 3);
   border: 1px solid var(--color-border-default);
-  border-radius: 32px;
+  border-radius: var(--radius-2xl);
   outline: none;
 }
+.opencraft-composer-model-quick__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing);
+}
+.opencraft-composer-model-quick__action-slot { width: max(32px, var(--size-control-hit-min)); }
+.opencraft-composer-model-quick__labels { min-width: 0; }
+.opencraft-composer-model-quick__effort {
+  @include typography.role(control-compact, null);
+  color: var(--color-text-accent);
+  min-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .opencraft-composer-model-quick__title {
-  @include typography.role(settings-section-title, primary);
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 32px; padding: 0 8px; border-radius: var(--radius-full);
+  @include typography.role(control-compact, secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing);
+  min-height: max(24px, var(--size-control-hit-min));
+  padding: 0 var(--spacing);
+  border-radius: var(--radius-full);
   cursor: pointer;
   &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
   > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   > svg { flex: none; }
 }
-.opencraft-composer-model-quick__effort { color: var(--color-text-secondary); }
-.opencraft-composer-model-quick__header { display: flex; align-items: center; min-width: 0; }
-.opencraft-composer-model-quick__title { flex: 1; min-width: 0; }
-.opencraft-composer-model-quick__fast {
-  display: flex; align-items: center; justify-content: center; flex: none;
-  width: 44px; height: 44px; border-radius: var(--radius-full); color: var(--color-text-secondary); cursor: pointer;
+.opencraft-composer-model-quick__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(32px, var(--size-control-hit-min));
+  height: max(32px, var(--size-control-hit-min));
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
   &[data-state="checked"] { color: var(--color-icon-accent); }
   &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  &[data-disabled] { opacity: var(--opacity-control-disabled); cursor: default; }
 }
 .opencraft-composer-mode__fast { flex: none; color: var(--color-icon-accent); }
 .opencraft-composer-selection-menu--model-select {

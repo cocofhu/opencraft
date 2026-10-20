@@ -236,21 +236,16 @@
   .ui-discrete-slider__thumb { background: Canvas; border: 1px solid CanvasText; }
 }
 
-// Large ordered choice used in the Composer's focused model surface.
+// Compact capsule uses the shared slider metrics and retains its 44px hit area.
 .ui-discrete-slider[data-appearance="capsule"] {
-  --height-discrete-slider-hit: 48px;
-  --height-discrete-slider-track: 48px;
-  --size-discrete-slider-thumb: 40px;
-  --size-discrete-slider-tick: 12px;
   padding: 0;
-  .ui-discrete-slider__value { margin-bottom: 14px; }
+  .ui-discrete-slider__value { margin-bottom: calc(var(--spacing) * 2); }
   .ui-discrete-slider__surface {
-    padding: 8px 12px;
-    border: 1px solid var(--color-border-default);
+    padding: 0;
     border-radius: var(--radius-full);
-    background: var(--color-discrete-slider-track);
+    background: transparent;
   }
-  .ui-discrete-slider__track { overflow: visible; background: transparent; box-shadow: none; height: 48px; }
+  .ui-discrete-slider__track { overflow: visible; background: var(--color-discrete-slider-track); box-shadow: inset 0 0 0 0.5px var(--color-border-default); height: var(--height-discrete-slider-track); }
   .ui-discrete-slider__range {
     background: transparent;
     // One rounded paint box; joining a narrow range and a circle distorts the first stops.
@@ -261,6 +256,6 @@
       border-radius: var(--radius-full); background: var(--color-discrete-slider-fill);
     }
   }
-  .ui-discrete-slider__thumb { box-shadow: none; flex: none; aspect-ratio: 1; box-sizing: border-box; }
+  .ui-discrete-slider__thumb { flex: none; aspect-ratio: 1; box-sizing: border-box; }
   .ui-discrete-slider__limits { display: none; }
 }

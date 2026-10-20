@@ -1283,7 +1283,7 @@ The standalone Web Composer prioritizes frequent reasoning changes. Its current
 model/effort label opens a focused capsule slider with only the selected model's
 declared efforts. Its title opens a compact Radix model list without capability
 or metadata detail panels. Model switching remains a second action. A lightning
-checkbox at the track's upper right projects only a declared Fast serviceTier,
+checkbox at the header's left projects only a declared Fast serviceTier,
 and the Composer label shows a lightning icon while enabled. Turning it off
 explicitly clears the previous tier with null; Fast uses the server's declared ID.
 Models without Fast hide the checkbox, and model switches clear incompatible
@@ -1291,8 +1291,8 @@ tiers. Embedded session-only policy retains its model-only
 picker and Host-owned reasoning policy.
 
 The shared DiscreteSlider owns the capsule geometry, tick marks and themed
-selected fill/round thumb. The model/effort title previews the held choice;
-dragging never writes defaults until release. Cancellation discards preview.
+selected fill/round thumb. The centered effort heading previews the held choice above the secondary full model name;
+dragging never writes defaults until release. The right-hand reset commits only the current model's declared default effort through the existing selection owner; no default disables it. It does not reset the model or service tier. The focused surface is compact on desktop, while touch actions retain their density-owned hit areas. Its start-aligned anchor remains stable when the Composer effort label changes width; a stationary pointer must not steal keyboard slider focus. Cancellation discards preview.
 Arrow/Home/End/Page keys remain slider-owned; ArrowDown from the title enters the
 slider. Touch-origin adjustment preserves the editor's existing native focus and
 selection through the auxiliary focus lease, including Fast toggles. Radix owns

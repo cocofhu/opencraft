@@ -631,5 +631,6 @@
   "composer.model.configureTitle": "Konfigurasi",
   "composer.model.speed": "Kelajuan",
   "composer.model.standardSpeed": "Standard",
-  "composer.model.done": "Selesai"
+  "composer.model.done": "Selesai",
+  "composer.resetEffort": "Tetapkan semula penaakulan kepada lalai model"
 }

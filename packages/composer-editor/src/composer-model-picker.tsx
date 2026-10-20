@@ -1,14 +1,15 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { DiscreteSlider, type DiscreteSliderOption } from "@opencraft/design-system-web/discrete-slider";
 import { useIntl } from "@opencraft/i18n/react";
-import { BrainCircuit, ChevronRight, Zap } from "lucide-react";
+import { BrainCircuit, ChevronRight, RotateCcw, Zap } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 
 /** Presentation only. Catalog, selection and remembered defaults retain their owners. */
-export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, open, onOpenChange, portalContainer, focus,
-  efforts, effort, onEffortChange, serviceTiers, serviceTier, onServiceTierChange, children }: {
+export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel, disabled, open, onOpenChange, portalContainer, focus,
+  efforts, effort, defaultEffort, onEffortChange, serviceTiers, serviceTier, onServiceTierChange, children }: {
   readonly label: string;
+  readonly modelLabel: string;
   readonly fullLabel: string;
   readonly effortLabel?: string;
   readonly disabled: boolean;
@@ -18,6 +19,7 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
   readonly focus: ReturnType<typeof useInputAuxiliaryMenuFocus>;
   readonly efforts: readonly DiscreteSliderOption[];
   readonly effort: string | null;
+  readonly defaultEffort: string | null;
   readonly onEffortChange: (value: string) => void;
   readonly serviceTiers: readonly { readonly id: string; readonly name: string; readonly description: string }[];
   readonly serviceTier: string | null;
@@ -33,27 +35,42 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
       quick.current?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus({ preventScroll: true });
     }
   }, [modelsOpen]);
-  const modelLabel = intl.formatMessage({ id: "chat.model", defaultMessage: "Model" });
+  const modelMenuLabel = intl.formatMessage({ id: "chat.model", defaultMessage: "Model" });
   const reasoningLabel = intl.formatMessage({ id: "chat.reasoning", defaultMessage: "Reasoning" });
   const fast = serviceTiers.find(tier => tier.id === "fast" || tier.name.toLowerCase() === "fast");
   const fastEnabled = !!fast && serviceTier === fast.id;
   const triggerLabel = fastEnabled ? `${fullLabel} · ${fast.name}` : fullLabel;
+  const resetLabel = intl.formatMessage({ id: "composer.resetEffort", defaultMessage: "Reset reasoning to model default" });
+  const canReset = defaultEffort !== null && effort !== defaultEffort && efforts.some(option => option.value === defaultEffort);
   const title = (current?: string) => (
-<div className="opencraft-composer-model-quick__header">
-    <DropdownMenu.Item className="opencraft-composer-model-quick__title" onSelect={event => { event.preventDefault(); setModelsOpen(true); }}
-      onKeyDown={event => {
-        if (event.key === "ArrowDown" && efforts.length > 1) {
-          event.preventDefault(); event.stopPropagation();
-          quick.current?.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
-        }
-      }}>
-            <span>{label} {current ? <span className="opencraft-composer-model-quick__effort">{current}</span> : null}</span>
-            <ChevronRight size={18} aria-hidden="true" />
-          </DropdownMenu.Item>
-  {fast ? <DropdownMenu.CheckboxItem className="opencraft-composer-model-quick__fast" aria-label={fast.name} title={fast.description || fast.name}
-    checked={fastEnabled} onSelect={event => event.preventDefault()} onCheckedChange={checked => onServiceTierChange(checked ? fast.id : null)}>
-    <Zap size={20} fill={fastEnabled ? "currentColor" : "none"} aria-hidden="true" />
-  </DropdownMenu.CheckboxItem> : null}</div>
+    <div className="opencraft-composer-model-quick__header">
+      <div className="opencraft-composer-model-quick__action-slot">
+        {fast ? <DropdownMenu.CheckboxItem className="opencraft-composer-model-quick__action opencraft-composer-model-quick__fast" aria-label={fast.name} title={fast.description || fast.name}
+          checked={fastEnabled} onSelect={event => event.preventDefault()} onCheckedChange={checked => onServiceTierChange(checked ? fast.id : null)}>
+          <Zap size={18} fill={fastEnabled ? "currentColor" : "none"} aria-hidden="true" />
+        </DropdownMenu.CheckboxItem> : null}
+      </div>
+      <div className="opencraft-composer-model-quick__labels">
+        {current ? <div className="opencraft-composer-model-quick__effort" title={current}>{current}</div> : null}
+        <DropdownMenu.Item className="opencraft-composer-model-quick__title" title={modelLabel}
+          onSelect={event => { event.preventDefault(); setModelsOpen(true); }}
+          onKeyDown={event => {
+            if (event.key === "ArrowDown" && efforts.length > 1) {
+              event.preventDefault(); event.stopPropagation();
+              quick.current?.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
+            }
+          }}>
+          <span>{modelLabel}</span><ChevronRight size={14} aria-hidden="true" />
+        </DropdownMenu.Item>
+      </div>
+      <div className="opencraft-composer-model-quick__action-slot">
+        {efforts.length ? <DropdownMenu.Item className="opencraft-composer-model-quick__action opencraft-composer-model-quick__reset"
+          aria-label={resetLabel} title={resetLabel} disabled={!canReset}
+          onSelect={event => { event.preventDefault(); if (canReset) onEffortChange(defaultEffort!); }}>
+          <RotateCcw size={18} aria-hidden="true" />
+        </DropdownMenu.Item> : null}
+      </div>
+    </div>
   );
   return <>
     <DropdownMenu.Root modal={false} open={open} onOpenChange={next => { if (!next) setModelsOpen(false); onOpenChange(next); }}>
@@ -69,8 +86,8 @@ export function ComposerModelPicker({ label, fullLabel, effortLabel, disabled, o
         </DropdownMenu.Trigger>
       </div>
       <DropdownMenu.Portal container={portalContainer}>
-        <DropdownMenu.Content {...focus.contentProps} ref={node => { quick.current = node; focus.contentProps.ref(node); }} className={modelsOpen ? "opencraft-composer-selection-menu opencraft-composer-selection-menu--model-select" : "opencraft-composer-model-quick"} aria-label={modelsOpen ? modelLabel : fullLabel}
-          side="top" align="center" sideOffset={12} collisionPadding={12}>
+        <DropdownMenu.Content {...focus.contentProps} ref={node => { quick.current = node; focus.contentProps.ref(node); }} className={modelsOpen ? "opencraft-composer-selection-menu opencraft-composer-selection-menu--model-select" : "opencraft-composer-model-quick"} aria-label={modelsOpen ? modelMenuLabel : fullLabel}
+          side="top" align="start" sideOffset={12} collisionPadding={12}>
           {modelsOpen ? children : efforts.length ? <div role="group" aria-label={reasoningLabel}>
               <DiscreteSlider key={JSON.stringify(efforts.map(option => option.value))} appearance="capsule"
                 renderValue={title} options={efforts} value={effort} label={reasoningLabel} unsetLabel={effortLabel ?? reasoningLabel}

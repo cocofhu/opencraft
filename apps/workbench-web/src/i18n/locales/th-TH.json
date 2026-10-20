@@ -631,5 +631,6 @@
   "composer.model.configureTitle": "กำหนดค่า",
   "composer.model.speed": "ความเร็ว",
   "composer.model.standardSpeed": "มาตรฐาน",
-  "composer.model.done": "เสร็จสิ้น"
+  "composer.model.done": "เสร็จสิ้น",
+  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล"
 }

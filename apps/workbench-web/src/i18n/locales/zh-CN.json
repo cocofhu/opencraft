@@ -653,5 +653,6 @@
   "composer.model.configureTitle": "配置",
   "composer.model.speed": "速度",
   "composer.model.standardSpeed": "标准",
-  "composer.model.done": "完成"
+  "composer.model.done": "完成",
+  "composer.resetEffort": "恢复模型默认思考深度"
 }

@@ -2389,13 +2389,13 @@ export const OpenCraftComposer = forwardRef<
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
                 focus={intelligenceFocus} /> : null}
               {modelSelectionPolicy === "user" ? <ComposerModelPicker
-                label={compactSelectedModelLabel} fullLabel={intelligenceLabel} effortLabel={selectedModel?.efforts.length ? effortLabel : undefined}
+                label={compactSelectedModelLabel} modelLabel={modelLabel} fullLabel={intelligenceLabel} effortLabel={selectedModel?.efforts.length ? effortLabel : undefined}
                 disabled={disabled} open={openPicker === "intelligence"} onOpenChange={changePicker("intelligence")}
                 portalContainer={portalContainer} focus={intelligenceFocus}
                 efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
                 serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier}
                 onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
-                effort={selectedEffortValue} onEffortChange={value => {
+                effort={selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);
                 }}>
