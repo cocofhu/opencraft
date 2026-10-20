@@ -269,3 +269,8 @@ export const threadKeys = {
 ```
 
 Timeline 不设 query key。它的 identity 是 `(hostId, threadId, epoch, seq)`，唯一读取源是 Replica。
+
+
+Naming follow-up: the editor referred to by its historical package name in this
+audit now lives at `@opencraft/composer-editor`, exporting `OpenCraftComposer`.
+The naming change preserves the implementation and the historical assessment.
