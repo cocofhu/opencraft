@@ -3120,3 +3120,25 @@ An older Host without the `opencraft/capacity-retry` capability is supported by
 the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
+
+### Connection conformance and external waits
+
+An independent observable specification replays deterministic event traces through
+ConnectionLifecycleOwner, Runtime/RPC and Runtime/RPC/AppHost. Compare phase,
+error presence and timer ownership after every event, including suspended clocks,
+late completions and retired timer callbacks. A seed and event prefix reproduce a
+failure. This bounded refinement check does not prove all implementation traces.
+
+Revoked service assembly stops waiting for external acquisition or dial. Failed
+bundles detach shared fields and registry claims before async cleanup; each late
+acquired resource disposes itself without touching successor fields. Transport
+factories must provide independent generations. This does not declare an
+uncancelable external operation physically complete.
+
+ReplicaClient storage is a disposable paint cache, separate from source authority.
+A configurable five-second storage deadline switches that client instance to
+source data without further cache writes and exposes cacheError. Accepted writes
+retain their physical serial lane; timeout does not cancel them. A late cache
+completion cannot publish or reenable writes. clear still rejects when completion
+cannot be established. Source protocol and authority-storage errors remain errors;
+this policy never skips an authority transaction or replays a mutation.

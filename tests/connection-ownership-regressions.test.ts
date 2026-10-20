@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createCordisAppServerRegistry } from "@opencraft/appserver-client";
 import { AppHostServer } from "@opencraft/app-host-server";
 import { MessagePortAppHostClient } from "@opencraft/app-host-client";
 import { createAppServerWorkbenchRuntime } from "@opencraft/workbench-runtime";
@@ -74,4 +75,36 @@ test('both Core adapters reject close during health and never reopen on late hea
   release.resolve({protocolVersion:1,pid:1,codexPid:2,nativeSocket:'/synthetic-not-connected'});
   await turn();assert.equal(t.status.state,'closed');
  }
+});
+
+for (const shared of [false, true]) test(`hung failed transport cleanup cannot hold successor initialization (${shared ? 'shared' : 'owned'} registry)`, { timeout: 10_000 }, async () => {
+ const registry = shared ? await createCordisAppServerRegistry() : null;
+ const cleanup = gate(), entered = gate();
+ const old = new Physical(), next = new Physical(); let created = 0;
+ old.connect = async () => { throw Error('first dial failed'); };
+ old.close = async () => { entered.resolve(); await cleanup.promise; old.publish({state:'failed',reason:'retired cleanup finished'}); };
+ const runtime = createAppServerWorkbenchRuntime({hostId:'cleanup',clientRegistry:registry?.clients,
+  createTransport:()=>created++ === 0 ? old : next,autoReconnect:false});
+ try {
+  await assert.rejects(runtime.connect(),/first dial failed/); await entered.promise;
+  await runtime.reconnect();
+  assert.equal(runtime.getSnapshot().phase,'ready'); assert.equal(created,2);
+  cleanup.resolve(); await turn();
+  assert.equal(runtime.getSnapshot().phase,'ready','late cleanup cannot erase or fail successor');
+  assert.equal(next.closes,0);
+ } finally { cleanup.resolve(); await runtime.dispose(); await registry?.dispose(); }
+});
+
+test('uncooperative transport dial is revoked by deadline and successor does not inherit it', {timeout:10_000}, async()=>{
+ const dial=gate(),entered=gate(),old=new Physical(),next=new Physical();let created=0;
+ old.connect=async()=>{entered.resolve();await dial.promise;old.publish({state:'open'});};
+ const timers=new Set<{callback():void;delay:number}>();
+ const runtime=createAppServerWorkbenchRuntime({hostId:'deadline',createTransport:()=>created++===0?old:next,
+  clock:{setTimeout(callback,delay){const timer={callback,delay};timers.add(timer);return timer;},clearTimeout(timer){timers.delete(timer as any);}}});
+ try{
+  const pending=runtime.connect(),failed=assert.rejects(pending,/timed out/);await entered.promise;
+  const deadline=[...timers].find(timer=>timer.delay===60_000)!;assert.ok(deadline);timers.delete(deadline);deadline.callback();await failed;await turn();
+  await runtime.reconnect();assert.equal(runtime.getSnapshot().phase,'ready');
+  dial.resolve();await turn();assert.equal(runtime.getSnapshot().phase,'ready');assert.equal(created,2);
+ }finally{dial.resolve();await runtime.dispose();}
 });

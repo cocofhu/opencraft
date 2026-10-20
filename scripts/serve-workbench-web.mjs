@@ -463,7 +463,7 @@ export async function createWorkbenchWebServer({
       if (url.pathname === "/health" && getExecutionHealth) {
         try {
           const health = await getExecutionHealth();
-          sendJson(response, 200, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
+          sendJson(response, health.ok === true ? 200 : 503, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
         } catch { sendJson(response, 503, { ok: false }); }
         return;
       }

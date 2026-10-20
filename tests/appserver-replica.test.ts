@@ -856,3 +856,29 @@ test("a binding reuses immutable projections across connection-local sources wit
   assert.notEqual(first.epoch, second.epoch);
   assert.equal((first.entities[0]!.value as any).turns, (second.entities[0]!.value as any).turns);
 });
+
+
+for (const hang of ["load", "commit"] as const) test(`hung cache ${hang} is bypassed without granting stale authority or racing accepted writes`, async () => {
+  const entered = controlled<void>(), release = controlled<void>(), timers = new Set<() => void>();
+  const subscribed: string[] = [], writes: string[] = [];
+  const replica = new ReplicaClient({scope:SCOPE,storageKey:`timeout-${hang}`,storageTimeoutMs:50,
+    storageClock:{setTimeout(callback){timers.add(callback);return callback;},clearTimeout(handle){timers.delete(handle as () => void);}},
+    storage:{loadClient:async()=>{if(hang==='load'){entered.resolve();await release.promise;}return null;},
+      commitClient:async state=>{writes.push(state.epoch);if(hang==='commit'){entered.resolve();await release.promise;}},clearClient:async()=>{}},
+  });
+  try {
+    const old = replica.synchronize(ownedSource('old',subscribed));const canceled=assert.rejects(old,/superseded/);
+    await entered.promise;replica.disconnect();await canceled;
+    const next=replica.synchronize(ownedSource('new',subscribed));
+    assert.equal(replica.getSnapshot().authoritative,false);
+    for(const timer of [...timers])timer();
+    await next;
+    assert.equal(replica.getSnapshot().epoch,'new');assert.equal(replica.getSnapshot().authoritative,true);
+    assert.match(replica.getSnapshot().cacheError?.message??'',/cache timed out/);
+    assert.deepEqual(writes,hang==='commit'?['old']:[],'cache bypass never overlaps an accepted old write');
+    release.resolve();await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(replica.getSnapshot().epoch,'new');assert.equal(replica.getSnapshot().authoritative,true);
+    assert.deepEqual(writes,hang==='commit'?['old']:[],'late cache completion cannot reenable persistence');
+    await assert.rejects(replica.clear(),/Failed to clear/,'clear must not pretend a timed-out write was canceled');
+  } finally {release.resolve();replica.dispose();}
+});

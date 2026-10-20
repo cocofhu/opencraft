@@ -64,7 +64,8 @@ export function createExecutionDeployment({ link, unit, coreUnit, coreEndpoint, 
     if (properties.DynamicUser === 'yes') throw new Error('Managed execution requires a stable service user');
     await grantExecutionAccess(release.releaseRoot, properties.User || 'root', dirname(link));
   },
-  restart = () => exec('systemctl', ['restart', unit], { timeout: 60_000 }), timeout = 30_000 }) {
+  restart = () => exec('systemctl', ['restart', unit], { timeout: 60_000 }), timeout = 30_000,
+  statusTimeoutMs = 6_500 }) {
   if (!['daemon', 'headless'].includes(profile)) throw new Error('Invalid execution profile');
   if ((dshDescriptor || dshUnit) && (profile !== 'headless' || !isAbsolute(dshDescriptor || '')
     || !/^[A-Za-z0-9_.@-]+\.service$/.test(dshUnit || '') || [unit, coreUnit].includes(dshUnit)))
@@ -133,18 +134,42 @@ export function createExecutionDeployment({ link, unit, coreUnit, coreEndpoint, 
     }
     throw new Error('Execution release failed readiness');
   }
+  let statusOperation = null;
+  async function readStatus() {
+    const started = Date.now();
+    const result = (reason, health = null) => ({ enabled: true, profile,
+      version: typeof health?.version === 'string' ? health.version : null,
+      buildId: typeof health?.buildId === 'string' ? health.buildId : null,
+      ready: reason === 'ready',
+      observation: { reason, sampledAt: new Date().toISOString(), durationMs: Date.now() - started } });
+    let target, root;
+    try {
+      root = await readlink(link);
+      target = JSON.parse(await readFile(join(link, 'package.json'), 'utf8'));
+    } catch { return result('pointer-unavailable'); }
+    try {
+      // Headless health observes Core and DSH in parallel, each bounded at 5s.
+      // The outer budget includes that work and response delivery.
+      const response = await fetch(url, { signal: AbortSignal.timeout(statusTimeoutMs) });
+      let health;
+      try { health = await response.json(); } catch { return result('health-invalid'); }
+      if (typeof health?.version !== 'string' || typeof health?.buildId !== 'string') return result('health-invalid');
+      if (health.ok !== true) return result('dependency-unavailable', health);
+      if (!response.ok) return result('health-http-error', health);
+      if (profile === 'headless' && health.profile !== 'headless') return result('health-invalid', health);
+      // Do not authorize an observation across an execution pointer change.
+      if (await readlink(link) !== root || health.version !== target.version || health.buildId !== target.opencraftWeb?.buildId)
+        return result('release-mismatch', health);
+      return result('ready', health);
+    } catch (error) { return result(error.name === 'TimeoutError' || error.name === 'AbortError' ? 'health-timeout' : 'health-unreachable'); }
+  }
   return {
     inspect,
-    async status() {
-      let target = null;
-      try { target = JSON.parse(await readFile(join(link, 'package.json'), 'utf8')); } catch {}
-      try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
-        const health = await response.json();
-        if (!response.ok || health.ok !== true || typeof health.version !== 'string' || typeof health.buildId !== 'string') throw new Error();
-        return { enabled: true, profile, version: health.version, buildId: health.buildId,
-          ready: health.version === target?.version && health.buildId === target?.opencraftWeb?.buildId };
-      } catch { return { enabled: true, profile, version: null, buildId: null, ready: false }; }
+    status() {
+      // Concurrent updater readers share one observation, never an old success.
+      if (statusOperation) return statusOperation;
+      statusOperation = readStatus().finally(() => { statusOperation = null; });
+      return statusOperation;
     },
     async referencedRoots() {
       const roots = await pinnedRoots();

@@ -5,6 +5,18 @@ import { startHeadlessServer, parseHeadlessArguments } from '../headless-applica
 import { coreHealth } from './execution.mjs';
 import { attachDshHost } from './dsh-host-client.mjs';
 
+/** Read dependencies concurrently and retain release identity even when one is
+ * unavailable. A live gateway and a ready execution service are different facts. */
+export async function observeExecutionHealth({ version, buildId, core, dsh }) {
+  const [coreResult, dshResult] = await Promise.allSettled([core(), dsh?.()]);
+  const coreReady = coreResult.status === 'fulfilled';
+  const dshReady = dshResult.status === 'fulfilled';
+  return { ok: coreReady && dshReady, profile: 'headless', version, buildId,
+    core: coreReady ? coreResult.value : { state: 'unavailable' },
+    ...(dsh ? { dsh: dshReady ? dshResult.value : { state: 'unavailable' } } : {}),
+    dependencies: { core: coreReady ? 'ready' : 'unavailable', dsh: dsh ? dshReady ? 'ready' : 'unavailable' : 'disabled' } };
+}
+
 function required(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing ${name}`);
@@ -29,7 +41,7 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
   const tokenPath = required('OPENCRAFT_DAEMON_TOKEN_FILE');
   const token = (await readFile(tokenPath, 'utf8')).trim();
   const endpoint = required('OPENCRAFT_CODEX_CORE_ENDPOINT');
-  const health = () => coreHealth(endpoint, tokenPath).catch(() => ({ state: 'unavailable' }));
+  const health = () => coreHealth(endpoint, tokenPath);
   let dshAttachment;
   const app = await startServer({ ...options, root: releaseRoot, webRoot: join(releaseRoot, 'web'),
     ...(process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR ? {
@@ -45,14 +57,10 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
     dshCapabilityPlugin: join(releaseRoot, 'execution/dsh-capability-plugin.mjs'),
     codexExecutable: required('OPENCRAFT_CODEX_EXECUTABLE'),
     codexCoreEndpoint: endpoint, codexCoreAuthToken: token, botConversations: true,
-    getExecutionHealth: async () => {
-      let dsh;
-      if (dshAttachment) {
-        dsh = await dshAttachment.getIdentity();
-      }
-      return { ok: true, profile: 'headless', version: manifest.version,
-        buildId: manifest.opencraftWeb.buildId, core: await health(), ...(dsh ? { dsh } : {}) };
-    },
+    getExecutionHealth: () => observeExecutionHealth({ version: manifest.version,
+      buildId: manifest.opencraftWeb.buildId, core: health,
+      ...(dshAttachment ? { dsh: () => dshAttachment.getIdentity() } : {}),
+    }),
   });
   console.log(`[opencraft headless] ${app.url}`);
   let stopping = false;

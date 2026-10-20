@@ -34,6 +34,8 @@ export interface ReplicaClientSnapshot<TValue extends ReplicaJsonValue = Replica
   readonly journalStartSeq: number | null;
   readonly entities: ReadonlyMap<string, TValue>;
   readonly lastError: Error | null;
+  /** A timed-out disposable cache is bypassed; source authority remains separate. */
+  readonly cacheError?: Error | null;
 }
 
 export interface ReplicaClientConfig<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
@@ -41,7 +43,13 @@ export interface ReplicaClientConfig<TValue extends ReplicaJsonValue = ReplicaJs
   storageKey: string;
   storage: ReplicaClientStorage<TValue>;
   pageSize?: number;
+  /** Client storage is a paint cache. Timeout bypasses it for this instance;
+   * accepted writes retain their order and never authorize source data. */
+  storageTimeoutMs?: number;
+  storageClock?: { setTimeout(callback: () => void, delay: number): unknown; clearTimeout(handle: unknown): void };
 }
+
+class CacheTimeout extends Error {}
 
 function applyMutation<TValue extends ReplicaJsonValue>(
   entities: ReadonlyMap<string, TValue>,
@@ -58,6 +66,9 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
   readonly storageKey: string;
   private readonly storage: ReplicaClientStorage<TValue>;
   private readonly pageSize: number;
+  private readonly storageTimeoutMs: number;
+  private readonly storageClock: NonNullable<ReplicaClientConfig["storageClock"]>;
+  private cacheError: CacheTimeout | null = null;
   private readonly listeners = new Set<() => void>();
   private snapshot: ReplicaClientSnapshot<TValue>;
   private prepared: Promise<void> | null = null;
@@ -79,6 +90,9 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     this.scope = config.scope;
     this.storageKey = config.storageKey;
     this.storage = config.storage;
+    this.storageTimeoutMs = config.storageTimeoutMs ?? 5_000;
+    if (!Number.isFinite(this.storageTimeoutMs) || this.storageTimeoutMs <= 0) throw new RangeError("Replica storage timeout must be positive and finite");
+    this.storageClock = config.storageClock ?? { setTimeout, clearTimeout: handle => clearTimeout(handle as ReturnType<typeof setTimeout>) };
     this.pageSize = config.pageSize ?? 100;
     if (!Number.isInteger(this.pageSize) || this.pageSize < 1) {
       throw new RangeError("Replica pageSize must be a positive integer");
@@ -206,7 +220,8 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     this.disconnect();
     const generation = this.sourceGeneration;
     try {
-      await this.serializeStorage(() => this.storage.clearClient(this.storageKey));
+      if (this.cacheError) throw this.cacheError;
+      await this.awaitStorage(this.serializeStorage(() => this.storage.clearClient(this.storageKey)));
     } catch (error) {
       throw new ReplicaError("STORAGE_ERROR", "Failed to clear Replica client state", { cause: error });
     }
@@ -233,8 +248,9 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
     const generation = this.sourceGeneration;
     let stored: ReplicaClientState<TValue> | null;
     try {
-      stored = await this.storage.loadClient(this.storageKey);
+      stored = await this.awaitStorage(Promise.resolve().then(() => this.storage.loadClient(this.storageKey)));
     } catch (error) {
+      if (error instanceof CacheTimeout) return;
       throw new ReplicaError("STORAGE_ERROR", "Failed to load Replica client state", { cause: error });
     }
     if (stored === null || this.disposed || generation !== this.sourceGeneration) return;
@@ -408,15 +424,29 @@ export class ReplicaClient<TValue extends ReplicaJsonValue = ReplicaJsonValue> {
       entities: [...update.entities].map(([entityId, value]) => ({ entityId, value })),
     };
     try {
-      await this.serializeStorage(async () => {
+      if (!this.cacheError) await this.awaitStorage(this.serializeStorage(async () => {
         this.ensureGeneration(generation);
-        await this.storage.commitClient(state);
-      });
+        // A timeout never releases accepted I/O for a concurrent writer. Skip
+        // queued cache writes once disabled, keeping the physical lane intact.
+        if (!this.cacheError) await this.storage.commitClient(state);
+      }));
     } catch (error) {
-      throw new ReplicaError("STORAGE_ERROR", "Failed to commit Replica client state", { cause: error });
+      if (!(error instanceof CacheTimeout))
+        throw new ReplicaError("STORAGE_ERROR", "Failed to commit Replica client state", { cause: error });
     }
     this.ensureGeneration(generation);
     this.publish(update);
+  }
+
+  private awaitStorage<T>(operation: Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timer = this.storageClock.setTimeout(() => {
+        this.cacheError ??= new CacheTimeout("Replica cache timed out; using source data without persistence");
+        if (!this.disposed) this.publish({ cacheError: this.cacheError });
+        reject(this.cacheError);
+      }, this.storageTimeoutMs);
+      void operation.then(resolve, reject).finally(() => this.storageClock.clearTimeout(timer));
+    });
   }
 
   private serializeStorage(run: () => Promise<void>): Promise<void> {

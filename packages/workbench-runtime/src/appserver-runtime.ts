@@ -687,8 +687,8 @@ export function createAppServerWorkbenchRuntime(
     clock, autoReconnect: config.autoReconnect, delaysMs: config.reconnectDelaysMs,
     stableMs: config.reconnectStableMs, timeoutMs: Math.max(60_000, (config.requestTimeoutMs ?? 30_000) + 15_000),
     async run(attempt: ConnectionAttempt) {
-      // A revoked initializer retains exclusive cleanup ownership. A successor
-      // may join its local assembly, but never inherits its connection result.
+      // Assembly settles on revocation. Retired bundles clean only their own
+      // resources in the background; they cannot hold a successor's admission.
       if (initializeServicesOperation !== null) await initializeServicesOperation.catch(() => undefined);
       attempt.assertCurrent();
       automaticReconnectBlock = null;
@@ -1357,6 +1357,21 @@ export function createAppServerWorkbenchRuntime(
     ));
   };
 
+  // Cancellation stops waiting, not the external operation. A late resource
+  // is disposed by its own continuation and never assigned to Runtime fields.
+  const duringAttempt = <T>(operation: Promise<T>, attempt: ConnectionAttempt,
+    disposeLate: (value: T) => Promise<unknown>): Promise<T> => new Promise((resolve, reject) => {
+    let revoked = false;
+    const abort = () => { revoked = true; reject(attempt.signal.reason ?? new Error("Connection attempt revoked")); };
+    attempt.signal.addEventListener("abort", abort, { once: true });
+    if (attempt.signal.aborted) abort();
+    void operation.then(value => {
+      attempt.signal.removeEventListener("abort", abort);
+      if (revoked) { void disposeLate(value).catch(() => undefined); return; }
+      resolve(value);
+    }, cause => { attempt.signal.removeEventListener("abort", abort); reject(cause); });
+  });
+
   const initializeServices = (attempt: ConnectionAttempt): Promise<void> => {
     if (disposed)
       return Promise.reject(new Error("AppServer Workbench is disposed"));
@@ -1368,10 +1383,9 @@ export function createAppServerWorkbenchRuntime(
     const generation = lifecycleGeneration;
     let attemptTransport: DuplexTransport | null = null;
     const operation = Promise.resolve().then(async () => {
-      ownedRegistry =
-        config.clientRegistry === undefined
-          ? await createCordisAppServerRegistry()
-          : null;
+      const registry = config.clientRegistry === undefined
+        ? await duringAttempt(createCordisAppServerRegistry(), attempt, value => value.dispose()) : null;
+      ownedRegistry = registry;
       ensureLifecycle(generation);
       attempt.assertCurrent();
       const clientRegistry = config.clientRegistry ?? ownedRegistry!.clients;
@@ -1453,7 +1467,7 @@ export function createAppServerWorkbenchRuntime(
           }
         }
       }) ?? null;
-      await connectPhysicalHost(generation, attempt);
+      await duringAttempt(connectPhysicalHost(generation, attempt), attempt, async () => {});
       ensureLifecycle(generation);
       goals.reset();
       const historyModeHint = () => {
@@ -1463,7 +1477,7 @@ export function createAppServerWorkbenchRuntime(
         return capability?.version === 1 && ["legacy", "paginated", "message-window"].includes(String(capability.mode))
           ? capability.mode as "legacy" | "paginated" | "message-window" : null;
       };
-      session = await createCordisThreadSessionRuntime({
+      session = await duringAttempt(createCordisThreadSessionRuntime({
         client,
         frameScheduler: config.frameScheduler,
         hostKind:
@@ -1472,7 +1486,7 @@ export function createAppServerWorkbenchRuntime(
         historyModeHint,
         useTailHydration: true,
         requestTimeoutMs: config.requestTimeoutMs ?? 30_000,
-      });
+      }), attempt, value => value.dispose());
       ensureLifecycle(generation);
       attempt.assertCurrent();
       interactions = new AppServerInteractionBroker({
@@ -1574,22 +1588,25 @@ export function createAppServerWorkbenchRuntime(
         interactions = null;
         fuzzyFileSearch?.dispose();
         fuzzyFileSearch = null;
-        await terminalController?.dispose().catch(() => undefined);
+        // Detach shared fields before any untrusted async cleanup. Each
+        // disposer captures its retired bundle and can never clear a successor.
+        const failedTerminal = terminalController, failedSession = session;
+        const failedRegistry = ownedRegistry, failedClient = client;
         terminalController = null;
-        await session?.dispose().catch(() => undefined);
         session = null;
-        const failedClient = client;
-        if (ownedRegistry !== null) {
-          await ownedRegistry.dispose().catch(() => undefined);
-        } else if (failedClient !== null) {
-          await config.clientRegistry?.remove(hostId).catch(() => undefined);
-        } else {
-          await attemptTransport?.close().catch(() => undefined);
-        }
-        if (currentTransport === attemptTransport) currentTransport = null;
         ownedRegistry = null;
         client = null;
         commandPort = null;
+        connectionObservation = null;
+        if (currentTransport === attemptTransport) currentTransport = null;
+        // remove() deletes the registry claim synchronously, before close awaits
+        // transport I/O. Start it before a successor can create the same host.
+        const closeClient = failedRegistry !== null ? failedRegistry.clients.remove(hostId)
+          : failedClient !== null ? config.clientRegistry!.remove(hostId)
+          : attemptTransport?.close();
+        void Promise.allSettled([
+          closeClient, failedTerminal?.dispose(), failedSession?.dispose(), failedRegistry?.dispose(),
+        ]);
         throw cause;
       })
       .finally(() => {
