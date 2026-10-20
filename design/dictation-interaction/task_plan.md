@@ -11,5 +11,4 @@
 最终签名产物：release/dictation-interaction-20260915-final/mac-arm64/OpenCraft Preview.app。
 实机组件验收：原位互斥/编辑器身份、停止写入、处理中取消、真实pointer长按释放、Escape、应用Appearance明暗、760px窗口几何、Enter等final后一次正文推理、取消发送与换草稿无迟到请求。OS识别替身与本地DSH端点明确隔离；实际无录音probe/设置重启通过。真录音与端侧识别未复验。
 
-失败查询：本checkout无ref/codex，实际恢复源在<checkout>/ref/codex；composer.scss/composer-actions.test.ts不存在，改有界文件列表和现有app.scss/core测试。
 Context router无匹配；不生成graphify（无现图，不扩大为全仓建图）。相关adjacency前端卡已读，邻居核对本服务responsive-footer测试/打包配置，不触及frontend生成物。

@@ -46,10 +46,6 @@ type UserScrollListener = (
   previousDistanceFromBottomPx: number,
 ) => void;
 
-/**
- * Platform-neutral behavioral clone of the imperative controller created by
- * Codex ThreadScrollLayout. DOM and RN hosts only translate platform metrics.
- */
 export class TurnScrollController {
   readonly #host: TurnScrollControllerHost;
   readonly #listeners = new Set<ScrollListener>();
@@ -217,7 +213,6 @@ export class TurnScrollController {
     }
   }
 
-  /** Keyboard, pointer, and touch takeover cancel Codex's pending layout restore. */
   cancelPendingLayoutPreservation(): void {
     this.#cancelPendingLayoutPreservation();
   }

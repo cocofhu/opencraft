@@ -1,7 +1,7 @@
 import type { TimelineSourceTurn } from "./projection";
-import { formatCodexDuration } from "./format-duration";
+import { formatDuration } from "./format-duration";
 
-/** Codex r3562 worked-for display item. This is not assistant/reasoning text. */
+/** Worked-for status is separate from assistant and reasoning text. */
 export type WorkStatusItem = {
   readonly type: "worked-for";
   readonly startedAtMs: number;
@@ -106,7 +106,7 @@ export function deriveTurnWorkStatus(
 /** r3562 formatDurationShort: floor seconds, trim zero units, localize units. */
 export function formatWorkDuration(durationMs: number, locale = "en"): string {
   return (
-    formatCodexDuration(durationMs, {
+    formatDuration(durationMs, {
       locale,
       underOneSecond: "zero",
       trimZeroUnits: true,

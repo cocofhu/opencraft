@@ -394,7 +394,6 @@ function mapBlockTokens(
         });
         break;
       case "html":
-        // Codex always treats an isolated HTML break as layout, while all
         // other raw HTML remains inert text unless a typed surface owns it.
         if (/^\s*<br\s*\/?>\s*$/iu.test(raw)) {
           nodes.push(emptyBase("line-break", sourceRange));

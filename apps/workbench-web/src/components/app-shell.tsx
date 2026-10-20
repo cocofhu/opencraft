@@ -3,8 +3,7 @@ import { Search } from "lucide-react";
 import { NavigationIcon } from "./shell-navigation/navigation-action";
 import { focusChromeAction } from "../chrome-actions/use-chrome-action-focus";
 import { SidebarToggleButton } from "../chrome-actions/sidebar-toggle-button";
-// OpenCraft services/scope policy with Codex 26.908.40834 Wba/Xba
-// Viewport/Frame ownership. Geometry does not reuse animation aperture width
+// OpenCraft services/scope policy and Viewport/Frame ownership. Geometry does not reuse animation aperture width
 // as chat layout width. See design/invariants.md SHL-01 through SHL-04.
 import {
   motion,
@@ -654,7 +653,6 @@ export function AppShell({
       setDrawerRequested(false);
       return;
     }
-    // Codex pins the floating panel without replaying the layout entrance.
     sidebarProgress.stop();
     sidebarProgress.set(1);
     setDrawerRequested(false);

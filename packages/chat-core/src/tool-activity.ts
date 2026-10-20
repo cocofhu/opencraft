@@ -10,7 +10,7 @@ import type {
 import { deriveSubagentActivityPresentation, subagentInlineStatusLabel } from "./subagent-activity";
 import { isCodexAppThreadTool, threadHandoffToolResult } from "./codex-app-tools";
 import { parseSkillPath } from "./skill-path";
-import { formatCodexDuration } from "./format-duration";
+import { formatDuration } from "./format-duration";
 
 export type ToolActivityState = "running" | "completed" | "failed" | "interrupted";
 export type ToolActivityGrouping = "groupable" | "standalone";
@@ -624,7 +624,7 @@ function commandActionPresentation(
 
 /** Exact duration shape used by Codex command Activity (`1m 0s`, null below 1s). */
 export function formatCodexToolDuration(durationMs: number, locale = "en"): string | null {
-  return formatCodexDuration(durationMs, { locale });
+  return formatDuration(durationMs, { locale });
 }
 
 function isCurrentDateCommand(command: string): boolean {

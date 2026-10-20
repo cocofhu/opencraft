@@ -144,7 +144,6 @@ export function isDirectionSampleActive(sample: ScrollDirectionSample, nowMs: nu
   return nowMs - sample.lastAtMs <= CODEX_SCROLL_DIRECTION_TIMEOUT_MS;
 }
 
-/** Exact cubic ease-out used by Codex's 260ms scroll-to-bottom animation. */
 export function scrollToBottomDistanceAtTime(
   initialDistanceFromBottomPx: number,
   elapsedMs: number,

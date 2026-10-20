@@ -33,7 +33,6 @@ export function createImageRenderer(resources: ChatResourcePolicyService) {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const previewFocus = usePreviewFocusOrigin();
     if (node.kind !== "image") return null;
-    // Codex's media normalizer permits media data URLs, while the generic
     // anchor policy rejects every data: URL. Keep that exception local to the
     // image renderer so it cannot weaken link navigation safety.
     const decision = /^data:image\//iu.test(node.src)

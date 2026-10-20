@@ -305,10 +305,6 @@ export class WebConversationViewportOwner {
     return this.ownPlatformResource(() => abortController.abort());
   }
 
-  /**
-   * Codex ThreadScrollLayout's Web input transaction. DOM evidence remains in
-   * the platform owner; Conversation observes semantic scroll notifications.
-   */
   bindScrollBehavior(callbacks: WebConversationScrollBehavior): () => void {
     const element = this.scrollElementRef.current;
     if (element === null || this.disposed) return () => undefined;

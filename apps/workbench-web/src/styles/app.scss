@@ -98,7 +98,6 @@
   // Safari's rectangular tap flash ignores our control shapes. The app owns
   // pressed feedback; keep keyboard focus indicators in their own rules.
   -webkit-tap-highlight-color: transparent;
-  // Codex keeps the platform scrollbar and only themes its native chrome.
   // Overlay visibility and idle fading remain owned by Chromium/macOS.
   scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-width: thin;
@@ -126,7 +125,6 @@ body,
   overscroll-behavior: none;
 }
 
-// Codex runs inside an immovable Electron viewport. The browser build must
 // establish the same host contract explicitly so Safari cannot rubber-band the
 // document and carry the sticky Composer with it. Structural clips must not
 // become programmatic scroll containers during native focus reveal. Actual
@@ -393,7 +391,6 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 
 }
 
-// Codex's renderer leaves the Electron layout panel unpainted. The native
 // NSVisualEffectView installed by BrowserWindow is the material owner.
 .app-shell-root[data-opencraft-window-type="electron"] {
   background: transparent;
@@ -460,7 +457,6 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   pointer-events: none;
 }
 
-// Codex does not translate the docked layout panel over the content. Once the
 // layout panel is fully gone, a separate overlay owns edge reveal and resize.
 .app-shell-floating-overlay-root {
   // This host lives beside AppShell in body. Carry the inherited shell values
@@ -658,7 +654,6 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   transition: opacity var(--transition-duration-basic);
 }
 
-// Codex's browser renderer lets thread content pass directly beneath the
 // transparent header. Only the Electron surface retains the opaque titlebar
 // guard plus its short downward fade for native drag/window chrome.
 html[data-opencraft-window-type="browser"] .main-content-top-fade {
@@ -774,7 +769,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   align-items: center;
   gap: 4px;
   pointer-events: none;
-  // Codex reserves six additional pixels beyond the host-reported native
   // titlebar inset. This buffer belongs to the window rail and must not be
   // interpolated with sidebar width.
   --window-controls-padding-start: max(calc(var(--spacing-token-safe-header-left) + 6px), 8px);
@@ -824,7 +818,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 
 // The slot and rail remain transparent to hit testing so their empty area is
 // native window chrome. Each concrete action exclusively reclaims its own hit
-// target, matching Codex HeaderSlotEntries rather than relying on descendants
 // to punch through a draggable ancestor.
 .app-shell-header__window-action {
   display: inline-flex;
@@ -1022,7 +1015,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   display: none;
 }
 
-// A full-width task panel owns the center toolbar. Codex keeps the global
 // start/end slots mounted, but makes the thread context surface non-painting
 // and non-interactive so the panel tab bar cannot visually collide with it.
 .app-shell-header__context-surface[data-app-shell-header-context-hidden="true"] {
@@ -1258,7 +1250,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-// Codex HeaderSlot measures an out-of-flow max-content duplicate. Measuring
 // the visible slot would feed its animated width back into fitWidth and allow
 // the reopen action to collapse to zero with the panel.
 .app-shell-header__end-measure {
@@ -1729,7 +1720,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 
 .sidebar-activity-item__title {
   @include typography.role(thread-list-title, primary);
-  // Match bb list copy: normal tracking instead of the body's -0.01em.
   letter-spacing: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1924,7 +1914,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: 0;
 }
 
-// Codex Home/New chat is a Draft route, not an empty Conversation. The two
 // equal rows and the shared thread width are the important geometry
 // invariants: the hero resolves against the upper half while the Composer
 // remains on the same width rail used after Draft promotion.
@@ -2816,7 +2805,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   > .settings-page__content { width: 100%; height: 100%; padding: 0; margin: 0; gap: 0; min-height: 0; }
 }
 
-// Codex route pages can own their internal catalog toolbar and spacing while
 // the persistent AppShell continues to own the native titlebar offset.
 .settings-page__viewport[data-layout="edge-to-edge"] {
   overflow-x: hidden;
@@ -3763,7 +3751,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   flex-direction: column-reverse;
   overflow: hidden auto;
   overflow-anchor: none;
-  // Codex can leave this implicit because Electron owns an immovable native
   // viewport. In the Web host this element is the terminal scroll owner, so it
   // must suppress the browser's boundary affordance as well as scroll chaining.
   // `contain` only handles chaining and still permits the rubber-band motion
@@ -4961,7 +4948,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-// Pending requests are Composer surfaces in Codex, not children of tool rows.
 // PanelContainer is rounded-3xl, primary-soft and electron elevation-prominent.
 .thread-pending-request-panel {
   position: relative;
@@ -5179,7 +5165,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-// A Codex async question belongs to its AgentMessage, not the blocking
 // server-request panel. The card remains reachable while Composer stays open.
 .thread-async-question {
   max-width: min(100%, 620px);
@@ -6824,7 +6809,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-// Codex Le: the virtual list owns mounted-row geometry. Nested browser
 // skipping must not substitute an intrinsic estimate for a measured height.
 .thread-virtualizer-row [data-virtualized-turn-content] {
   content-visibility: visible;
@@ -7254,7 +7238,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   );
 }
 
-// Codex TurnDiff is a trailing Turn resource, not another patch Activity row.
 .modal-surface.thread-turn-diff-review {
   display: flex;
   width: min(960px, calc(100vw - 36px));

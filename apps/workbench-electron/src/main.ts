@@ -460,15 +460,6 @@ function getMacWindowButtonPosition(windowZoom = 1): { x: number; y: number } {
   };
 }
 
-/**
- * Main owns the native backing surface; Renderer owns only theme intent.
- *
- * A focused macOS window may expose AppKit's material. An unfocused window
- * must have an opaque, theme-matched backing surface so the Dock snapshot and
- * deminiaturize animation can never reveal windows behind OpenCraft. This mirrors
- * Codex's focus-driven window backdrop policy and deliberately does not make
- * minimize/restore another source of state.
- */
 function applyWindowAppearance(
   window: BrowserWindow,
   appearance: WindowAppearanceMessage,
@@ -575,7 +566,6 @@ async function createMainWindow(): Promise<void> {
   const refreshWindowAppearance = () => {
     applyWindowAppearance(window, currentWindowAppearance);
   };
-  // Codex treats focus as an input to the native backing surface. A minimize
   // naturally blurs before AppKit captures the window; restore then shows and
   // focuses it. Keeping that lifecycle native avoids animation timers and
   // Renderer-owned visibility workarounds.

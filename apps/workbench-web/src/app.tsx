@@ -387,7 +387,6 @@ export function App({
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
   const { sidebarOpen, setSidebarOpen } = useResponsiveSidebarDock();
   const { width: sidebarWidth, commit: commitSidebarWidth } = usePersistedSidebarWidth(presentation.shellNavigation);
-  // Codex projects the single persisted sidebar-width signal into a root
   // layout token. Top-level routes consume the token instead of inventing
   // route-local widths, so switching routes cannot move the content boundary.
   useLayoutEffect(() => {
@@ -655,7 +654,6 @@ export function App({
       });
       return;
     }
-    // Codex keeps the AppShell control plane alive independently from route
     // content and permits an empty RightPanel outlet. A concrete tab is only
     // created by a real capability action.
     dispatchPanel({
@@ -1147,7 +1145,6 @@ export function App({
         if (conversationRouteOpen && matches("composer")) { event.preventDefault(); composerController.focus(); return; }
         if (presentation.shellNavigation && matches("help")) { event.preventDefault(); setShortcutHelpOpen(true); return; }
       }
-      // Match Codex's global type-to-compose behavior. Printable keys only
       // transfer to Composer when no editable surface, menu or dialog owns
       // the event; browser shortcuts and IME composition remain untouched.
       if (shouldTypeToCompose(event)) {
