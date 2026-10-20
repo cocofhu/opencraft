@@ -3155,3 +3155,11 @@ owner directly, so a hung prior close/send cannot prevent its deadline from
 starting. Frame sends retain their ordered queue and revalidate lease identity.
 The default twenty-second slot budget precedes the bridge's thirty-second wait
 and Runtime's sixty-second attempt budget.
+
+`smoke:connection-process-recovery` exercises the complete built/installed Web UI
+with a separate synthetic physical Host process. Three actual child-process
+restarts while Chromium is frozen must recover after resume, retain the real
+Composer draft, and reconnect on page reload without starting a Thread or Turn.
+Set OPENCRAFT_LIFECYCLE_WEB_ROOT to that artifact's web directory. This checks
+real process/network/browser composition with synthetic protocol data; it does
+not claim live-user, real-model or physical-mobile acceptance.

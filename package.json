@@ -33,6 +33,7 @@
     "smoke:sidebar-conversation-latency": "tsx scripts/smoke-sidebar-conversation-latency.ts",
     "smoke:sidebar-menu-latency": "tsx scripts/smoke-sidebar-menu-latency.ts",
     "pretest:extensions": "tsx --test tests/extension-artifacts.test.ts tests/extension-catalog.test.ts tests/optional-feature-startup.test.ts",
+    "smoke:connection-process-recovery": "node --import tsx scripts/smoke-connection-process-recovery.ts",
     "smoke:recovery": "node --import tsx scripts/smoke-recovery.ts",
     "smoke:hermes-approval": "tsx scripts/smoke-hermes-approval.ts",
     "smoke:application:lifetime": "tsx scripts/smoke-application-lifetime.ts",
