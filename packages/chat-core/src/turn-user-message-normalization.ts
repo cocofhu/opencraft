@@ -7,8 +7,7 @@ interface UserMessageCompareKey {
   readonly imageCount: number;
 }
 
-// Requirements and historical source boundary:
-// docs/provenance/message-normalization-replacement.md
+
 function record(value: unknown): RecordValue {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as RecordValue : {};

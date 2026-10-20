@@ -1,6 +1,6 @@
 import type { TimelineStatus, TurnDiffFileSummary, TurnDiffTimelineBlock } from "./timeline";
 
-/** Replacement method and historical boundary: docs/provenance/turn-diff-replacement.md. */
+
 export interface TurnDiffSummary {
   readonly files: readonly TurnDiffFileSummary[];
   readonly additions: number;

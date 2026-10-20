@@ -30,7 +30,7 @@ import { ConversationDetailContext, useToolActivityPresentation } from "../rende
 import { ActivityDisclosure, CadencedShimmer, useCodexActivityOpen } from "./activity-disclosure";
 import { activityIcon } from "./activity-icon";
 
-/** Complete independent implementation; requirements and exposure are in docs/provenance. */
+
 export function ReasoningBlock({ block, presentation, active = block.streaming, collapsed, onCollapsedChange }: {
   readonly block: Extract<TimelineBlock, { type: "reasoning" }>;
   readonly presentation?: ReasoningContentPresentation;

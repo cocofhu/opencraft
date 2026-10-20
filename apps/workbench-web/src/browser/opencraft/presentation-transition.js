@@ -1,7 +1,4 @@
-// OpenCraft presentation handoff. Authoring inputs and historical provenance:
-// docs/provenance/browser-transition-replacement.md
 
-/** Presentations are leases; browser backing state remains owned by the manager. */
 export function createImplementation(_ports) {
   return class {
     #lanes = new Map();

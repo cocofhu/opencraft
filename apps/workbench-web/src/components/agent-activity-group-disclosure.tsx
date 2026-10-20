@@ -10,8 +10,7 @@ export type AgentActivityDisclosurePhase = "collapsed" | "opening" | "expanded" 
 export type AgentActivityDisclosureEvent = "toggle" | "animation-frame" | "animation-complete" | "disable";
 export type AgentActivitySummaryTransition = "static" | "immediate" | "deferred";
 
-/** Four-phase presentation contract; historical evidence is retained in
- * docs/provenance/activity-group-disclosure-replacement.md. */
+
 export function reduceAgentActivityDisclosurePhase(
   phase: AgentActivityDisclosurePhase,
   event: AgentActivityDisclosureEvent,

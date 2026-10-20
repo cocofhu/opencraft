@@ -1,6 +1,4 @@
-/** OpenCraft shared follow policy. Historical scope and compatibility evidence:
- * packages/timeline-virtualizer/PROVENANCE.md and docs/provenance/timeline-follow-replacement.md.
- */
+
 
 export const CODEX_FOLLOW_DISTANCE_THRESHOLD_PX = 24;
 export const CODEX_LATEST_TURN_PLACEMENT_THRESHOLD_PX = 300;

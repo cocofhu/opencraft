@@ -171,7 +171,7 @@ npm run gate:server-updates -- --scenario self-upgrade
 
 npm 上传返回成功后，公开 metadata 可能延迟出现。整包 metadata 可能受 CDN 缓存影响；发布烟测显式使用 `--metadata-source version-api` 查询公共精确版本接口 `/包名/版本`，验证返回的包名和版本，并记录缓存状态、等待及安装耗时。该模式不发送 npm 凭据；需要认证或没有此接口的 registry 继续使用默认 npm CLI 查询。精确接口的 HTTP 404 最多重试 30 次、间隔 10 秒，然后仍在独立临时目录运行 `npm install 包名@版本 --prefer-online`。安装 CLI 自身仍可能读取受缓存影响的整包 metadata；仅对明确的 `ETARGET` 且错误指向本次精确版本进行同样的有界重试，认证、网络、其他包缺失、错误版本和其他安装错误立即失败。用新 workflow 复核旧 tag 时，若 tag 内的 kit 尚未提供此参数，则使用原 npm CLI 查询。已存在版本的烟测不能证明新版本上传后的同步耗时，需在下一次真实发布中观察。
 
-Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。仓库已公开（`opencraft-app/opencraft`），发布 workflow 不额外声明 npm provenance；来源证明以仓库内 `NOTICE`、各包 `PROVENANCE.md` 和 `config/source-provenance.json` 为准，不在 npm 侧另行宣称。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
+Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。仓库已公开（`opencraft-app/opencraft`），发布 workflow 不额外声明 npm provenance；第三方版权与许可声明保留在仓库及归档内，不在 npm 侧另行宣称权利核实。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
 
 ```sh
 gh workflow run release.yml --repo opencraft-app/opencraft --ref main -f tag=v0.1.10

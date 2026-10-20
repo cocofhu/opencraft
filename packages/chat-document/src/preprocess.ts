@@ -133,9 +133,7 @@ function userMessageListKind(line: string): UserMessageListKind {
   return null;
 }
 
-/** User-message list/block projection; frozen compatibility and historical source:
- * docs/provenance/user-message-blocks-replacement.md. General preprocessing is separate.
- */
+
 export function preprocessUserMessageMarkdown(source: string): string {
   const output: string[] = [];
   let list: UserMessageListKind = null;
