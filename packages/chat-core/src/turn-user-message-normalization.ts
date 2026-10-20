@@ -7,7 +7,6 @@ interface UserMessageCompareKey {
   readonly imageCount: number;
 }
 
-
 function record(value: unknown): RecordValue {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as RecordValue : {};
@@ -102,8 +101,9 @@ function steeringAcknowledgements(items: readonly TimelineSourceItem[]) {
     const client = clientOf(record(server.payload));
     for (const localIndex of eligible) {
       const local = items[localIndex]!;
-      const localClient = clientOf(record(local.payload));
-      if ((client !== null && client === localClient) || equalInput(inputOf(local), inputOf(server))) {
+      const localData = record(local.payload);
+      const localClient = clientOf(localData);
+      if (string(localData.serverUserMessageId) === server.id || (client !== null && client === localClient) || equalInput(inputOf(local), inputOf(server))) {
         latest.set(localIndex, server);
         consumed.add(serverIndex);
         break;
@@ -111,6 +111,24 @@ function steeringAcknowledgements(items: readonly TimelineSourceItem[]) {
     }
   }
   return { latest, consumed };
+}
+
+/** Setup events can precede the initial echo without taking message ownership. */
+const initialEchoPrefix = new Set([
+  "automaticApprovalReview", "contextCompaction", "forkedFromConversation", "modelChanged",
+  "modelRerouted", "personalityChanged", "remoteTaskCreated", "worktreeInit",
+]);
+
+function initialEcho(turn: TimelineSourceTurn, params: RecordValue): TimelineSourceItem | undefined {
+  const client = string(params.clientUserMessageId);
+  for (const item of turn.items) {
+    if (initialEchoPrefix.has(item.type)) continue;
+    if (item.type === "userMessage" && (
+      (client !== null && client === clientOf(record(item.payload))) || equalInput(params.input, inputOf(item))
+    )) return item;
+    break;
+  }
+  return undefined;
 }
 
 function canonicalMessage(turn: TimelineSourceTurn, params: RecordValue, server?: TimelineSourceItem): TimelineSourceItem {
@@ -141,26 +159,23 @@ function localMessage(item: TimelineSourceItem, server?: TimelineSourceItem): Ti
     attachments: data.attachments ?? acknowledged.attachments,
     sender: acknowledged.sender ?? data.sender ?? null,
     __opencraftMessageKind: "steering", __opencraftSourceItemIds: identities(item, server),
-    serverUserMessageId: server?.id ?? null,
+    serverUserMessageId: server?.id ?? string(data.serverUserMessageId),
   } };
 }
 
 export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): TimelineSourceTurn {
   const params = record(turn.params);
   const canonical = params.input != null && !(Array.isArray(params.input) && params.input.length === 0);
-  const first = turn.items[0];
   const client = string(params.clientUserMessageId);
-  const reuseFirst = canonical && first?.type === "userMessage" && (
-    (client !== null && client === clientOf(record(first.payload))) || equalInput(params.input, inputOf(first))
-  );
+  const echo = canonical ? initialEcho(turn, params) : undefined;
   const { latest, consumed } = steeringAcknowledgements(turn.items);
   const items: TimelineSourceItem[] = [];
   const hidden = new Set(turn.nonVisualItemIds ?? []);
   let leading = !canonical && turn.preserveServerUserMessages !== true;
-  if (canonical) items.push(canonicalMessage(turn, params, reuseFirst ? first : undefined));
+  if (canonical) items.push(canonicalMessage(turn, params, echo));
   for (let index = 0; index < turn.items.length; index++) {
     const item = turn.items[index]!;
-    if ((reuseFirst && index === 0) || consumed.has(index)) continue;
+    if (item === echo || consumed.has(index)) continue;
     if (item.type === "steeringUserMessage") {
       items.push(localMessage(item, latest.get(index)));
       continue;
@@ -172,7 +187,7 @@ export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): Timeli
     }
     if (item.type !== "userMessage") {
       items.push(item);
-      if (item.type !== "hookPrompt") leading = false;
+      if (item.type !== "hookPrompt" && item.type !== "worktreeInit") leading = false;
       continue;
     }
     const data = record(item.payload);

@@ -19,7 +19,7 @@ test("empty string params own a message; nullish and empty array input do not", 
   for (const input of [null, undefined, []]) assert.equal(normalize({ params: { input } }).items.length, 0);
 });
 
-test("canonical matching uses the first Item only and retains server identity", () => {
+test("canonical matching retains server identity and stops at the first visible Item", () => {
   const params = { input: text("request"), clientUserMessageId: "client" };
   const matched = normalize({ params, items: [user("server", text("echo"), { clientId: "client", extra: "retained" })] });
   assert.equal(matched.items[0]?.id, "server");
@@ -145,4 +145,55 @@ test("canonical saved identities take precedence over stale aliases", () => {
   assert.equal(data.__opencraftSourceItemId, "canonical-id");
   assert.equal(data.__opencraftSteeringStatus, "accepted");
   assert.equal(Object.keys(data).some(key => key.startsWith("__vela")), false);
+});
+
+
+test("worktree initialization does not hide an initial historical user message", () => {
+  const result = normalize({ items: [
+    { id: "init", type: "worktreeInit", payload: {} }, user("history", text("historical question")),
+    { id: "answer", type: "agentMessage", payload: { text: "answer" } }, user("later", text("unidentified echo")),
+  ] });
+  assert.deepEqual(result.items.map(item => item.id), ["init", "history", "answer"]);
+  assert.equal(payload(result.items[1]).__opencraftMessageKind, "user");
+  assert.deepEqual(result.nonVisualItemIds, ["later"]);
+});
+
+test("initial echoes retain sender and files through allowed setup events only", () => {
+  const params = { input: text("question"), clientUserMessageId: "client" };
+  const attachments = [{ id: "report", name: "report.md", path: "/host/report.md" }];
+  const sender = { kind: "employee", loginName: "Alice" };
+  const setup = ["automaticApprovalReview", "contextCompaction", "forkedFromConversation", "modelChanged",
+    "modelRerouted", "personalityChanged", "remoteTaskCreated", "worktreeInit"];
+  const prefix = setup.map(type => ({ id: type, type, payload: {} }));
+  const echo = user("server", text("enriched question"), { clientId: "client", sender, attachments });
+  const result = normalize({ params, items: [...prefix, echo] });
+  assert.equal(result.items[0]?.id, "server");
+  assert.deepEqual(payload(result.items[0]).sender, sender);
+  assert.deepEqual(payload(result.items[0]).attachments, attachments);
+  assert.deepEqual(payload(result.items[0]).content, params.input);
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["server"]);
+  assert.deepEqual(result.items.slice(1), prefix);
+  for (const type of ["agentMessage", "commandExecution", "hookPrompt", "unknownEvent"]) {
+    const blocked = normalize({ params, items: [{ id: "boundary", type, payload: {} }, echo] });
+    assert.equal(blocked.items[0]?.id, "turn:composer-user-message");
+    assert.equal(payload(blocked.items[0]).sender, null);
+  }
+  const sameText = normalize({ params: { input: text("question") }, items: [prefix[7]!, user("text-match", text("question"), { sender })] });
+  assert.equal(sameText.items[0]?.id, "text-match");
+});
+
+test("explicit steering acknowledgement survives enriched text and history gaps", () => {
+  const local = steer("local", text("original followup"), { status: "accepted", serverUserMessageId: "server" });
+  const echo = user("server", text("Host-enriched followup"), { sender: "Alice", attachments: [{ id: "file" }] });
+  const gap = normalize({ items: [local] });
+  assert.equal(payload(gap.items[0]).serverUserMessageId, "server");
+  const result = normalize({ items: [local, echo] });
+  assert.equal(result.items.length, 1);
+  assert.deepEqual(payload(result.items[0]).input, text("original followup"));
+  assert.equal(payload(result.items[0]).sender, "Alice");
+  assert.deepEqual(payload(result.items[0]).attachments, [{ id: "file" }]);
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["local", "server"]);
+  assert.equal(payload(result.items[0]).serverUserMessageId, "server");
+  assert.equal(normalize({ items: [echo, local] }).items.length, 2);
+  assert.equal(normalize({ items: [steer("declined", text("original"), { status: "declined", serverUserMessageId: "server" }), echo] }).items.length, 2);
 });
