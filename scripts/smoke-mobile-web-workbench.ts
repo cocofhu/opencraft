@@ -57,11 +57,11 @@ try {
     assert.equal(await page.locator("html").getAttribute("data-ui-density"), "touch");
     assert.deepEqual(errors, []);
     assert.deepEqual(executableRequests, [], "built document must not download executable/style/font resources");
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     await editor.fill("Keep this mobile draft · 保留输入");
     await page.screenshot({ path: path.join(output, `${width}-initial.png`) });
     // Native visibility, resize and stale messages must keep the same tree.
-    await page.evaluate(() => { (window as any).__keptWorkbench = document.querySelector(".app-shell-root"); (window as any).__keptEditor = document.querySelector(".codex-composer-editor"); });
+    await page.evaluate(() => { (window as any).__keptWorkbench = document.querySelector(".app-shell-root"); (window as any).__keptEditor = document.querySelector(".opencraft-composer-editor"); });
     await page.evaluate(identity => {
       window.dispatchEvent(new CustomEvent("opencraft-mobile", { detail: { ...identity, type: "visibility", active: false } }));
       window.dispatchEvent(new CustomEvent("opencraft-mobile", { detail: { ...identity, runtimeId: "retired", type: "back" } }));
@@ -69,7 +69,7 @@ try {
     }, identity);
     await page.setViewportSize({ width: width === 390 ? 844 : 600, height: 600 });
     assert.equal(await page.evaluate(() => document.querySelector(".app-shell-root") === (window as any).__keptWorkbench), true);
-    assert.equal(await page.evaluate(() => document.querySelector(".codex-composer-editor") === (window as any).__keptEditor), true);
+    assert.equal(await page.evaluate(() => document.querySelector(".opencraft-composer-editor") === (window as any).__keptEditor), true);
     assert.equal(await editor.innerText(), "Keep this mobile draft · 保留输入");
     // Real settings navigation publishes back availability to the native host.
     const settings = page.getByRole("button", { name: "Settings", exact: true }).filter({ visible: true });
