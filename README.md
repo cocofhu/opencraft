@@ -136,10 +136,7 @@ Replica state, query keys, panels, and persisted selection are all scoped by
 `hostId`. Host URLs containing credentials are rejected; authentication belongs
 to the Web/Electron transport gateway.
 
-The renderer is semantic React/TypeScript and SCSS. It does not execute the
-generated recovery runtime. Provenance is pinned in
-`vendor/codex/IMPORT_MAP.json` to the r822 semantic source tree and the r823 to
-r826 audit, build, browser-differential, and hydration gates.
+The renderer is semantic React/TypeScript and SCSS. It shares the same renderer across Web and Electron.
 
 ## Workspace
 
@@ -151,7 +148,7 @@ r826 audit, build, browser-differential, and hydration gates.
 - `packages/composer-core`: serializable cross-platform composer blocks.
 - `packages/composer-editor`: ProseMirror composer with IME-safe input,
   attachments, mentions, skills, commands, history, and send/stop semantics.
-- `packages/design-system`: typed Codex theme compiler plus Web and Native tokens.
+- `packages/design-system`: typed OpenCraft theme compiler plus Web and Native tokens.
 - `packages/workbench-runtime`: renderer-free session store, commands and
   streaming lifecycle consumed by both renderer hosts.
 

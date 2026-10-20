@@ -546,9 +546,7 @@ const composerLinkTokenizer: TokenizerExtension = {
   },
 };
 
-/** Application formula delimiters; frozen grammar and historical provenance:
- * docs/provenance/math-delimiters-replacement.md. Placement remains compiler-owned.
- */
+
 const mathBlockTokenizer: TokenizerExtension = {
   name: "math",
   level: "block",

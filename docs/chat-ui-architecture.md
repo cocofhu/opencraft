@@ -8,9 +8,7 @@ operation; replacement generations wait for old work, including failures, before
 starting another load. A completed page always reaches the platform layout
 barrier, then current ownership/enabled state, explicit stop, missing geometry or
 unchanged height ends continuation. Web and Native retain their own measurements
-and frame scheduling. The [bounded replacement contract](provenance/timeline-backfill-replacement.md)
-records frozen observations and historical provenance without reclassifying other
-timeline code or treating callback identity changes as a new owner.
+and frame scheduling.
 
 ## Shared Turn measurement transactions
 
@@ -20,10 +18,7 @@ synchronous controller distance, retaining already pending scroll and latest-row
 height notifications across uncommitted batches. Callback presence grants its
 existing ownership even when no restore target is pending. Web executes the
 unchanged synchronous/pending commit paths; Native retains measurement leases
-and frame scheduling. Neither platform adds another compensation policy. The
-[bounded implementation record](provenance/timeline-measurement-replacement.md)
-limits replacement to this explicitly recovered function; adjacent helpers,
-public interfaces and consumers remain unchanged.
+and frame scheduling. Neither platform adds another compensation policy.
 
 ## Inline link label construction
 
@@ -32,10 +27,7 @@ interactive text decorations within that label, including nested formatting.
 The link has one resource action; mentions and color decorations do not create
 additional actions in its text. Raw target/title values and existing UTF-16 source
 ranges stay parser compatibility data. Sanitization, streaming activation and
-opening belong to the existing renderer/resource owners. Only the directly
-attributed link construction case has a
-[bounded implementation replacement](provenance/document-inline-link-replacement.md);
-neighboring compiler and streaming implementations are unchanged.
+opening belong to the existing renderer/resource owners.
 
 ## Trusted Web renderer composition
 
@@ -131,8 +123,7 @@ only under the existing candidate CAS. Reused segments cease to be new entrants
 without changing their keys. The bounded global segment reconciler preserves
 same-position exact/growing text before globally reusing unconsumed exact text
 occurrences. It owns segment keys and entering flags only; word segmentation,
-semantic node identity and commit CAS remain separate. See the [implementation
-boundary](provenance/streaming-segments-replacement.md). Completion first uses the full parser, then retains
+semantic node identity and commit CAS remain separate.  Completion first uses the full parser, then retains
 pure completed syntax by exact source and dialect in an LRU capped at 100 entries
 and six million key characters. Streaming repairs never enter that memo. A
 Session can reuse its committed completed snapshot; Host, theme, resource policy
@@ -276,8 +267,7 @@ unanswered; dynamic tool calls remain owned by server resolution. Each invocatio
 returns its own payload. The conversation runtime selects only the target turn,
 settles all response attempts before interrupt, carries the original provenance
 and releases its transient interrupt state on failure. The helper does not grant
-permissions or own pending-request removal. See the [bounded implementation
-record](provenance/interaction-interrupt-replacement.md).
+permissions or own pending-request removal.
 
 The shared compiler's application link scanner returns raw label/destination and
 UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
@@ -285,21 +275,19 @@ UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
 parentheses remain content. CR/LF reject a candidate; malformed candidates do
 not prevent a later valid link. Tokenizer unescaping, renderer resource admission
 and Host selection keep their existing owners. This grammar is a compatibility
-contract, not a claim to implement every Markdown dialect; see the [bounded
-scanner record](provenance/markdown-link-scanner-replacement.md).
+contract, not a claim to implement every Markdown dialect.
 
 The compiler's math extensions retain the application grammar: display uses
 `$$` or backslash-brackets with horizontal-only trailing line admission; inline
 uses backslash-parentheses and rejects LF inside the first closure. Raw token
 consumption and trimmed formula source remain distinct. Compiler placement,
-code fences and streaming identity keep their owners; see the [bounded math
-record](provenance/math-delimiters-replacement.md).
+code fences and streaming identity keep their owners.
 
 User-message block normalization retains one list context through indented
 continuations and indented fences, separates unindented kind/prose transitions,
 and resets on a zero-length line. CR/CRLF normalize globally to LF before this
 projection, including fenced lines. It does not own general streaming repair,
-compiler identity or resource admission; see the [bounded normalization record](provenance/user-message-blocks-replacement.md).
+compiler identity or resource admission.
 
 ## 跨桌面、手机和平板的会话连续性
 
@@ -1657,11 +1645,8 @@ mouse/touch animation path; they do not claim Native or Electron acceptance.
 - A typed Composer-to-AppServer compiler for new/fork/turn/steer/queue,
   interrupt, approvals and questions.
 - Web and RN Timeline renderers consuming the same Turn/Frame/Block projection.
-- Codex `VirtualizedTurnList` constants and algorithms: one full-height list,
-  Turn-count overscan, measured-height anchor compensation, route restore,
-  common geometry/scroll API. The parent latest-Turn follow module now has a
-  [separate bounded independent replacement](provenance/timeline-follow-replacement.md);
-  its compatibility constants/interfaces and all neighboring implementations remain.
+- Shared Turn virtualization: one full-height list, Turn-count overscan,
+  measured-height anchor compensation, route restore and common geometry/scroll API.
 
 ### Turn identity handoff and mounted window
 
@@ -2155,8 +2140,7 @@ frame when the source changes or disappears. It does not capture audio or write
 draft content. Stop delegates to finish, retry to the failed transaction and send
 to the existing Composer submission owner. Duration updates only while listening;
 startup uses shared neutral progress and failure retains the existing retry slot.
-[The bounded source record](provenance/dictation-footer-replacement.md) retains
-actual exposure, historical hashes and validation limits.
+
 
 
 The existing Radix model-menu surface owns the available collision height, including
@@ -2280,8 +2264,7 @@ Ordered site facets and ordinary punctuation are presentation compatibility data
 The presenter continues to own phase, summary, grouping and expandability; the
 Timeline owns protocol projection and call identity. A detail string neither
 executes a search nor authorizes or opens a resource. Web and Native consume the
-same pure projection. The [bounded replacement record](provenance/web-search-detail-replacement.md)
-retains original annotations, hashes, authoring order and finite verification.
+same pure projection.
 
 ## External conversation presentation and history reads
 
