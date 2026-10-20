@@ -623,7 +623,7 @@ function commandActionPresentation(
 }
 
 /** Exact duration shape used by Codex command Activity (`1m 0s`, null below 1s). */
-export function formatCodexToolDuration(durationMs: number, locale = "en"): string | null {
+export function formatToolDuration(durationMs: number, locale = "en"): string | null {
   return formatDuration(durationMs, { locale });
 }
 

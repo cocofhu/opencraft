@@ -2318,3 +2318,13 @@ Its DOM/style namespace is `opencraft-composer`. The naming migration changes
 no draft, selection, queue, submission or lifecycle ownership. Runtime consumers
 and existing smoke selectors move together; Codex AppServer wire identifiers
 remain external integration contracts.
+
+### Owned projection metadata identity
+
+Internal message projection metadata uses the `__opencraft` prefix. Normalized
+message writes canonicalize only the five known saved projection aliases
+(message kind, source item ID/IDs, turn-params marker and steering status).
+Readers accept the exact legacy aliases for saved data, with canonical values
+taking precedence; unknown external fields and native AppServer formats remain
+unchanged. Message identity, acknowledgement matching and display policy retain
+their existing owners.

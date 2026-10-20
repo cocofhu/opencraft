@@ -337,7 +337,7 @@ function splitCommandExecutionActions(
         !isRecord(item.payload as ReplicaJsonValue)
       )
         return [item];
-      const payload = item.payload as JsonRecord;
+      const { __velaSourceItemId: _legacySourceItemId, ...payload } = item.payload as JsonRecord;
       const actions = array(payload.commandActions);
       if (actions.length === 0) return [item];
       return actions.map((action, index) => {
@@ -348,7 +348,7 @@ function splitCommandExecutionActions(
           type: item.type,
           payload: {
             ...payload,
-            __velaSourceItemId: item.id,
+            __opencraftSourceItemId: item.id,
             callId,
             commandExecutionItemId: actions.length === 1 ? null : item.id,
             command:

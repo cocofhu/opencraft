@@ -13,6 +13,18 @@ function record(value: unknown): RecordValue {
     ? value as RecordValue : {};
 }
 
+/** Normalize only our saved projection keys; external payload fields stay opaque. */
+function projectionPayload(data: RecordValue): RecordValue {
+  const result: Record<string, unknown> = { ...data };
+  for (const suffix of ["MessageKind", "SourceItemIds", "SourceItemId", "TurnParamsMessage", "SteeringStatus"]) {
+    const canonical = `__opencraft${suffix}`;
+    const legacy = `__vela${suffix}`;
+    if (result[canonical] == null && Object.hasOwn(result, legacy)) result[canonical] = result[legacy];
+    delete result[legacy];
+  }
+  return result;
+}
+
 function string(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
@@ -46,7 +58,8 @@ function equalInput(left: unknown, right: unknown): boolean {
 }
 
 function identities(item: TimelineSourceItem, server?: TimelineSourceItem): string[] {
-  const old = record(item.payload).__velaSourceItemIds;
+  const data = record(item.payload);
+  const old = data.__opencraftSourceItemIds ?? data.__velaSourceItemIds;
   return [...new Set([item.id, ...(Array.isArray(old) ? old.filter((id): id is string => typeof id === "string") : []),
     ...(server ? [server.id] : [])])];
 }
@@ -106,15 +119,15 @@ function canonicalMessage(turn: TimelineSourceTurn, params: RecordValue, server?
   const content = server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : params.input;
   return {
     id, type: "userMessage", payload: {
-      ...data, id, type: "userMessage", content,
+      ...projectionPayload(data), id, type: "userMessage", content,
       clientId: string(params.clientUserMessageId) ?? clientOf(data),
       attachments: params.attachments ?? data.attachments,
       sender: data.sender ?? params.sender ?? null,
       commentAttachments: params.commentAttachments ?? data.commentAttachments,
       mcpAppModelContextAttachments: turn.mcpAppModelContextAttachments,
-      __velaMessageKind: "user",
-      __velaSourceItemIds: server ? identities(server) : [id],
-      __velaTurnParamsMessage: true,
+      __opencraftMessageKind: "user",
+      __opencraftSourceItemIds: server ? identities(server) : [id],
+      __opencraftTurnParamsMessage: true,
     },
   };
 }
@@ -123,11 +136,11 @@ function localMessage(item: TimelineSourceItem, server?: TimelineSourceItem): Ti
   const data = record(item.payload);
   const acknowledged = record(server?.payload);
   return { ...item, payload: {
-    ...data,
+    ...projectionPayload(data),
     input: server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : data.input,
     attachments: data.attachments ?? acknowledged.attachments,
     sender: acknowledged.sender ?? data.sender ?? null,
-    __velaMessageKind: "steering", __velaSourceItemIds: identities(item, server),
+    __opencraftMessageKind: "steering", __opencraftSourceItemIds: identities(item, server),
     serverUserMessageId: server?.id ?? null,
   } };
 }
@@ -164,9 +177,9 @@ export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): Timeli
     }
     const data = record(item.payload);
     const serverClient = clientOf(data);
-    if (leading) items.push({ ...item, payload: { ...data, __velaMessageKind: "user" } });
+    if (leading) items.push({ ...item, payload: { ...projectionPayload(data), __opencraftMessageKind: "user" } });
     else if (turn.preserveServerUserMessages === true || (serverClient !== null && !(client !== null && client === serverClient))) {
-      items.push({ ...item, payload: { ...data, __velaMessageKind: "steering", __velaSteeringStatus: "accepted" } });
+      items.push({ ...item, payload: { ...projectionPayload(data), __opencraftMessageKind: "steering", __opencraftSteeringStatus: "accepted" } });
     } else hidden.add(item.id);
   }
   return { ...turn, items, ...(turn.nonVisualItemIds !== undefined || hidden.size > 0 ? { nonVisualItemIds: [...hidden] } : {}) };

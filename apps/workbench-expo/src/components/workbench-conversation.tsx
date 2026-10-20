@@ -20,7 +20,7 @@ import {
   deriveSubagentActivityGroupPresentation,
   extractToolCallContentParts,
   formatThreadHandoffStepLabel,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatWorkDuration,
   workStatusLabelText,
   resolveAgentActivityLayout,
@@ -549,7 +549,7 @@ function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: "comman
     ? presentation.summary
     : formatCommandActivitySummary(block, presentation.state, {
         expanded: false,
-        elapsedLabel: formatCodexToolDuration(block.durationMs ?? 0),
+        elapsedLabel: formatToolDuration(block.durationMs ?? 0),
       });
   if (skill?.visible === false) return null;
   const hasBody = (!semanticAction && presentation.canExpand) || block.automaticApprovalReviews.length > 0;

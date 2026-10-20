@@ -23,7 +23,7 @@ import {
   deriveTimelineLatestTurnActivityKey,
   deriveTimelineLatestTurnPhase,
   extractToolCallContentParts,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatCommandActivitySummary,
   formatThreadHandoffStepLabel,
   formatAutomaticApprovalReviewSummary,
@@ -669,14 +669,14 @@ test("paginated history without Turn params promotes a later client UserMessage 
 
   const normalized = normalizeCodexTurnUserMessages(turn);
   assert.equal(normalized.items.length, 5);
-  const firstSource = normalized.items[0]?.payload as { __velaMessageKind?: string };
+  const firstSource = normalized.items[0]?.payload as { __opencraftMessageKind?: string };
   const steeringSource = normalized.items[3]?.payload as {
-    __velaMessageKind?: string;
-    __velaSteeringStatus?: string;
+    __opencraftMessageKind?: string;
+    __opencraftSteeringStatus?: string;
   };
-  assert.equal(firstSource.__velaMessageKind, "user");
-  assert.equal(steeringSource.__velaMessageKind, "steering");
-  assert.equal(steeringSource.__velaSteeringStatus, "accepted");
+  assert.equal(firstSource.__opencraftMessageKind, "user");
+  assert.equal(steeringSource.__opencraftMessageKind, "steering");
+  assert.equal(steeringSource.__opencraftSteeringStatus, "accepted");
 
   const snapshot = projectTimeline(source([turn]), createDefaultTimelineProjectorRegistry());
   assert.deepEqual(snapshot.frames.map((frame) => frame.type), ["user", "assistant"]);
@@ -741,11 +741,11 @@ test("an explicit steered marker closes the leading-user ownership segment even 
   assert.deepEqual(normalized.nonVisualItemIds, ["boundary-steered-marker"]);
   assert.deepEqual(normalized.items.map((item) => item.id), ["boundary-leading-user", "boundary-follow-up-user"]);
   const followUp = normalized.items[1]?.payload as {
-    __velaMessageKind?: string;
-    __velaSteeringStatus?: string;
+    __opencraftMessageKind?: string;
+    __opencraftSteeringStatus?: string;
   };
-  assert.equal(followUp.__velaMessageKind, "steering");
-  assert.equal(followUp.__velaSteeringStatus, "accepted");
+  assert.equal(followUp.__opencraftMessageKind, "steering");
+  assert.equal(followUp.__opencraftSteeringStatus, "accepted");
 });
 
 test("UserMessage projection retains file, comment and MCP context attachments as typed domain values", () => {
@@ -1730,8 +1730,8 @@ test("command labels reproduce Codex disclosure, elapsed, date, and background t
     ],
   }]), createDefaultTimelineProjectorRegistry());
   const blocks = projected.frames.flatMap((frame) => frame.blocks).filter((block): block is Extract<TimelineBlock, { type: "command-execution" }> => block.type === "command-execution");
-  assert.equal(formatCodexToolDuration(999), null);
-  assert.equal(formatCodexToolDuration(62_000), "1m 2s");
+  assert.equal(formatToolDuration(999), null);
+  assert.equal(formatToolDuration(62_000), "1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[0]!, "completed", { expanded: false, elapsedLabel: "1m 2s" }), "Ran npm test in 1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[0]!, "completed", { expanded: true, elapsedLabel: "1m 2s" }), "Ran command in 1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[1]!, "running", { expanded: true, elapsedLabel: "9s" }), "Started background terminal with npm run dev");
@@ -3635,4 +3635,22 @@ test("generated images move from live Activity to final assistant content withou
   if (runningFrame?.type !== "assistant" || completeFrame?.type !== "assistant") throw new Error("Expected assistant frames");
   assert.equal(createAssistantTurnPresentationPlan(runningFrame).slots[0]?.type, "agent-activity");
   assert.equal(createAssistantTurnPresentationPlan(completeFrame).slots[0]?.type, "assistant-content");
+});
+
+
+test("saved command source identities accept legacy aliases and prefer canonical metadata", () => {
+  const cases = [
+    { payload: { __velaSourceItemId: "legacy" }, expected: ["legacy"] },
+    { payload: { __velaSourceItemIds: ["legacy-a", "legacy-b"] }, expected: ["legacy-a", "legacy-b"] },
+    { payload: { __opencraftSourceItemId: "canonical", __velaSourceItemId: "stale" }, expected: ["canonical"] },
+    { payload: { __opencraftSourceItemIds: ["canonical-a"], __velaSourceItemIds: ["stale"] }, expected: ["canonical-a"] },
+  ];
+  for (const { payload, expected } of cases) {
+    const snapshot = projectTimeline(source([{ id: "saved", status: "complete", items: [{
+      id: "command", type: "commandExecution", payload: { command: "echo retained", output: "retained", ...payload },
+    }] }]), createDefaultTimelineProjectorRegistry());
+    const block = snapshot.frames.flatMap(frame => frame.blocks).find(block => block.type === "command-execution");
+    assert.ok(block);
+    assert.deepEqual(block.sourceItemIds, expected);
+  }
 });
