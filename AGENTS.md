@@ -83,6 +83,8 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 ## UI 与设计系统
 
+新增或修改界面前，先读 [设计入口](design.md)，选择最接近的 Settings、Chat、Sidebar 或嵌入 App 范式，并查看对应真实消费者。默认延续 OpenCraft 现有设计语言，优先复用共享组件、交互原语和语义 token；缺少可复用能力时在正确 owner 扩展。用户明确指定视觉方向时按该方向调整，并保留可访问性与工作连续性。Token 数值仍由设计系统源码持有；隔离 App 的可用样式以实际宿主能力为准。
+
 ### 应用导航不变量
 
 - 应用 Router 是路径、entry key、PUSH/REPLACE/POP 的唯一写入者；Electron 使用 Memory Router，Web 使用 Browser Router。入口在 `runtime/workbench-navigation.ts`，有无 Host 使用同一模型，不在页面手写 History API 或第二份 applicationRoute。

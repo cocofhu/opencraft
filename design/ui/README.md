@@ -3,6 +3,10 @@
 Load this index only for a UI implementation/review task. It routes to existing
 owners; it does not introduce a second theme, component library or token registry.
 
+Start UI authoring with the [design entry](../../design.md): choose a working
+Settings, Chat, Sidebar or inline App pattern, then load only the relevant topic
+below. Token numbers and behavior remain at their existing source owners.
+
 | Task | Load next | Authority / validation |
 |---|---|---|
 | Text, font, weight, size, menus, form labels, content typography | [Typography](typography.md) | Existing design-system registry; `npm run check:typography`, `npm run test:typography`, `npm run smoke:typography` |

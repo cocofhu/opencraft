@@ -1,5 +1,8 @@
 # Workbench design language
 
+For UI authoring, start with the [design entry](../design.md), then use this
+document for detailed Workbench behavior and material contracts.
+
 The target sidebar and draft target picker use the existing workbench palette,
 typography and surfaces, not a separate the downstream product theme.
 
