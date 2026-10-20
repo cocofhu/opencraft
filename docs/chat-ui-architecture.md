@@ -2334,5 +2334,4 @@ The shared editor lives in `@opencraft/composer-editor` and exports
 Its DOM/style namespace is `opencraft-composer`. The naming migration changes
 no draft, selection, queue, submission or lifecycle ownership. Runtime consumers
 and existing smoke selectors move together; Codex AppServer wire identifiers
-remain external integration contracts. Historical source attribution remains in
-the source provenance review.
+remain external integration contracts.
