@@ -14,6 +14,7 @@
 
 | 范围 | 模型/协议检查 | 真实界面或运行时 |
 |---|---|---|
+| 任务目录、管理列表、页面层级 | 先按 `design/ui/collections.md` 选择范式、容器 owner 和主次动作；有客观布局缺陷时在既有消费者烟测补能拒绝旧行为的断言 | 在真实 Shell/路由检查留白、阅读顺序、动作层级及相关混合状态；触屏使用触控上下文与触摸输入，单改 viewport 不算触控验收。具体矩阵见该文档，不新增通用测试框架或每次修改的全局截图门禁 |
 | Sidebar 几何/动画 | `npm run test:shell-space`；`npx tsx --test tests/workbench-sidebar-dock.test.ts` | `npx tsx scripts/smoke-shared-sidebar.ts`；已确认的独立桌面 CDP 上运行 `scripts/smoke-primary-visibility.mjs` |
 | 登录/账户 | `npm run test:desktop-login` | 通用 `scripts/smoke-sign-in-menu.ts`；下游产品下游在产品目录运行 `npm run smoke:authentication-flows`，控件改动再跑 `npm run smoke:account-controls` |
 | 环境目录/创建服务（无产品页面） | `npm run test:environments` | 验证服务与 Chat/Host 消费边界；不得重建已删除的 Environment 页面作为验收替身 |

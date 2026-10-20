@@ -13,6 +13,7 @@ from screenshots or freeze a theme's current colors into feature styles.
 | Task | Pattern | Working reference |
 |---|---|---|
 | Configuration and preferences | Related sections, aligned label/description/control rows, quiet actions | [Settings page](apps/workbench-web/src/components/settings-page.tsx), [Settings controls](packages/extension-react/src/settings-controls.tsx) |
+| Browsing tasks, schedules or other managed objects | Scannable object rows, meaningful groups, one clear destination and subordinate actions | [Collection composition](design/ui/collections.md), Settings list primitives and route container in the references above |
 | Reading, input and results | One reading axis, bounded width, separate content/process hierarchy, stable input and result slots | [Chat architecture](docs/chat-ui-architecture.md), [Workbench language](docs/workbench-design-language.md) |
 | Navigation and grouped choices | Shared icon/text alignment, section rhythm, distinct hover/current/pressed states | [Sidebar item](apps/workbench-web/src/components/sidebar-navigation-item.tsx), [shared controls](packages/design-system/src/controls.web.scss) |
 | Inline utility or calculator | Compact inputs and result/selection, one primary action, natural height inside the existing frame | [MCP App authoring](docs/mcp-app-builder.md#visual-authoring-in-the-conversation) |
@@ -22,6 +23,13 @@ alignment and a small text hierarchy to organize them. Keep ordinary labels quie
 reserve emphasis and accent for meaningful distinctions. Add a card, badge,
 illustration or animation when it explains something or serves explicit visual
 direction. Reusing a page's composition does not duplicate its business state.
+
+Before implementation, name the user's main task, the chosen pattern and real
+consumer, the owner of the page gutter/scrolling, and the primary versus secondary
+actions. A few lines in the existing task notes are enough; this is not an approval
+step. For collection pages, follow the composition rules and review examples in
+[Collection composition](design/ui/collections.md). Its source references identify
+reusable pieces, not proof that every existing consumer already meets the guide.
 
 ## Select existing semantic tokens
 
@@ -129,3 +137,9 @@ Run the changed owner's checks via [UI topics](design/ui/README.md) and
 [maintenance verification](.agents/skills/opencraft-maintenance/references/verification.md).
 A token reference or screenshot alone does not prove semantic fit. Distinguish
 source checks, rendered UI and unverified device/model/service paths.
+
+Review the complete composition as well as each control: reading order, content
+insets, action emphasis, density and state feedback. Use the relevant
+[collection acceptance checks](design/ui/collections.md#verify-the-composition)
+for list or management pages. Fix the cause at its owner when a shared container
+breaks these rules; do not compensate with a different margin in every feature.
