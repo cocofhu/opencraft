@@ -265,7 +265,7 @@ try {
     `restore snapshot capture cannot dispose live response space: ${JSON.stringify({ preworkBoundary, finalBoundary })}`,
   );
 
-  // Codex OD has no "long final answer => follow" transition. A directly
+  // There is no "long final answer => follow" transition. A directly
   // streamed final answer retains its starting position until bottom intent.
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?submissions`);
   await page.waitForFunction(() => (window as any).api && document.querySelector('[data-probe="text-5"]'));

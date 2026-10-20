@@ -437,7 +437,7 @@ export function AppShell({
   const mainFrameWidth = useTransform(paneGeometry, geometry => geometry.frameWidth);
   // This is the width owned by surrounding chrome, not the physical aside.
   // Full-width mode replaces the main viewport and therefore reserves no
-  // separate header/floating-bounds gutter in the original AppShell.
+  // separate header/floating-bounds gutter in AppShell.
   const regularRightPanelAnimatedWidth = useTransform(paneGeometry, geometry => geometry.occupiedWidth);
   const rightPanelAnimatedWidth = rightPanelFullWidth
     ? zeroWidth

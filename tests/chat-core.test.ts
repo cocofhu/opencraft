@@ -1712,7 +1712,7 @@ test("command failure follows exit code even when transport status completed", (
   assert.equal(block?.type, "command-execution");
   if (block?.type !== "command-execution") throw new Error("Expected command block");
   assert.equal(presentToolActivity(block).state, "failed");
-  // Codex keeps the completed action wording and communicates failure through
+  // Keep completed action wording and communicate failure through
   // row status plus the shell footer's exit code.
   assert.equal(presentToolActivity(block).summary, "Ran command");
   assert.equal(formatCommandActivitySummary(block, "failed", { expanded: false, elapsedLabel: null }), "Ran false");

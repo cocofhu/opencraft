@@ -26,7 +26,7 @@ export interface TextTimelineBlock extends TimelineBlockBase<"text"> {
   readonly completed?: boolean;
   readonly hasStructuredOutput?: boolean;
   readonly sentAtMs?: number | null;
-  /** Codex keeps commentary inside Agent Activity and renders final_answer separately. */
+  /** Keep commentary inside Agent Activity and render final_answer separately. */
   readonly phase?: "commentary" | "final_answer" | null;
 }
 
@@ -73,7 +73,7 @@ export type UserMessageContentPart =
 
 /**
  * Attachments that live beside AppServer `UserInput`. They are deliberately
- * separate from `UserMessageContentPart`: Codex renders files as a vertical
+ * separate from `UserMessageContentPart`: render files as a vertical
  * row and context/comment metadata as chips, while preserving `UserInput`
  * ordering for text, images, audio and mentions.
  */
@@ -104,7 +104,7 @@ export type UserMessageAttachment =
     };
 
 export interface UserMessageTimelineBlock extends TimelineBlockBase<"user-message"> {
-  /** Text shown by Codex's dedicated UserMessage renderer. */
+  /** Text shown by the dedicated UserMessage renderer. */
   readonly message: string;
   /** Ordered AppServer input, including non-text inputs that generic text lost. */
   readonly content: readonly UserMessageContentPart[];
@@ -142,7 +142,7 @@ export interface RealtimeTranscriptEntry {
 
 /**
  * A voice handoff transcript is a first-class timeline Item. It is not an
- * assistant message: Codex gives it independent ownership around the outer
+ * assistant message: it has independent ownership around the outer
  * Activity disclosure so collapsing tool work cannot hide the handoff.
  */
 export interface RealtimeTranscriptTimelineBlock extends TimelineBlockBase<"realtime-transcript"> {
@@ -182,7 +182,7 @@ export interface CommandExecutionTimelineBlock extends TimelineBlockBase<"comman
   readonly cwd: string | null;
   /** AppServer PTY identity; retained for background-terminal semantics. */
   readonly processId: string | null;
-  /** Item start clock used by Codex's live elapsed label. */
+  /** Item start clock used by the live elapsed label. */
   readonly startedAtMs: number | null;
   /** Whether the owning Turn is still active, independent from the PTY. */
   readonly turnInProgress: boolean;
@@ -241,7 +241,7 @@ export interface TurnDiffFileSummary {
 
 /**
  * Aggregated diff for the complete Turn. This is deliberately separate from a
- * fileChange Item: Codex renders live patch activity in the Activity group and
+ * fileChange Item: render live patch activity in the Activity group and
  * the Turn aggregate as a trailing resource card.
  */
 export interface TurnDiffTimelineBlock extends TimelineBlockBase<"turn-diff"> {
@@ -302,7 +302,7 @@ export interface ToolCallTimelineBlock extends TimelineBlockBase<"tool-call"> {
   readonly appName?: string | null;
   readonly actionName?: string | null;
   readonly pluginId?: string | null;
-  /** Generic Codex tool-surface semantics, independent of product widgets. */
+  /** Generic tool-surface semantics, independent of product widgets. */
   readonly sourceKind?: "browserUse" | "computerUse" | null;
   readonly sourceBackend?: "chrome" | "iab" | "cdp" | null;
   /** Native-app identity is preserved; platform packages may resolve its icon. */
@@ -312,7 +312,7 @@ export interface ToolCallTimelineBlock extends TimelineBlockBase<"tool-call"> {
   /** Website-provided nested WebMCP calls reported by browser-use. */
   readonly webMcpCalls?: readonly WebMcpToolSurfaceCall[];
   /**
-   * Consecutive AppServer `imageView` Items are one visual Activity in Codex.
+   * Consecutive AppServer `imageView` Items form one visual Activity.
    * Kept on the protocol-neutral block so Web and Native share the same
    * coalescing identity while resolving local image bytes independently.
    */
@@ -326,7 +326,7 @@ export type AutomationKind = "cron" | "heartbeat";
 
 /**
  * A successful `automation_update` call is promoted out of Agent Activity.
- * Codex renders it as a trailing Scheduled task resource, never as a generic
+ * Render it as a trailing Scheduled task resource, never as a generic
  * dynamic-tool row. The original input stays typed as an opaque record so the
  * host can open its own automation editor without coupling ChatUI to it.
  */
