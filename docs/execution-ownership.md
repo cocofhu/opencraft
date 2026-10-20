@@ -312,7 +312,7 @@ Headless can enable `--engines dsh,pi` (default engine DSH), or `--engines pi`
 without allocating DSH. `--default-engine pi` changes new-conversation defaults;
 restoring an existing conversation always uses its native engine. Engine identity
 is distinct from machine identity and model provider. The model menu groups the
-available models by engine; a live thread receives only its own engine's catalog.
+available models by engine in both standalone and embedded model pickers; a live thread receives only its own engine's catalog. Engine/provider headings remain visible inside each Agent group, so identical model names remain distinguishable.
 The `runtime/engines/list` endpoint describes the enabled engine registry.
 
 `plugins/pi-engine` embeds the pinned experimental `pi-durable` 1.3.0 SDK in the
