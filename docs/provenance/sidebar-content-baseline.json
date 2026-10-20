@@ -105,5 +105,38 @@
       ]
     }
   ],
-  "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies."
+  "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
+  "rangeUnit": "TypeScript UTF-16 text offsets",
+  "currentReplacement": {
+    "moduleSha256": "193fd9f903a41108578dabf29ccf84179922bc8b5cd8ecb765e4b8c277777ed2",
+    "selectedDeclarationSha256": "6205ab67ebf528450490865a8441c3318e51c8d8b1b60250f73258f4ac3ade35",
+    "outsideBoundary": {
+      "unchangedExceptHistoricalHeaderClarification": true,
+      "retainedDeclarations": [
+        {
+          "name": "ExtensionCatalog",
+          "sha256": "1d85c33867f25f5123db9d39925a31fb4cbdb1e513aca74dc3d767822a72bc7d"
+        },
+        {
+          "name": "SidebarPagination",
+          "sha256": "01938fa94c7ffa6cc870aa343a9c8cbacf9097c01225cc4c0c6c650db580c502"
+        },
+        {
+          "name": "SidebarNewChatButton",
+          "sha256": "33fcd1e8329aef065bfe427390dc6b7f98ed30ceb76825c32d9684f0d2f0d945"
+        }
+      ]
+    },
+    "validation": {
+      "contract108RawByteEqual": true,
+      "botOwnership60RawByteEqual": true,
+      "optional48RawByteEqual": false,
+      "optionalDifference": "One fixed-100ms transitioning Bot row capture; other47 states agree.",
+      "supplementalSettled48RawByteEqual": true,
+      "supplementalAuthoredAfterReplacement": true,
+      "settledRawOutputSha256": "03a9d64ca75420c47e9c300ea8866b169ee741ab99ba908426eb79e5cfd8c146",
+      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate."
+    },
+    "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."
+  }
 }
