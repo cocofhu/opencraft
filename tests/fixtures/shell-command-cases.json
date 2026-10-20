@@ -1,14 +1,4 @@
 {
-  "source": {
-    "repository": "https://github.com/openai/codex",
-    "revision": "fecac1c348af3634924e1a1b5413376208ee1884",
-    "package": "codex-shell-command",
-    "version": "0.148.0-alpha.21",
-    "file": "codex-rs/shell-command/src/parse_command.rs"
-  },
-  "upstreamTestCount": 81,
-  "parserCaseCount": 117,
-  "generatedBy": "instrumented upstream assert_parsed plus the direct supports_tail_n_last_lines assertion",
   "cases": [
     {
       "test": "ag_ack_pt_files_with_matches_flags_are_search",
