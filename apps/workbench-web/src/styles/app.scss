@@ -12064,6 +12064,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
   // Keep the material plane stationary while the panel scales/fades above it.
   // The portal outlives presence; exiting/inert or empty hosts must not cover the page.
   &:has(.app-shell-floating-left-panel:not([aria-hidden="true"])) { background: var(--shell-mobile-sidebar-background); }
+  // Mobile progress has finished before presence exits. aria-hidden/inert
+  // revoke input but still paint, so hide the retained surface in this same
+  // DOM commit, before Motion's next render or the portal's final removal.
+  .app-shell-floating-left-panel {
+    // Even the global reduced-motion 0.01ms duration would defer visibility
+    // until another frame. Mobile MotionValues own movement; CSS owns hiding.
+    transition-property: none;
+    &[aria-hidden="true"] { visibility: hidden; }
+  }
   @media (prefers-reduced-motion: no-preference) {
     // This owner exists only for floating presence. Keep its changing scale on
     // a composited layer rather than re-rasterizing it at every scale value.

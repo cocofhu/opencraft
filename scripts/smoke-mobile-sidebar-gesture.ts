@@ -290,16 +290,26 @@ try {
       };
       await page.evaluate(() => {
         (window as any).unsafeSidebarPaint = [];
-        new MutationObserver(() => {
+        const sample = () => {
           const host = document.querySelector<HTMLElement>('.app-shell-floating-overlay-root[data-mobile-sidebar]');
           const foreground = document.querySelector<HTMLElement>('.app-shell-root.has-mobile-sidebar-gestures');
           if (!host || !foreground) return;
           const back = getComputedStyle(host), front = getComputedStyle(foreground);
-          // Exit presence can retain an inert panel after the page returns to
-          // its ordinary stacking order. Its backing must release in that frame.
-          if (back.backgroundImage !== 'none' && !(Number(front.zIndex) > Number(back.zIndex)))
-            (window as any).unsafeSidebarPaint.push({front:front.zIndex, back:back.zIndex});
-        }).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['data-mobile-sidebar-present','aria-hidden']});
+          const panel = host.querySelector<HTMLElement>('.app-shell-floating-left-panel');
+          const content = panel ? getComputedStyle(panel) : null;
+          const contentPaints = content && content.visibility === 'visible'
+            && content.display !== 'none' && Number(content.opacity) > 0;
+          // aria-hidden/inert revoke input, not paint. Inspect the actual text
+          // surface as well as its backing through the final removal frames.
+          if ((back.backgroundImage !== 'none' || contentPaints)
+            && !(Number(front.zIndex) > Number(back.zIndex)))
+            (window as any).unsafeSidebarPaint.push({front:front.zIndex, back:back.zIndex,
+              contentPaints, exiting:panel?.getAttribute('aria-hidden')});
+        };
+        new MutationObserver(sample).observe(document.body, {subtree:true, childList:true,
+          attributes:true, attributeFilter:['style','data-mobile-sidebar-present','aria-hidden']});
+        const frame = () => { sample(); requestAnimationFrame(frame); };
+        requestAnimationFrame(frame);
       });
       const readStack=()=>page.evaluate(()=>{
         const panel=document.querySelector<HTMLElement>('.app-shell-floating-left-panel')!;
@@ -374,7 +384,7 @@ try {
         assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
         evidence.push({theme,reducedMotion,width,material,stack,held:[a,b],sameEntrance:true,escape:true,gestureReopen:true});
       }
-      assert.deepEqual(await page.evaluate(() => (window as any).unsafeSidebarPaint), [], 'backing never paints above the returned page during exit presence');
+      assert.deepEqual(await page.evaluate(() => (window as any).unsafeSidebarPaint), [], 'sidebar content and backing never paint above the returned page during exit presence');
       await page.setViewportSize({width:1280,height:844});await page.waitForTimeout(300);
       const desktop=page.locator('.app-shell-touch-sidebar-toggle button');await desktop.waitFor();
       await desktop.tap();await page.waitForTimeout(650);assert.equal(await row.evaluate((e:HTMLElement)=>getComputedStyle(e).transform),'none','desktop does not translate');

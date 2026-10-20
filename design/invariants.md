@@ -434,7 +434,13 @@ floating panel is mounted, including the top/bottom safe areas. The scaled
 mobile panel surface is transparent: only the stationary owner paints the full
 material, avoiding fractional-edge double compositing. Scaling/fading
 content must never expose window-colored horizontal strips. The exiting/inert or empty portal
-paints nothing when the foreground returns to its ordinary stacking order. There is no
+paints nothing when the foreground returns to its ordinary stacking order.
+Mobile presence exit hides the retained content surface immediately: aria-hidden
+and inert alone do not suppress painting. The surface has no CSS transition,
+including the global reduced-motion duration, so hiding cannot wait one frame.
+Both content and backing are checked
+at DOM commits and animation frames through final removal; desktop exit motion
+retains its existing lifetime. There is no
 horizontal sidebar entrance, blur, separate depth timer or inherited animated
 variable. The foreground retains its full
 layout width, round leading corners and theme elevation; the untransformed root
