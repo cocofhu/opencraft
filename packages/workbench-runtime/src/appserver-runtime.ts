@@ -531,6 +531,7 @@ export function createAppServerWorkbenchRuntime(
   let disposeOperation: Promise<void> | null = null;
   let initializeServicesOperation: Promise<void> | null = null;
   let connectionRevision = 0;
+  let connectionObservation: { client: AppServerClient; revision: number } | null = null;
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
     delaysMs: config.reconnectDelaysMs,
     log: config.onRecoveryEvent, changed: () => publish(),
@@ -686,12 +687,12 @@ export function createAppServerWorkbenchRuntime(
     clock, autoReconnect: config.autoReconnect, delaysMs: config.reconnectDelaysMs,
     stableMs: config.reconnectStableMs, timeoutMs: Math.max(60_000, (config.requestTimeoutMs ?? 30_000) + 15_000),
     async run(attempt: ConnectionAttempt) {
-      automaticReconnectBlock = null;
-      initializationFailureStatus = null;
       // A revoked initializer retains exclusive cleanup ownership. A successor
       // may join its local assembly, but never inherits its connection result.
       if (initializeServicesOperation !== null) await initializeServicesOperation.catch(() => undefined);
       attempt.assertCurrent();
+      automaticReconnectBlock = null;
+      initializationFailureStatus = null;
       await initializeServices(attempt);
       attempt.assertCurrent();
       return connectPhysicalHost(lifecycleGeneration, attempt);
@@ -702,6 +703,7 @@ export function createAppServerWorkbenchRuntime(
     manual: () => (automaticReconnectBlock ?? currentTransport?.status)?.failure?.recovery === "manual",
     invalidate() {
       connectionRevision += 1;
+      connectionObservation = null;
       // Clear all authority before recovery observers can reenter the Runtime.
       for (const binding of bindings.values()) binding.replica.disconnect();
       recovery.invalidate();
@@ -713,7 +715,10 @@ export function createAppServerWorkbenchRuntime(
         : state.phase === "backoff" ? "reconnecting"
         : state.phase === "blocked" ? "error" : state.phase;
       error = state.error;
-      if (state.phase === "attempting") recovery.begin("connecting");
+      if (state.phase === "attempting") {
+        connectionObservation = null;
+        recovery.begin("connecting");
+      }
       else if (state.phase === "usable") recovery.hostReady();
       else if (state.phase === "blocked") { recovery.connectionFailed(state.error); recovery.connectionBlocked(); }
       else if (state.phase === "backoff") recovery.connectionFailed(state.error);
@@ -1296,6 +1301,7 @@ export function createAppServerWorkbenchRuntime(
     const currentClient = requireClient();
     const transport = currentTransport;
     const revision = connectionRevision;
+    connectionObservation = { client: currentClient, revision };
     if (currentClient.initializeResult === null) recovery.connectionStage(currentTransport?.status.state === "open" ? "initializing" : "connecting");
     await currentClient.connect(config.initialize ?? defaultInitialize, attempt?.signal);
     ensureLifecycle(generation);
@@ -1426,7 +1432,8 @@ export function createAppServerWorkbenchRuntime(
       removeClientHandlers = config.installClientHandlers?.(client) ?? null;
       const observedClient = client;
       removeTransportListener = observedClient.subscribeStatus((status) => {
-        if (disposed || client !== observedClient) return;
+        if (disposed || client !== observedClient || connectionObservation?.client !== observedClient
+          || connectionObservation.revision !== connectionRevision) return;
         if (status.state === "open" && observedClient.initializeResult === null) recovery.connectionStage("initializing");
         if (status.state !== "closed" && status.state !== "failed") return;
         if (status.failure?.recovery === "manual") automaticReconnectBlock = status;
