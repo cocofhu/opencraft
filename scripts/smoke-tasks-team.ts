@@ -315,7 +315,7 @@ try {
  await page.getByLabel("Execution connection",{exact:true}).selectOption("local-codex");
  await page.getByRole("button",{name:"New conversation",exact:true}).focus();await page.keyboard.press("Enter");
  await page.waitForURL((url:URL)=>!url.pathname.startsWith('/views/'));
- const editor=page.locator('.codex-composer-editor[role="textbox"]:visible');await editor.waitFor();
+ const editor=page.locator('.opencraft-composer-editor[role="textbox"]:visible');await editor.waitFor();
  assert.match(await editor.innerText(),/Aligned action opens a native draft/);
  const handoffTask=(await cli("list",{search:handoffTitle})).tasks.find((task:any)=>task.title===handoffTitle);
  assert.ok(handoffTask);assert.equal((await cli("read",{id:handoffTask.id})).conversations.length,0,"The action saves the task and prepares a draft without starting a Thread or Turn");

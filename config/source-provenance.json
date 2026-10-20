@@ -11,7 +11,7 @@
         "apps/workbench-web/src/components/conversation.tsx",
         "apps/workbench-web/src/components/right-panel.tsx",
         "apps/workbench-web/src/styles/app.scss",
-        "packages/codex-composer/src/codex-composer.tsx",
+        "packages/composer-editor/src/composer-editor.tsx",
         "packages/design-system/src/theme-engine.ts"
       ],
       "evidence": [
@@ -282,7 +282,7 @@
         "apps/appserver-lab/src/request-journal.ts",
         "packages/appserver-session/src/projectors.ts",
         "packages/chat-runtime/src/interaction-lifecycle.ts",
-        "packages/codex-composer/src/dictation-footer.tsx",
+        "packages/composer-editor/src/dictation-footer.tsx",
         "packages/workbench-panels/src/model.ts",
         "docs/provenance/interaction-interrupt-baseline.json",
         "docs/provenance/interaction-interrupt-replacement.md",
@@ -774,7 +774,7 @@
       "id": "dictation-footer-presentation",
       "status": "independently-reimplemented",
       "paths": [
-        "packages/codex-composer/src/dictation-footer.tsx"
+        "packages/composer-editor/src/dictation-footer.tsx"
       ],
       "evidence": [
         "docs/provenance/dictation-footer-baseline.json",

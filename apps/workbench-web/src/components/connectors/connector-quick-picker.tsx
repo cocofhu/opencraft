@@ -116,10 +116,10 @@ export function ConnectorQuickMenu({ items, onAction, onManage, inDropdownMenu =
 
 export function ConnectorAddMenuItem({ items, onAction, onManage, portalContainer, onAfterAction }: ConnectorQuickMenuProps & { readonly portalContainer: HTMLElement | null }) {
   return <DropdownMenu.Sub>
-    <DropdownMenu.SubTrigger className="codex-composer-selection-menu__item codex-composer-add-menu__item">
+    <DropdownMenu.SubTrigger className="opencraft-composer-selection-menu__item opencraft-composer-add-menu__item">
       <Plug size={15} aria-hidden="true" />
       <span><FormattedMessage id="connector.title" defaultMessage="Connectors" /></span>
-      <ChevronRight className="codex-composer-add-menu__chevron" size={14} aria-hidden="true" />
+      <ChevronRight className="opencraft-composer-add-menu__chevron" size={14} aria-hidden="true" />
     </DropdownMenu.SubTrigger>
     <DropdownMenu.Portal container={portalContainer}>
       <DropdownMenu.SubContent className="connector-quick-surface connector-quick-surface--submenu" sideOffset={4} collisionPadding={8}>

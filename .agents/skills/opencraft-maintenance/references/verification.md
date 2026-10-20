@@ -21,7 +21,7 @@
 | 本机项目目录选择 | `npm run test:projects` | `npm run smoke:project-picker`：显式提供已签名预览的 `OPENCRAFT_PROJECT_PICKER_EXECUTABLE`，使用隔离项目/profile；系统点击取消单独人工验收 |
 | Mac 语音输入 | `npm run test:native-speech`；构建native helper后运行 `npm run test:native-speech:lifecycle`；`npm run gate` | `npm run smoke:native-speech`、`npm run smoke:dictation-interaction`：显式设置 `OPENCRAFT_NATIVE_SPEECH_EXECUTABLE`，隔离profile的真实无录音probe与合成多片段helper验证原草稿/选区不变、final-only一次插入、取消/换草稿/设置持久化；真实权限、识别与task音频交接须另获授权，不能用合成结果冒充 |
 | 自适应面板 | `npm run test:adaptive-navigation` | 实际容器缩窄、内部 Back、重挂载后的草稿/滚动/焦点 |
-| 听写写入所有权 | `npm run test:native-speech` | `npm run smoke:dictation-ownership` 使用真实Core/CodexComposer/Voice组件，只替换ASR边界，验证旧选区不被替换、内容代次失效、reservation丢失/reentrant写入拒绝不发送；再以独立签名桌面跑正常链路 |
+| 听写写入所有权 | `npm run test:native-speech` | `npm run smoke:dictation-ownership` 使用真实Core/OpenCraftComposer/Voice组件，只替换ASR边界，验证旧选区不被替换、内容代次失效、reservation丢失/reentrant写入拒绝不发送；再以独立签名桌面跑正常链路 |
 | 协议/Host/会话 | `npm run check:boundaries`；按边界选择 `test:appserver`、`test:dsh-bridge`、`test:chat` | 相应运行时或回放路径；断线重连、晚到帧、宿主/会话切换 |
 | Terminal 字符网格/排版 | `npx tsx --test tests/workbench-terminal.test.ts`（含真实 PTY） | `npm run smoke:terminal-geometry`（需已安装 agent-browser）：真实 Panel/xterm，旧继承负例、DPR 1/2、字距/宽字符/resize/字体/显隐；再量当前 Electron 的字符 Range、光标、screen/host，不向用户 shell 发送测试命令 |
 | Hermes 多 Profile Bot | 通用扩展跑 `npm run test:extensions`；下游产品原 Profile 测试在下游产品的 `npm test` | 下游产品 Web 构建后在产品目录运行 `npm run smoke:hermes-profile-bots`：真实 Bridge/client/Cordis directory/resolver/source/Bot View，仅远端 Hermes 与控制面替身；切 Bot、发送、Host generation 替换与原历史恢复。真实账号、企业服务和推理需另获授权 |

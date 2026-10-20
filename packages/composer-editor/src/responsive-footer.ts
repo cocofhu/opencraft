@@ -78,13 +78,13 @@ export function useMeasuredComposerFooterLayout(): MeasuredComposerFooterLayout 
     const measure = () => {
       frame = 0;
       const host = controls.querySelector<HTMLElement>(
-        ".codex-composer-mode--static",
+        ".opencraft-composer-mode--static",
       );
       const intelligence = controls.querySelector<HTMLElement>(
-        ".codex-composer-mode--intelligence",
+        ".opencraft-composer-mode--intelligence",
       );
       const permission = controls.querySelector<HTMLElement>(
-        ".codex-composer-mode--permissions",
+        ".opencraft-composer-mode--permissions",
       );
       intrinsic.current.host = Math.max(
         intrinsic.current.host,

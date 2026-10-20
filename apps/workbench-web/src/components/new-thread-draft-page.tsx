@@ -3,12 +3,12 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { ThreadComposerPresentation } from "./thread-composer-presentation";
 import {
-  CodexComposer,
-  type CodexComposerHandle,
+  OpenCraftComposer,
+  type OpenCraftComposerHandle,
   type ComposerEffectiveSelections,
   type ComposerSelectionCatalog,
   type ComposerShortcutCommand,
-} from "@opencraft/codex-composer";
+} from "@opencraft/composer-editor";
 import type {
   ComposerAttachment,
   ComposerCatalog,
@@ -305,10 +305,10 @@ function ExecutionUtilityBar({
             collisionPadding={menuGeometry.collisionPadding}
             onCloseAutoFocus={(event) => { event.preventDefault(); onReturnFocus(); }}
           >
-            <DropdownMenu.Label className="codex-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.title", defaultMessage: "Work in" })}</DropdownMenu.Label>
+            <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.title", defaultMessage: "Work in" })}</DropdownMenu.Label>
             <div className="new-thread-project-menu__items">
               {[false, true].map(cloud => <DropdownMenu.Group key={String(cloud)}>
-              {cloud && hostOptions.some(host => host.cloud) ? <DropdownMenu.Label className="codex-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud" })}</DropdownMenu.Label> : null}
+              {cloud && hostOptions.some(host => host.cloud) ? <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">{intl.formatMessage({ id: "workIn.cloud", defaultMessage: "Cloud" })}</DropdownMenu.Label> : null}
               {hostOptions.filter(host => host.cloud === cloud).map((host) => {
                 const selected = host.hostIds.includes(activeHostId);
                 return (
@@ -486,7 +486,7 @@ export function NewThreadDraftPage({
   onSubmit,
 }: NewThreadDraftPageProps) {
   const intl = useIntl();
-  const composerRef = useRef<CodexComposerHandle>(null);
+  const composerRef = useRef<OpenCraftComposerHandle>(null);
   const portalContainer = useWorkbenchPresentationRoot();
 
   if (draft.submission !== null) {
@@ -501,7 +501,7 @@ export function NewThreadDraftPage({
   }, [draft.id]);
 
 
-  const composer = (goalMenuItem: ((closeMenu: (afterClose?: () => void) => void) => ReactNode) | null, goalBusy = false, goalContent: ReactNode = null) => <CodexComposer
+  const composer = (goalMenuItem: ((closeMenu: (afterClose?: () => void) => void) => ReactNode) | null, goalBusy = false, goalContent: ReactNode = null) => <OpenCraftComposer
     attachedContent={goalContent}
     ref={composerRef}
     portalContainer={portalContainer}

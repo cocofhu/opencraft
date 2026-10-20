@@ -1328,7 +1328,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `capability-runtime` (proposed) | catalog, progressive disclosure, resolver, policy, execution router, journal and Draft Lab | none |
 | `design-system` | semantic colors, spacing, radii and theme computation | none |
 | `design-system-web` | shared Web/SVG progress projection, document animation phase and motion preference cleanup; consumes renderer-free geometry | React and DOM only |
-| `codex-composer` | ProseMirror/DOM composer view | DOM only |
+| `composer-editor` | ProseMirror/DOM composer view | DOM only |
 | `workbench-web` | Codex frame, SCSS, Electron/browser adapters | React DOM |
 | `workbench-expo` | Expo Router routes, native views, Expo Web view | React Native |
 | `workbench-electron` | windows, tray, static origin and App Host byte relay | Electron main |

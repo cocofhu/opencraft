@@ -4,12 +4,20 @@ import test from "node:test";
 import { createElement } from "react";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import * as Dialog from "@radix-ui/react-dialog";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { CodexAccountView } from "../packages/appserver-protocol/src/codex-accounts.js";
 
 import type { HostProtocolRequest } from "../plugins/builtin-agents/src/local-agent-settings-service.js";
 import { CodexAccountsService } from "../plugins/builtin-agents/src/codex-accounts/service.js";
 import { CodexDeviceLoginContent, createCodexAccountsView } from "../plugins/builtin-agents/src/codex-accounts/view.js";
+
+// Use the same Dialog instance as the plugin content under test.
+const pluginRequire = createRequire(new URL("../plugins/builtin-agents/package.json", import.meta.url));
+const dialogRoot = resolve(dirname(pluginRequire.resolve("@radix-ui/react-dialog")), "..");
+const dialogManifest = JSON.parse(readFileSync(resolve(dialogRoot, "package.json"), "utf8"));
+const Dialog: typeof import("@radix-ui/react-dialog") = await import(pathToFileURL(resolve(dialogRoot, dialogManifest.module)).href);
 
 test("Codex reset credits render authoritative totals, zero, and unknown for old Hosts", async () => {
   Object.assign(globalThis, { React });

@@ -174,11 +174,11 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   const canCreate = (goal === null || completed) && capability.write;
   const goalMenuItems = canCreate || completed ? (closeMenu: (afterClose?: () => void) => void) => <>
     {completed ? <DropdownMenu.Item
-      className="codex-composer-selection-menu__item codex-composer-add-menu__item"
+      className="opencraft-composer-selection-menu__item opencraft-composer-add-menu__item"
       onSelect={event => { event.preventDefault(); const opener = menuReturnFocus(event); closeMenu(() => openEditor(opener, "view")); }}
     ><Target size={15} aria-hidden="true" />{intl.formatMessage(messages.viewComplete)}</DropdownMenu.Item> : null}
     {canCreate ? <DropdownMenu.Item
-      className="codex-composer-selection-menu__item codex-composer-add-menu__item"
+      className="opencraft-composer-selection-menu__item opencraft-composer-add-menu__item"
       disabled={disabled || busy || (!newGoal && snapshot.phase !== "ready")}
       onSelect={event => { event.preventDefault(); const opener = menuReturnFocus(event); closeMenu(() => openEditor(opener, "create")); }}
     ><Target size={15} aria-hidden="true" />{intl.formatMessage(messages.create)}</DropdownMenu.Item> : null}
@@ -220,12 +220,12 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild><Button ref={actionsRef} variant="ghost" size="sm" disabled={busy || disabled} aria-label={intl.formatMessage(messages.actions)} title={intl.formatMessage(messages.actions)}><MoreHorizontal size={16} aria-hidden="true" /></Button></DropdownMenu.Trigger>
           <DropdownMenu.Portal container={overlayContainer}>
-            <DropdownMenu.Content className="codex-composer-selection-menu thread-goal__menu" side="top" align="end" sideOffset={8} collisionPadding={12} onCloseAutoFocus={event => {
+            <DropdownMenu.Content className="opencraft-composer-selection-menu thread-goal__menu" side="top" align="end" sideOffset={8} collisionPadding={12} onCloseAutoFocus={event => {
               const action = afterMenuClose.current;
               if (action) { event.preventDefault(); afterMenuClose.current = null; action(); }
             }}>
-              <DropdownMenu.Item className="codex-composer-selection-menu__item" onSelect={() => { afterMenuClose.current = () => openEditor(actionsRef.current); }}><Pencil size={15} aria-hidden="true" />{intl.formatMessage(messages.edit)}</DropdownMenu.Item>
-              <DropdownMenu.Item className="codex-composer-selection-menu__item" onSelect={() => run(() => goals.clear(threadId))}><Trash2 size={15} aria-hidden="true" />{intl.formatMessage(messages.remove)}</DropdownMenu.Item>
+              <DropdownMenu.Item className="opencraft-composer-selection-menu__item" onSelect={() => { afterMenuClose.current = () => openEditor(actionsRef.current); }}><Pencil size={15} aria-hidden="true" />{intl.formatMessage(messages.edit)}</DropdownMenu.Item>
+              <DropdownMenu.Item className="opencraft-composer-selection-menu__item" onSelect={() => run(() => goals.clear(threadId))}><Trash2 size={15} aria-hidden="true" />{intl.formatMessage(messages.remove)}</DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>

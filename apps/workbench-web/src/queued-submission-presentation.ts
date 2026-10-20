@@ -2,7 +2,7 @@ import type { IntlShape } from "@opencraft/i18n";
 import type { IdentityAvatarContribution } from "@opencraft/extension-react";
 import type { MessageSender } from "@opencraft/appserver-protocol";
 import { restoreQueuedInput } from "@opencraft/composer-appserver";
-import type { ComposerQueuedSubmissionPresentation } from "@opencraft/codex-composer";
+import type { ComposerQueuedSubmissionPresentation } from "@opencraft/composer-editor";
 import type { QueuedSubmission } from "@opencraft/chat-runtime";
 
 export function queueSenderPresentation(sender: MessageSender | null | undefined, avatars: IdentityAvatarContribution | null) {

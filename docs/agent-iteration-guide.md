@@ -16,7 +16,7 @@ full gate.
 | Node/Web/Expo persistence | matching `appserver-replica-storage-*` package | adapter test/typecheck |
 | daemon connection behavior | matching `appserver-transport-*` package | transport tests + Lab fault scenario |
 | shared commands and view state | `packages/workbench-runtime` | runtime tests + both renderer builds |
-| desktop frame or DOM editor | `apps/workbench-web`, `packages/codex-composer` | Vite build and browser review |
+| desktop frame or DOM editor | `apps/workbench-web`, `packages/composer-editor` | Vite build and browser review |
 | native/iPad view | `apps/workbench-expo` | Expo Web export + iOS Metro bundle |
 
 Do not add protocol, persistence, clocks, or daemon state directly to a React
