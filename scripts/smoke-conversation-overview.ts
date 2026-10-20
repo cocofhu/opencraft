@@ -20,7 +20,7 @@ initializeAppearanceTheme();
 const params=new URL(location.href).searchParams;
 document.documentElement.dataset.uiDensity=params.get('density')||'touch';
 setThemePreference(params.get('theme')==='dark'?'dark':'light');
-if(params.get('theme')==='frost')setAppearanceThemeId('vela.core.frost');
+if(params.get('theme')==='frost')setAppearanceThemeId('opencraft.core.frost');
 const fixture=window.fixture={reads:[],active:{},peak:{},scope:1,failRead:false,failSelect:false,selected:[],delay:60};
 const client=new QueryClient();fixture.queryClient=client;
 const initial=Array.from({length:40},(_,i)=>({id:i<2?'same':'t'+i,title:['Waiting for your review','Unread result','Running task'][i]||'Conversation '+i,project:'Workspace / project '+i,lineage:'root',time:'',status:i===0?'review':i===2?'running':'ready',updatedAt:1000-i,unread:i===1,connectionHostId:i===1?'remote':'local',connectionHostLabel:i===1?'Remote':'Local',interactionAvailable:true,...legacyDirectServerProjectionFromHost({hostId:i===1?'remote':'local',hostKind:'local',label:i===1?'Remote':'Local'})}));
