@@ -86,8 +86,7 @@ validation. Its pure execution-list upsert prioritizes the latest active run of
 the same protocol ID, then a matching non-null completion timestamp, otherwise
 appending a count-suffixed presentation ID. It replaces the matched wrapper with
 the complete incoming run while retaining unrelated entry identities. This does
-not own hook execution, retry, notification order or transport authority. See the
-[bounded implementation record](provenance/hook-upsert-replacement.md).
+not own hook execution, retry, notification order or transport authority.
 
 ## Recovered-source consultation ledger
 

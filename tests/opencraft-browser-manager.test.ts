@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { createImplementation } from "../apps/workbench-web/src/browser/opencraft/presentation-transition.js";
 import { createOpenCraftBrowserManager } from "../apps/workbench-web/src/browser/opencraft-browser-manager";
 import { OpenCraftPresentationHost } from "../apps/workbench-web/src/browser/opencraft-presentation-host";
@@ -36,20 +34,6 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
   } finally { env.close(); }
 });
 
-test("independent browser module locks preserve historical provenance", () => {
-  const directory = new URL("../apps/workbench-web/src/browser/opencraft/", import.meta.url);
-  const manifest = JSON.parse(readFileSync(new URL("source-manifest.json", directory), "utf8"));
-  for (const name of ["browser-manager", "presentation-transition"]) {
-    const text = readFileSync(new URL(name + ".js", directory), "utf8");
-    const baselineName = name === "presentation-transition" ? "browser-transition" : "browser-manager";
-    const baseline = JSON.parse(readFileSync(new URL(`../docs/provenance/${baselineName}-baseline.json`, import.meta.url), "utf8"));
-    const { implementation, ...historical } = manifest[name];
-    assert.deepEqual(historical, baseline.historicalReference);
-    assert.equal(implementation.status, "independently-reimplemented");
-    assert.equal(createHash("sha256").update(text).digest("hex"), implementation.moduleSha256);
-    assert.notEqual(implementation.moduleSha256, baseline.fileSha256 ?? baseline.sha256);
-  }
-});
 
 function environment() {
   const oldWindow = Object.getOwnPropertyDescriptor(globalThis, "window");

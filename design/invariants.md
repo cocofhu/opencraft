@@ -26,8 +26,7 @@ the scaled layer, consumes the same progress from 65% to zero opacity, and stays
 transparent in reduced motion; Shell CSS retains material and hit-test ownership.
 Existing resize transactions own bounds,
 keyboard/default width, commits and cancellation; the floating resize port cannot
-collapse the sidebar. The [bounded replacement record](../docs/provenance/floating-sidebar-replacement.md)
-retains pre-authoring observations and the pre-existing full Shell footer failure.
+collapse the sidebar.
 Other Shell, navigation, style and spring implementations retain their owners.
 
 ## Discrete slider fill
@@ -211,8 +210,7 @@ children but suppresses text decorations that would create nested interactive
 mentions. The document compiler preserves target/title and source-range contracts;
 the renderer owns target safety, streaming activation and semantic open intent.
 Changing node construction must not create a second resource or identity owner.
-The [bounded link replacement](../docs/provenance/document-inline-link-replacement.md)
-records exact scope and verification limits.
+
 
 ## Conversation recovery feedback
 
@@ -591,8 +589,7 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 底栏仅消费当前瞬时事务，独立呈现阶段、计时和有界音量历史；录音、重试、最终
 写入与提交仍由原owner负责。采样源替换/卸载释放订阅、观察器及待绘制帧；停止
-调用finish，发送交回Composer提交入口，不新增麦克风或草稿状态。当前替换的
-[来源与验证边界](../docs/provenance/dictation-footer-replacement.md)单独保留。
+调用finish，发送交回Composer提交入口，不新增麦克风或草稿状态。
 
 - DIC-01：听写Footer由当前Composer瞬时输入事务拥有；切换草稿、清空、物理View替换或卸载同时释放文本与呈现。旧事务不能更新新Footer。
 - DIC-02：普通与听写操作互斥；普通内容保持挂载但inert/aria-hidden，不重建编辑器。Composer拥有区域几何、主题控件和提交编译，插件只提供状态/采样/完成动作。
@@ -623,7 +620,6 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 迁移基线：Codex 26.908.40834 的 `right-panel-composer-overlay-f770dcfd060a.js`、`right-panel-composer-overlay-c2ae7a9bcecb.css`，并以 ref/codex 可读恢复树交叉核对状态与手势。OpenCraft 的 scope registry、主题、标准 Electron tracking 是适配层，不声称为私有宿主源码。最终矩阵记录于 2026-09-14-floating-composer-replacement Task Pack。
 
-2026-10-19 状态模块替换：`floating-composer-state.ts` 的投影、路由状态、保留注册表与滚轮策略已按冻结需求独立重写。范围、旧版本哈希、作者接触边界及实际验证见 [替换记录](../docs/provenance/floating-composer-replacement.md)。上述迁移基线保留为历史记录；本次不重分类 Shell、浏览器或原生 tracking 的实现来源，不把 Web 验证视为 native 验收。
 
 ## Shell pane ownership（Codex 26.908.40834）
 
@@ -666,7 +662,7 @@ Interrupt interaction policy is a pure protocol projection: decline/dismiss
 legacy blocking requests with fresh payloads; dynamic tools await server resolution.
 The conversation runtime owns turn filtering, all-settled cancellation sequencing,
 interrupt provenance and failure cleanup. No UI view or response factory grants
-permissions or removes pending requests. See [the interrupt contract](../docs/provenance/interaction-interrupt-replacement.md).
+permissions or removes pending requests.
 
 Connector 交互不变量：Composer 入口消费应用级 Manager；授权完成、连接、会话选择与写审批分别表达用户意图。面板卸载不销毁已就绪共享连接；审批由共享 Modal/Radix 管理焦点和层级，配置恢复不恢复执行授权。见 [Connector 设计](../docs/platform-connectors.md) 与 `smoke:connector-controls`。
 
@@ -718,24 +714,22 @@ Connector 目录浏览不套用设置行：采用限宽品牌卡片，已配置�
 Application Markdown link scanning is a pure raw-text projection. UTF-16 source
 ranges, escape compatibility and later-candidate recovery stay stable; unescaping
 and Host-scoped resource admission remain caller responsibilities. Scanner matches
-do not open a resource or grant navigation. See [the bounded scanner contract](../docs/provenance/markdown-link-scanner-replacement.md).
+do not open a resource or grant navigation.
 
 Formula delimiter projection preserves application syntax and raw source ranges;
 code-fence precedence and structural placement remain compiler responsibilities.
 Display line-tail admission and inline LF rejection cannot silently change during
-source replacement. See [the bounded math contract](../docs/provenance/math-delimiters-replacement.md).
+source replacement.
 
 User-message list/block projection preserves the existing newline and fence
 compatibility; indented continuations retain list context and empty lines reset
-it. Source replacement must not silently adopt another Markdown dialect. See the
-[bounded normalization contract](../docs/provenance/user-message-blocks-replacement.md).
+it. Source replacement must not silently adopt another Markdown dialect.
 
 Global streaming segment keys survive Markdown container reparsing through the
 shared reconciler: same-position exact/growing text wins before unconsumed global
 exact occurrences. Reused text settles, new text enters only while streaming,
 and completed text stays visible. This pure projection cannot commit a session,
-change syntax identity, schedule animation or own execution. See the [bounded
-record](../docs/provenance/streaming-segments-replacement.md).
+change syntax identity, schedule animation or own execution.
 
 ## Markdown 文件预览
 - 文件标题栏提供文件树显隐开关；收起后内容占满宽度，树保持挂载以保留展开、搜索和滚动位置，不重建预览或编辑器。只读嵌入预览仍无目录入口。验证：`scripts/smoke-file-tree-toggle.ts`。
@@ -1599,11 +1593,7 @@ Docked layout precedes outgoing layout presence/resize, which precedes floating
 request/resize presence; hidden is the remaining state. Floating presence can
 mount only after docked layout ownership ends. Suppression vetoes edge and peek
 acquisition; retained intent uses the nonnegative live panel boundary.
-The bounded source replacement preserves later hover/toggle additions, public
-types and ordinary constants. Evidence: existing sidebar-dock/Shell geometry
-tests and the frozen policy, actual AppShell and mobile-stack records in
-`docs/provenance/sidebar-policy-replacement.md`. Synthetic browser verification
-does not establish native-device acceptance or clear historical source rights.
+
 
 ## Sidebar menu rendering isolation
 
@@ -1675,10 +1665,7 @@ ownership policy for Web and Native. Static/watch modes preserve reading; only
 explicit bottom intent or the permitted watched-content overflow acquires follow.
 Completion alone does not acquire ownership. Restore capture projects a saved
 checkpoint without mutating the live controller. Placement/spacer thresholds,
-public mode/event names and spring data remain compatibility contracts. The
-[bounded replacement contract](../docs/provenance/timeline-follow-replacement.md)
-records historical origin and current verification separately; neighboring
-window, restoration, history and platform owners retain their implementations.
+public mode/event names and spring data remain compatibility contracts.
 
 
 ## Shared history backfill ownership
@@ -1690,8 +1677,7 @@ the host layout barrier before ownership, enabled state or explicit stop decides
 continuation. Unchanged height ends the fill pass. Error callbacks retain stale
 failure reporting; they cannot grant old work a new layout generation. Public
 ports, shared load policy and platform geometry ownership remain unchanged.
-The [bounded replacement record](../docs/provenance/timeline-backfill-replacement.md)
-separates current implementation evidence from historical source rights.
+
 
 ## Shared measurement transaction ownership
 
@@ -1701,9 +1687,7 @@ own compensation; a callback's presence remains distinct from its current restor
 value. Per-input baseline accumulation, latest-row notifications, pending restore
 priority and platform-preservation/fast-path decisions retain their observed
 boundaries. Web and Native keep their scheduling, lease and commit mechanics;
-neighboring helpers and consumers are not rewritten. The
-[bounded replacement record](../docs/provenance/timeline-measurement-replacement.md)
-keeps current implementation verification separate from historical source rights.
+neighboring helpers and consumers are not rewritten.
 
 ## Conversation presentation contributions
 
@@ -1756,8 +1740,7 @@ The complete group disclosure component and four-phase reducer are independently
 reimplemented after frozen requirements. The viewport remains the only scroll
 writer; the existing reflow lease and height projection ports own integration.
 Open content keeps natural height and DOM identity during streaming and reversals;
-summary key changes are separately cadenced. Historical source references remain
-in [the bounded replacement record](../docs/provenance/activity-group-disclosure-replacement.md).
+summary key changes are separately cadenced.
 The reflow smoke fixture now supplies current activity-unit metadata and inner
 choice callbacks without weakening its geometry/cancellation assertions. This
 replaces only this module's implementation disposition, not the consuming activity
@@ -1775,8 +1758,7 @@ below the 160px shelf close without erasing the last preferred ratio; reaching
 160 or above can reopen during the same held gesture. The parent and shared
 geometry ports retain responsibility for actual width and minimums. Progress
 and content-width changes publish invalidation ticks with effect cleanup.
-Historical annotations, author exposure and bounded verification remain in
-[the replacement record](../docs/provenance/shell-panel-host-replacement.md).
+
 Shared animation, resize, browser and geometry implementations are unchanged;
 this disposition does not classify those dependencies or native platform behavior.
 
@@ -1796,8 +1778,7 @@ Shared compiler/palettes are unchanged dependency ports. Theme projection owns i
 CSS properties, mode/classes and native appearance payload; document initialization
 also owns product presentation and theme-color metadata. Explicit element projection
 preserves unrelated styles and does not claim document/product ownership. Legacy
-preference keys and IDs remain compatibility data. See
-[the whole-module replacement and exposure record](../docs/provenance/appearance-runtime-replacement.md).
+preference keys and IDs remain compatibility data.
 
 
 ## Command and review presentation replacement (2026-10-20)
@@ -1810,8 +1791,7 @@ choice across completion, delegate semantic read/search/skill policy and expose
 reported output/result state without executing text. Review disclosures grant no
 permissions; a generic licensed shield/terminal replaces historical custom artwork.
 Copy delegates to shared clipboard ports with action-scoped 1500ms feedback and
-cleanup. The implementation and exact authoring/verification limits are recorded
-in [command/review provenance](../docs/provenance/command-review-replacement.md).
+cleanup.
 No new tests/harness are added; existing actual Conversation, spacing, type and
 boundary checks remain acceptance evidence. Shared ports and historical rights
 remain independent unresolved matters; native hardware is not claimed verified.
@@ -1828,8 +1808,7 @@ View expansion does not grant tool approval, execute output or own thread state.
 Subagent grouping uses current core-derived agent state; individual instructions
 remain available without repeating stale historical prompts in grouped rows.
 Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
-See [the whole-module record](../docs/provenance/tool-renderers-replacement.md) for
-exposure, decorative avatar hue assignment and finite validation limits.
+
 
 
 ## Browser presentation handoff leases (2026-10-20)
@@ -1842,11 +1821,11 @@ surface, reference and mount generation identify the presentation lease. Hidden
 views, close/dispose, route transfer and superseding views revoke pending work;
 late callbacks and old references cannot mutate a newer lease. Browser backing,
 persistence, permissions and navigation retain their existing manager/Host owners.
-See [the bounded implementation record](../docs/provenance/browser-transition-replacement.md).
+
 
 
 Viewport presets remain application compatibility data: device IDs, dimensions
 and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
-owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+owner.

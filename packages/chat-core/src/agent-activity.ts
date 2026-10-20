@@ -207,8 +207,7 @@ export interface TimelineTurnPresentationOptions {
     readonly reasoningPresenter?: typeof presentReasoning;
 }
 
-// Requirements-driven replacement. Scope, historical source and authoring limits:
-// docs/provenance/agent-activity-replacement.md
+
 function lastIndex<T>(values: readonly T[], matches: (value: T) => boolean): number {
   for (let index = values.length - 1; index >= 0; index--) if (matches(values[index]!)) return index;
   return -1;

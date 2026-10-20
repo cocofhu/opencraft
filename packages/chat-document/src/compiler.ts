@@ -416,9 +416,7 @@ export interface MarkdownLinkMatch {
   readonly path: string;
 }
 
-/** Application link grammar; historical source and frozen observations:
- * docs/provenance/markdown-link-scanner-replacement.md. Unescaping belongs to the caller.
- */
+
 export function findMarkdownLink(text: string, startIndex: number): MarkdownLinkMatch | null {
   if (!(startIndex < text.length)) return null;
   let phase: "search" | "label" | "path" = "search";
@@ -548,9 +546,7 @@ const composerLinkTokenizer: TokenizerExtension = {
   },
 };
 
-/** Application formula delimiters; frozen grammar and historical provenance:
- * docs/provenance/math-delimiters-replacement.md. Placement remains compiler-owned.
- */
+
 const mathBlockTokenizer: TokenizerExtension = {
   name: "math",
   level: "block",

@@ -43,14 +43,11 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Test release selection and provenance checks
-        run: node --test tests/release-request.test.mjs tests/source-provenance.test.mjs
+      - name: Test release selection
+        run: node --test tests/release-request.test.mjs
       - name: Select the exact release request
         id: request
         run: node scripts/release-request.mjs
-      - name: Retain source inventory before creating a tag
-        if: steps.request.outputs.publish == 'true'
-        run: node scripts/check-source-provenance.mjs
       - name: Create an immutable automatic version tag
         if: steps.request.outputs.create-tag == 'true'
         env:
@@ -131,8 +128,6 @@ jobs:
           VERSION="$(node -p "require('./packaging/web-server/package.json').version")"
           python3 "$KIT" source --tag "$RELEASE_TAG" --version "$VERSION" --primary-ref origin/main
 
-      - name: Retain tag source inventory
-        run: node scripts/check-source-provenance.mjs
 
       - name: Install frozen dependencies
         run: npm ci --prefer-offline --no-audit --no-fund

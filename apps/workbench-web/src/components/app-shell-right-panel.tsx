@@ -25,8 +25,7 @@ interface AppShellRightPanelProps {
   onOpenChange(open: boolean): void;
 }
 
-/** Presentation host; bounded replacement evidence is retained in
- * docs/provenance/shell-panel-host-replacement.md. */
+
 export function AppShellRightPanel({
   animation, children, fullWidth, mainContentWidth, open, keepMounted = false,
   rightPanelWidth, rightPanelWidthRatio, rightPanelLayoutTick, shellHeight, onOpenChange,

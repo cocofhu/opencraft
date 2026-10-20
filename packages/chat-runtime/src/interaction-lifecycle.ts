@@ -2,9 +2,7 @@ import type { InteractionResponse, PendingInteraction } from "./models";
 
 type InterruptResponseFactory = (requestId: string) => InteractionResponse | null;
 
-// Protocol cancellation policy. Each call creates its own response payload;
-// dynamic tools remain pending until the server resolves their lifecycle.
-// Historical source declaration and author exposure: docs/provenance/interaction-interrupt-replacement.md.
+
 const interruptResponses = {
   "item/tool/call": () => null,
   "mcpServer/elicitation/request": (requestId) => ({

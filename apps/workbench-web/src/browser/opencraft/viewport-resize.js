@@ -1,5 +1,4 @@
-// Independent viewport drag geometry; bounded history and requirements:
-// docs/provenance/browser-viewport-resize-replacement.md.
+
 
 function resizeAxis(origin, movement, direction, scale, available, minimum) {
   if (direction === 0) return origin;

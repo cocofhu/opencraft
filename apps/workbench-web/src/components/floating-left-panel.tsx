@@ -1,4 +1,4 @@
-// Presentation boundary: docs/provenance/floating-sidebar-replacement.md.
+
 import {
   AnimatePresence,
   motion,

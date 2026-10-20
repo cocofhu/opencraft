@@ -396,7 +396,7 @@ function searchHostname(value: string): string | null {
   }
 }
 
-/** Application detail contract: docs/provenance/web-search-detail-replacement.md. */
+
 function formatWebSearchQuery(value: string): string {
   const domains = new Set<string>();
   const retained: string[] = [];

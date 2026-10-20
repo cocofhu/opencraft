@@ -12,7 +12,7 @@ const labels: Record<string,string> = {
   "iphone-15-pro-max":"iPhone 15 Pro Max","pixel-8":"Pixel 8","iphone-15-pro":"iPhone 15 Pro",
   "samsung-galaxy-s24-ultra":"Galaxy S24 Ultra","iphone-se":"iPhone SE",
 };
-/** OpenCraft toolbar projection; bounded history: docs/provenance/browser-toolbar-replacement.md. */
+
 export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
   mode:DeviceMode;onChange(mode:DeviceMode):void;onClose():void;zoom:number;onZoom?: (percent:number)=>void;
 }) {

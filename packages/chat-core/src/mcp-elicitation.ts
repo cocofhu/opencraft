@@ -80,7 +80,7 @@ export interface McpElicitationDisplayValue {
   readonly isExpandable: boolean;
 }
 
-/** Replacement requirements and historical hashes: docs/provenance/mcp-elicitation-replacement.md. */
+
 type Data = Readonly<Record<string, unknown>>;
 const data = (value: unknown): Data => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Data : {};
 const text = (value: unknown): string | null => typeof value === "string" ? value : null;
