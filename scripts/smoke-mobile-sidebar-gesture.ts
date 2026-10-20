@@ -101,7 +101,7 @@ try {
         await more.click();
         // Wait for the transition's new rows before locating the next action;
         // the previous button may remain disabled until its final removal.
-        await page.waitForFunction(before => document.querySelectorAll('.app-shell-floating-left-panel .sidebar-activity-item').length > before, before, { timeout: 8000 });
+        await page.waitForFunction(before => document.querySelectorAll('.app-shell-floating-left-panel .sidebar-activity-item').length > before && !document.querySelector('.app-shell-floating-left-panel .sidebar-activity-pagination[aria-busy="true"]'), before, { timeout: 8000 });
       }
     };
     await closed();
