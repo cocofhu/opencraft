@@ -761,3 +761,18 @@ No exact reference source binding was found in this bounded pass. This is not a
 whole-module copying finding, historical-rights clearance or strict author
 isolation. All eight unresolved inventory groups remain open; behavior-only
 references and ordinary protocol/compatibility data are not blanket rewrite targets.
+
+
+## Bounded Sidebar content projection (2026-10-20)
+
+Only the exported memoized Sidebar declaration has an
+[independent replacement record](provenance/sidebar-content-replacement.md).
+The [baseline](provenance/sidebar-content-baseline.json) retains pre-authoring
+requirements/observation commits, immutable historical hashes and current locks.
+All108 core and60 Bot states match complete raw outputs. One fixed100ms optional
+transition capture differs; a post-authoring settled48-state comparison matches
+and is explicitly separate. Existing catalog smoke failures reproduce on the
+sealed original and are retained, not called a passing gate. Imports, interfaces,
+constants and three neighboring helpers remain unchanged; the old header is
+quoted with its current bounded scope. All eight unresolved groups stay open,
+without strict isolation, hardware acceptance or historical-rights clearance.

@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "status": "pre-authoring-behavior-baseline",
+  "baselineCommit": "47f615caa1614ad5f44d3687565919c5e8c7b296",
+  "module": "apps/workbench-web/src/components/sidebar.tsx",
+  "moduleSha256": "a7ff402f5d38c90fe19c32ac3ec0ea3fa32b70fb604c1751aef21a2f0fde2c63",
+  "selectedDeclarations": [
+    {
+      "name": "Sidebar",
+      "range": {
+        "start": 7132,
+        "end": 31425
+      },
+      "sha256": "22c39f7672630a499cd36a9cbad47cc3c2cbd7a3cbf770e2a9a9a94c7895fcfc",
+      "parameters": [
+        {
+          "name": "{\n  threads,\n  activeHostId,\n  activeThreadId,\n  pendingHostId = null,\n  pendingThreadId = null,\n  primaryActions = [],\n  footerActions = [],\n  managementNavigation = null,\n  catalogs = [],\n  bots = [],\n  sidebarLayout,\n  botCreation = null,\n  onSelectThread,\n  onNewTask,\n  onOpenSettings,\n  showFooter = true,\n  showStart = true,\n  searchInDialog = false,\n  showNewChat = false,\n  threadActions,\n  threadBadge = null,\n  threadListGrouping = null,\n  threadCapabilities,\n  pendingTitle,\n  threadCatalogs = [],\n  onRetryThreadCatalog,\n  threadCatalogDiscovery = null,\n  onRetryThreadCatalogDiscovery,\n}",
+          "type": "SidebarProps"
+        }
+      ]
+    }
+  ],
+  "retainedDeclarations": [
+    {
+      "name": "ExtensionCatalog",
+      "sha256": "1d85c33867f25f5123db9d39925a31fb4cbdb1e513aca74dc3d767822a72bc7d"
+    },
+    {
+      "name": "SidebarPagination",
+      "sha256": "01938fa94c7ffa6cc870aa343a9c8cbacf9097c01225cc4c0c6c650db580c502"
+    },
+    {
+      "name": "SidebarNewChatButton",
+      "sha256": "33fcd1e8329aef065bfe427390dc6b7f98ed30ceb76825c32d9684f0d2f0d945"
+    }
+  ],
+  "annotation": [
+    "// Semantically restored from the r1442 AppShell left-panel ownership model."
+  ],
+  "observers": [
+    {
+      "id": "sidebar-content-contract-v1",
+      "observerSha256": "c660699712c5f66a9daa5eb1cc9c79b1112cae9b9c7133f45ded846ea20e8cb5",
+      "fixtureSha256": "df962c666e54c57de8cf2c11266a84b98a88924f1189600de7ade18c90fb0b41",
+      "rawOutputSha256": "8dbf1c512267d49f4bbe99435941a6c8207c79fc45e7d0b73a729f6eaaaabb7e",
+      "scenes": 4,
+      "states": 108,
+      "pageErrors": 0,
+      "coverage": [
+        "paging/disclosures",
+        "title/server/plugin filters",
+        "menu keyboard activation and navigation callbacks",
+        "pending identity/title",
+        "primary/footer/catalog contributions",
+        "Start/settings",
+        "quiet catalog loading and retry",
+        "searchInDialog flag and filter menu"
+      ],
+      "limitations": [
+        "bot drag/drop and creation",
+        "custom plugin grouped presentation",
+        "badge overlay transitions",
+        "search dialog lives in parent Shell; this Sidebar flag does not itself expose a search dialog opener",
+        "physical touch/menu acquisition and native hardware"
+      ]
+    },
+    {
+      "id": "sidebar-optional-contract-v1",
+      "observerSha256": "dae9a596e036e7f198a19d70b0e604a4b9a1d1a9110b44d47e7d430a6841be95",
+      "fixtureSha256": "6272ba81d66b2dffa0dba10713a6cd0af20c9eedc419cdede4ad109c134df22c",
+      "rawOutputSha256": "ef1be99f9a2f5458ddeae4f4245289a6342a4499369db5561217ec833fa14a0e",
+      "scenes": 4,
+      "states": 48,
+      "pageErrors": 0,
+      "coverage": [
+        "custom grouped projection and disclosure",
+        "badge open/switch and group hideRowBadge",
+        "plugin mode and notice transitions",
+        "bot invoke and creation.open delegation",
+        "unmount plugin/bot contributions"
+      ],
+      "limitations": [
+        "Bot drag/drop and provider-owned creation modal are not verified by these scenarios",
+        "Synthetic badge component checks open ownership, not real employee badge popover or avatar data",
+        "No physical touch or native hardware verification"
+      ]
+    },
+    {
+      "id": "sidebar-bot-ownership-v1",
+      "observerSha256": "7229c7361d799ab40525568dfc3ba4bc7cddb347a604c80b90264da464ac4301",
+      "fixtureSha256": "6272ba81d66b2dffa0dba10713a6cd0af20c9eedc419cdede4ad109c134df22c",
+      "rawOutputSha256": "95e7683b93deba7f3aeae5fd12614cc39eea300fe966466166e9defa5e01a746",
+      "scenes": 4,
+      "states": 60,
+      "pageErrors": 0,
+      "coverage": [
+        "actual pointer reorder commits Alpha after Beta",
+        "keyboard drag start/projection/commit/cancel baseline",
+        "creation draft/provider selection/pending/success/error/cancel"
+      ],
+      "limitations": [
+        "Keyboard sequences leave original order unchanged; no claim of keyboard reorder success",
+        "Pointer input in touch-emulated CSS scenes does not prove physical iPhone dragging",
+        "Creation provider and entities are synthetic; neighboring DnD and dialog implementations remain unchanged"
+      ]
+    }
+  ],
+  "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
+  "rangeUnit": "TypeScript UTF-16 text offsets",
+  "currentReplacement": {
+    "moduleSha256": "193fd9f903a41108578dabf29ccf84179922bc8b5cd8ecb765e4b8c277777ed2",
+    "selectedDeclarationSha256": "6205ab67ebf528450490865a8441c3318e51c8d8b1b60250f73258f4ac3ade35",
+    "outsideBoundary": {
+      "unchangedExceptHistoricalHeaderClarification": true,
+      "retainedDeclarations": [
+        {
+          "name": "ExtensionCatalog",
+          "sha256": "1d85c33867f25f5123db9d39925a31fb4cbdb1e513aca74dc3d767822a72bc7d"
+        },
+        {
+          "name": "SidebarPagination",
+          "sha256": "01938fa94c7ffa6cc870aa343a9c8cbacf9097c01225cc4c0c6c650db580c502"
+        },
+        {
+          "name": "SidebarNewChatButton",
+          "sha256": "33fcd1e8329aef065bfe427390dc6b7f98ed30ceb76825c32d9684f0d2f0d945"
+        }
+      ]
+    },
+    "validation": {
+      "contract108RawByteEqual": true,
+      "botOwnership60RawByteEqual": true,
+      "optional48RawByteEqual": false,
+      "optionalDifference": "One fixed-100ms transitioning Bot row capture; other47 states agree.",
+      "supplementalSettled48RawByteEqual": true,
+      "supplementalAuthoredAfterReplacement": true,
+      "settledRawOutputSha256": "03a9d64ca75420c47e9c300ea8866b169ee741ab99ba908426eb79e5cfd8c146",
+      "existingCatalogSmoke": "Fails on both sealed original and candidate; not a passing gate."
+    },
+    "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."
+  }
+}

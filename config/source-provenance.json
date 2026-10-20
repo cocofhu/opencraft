@@ -35,9 +35,11 @@
         "docs/provenance/floating-sidebar-baseline.json",
         "docs/provenance/floating-sidebar-replacement.md",
         "docs/provenance/sidebar-policy-baseline.json",
-        "docs/provenance/sidebar-policy-replacement.md"
+        "docs/provenance/sidebar-policy-replacement.md",
+        "docs/provenance/sidebar-content-baseline.json",
+        "docs/provenance/sidebar-content-replacement.md"
       ],
-      "reason": "Remaining source comments refer to recovered renderer behavior; review must distinguish independent behavior modeling from adapted expression. The explicitly restored floating sidebar container has a separate bounded replacement record; its historical annotation and hashes remain evidence. The three historical restored sidebar policy declarations now have their own bounded replacement record; later original additions and all historical evidence are retained.",
+      "reason": "Remaining source comments refer to recovered renderer behavior; review must distinguish independent behavior modeling from adapted expression. The explicitly restored floating sidebar container has a separate bounded replacement record; its historical annotation and hashes remain evidence. The three historical restored sidebar policy declarations now have their own bounded replacement record; later original additions and all historical evidence are retained. The exported Sidebar declaration now has a bounded independent replacement record; adjacent helpers remain under review.",
       "resolution": "Review remaining specifically attributed regions and actual source lineage individually. The floating container replacement does not clear other Shell code or mandate rewriting ordinary spring data."
     },
     {
@@ -929,6 +931,24 @@
       "reason": "Only the three historically restored declarations are replaced after frozen requirements, complete policy observations and actual Shell/mobile baseline evidence. Later hover/toggle functions, types and constants remain byte-identical.",
       "resolution": "Retain historical header, declaration hashes, actual exposure and bounded scope. Eight other inventory groups remain unresolved; this disposition does not establish historical rights or release readiness.",
       "conclusion": "The existing Shell and intent hook remain the only owners of request, timers, gestures, resize, animation and shared content. These synchronous projections preserve the selected public contract; no strict author-isolation or native-device acceptance is claimed."
+    },
+    {
+      "id": "sidebar-content-projection",
+      "status": "independently-reimplemented",
+      "paths": [
+        "apps/workbench-web/src/components/sidebar.tsx"
+      ],
+      "evidence": [
+        "docs/provenance/sidebar-content-baseline.json",
+        "docs/provenance/sidebar-content-replacement.md",
+        "tests/sidebar-layout.test.ts",
+        "tests/sidebar-activity.test.ts",
+        "tests/sidebar-navigation-labels.test.ts",
+        "tests/sidebar-thread-goals.test.ts"
+      ],
+      "reason": "Only the exported Sidebar declaration under the historical restored annotation is independently expressed from committed public requirements and frozen actual-component observations. Imports, interfaces and adjacent helpers are unchanged; the source header explicitly retains historical scope.",
+      "resolution": "Retain old hashes, author exposure, failed comparisons, the fixed-time transition difference and supplemental settled-state evidence. Keep the shell-followup inventory unverified and review adjacent attributed regions individually.",
+      "conclusion": "Bounded current implementation disposition for the exported Sidebar declaration only. Complete108-state and60-state raw observations match; optional48 includes one recorded transition-timing difference and a separate post-authoring48-state settled comparison. No whole-module, strict author-isolation, native-device or historical-rights clearance claim."
     }
   ]
 }
