@@ -1,5 +1,12 @@
 # 工作区不变量
 
+## Owned DOM projection names
+
+Shared Web chrome writes the current platform to `data-opencraft-platform`;
+`data-opencraft-os` remains the explicit platform override input. Activity glyphs
+use `data-opencraft-activity-icon`. Projection writes remain idempotent, and
+native engine protocol, persisted identities and glyph geometry retain their owners.
+
 ## Internal projection metadata identity
 
 OpenCraft message projection writes use `__opencraft*` keys. The five exact
