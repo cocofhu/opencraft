@@ -69,8 +69,8 @@ current employee. Web resolves the enterprise identity contribution into generic
 values; Composer owns only layout/fallback, not enterprise identity URLs or account policy. Queue
 editing/reordering never relabels its submitter; these values are display-only.
 During first-send promotion, the transcript handoff already displays the initial
-input. While that exact handoff is the visible timeline, its matching client
-message ID is omitted from the attached queue rail for normal queued/submitting
+input. While that exact user message is visible in the handoff or live timeline,
+its matching client message ID is omitted from the attached queue rail for normal queued/submitting
 states, including local reconnect waiting. Other inputs stay visible even when
 text is identical. Errors, uncertain delivery, paused entries and active queue
 operations retain their handling controls. This is display deduplication only;

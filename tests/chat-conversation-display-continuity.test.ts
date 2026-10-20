@@ -212,6 +212,13 @@ test("first-send queue display suppresses only the input already painted by its 
     { ...row, pausedReason: "outbox-unconfirmed" }, { ...row, pausedReason: "outbox-failed" },
     { ...row, pausedReason: "interrupted" }, { ...row, operation: "updating" as const },
   ]) assert.deepEqual(visibleQueuedSubmissions([visible], first), [visible], "recovery/action state must remain accessible");
+  const canonical = timeline(true);
+  const frame = canonical.frames[0]!;
+  const message = frame.blocks[0]!;
+  if (message.type !== "user-message") throw new Error("expected canonical user message");
+  const acknowledged = { ...canonical, frames: [{ ...frame, blocks: [{ ...message, clientId: row.clientMessageId }] }] };
+  assert.deepEqual(visibleQueuedSubmissions([row, followup], acknowledged), [followup], "queue read may lag canonical acknowledgement without flashing a duplicate");
+  assert.equal(visibleQueuedSubmissions([row], canonical).length, 1, "unidentified history cannot suppress a queue entry");
   const queue = [row, followup];
   assert.equal(visibleQueuedSubmissions(queue, null), queue, "existing conversations keep their queue");
   assert.equal(visibleQueuedSubmissions(queue, cache.peekSubmission("host", "another-thread")), queue);

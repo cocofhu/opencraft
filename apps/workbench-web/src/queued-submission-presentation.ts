@@ -6,13 +6,13 @@ import type { ComposerQueuedSubmissionPresentation } from "@opencraft/composer-e
 import type { QueuedSubmission } from "@opencraft/chat-runtime";
 import type { TimelineSnapshot } from "@opencraft/chat-core";
 
-/** The first-send handoff already paints this exact input in the transcript. */
+/** A transcript user message already paints this exact input, including during handoff. */
 export function visibleQueuedSubmissions(
   submissions: readonly QueuedSubmission[],
-  firstSubmissionTimeline: TimelineSnapshot | null,
+  timeline: TimelineSnapshot | null,
 ): readonly QueuedSubmission[] {
-  if (firstSubmissionTimeline === null) return submissions;
-  const clientIds = new Set(firstSubmissionTimeline.frames.flatMap(frame =>
+  if (timeline === null) return submissions;
+  const clientIds = new Set(timeline.frames.flatMap(frame =>
     frame.blocks.flatMap(block => block.type === "user-message" && block.clientId !== null
       ? [block.clientId] : [])));
   return submissions.filter(submission => !(

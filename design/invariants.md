@@ -1589,7 +1589,7 @@ See [Tasks initial loading](../docs/workbench-design-language.md#tasks-initial-l
 
 ### First-submit Thread handoff
 
-The first-send queue rail omits only the exact client message already painted by the visible transient handoff; failed/unknown/paused or operating entries remain actionable, and other follow-ups are never suppressed by text equality. This projection does not mutate or dispatch the execution queue.
+The first-send queue rail omits only the exact client message already painted by the visible transient handoff or live transcript; failed/unknown/paused or operating entries remain actionable, and other follow-ups are never suppressed by text equality. This projection does not mutate or dispatch the execution queue.
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 

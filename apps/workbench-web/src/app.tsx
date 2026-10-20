@@ -2116,7 +2116,7 @@ export function App({
                         submissionDisabled={activeThreadLease === null}
                         queuedSubmissions={[
                           ...visibleQueuedSubmissions(snapshot.conversation?.queuedSubmissions ?? [],
-                            firstSubmissionTimeline === visibleTimeline ? firstSubmissionTimeline : null).map((submission) =>
+                            visibleTimeline).map((submission) =>
                             queuedSubmissionPresentation(submission, queueReorderable, identityAvatar, intl)),
                           ...(queueUnconfirmedSteerDiscard ? snapshot.conversation?.unconfirmedSteers ?? [] : []).map((claim) => ({
                             id: claim.id,

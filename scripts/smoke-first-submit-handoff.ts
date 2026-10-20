@@ -86,8 +86,19 @@ try {
     await page.keyboard.press('Escape');
     const prompt = `Handoff ${width} ${theme} ${atomic ? 'atomic' : 'ordinary'}`;
     await editor.fill(prompt);
+    await page.evaluate(() => {
+      (window as any).duplicateFrames = [];
+      const sample = () => {
+        const message = document.querySelector('[data-user-message-bubble]');
+        const queue = document.querySelector('.opencraft-composer-queue-item');
+        if (message && queue) (window as any).duplicateFrames.push(performance.now());
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     const beforeStarts = started, beforeCreates = created;
-    await page.getByRole('button', { name: 'Send message', exact: true }).click();
+    const sendButton = page.getByRole('button', { name: 'Send message', exact: true });
+    if (width === 390) await sendButton.tap(); else await sendButton.click();
     await page.waitForURL(/new-/).catch(async error => { console.log('REQUESTS', requests); console.log('BODY', await page.locator('body').innerText()); throw error; });
     await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).waitFor();
     // Hold canonical synchronization across multiple frames; keep content visible.
@@ -104,7 +115,7 @@ try {
       rejectResume!(); pending = null;
       await page.locator('.conversation-recovery-notice[role=alert]').waitFor();
       assert.equal(await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).count(), 1);
-      await page.getByRole('button', { name: 'Try again', exact: true }).click();
+      await page.getByRole('button', { name: 'Try again', exact: true }).tap();
       for (let i = 0; i < 100 && pending === null; i++) await page.waitForTimeout(20);
       assert.ok(pending, 'retry restores the same created Thread');
       assert.equal(await page.locator('.conversation-recovery-loading').count(), 0);
@@ -128,6 +139,7 @@ try {
     if (started - beforeStarts !== 1) { console.log('REQUESTS', requests); console.log('BODY', await page.locator('body').innerText()); }
     assert.equal(started - beforeStarts, 1, 'first Turn submitted exactly once');
     assert.deepEqual(errors, []);
+    assert.deepEqual(await page.evaluate(() => (window as any).duplicateFrames), [], 'no rendered frame may contain both copies of the first input');
     results.push({ width, theme, atomic, heldResume: true, visibleInput: true, duplicateUsers: 0, starts: 1, pageerrors: 0 });
     if (width === 1280 && theme === 'dark' && atomic) {
       const oldUrl = page.url().replace(/new-\d+/, 'old-cold');
