@@ -1,7 +1,7 @@
 import {
-  codexColorTokens,
-  codexGeometryTokens,
-  codexTypographyTokens,
+  opencraftColorTokens,
+  opencraftGeometryTokens,
+  opencraftTypographyTokens,
   frame,
   radii,
   spacing,
@@ -107,9 +107,9 @@ const ipadShadow = {
 
 export const nativeThemes = {
   light: {
-    color: codexColorTokens.light,
-    geometry: codexGeometryTokens,
-    typography: codexTypographyTokens,
+    color: opencraftColorTokens.light,
+    geometry: opencraftGeometryTokens,
+    typography: opencraftTypographyTokens,
     shadow: ipadShadow.light,
     material: ipadMaterial.light,
     metrics: ipadMetrics,
@@ -125,9 +125,9 @@ export const nativeThemes = {
     },
   },
   dark: {
-    color: codexColorTokens.dark,
-    geometry: codexGeometryTokens,
-    typography: codexTypographyTokens,
+    color: opencraftColorTokens.dark,
+    geometry: opencraftGeometryTokens,
+    typography: opencraftTypographyTokens,
     shadow: ipadShadow.dark,
     material: ipadMaterial.dark,
     metrics: ipadMetrics,
