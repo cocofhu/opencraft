@@ -12,7 +12,7 @@ export interface PresentationHostPort {
 }
 
 /** DOM/guest port consumed by the presentation transition and browser manager. */
-export class CodexPresentationHost {
+export class OpenCraftPresentationHost {
   private state: Value = { isVisible: false, mountGeneration: 0 };
   private reference: any = null;
   private registered = false;
@@ -94,7 +94,7 @@ export class CodexPresentationHost {
       height: Math.max(old.y + old.height, bounds.y + bounds.height) - y } });
   }
   clearStagedCoverBounds() { this.port.clearCover(); }
-  placeImmediatelyBehind(other: CodexPresentationHost) {
+  placeImmediatelyBehind(other: OpenCraftPresentationHost) {
     // CSS stacking changes do not detach/reparent the guest WebContents.
     const layer = Number(other.port.container.style.zIndex || "1");
     this.port.container.style.zIndex = String(layer - 1);

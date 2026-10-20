@@ -30,8 +30,8 @@ import {
   unwrapHighlightedCodeHtml,
 } from "../packages/chat-render-web/src/extensions/shiki/highlighted-code-html";
 import {
-  CODEX_DARK_SYNTAX,
-  CODEX_LIGHT_SYNTAX,
+  OPENCRAFT_DARK_SYNTAX,
+  OPENCRAFT_LIGHT_SYNTAX,
 } from "@opencraft/chat-render-react/code-highlight-themes";
 import {
   createMermaidRenderKey,
@@ -460,7 +460,7 @@ test("code surface owns default and preview geometry", () => {
   );
   assert.match(
     codeBlockStyles,
-    /font-size:\s*var\(--codex-chat-font-size\)/u,
+    /font-size:\s*var\(--opencraft-chat-font-size\)/u,
   );
   assert.doesNotMatch(
     workbenchStyles,
@@ -469,7 +469,7 @@ test("code surface owns default and preview geometry", () => {
 });
 
 test("Shiki uses Codex syntax palettes instead of GitHub themes", () => {
-  assert.deepEqual(CODEX_LIGHT_SYNTAX, {
+  assert.deepEqual(OPENCRAFT_LIGHT_SYNTAX, {
     foreground: "#0d0d0d",
     comment: "#666666",
     string: "#008809",
@@ -480,7 +480,7 @@ test("Shiki uses Codex syntax palettes instead of GitHub themes", () => {
     parameter: "#666666",
     function: "#751ED9",
   });
-  assert.equal(CODEX_DARK_SYNTAX.function, "#B06DFF");
+  assert.equal(OPENCRAFT_DARK_SYNTAX.function, "#B06DFF");
   assert.doesNotMatch(shikiAdapterSource, /github-(?:dark|light)/u);
 });
 

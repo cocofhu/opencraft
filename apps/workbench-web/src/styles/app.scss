@@ -354,8 +354,8 @@ button {
   overflow: clip;
   overscroll-behavior: none;
   // Browser fallback for Electron's transparent/vibrant window material.
-  background-color: var(--codex-window-material);
-  background-image: var(--codex-window-highlight);
+  background-color: var(--opencraft-window-material);
+  background-image: var(--opencraft-window-highlight);
 
   &:has(.app-shell-left-panel__resize[data-resizing="true"]) {
     cursor: col-resize;
@@ -382,9 +382,9 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   display: flex;
   padding-top: var(--height-toolbar);
   // Sidecar owns the material; each Pane owns its Frame/Clip/Viewport geometry.
-  background: var(--codex-sidebar-material-background);
-  backdrop-filter: var(--codex-sidebar-material-filter);
-  -webkit-backdrop-filter: var(--codex-sidebar-material-filter);
+  background: var(--opencraft-sidebar-material-background);
+  backdrop-filter: var(--opencraft-sidebar-material-filter);
+  -webkit-backdrop-filter: var(--opencraft-sidebar-material-filter);
 
   [data-sidebar-mounted="false"] & {
     visibility: hidden;
@@ -395,7 +395,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 
 // Codex's renderer leaves the Electron layout panel unpainted. The native
 // NSVisualEffectView installed by BrowserWindow is the material owner.
-.app-shell-root[data-codex-window-type="electron"] {
+.app-shell-root[data-opencraft-window-type="electron"] {
   background: transparent;
 
   .app-shell-left-panel {
@@ -518,7 +518,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 }
 
 .app-shell-floating-left-panel__header {
-  --header-tint: var(--codex-titlebar-tint, transparent);
+  --header-tint: var(--opencraft-titlebar-tint, transparent);
   display: flex;
   height: var(--height-toolbar);
   flex: 0 0 auto;
@@ -568,7 +568,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   flex: 1;
   flex-direction: column;
   background: var(--color-surface);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   overflow: clip;
 }
 
@@ -661,7 +661,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 // Codex's browser renderer lets thread content pass directly beneath the
 // transparent header. Only the Electron surface retains the opaque titlebar
 // guard plus its short downward fade for native drag/window chrome.
-html[data-codex-window-type="browser"] .main-content-top-fade {
+html[data-opencraft-window-type="browser"] .main-content-top-fade {
   display: none;
 }
 
@@ -684,7 +684,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .app-shell-header {
-  --header-tint: var(--codex-titlebar-tint, transparent);
+  --header-tint: var(--opencraft-titlebar-tint, transparent);
   position: fixed;
   z-index: 30;
   top: 0;
@@ -722,7 +722,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   background: var(--background-shell-compact-titlebar);
   // This lip belongs to the same raised main surface. Reveal its lower edge
   // toward Sidecar only; its joining edge must not draw a second white seam.
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   clip-path: inset(0 0 calc(-1 * var(--height-toolbar)) 0);
   content: "";
   pointer-events: none;
@@ -783,7 +783,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
 // A browser host with neither actions nor branding has no native controls to
 // reserve. Its measurement twin must publish zero, including after a switch.
-.app-shell-root[data-codex-window-type="browser"]
+.app-shell-root[data-opencraft-window-type="browser"]
   .app-shell-header__window-controls-rail[data-navigation-empty="true"] {
   padding: 0;
 }
@@ -803,19 +803,19 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 // Desktop browser branding consumes the same rail center as navigation glyphs.
 // Mobile has labeled drawers; native desktop keeps its host-owned safe inset.
-.has-unified-sidebar[data-codex-window-type="browser"]:not(.has-mobile-sidebar-gestures)
+.has-unified-sidebar[data-opencraft-window-type="browser"]:not(.has-mobile-sidebar-gestures)
   .app-shell-header__window-controls-rail[data-navigation-brand] > .application-brand {
   padding-inline-start: max(0px, calc(var(--shell-sidebar-icon-rail-width) / 2 - var(--window-controls-padding-start) - var(--application-brand-mark-size) / 2));
 }
 // Shared header surface removes the empty material band above application pages.
 .has-unified-sidebar {
-  &[data-codex-window-type="browser"] .app-shell-header {
+  &[data-opencraft-window-type="browser"] .app-shell-header {
     // Shell owns two painted regions; the live panel-toolbar aperture stays
     // transparent. One pane projection drives paint, resizing and animation.
     background: linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
       linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
-  &[data-codex-window-type="browser"] .app-shell-header::before { display: none; }
+  &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
   .main-content-surface { background: transparent; box-shadow: none; }
   .main-content-frame {
     background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
@@ -902,7 +902,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 // Narrow headers retain their measured navigation-control spacing. Electron
 // keeps its native titlebar geometry; only Web conversation titles share this axis.
 @media (min-width: 641px) {
-  .app-shell-root[data-codex-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
+  .app-shell-root[data-opencraft-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
     padding-left: var(--thread-navigation-web-inset);
   }
 }
@@ -1324,7 +1324,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   padding: 1px 8px 8px;
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: var(--codex-sidebar-font-size);
+  font-size: var(--opencraft-sidebar-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -1408,7 +1408,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   border-radius: 6px;
   background: transparent;
   color: var(--color-text-tertiary);
-  font-size: var(--codex-sidebar-meta-font-size);
+  font-size: var(--opencraft-sidebar-meta-font-size);
   font-weight: var(--typography-primary-action-weight);
   text-align: left;
 
@@ -1548,7 +1548,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
     padding: 0 6px;
     border-radius: 6px;
     color: inherit;
-    font-size: var(--codex-sidebar-meta-font-size);
+    font-size: var(--opencraft-sidebar-meta-font-size);
     font-weight: var(--typography-primary-action-weight);
 
     &:hover {
@@ -3279,7 +3279,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
   span:first-child {
     grid-row: 1 / 3;
-    background: var(--codex-sidebar-material-background);
+    background: var(--opencraft-sidebar-material-background);
   }
 
   span:nth-child(2) {
@@ -3803,7 +3803,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
     cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-html[data-codex-window-type="electron"] .conversation-navigation-rail {
+html[data-opencraft-window-type="electron"] .conversation-navigation-rail {
   left: 16px;
 }
 
@@ -4116,7 +4116,7 @@ html[data-codex-window-type="electron"] .conversation-navigation-rail {
   }
 }
 
-html[data-codex-window-type="electron"] .thread-scroll {
+html[data-opencraft-window-type="electron"] .thread-scroll {
   scrollbar-gutter: stable both-edges;
 }
 
@@ -4334,7 +4334,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   justify-content: flex-end;
   gap: 8px;
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__sender {
@@ -4691,7 +4691,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     display: block;
     margin-bottom: 1px;
     color: var(--color-text-tertiary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
   }
 }
 
@@ -4797,7 +4797,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
 
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
 
     p {
@@ -4991,7 +4991,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   min-height: 20px;
   padding-left: 24px;
   color: color-mix(in srgb, var(--color-text) 30%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -5023,7 +5023,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     padding: 0 6px;
 
     strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5041,7 +5041,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__question {
     padding: 0 6px;
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-primary-action-weight);
     line-height: var(--typography-chat-line-height);
   }
@@ -5434,7 +5434,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
     strong {
       color: var(--color-text);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5654,7 +5654,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     padding: 14px 16px 8px;
 
     > strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5666,7 +5666,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 6px;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
 
     svg {
@@ -5692,7 +5692,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__description {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-metadata-line-height);
   }
 
@@ -5826,7 +5826,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 6px;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-primary-action-weight);
     line-height: var(--typography-chat-line-height);
   }
@@ -5837,7 +5837,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
   &__title {
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-body-weight);
     line-height: var(--typography-chat-line-height);
 
@@ -5976,7 +5976,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
         min-width: 0;
         overflow: hidden;
         color: var(--color-text);
-        font-size: var(--codex-chat-font-size);
+        font-size: var(--opencraft-chat-font-size);
         font-weight: var(--typography-primary-action-weight);
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -5986,7 +5986,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     > p {
       margin: 0;
       color: var(--color-text-secondary);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       line-height: var(--typography-chat-line-height);
     }
     > small {
@@ -6010,7 +6010,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
       align-items: center;
       gap: 7px;
       color: var(--color-text-tertiary);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       white-space: nowrap;
 
       input {
@@ -6052,7 +6052,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     gap: 2px;
 
     strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
     }
     small {
@@ -6189,7 +6189,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-stream-error {
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
   overflow-wrap: anywhere;
 }
@@ -6209,7 +6209,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   background: transparent;
   box-shadow: var(--elevation-stroke), 0 1px 2px rgb(0 0 0 / 4%);
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__icon {
@@ -6448,7 +6448,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-assistant-message {
   position: relative;
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   > p {
@@ -6711,7 +6711,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-agent-activity {
   min-width: 0;
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 }
 
 .thread-agent-activity__turn-header {
@@ -6767,7 +6767,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   align-items: flex-start;
   gap: 8px;
   overflow: hidden;
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -6901,7 +6901,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-activity-item {
   min-width: 0;
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 }
 
 .thread-activity-item__header {
@@ -7222,7 +7222,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     overflow: hidden;
     padding-top: 4px;
     color: color-mix(in srgb, var(--color-text) 60%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
     white-space: pre-wrap;
   }
@@ -7375,7 +7375,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     transparent
   );
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__header {
@@ -7654,7 +7654,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     justify-content: space-between;
     gap: 16px;
     padding: 12px;
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   }
   > .thread-unified-diff { margin: 0; min-height: 0; overflow: auto; border: 0; border-radius: 0; }
@@ -8142,14 +8142,14 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__annotations {
     margin: 2px 0 0;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     white-space: pre-wrap;
   }
 
   &__empty {
     margin: 0;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
   }
 
   &__embedded-resource {
@@ -8157,7 +8157,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     flex-direction: column;
     gap: 2px;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
 
     > div {
       display: flex;
@@ -8388,7 +8388,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   align-items: center;
   gap: 8px;
   color: var(--color-text-tertiary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__icon {
@@ -8649,7 +8649,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-subagent-activity {
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 
   &__header {
     display: flex;
@@ -12060,7 +12060,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
   // A portal has no window-material ancestor. Composite the theme's Sidebar
   // material over its window backing once, rather than borrowing main content.
-  --shell-mobile-sidebar-background: linear-gradient(var(--codex-sidebar-material-background), var(--codex-sidebar-material-background)), var(--codex-window-material);
+  --shell-mobile-sidebar-background: linear-gradient(var(--opencraft-sidebar-material-background), var(--opencraft-sidebar-material-background)), var(--opencraft-window-material);
   // Keep the material plane stationary while the panel scales/fades above it.
   // The portal outlives presence; exiting/inert or empty hosts must not cover the page.
   &:has(.app-shell-floating-left-panel:not([aria-hidden="true"])) { background: var(--shell-mobile-sidebar-background); }

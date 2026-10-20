@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { normalizeMcpElicitationMetadata, type McpElicitationTimelineBlock } from "@opencraft/chat-core";
 import { ConversationPendingInteractionPanel } from "../../apps/workbench-web/src/components/conversation-renderers/interaction/interaction-renderers";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 
 const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void };
 probe.mcpActions = []; probe.mcpOpened = [];

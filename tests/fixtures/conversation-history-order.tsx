@@ -4,7 +4,7 @@ import { Context } from "@deepseek-ai/cordis";
 import type { AppServerTurn } from "@opencraft/appserver-protocol";
 import { mergeTurns, reconcileHistoryTurns, reconcileHydratedTurn } from "@opencraft/appserver-session";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline, type TimelineSourceTurn } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { Conversation } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
@@ -14,7 +14,7 @@ const ctx = new Context();
 await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
 const makeTurn = (id: string): AppServerTurn => ({ id, status: "completed", itemsView: "full", items: [
   { id: `${id}:user`, type: "userMessage", clientId: `${id}:client`, content: [{ type: "text", text: `Prompt ${id}` }] },

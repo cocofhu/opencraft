@@ -375,13 +375,13 @@
       "id": "codex-browser-source-followup",
       "status": "unverified",
       "paths": [
-        "apps/workbench-web/src/browser/codex-presentation-host.ts",
-        "apps/workbench-web/src/browser/codex/source-manifest.json"
+        "apps/workbench-web/src/browser/opencraft-presentation-host.ts",
+        "apps/workbench-web/src/browser/opencraft/source-manifest.json"
       ],
       "evidence": [
         "docs/source-provenance-review.md",
         "docs/provenance/annotation-coverage-20261019.json",
-        "apps/workbench-web/src/browser/codex/source-manifest.json",
+        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
         "docs/provenance/browser-viewport-resize-baseline.json",
         "docs/provenance/browser-viewport-resize-replacement.md",
         "docs/provenance/browser-transition-baseline.json",
@@ -610,12 +610,12 @@
       "id": "browser-viewport-drag-geometry",
       "status": "independently-reimplemented",
       "paths": [
-        "apps/workbench-web/src/browser/codex/viewport-resize.js"
+        "apps/workbench-web/src/browser/opencraft/viewport-resize.js"
       ],
       "evidence": [
         "docs/provenance/browser-viewport-resize-baseline.json",
         "docs/provenance/browser-viewport-resize-replacement.md",
-        "apps/workbench-web/src/browser/codex/viewport-resize.d.ts",
+        "apps/workbench-web/src/browser/opencraft/viewport-resize.d.ts",
         "tests/browser-device-toolbar.test.ts"
       ],
       "reason": "The complete 26-line module explicitly claimed source function bodies. Replacement was authored only after frozen requirements and public baseline observations; its pure axis computation preserves the existing declaration and toolbar-owned capture/cancellation. No adjacent module was rewritten.",
@@ -626,13 +626,13 @@
       "id": "browser-presentation-handoff",
       "status": "independently-reimplemented",
       "paths": [
-        "apps/workbench-web/src/browser/codex/presentation-transition.js"
+        "apps/workbench-web/src/browser/opencraft/presentation-transition.js"
       ],
       "evidence": [
         "docs/provenance/browser-transition-baseline.json",
         "docs/provenance/browser-transition-replacement.md",
-        "apps/workbench-web/src/browser/codex/source-manifest.json",
-        "tests/codex-browser-manager.test.ts"
+        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
+        "tests/opencraft-browser-manager.test.ts"
       ],
       "reason": "The complete module carried an explicit copied-class annotation. The replacement was authored after frozen public contracts and 53 black-box baseline sequences, without printing the old target body as authoring text.",
       "resolution": "Retain the historical blob, original source/class digests, requirements commits and actual author exposure. The manifest separately locks current module bytes; remaining browser regions and all eight unresolved groups remain open.",
@@ -642,14 +642,14 @@
       "id": "browser-viewport-preset-helpers",
       "status": "independently-reimplemented",
       "paths": [
-        "apps/workbench-web/src/browser/codex/viewport-presets.js"
+        "apps/workbench-web/src/browser/opencraft/viewport-presets.js"
       ],
       "evidence": [
         "docs/provenance/browser-viewport-presets-baseline.json",
         "docs/provenance/browser-viewport-presets-review.md",
-        "apps/workbench-web/src/browser/codex/viewport-presets.d.ts",
+        "apps/workbench-web/src/browser/opencraft/viewport-presets.d.ts",
         "tests/browser-device-toolbar.test.ts",
-        "tests/codex-browser-manager.test.ts"
+        "tests/opencraft-browser-manager.test.ts"
       ],
       "reason": "The module explicitly claimed source-identical constants/helpers. Preserve the observed application data while independently expressing the used initialization and bounded numeric helpers; remove seven undeclared recovery exports with no repository consumers.",
       "resolution": "Retain the historical module hash, source annotation, observed compatibility data, frozen contracts and actual author exposure. Device names and neighboring files do not become rewrite targets. Eight unresolved groups remain open.",
@@ -791,13 +791,13 @@
       "id": "browser-host-registry",
       "status": "independently-reimplemented",
       "paths": [
-        "apps/workbench-web/src/browser/codex/browser-manager.js"
+        "apps/workbench-web/src/browser/opencraft/browser-manager.js"
       ],
       "evidence": [
         "docs/provenance/browser-manager-baseline.json",
         "docs/provenance/browser-manager-replacement.md",
-        "apps/workbench-web/src/browser/codex/source-manifest.json",
-        "tests/codex-browser-manager.test.ts"
+        "apps/workbench-web/src/browser/opencraft/source-manifest.json",
+        "tests/opencraft-browser-manager.test.ts"
       ],
       "reason": "Only the complete explicitly copied class is replaced. The factory/port wrapper, adapter, independent Host/transition, presets and toolbar retained their implementations during that registry batch. The toolbar now has its own separate bounded replacement record. Consumer contracts and initial state/Host/router/Web baselines were frozen before authoring; supplemental idempotence and prewarm observations followed authoring and are recorded separately.",
       "resolution": "Preserve historical source/class hashes and actual author exposure. Lock current module bytes separately. Remaining browser inventory and all eight unresolved groups stay open; no directory-wide rewrite or historical-rights conclusion.",

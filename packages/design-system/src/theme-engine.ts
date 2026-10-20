@@ -1,15 +1,12 @@
 import { validateThemeOptions, type ThemeMaterialOptions, type ThemeSurfaceOverrides } from "./theme-options";
 
-// Restored and typed from Codex r822:
-// lazy/app-initial/build-theme-css-for-mode.js,
-// build-theme-css-properties.js, and height-class-mapper.js.
 export interface RgbColor {
   red: number;
   green: number;
   blue: number;
 }
 
-export interface CodexThemeDefinition {
+export interface OpenCraftThemeDefinition {
   surfaces?: ThemeSurfaceOverrides;
   material?: ThemeMaterialOptions;
   accent: string;
@@ -41,7 +38,7 @@ export interface CodexThemeDefinition {
   surface: string;
 }
 
-export type CodexThemeMode = "light" | "dark";
+export type OpenCraftThemeMode = "light" | "dark";
 export type ThemeCssProperties = Record<`--${string}`, string>;
 
 const clientShellMaterial = Object.freeze({
@@ -52,7 +49,7 @@ const clientShellMaterial = Object.freeze({
   windowMaterial: "color-mix(in srgb, var(--color-background-surface-under) 92%, var(--color-text) 8%)",
 });
 
-export const codexThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const opencraftNeutralThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   dark: {
     accent: "#339cff",
     contrast: 60,
@@ -73,7 +70,7 @@ export const codexThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
   },
 };
 
-export const velaThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const opencraftCanvasThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   dark: {
     accent: "#7698ff",
     contrast: 54,
@@ -110,9 +107,9 @@ export const velaThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
 
 /**
  * Frost owns its material constants. The 35% Sidebar alpha is intentionally
- * not derived from Codex's 70% material so the themes can evolve independently.
+ * independent of the neutral theme material.
  */
-export const frostThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const frostThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   dark: {
     accent: "#66a9ff",
     contrast: 56,
@@ -152,7 +149,7 @@ export const frostThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
  * Workbench theme contract. The palette changes color and material only;
  * typography, density and geometry remain owned by the Design System.
  */
-export const lavenderThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const lavenderThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   dark: {
     accent: "#b09afc",
     contrast: 56,
@@ -204,7 +201,7 @@ export const lavenderThemePalette: Record<CodexThemeMode, CodexThemeDefinition> 
 };
 
 /** Close neutral surfaces keep navigation and conversation on one quiet canvas. */
-export const mistThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const mistThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   light: {
     accent: "#7062cc",
     contrast: 44,
@@ -242,7 +239,7 @@ export const mistThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
 };
 
 /** ZCode-inspired surface hierarchy, expressed through OpenCraft's own theme contract. */
-export const zenCodeThemePalette: Record<CodexThemeMode, CodexThemeDefinition> = {
+export const zenCodeThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   light: {
     accent: "#0b7fff",
     contrast: 45,
@@ -345,7 +342,7 @@ function textOnAccent(color: RgbColor): RgbColor {
   return relativeLuminance(color) > relativeLuminanceThreshold ? black : white;
 }
 
-function tieredContrast(contrast: number, mode: CodexThemeMode): number {
+function tieredContrast(contrast: number, mode: OpenCraftThemeMode): number {
   const threshold = defaultContrast[mode];
   const normalizedThreshold = threshold / 100;
   const interpolated = contrast / 100 + ((contrast - threshold) / 60) * 0.7;
@@ -353,8 +350,8 @@ function tieredContrast(contrast: number, mode: CodexThemeMode): number {
 }
 
 interface ThemeVariant {
-  theme: CodexThemeDefinition;
-  variant: CodexThemeMode;
+  theme: OpenCraftThemeDefinition;
+  variant: OpenCraftThemeMode;
   accent: RgbColor;
   contrast: number;
   editorBackground: RgbColor;
@@ -363,7 +360,7 @@ interface ThemeVariant {
   surfaceUnder: string;
 }
 
-function buildThemeVariant(theme: CodexThemeDefinition, variant: CodexThemeMode): ThemeVariant {
+function buildThemeVariant(theme: OpenCraftThemeDefinition, variant: OpenCraftThemeMode): ThemeVariant {
   const contrast = tieredContrast(theme.contrast, variant);
   const surface = hexToRgb(theme.surface);
   const ink = hexToRgb(theme.ink);
@@ -525,7 +522,7 @@ function darkSemanticColors(theme: ThemeVariant): SemanticThemeColors {
     textButtonSecondary: mix(theme.ink, theme.surface, 0.7 + theme.contrast * 0.1),
     textButtonTertiary: rgba(theme.ink, 0.45 + theme.contrast * 0.1),
     textForeground:
-      theme.theme.ink === codexThemePalette.dark.ink && theme.theme.surface === codexThemePalette.dark.surface
+      theme.theme.ink === opencraftNeutralThemePalette.dark.ink && theme.theme.surface === opencraftNeutralThemePalette.dark.surface
         ? "var(--gray-150)"
         : theme.theme.ink,
     textForegroundSecondary: rgba(theme.ink, 0.65 + theme.contrast * 0.1),
@@ -536,7 +533,7 @@ function darkSemanticColors(theme: ThemeVariant): SemanticThemeColors {
 
 // Informational badges keep stable hue identities, independent of brand accent.
 // Resolve opaque pairs together so extension surfaces cannot erase the label.
-function badgeColors(mode: CodexThemeMode, surface: string): ThemeCssProperties {
+function badgeColors(mode: OpenCraftThemeMode, surface: string): ThemeCssProperties {
   const foregrounds = mode === "light"
     ? { blue: "#175cd3", cyan: "#0e6e7c", red: "#b42318", indigo: "#493bc0", green: "#17603b", purple: "#7541b4", orange: "#984a08", neutral: "#515968" }
     : { blue: "#84caff", cyan: "#67e3f9", red: "#fda29b", indigo: "#bdb4fe", green: "#75e0a7", purple: "#d6bbfb", orange: "#fec084", neutral: "#c9cdd4" };
@@ -559,9 +556,9 @@ function badgeColors(mode: CodexThemeMode, surface: string): ThemeCssProperties 
   return properties;
 }
 
-export function buildCodexThemeCssProperties(
-  mode: CodexThemeMode,
-  definition: CodexThemeDefinition = codexThemePalette[mode],
+export function buildOpenCraftThemeCssProperties(
+  mode: OpenCraftThemeMode,
+  definition: OpenCraftThemeDefinition = opencraftNeutralThemePalette[mode],
 ): ThemeCssProperties {
   validateThemeOptions(definition.surfaces, definition.material);
   const theme = buildThemeVariant(definition, mode);
@@ -597,15 +594,15 @@ export function buildCodexThemeCssProperties(
     "--material-glass-shadow": mode === "light"
       ? "0 24px 80px rgb(0 0 0 / 15%), inset 0 1px rgb(255 255 255 / 40%)"
       : "0 28px 90px rgb(0 0 0 / 40%), inset 0 1px rgb(255 255 255 / 9%)",
-    "--codex-base-accent": definition.accent,
-    "--codex-base-contrast": String(definition.contrast),
-    "--codex-base-ink": definition.ink,
-    "--codex-base-surface": definition.surface,
-    "--codex-main-surface-elevation": shell.mainSurfaceElevation,
-    "--codex-sidebar-material-background": shell.sidebarBackground,
-    "--codex-sidebar-material-filter": shell.sidebarFilter,
-    "--codex-window-highlight": shell.windowHighlight,
-    "--codex-window-material": shell.windowMaterial,
+    "--opencraft-base-accent": definition.accent,
+    "--opencraft-base-contrast": String(definition.contrast),
+    "--opencraft-base-ink": definition.ink,
+    "--opencraft-base-surface": definition.surface,
+    "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
+    "--opencraft-sidebar-material-background": shell.sidebarBackground,
+    "--opencraft-sidebar-material-filter": shell.sidebarFilter,
+    "--opencraft-window-highlight": shell.windowHighlight,
+    "--opencraft-window-material": shell.windowMaterial,
     "--color-accent-blue": definition.accent,
     "--color-accent-purple": definition.semanticColors.skill,
     "--color-background-accent": semantic.accentBackground,
@@ -626,9 +623,7 @@ export function buildCodexThemeCssProperties(
     "--color-background-navigation-hover": semantic.navigationBackgroundHover,
     "--color-background-navigation-current": semantic.navigationBackgroundCurrent,
     "--color-background-navigation-pressed": semantic.navigationBackgroundPressed,
-    // Codex menu/list rows use the primary ghost state instead of borrowing a
-    // button component's visual contract. Keep the value theme-derived while
-    // exposing the source-faithful semantic name to every platform shell.
+    // Menu/list rows consume the shared, theme-derived primary ghost state.
     "--color-background-primary-ghost-hover": semantic.buttonSecondaryBackgroundHover,
     "--color-background-button-tertiary": semantic.buttonTertiaryBackground,
     "--color-background-button-tertiary-active": semantic.buttonTertiaryBackgroundActive,
@@ -637,7 +632,7 @@ export function buildCodexThemeCssProperties(
     "--color-background-control": surfaces.input ?? semantic.controlBackground,
     "--color-background-control-opaque": surfaces.input ?? semantic.controlBackgroundOpaque,
     "--color-background-editor-opaque": rgbString(theme.editorBackground),
-    // Precompose Codex primary-soft/70 over the editor so transcript glyphs cannot bleed through.
+    // Precompose the translucent surface over the editor so transcript glyphs cannot bleed through.
     "--color-background-composer-rail-opaque": `color-mix(in srgb, ${surfaces.input ?? semantic.elevatedSecondaryOpaque} 70%, ${rgbString(theme.editorBackground)})`,
     "--color-background-composer-rail": `color-mix(in srgb, ${surfaces.input ?? semantic.elevatedSecondaryOpaque} 94%, transparent)`,
     "--color-border-composer-rail": `color-mix(in srgb, ${semantic.border} 80%, transparent)`,
@@ -672,7 +667,7 @@ export function buildCodexThemeCssProperties(
     "--color-text-working-highlight": semantic.textWorkingHighlight,
     "--color-surface": definition.surface,
     "--color-surface-secondary": semantic.elevatedSecondaryOpaque,
-    // Codex maps this token to the editor surface. The Electron shell mixes it
+    // This token uses the editor surface. The Electron shell mixes it
     // with transparency for the native, immersive left-panel material.
     "--color-surface-tertiary": rgbString(theme.editorBackground),
     "--color-border-subtle": semantic.borderLight,

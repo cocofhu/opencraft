@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { createImplementation } from "../apps/workbench-web/src/browser/codex/presentation-transition.js";
-import { createCodexBrowserManager } from "../apps/workbench-web/src/browser/codex-browser-manager";
-import { CodexPresentationHost } from "../apps/workbench-web/src/browser/codex-presentation-host";
+import { createImplementation } from "../apps/workbench-web/src/browser/opencraft/presentation-transition.js";
+import { createOpenCraftBrowserManager } from "../apps/workbench-web/src/browser/opencraft-browser-manager";
+import { OpenCraftPresentationHost } from "../apps/workbench-web/src/browser/opencraft-presentation-host";
 
 test("local host fences old refs and does not focus staged/blocked guest", () => {
   const env = environment();
@@ -12,7 +12,7 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
     const actions: string[] = [];
     const container = { style: {}, isConnected: true } as unknown as HTMLElement;
     const guest = { focus: () => actions.push("focus") } as unknown as HTMLElement;
-    const host = new CodexPresentationHost({ conversationId: "c", browserTabId: "b" }, {
+    const host = new OpenCraftPresentationHost({ conversationId: "c", browserTabId: "b" }, {
       container, guest, ready: Promise.resolve(), commit: () => actions.push("commit"),
       park: () => actions.push("park"), close: () => {}, clearCover: () => {}, cover: () => {},
     });
@@ -37,7 +37,7 @@ test("local host fences old refs and does not focus staged/blocked guest", () =>
 });
 
 test("independent browser module locks preserve historical provenance", () => {
-  const directory = new URL("../apps/workbench-web/src/browser/codex/", import.meta.url);
+  const directory = new URL("../apps/workbench-web/src/browser/opencraft/", import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL("source-manifest.json", directory), "utf8"));
   for (const name of ["browser-manager", "presentation-transition"]) {
     const text = readFileSync(new URL(name + ".js", directory), "utf8");
@@ -136,7 +136,7 @@ test("A to B to C fences a late B prewarm callback and preserves the correct out
 test("browser manager owns storage modes and mount claims", () => {
   const env = environment();
   try {
-    const manager = createCodexBrowserManager(Host as any);
+    const manager = createOpenCraftBrowserManager(Host as any);
     const id = manager.getBrowserStorageId("owner", "tab");
     assert.equal(manager.tabPersistenceStates.get("owner\0tab").mode, "ephemeral");
     assert.equal(manager.getPagePersistence("owner", "tab").browserStorageId, id);

@@ -19,13 +19,13 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {createCodexAccountsView} from '/plugins/builtin-agents/src/codex-accounts/view.tsx';
 import {CodexAccountsService} from '/plugins/builtin-agents/src/codex-accounts/service.ts';
-import {buildCodexThemeCssProperties,codexThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 import '/apps/workbench-web/src/styles/settings-panel.scss';
 import '/apps/workbench-web/src/styles/codex-accounts.scss';
 const mode=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
 document.documentElement.dataset.theme=mode;
-for(const [key,value] of Object.entries(buildCodexThemeCssProperties(mode,codexThemePalette[mode]))) document.documentElement.style.setProperty(key,value);
+for(const [key,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftNeutralThemePalette[mode]))) document.documentElement.style.setProperty(key,value);
 const service=new CodexAccountsService(async (_host,method,params)=>{
   const response=await fetch('/fixture/rpc',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({method,params})});
   if(!response.ok)throw new Error('Fixture request failed');

@@ -3,7 +3,7 @@ import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, createTimelineTurnPresentationPlan,
   groupTimelineFramesByTurn, projectTimeline, type TimelineSourceItem, type TimelineStatus,
   type TurnDiffTimelineBlock } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { Conversation } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
@@ -18,7 +18,7 @@ await ctx.plugin(BuiltinTimelineRendererPlugin);
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
 const diff = "diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1,2 @@\n-old\n+new\n+extra";
 const initialItems: readonly TimelineSourceItem[] = [

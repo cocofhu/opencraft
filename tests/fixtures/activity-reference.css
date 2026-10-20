@@ -4,8 +4,8 @@
   position: absolute;
   top: 32px;
   width: 440px;
-  font-size: var(--codex-chat-font-size);
-  line-height: var(--codex-chat-line-height);
+  font-size: var(--opencraft-chat-font-size);
+  line-height: var(--opencraft-chat-line-height);
 }
 #candidate {
   left: 32px;
@@ -14,8 +14,8 @@
   left: 520px;
 }
 .reference .text-size-chat {
-  font-size: var(--codex-chat-font-size);
-  line-height: var(--codex-chat-line-height);
+  font-size: var(--opencraft-chat-font-size);
+  line-height: var(--opencraft-chat-line-height);
 }
 .reference .min-w-0 {
   min-width: 0;

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import type { TurnDiffTimelineBlock } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TurnDiffBlock } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
 import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 
 const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 function Fixture() {
   const [counts, setCounts] = useState([66, 0]);
   Object.assign(window, { updateCounts: setCounts });

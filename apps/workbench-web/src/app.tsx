@@ -393,12 +393,12 @@ export function App({
   useLayoutEffect(() => {
     if (!presentation.contextSidebar) return;
     document.documentElement.style.setProperty(
-      "--codex-sidebar-preferred-width",
+      "--opencraft-sidebar-preferred-width",
       `${sidebarWidth}px`,
     );
     return () => {
       document.documentElement.style.removeProperty(
-        "--codex-sidebar-preferred-width",
+        "--opencraft-sidebar-preferred-width",
       );
     };
   }, [presentation.contextSidebar, sidebarWidth]);

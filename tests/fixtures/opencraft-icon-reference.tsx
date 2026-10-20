@@ -1,4 +1,3 @@
-// Actual components at the fixed pre-import downstream revision. Test-only visual oracle.
 import { Blocks, Bot, Cloud, Columns3, Database, Folder, HardDrive, LayoutGrid, MessageCircle, MessageSquare, Server, Settings, SquarePen, type LucideIcon } from "lucide-react";
 import { createElement } from "react";
 

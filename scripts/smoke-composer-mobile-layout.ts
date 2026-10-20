@@ -15,7 +15,7 @@ import * as theme from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
 const params=new URLSearchParams(location.search), mode=params.get('theme')||'light';
 document.documentElement.dataset.theme=mode;document.documentElement.dataset.uiDensity=params.has('desktop')?'compact':'touch';document.documentElement.dataset.touchNewera=params.has('ordinary')?'off':'on';
-for(const [key,value] of Object.entries(theme.buildCodexThemeCssProperties(mode,theme.codexThemePalette[mode])))document.documentElement.style.setProperty(key,value);
+for(const [key,value] of Object.entries(theme.buildOpenCraftThemeCssProperties(mode,theme.opencraftNeutralThemePalette[mode])))document.documentElement.style.setProperty(key,value);
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 window.fixture={controller};
 const models=Array.from({length:18},(_,i)=>({id:'model-'+i,value:'model-'+i,label:i===0?'GPT-6.1-Sol':'Model '+i,description:null,isDefault:i===0,defaultEffort:'medium',source:'custom',contextWindow:200000,maxTokens:32000,inputModalities:['text','image'],supportsReasoning:true,efforts:['low','medium','high','xhigh','max','ultra'].map(value=>({value,label:value,description:null}))}));

@@ -12,7 +12,7 @@ const params = new URLSearchParams(location.search);
 const mode = params.get("mode") === "dark" ? "dark" : "light";
 const palette = (themes as any)[`${params.get("palette") ?? "codex"}ThemePalette`];
 document.documentElement.dataset.theme = mode;
-for (const [key, value] of Object.entries(themes.buildCodexThemeCssProperties(mode, palette[mode]))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode, palette[mode]))) document.documentElement.style.setProperty(key, value);
 const controller = createComposerController({ type: "existing-thread", key: createConversationKey("local", "test") }, { now: () => 100, createId: () => "draft" });
 const submission = queuedSubmissionPresentation({ commandId: "queue", clientMessageId: "client", serverSubmissionId: "server", input: [], preview: "检查文件变更，并保留现有操作", operation: "idle", createdAt: 100, pausedReason: null, error: null, state: "queued" }, true);
 const block: TurnDiffTimelineBlock = { id: "diff", type: "turn-diff", sourceItemIds: ["diff"], status: "running", unifiedDiff: "", additions: 477, deletions: 15, files: [{ path: "example.ts", additions: 477, deletions: 15 }] };

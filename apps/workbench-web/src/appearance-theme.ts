@@ -4,9 +4,9 @@ import {
   type ResolvedTheme, type ThemePreference,
 } from "@opencraft/design-system/theme";
 import {
-  buildCodexThemeCssProperties, codexThemePalette, frostThemePalette,
-  lavenderThemePalette, mistThemePalette, velaThemePalette, zenCodeThemePalette,
-  type CodexThemeDefinition, type ThemeCssProperties,
+  buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, frostThemePalette,
+  lavenderThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
+  type OpenCraftThemeDefinition, type ThemeCssProperties,
 } from "@opencraft/design-system/theme-engine";
 import type { ExtensionContributionSnapshot, ExtensionContributionStore } from "@opencraft/extension-runtime";
 import { applyWorkbenchProductPresentation, workbenchProductId, workbenchPresentation } from "./workbench-product";
@@ -35,7 +35,7 @@ export interface AppearanceThemeSnapshot {
   readonly availableThemes: readonly AppearanceThemeDescriptor[];
 }
 
-type PalettePair = Readonly<Record<ResolvedTheme, CodexThemeDefinition>>;
+type PalettePair = Readonly<Record<ResolvedTheme, OpenCraftThemeDefinition>>;
 type CatalogEntry = Readonly<{ descriptor: AppearanceThemeDescriptor; palettes: PalettePair }>;
 
 function builtin(id: string, label: string, description: string, palettes: PalettePair): CatalogEntry {
@@ -43,8 +43,8 @@ function builtin(id: string, label: string, description: string, palettes: Palet
 }
 
 const builtins: readonly CatalogEntry[] = [
-  builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", codexThemePalette),
-  builtin(velaThemeId, "Canvas", "A quiet, web-native canvas.", velaThemePalette),
+  builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", opencraftNeutralThemePalette),
+  builtin(velaThemeId, "Canvas", "A quiet, web-native canvas.", opencraftCanvasThemePalette),
   builtin(frostThemeId, "Frost", "A cool translucent Sidebar with a lighter fixed material.", frostThemePalette),
   builtin(lavenderThemeId, "Lavender", "A soft lavender workspace with a quiet UI palette.", lavenderThemePalette),
   builtin(zenCodeThemeId, "ZenCode", "Quiet grayscale layers, crisp controls, and an opaque workspace.", zenCodeThemePalette),
@@ -111,11 +111,11 @@ export function useAppearanceTheme(): AppearanceThemeSnapshot {
 }
 
 export function getAppearanceThemePreviewProperties(themeId: string): ThemeCssProperties {
-  return buildCodexThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
+  return buildOpenCraftThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
 }
 
 export function applyAppearanceThemeToElement(element: HTMLElement, next = current): void {
-  const css = buildCodexThemeCssProperties(next.resolvedTheme, resolveEntry(next.themeId).palettes[next.resolvedTheme]);
+  const css = buildOpenCraftThemeCssProperties(next.resolvedTheme, resolveEntry(next.themeId).palettes[next.resolvedTheme]);
   for (const key of projectedProperties.get(element) ?? []) {
     if (!(key in css)) element.style.removeProperty(key);
   }
@@ -170,7 +170,7 @@ export function setAppearanceThemeId(themeId: string): void {
 function updateCatalog(themes: ExtensionContributionSnapshot["themes"]): void {
   catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
   for (const { contribution } of themes) {
-    const adapt = (mode: ResolvedTheme): CodexThemeDefinition => ({
+    const adapt = (mode: ResolvedTheme): OpenCraftThemeDefinition => ({
       ...contribution.palettes[mode], fonts: { code: null, ui: null }, opaqueWindows: false,
     });
     catalog.set(contribution.id, {

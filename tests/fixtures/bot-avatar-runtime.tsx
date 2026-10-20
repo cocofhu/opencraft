@@ -4,7 +4,7 @@ import type {
   BotPresenceFact,
 } from "@opencraft/bot-conversation";
 import { createConversationKey } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -76,7 +76,7 @@ function presenceFor(scenario: Scenario): readonly BotPresenceFact[] {
 function setTheme(theme: "light" | "dark"): void {
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
-  const properties = buildCodexThemeCssProperties(theme);
+  const properties = buildOpenCraftThemeCssProperties(theme);
   for (const [name, value] of Object.entries(properties))
     document.documentElement.style.setProperty(name, value);
   document.documentElement.style.setProperty(

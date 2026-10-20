@@ -1,7 +1,7 @@
 // Run after the web build. Exercises shipped CSS in a real browser, offline.
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
-import { buildCodexThemeCssProperties } from '../packages/design-system/src/theme-engine.ts';
+import { buildOpenCraftThemeCssProperties } from '../packages/design-system/src/theme-engine.ts';
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? 'playwright');
 const assets = new URL('../apps/workbench-web/dist/assets/', import.meta.url);
 const css = (await Promise.all((await readdir(assets)).filter(name => name.endsWith('.css'))
@@ -21,7 +21,7 @@ try {
       <button class="new-thread-context-trigger"><span>My Hermes</span><span class="workbench-connection-status" data-phase="ready"></span></button>`);
     await page.evaluate(properties => {
       for (const [name, value] of Object.entries(properties)) document.documentElement.style.setProperty(name, value);
-    }, buildCodexThemeCssProperties('light'));
+    }, buildOpenCraftThemeCssProperties('light'));
     for (const selector of ['.sidebar-target-heading', '.sidebar-target-new', '.sidebar-target-more']) {
       assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
     }

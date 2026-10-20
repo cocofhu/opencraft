@@ -3,7 +3,7 @@ import type { BrowserSurfaceEvents, BrowserSurfaceHost } from "./web-browser-sur
 import { createElectronBrowserAutomation } from "./electron-browser-automation";
 import type { BrowserAutomation } from "@opencraft/browser-core";
 import type { BrowserMetadataStorage } from "./desktop-browser-storage";
-import type { PresentationHostPort } from "./codex-presentation-host";
+import type { PresentationHostPort } from "./opencraft-presentation-host";
 
 interface Guest extends HTMLElement {
   setZoomFactor(factor: number): void;

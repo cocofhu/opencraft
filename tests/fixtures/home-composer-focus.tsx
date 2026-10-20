@@ -10,7 +10,7 @@ import { initializeAppearanceTheme, setThemePreference } from "../../apps/workbe
 import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 const params = new URLSearchParams(location.search);
-document.documentElement.dataset.codexWindowType = "browser";
+document.documentElement.dataset.opencraftWindowType = "browser";
 initializeAppearanceTheme(); setThemePreference(params.get("theme") === "dark" ? "dark" : "light");
 document.documentElement.dataset.uiDensity = params.has("desktop") ? "compact" : "touch";
 document.documentElement.dataset.touchNewera = params.has("ordinary") ? "off" : "on";
