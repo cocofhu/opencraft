@@ -318,6 +318,23 @@ covers the current conversation, its underlying result visibility cannot
 acknowledge unread results. Removing the feature requires only its documented
 UI/setting/source integration points and no account or execution migration.
 Automatic reconnect uses 500ms/1s/2s/5s/15s/30s/60s delays, capped at 60s.
+Connection attempts and inbound server requests have separate owners. A WebSocket
+attempt installs its promise and cancellation before publishing `connecting`;
+synchronous observers can revoke it before socket allocation. Only that attempt
+may clear its promise, and old close callbacks settle before publishing status
+that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
+
+An inbound JSON-RPC request owns a delivery receipt and a connection revision.
+Its live phases are handling and sending; physical delivery or a matching Host
+resolution succeeds the receipt, while connection loss/client disposal rejects
+it and aborts queued sends. Both terminal paths remove ownership immediately.
+Late handler success/failure cannot send through a successor connection or settle
+its receipt. `serverRequest/resolved` only addresses a live request with matching
+ID type/value and, when both are known, Thread identity. It leaves no permanent
+ID tombstone: a completed request or an earlier connection cannot suppress a
+new request after ID reuse. These delivery rules do not replay a mutation or
+terminate the underlying server execution.
+
 Short successful connections do not reset retry history: readiness must remain
 continuous for 60s. Visible foreground/online recovery hints can advance an
 already scheduled retry, at most once per five seconds per Host; they retain
