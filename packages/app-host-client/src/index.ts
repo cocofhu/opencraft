@@ -328,6 +328,10 @@ class AppHostChannelTransport implements DuplexTransport {
   private currentStatus: TransportStatus = { state: "idle" };
   private generation = 0;
   private connectOperation: Promise<void> | null = null;
+  private connectingAttempt: {
+    readonly terminal: Map<number, TransportStatus>;
+    revoked?: TransportStatus;
+  } | null = null;
   private closed = false;
   private leaseId = "";
   private readonly closeAbort = new AbortController();
@@ -347,16 +351,26 @@ class AppHostChannelTransport implements DuplexTransport {
     if (this.closed) return Promise.reject(new Error(`App Host channel ${this.hostId} is closed`));
     if (this.currentStatus.state === "open") return Promise.resolve();
     if (this.connectOperation !== null) return this.connectOperation;
-    this.leaseId = this.client.createLeaseId();
+    if (signal?.aborted) return Promise.reject(abortError("App Host connection was aborted"));
+    const leaseId = this.client.createLeaseId();
+    this.leaseId = leaseId;
     this.generation = 0;
-    this.setStatus({ state: "connecting" });
-    const operation = this.client.connectHost(this.hostId, this.leaseId,
-      signal ? AbortSignal.any([signal, this.closeAbort.signal]) : this.closeAbort.signal)
+    const attempt: NonNullable<AppHostChannelTransport["connectingAttempt"]> = { terminal: new Map() };
+    this.connectingAttempt = attempt;
+    const operation = Promise.resolve().then(() => this.client.connectHost(this.hostId, leaseId,
+      signal ? AbortSignal.any([signal, this.closeAbort.signal]) : this.closeAbort.signal))
       .then((result) => {
-        if (this.closed) {
+        const revoked = attempt.terminal.get(result.generation);
+        if (this.closed || this.connectingAttempt !== attempt || revoked !== undefined) {
           // Channel disposal does not close the shared client. A grant that
           // arrives afterwards still belongs to this retired lease only.
-          void this.client.disconnectHost(this.hostId, this.leaseId, result.generation).catch(() => undefined);
+          void this.client.disconnectHost(this.hostId, leaseId, result.generation).catch(() => undefined);
+          if (revoked !== undefined) {
+            attempt.revoked = revoked;
+            throw appHostError({ code: revoked.failure?.code ?? "APP_HOST_DISCONNECTED",
+              message: revoked.reason ?? "Host disconnected before its connection acknowledgement",
+              retryable: revoked.failure?.recovery !== "manual" });
+          }
           throw new Error(`App Host channel ${this.hostId} closed during connection`);
         }
         this.generation = result.generation;
@@ -364,14 +378,16 @@ class AppHostChannelTransport implements DuplexTransport {
       })
       .catch((cause) => {
         const reason = cause instanceof Error ? cause.message : String(cause);
-        const failure = cause instanceof Error ? appHostFailure(cause) : undefined;
-        if (!this.closed) this.setStatus({ state: "failed", reason, ...(failure ? { failure } : {}) });
+        const failure = attempt.revoked?.failure ?? (cause instanceof Error ? appHostFailure(cause) : undefined);
+        if (!this.closed && this.connectingAttempt === attempt) this.setStatus({ state: "failed", reason, ...(failure ? { failure } : {}) });
         throw cause;
       })
       .finally(() => {
         if (this.connectOperation === operation) this.connectOperation = null;
+        if (this.connectingAttempt === attempt) this.connectingAttempt = null;
       });
     this.connectOperation = operation;
+    this.setStatus({ state: "connecting" });
     return operation;
   }
 
@@ -420,7 +436,15 @@ class AppHostChannelTransport implements DuplexTransport {
     }
     // Only this lease's connect acknowledgement grants a generation. Shared
     // Host events cannot adopt a peer's grant or revive a retired channel.
-    if (this.generation === 0 || event.generation !== this.generation) return;
+    if (this.generation === 0) {
+      // A shared status grants no authority. Remember only revocation, and
+      // apply it later only if this attempt is granted that exact generation.
+      if (event.status && ["closing", "closed", "failed"].includes(event.status.state)) {
+        this.connectingAttempt?.terminal.set(event.generation, event.status);
+      }
+      return;
+    }
+    if (event.generation !== this.generation) return;
     if (event.status !== undefined) this.setStatus(event.status);
     if (event.frame !== undefined && event.generation === this.generation) {
       for (const listener of this.messageListeners) listener(event.frame);

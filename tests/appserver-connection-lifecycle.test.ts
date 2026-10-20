@@ -120,6 +120,46 @@ test("client close invalidates a held inbound request without waiting for its ha
   assert.deepEqual(f.frames, []);
 });
 
+test("synchronous connecting observers share one client initialization", async () => {
+  let initializations = 0;
+  const transport = new MemoryTransport({ receive(frame, peer) {
+    const request = parseJsonRpcMessage(frame);
+    if (isJsonRpcRequest(request) && request.method === "initialize") {
+      initializations++;
+      peer.send(encodeJsonRpcMessage({ id: request.id, result: initialized }));
+    }
+  } });
+  const client = new JsonRpcAppServerClient({ hostId: "reentry", transport });
+  let second: Promise<unknown> | undefined;
+  let entered = false;
+  client.subscribeStatus(status => {
+    if (status.state === "connecting" && !entered) { entered = true; second = client.connect(params); }
+  });
+  try {
+    await client.connect(params); await second;
+    assert.equal(initializations, 1);
+    assert.equal(client.connectionGeneration, 1);
+  } finally { await client.close(); }
+});
+
+for (const eventType of ["queued", "started"] as const) {
+  test(`cancellation in ${eventType} observation cannot start or send a retired request`, async () => {
+    const f = fixture(); const controller = new AbortController(); const events: string[] = [];
+    try {
+      await f.client.connect(params);
+      f.client.subscribeRequestLifecycle(event => {
+        if (!("method" in event) || event.method !== "fixture/mutation") return;
+        events.push(event.type);
+        if (event.type === eventType) controller.abort();
+      });
+      await assert.rejects(f.client.requestRaw("fixture/mutation", {}, { signal: controller.signal }), { code: "ABORTED" });
+      await turn();
+      assert.deepEqual(f.frames, []);
+      assert.deepEqual(events, eventType === "queued" ? ["queued", "aborted"] : ["queued", "started", "aborted"]);
+    } finally { await f.client.close(); }
+  });
+}
+
 function permutations<T>(values: readonly T[]): T[][] {
   if (values.length === 0) return [[]];
   return values.flatMap((value, index) => permutations(values.filter((_v, i) => i !== index)).map(tail => [value, ...tail]));

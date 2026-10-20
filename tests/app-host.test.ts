@@ -125,6 +125,63 @@ class ControlledTransport extends TestTransport {
   }
 }
 
+test("Host activation rejects physical loss before its connect continuation", async () => {
+  class LostTransport extends TestTransport {
+    override async connect() { await super.connect(); this.publish({ state: "closed", reason: "immediate loss" }); }
+  }
+  const physical = new LostTransport(); const server = new AppHostServer({ createTransport: () => physical });
+  const pair = createPortPair(); server.accept(pair.host, "lost");
+  const client = new MessagePortAppHostClient(pair.browser, "lost"); const channel = client.createTransport("host");
+  try { await assert.rejects(channel.connect(), /immediate loss|not open|disconnected/); assert.notEqual(channel.status.state, "open"); }
+  finally { await channel.close(); client.close(); await server.close(); }
+});
+
+test("AppHost channel connecting observers share one owned claim", async () => {
+  const server = new AppHostServer({ createTransport: () => new TestTransport() });
+  const pair = createPortPair(); server.accept(pair.host, "reentry"); let grants = 0;
+  const client = new MessagePortAppHostClient({ ...pair.browser, postMessage(message) {
+    if (message.type === "host/connect") grants++;
+    pair.browser.postMessage(message);
+  } }, "reentry");
+  const channel = client.createTransport("host"); let second: Promise<void> | undefined; let entered = false;
+  channel.subscribeStatus(status => { if (status.state === "connecting" && !entered) { entered = true; second = channel.connect(); } });
+  try {
+    const first = channel.connect(); assert.equal(first, second); await first; await second;
+    assert.equal(grants, 1); assert.equal(channel.status.state, "open");
+  } finally { await channel.close(); client.close(); await server.close(); }
+});
+
+for (const matching of [false, true]) for (const manual of [false, true]) {
+  test(`pre-acknowledgement terminal status only revokes its granted generation (matching=${matching}, manual=${manual})`, async () => {
+    const granted = deferred<void>(); const release = deferred<void>();
+    class HeldServer extends AppHostServer {
+      override async handle(connection: Parameters<AppHostServer["handle"]>[0], message: Parameters<AppHostServer["handle"]>[1]) {
+        const result = await super.handle(connection, message);
+        if (message.type === "host/connect") { granted.resolve(); await release.promise; }
+        return result;
+      }
+    }
+    const physical = new TestTransport(); const server = new HeldServer({ createTransport: () => physical });
+    const pair = createPortPair(); server.accept(pair.host, "grant");
+    const client = new MessagePortAppHostClient(pair.browser, "grant"); const channel = client.createTransport("host");
+    try {
+      const connecting = channel.connect(); const outcome = connecting.then(() => null, error => error as Error);
+      await granted.promise;
+      pair.host.postMessage({ type: "host/status", hostId: "host", generation: matching ? 1 : 99,
+        status: { state: "closed", reason: "grant retired", ...(manual ? { failure: { code: "SSH_AUTH_EXPIRED", recovery: "manual" } } : {}) } });
+      await new Promise<void>(resolve => setImmediate(resolve)); release.resolve();
+      const error = await outcome;
+      if (matching) {
+        assert.ok(error); assert.match(error.message, /grant retired/); assert.equal(channel.status.state, "failed");
+        assert.equal(channel.status.failure?.recovery, manual ? "manual" : "automatic");
+      } else {
+        assert.equal(error, null); assert.equal(channel.status.state, "open");
+        await channel.send("current"); assert.deepEqual(physical.sent, ["current"]);
+      }
+    } finally { release.resolve(); await channel.close(); client.close(); await server.close(); }
+  });
+}
+
 test("service connection revalidates its authority after waiting for a physical reset", async () => {
   const physical = new ControlledTransport(); physical.waitForConnect = false; physical.waitForClose = true;
   let created = 0; let authorized = true;

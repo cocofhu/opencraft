@@ -95,8 +95,7 @@ export class DeferredDuplexTransport implements DuplexTransport {
     const abort = () => attempt.abort();
     signal?.addEventListener("abort", abort, { once: true });
     this.owner.signal.addEventListener("abort", abort, { once: true });
-    this.publish({ state: "connecting" });
-    this.pending = new Promise<void>((resolve, reject) => {
+    const operation = new Promise<void>((resolve, reject) => {
       const stop = () => reject(cancelled());
       attempt.signal.addEventListener("abort", stop, { once: true });
       void Promise.resolve().then(() => {
@@ -129,9 +128,11 @@ export class DeferredDuplexTransport implements DuplexTransport {
     }).finally(() => {
       signal?.removeEventListener("abort", abort);
       this.owner.signal.removeEventListener("abort", abort);
-      this.pending = null;
+      if (this.pending === operation) this.pending = null;
     });
-    return this.pending;
+    this.pending = operation;
+    this.publish({ state: "connecting" });
+    return operation;
   }
   async send(frame: string, signal?: AbortSignal): Promise<void> {
     if (!this.delegate || this.current.state !== "open") throw new Error("Transport is not connected");

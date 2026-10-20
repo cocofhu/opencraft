@@ -174,7 +174,8 @@ export class WebSocketTransport implements DuplexTransport {
     return connectionPromise;
   }
 
-  async send(frame: string): Promise<void> {
+  async send(frame: string, signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) throw abortError("WebSocket send was aborted");
     if (this.socket === null || this.currentStatus.state !== "open" || this.socket.readyState !== 1) {
       throw new Error("WebSocket transport is not open");
     }

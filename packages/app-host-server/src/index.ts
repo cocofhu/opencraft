@@ -72,6 +72,13 @@ function normalizeError(cause: unknown): AppHostErrorPayload {
   };
 }
 
+function lostHostConnection(status: TransportStatus): Error {
+  return Object.assign(new Error(status.reason ?? "Host disconnected during activation"), {
+    code: status.failure?.code ?? "APP_HOST_DISCONNECTED",
+    retryable: status.failure?.recovery !== "manual",
+  });
+}
+
 /** Process-scoped physical Host owner shared by every Renderer connection. */
 export class AppHostServer {
   private readonly slots = new Map<string, HostSlot>();
@@ -174,6 +181,12 @@ export class AppHostServer {
     if (this.closed || connection.isClosed) throw new Error("App Host connection is closed");
     if (message.type === "host/connect") {
       const record = await this.connectHost(connection, message.hostId, message.leaseId);
+      try {
+        this.requireWritableClaim(connection, message.hostId, message.leaseId, record.generation);
+      } catch (cause) {
+        await this.disconnectClaim(connection, message.hostId, message.leaseId, record.generation);
+        throw cause;
+      }
       return { hostId: message.hostId, generation: record.generation };
     }
     if (message.type === "host/send") {
@@ -244,6 +257,7 @@ export class AppHostServer {
       ) {
         throw new Error("App Host connection closed during Host activation");
       }
+      if (record.transport.status.state !== "open") throw lostHostConnection(record.transport.status);
       claim.generation = record.generation;
       connection.rememberLease(hostId, leaseId, record.generation);
       return record;
@@ -325,6 +339,7 @@ export class AppHostServer {
         if (this.closed || abort.signal.aborted || (slot.claims.size === 0 && slot.serviceAdmissions === 0)) {
           throw new Error(`Host ${slot.hostId} activation no longer has an owner`);
         }
+        if (transport.status.state !== "open") throw lostHostConnection(transport.status);
         slot.phase = "open";
         publishStatus({ state: "open" });
         return record;
@@ -375,6 +390,7 @@ export class AppHostServer {
     }
     const claim = slot.claims.get(this.claimKey(connection, leaseId));
     if (claim?.generation !== generation) throw new Error(`Host lease ${leaseId} does not own ${hostId}`);
+    if (record.transport.status.state !== "open") throw lostHostConnection(record.transport.status);
     return record;
   }
 

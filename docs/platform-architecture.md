@@ -323,6 +323,19 @@ attempt installs its promise and cancellation before publishing `connecting`;
 synchronous observers can revoke it before socket allocation. Only that attempt
 may clear its promise, and old close callbacks settle before publishing status
 that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
+Client initialization, deferred transport acquisition and logical Host connection
+also install their single owner before notifying synchronous observers. Reentrant
+connect calls join that operation. Outbound request observers can cancel before
+encoding or sending; the request must still own its pending entry after each
+notification, and a WebSocket checks cancellation before physical delivery.
+
+A Host grant is valid only while its physical transport is open. The server checks
+this after activation, before granting and immediately before acknowledging the
+claim. The channel retains terminal statuses seen before acknowledgement by their
+generation: a matching grant is rejected and released, preserving any manual
+failure classification. A different generation neither revokes that grant nor
+gives the channel authority. A late acknowledgement cannot revive a lost Host;
+automatic recovery obtains a new claim through the existing retry policy.
 
 An inbound JSON-RPC request owns a delivery receipt and a connection revision.
 Its live phases are handling and sending; physical delivery or a matching Host
