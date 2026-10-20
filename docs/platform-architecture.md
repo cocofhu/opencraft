@@ -3144,8 +3144,14 @@ cannot be established. Source protocol and authority-storage errors remain error
 this policy never skips an authority transaction or replays a mutation.
 
 Physical AppHost startup, close and reset barriers remain serialized. Their callers
-have a thirty-second admission deadline: expiration returns a classified manual
+have a twenty-second admission deadline: expiration returns a classified manual
 failure instead of an endless reconnect, without releasing the physical barrier
 or starting a competing generation. After the dependency actually settles, an
 explicit retry can be admitted normally. This is bounded failure, not a claim
 that an unavailable external process has recovered.
+
+Connection admission bypasses the per-host frame I/O queue and enters the slot
+owner directly, so a hung prior close/send cannot prevent its deadline from
+starting. Frame sends retain their ordered queue and revalidate lease identity.
+The default twenty-second slot budget precedes the bridge's thirty-second wait
+and Runtime's sixty-second attempt budget.

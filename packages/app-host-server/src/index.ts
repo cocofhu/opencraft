@@ -85,7 +85,7 @@ export class AppHostServer {
   private closeOperation: Promise<void> | null = null;
 
   constructor(private readonly options: AppHostServerOptions) {
-    if (!Number.isFinite(options.lifecycleTimeoutMs ?? 30_000) || (options.lifecycleTimeoutMs ?? 30_000) <= 0)
+    if (!Number.isFinite(options.lifecycleTimeoutMs ?? 20_000) || (options.lifecycleTimeoutMs ?? 20_000) <= 0)
       throw new RangeError("Host lifecycle timeout must be positive and finite");
   }
 
@@ -94,7 +94,7 @@ export class AppHostServer {
     return new Promise((resolve, reject) => {
       const timer = clock.setTimeout(() => reject(Object.assign(new Error("The server did not finish connecting. Retry after it recovers."), {
         code: `APP_HOST_${stage}_TIMEOUT`, retryable: false,
-      })), this.options.lifecycleTimeoutMs ?? 30_000);
+      })), this.options.lifecycleTimeoutMs ?? 20_000);
       // Timing out this observer cannot authorize a second physical generation.
       void operation.then(resolve, reject).finally(() => clock.clearTimeout(timer));
     });
@@ -498,6 +498,14 @@ export class AppHostServerConnection {
         && "requestId" in message && typeof message.requestId === "string"
         && message.requestId.length > 0 && message.requestId.length <= 4096) {
         this.post({ type: "response", requestId: message.requestId, ok: true, result: null });
+        return;
+      }
+      // Admission is owned by the slot, not by the previous RPC's I/O queue.
+      // Otherwise a hung close/send can prevent even the admission deadline
+      // from starting. Writable frame ordering remains on the per-host queue.
+      if (this.ready && !this.closed && typeof message === "object" && message !== null
+        && "type" in message && message.type === "host/connect") {
+        void this.receive(message);
         return;
       }
       // hello establishes connection authority synchronously. Thereafter only
