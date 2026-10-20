@@ -2348,3 +2348,8 @@ user messages, final replies and text with known clocks, then fills the remainin
 slots from the latest activity. It retains source order. Long active reasoning
 must not evict the question, dated replies or already completed work clocks;
 activity remains static and never restarts a running clock.
+
+An authoritative worked/stopped interval with an observed end is static even if
+its final reply is still arriving and the Turn remains active. Preserve that
+interval with the reply. Never persist a working interval or infer an end from
+the active Turn's aggregate duration.

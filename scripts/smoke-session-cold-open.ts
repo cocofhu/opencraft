@@ -149,6 +149,7 @@ try{for(const width of [390,1100]){
  assert.ok(held.length>0);
  assert.equal(requests.slice(activeRequestStart).includes('thread/resume'),false);
  assert.equal(await live.locator('[data-work-status="working"]').count(),0);
+ assert.match(await live.locator('[data-work-status="worked"]').innerText(),/54/,'Ended work paints with the cached partial reply');
  await assertDatesVisible(live);
  const activeEditor=live.locator('[contenteditable="true"]').first();await activeEditor.fill('Draft while reconnecting');
  await live.screenshot({path:join(output,`active-before-connect-${width}.png`)});
@@ -171,7 +172,8 @@ try{for(const width of [390,1100]){
  hold=true;await longPage.reload();await longPage.getByText(question,{exact:true}).waitFor({timeout:3000});
  await longPage.getByText(cachedAnswer,{exact:true}).waitFor();
  assert.ok(held.length>0);await assertDatesVisible(longPage);
- assert.equal(await longPage.locator('[data-work-status]').count(),0,'Long activity cannot resume a live clock');
+ assert.equal(await longPage.locator('[data-work-status="working"]').count(),0,'Long activity cannot resume a live clock');
+ assert.match(await longPage.locator('[data-work-status="worked"]').innerText(),/54/,'Observed ended work stays static while the reply arrives');
  assert.deepEqual(longErrors,[]);await longContext.close();release();active=false;fresh=true;longActive=false;
  // A separate browser profile cannot see the first profile's local display.
  hold=true;const cold=await browser.newContext({viewport:{width,height:850}}),empty=await cold.newPage();

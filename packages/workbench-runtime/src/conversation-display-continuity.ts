@@ -109,7 +109,9 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
           kind: "text", phase: block.phase === "commentary" ? "commentary" : "final_answer",
           completed: active ? block.completed === true : true,
           sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: active ? null : nonnegativeNumber(frame.durationMs),
-          workStatus: active ? null : completedWork(frame.workStatus) });
+          // Work may finish when the final reply begins, before the Turn ends.
+          // Its observed end is static even while that reply is still streaming.
+          workStatus: block.phase === "commentary" ? null : completedWork(frame.workStatus) });
       }
     }
   }
@@ -171,6 +173,10 @@ function parse(value: string | null, hostId: string, threadId: string, now: numb
 /** Recreates a paint-only Timeline; no Replica cursor, command or interaction is restored. */
 function paint(hostId: string, threadId: string, messages: readonly DisplayMessage[]): TimelineSnapshot {
   const key = createConversationKey(hostId, threadId);
+  // Work is a Turn resource. Cached activity and reply text are separate frames,
+  // while the shared Turn presenter reads its resource from the first assistant.
+  const workByTurn = new Map(messages.flatMap(message => message.workStatus === null
+    ? [] : [[message.turnId, message.workStatus] as const]));
   return {
     key,
     revision: 0,
@@ -182,7 +188,7 @@ function paint(hostId: string, threadId: string, messages: readonly DisplayMessa
       turnId: message.turnId as TimelineSnapshot["frames"][number]["turnId"],
       status: "complete" as const,
       durationMs: message.durationMs,
-      workStatus: message.workStatus,
+      workStatus: message.role === "assistant" ? workByTurn.get(message.turnId) ?? null : null,
       hookStats: null,
       anchors: [],
       blocks: message.role === "user"

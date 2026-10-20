@@ -412,3 +412,24 @@ test("a long active activity tail cannot evict the question, dated replies or co
   assert.ok(blocks.findIndex(block => block.id === "prior-answer") < blocks.findIndex(block => block.id === "user"), "original conversation order is preserved");
   }
 });
+
+
+test("a completed work interval remains static while its final reply is still arriving", async () => {
+  const local = storage();
+  const source = activeTimeline();
+  const worked: TimelineSnapshot = { ...source, frames: source.frames.map(frame => frame.type === "assistant"
+    ? { ...frame, workStatus: { type: "worked-for", status: "worked", startedAtMs: 100, completedAtMs: 54_100 } } : frame) };
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(worked);
+  const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const reply = cached.frames.at(-1)!;
+  assert.equal(reply.workStatus?.status, "worked");
+  assert.equal(reply.workStatus?.completedAtMs, 54_100);
+  assert.equal(reply.durationMs, null, "an active Turn's aggregate duration is not a static work clock");
+  const text = reply.blocks[0]!;
+  assert.equal(text.type === "text" && text.completed, false, "the partial reply stays partial");
+  const plan = createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(cached)[0]!, undefined, { isMostRecentTurn: true });
+  const activity = plan.assistant?.slots.find(slot => slot.type === "agent-activity");
+  assert.ok(activity?.type === "agent-activity");
+  assert.equal(activity.contentUnits.find(unit => unit.type === "worked-for")?.item.status, "worked");
+  assert.ok(cached.frames.every(frame => frame.workStatus?.status !== "working"));
+});
