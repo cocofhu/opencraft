@@ -546,12 +546,13 @@ gesture also focuses it without granting input. Toolbar-to-media focus movement
 stays inside the owner. Blur, cancellation and target/connection retirement abort
 clipboard intentions along with input.
 
-Mouse entry into ready media requests control once and focuses that surface before
-awaiting the backend grant. Entry during initial loading waits for readiness;
-leaving the panel, outside focus, hidden presentation or failure retires it.
-Stop does not re-arm a stationary pointer, and reconnect does not restore input.
-Touch continues to use explicit takeover. A read-only provider with takeover
-support consumes one entry for one authorized reconnect, without polling.
+Control is requested only by clicking/tapping the desktop or activating Take control.
+Mouse hover never requests control. A managed media surface commits a primary
+mouse/pen click or single-finger H5 tap on release because noVNC can suppress its
+native compatibility click. Movement, cancellation, additional fingers and leaving
+before release retire that activation; a later compatibility click cannot repeat it.
+Toolbar buttons retain native click/keyboard activation. Reopening/reconnecting
+restores observation only, and late grants cannot pull focus back after leaving.
 The tab, overflow menu and drag label share the localized Cloud computer title.
 
 The Paste action and native Ctrl/Meta+V gesture share one controller-owned
