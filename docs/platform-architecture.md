@@ -1249,8 +1249,8 @@ legacy geometry is migrated once. IndexedDB and Electron SQLite both carry
 monotonically increasing revisions; Web uses BroadcastChannel invalidation and
 Electron publishes change events through its preload port.
 
-Cloud Storage uses the standalone management-page hierarchy adapted from
-`codex/chat-demo-v2`: the route owns a stable page title and content boundary.
+Cloud Storage uses a standalone management page: the route owns a stable page
+title and content boundary.
 Its View and navigation contribution are internal-audience only: normal mode
 hides both, and disabling developer mode exits an already-open storage route.
 This is a presentation gate; storage services and data are not removed.
@@ -1258,7 +1258,7 @@ Anonymous state renders the complete the downstream product site selection and s
 controls in that content area instead of replacing the page with a bare notice.
 Authenticated state mounts the existing enterprise service file manager for the selected Bot.
 This page does not invent local-storage semantics. Skills is a separate full
-Workbench adapted from `chat-demo-v2`: public catalog discovery is anonymous,
+Workbench: public catalog discovery is anonymous,
 while installed state and mutations belong to an explicit installation target.
 Targets are either the local DSH user root (`~/.opencraft/skills`) or a connected
 Hermes Profile; local DSH is never represented as a Profile or Bot. Workspace
