@@ -16,7 +16,7 @@ import '/apps/workbench-web/src/styles/app.scss';
 import '@fontsource-variable/noto-sans-sc';
 initializeAppearanceTheme();
 let mounts=0,clicks=0;
-const palettes={codex:opencraftNeutralThemePalette,frost:frostThemePalette,lavender:lavenderThemePalette,vela:opencraftCanvasThemePalette,zen:zenCodeThemePalette};
+const palettes={opencraftNeutral:opencraftNeutralThemePalette,frost:frostThemePalette,lavender:lavenderThemePalette,opencraftCanvas:opencraftCanvasThemePalette,zen:zenCodeThemePalette};
 function Context(){useEffect(()=>{mounts++},[]);return <div style={{display:'flex',height:'100%',flexDirection:'column'}}>
 <input aria-label='Sidebar draft' defaultValue='侧栏内容保持不变' style={{margin:16}}/>
 <button aria-label='Edge action' onClick={()=>clicks++} style={{marginTop:20,padding:12,textAlign:'right',background:'transparent',border:0}}>边缘操作</button>
@@ -84,7 +84,7 @@ try {
   await page.waitForFunction(() => document.querySelector('.app-shell-left-panel')!.getBoundingClientRect().width === 320);
   await page.getByLabel("Main draft").fill("这份草稿不会被材质变更重建");
   await page.evaluate(() => { (window as any).savedDraftNode = document.querySelector('[aria-label="Main draft"]'); });
-  for (const name of ["codex", "frost", "lavender", "vela", "zen"]) {
+  for (const name of ["opencraftNeutral", "frost", "lavender", "opencraftCanvas", "zen"]) {
     for (const mode of ["light", "dark"]) {
       await page.evaluate(([name, mode]: string[]) => (window as any).fixture.theme(name, mode), [name, mode]);
       await page.mouse.move(1000, 600);
@@ -189,7 +189,7 @@ try {
   ]) {
   await page.evaluate((chrome:unknown) => (window as any).fixture.setChrome(chrome),chrome);
   await page.waitForFunction(() => parseFloat(getComputedStyle(document.querySelector('.app-shell-header')!,'::before').width) === 52);
-  for (const name of ["codex", "frost", "lavender", "vela", "zen"]) {
+  for (const name of ["opencraftNeutral", "frost", "lavender", "opencraftCanvas", "zen"]) {
     for (const mode of ["light", "dark"]) {
       await page.evaluate(([name,mode]: string[]) => (window as any).fixture.theme(name,mode), [name,mode]);
       const png = await page.screenshot({path:join(output,`compact-${chrome.kind}-${name}-${mode}.png`)});
@@ -234,7 +234,7 @@ try {
           return{painted:await sample(painted!),flat:await sample(flat!)};
         },[png.toString('base64'),flatPng.toString('base64')]);
         assert.deepEqual(lipShadowPixels.painted.join,lipShadowPixels.flat.join,'no shadow seam within the white surface');
-        if(['codex','frost','lavender'].includes(name))assert.notDeepEqual(lipShadowPixels.painted.lower,lipShadowPixels.flat.lower,'soft theme visibly casts below the lip');
+        if(['opencraftNeutral','frost','lavender'].includes(name))assert.notDeepEqual(lipShadowPixels.painted.lower,lipShadowPixels.flat.lower,'soft theme visibly casts below the lip');
         if(name==='zen')assert.deepEqual(lipShadowPixels.painted.lower,lipShadowPixels.flat.lower,'flat theme does not cast a shadow');
       }
       evidence.push({name,mode,chrome:chrome.kind,presentation:'compact',...compact,lipShadowPixels});
