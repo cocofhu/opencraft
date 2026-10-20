@@ -132,3 +132,37 @@ token/style/account assertions remain. The actual original/candidate browser
 comparison above checks all six rendered entries. No test case, harness or
 dependency is added to the repository. The CSS-import SSR pilot failed before
 rendering and is retained externally without a passing claim.
+
+
+## Creator subscription lifecycle follow-up
+
+A post-authoring comparison with the real downstream grouping provider found a
+third omission. The initial anonymous watch was a no-op; identity readiness changed
+the provider snapshot without replacing its object. Filtering then removed every
+row badge and its metadata subscriptions, leaving no subscriber to receive the
+ready result. The replacement now reacquires the watch on snapshot revisions,
+acquiring the next lease before releasing the old one. Metadata publications
+therefore retain an active observer rather than cancelling an in-flight read.
+Unmount still releases the final lease. No private identity semantics enter core.
+
+The same complete comparison found collapsed creator rows remained mounted in the
+replacement. Collapsed groups now omit their row nodes while the list-level
+metadata watch stays alive. The complete original/corrected raw observations match
+in all56 states across four light/dark desktop/touch scenes, including anonymous
+login, cold pending/error recovery, grouping collapse/reopen, account switching and
+cross-Host equal Thread IDs. This is supplemental post-authoring evidence using
+the actual private provider and synthetic boundary data, not a pre-authoring
+baseline, real employee service or final fixed-combination/deployment claim.
+
+The legacy creator smoke omitted the current participation contribution adapter
+and product locale catalogs. An external fixture correction reaches its existing
+initial12-row assertion, which also fails on the sealed original (actual11: one
+pinned plus ten recent). That legacy failure is retained. The supplemental
+observer explicitly expands the original13-row catalog before comparing recovery;
+no product workaround or weakened original assertion makes the legacy smoke green.
+
+The user's follow-up explicitly calls out preserving locked behavior. The scope
+continues to retain existing menu/action exclusivity, metadata lease continuity,
+composite identity and page budgets; it does not relax behavior comparisons or
+rewrite unattributed neighboring owners. Integration/build/deployment locks remain
+part of the downstream delivery procedure, separate from this component change.

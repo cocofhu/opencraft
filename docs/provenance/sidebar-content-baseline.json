@@ -108,8 +108,8 @@
   "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies.",
   "rangeUnit": "TypeScript UTF-16 text offsets",
   "currentReplacement": {
-    "moduleSha256": "47dc9bf089730af9d00cc5bab43eab0767f099de9f1fffe501e222327e6c2801",
-    "selectedDeclarationSha256": "c15042150daf748421ea0f4d36e2c35d79e24e55fab3cd40708a935ada7ec048",
+    "moduleSha256": "f4fb6a7d7892f435ec5b02f091218b69049cefda25061a703c2ab45f38358543",
+    "selectedDeclarationSha256": "6db0ef6fed0958a316756fccde122aff4c85eaa4d06a413db9042433a854b0f7",
     "outsideBoundary": {
       "unchangedExceptHistoricalHeaderClarification": true,
       "retainedDeclarations": [
@@ -148,6 +148,21 @@
           "Six rendered navigation items each retain one28pxleading slot"
         ],
         "timing": "Supplement authored after initial replacement, not part of the216-state frozen baseline"
+      },
+      "postAuthoringRealCreator": {
+        "states": 56,
+        "scenes": 4,
+        "rawByteEqual": true,
+        "rawOutputSha256": "0eaff8914467710462485aa3410a9bcc21e5e339207f5bdd8301abd3d687bd3d",
+        "observerSha256": "0fc136451fe4a867b6e33190eeb9afaf3c56e8ed0cd1ec0ce86588b8c19bcb91",
+        "coverage": [
+          "Anonymous to authenticated watch acquisition",
+          "Personal filter pending/error/ready recovery",
+          "Creator grouping collapse/reopen",
+          "Account preference isolation and restoration",
+          "Cross-Host equal Thread IDs"
+        ],
+        "timing": "Post-authoring actual downstream provider with synthetic RPC/identity; not part of frozen216 states"
       }
     },
     "scope": "Only the exported Sidebar declaration. Historical rights and strict isolation unverified; adjacent helpers and eight inventory groups remain open."

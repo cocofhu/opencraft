@@ -179,7 +179,20 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const references = useMemo(() => threads.map(thread => ({
     hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
   })), [threads]);
-  useEffect(() => threadListGrouping?.watch(references), [threadListGrouping, references]);
+  const groupingWatch = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    // A contribution can become ready without changing identity. Acquire its
+    // current watch before releasing the previous lease so metadata updates do
+    // not briefly drop the last subscriber or cancel an in-flight read.
+    const next = threadListGrouping?.watch(references);
+    const previous = groupingWatch.current;
+    groupingWatch.current = next;
+    previous?.();
+  }, [threadListGrouping, references, grouping.revision]);
+  useEffect(() => () => {
+    groupingWatch.current?.();
+    groupingWatch.current = undefined;
+  }, []);
   useEffect(() => () => menus.close(), [menus]);
   useEffect(() => { menus.close(); }, [menus, activeHostId, activeThreadId, pendingHostId, pendingThreadId, grouping.mode, grouping.hideRowBadge]);
 
@@ -313,7 +326,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
                 <span className="sidebar-thread-group-label">{label(group.label)}</span><ChevronDown size={12} className={group.collapsed ? "is-collapsed" : undefined} />
               </button></h3>
               <div className="sidebar-activity-group__items" hidden={group.collapsed}>
-                {group.threads.map(ref => { const thread = matchingById.get(JSON.stringify([ref.hostId, ref.threadId])); return thread ? renderThread(thread) : null; })}
+                {!group.collapsed && group.threads.map(ref => { const thread = matchingById.get(JSON.stringify([ref.hostId, ref.threadId])); return thread ? renderThread(thread) : null; })}
               </div>
             </section>) : <>
               {renderFlowSection("attention", text("sidebar.flow.attention", "Needs your attention"), taskFlow.attention)}

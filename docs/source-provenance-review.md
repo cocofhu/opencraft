@@ -784,3 +784,10 @@ record retains both failures, a24-state post-authoring participation/navigation
 comparison, original full consumer control and the corrected ownership policy.
 This supplements rather than retroactively expands the216-state baseline; Join
 fixed-source validation and actual delivery remain separate requirements.
+
+
+The actual-provider creator supplement additionally found and corrected anonymous
+to authenticated watch readiness and collapsed-row mounting differences. Complete
+56-state original/corrected raw output matches; initial failures and the inherited
+legacy fixture/count failure remain recorded. It does not expand the frozen
+baseline or resolve the eight remaining source groups.
