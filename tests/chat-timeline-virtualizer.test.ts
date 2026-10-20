@@ -6,8 +6,8 @@ import {
   buildTurnLayout,
   buildTimelineLayout,
   calculateSoftwareKeyboardInset,
-  CODEX_LATEST_TURN_PLACEMENT_SPRING,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   compensateDistanceFromBottom,
   computeTurnRange,
   computeTurnViewportBounds,
@@ -178,7 +178,7 @@ const turns = (count: number, height = 100): readonly VirtualizedTurnEntry[] =>
   }));
 
 const config = {
-  ...CODEX_TURN_VIRTUALIZER_CONFIG,
+  ...OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   gapPx: 0,
   overscanTurnCount: 0,
 };
@@ -575,7 +575,7 @@ test("ten thousand Turns retain a bounded mounted window", () => {
   const viewport = createTurnViewportState(layout, 400_000, 900);
   const slice = createTurnWindowSlice(entries, layout, viewport.renderedRange);
   assert.ok(slice.entries.length <= 16, `mounted ${slice.entries.length} Turns`);
-  assert.equal(slice.totalHeightPx, 10_000 * 96 + 9_999 * CODEX_TURN_VIRTUALIZER_CONFIG.gapPx);
+  assert.equal(slice.totalHeightPx, 10_000 * 96 + 9_999 * OPENCRAFT_TURN_VIRTUALIZER_CONFIG.gapPx);
 });
 
 test("streaming growth below a measured viewport anchor preserves visible content", () => {
@@ -856,7 +856,7 @@ test("reading away cancels local response watch and restored watch cannot steal 
 });
 
 test("latest Turn placement and response spacer retain recovered Codex constants", () => {
-  assert.deepEqual(CODEX_LATEST_TURN_PLACEMENT_SPRING, {
+  assert.deepEqual(OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING, {
     bounce: 0,
     durationMs: 500,
     damping: 36.933653905806345,

@@ -5,7 +5,7 @@ import {
 } from "@opencraft/chat-core";
 import {
   createLatestTurnPlacementSnapshot,
-  CODEX_LATEST_TURN_PLACEMENT_SPRING,
+  OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING,
   distanceAfterUnplacedLatestTurnContentResize,
   maximumResponseSpacerHeightPx,
   normalizeInitialScrollDistance,
@@ -40,9 +40,9 @@ function distanceFromBottom(element: HTMLDivElement): number {
   }).distanceFromBottomPx;
 }
 
-const CODEX_LATEST_TURN_SPRING = Object.freeze({
-  bounce: CODEX_LATEST_TURN_PLACEMENT_SPRING.bounce,
-  duration: CODEX_LATEST_TURN_PLACEMENT_SPRING.durationMs / 1_000,
+const OPENCRAFT_LATEST_TURN_SPRING = Object.freeze({
+  bounce: OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING.bounce,
+  duration: OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING.durationMs / 1_000,
   type: "spring" as const,
 });
 
@@ -434,9 +434,9 @@ export function ResponsePositionedTurns({
       responseSpacerIntersectsBottomRef.current = false;
       latestTurnOffset.set(currentSpacer);
       scrollController.scrollToDistanceFromBottomPx(1, "instant");
-      latestTurnOffsetAnimationRef.current = animate(latestTurnOffset, 0, CODEX_LATEST_TURN_SPRING);
+      latestTurnOffsetAnimationRef.current = animate(latestTurnOffset, 0, OPENCRAFT_LATEST_TURN_SPRING);
       if (currentSpacer !== maximumSpacer) {
-        responseSpacerAnimationRef.current = animate(responseSpacerHeight, maximumSpacer, CODEX_LATEST_TURN_SPRING);
+        responseSpacerAnimationRef.current = animate(responseSpacerHeight, maximumSpacer, OPENCRAFT_LATEST_TURN_SPRING);
       }
     }
     const phaseTransition = responsePositioning.transitionLatestTurnPhase(

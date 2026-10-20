@@ -1,4 +1,4 @@
-import { CODEX_SCROLL_NEAR_BOTTOM_PX } from "./scroll";
+import { OPENCRAFT_SCROLL_NEAR_BOTTOM_PX } from "./scroll";
 
 export interface ScrollToBottomActionVisibilityInput {
   /** Raw state published by the platform-neutral scroll controller. */
@@ -17,5 +17,5 @@ export function shouldShowScrollToBottomAction({
   return responseSpacerHeightPx === null
     ? isScrolledFromBottom
     : scrollDistanceFromBottomPx
-      > responseSpacerHeightPx + CODEX_SCROLL_NEAR_BOTTOM_PX;
+      > responseSpacerHeightPx + OPENCRAFT_SCROLL_NEAR_BOTTOM_PX;
 }

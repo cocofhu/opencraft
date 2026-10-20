@@ -1,7 +1,7 @@
 import { timelineTurnRenderKey, type TimelineTurnView } from "@opencraft/chat-core";
 import {
   buildTurnLayout,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   computeTurnRange,
   createTurnMeasurementTransaction,
   createTurnViewportState,
@@ -165,7 +165,7 @@ export function VirtualizedConversationTurns({
         initialDistanceFromBottomPx,
         getBottomScrollPaddingPx(),
       ),
-      CODEX_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
+      OPENCRAFT_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
       initialRestoreState,
     ),
   );
@@ -622,7 +622,7 @@ export function VirtualizedConversationTurns({
         layout,
         targetDistance,
         viewport.viewportHeightPx,
-        CODEX_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
+        OPENCRAFT_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
       );
     }
   } else {
