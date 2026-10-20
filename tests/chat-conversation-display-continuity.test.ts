@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { asTurnId, createConversationKey, groupTimelineFramesByTurn, type TimelineSnapshot } from "@opencraft/chat-core";
+import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimelineTurnPresentationPlan, type TimelineSnapshot } from "@opencraft/chat-core";
 import {
   createConversationDisplayContinuity,
   type ConversationDisplayStorage,
@@ -190,4 +190,63 @@ test("synchronous display memory cannot cross account namespaces", async () => {
   assert.ok(a.peek("host", "thread"));
   assert.equal(b.peek("host", "thread"), null);
   assert.equal(await b.load("host", "thread"), null);
+});
+
+
+function timedTimeline(): TimelineSnapshot {
+  const source = timeline(true);
+  return { ...source, frames: source.frames.map(frame => frame.type === "user"
+    ? { ...frame, blocks: frame.blocks.map(block => block.type === "user-message" ? { ...block, sentAtMs: 100 } : block) }
+    : { ...frame, durationMs: 54_000, workStatus: { type: "worked-for", status: "worked", startedAtMs: 100, completedAtMs: 54_100 } }) };
+}
+
+test("reload paints message date and completed work clock before authoritative history arrives", async () => {
+  const local = storage();
+  const before = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await before.observe(timedTimeline());
+  const after = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  const restored = (await after.load("host", "thread"))!;
+  assert.equal(restored.authoritative, false);
+  const user = restored.frames[0]!.blocks[0]!;
+  assert.equal(user.type === "user-message" && user.sentAtMs, 100);
+  const turn = groupTimelineFramesByTurn(restored)[0]!;
+  const plan = createTimelineTurnPresentationPlan(turn, undefined, { isMostRecentTurn: true });
+  const activity = plan.assistant?.slots.find(slot => slot.type === "agent-activity");
+  assert.ok(activity && activity.type === "agent-activity");
+  assert.equal(activity.workedDurationMs, 54_000);
+  assert.deepEqual(activity.contentUnits.find(unit => unit.type === "worked-for")?.item,
+    { type: "worked-for", status: "worked", startedAtMs: 100, completedAtMs: 54_100 });
+  assert.equal(activity.blocks.length, 0, "tool bodies are not cached");
+});
+
+test("timing-only corrections refresh persisted display and live clocks are discarded", async () => {
+  const local = storage();
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await cache.observe(timeline(true));
+  await cache.observe(timedTimeline());
+  const restored = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  assert.equal(restored.frames[1]!.workStatus?.completedAtMs, 54_100);
+  await cache.observe({ ...timedTimeline(), frames: timedTimeline().frames.map(frame => frame.type === "assistant"
+    ? { ...frame, workStatus: { type: "worked-for", status: "working", startedAtMs: 100, completedAtMs: null } } : frame) });
+  assert.equal(cache.peek("host", "thread")!.frames[1]!.workStatus, null);
+});
+
+test("legacy and malformed cached clocks remain unknown without losing text", async () => {
+  for (const timing of [{}, { sentAtMs: -1, durationMs: "54000", workStatus: { type: "worked-for", status: "working", startedAtMs: 1, completedAtMs: null } },
+    { sentAtMs: "100", durationMs: -10, workStatus: { type: "worked-for", status: "worked", startedAtMs: 100, completedAtMs: 50 } }]) {
+    const local = storage();
+    const original = createConversationDisplayContinuity({ namespace: "account", storage: local });
+    await original.observe(timeline(true));
+    for (const [key, value] of local.data) {
+      const data = JSON.parse(value);
+      data.messages = data.messages.map(({ sentAtMs, durationMs, workStatus, ...message }: Record<string, unknown>) => ({ ...message, ...timing }));
+      local.data.set(key, JSON.stringify(data));
+    }
+    const restored = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+    assert.equal(restored.frames.length, 2);
+    assert.equal(restored.frames[1]!.durationMs, null);
+    assert.equal(restored.frames[1]!.workStatus, null);
+    const user = restored.frames[0]!.blocks[0]!;
+    assert.equal(user.type === "user-message" && user.sentAtMs, null);
+  }
 });

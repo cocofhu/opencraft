@@ -1018,7 +1018,14 @@ no tool output or interaction is truncated to improve timing.
 
 ConversationDisplayContinuity keeps at most 64 already-projected text displays
 in its existing account/Host/Thread scope. `peek` exposes a synchronous paint-only
-snapshot, including before an asynchronous persistence write finishes. Web and
+snapshot, including before an asynchronous persistence write finishes.
+Completed user-message timestamps and terminal work clocks/durations are retained
+with the text, so a reload paints the date and worked-for label together with its
+message while the Host reconnects. Live work clocks are never restored from this
+cache. Legacy text-only entries remain readable with unknown clocks until the
+next authoritative observation refreshes them. Timing-only changes update the
+projection even when message text is unchanged. A retained terminal work clock
+can render without cached tool bodies; it does not restore expandable tools. Web and
 Native consult it during render before starting disk restoration. The same
 seven-day age and 24-message/text limits apply; disk loads keep the original
 expiry time, authoritative empty history removes a display, and a delayed disk

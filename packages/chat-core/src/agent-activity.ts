@@ -462,7 +462,9 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
   let phase: AgentActivityPhase = "before-final-answer";
   let finalSegmentId: string | null = null;
   const flush = (segmentEnd: AgentActivitySegmentEnd) => {
-    if (!pending.length) return;
+    // A paint-only history can retain the completed clock without tool bodies.
+    if (!pending.length && !(work && segmentEnd === "final-answer"
+      && !slots.some(slot => slot.type === "agent-activity"))) return;
     finalSegmentId = activityId;
     const subagents = pending.filter((block): block is SubagentTimelineBlock => block.type === "subagent");
     const blocks = pending.filter(block => block.type !== "subagent");

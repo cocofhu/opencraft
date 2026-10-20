@@ -24,9 +24,10 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
   async send(frame){
    const rpc=JSON.parse(frame);if(rpc.id===undefined)return;requests.push(rpc.method);
    let result:unknown,error:unknown;
-   const turn={id:'fixture-turn',status:'completed',error:null,itemsView:'full',items:[
-    {type:'userMessage',id:'fixture-question',content:[{type:'text',text:question,textElements:[]}]},
-    {type:'agentMessage',id:'fixture-answer',text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
+   const turn={id:'fixture-turn',status:'completed',error:null,itemsView:'full',startedAtMs:1700000000000,firstTurnWorkItemStartedAtMs:1700000000000,finalAssistantStartedAtMs:1700000054000,durationMs:54000,items:[
+    {type:'userMessage',id:'fixture-question',sentAtMs:1700000000000,content:[{type:'text',text:question,textElements:[]}]},
+    {type:'reasoning',id:'fixture-reasoning',summary:['Checking the answer'],content:[],startedAtMs:1700000000000},
+    {type:'agentMessage',id:'fixture-answer',startedAtMs:1700000054000,text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
    switch(rpc.method){
     case 'initialize':result={userAgent:'cold-open-fixture',codexHome:'/fixture',platformFamily:'unix',platformOs:'linux',capabilities:{extensions:{'opencraft/resume-history':{version:1,mode:'paginated',initialTurnsPage:true}}}};break;
     case 'thread/list':result={data:[thread],nextCursor:null};break;
@@ -57,8 +58,13 @@ try{for(const width of [390,1100]){
  page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
  await page.getByText(cachedAnswer,{exact:true}).waitFor();
  await page.waitForFunction(()=>Object.keys(localStorage).some(key=>key.startsWith('opencraft.display.')&&localStorage.getItem(key)?.includes('Previously seen answer')));
+ assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z');
+ await page.locator('[data-work-status]').filter({hasText:'54'}).waitFor();
  hold=true;fresh=true;const requestStart=requests.length;await page.reload();await page.locator('.local-conversation-page').waitFor();
  await page.getByText(cachedAnswer,{exact:true}).waitFor({timeout:3000});
+ assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z','Date paints before initialization completes');
+ assert.match(await page.locator('[data-work-status]').innerText(),/54/,'Completed clock paints with cached text');
+ assert.equal(await page.locator('.thread-agent-activity button').count(),0,'Cached work has no tool actions');
  assert.ok(held.length>0,'Cached history paints while connection initialization remains held');
  assert.equal(requests.slice(requestStart).includes('thread/resume'),false,'Cached paint cannot resume or authorize execution');
  assert.equal(await page.locator('.conversation-recovery-cold-stage').count(),0);

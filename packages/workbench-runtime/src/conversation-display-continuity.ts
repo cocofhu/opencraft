@@ -1,4 +1,4 @@
-import { asTurnId, createConversationKey, type TimelineSnapshot } from "@opencraft/chat-core";
+import { asTurnId, createConversationKey, type TimelineSnapshot, type WorkStatusItem } from "@opencraft/chat-core";
 
 import type { SubmissionReceipt, SubmitIntent } from "@opencraft/composer-core";
 import { submittedMessageDisplay } from "./submitted-message-display";
@@ -24,6 +24,9 @@ interface DisplayMessage {
   readonly turnId: string;
   readonly role: "user" | "assistant";
   readonly text: string;
+  readonly sentAtMs: number | null;
+  readonly durationMs: number | null;
+  readonly workStatus: WorkStatusItem | null;
 }
 
 const VERSION = 1;
@@ -39,6 +42,19 @@ function storageKey(namespace: string, hostId: string, threadId: string): string
   return `${conversationDisplayStoragePrefix(namespace)}${JSON.stringify([hostId, threadId])}`;
 }
 
+function nonnegativeNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function completedWork(value: unknown): WorkStatusItem | null {
+  if (typeof value !== "object" || value === null) return null;
+  const work = value as Record<string, unknown>;
+  const start = nonnegativeNumber(work.startedAtMs), end = nonnegativeNumber(work.completedAtMs);
+  if (work.type !== "worked-for" || (work.status !== "worked" && work.status !== "stopped")
+    || start === null || end === null || end < start) return null;
+  return { type: "worked-for", status: work.status, startedAtMs: start, completedAtMs: end };
+}
+
 function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] {
   const messages: DisplayMessage[] = [];
   for (const frame of snapshot.frames) {
@@ -46,12 +62,14 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
     if (frame.type === "user") {
       for (const block of frame.blocks) {
         if (block.type !== "user-message" || block.messageKind !== "user" || !block.message.trim()) continue;
-        messages.push({ id: block.id, turnId: frame.turnId, role: "user", text: block.message.slice(0, MAX_MESSAGE_CHARACTERS) });
+        messages.push({ id: block.id, turnId: frame.turnId, role: "user", text: block.message.slice(0, MAX_MESSAGE_CHARACTERS),
+          sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: null, workStatus: null });
       }
     } else if (frame.type === "assistant") {
       for (const block of frame.blocks) {
         if (block.type !== "text" || block.streaming || block.phase === "commentary" || !block.text.trim()) continue;
-        messages.push({ id: block.id, turnId: frame.turnId, role: "assistant", text: block.text.slice(0, MAX_MESSAGE_CHARACTERS) });
+        messages.push({ id: block.id, turnId: frame.turnId, role: "assistant", text: block.text.slice(0, MAX_MESSAGE_CHARACTERS),
+          sentAtMs: null, durationMs: nonnegativeNumber(frame.durationMs), workStatus: completedWork(frame.workStatus) });
       }
     }
   }
@@ -75,7 +93,9 @@ function parse(value: string | null, hostId: string, threadId: string, now: numb
         || typeof message.turnId !== "string" || message.turnId.length > 256
         || (message.role !== "user" && message.role !== "assistant")
         || typeof message.text !== "string" || message.text.length > MAX_MESSAGE_CHARACTERS) return null;
-      messages.push({ id: message.id, turnId: message.turnId, role: message.role, text: message.text });
+      messages.push({ id: message.id, turnId: message.turnId, role: message.role, text: message.text,
+        sentAtMs: nonnegativeNumber(message.sentAtMs), durationMs: nonnegativeNumber(message.durationMs),
+        workStatus: message.role === "assistant" ? completedWork(message.workStatus) : null });
     }
     return { messages, savedAt: candidate.savedAt };
   } catch { return null; }
@@ -94,14 +114,15 @@ function paint(hostId: string, threadId: string, messages: readonly DisplayMessa
       id: `cached:${index}:${message.id}`,
       turnId: message.turnId as TimelineSnapshot["frames"][number]["turnId"],
       status: "complete" as const,
-      durationMs: null,
+      durationMs: message.durationMs,
+      workStatus: message.workStatus,
       hookStats: null,
       anchors: [],
       blocks: message.role === "user"
         ? [{
             type: "user-message" as const, id: message.id, sourceItemIds: [], message: message.text,
             content: [{ type: "text" as const, text: message.text, textElements: [] }], attachments: [],
-            messageKind: "user" as const, clientId: null, steeringStatus: null, sentAtMs: null,
+            messageKind: "user" as const, clientId: null, steeringStatus: null, sentAtMs: message.sentAtMs,
             deliveryStatus: "sent" as const, referencesPriorConversation: false, reviewMode: false,
             pullRequestFixMode: false, autoResolveSync: false, goal: false, hookFeedback: false,
             commentCount: 0, hasExternalAttachments: false,
