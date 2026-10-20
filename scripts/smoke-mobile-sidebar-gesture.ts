@@ -98,7 +98,7 @@ try {
       const more=panel.getByRole('button',{name:'Show more',exact:true});
       while(await more.count()) {
         const before = await panel.locator('.sidebar-activity-item').count();
-        await more.click();
+        await more.tap();
         // Wait for the transition's new rows before locating the next action;
         // the previous button may remain disabled until its final removal.
         await page.waitForFunction(before => document.querySelectorAll('.app-shell-floating-left-panel .sidebar-activity-item').length > before && !document.querySelector('.app-shell-floating-left-panel .sidebar-activity-pagination[aria-busy="true"]'), before, { timeout: 8000 });
