@@ -215,10 +215,9 @@ export function WorkspaceResourcePanel({ tab, ownerId, active, previewOnly = fal
     () => createAppServerMediaSourceLoader(runtime, blobs, snapshot.hostId),
     [runtime, blobs, snapshot.hostId],
   );
-  // PDF starts focused on the document. A manual choice belongs to this panel
-  // and takes precedence while browsing other files; it never remounts the viewer.
-  const [fileTreeOpenOverride, setFileTreeOpenOverride] = useState<boolean | null>(null);
-  const fileTreeOpen = fileTreeOpenOverride ?? chatMediaKind(selectedPath) !== "pdf";
+  // Start focused on the preview. Visibility belongs to this panel and stays
+  // unchanged while browsing files; toggling never remounts the viewer.
+  const [fileTreeOpen, setFileTreeOpen] = useState(false);
   const fileTreeId = useId();
   const treeToggleLabel = intl.formatMessage(fileTreeOpen
     ? { id: "panel.hideFileTree", defaultMessage: "Hide file tree" }
@@ -407,7 +406,7 @@ export function WorkspaceResourcePanel({ tab, ownerId, active, previewOnly = fal
             title={treeToggleLabel}
             aria-expanded={fileTreeOpen}
             aria-controls={fileTreeId}
-            onClick={() => setFileTreeOpenOverride(!fileTreeOpen)}
+            onClick={() => setFileTreeOpen(!fileTreeOpen)}
           >
             {fileTreeOpen ? <FolderOpen size={16} /> : <Folder size={16} />}
           </button> : null}
