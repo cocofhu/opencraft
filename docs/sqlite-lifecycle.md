@@ -160,7 +160,7 @@ Web preferences、Connector configuration 与插件文档继续使用各自 Inde
 
 迁移 SQL 是第 2 节各 owner 源码里的 TS 常量，随 Main/Daemon/core bundle 交付，没有独立 SQL 资产目录或 manifest。migrations 为 readonly 的 version/name/sql 列表；返回 database 与 outcome（status、appliedVersion、可选 backupPath、movedAsidePaths）。共享包不导入 Feature/React、账户服务或执行引擎；连接不跨 IPC。生产不动态 diff 数据库，不依赖仓库 cwd、不联网下载迁移。
 
-executions 中 hypernode 表 DDL 以 [DSH_EXECUTION_BASELINE](../apps/local-agent-host/src/dsh-execution-authority.ts) 为基线权威；[execution-authority](../apps/local-agent-host/src/hypernode/execution-authority.js) 与 [thread-queue](../apps/local-agent-host/src/hypernode/thread-queue.js) 的 `initializeSchema` 原文保留为上游镜像。当前构造器仍调用镜像中的 `CREATE ... IF NOT EXISTS`，在已完成基线迁移的库上为 no-op，不承担表结构升级。[check-dsh-source](../scripts/check-dsh-source.mjs) 核对参考源，[指纹等价测试](../tests/dsh-execution-authority.test.ts) 防止基线与镜像漂移。已发布 SQL 不改写，后续结构变化追加版本迁移；hypernode 变更还需同步基线与参考镜像，不能建立第二份升级 authority。
+executions 中 hypernode 表 DDL 以 [DSH_EXECUTION_BASELINE](../apps/local-agent-host/src/dsh-execution-authority.ts) 为基线权威；[execution-authority](../apps/local-agent-host/src/hypernode/execution-authority.js) 与 [thread-queue](../apps/local-agent-host/src/hypernode/thread-queue.js) 的 `initializeSchema` 保持与基线一致。当前构造器仍调用声明中的 `CREATE ... IF NOT EXISTS`，在已完成基线迁移的库上为 no-op，不承担表结构升级。[指纹等价测试](../tests/dsh-execution-authority.test.ts) 防止基线与初始化声明漂移。已发布 SQL 不改写，后续结构变化追加版本迁移；hypernode 变更还需同步基线与初始化声明，不能建立第二份升级 authority。
 
 IndexedDB 使用原生升级事务，不运行 SQL runner；广播仅通知已提交 revision 失效，跨标签 CAS 仍由事务保证。浏览器没有桌面文件快照能力，不把 abort 回滚称为文件备份，不通过删库处理 VersionError。
 
