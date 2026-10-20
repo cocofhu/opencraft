@@ -40,7 +40,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     if (next) setPresent(true);
     const finish = () => { if (generation.current === receipt && !next) setPresent(false); };
     if (latest.current.reducedMotion) { progress.set(next ? 1 : 0); finish(); }
-    else animate(progress, next ? 1 : 0, { ...PANEL_SPRING_TRANSITION, onComplete: finish });
+    else animate(progress, next ? 1 : 0, { ...PANEL_SPRING_TRANSITION, bounce: 0, onComplete: finish });
   };
   const settleRef = useRef(settle);
   settleRef.current = settle;

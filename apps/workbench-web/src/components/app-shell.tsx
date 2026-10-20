@@ -610,7 +610,8 @@ export function AppShell({
   });
   // One progress drives foreground travel and stationary sidebar depth; translating the row leaves the root's
   // viewport coordinates (and gesture acquisition) unchanged.
-  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
+  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) =>
+    Math.max(0, Math.min(1, Number(progress))) * Number(width));
   const mobilePageBlocked = mobileSidebarEnabled && (drawerRequested || floatingIntent.requested || mobileGesture.dragging);
   const sidebarPresentation = resolveSidebarPresentation({
     docked: sidebarOpen,

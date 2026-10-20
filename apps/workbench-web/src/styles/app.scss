@@ -12027,6 +12027,9 @@ html[data-codex-window-type="electron"] .thread-scroll {
     position: relative;
     pointer-events: auto;
     overflow: clip;
+    // The moving page, including gaps around floating chrome, must occlude
+    // the stationary drawer throughout a swipe and its settling frames.
+    background: var(--color-surface);
     // MotionValues own direct manipulation. The global reduced-motion duration
     // must not create a CSS transition for every transform write.
     transition-property: none;
