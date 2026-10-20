@@ -636,13 +636,24 @@ export function createAppServerWorkbenchRuntime(
     );
   };
 
+  const transportSnapshot = (): TransportStatus => {
+    const status = automaticReconnectBlock ?? client?.status ?? currentTransport?.status
+      ?? initializationFailureStatus ?? { state: "idle" };
+    // Admission revokes the previous attempt's diagnostics synchronously,
+    // even while that attempt still owns its physical cleanup. A failure in
+    // the current attempt is published only after the owner leaves attempting.
+    if (error === null && (phase === "connecting" || phase === "reconnecting")
+      && (status.state === "closed" || status.state === "failed")) return { state: "connecting" };
+    return status;
+  };
+
   const derive = (): AppServerWorkbenchSnapshot => ({
     revision,
     phase,
     hostId,
     connectionGeneration: client?.connectionGeneration ?? 0,
     // Manual failure belongs to the Host attempt, not the disposed transport.
-    transport: automaticReconnectBlock ?? client?.status ?? currentTransport?.status ?? initializationFailureStatus ?? { state: "idle" },
+    transport: transportSnapshot(),
     recovery: recovery.getProgress(),
     residentThreads: [...bindings.values()]
       .filter((binding) => !binding.disposed)
