@@ -49,7 +49,6 @@ import type {
 import { useStableEvent } from "@opencraft/react-runtime";
 import { nativeProjectPicker } from "./runtime/project-folder-picker";
 import { workInAgentHosts, chooseWorkInHost, ThreadTitleWriter, legacyDirectServerProjectionFromHost } from "@opencraft/workbench-runtime";
-import { ThreadPinWriter } from "./runtime/thread-pin-writer";
 import { readCachedThreadName, writeCachedThreadName } from "./runtime/thread-title-cache";
 import { archiveThread } from "./runtime/thread-archive";
 import { forkAndOpenThread } from "./runtime/thread-fork-navigation";
@@ -155,6 +154,7 @@ import {
   useRootComposerController,
   useThreadCatalog,
   useMultiHostThreadCatalog,
+  useThreadPinWriter,
 } from "./runtime/appserver-runtime-context";
 import {
   setAppearanceThemeId,
@@ -384,20 +384,7 @@ export function App({
   );
   const rawCatalog = useThreadCatalog();
   const rawMultiHostCatalog = useMultiHostThreadCatalog();
-  const threadPinWriter = useMemo(() => new ThreadPinWriter(queryClient, {
-    capture: key => {
-      const owner = hostCatalog.registry.peekRuntime(key.hostId);
-      const generation = owner?.getSnapshot().connectionGeneration;
-      const profile = hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId);
-      const authorizationEpoch = () => profile?.hostKind === "remote-ssh" ? hostCatalog.managedHostCatalog?.getAuthorizationEpoch() : null;
-      const epoch = authorizationEpoch();
-      return () => owner !== null && hostCatalog.registry.peekRuntime(key.hostId) === owner
-        && owner.getSnapshot().phase === "ready" && owner.getSnapshot().connectionGeneration === generation
-        && hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId)?.revision === profile?.revision
-        && authorizationEpoch() === epoch;
-    },
-    persist: (key, pinned) => hostCatalog.threadManagement.setPinned(key.hostId, key.threadId, pinned),
-  }), [hostCatalog.registry, hostCatalog.hostProfiles, hostCatalog.managedHostCatalog, hostCatalog.threadManagement, queryClient]);
+  const threadPinWriter = useThreadPinWriter();
   const pinRevision = useSyncExternalStore(threadPinWriter.subscribe, threadPinWriter.getSnapshot, threadPinWriter.getSnapshot);
   const catalog = { ...rawCatalog, threads: useMemo(() => rawCatalog.threads.map(thread =>
     threadPinWriter.project({ hostId: snapshot.hostId, threadId: thread.id }, thread)),
