@@ -1,4 +1,3 @@
-// Source: ref/hypernode/scripts/dsh-surface-checkpoint.mjs; function bodies preserved.
 export function createSurfaceCheckpoint(isSurfaceEvent) {
 
 

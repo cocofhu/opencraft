@@ -1509,8 +1509,8 @@ Both
 the downstream product embedded and full lightvela-web keep the pre-backport glyphs and their
 consumer-specific scales; core keeps the new artwork. Shared metrics and the
 semantic Web icon adapter own sizes/strokes. The classic adapter retains the
-existing glyphs; the legacy `workbenchIconMetrics.vela` export remains a scale
-compatibility name, not a product-ID dispatch. Tokens are projected onto each
+existing glyphs; `workbenchIconMetrics.classic` names their scale without
+dispatching on a product ID. Tokens are projected onto each
 Presentation Root; the downstream product does not globally override explicit legacy Lucide strokes.
 A color palette such as vela.core.web never grants product capabilities or selects
 an icon family.
