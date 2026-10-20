@@ -38,11 +38,10 @@ including final-response transitions and reading-position measurements:
 WORK_TRANSITION_ONLY=1 npx tsx scripts/diagnose-work-status-completion.ts
 ```
 
-External execution-runtime checks and connector catalog exports require an
-explicit local input. Missing arguments fail with usage before reading files:
+Connector catalog exports require an explicit local input. Missing arguments
+fail with usage before reading files:
 
 ```sh
-node scripts/check-dsh-source.mjs /absolute/runtime/services
 node scripts/export-hermes-connector-catalog.mjs /absolute/marketplace
 ```
 
