@@ -63,6 +63,27 @@
         "search dialog lives in parent Shell; this Sidebar flag does not itself expose a search dialog opener",
         "physical touch/menu acquisition and native hardware"
       ]
+    },
+    {
+      "id": "sidebar-optional-contract-v1",
+      "observerSha256": "dae9a596e036e7f198a19d70b0e604a4b9a1d1a9110b44d47e7d430a6841be95",
+      "fixtureSha256": "6272ba81d66b2dffa0dba10713a6cd0af20c9eedc419cdede4ad109c134df22c",
+      "rawOutputSha256": "ef1be99f9a2f5458ddeae4f4245289a6342a4499369db5561217ec833fa14a0e",
+      "scenes": 4,
+      "states": 48,
+      "pageErrors": 0,
+      "coverage": [
+        "custom grouped projection and disclosure",
+        "badge open/switch and group hideRowBadge",
+        "plugin mode and notice transitions",
+        "bot invoke and creation.open delegation",
+        "unmount plugin/bot contributions"
+      ],
+      "limitations": [
+        "Bot drag/drop and provider-owned creation modal are not verified by these scenarios",
+        "Synthetic badge component checks open ownership, not real employee badge popover or avatar data",
+        "No physical touch or native hardware verification"
+      ]
     }
   ],
   "scope": "Synthetic inputs with the actual original public Sidebar. Complementary observations remain necessary before authoring the selected whole component. No author isolation, historic rights clearance, physical hardware or employee account verification claim. External scripts and raw outputs are not product dependencies."
