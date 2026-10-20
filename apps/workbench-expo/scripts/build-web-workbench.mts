@@ -35,7 +35,7 @@ const capture: Plugin = {
     const unbundled = Object.values(bundle).filter(item => item.type === "asset" && !item.fileName.endsWith(".css") && !item.fileName.endsWith(".md"));
     const script = packageResourceGraph(chunks[0]!.code, unbundled).replace(/<\/script/giu, "<\\/script");
     const styles = css.replace(/<\/style/giu, "<\\/style");
-    const csp = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src https: http: data: blob:; font-src data:; connect-src https: http: wss: ws:; media-src https: http: data: blob:; worker-src blob: data:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'";
+    const csp = "default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; img-src https: http: data: blob:; font-src data:; connect-src https: http: wss: ws: data: blob:; media-src https: http: data: blob:; worker-src blob: data:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'";
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><meta http-equiv="Content-Security-Policy" content="${csp}"><title>OpenCraft</title><style>${styles}</style></head><body><div id="root"></div><script>/*OPENCRAFT_MOBILE_IDENTITY*/</script><script type="module">${script}</script></body></html>`;
     await mkdir(path.join(appRoot, "assets"), { recursive: true });
     await writeFile(path.join(appRoot, "assets/mobile-workbench.html"), html);

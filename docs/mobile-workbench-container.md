@@ -62,6 +62,11 @@ operations. Subframes are restricted to local documents. Validated
 http/https/mailto/tel links open externally. Unknown, oversized, wrong-version
 and retired-runtime messages are rejected before native dispatch.
 
+Packaged WASM resources can be fetched through local data/blob URLs and compiled
+with the WASM-specific policy permission. JavaScript string evaluation remains
+disabled. The built-document smoke exercises both local fetch paths, WASM
+compilation and rejection of JavaScript string evaluation in a normal page script.
+
 ## Acceptance and remaining limits
 
 This is an experimental entry, not a device-parity claim:
