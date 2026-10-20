@@ -13,7 +13,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChartNoAxesCombined, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartNoAxesCombined, Sunrise, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";
@@ -49,8 +49,11 @@ import { TasksArchiveController } from "./archive-controller";
 import { TasksController } from "./controller";
 import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
+import { MorningOverview } from "./morning-overview";
 const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
+  morningOverview: ["晨会总览", "Morning overview"],
+  morningShort: ["晨会", "Morning"],
   aiResearch: ["AI 主动预研", "AI research"],
   allResearch: ["全部预研判断", "All research dispositions"],
   researchUnassessed: ["未判断", "Unassessed"],
@@ -1173,6 +1176,13 @@ export function createTasksView(
     useLayoutEffect(() => { const node = viewport.current; if (!node) return; const observer = new ResizeObserver(entries => setCompact(entries[0]!.contentRect.width <= 600)); observer.observe(node); return () => observer.disconnect(); }, []);
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [overviewOpen, setOverviewOpen] = useState(false);
+    const [morningOpen, setMorningOpen] = useState(false);
+    const wasMorning = useRef(false);
+    useEffect(() => {
+      if (morningOpen) viewport.current?.querySelector<HTMLButtonElement>("[data-morning-back]")?.focus();
+      else if (wasMorning.current) viewport.current?.querySelector<HTMLButtonElement>("[data-morning-entry]")?.focus();
+      wasMorning.current = morningOpen;
+    }, [morningOpen]);
     const viewLive = useRef(true);
     useEffect(() => {
       viewLive.current = true;
@@ -1507,14 +1517,15 @@ export function createTasksView(
     return (
       <div ref={viewport} className="tasks-viewport">
         <section className="tasks">
-          <div className="tasks-overview" data-conversation-overview={overviewOpen && !managementOpen}>
+          <div className="tasks-overview" data-conversation-overview={overviewOpen && !managementOpen && !morningOpen}>
           <div className="tasks-page-heading">
             <div className="tasks-heading-title" ref={recycleHeading}>
-              {managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => { setRecycleOpen(false); setArchiveOpen(false); }}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : null}
-              <h2 className="tasks-title">{archiveOpen ? t("archivedTasks") : recycleOpen ? t("recycleBin") : t("tasks")}</h2>
+              {morningOpen ? <SettingsButton data-morning-back="" variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => setMorningOpen(false)}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => { setRecycleOpen(false); setArchiveOpen(false); }}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : null}
+              <h2 className="tasks-title">{morningOpen ? t("morningOverview") : archiveOpen ? t("archivedTasks") : recycleOpen ? t("recycleBin") : t("tasks")}</h2>
             </div>
             <div className="tasks-heading-actions" ref={managementActions}>
-              {managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} title={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} aria-busy={archiveOpen ? archiveState.loading : refreshing} disabled={state.pending || (archiveOpen ? archiveState.loading : refreshing)} onClick={() => void (archiveOpen ? archives.refresh() : refreshTasks())}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : <>
+              {morningOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("refreshBoard")} title={t("refreshBoard")} aria-busy={refreshing} disabled={state.pending || refreshing || state.phase === "loading"} onClick={() => void refreshTasks()}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} title={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} aria-busy={archiveOpen ? archiveState.loading : refreshing} disabled={state.pending || (archiveOpen ? archiveState.loading : refreshing)} onClick={() => void (archiveOpen ? archives.refresh() : refreshTasks())}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : <>
+                <SettingsButton data-morning-entry="" variant="quiet" aria-label={t("morningOverview")} onClick={() => setMorningOpen(true)}><Sunrise size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("morningOverview")}</span><span className="tasks-compact-only">{t("morningShort")}</span></SettingsButton>
                 <SettingsButton className="tasks-create" variant="primary" aria-label={t("add")} disabled={state.phase !== "ready" || state.pending} onClick={() => openEditor()}><Plus size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("add")}</span></SettingsButton>
                 <DropdownMenu.Root><DropdownMenu.Trigger asChild>
                   <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("moreActions")} title={t("moreActions")}><MoreHorizontal size={18} aria-hidden="true" /></SettingsButton>
@@ -1526,7 +1537,7 @@ export function createTasksView(
               </>}
             </div>
           </div>
-          <header className="tasks-toolbar" hidden={managementOpen}>
+          <header className="tasks-toolbar" hidden={managementOpen || morningOpen}>
             <SegmentedControl
               className="tasks-view-switch"
               label={t("view")}
@@ -1592,7 +1603,7 @@ export function createTasksView(
 
             </div>
           </header>
-          {overviewOpen && !managementOpen && ports.conversationOverview ? <Suspense fallback={<p role="status">{t("loadingConversations")}</p>}><ConversationOverview key={memberScope} port={ports.conversationOverview} host={host} /></Suspense> : null}
+          {overviewOpen && !managementOpen && !morningOpen && ports.conversationOverview ? <Suspense fallback={<p role="status">{t("loadingConversations")}</p>}><ConversationOverview key={memberScope} port={ports.conversationOverview} host={host} /></Suspense> : null}
           {(ports.pendingConversationLinks?.() ?? []).map(link => (
             <SettingsNotice key={`${link.taskId}:${linkKey(link)}`} tone="error">
               {t("pendingLink")}{" "}
@@ -1600,12 +1611,13 @@ export function createTasksView(
               <SettingsButton variant="quiet" onClick={() => void ports.retryConversationLinks?.(link.taskId)}>{t("retryLink")}</SettingsButton>
             </SettingsNotice>
           ))}
-          {overviewOpen && !managementOpen ? null : state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
+          {overviewOpen && !managementOpen && !morningOpen ? null : state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
             <div className="tasks-load-error" role="status">
               <SettingsNotice>{t(state.phase === "unavailable" ? "unavailable" : "loadError")}</SettingsNotice>
               <SettingsButton disabled={refreshing} onClick={() => void refreshTasks()}>{t("retry")}</SettingsButton>
             </div>
           ) : <>
+          {morningOpen ? <MorningOverview tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} onOpen={task => openEditor(task)} /> : null}
           {archiveOpen && state.archive ? <ArchivePanel model={archives} members={state.members} pending={state.pending} reportError={reportError} ports={ports} session={editorSession}
             activityFor={item => { let activity = activities.get(item.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, item.id, () => {}); activities.set(item.id, activity); } return activity; }}
             onRead={id => ports.request(authority!, TASKS.read, { id })} onOpen={open} onRestore={async item => { const saved = await model.mutate(TASKS.unarchive, { id: item.id, expectedRevision: item.revision }); await archives.refresh(); return saved; }} /> : null}
@@ -1623,7 +1635,7 @@ export function createTasksView(
               </li>)}
             </ul>}
           </section>
-          <div className="tasks-active-view" hidden={managementOpen}>
+          <div className="tasks-active-view" hidden={managementOpen || morningOpen}>
           {draft.mode === "board" ? (
             <SegmentedControl
               className="tasks-statuses tasks-compact-only"

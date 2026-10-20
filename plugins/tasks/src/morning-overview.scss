@@ -1,0 +1,44 @@
+@use "@opencraft/design-system/typography.web" as type;
+
+.tasks-morning {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 20px;
+  &__intro { margin-bottom: 20px; }
+  &__intro > p { margin-top: 0; }
+  &__intro > span, &__metric > span, &__brief span, &__item-footer, &__empty, &__pool > p {
+    @include type.role(metadata);
+    color: var(--color-text-secondary);
+  }
+  &__metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  &__metric { padding: 18px; border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-background-elevated-primary); min-width: 0; }
+  &__metric > div { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); }
+  h3, h4 { @include type.role(sidebar-section); margin: 0; }
+  &__metric h3 { @include type.role(metadata); }
+  .tasks-morning__metric-value { @include type.role(settings-title); margin: 18px 0 10px; }
+  &__brief { display: flex; gap: 12px; margin: 24px 0; padding: 18px; border-radius: 12px; background: var(--color-background-elevated-secondary); }
+  &__brief > svg { flex-shrink: 0; color: var(--color-text-secondary); }
+  &__groups { display: flex; flex-direction: column; gap: 24px; }
+  &__group-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  &__group-heading > span { @include type.role(metadata); color: var(--color-text-secondary); }
+  &__group > ul { display: flex; flex-direction: column; gap: 10px; list-style: none; margin: 0; padding: 0; }
+  &__item { padding: 16px; border: 1px solid var(--color-border-subtle); border-radius: 12px; }
+  &__item-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  &__item-heading h4 { overflow-wrap: anywhere; }
+  &__item-heading button { flex-shrink: 0; }
+  &__item > p { white-space: pre-wrap; overflow-wrap: anywhere; }
+  &__item-footer { display: flex; flex-wrap: wrap; gap: 8px 20px; padding-top: 8px; }
+  &__pool { border-top: 1px solid var(--color-border-subtle); padding-top: 20px; }
+  &__pool > summary { @include type.role(metadata); cursor: pointer; }
+  &__pool > button { display: flex; max-width: 100%; height: auto; text-align: start; white-space: normal; overflow-wrap: anywhere; margin-block: 6px; }
+}
+@container tasks (max-width: 760px) {
+  .tasks-morning__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container tasks (max-width: 420px) {
+  .tasks-morning__metric { padding: 12px; }
+  .tasks-morning__item-heading { flex-direction: column; gap: 6px; }
+}

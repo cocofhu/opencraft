@@ -398,3 +398,10 @@ unknown values survive unrelated edits, filters and card/list summaries use the
 same authority projection. Capability-absent Hosts hide editing/filter controls.
 The CLI exposes disposition in summaries and `list {aiResearch}` filtering; read
 returns the rationale and properties updates the assessment.
+
+
+## Morning overview
+
+The board heading includes a Morning overview action. It opens a read-only, whole-board projection of the current task authority, independent of browse filters; Back restores the prior browse view, filters, scroll, editor drafts and entry focus. The mounted browse view retains its owner. The four product metric cards (users, active users, instance inventory and submission level) are explicitly awaiting data. No synthetic zeroes, trends, quota or health claims are shown.
+
+Among non-terminal tasks, existing research assessments populate needs-decision and needs-context groups with recorded rationales and a direct task-detail action; ready-for-research and unassessed items remain in a collapsed pool. A research assessment never implies a stage output, active AI execution or a decision-ready handoff. Waiting times remain explicitly unavailable until a real handoff contract is implemented. Unsupported capability, initial loading, errors and retained background snapshots follow the existing task controller; this view performs no task mutation or scheduling and adds no storage.

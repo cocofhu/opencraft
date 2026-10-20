@@ -1695,3 +1695,8 @@ missing context or a pending human decision. Assessment changes never create a
 conversation, claim a research result or start decision-wait timing. Capability
 absence hides unsupported controls; saved rationale and disposition survive
 legacy edits and view changes. See docs/tasks-model.md.
+
+
+## Tasks morning overview
+
+Morning overview is a read-only projection of the task controller snapshot, with explicit metric and waiting-time placeholders. Browse filters cannot silently narrow its whole-board triage counts. Terminal tasks are excluded from current attention groups; eligibility, workflow state and idle conversations cannot substitute for completed work or a decision-ready handoff. The entry/back controls preserve mounted browse state, scroll, editor drafts and focus. Existing detail/refresh commands retain their owners; no additional task store, mutation or scheduling is introduced.
