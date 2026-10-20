@@ -26,8 +26,8 @@ function narrowUnit(value: number, unit: string, locale: string): string {
     : formatter.format(value);
 }
 
-/** r3562 format-duration-pzs-606to: one formatter for tools and work dividers. */
-export function formatCodexDuration(
+/** Shared duration formatting for tools and work dividers. */
+export function formatDuration(
   durationMs: number,
   {
     locale = "en",

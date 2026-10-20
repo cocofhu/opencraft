@@ -292,20 +292,8 @@ A 不修改正文回执格式、不开放本机 update、不实现 OAuth，也�
 | 实际 DSH `dsh-tool-skill` | 原生 pre-step 比较目录摘要并发布替代目录；工具调用按 scope/cwd 读取正文 | 名称/描述不变的正文更新通知、完整 Artifact 固定版本 |
 | OpenCraft Local DSH | 阶段 A 的同层 Provider、直接 invalidate、步骤对账与通知已经隔离 DSH 验证，见 7.2 | 所有自定义 preset、未接桥的外部 DSH、正文热更新、本机 update 和已安装桌面包同步生效 |
 
-可定位的参考入口（以下路径相对下游仓库根，未提交参考文件不影响本文的目标契约）：
+实际运行时与实现入口：
 
-- `ref/codex/shared/use-skills-07500.ts`
-- `ref/codex/shared/refresh-host-skills-07524.ts`
-- `ref/codex/lazy/app-initial/module-qk.js`：`skillsChangedHandler`
-- `ref/codex/service/register-mcp-reauthentication-handlers-04831.ts`
-- `ref/codex/shared/use-plugin-toggle-07526.ts`
-- `ref/codex/features/service/fetch-thread-tool-inventory.ts`
-- `ref/codex/composer/get-mcp-tools-by-prompt-apps-04202.ts`
-- `ref/wb/packages/workbuddy-app/src/adapter/desktop-connector-manager.ts`
-- `ref/wb/packages/workbuddy-app/src/adapter/workbuddy-agent-adapter-next.ts`：`getSkillListCached`、`ensureSessionLaunchConfigBeforePrompt`
-- `ref/wb/packages/agent-provider/src/common/providers/local-agent-provider/local-provider.ts`
-- `ref/wb/packages/workbuddy-server/src/project/local-task-resource-service.ts`
-- `ref/wb/packages/agent-ui/src/modules/skills/hooks/use-skills-update-badge.ts`
 - `opencraft/runtime/dsh/node_modules/@deepseek-ai/dsh-tool-skill/lib/index.js`：`agent/pre-step`、`digestCatalogEntries`
 - `opencraft/runtime/dsh/node_modules/@deepseek-ai/dsh-skill/lib/index.js`：`collect`、`invalidateCache`
 
