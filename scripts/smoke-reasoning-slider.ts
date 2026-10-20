@@ -10,7 +10,7 @@ import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
 import * as themes from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
-const params=new URLSearchParams(location.search),mode=params.get('mode')||'light',palette=themes[(params.get('palette')||'codex')+'ThemePalette'];
+const params=new URLSearchParams(location.search),mode=params.get('mode')||'light',palette=themes[(params.get('palette')||'opencraftNeutral')+'ThemePalette'];
 document.documentElement.dataset.theme=mode;document.documentElement.dataset.uiDensity=params.has('touch')?'touch':'compact';
 for(const [k,v] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode,palette[mode])))document.documentElement.style.setProperty(k,v);
 bindTouchInteractionMode(document);
@@ -24,7 +24,7 @@ const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'err
 await mkdir('.local/reasoning-slider',{recursive:true});await vite.listen();
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const results=[];
 try {
- for(const palette of ['codex','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
+ for(const palette of ['opencraftNeutral','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
   const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"reduce"});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript('window.__name=v=>v');
