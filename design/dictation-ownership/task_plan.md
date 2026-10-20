@@ -8,7 +8,7 @@
 3. 真实组件：非文末选区不会被听写替换，原内容替换/编辑器状态重建无旧结果复活 — 完成。
 4. 类型/测试/gate、独立签名客户端和新预览 — 完成；实际语音未录音。
 
-验收：36聚焦、完整npm gate、真实Core/CodexComposer/Voice组件（ASR边界替身）与独立签名桌面正常链路通过。新产物release/dictation-owner-20260915；旧预览保持，不复制认证，不提交推送。
+验收：36聚焦、完整npm gate、真实Core/OpenCraftComposer/Voice组件（ASR边界替身）与独立签名桌面正常链路通过。新产物release/dictation-owner-20260915；旧预览保持，不复制认证，不提交推送。
 边界：复刻controller绑定/同步写后读/追加文末；boolean ack与Draft/View/contentEpoch是本产品分离架构的显式适配，不称为Codex原类体或原bool接口。
 
 无路由匹配，有界源码精确检索。缺失查询composer-action-renderers.test.tsx停止，使用既有core与签名桌面脚本。

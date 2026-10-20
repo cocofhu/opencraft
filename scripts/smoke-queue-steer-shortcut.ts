@@ -9,7 +9,7 @@ import React, {useState} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {createConversationKey} from '@opencraft/chat-core';
 import {createComposerController, composerDocumentToPlainText} from '@opencraft/composer-core';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import '/apps/workbench-web/src/styles/app.scss';
 const documentFor = text => ({version:1, blocks:[{type:'paragraph', children:text ? [{type:'text',text}] : []}]});
 const makeController = id => createComposerController({type:'existing-thread',key:createConversationKey('probe',id)}, {now:Date.now,createId:()=>crypto.randomUUID()});
@@ -26,7 +26,7 @@ function App() {
     switchThread:()=>{setController(makeController('two'));setRows([item('new-top','New thread queue')])},
     attachment:lifecycle=>controller.dispatch({type:'add-attachment',attachment:{id:'file',name:'notes.txt',mimeType:'text/plain',size:3,uri:lifecycle==='ready'?'data:text/plain,abc':null,lifecycle,error:null}}),
   };
-  return <main style={{maxWidth:900,margin:'32px auto',padding:12}}><CodexComposer
+  return <main style={{maxWidth:900,margin:'32px auto',padding:12}}><OpenCraftComposer
     controller={controller} placeholder='Write a message' isStreaming={config.streaming}
     defaultFollowUpAction={config.mode} supportsQueuedSteer={config.supported}
     disabled={config.disabled} submissionDisabled={config.submissionDisabled}
@@ -81,7 +81,7 @@ try {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     const shortcut = mac ? "Meta+Enter" : "Control+Enter";
     const reset = async () => {
       await page.goto(origin);
@@ -101,7 +101,7 @@ try {
     assert.equal(await editor.textContent(), "");
     await press();
     assert.deepEqual((await actions(page))[1], { type: "queue-steer", id: "top" });
-    assert.equal(await page.locator(".codex-composer-queue-item").count(), 2);
+    assert.equal(await page.locator(".opencraft-composer-queue-item").count(), 2);
     assert.equal(await editor.textContent(), "");
 
     // Existing text and attachment-only drafts always win over the queue.
@@ -109,7 +109,7 @@ try {
     await page.keyboard.insertText("Steer this draft");
     await press();
     assert.deepEqual(await actions(page), [{ type: "submit", action: "steer", text: "Steer this draft", attachments: 0 }]);
-    assert.equal(await page.locator(".codex-composer-queue-item").count(), 2);
+    assert.equal(await page.locator(".opencraft-composer-queue-item").count(), 2);
     await reset();
     await page.evaluate(() => (window as any).fixture.attachment("ready"));
     await press();
@@ -122,7 +122,7 @@ try {
 
     // Mode changes use the live policy without rebuilding the physical editor.
     await reset();
-    await page.evaluate(() => (window as any).originalEditor = document.querySelector(".codex-composer-editor"));
+    await page.evaluate(() => (window as any).originalEditor = document.querySelector(".opencraft-composer-editor"));
     await configure(page, { mode: "steer" });
     await press();
     assert.deepEqual(await actions(page), []);
@@ -134,7 +134,7 @@ try {
     await page.waitForTimeout(30);
     await press();
     assert.deepEqual((await actions(page))[1], { type: "queue-steer", id: "next" });
-    assert.equal(await page.evaluate(() => (window as any).originalEditor === document.querySelector(".codex-composer-editor")), true);
+    assert.equal(await page.evaluate(() => (window as any).originalEditor === document.querySelector(".opencraft-composer-editor")), true);
 
     // A blocked head is never skipped, even when a later row is actionable.
     for (const patch of [{ actionable: false }, { operation: "starting" }, { pausedReason: "restored-after-host-restart" }]) {
@@ -157,13 +157,13 @@ try {
     }
     await reset();
     await page.evaluate(() => (window as any).fixture.replaceRows([]));
-    await page.waitForFunction(() => !document.querySelector(".codex-composer-queue-item"));
+    await page.waitForFunction(() => !document.querySelector(".opencraft-composer-queue-item"));
     await press();
     assert.deepEqual(await actions(page), []);
 
     // An empty queue edit is not an empty ordinary draft; preserve edit mode.
     await reset();
-    await page.locator(".codex-composer-queue-item").first().getByRole("button", { name: "Edit queued message", exact: true }).click();
+    await page.locator(".opencraft-composer-queue-item").first().getByRole("button", { name: "Edit queued message", exact: true }).click();
     await page.getByRole("button", { name: "Cancel editing queued message", exact: true }).waitFor();
     await editor.fill("");
     await press();
@@ -193,7 +193,7 @@ try {
     await editor.dispatchEvent("keydown", { key: "Enter", code: "Enter", isComposing: true, metaKey: mac, ctrlKey: !mac });
     assert.deepEqual(await actions(page), []);
     await editor.dispatchEvent("compositionend");
-    await page.locator(".codex-composer-queue-item__drag").first().focus();
+    await page.locator(".opencraft-composer-queue-item__drag").first().focus();
     await page.keyboard.press(shortcut);
     assert.deepEqual(await actions(page), []);
 
@@ -211,7 +211,7 @@ try {
     await page.evaluate(() => (window as any).fixture.release());
     await page.waitForTimeout(40);
     assert.equal(await editor.textContent(), "New conversation draft");
-    assert.equal(await page.locator(".codex-composer-queue-item__preview").first().textContent(), "New thread queue");
+    assert.equal(await page.locator(".opencraft-composer-queue-item__preview").first().textContent(), "New thread queue");
     assert.deepEqual(errors, []);
     await context.close();
   }

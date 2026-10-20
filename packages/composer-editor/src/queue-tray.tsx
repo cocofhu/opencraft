@@ -94,7 +94,7 @@ function QueueTooltip({ children, label, portalContainer, disabled = false }: {
       <Tooltip.Trigger asChild>
         {disabled ? (
           <span
-            className="codex-composer-queue-action-trigger"
+            className="opencraft-composer-queue-action-trigger"
             tabIndex={0}
             role="group"
             aria-disabled="true"
@@ -103,9 +103,9 @@ function QueueTooltip({ children, label, portalContainer, disabled = false }: {
         ) : children}
       </Tooltip.Trigger>
       <Tooltip.Portal container={portalContainer ?? undefined}>
-        <Tooltip.Content className="codex-composer-queue-action-tooltip" side="top" sideOffset={8} collisionPadding={8}>
+        <Tooltip.Content className="opencraft-composer-queue-action-tooltip" side="top" sideOffset={8} collisionPadding={8}>
           {label}
-          <Tooltip.Arrow className="codex-composer-queue-action-tooltip__arrow" width={10} height={6} />
+          <Tooltip.Arrow className="opencraft-composer-queue-action-tooltip__arrow" width={10} height={6} />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
@@ -162,7 +162,7 @@ function SortableQueueItem({
   return (
     <div
       ref={sortable.setNodeRef}
-      className="codex-composer-queue-item"
+      className="opencraft-composer-queue-item"
       data-state={item.state}
       data-operation={item.operation}
       data-editing={item.editing ? "true" : undefined}
@@ -176,28 +176,28 @@ function SortableQueueItem({
       <QueueTooltip label={item.sender ? `${item.sender.name} · ${dragTooltip}` : dragTooltip} portalContainer={portalContainer} disabled={dragDisabled}>
         <button
           ref={sortable.setActivatorNodeRef}
-          className="codex-composer-queue-item__drag"
+          className="opencraft-composer-queue-item__drag"
           type="button"
           aria-label={item.reorderable === false ? "Queued message" : reorderLabel}
           disabled={dragDisabled}
           {...sortable.attributes}
           {...sortable.listeners}
         >
-          <span className="codex-composer-queue-item__avatar" role={item.sender ? "img" : undefined} aria-label={item.sender?.name} aria-hidden={item.sender ? undefined : true}>
+          <span className="opencraft-composer-queue-item__avatar" role={item.sender ? "img" : undefined} aria-label={item.sender?.name} aria-hidden={item.sender ? undefined : true}>
             <AvatarImage src={item.sender?.avatarUrl ?? null} fallback={<User size={13} aria-hidden="true" />} />
           </span>
-          {item.reorderable === false ? null : <GripVertical className="codex-composer-queue-item__grip" size={12} aria-hidden="true" />}
+          {item.reorderable === false ? null : <GripVertical className="opencraft-composer-queue-item__grip" size={12} aria-hidden="true" />}
           {item.state === "failed" || item.state === "unknown" || item.pausedReason ? (
-            <CircleAlert className="codex-composer-queue-item__status" size={11} aria-hidden="true" />
+            <CircleAlert className="opencraft-composer-queue-item__status" size={11} aria-hidden="true" />
           ) : null}
         </button>
       </QueueTooltip>
 
       <QueueTooltip label={item.error ?? item.pausedReason ?? item.preview} portalContainer={portalContainer}>
-        <span className="codex-composer-queue-item__preview" tabIndex={0}>{item.preview}</span>
+        <span className="opencraft-composer-queue-item__preview" tabIndex={0}>{item.preview}</span>
       </QueueTooltip>
 
-      <div className="codex-composer-queue-item__actions">
+      <div className="opencraft-composer-queue-item__actions">
         {item.unconfirmedTargetTurnId ? (
           <QueueTooltip label="Review & discard" portalContainer={portalContainer}>
             <button type="button" className="is-labelled" onClick={() => ignoreRejected(onDiscardUnconfirmed?.(item.id, item.unconfirmedTargetTurnId!))}>
@@ -282,17 +282,17 @@ export function ComposerQueueTray({
     <>
     <Tooltip.Provider delayDuration={300} skipDelayDuration={100}>
     <div
-      className="codex-composer-queue-tray"
+      className="opencraft-composer-queue-tray"
       data-queue-size={items.length}
       aria-label="Queued follow-ups"
     >
       {pausedReason !== null ? (
-        <div className="codex-composer-queue-tray__heading">
+        <div className="opencraft-composer-queue-tray__heading">
           <CircleAlert size={13} aria-hidden="true" />
           <span>{pausedReason}</span>
           {hasUnconfirmedDelivery || !items.some(item => item.actionable && item.pausedReason) ? null : (
             <button
-              className="codex-composer-queue-tray__resume"
+              className="opencraft-composer-queue-tray__resume"
               type="button"
               onClick={() => ignoreRejected(onResume?.())}
             >
@@ -307,7 +307,7 @@ export function ComposerQueueTray({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          <div className="codex-composer-queue-tray__items">
+          <div className="opencraft-composer-queue-tray__items">
             {items.map((item) => (
           <SortableQueueItem
                 key={item.id}
@@ -335,8 +335,8 @@ export function ComposerQueueTray({
     <AlertDialog.Root open={discardCandidate !== null} onOpenChange={(open) => { if (!open && !discardBusy) { setDiscardCandidate(null); setDiscardError(null); } }}>
       <AlertDialog.Portal container={portalContainer ?? undefined}>
         <AlertDialog.Overlay className="modal-surface__scrim" data-layer="confirmation" data-appearance="utility" />
-        <AlertDialog.Content className="modal-surface modal-confirmation codex-composer-steer-discard-dialog" data-size="compact" data-layer="confirmation" data-appearance="utility">
-          <div className="codex-composer-steer-discard-dialog__body">
+        <AlertDialog.Content className="modal-surface modal-confirmation opencraft-composer-steer-discard-dialog" data-size="compact" data-layer="confirmation" data-appearance="utility">
+          <div className="opencraft-composer-steer-discard-dialog__body">
             <AlertDialog.Title>Discard message with unconfirmed delivery?</AlertDialog.Title>
             <AlertDialog.Description>Delivery may already have happened. Review the conversation before discarding. This only removes the unresolved claim; it will not resend the message.</AlertDialog.Description>
             {discardError ? <p role="alert">{discardError}</p> : null}

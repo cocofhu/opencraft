@@ -13,7 +13,7 @@ import { createRoot } from "react-dom/client";
 import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
 import { createComposerController } from "@opencraft/composer-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { buildCodexThemeCssProperties, codexThemePalette } from "./packages/design-system/src/theme-engine";
 window.__setTheme = (mode) => { document.documentElement.dataset.theme = mode; for (const [key, value] of Object.entries(buildCodexThemeCssProperties(mode, codexThemePalette[mode]))) document.documentElement.style.setProperty(key, value); };
 import { embeddedLocaleCatalogs } from "./apps/workbench-web/src/i18n/catalogs";
@@ -36,7 +36,7 @@ function Fixture() {
   ] });
   window.__setCatalog = setCatalog;
   return <IntlRuntimeProvider runtime={locale}>
-    <CodexComposer controller={controller} modelSelectionPolicy="session" selectionCatalog={catalog}
+    <OpenCraftComposer controller={controller} modelSelectionPolicy="session" selectionCatalog={catalog}
       onSubmit={(intent) => {
         window.__sent.push({ selected: Object.hasOwn(intent.selections, "model"), model: intent.selections.model });
         return false;
@@ -63,7 +63,7 @@ const css = compile(resolve(root, "apps/workbench-web/src/styles/app.scss"), {
     return null;
   } }],
 }).css;
-assert.ok(css.includes(".codex-composer-mode"), "Composer stylesheet is required for the browser smoke");
+assert.ok(css.includes(".opencraft-composer-mode"), "Composer stylesheet is required for the browser smoke");
 const server = createServer((request, response) => {
   if (request.url === "/fixture.js") {
     response.setHeader("content-type", "text/javascript");
@@ -95,18 +95,18 @@ try {
   await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}`);
   await page.evaluate(theme => (window as unknown as { __setTheme: (theme: string) => void }).__setTheme(theme), theme);
   const editor = page.locator(".ProseMirror");
-  const send = () => page.locator(".codex-composer-submit").click();
+  const send = () => page.locator(".opencraft-composer-submit").click();
   await editor.fill("Use the default");
   await send();
   await page.waitForFunction(() => (window as unknown as { __sent: unknown[] }).__sent.length === 1);
-  const picker = page.locator(".codex-composer-mode--intelligence");
+  const picker = page.locator(".opencraft-composer-mode--intelligence");
   await picker.click();
-  assert.equal(await page.locator('.codex-composer-model-role[data-role="primary"]').count(), 0);
-  assert.equal(await page.locator('.codex-composer-model-role[data-role="fallback"]').innerText(), "Backup");
-  assert.equal(await page.locator('.codex-composer-model-current').count(), 0);
-  assert.equal(await page.getByRole("menuitem", { name: "Idle model" }).locator(".codex-composer-model-role").count(), 0);
+  assert.equal(await page.locator('.opencraft-composer-model-role[data-role="primary"]').count(), 0);
+  assert.equal(await page.locator('.opencraft-composer-model-role[data-role="fallback"]').innerText(), "Backup");
+  assert.equal(await page.locator('.opencraft-composer-model-current').count(), 0);
+  assert.equal(await page.getByRole("menuitem", { name: "Idle model" }).locator(".opencraft-composer-model-role").count(), 0);
   await page.evaluate('window.__setLocale("zh-CN")');
-  assert.equal(await page.locator('.codex-composer-model-role[data-role="fallback"]').innerText(), "备用");
+  assert.equal(await page.locator('.opencraft-composer-model-role[data-role="fallback"]').innerText(), "备用");
   if (process.env.OPENCRAFT_MODEL_SELECTOR_SCREENSHOT) {
     await page.screenshot({ path: process.env.OPENCRAFT_MODEL_SELECTOR_SCREENSHOT });
   }
@@ -114,9 +114,9 @@ try {
   await page.getByRole("menuitem", { name: /Custom model/u }).waitFor({ state: "hidden" });
   await picker.click();
   await page.getByRole("menuitem", { name: /Custom model/u }).waitFor();
-  assert.equal(await page.getByRole("menuitem", { name: /Custom model/u }).locator('.codex-composer-model-role[data-role="fallback"]').count(), 1);
+  assert.equal(await page.getByRole("menuitem", { name: /Custom model/u }).locator('.opencraft-composer-model-role[data-role="fallback"]').count(), 1);
   assert.equal(await page.getByRole("menuitem", { name: /Custom model/u }).getAttribute("data-selected"), "true");
-  assert.equal(await page.getByRole("menuitem", { name: /Default model/u }).locator('.codex-composer-model-role').count(), 0);
+  assert.equal(await page.getByRole("menuitem", { name: /Default model/u }).locator('.opencraft-composer-model-role').count(), 0);
   await picker.click();
   await editor.fill("Use the custom model");
   await send();
@@ -143,7 +143,7 @@ try {
   assert.deepEqual((await page.evaluate(() => (window as unknown as { __sent: unknown[] }).__sent))[2],
     { selected: false, model: undefined });
   await page.keyboard.press("Escape");
-  await page.locator(".codex-composer-selection-menu").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-selection-menu").waitFor({ state: "hidden" });
   await page.evaluate('window.__setLocale("en-US")');
   const longName = "A configured model with a very long display name for truncation";
   await page.evaluate(label => (window as unknown as { __setCatalog: (catalog: unknown) => void }).__setCatalog({
@@ -155,13 +155,13 @@ try {
   await picker.click();
   await page.getByText("Configured models", { exact: true }).waitFor();
   await page.getByRole("menuitem", { name: new RegExp(longName) }).click();
-  await page.locator(".codex-composer-selection-menu").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-selection-menu").waitFor({ state: "hidden" });
   assert.equal(await picker.innerText(), longName);
   await picker.click();
   await page.getByRole("menuitem", { name: "Add more models" }).waitFor();
-  const geometry = await page.locator(".codex-composer-selection-menu").boundingBox();
+  const geometry = await page.locator(".opencraft-composer-selection-menu").boundingBox();
   assert.ok(geometry && geometry.x >= 0 && geometry.x + geometry.width <= (touch ? 390 : 1280), "menu stays in viewport");
-  const labelStyle = await page.locator(".codex-composer-model-group__label").evaluate(element => getComputedStyle(element).fontWeight);
+  const labelStyle = await page.locator(".opencraft-composer-model-group__label").evaluate(element => getComputedStyle(element).fontWeight);
   assert.equal(labelStyle, "500", "group heading uses the section role");
   await page.screenshot({ path: resolve(root, `.local/session-model-selector/${touch ? "mobile" : "desktop"}-${theme}.png`) });
   await page.getByRole("menuitem", { name: "Add more models" }).click();

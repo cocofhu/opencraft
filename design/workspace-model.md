@@ -36,7 +36,7 @@ Web/Electron 不把云端 Bot 创建作为工作区前置条件。账号状态�
 
 浮动输入的显隐意图由 Shell 生命周期内的路由注册表保存，每个标签单独保存手动/自动收起原因；聚焦展开不等于最近回复展开。Browser ready/loading/unavailable 参与呈现派生，不能把不可用网页当成关闭会话。输入与唤回是两个独立锚定宿主；收起把手不进入正常布局流。普通输入和浮动输入将同一个 portal destination 在 inline slot/overlay slot 间移动，编辑器 DOM 及 ComposerController 均保持身份。原生底边追踪通过已登记 guest 的 before-mouse-event 接入，不给网页 Node 或主应用 preload 权限。
 
-完整聊天、浮动输入和 Side Chat 复用现有 Conversation/Turn/CodexComposer 控件与主题。最近回复是 Timeline 的投影，不进入另一份历史存储。
+完整聊天、浮动输入和 Side Chat 复用现有 Conversation/Turn/OpenCraftComposer 控件与主题。最近回复是 Timeline 的投影，不进入另一份历史存储。
 
 ## 标签操作
 

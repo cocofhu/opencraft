@@ -1,6 +1,6 @@
 import React, { useState, useSyncExternalStore } from "react";
 import { createComposerController } from "@opencraft/composer-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { createWorkbenchPanelReactRuntime } from "@opencraft/workbench-panels-react";
@@ -43,7 +43,7 @@ function App() {
     rightPanel={<RightPanel state={state} presentationId="test" renderers={runtime.renderers.getSnapshot()} toolbarActions={[]} toolbarActionContext={{ownerId:"keyboard",resourceOwnerId:"keyboard",hostId:"test",cwd:null}} onAction={action => runtime.panels.dispatch("keyboard",action)} onCloseTab={tab => runtime.panels.close("keyboard",tab.region,tab.id)} />}>
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}><p style={{flex: 1}}>Parent conversation</p>
     {<ThreadComposerPresentation scopeId="keyboard" controller={controller} activeTabId={`terminal:${resource}`} enabled={overlayEnabled} timeline={{key: {hostId: "test",threadId:"one"}, revision:1,phase:"live",authoritative:true,anchorFrameIds:new Map(),frames:[{id:"answer-frame",type:"assistant",turnId:"turn",status:"complete",durationMs:1000,hookStats:null,anchors:[],blocks:[{id:"answer",type:"text",text:"Latest answer\n\n" + "A bounded response paragraph.\n\n".repeat(40),sourceItemIds:["answer"],streaming:false,completed:true,phase:"final_answer"}]}]}} documentContext={{conversationId:"one",hostId:"test",cwd:null,theme:"light"}}>
-      <div className="thread-composer-region"><CodexComposer controller={controller} placeholder="Write a message" onSubmit={() => false} onCancel={() => {}} /></div>
+      <div className="thread-composer-region"><OpenCraftComposer controller={controller} placeholder="Write a message" onSubmit={() => false} onCancel={() => {}} /></div>
     </ThreadComposerPresentation>}</div>
   </AppShell>;
 }

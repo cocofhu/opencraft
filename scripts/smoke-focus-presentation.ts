@@ -6,7 +6,7 @@ const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "pl
 const source = `
 import React from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {createComposerController} from '@opencraft/composer-core';
 import {createConversationKey} from '@opencraft/chat-core';
 import {Button} from '/apps/workbench-web/src/components/ui/button.tsx';
@@ -25,7 +25,7 @@ window.focusFixture={theme:(mode,family)=>{
 const controller=createComposerController({type:'existing-thread',key:createConversationKey('fixture','focus')},{now:Date.now,createId:()=>crypto.randomUUID()});
 createIntlTestRoot(document.getElementById('root')).render(<main style={{padding:32,background:'var(--color-background-surface)',color:'var(--color-text)'}}>
  <button id="before">Before editor</button>
- <CodexComposer controller={controller} onSubmit={()=>false} selectionCatalog={{models:[],permissionProfiles:[]}}/>
+ <OpenCraftComposer controller={controller} onSubmit={()=>false} selectionCatalog={{models:[],permissionProfiles:[]}}/>
  <Button id="owned">Owned button</Button><button id="fallback">Unstyled button</button>
  <Menu.Root><Menu.Trigger asChild><SettingsButton id="menu-trigger">More</SettingsButton></Menu.Trigger>
  <Menu.Portal><Menu.Content><Menu.Item id="menu-one">One</Menu.Item><Menu.Item id="menu-two">Two</Menu.Item></Menu.Content></Menu.Portal></Menu.Root>
@@ -62,7 +62,7 @@ try {
   page.on("pageerror", (error: Error) => errors.push(error.message));
   await page.addInitScript("window.__name=value=>value");
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
-  const editor = page.locator(".codex-composer-editor");
+  const editor = page.locator(".opencraft-composer-editor");
   await editor.waitFor();
   const appearance = (selector: string) => page.locator(selector).evaluate((el: HTMLElement) => {
     const css = getComputedStyle(el);
@@ -72,12 +72,12 @@ try {
   for (const family of ["codex", "custom"]) for (const mode of ["light", "dark"]) {
     await page.evaluate(({ mode, family }: any) => (window as any).focusFixture.theme(mode, family), { mode, family });
     await editor.click();
-    assert.equal((await appearance(".codex-composer-editor")).outline, "none", "mouse-clicked Composer must own no outline");
+    assert.equal((await appearance(".opencraft-composer-editor")).outline, "none", "mouse-clicked Composer must own no outline");
     await page.keyboard.insertText("input");
     assert.ok((await editor.textContent())?.includes("input"), "outline policy cannot break editing");
     await page.locator("#before").focus();
     await page.keyboard.press("Tab");
-    const keyboard = await appearance(".codex-composer-editor");
+    const keyboard = await appearance(".opencraft-composer-editor");
     assert.equal(keyboard.focused, true);
     assert.equal(keyboard.outline, "none", "zero-specificity fallback cannot override Composer on Tab either");
     for (const selector of ["#owned", "#fallback"]) {
@@ -89,7 +89,7 @@ try {
       assert.equal(rgb[1], rgb[2]);
     }
     await editor.tap();
-    assert.equal((await appearance(".codex-composer-editor")).outline, "none");
+    assert.equal((await appearance(".opencraft-composer-editor")).outline, "none");
     await page.locator("#fallback").tap();
     assert.equal((await appearance("#fallback")).outline, "none", "touch gate remains authoritative");
     await page.locator("#before").focus();

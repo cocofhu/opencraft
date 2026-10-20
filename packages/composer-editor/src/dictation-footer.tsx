@@ -67,7 +67,7 @@ function AudioSignal({ levels }: { levels: ComposerAudioLevels }) {
     };
   }, [levels]);
 
-  return <canvas ref={canvasRef} className="codex-composer-voice-waveform" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="opencraft-composer-voice-waveform" aria-hidden="true" />;
 }
 
 function elapsedSeconds(startedAt: number | null): number {
@@ -103,29 +103,29 @@ export function DictationFooter({ interaction, canSend, onSend, onCancel }: {
   }[phase];
 
   const finishControl = phase === "failed"
-    ? <button type="button" className="codex-composer-icon-button" aria-label="重试语音识别"
+    ? <button type="button" className="opencraft-composer-icon-button" aria-label="重试语音识别"
         title={interaction.message} onClick={() => interaction.retry()}>
         <RotateCcw size={14} aria-hidden="true" />
       </button>
-    : <button type="button" className="codex-composer-icon-button" aria-label="停止并写入文字"
+    : <button type="button" className="opencraft-composer-icon-button" aria-label="停止并写入文字"
         title="停止并写入文字" disabled={phase !== "listening"} onClick={() => { void interaction.finish(); }}>
         <Square size={14} fill="currentColor" aria-hidden="true" />
       </button>;
 
-  return <div className="codex-composer-voice-footer" data-voice-phase={phase} aria-label="语音输入控制">
-    <button type="button" className="codex-composer-icon-button" aria-label="取消语音输入"
+  return <div className="opencraft-composer-voice-footer" data-voice-phase={phase} aria-label="语音输入控制">
+    <button type="button" className="opencraft-composer-icon-button" aria-label="取消语音输入"
       title="取消语音输入 · Esc" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
-    <div className="codex-composer-voice-footer__signal">
+    <div className="opencraft-composer-voice-footer__signal">
       {phase === "listening" ? <AudioSignal levels={interaction.audioLevels} />
-        : <span className="codex-composer-voice-footer__status" title={phase === "failed" ? interaction.message : undefined}>
+        : <span className="opencraft-composer-voice-footer__status" title={phase === "failed" ? interaction.message : undefined}>
           {phase === "starting" ? <ProgressIndicator /> : phase === "transcribing" ? <LoaderCircle size={14} aria-hidden="true" /> : null}
-          {phase !== "starting" && <span className="codex-composer-voice-footer__status-label" aria-hidden="true">{status}</span>}
+          {phase !== "starting" && <span className="opencraft-composer-voice-footer__status-label" aria-hidden="true">{status}</span>}
         </span>}
       <span className="sr-only" role="status">{status}</span>
     </div>
-    <span className="codex-composer-voice-footer__duration" aria-label="录音时长">{duration.minutes}:{duration.seconds}</span>
+    <span className="opencraft-composer-voice-footer__duration" aria-label="录音时长">{duration.minutes}:{duration.seconds}</span>
     {finishControl}
-    <button type="button" className="codex-composer-submit" aria-label="识别完成后发送"
+    <button type="button" className="opencraft-composer-submit" aria-label="识别完成后发送"
       title="识别完成后发送" disabled={!canSend || phase !== "listening"} onClick={onSend}>
       <ArrowUp size={17} aria-hidden="true" />
     </button>
