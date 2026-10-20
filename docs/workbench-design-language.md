@@ -444,3 +444,14 @@ remain separate from material. A material update does not implement a usage
 backend, historical trace or session dashboard.
 
 Release material checks must exercise the minified CSS through the same real consumers. Keep prefixed backdrop-filter before the standard declaration so CSS optimization preserves both browser contracts.
+
+
+## Utility panel style lifetime
+
+Shared `SettingsPanel` geometry loads with the common Modal stylesheet, before
+any account or other contributed utility window can open. The lazy Settings
+route must not be the only importer: a fresh Workbench document can open these
+windows directly. The panel retains its header spacing, content insets and
+container-driven row layout without requiring a previous Settings visit.
+Feature-specific Settings styles remain lazy; account providers supply content
+and actions while Modal/Radix retains window, dismissal and focus ownership.
