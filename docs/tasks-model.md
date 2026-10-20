@@ -405,3 +405,37 @@ returns the rationale and properties updates the assessment.
 The board heading includes a Morning overview action. It opens a read-only, whole-board projection of the current task authority, independent of browse filters; Back restores the prior browse view, filters, scroll, editor drafts and entry focus. The mounted browse view retains its owner. The four product metric cards (users, active users, instance inventory and submission level) are explicitly awaiting data. No synthetic zeroes, trends, quota or health claims are shown.
 
 Among non-terminal tasks, existing research assessments populate needs-decision and needs-context groups with recorded rationales and a direct task-detail action; ready-for-research and unassessed items remain in a collapsed pool. A research assessment never implies a stage output, active AI execution or a decision-ready handoff. Waiting times remain explicitly unavailable until a real handoff contract is implemented. Unsupported capability, initial loading, errors and retained background snapshots follow the existing task controller; this view performs no task mutation or scheduling and adds no storage.
+
+### Morning research queue and explicit handoffs
+
+The read-only morning overview excludes context requests and unassessed tasks.
+`proactive` backlog/todo items form the research queue; in-progress items form the
+active research group. Review items with an explicit AI research handoff also
+remain visible after triage changes to `needs_decision`. A triage-only decision is
+not evidence of completed AI research.
+
+To hand over actual research, append a progress report with a stable event ID,
+then move the task to `in_review` using the current revision. The existing progress
+text contract carries this versioned envelope (entire text, no surrounding prose):
+
+```text
+AI_RESEARCH_HANDOFF_V1
+{"output":"Completed output and accessible evidence location","decision":"Specific question/options and recommendation","nextStep":"Next action after the decision"}
+```
+
+All three nonempty fields are required and the whole report must fit the existing
+4096-character progress limit. Only publish after the referenced material is
+ready and accessible to the reviewer. Ordinary progress text remains unchanged.
+The morning view renders these fields as readable output, decision and next step;
+opening a card retains its original activity and conversation links. No separate
+storage, schema migration, schedule or write from the morning view is introduced.
+
+Waiting starts at the later server timestamp of the first valid report in the
+current round and entry into review. Ordinary updates and repeated handoffs never
+reset it. Leaving review closes the round; returning requires a fresh handoff.
+Delete/restore also closes the round. Only a wait strictly greater than 72 hours
+is highlighted, longest first; queued/running time never contributes. The open
+view reevaluates elapsed time every minute. An old review card without a valid
+report has no clock. History failures or incomplete bounded pagination are shown
+as unknown, with retry; they are never converted into inferred timestamps or
+complete zero totals. Historical timestamps are not backfilled from task age.

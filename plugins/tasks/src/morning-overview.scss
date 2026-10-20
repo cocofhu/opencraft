@@ -42,3 +42,9 @@
   .tasks-morning__metric { padding: 12px; }
   .tasks-morning__item-heading { flex-direction: column; gap: 6px; }
 }
+
+.tasks-morning__item--overdue { border-inline-start: calc(var(--spacing) * 1) solid var(--color-text-warning); }
+.tasks-morning__item--overdue .tasks-morning__item-footer { color: var(--color-text-warning); }
+.tasks-morning__handoff { margin-block: calc(var(--spacing) * 3); }
+.tasks-morning__handoff dt { @include type.role(metadata); color: var(--color-text-secondary); margin-top: calc(var(--spacing) * 2); }
+.tasks-morning__handoff dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -1700,3 +1700,9 @@ legacy edits and view changes. See docs/tasks-model.md.
 ## Tasks morning overview
 
 Morning overview is a read-only projection of the task controller snapshot, with explicit metric and waiting-time placeholders. Browse filters cannot silently narrow its whole-board triage counts. Terminal tasks are excluded from current attention groups; eligibility, workflow state and idle conversations cannot substitute for completed work or a decision-ready handoff. The entry/back controls preserve mounted browse state, scroll, editor drafts and focus. Existing detail/refresh commands retain their owners; no additional task store, mutation or scheduling is introduced.
+
+- Morning research overview excludes context requests/unassessed items. Only an
+  explicit decision-ready research report in the current review round starts the
+  human wait clock; strict >72h highlights are ordered longest first. Ordinary
+  progress, triage and task timestamps cannot establish/reset that clock. Leaving
+  review ends the round; unknown history stays unknown. The morning view is read-only.

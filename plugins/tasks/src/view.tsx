@@ -50,6 +50,7 @@ import { TasksController } from "./controller";
 import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
 import { MorningOverview } from "./morning-overview";
+import { parseResearchHandoff } from "./research-handoff";
 const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
   morningOverview: ["晨会总览", "Morning overview"],
@@ -279,7 +280,7 @@ function ActivityPanel({ model, session, canPost, ports }: { model: TaskActivity
     <ol>{state.events.map(event => <li key={event.eventId} data-event-id={event.eventId}>
       <div className="tasks-activity__meta"><span>{event.actor?.label ?? event.actor?.id ?? t(event.channel === "agent" ? "agentEntry" : "unverifiedActor")}</span><time dateTime={new Date(event.createdAt).toISOString()}>{new Date(event.createdAt).toLocaleString(intl.locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></div>
       <p>{t(event.type === "updated" && typeof event.payload.archived === "boolean" ? event.payload.archived ? "event_archived" : "event_unarchived" : `event_${event.type}`)}{event.type === "updated" && typeof event.payload.archived !== "boolean" && Array.isArray(event.payload.fields) ? ` · ${event.payload.fields.map(field => fields[String(field)] ? t(fields[String(field)]!) : String(field)).join("、")}` : ""}{event.type === "status_changed" ? ` · ${TASK_STATUSES.includes(event.payload.from as TaskStatus) ? t(event.payload.from as TaskStatus) : ""} → ${TASK_STATUSES.includes(event.payload.to as TaskStatus) ? t(event.payload.to as TaskStatus) : ""}` : ""}</p>
-      {event.type === "progress" ? <p className="tasks-activity__text">{String(event.payload.text ?? "")}</p> : null}
+      {event.type === "progress" ? <p className="tasks-activity__text">{(() => { const report = parseResearchHandoff(event.payload.text); return report ? intl.locale.startsWith("zh") ? `阶段产出：${report.output}\n\n需要判断：${report.decision}\n\n判断后下一步：${report.nextStep}` : `Output: ${report.output}\n\nDecision: ${report.decision}\n\nNext step: ${report.nextStep}` : String(event.payload.text ?? ""); })()}</p> : null}
     </li>)}</ol>
     {state.nextBeforeSeq !== null ? <SettingsButton type="button" disabled={state.loading} onClick={() => void model.refresh(true)}>{t("moreActivity")}</SettingsButton> : null}
   </section>;
@@ -1201,6 +1202,11 @@ export function createTasksView(
         });
       return controller;
     }, []);
+    const morningPort = useMemo(() => ({ request: <M extends keyof import("@opencraft/appserver-protocol").TasksMethodMap>(method: M, params: import("@opencraft/appserver-protocol").TasksMethodMap[M]["params"]) => {
+      activationSignal.throwIfAborted();
+      if (!authority) throw new Error("Missing task authority");
+      return ports.request(authority, method, params);
+    } }), [authority]);
     const state = useSyncExternalStore(
       model.subscribe,
       model.getSnapshot,
@@ -1617,7 +1623,7 @@ export function createTasksView(
               <SettingsButton disabled={refreshing} onClick={() => void refreshTasks()}>{t("retry")}</SettingsButton>
             </div>
           ) : <>
-          {morningOpen ? <MorningOverview tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} onOpen={task => openEditor(task)} /> : null}
+          {morningOpen ? <MorningOverview tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} activity={state.activity} port={morningPort} onOpen={task => openEditor(task)} /> : null}
           {archiveOpen && state.archive ? <ArchivePanel model={archives} members={state.members} pending={state.pending} reportError={reportError} ports={ports} session={editorSession}
             activityFor={item => { let activity = activities.get(item.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, item.id, () => {}); activities.set(item.id, activity); } return activity; }}
             onRead={id => ports.request(authority!, TASKS.read, { id })} onOpen={open} onRestore={async item => { const saved = await model.mutate(TASKS.unarchive, { id: item.id, expectedRevision: item.revision }); await archives.refresh(); return saved; }} /> : null}
