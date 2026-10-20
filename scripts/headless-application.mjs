@@ -371,7 +371,6 @@ export async function startHeadlessServer(options = {}, composition = {}) {
           coreEndpoint: options.codexCoreEndpoint,
           coreAuthToken: options.codexCoreAuthToken,
           coreHostOverlays: options.codexCoreEndpoint !== undefined,
-          botConversations: options.botConversations === true,
           nativeCodexHomeDirectory: join(dataDirectory, "native-codex"),
           desktop,
         })), mcpApps);
