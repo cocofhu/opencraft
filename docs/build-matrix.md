@@ -645,6 +645,12 @@ This neither deploys the downstream product nor resolves the artwork's distribut
 
 ### Expo product selection
 
+`OPENCRAFT_EXPO_WORKBENCH=web` explicitly selects the experimental packaged full
+Web Workbench container for public Expo commands. The runner builds its local
+document before Metro. This does not change the RN default, select a private
+product or prove native-device parity. See
+[container ownership and acceptance](mobile-workbench-container.md).
+
 Default Expo Web/iOS bundle commands build the public RN Workbench with its
 configured direct Host, not a the downstream product account-gated Router. Downstream the downstream product uses
 `products/<product>/run-expo.cjs`; product-owned APK/IPA and agents-next aliases explicitly delegate

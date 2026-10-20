@@ -1,5 +1,15 @@
 # 工作区不变量
 
+## Experimental mobile Web container
+
+The explicit public Expo Web-container entry packages the same complete Web
+Workbench application/UI graph. Native owns safe area, lifecycle, back and
+external navigation only; it must not duplicate Scope/View, drafts, navigation
+or panel state. Viewport changes retain the mounted document. RN remains the
+default until device/capability acceptance; downstream product assembly is
+independent. Packaging, bridge and acceptance boundaries are owned by
+[Mobile Workbench container](../docs/mobile-workbench-container.md).
+
 ## Floating material ownership
 
 Shared floating surfaces consume design-system `material.web` and theme-owned

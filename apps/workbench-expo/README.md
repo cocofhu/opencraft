@@ -16,6 +16,13 @@ ProseMirror and the Codex SCSS frame are intentionally unavailable here.
 No downstream sign-in or generated private Bot HTML is required for this entry.
 Native math/Mermaid HTML remains packaged by the shared runner.
 
+An explicit experimental `OPENCRAFT_EXPO_WORKBENCH=web` entry packages and runs
+the complete existing Web touch Workbench in Expo. The container owns native
+lifecycle, safe area, back and external navigation; Web retains application,
+UI, state and storage. This does not switch the default or select a downstream
+product. Commands and remaining acceptance are documented in
+[Packaged Web Workbench](../../docs/mobile-workbench-container.md).
+
 The downstream instructions below describe the **explicit downstream product**.
 In a downstream product checkout run `node products/<product>/run-expo.cjs start --go` from the
 downstream root, or `npm run expo:start --prefix products/<product> -- --go`. Its runner

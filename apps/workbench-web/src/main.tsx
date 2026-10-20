@@ -11,6 +11,7 @@ import { LoadingSpinner } from "./components/ui/loading-spinner";
 import { reportRuntimeError } from "./runtime-error-reporting";
 import { clientProductOptions } from "./runtime/client-product-entry";
 import { bindPageLifecycle } from "./runtime/page-lifecycle";
+import { bindMobileContainer, mobileContainer } from "./runtime/mobile-container";
 import { bindInteractionDensity } from "./runtime/interaction-density";
 import { bindTouchInteractionMode } from "./runtime/pointer-modality";
 import {
@@ -95,6 +96,7 @@ function ApplicationBootstrap() {
     let preferences: UiPreferencesRuntime | null = null;
     let disposeDensity: (() => void) | undefined;
     let locale: WorkbenchLocaleController | null = null;
+    let mobileBinding: ReturnType<typeof bindMobileContainer> | null = null;
     // The query gives the bootstrap boundary its own module identity after a
     // dev-server allowlist or dependency-graph restart. Vite strips it into
     // the normal hashed production chunk; TypeScript does not model Vite
@@ -115,6 +117,7 @@ function ApplicationBootstrap() {
         if (disposed) return;
         const created = await module.a({
           ...productOptions,
+          ...(mobileContainer() ? { navigationMode: "memory", hostProfileMode: "configured", isPresentationActive: () => mobileBinding?.active() ?? true } : {}),
           serverExtensions: serverWorkbenchExtensions,
           deferOptionalFeatures: true,
         });
@@ -127,6 +130,7 @@ function ApplicationBootstrap() {
         if (created.supervisor.hostProfileStorageError) {
           reportRuntimeError(created.supervisor.hostProfileStorageError, "host-profile-storage-recovery");
         }
+        mobileBinding = bindMobileContainer(created.supervisor.navigation);
         setState({ phase: "ready", module, application: created, preferences, locale });
       })
       .catch((cause) => {
@@ -140,6 +144,7 @@ function ApplicationBootstrap() {
       });
     return () => {
       disposed = true;
+      mobileBinding?.dispose();
       locale?.dispose();
       disposeDensity?.();
       if (application !== null) void application.dispose().catch(error => reportRuntimeError(error, "application-disposal"));
