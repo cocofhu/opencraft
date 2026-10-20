@@ -240,6 +240,7 @@ export class PiEngine {
       ...(error ? { error: { message: error, codexErrorInfo: null, additionalDetails: null } } : {}) });
     session.active = undefined; session.items = undefined; session.stopped = false; session.pendingRecovery = false; session.updatedAt = seconds();
     this.notify("turn/completed", { threadId: session.id, turn });
+    this.notify("thread/status/changed", { threadId: session.id, status: { type: "idle" } });
     void this.save(session).catch(() => {});
   }
 

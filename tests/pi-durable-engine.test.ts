@@ -203,3 +203,57 @@ test("workspace first submission accepts native full access and retains project 
   await assert.rejects(reopened.request("thread/start", { model: piModel("faux", "faux-1"), developerInstructions: "do not discard" }, noTools), /custom instructions/);
   assert.equal((await reopened.request("thread/read", { threadId: created.thread.id, includeTurns: true }, noTools)).thread.turns.length, 1);
 });
+
+test("first Pi outbox submission drains after baseline without blocking on its own optimistic turn", async t => {
+  const { createAppServerWorkbenchRuntime } = await import("../packages/workbench-runtime/src/appserver-runtime.js");
+  const { WebSocketTransport } = await import("../packages/appserver-transport-websocket/src/index.js");
+  const f = await fixture(t, [fauxAssistantMessage("workspace outbox replied ".repeat(10)), fauxAssistantMessage("queued follow-up replied")], 100);
+  const host = await startEngineHost({ providers: [f.engine], defaultEngine: "pi" }); t.after(() => host.close());
+  let rows: any[] = [];
+  const methods: string[] = [];
+  const runtime = createAppServerWorkbenchRuntime({ hostId: "pi-first-message", hostKind: "durable",
+    dynamicTools: [{ type: "namespace", name: "platform", description: "Platform", tools: [{ type: "function", name: "lookup", description: "Lookup", inputSchema: { type: "object" } }] }],
+    outbox: { read: () => rows, write: (_key, next) => { rows = [...next]; }, subscribe: () => () => {} },
+    createTransport: () => {
+      const transport = new WebSocketTransport(host.websocketUrl), send = transport.send.bind(transport);
+      transport.send = frame => { methods.push(JSON.parse(frame).method); return send(frame); }; return transport;
+    },
+  });
+  t.after(() => runtime.dispose()); await runtime.connect();
+  const thread = await runtime.resources.threads.start({ model: piModel("faux", "faux-1"), cwd: f.directory,
+    permissions: "opencraft:permission-mode:full", projectId: "first-message-project" });
+  const lease = await runtime.acquireThread(thread.id); t.after(() => lease.release());
+  assert.equal(lease.getSnapshot().authoritative, false);
+  const partial = new Promise<void>(resolve => {
+    const stop = f.engine.subscribe(method => { if (method === "item/agentMessage/delta") { stop(); resolve(); } });
+  });
+  const done = new Promise<void>((resolve, reject) => {
+    let count = 0;
+    const timer = setTimeout(() => { stop(); reject(new Error("Both Pi outbox messages did not settle")); }, 10_000);
+    const stop = f.engine.subscribe((method, params) => {
+      if (method !== "turn/completed") return;
+      assert.equal(params.turn.status, "completed");
+      if (++count === 2) { clearTimeout(timer); stop(); resolve(); }
+    });
+  });
+  await lease.submit({ commandId: "first-workspace-command", clientMessageId: "first-workspace-client",
+    target: { type: "existing-thread", key: lease.getSnapshot().key },
+    document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "first workspace input" }] }] },
+    attachments: [], context: [], selections: { model: piModel("faux", "faux-1"), effort: "none", permissionProfile: "opencraft:permission-mode:full" },
+    options: { autoContext: true }, createdAt: 1 });
+  await partial;
+  await lease.submit({ commandId: "second-workspace-command", clientMessageId: "second-workspace-client",
+    target: { type: "existing-thread", key: lease.getSnapshot().key },
+    document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "second workspace input" }] }] },
+    attachments: [], context: [], selections: { model: piModel("faux", "faux-1"), permissionProfile: "opencraft:permission-mode:full" },
+    options: { autoContext: true }, createdAt: 2 });
+  assert.equal(rows.length, 1, "follow-up stays local while the native Pi turn is active");
+  await done;
+  assert.ok(methods.includes("runtime/capabilities/register")); assert.ok(methods.includes("turn/start"));
+  assert.ok(!methods.includes("thread/queue/add"));
+  const restored = await f.engine.request("thread/read", { threadId: thread.id, includeTurns: true }, noTools);
+  assert.equal(restored.thread.projectId, "first-message-project");
+  assert.equal(restored.thread.turns.length, 2);
+  assert.equal(restored.thread.turns[0].items.find((item: any) => item.type === "userMessage").clientId, "first-workspace-client");
+  assert.equal(restored.thread.turns[1].items.find((item: any) => item.type === "userMessage").clientId, "second-workspace-client");
+});
