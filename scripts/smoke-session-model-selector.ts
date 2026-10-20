@@ -178,8 +178,7 @@ try {
       agentGroups: [{ id: "server", label: "Server", active: true, models, select: model => { window.__selectedEngineModel = model.value; } }] });`);
   await editor.fill("Keep this engine selection draft");
   await picker.click();
-  await page.locator(".opencraft-composer-model-quick__title").click();
-  const standalone = page.locator(".opencraft-composer-selection-menu--model-select");
+  const standalone = page.locator(".opencraft-composer-selection-menu--intelligence");
   await standalone.getByText("DSH · Models", { exact: true }).waitFor();
   await standalone.getByText("Pi · provider", { exact: true }).waitFor();
   assert.equal(await standalone.getByRole("menuitem", { name: "Shared model", exact: true }).count(), 2);
