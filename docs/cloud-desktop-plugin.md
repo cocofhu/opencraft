@@ -104,18 +104,16 @@ action or a current target, no Composer desktop entry is rendered. Embedded prod
 select their allowed panel actions at the product composition; file preview mode
 retains the desktop renderer and its existing lifetime and input authority.
 
-The panel follows the rich `CloudAeonComputerPanel` composition in the original
-Codex 26.930.31428 / build 12913 renderer, not its separate simple
-`CloudDesktopPanel` toolbar. The shared Design System `desktop-view.web` primitive
-owns an aspect-fit media card, rounded clipping/shadow, a floating ownership
-island and a confirmed-control perimeter/visor. This is source-referenced
-presentation, not an official Mac pixel-comparison or a remote OS theme change.
+The shared Design System `desktop-view.web` primitive owns an aspect-fit media
+card, rounded clipping/shadow, a floating ownership island and a confirmed-control
+perimeter/visor. This presentation has not been verified by an official Mac
+pixel-comparison and does not change the remote OS theme.
 Desktop control appearance is independent from the application accent: its
-current default is the reference purple submit pair (#8952ee light, #7849d1
+current default is the purple submit pair (#8952ee light, #7849d1
 dark, white foreground). The shared primitive owns the paired defaults; trace,
 wash, visor and translucent release action consume the same local variables.
 There is no assistant appearance authority wired to this local desktop yet, so
-this is a product default, not a claim that every Codex desktop is purple.
+this is a product default.
 Application theme/skill colors and remote Linux wallpaper remain unchanged.
 The adapter reports optional `mediaAspectRatio` from decoded backing dimensions;
 the controller projects the current connection's geometry. Missing geometry uses
