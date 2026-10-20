@@ -10,49 +10,44 @@ import {
 } from "../apps/local-agent-host/src/hypernode/shell-command-classifier.js";
 
 const fixtureUrl = new URL(
-  "./fixtures/codex-shell-command-0.148.0-alpha.21.json",
+  "./fixtures/shell-command-cases.json",
   import.meta.url,
 );
-const upstream = JSON.parse(await readFile(fixtureUrl, "utf8"));
+const corpus = JSON.parse(await readFile(fixtureUrl, "utf8"));
 
-test("vendored corpus contains every upstream parse_command parser assertion", () => {
-  assert.equal(upstream.source.revision, "fecac1c348af3634924e1a1b5413376208ee1884");
-  assert.equal(upstream.upstreamTestCount, 81);
-  assert.equal(upstream.parserCaseCount, 117);
-  assert.equal(upstream.cases.length, 117);
-  assert.equal(new Set(upstream.cases.map((entry) => entry.test)).size, 75);
+test("shell classification corpus retains complete case coverage", () => {
+  assert.equal(corpus.cases.length, 117);
+  assert.equal(new Set(corpus.cases.map((entry) => entry.test)).size, 75);
 });
 
-for (const fixture of upstream.cases) {
-  test(`Codex parse_command parity: ${fixture.test} ${JSON.stringify(fixture.argv)}`, () => {
+for (const fixture of corpus.cases) {
+  test(`shell parse_command: ${fixture.test} ${JSON.stringify(fixture.argv)}`, () => {
     assert.deepEqual(parseCommand(fixture.argv), fixture.expected);
   });
 }
 
-// These six upstream tests exercise the formatting helper directly rather than
-// going through assert_parsed. Keep the cases and assertions structurally equal
-// to codex-shell-command's parse_command.rs tests.
-test("Codex parity: small_formatting_always_true_commands", () => {
+// Exercise formatting helpers directly as well as through command parsing.
+test("shell formatting: small_formatting_always_true_commands", () => {
   for (const cmd of ["wc", "tr", "cut", "sort", "uniq", "xargs", "tee", "column"]) {
     assert.equal(isSmallFormattingCommand(tokenizeShellWords(cmd)), true);
     assert.equal(isSmallFormattingCommand(tokenizeShellWords(`${cmd} -x`)), true);
   }
 });
 
-test("Codex parity: awk_behavior", () => {
+test("shell formatting: awk_behavior", () => {
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk '{print $1}'")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk '{print $1}' Cargo.toml")), false);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk -f script.awk Cargo.toml")), false);
 });
 
-test("Codex parity: head_behavior", () => {
+test("shell formatting: head_behavior", () => {
   assert.equal(isSmallFormattingCommand(["head"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("head -n 40")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("head -n 40 file.txt")), false);
   assert.equal(isSmallFormattingCommand(["head", "file.txt"]), false);
 });
 
-test("Codex parity: tail_behavior", () => {
+test("shell formatting: tail_behavior", () => {
   assert.equal(isSmallFormattingCommand(["tail"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("tail -n +10")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("tail -n +10 file.txt")), false);
@@ -63,7 +58,7 @@ test("Codex parity: tail_behavior", () => {
   assert.equal(isSmallFormattingCommand(["tail", "file.txt"]), false);
 });
 
-test("Codex parity: sed_behavior", () => {
+test("shell formatting: sed_behavior", () => {
   assert.equal(isSmallFormattingCommand(["sed"]), true);
   assert.equal(isSmallFormattingCommand(["sed", "-n", "10p"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("sed -n 10p file.txt")), false);
@@ -74,11 +69,11 @@ test("Codex parity: sed_behavior", () => {
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("sed -n +10p file.txt")), true);
 });
 
-test("Codex parity: empty_tokens_is_not_small", () => {
+test("shell formatting: empty_tokens_is_not_small", () => {
   assert.equal(isSmallFormattingCommand([]), false);
 });
 
-test("Cordis service projects Codex ParsedCommand into native commandActions", () => {
+test("Cordis service projects ParsedCommand into native commandActions", () => {
   const service = Object.create(ShellCommandClassifierService.prototype);
   const actions = service.classify("cd src && rg -n 'needle' app | head -n 20", {
     cwd: "/workspace/projects/demo",
