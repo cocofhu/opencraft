@@ -27,13 +27,13 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
   async send(frame){
    const rpc=JSON.parse(frame);if(rpc.id===undefined)return;requests.push(rpc.method);
    let result:unknown,error:unknown;
-   const turn={id:'fixture-turn',status:active?'inProgress':'completed',error:null,itemsView:'full',startedAtMs:1700000000000,firstTurnWorkItemStartedAtMs:1700000000000,finalAssistantStartedAtMs:active?null:1700000054000,durationMs:active?null:54000,items:[
+   const turn={id:'fixture-turn',historyWindowId:'fixture-window',status:active?'inProgress':'completed',error:null,itemsView:'full',startedAtMs:1700000000000,firstTurnWorkItemStartedAtMs:1700000000000,finalAssistantStartedAtMs:active?null:1700000054000,durationMs:active?null:54000,items:[
     {type:'userMessage',id:'fixture-question',sentAtMs:1700000000000,content:[{type:'text',text:question,textElements:[]}]},
     {type:'reasoning',id:'fixture-reasoning',summary:['Checking the answer'],content:[],startedAtMs:1700000000000},
     {type:'agentMessage',id:'fixture-answer',startedAtMs:1700000054000,text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
    switch(rpc.method){
     case 'initialize':result={userAgent:'cold-open-fixture',codexHome:'/fixture',platformFamily:'unix',platformOs:'linux',capabilities:{extensions:{'opencraft/resume-history':{version:1,mode:previewStage?'message-window':'paginated',initialTurnsPage:true}}}};break;
-    case 'thread/list':result={data:[thread],nextCursor:null};break;
+    case 'thread/list':result={data:[{...thread,historyMode:previewStage?'message-window':'paginated'}],nextCursor:null};break;
     case 'thread/read':result={thread:{...thread,historyMode:previewStage?'message-window':'paginated'}};break;
     case 'thread/resume':result={thread:{...thread,historyMode:previewStage?'message-window':'paginated'},model:'fixture-model',modelProvider:'openai',cwd:'/fixture',runtimeWorkspaceRoots:['/fixture'],approvalPolicy:'on-request',approvalsReviewer:'user',sandbox:{type:'readOnly'},initialTurnsPage:{data:[turn],nextCursor:null}};break;
     case 'thread/turns/list':result={data:[turn],nextCursor:null};break;
@@ -49,11 +49,13 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
    const reply=JSON.stringify({id:rpc.id,...(error?{error}:{result}),__opencraftClient:rpc.__opencraftClient});
    const deliver=()=>{for(const listener of messages)listener(reply)};
    if(previewStage&&rpc.method==='thread/resume') {
+    assert.equal(typeof rpc.params.historyPreviewToken,'string','Preview has a request-scoped owner');
     const {startedAtMs,firstTurnWorkItemStartedAtMs,finalAssistantStartedAtMs,durationMs,...partial}=turn;
     const preview={...partial,items:turn.items.map(item=>{
       const {startedAtMs,sentAtMs,...message}=item as any;
       return message.type==='agentMessage'?{...message,text:previewAnswer}:message;
     })};
+    await new Promise(resolve=>setTimeout(resolve,40));
     for(const listener of messages) listener(JSON.stringify({method:'thread/history/preview',params:{threadId,token:rpc.params.historyPreviewToken,turns:[preview]},__opencraftClient:rpc.__opencraftClient}));
     heldResume.push(deliver); return;
    }
