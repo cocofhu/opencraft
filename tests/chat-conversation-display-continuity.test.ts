@@ -388,6 +388,7 @@ test("partial previews retain exact message clocks while showing fresh text unti
 
 
 test("a long active activity tail cannot evict the question, dated replies or completed clocks", async () => {
+  for (const unphased of [false, true]) {
   const local = storage();
   const before = createConversationDisplayContinuity({ namespace: "account", storage: local });
   const prior = timedTimeline().frames.map(frame => ({ ...frame, id: `prior-${frame.id}`, turnId: asTurnId("prior-turn"),
@@ -396,9 +397,9 @@ test("a long active activity tail cannot evict the question, dated replies or co
       : { ...block, id: `prior-${block.id}` }) }));
   const active = activeTimeline();
   const frames = active.frames.map(frame => frame.type === "assistant" ? { ...frame,
-    blocks: Array.from({ length: 68 }, (_, i) => i % 2 === 0
+    blocks: Array.from({ length: 68 }, (_, i) => !unphased && i % 2 === 0
       ? { type: "reasoning" as const, id: `reason-${i}`, sourceItemIds: [], summary: `Reasoning ${i}`, detail: null, streaming: true }
-      : { type: "text" as const, id: `progress-${i}`, sourceItemIds: [], text: `Progress ${i}`, phase: "commentary" as const, streaming: true, completed: false }) } : frame);
+      : { type: "text" as const, id: `progress-${i}`, sourceItemIds: [], text: `Progress ${i}`, phase: unphased ? null : "commentary" as const, streaming: true, completed: false }) } : frame);
   await before.observe({ ...active, frames: [...prior, ...frames] });
   const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
   const blocks = cached.frames.flatMap(frame => frame.blocks);
@@ -409,4 +410,5 @@ test("a long active activity tail cannot evict the question, dated replies or co
   assert.equal(cached.frames.at(-1)?.blocks[0]?.id, "progress-67", "newest received progress remains visible");
   assert.ok(cached.frames.every(frame => frame.workStatus?.status !== "working"), "activity never resumes a live clock");
   assert.ok(blocks.findIndex(block => block.id === "prior-answer") < blocks.findIndex(block => block.id === "user"), "original conversation order is preserved");
+  }
 });

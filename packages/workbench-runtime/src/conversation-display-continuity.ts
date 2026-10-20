@@ -119,7 +119,20 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
   const conversation = messages.filter(message => message.role === "user"
     || (message.kind === "text" && (message.phase === "final_answer"
       || message.sentAtMs !== null || message.workStatus !== null)));
-  const retained = new Set(conversation.slice(-Math.floor(MAX_MESSAGES / 2)));
+  const latest = (matches: (message: DisplayMessage) => boolean) => {
+    for (let index = messages.length - 1; index >= 0; index--) {
+      if (matches(messages[index]!)) return messages[index];
+    }
+    return undefined;
+  };
+  const retained = new Set([
+    latest(message => message.role === "user"),
+    latest(message => message.role === "assistant" && message.sentAtMs !== null),
+    latest(message => message.workStatus !== null),
+  ].filter((message): message is DisplayMessage => message !== undefined));
+  for (let index = conversation.length - 1; index >= 0 && retained.size < Math.floor(MAX_MESSAGES / 2); index--) {
+    retained.add(conversation[index]!);
+  }
   for (let index = messages.length - 1; index >= 0 && retained.size < MAX_MESSAGES; index--) {
     retained.add(messages[index]!);
   }
