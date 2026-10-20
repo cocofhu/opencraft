@@ -1881,3 +1881,16 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+
+### Personal speed defaults and conversation selections
+
+- Fast uses the same account/Host default record as model and reasoning, including
+  server CAS and scope fences. Standalone clients without account authority use
+  the existing scoped installation preference; embedded policies remain unchanged.
+- Missing legacy tier inherits Host policy, while null means explicit standard.
+  Model/effort/speed actions snapshot the resolved combination in the draft and
+  persist the default. Existing Threads use execution settings; later default
+  changes cannot alter their speed or any explicitly chosen draft selection.
+- The immutable submission carries the resolved tier, including null, through
+  thread creation, turns and durable queues. Availability remains catalog-owned.

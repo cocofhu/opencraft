@@ -167,3 +167,29 @@ test("session model choices never write Host defaults through the catalog port",
     assert.equal(harness.requests.some(request => request.method === "config/batchWrite"), false);
   } finally { await runtime.dispose(); }
 });
+
+
+test("personal speed selection preserves Fast and explicit standard through new and existing requests", async () => {
+  for (const serviceTier of ["priority", null]) for (const existing of [false, true]) {
+    const harness = createHarness();
+    const runtime = createAppServerWorkbenchRuntime({ hostId: "local", transport: harness.transport, autoReconnect: false });
+    try {
+      await runtime.connect();
+      const target: SubmitIntent["target"] = existing
+        ? { type: "existing-thread", key: createConversationKey("local", "thread-created") }
+        : { type: "new-thread", draftId: "personal-speed", execution: { hostId: "local", workspace: { cwd: "/workspace", runtimeWorkspaceRoots: ["/workspace"] } } };
+      const submission = { ...intent(target), selections: { serviceTier } };
+      if (existing) {
+        const lease = await runtime.acquireThread("thread-created");
+        await waitForAuthoritative(lease);
+        await lease.submit(submission);
+        lease.release();
+      } else await runtime.createThread(submission);
+      for (const method of existing ? ["turn/start"] : ["thread/start"]) {
+        const request = harness.requests.find(request => request.method === method)!;
+        assert.equal((request.params as { serviceTier?: string | null }).serviceTier, serviceTier, method);
+      }
+      assert.equal(harness.requests.some(request => request.method === "config/batchWrite"), false);
+    } finally { await runtime.dispose(); }
+  }
+});
