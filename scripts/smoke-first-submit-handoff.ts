@@ -12,6 +12,8 @@ let pending: (() => void) | null = null;
 let rejectResume: (() => void) | null = null;
 let created = 0, started = 0;
 let durable = false;
+let queued: any[] = [];
+let dispatchQueued: (() => void) | null = null;
 const thread = (id: string, turns: unknown[] = []) => ({ id, name: null, preview: '', cwd: '/fixture', path: '/fixture/history', createdAt: 1, updatedAt: 1, status: { type: 'idle' }, turns });
 const requests: string[] = [];
 function receive(socket: WebSocket, raw: string) {
@@ -29,6 +31,20 @@ function receive(socket: WebSocket, raw: string) {
     const id = message.params.threadId;
     rejectResume = () => socket.send(JSON.stringify({ id: message.id, error: { code: -32000, message: 'Synthetic recovery rejection' } }));
     pending = () => send({ thread: thread(id), model: 'fixture', modelProvider: 'fixture', cwd: '/fixture', runtimeWorkspaceRoots: ['/fixture'], instructionSources: [], activePermissionProfile: { id: 'workspace' }, approvalsReviewer: 'user', serviceTier: 'default', reasoningEffort: null, approvalPolicy: 'on-request', sandbox: { type: 'workspaceWrite', writableRoots: ['/fixture'] }, turnsBackwardsCursor: null, itemsBackwardsCursor: null });
+  } else if (message.method === 'thread/queue/list') send({ data: queued, nextCursor: null });
+  else if (message.method === 'thread/queue/add') {
+    queued.push({ id: 'first-queue', clientUserMessageId: message.params.clientUserMessageId,
+      input: message.params.input, createdAt: Date.now(), pausedReason: null });
+    send({ queuedSubmission: queued.at(-1) });
+    socket.send(JSON.stringify({ method: 'thread/queue/changed', params: { threadId: message.params.threadId } }));
+    dispatchQueued = () => {
+      const input = queued.shift();
+      const turn = { id: 'first-turn', status: 'inProgress', items: [{ id: 'canonical-user', type: 'userMessage', clientId: input.clientUserMessageId, content: input.input }] };
+      started++;
+      socket.send(JSON.stringify({ method: 'turn/started', params: { threadId: message.params.threadId, turn } }));
+      socket.send(JSON.stringify({ method: 'item/started', params: { threadId: message.params.threadId, turnId: turn.id, item: turn.items[0] } }));
+      socket.send(JSON.stringify({ method: 'thread/queue/changed', params: { threadId: message.params.threadId } }));
+    };
   } else if (message.method === 'turn/start') {
     started++;
     const turn = { id: 'first-turn', status: 'inProgress', items: [{ id: 'canonical-user', type: 'userMessage', clientId: message.params.clientUserMessageId, content: message.params.input }] };
@@ -58,7 +74,7 @@ const results: unknown[] = [];
 try {
   await vite.listen();
   for (const width of [390, 1280]) for (const theme of ['light', 'dark']) for (const atomic of [false, true]) {
-    durable = atomic; pending = null;
+    durable = atomic; pending = null; queued = []; dispatchQueued = null;
     const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width === 390 });
     await context.addInitScript(mode => { (window as any).__name = (value: unknown) => value; localStorage.setItem('opencraft.appearance-theme', mode); }, theme);
     const page = await context.newPage();
@@ -93,7 +109,18 @@ try {
       assert.ok(pending, 'retry restores the same created Thread');
       assert.equal(await page.locator('.conversation-recovery-loading').count(), 0);
     }
+    assert.equal(await page.locator('.opencraft-composer-queue-item').count(), 0, 'initial outbox handoff is not a second copy of the bubble');
     pending!(); pending = null;
+    if (!atomic) {
+      for (let i = 0; i < 150 && !dispatchQueued; i++) await page.waitForTimeout(20);
+      assert.ok(dispatchQueued, 'first input reaches the real execution queue adapter');
+      await page.waitForTimeout(500);
+      assert.equal(queued.length, 1, 'queue admission is retained while execution is held');
+      assert.equal(await page.locator('.opencraft-composer-queue-item').count(), 0, 'accepted first queue row must not duplicate the visible handoff');
+      assert.equal(await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).count(), 1);
+      await page.screenshot({ path: `${output}/${width}-${theme}-queued-first.png` });
+      dispatchQueued!(); dispatchQueued = null;
+    }
     await page.waitForFunction(() => !document.querySelector('.conversation-recovery-loading'));
     await page.waitForTimeout(1200);
     assert.equal(await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).count(), 1, 'canonical user replaces rather than duplicates submitted input');

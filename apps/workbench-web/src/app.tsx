@@ -34,7 +34,7 @@ import {
   compileSubmitIntent,
   restoreQueuedInput,
 } from "@opencraft/composer-appserver";
-import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
+import { queuedSubmissionPresentation, queueSenderPresentation, visibleQueuedSubmissions } from "./queued-submission-presentation";
 import {
   OpenCraftComposer,
   type ComposerSelectionCatalog,
@@ -2115,7 +2115,8 @@ export function App({
                         awaitSubmission
                         submissionDisabled={activeThreadLease === null}
                         queuedSubmissions={[
-                          ...(snapshot.conversation?.queuedSubmissions ?? []).map((submission) =>
+                          ...visibleQueuedSubmissions(snapshot.conversation?.queuedSubmissions ?? [],
+                            firstSubmissionTimeline === visibleTimeline ? firstSubmissionTimeline : null).map((submission) =>
                             queuedSubmissionPresentation(submission, queueReorderable, identityAvatar, intl)),
                           ...(queueUnconfirmedSteerDiscard ? snapshot.conversation?.unconfirmedSteers ?? [] : []).map((claim) => ({
                             id: claim.id,
