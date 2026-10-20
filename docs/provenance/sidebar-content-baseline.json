@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "partial-pre-authoring-behavior-baseline",
+  "status": "pre-authoring-behavior-baseline",
   "baselineCommit": "47f615caa1614ad5f44d3687565919c5e8c7b296",
   "module": "apps/workbench-web/src/components/sidebar.tsx",
   "moduleSha256": "a7ff402f5d38c90fe19c32ac3ec0ea3fa32b70fb604c1751aef21a2f0fde2c63",
@@ -83,6 +83,25 @@
         "Bot drag/drop and provider-owned creation modal are not verified by these scenarios",
         "Synthetic badge component checks open ownership, not real employee badge popover or avatar data",
         "No physical touch or native hardware verification"
+      ]
+    },
+    {
+      "id": "sidebar-bot-ownership-v1",
+      "observerSha256": "7229c7361d799ab40525568dfc3ba4bc7cddb347a604c80b90264da464ac4301",
+      "fixtureSha256": "6272ba81d66b2dffa0dba10713a6cd0af20c9eedc419cdede4ad109c134df22c",
+      "rawOutputSha256": "95e7683b93deba7f3aeae5fd12614cc39eea300fe966466166e9defa5e01a746",
+      "scenes": 4,
+      "states": 60,
+      "pageErrors": 0,
+      "coverage": [
+        "actual pointer reorder commits Alpha after Beta",
+        "keyboard drag start/projection/commit/cancel baseline",
+        "creation draft/provider selection/pending/success/error/cancel"
+      ],
+      "limitations": [
+        "Keyboard sequences leave original order unchanged; no claim of keyboard reorder success",
+        "Pointer input in touch-emulated CSS scenes does not prove physical iPhone dragging",
+        "Creation provider and entities are synthetic; neighboring DnD and dialog implementations remain unchanged"
       ]
     }
   ],
