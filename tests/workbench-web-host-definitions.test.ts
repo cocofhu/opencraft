@@ -246,7 +246,7 @@ test("HyperNode owns both its transport provider and ephemeral Host profile", as
   await providers.close();
 });
 
-test("headless Codex inherits the packaged Linux browse root instead of claiming a Mac folder", async () => {
+test("headless server inherits the packaged Linux browse root instead of claiming a Mac folder", async () => {
   const providers = new HostConnectionProviderRegistry();
   const profiles = new HostProfileContributionRegistry();
   const renderers = new PlatformViewRendererRegistry();

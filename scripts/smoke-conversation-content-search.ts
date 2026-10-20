@@ -74,5 +74,5 @@ try {
   const calls=await page.evaluate(()=>window.calls);assert.ok(calls.every(x=>['thread/search','thread/searchOccurrences'].includes(x.method)));assert.ok(calls.every(x=>!['unsupported','offline'].includes(x.id)));
   await page.keyboard.press('Escape');await page.close();
  }
- assert.deepEqual(errors,[]);console.log('Codex body-search dialog: light/dark desktop/touch, stale queries, duplicates, snippet safety, retry, paging, unsupported/offline, locators and drafts passed');
+ assert.deepEqual(errors,[]);console.log('Conversation body-search dialog: light/dark desktop/touch, stale queries, duplicates, snippet safety, retry, paging, unsupported/offline, locators and drafts passed');
 }finally{await browser?.close();await vite.close()}
