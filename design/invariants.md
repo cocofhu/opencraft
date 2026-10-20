@@ -1838,3 +1838,17 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+### Async operation feedback
+
+Every user operation distinguishes admission, pending, acknowledged success and
+failure. `SettingsButton loading` owns the visible indicator, aria-busy and disabled
+state; the caller owns the operation and translated progress label. A disabled
+control alone is not feedback. Rename and delete settle at write acknowledgement,
+with catalog refresh continuing separately. Stop progress does not claim the Turn
+has completed; repeated pending stops share the same Thread-owned command.
+Conversation menus opening a modal do not hold a second modal pointer lock.
+Real mouse/touch regressions must cover menu → dialog → cancel/confirm → another
+click, including delayed/rejected requests. Static lint cannot prove timing,
+feedback visibility, focus release or failure recovery; do not add a blanket ban
+on async handlers, void expressions, disabled controls or awaited refreshes.

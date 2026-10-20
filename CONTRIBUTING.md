@@ -92,3 +92,14 @@ private worktree paths in commits or reports.
 For releases, use the repository's
 [release skill](.agents/skills/opencraft-release/SKILL.md) and exact-artifact
 workflow. A contribution PR does not deploy anyone's running instance.
+
+### UI operations
+
+Use the existing operation owner and shared notices. Show progress immediately,
+report success only after the operation acknowledges, and preserve drafts on
+failure. `SettingsButton loading={pending}` supplies visible progress and prevents
+duplicate clicks; provide translated progress text when useful. Keep directory
+revalidation independent from a confirmed write. A menu handing off to a modal
+must not retain another modal interaction lock. Validate delayed/rejected actions
+and the next real click after dialog exit; lint cannot establish those runtime
+properties, and suppressing a promise rejection is not error feedback.

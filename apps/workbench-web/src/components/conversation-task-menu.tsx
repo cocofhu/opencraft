@@ -162,7 +162,7 @@ export function ConversationTaskMenu(props: Props) {
   const busy = pin.isPending || archive.isPending || fork.isPending;
   const label = intl.formatMessage({ id: "tasks.relation.actions", defaultMessage: "Conversation actions" });
   return <>
-    <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
+    <DropdownMenu.Root modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenu.Trigger asChild>
         <button ref={trigger} type="button" className="chrome-button" aria-label={label} title={label}>
           <MoreHorizontal size={16} aria-hidden="true" />

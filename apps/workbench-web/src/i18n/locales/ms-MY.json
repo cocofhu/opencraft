@@ -627,5 +627,10 @@
   "composer.model.retry": "Cuba lagi",
   "composer.model.configure": "Tambah lagi model",
   "composer.model.fallbackShort": "Sandaran",
-  "composer.model.empty": "Tiada model tersedia. Semak tetapan model."
+  "composer.model.empty": "Tiada model tersedia. Semak tetapan model.",
+  "chat.stop.pending": "Menghentikan respons…",
+  "chat.stop.failed": "Tidak dapat menghentikan respons. Cuba lagi.",
+  "chat.delete.pending": "Memadamkan perbualan…",
+  "chat.delete.done": "Perbualan dipadamkan",
+  "common.operation.pending": "Menerapkan perubahan…"
 }

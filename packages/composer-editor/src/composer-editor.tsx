@@ -741,6 +741,8 @@ export interface OpenCraftComposerProps {
   /** Whether this surface can resolve `@` references through its Host. */
   mentionSuggestionsEnabled?: boolean;
   isStreaming: boolean;
+  /** Thread-owned interrupt acknowledgement; does not imply the Turn has ended. */
+  isStopping?: boolean;
   disabled?: boolean;
   /** Embedded surfaces keep menu focus, styling and stacking in their owner. */
   portalContainer?: HTMLElement | null;
@@ -813,6 +815,7 @@ export const OpenCraftComposer = forwardRef<
     catalog,
     mentionSuggestionsEnabled = true,
     isStreaming,
+    isStopping = false,
     disabled = false,
     portalContainer,
     submissionDisabled = false,
@@ -1953,7 +1956,7 @@ export const OpenCraftComposer = forwardRef<
     editingQueuedSubmissionId !== null
       ? intl.formatMessage({ id: "chat.saveQueuedMessage", defaultMessage: "Save queued message" })
       : primaryAction === "stop"
-        ? intl.formatMessage({ id: "chat.stopResponse", defaultMessage: "Stop response" })
+        ? intl.formatMessage(isStopping ? { id: "chat.stop.pending", defaultMessage: "Stopping response…" } : { id: "chat.stopResponse", defaultMessage: "Stop response" })
         : primaryAction === "queue"
           ? intl.formatMessage({ id: "chat.queueFollowUp", defaultMessage: "Queue follow-up" })
           : primaryAction === "steer"
@@ -2646,6 +2649,8 @@ export const OpenCraftComposer = forwardRef<
               <button
                 className="opencraft-composer-submit is-stop"
                 type="button"
+                disabled={isStopping}
+                aria-busy={isStopping || undefined}
                 aria-label={primaryActionLabel}
                 title={primaryActionTitle}
                 data-composer-primary-action={primaryAction}
@@ -2658,7 +2663,7 @@ export const OpenCraftComposer = forwardRef<
                   occurredAt: Date.now(),
                 })}
               >
-                <CircleStop size={17} />
+                {isStopping ? <LoaderCircle className="opencraft-composer-stop-spinner" size={17} /> : <CircleStop size={17} />}
               </button>
             ) : (
               <button

@@ -3099,3 +3099,16 @@ An older Host without the `opencraft/capacity-retry` capability is supported by
 the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
+
+### Operation acknowledgement
+
+Thread action acknowledgement and catalog revalidation have separate lifetimes.
+Rename/delete UI settles after the native write; refreshing the complete catalog
+continues in the background and cannot reinterpret a confirmed write as failure.
+Deletion reports pending,
+acknowledged or failed states through the existing notification owner. Conversation
+menus are non-modal: the dialog they open owns the sole focus/pointer lock, which
+must be released on confirm, cancel and Escape without editing body styles.
+Turn interruption remains Thread-owned, coalesces pending requests for the same
+Turn, and projects `interrupting` into Composer progress. Failure restores the
+control and reports an error only for the still-matching visible owner.

@@ -2391,6 +2391,32 @@ test("interrupt exposes an interrupting transition around the command", async ()
 });
 
 
+test("repeated stop shares acknowledgement and a rejection permits retry", async () => {
+  let reject!: (error: Error) => void;
+  let calls = 0;
+  let command = new Promise<void>((_resolve, fail) => { reject = fail; });
+  const runtime = createReplicaConversationRuntime({
+    key: createConversationKey("local", "thread-one"),
+    replica: new FakeReplica(threadView()),
+    commands: commands({ interrupt: async () => { calls++; await command; } }),
+    history: { async loadOlder() {} },
+  });
+  const first = runtime.interrupt(asTurnId("turn-one"));
+  const second = runtime.interrupt(asTurnId("turn-one"));
+  assert.equal(first, second);
+  assert.equal(runtime.getSnapshot().activeTurn?.status, "interrupting");
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls, 1);
+  reject(new Error("synthetic rejection"));
+  await assert.rejects(first, /synthetic rejection/);
+  assert.equal(runtime.getSnapshot().activeTurn?.status, "streaming");
+  command = Promise.resolve();
+  await runtime.interrupt(asTurnId("turn-one"));
+  assert.equal(calls, 2);
+  runtime.dispose();
+});
+
+
 test("local sender paints immediately, survives acknowledgement and never attributes unrelated history", async () => {
   const key = createConversationKey("local", "thread-one");
   const replica = new FakeReplica(threadView({ turns: [], pendingInteractions: [] }));

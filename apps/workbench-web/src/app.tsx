@@ -1,3 +1,4 @@
+import { useAsyncNotices } from "./components/async-notices";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -267,6 +268,7 @@ export function App({
   readonly presentation?: WorkbenchPresentationPolicy;
 } = {}) {
   const intl = useIntl();
+  const notices = useAsyncNotices();
   const modelSelectionPolicy = embedded?.modelSelectionPolicy ?? (embedded ? "host-default" : "user");
   const internalDeveloperMode = useInternalDeveloperMode();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -774,6 +776,8 @@ export function App({
   const isStreaming =
     snapshot.conversation?.activeTurn !== null &&
     snapshot.conversation?.activeTurn !== undefined;
+  const stopOwnerRef = useRef(activeThreadLease);
+  stopOwnerRef.current = activeThreadLease;
   const cancelStream = useCallback((context: {
     readonly trigger: "pointer" | "keyboard";
     readonly isTrusted: boolean;
@@ -783,8 +787,12 @@ export function App({
     if (turnId !== undefined) void activeThreadLease?.interrupt(turnId, {
       source: "composer-stop",
       ...context,
+    }).catch(() => {
+      if (stopOwnerRef.current !== activeThreadLease || activeThreadLease?.getSnapshot().activeTurn?.turnId !== turnId) return;
+      notices.error({ key: `stop:${snapshot.hostId}:${activeThreadId}:${turnId}`,
+        message: intl.formatMessage({ id: "chat.stop.failed", defaultMessage: "Could not stop the response. Try again." }) });
     });
-  }, [activeThreadLease]);
+  }, [activeThreadLease, notices, intl, snapshot.hostId, activeThreadId]);
   const updateQueuedSubmission = useCallback(
     async (id: string, intent: SubmitIntent) => {
       if (activeThreadLease === null)
@@ -1256,7 +1264,7 @@ export function App({
     write: (key, value) => writeCachedThreadName(queryClient, key, value),
     persist: async (key, value) => {
       await hostCatalog.threadManagement.rename(key.hostId, key.threadId, value);
-      await queryClient.invalidateQueries({ queryKey: ["appserver", key.hostId, "threads"] });
+      void queryClient.invalidateQueries({ queryKey: ["appserver", key.hostId, "threads"] }).catch(() => undefined);
     },
   }), [hostCatalog.threadManagement, queryClient]);
   const pendingTitleRevision = useSyncExternalStore(threadTitleWriter.subscribe, threadTitleWriter.getSnapshot, threadTitleWriter.getSnapshot);
@@ -1339,11 +1347,11 @@ export function App({
       },
       renameThread: async (threadId, title) => {
         await hostCatalog.threadManagement.rename(embedded.hostId, threadId, title);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }).catch(() => undefined);
       },
       deleteThread: async (threadId) => {
         await hostCatalog.threadManagement.delete(embedded.hostId, threadId);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }).catch(() => undefined);
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
@@ -1765,11 +1773,12 @@ export function App({
         refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }),
       }),
       onDelete: async target => {
+        const routeScopeId = workbenchNavigation.getSnapshot().routeScopeId;
         await hostCatalog.threadManagement.delete(target.hostId, target.threadId);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }).catch(() => undefined);
         // Deleting the thread the workbench currently shows would
         // leave the route pointing at a missing thread; go home.
-        if (snapshot.hostId === target.hostId && (draft === null ? activeThreadId ?? "" : "") === target.threadId) {
+        if (workbenchNavigation.getSnapshot().routeScopeId === routeScopeId && snapshot.hostId === target.hostId && (draft === null ? activeThreadId ?? "" : "") === target.threadId) {
           navigateToHome();
         }
       },
@@ -2112,6 +2121,7 @@ export function App({
                           : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
                         isStreaming={isStreaming}
+                        isStopping={snapshot.conversation?.activeTurn?.status === "interrupting"}
                         awaitSubmission
                         submissionDisabled={activeThreadLease === null}
                         queuedSubmissions={[

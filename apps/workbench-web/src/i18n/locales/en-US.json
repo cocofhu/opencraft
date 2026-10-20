@@ -625,5 +625,10 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "chat.stop.pending": "Stopping response…",
+  "chat.stop.failed": "Could not stop the response. Try again.",
+  "chat.delete.pending": "Deleting conversation…",
+  "chat.delete.done": "Conversation deleted",
+  "common.operation.pending": "Applying change…"
 }

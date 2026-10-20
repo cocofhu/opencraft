@@ -77,7 +77,7 @@ export function ConversationSchedulesPanel(props: {
     retry: false,
     onSuccess: data => { cache.setQueryData(key, data); setDraft(null); },
     onError: () => notices.error({ key: `schedules:${props.scope}:${props.hostId}:${props.threadId}`, message: text("error") }),
-    onSettled: () => cache.invalidateQueries({ queryKey: key }),
+    onSettled: () => { void cache.invalidateQueries({ queryKey: key }).catch(() => undefined); },
   });
   const plan = query.data?.schedule ?? null, exists = plan && plan.status !== "deleted";
   const inFlight = query.data?.runs.some(run => ["waiting", "submitting", "running", "unknown"].includes(run.state));
@@ -90,6 +90,7 @@ export function ConversationSchedulesPanel(props: {
         <SettingsNotice>{text("hint")}</SettingsNotice>
         {query.isPending ? <SettingsNotice role="status">{text("loading")}</SettingsNotice> : null}
         {query.isError && !query.data ? <SettingsNotice>{text("loadError")} <SettingsButton onClick={() => void query.refetch()}>{text("retry")}</SettingsButton></SettingsNotice> : null}
+        {mutation.isPending && !draft ? <SettingsNotice role="status">{intl.formatMessage({ id: "common.operation.pending", defaultMessage: "Applying change…" })}</SettingsNotice> : null}
         {query.data && !draft ? <>
           {exists ? <SettingsListItem label={stateLabel(plan.status)} description={plan.prompt}
             metadata={plan.status === "active" ? `${plan.intervalMinutes ? intl.formatMessage(messages.every, { minutes: plan.intervalMinutes }) : text("once")} · ${new Date(plan.nextRunAt).toLocaleString(intl.locale, { timeZone: plan.timeZone })} · ${plan.timeZone}` : undefined} />
@@ -111,7 +112,7 @@ export function ConversationSchedulesPanel(props: {
             <option value="once">{text("once")}</option><option value="repeat">{text("interval")}</option>
           </SettingsSelect></label>
           {draft.repeating ? <label>{text("minutes")}<SettingsTextInput aria-label={text("minutes")} type="number" min={1} max={525600} required value={draft.minutes} disabled={mutation.isPending} onChange={event => update({ minutes: event.target.value })} /></label> : null}
-          <div className="conversation-schedules__actions"><SettingsButton type="button" disabled={mutation.isPending} onClick={() => setDraft(null)}>{text("cancel")}</SettingsButton><SettingsButton type="submit" variant="primary" disabled={mutation.isPending}>{text("save")}</SettingsButton></div>
+          <div className="conversation-schedules__actions"><SettingsButton type="button" disabled={mutation.isPending} onClick={() => setDraft(null)}>{text("cancel")}</SettingsButton><SettingsButton type="submit" variant="primary" loading={mutation.isPending}>{mutation.isPending ? intl.formatMessage({ id: "sidebar.thread.saving", defaultMessage: "Saving…" }) : text("save")}</SettingsButton></div>
         </form> : null}
         {inFlight ? <SettingsNotice>{text("pendingHint")}</SettingsNotice> : null}
         {query.data?.runs.some(run => run.state === "unknown") ? <SettingsNotice>{text("unknownHint")} <SettingsButton disabled={mutation.isPending} onClick={() => action("review")}>{text("review")}</SettingsButton></SettingsNotice> : null}

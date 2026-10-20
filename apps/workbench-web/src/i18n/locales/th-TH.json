@@ -627,5 +627,10 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "chat.stop.pending": "กำลังหยุดการตอบกลับ…",
+  "chat.stop.failed": "หยุดการตอบกลับไม่ได้ โปรดลองอีกครั้ง",
+  "chat.delete.pending": "กำลังลบการสนทนา…",
+  "chat.delete.done": "ลบการสนทนาแล้ว",
+  "common.operation.pending": "กำลังใช้การเปลี่ยนแปลง…"
 }

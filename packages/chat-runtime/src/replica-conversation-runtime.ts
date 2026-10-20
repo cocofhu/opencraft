@@ -1273,6 +1273,7 @@ export function createReplicaConversationRuntime(
   let loadingOlder = false;
   let historyError: Error | null = null;
   let interruptingTurnId: TurnId | null = null;
+  const interruptions = new Map<TurnId, Promise<void>>();
   // The statement "You stopped" belongs to this client's command intent,
   // not every remote/interrupted Turn. Never persist it as a server fact.
   const interruptedByThisClient = new Set<string>();
@@ -1723,32 +1724,33 @@ export function createReplicaConversationRuntime(
         return outbox.admit(intent);
       return submitOnline(intent);
     },
-    async interrupt(turnId, provenance) {
+    interrupt(turnId, provenance) {
+      const pending = interruptions.get(turnId);
+      if (pending) return pending;
       interruptingTurnId = turnId;
       interruptedByThisClient.add(turnId);
       localRevision += 1;
+      const operation = (async () => {
+        try {
+          const dismissals = snapshot.pendingInteractions
+            .filter((interaction) => interaction.turnId === turnId)
+            .map(createInterruptInteractionResponse)
+            .filter((response): response is InteractionResponse => response !== null);
+          await Promise.allSettled(dismissals.map(response => config.commands.respond(config.key, response)));
+          await config.commands.interrupt(config.key, turnId, provenance);
+        } catch (error) {
+          interruptedByThisClient.delete(turnId);
+          throw error;
+        } finally {
+          if (interruptingTurnId === turnId) interruptingTurnId = null;
+          interruptions.delete(turnId);
+          localRevision += 1;
+          publish();
+        }
+      })();
+      interruptions.set(turnId, operation);
       publish();
-      try {
-        const dismissals = snapshot.pendingInteractions
-          .filter((interaction) => interaction.turnId === turnId)
-          .map(createInterruptInteractionResponse)
-          .filter(
-            (response): response is InteractionResponse => response !== null,
-          );
-        await Promise.allSettled(
-          dismissals.map((response) =>
-            config.commands.respond(config.key, response),
-          ),
-        );
-        await config.commands.interrupt(config.key, turnId, provenance);
-      } catch (error) {
-        interruptedByThisClient.delete(turnId);
-        throw error;
-      } finally {
-        interruptingTurnId = null;
-        localRevision += 1;
-        publish();
-      }
+      return operation;
     },
     continueTurn: continueTurnImpl,
     respond: (response) => config.commands.respond(config.key, response),
