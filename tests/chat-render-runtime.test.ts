@@ -22,6 +22,7 @@ import { ChatEnhancementService } from "../packages/chat-render-web/src/services
 import {
   codeBlockWrapPreference,
   codeLanguageLabel,
+  isSvgCodeSnippet,
   resolveCodeSurfacePolicy,
 } from "../packages/chat-render-web/src/renderers/code/code-block-model";
 import {
@@ -29,8 +30,8 @@ import {
   unwrapHighlightedCodeHtml,
 } from "../packages/chat-render-web/src/extensions/shiki/highlighted-code-html";
 import {
-  CODEX_DARK_SYNTAX,
-  CODEX_LIGHT_SYNTAX,
+  OPENCRAFT_DARK_SYNTAX,
+  OPENCRAFT_LIGHT_SYNTAX,
 } from "@opencraft/chat-render-react/code-highlight-themes";
 import {
   createMermaidRenderKey,
@@ -257,7 +258,7 @@ test("file citations and mentions share the same display target on Web and Nativ
   assert.equal(chatReferenceTarget({ ...mention, text: "$workspace", referenceKind: "variable" }), null);
 });
 
-test("code blocks share Codex word-wrap preference and normalize language labels", () => {
+test("code blocks share word-wrap preference and normalize language labels", () => {
   let publications = 0;
   const unsubscribe = codeBlockWrapPreference.subscribe(() => {
     publications += 1;
@@ -279,6 +280,37 @@ test("code blocks share Codex word-wrap preference and normalize language labels
   assert.equal(resolveCodeSurfacePolicy({ code: "<svg></svg>", language: "svg" }).wrap, "off");
   codeBlockWrapPreference.set(false);
   unsubscribe();
+});
+
+test("code wrap observers publish only changes and can release duplicate callback membership", () => {
+  codeBlockWrapPreference.set(false);
+  const observed: boolean[] = [];
+  const listener = () => observed.push(codeBlockWrapPreference.getSnapshot());
+  const first = codeBlockWrapPreference.subscribe(listener);
+  const duplicate = codeBlockWrapPreference.subscribe(listener);
+  try {
+    codeBlockWrapPreference.set(false);
+    codeBlockWrapPreference.set(true);
+    codeBlockWrapPreference.set(true);
+    assert.deepEqual(observed, [true]);
+    assert.equal(first(), true);
+    assert.equal(first(), false);
+    codeBlockWrapPreference.toggle();
+    assert.deepEqual(observed, [true]);
+    assert.equal(codeBlockWrapPreference.getSnapshot(), false);
+  } finally {
+    first(); duplicate(); codeBlockWrapPreference.set(false);
+  }
+});
+
+test("SVG preview policy needs an explicit markup language and wins over forced wrapping", () => {
+  assert.equal(isSvgCodeSnippet("\n<SVG viewBox='0 0 1 1'></SVG>", " XML "), true);
+  for (const code of ["<svgwhatever>", "text <svg >", "<!--comment--><svg >", "<?xml?><svg >"]) {
+    assert.equal(isSvgCodeSnippet(code, "svg"), false);
+  }
+  assert.equal(isSvgCodeSnippet("<svg >", null), false);
+  assert.equal(resolveCodeSurfacePolicy({code: "<svg >", language: "html", forceWrap: true}).wrap, "off");
+  assert.equal(codeLanguageLabel(" Unknown-Language ", false), " Unknown-Language ");
 });
 
 test("syntax highlighting preserves the permanent code-box geometry", () => {
@@ -428,7 +460,7 @@ test("code surface owns default and preview geometry", () => {
   );
   assert.match(
     codeBlockStyles,
-    /font-size:\s*var\(--codex-chat-font-size\)/u,
+    /font-size:\s*var\(--opencraft-chat-font-size\)/u,
   );
   assert.doesNotMatch(
     workbenchStyles,
@@ -437,7 +469,7 @@ test("code surface owns default and preview geometry", () => {
 });
 
 test("Shiki uses Codex syntax palettes instead of GitHub themes", () => {
-  assert.deepEqual(CODEX_LIGHT_SYNTAX, {
+  assert.deepEqual(OPENCRAFT_LIGHT_SYNTAX, {
     foreground: "#0d0d0d",
     comment: "#666666",
     string: "#008809",
@@ -448,7 +480,7 @@ test("Shiki uses Codex syntax palettes instead of GitHub themes", () => {
     parameter: "#666666",
     function: "#751ED9",
   });
-  assert.equal(CODEX_DARK_SYNTAX.function, "#B06DFF");
+  assert.equal(OPENCRAFT_DARK_SYNTAX.function, "#B06DFF");
   assert.doesNotMatch(shikiAdapterSource, /github-(?:dark|light)/u);
 });
 

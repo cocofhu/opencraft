@@ -1,8 +1,6 @@
 # Fresh-machine build contract
 
 The Git checkout plus public, locked dependencies is the complete build input.
-`vendor/codex/IMPORT_MAP.json` and PROVENANCE documents are historical references,
-not files loaded by installation, build, tests, or application startup.
 
 ## Inputs and ownership
 

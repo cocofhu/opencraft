@@ -10,7 +10,7 @@ import React,{useState} from 'react';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
 bindTouchInteractionMode(document);
 import {createRoot} from 'react-dom/client';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {createComposerController} from '@opencraft/composer-core';
 import {FormattedMessage} from '@opencraft/i18n/react';
 import {MemoryUiPreferenceStore,UiPreferencesRuntime} from '@opencraft/ui-preferences';
@@ -29,10 +29,10 @@ import {TurnDiffBlock} from '/apps/workbench-web/src/components/conversation/tur
 import {queuedSubmissionPresentation} from '/apps/workbench-web/src/queued-submission-presentation.ts';
 import {ThreadGoalSurface} from '/apps/workbench-web/src/components/thread-goal-surface.tsx';
 import {ThreadGoalResource} from '/packages/workbench-runtime/src/thread-goal-resource.ts';
-import {buildCodexThemeCssProperties,velaThemePalette,lavenderThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftCanvasThemePalette,lavenderThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 import '@fontsource-variable/noto-sans-sc';
-Object.entries(buildCodexThemeCssProperties('light',velaThemePalette.light)).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
+Object.entries(buildOpenCraftThemeCssProperties('light',opencraftCanvasThemePalette.light)).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
 const queued=queuedSubmissionPresentation({commandId:'queue',clientMessageId:'client',serverSubmissionId:'server',input:[],preview:'检查并保留这份排队输入',operation:'idle',createdAt:100,pausedReason:null,error:null,state:'queued'},true);
 const diff={id:'diff',type:'turn-diff',sourceItemIds:['diff'],status:'running',unifiedDiff:'',additions:36,deletions:8,files:[{path:'goal-ui.tsx',additions:36,deletions:8}]};
 const initialGoal={threadId:'one',objective:'完成移动端目标体验，验证离开页面后仍能持续推进。',status:new URLSearchParams(location.search).has('completed')?'complete':'active',tokenBudget:null,tokensUsed:312,timeUsedSeconds:1139760,createdAt:Math.floor(Date.now()/1000)-82,updatedAt:Math.floor(Date.now()/1000)};
@@ -47,9 +47,9 @@ let creates=0,opens=0,failWrite=false,releaseCreate=null,holdCreate=false,connec
 const newGoals=new ThreadGoalResource({capability:()=>({version:1,read:true,write,...(!accounting?{usageAccounting:false}:{})}),get:async()=>({goal}),set:async(id,change)=>{setCalls++;if(failWrite)throw Error('synthetic failure');goal={...initialGoal,...change,threadId:id};return {goal}},clear:async()=>({cleared:true})});
 function App(){const[threadId,setThreadId]=useState('one');const[newDraft,setNewDraft]=useState(false);const[tick,setTick]=useState(0);const[extras,setExtras]=useState(false);
 const startGoal=React.useMemo(()=>createNewThreadGoalFlow({createThread:async()=>{creates++;if(holdCreate)await new Promise(resolve=>releaseCreate=resolve);return {hostId:'fixture',threadId:'created',turnId:null}},goals:()=>newGoals,openThread:async()=>{opens++;setThreadId('created');setNewDraft(false)}}),[]);
-window.fixture={accounting:value=>{accounting=value;goals.observe(threadId,goal)},setExtras:setExtras,setCapacity:width=>document.documentElement.style.setProperty('--probe-capacity',width+'px'),setPalette:(mode,palette)=>Object.entries(buildCodexThemeCssProperties(mode,(palette==='lavender'?lavenderThemePalette:velaThemePalette)[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),setLocale:value=>preferences.set('locale.override',value),localeOverride:()=>preferences.get('locale.override'),setGoal:change=>{goal={...initialGoal,...change};goals.observe(threadId,goal)},beginDraft:()=>{goal=null;connection='ready';write=true;setNewDraft(true)},creates:()=>creates,opens:()=>opens,failWrite:value=>failWrite=value,holdCreate:()=>holdCreate=true,releaseCreate:()=>{holdCreate=false;releaseCreate?.()},connection:value=>{connection=value;setTick(value=>value+1)},draftReadonly:value=>{write=!value;setTick(value=>value+1)},draftText:()=>draftController.getSnapshot().draft.document.blocks,setTheme:mode=>Object.entries(buildCodexThemeCssProperties(mode,velaThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),clear:()=>{goal=null;goals.observe(threadId,null)},readonly:value=>{write=!value;goals.observe(threadId,goal)},switchThread:value=>setThreadId(value),threadId:()=>threadId,goalPhase:()=>goals.getSnapshot(threadId).phase,setCalls:()=>setCalls,clearCalls:()=>clearCalls,lastChange:()=>lastChange,status:()=>goal?.status,submitted:()=>submitted,objective:()=>goal?.objective,completedObjective:()=>goals.getSnapshot(threadId).completedGoal?.objective,goalUsage:()=>({tokensUsed:goal?.tokensUsed,timeUsedSeconds:goal?.timeUsedSeconds})};
+window.fixture={accounting:value=>{accounting=value;goals.observe(threadId,goal)},setExtras:setExtras,setCapacity:width=>document.documentElement.style.setProperty('--probe-capacity',width+'px'),setPalette:(mode,palette)=>Object.entries(buildOpenCraftThemeCssProperties(mode,(palette==='lavender'?lavenderThemePalette:opencraftCanvasThemePalette)[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),setLocale:value=>preferences.set('locale.override',value),localeOverride:()=>preferences.get('locale.override'),setGoal:change=>{goal={...initialGoal,...change};goals.observe(threadId,goal)},beginDraft:()=>{goal=null;connection='ready';write=true;setNewDraft(true)},creates:()=>creates,opens:()=>opens,failWrite:value=>failWrite=value,holdCreate:()=>holdCreate=true,releaseCreate:()=>{holdCreate=false;releaseCreate?.()},connection:value=>{connection=value;setTick(value=>value+1)},draftReadonly:value=>{write=!value;setTick(value=>value+1)},draftText:()=>draftController.getSnapshot().draft.document.blocks,setTheme:mode=>Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftCanvasThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),clear:()=>{goal=null;goals.observe(threadId,null)},readonly:value=>{write=!value;goals.observe(threadId,goal)},switchThread:value=>setThreadId(value),threadId:()=>threadId,goalPhase:()=>goals.getSnapshot(threadId).phase,setCalls:()=>setCalls,clearCalls:()=>clearCalls,lastChange:()=>lastChange,status:()=>goal?.status,submitted:()=>submitted,objective:()=>goal?.objective,completedObjective:()=>goals.getSnapshot(threadId).completedGoal?.objective,goalUsage:()=>({tokensUsed:goal?.tokensUsed,timeUsedSeconds:goal?.timeUsedSeconds})};
 if(newDraft)return <FloatingComposerRegistryContext.Provider value={floatingRegistry}><NewThreadDraftPage draft={draft} controller={draftController} goals={newGoals} onCreateGoal={objective=>{const content=draftController.getSnapshot().draft;return startGoal({...content,target:draft.target,commandId:crypto.randomUUID(),clientMessageId:crypto.randomUUID(),createdAt:Date.now(),document:{version:1,blocks:[{type:'paragraph',children:[{type:'text',text:objective}]}]}},objective,()=>true)}} showExecutionControls={false} workspaceOptions={[]} activeHostId='fixture' hostOptions={[]} connectionPhase={connection} onSelectHost={()=>{}} onSelectWorkspace={()=>{}} onBrowseWorkspace={()=>{}} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} catalog={{}} onSubmit={()=>{throw Error('Goal must not send ordinary input')}} /></FloatingComposerRegistryContext.Provider>;
-return <div style={{height:'100dvh',display:'flex',flexDirection:'column',justifyContent:'flex-end',width:'min(100%,var(--probe-capacity,100%))',marginInline:'auto',padding:'20px 16px 32px',background:'var(--color-background-surface)'}}><ThreadGoalSurface threadId={threadId} goals={goals}>{(goalMenuItem,_busy,goalContent)=><CodexComposer attachedContent={goalContent} floatingContent={extras?<div className='thread-live-changes'><TurnDiffBlock block={diff}/></div>:null} queuedSubmissions={extras?[queued]:[]} controller={controller} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}} addMenuContent={closeMenu=><><DropdownMenu.Item className='codex-composer-selection-menu__item codex-composer-add-menu__item'><FormattedMessage id='connector.title' defaultMessage='Connectors'/></DropdownMenu.Item>{goalMenuItem?.(closeMenu)}</>}/>}</ThreadGoalSurface></div>}
+return <div style={{height:'100dvh',display:'flex',flexDirection:'column',justifyContent:'flex-end',width:'min(100%,var(--probe-capacity,100%))',marginInline:'auto',padding:'20px 16px 32px',background:'var(--color-background-surface)'}}><ThreadGoalSurface threadId={threadId} goals={goals}>{(goalMenuItem,_busy,goalContent)=><OpenCraftComposer attachedContent={goalContent} floatingContent={extras?<div className='thread-live-changes'><TurnDiffBlock block={diff}/></div>:null} queuedSubmissions={extras?[queued]:[]} controller={controller} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}} addMenuContent={closeMenu=><><DropdownMenu.Item className='opencraft-composer-selection-menu__item opencraft-composer-add-menu__item'><FormattedMessage id='connector.title' defaultMessage='Connectors'/></DropdownMenu.Item>{goalMenuItem?.(closeMenu)}</>}/>}</ThreadGoalSurface></div>}
 createRoot(document.getElementById('root')).render(<UiPreferencesProvider runtime={preferences}><WorkbenchIntlProvider controller={locale} target={document.documentElement}><App/></WorkbenchIntlProvider></UiPreferencesProvider>);
 `;
 const vite = await createServer({
@@ -102,7 +102,7 @@ try {
     await page.screenshot({ path: `${output}/${mode}-expanded.png` });
     const colors = await summary.evaluate(element => ({ color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor }));
     assert.notEqual(colors.color, colors.background);
-    assert.equal(await page.locator('.thread-goal').evaluate(el => el.parentElement?.classList.contains('codex-composer-attached-rail')), true);
+    assert.equal(await page.locator('.thread-goal').evaluate(el => el.parentElement?.classList.contains('opencraft-composer-attached-rail')), true);
     await page.keyboard.press('Escape');
     await page.locator('.thread-goal__detail').waitFor({state:'hidden'});
     await page.waitForFunction(() => document.activeElement?.classList.contains('thread-goal__summary'));
@@ -122,7 +122,7 @@ try {
   assert.deepEqual(errors, []);
   const add = page.getByRole("button", { name: "添加", exact: true });
   const create = page.getByRole("menuitem", { name: "设定持续目标", exact: true });
-  const editor = page.locator(".codex-composer-editor");
+  const editor = page.locator(".opencraft-composer-editor");
   await editor.fill("保留这份输入草稿");
   await page.evaluate(() => (window as any).fixture.clear());
   await summary.waitFor({ state: "hidden" });
@@ -194,7 +194,7 @@ try {
     await page.evaluate(() => (window as any).fixture.beginDraft());
     await page.locator('[data-new-thread-draft-id]').waitFor();
     console.log('new Draft', width);
-    const draftEditor = page.locator('.codex-composer-editor');
+    const draftEditor = page.locator('.opencraft-composer-editor');
     await draftEditor.fill('保留新会话的普通输入');
     for (const mode of ['light', 'dark'] as const) {
       await page.evaluate(mode => (window as any).fixture.setTheme(mode), mode);
@@ -327,7 +327,7 @@ try {
       await adaptive.evaluate(({capacity,palette,mode,language}) => {
         const f=(window as any).fixture; f.setCapacity(capacity); f.setPalette(mode,palette); return f.setLocale(language);
       },{capacity,palette,mode,language});
-      await adaptive.locator('.codex-composer-editor').click();
+      await adaptive.locator('.opencraft-composer-editor').click();
       await adaptive.mouse.move(4,4);
       const goalSummary=adaptive.locator('.thread-goal__summary');
       await adaptive.locator('.thread-goal__label').filter({hasText:language==='zh-CN'?'正在推进目标':'Pursuing goal'}).waitFor();
@@ -336,13 +336,13 @@ try {
       assert.equal(motion.count,1,'an active Goal must visibly animate in the Composer');
       assert.equal(motion.duration,3200,'reuse the quiet sidebar cadence');
       await adaptive.waitForFunction(previous=>getComputedStyle(document.querySelector('.thread-goal__target')!).maskPosition!==previous,motion.mask);
-      const rail=adaptive.locator('.codex-composer-attached-rail');
+      const rail=adaptive.locator('.opencraft-composer-attached-rail');
       const geometry=await rail.evaluate((el:HTMLElement) => {
         const row=el.querySelector('.thread-goal')!; const r=row.getBoundingClientRect(); const editor=el.nextElementSibling!.getBoundingClientRect();
         return {children:[...el.children].map(n=>n.className),height:r.height,width:r.width,bottom:el.getBoundingClientRect().bottom,editorTop:editor.top,shellRadius:parseFloat(getComputedStyle(el.nextElementSibling!).borderTopLeftRadius),overflow:document.documentElement.scrollWidth>innerWidth,buttonRects:[...row.querySelectorAll('button')].filter(n=>getComputedStyle(n).display!=='none').map(n=>{const b=n.getBoundingClientRect();return {x:b.x,right:b.right,width:b.width,height:b.height}})};
       });
-      assert.deepEqual(geometry.children,['codex-composer-queue-tray','thread-goal']);
-      assert.equal(await adaptive.locator('.thread-live-changes').evaluate(el => el.parentElement?.classList.contains('codex-composer-stack')),true);
+      assert.deepEqual(geometry.children,['opencraft-composer-queue-tray','thread-goal']);
+      assert.equal(await adaptive.locator('.thread-live-changes').evaluate(el => el.parentElement?.classList.contains('opencraft-composer-stack')),true);
       assert.equal(geometry.bottom-geometry.editorTop,geometry.shellRadius,"rail meets the current symmetric editor contour");
       assert.equal(geometry.overflow,false);
       const railBox=await rail.boundingBox();assert.ok(railBox);
@@ -412,7 +412,7 @@ try {
     await adaptive.keyboard.press('Escape');await adaptive.locator('.thread-goal__detail').waitFor({state:'hidden'});
     await adaptive.evaluate(()=>(window as any).fixture.readonly(false));
     // A size change must retain both real editors and restore a visible opener.
-    const composerNode=await adaptive.locator('.codex-composer-editor').elementHandle();
+    const composerNode=await adaptive.locator('.opencraft-composer-editor').elementHandle();
     await adaptive.getByRole('button',{name:'Goal actions',exact:true}).click();
     await adaptive.getByRole('menuitem',{name:'Edit',exact:true}).click();
     const editorDialog=adaptive.getByRole('dialog',{name:'Edit goal',exact:true});await editorDialog.waitFor();
@@ -443,13 +443,13 @@ try {
     await adaptive.keyboard.press('Escape');await adaptive.locator('.thread-goal__detail').waitFor({state:'hidden'});
     await adaptive.emulateMedia({reducedMotion:'no-preference',forcedColors:'none'});
     // Remove is available through the real menu and does not clear the composer.
-    await adaptive.locator('.codex-composer-editor').fill('keep this ordinary input');
+    await adaptive.locator('.opencraft-composer-editor').fill('keep this ordinary input');
     await adaptive.getByRole('button',{name:'Goal actions',exact:true}).click();
     await adaptive.getByRole('menuitem',{name:'Remove',exact:true}).click();
     await adaptive.locator('.thread-goal').waitFor({state:'hidden'});
-    assert.equal(await adaptive.locator('.codex-composer-editor').innerText(),'keep this ordinary input');
+    assert.equal(await adaptive.locator('.opencraft-composer-editor').innerText(),'keep this ordinary input');
     // Completion is a terminal presentation boundary, never an implicit clear.
-    const composerBefore = await adaptive.locator('.codex-composer-editor').elementHandle();
+    const composerBefore = await adaptive.locator('.opencraft-composer-editor').elementHandle();
     const countsBefore = await adaptive.evaluate(() => { const f=(window as any).fixture; return {set:f.setCalls(),clear:f.clearCalls()}; });
     for (const mode of ['light','dark']) {
       await adaptive.evaluate(mode => { const f=(window as any).fixture; f.setPalette(mode,'vela'); f.setGoal({status:'active',objective:'Keep the completed result',tokenBudget:12345,tokensUsed:1234}); }, mode);
@@ -459,7 +459,7 @@ try {
       await adaptive.locator('.thread-goal').waitFor({state:'hidden'});
       await adaptive.locator('.thread-goal__detail').waitFor({state:'hidden'});
       assert.equal(await composerBefore?.evaluate(el=>el.isConnected),true);
-      assert.equal(await adaptive.locator('.codex-composer-editor').innerText(),'keep this ordinary input');
+      assert.equal(await adaptive.locator('.opencraft-composer-editor').innerText(),'keep this ordinary input');
       assert.deepEqual(await adaptive.evaluate(() => { const f=(window as any).fixture; return {set:f.setCalls(),clear:f.clearCalls()}; }),countsBefore);
       // Read-only completion keeps review accessible, with no write controls.
       await adaptive.evaluate(()=>(window as any).fixture.readonly(true));
@@ -530,7 +530,7 @@ try {
     await adaptive.getByRole('menuitem',{name:'View completed goal',exact:true}).click();
     const last=adaptive.getByRole('dialog',{name:'View completed goal',exact:true});await last.waitFor();
     await last.getByRole('button',{name:'Close',exact:true}).click();await last.waitFor({state:'hidden'});
-    const ordinary=adaptive.locator('.codex-composer-editor');
+    const ordinary=adaptive.locator('.opencraft-composer-editor');
     await ordinary.fill('An ordinary follow-up');
     if (touch) await adaptive.getByRole('button',{name:'Send message',exact:true}).click();
     else await ordinary.press('Enter');
@@ -544,7 +544,7 @@ try {
     assert.equal(await adaptive.evaluate(()=>(window as any).fixture.clearCalls()),countsBefore.clear+2);
     assert.equal(await adaptive.evaluate(()=>(window as any).fixture.status()),undefined);
     await adaptive.goto(`http://127.0.0.1:${(vite.httpServer!.address() as {port:number}).port}/?completed=1`);
-    await adaptive.locator('.codex-composer-editor').waitFor();
+    await adaptive.locator('.opencraft-composer-editor').waitFor();
     await adaptive.getByRole('button',{name:'添加',exact:true}).click();
     await adaptive.getByRole('menuitem',{name:'查看已完成目标',exact:true}).waitFor();
     assert.equal(await adaptive.locator('.thread-goal').count(),0,'hydrating an already completed Goal allocates no rail');

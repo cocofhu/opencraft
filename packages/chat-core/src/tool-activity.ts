@@ -396,18 +396,22 @@ function searchHostname(value: string): string | null {
   }
 }
 
-/** Mirrors Codex's compact query label, including its extracted `site:` facets. */
+
 function formatWebSearchQuery(value: string): string {
-  const hostnames: string[] = [];
-  const text = value.replace(WEB_SEARCH_SITE_OPERATOR, (match, candidate: string) => {
-    const hostname = searchHostname(candidate);
-    if (hostname === null) return match;
-    if (!hostnames.includes(hostname)) hostnames.push(hostname);
-    return "";
-  });
-  if (hostnames.length === 0) return value;
-  const compact = text.replace(WEB_SEARCH_OR_OPERATOR, " ").replace(/\s+/gu, " ").trim();
-  return compact.length === 0 ? value : `${compact} | ${hostnames.join(" · ")}`;
+  const domains = new Set<string>();
+  const retained: string[] = [];
+  let position = 0;
+  for (const operand of value.matchAll(/\bsite:(\S+)/giu)) {
+    const domain = searchHostname(operand[1]!);
+    if (domain === null) continue;
+    retained.push(value.slice(position, operand.index), " ");
+    domains.add(domain);
+    position = operand.index + operand[0].length;
+  }
+  if (domains.size === 0) return value.trim();
+  retained.push(value.slice(position));
+  const query = retained.join("").replace(/\bOR\b/gu, " ").split(/\s+/u).filter(Boolean).join(" ");
+  return query.length === 0 ? value.trim() : `${query} | ${Array.from(domains).join(" · ")}`;
 }
 
 function firstWebSearchQuery(action: Readonly<Record<string, unknown>>): string | null {
@@ -422,25 +426,33 @@ function firstWebSearchQuery(action: Readonly<Record<string, unknown>>): string 
   return queries.length > 1 ? `${detail} ...` : detail;
 }
 
-/** Extracts the exact compact detail used by Codex for every WebSearchAction. */
+/** Select display fields only; execution and resource policy remain with their owners. */
 export function extractWebSearchDetail(value: unknown): string | null {
   if (typeof value === "string") return nonEmptyString(value);
-  const source = object(value);
-  if (source === null) return null;
-  const action = object(source.action) ?? source;
-  const fallback = nonEmptyString(source.query);
-  const type = nonEmptyString(action.type);
-  if (type === "search") return firstWebSearchQuery(action) ?? fallback;
-  if (type === "openPage" || type === "open_page") return nonEmptyString(action.url) ?? fallback;
-  if (type === "findInPage" || type === "find_in_page") {
-    const pattern = nonEmptyString(action.pattern);
-    const url = nonEmptyString(action.url);
-    if (pattern !== null && url !== null) return `'${pattern}' in ${url}`;
-    if (pattern !== null) return `'${pattern}'`;
-    return url ?? fallback;
+  const envelope = object(value);
+  if (envelope === null) return null;
+  const action = object(envelope.action) ?? envelope;
+  let detail: string | null;
+  switch (action.type) {
+    case "openPage":
+    case "open_page":
+      detail = nonEmptyString(action.url);
+      break;
+    case "findInPage":
+    case "find_in_page": {
+      const pattern = nonEmptyString(action.pattern);
+      const url = nonEmptyString(action.url);
+      const label = pattern === null ? null : `'${pattern}'`;
+      detail = label === null ? url : url === null ? label : `${label} in ${url}`;
+      break;
+    }
+    case "search":
+      detail = firstWebSearchQuery(action);
+      break;
+    default:
+      detail = firstWebSearchQuery(action) ?? nonEmptyString(action.pattern) ?? nonEmptyString(action.url);
   }
-  if (type === "other") return fallback;
-  return firstWebSearchQuery(action) ?? fallback ?? nonEmptyString(action.pattern) ?? nonEmptyString(action.url);
+  return detail ?? nonEmptyString(envelope.query);
 }
 
 function contentParts(value: unknown, role: ToolCallContentRole): readonly ToolCallContentPart[] {

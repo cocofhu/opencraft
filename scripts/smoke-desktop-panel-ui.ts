@@ -250,7 +250,7 @@ try {
     const desktopColors = await page.locator('.ui-desktop-view').evaluate(element => ({
       background: getComputedStyle(element).getPropertyValue('--desktop-control-background').trim(),
       foreground: getComputedStyle(element).getPropertyValue('--desktop-control-foreground').trim(),
-      globalAccent: getComputedStyle(element).getPropertyValue('--codex-base-accent').trim(),
+      globalAccent: getComputedStyle(element).getPropertyValue('--opencraft-base-accent').trim(),
       trace: getComputedStyle(element.querySelector('.ui-desktop-view__trace > span')!).backgroundColor,
       wash: getComputedStyle(element.querySelector('.ui-desktop-view__visor-background > span')!).backgroundColor,
       status: getComputedStyle(element.querySelector('.ui-desktop-view__status')!).color,

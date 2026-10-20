@@ -36,9 +36,9 @@ import {
 } from "@opencraft/composer-appserver";
 import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
 import {
-  CodexComposer,
+  OpenCraftComposer,
   type ComposerSelectionCatalog,
-} from "@opencraft/codex-composer";
+} from "@opencraft/composer-editor";
 import { asHostId, asTurnId, deriveAsyncQuestionStates, findPendingInteraction, parseAsyncQuestionReply, renderAsyncQuestionReply, type AsyncQuestion, type TimelineSnapshot, type TurnDiffTimelineBlock } from "@opencraft/chat-core";
 import type { ChatResourceDecision, ChatResourceOpenIntent } from "@opencraft/chat-render-web";
 import type { PlatformViewHost } from "@opencraft/extension-react";
@@ -393,12 +393,12 @@ export function App({
   useLayoutEffect(() => {
     if (!presentation.contextSidebar) return;
     document.documentElement.style.setProperty(
-      "--codex-sidebar-preferred-width",
+      "--opencraft-sidebar-preferred-width",
       `${sidebarWidth}px`,
     );
     return () => {
       document.documentElement.style.removeProperty(
-        "--codex-sidebar-preferred-width",
+        "--opencraft-sidebar-preferred-width",
       );
     };
   }, [presentation.contextSidebar, sidebarWidth]);
@@ -1546,7 +1546,7 @@ export function App({
   const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
   const composerDesktopEntry = presentation.composerDesktopEntry === true && conversationRouteOpen && cloudDesktopAction
     && (cloudDesktopAction.isAvailable?.(panelToolbarContext) ?? true) ? (
-    <button type="button" className="codex-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
+    <button type="button" className="opencraft-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
       onClick={() => {
         try {
           void Promise.resolve(cloudDesktopAction.run(panelToolbarContext)).catch(() => {
@@ -2104,7 +2104,7 @@ export function App({
                         goals={runtime.resources.goals}
                         portalContainer={portalContainer}
                       >{(goalMenuItem, _goalBusy, goalContent) => (
-                      <CodexComposer
+                      <OpenCraftComposer
                         attachedContent={goalContent}
                         floatingContent={composerChangeSummary}
                         controller={composerController}
@@ -2169,7 +2169,7 @@ export function App({
                       />
                       )}</ThreadGoalSurface>
                     ) : (
-                      <div className="codex-composer-stack">
+                      <div className="opencraft-composer-stack">
                         {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}

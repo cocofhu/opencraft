@@ -21,26 +21,26 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 800 } });
     const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}`);
-    const editor = page.locator(".ProseMirror"), send = page.locator(".codex-composer-submit"); await editor.waitFor();
+    const editor = page.locator(".ProseMirror"), send = page.locator(".opencraft-composer-submit"); await editor.waitFor();
     const calls = () => page.evaluate(() => (window as any).__commandsFixture.calls);
-    await page.locator(".codex-composer-shortcut-trigger").click();
+    await page.locator(".opencraft-composer-shortcut-trigger").click();
     await page.getByRole("menuitem").filter({ hasText: "/status" }).click();
     await assert.doesNotReject(() => editor.waitFor({ state: "visible" }));
     assert.equal((await editor.textContent())?.trim(), "/status"); assert.deepEqual(await calls(), []);
     await send.click(); await page.waitForFunction(() => (window as any).__commandsFixture.calls.length === 1);
     assert.deepEqual(await calls(), [["prompt", "/status"]]);
-    await page.locator(".codex-composer-shortcut-trigger").click();
+    await page.locator(".opencraft-composer-shortcut-trigger").click();
     await page.getByRole("menuitem").filter({ hasText: "/stop" }).click();
     assert.equal((await editor.textContent())?.trim(), "/stop"); assert.equal((await calls()).length, 1);
     if (process.env.OPENCRAFT_COMMAND_SMOKE_OUTPUT) await page.screenshot({ path: `${process.env.OPENCRAFT_COMMAND_SMOKE_OUTPUT}/composer-${width}.png` });
     await send.click(); await page.waitForFunction(() => (window as any).__commandsFixture.calls.length === 2);
     assert.deepEqual((await calls())[1], ["stop", "fixture-host", "fixture-thread", "captured-turn"]);
     await page.evaluate(() => (window as any).__commandsFixture.retire());
-    await page.locator(".codex-composer-shortcut-trigger").click();
+    await page.locator(".opencraft-composer-shortcut-trigger").click();
     await page.getByRole("menuitem").filter({ hasText: "/stop" }).click(); await send.click();
     await page.getByRole("alert").waitFor();
     assert.equal((await calls()).length, 2); assert.equal((await editor.textContent())?.trim(), "/stop");
     assert.deepEqual(errors, []); await page.close();
   }
-  console.log("PASS actual CodexComposer: wide/narrow menu inserts without execution, explicit send routes prompt/action, captured target preserved, retired provider fails without consuming draft; engine/network simulated");
+  console.log("PASS actual OpenCraftComposer: wide/narrow menu inserts without execution, explicit send routes prompt/action, captured target preserved, retired provider fails without consuming draft; engine/network simulated");
 } finally { await browser?.close(); await new Promise<void>(resolve => server.close(() => resolve())); }

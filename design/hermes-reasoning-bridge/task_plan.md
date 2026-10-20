@@ -28,7 +28,7 @@ On current `origin/master`, remove the unused OpenCraft Agent catalog and make H
 - Parallel focused verification produced one unrelated local-agent process test failure (`posix_spawnp failed`) while Hermes/catalog/reasoning tests passed. Re-run that process suite alone after concurrent typecheck/UI work settles; do not change product code from this signal.
 - Current `origin/master` initially failed typecheck because `hermes-diagnostics-management-view.tsx` omitted the already-existing required `execDebugCommandStream`. Added the same account-owned stream port with the established diagnostics timeout; Web, Expo, and plugin typechecks then passed.
 - First current-master UI smoke timed out before Composer mounted; added error/body capture and retry after concurrent work settled.
-- Captured UI error showed current master removed `ComposerPresentationProvider`; updated the smoke fixture to use the current direct CodexComposer contract.
+- Captured UI error showed current master removed `ComposerPresentationProvider`; updated the smoke fixture to use the current direct OpenCraftComposer contract.
 - Local-agent process failure traced to `npm ci` dropping the executable bit on node-pty's untracked `spawn-helper`; restored that worktree dependency permission, no source change.
 - Current-master UI behavior passed, but the smoke's strict console assertion caught Vite's missing favicon 404. Added a 204 fixture route instead of suppressing console errors.
 - First full gate reached DSH tests after all typechecks and Hermes suites passed, then failed three checkpoint files because fresh `npm ci` does not populate `runtime/dsh`; run the repository-owned `prepare:dsh-runtime` prerequisite before retry.

@@ -13,8 +13,8 @@ function renderToStaticMarkup(children: React.ReactNode) {
   return renderMarkup(<IntlRuntimeProvider runtime={locale}>{children}</IntlRuntimeProvider>);
 }
 
-import { ComposerQueueTray } from "../packages/codex-composer/src/queue-tray";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { ComposerQueueTray } from "../packages/composer-editor/src/queue-tray";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createConversationKey } from "@opencraft/chat-core";
 import { createComposerController } from "@opencraft/composer-core";
 import { queuedSubmissionPresentation } from "../apps/workbench-web/src/queued-submission-presentation";
@@ -52,7 +52,7 @@ test("normal queued follow-ups render as messages rather than transport UI", () 
 
   assert.match(markup, /Inspect the failed deployment/);
   assert.match(markup, /data-queue-size="1"/);
-  assert.doesNotMatch(markup, /codex-composer-queue-tray__heading/);
+  assert.doesNotMatch(markup, /opencraft-composer-queue-tray__heading/);
   assert.doesNotMatch(markup, />(?:Adding…|Saving…|Queued)</);
   assert.match(markup, /aria-busy="true"/);
 });
@@ -87,7 +87,7 @@ test("Workbench queue projection keeps uncertain delivery non-deletable through 
     { now: () => 100, createId: () => "composer-id" },
   );
   const renderState = (state: "submitting" | "failed" | "unknown") => renderToStaticMarkup(
-    <CodexComposer
+    <OpenCraftComposer
       controller={controller}
       isStreaming
       queuedSubmissions={[queuedSubmissionPresentation({ ...submission, state }, true)]}
@@ -159,7 +159,7 @@ test("queued Steer is disabled without Host atomic support while idle Send remai
   );
   assert.match(running, /aria-label="Steer with queued message"[^>]*disabled=""/);
   assert.match(running, /This Host cannot steer a queued message/);
-  assert.match(running, /class="codex-composer-queue-action-trigger"[^>]*tabindex="0"[^>]*role="group"[^>]*aria-disabled="true"/);
+  assert.match(running, /class="opencraft-composer-queue-action-trigger"[^>]*tabindex="0"[^>]*role="group"[^>]*aria-disabled="true"/);
 
   const supported = renderToStaticMarkup(
     <ComposerQueueTray items={[item]} isResponseInProgress atomicSteer />,
@@ -204,7 +204,7 @@ test("queued actions keep labels and use custom tooltip triggers", async () => {
     const markup = renderMarkup(<IntlRuntimeProvider runtime={runtime}>
       <ComposerQueueTray items={[item]} isResponseInProgress atomicSteer />
     </IntlRuntimeProvider>);
-    assert.match(markup, /class="codex-composer-queue-item__preview"[^>]*>几点了/);
+    assert.match(markup, /class="opencraft-composer-queue-item__preview"[^>]*>几点了/);
     assert.match(markup, /aria-label="调整排队消息顺序"/);
     assert.match(markup, /aria-label="编辑排队消息"/);
     assert.match(markup, /aria-label="删除排队消息"/);
@@ -223,9 +223,9 @@ test("queue author photos replace the decorative leading arrow and survive proje
   const item = queuedSubmissionPresentation(source, true, {id: "test", resolve: (kind, name) => { calls.push(`${kind}:${name}`); return "https://images.example/alice.png"; }});
   assert.deepEqual(item.sender, {name: "alice", avatarUrl: "https://images.example/alice.png"});
   const markup = renderToStaticMarkup(<ComposerQueueTray items={[{...item, editing: false}]} isResponseInProgress atomicSteer />);
-  assert.match(markup, /class="codex-composer-queue-item__avatar" role="img" aria-label="alice"/);
+  assert.match(markup, /class="opencraft-composer-queue-item__avatar" role="img" aria-label="alice"/);
   assert.match(markup, /src="https:\/\/images.example\/alice.png"/);
-  assert.doesNotMatch(markup, /codex-composer-queue-item__message-icon/);
+  assert.doesNotMatch(markup, /opencraft-composer-queue-item__message-icon/);
   assert.match(markup, /aria-label="Reorder queued message"/);
   assert.match(markup, /aria-label="Steer with queued message"/);
   assert.deepEqual(calls, ["employee:alice"]);

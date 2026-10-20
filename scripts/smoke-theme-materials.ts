@@ -24,10 +24,10 @@ const managerSnapshot={extensions:[],installationLoadErrors:[]};const empty=[];
 const manager={subscribe:()=>()=>{},getSnapshot:()=>managerSnapshot};const renderers={subscribe:()=>()=>{},getSnapshot:()=>empty};
 function App(){const [settings,setSettings]=useState(false);const appearance=useAppearanceTheme();window.themeHarness.showSettings=()=>setSettings(true);
 if(settings)return <div style={{height:'100vh',display:'flex',background:'var(--color-background-surface)'}}><SettingsContent section='appearance' onSectionChange={()=>{}} profiles={[]} machines={[]} activeHostId='' themes={appearance.availableThemes} themeId={appearance.themeId} themePreference={appearance.preference} onThemeChange={setAppearanceThemeId} onThemePreferenceChange={setThemePreference} extensionContributions={supervisor.contributions} extensionManager={manager} extensionRuntime={supervisor} platformViewRenderers={renderers}/></div>;
-return <main style={{display:'grid',gridTemplateColumns:'220px 1fr',height:'100vh',background:'var(--codex-window-material)'}}>
-<aside id='sidebar' style={{padding:20,background:'var(--codex-sidebar-material-background)',backdropFilter:'var(--codex-sidebar-material-filter)'}}>主题材质<br/>Theme materials</aside>
+return <main style={{display:'grid',gridTemplateColumns:'220px 1fr',height:'100vh',background:'var(--opencraft-window-material)'}}>
+<aside id='sidebar' style={{padding:20,background:'var(--opencraft-sidebar-material-background)',backdropFilter:'var(--opencraft-sidebar-material-filter)'}}>主题材质<br/>Theme materials</aside>
 <section style={{padding:24}}><h2>配置 Settings</h2><SettingsGroup><SettingsRow label='名称 Name' htmlFor='name'><SettingsTextInput id='name' defaultValue='中英文名称'/></SettingsRow><SettingsRow label='模型 Model' htmlFor='model'><SettingsSelect id='model'><option>默认 Default</option></SettingsSelect></SettingsRow></SettingsGroup>
-<div id='popover' style={{marginTop:24,padding:20,background:'var(--color-background-elevated-primary-opaque)',boxShadow:'var(--codex-main-surface-elevation)'}}>浮层 Popover</div></section></main>}
+<div id='popover' style={{marginTop:24,padding:20,background:'var(--color-background-elevated-primary-opaque)',boxShadow:'var(--opencraft-main-surface-elevation)'}}>浮层 Popover</div></section></main>}
 createRoot(document.getElementById('root')).render(<App/>);`;
 const vite = await createServer({configFile:false,root:process.cwd(),logLevel:"error",resolve:{dedupe:["react","react-dom"]},cacheDir:"node_modules/.vite-theme-materials",esbuild:{jsx:"automatic"},server:{host:"127.0.0.1",port:0,hmr:false},plugins:[{
   name:"theme-material-fixture",resolveId:id=>id==="/theme-probe.tsx"?id:null,load:id=>id==="/theme-probe.tsx"?source:null,

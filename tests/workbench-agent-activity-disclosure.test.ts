@@ -44,3 +44,17 @@ test("terminal Turn errors use Codex's neutral timeline banner instead of an err
   assert.match(errorStyles, /border:\s*1px solid var\(--color-border-subtle\)/u);
   assert.doesNotMatch(errorStyles, /color-decoration-deleted/u);
 });
+
+test("all public disclosure events preserve explicit phase boundaries", () => {
+  const phases = ["collapsed", "opening", "expanded", "closing"] as const;
+  const events = ["toggle", "animation-frame", "animation-complete", "disable"] as const;
+  const outcomes = [
+    ["opening", "collapsed", "collapsed", "collapsed"],
+    ["closing", "expanded", "opening", "collapsed"],
+    ["closing", "expanded", "expanded", "collapsed"],
+    ["expanded", "closing", "collapsed", "collapsed"],
+  ];
+  for (let p = 0; p < phases.length; p++) for (let e = 0; e < events.length; e++) {
+    assert.equal(reduceAgentActivityDisclosurePhase(phases[p], events[e]), outcomes[p][e]);
+  }
+});

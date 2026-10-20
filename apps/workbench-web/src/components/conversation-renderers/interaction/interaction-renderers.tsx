@@ -45,10 +45,10 @@ import {
 } from "react";
 
 import {
-  CodexGlobeActivityIcon,
-  CodexPatchActivityIcon,
-  CodexTerminalActivityIcon,
-} from "../../codex-activity-icons";
+  GlobeActivityIcon,
+  PatchActivityIcon,
+  TerminalActivityIcon,
+} from "../../activity-glyphs";
 import {
   ActivityDisclosure,
   CadencedShimmer,
@@ -124,9 +124,9 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
     <section className="thread-interaction-card thread-approval-request" data-approval-kind={block.approvalKind} data-interaction-kind="approval" data-state={block.state}>
       <div className="thread-interaction-card__copy">
         <div className="thread-approval-request__identity">
-          {presentation.identityLabel === "Internet access" ? <CodexGlobeActivityIcon aria-hidden="true" />
-            : presentation.identityLabel === "Terminal" ? <CodexTerminalActivityIcon aria-hidden="true" />
-            : presentation.identityLabel === "Edit files" ? <CodexPatchActivityIcon aria-hidden="true" />
+          {presentation.identityLabel === "Internet access" ? <GlobeActivityIcon aria-hidden="true" />
+            : presentation.identityLabel === "Terminal" ? <TerminalActivityIcon aria-hidden="true" />
+            : presentation.identityLabel === "Edit files" ? <PatchActivityIcon aria-hidden="true" />
             : <Wrench aria-hidden="true" size={16} />}
           <span>{presentation.identityLabel}</span>
         </div>

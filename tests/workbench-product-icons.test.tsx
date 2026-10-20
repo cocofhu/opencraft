@@ -14,7 +14,7 @@ import { WorkbenchIcon } from "../apps/workbench-web/src/components/ui/workbench
 import { NavigationIcon } from "../apps/workbench-web/src/components/shell-navigation/navigation-action";
 import { SidebarToggleIcon } from "../apps/workbench-web/src/chrome-actions/sidebar-toggle-icon";
 import { NewTaskIcon } from "../apps/workbench-web/src/chrome-actions/new-task-icon";
-import { ReferenceNavigationIcon, ReferenceNewTaskIcon, ReferenceSidebarToggleIcon } from "./fixtures/vela-icon-reference";
+import { ReferenceNavigationIcon, ReferenceSidebarToggleIcon } from "./fixtures/opencraft-icon-reference";
 import { resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
 const render = (component: ReturnType<typeof createElement>, iconStyle: "classic" | "standard" = "classic") => renderToStaticMarkup(createElement(WorkbenchPresentationContext.Provider, { value: resolveWorkbenchPresentation({iconStyle}) }, component));
 const geometry = (markup: string) => [...markup.matchAll(/<(?:path|circle|rect|line|polyline|polygon|ellipse)\b[^>]*>/g)].map(match => match[0]);
@@ -25,9 +25,13 @@ for (const selected of [false,true]) test(`Downstream navigation retains the fix
     assert.equal(actual,reference,name);
   }
 });
-test("New task retains product artwork while panel toggles share the reference pair", () => {
-  assert.equal(render(createElement(NewTaskIcon)),renderToStaticMarkup(createElement(ReferenceNewTaskIcon)));
-  assert.notDeepEqual(geometry(render(createElement(NewTaskIcon),"standard")),geometry(render(createElement(NewTaskIcon))));
+test("New task uses the shared semantic action while panel toggles retain their contract", () => {
+  for (const style of ["classic", "standard"] as const) {
+    const markup = render(createElement(NewTaskIcon), style);
+    assert.equal(markup, render(createElement(WorkbenchIcon, {name: "start", size: 16}), style));
+    assert.match(markup, /aria-hidden="true"/);
+    assert.match(markup, /focusable="false"/);
+  }
   for (const product of ["classic", "standard"] as const) for(const sidebarOpen of [false,true]) assert.equal(render(createElement(SidebarToggleIcon,{sidebarOpen}),product),renderToStaticMarkup(createElement(ReferenceSidebarToggleIcon,{sidebarOpen})));
 });
 test("semantic settings/panel icons retain old consumer-specific artwork and scale",()=>{

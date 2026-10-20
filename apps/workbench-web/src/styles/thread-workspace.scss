@@ -80,7 +80,7 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: calc(var(--spacing) * 4);
   background: var(--color-background-elevated-primary-opaque);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   transition: opacity var(--transition-duration-basic) var(--ease-enter-snappy),
     translate var(--transition-duration-basic) var(--ease-enter-snappy);
   &[data-visible="false"] {
@@ -141,7 +141,7 @@
   padding: 0;
   color: var(--color-text-secondary);
   background: var(--color-background-elevated-primary-opaque);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   cursor: pointer;
   transition: color var(--transition-duration-basic),
     scale var(--transition-duration-basic),
@@ -229,34 +229,34 @@
   outline-offset: -2px;
 }
 .thread-composer-overlay__content[data-density="compact"] {
-  .codex-composer-chrome-header,
-  .codex-composer-footer__controls,
-  .codex-composer-footer__end {
+  .opencraft-composer-chrome-header,
+  .opencraft-composer-footer__controls,
+  .opencraft-composer-footer__end {
     display: none;
   }
-  .codex-composer-shell {
+  .opencraft-composer-shell {
     display: flex;
     align-items: center;
     min-height: calc(var(--spacing) * 12);
   }
-  .codex-composer-input-row {
+  .opencraft-composer-input-row {
     flex: 1;
     min-width: 0;
     padding: calc(var(--spacing) * 3);
   }
-  .codex-composer-editor {
+  .opencraft-composer-editor {
     min-height: 0;
     max-height: 1.5em;
     overflow: hidden;
     white-space: nowrap;
   }
-  .codex-composer-footer {
+  .opencraft-composer-footer {
     flex: 0 0 auto;
     padding: 0 calc(var(--spacing) * 2) 0 0;
   }
 }
 .thread-composer-overlay__content[data-expanding="true"] {
-  .codex-composer-footer__controls {
+  .opencraft-composer-footer__controls {
     visibility: hidden;
     pointer-events: none;
   }
@@ -297,6 +297,6 @@ html[data-timeline-keyboard-open="true"] .thread-composer-overlay[data-presentat
 @container composer-overlay (max-height: 320px) {
   :root[data-ui-density="touch"] .thread-composer-overlay[data-active-tab^="terminal:"] {
     .thread-composer-overlay__latest { display: none; }
-    .codex-composer-editor { min-height: 1lh; max-height: 1lh; }
+    .opencraft-composer-editor { min-height: 1lh; max-height: 1lh; }
   }
 }

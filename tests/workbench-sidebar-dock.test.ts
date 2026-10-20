@@ -171,11 +171,10 @@ test("one Sidecar owns two platform panes with independent frame, clip, and view
 });
 
 test("context sidebar actions share one stable leading slot after account moves to the Sidecar footer", () => {
-  assert.equal(
-    sidebarSource.match(/<SidebarNavigationItem/gu)?.length,
-    4,
-    "every primary and footer sidebar action reserves the shared leading slot",
-  );
+  // Contribution counts are runtime data. Counting JSX source sites rejects a
+  // shared renderer without proving any item loses its leading slot. Keep the
+  // token/style ownership checks here; actual Sidebar browser checks cover
+  // Start, primary contributions, footer contributions and Settings together.
   assert.match(
     designTokens,
     /--size-navigation-leading-slot:\s*28px;/u,

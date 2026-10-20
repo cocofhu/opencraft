@@ -30,10 +30,10 @@ function App(){
  window.fixture={owner,leases,configure(nextKind,nextHeight,nextVirtualized=true){setShown(false);setKind(nextKind);setHeight(nextHeight);setOpen(false);setVirtualized(nextVirtualized)},show(){setShown(true)},hide(){setShown(false)},grow(){setHeight(h=>h+300)}};
  const item={type:'worked-for',status:'worked',startedAtMs:0,completedAtMs:342000};
  const contentUnits=[{type:'worked-for',id:'fixture-work',item}];
- const unit={id:'fixture-work',contentUnits,inlineSubagentActivity:null,partitions:{workedForItem:item,collapsibleUnits:contentUnits,expandedUnits:contentUnits,persistentUnits:[],preToggleUnits:[]},hasFinalAssistantStarted:true,hasRenderableAgentItems:true,isTurnCancelled:false,forceExpanded:false,disableCollapse:false,preventAutoCollapse:false,phase:'before-final-answer',workedDurationMs:342000};
+ const unit={type:'agent-activity',id:'fixture-work',blocks:[],collapsedItemCount:1,status:'complete',segmentEnd:'final-answer',contentUnits,inlineSubagentActivity:null,partitions:{workedForItem:item,collapsibleUnits:contentUnits,expandedUnits:contentUnits,persistentUnits:[],preToggleUnits:[]},hasFinalAssistantStarted:true,hasRenderableAgentItems:true,isTurnCancelled:false,forceExpanded:false,disableCollapse:false,preventAutoCollapse:false,phase:'before-final-answer',workedDurationMs:342000};
  const turn=<div data-turn-key="one" style={{flex:'none'}}>
     <div style={{height:700.35}}/>
-    <div id="disclosure"><React.StrictMode>{shown?(kind==='group'?<AgentActivityGroupDisclosure summary="Read files and ran commands" summaryKey="fixture"><div style={{height}}/></AgentActivityGroupDisclosure>:kind==='worked'?<AgentActivity persistedCollapsed={!open} onCollapsedChange={collapsed=>setOpen(!collapsed)} unit={unit}/>:<ActivityDisclosure icon={null} summary={kind==='read'?'Read file':'Bash command'} running={false} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed={kind==='bash'}><div style={{height}}/></ActivityDisclosure>):null}</React.StrictMode></div>
+    <div id="disclosure"><React.StrictMode>{shown?(kind==='group'?<AgentActivityGroupDisclosure summary="Read files and ran commands" summaryKey="fixture"><div style={{height}}/></AgentActivityGroupDisclosure>:kind==='worked'?<AgentActivity persistedCollapsed={!open} onCollapsedChange={collapsed=>setOpen(!collapsed)} unit={unit} innerCollapsedById={{}} onInnerCollapsedChange={()=>{}}/>:<ActivityDisclosure icon={null} summary={kind==='read'?'Read file':'Bash command'} running={false} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed={kind==='bash'}><div style={{height}}/></ActivityDisclosure>):null}</React.StrictMode></div>
     <div id="after" style={{height:1000}}/>
    </div>;
  return <DisclosureReflowContext.Provider value={acquire}>
@@ -45,7 +45,7 @@ function App(){
   </div>
  </DisclosureReflowContext.Provider>;
 }
-document.documentElement.style.setProperty('--codex-chat-line-height','24px');
+document.documentElement.style.setProperty('--opencraft-chat-line-height','24px');
 createIntlTestRoot(document.getElementById('root')).render(<App/>);
 `;
 const vite = await createServer({

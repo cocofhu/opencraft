@@ -1,0 +1,38 @@
+import React, { useState } from "react";
+import { normalizeMcpElicitationMetadata, type McpElicitationTimelineBlock } from "@opencraft/chat-core";
+import { ConversationPendingInteractionPanel } from "../../apps/workbench-web/src/components/conversation-renderers/interaction/interaction-renderers";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { createIntlTestRoot } from "./intl-root";
+import "../../apps/workbench-web/src/styles/app.scss";
+
+document.documentElement.dataset.theme = "light";
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+
+const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void };
+probe.mcpActions = []; probe.mcpOpened = [];
+window.open = ((url: string) => { probe.mcpOpened.push(String(url)); return null; }) as typeof window.open;
+const formSchema = { type: "object", required: ["name", "count"], properties: {
+  name: { type: "string", title: "Name", minLength: 2 }, count: { type: "integer", title: "Count", minimum: 1, maximum: 3, default: 2 },
+  enabled: { type: "boolean", title: "Enabled", default: true }, environment: { type: "string", title: "Environment", enum: ["stage", "prod"] },
+  tags: { type: "array", title: "Tags", items: { enum: ["safe", "fast"] }, default: ["safe"] },
+} };
+let sequence = 0;
+function example(name: string): McpElicitationTimelineBlock {
+  const mode = name === "auth" || name === "url" ? "url" : "form";
+  const serverName = name === "auth" ? "codex_apps" : "fixture";
+  const raw = name === "tool" ? { codex_approval_kind: "mcp_tool_call", connector_id: "issues", connector_name: "Issues", tool_name: "create_issue", riskLevel: "high", subtitle: "Creates a synthetic issue", persist: ["session", "always"],
+    tool_params: { payload: { body: "x".repeat(140) }, title: "Release", flag: true, count: 3, extra: "extra" } }
+    : name === "suggestion" ? { codex_approval_kind: "tool_suggestion", suggest_type: "install", suggest_reason: "Track this work", tool_type: "connector", tool_id: "issues", tool_name: "Issues", install_url: "https://example.test/install", persist: "always" }
+    : name === "auth" ? { _codex_apps: { connector_auth_failure: { is_auth_failure: true, connector_id: "drive", connector_name: "Drive", install_url: "https://example.test/auth", auth_reason: "missing_link", requested_scopes: ["files.read"] } } } : {};
+  return { type: "elicitation", id: name, sourceItemIds: [], requestId: `${name}-${sequence++}`, targetItemId: null,
+    method: "mcpServer/elicitation/request", state: "pending", mode, serverName, message: name === "tool" ? "Allow this synthetic tool?" : "Provide the requested information",
+    requestedSchema: name === "form" ? formSchema : {}, url: mode === "url" ? "https://example.test/continue" : null,
+    elicitationId: null, ...normalizeMcpElicitationMetadata(mode, raw, { serverName }) };
+}
+function Demo() {
+  const [block, setBlock] = useState(() => example("form"));
+  probe.showMcpCase = name => setBlock(example(name));
+  return <main data-scenario={block.id} style={{ padding: 16, maxWidth: 760, margin: "auto" }}><ConversationPendingInteractionPanel key={block.requestId} block={block}
+    onRespondInteraction={async (_requestId, action) => { probe.mcpActions.push(action); }} /></main>;
+}
+createIntlTestRoot(document.getElementById("root")!).render(<Demo />);

@@ -1,5 +1,5 @@
 .opencraft-chat-document {
-  --markdown-font-size: var(--codex-chat-font-size, var(--typography-chat-size));
+  --markdown-font-size: var(--opencraft-chat-font-size, var(--typography-chat-size));
   --markdown-line-height: calc(var(--markdown-font-size) + var(--typography-chat-leading));
   color: var(--color-text, var(--text-primary));
   font-family: var(--font-family-content);
@@ -187,7 +187,7 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-background-primary-ghost-hover, var(--alpha-06)) 60%, currentColor 6%);
   font-family: var(--font-family-mono);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   overflow-wrap: anywhere;
   word-break: break-word;
   direction: ltr;

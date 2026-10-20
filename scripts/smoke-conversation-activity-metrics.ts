@@ -101,7 +101,7 @@ try {
     }
     // Essential reading preferences must change returned text only. Process
     // labels, including compaction and shimmer, retain their semantic scale.
-    await page.evaluate(() => document.documentElement.style.setProperty('--codex-chat-font-size', '20px'));
+    await page.evaluate(() => document.documentElement.style.setProperty('--opencraft-chat-font-size', '20px'));
     const enlarged = await measure();
     assert.deepEqual(enlarged, normal, "reading preference cannot change summary metrics or glyph identity");
     assert.deepEqual(await page.locator('.thread-subagent-activity__status').evaluateAll(nodes => nodes.map(node => {

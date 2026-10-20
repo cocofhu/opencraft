@@ -18,9 +18,9 @@ scope/reduced-motion 使用端点。退出期间保存同 scope 的布局描述�
 resize 不冻结内容。原生 guest 上方的临时 resize 捕获层只在拖动事务存续期间存在，
 松手/取消/失焦结束，避免 guest 吞掉主页面 pointermove。
 
-2026-09-14 源实现迁移：ApplicationSupervisor 创建的 BrowserPresentationCoordinator
-直接实例化迁入的 BrowserSidebarStateManager 与 PagePresentationTransition。
-源管理器拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
+2026-09-14 源实现迁移为历史起点；2026-10-20 的有界替换后，ApplicationSupervisor
+创建的 BrowserPresentationCoordinator 经原薄 adapter 实例化独立 Host registry 与
+PagePresentationTransition。管理器仍拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
 独立 body root、标准 guest、导航及持久化端口。面板仅申领挂载并提交几何，park/unmount 不销毁页面，
 显式 close 才销毁。逻辑 Page、持久化 browserStorageId、rendererInstanceId、
 host generation 与 mount generation 分离。存储分区采用标准 Electron partition；
@@ -55,7 +55,7 @@ Iterator helpers（如 `Map.values().map()`）。需要映射时先用标准数�
 标签、页面及 storage ID 元数据通过主进程存储，不能依赖启动时变化的 localhost origin。
 空白 backing 交由源管理器 prewarm 所有权管理；首次加载前已设置分区与 sandbox。
 崩溃恢复通过标准 guest reload 重建 renderer，保持 logical page 和 partition。
-设备预设与拖动计算直接来自 Codex，尺寸变化消费源 manager toolbar 投影，持久化到标签偏好。
+设备预设保留应用兼容数据，数值helper与拖动计算已分别有界替换；尺寸变化消费现有registry与工具栏投影，持久化仍由标签偏好owner负责。
 
 设备工具栏呈现（2026-09-14）：按源 DeviceToolbar/数字输入的布局和编辑语义迁移，
 地址栏只保留设备模式开关；设备模式显示 34px 单行工具栏（预设、宽 × 高、旋转、
@@ -63,9 +63,9 @@ Iterator helpers（如 `Map.values().map()`）。需要映射时先用标准数�
 缩放，小于460px隐藏 Dimensions 标签。宽高输入保留编辑草稿，合法数值即时应用，
 失焦/Enter 时规范化。拖动来自左右/底边/两个底角的真实视口边界，而非文字按钮；
 pointer capture、取消与键盘操作属于控件，页面尺寸仍由共享 viewport layout 计算。
+父层mode/zoom与本地聚焦草稿分开；预设选择重置受支持zoom，旋转保留模式身份，Enter阻止默认提交后失焦，Escape只失焦。相邻手柄与共享样式未改。
 浏览器内的 PreviewBridge 复用现有敏感字段策略与语义输入，不声称 trusted input/CDP。
-挂载代次与焦点转移规则对照 ref/codex/browser-sidebar-webview-manager 和
-get-or-create-browser-sidebar-webview-root；其余尚未验证的 Codex 细节不能按架构接入成功推定完成。
+
 
 OpenCraft 共享的是浏览器的身份、行为、能力和恢复语义，不共享物理渲染控件，也不把
 Thread 所属 Host、浏览器执行位置和 UI 呈现位置压成一个 `hostId`。
@@ -1259,3 +1259,54 @@ DNS label boundary, not arbitrary URL text. Other destinations open with
 Electron workbench supplies no policy and retains its native browsing behavior. This is a
 policy for OpenCraft-initiated navigation, not a security boundary for redirects or
 navigation initiated inside an inaccessible cross-origin guest.
+
+
+### Viewport drag geometry replacement (2026-10-20)
+
+The small `viewport-resize.js` pure helper now uses independently authored axis
+geometry after frozen requirements and observed contracts; its former explicit
+source-body attribution is retained in the provenance baseline. This supersedes
+only the earlier statement that drag calculation itself directly uses the
+reference implementation. Device preset facts, source manager, toolbar and
+transition ownership are unchanged and are not cleared by this replacement.
+Horizontal handles resize around a fixed center, bottom handles alter height,
+and the captured scale maps pointer movement into bounded viewport dimensions.
+Pointer capture, cancellation, keyboard and persistence remain in their current
+owners.
+
+
+### Browser presentation transition ownership (2026-10-20)
+
+The manager continues to own backing hosts, storage and mount claims. Its
+presentation transition module now independently implements owner/surface leases:
+a pending incoming view retains the painted outgoing view, blocks both during
+handoff, accepts a current attachment ack or bounded deadline, then prewarms for
+two frames and releases on the next frame. Registration only updates stacking.
+Removal, route transfer, hidden sync and rapid replacement revoke scheduled work;
+old callbacks cannot reclaim a newer reference or generation. Surface moves retire
+the previous presentation claim. Automation input/focus locks remain on the Host.
+
+
+
+### Browser Host registry contract (2026-10-20)
+
+The explicitly copied manager class is independently expressed from frozen
+consumer contracts and opaque execution. It owns stable storage modes, Host
+registration attempts, mount claims, browser-use projection, transfer/prewarm
+and cleanup; the existing independent transition continues to own paint handoff.
+Current Host reference and registration-attempt identity fence asynchronous
+results. A presentation release does not close its logical Page or backing.
+The real Web consumer baseline preserves iframe/document/draft identity across
+remount, rapid switching, live resize and a device/floating presentation.
+Historical hashes and the current module lock remain separate. Native teardown
+policy was observed through an explicit synthetic port, not a new Web Host
+capability.
+
+### Viewport preset compatibility data (2026-10-20)
+
+The preset module retains the existing ordered 13-entry application catalog,
+disabled responsive default and lazy/idempotent public initialization. The
+toolbar and manager consume the same six declared exports. Numeric helpers
+round and bound width/height without owning capture, persistence or scale.
+Unused, undeclared recovery utilities/tokens are removed; device names and
+application dimensions are retained. This catalog is not a hardware specification.

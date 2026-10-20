@@ -57,7 +57,7 @@ try {
   assert.equal(await page.evaluate(() => document.activeElement === (window as any).__originalEditor), true);
   assert.equal(await page.evaluate(() => document.querySelector(".ProseMirror") === (window as any).__originalEditor), true);
   await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
-  assert.equal(await editor.locator(".codex-composer-placeholder").getAttribute("data-placeholder"), "告诉我接下来想做点什么");
+  assert.equal(await editor.locator(".opencraft-composer-placeholder").getAttribute("data-placeholder"), "告诉我接下来想做点什么");
   assert.equal(await page.locator("[data-independent]").textContent(), "Settings");
   await page.evaluate(() => (window as any).__localeFixture.flush());
   await page.reload(); await editor.waitFor();

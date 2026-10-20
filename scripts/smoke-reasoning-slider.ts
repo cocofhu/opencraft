@@ -6,31 +6,31 @@ const {chromium} = playwright.default ?? playwright;
 const source = `import React,{useState} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {createComposerController} from '@opencraft/composer-core';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
 import * as themes from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
-const params=new URLSearchParams(location.search),mode=params.get('mode')||'light',palette=themes[(params.get('palette')||'codex')+'ThemePalette'];
+const params=new URLSearchParams(location.search),mode=params.get('mode')||'light',palette=themes[(params.get('palette')||'opencraftNeutral')+'ThemePalette'];
 document.documentElement.dataset.theme=mode;document.documentElement.dataset.uiDensity=params.has('touch')?'touch':'compact';
-for(const [k,v] of Object.entries(themes.buildCodexThemeCssProperties(mode,palette[mode])))document.documentElement.style.setProperty(k,v);
+for(const [k,v] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode,palette[mode])))document.documentElement.style.setProperty(k,v);
 bindTouchInteractionMode(document);
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const counts=[6,3,1,0,3],values=['low','medium','high','xhigh','max','ultra'];
 const models=counts.map((count,i)=>({id:'model'+i,value:'model'+i,label:i===0?'GPT-6.1-Sol':'Model '+i,description:null,isDefault:i===0,defaultEffort:count&&i!==4?values[Math.min(1,count-1)]:null,efforts:values.slice(0,count).map(value=>({value,label:value[0].toUpperCase()+value.slice(1),description:null}))}));
 window.fixture={controller,remembered:[]};
-function App(){const [frame,setFrame]=useState(0);window.fixture.rerender=()=>setFrame(f=>f+1);return <main data-frame={frame} style={{padding:16,paddingTop:200,maxWidth:800,margin:'auto'}}><CodexComposer controller={controller} selectionCatalog={{models,permissionProfiles:[],onRememberModelDefaults:value=>window.fixture.remembered.push(value)}} onSubmit={()=>false} onCancel={()=>{}} /></main>}
+function App(){const [frame,setFrame]=useState(0);window.fixture.rerender=()=>setFrame(f=>f+1);return <main data-frame={frame} style={{padding:16,paddingTop:200,maxWidth:800,margin:'auto'}}><OpenCraftComposer controller={controller} selectionCatalog={{models,permissionProfiles:[],onRememberModelDefaults:value=>window.fixture.remembered.push(value)}} onSubmit={()=>false} onCancel={()=>{}} /></main>}
 createIntlTestRoot(document.getElementById('root'),undefined,'zh-CN').render(<App/>);`;
-const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',cacheDir:'node_modules/.vite-reasoning-slider',optimizeDeps:{force:true,exclude:['@opencraft/codex-composer','@opencraft/design-system-web/discrete-slider']},resolve:{dedupe:['react','react-dom']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0},plugins:[{name:'fixture',resolveId:id=>id==='/reasoning-slider.tsx'?id:null,load:id=>id==='/reasoning-slider.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith('/?'))return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/reasoning-slider.tsx"></script>');});}}]});
+const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',cacheDir:'node_modules/.vite-reasoning-slider',optimizeDeps:{force:true,exclude:['@opencraft/composer-editor','@opencraft/design-system-web/discrete-slider']},resolve:{dedupe:['react','react-dom']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0},plugins:[{name:'fixture',resolveId:id=>id==='/reasoning-slider.tsx'?id:null,load:id=>id==='/reasoning-slider.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith('/?'))return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/reasoning-slider.tsx"></script>');});}}]});
 await mkdir('.local/reasoning-slider',{recursive:true});await vite.listen();
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const results=[];
 try {
- for(const palette of ['codex','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
+ for(const palette of ['opencraftNeutral','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
   const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"reduce"});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript('window.__name=v=>v');
   await page.goto(vite.resolvedUrls!.local[0]+'?mode='+mode+'&palette='+palette+(touch?'&touch':''));
   console.log('scene',palette,mode,touch);
-  const editor=page.locator('.codex-composer-editor'),trigger=page.locator('.codex-composer-mode--intelligence'),menu=page.locator('.codex-composer-selection-menu--intelligence');
+  const editor=page.locator('.opencraft-composer-editor'),trigger=page.locator('.opencraft-composer-mode--intelligence'),menu=page.locator('.opencraft-composer-selection-menu--intelligence');
   try{await editor.fill('Keep this draft')}catch(e){console.log(errors,await page.locator('body').innerText());throw e};
   await editor.evaluate(el=>{(window as any).keptEditor=el;(window as any).blurs=0;el.addEventListener('blur',()=>{(window as any).blurs++});const r=document.createRange();r.setStart(el.firstChild!.firstChild!,3);r.collapse(true);const s=getSelection()!;s.removeAllRanges();s.addRange(r);});
   if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();

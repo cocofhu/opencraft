@@ -12,6 +12,23 @@ See the workbench language and `scripts/smoke-frosted-materials.ts` for real
 consumer, backdrop and fallback verification. Native appearance is unchanged.
 
 
+## Floating sidebar presentation boundary
+
+Shell owns visibility, live width, mobile progress and content identity. The
+floating container projects those ports into stable header/body/footer slots;
+ordinary prop and width changes preserve drafts and mount identity. Exit presence
+immediately becomes inert, aria-hidden and pointer-disabled. Desktop entrance
+translates the surface by -8px while its header counter-translates, then settles;
+exit translation keeps opacity. Reduced motion skips settling. Mobile depth
+consumes the same Shell progress, clamps 90–100% scale and 45–100% opacity, and
+adds no separate exit animation. Its stationary wash remains a sibling outside
+the scaled layer, consumes the same progress from 65% to zero opacity, and stays
+transparent in reduced motion; Shell CSS retains material and hit-test ownership.
+Existing resize transactions own bounds,
+keyboard/default width, commits and cancellation; the floating resize port cannot
+collapse the sidebar.
+Other Shell, navigation, style and spring implementations retain their owners.
+
 ## Discrete slider fill
 
 The shared track owns capsule clipping. Its selected range has a square inner
@@ -184,6 +201,15 @@ clear a different conversation's input. Mobile software Return remains newline.
 - 验证入口：`tests/tasks-*.test.ts`、`scripts/smoke-tasks-workbench.ts`。实际产物与平台验证状态见 Task Pack。
 - TSK-08：已有会话的顶部“…”位于右面板按钮左侧，通过固定任务 authority 设定多个归属任务；使用稳定 Server/Thread 身份，不把当前聊天 Host 当任务库。每个关联行单独反馈写入，冲突或未知结果重新读取而不重放。草稿不显示入口，切会话/账号关闭旧选择器，解除关系不改变会话执行。
 - TSK-09：会话顶部菜单的重命名与置顶操作消费已有 ThreadTitleWriter 和原生 thread management port，与侧栏共享持久状态。只显示 Host 支持的动作；不依赖 Tasks 插件可用性来授权会话管理。重命名使用共享 ModalSurface，失败保留输入、处理中禁用重复提交；置顶失败留在菜单可重试，不伪造已成功状态。菜单/编辑会话按账号、Host、Thread 隔离，切换撤销旧 UI。
+
+
+## Link label action ownership
+
+A link owns its resource action. Its label retains Markdown formatting and image
+children but suppresses text decorations that would create nested interactive
+mentions. The document compiler preserves target/title and source-range contracts;
+the renderer owns target safety, streaming activation and semantic open intent.
+Changing node construction must not create a second resource or identity owner.
 
 
 ## Conversation recovery feedback
@@ -368,6 +394,7 @@ decoder tests include nonzero hotspots and shape changes, not just visibility.
 - SSH-07：SSH Codex 目录热读在 Runtime 唯一入口使用原生索引，不隐式扫描修复；显式修复仍可覆盖参数，provider/source 默认筛选不变。已准入查询的加载、失败与成功空列表不得合并，停用查询不能冒充加载；失败只重试当前 Host 的读取，不拨号、不选目标、不激活 Thread。失败及物理 connecting/reconnecting/idle/error 保留同配置与授权作用域内的有效缓存和其他 Host 成功行；读取就绪不等于缓存展示资格，展示缓存不准入读取/执行。锁定、停用、删除、配置替换及授权代次变化不显示旧缓存。任务流最近区默认十行之外的已读取远端行通过明确更多入口展示，不冒称全量历史。
 - SSH-12：自动连接重试按既有序列递增至 60 秒；只有持续就绪 60 秒才清零，短暂恢复不把频繁断线重置到 500ms。恢复提示遵守已排定退避，手动重试仍即时。瞬时连接状态不删除同授权目录缓存或改变列表身份、次序和几何；自动重试失败保持重连阶段，不反复切换错误/加载呈现。
 - SSH-07 呈现补充：侧栏目录加载不渲染转圈、文字或占位行，既有历史的布局和 DOM 身份保持稳定；加载语义通过 `aria-busy` 保留，未完成时不显示成功空列表。目录失败保留对应重试入口；此规则不移除会话正文的加载提示。真实 Sidebar 明暗/鼠标/触屏回归见 `smoke:sidebar-thread-catalog`。
+- Sidebar page reveal: Recent retains its ten-row display budget; click and a downward pull at the actual scroll boundary share the same page action. A pull may begin on rows or empty space belonging to the scrollport, while unrelated navigation controls stay excluded. Only explicit user intent advances it: mounting, resizing, background catalog updates and programmatic scrolling never auto-drain pages. A React transition owns the footer spinner/disabled state, without a second fetch owner or artificial delay. Existing rows and scroll position survive expansion, including when the selected row is newly revealed. Pinned paging and product grouping remain independent; exhausted Recent shows a localized end label. Passive input adapters respect native vertical scrolling, horizontal Shell gestures and reduced motion. This explicit pagination feedback is the exception to SSH-07's quiet background discovery. Verification: `scripts/smoke-sidebar-recent-pages.ts` (mouse/touch, light/dark, English/Chinese); browser emulation is not physical iPhone acceptance.
 - SSH-08：管理目录恢复属于 Application/controller 生命周期，不依赖设置页挂载。手动重试、在线/可见恢复与周期读取共享单飞；完成后再调度，失败退避有上限，隐页/离线暂停，销毁清理并拒绝晚到回复。授权变更暂停后台读并撤销旧代次；显式操作后的核对不能复用操作前的旧轮询。尚无 SSH profile 时的管理读取失败仍有侧栏重试，不冒充成功空列表；正常后台读取无闪动，不支持/已锁定不冒充错误。读取不隐式连接、重连、切目标或执行 Thread。
 - SSH-09：SSH 只拥有传输，不重定义原生 Thread 分页历史；共享 broker 唯一方法准入表同时约束执行、Runtime 与 UI，保留上游无关 metadata。准入不冒充上游实现保证；本机 store 与尚未映射的连接句柄不能被声明成远端能力。读取成功不推出写入能力，偏好不制造 Queue 等能力；跟进按钮和逆向快捷键仅选择可准入动作、不改保存偏好。不可准入提交在草稿/乐观队列收养前拒绝，草稿保留；后台读取也不得发出已拒绝的 queue/watch/search 方法。旧 Server 无声明保持兼容，畸形声明封闭拒绝。
 
@@ -560,6 +587,10 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 ## 听写输入所有权
 
+底栏仅消费当前瞬时事务，独立呈现阶段、计时和有界音量历史；录音、重试、最终
+写入与提交仍由原owner负责。采样源替换/卸载释放订阅、观察器及待绘制帧；停止
+调用finish，发送交回Composer提交入口，不新增麦克风或草稿状态。
+
 - DIC-01：听写Footer由当前Composer瞬时输入事务拥有；切换草稿、清空、物理View替换或卸载同时释放文本与呈现。旧事务不能更新新Footer。
 - DIC-02：普通与听写操作互斥；普通内容保持挂载但inert/aria-hidden，不重建编辑器。Composer拥有区域几何、主题控件和提交编译，插件只提供状态/采样/完成动作。
 - DIC-03：停止只写入；Enter/确认发送必须等最终文本，并核对同一草稿与View。取消、失败或失去归属不能迟到发送；重复停止复用同一完成事务。
@@ -589,6 +620,7 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 迁移基线：Codex 26.908.40834 的 `right-panel-composer-overlay-f770dcfd060a.js`、`right-panel-composer-overlay-c2ae7a9bcecb.css`，并以 ref/codex 可读恢复树交叉核对状态与手势。OpenCraft 的 scope registry、主题、标准 Electron tracking 是适配层，不声称为私有宿主源码。最终矩阵记录于 2026-09-14-floating-composer-replacement Task Pack。
 
+
 ## Shell pane ownership（Codex 26.908.40834）
 
 2026-10-14 主工作台导航拓扑更新：Web/Electron 的应用入口与当前页面上下文合并为单个 Sidebar（`ShellNavigationConfig.layout=unified`），桌面内部60px图标栏承载Home/扩展目的地，既有移动抽屉信号下同一组入口改为列表上方纵向全宽菜单（新建/设置在底部悬浮、列表全宽），桌面邻接列承载会话或设置列表，Settings/账户在竖栏底部。在任务等未提供上下文列表的桌面页面，Sidebar 仅保留图标栏宽度，主区域紧邻图标栏填满释放的空间；不显示空上下文的 resize 入口，不写回会话列表的保存宽度，切回会话恢复原宽度。窄屏保留完整抽屉与同一组应用导航动作，新建与设置在底部独立悬浮，隐藏个人头像/账号入口且不保留底板。整个 Sidebar 只有一个宽度、一个显隐入口；不显示独立 Applications 抽屉、Pin 或 compact 应用栏。旧 rail 偏好不参与该布局的空间预算，也不改写它们。浮动/固定呈现移动同一组 portal 内容，不复制上下文、草稿或滚动 owner；窄屏选择目的地关闭浮层。此条替代主工作台原有并排 Primary/Context 呈现，嵌入产品无 Shell 导航时沿用原契约。借鉴的是命名参考 `ref/codex/terminal/use-app-shell-layout-motion-04358.ts` 的单一 leftPanelSlot 拓扑，保留 OpenCraft 的路由、扩展与空间策略。
@@ -608,22 +640,29 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 | ID | 不变量 | 责任/验证 |
 |---|---|---|
-| BRW-01 | Source BrowserSidebarStateManager 唯一管理 backing host、挂载 claim、持久化状态及交接；React 只提供 slot 与测量 | codex/browser-manager.js；原类体比对、codex-browser-manager.test.ts |
-| BRW-02 | 上一个页面在新页面收到对应代次的 attachment ack、预热完成前继续承载画面；提交后一帧才释放旧画面与新页面交互 | codex/presentation-transition.js；确定性调度测试 |
+| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | opencraft/browser-manager.js；历史来源与当前模块分开锁定、冻结行为及实际 Web consumer、opencraft-browser-manager.test.ts |
+| BRW-02 | 上一个页面在新页面收到对应代次的 attachment ack、预热完成前继续承载画面；提交后一帧才释放旧画面与新页面交互 | opencraft/presentation-transition.js；确定性调度测试 |
 | BRW-03 | 替换/取消 pending handoff 后，旧 ack、timer、frame callback 不得重新显示旧 incoming 或清理新页面 | A→B→C 和迟到回调回归 |
-| BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 源状态机＋标准 host port；原生多标签回归 |
-| BRW-05 | Page storage ID 与 renderer/host/mount generation 分离；源管理器拥有 ephemeral→persistent 与 restore-expected 状态，平台负责持久化同一分区 | manager storage tests＋桌面重启 Cookie 回归 |
+| BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 独立状态机＋标准 host port；原生多标签回归 |
+| BRW-05 | Page storage ID 与 renderer/host/mount generation 分离；管理器拥有 ephemeral→persistent 与 restore-expected 状态，平台负责持久化同一分区 | manager storage tests＋桌面重启 Cookie 回归 |
 | BRW-06 | 弹窗请求经 Main 验证并按原 Page Scope 创建标签；不改写原页面、不生成不受管窗口 | native managed popup smoke |
 | BRW-07 | 权限按 partition/origin/type 隔离；旧页面与撤销后的迟到授权不得生效 | browser-permissions.test.ts＋原生拒绝/撤销/清除数据回归 |
 | BRW-08 | browser-use 与 UI 挂载独立；操作互斥且 finally 释放；隐藏页仍可渲染/截图，无面板激活副作用 | browser-background.test.ts＋原生后台读取/截图/关闭回归 |
 | BRW-09 | 恢复未完成不是用户关闭；close 与清除站点数据分离，重启不因 localhost 端口变化丢失归属 | desktop metadata＋native restart smoke |
+| BRW-10 | 设备工具栏只投影父层 viewport mode/zoom；聚焦数字草稿独立，范围内编辑即时提交、失焦规范化，预设/旋转不夺取 Page 或持久化所有权 | 独立 toolbar/input；136 静态、64 Web 检查点及两组258边界；手柄/布局保持原owner |
 
-当前迁移状态：源类体哈希校验、66 项聚焦测试、完整门禁，以及最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。
+历史迁移验收：当时源类体哈希校验、66 项聚焦测试、完整门禁，以及当时最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；Owl WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接与当时源类体分开验证，不将桥接代码声称为 Codex 原始宿主实现。当前 registry 与 toolbar 的有界独立替换各有 provenance 记录，不沿用旧原生验收证明新实现。
 
 模型成立、编译通过、真实控件通过、真实 Host 通过、Mac 产物通过是不同级别。未经相应验证不得提升状态。恢复源码没有明确承诺的行为不得擅自增加约束；结构互斥、稳定前缀和同步移交本身可构成合法保证。
 # 会话生命周期补充（2026-09-15）
 
 文件更改呈现补充（2026-10-06）：Turn 变更汇总是独立资源，不是消息或工作结束边界。Web 实际 Composer 是指定 active Turn 的唯一运行中入口 presenter，主/浮动 mini transcript 按相同身份避免重复；结束卡再进入消息区。资源更新保留数字、展开与 Review 的身份，展开重排由 viewport lease 协调；卡片/悬浮用主题与成熟 Button/Radix，不新增 Host 写权。实现与真实组件验收见 [ChatUI Changed-file review](../docs/chat-ui-architecture.md#changed-file-review)，当前不是生产替换或 Native 实机验收。
+
+Interrupt interaction policy is a pure protocol projection: decline/dismiss
+legacy blocking requests with fresh payloads; dynamic tools await server resolution.
+The conversation runtime owns turn filtering, all-settled cancellation sequencing,
+interrupt provenance and failure cleanup. No UI view or response factory grants
+permissions or removes pending requests.
 
 Connector 交互不变量：Composer 入口消费应用级 Manager；授权完成、连接、会话选择与写审批分别表达用户意图。面板卸载不销毁已就绪共享连接；审批由共享 Modal/Radix 管理焦点和层级，配置恢复不恢复执行授权。见 [Connector 设计](../docs/platform-connectors.md) 与 `smoke:connector-controls`。
 
@@ -671,6 +710,26 @@ Connector 目录浏览不套用设置行：采用限宽品牌卡片，已配置�
 手机宽度（不超过 640px）不展示会话标题旁的 Project/工作区附文，标题与操作按钮保留。桌面继续展示附文。已有“…”菜单的会话详情以只读方式展示实际项目名与工作目录：优先当前会话执行信息，目录尚未恢复时可用同一会话的规范 Thread 元数据；未知字段不伪造，不更改执行目录或启动会话。
 
 会话信息使用共享 InformationPanel 两行元数据和 ModalSurface 自适应呈现：可用视口不超过 640px 为贴底 sheet，超过 640px（含 iPad 常规横竖屏和宽分屏）为至多 420px 居中弹窗；不按设备型号或 UA 分支。标题、右上关闭与目录复制均本地化，不保留重复底部关闭栏。长项目名/路径完整换行且可选，目录复制沿用共享控件的成功/失败反馈与非安全上下文回退。Radix 继续拥有模态、焦点、Escape 和遮罩关闭；窄屏仅顶部手柄拥有下拉关闭，短拖/取消回弹，不拦截信息区的选择与滚动，减少动态效果关闭进出动画。下拉手势由Web平台可选AdaptiveSheetHandle持有，与信息内容一起按需加载，通用ModalSurface不将手势实现加入首屏。主题、排版与触控命中尺寸由共享设计系统持有；不更改会话或执行状态。
+
+Application Markdown link scanning is a pure raw-text projection. UTF-16 source
+ranges, escape compatibility and later-candidate recovery stay stable; unescaping
+and Host-scoped resource admission remain caller responsibilities. Scanner matches
+do not open a resource or grant navigation.
+
+Formula delimiter projection preserves application syntax and raw source ranges;
+code-fence precedence and structural placement remain compiler responsibilities.
+Display line-tail admission and inline LF rejection cannot silently change during
+source replacement.
+
+User-message list/block projection preserves the existing newline and fence
+compatibility; indented continuations retain list context and empty lines reset
+it. Source replacement must not silently adopt another Markdown dialect.
+
+Global streaming segment keys survive Markdown container reparsing through the
+shared reconciler: same-position exact/growing text wins before unconsumed global
+exact occurrences. Reused text settles, new text enters only while streaming,
+and completed text stays visible. This pure projection cannot commit a session,
+change syntax identity, schedule animation or own execution.
 
 ## Markdown 文件预览
 - 文件标题栏提供文件树显隐开关；收起后内容占满宽度，树保持挂载以保留展开、搜索和滚动位置，不重建预览或编辑器。只读嵌入预览仍无目录入口。验证：`scripts/smoke-file-tree-toggle.ts`。
@@ -1526,6 +1585,16 @@ See [Tasks initial loading](../docs/workbench-design-language.md#tasks-initial-l
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 
+## Sidebar presentation policy ownership
+
+Sidebar presentation projections consume the existing Shell and intent-hook
+state without acquiring pointer, timer, resize or content lifetime ownership.
+Docked layout precedes outgoing layout presence/resize, which precedes floating
+request/resize presence; hidden is the remaining state. Floating presence can
+mount only after docked layout ownership ends. Suppression vetoes edge and peek
+acquisition; retained intent uses the nonnegative live panel boundary.
+
+
 ## Sidebar menu rendering isolation
 
 A Sidebar keeps one stable menu owner across row context, More and participant
@@ -1588,6 +1657,38 @@ The read adapter loads on first read and checks cancellation after import.
 - Session menus retain cached labels, provider groups, backup badges, retry/empty states and the product-supplied configuration action without presenting a reasoning control.
 - A Composer with machine/workspace context chrome uses stacked context, input and footer rows, including when empty. Model and permission controls remain in the measured footer; they never borrow an absolute slot from the context row. Empty composers without context chrome retain their existing inline touch presentation. Layout changes preserve the editor, selection state and menus.
 
+
+## Shared Turn follow policy
+
+The renderer-neutral `timeline-virtualizer/src/follow.ts` is the single follow
+ownership policy for Web and Native. Static/watch modes preserve reading; only
+explicit bottom intent or the permitted watched-content overflow acquires follow.
+Completion alone does not acquire ownership. Restore capture projects a saved
+checkpoint without mutating the live controller. Placement/spacer thresholds,
+public mode/event names and spring data remain compatibility contracts.
+
+
+## Shared history backfill ownership
+
+One renderer-neutral coordinator serializes history pages across layout epochs.
+Repeated current requests share the active Promise; invalidation fences continuation
+and replacement work waits for old work to settle. Every successful page finishes
+the host layout barrier before ownership, enabled state or explicit stop decides
+continuation. Unchanged height ends the fill pass. Error callbacks retain stale
+failure reporting; they cannot grant old work a new layout generation. Public
+ports, shared load policy and platform geometry ownership remain unchanged.
+
+
+## Shared measurement transaction ownership
+
+One measurement batch publishes a coherent height table, layout, viewport and
+scroll decision. The synchronous controller distance and any pending transaction
+own compensation; a callback's presence remains distinct from its current restore
+value. Per-input baseline accumulation, latest-row notifications, pending restore
+priority and platform-preservation/fast-path decisions retain their observed
+boundaries. Web and Native keep their scheduling, lease and commit mechanics;
+neighboring helpers and consumers are not rewritten.
+
 ## Conversation presentation contributions
 
 Optional conversation subtitles share the existing title rail and constrained
@@ -1631,3 +1732,100 @@ showing the entry never grants viewing or input authority.
 ## Product composer desktop entry
 
 An installed desktop panel adapter does not imply a composer shortcut. Only an explicit containing-product presentation opts into that entry; adapter availability and launch authority remain mandatory. Full and generic embedded presentations leave it disabled.
+
+
+## Activity group disclosure replacement (2026-10-19)
+
+The complete group disclosure component and four-phase reducer are independently
+reimplemented after frozen requirements. The viewport remains the only scroll
+writer; the existing reflow lease and height projection ports own integration.
+Open content keeps natural height and DOM identity during streaming and reversals;
+summary key changes are separately cadenced.
+The reflow smoke fixture now supplies current activity-unit metadata and inner
+choice callbacks without weakening its geometry/cancellation assertions. This
+replaces only this module's implementation disposition, not the consuming activity
+renderer, shared hooks, native platform or historical rights status.
+
+
+## Shell right-panel host replacement (2026-10-19)
+
+The complete host is independently reimplemented after frozen requirements.
+Shell owns visibility progress and content geometry; the host projects occupied
+width separately from the atomic target surface width. Closed content becomes
+inert immediately, while exit, keepMounted and an active resize can retain DOM.
+Only the shared handle owns pointer capture and resizing feedback. Raw sizes
+below the 160px shelf close without erasing the last preferred ratio; reaching
+160 or above can reopen during the same held gesture. The parent and shared
+geometry ports retain responsibility for actual width and minimums. Progress
+and content-width changes publish invalidation ticks with effect cleanup.
+
+Shared animation, resize, browser and geometry implementations are unchanged;
+this disposition does not classify those dependencies or native platform behavior.
+
+
+## Appearance runtime ownership
+
+The application appearance owner publishes one immutable snapshot for preference,
+resolved system mode, retained requested ID, applied fallback and catalog. Settings
+and React consumers subscribe to that owner; palette changes do not remount drafts.
+Only the active contribution source may update the catalog; disconnect retains the
+requested extension ID and falls back to an available built-in, restoring the
+selection when its contribution returns. The presentation policy's built-in default
+(or first visible built-in) owns fallback; unrelated missing IDs do not switch to a
+newly loaded extension default. An all-hidden policy retains Neutral for safety.
+
+Shared compiler/palettes are unchanged dependency ports. Theme projection owns its
+CSS properties, mode/classes and native appearance payload; document initialization
+also owns product presentation and theme-color metadata. Explicit element projection
+preserves unrelated styles and does not claim document/product ownership. Legacy
+preference keys and IDs remain compatibility data.
+
+
+## Command and review presentation replacement (2026-10-20)
+
+The complete command/review module owns only Item presentation and mounted View
+choice: reasoning content selection comes from shared core, existing document
+ports own Markdown/resources, ActivityDisclosure owns reflow, and timeline/core
+retain chronology and single Thinking ownership. Commands initially fold, retain
+choice across completion, delegate semantic read/search/skill policy and expose
+reported output/result state without executing text. Review disclosures grant no
+permissions; a generic licensed shield/terminal replaces historical custom artwork.
+Copy delegates to shared clipboard ports with action-scoped 1500ms feedback and
+cleanup.
+No new tests/harness are added; existing actual Conversation, spacing, type and
+boundary checks remain acceptance evidence. Shared ports and historical rights
+remain independent unresolved matters; native hardware is not claimed verified.
+
+
+## Tool, image and subagent presentation replacement (2026-10-20)
+
+The six tool/image/subagent exports remain presentation consumers of core summaries,
+typed content, group state and reported handoff steps. Product-owned content may
+claim null; fallback is only for undefined. Nested WebMCP disclosure choice is
+independent of its parent. Images use the existing Host media loader and resource
+port, with Host/conversation/cwd/document/source identity invalidating old previews.
+View expansion does not grant tool approval, execute output or own thread state.
+Subagent grouping uses current core-derived agent state; individual instructions
+remain available without repeating stale historical prompts in grouped rows.
+Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
+
+
+
+## Browser presentation handoff leases (2026-10-20)
+
+A view handoff retains the painted predecessor until the incoming attachment is
+acknowledged (or its bounded fallback expires), two prewarm frames complete and
+the release frame runs. Both views remain interaction-blocked during transfer;
+finishing a view cannot clear its separate automation input/focus lock. Owner,
+surface, reference and mount generation identify the presentation lease. Hidden
+views, close/dispose, route transfer and superseding views revoke pending work;
+late callbacks and old references cannot mutate a newer lease. Browser backing,
+persistence, permissions and navigation retain their existing manager/Host owners.
+
+
+
+Viewport presets remain application compatibility data: device IDs, dimensions
+and ordering do not change when implementation provenance is reviewed. The
+manager and toolbar share the declared lazy initialization and width/height
+bounds; unused recovery utilities do not introduce another padding or token
+owner.

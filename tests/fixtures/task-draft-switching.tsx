@@ -3,8 +3,8 @@ import { useCallback, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { composerDocumentToPlainText, type ComposerAttachment, type ComposerController } from "@opencraft/composer-core";
 import {
   HostRuntimeRegistry, asRouteScopeId, createWorkbenchCoordinator,
@@ -13,7 +13,7 @@ import {
   createConversationViewRegistry, createConversationActivationCoordinator,
   createWorkbenchThreadLocation,
 } from "@opencraft/workbench-runtime";
-import { attachmentPreviewSession } from "../../packages/codex-composer/src/attachment-preview-session";
+import { attachmentPreviewSession } from "../../packages/composer-editor/src/attachment-preview-session";
 import { createWorkbenchNavigationTransaction } from "../../apps/workbench-web/src/runtime/workbench-navigation-transaction";
 import { createWorkbenchEntryResolver } from "../../apps/workbench-web/src/runtime/workbench-location-restoration";
 
@@ -80,7 +80,7 @@ function TaskEditor() {
   const resolver = useCallback((file: File, pending: ComposerAttachment, signal?: AbortSignal) =>
     resolveAttachment(controller, file, pending, signal), [controller]);
   return <main className="thread-layout-width" data-task-view={route.routeScopeId}>
-    <CodexComposer key={route.routeScopeId} controller={controller} onResolveAttachment={resolver}
+    <OpenCraftComposer key={route.routeScopeId} controller={controller} onResolveAttachment={resolver}
       modelSelectionPolicy="host-default" onSubmit={() => { sends++; throw new Error("Fixture must not send"); }}
       onCancel={() => {}} />
   </main>;
@@ -89,7 +89,7 @@ function TaskEditor() {
 const locale = new LocaleRuntime([]);
 await locale.update({ ideLocale: "en-US" });
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 createRoot(document.getElementById("root")!).render(<IntlRuntimeProvider runtime={locale}><TaskEditor /></IntlRuntimeProvider>);
 Object.assign(window, { __taskDraftFixture: {
   snapshot, select,

@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { patchCursorHotspot, patchDesktopEvents } from "../scripts/patch-novnc-desktop-events.mjs";
 
+const novncRoot = dirname(createRequire(new URL("../plugins/cloud-desktop/package.json", import.meta.url))
+  .resolve("@novnc/novnc/package.json"));
+
 test("pinned decoder event patch is complete, idempotent and refuses unreviewed sources", () => {
-  const source = readFileSync(new URL("../node_modules/@novnc/novnc/lib/rfb.js", import.meta.url), "utf8");
+  const source = readFileSync(join(novncRoot, "lib/rfb.js"), "utf8");
   const patched = patchDesktopEvents(source, "1.5.0");
   assert.equal(source, patched, "installed decoder must contain the reviewed events before verification/build");
   assert.equal(patchDesktopEvents(patched, "1.5.0"), patched);
@@ -27,7 +32,7 @@ test("pinned decoder event patch is complete, idempotent and refuses unreviewed 
 });
 
 test("installed decoder cursor lifecycle projects activity and input eligibility without duplicate attachment state", () => {
-  const source = readFileSync(new URL("../node_modules/@novnc/novnc/lib/rfb.js", import.meta.url), "utf8");
+  const source = readFileSync(join(novncRoot, "lib/rfb.js"), "utf8");
   // Exercise the reviewed installed implementation, not a copy of its logic.
   const start = source.indexOf('    key: "_opencraftSyncCursor",');
   const end = source.indexOf('  }, {', start);
@@ -69,7 +74,7 @@ test("installed decoder cursor lifecycle projects activity and input eligibility
 });
 
 test("installed media lifecycle pauses producer requests and fences rapid continuous-update toggles", () => {
-  const source = readFileSync(new URL("../node_modules/@novnc/novnc/lib/rfb.js", import.meta.url), "utf8");
+  const source = readFileSync(join(novncRoot, "lib/rfb.js"), "utf8");
   const calls = [];
   const globals = { RFB: { messages: {
     fbUpdateRequest: (_socket, incremental) => calls.push(["frame", incremental]),
@@ -107,7 +112,7 @@ test("installed media lifecycle pauses producer requests and fences rapid contin
 
 
 test("pinned cursor hotspot patch is installed, idempotent and refuses unknown or partial changes", () => {
-  const source = readFileSync(new URL("../node_modules/@novnc/novnc/lib/util/cursor.js", import.meta.url), "utf8");
+  const source = readFileSync(join(novncRoot, "lib/util/cursor.js"), "utf8");
   assert.equal(patchCursorHotspot(source, "1.5.0"), source);
   const original = source.replace("      this._position.x -= this._hotSpot.x;\n      this._position.y -= this._hotSpot.y;\n", "");
   assert.notEqual(original, source);
@@ -118,7 +123,7 @@ test("pinned cursor hotspot patch is installed, idempotent and refuses unknown o
 });
 
 test("managed touch cursor renders its decoded hotspot at the sent client point", () => {
-  const source = readFileSync(new URL("../node_modules/@novnc/novnc/lib/util/cursor.js", import.meta.url), "utf8");
+  const source = readFileSync(join(novncRoot, "lib/util/cursor.js"), "utf8");
   const start = source.indexOf('    key: "move",');
   const end = source.indexOf('  }, {', start);
   assert.ok(start >= 0 && end > start);
