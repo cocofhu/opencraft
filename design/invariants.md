@@ -1829,3 +1829,10 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner.
+
+### Cloud desktop product composition
+
+Trusted renderer composition owns desktop availability: `cloudDesktop: null` installs
+no desktop panel, toolbar action or Composer shortcut, even for a capable Host.
+An omitted option keeps Host capability discovery and an adapter keeps its explicit
+backend. This policy never mutates desktop state or grants input authority.
