@@ -47,7 +47,9 @@ does not imply that private plugin directories or all client dependencies moved.
 Headless 也接受 `--local-access-file /absolute/private-file`。默认不启用。
 
 最外层 Web 根据实际 TCP 对端、目标接口地址、监听端口及 IP/localhost Host 核对同机
-来源；远端访问本机 IP、伪造 Host/forwarded 头或跨站 Origin 都不能取得本机访问证明。
+来源；同端口 SSH/HTTP 分流将原 HTTP socket 交给同进程的 HTTP Server，保留真实
+对端、目标与公开端口，不通过重新连接回环端口或转发头恢复来源。SSH 仍代理到私有
+鉴权后端。远端访问本机 IP、伪造 Host/forwarded 头或跨站 Origin 都不能取得本机访问证明。
 合法请求绕过外部中继登录，由 Web 在私有回环链路内加入短时 HMAC 证明，绑定原始
 方法、路径及浏览器 origin；Headless 同时验证证明和回环来源。静态文件准入探针及
 WebSocket 使用同一证明。浏览器不接触密钥或证明。

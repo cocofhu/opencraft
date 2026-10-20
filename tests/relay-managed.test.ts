@@ -15,6 +15,7 @@ import { connectRelay } from '../plugins/relay-connect/src/server';
 import { AssertionSigner, AssertionProvider } from '../packages/identity-core/src/node';
 import { MembershipStore, InstanceAccess } from '../packages/access-control/src';
 import { loadLocalMachineAccess } from '../scripts/local-machine-access.mjs';
+import { createProtocolIngress } from '../scripts/web-deployment/protocol-ingress.mjs';
 
 for (const admission of ['explicit', 'verified-provider', 'local-machine'] as const) test(`managed ${admission} ingress protects private entry and updater authority`,async t=>{
   const cleanup:(()=>unknown)[]=[];t.after(async()=>{for(const close of cleanup.reverse())await close();});
@@ -32,7 +33,10 @@ for (const admission of ['explicit', 'verified-provider', 'local-machine'] as co
   const fixture=await releaseFixture(dir);cleanup.push(()=>fixture.close());
   const managed=await createManagedWebServer({initialRelease:fixture.releases.get('1.0.0').packageRoot,stateDirectory:join(dir,'state'),
     headlessBackendTarget:`http://127.0.0.1:${coreAddress.port}`,relayIngressTarget:`http://127.0.0.1:${(relay.server.address() as any).port}`,relayInternalPort:0,localAccessFile});cleanup.push(()=>managed.close());
-  const address=await managed.listen({port:0}),base=`http://127.0.0.1:${address.port}`;
+  const address=await managed.listen({port:0});
+  const ingress=localAccessFile?createProtocolIngress({httpPort:address.port,httpServer:managed.server,sshTarget:`http://127.0.0.1:${coreAddress.port}`}):null;
+  if(ingress)cleanup.push(()=>ingress.close());
+  const entry=ingress?await ingress.listen({port:0}):address,base=`http://127.0.0.1:${entry.port}`;
   const client=connectRelay({relay:base,credential,targetPort:managed.internalAddress().port,allowLoopbackInsecure:true});cleanup.push(()=>client.close());
   const deadline=Date.now()+5000;while(!relay.connected('team')){if(Date.now()>deadline)throw new Error('Managed tunnel timeout');await new Promise(r=>setTimeout(r,25));}
   const read=(path:string,auth=false,target=base,accept='text/html',method='GET')=>new Promise<{status:number;body:string}>((resolve,reject)=>{
