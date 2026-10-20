@@ -389,11 +389,12 @@ export function App({
       const owner = hostCatalog.registry.peekRuntime(key.hostId);
       const generation = owner?.getSnapshot().connectionGeneration;
       const profile = hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId);
-      const epoch = hostCatalog.managedHostCatalog?.getAuthorizationEpoch();
-      return () => owner !== undefined && hostCatalog.registry.peekRuntime(key.hostId) === owner
+      const authorizationEpoch = () => profile?.hostKind === "remote-ssh" ? hostCatalog.managedHostCatalog?.getAuthorizationEpoch() : null;
+      const epoch = authorizationEpoch();
+      return () => owner !== null && hostCatalog.registry.peekRuntime(key.hostId) === owner
         && owner.getSnapshot().phase === "ready" && owner.getSnapshot().connectionGeneration === generation
         && hostCatalog.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId)?.revision === profile?.revision
-        && hostCatalog.managedHostCatalog?.getAuthorizationEpoch() === epoch;
+        && authorizationEpoch() === epoch;
     },
     persist: (key, pinned) => hostCatalog.threadManagement.setPinned(key.hostId, key.threadId, pinned),
   }), [hostCatalog.registry, hostCatalog.hostProfiles, hostCatalog.managedHostCatalog, hostCatalog.threadManagement, queryClient]);
