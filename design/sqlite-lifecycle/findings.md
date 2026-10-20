@@ -13,16 +13,6 @@
 - Drizzle 官方当前 node:sqlite 指南明确支持现有 DatabaseSync，但安装示例使用 @rc。正式依赖版本/运行时 migrator 必须先做能力门禁；本轮只查元数据，不安装。
 - npm 元数据（2026-09-18）：drizzle-orm latest=0.45.2、drizzle-kit latest=0.31.10，rc 均为 1.0.0-rc.4；不能混用 RC 文档与旧稳定包 API。
 
-## Paseo 参考
-- 用户授权 clone https://github.com/getpaseo/paseo.git 到 ref/paseo；完整克隆成功，HEAD `3cc4ae28664493b2f1ad75a6a6ed1d318c76e944`（2026-09-17）。不安装依赖、不执行参考脚本、不提交参考目录。
-- packages/app/src/runtime/replica-cache/row-store-sqlite.ts：Driver/Connection 窄接口；meta.schema_version 不等时事务内重建 rows 并写 meta。它是副本缓存，不是唯一历史真源。
-- row-store.web.ts：相同副本语义，底层用 IndexedDB；schema token 不匹配时事务清缓存。平台共享的是语义而非 SQL 驱动。
-- packages/server/src/server/agent/agent-storage.ts：每 Agent JSON，schema 校验、按 ID 排队写入和原子文件写；不是 Drizzle/SQLite 权威库。
-- migrations/backfill-workspace-id.migration.ts：只填缺 workspaceId 的旧记录；已经有值则跳过；启动调用，有重复运行测试与移除兼容逻辑的版本 floor 注释。不是通用 SQL migration ledger。
-- hooks/use-settings/migrations.ts：稳定字符串 migration ID，保留新客户端留下的未知 ID；先写设置再写标记。相邻测试覆盖设置失败不写标记、标记失败可重试、用户之后改回原值不再被覆盖。
-- SQLite Native 与 Web IndexedDB 共享 row-store.contract 测试；Node 内存 SQLite 只是 Native store 的测试驱动，不冒充 Expo 真机验证。
-- 有界检索错误已记录：Paseo 没有 apps/、pnpm-lock.yaml、bun.lock；其源码在 packages/，package-lock.json 范围内未发现 Drizzle。未扩大为安装依赖或运行外部脚本。
-
 ## 检索/验证异常
 无路由 pack 命中，已转有界精确搜索；首次组合读取输出部分截断，后续按文件/段补齐。
 
