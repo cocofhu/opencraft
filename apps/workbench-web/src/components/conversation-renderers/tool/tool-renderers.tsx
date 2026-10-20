@@ -36,10 +36,10 @@ export function JsonPreview({ value }: { value: unknown }) {
   return value == null ? <></> : <pre>{json(value)}</pre>;
 }
 
-function JsonSurface({ value, documentId }: { value: unknown; documentId: string }) {
+function JsonSurface({ value, documentId, showActions = false }: { value: unknown; documentId: string; showActions?: boolean }) {
   const { theme } = useContext(ConversationDocumentContext);
   return <LazyHighlightedCodeSurface code={json(value)} language="json" title="JSON"
-    documentId={documentId} theme={theme} showActions={false} />;
+    documentId={documentId} theme={theme} showActions={showActions} />;
 }
 
 function ResourceLink({ target, children }: { target: string; children: import("react").ReactNode }) {
@@ -120,7 +120,7 @@ function RawToolOutput({ block }: { block: Tool }) {
   return <><button type="button" className="thread-tool-details__raw" title="Show raw tool call output"
     aria-label="Show raw tool call output" onClick={() => setOpen(true)}><Code2 size={12} /></button>
     {open ? <ModalSurface label={title} size="wide" layer="nested" onDismiss={() => setOpen(false)}>
-      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} />
+      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} showActions />
     </ModalSurface> : null}</>;
 }
 
@@ -172,7 +172,6 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const coreBody = hasCoreBody ? <div className="thread-tool-details" data-kind={block.kind}>
     {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index} />)
       : <p className="thread-tool-details__empty">Tool returned no content</p>}
-    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     <RawToolOutput block={block} />
   </div> : undefined;
   const body = content === undefined ? coreBody : content;
@@ -184,6 +183,7 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     unmountBodyWhenCollapsed>
     {hasCoreBody || content !== undefined ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
+    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call} />)}
   </>;
 }
@@ -216,7 +216,17 @@ export function GeneratedImageBlock({ block }: { readonly block: Image }) {
   const context = useContext(ConversationDocumentContext);
   const source = context.resolveGeneratedImageSource?.(block) ?? block.uri ?? block.savedPath;
   const identity = JSON.stringify([context.hostId, context.conversationId, context.cwd, block.id, source]);
-  return source === null ? <></> : <GeneratedImage key={identity} block={block} source={source} />;
+  return source === null ? <GeneratedImagePending running={block.status === "pending" || block.status === "running"} />
+    : <GeneratedImage key={identity} block={block} source={source} />;
+}
+
+function GeneratedImagePending({ running, loading = false }: { running: boolean; loading?: boolean }) {
+  if (!running && !loading) return null;
+  const label = running ? "Generating image" : "Loading generated image";
+  return <div className="thread-generated-image-gallery thread-generated-image-gallery--pending"
+    data-testid="generated-image-gallery" role="progressbar" aria-label={label} aria-valuetext={label}>
+    <div className="thread-generated-image-placeholder" />
+  </div>;
 }
 
 function GeneratedImage({ block, source }: { block: Image; source: string }) {
@@ -226,7 +236,8 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
     context.resolveGeneratedImageSource?.(block) ?? browserReadableImageSource(path, context.resolveImageSource),
   [block, context.resolveGeneratedImageSource, context.resolveImageSource]);
   const media = useConversationMediaSource(source, block.id, resolveDirect);
-  if (media.source === null) return <></>;
+  if (media.source === null) return <GeneratedImagePending
+    running={block.status === "pending" || block.status === "running"} loading={media.status === "loading"} />;
   const alt = "Generated image 1";
   return <div className="thread-generated-image-gallery" data-testid="generated-image-gallery">
     <div className="thread-generated-image-preview-wrap">

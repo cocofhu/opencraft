@@ -22,7 +22,7 @@ import {
 import { useIntl } from "@opencraft/i18n/react";
 import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
@@ -156,11 +156,20 @@ function TerminalCopyButton({ value, label }: { readonly value: string; readonly
 function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlock, { type: "command-execution" }>; readonly running: boolean }) {
   const intl = useIntl();
   const output = normalizeTerminalOutput(block.output ?? "");
+  const outputViewport = useRef<HTMLPreElement>(null);
+  const followOutput = useRef(true);
+  useLayoutEffect(() => {
+    const viewport = outputViewport.current;
+    if (viewport && followOutput.current) viewport.scrollTop = viewport.scrollHeight;
+  }, [output]);
   return <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
     <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
       <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
     </div>
-    <div className="thread-shell-output__output"><pre><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
+    <div className="thread-shell-output__output"><pre ref={outputViewport} onScroll={event => {
+      const viewport = event.currentTarget;
+      followOutput.current = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 2;
+    }}><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
       {output ? <TerminalCopyButton value={output} label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} /> : null}
     </div>
     {!running ? <div className="thread-shell-output__footer" data-status={block.status}><span>
@@ -205,8 +214,8 @@ export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: 
   return <ActivityDisclosure icon={activityIcon(presentation.icon)} summary={label} detail={detail}
     running={running} status={presentation.state} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed
     accessory={block.automaticApprovalReviews.length ? <AutomaticApprovalReviewIcon /> : undefined}>
-    {isTerminal && presentation.canExpand ? <>
-      <CommandOutput block={block} running={running} />
+    {(isTerminal && presentation.canExpand) || block.automaticApprovalReviews.length > 0 ? <>
+      {isTerminal && presentation.canExpand ? <CommandOutput block={block} running={running} /> : null}
       {block.automaticApprovalReviews.length ? <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /> : null}
     </> : null}
   </ActivityDisclosure>;

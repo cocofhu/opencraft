@@ -1850,3 +1850,12 @@ and ordering do not change when implementation provenance is reviewed. The
 manager and toolbar share the declared lazy initialization and width/height
 bounds; unused recovery utilities do not introduce another padding or token
 owner. See [the preset review](../docs/provenance/browser-viewport-presets-review.md).
+
+## Conversation interaction continuity
+
+- MCP App surfaces are siblings of tool details. Detail collapse never controls App visibility or lifetime; AppSurface retains ownership of viewport suspension and widget state.
+- A command output viewport follows appended output while at the bottom. Scrolling up suspends following; returning to the bottom restores it without moving the conversation viewport.
+- Automatic review assessments remain independently expandable for read/search activities, even when their semantic presentation has no terminal output body.
+- Sidebar selection changes and selected-section visibility changes reveal the selected row in the actual desktop/mobile scroll owner. Pagination and unrelated catalog updates preserve reading position; detached, hidden or inert content cannot scroll.
+- Generated images reserve their existing gallery placeholder while generation or Host media resolution is pending. Terminal items with no image and no pending load do not retain a progress indicator.
+- The raw tool-result dialog exposes the shared JSON code surface clipboard action; ordinary inline JSON remains quiet. The copied value includes the complete raw result.
