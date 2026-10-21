@@ -1276,3 +1276,21 @@ toolbar and manager consume the same six declared exports. Numeric helpers
 round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
+
+### Local menus and remote selection boundary
+
+Remote selection and editing remain Chromium-owned. Context menus belong to
+the client presentation: an Electron client may use a native Menu, while a
+Web client renders its own local menu. A video surface does not supply the
+mobile OS text-selection menu. Menu availability comes from the remote native
+context, and commands must validate their page, document and target generation
+again when executed. Opening a local menu must not blur or reset the remote
+editor. Clipboard results must be scoped to the requesting browser session,
+then written to the client clipboard under its user-gesture contract; the
+server's global OS clipboard is not a remote clipboard transport.
+
+This is the intended boundary, not an implemented capability. The current
+remote surface forwards mouse drag and click counts and accepts plain-text
+paste, but suppresses its local context menu and has no copy-back protocol.
+Native selection observation in the fork experiment does not provide these
+missing menu and clipboard operations.

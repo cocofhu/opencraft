@@ -114,6 +114,18 @@ app.whenReady().then(async () => {
     rejected(await apply(state, 'commit', '不应插入'));
     assert.deepEqual(await values(), { a: '', b: '保留B' });
   });
+  await test('a focus change ends old composition ownership and permits fresh input', async () => {
+    const preedit = await apply(await reset(), 'compose', 'pin');
+    assert.equal(preedit.status, 'processed');
+    await run('b.focus();b.setSelectionRange(b.value.length,b.value.length)');
+    rejected(await apply(preedit.context, 'commit', '旧提交'));
+    const fresh = await context();
+    assert.equal(fresh.compositionId, '');
+    rejected(await apply(fresh, 'cancel', '', { compositionId: preedit.context.compositionId }));
+    assert.equal((await values()).b, '保留B');
+    assert.equal((await apply(await context(), 'commit', '继续')).status, 'processed');
+    assert.equal((await values()).b, '保留B继续');
+  });
   await test('same editor changed selection expires context', async () => {
     const state = await reset('原文');
     await run('a.select()');
