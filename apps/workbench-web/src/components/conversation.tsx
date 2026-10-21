@@ -64,6 +64,8 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
+  Suspense,
+  lazy,
   useCallback,
   useContext,
   useEffect,
@@ -87,7 +89,7 @@ import {
 } from "./conversation/document-context";
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
-import { AsyncQuestionCard } from "./conversation/async-question-card";
+const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card-view"));
 import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
@@ -276,8 +278,8 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}>
       <AsyncQuestionCard
-        key={question.id}
         question={question}
         title={<WebChatDocument
           conversationId={documentContext.conversationId}
@@ -291,6 +293,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
           theme={documentContext.theme}
         />}
       />
+      </Suspense>
     ))}
   </>;
 }

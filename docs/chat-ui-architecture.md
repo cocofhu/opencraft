@@ -2340,3 +2340,5 @@ answer; a local draft or resolved send promise cannot fabricate acknowledgement.
 A superseded question has no invented answer. Failure retains the draft and uses
 the Workbench notification owner with a stable footer hint, rather than adding a
 layout-changing diagnostic block.
+
+Question card presentation and its stylesheet are loaded together when a timeline contains a question. The pending fallback keeps the original question readable; theme and draft state stay with their existing owners, and the card is not part of the required startup CSS graph.
