@@ -9,7 +9,7 @@ export function readTeamUsage(db:Pick<DatabaseSync,"prepare">,input:{serverId:st
   let filters="";
   if(input.threadId!==undefined){filters+=" AND t.thread_id=?";args.push(input.threadId);}
   if(input.turnId!==undefined){filters+=" AND t.turn_id=?";args.push(input.turnId);}
-  const selected=`WITH selected AS (SELECT t.*,${model===undefined?"t.observed_tokens":"mb.tokens"} AS raw,${model===undefined?"t.unknown_model":"(mb.provider IS NULL OR mb.model IS NULL)"} AS model_unknown FROM token_usage_turns t ${model===undefined?"":"JOIN token_usage_buckets mb ON mb.server_id=t.server_id AND mb.thread_id=t.thread_id AND mb.turn_id=t.turn_id AND mb.model_key=?"} WHERE t.server_id=? AND t.started_ms>=? AND t.started_ms<?${filters}) `;
+  const selected=`WITH selected AS ${input.threadId!==undefined||input.turnId!==undefined?"MATERIALIZED ":""}(SELECT t.*,${model===undefined?"t.observed_tokens":"mb.tokens"} AS raw,${model===undefined?"t.unknown_model":"(mb.provider IS NULL OR mb.model IS NULL)"} AS model_unknown FROM token_usage_turns t ${model===undefined?"":"JOIN token_usage_buckets mb ON mb.server_id=t.server_id AND mb.thread_id=t.thread_id AND mb.turn_id=t.turn_id AND mb.model_key=?"} WHERE t.server_id=? AND t.started_ms>=? AND t.started_ms<?${filters}) `;
   const grouped=(sql:string,extra:(string|number)[]=[])=>db.prepare(selected+sql).all(...args,...extra);
   const totals:Record<string,bigint>={settled:0n,provisional:0n,pending:0n,system:0n,unknown:0n};
   let known=0n,allocated=0n,turnCount=0,missingUsage=0,unknownModelTurns=0;

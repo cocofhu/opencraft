@@ -9,6 +9,7 @@ import { TokenUsageStateDatabase, TOKEN_USAGE_STATE_MIGRATIONS } from "../apps/o
 import { openManagedDatabase, createSchemaValidator } from "../packages/sqlite-node/src/index.js";
 import { CodexTokenUsageLedger } from "../apps/opencraft-daemon/src/token-usage-ledger.js";
 import { CodexTokenUsageRuntime } from "../apps/opencraft-daemon/src/token-usage-runtime.js";
+import { readTeamUsage } from "../apps/opencraft-daemon/src/token-usage-team-query.js";
 
 const key = { threadId: "thread", turnId: "turn" };
 function seed(state: Pick<CodexHostStateDatabase, "database" | "transaction">, id = "response", tokens = "600") {
@@ -86,6 +87,17 @@ test("v1 dedicated store upgrades its thread index without changing facts, alloc
     assert.deepEqual(new CodexTokenUsageLedger(upgraded, "server", () => 1000).query(query, authorize), before);
     const plan = upgraded.database.prepare("EXPLAIN QUERY PLAN SELECT * FROM token_usage_turns WHERE server_id=? AND started_ms>=? AND started_ms<? AND thread_id=?").all("server", 0, 86400000, key.threadId);
     assert.ok(plan.some(row => String(row.detail).includes("token_usage_turns_thread_query")), JSON.stringify(plan));
+    const statements: string[] = [];
+    const filtered = readTeamUsage({ prepare(sql: string) { statements.push(sql); return upgraded.database.prepare(sql); } },
+      { serverId: "server", start: 0, end: 86400000, threadId: key.threadId, view: "turns", after: "", limit: 100 });
+    assert.equal(filtered.known, 600n);
+    assert.equal(filtered.turnCount, 1);
+    for (const sql of statements.filter(sql => sql.startsWith("WITH selected AS"))) {
+      const parameters: (string | number)[] = ["server", 0, 86400000, key.threadId];
+      if (sql.includes("LIMIT ?")) parameters.push("", 101);
+      const actualPlan = upgraded.database.prepare("EXPLAIN QUERY PLAN " + sql).all(...parameters);
+      assert.ok(actualPlan.some(row => String(row.detail).includes("token_usage_turns_thread_query")), JSON.stringify(actualPlan));
+    }
   } finally { upgraded.close(); }
   upgraded = new TokenUsageStateDatabase(directory);
   try { assert.equal(upgraded.outcome.status, "up-to-date"); assert.equal(upgraded.outcome.backupPath, undefined); }
