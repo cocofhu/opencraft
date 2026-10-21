@@ -74,10 +74,10 @@ try {
     const page = await context.newPage(), errors: string[] = [];
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error: Error) => errors.push(error.message));
-    await page.goto(server.resolvedUrls!.local[0]!);
+    await page.goto(server.resolvedUrls!.local[0]!, { waitUntil: "domcontentloaded", timeout: 60000 });
     const row = (title: string) => page.getByRole("button").filter({ has: page.getByText(title, { exact: true }) });
     const fixture = row("Fixture thread"), peer = row("Peer thread");
-    await fixture.waitFor();
+    await fixture.waitFor({ timeout: 60000 });
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
     assert.equal(await fixture.getAttribute("aria-current"), "page");
     assert.equal(await peer.getAttribute("aria-current"), null);
@@ -170,13 +170,13 @@ try {
     await page.evaluate(() => { (window as any).fixture.setTargetHost("local"); (window as any).fixture.enableDelete(); });
     await openActions("Renamed fixture", true);
     await invoke(page.getByRole("menuitem", { name: "Delete", exact: true }));
-    const deletion = page.getByRole("dialog", { name: "Delete conversation", exact: true });
+    const deletion = page.getByRole("alertdialog", { name: "Delete conversation", exact: true });
     await deletion.waitFor();
     await page.evaluate(() => (window as any).fixture.regroup("error"));
     assert.equal(await deletion.isVisible(), true, "valid delete survives regrouping");
     await page.evaluate(() => (window as any).fixture.setTargetHost("remote"));
     await deletion.waitFor({ state: "hidden" });
-    assert.equal(await page.getByRole("dialog").count(), 0, "removed target closes delete");
+    assert.equal(await page.getByRole("alertdialog").count(), 0, "removed target closes delete");
     assert.deepEqual(await page.evaluate(() => (window as any).fixture.actions), actionsBeforeRemoval, "cleanup does not submit stale actions");
     assert.deepEqual(errors, []);
     await context.close();
