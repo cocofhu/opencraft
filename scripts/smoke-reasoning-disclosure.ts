@@ -59,6 +59,46 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--command-completion-only")) {
+      for (const mode of ["completed", "failed", "interrupted"]) {
+        await update("command-completion-reset");
+        await update(`command-completion-${mode}`);
+        assert.equal(await page.locator('.thread-activity-item__hit-target').last().getAttribute('aria-expanded'), 'false',
+          `${mode}: completion cannot expand a command the user never opened`);
+        assert.equal(await page.locator('.thread-shell-output').count(), 0);
+        await update("command-completion-reset");
+        for (let index = 0; index < 8; index++) {
+          const closed = page.locator('.thread-agent-activity__group button[aria-expanded="false"], .thread-activity-item__hit-target[aria-expanded="false"]');
+          if (!await closed.count()) break;
+          await activate(closed.first());
+        }
+        const viewport = page.locator('.thread-shell-output__output pre');
+        const copy = page.locator('.thread-shell-output__output button');
+        await viewport.waitFor();
+        await viewport.evaluate(element => { element.scrollTop = 180; });
+        await page.waitForFunction(() => document.querySelector('.thread-shell-output__output pre')?.scrollTop === 180);
+        if (!touch) await copy.focus();
+        const originalViewport = await viewport.elementHandle();
+        const originalCopy = await copy.elementHandle();
+        const top = await viewport.evaluate(element => element.scrollTop);
+        await update(`command-completion-${mode}`);
+        assert.equal(await originalViewport!.evaluate(element => element.isConnected), true, `${mode}: preserve the log DOM`);
+        assert.equal(await originalCopy!.evaluate(element => element.isConnected), true, `${mode}: preserve the action DOM`);
+        assert.equal(await page.locator('.thread-shell-output__command').isVisible(), true, `${mode}: retain explicit expansion`);
+        assert.equal(await viewport.evaluate(element => element.scrollTop), top, `${mode}: preserve the reading position`);
+        if (!touch) assert.equal(await originalCopy!.evaluate(element => element === document.activeElement), true, `${mode}: retain keyboard focus`);
+        assert.equal(await page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header').count(), 0,
+          `${mode}: completed singleton still has the plain-row presentation`);
+        await update(`command-completion-${mode}`);
+        assert.equal(await originalViewport!.evaluate(element => element.isConnected), true, `${mode}: repeated snapshot stays mounted`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+        results.push({ touch, theme, commandCompletion: mode, top });
+      }
+      assert.deepEqual(errors, []);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-completion.png`) });
+      await page.close();
+      continue;
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -398,7 +438,7 @@ try {
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of localizedLabels) {
+  for (const [locale, running, settled] of (process.argv.includes("--command-completion-only") ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -423,6 +463,6 @@ try {
     await page.close();
   }
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, localizedLabels: localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, localizedLabels: process.argv.includes("--command-completion-only") ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }

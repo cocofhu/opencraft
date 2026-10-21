@@ -8,10 +8,10 @@ import {
   type AssistantTimelineFrame, type TimelineSourceItem,
 } from "@opencraft/chat-core";
 
-function frame(items: readonly TimelineSourceItem[]): AssistantTimelineFrame {
+function frame(items: readonly TimelineSourceItem[], status: "streaming" | "complete" = "complete"): AssistantTimelineFrame {
   const snapshot = projectTimeline({
     key: createConversationKey("fixture", "independent-activity"), revision: 1,
-    phase: "live", authoritative: true, turns: [{ id: "turn", status: "complete", items }],
+    phase: "live", authoritative: true, turns: [{ id: "turn", status, items }],
   }, createDefaultTimelineProjectorRegistry());
   const result = snapshot.frames.find(frame => frame.type === "assistant");
   assert.ok(result?.type === "assistant");
@@ -26,6 +26,20 @@ function freeze<T>(value: T): T {
 }
 const command: TimelineSourceItem = { id: "command", type: "commandExecution", payload: { command: "pwd", status: "completed" } };
 const answer: TimelineSourceItem = { id: "answer", type: "agentMessage", payload: { phase: "final_answer", text: "Done", completed: true } };
+
+test("a completed singleton retains the content owner of its running group", () => {
+  const content = (value: AssistantTimelineFrame) => {
+    const activity = createAssistantTurnPresentationPlan(value).slots.find(slot => slot.type === "agent-activity");
+    assert.ok(activity?.type === "agent-activity");
+    return activity.contentUnits[0]!;
+  };
+  const running = content(frame([{ ...command, payload: { command: "pwd", status: "inProgress" } }], "streaming"));
+  const completed = content(frame([command]));
+  assert.equal(running.type, "group");
+  assert.equal(completed.type, "standalone");
+  assert.equal(completed.id, running.id);
+  assert.ok(completed.type === "standalone" && completed.groupOrigin);
+});
 
 test("repeated changes to one path retain a singular completed file summary", () => {
   const value = frame(["first", "second"].map(id => ({

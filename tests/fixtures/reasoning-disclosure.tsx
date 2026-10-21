@@ -11,6 +11,7 @@ import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workb
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
 import { createIntlTestRoot } from "./intl-root";
+import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import "../../apps/workbench-web/src/styles/app.scss";
 
 const ctx = new Context();
@@ -63,6 +64,19 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("command-completion-")) {
+      const mode = action.slice("command-completion-".length);
+      const running = mode === "reset";
+      if (running) { restore = null; setGeneration(value => value + 1); }
+      const item = { type: "commandExecution", id: "completion-command", pluginId: null, scriptPath: null,
+        command: "printf 'ready\\n'", cwd: "/work", processId: null, source: "agent",
+        status: running ? "inProgress" : mode === "failed" ? "failed" : "completed", commandActions: [],
+        aggregatedOutput: Array.from({ length: 190 }, (_, index) => `line ${index + 1} ready`).join("\n"),
+        exitCode: running ? null : mode === "failed" ? 2 : 0, durationMs: running ? null : 1000,
+      } satisfies ThreadItem;
+      setTurn({ id: "turn", status: running ? "streaming" : mode === "interrupted" ? "interrupted" : mode === "failed" ? "failed" : "complete",
+        items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
