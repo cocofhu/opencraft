@@ -439,3 +439,7 @@ or enable a remote SSH connection automatically.
 The sidebar conversation error label describes a failed conversation state; it
 does not prove that its Host transport is disconnected. Read the conversation's
 actual error to distinguish provider quota from connection failure.
+
+### Nested application documents
+
+HTML rewriting preserves a root-relative application `<base href>` within the selected installation prefix. This keeps relative script and stylesheet requests under a nested application's own resource directory. Documents without a usable local base retain the installation root; external or escaping bases do not retarget relay admission. This only scopes HTML resource resolution and does not change request identity, cookies or membership checks.

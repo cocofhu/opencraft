@@ -86,7 +86,16 @@ export function scopedHtml(html: string, server: { id: string; name: string; bas
   // this tab's authority; neither other tabs nor a stored choice can retarget it.
   const remember = principal ? `<script>try{if(window===window.top)localStorage.setItem(${json(preferenceKey(principal))},${json(server.id)})}catch{}</script>` : '';
   const canonical = server.canonicalPath ? `<script>if(window===window.top)history.replaceState(history.state,"",${json(server.canonicalPath)}+location.hash)</script>` : '';
-  const context = `<base href="${server.base}/"><script id="opencraft-server-context" type="application/json">${json({ id: server.id, name: server.name, targetOrigin: server.targetOrigin, basePath: server.base, selectorPath: server.base.startsWith(LEGACY_SERVERS_PATH + '/') ? LEGACY_SERVERS_PATH : SERVERS_PATH })}</script>${canonical}${remember}`;
+  const baseMatch = /<base\b[^>]*?\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu.exec(html);
+  const upstreamBase = baseMatch?.[1] ?? baseMatch?.[2] ?? baseMatch?.[3];
+  let documentBase = server.base + '/';
+  if (upstreamBase?.startsWith('/') && !upstreamBase.startsWith('//')) {
+    try {
+      const parsed = new URL(upstreamBase, 'https://relay.invalid');
+      if (parsed.origin === 'https://relay.invalid') documentBase = server.base + parsed.pathname;
+    } catch { /* Invalid bases retain the installation root. */ }
+  }
+  const context = `<base href="${escape(documentBase)}"><script id="opencraft-server-context" type="application/json">${json({ id: server.id, name: server.name, targetOrigin: server.targetOrigin, basePath: server.base, selectorPath: server.base.startsWith(LEGACY_SERVERS_PATH + '/') ? LEGACY_SERVERS_PATH : SERVERS_PATH })}</script>${canonical}${remember}`;
   // Only the bounded HTML document is rewritten. Uploads, SSE and other bodies stream unchanged.
   return html.replace(/\s(?:href|src)=(['"])\/(?!\/)/gu, match => match.slice(0, -1) + server.base + '/')
     .replace(/<base\b[^>]*>/giu, '').replace(/<head(?:\s[^>]*)?>/iu, head => head + context);
