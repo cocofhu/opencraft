@@ -8,16 +8,18 @@ import React from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {Sidebar} from '/apps/workbench-web/src/components/sidebar.tsx';
 import {SidebarLayoutStore} from '@opencraft/sidebar-layout';
+import {UiPreferencesProvider,openWorkbenchUiPreferences} from '/apps/workbench-web/src/runtime/ui-preferences-runtime.tsx';
 import {legacyDirectServerProjectionFromHost} from '@opencraft/workbench-runtime';
 import {initializeAppearanceTheme,setThemePreference} from '/apps/workbench-web/src/appearance-theme.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 initializeAppearanceTheme();window.setTheme=setThemePreference;window.actions=[];
+const preferences=await openWorkbenchUiPreferences();
 const layout=await SidebarLayoutStore.open({load:async()=>null,save:async()=>{}});
 const rows=Array.from({length:60},(_,i)=>({id:'t'+i,title:'Conversation '+i,project:'workspace',status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'local',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'local',hostKind:'local',label:'Local'})}));
 const grouping={id:'touch-test',getSnapshot:()=>snapshot,subscribe:()=>()=>{},watch:()=>()=>{},project:refs=>[{id:'all',label:'All conversations',avatarUrl:null,collapsed:false,threads:refs}],setMode:()=>{},toggleGroup:()=>{}};
 const snapshot={revision:0,mode:'all',modes:[{id:'all',label:'All'}],hideRowBadge:false,notice:null};
 const actions={onRename:async()=>{},onFork:async()=>{},onArchive:async()=>window.actions.push('archive'),onDelete:async()=>{},onSetPinned:async()=>window.actions.push('pin')};
-createIntlTestRoot(document.getElementById('root')).render(<div style={{width:320,height:'100vh',display:'flex'}}><Sidebar threads={rows} activeHostId='local' activeThreadId='t0' sidebarLayout={layout} threadActions={actions} threadListGrouping={grouping} threadCapabilities={()=>({pin:true,rename:true,fork:true,archive:true,delete:true})} onSelectThread={()=>window.actions.push('navigate')} onNewTask={()=>{}} onOpenSettings={()=>{}} showFooter={false}/></div>);`;
+createIntlTestRoot(document.getElementById('root')).render(<UiPreferencesProvider runtime={preferences}><div style={{width:320,height:'100vh',display:'flex'}}><Sidebar threads={rows} activeHostId='local' activeThreadId='t0' sidebarLayout={layout} threadActions={actions} threadListGrouping={grouping} threadCapabilities={()=>({pin:true,rename:true,fork:true,archive:true,delete:true})} onSelectThread={()=>window.actions.push('navigate')} onNewTask={()=>{}} onOpenSettings={()=>{}} showFooter={false}/></div></UiPreferencesProvider>);`;
 const vite = await createServer({
   configFile: false, root: process.cwd(), logLevel: "error", resolve: { dedupe: ["react", "react-dom"] },
   cacheDir: "node_modules/.vite-sidebar-menu-touch", esbuild: { jsx: "automatic" },
