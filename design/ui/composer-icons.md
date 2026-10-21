@@ -88,3 +88,14 @@ Run `npm run check:icons` to inspect direct imports, re-exports, dynamic registr
 inputs and inline control SVG across Web, shared packages and plugins. Test the
 policy with `node --test tests/interface-icons-policy.test.mjs`. Product workspaces
 consume the same entry and must be scanned in their own delivery verification.
+
+The retained sidebar/split-panel family is the visual reference for common Web
+glyphs: light rounded strokes, complete quiet frames, generous interior space and
+only the detail needed to identify an action. Keep its original artwork unchanged.
+Use `RoundedPage` for both file types and permission pages so folded corners stay
+aligned. Static model choices and reasoning share `BrainArtwork`; only activity
+rows add the existing pulse. Semantic openings such as arrows, folder openings and
+overlapping objects remain intentional; decorative gaps are not a house style.
+Review the entire family at 16/20/24px in both themes, including dense compound
+glyphs. Calibrate activity paint bounds at the existing rail owner after geometry
+changes; never change global strokes or the retained panel glyphs to compensate.

@@ -17,3 +17,17 @@ export function ActionGlyph({ size = 20, strokeWidth = 1.5, className, "aria-lab
     {children}
   </svg>;
 }
+
+/** One folded-page silhouette for resources and read/edit permissions. */
+export function RoundedPage({ children }: { readonly children?: ReactNode }) {
+  return <>
+    <path d="M13.5 3.5h-6A2.5 2.5 0 0 0 5 6v12a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18V9l-5.5-5.5Z" />
+    <path d="M13.5 3.5v4A1.5 1.5 0 0 0 15 9h4" />
+    {children}
+  </>;
+}
+
+/** Static model choices and live reasoning share a silhouette; only the row owns motion. */
+export function BrainArtwork({ detailClassName }: { readonly detailClassName?: string }) {
+  return <><path d="M12 7a3 3 0 0 0-6-.5 3.7 3.7 0 0 0-1.6 6.8A3.7 3.7 0 0 0 8 19a4 4 0 0 0 4-3 4 4 0 0 0 4 3 3.7 3.7 0 0 0 3.6-5.7A3.7 3.7 0 0 0 18 6.5a3 3 0 0 0-6 .5Zm0 0v9" /><path className={detailClassName} d="M6 6.5c0 1.5 1 2.5 2.5 2.5m9.5-2.5c0 1.5-1 2.5-2.5 2.5" /></>;
+}

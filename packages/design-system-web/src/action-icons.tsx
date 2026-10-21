@@ -1,6 +1,6 @@
 import React from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
-import { ActionGlyph, type ActionIconProps } from "./icon-glyph";
+import { ActionGlyph, BrainArtwork, RoundedPage, type ActionIconProps } from "./icon-glyph";
 export type { ActionIconProps } from "./icon-glyph";
 export * from "./interface-icons";
 export * from "./activity-icons";
@@ -39,15 +39,13 @@ export function StopCircleIcon(props: ActionIconProps) {
 /** A shared page silhouette keeps read and edit permissions in one family. */
 export function PermissionDocumentIcon({ editable = false, ...props }: ActionIconProps & { readonly editable?: boolean }) {
   return <ActionGlyph {...props} kind={editable ? "permission-edit" : "permission-read"}>
-    <path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-10L14 3.5Z" />
-    <path d="M13.5 3.5V8a1 1 0 0 0 1 1H19" />
-    {editable ? <path d="m9.25 12.5-2 2 2 2m5.5-4 2 2-2 2" /> : <path d="M8.5 12.5h7m-7 4h5" />}
+    <RoundedPage>{editable ? <path d="m10 12.5-2 2 2 2m4-4 2 2-2 2" /> : <path d="M8.5 12.5h7m-7 4h5" />}</RoundedPage>
   </ActionGlyph>;
 }
 
 export function PermissionShieldIcon(props: ActionIconProps) {
   return <ActionGlyph {...props} kind="permission-shield">
-    <path d="M12 3.5c2.15 1.65 4.5 2.5 7 3v5.25c0 4.25-2.6 7.25-7 9.25-4.4-2-7-5-7-9.25V6.5c2.5-.5 4.85-1.35 7-3Z" />
+    <path d="M12 3.5c2 1.4 4.3 2.4 7 3v5c0 4.1-2.5 7.2-7 9.5-4.5-2.3-7-5.4-7-9.5v-5c2.7-.6 5-1.6 7-3Z" />
     <path d="m8.75 11.75 2.25 2.25 4.5-4.5" />
   </ActionGlyph>;
 }
@@ -80,23 +78,23 @@ export function ResetIcon(props: ActionIconProps) {
 
 /** Static controls use the same quiet contours without process-row animation. */
 export function SearchIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="search"><path d="M15.6 13.9A6.7 6.7 0 1 0 13.9 15.6M16.4 16.4 21 21" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="search"><path d="M17.5 10.75a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0ZM15.5 15.5l5 5" /></ActionGlyph>;
 }
 
 export function TerminalIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="terminal"><path d="M16 4H7.2A3.2 3.2 0 0 0 4 7.2v9.6A3.2 3.2 0 0 0 7.2 20h9.6a3.2 3.2 0 0 0 3.2-3.2V9" /><path d="m7.5 9 3 3-3 3m6 0H17" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="terminal"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" /><path d="m7.5 9.5 2.5 2.5-2.5 2.5m6 0H17" /></ActionGlyph>;
 }
 
 export function ModelIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="model"><path d="M12 7c0-3.7-5-4.4-5.8-.8-3.5.6-3.8 4.8-1.3 6.3-1 3.1 1.1 5.7 4 5.2M12 7c0-3.7 5-4.4 5.8-.8 3.5.6 3.8 4.8 1.3 6.3 1 3.1-1.1 5.7-4 5.2M12 7v12M6.2 6.2c0 1.6.9 2.5 2.3 2.5m9.3-2.5c0 1.6-.9 2.5-2.3 2.5" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="model"><BrainArtwork /></ActionGlyph>;
 }
 
 export function CopyIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="copy"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M15.5 4H6.5A2.5 2.5 0 0 0 4 6.5v9" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="copy"><rect x="8" y="8" width="12" height="12" rx="2.75" /><path d="M15 4H7a3 3 0 0 0-3 3v8" /></ActionGlyph>;
 }
 
 export function EditIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="edit"><path d="m5 14.5 9.9-9.9a2.1 2.1 0 0 1 3 0l1.5 1.5a2.1 2.1 0 0 1 0 3l-9.9 9.9L4 20l1-5.5Zm8.4-8.4 4.5 4.5" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="edit"><path d="m5.5 14.5 9.8-9.8a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8l-9.8 9.8L4 20l1.5-5.5ZM14 6l4 4" /></ActionGlyph>;
 }
 
 export function ComposeIcon(props: ActionIconProps) {
@@ -141,18 +139,18 @@ export function ChevronLeftIcon(props: ActionIconProps) {
 }
 
 export function FolderIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="folder"><path d="M4 6.8A2.8 2.8 0 0 1 6.8 4H10l2.2 2.5h5A2.8 2.8 0 0 1 20 9.3v8a2.7 2.7 0 0 1-2.7 2.7H6.7A2.7 2.7 0 0 1 4 17.3V6.8Z" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="folder"><path d="M4 7a3 3 0 0 1 3-3h3l2 2.5h5a3 3 0 0 1 3 3V17a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z" /></ActionGlyph>;
 }
 export function FolderOpenIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="folder-open"><path d="M4 10V6.8A2.8 2.8 0 0 1 6.8 4H10l2.2 2.5h5A2.8 2.8 0 0 1 20 9M4 12h16l-2 6a3 3 0 0 1-2.8 2H6.7A2.7 2.7 0 0 1 4 17.3V12Z" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="folder-open"><path d="M4 12V7a3 3 0 0 1 3-3h3l2 2.5h5a3 3 0 0 1 3 3M4 12h16l-2 6a3 3 0 0 1-2.8 2H7a3 3 0 0 1-3-3v-5Z" /></ActionGlyph>;
 }
 
 /** Refresh, viewport rotation and conversation replay retain distinct meanings. */
 export function RefreshIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="refresh"><path d="M19 8a7.5 7.5 0 0 0-12.3-2M5 4v5h5M5 16a7.5 7.5 0 0 0 12.3 2M19 20v-5h-5" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="refresh"><path d="M19 8a8 8 0 0 0-13-2M5 4.5V9h4.5M5 16a8 8 0 0 0 13 2M19 19.5V15h-4.5" /></ActionGlyph>;
 }
 export function RotateIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="rotate"><rect x="8.5" y="7.5" width="7" height="11" rx="1.5" transform="rotate(25 12 13)" /><path d="M5 8a8 8 0 0 1 13-3M18 1.5V5h-3.5" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="rotate"><rect x="8" y="8.5" width="7" height="11" rx="2" transform="rotate(20 11.5 14)" /><path d="M5 8a8 8 0 0 1 13-3M18 2V5h-3" /></ActionGlyph>;
 }
 export function ReplayIcon(props: ActionIconProps) {
   return <ActionGlyph {...props} kind="replay"><path d="M5 9a8 8 0 1 1-1 5M5 4.5V9h4.5" /><path d="m11 9 4 3-4 3V9Z" /></ActionGlyph>;

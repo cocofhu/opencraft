@@ -3,7 +3,7 @@
 This topic owns process-summary rendering in the conversation detail page:
 commands, read/search/edit tools, reasoning, image views, grouped tools and
 active/completed context compaction, collaboration process headers/status and
-Codex App thread-tool process rows. Its process glyphs use open contours, rounded joins and restrained detail.
+Codex App thread-tool process rows. Its process glyphs use complete, quiet contours, rounded joins and restrained detail.
 It does not apply one font or one glyph shape to prose, identity logos, cards,
 controls or returned documents.
 
@@ -80,7 +80,7 @@ alone cannot catch an image taken before ResizeObserver/disclosure layout settle
 
 `packages/design-system-web/src/activity-icons.tsx` owns the thinking, command, search, read, files, edit,
 browser and agent SVGs. The brain remains recognizable with fewer internal
-folds; command/search/file contours use deliberate openings. Supplemental
+folds; command/search/file frames share the complete rounded contours of static controls. Supplemental
 interface icons now use the same SVG package and receive optical calibration
 from the rail stylesheet. External identities keep their own artwork. The
 Workbench activity-glyphs entry is a compatibility re-export. Static navigation
