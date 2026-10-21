@@ -337,3 +337,5 @@ no prompts or execution history and never acquire conversation execution ownersh
 Unsupported, offline, loading, failed and genuinely empty Host catalogs are distinct;
 same-scope cached plans survive transient disconnects. Editor requests fence the
 captured Host/profile/authorization scope, with backend revision checks unchanged.
+
+The scheduled task catalog resolves names for durable conversations missing from `thread/list` through metadata-only `thread/read`, under the same Host admission and authorization fences. This does not start a Turn or create a second title authority; failed metadata reads retain the plan with its conversation ID. Reads are limited to four concurrent requests per Host.

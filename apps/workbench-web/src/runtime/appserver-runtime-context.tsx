@@ -637,7 +637,27 @@ export function useMultiHostThreadCatalog(): {
         if (!runtime || !current()) throw new Error("Schedule catalog scope changed");
         const result = await runtime.resources.protocol.request("opencraft/schedules/list", {});
         if (!current()) throw new Error("Schedule catalog scope changed");
-        return result;
+        // A durable conversation without a first Turn can be absent from thread/list.
+        // Read its native metadata here; the catalog remains the only UI reader.
+        const known = new Set((queries[index]?.data?.data ?? []).map(thread => thread.id));
+        const missing = result.schedules.filter(plan => !known.has(plan.threadId));
+        const titleByThreadId: Record<string, string> = {};
+        let cursor = 0;
+        await Promise.all(Array.from({ length: Math.min(4, missing.length) }, async () => {
+          while (cursor < missing.length) {
+            const plan = missing[cursor++]!;
+            if (!current()) throw new Error("Schedule catalog scope changed");
+            try {
+              const { thread } = await runtime.resources.protocol.request("thread/read", { threadId: plan.threadId, includeTurns: false });
+              if (!current()) throw new Error("Schedule catalog scope changed");
+              if (thread.name?.trim()) titleByThreadId[plan.threadId] = thread.name;
+            } catch {
+              if (!current()) throw new Error("Schedule catalog scope changed");
+              // Missing/deleted native metadata must not hide the remaining plans.
+            }
+          }
+        }));
+        return { ...result, titleByThreadId };
       },
       staleTime: 30_000, refetchInterval: 60_000, retry: false,
     };
@@ -797,6 +817,7 @@ export function useMultiHostThreadCatalog(): {
       return {
         hostId: host.hostId, hostLabel: host.label, scope: JSON.stringify(scheduleKeys[index]),
         schedules: displayable[index] ? query.data?.schedules ?? [] : [],
+        titleByThreadId: displayable[index] ? query.data?.titleByThreadId ?? {} : {},
         phase: !readable ? "offline" : capability?.summary !== true || runtime?.resources.host.canRequest?.("opencraft/schedules/list") !== true ? "unsupported" : query.isError ? "error" : query.isPending ? "loading" : "ready",
         cached: displayable[index] && query.data !== undefined, port,
         ...(port && runtime?.resources.host.canRequest?.("thread/start") === true ? { creation: {

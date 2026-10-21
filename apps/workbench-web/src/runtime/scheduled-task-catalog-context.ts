@@ -6,6 +6,7 @@ export interface HostScheduleCatalog {
   readonly hostLabel: string;
   readonly scope: string;
   readonly schedules: readonly ConversationScheduleSummary[];
+  readonly titleByThreadId?: Readonly<Record<string, string>>;
   readonly phase: "loading" | "ready" | "offline" | "error" | "unsupported";
   readonly cached: boolean;
   readonly port: ConversationSchedulesRequestPort | null;
