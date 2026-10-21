@@ -25,7 +25,7 @@ test("Host and active Thread recover independently of a rejected Thread and stal
         if (recovering && message.params.threadId === "missing") {
           reply.send(JSON.stringify({ id: message.id, error: { code: -32000, message: "Thread no longer exists" } }));
         } else send({ thread: thread(message.params.threadId), model: "test", modelProvider: "test", cwd: "/workspace",
-          serviceTier: "default", reasoningEffort: "medium", approvalsReviewer: "user",
+          serviceTier: "fast", reasoningEffort: "medium", approvalsReviewer: "user",
           runtimeWorkspaceRoots: ["/workspace"], instructionSources: [], activePermissionProfile: { id: "workspace" },
           approvalPolicy: "on-request", sandbox: { type: "workspaceWrite", writableRoots: ["/workspace"] },
           initialTurnsPage: { data: [], nextCursor: null }, turnsBackwardsCursor: null, itemsBackwardsCursor: null });
@@ -53,6 +53,7 @@ test("Host and active Thread recover independently of a rejected Thread and stal
     assert.equal(runtime.getSnapshot().phase, "ready");
     for (let i = 0; i < 10; i++) await tick();
     assert.equal(healthy.getSnapshot().authoritative, true);
+    assert.equal(healthy.getSnapshot().execution.serviceTier, "fast", "reconnect restores speed from the Host");
     assert.equal(runtime.getThreadResidency("missing")?.phase, "error");
     assert.deepEqual(resumedIds.slice(recoveryStart), ["healthy", "missing"], "visible first; cache residency alone creates no recovery read");
     const reopened = await runtime.acquireThread("cache-only");

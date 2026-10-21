@@ -282,6 +282,7 @@ export interface AppServerThreadResourcePort {
 export interface AppServerComposerCatalogResourcePort {
   listModels(params?: Partial<ModelListParams>): Promise<ModelListResponse>;
   readNewThreadDefaults(cwd?: string | null): Promise<{
+    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
   }>;
@@ -1855,6 +1856,7 @@ export function createAppServerWorkbenchRuntime(
             ...(cwd === null ? {} : { cwd }),
           });
           return {
+            serviceTier: typeof response.config.service_tier === "string" ? response.config.service_tier : null,
             model: typeof response.config.model === "string"
               ? response.config.model
               : null,

@@ -1,5 +1,5 @@
+import { ComposerModelPicker } from "./composer-model-picker";
 import { SessionModelPicker } from "./session-model-picker";
-import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
 // AppServer state remains externally owned.
@@ -38,7 +38,6 @@ import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, com
 import {
   ArrowUp,
   AtSign,
-  BrainCircuit,
   Check,
   ChevronDown,
   CircleStop,
@@ -138,6 +137,7 @@ export interface ComposerModelOption {
   readonly source?: "builtin" | "custom" | null;
   readonly defaultEffort: string | null;
   readonly efforts: readonly ComposerReasoningEffortOption[];
+  readonly serviceTiers?: readonly { readonly id: string; readonly name: string; readonly description: string }[];
 }
 
 export interface ComposerPermissionOption {
@@ -186,6 +186,7 @@ export interface ComposerSelectionCatalog {
 }
 
 export interface ComposerEffectiveSelections {
+  readonly serviceTier?: string | null;
   readonly agentId?: string | null;
   readonly model?: string | null;
   readonly effort?: string | null;
@@ -212,18 +213,6 @@ function displayReasoningEffort(effort: ComposerReasoningEffortOption): string {
     default:
       return effort.label;
   }
-}
-
-function formatModelTokenLimit(value: number): string {
-  if (value >= 1_000_000) {
-    const millions = value / 1_000_000;
-    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    const thousands = value / 1_000;
-    return `${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}K`;
-  }
-  return String(value);
 }
 
 interface SelectionMenuItemContentProps {
@@ -860,7 +849,6 @@ export const OpenCraftComposer = forwardRef<
   const suggestionQueryRef = useRef<SuggestionQuery | null>(null);
   const dismissedSuggestionRef = useRef<SuggestionQuery | null>(null);
   const suggestionListId = useId();
-  const reasoningGroupLabelId = useId();
   const suggestionListRef = useRef<HTMLDivElement | null>(null);
   const filteredSuggestionsRef = useRef<readonly Suggestion[]>([]);
   const suggestionLoadingRef = useRef(false);
@@ -912,8 +900,19 @@ export const OpenCraftComposer = forwardRef<
     if (open && picker === "intelligence") selectionCatalog?.onModelMenuOpen?.();
     setOpenPicker(current => open ? picker : current === picker ? null : current);
   };
-  const intelligenceFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "intelligence", onOpenChange: changePicker("intelligence"), getEditor: () => editorViewRef.current?.dom ?? null });
-  const permissionsFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "permissions", onOpenChange: changePicker("permissions"), getEditor: () => editorViewRef.current?.dom ?? null });
+  const settleEditingFocusRef = useRef<() => void>(() => {});
+  const menuFocusPending = useRef(false);
+  const afterMenuCloseFocus = () => {
+    // FocusScope restores its trigger after this event returns. Keep the
+    // presentation lease until that synchronous cleanup has completed.
+    queueMicrotask(() => {
+      if (editorControllerRef.current !== controller) return;
+      menuFocusPending.current = false;
+      settleEditingFocusRef.current();
+    });
+  };
+  const intelligenceFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "intelligence", onOpenChange: changePicker("intelligence"), getEditor: () => editorViewRef.current?.dom ?? null, onCloseFocusSettling: afterMenuCloseFocus });
+  const permissionsFocus = useInputAuxiliaryMenuFocus({ open: openPicker === "permissions", onOpenChange: changePicker("permissions"), getEditor: () => editorViewRef.current?.dom ?? null, onCloseFocusSettling: afterMenuCloseFocus });
   const agentSelectionEpoch = useRef(0);
   const [switchingAgentId, setSwitchingAgentId] = useState<string | null>(null);
   const [agentSelectionError, setAgentSelectionError] = useState<{ id: string; message: string } | null>(null);
@@ -931,6 +930,38 @@ export const OpenCraftComposer = forwardRef<
   const [editingQueuedSubmissionId, setEditingQueuedSubmissionId] = useState<
     string | null
   >(null);
+  // Presentation follows an editing session, not whether the draft has text.
+  // Toolbar/owned menus retain that session; only editor focus starts one.
+  const [editingController, setEditingController] = useState<ComposerController | null>(null);
+  const editingActive = editingController === controller;
+  const auxiliaryMenuOpen = openPicker !== null || addMenuOpen || shortcutMenuOpen;
+  useLayoutEffect(() => {
+    if (auxiliaryMenuOpen) { menuFocusPending.current = true; return; }
+    if (!editingActive) return;
+    const root = stackRef.current;
+    if (!root) return;
+    const doc = root.ownerDocument;
+    let frame = 0;
+    const settle = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!menuFocusPending.current && !root.contains(doc.activeElement)) {
+          setEditingController(current => current === controller ? null : current);
+        }
+      });
+    };
+    doc.addEventListener("focusin", settle);
+    doc.addEventListener("focusout", settle);
+    // Do not settle on open=false: Radix restores focus later in its own
+    // close cleanup. Its callback starts this check after that boundary.
+    settleEditingFocusRef.current = settle;
+    return () => {
+      settleEditingFocusRef.current = () => {};
+      cancelAnimationFrame(frame);
+      doc.removeEventListener("focusin", settle);
+      doc.removeEventListener("focusout", settle);
+    };
+  }, [controller, editingActive, auxiliaryMenuOpen]);
   const footerLayout = useMeasuredComposerFooterLayout();
   const inputInteraction = useSyncExternalStore(controller.subscribeInputInteraction, controller.getInputInteractionSnapshot, controller.getInputInteractionSnapshot);
   const voiceActive = inputInteraction !== null;
@@ -998,6 +1029,10 @@ export const OpenCraftComposer = forwardRef<
     reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),
     composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort,
   ) ?? null : null;
+  const requestedServiceTier = composerSnapshot.draft.selections.serviceTier !== undefined
+    ? composerSnapshot.draft.selections.serviceTier : effectiveSelections?.serviceTier;
+  const selectedServiceTier = selectedModel?.serviceTiers?.some(tier => tier.id === requestedServiceTier)
+    ? requestedServiceTier ?? null : null;
   // Null means inherit, including drafts saved by the former default option.
   // Display the resolved policy without writing it back as an explicit choice.
   const effectivePermissionValue = effectiveSelections?.permissionProfile ?? null;
@@ -1273,6 +1308,7 @@ export const OpenCraftComposer = forwardRef<
             // Preserve an unavailable explicit choice so Runtime rejects it instead
             // of silently resolving the Host default model.
             model: selectedModel?.value ?? selectedModelValue,
+            ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedServiceTier } : {}),
             ...(selectedModel ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
           } };
         }
@@ -1380,6 +1416,8 @@ export const OpenCraftComposer = forwardRef<
       editingQueuedSubmissionId,
       selectedModel,
       selectedModelValue,
+      requestedServiceTier,
+      selectedServiceTier,
       modelSelectionPolicy,
       modelDisplayOnly,
       effectiveSelections?.effort,
@@ -1883,6 +1921,8 @@ export const OpenCraftComposer = forwardRef<
       patch: {
         model: model.value,
         effort,
+        ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined
+          ? { serviceTier: model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier : null } : {}),
       },
     });
     selectionCatalog?.onRememberModelDefaults?.({
@@ -1949,7 +1989,6 @@ export const OpenCraftComposer = forwardRef<
       ? { id: "composer.permissions.onSend", defaultMessage: "{profile} · on send" }
       : { id: "composer.permissions.nextTurn", defaultMessage: "{profile} · next turn" }, { profile: permissionSelectionLabel })
     : permissionSelectionLabel;
-  const modelPickerDisabled = disabled || (catalogModels.length === 0 && !selectionCatalog?.agentGroups?.length);
 
   const primaryAction = resolveComposerPrimaryAction({
     isResponseInProgress: isStreaming,
@@ -1987,6 +2026,10 @@ export const OpenCraftComposer = forwardRef<
       }}
       onKeyDownCapture={() => { inputPointerEntrance.current = null; }}
       className="opencraft-composer-stack"
+      onFocusCapture={event => {
+        if (event.target === editorViewRef.current?.dom) setEditingController(controller);
+      }}
+      data-composer-editing={editingActive ? "true" : "false"}
       data-composer-layout={chromeHeader != null ? "stacked" : "auto-single-line"}
       data-composer-empty={!composerSnapshot.hasContent && !showSuggestions
         && composerSnapshot.draft.attachments.length === 0
@@ -2263,6 +2306,7 @@ export const OpenCraftComposer = forwardRef<
                     sideOffset={6}
                     collisionPadding={6}
                     onCloseAutoFocus={(event) => {
+                      afterMenuCloseFocus();
                       const afterClose = afterAddMenuClose.current;
                       afterAddMenuClose.current = null;
                       if (afterClose !== null) {
@@ -2313,6 +2357,7 @@ export const OpenCraftComposer = forwardRef<
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
                   <DropdownMenu.Content className="opencraft-composer-selection-menu opencraft-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
+                    afterMenuCloseFocus();
                     if (!refocusAfterShortcutSelectionRef.current) return;
                     refocusAfterShortcutSelectionRef.current = false;
                     event.preventDefault();
@@ -2354,46 +2399,17 @@ export const OpenCraftComposer = forwardRef<
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
                 focus={intelligenceFocus} /> : null}
-              {!modelDisplayOnly && modelSelectionPolicy === "user" ? <DropdownMenu.Root
-                modal={false}
-                open={openPicker === "intelligence"}
-                onOpenChange={changePicker("intelligence")}
-              >
-                <div className="opencraft-composer-picker opencraft-composer-picker--intelligence">
-                  <DropdownMenu.Trigger asChild>
-                    <button
-                      {...intelligenceFocus.triggerProps}
-                      className="opencraft-composer-mode opencraft-composer-mode--intelligence"
-                      type="button"
-                      disabled={modelPickerDisabled}
-                      aria-label={intelligenceLabel}
-                      title={selectionCatalog?.modelError ?? intelligenceLabel}
-                    >
-                      <BrainCircuit className="opencraft-composer-mode__model-icon" size={16} aria-hidden="true" />
-                      <span className="opencraft-composer-mode__model-label">
-                        {compactSelectedModelLabel}
-                      </span>
-                      {selectedModel?.efforts.length ? (
-                        <span className="opencraft-composer-mode__effort-label">
-                          {effortLabel}
-                        </span>
-                      ) : null}
-                      <ChevronDown
-                        className="opencraft-composer-mode__chevron"
-                        size={12}
-                      />
-                    </button>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Portal container={portalContainer}>
-                    <DropdownMenu.Content
-                      className="opencraft-composer-selection-menu opencraft-composer-selection-menu--intelligence"
-                      data-has-detail={selectedModel === null ? "false" : "true"}
-                      aria-label={`${intl.formatMessage({ id: "chat.model", defaultMessage: "Model" })} · ${reasoningLabel}`}
-                      align="start"
-                      sideOffset={6}
-                      collisionPadding={6}
-                      {...intelligenceFocus.contentProps}
-                    >
+              {!modelDisplayOnly && modelSelectionPolicy === "user" ? <ComposerModelPicker
+                label={compactSelectedModelLabel} modelLabel={modelLabel} fullLabel={intelligenceLabel} effortLabel={selectedModel?.efforts.length ? effortLabel : undefined}
+                disabled={disabled} open={openPicker === "intelligence"} onOpenChange={changePicker("intelligence")}
+                portalContainer={portalContainer} focus={intelligenceFocus}
+                efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
+                serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier}
+                onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
+                effort={selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
+                  const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
+                  if (effort) selectEffort(effort);
+                }}>
                       <div className="opencraft-composer-intelligence-view">
                         <div className="opencraft-composer-intelligence-models">
                           <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">
@@ -2452,94 +2468,8 @@ export const OpenCraftComposer = forwardRef<
                             </div>
                           ) : null}
                         </div>
-                        {selectedModel ? (
-                          <>
-                            <DropdownMenu.Separator className="opencraft-composer-selection-menu__separator" />
-                            <div className="opencraft-composer-intelligence-detail">
-                              <div className="opencraft-composer-intelligence-detail__header">
-                                <strong>{modelLabel}</strong>
-                                {selectedModel.source === "custom" ? (
-                                  <span className="opencraft-composer-intelligence-detail__source">
-                                    <FormattedMessage id="composer.model.custom" defaultMessage="Custom" />
-                                  </span>
-                                ) : null}
-                              </div>
-                              {selectedModel.contextWindow != null ||
-                              selectedModel.maxTokens != null ? (
-                                <dl className="opencraft-composer-model-metadata">
-                                  {selectedModel.contextWindow != null ? (
-                                    <div>
-                                      <dt><FormattedMessage id="composer.model.context" defaultMessage="Context" /></dt>
-                                      <dd>{formatModelTokenLimit(selectedModel.contextWindow)}</dd>
-                                    </div>
-                                  ) : null}
-                                  {selectedModel.maxTokens != null ? (
-                                    <div>
-                                      <dt><FormattedMessage id="composer.model.output" defaultMessage="Max output" /></dt>
-                                      <dd>{formatModelTokenLimit(selectedModel.maxTokens)}</dd>
-                                    </div>
-                                  ) : null}
-                                </dl>
-                              ) : null}
-                              <div className="opencraft-composer-model-capabilities">
-                                <span className="opencraft-composer-selection-menu__heading">
-                                  <FormattedMessage id="composer.model.supports" defaultMessage="Supports" />
-                                </span>
-                                <div className="opencraft-composer-model-capabilities__list">
-                                  {(selectedModel.inputModalities ?? ["text"]).map((modality) => (
-                                    <span key={modality}>
-                                      {modality === "image" ? (
-                                        <FormattedMessage id="composer.model.image" defaultMessage="Image" />
-                                      ) : modality === "audio" ? (
-                                        <FormattedMessage id="composer.model.audio" defaultMessage="Audio" />
-                                      ) : (
-                                        <FormattedMessage id="composer.model.text" defaultMessage="Text" />
-                                      )}
-                                    </span>
-                                  ))}
-                                  {selectedModel.efforts.length ? (
-                                    <span><FormattedMessage id="composer.model.reasoning" defaultMessage="Reasoning" /></span>
-                                  ) : null}
-                                </div>
-                              </div>
-                              {selectedModel.efforts.length ? (
-                                <div className="opencraft-composer-intelligence-reasoning">
-                                  <div className="opencraft-composer-reasoning-heading">
-                                    <DropdownMenu.Label id={reasoningGroupLabelId} className="opencraft-composer-selection-menu__heading">
-                                      <FormattedMessage id="chat.reasoning" defaultMessage="Reasoning" />
-                                    </DropdownMenu.Label>
-                                  </div>
-                                  <DropdownMenu.Item asChild disabled={selectedModel.efforts.length === 1}
-                                    onSelect={event => event.preventDefault()}>
-                                    <div role="group" aria-label={reasoningLabel} onFocus={event => {
-                                      // Enter the slider from the menu's roving collection. Its own
-                                      // adjustment keys then stop before the parent menu handlers.
-                                      if (event.target === event.currentTarget) event.currentTarget.querySelector<HTMLElement>('[role="slider"]')?.focus({ preventScroll: true });
-                                    }}>
-                                      <DiscreteSlider
-                                        key={JSON.stringify([selectedModel.value, selectedModel.efforts.map(effort => effort.value)])}
-                                        label={reasoningLabel}
-                                        unsetLabel={effortLabel}
-                                        value={selectedEffortValue}
-                                        options={selectedModel.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) }))}
-                                        preservePointerFocus={intelligenceFocus.preservesEditorFocus}
-                                        onValueChange={value => {
-                                          const effort = selectedModel.efforts.find(candidate => candidate.value === value);
-                                          if (effort) selectEffort(effort);
-                                        }}
-                                      />
-                                    </div>
-                                  </DropdownMenu.Item>
-                                </div>
-                              ) : null}
-                            </div>
-                          </>
-                        ) : null}
                       </div>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </div>
-              </DropdownMenu.Root> : null}
+              </ComposerModelPicker> : null}
 
               {showPermissionPicker ? <DropdownMenu.Root
                 modal={false}
@@ -2632,6 +2562,11 @@ export const OpenCraftComposer = forwardRef<
             </div>
           </div>
           <div ref={footerLayout.endRef} className="opencraft-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
+            {selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast")) ? (
+              <span className="opencraft-composer-collapsed-fast" role="img" aria-label="Fast">
+                <Zap size={15} fill="currentColor" aria-hidden="true" />
+              </span>
+            ) : null}
             {endActions}
             {mentionSuggestionsEnabled ? (
               <button
@@ -2645,7 +2580,7 @@ export const OpenCraftComposer = forwardRef<
             ) : null}
             {addMenuContent === undefined || addMenuContent === null ? (
               <button
-                className="opencraft-composer-icon-button opencraft-composer-icon-button--context"
+                className="opencraft-composer-icon-button opencraft-composer-icon-button--context opencraft-composer-icon-button--attachment"
                 type="button"
                 title={intl.formatMessage({ id: "chat.attach", defaultMessage: "Attach files" })}
                 onClick={openAttachmentPicker}
