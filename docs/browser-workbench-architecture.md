@@ -1297,6 +1297,12 @@ and system input. Disconnect suspends video production and releases pressed
 keys, buttons and touch contacts without navigating or destroying the page.
 Input/control boundaries are ordered in the worker; moves are flushed before
 release and local compositions are discarded across a connection change.
+Continuous touch/drag movement keeps the active paint cadence. The worker
+coalesces only adjacent pointer positions that have not reached Chromium;
+all merged requests settle with that dispatch. Press/release/cancel, editing,
+viewport changes and modifier changes remain ordering boundaries. A dispatched
+native event is never replaced, and navigation/stop retain their independent
+control path. Idle paint throttling must not accumulate stale gesture input.
 This is still final-text input, not the complete native IME bridge described
 above. Touch remains the existing single-contact emulation path.
 

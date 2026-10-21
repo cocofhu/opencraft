@@ -7,6 +7,7 @@ const { createInterface } = require('node:readline');
 const { installClipboard } = require('./clipboard.cjs');
 const { installIme } = require('./ime.cjs');
 const { initializeNativeFocus } = require('./focus.cjs');
+const { createControls } = require('./controls.cjs');
 app.commandLine.appendSwitch('opencraft-remote-clipboard');
 const ipc = typeof process.send === 'function';
 // CSS pixels, independent of the viewer's devicePixelRatio. Bound software
@@ -308,7 +309,9 @@ async function command(message) {
       p.clipboard.retire(); await p.ime.retire();
       p.contextIntent = typeof input.menuIntent === 'string' && /^[a-zA-Z0-9-]{20,100}$/.test(input.menuIntent) ? input.menuIntent : null;
     }
-    if (input.type !== 'mouseMove') activity(p);
+    // A held touch/drag is active work even without another down/up event.
+    // Otherwise native touch ACKs fall to the idle 2 fps cadence mid-gesture.
+    if (input.type !== 'mouseMove' || p.touchActive || input.modifiers?.includes('leftButtonDown')) activity(p);
     // Copy the finite, typed input surface; no arbitrary Electron options.
     const event = { type: input.type };
     for (const name of ['x','y','deltaX','deltaY','clickCount']) if (Number.isFinite(input[name])) event[name] = Math.max(-10000, Math.min(10000, input[name]));
@@ -353,15 +356,9 @@ app.whenReady().then(async () => {
   encoderWindow = new BrowserWindow({ show: false, width: 1, height: 1,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
   await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
-  const controls = new Map();
-  const ordered = new Set(['input', 'text', 'ime', 'copy', 'viewport', 'visible', 'zoom', 'close']);
+  const dispatch = createControls(command);
   const receive = message => {
-    let operation;
-    if (ordered.has(message.method)) {
-      operation = (controls.get(message.page) ?? Promise.resolve()).then(() => command(message));
-      const tail = operation.catch(() => {}); controls.set(message.page, tail);
-      void tail.then(() => { if (controls.get(message.page) === tail) controls.delete(message.page); });
-    } else operation = command(message);
+    const operation = dispatch(message);
     void operation.then(value => send({ type: 'result', id: message.id, value }), error => send({ type: 'result', id: message.id, error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } })); };
   if (ipc) process.on('message', receive);
   else { const lines = createInterface({ input: process.stdin }); lines.on('line', line => { try { receive(JSON.parse(line)); } catch {} }); lines.on('close', () => app.exit(0)); }
