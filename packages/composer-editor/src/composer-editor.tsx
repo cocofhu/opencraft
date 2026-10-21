@@ -2173,7 +2173,11 @@ export const OpenCraftComposer = forwardRef<
                   onMouseDown={(event) => {
                     event.preventDefault();
                   }}
-                  onMouseEnter={() => { selectedSuggestionRef.current = index; setSelectedSuggestion(index); }}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== "mouse") return;
+                    selectedSuggestionRef.current = index;
+                    setSelectedSuggestion(index);
+                  }}
                   onClick={() => insertSuggestion(suggestion)}
                 >
                   <span>

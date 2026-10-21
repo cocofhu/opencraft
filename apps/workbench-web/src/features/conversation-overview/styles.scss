@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/controls.web" as controls;
+
 .modal-surface.conversation-overview[data-size="wide"] {
   display: flex; flex-direction: column; padding: 0; overflow: hidden;
   width: min(1100px, calc(100vw - 40px)); height: min(860px, calc(100dvh - 48px));
@@ -36,7 +38,7 @@
     background: var(--color-background-elevated-primary-opaque); box-shadow: 0 3px 12px #00000008;
     transition: border-color .15s ease;
   }
-  .conversation-overview__card:hover .conversation-overview__frame { border-color: var(--color-text-tertiary); }
+  @include controls.hover-capable { .conversation-overview__card:hover .conversation-overview__frame { border-color: var(--color-text-tertiary); } }
   .conversation-overview__card-top {
     color: var(--color-text-tertiary); display: flex; align-items: center; gap: 5px;
     box-sizing: border-box; padding: 10px 12px 8px; min-width: 0;

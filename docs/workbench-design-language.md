@@ -127,6 +127,18 @@ group may retain its own accessible navigation landmark without rendering a
 visual heading; section separation comes from the Shell spacing tokens rather
 than stacked feature margins.
 
+All Web surfaces consume `controls.hover-capable`, including Composer, content
+toolbars and plugins. It combines fine-hover capability with the document's
+current input, and supports both nested rules and complete root selectors.
+Split hover from keyboard focus, open and selected branches before applying the
+gate; do not gate the complete state list. `controls.touch-input` keeps essential
+copy, edit and card actions available on coarse devices and after hybrid touch.
+Neither helper changes the saved touch-density preference. Hover entry handlers
+must distinguish mouse pointers; touch and pen activate through explicit actions.
+Separate HTML documents bind their own input signal. `npm run check:hover`
+enforces these rules for first-party styles and hover entry handlers; product
+source roots can be passed as extra directory arguments.
+
 The persistent desktop titlebar rail has one disclosure rule: while the
 Sidebar is open, Start is the single new-task affordance; while it is hidden, a
 16px Write action appears immediately after the Sidebar toggle and dispatches

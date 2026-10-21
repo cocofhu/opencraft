@@ -1838,3 +1838,15 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+## Input-dependent hover across Web surfaces
+
+Transient hover requires both fine hover capability and the shared document
+input signal through `controls.hover-capable`. Touch and pen contact suppress
+residual hover across reflow and portals; real mouse movement restores it.
+Keyboard focus and persistent open/selected states remain outside that gate.
+Composer suggestions and hover previews only react to mouse entry. Essential
+content/card actions stay directly reachable with `controls.touch-input`,
+including after touch on hybrid hardware, independently of UI density.
+Separate HTML documents own their binding; embedded media pointer tracking is
+not a hover disclosure and retains its existing input owner.

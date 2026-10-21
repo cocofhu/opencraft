@@ -1,3 +1,4 @@
+@use "@opencraft/design-system/controls.web" as controls;
 @use "../../styles/wide-content";
 
 .chat-table-container {
@@ -17,8 +18,10 @@
     margin-left: calc((100% - var(--wide-block-width)) / 2);
   }
 
-  &:hover .chat-table-actions,
   &:focus-within .chat-table-actions { opacity: 1; }
+  @include controls.hover-capable {
+    &:hover .chat-table-actions { opacity: 1; }
+  }
 
   font: var(--typography-chat-font);
 
@@ -98,6 +101,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-duration-basic, 150ms) ease;
+  @include controls.touch-input { opacity: 1; }
 }
 
 .chat-table-actions__bar {
@@ -129,8 +133,10 @@
   cursor: pointer;
 }
 
-.chat-table-actions button:hover,
-.chat-table-preview__toolbar button:hover { color: var(--text-primary); background: var(--alpha-06); }
+@include controls.hover-capable {
+  .chat-table-actions button:hover,
+  .chat-table-preview__toolbar button:hover { color: var(--text-primary); background: var(--alpha-06); }
+}
 .chat-table-actions svg,
 .chat-table-preview__toolbar svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
 

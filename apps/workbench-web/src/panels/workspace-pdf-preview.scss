@@ -1,3 +1,4 @@
+@use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/typography.web" as typography;
 
 .workspace-pdf-preview {
@@ -31,7 +32,7 @@
     color: inherit;
     background: transparent;
     font: inherit;
-    &:hover:not(:disabled) { background: var(--color-background-button-tertiary-hover); }
+    @include controls.hover-capable { &:hover:not(:disabled) { background: var(--color-background-button-tertiary-hover); } }
     &:disabled { opacity: 0.4; }
   }
 

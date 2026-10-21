@@ -68,7 +68,7 @@
       color: var(--color-text);
       box-shadow: var(--elevation-prominent);
       > svg { width: 20px; height: 20px; }
-      &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); }
+      @include controls.hover-capable { &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); } }
       &:active { background: linear-gradient(var(--color-background-button-secondary-active), var(--color-background-button-secondary-active)), var(--color-background-elevated-primary-opaque); }
     }
   }
@@ -107,7 +107,7 @@
       box-shadow: var(--elevation-prominent);
       > svg { width: 20px; height: 20px; flex-shrink: 0; }
       > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      &:hover { background: var(--color-background-button-primary-hover); }
+      @include controls.hover-capable { &:hover { background: var(--color-background-button-primary-hover); } }
     }
   }
 }

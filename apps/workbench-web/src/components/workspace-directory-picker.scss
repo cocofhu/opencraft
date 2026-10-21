@@ -56,7 +56,7 @@
     background: transparent;
     cursor: pointer;
 
-    &:hover { background: var(--color-background-button-tertiary-hover); color: var(--color-text); }
+    @include controls.hover-capable { &:hover { background: var(--color-background-button-tertiary-hover); color: var(--color-text); } }
     &:focus-visible { @include controls.focus-indicator; }
   }
 }
@@ -87,8 +87,10 @@
   cursor: pointer;
 
   > svg { flex: 0 0 auto; color: var(--color-icon-secondary); }
-  &:hover,
   &:focus-visible { background: var(--color-background-button-tertiary-hover); }
+  @include controls.hover-capable {
+    &:hover { background: var(--color-background-button-tertiary-hover); }
+  }
   &:focus-visible { @include controls.focus-indicator; }
 }
 
