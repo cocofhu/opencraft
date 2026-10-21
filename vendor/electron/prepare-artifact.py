@@ -20,6 +20,7 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--distribution', type=Path, required=True)
+    parser.add_argument('--strip-unneeded', action='store_true', help='Strip nonessential ELF symbols before probing and inventorying')
     parser.add_argument('--source-root', type=Path, required=True,
                         help='The verified source workspace containing src/electron')
     parser.add_argument('--evidence', type=Path, required=True)
@@ -39,6 +40,21 @@ def main():
     verified = subprocess.run([sys.executable, str(here / 'manage.py'), 'verify', '--root', str(args.source_root)],
                               check=True, text=True, capture_output=True)
     source = json.loads(verified.stdout)
+    stripped = None
+    if args.strip_unneeded:
+        tool = args.source_root.resolve() / 'src/third_party/llvm-build/Release+Asserts/bin/llvm-strip'
+        count = 0
+        for path in sorted(distribution.rglob('*')):
+            if path.is_symlink():
+                raise ValueError('Owned distribution must contain regular files')
+            if path.is_file():
+                with path.open('rb') as stream:
+                    elf = stream.read(4) == b'\x7fELF'
+                if elf:
+                    subprocess.run([str(tool), '--strip-unneeded', str(path)], check=True)
+                    count += 1
+        stripped = dict(toolSha256=sha(tool), flags=['--strip-unneeded'], files=count)
+
     environment = {key: value for key, value in os.environ.items()
                    if key not in ['ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS', 'NODE_PATH', 'DISPLAY', 'WAYLAND_DISPLAY']}
     probe = subprocess.run([str(distribution / 'electron'), '--no-sandbox', '--ozone-platform=headless',
@@ -64,6 +80,8 @@ def main():
                  forkDefinitionSha256=sha(definition), electronVersion=lock['version'],
                  chromiumVersion=lock['chromiumVersion'], nativeCopyProbePassed=True,
                  source=source, files=files)
+    if stripped is not None:
+        value['elfStripping'] = stripped
     marker.write_text(json.dumps(value, indent=2) + '\n')
     (args.evidence / 'native-copy-result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(dict(artifactVerified=True, nativeCopyProbePassed=True,

@@ -1,10 +1,10 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { createHash, timingSafeEqual } from 'node:crypto';
 import { readFile, mkdir, readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { x } from 'tar';
 import semver from 'semver';
+import { MAX_ARCHIVE_BYTES, MAX_UNPACKED_BYTES, verifyArchiveIntegrity } from './archive-limits.mjs';
 import { parseNpmPackResult } from './npm-pack-result.mjs';
 import { parseWebReleaseMetadata } from '../../packages/web-update-protocol/src/index.mjs';
 import { PACKAGE_NAME, PUBLIC_PACKAGE_NAME, RESOURCE_PACKAGE, PUBLIC_RESOURCE_PACKAGE } from './package-identity.mjs';
@@ -78,12 +78,8 @@ export function createNpmReleaseSource({ registry = DEFAULT_REGISTRY, channel = 
       const packed = await npm(['pack', `${packageName}@${release.version}`, '--pack-destination', directory, '--json'], directory);
       const path = join(directory, parseNpmPackResult(packed).filename);
       const archiveStat = await stat(path);
-      if (archiveStat.size > 256 * 1024 * 1024) throw new Error('Web archive too large');
-      const buffer = await readFile(path);
-      const [algorithm, expected] = release.integrity.split('-');
-      const actual = createHash(algorithm).update(buffer).digest();
-      const wanted = Buffer.from(expected, 'base64');
-      if (actual.length !== wanted.length || !timingSafeEqual(actual, wanted)) throw new Error('Web archive integrity mismatch');
+      if (archiveStat.size > MAX_ARCHIVE_BYTES) throw new Error('Web archive too large');
+      await verifyArchiveIntegrity(path, release.integrity);
       return path;
     },
   };
@@ -96,7 +92,7 @@ export async function unpackPackage(archive, directory) {
       const parts = path.split('/');
       if (!path.startsWith('package/') || parts.includes('..') || path.includes('\\')
         || !['File', 'Directory'].includes(entry.type) || ++count > 20_000
-        || (bytes += entry.size || 0) > 512 * 1024 * 1024) { invalid = true; return false; }
+        || (bytes += entry.size || 0) > MAX_UNPACKED_BYTES) { invalid = true; return false; }
       return true;
     },
   });

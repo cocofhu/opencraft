@@ -226,3 +226,9 @@ retains strict linker diagnostics and does not change native copy authorization.
 
 Linux explicitly depends on the GTK component exporting those entry points;
 GTK itself remains dynamically loaded by the existing stub implementation.
+
+For component distributions, prepare-artifact.py --strip-unneeded removes
+nonessential ELF symbols with the checked-out Chromium LLVM tool before the
+native probe and byte inventory. Dynamic symbols and runtime code remain; the
+marker records the tool hash and operation. Never strip an already stamped
+artifact or modify installed runtime bytes.
