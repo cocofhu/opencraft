@@ -11,11 +11,28 @@ export interface SkillPathInfo {
   readonly isSkillDefinitionFile: boolean;
 }
 
+const skillInitialisms = new Set("GH IA MCP API CI CLI LLM PDF PR UI URL SQL TW GPU CPU".split(" "));
+const skillNameSpellings = new Map([
+  ["openai", "OpenAI"], ["openaideveloperdocs", "OpenAI Developer Docs"],
+  ["openapi", "OpenAPI"], ["github", "GitHub"], ["pagerduty", "PagerDuty"],
+  ["datadog", "DataDog"], ["sharepoint", "SharePoint"], ["sqlite", "SQLite"],
+  ["fastapi", "FastAPI"],
+]);
+const skillTitleConnectors = new Set(["and", "or", "to", "up", "with"]);
+
 export function formatSkillDisplayName(value: string): string {
-  return value.trim().split(/[\s_-]+/u).map(word => {
-    if (/^(?:api|ui|sql|mcp|cli|llm|url)$/iu.test(word)) return word.toUpperCase();
-    return word.slice(0, 1).toUpperCase() + word.slice(1).toLowerCase();
-  }).join(" ");
+  return value.split(":").map(namespace => namespace.trim().split(/[\s_-]+/u)
+    .filter(Boolean).map((word, index) => {
+      const lower = word.toLowerCase();
+      const upper = word.toUpperCase();
+      if (skillInitialisms.has(upper)) return upper;
+      if (lower.endsWith("s") && skillInitialisms.has(upper.slice(0, -1))) {
+        return `${upper.slice(0, -1)}s`;
+      }
+      return skillNameSpellings.get(lower)
+        ?? (index > 0 && skillTitleConnectors.has(lower) ? lower
+          : lower.slice(0, 1).toUpperCase() + lower.slice(1));
+    }).join(" ")).join(": ");
 }
 
 function components(path: string, cwd: string | null): string[] {

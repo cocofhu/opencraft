@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { skillReadPresentation } from "../packages/chat-core/src/conversation-presentation";
+import type { CommandExecutionTimelineBlock } from "../packages/chat-core/src/timeline";
 import { formatSkillDisplayName, parseSkillPath } from "../packages/chat-core/src/skill-path";
 
 test("recognized roots retain identity across definition and resource paths", () => {
@@ -49,11 +51,37 @@ test("lexical normalization does not need a filesystem or Node path API", () => 
   }
 });
 
-test("display labels preserve compatibility spelling without a recovered title algorithm", () => {
+test("ordinary display labels keep existing word normalization", () => {
   for (const [input, expected] of [
     ["using-superpowers", "Using Superpowers"], ["my_plugin", "My Plugin"],
     ["API-ui_sql", "API UI SQL"], ["mcp-cli-llm-url", "MCP CLI LLM URL"],
     ["HTTP-server", "Http Server"], ["testXML", "Testxml"], ["review.code", "Review.code"],
     ["hello  world", "Hello World"], ["  ", ""],
   ]) assert.equal(formatSkillDisplayName(input), expected);
+});
+
+test("Skill reads and plugin identity retain canonical names and title grammar", () => {
+  for (const [skillId, label] of [
+    ["gh-fix-ci", "GH Fix CI"], ["pdf", "PDF"], ["cpu-gpu", "CPU GPU"],
+    ["ia-pr-tw", "IA PR TW"], ["github", "GitHub"], ["openai", "OpenAI"],
+    ["openaideveloperdocs", "OpenAI Developer Docs"], ["openapi", "OpenAPI"],
+    ["pagerduty", "PagerDuty"], ["datadog", "DataDog"], ["sharepoint", "SharePoint"],
+    ["sqlite", "SQLite"], ["fastapi", "FastAPI"], ["APIs-and-PDFs", "APIs and PDFs"],
+    ["up-with-github-or-openai", "Up with GitHub or OpenAI"],
+    ["github:pdf-to-sql", "GitHub: PDF to SQL"],
+    ["openai:up-to-date", "OpenAI: Up to Date"],
+    ["mcp-api", "MCP API"], ["http-server", "Http Server"],
+  ]) {
+    const path = `/workspace/.agents/skills/${skillId}/SKILL.md`;
+    const block = { actions: [{ type: "read", path, name: "SKILL.md" }], cwd: null,
+      status: "complete" } as CommandExecutionTimelineBlock;
+    assert.deepEqual(skillReadPresentation(block, "STEPS_PROSE"), {
+      visible: true, summary: "Read", detail: `${label} skill`,
+    }, skillId);
+    const plugin = parseSkillPath(`/workspace/plugins/${skillId}/skills/pdf/SKILL.md`);
+    assert.equal(plugin?.pluginDisplayName, label, skillId);
+    assert.equal(plugin?.pluginId, skillId, skillId);
+    assert.equal(parseSkillPath(path)?.skillId, skillId, skillId);
+    assert.equal(parseSkillPath(path)?.skillRootPath, path.slice(0, -9), skillId);
+  }
 });

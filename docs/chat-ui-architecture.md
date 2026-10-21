@@ -2322,3 +2322,11 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+## Skill display names
+
+Skill and plugin display names retain canonical spellings such as GitHub,
+OpenAI and SQLite, known initialisms and their plurals, lowercase title
+connectors after the first word, and colon-separated namespaces. These labels
+never replace the original identifier or resource path.
