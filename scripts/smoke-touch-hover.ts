@@ -26,18 +26,23 @@ try {
     const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch});
     const page=await context.newPage();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
     await page.addInitScript('window.__name=value=>value');
-    await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${theme}${touch?'&inline&toolbar':'&desktop'}`);
-    const editor=page.locator('.opencraft-composer-editor'), model=page.locator('.opencraft-composer-mode--depth');
+    await page.goto(`${vite.resolvedUrls!.local[0]}?theme=${theme}${touch?'&inline&toolbar':'&desktop&toolbar'}`);
+    const editor=page.locator('.opencraft-composer-editor'), model=page.locator('.opencraft-composer-mode--intelligence');
     await editor.waitFor();if(touch)await editor.tap();else await editor.click();await model.waitFor();
     await page.addStyleTag({content:'#negative:hover{background:rgb(255,0,0)}'});
     await page.evaluate(()=>{const b=document.createElement('button');b.id='negative';b.textContent='Hover negative control';document.body.append(b);});
     const session=await context.newCDPSession(page);await session.send('DOM.enable');await session.send('CSS.enable');
     const {root}=await session.send('DOM.getDocument');
-    for(const selector of ['#negative','.opencraft-composer-mode--depth']) {
+    for(const selector of ['#negative','.opencraft-composer-mode--intelligence']) {
       const {nodeId}=await session.send('DOM.querySelector',{nodeId:root.nodeId,selector});
       await session.send('CSS.forcePseudoState',{nodeId,forcedPseudoClasses:['hover']});
     }
-    const background=()=>model.evaluate(el=>getComputedStyle(el).backgroundColor);
+    const background=()=>model.evaluate(async el=>{
+      // Read the settled paint: the real trigger intentionally transitions for
+      // 100ms; an intermediate color is not retained hover.
+      await Promise.all(el.getAnimations().map(animation=>animation.finished.catch(()=>{})));
+      return getComputedStyle(el).backgroundColor;
+    });
     const before=await background();
     for(const pointerType of ['touch','pen']) {
       await page.evaluate(pointerType=>document.dispatchEvent(new PointerEvent('pointerdown',{pointerType,bubbles:true})),pointerType);
@@ -49,7 +54,7 @@ try {
       assert.equal(await background(),before,'real mouse input restores capability-appropriate feedback');
     }
     if(!touch)assert.notEqual(before,'rgba(0, 0, 0, 0)','desktop mouse hover is effective');
-    if(touch){await model.tap();await page.locator('.opencraft-composer-model-quick').waitFor();assert.notEqual(await background(),'rgba(0, 0, 0, 0)','touch open state remains visible');await page.keyboard.press('Escape');await page.locator('.opencraft-composer-model-quick').waitFor({state:'hidden'});assert.equal(await background(),'rgba(0, 0, 0, 0)','touch dismissal leaves no hover');}
+    if(touch){await model.tap();await page.locator('[role="menu"]').waitFor();assert.notEqual(await background(),'rgba(0, 0, 0, 0)','touch open state remains visible');await page.keyboard.press('Escape');await page.locator('[role="menu"]').waitFor({state:'hidden'});assert.equal(await background(),'rgba(0, 0, 0, 0)','touch dismissal leaves no hover');}
     await page.screenshot({path:`${output}/${theme}-${touch?'touch':'mouse'}.png`});
     assert.deepEqual(errors,[]);results.push({touch,theme,mouseBackground:before,passed:true});await context.close();
   }
