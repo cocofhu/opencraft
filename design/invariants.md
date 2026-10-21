@@ -1838,3 +1838,12 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+## Scheduled task workbench entry
+
+Scheduled tasks use the existing workbench tool-page declaration, Router and
+shared settings controls. The application catalog projects Host summaries rather
+than filtering the currently paginated conversation rows. Opening a task uses its
+Host/thread identity; management reuses the existing per-conversation editor.
+The catalog owns neither execution timers nor a separate draft or mutation model.
+

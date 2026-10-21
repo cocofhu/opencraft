@@ -1,0 +1,79 @@
+import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
+import { useEffect, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { useIntl } from "@opencraft/i18n/react";
+import { SettingsButton, SettingsPageHeader } from "@opencraft/extension-react";
+import { useScheduledTaskCatalog } from "../runtime/scheduled-task-catalog-context";
+import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
+import { useAsyncNotices } from "./async-notices";
+import { scheduledTasksMessages as messages } from "./scheduled-tasks-messages";
+import { projectScheduledTaskRows } from "../runtime/scheduled-task-rows";
+import "../styles/scheduled-tasks-page.scss";
+
+/** Read-only application catalog. Schedule writes remain in the per-conversation editor. */
+export function ScheduledTasksPage() {
+  const catalog = useScheduledTaskCatalog();
+  const intl = useIntl(), notices = useAsyncNotices();
+  const [selected, select] = useState<{ hostId: string; threadId: string; scope: string; port: ConversationSchedulesRequestPort } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const text = (key: keyof typeof messages) => intl.formatMessage(messages[key]);
+  const source = selected && catalog.scheduleCatalogs.find(host => host.hostId === selected.hostId && host.scope === selected.scope);
+  const hosts = catalog.scheduleCatalogs.filter(host => host.phase !== "unsupported");
+  const errors = hosts.filter(host => host.phase === "error").map(host => host.scope).join("|");
+  const pending = refreshing || catalog.discovery === "loading";
+  useEffect(() => {
+    if (errors || catalog.discovery === "error") notices.error({ key: "schedule-catalog-read", message: intl.formatMessage(messages.loadError) });
+  }, [errors, catalog.discovery, notices, intl]);
+  const refresh = async () => {
+    setRefreshing(true);
+    try { await Promise.allSettled([catalog.retryDiscovery(), ...hosts.map(host => host.retry())]); }
+    finally { setRefreshing(false); }
+  };
+  const openConversation = async (hostId: string, threadId: string) => {
+    try { if (!await catalog.openConversation(hostId, threadId)) throw new Error("Navigation not committed"); }
+    catch { notices.error({ key: "schedule-catalog-navigation", message: text("openError") }); }
+  };
+  return <section className="scheduled-tasks-page" aria-label={text("title")}>
+    <div className="scheduled-tasks-page__header">
+      <SettingsPageHeader title={text("title")} description={text("description")} />
+      <SettingsButton variant="quiet" disabled={pending} aria-busy={pending} onClick={() => void refresh()} aria-label={text("refresh")}>
+        <RefreshCw size={16} aria-hidden="true" className={pending ? "scheduled-tasks-page__refresh-pending" : undefined} />
+        {text("refresh")}
+      </SettingsButton>
+    </div>
+    <div className="scheduled-tasks-page__groups">
+      {hosts.map(host => {
+        const rows = projectScheduledTaskRows([host], catalog.threads);
+        const phase = host.phase === "offline" ? "disconnected" : host.phase === "loading" ? "loading" : host.phase === "error" ? "failed" : "connected";
+        return <section className="scheduled-tasks-page__group" key={host.scope} aria-label={host.hostLabel}>
+          <header className="scheduled-tasks-page__group-heading">
+            <h3>{host.hostLabel}</h3>
+            <span className="scheduled-tasks-page__host-state" data-phase={host.phase} title={host.cached && (host.phase === "offline" || host.phase === "error") ? text("cached") : undefined}>{text(phase)}</span>
+          </header>
+          {rows.length ? <ul className="scheduled-tasks-page__list">{rows.map(row => {
+            const status = row.needsReview ? "review" : row.status === "paused" ? "paused" : row.status === "active" ? "active" : "completed";
+            return <li className="scheduled-tasks-page__row" key={row.threadId}>
+              <div className="scheduled-tasks-page__copy">
+                {host.port ? <button type="button" className="scheduled-tasks-page__destination"
+                  aria-label={intl.formatMessage(messages.openNamed, { title: row.title })}
+                  onClick={() => void openConversation(row.hostId, row.threadId)}>{row.title}</button>
+                  : <div className="scheduled-tasks-page__title">{row.title}</div>}
+                <div className="scheduled-tasks-page__metadata">
+                  <span className="scheduled-tasks-page__task-state" data-state={status}>{text(status)}</span>
+                  {row.status === "active" && !row.needsReview ? <span>{intl.formatMessage(messages.next, { time: intl.formatDate(row.nextRunAt, { dateStyle: "medium", timeStyle: "short" }) })}</span> : null}
+                </div>
+              </div>
+              <SettingsButton variant="quiet" disabled={!host.port}
+                aria-label={intl.formatMessage(messages.manageNamed, { title: row.title })}
+                onClick={event => { if (!host.port) return; returnFocus.current = event.currentTarget; select({ hostId: row.hostId, threadId: row.threadId, scope: host.scope, port: host.port }); }}>{text("manage")}</SettingsButton>
+            </li>;
+          })}</ul> : <p className="scheduled-tasks-page__empty" role="status">{text(host.phase === "ready" ? "empty" : host.phase === "offline" ? "offline" : host.phase === "error" ? "loadError" : "loading")}</p>}
+        </section>;
+      })}
+      {hosts.length === 0 ? <p className="scheduled-tasks-page__empty" role="status">{text(catalog.discovery === "loading" ? "loading" : catalog.discovery === "error" ? "loadError" : "unsupported")}</p> : null}
+    </div>
+    {selected && source ? <ConversationSchedulesPanel key={`${selected.scope}:${selected.threadId}`} hostId={selected.hostId} threadId={selected.threadId} scope={selected.scope}
+      onClose={() => select(null)} returnFocus={() => returnFocus.current} port={selected.port} /> : null}
+  </section>;
+}

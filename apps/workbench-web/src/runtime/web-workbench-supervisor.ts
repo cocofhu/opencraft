@@ -335,6 +335,10 @@ export async function createWebWorkbenchApplicationSupervisor(
         await activate();
       }
     };
+    await extensions.loadOptional("opencraft.schedules", async () => {
+      const { conversationSchedulesExtension } = await import("./conversation-schedules-extension");
+      return conversationSchedulesExtension;
+    });
     if (import.meta.env.VITE_INCLUDE_TASKS_PLUGIN === "true") {
       await loadPresentationExtension("opencraft.tasks", async signal => {
         const { createTasksExtension } = await import("@opencraft/plugin-tasks");

@@ -649,5 +649,22 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "schedules.catalog.title": "定时任务",
+  "schedules.catalog.description": "在会话菜单中创建定时任务。",
+  "schedules.catalog.empty": "此服务器暂无当前定时任务。",
+  "schedules.catalog.unsupported": "暂无支持定时任务的可用服务器。",
+  "schedules.catalog.offline": "服务器未连接，暂时无法刷新定时任务。",
+  "schedules.catalog.loadError": "无法刷新定时任务。",
+  "schedules.catalog.cached": "正在显示上次获取的任务。",
+  "schedules.catalog.next": "下次运行：{time}",
+  "schedules.catalog.conversation": "打开会话",
+  "schedules.catalog.manage": "管理",
+  "schedules.catalog.openError": "无法打开所属会话。",
+  "schedules.catalog.refresh": "刷新",
+  "schedules.catalog.connected": "已连接",
+  "schedules.catalog.disconnected": "未连接",
+  "schedules.catalog.failed": "刷新失败",
+  "schedules.catalog.openNamed": "打开会话：{title}",
+  "schedules.catalog.manageNamed": "管理定时任务：{title}"
 }
