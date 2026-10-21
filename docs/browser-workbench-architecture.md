@@ -1354,7 +1354,9 @@ fence the result again before a local user intent can write the client
 clipboard. Async Clipboard API clients create promised text/HTML items during
 the local gesture; plain-only results receive an equivalent inert HTML
 alternative. LAN HTTP uses the browser clipboard command and reports refusal.
-Retiring the view rejects pending data, but no protocol can revoke a clipboard
+Retiring the view rejects pending data. A final check immediately before the
+desktop port call or promised Blob fulfillment also fences retirement between
+remote-result validation and the next Promise reaction. No protocol can revoke a clipboard
 write already accepted by the local OS/browser. Client clipboard permission and
 activation rules still apply.
 

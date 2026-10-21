@@ -26,6 +26,15 @@ test('tab switch or disconnect rejects a late result before client clipboard wri
   await tick(); f.retire(); data.resolve({ text: '迟到' }); await tick();
   assert.deepEqual(f.writes, []); assert.deepEqual(f.errors, []);
 });
+test('retirement between accepted data and its next Promise reaction prevents desktop clipboard write', async () => {
+  const f = fixture(); let checks = 0;
+  f.controller.copy(async () => ({ text: '已返回但过期' }), () => {
+    if (++checks === 2) queueMicrotask(() => f.controller.retire());
+    return true;
+  }, message => f.errors.push(message));
+  await tick();
+  assert.deepEqual(f.writes, []); assert.deepEqual(f.errors, []);
+});
 test('late menu close cannot dismiss a newer owner or copy without selection', async () => {
   const dom = new JSDOM(); Object.assign(globalThis, { window: dom.window });
   try {
@@ -59,5 +68,28 @@ test('browser clipboard promises are offered during the gesture and canceled bef
     if (previousNavigator) Object.defineProperty(globalThis, 'navigator', previousNavigator);
     else Reflect.deleteProperty(globalThis, 'navigator');
     Object.assign(globalThis, { ClipboardItem: previousClipboardItem }); dom.window.close();
+  }
+});
+test('retirement after accepted data rejects both promised browser formats before fulfillment', async () => {
+  const dom = new JSDOM(); const blobs: Promise<Blob>[] = [];
+  Object.assign(globalThis, { window: dom.window });
+  const previousItem = globalThis.ClipboardItem;
+  const previousNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  class Item { constructor(data: Record<string, Promise<Blob>>) { blobs.push(...Object.values(data)); } }
+  Object.assign(globalThis, { ClipboardItem: Item });
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { clipboard: { write: async () => { await Promise.all(blobs); } } } });
+  try {
+    const controller = new BrowserLocalMenuController(undefined); let checks = 0;
+    controller.copy(async () => ({ text: '过期', html: '<b>过期</b>' }), () => {
+      if (++checks === 2) queueMicrotask(() => controller.retire());
+      return true;
+    }, () => assert.fail('retired copy must not notify'));
+    const results = await Promise.allSettled(blobs);
+    assert.equal(results.length, 2); assert(results.every(result => result.status === 'rejected'));
+    await tick();
+  } finally {
+    if (previousNavigator) Object.defineProperty(globalThis, 'navigator', previousNavigator);
+    else Reflect.deleteProperty(globalThis, 'navigator');
+    Object.assign(globalThis, { ClipboardItem: previousItem }); dom.window.close();
   }
 });

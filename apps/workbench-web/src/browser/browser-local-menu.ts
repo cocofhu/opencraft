@@ -83,7 +83,11 @@ export class BrowserLocalMenuController {
         resolve(value);
       }).catch(reject);
     });
-    const written = this.native ? data.then(value => this.native!.writeClipboard(value)) : writeBrowserClipboard(data, current);
+    const alive = () => !transaction.signal.aborted && current();
+    const written = this.native ? data.then(value => {
+      if (!alive()) throw new Error('Copy canceled');
+      return this.native!.writeClipboard(value);
+    }) : writeBrowserClipboard(data, alive);
     void written.catch(() => {
       if (!transaction.signal.aborted && current()) error('Could not copy. Select the text and try again.');
       transaction.abort();
@@ -106,8 +110,14 @@ function writeBrowserClipboard(data: Promise<BrowserClipboardData>, current: () 
     // The Web Clipboard API fixes the offered MIME types at user activation.
     // Normalize a plain-only result to equivalent inert HTML; HTML-only custom
     // copies retain their exact HTML and offer an empty plain-text alternative.
-    const text = data.then(value => new Blob([value.text ?? ''], { type: 'text/plain' }));
-    const html = data.then(value => new Blob([value.html ?? `<pre>${escaped(value.text ?? '')}</pre>`], { type: 'text/html' }));
+    const text = data.then(value => {
+      if (!current()) throw new Error('Copy canceled');
+      return new Blob([value.text ?? ''], { type: 'text/plain' });
+    });
+    const html = data.then(value => {
+      if (!current()) throw new Error('Copy canceled');
+      return new Blob([value.html ?? `<pre>${escaped(value.text ?? '')}</pre>`], { type: 'text/html' });
+    });
     void text.catch(() => {}); void html.catch(() => {});
     try { return navigator.clipboard.write([new ClipboardItem({ 'text/plain': text, 'text/html': html })]); }
     catch (error) { return Promise.reject(error); }
