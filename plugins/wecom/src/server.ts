@@ -59,7 +59,7 @@ export class WeComPlugin {
     socket.on('open', () => {
       if (this.stopped || this.socket !== socket) return socket.terminate();
       this.stateChanged('authenticating');
-      const subscribe = this.send(socket,{cmd:'aibot_subscribe',body:{bot_id:this.options.botId,secret:this.options.secret}}).then(() => {
+      const subscribe = this.send(socket,{cmd:'aibot_subscribe',body:{bot_id:this.options.botId,secret:this.options.secret}},() => {
         if (this.stopped || this.socket !== socket) return;
         this.attempts = 0; this.stateChanged('ready');
         this.heartbeat = setInterval(() => {
@@ -110,13 +110,17 @@ export class WeComPlugin {
     });
   }
   private track(job: Promise<void>) { this.jobs.add(job); void job.finally(() => this.jobs.delete(job)).catch(() => {}); }
-  private send(socket: WebSocket, frame: Frame): Promise<void> {
+  private send(socket: WebSocket, frame: Frame, acknowledged?: () => void): Promise<void> {
     if (this.stopped || this.socket !== socket || socket.readyState !== WebSocket.OPEN) return Promise.reject(new Error('WeCom disconnected'));
     const reqId = frame.headers?.req_id ?? randomUUID();
     if (this.pending.has(reqId) || this.pending.size >= 128) return Promise.reject(new Error('WeCom request busy'));
     return new Promise((resolve,reject) => {
       const timer = setTimeout(() => { this.pending.delete(reqId); reject(new Error('WeCom acknowledgement unknown')); },ackTimeout); timer.unref();
-      this.pending.set(reqId,{socket,resolve,reject,timer});
+      // Commit subscription readiness in the ACK event itself. A callback may
+      // follow in the same WebSocket receive batch, before Promise continuations.
+      this.pending.set(reqId,{socket,resolve:() => {
+        try { acknowledged?.(); resolve(); } catch { reject(new Error('WeCom acknowledgement handler failed')); }
+      },reject,timer});
       try { socket.send(JSON.stringify({...frame,headers:{req_id:reqId}}),error => {
         if (error && this.pending.get(reqId)?.timer === timer) { clearTimeout(timer); this.pending.delete(reqId); reject(new Error('WeCom send failed')); }
       }); } catch { clearTimeout(timer); this.pending.delete(reqId); reject(new Error('WeCom send failed')); }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
+import { once, EventEmitter } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import WebSocket, { WebSocketServer } from 'ws';
 import { WeComPlugin } from '../plugins/wecom/src/server';
@@ -19,6 +19,22 @@ async function fixture(t:any) {
   return {plugin,frames,messages,errors,until,callback,disconnect:()=>peer.terminate()};
 }
 const body={msgid:'m1',aibotid:'fixture-bot',chattype:'group',chatid:'chat',from:{userid:'external'},msgtype:'text',text:{content:'hello'}};
+
+test('a callback immediately following the subscription ACK in one receive batch is admitted',async t => {
+  const frames:any[]=[], messages:ImMessage[]=[];
+  class Socket extends EventEmitter {
+    readyState=WebSocket.OPEN;
+    send(frame:string,callback?:(error?:Error)=>void) {frames.push(JSON.parse(frame)); callback?.();}
+    terminate() {this.emit('close');}
+  }
+  const socket=new Socket();
+  const plugin=new WeComPlugin({botId:'fixture-bot',secret:'fixture-secret',receive:async message=>{messages.push(message);}},()=>socket as unknown as WebSocket);
+  t.after(()=>plugin.close()); plugin.start(); socket.emit('open');
+  socket.emit('message',Buffer.from(JSON.stringify({headers:frames[0].headers,errcode:0})));
+  socket.emit('message',Buffer.from(JSON.stringify({cmd:'aibot_msg_callback',headers:{req_id:'immediate'},body})));
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(plugin.state,'ready'); assert.equal(messages.length,1); assert.equal(messages[0].id,'m1');
+});
 
 test('WeCom connects, subscribes, normalizes text and awaits ACKs on the original reply request',async t => {
   const f=await fixture(t); assert.equal(f.frames[0].cmd,'aibot_subscribe');

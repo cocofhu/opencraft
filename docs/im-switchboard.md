@@ -90,6 +90,8 @@ The adapter follows the [official long-connection contract](https://developer.wo
 It uses the fixed official WSS endpoint, Bot ID/secret subscription, 30-second
 heartbeats and bounded exponential reconnect. Callback Bot ID and sender are
 checked; `compat_info` sources are not admitted as ordinary human messages.
+Subscription readiness is committed in the ACK handler so an immediately
+following callback in the same receive batch is admitted.
 Text, recognized voice text and text portions of mixed messages enter IM.
 Group command recognition accepts a leading single bot mention before `/new`
 or `/switch`; ordinary prose and direct-message mentions remain unchanged.
