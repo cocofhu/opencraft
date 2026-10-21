@@ -2322,3 +2322,11 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+## Code language labels
+
+Code block headers on Web and Native share the same language vocabulary, including
+Arduino, Python REPL, PHP template and the patch alias for Diff. Normalization
+ignores surrounding whitespace and casing. Unknown language tags retain their
+original text; labels do not choose a highlighter or change code, wrap or copy policy.
