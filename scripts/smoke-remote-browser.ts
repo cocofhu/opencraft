@@ -52,6 +52,18 @@ let browser;
 try {
   const forbidden = new WebSocket(origin.replace('http:', 'ws:') + '/__opencraft_browser/stream', { origin: 'https://untrusted.invalid' });
   await assert.rejects(new Promise((done, reject) => { forbidden.on('open', done); forbidden.on('error', reject); }), /403/);
+  const fresh = new WebSocket(origin.replace('http:', 'ws:') + '/__opencraft_browser/stream', { origin });
+  const pendingFresh = new Map<string, {resolve(value:any):void;reject(error:Error):void;timer:ReturnType<typeof setTimeout>}>();
+  fresh.on('message', (data,binary) => { if(binary)return;const message=JSON.parse(data.toString());if(message.type!=='result')return;const pending=pendingFresh.get(message.id);if(!pending)return;clearTimeout(pending.timer);pendingFresh.delete(message.id);message.error?pending.reject(new Error(message.error.message)):pending.resolve(message.value); });
+  await new Promise<void>((resolve,reject)=>{fresh.once('open',resolve);fresh.once('error',reject);});
+  const freshCall = (method:string,input?:unknown):Promise<any> => new Promise((resolve,reject)=>{const id=crypto.randomUUID(),timer=setTimeout(()=>reject(new Error('Fresh mobile open timed out')),20000);pendingFresh.set(id,{resolve,reject,timer});fresh.send(JSON.stringify({id,method,input}));});
+  try {
+    const config=await freshCall('open',{lease:crypto.randomUUID(),viewport:{width:430,height:932,deviceProfile:'iphone'}});
+    assert.equal(config.deviceProfile,'iphone');assert.equal(config.dpr,1);
+    await freshCall('navigate',{url:origin+'/demo.html'});
+    await freshCall('automation',{method:'wait',input:{text:'Device iphone 430x932 DPR1 touch1 coarse:true',timeoutMs:5000}});
+    await freshCall('close');
+  } finally {fresh.terminate();for(const request of pendingFresh.values())clearTimeout(request.timer);}
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, headless: true, args: process.getuid?.() === 0 ? ['--no-sandbox'] : [] });
   const view = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
   if (process.env.OPENCRAFT_TEST_MSE === '1') await view.addInitScript(() => { delete (window as any).VideoDecoder; });
@@ -144,5 +156,5 @@ try {
   assert.equal(staticFrames, 0, 'unchanged page must not send video keepalive frames');
   assert.deepEqual(errors, []);
   await view.evaluate(async () => (window as any).poc.use({ action: 'close' }));
-  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','mobile-ua-metrics-touch','mobile-mouse-touch-event','rotate-preserves-profile','custom-resize-preserves-profile','android-client-hints','tablet-profile','desktop-restoration','static-zero-frames','explicit-close'], errors }));
+  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['fresh-mobile-before-navigation','cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','mobile-ua-metrics-touch','mobile-mouse-touch-event','rotate-preserves-profile','custom-resize-preserves-profile','android-client-hints','tablet-profile','desktop-restoration','static-zero-frames','explicit-close'], errors }));
 } finally { await browser?.close(); service.close(); await gateway.close(); }

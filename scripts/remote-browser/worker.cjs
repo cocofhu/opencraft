@@ -187,7 +187,12 @@ async function createPage(id, input) {
     send({ type: 'cursor', page: id, cursor: aliases[cursor] || cursor });
   });
 
-  if (profile !== 'desktop') await resize(p, {...input, width, height});
+  if (profile !== 'desktop') {
+    // CDP emulation needs an initialized renderer even when the first real
+    // navigation has not happened. Never load a remote URL before its identity.
+    await wc.loadURL('about:blank');
+    await resize(p, {...input, width, height});
+  }
   return configuration(p);
 }
 async function automation(p, method, input) {
