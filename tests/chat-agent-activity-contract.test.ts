@@ -68,3 +68,34 @@ test("client cancellation replaces a stale working clock without changing frozen
   });
   assert.equal(resolveAgentActivityLayout(work, true).isCollapsed, false);
 });
+
+test("a single visible compaction stays readable when neighboring Items have no body", () => {
+  const hidden: TimelineSourceItem[] = [
+    { id: "empty-reasoning", type: "reasoning", payload: { summary: [], content: [] } },
+    { id: "empty-patch", type: "fileChange", payload: { status: "completed", changes: [] } },
+  ];
+  const compaction: TimelineSourceItem = { id: "compaction", type: "contextCompaction", payload: { completed: true } };
+  for (const phase of ["live", "painted"] as const) {
+    for (const items of [[...hidden, compaction, answer], [compaction, ...hidden, answer]]) {
+      const activity = createAssistantTurnPresentationPlan(frame(items, "complete", phase)).slots.find(slot => slot.type === "agent-activity");
+      assert.ok(activity?.type === "agent-activity");
+      for (const choice of [undefined, true, false]) {
+        const layout = resolveAgentActivityLayout(activity, choice);
+        assert.equal(layout.showToggle, false);
+        assert.equal(layout.isCollapsed, false);
+        assert.equal(layout.visibleUnits.filter(unit => unit.type === "standalone" && unit.block.type === "compaction").length, 1);
+      }
+    }
+  }
+});
+
+test("compaction accompanied by visible work retains the normal disclosure", () => {
+  const compaction: TimelineSourceItem = { id: "compaction", type: "contextCompaction", payload: { completed: true } };
+  for (const companion of [command, { ...compaction, id: "second-compaction" }]) {
+    const activity = createAssistantTurnPresentationPlan(frame([compaction, companion, answer])).slots.find(slot => slot.type === "agent-activity");
+    assert.ok(activity?.type === "agent-activity");
+    assert.equal(resolveAgentActivityLayout(activity).showToggle, true);
+    assert.equal(resolveAgentActivityLayout(activity, false).isCollapsed, false);
+    assert.equal(resolveAgentActivityLayout(activity, true).isCollapsed, true);
+  }
+});

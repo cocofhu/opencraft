@@ -2210,6 +2210,12 @@ reasoning/documents. This visual contract does not reclassify spacing roles or
 change compaction lifecycle. See [activity visuals](../design/ui/activity-icons.md)
 and `scripts/smoke-conversation-activity-metrics.ts`.
 
+A single visible compaction record remains directly readable after an answer,
+without an outer work disclosure. Determine this from the projected collapsible
+content, excluding clock metadata and Items with no visible body, such as empty
+reasoning or an empty file change. Visible companion work or multiple compaction
+records retain the normal disclosure and explicit user choice.
+
 ## First-submit pending conversation
 
 After the first submit, the pending conversation consumes the immutable SubmitIntent and reuses UserMessageBlock, the shared thread width, viewport and top inset. It renders the original text through the normal document renderer and lists every submitted attachment; attachment-only input has no fabricated “New task” text. Shared bubble colors and chat typography apply before and after the server binds the Thread. The root supplies the current render theme and resource context, without fetching identity or deriving an author from the current account. The pending status and retry remain owned by the existing draft submission phase; this presentation does not create Threads or replay accepted first Turns.

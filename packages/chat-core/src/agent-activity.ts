@@ -438,7 +438,9 @@ export function resolveAgentActivityDisclosure({ forceExpanded = false, hasFinal
 }
 
 export function shouldAllowAgentActivityCollapse(unit: AgentActivityRenderUnit): boolean {
-  return unit.collapsedItemCount > 0 && !unit.disableCollapse && !unit.forceExpanded && !(unit.blocks.length > 0 && unit.blocks.every(block => block.type === "compaction")) && resolveAgentActivityDisclosure(unit).shouldAllowCollapse;
+  const onlyContent = unit.partitions.collapsibleUnits.length === 1 ? unit.partitions.collapsibleUnits[0] : null;
+  const compactionOnly = unit.inlineSubagentActivity === null && onlyContent?.type === "standalone" && onlyContent.block.type === "compaction";
+  return unit.collapsedItemCount > 0 && !unit.disableCollapse && !unit.forceExpanded && !compactionOnly && resolveAgentActivityDisclosure(unit).shouldAllowCollapse;
 }
 
 export function resolveAgentActivityLayout(unit: AgentActivityRenderUnit, persistedCollapsed?: boolean): AgentActivityLayout {
