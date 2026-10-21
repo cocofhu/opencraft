@@ -356,7 +356,7 @@ async function runReplicaResume(environment: LabScenarioEnvironment): Promise<vo
       () => first?.getSnapshot().nextSeq === updatedView.revision + 1,
       environment.options.timeoutMs,
     );
-    if (!caughtUp) throw new Error("Codex V3 Replica adapter did not apply every View revision");
+    if (!caughtUp) throw new Error("AppServer V3 Replica adapter did not apply every View revision");
     first.dispose();
     first = null;
 
@@ -374,7 +374,7 @@ async function runReplicaResume(environment: LabScenarioEnvironment): Promise<vo
     if (record === null) throw new Error("Replica cache does not contain the selected Thread");
     environment.reporter.emit("replica-resume.verified", {
       threadId,
-      protocol: "codex-v3-resume-adapter",
+      protocol: "appserver-v3-resume-adapter",
       scope: source.scope,
       epoch: restarted.getSnapshot().epoch,
       firstCursor,

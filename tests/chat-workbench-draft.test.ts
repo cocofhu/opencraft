@@ -296,7 +296,7 @@ test("Draft workspace discovery stays behind typed Project and filesystem resour
 });
 
 
-test("Host filesystem resources expose Codex read, metadata, write and watch semantics", async () => {
+test("Host filesystem resources expose read, metadata, write and watch semantics", async () => {
   const harness = createHarness();
   const runtime = createAppServerWorkbenchRuntime({
     hostId: "dsh",

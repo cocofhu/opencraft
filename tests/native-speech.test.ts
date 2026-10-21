@@ -25,7 +25,7 @@ test("finish waits for final recognition, stops once and canceled results cannot
   completion.settle(false); completion.settle(true);
   assert.equal(await pending, false);
 });
-test("Codex hold gesture starts once, release finishes and synthesized click never restarts", () => {
+test("Dictation hold gesture starts once, release finishes and synthesized click never restarts", () => {
   let fire = () => {}, starts = 0, finishes = 0;
   const gesture = new DictationPressGesture({ schedule(callback) { fire = callback; return () => { fire = () => {}; }; } });
   gesture.press(() => { starts++; }, () => { finishes++; }); fire(); gesture.release(); gesture.release();

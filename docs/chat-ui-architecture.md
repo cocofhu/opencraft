@@ -536,8 +536,8 @@ The picker displays loading, unavailable/retry and no-results states, supports
 wrapped arrow navigation (and macOS Ctrl-P/N), Enter/Tab insertion and mouse
 selection, and never submits while a Skill picker owns Enter. Escape/blur
 dismiss the current match without deleting its text; changing the match may
-reopen it. Unmatched queries containing whitespace dismiss as in the Codex
-reference. Selected text and code blocks do not activate the picker, and IME
+reopen it. Unmatched queries containing whitespace dismiss the picker.
+Selected text and code blocks do not activate the picker, and IME
 commit does not select or submit. Async results carry catalog, target, query,
 retry and controller ownership; stale completions cannot become selectable.
 Inserted resources retain canonical Skill name/path through the document
@@ -712,8 +712,8 @@ Unspecified table-cell alignment and prose/heading writing direction are
 natural rather than forced LTR, matching Web's `dir="auto"` intent; explicit
 Markdown column alignment remains authoritative.
 
-Web and Native code fences now consume one Shiki grammar registry and Codex
-syntax theme. Web turns that result into HTML; Native projects its token colors
+Web and Native code fences now consume one Shiki grammar registry and the shared
+OpenCraft syntax theme. Web turns that result into HTML; Native projects its token colors
 and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
 until a complete fence is present and caps tokenization at 12,000 characters;
@@ -1323,7 +1323,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `composer-editor` | OpenCraft Web ProseMirror editor | authoritative drafts |
 | `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
-| `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
+| `workbench-web` | DOM Timeline, ProseMirror adapter and precise Workbench frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
 
 The Embedded Workbench keeps Sidebar presentation outside this table: the host

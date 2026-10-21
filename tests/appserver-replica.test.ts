@@ -725,7 +725,7 @@ test("V4 Replica sync, mutate and live entry cross the AppServer JSON-RPC bounda
   }
 });
 
-test("Codex V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
+test("AppServer V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
   const threadId = "thread-codex";
   let current: ThreadView = {
     ...createEmptyThreadView("local", threadId),

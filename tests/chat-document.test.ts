@@ -397,7 +397,7 @@ test("Codex bracket file citations become typed navigable directives", () => {
   assert.equal(citation.raw, "【src/runtime.ts†L12-L18】");
 });
 
-test("Codex text decorations lift skill variables, workspace mentions and color swatches", () => {
+test("Text decorations lift skill variables, workspace mentions and color swatches", () => {
   const compiler = new ChatDocumentCompiler();
   const nodes = flatten(compiler.compile("Use $deploy and @src/main.ts with #12abef; issue #123456 stays plain.").nodes);
   assert.ok(nodes.some((node) => node.kind === "reference" && node.referenceKind === "variable" && node.text === "$deploy"));
@@ -406,7 +406,7 @@ test("Codex text decorations lift skill variables, workspace mentions and color 
   assert.equal(nodes.some((node) => node.kind === "color-swatch" && node.color === "#123456"), false);
 });
 
-test("Codex user-message dialect preserves Composer link semantics", () => {
+test("The user-message dialect preserves Composer link semantics", () => {
   const compiler = new ChatDocumentCompiler();
   const parsed = compiler.compile([
     "Open [source\\]](file:///vela/src/a\\)b.ts) now.",
@@ -423,7 +423,7 @@ test("Codex user-message dialect preserves Composer link semantics", () => {
   assert.ok(nodes.some((node) => node.kind === "text" && node.text === "!"));
 });
 
-test("Codex markdown-link scanner rejects empty, multiline, and incomplete targets", () => {
+test("The Markdown-link scanner rejects empty, multiline, and incomplete targets", () => {
   assert.deepEqual(findMarkdownLink("x [label](file:///vela/a.ts) y", 0), {
     start: 2,
     end: 28,
@@ -435,7 +435,7 @@ test("Codex markdown-link scanner rejects empty, multiline, and incomplete targe
   assert.equal(findMarkdownLink("[label\n](file:///vela/a.ts)", 0), null);
 });
 
-test("Codex user-message block preprocessing separates list kinds and protects fences", () => {
+test("User-message block preprocessing separates list kinds and protects fences", () => {
   assert.equal(preprocessUserMessageMarkdown([
     "- bullet",
     "paragraph",

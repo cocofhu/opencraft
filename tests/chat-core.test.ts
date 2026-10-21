@@ -1290,7 +1290,7 @@ test("adjacent imageView tool calls coalesce into one expandable visual activity
   assert.equal(presentToolActivity(third).summary, "Viewed an image");
 });
 
-test("node_repl MCP calls use Codex's terminal activity icon", () => {
+test("node_repl MCP calls use the terminal activity icon", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-node-repl",
     status: "complete",
@@ -1645,7 +1645,7 @@ test("image generation and image viewing retain Codex operational tool semantics
   }
 });
 
-test("standalone image view and empty Web Search preserve Codex render topology", () => {
+test("standalone image view and empty Web Search preserve render topology", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-tool-topology",
     status: "complete",
@@ -1718,7 +1718,7 @@ test("command failure follows exit code even when transport status completed", (
   assert.equal(formatCommandActivitySummary(block, "failed", { expanded: false, elapsedLabel: null }), "Ran false");
 });
 
-test("command labels reproduce Codex disclosure, elapsed, date, and background terminal states", () => {
+test("command labels describe disclosure, elapsed, date, and background terminal states", () => {
   const projected = projectTimeline(source([{
     id: "turn-command-labels",
     status: "complete",
@@ -3333,7 +3333,7 @@ test("steering and hook feedback retain their own slots outside Activity disclos
   ]);
 });
 
-test("realtime transcripts follow Codex's pre-toggle and persistent ownership", () => {
+test("realtime transcripts preserve pre-toggle text and persistent ownership", () => {
   const leadingDelegation = `<realtime_delegation>
     <transcript_delta>assistant: I can help.\nuser: Please inspect the app.</transcript_delta>
     <input>Please inspect the app.</input>
@@ -3398,7 +3398,7 @@ test("a non-collapsible realtime transcript renders from the original Unit strea
   assert.equal(layout.visibleUnits.length, 1);
 });
 
-test("realtime delegation parsing matches Codex transcript extension and entity decoding", () => {
+test("realtime delegation parsing preserves transcript extension and entity decoding", () => {
   assert.deepEqual(parseRealtimeDelegation([{
     type: "text",
     text: `<realtime_delegation>

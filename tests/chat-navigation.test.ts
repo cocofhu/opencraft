@@ -73,7 +73,7 @@ function anchor(id: string, order: number): ConversationNavigationAnchor {
   };
 }
 
-test("active navigation lookup remains logarithmic and follows Codex first-visible semantics", () => {
+test("active navigation lookup remains logarithmic and follows first-visible semantics", () => {
   const anchors = [anchor("a", 10), anchor("b", 20), anchor("c", 30), anchor("d", 40)];
   assert.equal(findAnchorAtOrBefore(anchors, 9), null);
   assert.equal(findAnchorAtOrBefore(anchors, 30)?.id, "c");

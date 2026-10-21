@@ -834,7 +834,7 @@ durable Threads, immediate for ephemeral Threads); release and new native work
 serialize per Thread. This is live fan-out plus snapshot/replay during resume,
 not a durable event log or multi-tenant authorization boundary.
 
-The packaged Codex runtime is pinned to `0.157.0`: its loaded paginated-Thread
+The packaged Codex runtime is selected by `runtime/codex/package-lock.json`. Its loaded paginated-Thread
 resume path can attach a new Client with `excludeTurns` without materializing
 the full persisted history. OpenCraft still sends the physical `thread/resume`;
 skipping it would lose atomic subscription and interaction ownership. A

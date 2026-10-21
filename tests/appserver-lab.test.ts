@@ -363,11 +363,11 @@ test("Desktop Resume commits a projected owner View through Cordis plugins", asy
   assert.equal(verified.cwd, "/workspace");
 });
 
-test("Replica Resume distinguishes cached paint from authoritative Codex V3 sync", async () => {
+test("Replica Resume distinguishes cached paint from authoritative AppServer V3 sync", async () => {
   const result = await runScenario("replica-resume", {}, ["--thread", "thread-one"]);
   const verified = event(result, "replica-resume.verified");
   assert.equal(verified.threadId, "thread-one");
-  assert.equal(verified.protocol, "codex-v3-resume-adapter");
+  assert.equal(verified.protocol, "appserver-v3-resume-adapter");
   assert.equal(verified.cachedPhase, "painted");
   assert.equal(verified.cachedAuthoritative, false);
   assert.equal(verified.livePhase, "live");
