@@ -185,3 +185,13 @@ SSH owner检查位置及与正式 `SSH_CONNECTION_MIGRATIONS` 相同的v1 schema
 维护前应在真实隔离副本完成旧→新→兼容旧完整入口启动和必要读取，核记录/账本digest，
 将生成物精确hash和兼容入口配置纳入快照。回退时指向经审查的兼容产物并保留当前数据，
 准确称“兼容旧版回退”，不能称原未修改旧binary接受新账本。
+
+## 内置远程网页渲染
+
+Headless Linux 分发及 managed headless execution 包携带 `runtime/browser/`：固定 Electron、worker、受限编码 preload 与 PreviewBridge bundle。无需 DISPLAY、Wayland、桌面或 Xvfb；Linux Chromium 所需动态库和字体仍由系统提供。浏览器进程按首次 Tab 使用惰性启动，故障不阻断 Agent/Server 启动。客户端优先使用 H.264 WebCodecs；HTTP 或缺少 WebCodecs 的浏览器使用 H.264 MediaSource/fMP4 原生解码，无需因为解码升级网站 HTTPS。两者均不支持的客户端保留原 iframe 能力。MSE 使用连续虚拟媒体时间线和稀疏更新追帧，不要求服务器发送静态保活视频帧。
+
+非 root Server 直接以自身用户启动沙箱 Electron，profile 在 Server data dir 的 `remote-browser`。root Gateway 默认通过 systemd transient child 使用 DynamicUser、PrivateTmp、NoNewPrivileges 和只读 runtime 挂载，不把远程网页以 root 运行，不关闭 Chromium sandbox；需要 systemd、可用用户命名空间。该模式 profile 由 systemd 保存在 `/var/lib/opencraft-browser-<data-dir-hash>`（对应 `/var/lib/private/`），备份/删除实例时须包含此目录。受管升级不清除该目录，不重启 core 或独立 DSH。退出关闭子进程 stdin，子进程及其窗口退出；非 root 模式随 IPC 断开退出。
+
+仅隔离测试可显式设置 `OPENCRAFT_BROWSER_ALLOW_NO_SANDBOX=1`；默认关闭，不应在正式环境启用。运行时目录只含公开代码和 Electron 资产，权限统一为可读/可遍历，以便 DynamicUser 只读挂载；用户数据仍私有。
+
+查看 `GET /__opencraft_browser/capabilities` 可知分发是否包含 runtime；该探测不等于编码器和 Linux 动态依赖已实机验证。实际媒体与类型化控制复用 `/__opencraft_browser/stream` 的同源及现有认证/撤权。原始页面 JS/CDP/Node 入口不暴露。

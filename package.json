@@ -36,6 +36,7 @@
     "smoke:recovery": "node --import tsx scripts/smoke-recovery.ts",
     "smoke:hermes-approval": "tsx scripts/smoke-hermes-approval.ts",
     "smoke:application:lifetime": "tsx scripts/smoke-application-lifetime.ts",
+    "smoke:remote-browser": "tsx scripts/smoke-remote-browser.ts",
     "smoke:browser-drafts": "tsx scripts/smoke-browser-drafts.ts",
     "smoke:sidebar-execution-owner": "tsx scripts/smoke-sidebar-execution-owner.ts",
     "smoke:sent-image-preview": "tsx scripts/smoke-sent-image-preview.ts",

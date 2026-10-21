@@ -1,0 +1,188 @@
+// Separate Electron main process. No public listener or application UI.
+const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const { randomUUID } = require('node:crypto');
+const { createInterface } = require('node:readline');
+const ipc = typeof process.send === 'function';
+const width = 1280, height = 720;
+const pages = new Map();
+let encoderWindow, encoderReady = false;
+const bridge = readFileSync(join(__dirname, 'preview-bridge.js'), 'utf8');
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('ozone-platform', 'headless');
+app.commandLine.appendSwitch('force-device-scale-factor', '1');
+app.setPath('userData', process.env.OPENCRAFT_BROWSER_DATA_DIR);
+const connected = () => ipc ? process.connected : !process.stdout.destroyed;
+const send = (message, callback) => {
+  if (!connected()) return;
+  if (ipc) process.send(message, callback);
+  else process.stdout.write(JSON.stringify(message) + '\n', callback);
+};
+const validUrl = value => { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Unsupported browser URL'); return url.href; };
+function diffArea(a, b) {
+  if (!a || a.length !== b.length) return width * height;
+  const x = new Uint32Array(a.buffer, a.byteOffset, a.length / 4), y = new Uint32Array(b.buffer, b.byteOffset, b.length / 4);
+  let left = width, right = -1, top = height, bottom = -1;
+  for (let row = 0; row < height; row++) {
+    const offset = row * width; let lo = 0, hi = width - 1;
+    while (lo < width && x[offset + lo] === y[offset + lo]) lo++;
+    if (lo === width) continue;
+    while (hi > lo && x[offset + hi] === y[offset + hi]) hi--;
+    left = Math.min(left, lo); right = Math.max(right, hi); top = Math.min(top, row); bottom = row;
+  }
+  return right < 0 ? 0 : (right - left + 1) * (bottom - top + 1);
+}
+function activity(p) {
+  clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0;
+  p.interactive = true; p.window.webContents.setFrameRate(30); pump(p);
+  p.activityTimer = setTimeout(() => { p.interactive = false; p.window.webContents.setFrameRate(10);
+    p.activityTimer = setTimeout(() => { if (!p.closed) p.window.webContents.setFrameRate(2); }, 2800);
+  }, 1200);
+}
+function pump(p) {
+  if (p.closed || !p.visible || !encoderReady || p.inFlight || !p.pending || p.mergeUntil > performance.now()) return;
+  const frame = p.pending, bytes = frame.bytes || frame.image.toBitmap();
+  const area = diffArea(p.previous, bytes);
+  if (!area && !p.key) { p.pending = null; return; }
+  if (!p.key && !p.interactive && area <= width * height * .08 && !frame.merged) {
+    frame.bytes = bytes; p.mergeUntil = performance.now() + 150;
+    p.mergeTimer = setTimeout(() => { p.mergeUntil = 0; if (p.pending) p.pending.merged = true; pump(p); }, 150); return;
+  }
+  p.pending = null; p.previous = bytes; p.inFlight = true;
+  encoderWindow.webContents.send('encode-frame', { id: p.id, epoch: p.epoch, bytes, timestamp: frame.timestamp, key: p.key }); p.key = false;
+}
+function refresh(p) {
+  p.key = true; p.previous = null;
+  if (p.latest) p.pending = { image: p.latest, timestamp: Math.round(performance.now() * 1000) };
+  p.window.webContents.invalidate(); pump(p);
+}
+function state(p) {
+  if (p.closed) return;
+  const wc = p.window.webContents;
+  send({ type: 'navigation', page: p.id, state: { url: wc.getURL(), title: wc.getTitle(), canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), isLoading: wc.isLoading() } });
+}
+function closePage(id) {
+  const p = pages.get(id); if (!p) return;
+  pages.delete(id); p.closed = true;
+  clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer);
+  p.pending = p.previous = p.latest = null;
+  encoderWindow.webContents.send('release-encoder', id); p.window.destroy();
+}
+async function createPage(id) {
+  if (pages.has(id)) return;
+  if (pages.size >= 64) throw new Error('Browser page limit reached');
+  const partition = `persist:remote-${id}`;
+  const ses = session.fromPartition(partition);
+  ses.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  ses.setPermissionCheckHandler(() => false);
+  ses.on('will-download', event => event.preventDefault());
+  const window = new BrowserWindow({ width, height, useContentSize: true, show: true, frame: false,
+    webPreferences: { partition, offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+  const p = { id, window, epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
+  pages.set(id, p);
+  const wc = window.webContents;
+  wc.setFrameRate(2); wc.stopPainting();
+  wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
+  for (const event of ['will-navigate', 'will-redirect']) wc.on(event, (e, url) => { try { validUrl(url); } catch { e.preventDefault(); } });
+  wc.on('did-start-navigation', (_e, _url, inPlace, mainFrame) => { if (mainFrame && !inPlace) { p.document = randomUUID(); p.bridgeInstalled = null; } });
+  for (const event of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated']) wc.on(event, () => { state(p); if (p.visible) activity(p); });
+  wc.on('render-process-gone', () => send({ type: 'error', page: id, message: 'Browser renderer exited; reload this tab' }));
+  wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
+  wc.on('paint', (_event, _dirty, image) => {
+    if (image.getSize().width !== width || image.getSize().height !== height) return;
+    p.latest = image;
+    p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p);
+  });
+  wc.on('cursor-changed', (_event, cursor) => {
+    const aliases = { pointer: 'default', hand: 'pointer', nodrop: 'no-drop', null: 'default' };
+    send({ type: 'cursor', page: id, cursor: aliases[cursor] || cursor });
+  });
+
+}
+async function automation(p, method, input) {
+  if (!['readContext', 'inspect', 'click', 'fill', 'press', 'scroll', 'wait'].includes(method)) throw new Error('Unsupported browser operation');
+  const generation = p.document;
+  const key = 'opencraft.remote.bridge.' + generation;
+  p.bridgeInstalled ??= p.window.webContents.executeJavaScript(`${bridge}\n;(() => {
+    const api = OpenCraftPreviewBridgeRuntime;
+    const cleanup = api.installPreviewBridgeRuntime({window,parentOrigin:location.origin});
+    const adapter = new api.PreviewBridgeAdapter({hostWindow:window,frameWindow:window,targetOrigin:location.origin,previewId:${JSON.stringify(p.id + ':' + generation)},generation:1});
+    window[Symbol.for(${JSON.stringify(key)})]={adapter,cleanup};
+  })()`);
+  await p.bridgeInstalled;
+  if (p.document !== generation || p.closed) throw new Error('Browser document changed');
+  const result = await p.window.webContents.executeJavaScript(`(async () => {
+    const state=window[Symbol.for(${JSON.stringify(key)})];
+    if(!state) throw new Error('Browser document changed');
+    try { return {ok:true,value:await state.adapter[${JSON.stringify(method)}](${JSON.stringify(input || {})})}; }
+    catch(error) { return {ok:false,error:{code:error.code||'BROWSER_ERROR',message:error.message,retryable:!!error.retryable}}; }
+  })()`);
+  if (p.document !== generation || p.closed) throw new Error('Browser document changed');
+  if (!result.ok) throw Object.assign(new Error(result.error.message), result.error);
+  return result.value;
+}
+async function command(message) {
+  const { page: id, method, input = {} } = message;
+  if (method === 'create') { await createPage(id); return { width, height, codec: 'avc1.42E028' }; }
+  const p = pages.get(id); if (!p) throw new Error('Browser page closed');
+  const wc = p.window.webContents;
+  if (method === 'close') { closePage(id); return; }
+  if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
+  if (method === 'reload') { wc.reload(); return; }
+  if (method === 'stop') { wc.stop(); return; }
+  if (method === 'back') { if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); return; }
+  if (method === 'forward') { if (wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); return; }
+  if (method === 'visible') {
+    p.visible = input.visible === true;
+    if (p.visible) {
+      wc.startPainting(); activity(p); refresh(p);
+      // Paint may initially return the surface cached before parking. Capture
+      // once on reveal so changes made while parked reach the viewer too.
+      const epoch = p.epoch, image = await wc.capturePage();
+      if (!p.closed && p.visible && p.epoch === epoch) { p.latest = image; p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p); }
+    }
+    else { wc.stopPainting(); p.epoch++; p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
+    return;
+  }
+  if (method === 'keyframe') { if (performance.now() - (p.lastKey || -1000) >= 500) { p.lastKey = performance.now(); refresh(p); } return; }
+  if (method === 'capture') return (await wc.capturePage()).toDataURL();
+  if (method === 'zoom') { const percent = Number(input.percent); if (!Number.isFinite(percent) || percent < 25 || percent > 500) throw new Error('Invalid zoom'); wc.setZoomFactor(percent / 100); return; }
+  if (method === 'text') { if (typeof input.text !== 'string' || input.text.length > 10000) throw new Error('Invalid text'); activity(p); await wc.insertText(input.text); return; }
+  if (method === 'input') {
+    const allowed = ['mouseMove','mouseDown','mouseUp','mouseWheel','keyDown','keyUp','char'];
+    if (!allowed.includes(input.type)) throw new Error('Invalid input');
+    if (input.type !== 'mouseMove') activity(p);
+    // Copy the finite, typed input surface; no arbitrary Electron options.
+    const event = { type: input.type };
+    for (const name of ['x','y','deltaX','deltaY','clickCount']) if (Number.isFinite(input[name])) event[name] = Math.max(-10000, Math.min(10000, input[name]));
+    if (['left','right','middle'].includes(input.button)) event.button = input.button;
+    if (typeof input.keyCode === 'string' && input.keyCode.length <= 64) event.keyCode = input.keyCode;
+    if (Array.isArray(input.modifiers)) event.modifiers = input.modifiers.filter(v => ['shift','control','alt','meta','leftButtonDown'].includes(v));
+    wc.sendInputEvent(event); return;
+  }
+  if (method === 'automation') { activity(p); return automation(p, input.method, input.input); }
+  throw new Error('Unsupported browser command');
+}
+ipcMain.on('encoder-ready', event => { if (encoderWindow?.webContents === event.sender) { encoderReady = true; for (const p of pages.values()) pump(p); } });
+ipcMain.on('encoder-error', (event, id) => { const p = pages.get(id); if (p && encoderWindow?.webContents === event.sender) { p.inFlight = false; p.key = true; send({ type: 'error', page: p.id, message: 'H.264 encoder unavailable' }); } });
+ipcMain.on('encoded-packet', (event, packet) => {
+  const p = pages.get(packet.id);
+  if (!p || packet.epoch !== p.epoch || encoderWindow?.webContents !== event.sender) return;
+  const header = Buffer.alloc(9); header[0] = packet.key ? 1 : 0; header.writeBigUInt64BE(BigInt(packet.timestamp), 1);
+  const bytes = Buffer.concat([header, Buffer.from(packet.bytes)]);
+  if (connected()) send({ type: 'frame', page: p.id, bytes: bytes.toString('base64') }, error => { if (packet.epoch === p.epoch) { p.inFlight = false; if (!error) pump(p); } });
+  else p.inFlight = false;
+});
+app.whenReady().then(async () => {
+  encoderWindow = new BrowserWindow({ show: false, width: 1, height: 1,
+    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
+  await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
+  const receive = message => { void command(message).then(value => send({ type: 'result', id: message.id, value }), error => send({ type: 'result', id: message.id, error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } })); };
+  if (ipc) process.on('message', receive);
+  else { const lines = createInterface({ input: process.stdin }); lines.on('line', line => { try { receive(JSON.parse(line)); } catch {} }); lines.on('close', () => app.exit(0)); }
+  send({ type: 'ready' });
+});
+app.on('window-all-closed', () => {});
+process.on('disconnect', () => app.exit(0));
+process.on('SIGTERM', () => app.exit(0));

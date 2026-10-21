@@ -1,0 +1,107 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { build } from 'esbuild';
+import { chromium } from 'playwright';
+import WebSocket from 'ws';
+import { createWorkbenchWebServer } from './serve-workbench-web.mjs';
+import { RemoteBrowserService } from './remote-browser-service.mjs';
+import { packageBrowserRuntime } from './package-browser-runtime.mjs';
+
+const root = resolve('.');
+const temporary = await mkdtemp(join(tmpdir(), 'opencraft-remote-browser-smoke-'));
+const web = join(temporary, 'web'); await mkdir(web);
+await packageBrowserRuntime(join(root, 'runtime/browser'));
+const service = new RemoteBrowserService({ root, dataDirectory: temporary });
+let frames = 0, streamBytes = 0;
+const receive = service.receive.bind(service);
+service.receive = message => { if (message.type === 'frame') { frames++; streamBytes += Buffer.from(message.bytes, 'base64').length; } receive(message); };
+// A real typed bridge, Page runtime, manager/use claims and Dynamic Tool Host.
+const source = `
+import {RemoteBrowserSurfaceHost} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/remote-browser-surface-host.ts'))};
+import {WebBrowserPageRuntime} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/web-browser-runtime.ts'))};
+import {BrowserPresentationCoordinator} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/browser-presentation-coordinator.ts'))};
+import {BrowserWorkbenchCoordinator} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/browser-workbench-coordinator.ts'))};
+import {WebBrowserDynamicToolHost} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/web-browser-tool-host.ts'))};
+import {createConversationBindingStore} from '@opencraft/workbench-runtime';
+import {createConversationKey} from '@opencraft/chat-core';
+const surfaces=new RemoteBrowserSurfaceHost(); surfaces.setRoot(document.getElementById('root'));
+const storage={getItem:()=>null,setItem:()=>{}};
+const pages=new WebBrowserPageRuntime(surfaces,null,()=>null,storage);
+const presentations=new BrowserPresentationCoordinator(pages,surfaces);
+const bindings=createConversationBindingStore();bindings.bind('scope',createConversationKey('host','thread'));
+const panels={open:()=>({id:'panel'}),close(){},dispatch(){},ensureOwner(){}};
+const workbench=new BrowserWorkbenchCoordinator(pages,panels,bindings,storage);
+const tool=new WebBrowserDynamicToolHost(pages,workbench);
+const context={hostId:'host',threadId:'thread',turnId:'turn',callId:'call'};
+const tab=tool.open(context,{url:location.origin+'/demo.html',visible:false});
+const page=workbench.getTabSnapshot(tab.tabId).pageId;
+pages.prepareSurface(page);
+window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(){surfaces.commit(page,{visualBounds:{x:0,y:0,width:1280,height:720},stageBounds:{x:0,y:0,width:1280,height:720},viewportSize:{width:1280,height:720},scale:1},'visible');}};
+`;
+await build({ stdin: { contents: source, resolveDir: root, sourcefile: 'remote-browser-fixture.ts', loader: 'ts' }, outfile: join(web, 'smoke.js'), bundle: true, format: 'iife', platform: 'browser', target: 'chrome130' });
+await writeFile(join(web, 'index.html'), '<!doctype html><style>html,body{margin:0}#root{position:fixed;inset:0}.web-browser-surface{position:absolute}</style><div id="root"></div><script src="/smoke.js"></script>');
+await writeFile(join(web, 'demo.html'), '<!doctype html><meta charset="utf-8"><title>Remote browser proof</title><style>input,button{font-size:24px}body{font:24px sans-serif;margin:30px}#result{margin-top:20px}</style><label>Name <input aria-label="Name" id="name"></label><button onclick="document.querySelector(\'#result\').textContent=\'Hello \'+document.querySelector(\'#name\').value">Submit</button><input type="password" aria-label="Password" value="never-export-this"><div id="result">Ready</div>');
+await writeFile(join(web, 'version.json'), '{}');
+const gateway = await createWorkbenchWebServer({ root: web, loopbackOnly: true, remoteBrowserService: service });
+const address = await gateway.listen({ host: '127.0.0.1', port: 0 });
+const origin = `http://127.0.0.1:${address.port}`;
+let browser;
+try {
+  const forbidden = new WebSocket(origin.replace('http:', 'ws:') + '/__opencraft_browser/stream', { origin: 'https://untrusted.invalid' });
+  await assert.rejects(new Promise((done, reject) => { forbidden.on('open', done); forbidden.on('error', reject); }), /403/);
+  browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, headless: true, args: process.getuid?.() === 0 ? ['--no-sandbox'] : [] });
+  const view = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  if (process.env.OPENCRAFT_TEST_MSE === '1') await view.addInitScript(() => { delete (window as any).VideoDecoder; });
+  const errors: string[] = []; view.on('pageerror', error => errors.push(error.message));
+  await view.goto(origin);
+  await view.waitForFunction(() => (window as any).poc);
+  await view.evaluate(async () => { const p = (window as any).poc; await p.surfaces.waitUntilReady(p.page); });
+  const inspection = await view.evaluate(async () => (window as any).poc.use({ action: 'inspect' }));
+  assert.equal(inspection.title, 'Remote browser proof');
+  const name = inspection.elements.find((e: any) => e.name === 'Name');
+  const password = inspection.elements.find((e: any) => e.name === 'Password');
+  assert(name); assert(password);
+  const sensitive = await view.evaluate(async ({ ref, revision }) => { try { await (window as any).poc.use({ action: 'fill', ref, expected_revision: revision, value: 'blocked' }); return null; } catch (e: any) { return e.code; } }, { ref: password.ref, revision: inspection.revision });
+  assert.equal(sensitive, 'POLICY_BLOCKED');
+  await view.evaluate(async ({ ref, revision }) => (window as any).poc.use({ action: 'fill', ref, expected_revision: revision, value: 'Agent' }), { ref: name.ref, revision: inspection.revision });
+  const afterFill = await view.evaluate(async () => (window as any).poc.use({ action: 'inspect' }));
+  await view.evaluate(async ({ ref, revision }) => (window as any).poc.use({ action: 'click', ref, expected_revision: revision }), { ref: afterFill.elements.find((e: any) => e.name === 'Submit').ref, revision: afterFill.revision });
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Agent' }));
+  const context = await view.evaluate(async () => { const p = (window as any).poc; return p.tool.getTabContext(p.context, { tab_id: p.tab.tabId }); });
+  assert(!JSON.stringify(context).includes('never-export-this'));
+  const crossThread = await view.evaluate(async () => { const p = (window as any).poc; try { await p.tool.browserUse({ ...p.context, threadId: 'other' }, { action: 'inspect', tab_id: p.tab.tabId }); return null; } catch (e: any) { return e.code; } });
+  assert(crossThread);
+  await view.evaluate(() => (window as any).poc.show());
+  await view.waitForFunction(() => { const p = (window as any).poc; const canvas = p.surfaces.presentationPort(p.page).guest; const video = document.querySelector('video'); if (video) return video.videoWidth === 1280 && video.readyState >= 2; const data = canvas.getContext('2d').getImageData(0, 0, 1280, 720).data; return data.some((v: number, i: number) => i % 4 !== 3 && v > 100); });
+  await view.mouse.click(170, 47); await view.keyboard.press('Control+A'); await view.keyboard.type('Human'); await view.mouse.click(430, 47);
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Human' }));
+  const screenshot = await view.evaluate(async () => (window as any).poc.use({ action: 'screenshot' }));
+  assert(screenshot.imageUrl.startsWith('data:image/png;base64,'));
+  await writeFile(join(temporary, 'target.png'), Buffer.from(screenshot.imageUrl.split(',')[1], 'base64'));
+
+  // Park retains the actual DOM but shuts off the video producer.
+  await view.evaluate(() => { const p = (window as any).poc; p.surfaces.park(p.page); });
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Human' }));
+  await view.evaluate(() => (window as any).poc.show());
+  await view.evaluate(async dataUrl => { const image = new Image(); image.src = dataUrl; await image.decode(); (window as any).poc.reference = image; }, screenshot.imageUrl);
+  // Reject stale pre-park frames, not merely successful decoding. Compare the
+  // visible human-edited text against a fresh capture of that same WebContents.
+  await view.waitForFunction(() => { const p = (window as any).poc, surface = p.surfaces.presentationPort(p.page).guest;
+    const displayed = document.querySelector('video') ?? surface;
+    const actual = document.createElement('canvas'); actual.width = 300; actual.height = 50;
+    const expected = document.createElement('canvas'); expected.width = 300; expected.height = 50;
+    actual.getContext('2d')!.drawImage(displayed, 100, 20, 300, 50, 0, 0, 300, 50);
+    expected.getContext('2d')!.drawImage(p.reference, 100, 20, 300, 50, 0, 0, 300, 50);
+    const a = actual.getContext('2d')!.getImageData(0, 0, 300, 50).data, b = expected.getContext('2d')!.getImageData(0, 0, 300, 50).data;
+    let difference = 0; for (let i = 0; i < a.length; i++) difference += Math.abs(a[i]! - b[i]!);
+    return difference / a.length < 3;
+  });
+  await view.screenshot({ path: join(temporary, 'remote-tab.png') });
+  await view.waitForTimeout(350); const before = frames; await view.waitForTimeout(1200); const staticFrames = frames - before;
+  assert.equal(staticFrames, 0, 'unchanged page must not send video keepalive frames');
+  assert.deepEqual(errors, []);
+  await view.evaluate(async () => (window as any).poc.use({ action: 'close' }));
+  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','static-zero-frames','explicit-close'], errors }));
+} finally { await browser?.close(); service.close(); await gateway.close(); }

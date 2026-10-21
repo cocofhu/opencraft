@@ -1,6 +1,6 @@
 # OpenCraft 跨平台浏览器工作台实施设计
 
-> 状态：Web iframe 与标准 Electron webview 已接入并通过桌面主链路验收；Playwright/Expo Adapter Proposed
+> 状态：Web iframe、Electron webview 与 Linux Server H.264 Surface；各平台验收分别记录，Playwright/Expo Adapter Proposed
 > 目标平台：Vite Web、Electron Desktop、Expo iOS/iPadOS、Expo Web  
 > 架构修订：R6（Codex 生命周期、多 Host 与 AI Capability 边界复审）  
 > 当前已实现 `browser-core`、Web iframe Runtime、应用级 Presentation Root、右侧多
@@ -1258,3 +1258,13 @@ toolbar and manager consume the same six declared exports. Numeric helpers
 round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
+
+## Linux Server 远程网页 Surface（2026-10-21）
+
+Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性启动独立进程；不渲染工作台 UI、不公开 CDP。支持 H.264 的客户端使用 RemoteBrowserSurfaceHost（安全上下文优先 WebCodecs，HTTP/其他客户端使用原生 MSE），现有 Tab、Page、Presentation manager、BrowserDynamicToolHost 与线程归属检查保持；普通 Web iframe 与桌面原生 guest 继续使用原适配。渲染地点固定为所连 Server，不因 Thread 的执行 Host 或 SSH Host 改变。远程网页直接访问该 Server 的网络；不把 SSH loopback 代理 URL 交给另一个执行地点。
+
+默认网页视口1280×720，按面板等比缩放；设备预设暂不改变远程网页视口，能力声明 deviceEmulation=none。软件 H.264 text hint、实时编码、Annex B；30fps 是活动上限，1.2秒后10fps，再2.8秒后2fps。静态去重不编码；非交互小更新固定150ms合并；仅一帧编码中和一帧最新待处理。全服务共享一个可信编码 renderer，各页面编码器在隐藏时释放。队列丢弃发生在编码前；编码后的预测帧保序，慢客户端断开后请求新关键帧，显示端只留最新解码帧。WebCodecs 无周期性关键帧；MSE 按缓冲回收水位请求关键帧，只在实际编码媒体积累时触发，静态不产生额外帧。鼠标形状同步，位置使用客户端系统光标。
+
+同源 WebSocket 复用 admission、actor身份、到期和撤权；每个连接只持有 actor+随机持久化 storage lease 的页面。服务器生成物理分区 ID；Page、storage ID 与瞬时连接分离。View park 只停视频；显式 close 释放页面，保留 Cookie 分区。断连60秒回收物理页面，重连恢复分区并在页面已回收时重载 URL，不声称恢复原 DOM/JS。预览桥在目标文档内运行，只暴露已有类型化操作，敏感字段拒绝及 revision/ref 校验复用原实现，语义输入不声称 trustedInput。远程手动坐标输入作用于同一目标 WebContents。
+
+站点权限默认拒绝、下载默认阻止、popup 转为当前 scope 的受管标签。远程站点权限设置、下载管理、音频、跨后端运行中状态迁移、原生设备模拟尚未提供。登录态保留在服务端隔离分区，不发送到客户端。

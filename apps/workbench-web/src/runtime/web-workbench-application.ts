@@ -1,5 +1,7 @@
+import { supportsH264MediaSource } from '../browser/h264-media-source';
+import { RemoteBrowserSurfaceHost } from '../browser/remote-browser-surface-host';
 import type { ConversationPresentationProvider } from "./conversation-presentation";
-import { serverStorageKey, serverUrl } from "./server-context";
+import { serverFetch, serverStorageKey, serverUrl } from "./server-context";
 import { createWebWorkbenchApplicationSupervisor } from "./web-workbench-supervisor";
 import { createApplicationDisposer } from "./application-disposal";
 import { Context, type Plugin } from "@deepseek-ai/cordis";
@@ -135,10 +137,15 @@ export async function createWebWorkbenchApplication(
     const runtime = await supervisor.registry.ensureConnected(hostId);
     return runtime.resources.host.fetchLoopback(targetUrl, init);
   });
-  const browserSurfaces = desktop ? new ElectronBrowserSurfaceHost(browserStorage!) : new WebIframeSurfaceHost();
+  const remoteBrowser = !desktop && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === 'true'
+    && (typeof VideoDecoder !== 'undefined' || supportsH264MediaSource())
+    && await serverFetch('/__opencraft_browser/capabilities', { signal: AbortSignal.timeout(2000) })
+      .then(response => response.ok ? response.json() : null).then(value => value?.available === true).catch(() => false);
+  const browserSurfaces = desktop ? new ElectronBrowserSurfaceHost(browserStorage!)
+    : remoteBrowser ? new RemoteBrowserSurfaceHost() : new WebIframeSurfaceHost();
   const browserPages = new WebBrowserPageRuntime(
     browserSurfaces,
-    hostProxy,
+    remoteBrowser ? null : hostProxy,
     (ownerId) => conversationBindings.resolve(
       ownerId as Parameters<typeof conversationBindings.resolve>[0],
     )?.hostId ?? null,
