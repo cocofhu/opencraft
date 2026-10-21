@@ -123,3 +123,26 @@
   .account-value-action { flex-wrap: wrap; gap: 8px; }
   .account-usage__hint > span { flex-basis: 100%; }
 }
+
+// Compact stacked form content inside the shared utility panel. Labels, controls
+// and validation remain one field, with a scrollable body on short viewports.
+.settings-panel-form {
+  padding-block: calc(var(--spacing) * 4);
+  @include typography.role(body);
+  > p { margin: 0 0 calc(var(--spacing) * 3); @include typography.role(metadata, secondary); }
+  .settings-control-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    gap: calc(var(--spacing) * 1.5);
+    padding: calc(var(--spacing) * 2) 0;
+  }
+  .settings-control-row__value {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .settings-control-actions { margin-top: calc(var(--spacing) * 3); }
+}
