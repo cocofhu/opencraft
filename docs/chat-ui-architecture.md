@@ -498,6 +498,14 @@ Diff sections are indexed once per completed resource revision, not reparsed
 for every filename. These are Web adapter details; Native preserves its own
 touch surfaces while sharing the Turn resource and Review intent.
 
+The shared summary consumes actual Git paths: unquoted spaces and C-quoted
+UTF-8 bytes resolve to repository file identity, including extended rename/copy
+metadata without removing a real `a/` or `b/` directory. Binary and mode-only
+sections remain zero-count files. Inside a hunk, lines beginning `+++` or `---`
+are changed code; only pre-hunk file headers are metadata. Repeated paths retain
+first-observed order and aggregate counts. Review indexes the same decoded paths;
+the original unified diff remains unchanged.
+
 The aggregate is a **Turn-owned resource**, not an ordered transcript Item.
 `chat-runtime` passes `unifiedDiff` separately from source Items; `chat-core`
 projects it as `changeSummary` metadata and the assistant presentation plan's

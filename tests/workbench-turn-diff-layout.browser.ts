@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import gitCases from "./fixtures/turn-diff-git-cases.json";
 import { createServer } from "vite";
 
 const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
@@ -64,6 +65,42 @@ try {
     assert.equal(await rows.count(), 3);
     assert.deepEqual(errors, []);
     results.push({ width, theme, files: geometries.length, countsIntact: true, fullPathReview: true });
+    await page.close();
+  }
+  for (const width of [390, 1200]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1200 }, hasTouch: width === 390, reducedMotion: "reduce" });
+    const errors: string[] = [];
+    page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    const activate = async (button: any) => width === 390 ? button.tap() : button.click();
+    const open = async (name: string) => {
+      await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&gitCase=${name}`);
+      await page.locator('html[data-conversation-ready="true"]').waitFor();
+      const card = page.locator(".thread-turn-diff");
+      await card.waitFor();
+      return card;
+    };
+    for (const entry of gitCases) {
+      const card = await open(entry.name);
+      const expected = entry.expected;
+      assert.equal(await card.locator(".thread-turn-diff__default-subtitle .thread-turn-diff__stats").getAttribute("aria-label"),
+        `${expected.additions} lines added, ${expected.deletions} lines removed`);
+      await activate(card.getByRole("button", { name: "View changes", exact: true }));
+      assert.equal(await page.locator("html").getAttribute("data-review-path"), expected.files[0]!.path);
+      assert.equal(await page.locator("html").getAttribute("data-review-diff"), entry.diff);
+    }
+    const card = await open("all");
+    await activate(card.locator(".thread-turn-diff__more"));
+    const rows = card.locator("button[aria-label^='Open ']");
+    assert.equal(await rows.count(), gitCases.length);
+    for (const entry of gitCases) {
+      const path = entry.expected.files[0]!.path;
+      await activate(card.getByRole("button", { name: `Open ${path}`, exact: true }));
+      assert.equal(await page.locator("html").getAttribute("data-review-path"), path);
+      assert.equal((await page.locator("html").getAttribute("data-review-diff"))?.trimEnd(), entry.diff.trimEnd());
+    }
+    assert.deepEqual(errors, []);
+    results.push({ width, theme, files: gitCases.length, countsIntact: true, fullPathReview: true });
     await page.close();
   }
   console.log(JSON.stringify({ passed: results }));
