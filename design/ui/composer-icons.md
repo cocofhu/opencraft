@@ -109,3 +109,22 @@ symbols, dimension multiplication signs and textual history arrows. Unused legac
 CSS is removed instead of declaring an unmounted spinner migrated. The icon policy also
 checks generated control characters and CSS-drawn spinners/copy/check shapes. Product
 workspaces can pass explicit paths to check:icons; no product path is embedded in the core.
+
+
+Native input paint also consumes this artwork. `generate-native-control-icons.tsx`
+exports SVG alpha masks from the actual React glyphs into the checked generated
+stylesheet; never hand-copy paths into feature CSS. The Web native-controls adapter
+replaces date/time picker indicators, search clear, checkbox and numeric stepper
+paint while retaining the original input, labels, events, focus and system popup.
+Forced-colors native fallbacks are intentional accessibility behavior. Engines
+without these native pseudo-elements keep their platform controls.
+
+CodeMirror folding uses its supported markerDOM configuration with shared chevron
+masks. Its default search panel retains the library commands, keyboard scope and
+localization; the owner adapts the close glyph's paint and native checkbox marks.
+Check real fold/unfold and search/replace/close behavior after dependency upgrades.
+Native disclosures opt into `ui-native-disclosure`; existing explicit SVG summaries
+retain their owner. Device toolbar selects retain native selection and focus with
+a shared ChevronDown overlay. Unassigned task avatars use a shared person glyph;
+assigned initials and profile images retain their meaning. Source checks alone do
+not establish coverage of runtime-generated or browser-painted controls.

@@ -138,3 +138,8 @@ export function CheckboxIcon({ checked = false, ...props }: ActionIconProps & { 
     {checked ? <path d="m8 12 2.75 2.75L16 9.5" /> : null}
   </ActionGlyph>;
 }
+
+/** Native input adapters export the same artwork, never a second CSS drawing. */
+export const DateIcon = glyph("date", <><rect x="4" y="5" width="16" height="15" rx="3" /><path d="M8 3.5v3m8-3v3M4 10h16" /></>);
+export const NumberStepperIcon = glyph("number-stepper", <path d="m8 8 4-4 4 4m-8 8 4 4 4-4" />);
+export const IndeterminateCheckboxIcon = glyph("checkbox-indeterminate", <><rect x="4.5" y="4.5" width="15" height="15" rx="2.75" /><path d="M8.5 12h7" /></>);

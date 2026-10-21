@@ -2,6 +2,7 @@
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/focus.web";
+@use "@opencraft/design-system-web/native-controls.web";
 @use "@opencraft/design-system/menu.web" as menu;
 @use "@opencraft/design-system/toolbar.web" as toolbar;
 @use "@opencraft/design-system/typography.web" as typography;
@@ -10848,7 +10849,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .browser-device-toolbar select {
   height: 28px; min-width: 100px; max-width: 176px;
   border: 1px solid transparent; border-radius: 6px;
-  padding: 0 4px; background: transparent; color: var(--color-text-secondary);
+  appearance: none;
+  padding: 0 22px 0 4px; background: transparent; color: var(--color-text-secondary);
   font: inherit; font-weight: var(--typography-primary-action-weight); text-overflow: ellipsis; cursor: pointer;
   &:hover, &:focus-visible { background: var(--color-background-button-tertiary-hover); }
 }
@@ -10862,6 +10864,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   &:hover, &:focus-visible { color: var(--color-text); background: var(--color-background-button-tertiary-hover); }
 }
 .browser-device-toolbar .browser-device-toolbar__zoom { min-width: 58px; max-width: 74px; flex: none; }
+.browser-device-toolbar__select { position: relative; display: inline-flex; min-width: 0; flex: none;
+  > svg { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--color-text-secondary); }
+  &.browser-device-toolbar__zoom select { min-width: 0; width: 100%; }
+}
 .browser-device-toolbar__close { margin-inline-start: auto; }
 @container (max-width: 599px) {
   .browser-device-toolbar .browser-device-toolbar__zoom { display: none; }

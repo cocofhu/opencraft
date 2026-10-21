@@ -375,7 +375,7 @@ export const webBuiltinTimelineRendererComponents = Object.freeze({
   compaction: componentRenderer("compaction", (block) => <CompactionBlock block={block} />),
   "plan-implementation": () => null,
   image: componentRenderer("image", (block) => <GeneratedImageBlock block={block} />),
-  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary>Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
+  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary className="ui-native-disclosure">Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
 });
 
 function Frame({

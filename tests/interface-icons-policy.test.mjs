@@ -13,6 +13,8 @@ test("stock artwork is rejected through aliases, registries and re-exports", () 
 test("generated controls cannot escape ownership through font characters", () => {
   for (const source of [
     'const button = <button><span aria-hidden>↵</span></button>;',
+    'const add = <button>＋</button>;',
+    'const empty = <AvatarImage fallback={assigned ? initials : "○"} />;',
     'const priority = <span>{high ? "↑" : "↓"}</span>;',
     'const preview = <li>{checked ? "☑ " : "☐ "}</li>;',
     'const back = <button>‹ Channels</button>;',

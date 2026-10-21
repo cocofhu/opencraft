@@ -33,7 +33,7 @@ export function inspectInterfaceIcons(source, file) {
       const text = node.text.trim();
       const numericPrefix = ts.isJsxText(node) && text === "−" && ts.isJsxElement(node.parent)
         && node.parent.children.some(child => ts.isJsxExpression(child));
-      if (inJsx && !keyboard && !numericPrefix && (/^[⌄‹›☑☐▧↵‼↑↓−]$/u.test(text) || /^‹\s|\s→$/u.test(text))) {
+      if (inJsx && !keyboard && !numericPrefix && (/^[⌄‹›☑☐▧↵‼↑↓−＋○]$/u.test(text) || /^‹\s|\s→$/u.test(text))) {
         fail(node, "generated control glyphs must use shared SVG, not font characters");
       }
     }

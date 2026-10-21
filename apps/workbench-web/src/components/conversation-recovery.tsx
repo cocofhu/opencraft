@@ -31,7 +31,7 @@ function RecoveryTechnicalDetails({ diagnostic, pending = false }: { readonly di
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const text = conversationRecoveryDiagnosticText(diagnostic);
   return <details className="conversation-recovery-details">
-    <summary><FormattedMessage id="chat.recovery.details" defaultMessage="Technical details" /></summary>
+    <summary className="ui-native-disclosure"><FormattedMessage id="chat.recovery.details" defaultMessage="Technical details" /></summary>
     {!pending ? <p><RecoveryFailureStage stage={diagnostic.stage} /></p> : null}
     <pre>{text}</pre>
     <button type="button" onClick={() => {

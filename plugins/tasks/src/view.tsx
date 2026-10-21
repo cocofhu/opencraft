@@ -475,7 +475,7 @@ function Column({
           disabled={pending}
           aria-label={`${t("add")}: ${t(status)}`}
         >
-          ＋
+          <Plus size={14} />
         </SettingsButton>
       </header>
       {children}

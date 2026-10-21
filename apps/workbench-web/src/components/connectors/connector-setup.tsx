@@ -101,7 +101,7 @@ export function ConnectorSetup({ definition, instance, hostId, controller, suppo
         <div role="status"><strong><Check size={15} aria-hidden="true" /> {probe.level === "format" ? "配置格式正确" : "连接测试通过"}</strong>
           <p>{probe.level === "format" ? "仅检查了填写格式，尚未验证访问权限。" : `已读取 ${probe.toolCount} 个工具。`}</p>
         </div>
-        <details><summary>查看工具（{probe.toolCount}）</summary><ul>{probe.tools.map(tool => <li key={tool.name}><span>{tool.description}</span><small>{tool.readOnly ? "读取" : "逐次确认"}</small></li>)}</ul></details>
+        <details><summary className="ui-native-disclosure">查看工具（{probe.toolCount}）</summary><ul>{probe.tools.map(tool => <li key={tool.name}><span>{tool.description}</span><small>{tool.readOnly ? "读取" : "逐次确认"}</small></li>)}</ul></details>
       </section> : null}
     {oauth ? <SettingsNotice role="status">{pollUnavailable && oauth.status === "pending" ? "暂时无法获取授权结果，正在继续检查。你也可以取消等待。" : connectorOAuthStatus(oauth.status)}
       {oauth.status === "pending" && oauth.authorizationUrl ? <SettingsActions align="start"><Button variant="primary" onClick={() => window.open(oauth.authorizationUrl!, "_blank", "noopener,noreferrer")}>打开授权页</Button><Button variant="secondary" onClick={() => void action("cancelAuthorization", async () => { await controller.cancelOAuth(hostId, oauth.id); flight.current = null; if (alive.current) setOAuth({ id: oauth.id, status: "cancelled" }); })}>取消等待</Button></SettingsActions> : null}

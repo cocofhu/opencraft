@@ -50,7 +50,7 @@ function ConnectionEditor({ editor, controller, onClose }: { editor: Editor; con
           <SettingsRow label="密码" htmlFor="ssh-password" description={row ? "留空则保留原密码。" : undefined}><SettingsTextInput id="ssh-password" type="password" value={draft.password} required={!row} disabled={busy} autoComplete="new-password" onChange={event => edit("password", event.target.value)} /></SettingsRow>
           <SettingsRow label="工作目录" htmlFor="ssh-root"><SettingsTextInput id="ssh-root" value={draft.root} placeholder="/" disabled={busy} onChange={event => edit("root", event.target.value)} /></SettingsRow>
         </SettingsGroup>
-        {row ? <details><summary>服务器身份</summary><code>{row.fingerprint}</code></details> : <SettingsGroup appearance="plain">
+        {row ? <details><summary className="ui-native-disclosure">服务器身份</summary><code>{row.fingerprint}</code></details> : <SettingsGroup appearance="plain">
           <SettingsRow label="服务器身份" description="先核对指纹，确认是你信任的服务器。"><SettingsButton type="button" disabled={busy || !draft.hostname || !draft.port} onClick={() => { void run(async () => {
             const result = await controller.probe(input.hostname, input.port); if (alive.current) { setTrust(result); setTrusted(false); }
           }); }}>核对身份</SettingsButton></SettingsRow>

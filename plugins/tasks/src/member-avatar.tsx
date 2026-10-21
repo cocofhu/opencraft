@@ -1,3 +1,4 @@
+import { PersonIcon } from "@opencraft/design-system-web/action-icons";
 import { useContext } from "react";
 import { AvatarImage, IdentityAvatarContext } from "@opencraft/extension-react";
 import type { TaskMember } from "@opencraft/appserver-protocol";
@@ -12,6 +13,6 @@ export function MemberAvatar({ member, name, assigned }: { member?: TaskMember; 
   const identity = member?.identity;
   const src = assigned && identity ? provider?.resolve(identity.kind, identity.id) ?? null : null;
   return <span className={`tasks-avatar${assigned ? "" : " tasks-avatar--empty"}`} aria-hidden="true">
-    <AvatarImage src={src} fallback={assigned ? initials : "○"} />
+    <AvatarImage src={src} fallback={assigned ? initials : <PersonIcon size={14} />} />
   </span>;
 }
