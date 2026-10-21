@@ -8,7 +8,7 @@ function createControls(command) {
   return message => {
     const page = message.page;
     const move = message.method === 'input' && message.input?.type === 'mouseMove';
-    const signature = move ? JSON.stringify([message.input.button, message.input.modifiers]) : null;
+    const signature = move ? JSON.stringify([message.input.button, message.input.modifiers, message.input.pointerType]) : null;
     const previous = moves.get(page);
     if (move && previous?.signature === signature) {
       previous.message = message;

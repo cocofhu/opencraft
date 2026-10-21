@@ -76,6 +76,21 @@ test('detach keeps the same live page; restart restores URL/config while explici
   } finally { await f.close(); }
 });
 
+test('first unmeasured navigation gets client device identity without overriding a stored or explicit viewport', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), first = await f.connect('owner');
+    assert.equal((await first.call('open', { lease, defaultDeviceProfile: 'iphone' })).deviceProfile, 'iphone');
+    await first.detach(); await f.restart();
+    const restored = await f.connect('owner');
+    assert.equal((await restored.call('open', { lease, defaultDeviceProfile: 'desktop' })).deviceProfile, 'iphone');
+    await restored.detach();
+    const explicit = await f.connect('owner');
+    assert.equal((await explicit.call('open', { lease, defaultDeviceProfile: 'iphone', viewport: { width: 1024, height: 768, deviceProfile: 'desktop' } })).deviceProfile, 'desktop');
+    await explicit.detach();
+  } finally { await f.close(); }
+});
+
 test('metadata survives restart, is owner scoped and rejects stale/unauthorized writes; lost ACK is idempotent', async () => {
   const f = await fixture();
   try {

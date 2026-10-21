@@ -233,7 +233,8 @@ export class RemoteBrowserService {
             const resumed = page.live, recoveryUrl = page.url, recoveryZoom = page.zoom;
             page.recovering = !resumed && !!existing;
             try {
-              config = await this.request(page.id, 'create', message.input?.viewport ?? page.viewport);
+              config = await this.request(page.id, 'create', message.input?.viewport ?? page.viewport
+                ?? { deviceProfile: message.input?.defaultDeviceProfile ?? 'desktop' });
               page.live = true;
               if (!resumed && existing) {
                 if (recoveryZoom !== 100) await this.request(page.id, 'zoom', { percent: recoveryZoom });

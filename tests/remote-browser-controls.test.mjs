@@ -55,3 +55,13 @@ test('failure rejects merged requests and releases the page; other pages and sto
   await dispatch(input('mouseUp'));
   assert.equal(seen.at(-1).input.type, 'mouseUp');
 });
+
+test('native pointer identity is a pending motion boundary on hybrid devices', async () => {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; }), seen = [];
+  const dispatch = createControls(async m => { seen.push(m); if (seen.length === 1) await gate; });
+  const down = dispatch(input('mouseDown')); await tick();
+  const moves = ['touch', 'mouse', 'mouse'].map((pointerType, x) => dispatch({ page: 'a', method: 'input', input: { type: 'mouseMove', x, pointerType } }));
+  release(); await Promise.all([down, ...moves]);
+  assert.deepEqual(seen.slice(1).map(m => [m.input.pointerType, m.input.x]), [['touch', 0], ['mouse', 2]]);
+});

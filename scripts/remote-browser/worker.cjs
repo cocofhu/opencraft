@@ -318,7 +318,10 @@ async function command(message) {
     if (['left','right','middle'].includes(input.button)) event.button = input.button;
     if (typeof input.keyCode === 'string' && input.keyCode.length <= 64) event.keyCode = input.keyCode;
     if (Array.isArray(input.modifiers)) event.modifiers = input.modifiers.filter(v => ['shift','control','alt','meta','leftButtonDown'].includes(v));
-    if (p.deviceProfile !== 'desktop' && ['mouseMove','mouseDown','mouseUp','touchCancel'].includes(event.type) && (!event.button || event.button === 'left')) {
+    const touch = input.pointerType === 'touch'
+      || ['iphone','ipad','android-phone','android-tablet'].includes(p.deviceProfile)
+      || p.deviceProfile === 'desktop-touch' && input.pointerType === undefined;
+    if (touch && ['mouseMove','mouseDown','mouseUp','touchCancel'].includes(event.type) && (!event.button || event.button === 'left')) {
       const operation = (p.touchQueue ?? Promise.resolve()).then(async () => {
         if (p.closed) return;
         const type = event.type === 'mouseDown' ? 'touchStart' : event.type === 'mouseMove' ? 'touchMove' : event.type === 'mouseUp' ? 'touchEnd' : 'touchCancel';

@@ -1291,6 +1291,23 @@ Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性�
 
 ### Remote tab state and viewer lifecycle
 
+Responsive remote tabs follow the viewing client's normalized device identity:
+iPhone, iPad (including desktop-style iPad UA), Android phone/tablet or a desktop
+with/without touch. This does not forward arbitrary UA strings, browser brands
+or physical DPR. The remote worker retains DPR=1 and uses the measured content
+aperture in CSS pixels. Explicit device/desktop presets remain authoritative;
+closing the device toolbar returns to following the client rather than forcing
+desktop mode. A new unmeasured tab receives the bounded default identity before
+its first navigation, while an existing tab keeps its stored configuration until
+presentation supplies a measured layout. Device changes preserve the live DOM;
+server-generated UA-dependent markup updates on later navigation/reload.
+
+Pointer input carries its actual device type. A hybrid desktop's mouse remains
+a mouse and its finger produces native touch; mobile presets still support
+mouse-driven touch emulation. Pending moves cannot coalesce across pointer types.
+Only the primary contact is bridged in this single-contact path; additional
+fingers cannot replace/cancel the active gesture. This does not claim multitouch.
+
 A remote tab outlives its display socket. Its renderer is authoritative for page
 content and editing; local presentation owns video decoding, client geometry
 and system input. Disconnect suspends video production and releases pressed
