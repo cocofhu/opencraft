@@ -6,7 +6,7 @@ import { access, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'copy', 'automation', 'close']);
+const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'ime', 'copy', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
 /** Gateway-owned process and page leases. A client gets only its own page port,
  * never a CDP endpoint, filesystem path or arbitrary JavaScript evaluator. */

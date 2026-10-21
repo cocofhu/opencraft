@@ -64,6 +64,8 @@
   "browser.address": "Alamat web",
   "browser.address.placeholder": "Masukkan alamat web",
   "browser.external": "Buka dalam pelayar luaran",
+  "browser.keyboard": "Papan kekunci",
+  "browser.keyboard.hint": "Pilih medan teks, kemudian buka papan kekunci",
   "browser.device": "Togol bar alat peranti",
   "browser.settings": "Tetapan tapak",
   "browser.permissions": "Kebenaran tapak",

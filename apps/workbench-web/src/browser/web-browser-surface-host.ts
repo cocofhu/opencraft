@@ -24,6 +24,9 @@ export interface BrowserNewTabLabels { readonly title: string; readonly hint: st
 
 export interface BrowserSurfaceHost {
   readonly localMenu?: BrowserLocalMenuController;
+  keyboardState?(id: BrowserPageId): 'unavailable' | 'idle' | 'ready';
+  onKeyboardState?(listener: () => void): () => void;
+  showKeyboard?(id: BrowserPageId): void;
   setNewTabLabels?(labels: BrowserNewTabLabels): void;
   trackPointerNearBottom?(pageId: BrowserPageId, height: number, listener: (near: boolean) => void): () => void;
   setZoom?(pageId: BrowserPageId, percent: number): void;

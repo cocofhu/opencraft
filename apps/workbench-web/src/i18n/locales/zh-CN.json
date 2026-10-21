@@ -204,6 +204,8 @@
   "browser.external": "在外部浏览器打开",
   "browser.reload": "重新加载",
   "browser.stop": "停止",
+  "browser.keyboard": "键盘",
+  "browser.keyboard.hint": "先点网页文本框，再打开键盘",
   "browser.device": "切换设备工具栏",
   "browser.settings": "网站设置",
   "browser.permissions": "网站权限",

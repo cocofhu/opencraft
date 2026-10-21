@@ -1372,12 +1372,30 @@ still cannot provide the mobile OS's native text-selection handles.
 
 ### Remote surface keyboard activation
 
-The presentation canvas remains focusable and contenteditable to receive desktop
-hardware-keyboard and composition events. It sets `inputmode="none"` and
-`virtualkeyboardpolicy="manual"`: focusing a tab, clicking streamed content or
-returning from its local menu must not implicitly request the mobile keyboard.
-These are client browser keyboard policies, not remote editability detection.
-The current surface does not yet offer automatic mobile keyboard activation for
-remote editors; that requires the native remote editing-state bridge. Desktop
-IME capture and remote Chromium's editing authority remain unchanged. Physical
-mobile keyboard behavior must be validated separately from touch emulation.
+The presentation canvas is not an editor. A real local textarea receives native
+composition events and stages only the current IME transaction; it never mirrors
+the remote field's value or surrounding text. Ordinary tab, canvas and menu
+focus use `inputmode="none"` and `virtualkeyboardpolicy="manual"`. The local
+Keyboard toolbar action synchronously focuses that textarea with text/auto
+policy inside a trusted user gesture, as required by mobile WebViews. Native
+remote editability gates this action; streamed pixels and DOM heuristics do not.
+Physical WeChat/iOS/Android keyboard behavior needs separate device validation.
+
+The owned worker observes Chromium's native editing state and root viewport
+caret bounds without exporting field text or target capabilities. The current
+native target API supports text inputs, textareas and contenteditable. Stock
+runtimes advertise native IME as unavailable. Each local composition receives a
+fresh worker-owned, single-use native document/focus/selection capability.
+Preedit, commit and cancellation use Chromium's editor pipeline and website
+composition/beforeinput/input decisions. The client sends only transaction ids
+and text; it retains one in-flight operation and coalesces pending preedit.
+A final commit supersedes pending preedit. Native rejections are reported and
+never retried against another focused editor.
+
+Local blur, park, navigation, disconnect and disposal retire the transaction.
+Late replies and cancellation can address only their original transaction, not
+a newer editor. Worker visibility/document checks and the native capability
+independently validate each operation. Rejection after dispatch cannot roll back
+website handler side effects. This bridge does not implement surrounding-text
+reconversion, remote editor mirroring, mobile OS selection handles, password
+input or arbitrary native input types, and does not complete multitouch.

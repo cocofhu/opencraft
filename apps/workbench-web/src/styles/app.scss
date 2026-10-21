@@ -11031,6 +11031,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
+.browser-toolbar-button--keyboard {
+  width: auto;
+  padding-inline: calc(var(--spacing) * 2);
+}
+
 .browser-viewport-mode-picker {
   position: relative;
   display: flex;

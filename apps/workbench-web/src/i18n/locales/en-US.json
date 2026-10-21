@@ -34,6 +34,8 @@
   "browser.address.placeholder": "Enter a web address",
   "browser.clearClosed": "Clear closed tab data",
   "browser.clearData": "Clear site data",
+  "browser.keyboard": "Keyboard",
+  "browser.keyboard.hint": "Select a text field, then open the keyboard",
   "browser.device": "Toggle device toolbar",
   "browser.external": "Open in external browser",
   "browser.permissions": "Site permissions",

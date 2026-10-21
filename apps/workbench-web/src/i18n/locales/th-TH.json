@@ -65,6 +65,8 @@
   "browser.address": "ที่อยู่เว็บ",
   "browser.address.placeholder": "กรอกที่อยู่เว็บไซต์",
   "browser.external": "เปิดในเบราว์เซอร์ภายนอก",
+  "browser.keyboard": "แป้นพิมพ์",
+  "browser.keyboard.hint": "เลือกช่องข้อความแล้วเปิดแป้นพิมพ์",
   "browser.device": "สลับแถบเครื่องมืออุปกรณ์",
   "browser.settings": "การตั้งค่าเว็บไซต์",
   "browser.permissions": "สิทธิ์ของเว็บไซต์",

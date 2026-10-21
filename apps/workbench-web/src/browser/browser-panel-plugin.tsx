@@ -5,6 +5,7 @@ import type {
 import {
   browserUrlDisplayValue,
 } from "@opencraft/browser-core";
+import { BrowserKeyboardButton } from './browser-keyboard-button';
 import { BrowserDeviceToolbar, BrowserDeviceHandles } from "./browser-device-toolbar";
 import { useIntl } from "@opencraft/i18n/react";
 import type { Context } from "@deepseek-ai/cordis";
@@ -35,6 +36,7 @@ import { FloatingComposerToggle } from "../components/thread-composer-presentati
 import {
   useBrowserPresentationCoordinator,
   useBrowserTab,
+  useOptionalBrowserRuntime,
   useBrowserWorkbench,
   useWebBrowserPage,
   useWebBrowserPageRuntime,
@@ -63,6 +65,7 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
   const tab = useBrowserTab(tabId);
   const pageId = tab?.pageId ?? ("missing-browser-page" as BrowserPageId);
   const page = useWebBrowserPage(pageId);
+  const browserRuntime = useOptionalBrowserRuntime();
   const slotRef = useRef<HTMLDivElement | null>(null);
   const presentationRef = useRef<BrowserPresentationHandle | null>(null);
   const [zoom,setZoom]=useState(100);
@@ -174,6 +177,7 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
           onClick={()=>workbench.setViewportMode(tab.id,tab.viewportMode.type==="responsive"?FIT_VIEWPORT:{type:"responsive"})}>
           <MonitorSmartphone size={15}/>
         </button>
+        <BrowserKeyboardButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
         <FloatingComposerToggle activeTabId={panelTab.id} />
         {pages.supportsSiteSettings && currentUrl ? <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild><button type="button" className="browser-toolbar-button" aria-label={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })} title={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })}><Globe2 size={13} /></button></DropdownMenu.Trigger>

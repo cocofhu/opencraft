@@ -5,6 +5,7 @@ const { join } = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createInterface } = require('node:readline');
 const { installClipboard } = require('./clipboard.cjs');
+const { installIme } = require('./ime.cjs');
 const { initializeNativeFocus } = require('./focus.cjs');
 app.commandLine.appendSwitch('opencraft-remote-clipboard');
 const ipc = typeof process.send === 'function';
@@ -26,7 +27,7 @@ function deviceProfile(input = {}) {
   if (!deviceProfiles.has(profile)) throw new Error('Invalid device profile');
   return profile;
 }
-const configuration = p => ({ navigation: navigation(p), width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028', nativeCopy: p.clipboard?.available() === true });
+const configuration = p => ({ navigation: navigation(p), width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028', nativeCopy: p.clipboard?.available() === true, nativeIme: p.ime?.available() === true });
 function userAgent(p, profile) {
   const chrome = process.versions.chrome;
   if (profile === 'iphone') return 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -155,6 +156,7 @@ function state(p) {
 }
 async function resetInput(p) {
   await p.touchQueue;
+  await p.ime?.retire();
   if (p.closed) return;
   const wc = p.window.webContents;
   if (p.touchActive) {
@@ -168,7 +170,7 @@ async function resetInput(p) {
 function closePage(id) {
   const p = pages.get(id); if (!p) return;
   pages.delete(id); p.closed = true;
-  p.clipboard?.dispose();
+  p.clipboard?.dispose(); p.ime?.dispose();
   p.focusDispose?.();
   clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer);
   p.pending = p.previous = p.latest = null;
@@ -191,7 +193,7 @@ async function createPage(id, input) {
     desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
-  p.clipboard = installClipboard(p, send);
+  p.clipboard = installClipboard(p, send); p.ime = installIme(p, send);
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
   for (const event of ['will-navigate', 'will-redirect']) wc.on(event, (e, url) => { try { validUrl(url); } catch { e.preventDefault(); } });
@@ -267,7 +269,7 @@ async function command(message) {
     p.visible = input.visible === true;
     if (!p.visible) p.clipboard.retire();
     if (p.visible) {
-      wc.startPainting(); activity(p); refresh(p);
+      wc.startPainting(); activity(p); refresh(p); p.ime.observe();
       // Paint may initially return the surface cached before parking. Capture
       // once on reveal so changes made while parked reach the viewer too.
       const epoch = p.epoch, image = await wc.capturePage();
@@ -279,12 +281,13 @@ async function command(message) {
   if (method === 'keyframe') { if (performance.now() - (p.lastKey || -1000) >= 500) { p.lastKey = performance.now(); refresh(p); } return; }
   if (method === 'capture') return (await wc.capturePage()).toDataURL();
   if (method === 'zoom') { const percent = Number(input.percent); if (!Number.isFinite(percent) || percent < 25 || percent > 500) throw new Error('Invalid zoom'); wc.setZoomFactor(percent / 100); return; }
+  if (method === 'ime') { activity(p); return p.ime.apply(input); }
   if (method === 'text') { if (typeof input.text !== 'string' || input.text.length > 10000) throw new Error('Invalid text'); activity(p); await wc.insertText(input.text); return; }
   if (method === 'input') {
     const allowed = ['mouseMove','mouseDown','mouseUp','mouseWheel','keyDown','keyUp','char','touchCancel'];
     if (!allowed.includes(input.type)) throw new Error('Invalid input');
     if (['mouseDown', 'keyDown'].includes(input.type)) {
-      p.clipboard.retire();
+      p.clipboard.retire(); await p.ime.retire();
       p.contextIntent = typeof input.menuIntent === 'string' && /^[a-zA-Z0-9-]{20,100}$/.test(input.menuIntent) ? input.menuIntent : null;
     }
     if (input.type !== 'mouseMove') activity(p);
@@ -333,7 +336,7 @@ app.whenReady().then(async () => {
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
   await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
   const controls = new Map();
-  const ordered = new Set(['input', 'text', 'copy', 'viewport', 'visible', 'zoom', 'close']);
+  const ordered = new Set(['input', 'text', 'ime', 'copy', 'viewport', 'visible', 'zoom', 'close']);
   const receive = message => {
     let operation;
     if (ordered.has(message.method)) {
