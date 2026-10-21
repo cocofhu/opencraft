@@ -1,10 +1,10 @@
 import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline, type TimelineSourceItem } from "@opencraft/chat-core";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
-import { Conversation } from "../../apps/workbench-web/src/components/conversation";
+import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
@@ -59,10 +59,16 @@ function Demo() {
 const liveQuery = new URLSearchParams(location.search);
 const liveProbe = window as unknown as {
   setPhase: (phase: string) => void;
+  setMounted: (mounted: boolean) => void;
+  capturedRestore?: ConversationRestoreSnapshot;
   observed: Record<string, { status: string; content?: string }>;
 };
 liveProbe.observed = {};
 function LiveToolsDemo() {
+  const [mounted, setMounted] = useState(true);
+  const restore = useRef<ConversationRestoreSnapshot | null>(null);
+  const restoreScenario = liveQuery.get("restore") === "1";
+  liveProbe.setMounted = setMounted;
   const [phase, setPhase] = useState(liveQuery.get("initial") ?? "running");
   liveProbe.setPhase = setPhase;
   type Dynamic = Extract<ThreadItem, { type: "dynamicToolCall" }>;
@@ -86,7 +92,8 @@ function LiveToolsDemo() {
       result: { _meta: null, content: [{ type: "text", text: "MCP_RESULT_CONTROL" }], structuredContent: null },
       error: null, durationMs: null },
   ];
-  const items: TimelineSourceItem[] = native.map(({ id, type, ...payload }) => ({ id, type, payload }));
+  const items: TimelineSourceItem[] = native.filter(item => liveQuery.get("single") !== "1" || item.id === "live-write")
+    .map(({ id, type, ...payload }) => ({ id, type, payload }));
   const historical = liveQuery.get("history") === "1";
   const timeline = projectTimeline({
     key: createConversationKey("fixture", "live-tools"), revision: ["running", "progress", "completed", "failed"].indexOf(phase),
@@ -95,13 +102,15 @@ function LiveToolsDemo() {
   }, registry);
   return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        initialRestoreSnapshot={restoreScenario ? restore.current : undefined}
+        onRestoreSnapshotChange={restoreScenario ? snapshot => { restore.current = snapshot; liveProbe.capturedRestore = snapshot; } : undefined}
         renderToolCallIcon={block => {
           if (block.callId !== null) liveProbe.observed[block.callId] = {
             status: block.status, content: (block.input as { content?: string } | null)?.content,
           };
           return undefined;
-        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }

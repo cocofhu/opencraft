@@ -20,9 +20,68 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let inspectedPage: Awaited<ReturnType<NonNullable<typeof browser>["newPage"]>> | undefined;
 const results = [];
+const restoreOnly = process.argv.includes("--restore-only");
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
+  if (restoreOnly || !process.argv.some(value => value.endsWith("-only"))) {
+    const restores = [];
+    for (const width of [390, 1200]) for (const theme of ["light", "dark"]) for (const reducedMotion of ["no-preference", "reduce"] as const) {
+      const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion });
+      inspectedPage = page;
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.addInitScript("window.__name=value=>value");
+      await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=live&single=1&restore=1&theme=${theme}`);
+      const group = page.locator(".thread-agent-activity__group-disclosure > .thread-activity-item__header button");
+      if (width === 390) await group.tap(); else await group.click();
+      await page.waitForFunction(() => document.querySelector(".thread-agent-activity__group-disclosure")?.getAttribute("data-disclosure-phase") === "expanded");
+      await page.waitForTimeout(350);
+      await page.evaluate(() => (window as any).setMounted(false));
+      await page.waitForFunction(() => !document.querySelector(".thread-agent-activity__group"));
+      const snapshot = await page.evaluate(() => (window as any).capturedRestore);
+      assert(snapshot && Object.values(snapshot.agentActivityCollapsedById).includes(false));
+      const frames = await page.evaluate(async () => {
+        const frames: { at: number; height: number; natural: number; opacity: number; outerHidden: boolean }[] = [];
+        let start: number | null = null;
+        const done = new Promise<typeof frames>(resolve => {
+          function frame(now: number) {
+            const row = document.querySelector<HTMLElement>(".thread-activity-item[data-status='running']");
+            const clip = row?.querySelector<HTMLElement>(":scope > .thread-activity-item__body-clip");
+            const body = clip?.querySelector<HTMLElement>(":scope > .thread-activity-item__body");
+            if (clip && body) {
+              start ??= now;
+              frames.push({ at: now - start, height: clip.getBoundingClientRect().height, natural: body.scrollHeight,
+                opacity: Number(getComputedStyle(clip).opacity), outerHidden: clip.closest("[inert], [aria-hidden='true']") !== null });
+            }
+            if (start === null || now - start < 450) requestAnimationFrame(frame); else resolve(frames);
+          }
+          requestAnimationFrame(frame);
+        });
+        (window as any).setMounted(true);
+        return await done;
+      });
+      assert(frames.length && frames.every(frame => !frame.outerHidden && frame.natural > 0));
+      const violations = frames.filter(frame => Math.abs(frame.height - frame.natural) > 1 || frame.opacity !== 1);
+      restores.push({ width, theme, reducedMotion, snapshot, frames, violations, errors });
+      const tool = page.locator(".thread-activity-item[data-status='running'] > .thread-activity-item__header button");
+      if (width === 390) await tool.tap(); else await tool.click();
+      await page.waitForFunction(() => !document.querySelector(".thread-activity-item[data-status='running']")?.hasAttribute("data-open"));
+      await page.waitForTimeout(350);
+      if (width === 390) await tool.tap(); else await tool.click();
+      await page.waitForFunction(() => Number.parseFloat((document.querySelector(".thread-activity-item[data-status='running'] > .thread-activity-item__body-clip") as HTMLElement).style.height) > 0);
+      await page.waitForTimeout(350);
+      await page.screenshot({ path: join(output, `restore-${width}-${theme}-${reducedMotion}.png`) });
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+    await writeFile(join(output, "restoration-frames.json"), JSON.stringify(restores, null, 2));
+    console.log(JSON.stringify(restores.map(({ width, theme, reducedMotion, violations }) => ({ width, theme, reducedMotion, violations: violations.length }))));
+    assert.equal(restores.reduce((count, item) => count + item.violations.length, 0), 0, "restored open tool bodies have final geometry on the first painted frame");
+    results.push({ restoredToolGeometry: true, scenes: restores.length });
+  }
+
+  if (!restoreOnly) {
   if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
@@ -132,6 +191,8 @@ try {
     results.push({ width, theme, liveTools: features });
     await page.close();
 }
+  }
+
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

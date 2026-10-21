@@ -5,8 +5,10 @@ import { workingShimmerMotion } from "@opencraft/design-system/tokens";
 import { OverlayDisclosureTrigger } from "../../overlay-disclosure-trigger";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
 import { useDisclosureHeight } from "../../use-disclosure-height";
+import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import {
   useCallback,
+  useContext,
   useId,
   useLayoutEffect,
   useRef,
@@ -87,6 +89,7 @@ export function ActivityDisclosure({
   unmountBodyWhenCollapsed = false,
 }: ActivityDisclosureProps) {
   const prefersReducedMotion = useReducedMotion();
+  const allowEntryMotion = useContext(ConversationEntryMotionContext);
   const reflow = useDisclosureReflow();
   const summaryId = useId();
   const hasBody = children !== null && children !== undefined;
@@ -95,8 +98,11 @@ export function ActivityDisclosure({
   }, [hasBody, reflow.cancel]);
   const [bodyMounted, setBodyMounted] = useState(!unmountBodyWhenCollapsed || open);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [bodyHeightPx, setBodyHeightPx] = useState(0);
-  const animatedHeight = useDisclosureHeight(0);
+  // Restoring an open body has natural geometry before measurement. It is not
+  // a new disclosure transition from zero height.
+  const [bodyHeightPx, setBodyHeightPx] = useState<number | null>(() => open && !allowEntryMotion ? null : 0);
+  const animatedHeight = useDisclosureHeight(open && !allowEntryMotion ? "auto" : 0);
+  const targetHeight = open ? bodyHeightPx ?? "auto" : 0;
   useLayoutEffect(() => {
     if (open && !bodyMounted) setBodyMounted(true);
   }, [bodyMounted, open]);
@@ -137,14 +143,14 @@ export function ActivityDisclosure({
       </OverlayDisclosureTrigger>
       {hasBody ? (
         <motion.div
-          animate={{ height: open ? bodyHeightPx : 0, opacity: open ? 1 : 0 }}
+          animate={{ height: targetHeight, opacity: open ? 1 : 0 }}
           aria-hidden={!open}
           className="thread-activity-item__body-clip"
           initial={false}
           inert={!open}
           onAnimationComplete={(definition) => {
             if (typeof definition !== "object" || Array.isArray(definition)
-              || definition.height !== (open ? bodyHeightPx : 0)) return;
+              || definition.height !== targetHeight) return;
             reflow.complete();
             if (!open && unmountBodyWhenCollapsed) setBodyMounted(false);
           }}

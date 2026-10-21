@@ -2011,7 +2011,10 @@ Web/Electron Conversation owns a narrow entry-motion context. Initial display,
 Host/Thread changes and paint/sync recovery (including the first authoritative
 live snapshot) establish a baseline, rather than a new work event. AgentActivity's
 outer content and WorkStatusDivider consume that gate for their initial motion;
-restored content is visible at its final geometry on the first DOM commit. Once
+restored content is visible at its final geometry on the first DOM commit. Open tool details also consume that gate: the unmeasured height of a restored
+open body is natural `auto`, then the existing observer supplies its pixel height.
+Measurement is not a transition from zero. This also keeps the first painted frame
+stable under reduced motion. Once
 that baseline has committed, live insertion and user disclosure opening retain
 existing transitions. This does not delay content, change elapsed-time authority,
 add a cache or require backend protocol changes. A settled collapsed work header
