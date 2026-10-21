@@ -3,7 +3,7 @@ import type {
   TasksMethod,
   TasksMethodMap,
 } from "@opencraft/appserver-protocol";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
 export const TASKS_EXTENSION_ID = "opencraft.tasks";
 export const TASKS_VIEW_ID = "opencraft.tasks.board";
@@ -70,7 +70,7 @@ export function createTasksExtension(
       });
       // Keep the factory stable for this activation: controllers, editor draft
       // and view memory still survive closing/reopening the Tasks surface.
-      const TasksView = lazy(async () => {
+      const TasksView = lazy<ComponentType<ExtensionSettingsViewProps>>(async () => {
         const { createTasksView } = await import("./view");
         if (api.signal.aborted) return { default: () => null };
         return { default: createTasksView(ports, api.signal, api.localPreferences) };

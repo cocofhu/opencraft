@@ -1,4 +1,4 @@
-@use "./controls.web" as controls;
+@use "./interaction-mixins.web" as controls;
 
 // Scroll containers can become focusable without a tabindex. Reset their UA
 // outline too; a theme-owned ring is supplied only for keyboard navigation.
