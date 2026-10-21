@@ -216,7 +216,17 @@ export function GeneratedImageBlock({ block }: { readonly block: Image }) {
   const context = useContext(ConversationDocumentContext);
   const source = context.resolveGeneratedImageSource?.(block) ?? block.uri ?? block.savedPath;
   const identity = JSON.stringify([context.hostId, context.conversationId, context.cwd, block.id, source]);
-  return source === null ? <></> : <GeneratedImage key={identity} block={block} source={source} />;
+  return source === null ? <GeneratedImagePending running={block.status === "pending" || block.status === "running"} />
+    : <GeneratedImage key={identity} block={block} source={source} />;
+}
+
+function GeneratedImagePending({ running, loading = false }: { running: boolean; loading?: boolean }) {
+  if (!running && !loading) return null;
+  const label = running ? "Generating image" : "Loading generated image";
+  return <div className="thread-generated-image-gallery thread-generated-image-gallery--pending"
+    data-testid="generated-image-gallery" role="progressbar" aria-label={label} aria-valuetext={label}>
+    <div className="thread-generated-image-placeholder" />
+  </div>;
 }
 
 function GeneratedImage({ block, source }: { block: Image; source: string }) {
@@ -226,7 +236,8 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
     context.resolveGeneratedImageSource?.(block) ?? browserReadableImageSource(path, context.resolveImageSource),
   [block, context.resolveGeneratedImageSource, context.resolveImageSource]);
   const media = useConversationMediaSource(source, block.id, resolveDirect);
-  if (media.source === null) return <></>;
+  if (media.source === null) return <GeneratedImagePending
+    running={block.status === "pending" || block.status === "running"} loading={media.status === "loading"} />;
   const alt = "Generated image 1";
   return <div className="thread-generated-image-gallery" data-testid="generated-image-gallery">
     <div className="thread-generated-image-preview-wrap">
