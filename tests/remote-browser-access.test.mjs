@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareBrowserRuntimeAccess} from '../scripts/remote-browser-access.mjs';
 
-test('private installation modes permit the browser UID without exposing adjacent state',async()=>{
+test('private installation modes permit the browser UID without exposing adjacent state',{skip:process.platform==='win32'},async()=>{
  const root=await mkdtemp(join(tmpdir(),'browser-installed-access-'));
  try{
   const assets=join(root,'runtime');await mkdir(assets,{mode:0o700});
