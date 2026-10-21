@@ -172,3 +172,7 @@ shared progress geometry. These are separate semantic owners, not feature-level
 thin overrides. Collaboration numerals keep their existing font. Review the
 whole family at 14/16/20/24px in both themes, including compound glyphs and dots;
 then inspect real sidebar menus, Composer, content toolbars and disabled states.
+
+Search overlays and the touch header also inherit the shared SVG weight; their
+slot sizing and materials do not carry a separate thin stroke override. Generated
+Bot personas are avatar artwork and retain their dedicated body/effect strokes.
