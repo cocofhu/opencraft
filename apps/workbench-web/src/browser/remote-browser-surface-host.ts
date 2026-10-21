@@ -173,25 +173,26 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         p.canvas.style.position = 'relative'; p.container.prepend(video); p.video = video;
         p.media = new H264MediaSource(video, () => { this.resetDecoder(p); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
       }
-      p.media.push(bytes); return;
+      p.media.push(bytes);
+    } else {
+      const data = new Uint8Array(bytes), key = data[0] === 1;
+      const recover = () => { this.resetDecoder(p); this.run(p, 'keyframe'); };
+      if (p.decoder && p.decoder.decodeQueueSize > 2) { recover(); return; }
+      if (p.needsKey && !key) return;
+      if (!p.decoder) {
+        const decoder = new VideoDecoder({ output: frame => {
+          if (p.closed || p.decoder !== decoder) { frame.close(); return; }
+          p.latest?.close(); p.latest = frame;
+          if (!p.raf) p.raf = requestAnimationFrame(() => { p.raf = 0; const latest = p.latest; p.latest = null;
+            if (latest) { p.canvas.getContext('2d', { alpha: false })?.drawImage(latest, 0, 0, 1280, 720); latest.close(); } });
+        }, error: recover });
+        p.decoder = decoder;
+        p.decoder.configure({ codec: 'avc1.42E028', optimizeForLatency: true });
+      }
+      p.needsKey = false;
+      try { p.decoder.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: Number(new DataView(bytes).getBigUint64(1)), data: data.subarray(9) })); }
+      catch { recover(); }
     }
-    const data = new Uint8Array(bytes), key = data[0] === 1;
-    const recover = () => { this.resetDecoder(p); this.run(p, 'keyframe'); };
-    if (p.decoder && p.decoder.decodeQueueSize > 2) { recover(); return; }
-    if (p.needsKey && !key) return;
-    if (!p.decoder) {
-      const decoder = new VideoDecoder({ output: frame => {
-        if (p.closed || p.decoder !== decoder) { frame.close(); return; }
-        p.latest?.close(); p.latest = frame;
-        if (!p.raf) p.raf = requestAnimationFrame(() => { p.raf = 0; const latest = p.latest; p.latest = null;
-          if (latest) { p.canvas.getContext('2d', { alpha: false })?.drawImage(latest, 0, 0, 1280, 720); latest.close(); } });
-      }, error: recover });
-      p.decoder = decoder;
-      p.decoder.configure({ codec: 'avc1.42E028', optimizeForLatency: true });
-    }
-    p.needsKey = false;
-    try { p.decoder.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: Number(new DataView(bytes).getBigUint64(1)), data: data.subarray(9) })); }
-    catch { recover(); }
   }
   private bindInput(p: Page) {
     const canvas = p.canvas, cleanup: (() => void)[] = [];
