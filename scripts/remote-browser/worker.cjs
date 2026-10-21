@@ -261,12 +261,12 @@ async function automation(p, method, input) {
 async function command(message) {
   const { page: id, method, input = {} } = message;
   if (method === 'create') return createPage(id, input);
+  if (method === 'close') { closePage(id); return; }
   const p = pages.get(id); if (!p) throw new Error('Browser page closed');
   const wc = p.window.webContents;
   if (method === 'viewport') return resize(p, input);
   if (method !== 'close') await p.viewportQueue;
   if (method === 'snapshot') return configuration(p);
-  if (method === 'close') { closePage(id); return; }
   if (method === 'copy') {
     if (input.context !== undefined && (typeof input.context !== 'string' || !/^[a-zA-Z0-9-]{20,100}$/.test(input.context))) throw new Error('Invalid copy context');
     return p.clipboard.copy(input.context);

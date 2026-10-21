@@ -89,7 +89,22 @@ export class RemoteBrowserService {
     if (page.socket !== ws) return;
     page.socket = null;
     // The tab owns the WebContents. Detaching only releases input and video.
-    void this.request(page.id, 'visible', { visible: false }).catch(() => {});
+    if (!page.closing) void this.request(page.id, 'visible', { visible: false }).catch(() => {});
+  }
+  retire(page) {
+    if (page.retirement) return page.retirement;
+    page.closing = true;
+    page.retirement = (async () => {
+      // A close is a tab-owner operation, not a viewer reply. Once accepted it
+      // must finish even if the viewer disconnects while native work awaits.
+      if (page.creating) await page.creating.catch(() => {});
+      if (page.live) await this.request(page.id, 'close');
+      page.live = false;
+      if (this.pages.get(page.key) === page) this.pages.delete(page.key);
+      page.socket = null;
+      await this.persist();
+    })().catch(error => { page.closing = false; page.retirement = null; throw error; });
+    return page.retirement;
   }
   async available() {
     try { await Promise.all([access(this.executable), access(join(this.directory, 'worker.cjs'))]); return process.platform === 'linux'; }
@@ -208,8 +223,11 @@ export class RemoteBrowserService {
             await this.load(); authorize();
             const key = JSON.stringify([ownerId, message.input.lease]), target = this.pages.get(key);
             if (target) {
-              this.pages.delete(key); target.socket?.close(1000, 'Browser tab closed');
-              if (target.live) await this.request(target.id, 'close');
+              const retired = this.retire(target); target.socket?.close(1000, 'Browser tab closed');
+              await retired;
+            } else {
+              // A prior native close may have succeeded before persistence
+              // failed. Retrying discard also flushes that absence durably.
               await this.persist();
             }
             reply(message.id); return;
@@ -223,6 +241,7 @@ export class RemoteBrowserService {
             this.claims.set(key, ws); claimKey = key;
             await this.load(); authorize();
             const existing = this.pages.get(key);
+            if (existing?.closing) throw new Error('Browser tab is closing');
             if (existing?.socket && existing.socket !== ws) throw new Error('Browser page already attached');
             if (!existing && (this.pages.size >= 64 || [...this.pages.values()].filter(p => p.ownerId === ownerId).length >= 16)) throw new Error('Browser page limit reached');
             await this.start(); authorize();
@@ -233,9 +252,10 @@ export class RemoteBrowserService {
             const resumed = page.live, recoveryUrl = page.url, recoveryZoom = page.zoom;
             page.recovering = !resumed && !!existing;
             try {
-              config = await this.request(page.id, 'create', message.input?.viewport ?? page.viewport
+              page.creating = this.request(page.id, 'create', message.input?.viewport ?? page.viewport
                 ?? { deviceProfile: message.input?.defaultDeviceProfile ?? 'desktop' });
-              page.live = true;
+              config = await page.creating; page.live = true;
+              if (page.closing) throw new Error('Browser tab closed');
               if (!resumed && existing) {
                 if (recoveryZoom !== 100) await this.request(page.id, 'zoom', { percent: recoveryZoom });
                 if (recoveryUrl) await this.request(page.id, 'navigate', { url: recoveryUrl });
@@ -254,6 +274,7 @@ export class RemoteBrowserService {
               reply(message.id, { ...config, resumed, restored: !!existing && !resumed });
             } catch (error) {
               page.recovering = false;
+              if (page.closing) { page = null; throw error; }
               if (!existing) { this.pages.delete(key); void this.request(page.id, 'close').catch(() => {}); }
               else { this.detach(page, ws); if (!resumed) { page.live = false; page.url = recoveryUrl; void this.request(page.id, 'close').catch(() => {}); } }
               page = null; throw error;
@@ -264,10 +285,15 @@ export class RemoteBrowserService {
           // Recheck at execution and before returning a result across async work.
           authorize();
           const target = page;
+          if (message.method === 'close') {
+            await this.retire(target);
+            if (page === target) page = null;
+            authorize(); reply(message.id); return;
+          }
+          if (target.closing) throw new Error('Browser tab is closing');
           const value = await this.request(target.id, message.method, message.input);
           authorize();
           if (page !== target || target.socket !== ws || this.pages.get(target.key) !== target || ws.readyState !== WebSocket.OPEN) return;
-          if (message.method === 'close') { this.pages.delete(target.key); page = null; await this.persist(); }
           if (message.method === 'zoom') { target.zoom = Number(message.input.percent); await this.persist(); }
           if (['navigate', 'viewport'].includes(message.method)) await this.persist();
           if (!quietMethods.has(message.method)) reply(message.id, value);

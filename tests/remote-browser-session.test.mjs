@@ -201,3 +201,37 @@ test('recovery keeps the saved remote target before navigation commits, then fol
     await second.detach();
   } finally { await f.close(); }
 });
+
+test('accepted close completes after the viewer disconnects before native acknowledgement', async () => {
+  const f = await fixture(); let finish;
+  try {
+    const first = await f.connect('owner'), lease = randomUUID(); await first.call('open', { lease });
+    let signal; const started = new Promise(resolve => signal = resolve), gate = new Promise(resolve => finish = resolve);
+    const request = f.service.request.bind(f.service);
+    f.service.request = async (id, method, input) => { if (method === 'close') { signal(); await gate; } return request(id, method, input); };
+    const closed = first.call('close').catch(() => {}); await started; await first.detach(); finish(); await closed;
+    for (let i=0;i<100 && f.service.physical.size;i++) await new Promise(resolve=>setTimeout(resolve,5));
+    await new Promise(resolve=>setImmediate(resolve)); await f.service.persistence;
+    assert.equal(f.service.physical.size, 0, 'native page destroyed');
+    assert.equal(f.service.pages.size, 0, 'closed page must stop occupying quota after detach');
+    assert.deepEqual(JSON.parse(await readFile(join(f.directory,'remote-browser/tabs.json'),'utf8')).pages,[]);
+    await f.restart(); const next = await f.connect('owner');
+    assert.equal((await next.call('open',{lease})).restored,false); await next.call('close'); await next.detach();
+  } finally { finish?.(); await f.close(); }
+});
+
+test('discard waits for an in-flight create and cannot leave an orphan native page', async () => {
+  const f=await fixture();let finish;
+  try {
+    const first=await f.connect('owner'), control=await f.connect('owner'), lease=randomUUID();
+    let signal;const started=new Promise(resolve=>signal=resolve),gate=new Promise(resolve=>finish=resolve);
+    const request=f.service.request.bind(f.service);
+    f.service.request=async(id,method,input)=>{if(method==='create'){signal();await gate;}return request(id,method,input)};
+    const opening=first.call('open',{lease}).catch(()=>{});await started;
+    const discarding=control.call('discard',{lease});await new Promise(resolve=>setTimeout(resolve,15));finish();await discarding;await opening;
+    await f.service.persistence;
+    assert.equal(f.service.pages.size,0);assert.equal(f.service.physical.size,0,'created native page must be retired before discard acknowledges');
+    assert.deepEqual(JSON.parse(await readFile(join(f.directory,'remote-browser/tabs.json'),'utf8')).pages,[]);
+    await first.detach();await control.detach();
+  }finally{finish?.();await f.close()}
+});

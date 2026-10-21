@@ -1505,3 +1505,15 @@ Remote browser timeout/renderer-exit diagnostics retain only a fixed event, a
 whitelisted command name and pending-request count, capped at twenty per service.
 They contain no URL, page/actor identity, input, arbitrary exception or native stderr.
 They identify a later timeout without making absence of events proof of health.
+
+### Accepted remote tab closure
+
+Explicit close/discard belongs to the server tab owner. Native destruction,
+quota release and durable catalog deletion complete independently of the
+viewer's socket lifetime; a disconnected reply cannot skip that work. Concurrent
+retirement shares one operation and blocks reattachment. Discard during native
+creation waits for creation before retiring the resulting page, rather than
+acknowledging while an orphan WebContents can still appear. Native close is
+idempotent so an uncertain acknowledgement can safely be retried. Cookie
+partitions retain the existing policy. Ordinary detach/park still preserves the
+live document. This fix does not introduce LRU or change tab limits.
