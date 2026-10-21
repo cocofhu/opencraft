@@ -137,3 +137,22 @@ Every AppShell change must demonstrate all of the following:
 6. Full-width mode produces `viewport == 0` and `headerReservation == 0`.
 7. Long code, math, Mermaid, tool output, and streamed content cannot alter the
    AppShell conservation equation.
+
+## Mobile keyboard coordinate frames
+
+The browser viewport port owns native observations and the fixed-frame projection.
+VisualViewport size is the available space, not proof that a fixed container needs
+its raw offset applied again. Measure the untransformed Shell's client origin minus
+its current CSS inset; subtract this native origin from the visual offset before
+publishing the next inset. Both read values use CSS pixels in the same client
+coordinate system. The root itself must remain untransformed; drawer movement
+belongs to its row. Late native origin changes use the existing bounded reconciliation.
+Keep raw native metrics distinct from this signed CSS placement and preserve focus,
+selection, draft and child DOM. Synthetic native-origin inputs verify the coordinate
+invariant but do not assert physical iOS compositor behavior.
+
+The new-thread route fits the actual Composer height in this shared frame and
+centers its content group with flexible remaining space. It cannot switch input
+placement discontinuously at a viewport-height breakpoint; optional heading space
+contracts before action controls. Existing and new conversation routes share the
+same viewport owner, not separate keyboard-recovery controllers.

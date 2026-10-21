@@ -16,6 +16,26 @@ interface WebTimelineViewportRoot {
 export interface WebTimelineViewportOptions {
   readonly kind: Exclude<TimelineRenderHostKind, "native">;
   readonly platform: "darwin" | "win32" | "linux";
+  /** Read the untransformed fixed frame before this port writes its projection. */
+  readonly measureFixedFrame?: () => WebFixedViewportFrame | null;
+}
+
+export interface WebFixedViewportFrame {
+  readonly topPx: number;
+  readonly leftPx: number;
+  readonly appliedTopPx: number;
+  readonly appliedLeftPx: number;
+}
+
+/** Browser metrics and CSS fixed coordinates may have different origins. */
+export function resolveWebFixedViewportOffset(
+  snapshot: TimelineViewportSnapshot,
+  frame: WebFixedViewportFrame | null = null,
+): { readonly topPx: number; readonly leftPx: number } {
+  return {
+    topPx: snapshot.visualOffset.topPx - (frame === null ? 0 : frame.topPx - frame.appliedTopPx),
+    leftPx: snapshot.visualOffset.leftPx - (frame === null ? 0 : frame.leftPx - frame.appliedLeftPx),
+  };
 }
 
 export function resolveWebTimelinePlatform({
@@ -92,6 +112,7 @@ export function applyTimelineViewportDocumentState(
   root: WebTimelineViewportRoot,
   snapshot: TimelineViewportSnapshot,
   policy: TimelineViewportPolicy,
+  fixedOffset = resolveWebFixedViewportOffset(snapshot),
 ): void {
   root.dataset.timelineOverscroll = policy.threadOverscroll;
   root.dataset.timelineElasticEffect = String(policy.localElasticEffect);
@@ -103,6 +124,8 @@ export function applyTimelineViewportDocumentState(
   root.style.setProperty("--timeline-visual-viewport-height", `${snapshot.visualViewport.heightPx}px`);
   root.style.setProperty("--timeline-visual-viewport-offset-left", `${snapshot.visualOffset.leftPx}px`);
   root.style.setProperty("--timeline-visual-viewport-offset-top", `${snapshot.visualOffset.topPx}px`);
+  root.style.setProperty("--timeline-fixed-viewport-left", `${fixedOffset.leftPx}px`);
+  root.style.setProperty("--timeline-fixed-viewport-top", `${fixedOffset.topPx}px`);
   root.style.setProperty("--timeline-keyboard-inset-bottom", `${snapshot.keyboardInsetBottomPx}px`);
 }
 
@@ -148,7 +171,12 @@ export function createWebTimelineViewportPort(
     });
   };
   let snapshot = read();
-  applyTimelineViewportDocumentState(root, snapshot, policy);
+  const measureFixedOffset = (value: TimelineViewportSnapshot) => resolveWebFixedViewportOffset(
+    value, policy.tracksVisualViewport ? options.measureFixedFrame?.() ?? null : null,
+  );
+  const fixedGeometryTolerancePx = 1 / Math.max(1, windowObject.devicePixelRatio || 1);
+  let fixedOffset = measureFixedOffset(snapshot);
+  applyTimelineViewportDocumentState(root, snapshot, policy, fixedOffset);
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
@@ -157,6 +185,7 @@ export function createWebTimelineViewportPort(
     frame = null;
     if (disposed || documentObject.visibilityState === "hidden") return;
     const next = read();
+    const nextFixedOffset = measureFixedOffset(next);
     if (
       next.editableFocused !== snapshot.editableFocused
       || next.scale !== snapshot.scale
@@ -166,10 +195,15 @@ export function createWebTimelineViewportPort(
       || next.visualViewport.heightPx !== snapshot.visualViewport.heightPx
       || next.visualOffset.leftPx !== snapshot.visualOffset.leftPx
       || next.visualOffset.topPx !== snapshot.visualOffset.topPx
+      // Client rectangles quantize layout; do not feed subpixel readback noise
+      // into another CSS write. The envelope remains within one physical pixel.
+      || Math.abs(nextFixedOffset.topPx - fixedOffset.topPx) > fixedGeometryTolerancePx
+      || Math.abs(nextFixedOffset.leftPx - fixedOffset.leftPx) > fixedGeometryTolerancePx
     ) {
       revision += 1;
       snapshot = { ...next, revision };
-      applyTimelineViewportDocumentState(root, snapshot, policy);
+      fixedOffset = nextFixedOffset;
+      applyTimelineViewportDocumentState(root, snapshot, policy, fixedOffset);
       for (const listener of listeners) listener();
     }
     if (now < settleUntil) scheduleFrame();

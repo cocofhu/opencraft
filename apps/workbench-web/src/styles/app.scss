@@ -360,8 +360,8 @@ button {
 }
 
 html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
-  top: var(--timeline-visual-viewport-offset-top, 0px);
-  left: var(--timeline-visual-viewport-offset-left, 0px);
+  top: var(--timeline-fixed-viewport-top, 0px);
+  left: var(--timeline-fixed-viewport-left, 0px);
   width: var(--timeline-visual-viewport-width, 100%);
   height: var(--timeline-visual-viewport-height, 100%);
 }
@@ -1937,22 +1937,25 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .new-thread-draft-layout {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
   min-width: 0;
   min-height: 100%;
   flex: 1;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   padding-top: 24px;
 }
 
 .new-thread-draft-hero {
   display: flex;
+  flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 var(--padding-toolbar) 96px;
+  overflow: clip;
+  padding: 0 var(--padding-toolbar) 32px;
 
   h1 {
     width: min(100%, var(--thread-content-max-width));
@@ -3682,11 +3685,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   position: relative;
   z-index: 20;
   display: flex;
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  margin-top: -64px;
   padding: 6px 0 16px;
 }
 
@@ -3702,23 +3705,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     max-width: 210px;
   }
 
-}
-
-@container new-thread-main (max-height: 540px) {
-  .new-thread-draft-layout {
-    // Keep the Composer at its measured content height as the keyboard shrinks
-    // this shared viewport; fixed row minima used to push Send below it.
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-
-  .new-thread-draft-hero {
-    padding-bottom: 28px;
-  }
-
-
-  .new-thread-draft-composer-zone {
-    margin-top: 0;
-  }
 }
 
 .thread-scroll-layout {

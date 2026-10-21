@@ -28,6 +28,21 @@ try {
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
   await editor.fill("保留当前草稿");const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
+  // Shrinking through a height boundary cannot change the input's layout mode.
+  // Keep content constant: this catches the former 541 -> 540 downward jump.
+  const continuousViewportEvidence=[];
+  if(!desktop){
+   let previous:null|{height:number;top:number}=null;
+   for(const height of [560,545,541,540,539,535,440,280,440,535,539,540,541,545,560,844]){
+    await page.evaluate(h=>(window as any).setViewport(h,0),height);await page.waitForTimeout(50);
+    const input=(await editor.boundingBox())!,send=(await page.locator('.opencraft-composer-submit').boundingBox())!;
+    assert(send.y>=0&&send.y+send.height<=height+1,`${label}: short viewport keeps Send inside ${JSON.stringify({height,send})}`);
+    if(previous&&Math.abs(previous.height-height)<=5)assert(Math.abs(input.y-previous.top)<=Math.abs(height-previous.height)+1,`${label}: input jumps across a one-pixel height change ${JSON.stringify({previous,height,input})}`);
+    assert(await editor.evaluate(el=>el===(window as any).keptEditor&&el===document.activeElement),'continuous resize preserves editor and focus');
+    assert.equal(await editor.innerText(),"保留当前草稿");
+    continuousViewportEvidence.push({height,input,send});previous={height,top:input.y};
+   }
+  }
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
@@ -47,7 +62,7 @@ try {
   }
   await editor.focus();await editor.press("ControlOrMeta+A");await editor.press("Backspace");await page.waitForFunction(()=>document.querySelector<HTMLElement>(".opencraft-composer-stack")?.dataset.composerEmpty==="true");await page.waitForTimeout(150);assert.equal((await shell.boundingBox())!.height,initial.height,JSON.stringify({initial,final:await shell.boundingBox(),parts:await shell.evaluate(el=>Array.from(el.children).map(c=>({class:c.className,box:c.getBoundingClientRect().toJSON()})))}));
   if(test.width===390&&!test.ordinary)await page.screenshot({path:`${output}/${label}.png`});assert.deepEqual(errors,[]);
-  evidence.push({test,initial,focused,content,header,viewportEvidence});console.log("PASS",label);await context.close();
+  evidence.push({test,initial,focused,content,header,viewportEvidence,continuousViewportEvidence});console.log("PASS",label);await context.close();
  }
  await writeFile(`${output}/${before?"before":"after"}.json`,JSON.stringify(evidence,null,2));
 }finally{await browser.close();await vite.close();}

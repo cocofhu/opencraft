@@ -913,6 +913,22 @@ VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
 
 The Web viewport port is the only writer of the Shell viewport projection.
+Native visible size/offset and CSS fixed-frame placement are separate quantities.
+The Web adapter measures the untransformed Shell rectangle and its currently
+applied CSS inset in the same client coordinate system. The native fixed origin
+is `rect.origin - appliedInset`; the next inset is `visualOffset - nativeOrigin`.
+Only the residual is applied, including signed compensation. A native origin
+change invalidates the projection even when VisualViewport metrics are unchanged;
+the correction itself cannot feed back into the observed origin. Reads precede
+writes in the same shared frame. There is no blur/refocus, forced document scroll,
+per-feature keyboard offset or second height owner.
+
+New-thread pages center a content-sized heading/Composer group. Flexible spare
+space and optional heading space contract before the Composer; the action region
+retains its content height. No height breakpoint exchanges fractional grid rows,
+negative margins and auto rows while the keyboard animates. A continuous change
+of available height must produce continuous input placement while controls remain
+reachable, including both sides of the former 540px threshold.
 Native geometry events start a bounded one-second reconciliation window on mobile
 browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
 This covers a native transition finishing after its last event. Page restoration,

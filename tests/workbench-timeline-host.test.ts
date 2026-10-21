@@ -13,6 +13,7 @@ import {
   createWebTimelineViewportSnapshot,
   resizeObserverBlockSize,
   resolveWebTimelinePlatform,
+  resolveWebFixedViewportOffset,
   shouldAcceptWebConversationInvalidation,
   timelineReflowScrollAdjustment,
 } from "@opencraft/timeline-host-web";
@@ -1637,7 +1638,7 @@ test("natural policy mounts the virtualizer without constructing response owners
 });
 
 
-function viewportPortFixture(mobile = true) {
+function viewportPortFixture(mobile = true, measureFixedFrame?: Parameters<typeof createWebTimelineViewportPort>[2]["measureFixedFrame"]) {
   const dom = new JSDOM("<input aria-label='draft' value='keep draft'>", { pretendToBeVisual: true });
   const win = dom.window;
   const previousHTMLElement = globalThis.HTMLElement;
@@ -1656,7 +1657,7 @@ function viewportPortFixture(mobile = true) {
   win.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
   win.cancelAnimationFrame = (id) => { frames.delete(id); };
   const port = createWebTimelineViewportPort(win as unknown as Window, win.document, {
-    kind: "browser", platform: "linux",
+    kind: "browser", platform: "linux", measureFixedFrame,
   });
   return {
     win, visual, port, frames,
@@ -1675,6 +1676,60 @@ function viewportPortFixture(mobile = true) {
     },
   };
 }
+
+test("fixed viewport projection subtracts only the measured native origin", () => {
+  const snapshot = createWebTimelineViewportSnapshot({
+    editableFocused: true, layoutHeightPx: 844, layoutWidthPx: 390,
+    visualHeightPx: 440, visualOffsetTopPx: 180, visualOffsetLeftPx: 20, revision: 0,
+  });
+  // Both unshifted fixed frames and already shifted frames must cover the same
+  // visible rectangle. CSS applied on the previous frame is not native movement.
+  for (const [nativeTop, nativeLeft, appliedTop, appliedLeft] of [
+    [0, 0, 0, 0], [180, 20, 0, 0], [60, 5, 180, 20],
+    [-70, -10, 0, 0], [180, 20, 0, 0], [0, 0, 180, 20],
+  ]) {
+    const offset = resolveWebFixedViewportOffset(snapshot, {
+      topPx: nativeTop + appliedTop, leftPx: nativeLeft + appliedLeft,
+      appliedTopPx: appliedTop, appliedLeftPx: appliedLeft,
+    });
+    assert.equal(nativeTop + offset.topPx, 180);
+    assert.equal(nativeLeft + offset.leftPx, 20);
+  }
+  assert.equal(snapshot.visualOffset.topPx, 180, "native observation is not rewritten by projection");
+});
+
+test("native fixed origin can change without a second VisualViewport event", () => {
+  let nativeTop = 0;
+  let readFrame = () => ({ topPx: 0, leftPx: 0, appliedTopPx: 0, appliedLeftPx: 0 });
+  const f = viewportPortFixture(true, () => readFrame());
+  try {
+    const style = f.win.document.documentElement.style;
+    readFrame = () => {
+      const appliedTopPx = Number.parseFloat(style.getPropertyValue("--timeline-fixed-viewport-top"));
+      return { topPx: nativeTop + appliedTopPx, leftPx: 0, appliedTopPx, appliedLeftPx: 0 };
+    };
+    f.visual.height = 440;
+    f.visual.offsetTop = 180;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(20);
+    assert.equal(style.getPropertyValue("--timeline-fixed-viewport-top"), "180px");
+    nativeTop = 180;
+    f.frame(40);
+    assert.equal(style.getPropertyValue("--timeline-fixed-viewport-top"), "0px");
+    assert.equal(style.getPropertyValue("--timeline-visual-viewport-offset-top"), "180px");
+    const revision = f.port.getSnapshot().revision;
+    f.frame(60);
+    assert.equal(f.port.getSnapshot().revision, revision, "the correction cannot feed back into native-origin measurement");
+    nativeTop = 60;
+    f.frame(80);
+    assert.equal(style.getPropertyValue("--timeline-fixed-viewport-top"), "120px");
+    nativeTop = 0;
+    f.visual.offsetTop = 0;
+    f.visual.height = 844;
+    f.frame(100);
+    assert.equal(style.getPropertyValue("--timeline-fixed-viewport-top"), "0px");
+  } finally { f.close(); }
+});
 
 test("mobile viewport reconciles a native restoration after the last focus event", () => {
   const f = viewportPortFixture();

@@ -28,6 +28,18 @@ export function useTimelineViewportHost(windowChrome: WindowChromeSnapshot): Tim
     const port = createWebTimelineViewportPort(window, document, {
       kind: windowChrome.kind,
       platform: windowChrome.platform,
+      measureFixedFrame: () => {
+        const frame = document.querySelector<HTMLElement>(".app-shell-root");
+        if (frame === null) return null;
+        const rect = frame.getBoundingClientRect();
+        const style = window.getComputedStyle(frame);
+        return {
+          topPx: rect.top,
+          leftPx: rect.left,
+          appliedTopPx: Number.parseFloat(style.top) || 0,
+          appliedLeftPx: Number.parseFloat(style.left) || 0,
+        };
+      },
     });
     return () => port.dispose();
   }, [windowChrome.kind, windowChrome.platform]);

@@ -100,6 +100,17 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  await page.evaluate(()=>(window as any).setViewport(844,0,false));
  await page.waitForFunction(()=>Math.abs(document.querySelector('.app-shell-root')!.getBoundingClientRect().height-844)<1);
  assert.equal(await editor.evaluate(e=>document.activeElement===e),true,'viewport recovery preserves native focus');
- await page.evaluate(()=>(window as any).setViewport(844,0));await page.waitForTimeout(150);assert.equal(await editor.innerText(),rendered);await page.screenshot({path:'.local/composer-keyboard/'+theme+'-'+newera+'.png'});await context.close();
+ await page.evaluate(()=>(window as any).setViewport(844,0));await page.waitForTimeout(150);assert.equal(await editor.innerText(),rendered);await page.screenshot({path:'.local/composer-keyboard/'+theme+'-'+newera+'.png'});
+ // A fixed containing-block origin can move independently of native metrics.
+ // Translate the ancestor as an adversarial coordinate input, not an iOS emulation.
+ for(const nativeOrigin of [90.125,180,-70,0]){
+  await page.evaluate(origin=>{document.body.style.transform=`translateY(${origin}px)`;(window as any).setViewport(440,180)},nativeOrigin);
+  await page.waitForTimeout(80);
+  const geometry=await page.locator('.app-shell-root').evaluate(e=>({top:e.getBoundingClientRect().top,height:e.getBoundingClientRect().height,raw:document.documentElement.style.getPropertyValue('--timeline-visual-viewport-offset-top')}));
+  assert(Math.abs(geometry.top-180)<=1,`fixed frame must cover visual rectangle, not add native origin twice: ${JSON.stringify({nativeOrigin,geometry})}`);
+  assert.equal(geometry.height,440);assert.equal(geometry.raw,'180px');evidence.push({theme,newera,nativeOrigin,geometry});
+  assert(await editor.evaluate(e=>e===(window as any).keptEditor&&e===document.activeElement),'coordinate projection preserves editor identity and focus');
+ }
+ await page.evaluate(()=>{document.body.style.transform='';(window as any).setViewport(844,0)});await page.waitForTimeout(80);await context.close();
 }console.log('Keyboard viewport/send reachability and draft continuity passed');}
 finally{await writeFile('.local/composer-keyboard/result.json',JSON.stringify(evidence,null,2));await browser.close();await vite.close()}
