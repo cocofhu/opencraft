@@ -1856,3 +1856,10 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
   element, attributes and keyboard/popup behavior; multiple/size lists never gain
   a dropdown arrow. Numeric stepper paint is opt-in where hidden spinners already
   serve another control. Forced-colors native paint remains intentional.
+
+- Compact Chat process glyphs share `BrainArtwork`, `TerminalArtwork`,
+  `BookArtwork` and `PencilArtwork` in the existing design-system-web owner.
+  Static model/terminal/edit controls reuse these contours. One fold/seam or
+  prompt supplies recognition at rail size; no second underline or miniature
+  page/brain ornament. Artwork changes preserve process/disclosure identity,
+  running/reduced-motion semantics, rail metrics and protected layout/gear/font.

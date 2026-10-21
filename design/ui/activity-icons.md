@@ -91,3 +91,15 @@ internal detail breathes or its command cursor blinks. Completion restores a
 fully visible static glyph, independent of surrounding active work. Motion uses
 opacity only, retains rail/text geometry and is disabled by reduced-motion
 preferences. Historical records and static collaboration headers stay still.
+
+## Compact process silhouettes
+
+Thinking, command, reading and edit artwork share the retained panel family's
+rounded construction and generous negative space. Thinking uses two balanced
+hemispheres with one center seam; reading uses an unruled spread with one fold.
+The command frame has a larger continuous corner and a centered prompt; editing
+uses a rounded pencil without a separate underline. Static model/terminal/edit
+controls consume the same artwork, with motion supplied only by the activity row.
+Do not add tiny page rules, brain grooves or extra action marks to compensate
+for reduced-size rendering. The retained sidebar/split/gear artwork and existing
+rail metrics, theme colors and reading hierarchy stay unchanged.

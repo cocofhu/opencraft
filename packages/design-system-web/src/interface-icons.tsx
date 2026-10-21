@@ -1,5 +1,5 @@
 import React, { type ReactNode } from "react";
-import { ActionGlyph, RoundedPage, type ActionIconProps } from "./icon-glyph";
+import { ActionGlyph, BookArtwork, RoundedPage, type ActionIconProps } from "./icon-glyph";
 
 /** Quiet, rounded interface artwork; consumers own slots, color, motion and interaction. */
 function glyph(kind: string, artwork: ReactNode) {
@@ -114,7 +114,7 @@ export const JsonFileIcon = glyph("json-file", <RoundedPage><path d="M10 11.5h-.
 export const DiffFileIcon = glyph("diff-file", <RoundedPage><path d="M9.5 12.5h5m-2.5-2.5v5m-2.5 2.5h5" /></RoundedPage>);
 export const ImageFileIcon = glyph("image-file", <RoundedPage><path d="m8 17 2.5-2.5 2 2 1.5-1.5 2 2" /><circle cx="9" cy="11.5" r="0.65" fill="currentColor" stroke="none" /></RoundedPage>);
 export const CodeIcon = glyph("code", <path d="m8 6.5-5 5.5 5 5.5m8-11 5 5.5-5 5.5M14 4l-4 16" />);
-export const BookIcon = glyph("book", <path d="M12 6c-2.5-1.4-5.5-1.6-8.5-.7V18c3-.9 6-.7 8.5.7m0-12.7c2.5-1.4 5.5-1.6 8.5-.7V18c-3-.9-6-.7-8.5.7V6Z" />);
+export const BookIcon = glyph("book", <BookArtwork />);
 export const NewFolderIcon = glyph("new-folder", <><path d="M4 7a3 3 0 0 1 3-3h3l2 2.5h5a3 3 0 0 1 3 3V17a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z" /><path d="M12 10.5v6m-3-3h6" /></>);
 export const TableIcon = glyph("table", <><rect x="4" y="4.5" width="16" height="15" rx="2.75" /><path d="M4 10h16M9 10v9.5M4 15h16" /></>);
 export const LabIcon = glyph("lab", <path d="M8 4h8m-6 0v5.5l-5 7.7a1.8 1.8 0 0 0 1.5 2.8h11a1.8 1.8 0 0 0 1.5-2.8l-5-7.7V4M7.5 14h9" />);
