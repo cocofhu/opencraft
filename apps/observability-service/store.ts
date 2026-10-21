@@ -15,6 +15,11 @@ CREATE TABLE activity_hours(hour INTEGER NOT NULL, actor TEXT NOT NULL, PRIMARY 
 CREATE TABLE recovery_episodes(recovery_id TEXT PRIMARY KEY, first_at INTEGER NOT NULL, last_at INTEGER NOT NULL, outcome TEXT NOT NULL) STRICT;
 CREATE INDEX recovery_window ON recovery_episodes(first_at,last_at);
 `;
+export const observationSchemaV3 = `
+CREATE TABLE execution_progress(domain_key TEXT PRIMARY KEY, engine TEXT NOT NULL, stage TEXT NOT NULL, progress_at INTEGER NOT NULL, received INTEGER NOT NULL, terminal INTEGER NOT NULL) STRICT;
+CREATE INDEX execution_progress_active ON execution_progress(terminal,received);
+CREATE TABLE queue_samples(domain_key TEXT PRIMARY KEY, engine TEXT NOT NULL, count INTEGER NOT NULL, observed_at INTEGER NOT NULL, received INTEGER NOT NULL) STRICT;
+`;
 const backfill = `
 INSERT OR IGNORE INTO activity_hours SELECT CAST(at/3600000 AS INTEGER),actor FROM events WHERE actor IS NOT NULL AND json_extract(body,'$.actorKind')='human' AND json_extract(body,'$.originClass')='interactive';
 INSERT OR IGNORE INTO recovery_episodes SELECT json_extract(body,'$.recoveryId'),min(at),max(at),'unknown' FROM events WHERE kind='recovery' AND json_extract(body,'$.recoveryId') IS NOT NULL GROUP BY json_extract(body,'$.recoveryId');
@@ -23,7 +28,7 @@ export class ObserveStore {
   db; outcome; accepted = 0; rejected = 0; dropped = 0;
   constructor(path: string, readonly now = Date.now) {
     const managed = openManagedDatabase({ path, legacyPolicy: 'reject', backup: {keep: 1},
-      validateSchema: createSchemaValidator(observationSchemaV1+observationSchemaV2), migrations: [{version: 1, name: 'bounded-derived-observations', sql: observationSchemaV1},{version:2,name:'bounded-query-indexes-and-domain-rollups',sql:observationSchemaV2+backfill}] });
+      validateSchema: createSchemaValidator(observationSchemaV1+observationSchemaV2+observationSchemaV3), migrations: [{version: 1, name: 'bounded-derived-observations', sql: observationSchemaV1},{version:2,name:'bounded-query-indexes-and-domain-rollups',sql:observationSchemaV2+backfill},{version:3,name:'execution-progress-and-queue-samples',sql:observationSchemaV3}] });
     this.db = managed.database; this.outcome = managed.outcome;
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=50; PRAGMA max_page_count=110000; PRAGMA journal_size_limit=33554432;');
   }
@@ -51,9 +56,16 @@ export class ObserveStore {
             for (const le of [.05,.1,.25,.5,1,2,5,10,30,60,Infinity]) if (event.durationMs / 1000 <= le) add('operation_bucket',JSON.stringify([event.operationType,le===Infinity?'+Inf':le]),1);
             add('operation_count',event.operationType,1);add('operation_sum',event.operationType,event.durationMs/1000);
           }
+          if(event.kind==='queue'&&event.executionId&&event.engine&&event.count!==undefined){
+            this.db.prepare(`INSERT INTO queue_samples VALUES(?,?,?,?,?) ON CONFLICT(domain_key) DO UPDATE SET count=CASE WHEN excluded.observed_at>=queue_samples.observed_at THEN excluded.count ELSE queue_samples.count END,observed_at=MAX(queue_samples.observed_at,excluded.observed_at),received=MAX(queue_samples.received,excluded.received)`).run(event.engine+':'+event.executionId,event.engine,Math.floor(event.count),event.at,now);
+          }
           if (event.kind === 'execution' && event.executionId) {
             const key = `${event.engine ?? event.component}:${event.executionId}`;
             const terminal = ['ok','failed','aborted','timeout'].includes(event.outcome);
+            this.db.prepare(`INSERT INTO execution_progress VALUES(?,?,?,?,?,?) ON CONFLICT(domain_key) DO UPDATE SET
+              stage=CASE WHEN execution_progress.terminal=0 AND excluded.progress_at>=execution_progress.progress_at THEN excluded.stage ELSE execution_progress.stage END,
+              progress_at=MAX(execution_progress.progress_at,excluded.progress_at),received=MAX(execution_progress.received,excluded.received),terminal=MAX(execution_progress.terminal,excluded.terminal)`)
+              .run(key,event.engine??'unknown',event.stage??'other',event.at,now,terminal?1:0);
             this.db.prepare(`INSERT INTO executions VALUES(?,?,?,?,?) ON CONFLICT(domain_key) DO UPDATE SET
               started=COALESCE(executions.started,excluded.started), ended=COALESCE(executions.ended,excluded.ended),
               outcome=CASE WHEN executions.ended IS NULL THEN excluded.outcome ELSE executions.outcome END, updated=MAX(executions.updated,excluded.updated)`)
@@ -84,8 +96,16 @@ export class ObserveStore {
   executions(from: number, to: number) {
     return this.db.prepare('SELECT outcome,count(*) AS count FROM executions WHERE started<=? AND COALESCE(ended,?)>=? GROUP BY outcome').all(to,to,from);
   }
+  progress() {
+    return this.db.prepare('SELECT engine,stage,count(*) AS count,MIN(progress_at) AS oldestProgressAt FROM execution_progress WHERE terminal=0 GROUP BY engine,stage').all();
+  }
+  queues() {
+    return this.db.prepare('SELECT engine,sum(count) AS count,MIN(received) AS oldestCaptureAt FROM queue_samples WHERE received>=? AND observed_at>=? GROUP BY engine').all(this.now()-limits.freshnessMs,this.now()-limits.freshnessMs);
+  }
   prune() {
     const cutoff = this.now()-limits.retentionMs;
+    this.db.prepare('DELETE FROM execution_progress WHERE received<?').run(cutoff);
+    this.db.prepare('DELETE FROM queue_samples WHERE received<?').run(cutoff);
     this.db.prepare('DELETE FROM events WHERE seq IN (SELECT seq FROM events WHERE received<? ORDER BY received LIMIT 10000)').run(cutoff);
     this.db.prepare('DELETE FROM executions WHERE updated<?').run(cutoff);
     this.db.prepare('DELETE FROM producers WHERE received<?').run(cutoff);

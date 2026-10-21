@@ -12,14 +12,14 @@
   },
   "tags": [
     "opencraft",
-    "observe-v1.1.1"
+    "observe-v1.1.2"
   ],
   "panels": [
     {
       "id": 1,
       "type": "timeseries",
       "title": "Platform and collection status",
-      "description": "platform.status; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "platform.status; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -34,7 +34,7 @@
         {
           "refId": "A",
           "expr": "opencraft_producer_age_seconds",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -49,7 +49,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "Operation latency (histogram estimate)",
-      "description": "operations.latency; histogram_approximation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "operations.latency; histogram_approximation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 0,
@@ -64,7 +64,7 @@
         {
           "refId": "A",
           "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(opencraft_operation_duration_seconds_bucket[5m])))",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -79,7 +79,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Recovery episodes (exact domain aggregation)",
-      "description": "recovery.episodes; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "recovery.episodes; exact_domain_aggregation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 8,
@@ -94,7 +94,7 @@
         {
           "refId": "A",
           "expr": "opencraft_recovery_episodes",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -109,7 +109,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "Observed execution lifecycle (exact domain aggregation)",
-      "description": "execution.progress; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "execution.progress; exact_domain_aggregation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 8,
@@ -124,7 +124,7 @@
         {
           "refId": "A",
           "expr": "opencraft_executions",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -138,8 +138,8 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Dependency attempts (counter estimate)",
-      "description": "dependencies.summary; histogram_approximation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Active execution stages (latest observed state)",
+      "description": "execution.stages; exact_domain_aggregation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 16,
@@ -153,8 +153,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (method, outcome) (increase(opencraft_rpc_total[5m]))",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "expr": "opencraft_active_executions",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -168,8 +168,8 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Process resident memory",
-      "description": "resources.summary; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Oldest active execution progress age",
+      "description": "execution.last_progress; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 16,
@@ -183,14 +183,14 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "opencraft_process_rss_bytes",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "expr": "opencraft_execution_last_progress_age_seconds",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes"
+          "unit": "s"
         },
         "overrides": []
       }
@@ -198,8 +198,8 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Observed interactive verified humans (7d union)",
-      "description": "usage.activity; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Captured queued submissions (not execution rounds)",
+      "description": "queues.summary; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 24,
@@ -213,8 +213,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "opencraft_active_humans_7d",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "expr": "opencraft_queued_submissions",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -228,8 +228,8 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "Component identity coverage",
-      "description": "components.versions; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Observed interactive verified humans (24h union)",
+      "description": "usage.activity24h; exact_domain_aggregation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 24,
@@ -243,8 +243,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "opencraft_component_identity_known",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "expr": "opencraft_active_humans_24h",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -258,8 +258,8 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Collection losses",
-      "description": "data.coverage; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Dependency attempts (counter estimate)",
+      "description": "dependencies.summary; histogram_approximation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 32,
@@ -273,8 +273,128 @@
       "targets": [
         {
           "refId": "A",
+          "expr": "sum by (method, outcome) (increase(opencraft_rpc_total[5m]))",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Process resident memory",
+      "description": "resources.summary; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "opencraft-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "opencraft_process_rss_bytes",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Observed interactive verified humans (7d union)",
+      "description": "usage.activity; exact_domain_aggregation; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "opencraft-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "opencraft_active_humans_7d",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Component identity coverage",
+      "description": "components.versions; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "opencraft-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "opencraft_component_identity_known",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Collection losses",
+      "description": "data.coverage; resource_sample; observe-v1.1.2. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "opencraft-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
           "expr": "opencraft_telemetry_losses_total",
-          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}",
+          "legendFormat": "{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}",
           "range": true
         }
       ],
@@ -290,8 +410,8 @@
       "type": "timeseries",
       "title": "Process CPU cores (sampled)",
       "gridPos": {
-        "x": 12,
-        "y": 32,
+        "x": 0,
+        "y": 56,
         "w": 12,
         "h": 8
       },
@@ -314,7 +434,7 @@
       "title": "Captured diagnostics (safe structured metadata)",
       "gridPos": {
         "x": 0,
-        "y": 40,
+        "y": 64,
         "w": 24,
         "h": 10
       },

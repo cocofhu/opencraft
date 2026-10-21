@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, writeFile, lstat } from 'node:fs/promises';
+import { readFile, writeFile, lstat, realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { socketRequest } from '../../packages/observability-contract/node.mjs';
@@ -31,6 +31,6 @@ export async function run(argv,env=process.env) {
   if(options.out)await writeFile(resolve(options.out),JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
   return result;
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href) {
+if(process.argv[1]&&import.meta.url===pathToFileURL(await realpath(resolve(process.argv[1]))).href) {
   try{console.log(JSON.stringify(await run(process.argv.slice(2))));}catch(error){const code=error.code??'invalid_arguments';console.log(JSON.stringify({schemaVersion,error:{code}}));process.exitCode=error.status===401?3:error.status===403||code==='EACCES'?4:error.status===409?6:error.status>=500?5:2;}
 }

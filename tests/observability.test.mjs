@@ -1,10 +1,12 @@
+import {execFile} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import { createServer } from 'node:http';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { ObserveStore, observationSchemaV1 } from '../apps/observability-service/store.ts';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sanitizeEvent, windowFor } from '../packages/observability-contract/index.mjs';
@@ -72,11 +74,39 @@ test('v1 evidence upgrades without rewriting migration history and rejects check
     db.prepare('INSERT INTO schema_migrations VALUES(1,?,?,?)').run('bounded-derived-observations',createHash('sha256').update(observationSchemaV1).digest('hex'),now);
     const original=event({actorKind:'human',originClass:'interactive',recoveryId:'existing',kind:'recovery'});
     db.prepare('INSERT INTO events(event_id,at,received,kind,component,actor,body) VALUES(?,?,?,?,?,?,?)').run(original.eventId,now,now,'recovery','web','verified',JSON.stringify(original));db.close();
-    const store=new ObserveStore(path);assert.equal(store.outcome.status,'migrated');assert.equal(store.outcome.appliedVersion,2);
+    const store=new ObserveStore(path);assert.equal(store.outcome.status,'migrated');assert.equal(store.outcome.appliedVersion,3);
     assert.equal(store.events(now-1000,now+1000,Date.now()).find(row=>row.eventId===original.eventId).recoveryId,'existing');
     assert.equal(store.activity(now-1000,now+1000).humans,1);assert.equal(store.recoveries(now-1000,now+1000).value,1);
     store.db.prepare("UPDATE schema_migrations SET checksum='tampered' WHERE version=1").run();store.close();
     assert.throws(()=>new ObserveStore(path));
     const inspect=new DatabaseSync(path,{readOnly:true});assert.equal(inspect.prepare('SELECT count(*) AS n FROM events').get().n,1);inspect.close();
+  }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+
+test('queue owner snapshots do not add execution rounds; late progress cannot revive a terminal domain',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-domain-'));
+  let clock=now;const store=new ObserveStore(join(directory,'observe.sqlite'),()=>clock);
+  try{
+    store.ingest([event({kind:'queue',component:'gateway',engine:'codex',executionId:'queue-one',count:3})]);
+    assert.equal(store.queues()[0].count,3);assert.equal(store.executions(now-1000,now+1000).length,0);
+    store.ingest([event({kind:'queue',engine:'codex',executionId:'queue-one',count:7,at:now-500})]);
+    assert.equal(store.queues()[0].count,3);
+    store.ingest([event({kind:'execution',engine:'codex',executionId:'round-one',outcome:'started',stage:'running'}),event({kind:'execution',engine:'codex',executionId:'round-one',outcome:'progress',stage:'tool',at:now+100})]);
+    assert.equal(store.progress()[0].stage,'tool');
+    store.ingest([event({kind:'execution',engine:'codex',executionId:'round-one',outcome:'ok',stage:'completed',at:now+200}),event({kind:'execution',engine:'codex',executionId:'round-one',outcome:'progress',stage:'model',at:now-200})]);
+    assert.equal(store.progress().length,0);assert.equal(store.executions(now-1000,now+1000)[0].count,1);
+    clock=now+91000;assert.equal(store.queues().length,0);
+    clock=now+604800001;store.prune();assert.equal(store.db.prepare('SELECT count(*) AS n FROM queue_samples').get().n,0);
+  }finally{store.close();await rm(directory,{recursive:true,force:true});}
+});
+
+
+test('installed CLI executes through a symlink and retains structured failures',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-cli-link-'));
+  try{
+    const entry=join(directory,'opencraft-observe.mjs');await symlink(fileURLToPath(new URL('../apps/observability-cli/main.mjs',import.meta.url)),entry);
+    const result=await new Promise(resolve=>execFile(process.execPath,[entry,'capabilities','--target',`unix://${directory}/missing.sock`,'--json'],{timeout:10000},(error,stdout)=>resolve({code:error?.code,stdout})));
+    assert.equal(result.code,5);assert.equal(JSON.parse(result.stdout).error.code,'backend_unreachable');
   }finally{await rm(directory,{recursive:true,force:true});}
 });

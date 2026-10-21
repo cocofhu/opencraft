@@ -63,7 +63,7 @@ provisioning directory. No source checkout or enterprise service is required.
 Generate dashboards in a source checkout with `node ops/observability/generate.mjs`.
 The generated expressions come exclusively from `packages/observability-query`.
 Grafana and CLI queries use the same absolute evaluation timestamp. Domain gauges
-declare rolling 24h/7d scope; histogram/counter rates are estimates over their stated
+declare rolling 24h/7d scope; the 24h and 7d human totals are independent unions, not additive. Active execution stages and oldest effective progress age use domain identities; queue owner snapshots expire to unknown after 90s and never create execution rounds. Latest state in evidence is explicitly separate from historical-window events; missing internal capacity/model information remains unknown. histogram/counter rates are estimates over their stated
 5m interval. Evidence contains exact event samples separately, with a fixed received
 watermark and explicit truncation; these are not interchangeable measurement kinds.
 

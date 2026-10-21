@@ -153,6 +153,7 @@ export class PiEngine {
     const contextWindow = model ? this.resolvedModels?.getModel(model.provider, model.modelId)?.contextWindow ?? null : null;
     const oldTurns = new Map(previous.map(turn => [turn.id, turn]));
     const previousSnapshot = session.snapshot;
+    if(process.env.OPENCRAFT_OBSERVE_SOCKET&&snapshot.inbox.length!==previousSnapshot?.inbox.length)nodeObserver('pi').queue('pi',session.id,snapshot.inbox.length);
     session.snapshot = snapshot;
     if (snapshot.agent.model) session.model = piModel(snapshot.agent.model.provider, snapshot.agent.model.modelId);
     if (snapshot.agent.cwd) session.cwd = snapshot.agent.cwd;

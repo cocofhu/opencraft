@@ -689,6 +689,7 @@ export class DshAppServerAdapter {
           steering.push({ ...submission, targetTurnId });
         }
       }
+      if(process.env.OPENCRAFT_OBSERVE_SOCKET)nodeObserver('dsh').queue('dsh',sessionId,submissions.length);
       this.queues.set(sessionId, submissions);
       this.steering.set(sessionId, steering);
       const waiters = this.queueItemWaiters.get(sessionId);

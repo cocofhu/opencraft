@@ -1177,6 +1177,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private receiveServerRequest(id: string | number, message: RpcRecord): void {
+    nodeObserver(this.options.observationComponent??'core').execution('codex',String(message.method),message.params);
     if (this.threadTitles?.owns(string(record(message.params).threadId))) {
       void this.writePhysical({ id, error: { code: -32601, message: "Title generation does not support tools or user interaction" } })?.catch(() => undefined);
       return;
@@ -1645,6 +1646,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private emitQueueChanged(threadId: string): void {
+    if(process.env.OPENCRAFT_OBSERVE_SOCKET&&this.queue)try{nodeObserver(this.options.observationComponent??'core').queue('codex',threadId,this.queue.observationCount(threadId));}catch{/* Observation cannot break the queue owner. */}
     const clients = this.threadClients.get(threadId);
     if (!clients || clients.size === 0) return;
     for (const clientId of clients) this.emit({ method: "thread/queue/changed", params: { threadId } }, clientId);

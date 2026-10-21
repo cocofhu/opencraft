@@ -10,9 +10,10 @@ export async function generate(directory=dirname(fileURLToPath(import.meta.url))
   const panels=Object.entries(definitions).filter(([,d])=>d.promql).map(([name,d],i)=>({id:i+1,type:'timeseries',title:d.title,
     description:`${name}; ${d.kind}; ${queryDefinitionRevision}. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.`,
     gridPos:{x:i%2*12,y:Math.floor(i/2)*8,w:12,h:8},datasource:{type:'prometheus',uid:'opencraft-prometheus'},
-    targets:[{refId:'A',expr:d.promql,legendFormat:'{{component}}{{operation}}{{method}}{{outcome}}',range:true}],fieldConfig:{defaults:{unit:d.unit==='seconds'?'s':d.unit==='bytes'?'bytes':'short'},overrides:[]}}));
-  panels.push({id:90,type:'timeseries',title:'Process CPU cores (sampled)',gridPos:{x:12,y:32,w:12,h:8},datasource:{type:'prometheus',uid:'opencraft-prometheus'},targets:[{refId:'A',expr:'rate(opencraft_process_cpu_seconds_total[5m])',legendFormat:'{{component}}',range:true}]});
-  panels.push({id:100,type:'logs',title:'Captured diagnostics (safe structured metadata)',gridPos:{x:0,y:40,w:24,h:10},datasource:{type:'loki',uid:'opencraft-loki'},targets:[{refId:'A',expr:'{service_name="opencraft"}',queryType:'range',maxLines:100}]});
+    targets:[{refId:'A',expr:d.promql,legendFormat:'{{component}}{{operation}}{{method}}{{outcome}}{{engine}}{{stage}}',range:true}],fieldConfig:{defaults:{unit:d.unit==='seconds'?'s':d.unit==='bytes'?'bytes':'short'},overrides:[]}}));
+  const extraY=Math.ceil(panels.length/2)*8;
+  panels.push({id:90,type:'timeseries',title:'Process CPU cores (sampled)',gridPos:{x:0,y:extraY,w:12,h:8},datasource:{type:'prometheus',uid:'opencraft-prometheus'},targets:[{refId:'A',expr:'rate(opencraft_process_cpu_seconds_total[5m])',legendFormat:'{{component}}',range:true}]});
+  panels.push({id:100,type:'logs',title:'Captured diagnostics (safe structured metadata)',gridPos:{x:0,y:extraY+8,w:24,h:10},datasource:{type:'loki',uid:'opencraft-loki'},targets:[{refId:'A',expr:'{service_name="opencraft"}',queryType:'range',maxLines:100}]});
   await writeFile(resolve(root,'dashboards/overview.json'),JSON.stringify({uid:'opencraft-overview',title:'OpenCraft platform monitoring',schemaVersion:39,version:1,editable:false,timezone:'utc',refresh:'30s',time:{from:'now-15m',to:'now'},tags:['opencraft',queryDefinitionRevision],panels},null,2)+'\n');
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await generate(process.argv[2]);

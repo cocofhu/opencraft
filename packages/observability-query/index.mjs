@@ -1,5 +1,5 @@
 import { fault } from '../observability-contract/index.mjs';
-export const queryDefinitionRevision = 'observe-v1.1.1';
+export const queryDefinitionRevision = 'observe-v1.1.2';
 const latency = 'histogram_quantile(0.95, sum by (le, operation) (rate(opencraft_operation_duration_seconds_bucket[5m])))';
 /** This is the only expression registry, shared by Observe and generated provisioning. */
 export const definitions = Object.freeze({
@@ -7,6 +7,10 @@ export const definitions = Object.freeze({
   'operations.latency': { title: 'Operation latency (histogram estimate)', kind: 'histogram_approximation', promql: latency, unit: 'seconds' },
   'recovery.episodes': { title: 'Recovery episodes (exact domain aggregation)', kind: 'exact_domain_aggregation', promql: 'opencraft_recovery_episodes', unit: 'episodes', windowSemantics:'rolling_24h_at_evaluation' },
   'execution.progress': { title: 'Observed execution lifecycle (exact domain aggregation)', kind: 'exact_domain_aggregation', promql: 'opencraft_executions', unit: 'executions', windowSemantics:'rolling_24h_at_evaluation' },
+  'execution.stages': {title:'Active execution stages (latest observed state)',kind:'exact_domain_aggregation',promql:'opencraft_active_executions',unit:'executions',windowSemantics:'latest_observed_state_at_evaluation'},
+  'execution.last_progress': {title:'Oldest active execution progress age',kind:'resource_sample',promql:'opencraft_execution_last_progress_age_seconds',unit:'seconds',windowSemantics:'latest_observed_state_at_evaluation'},
+  'queues.summary': {title:'Captured queued submissions (not execution rounds)',kind:'resource_sample',promql:'opencraft_queued_submissions',unit:'submissions',windowSemantics:'fresh_owner_samples_at_evaluation'},
+  'usage.activity24h': {title:'Observed interactive verified humans (24h union)',kind:'exact_domain_aggregation',promql:'opencraft_active_humans_24h',unit:'humans',windowSemantics:'rolling_24h_at_evaluation'},
   'dependencies.summary': { title: 'Dependency attempts (counter estimate)', kind: 'histogram_approximation', promql: 'sum by (method, outcome) (increase(opencraft_rpc_total[5m]))', unit: 'attempts' },
   'resources.summary': { title: 'Process resident memory', kind: 'resource_sample', promql: 'opencraft_process_rss_bytes', unit: 'bytes' },
   'usage.activity': { title: 'Observed interactive verified humans (7d union)', kind: 'exact_domain_aggregation', promql: 'opencraft_active_humans_7d', unit: 'humans', windowSemantics:'rolling_7d_at_evaluation' },

@@ -13,7 +13,7 @@ export function socketRequest(socketPath,path,body,method=body===undefined?'GET'
 }
 const instances=new Map();
 export function nodeObserver(component,{socketPath=process.env.OPENCRAFT_OBSERVE_SOCKET,sourceRevision=process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION??null,buildId=process.env.OPENCRAFT_OBSERVE_BUILD_ID??null}={}) {
-  if(!socketPath?.startsWith('/'))return {emit:()=>false,close:()=>{},execution:()=>{}};
+  if(!socketPath?.startsWith('/'))return {emit:()=>false,close:()=>{},execution:()=>{},queue:()=>{}};
   const key=component+':'+socketPath;if(instances.has(key))return instances.get(key);
   const queue=createEventQueue(),producerId=randomUUID();let timer,busy=false,closed=false,failures=0,transportDropped=0;
   async function flush(){timer=undefined;if(busy||closed)return;const events=queue.take();if(!events.length)return;busy=true;try{await socketRequest(socketPath,'/events',{events});failures=0;}catch{failures++;transportDropped+=events.length;}finally{busy=false;if(queue.stats().pending&&!closed){timer=setTimeout(flush,Math.min(60000,10000*2**Math.min(3,failures)));timer.unref();}}}
@@ -21,14 +21,20 @@ export function nodeObserver(component,{socketPath=process.env.OPENCRAFT_OBSERVE
   function heartbeat(){emit({kind:'resource',sourceRevision,buildId,rssBytes:process.memoryUsage().rss,heapBytes:process.memoryUsage().heapUsed,cpuSeconds:(process.cpuUsage().system+process.cpuUsage().user)/1e6,observedBy:'self',identitySource:'self',producerMode:'native',dropped:queue.stats().dropped+transportDropped,rejected:queue.stats().rejected,originClass:'operator'});}
   heartbeat();const healthTimer=setInterval(heartbeat,30000);healthTimer.unref();
   const observer={emit,stats:queue.stats,close(){closed=true;clearTimeout(timer);clearInterval(healthTimer);instances.delete(key);},
+    queue(engine,threadId,count){try{
+      if(typeof threadId!=='string'||!Number.isSafeInteger(count)||count<0)return;
+      const executionId=createHash('sha256').update(JSON.stringify([engine,threadId])).digest('hex');
+      emit({kind:'queue',engine,executionId,count,stage:'queued',measurementScope:'domain',originClass:'unknown'});
+    }catch{}},
     execution(engine,method,params){try{
-      if(!['turn/started','turn/completed','item/started','item/completed','turn/plan/updated'].includes(method))return;
+      const waitingHuman=['item/commandExecution/requestApproval','item/fileChange/requestApproval','item/tool/requestUserInput','item/permissions/requestApproval'].includes(method);
+      if(!waitingHuman&&!['turn/started','turn/completed','item/started','item/completed','turn/plan/updated'].includes(method))return;
       const turn=params?.turn,turnId=turn?.id??params?.turnId,threadId=params?.threadId;
       if(typeof turnId!=='string'||typeof threadId!=='string')return;
       const executionId=createHash('sha256').update(JSON.stringify([engine,threadId,turnId])).digest('hex');
       const outcome=method==='turn/started'?'started':method==='turn/completed'?turn?.status==='completed'?'ok':turn?.status==='interrupted'?'aborted':turn?.status==='failed'?'failed':'unknown':'progress';
       const type=params?.item?.type;
-      const stage=method==='turn/started'?'running':method==='turn/completed'?outcome==='ok'?'completed':outcome==='failed'?'failed':'other':type==='agentMessage'?'model':['commandExecution','mcpToolCall','dynamicToolCall','fileChange'].includes(type)?'tool':'other';
+      const stage=waitingHuman?'human':method==='turn/started'?'running':method==='turn/completed'?outcome==='ok'?'completed':outcome==='failed'?'failed':'other':type==='agentMessage'?'model':['commandExecution','mcpToolCall','dynamicToolCall','fileChange'].includes(type)?'tool':'other';
       emit({kind:'execution',executionId,engine,outcome,stage,measurementScope:'domain',originClass:'unknown'});
       }catch{/* Telemetry must never affect the native notification owner. */}
     }};instances.set(key,observer);return observer;

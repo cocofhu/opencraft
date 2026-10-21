@@ -55,7 +55,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
   }
   function envelope(window) { return {schemaVersion,snapshotId:randomUUID(),deploymentId,queryDefinitionRevision,metricSchemaVersion:schemaVersion,
     window:{from:new Date(window.from).toISOString(),to:new Date(window.to).toISOString(),capturedAt:new Date(now()).toISOString(),dataThrough:new Date(now()).toISOString()},
-    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',identitySource:p.identity.identitySource??'unknown',producerMode:p.identity.producerMode??'unknown',version:p.identity.version??null,observedAt:new Date(p.received).toISOString()})),
+    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,availability:now()-p.received>limits.freshnessMs?'stale':'available',sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',identitySource:p.identity.identitySource??'unknown',producerMode:p.identity.producerMode??'unknown',version:p.identity.version??null,observedAt:new Date(p.received).toISOString()})),
     sampling:{operation:1,diagnostic:1},loss:{accepted:store.accepted,rejected:store.rejected,dropped:store.dropped,exportDropped,unobservableLoss:'unknown'},
     correlationGaps:[],evidenceExpiresAt:new Date(window.from+limits.retentionMs).toISOString() }; }
   async function query(name,input={},deadline=Date.now()+4200) {
@@ -82,6 +82,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     result.unfinishedOperations=[...operations.values()].filter(event=>['started','progress'].includes(event.outcome)).map(event=>({operationId:event.operationId,operationType:event.operationType,outcome:'unfinished',lastObservedAt:new Date(event.at).toISOString(),clientVisibility:event.visibility??'unknown',interpretation:'No terminal capture; does not establish a client freeze or business failure.'}));
     if(result.truncated){result.coverage='partial';result.captureStatus='partial';}
     result.observedDomainsAtCapture={executions:store.executions(window.from,window.to),verifiedHumanUnion:store.activity(window.from,window.to).humans};
+    result.latestDomainState={capturedAt:result.window.capturedAt,windowSemantics:'latest_observed_state_not_historical_window',activeExecutionStages:store.progress(),queues:store.queues(),missingQueueCapture:'unknown; zero is reported only when a queue owner captured zero'};
     result.measurements={};
     const names=Object.keys(definitions).filter(name=>!['incident.read','baseline.compare'].includes(name));
     // One absolute deadline includes queued work; an unavailable backend never multiplies the CLI wait.
@@ -102,6 +103,9 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
         if(p.identity.heapBytes!==undefined)lines.push(`opencraft_process_heap_bytes{component="${component}"} ${p.identity.heapBytes}`);
         if(p.identity.rssBytes!==undefined)lines.push(`opencraft_process_rss_bytes{component="${component}"} ${p.identity.rssBytes}`);}
     }
+    for(const row of store.progress()){lines.push(`opencraft_active_executions{engine="${row.engine}",stage="${row.stage}"} ${row.count}`,`opencraft_execution_last_progress_age_seconds{engine="${row.engine}",stage="${row.stage}"} ${Math.max(0,nowMs-Number(row.oldestProgressAt))/1000}`);}
+    for(const row of store.queues())lines.push(`opencraft_queued_submissions{engine="${row.engine}"} ${row.count}`);
+    lines.push(`opencraft_active_humans_24h ${store.activity(nowMs-86400000,nowMs).humans}`);
     lines.push(`opencraft_active_humans_7d ${store.activity(nowMs-limits.retentionMs,nowMs).humans}`);
     for(const row of store.executions(nowMs-86400000,nowMs))lines.push(`opencraft_executions{outcome="${row.outcome}"} ${row.count}`);
     const recoveries=store.recoveries(nowMs-86400000,nowMs);
@@ -118,7 +122,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     if(active>=limits.concurrency){json(res,429,{error:{code:'query_limit'}});return;}active++;
     try {
       const url=new URL(req.url,'http://localhost');
-      if(req.method==='GET'&&url.pathname==='/capabilities'){json(res,200,{schemaVersion,deploymentId,queryDefinitionRevision,limits,permissions:['deployment.observe.read'],queries:definitions,adapters:coverage().producers});return;}
+      if(req.method==='GET'&&url.pathname==='/capabilities'){json(res,200,{schemaVersion,deploymentId,queryDefinitionRevision,limits,permissions:['deployment.observe.read'],queries:definitions,adapters:coverage().producers,executionMeasurements:{lifecycle:'native_notification_projection',stages:'captured_stage_only',queues:'owner_snapshots_90s_freshness',internalCapacity:'unsupported_unless_explicit_owner_event',modelInternals:'unsupported',missingData:'unknown_not_zero'}});return;}
       if(req.method==='POST'&&url.pathname==='/events'){
         const input=await readJson(req);if(!Array.isArray(input.events)||input.events.length>32)throw fault('invalid_batch');
         const receipt=store.ingest(input.events,typeof input.verifiedActor==='string'&&/^[a-f0-9]{64}$/u.test(input.verifiedActor)?input.verifiedActor:null);

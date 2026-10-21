@@ -1,3 +1,4 @@
+import { nodeObserver } from '../../../packages/observability-contract/node.mjs';
 import type { DshClient } from "./dsh-client.js";
 
 type RecordValue = Record<string, any>;
@@ -67,6 +68,7 @@ export class DshInteractions {
           }),
         },
       };
+      nodeObserver('dsh').execution('dsh',request.method,request.params);
       this.pending.set(id, { frame, request, answering: false });
       for (const listener of this.listeners) listener(request);
     } finally { if (this.preparing.get(id) === frame) this.preparing.delete(id); }

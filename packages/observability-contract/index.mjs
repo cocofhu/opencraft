@@ -4,7 +4,7 @@ export const limits = Object.freeze({ eventBytes: 2048, batchEvents: 32, batchBy
   queueEvents: 2048, queueBytes: 2097152, recentEvents: 128, recentBytes: 131072,
   clientQueueBytes: 262144, rows: 500, responseBytes: 1048576, concurrency: 5,
   freshnessMs: 90000, retentionMs: 604800000, maxWindowMs: 86400000 });
-export const kinds = ['producer', 'operation', 'rpc', 'recovery', 'execution', 'dependency', 'resource', 'client_signal'];
+export const kinds = ['producer', 'operation', 'rpc', 'recovery', 'execution', 'queue', 'dependency', 'resource', 'client_signal'];
 export const operations = ['navigation', 'thread_open', 'catalog_first', 'catalog_complete', 'configuration_confirmed', 'submit_ready', 'preference_save', 'recovery', 'other'];
 export const outcomes = ['started', 'progress', 'ok', 'failed', 'timeout', 'aborted', 'unfinished', 'unknown'];
 export const stages = ['connecting', 'initializing', 'backoff', 'blocked', 'queued', 'history', 'ready', 'model', 'tool', 'human', 'capacity', 'running', 'completed', 'failed', 'other'];
