@@ -60,9 +60,14 @@ const liveQuery = new URLSearchParams(location.search);
 const liveProbe = window as unknown as {
   setPhase: (phase: string) => void;
   observed: Record<string, { status: string; content?: string }>;
+  setHostMode: (mode: string) => void;
+  hostPresentation?: { state: string; canExpand: boolean; phase: string; mode: string };
 };
 liveProbe.observed = {};
 function LiveToolsDemo() {
+  const hostScenario = liveQuery.get("scenario") === "host-live";
+  const [hostMode, setHostMode] = useState("content");
+  liveProbe.setHostMode = mode => { setHostMode(mode); setPhase("running"); };
   const [phase, setPhase] = useState(liveQuery.get("initial") ?? "running");
   liveProbe.setPhase = setPhase;
   type Dynamic = Extract<ThreadItem, { type: "dynamicToolCall" }>;
@@ -93,17 +98,23 @@ function LiveToolsDemo() {
     authoritative: true, phase: historical ? "painted" : "live",
     turns: [{ id: "turn", status: historical ? "complete" : "streaming", items }],
   }, registry);
-  return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
+  return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      <Conversation key={hostScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        renderToolCallContent={hostScenario && hostMode !== "absent" ? (block, presentation) => {
+          if (block.callId !== "compact") return undefined;
+          liveProbe.hostPresentation = { state: presentation.state, canExpand: presentation.canExpand, phase, mode: hostMode };
+          return hostMode === "fallback" ? undefined : hostMode === "null" ? null : hostMode === "false" ? false
+            : <section data-live-host-body><label>Host details {phase}<input aria-label="Host detail input" defaultValue="HOST_LIVE_BODY" /></label></section>;
+        } : undefined}
         renderToolCallIcon={block => {
           if (block.callId !== null) liveProbe.observed[block.callId] = {
             status: block.status, content: (block.input as { content?: string } | null)?.content,
           };
-          return undefined;
+          return hostScenario && block.callId === "compact" ? <span data-live-host-icon>H</span> : undefined;
         }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
     </TimelineBlockRendererProvider>
   </div>;
 }
 
-createIntlTestRoot(document.getElementById("root")!).render(new URLSearchParams(location.search).get("scenario") === "live" ? <LiveToolsDemo /> : <Demo />);
+createIntlTestRoot(document.getElementById("root")!).render(["live", "host-live"].includes(new URLSearchParams(location.search).get("scenario") ?? "") ? <LiveToolsDemo /> : <Demo />);

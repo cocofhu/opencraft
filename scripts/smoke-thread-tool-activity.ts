@@ -132,6 +132,61 @@ try {
     results.push({ width, theme, liveTools: features });
     await page.close();
 }
+  if (!process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    const url = `http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-live`;
+    const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
+    const reveal = async () => { for (let i = 0; i < 20; i++) {
+      const closed = page.locator('.thread-agent-activity__group > .thread-agent-activity__group-disclosure > .thread-activity-item__header > button[aria-expanded="false"]');
+      if (!await closed.count()) break;
+      await activate(closed.first());
+    } };
+    await page.goto(url);
+    await page.locator('[data-phase="running"]').waitFor();
+    await reveal();
+    const row = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('[data-live-host-icon]') }).last();
+    const trigger = row.locator(':scope > .thread-activity-item__header button[aria-expanded]');
+    await trigger.waitFor();
+    await page.waitForFunction(() => (window as any).hostPresentation?.phase === "running");
+    assert.equal(await page.evaluate(() => (window as any).hostPresentation.canExpand), false);
+    assert.equal(await trigger.getAttribute("aria-expanded"), "true");
+    assert.equal(await page.getByRole("textbox", { name: "Host detail input" }).isVisible(), true);
+    await page.screenshot({ path: join(output, `host-live-${width}-${theme}.png`) });
+    await activate(trigger);
+    await page.evaluate(() => (window as any).setPhase("progress"));
+    await page.waitForFunction(() => (window as any).hostPresentation?.phase === "progress");
+    assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+    await activate(trigger);
+    await page.getByRole("textbox", { name: "Host detail input" }).waitFor();
+    await page.evaluate(() => (window as any).setPhase("completed"));
+    await page.waitForFunction(() => (window as any).hostPresentation?.state === "completed");
+    assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+    await activate(trigger);
+    await page.getByRole("textbox", { name: "Host detail input" }).waitFor();
+    await page.evaluate(() => (window as any).setPhase("failed"));
+    await page.waitForFunction(() => (window as any).hostPresentation?.state === "failed");
+    assert.equal(await trigger.getAttribute("aria-expanded"), "true");
+    for (const mode of ["null", "false", "fallback", "absent"]) {
+      await page.evaluate(mode => (window as any).setHostMode(mode), mode);
+      await page.locator(`[data-host-mode="${mode}"][data-phase="running"]`).waitFor();
+      await reveal();
+      assert.equal(await page.locator("[data-live-host-body]").count(), 0);
+      assert.equal(await page.getByText("COMPACT_PAYLOAD_CONTROL", { exact: false }).count(), 0);
+    }
+    await page.goto(url + "&initial=completed&history=1");
+    await page.locator('[data-phase="completed"]').waitFor();
+    await reveal();
+    await trigger.waitFor();
+    assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    results.push({ width, theme, hostLiveDisclosure: true, settledMemory: true, explicitSuppression: true, historicalRestore: true });
+    await page.close();
+  }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

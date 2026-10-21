@@ -162,10 +162,11 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const customContent = useContext(ToolCallContentRendererContext);
   const customIcon = useContext(ToolCallIconRendererContext);
-  const [mcpOpen, setMcpOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useActivityOpen(presentation.state === "running" && presentation.canExpand);
-  const [open, setOpen] = block.kind === "mcp" ? [mcpOpen, setMcpOpen] : [activityOpen, setActivityOpen];
   const content = customContent?.(block, presentation);
+  const hasCustomBody = content !== undefined && content !== null && content !== false;
+  const [mcpOpen, setMcpOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useActivityOpen(presentation.state === "running" && (presentation.canExpand || hasCustomBody));
+  const [open, setOpen] = block.kind === "mcp" ? [mcpOpen, setMcpOpen] : [activityOpen, setActivityOpen];
   const icon = customIcon?.(block, presentation);
   if (block.kind === "image-view") return <ImageViewToolBlock block={block} />;
   if (isCodexAppThreadTool(block)) return <ThreadTool block={block} />;

@@ -2327,7 +2327,8 @@ their existing owners.
 ### Live tool disclosure state
 
 Generic dynamic tools use the shared activity disclosure state: a running tool
-whose presentation declares an expandable body starts open, a user collapse survives progress updates, and settled
+whose presentation declares an expandable body or whose Host supplies a visible
+body starts open, a user collapse survives progress updates, and settled
 details have their own initially collapsed choice. A historical completed tool
 therefore starts collapsed without an expand-then-collapse frame. MCP details
 retain a separate initially collapsed choice. Attached approval reviews alone do not
