@@ -1,3 +1,4 @@
+import { prepareBrowserRuntimeAccess } from './remote-browser-access.mjs';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { createHash, randomUUID } from 'node:crypto';
@@ -37,6 +38,7 @@ export class RemoteBrowserService {
       this.isolated = isolated;
       let child;
       if (isolated) {
+        await prepareBrowserRuntimeAccess(this.directory);
         // Root gateways never run hostile pages as root or silently disable the
         // Chromium sandbox. systemd gives this child a private dynamic UID and
         // mounts only public runtime assets through the root-private release.
