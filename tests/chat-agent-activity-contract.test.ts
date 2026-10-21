@@ -99,3 +99,41 @@ test("compaction accompanied by visible work retains the normal disclosure", () 
     assert.equal(resolveAgentActivityLayout(activity, true).isCollapsed, true);
   }
 });
+
+
+test("running ordinary commands retain their concrete label when the classifier returns unknown actions", () => {
+  for (const commandText of ["printf fixture", "bash -lc 'printf fixture'", "  printf fixture  ", "   "]) {
+    for (const commandActions of [[], [{ type: "unknown", command: commandText }], [
+      { type: "unknown", command: "printf first" }, { type: "unknown", command: "printf second" },
+    ]]) {
+      const value = frame([{ id: "running", type: "commandExecution", payload: {
+        command: commandText, commandActions, status: "inProgress",
+      } }], "streaming");
+      const unit = { blocks: value.blocks, lifecycle: {
+        isLatestVisibleUnit: true, isActivitySliceClosed: false, isExploring: false, inProgress: true,
+      } };
+      assert.equal(agentActivityHeaderAccessibleLabel(deriveAgentActivityHeaderPresentation(unit).summary),
+        `Running ${(commandActions.length > 1 ? "printf second" : commandText).trim() || "command"}`);
+      assert.equal(agentActivityHeaderAccessibleLabel(deriveAgentActivityHeaderPresentation(unit, undefined, "STEPS_PROSE").summary),
+        "Running command");
+    }
+  }
+});
+
+test("running classified exploration retains its semantic label at both detail levels", () => {
+  for (const [commandText, action, expected] of [
+    ["cat fixture.ts", { type: "read", command: "cat fixture.ts", name: "fixture.ts", path: "/fixture/fixture.ts" }, "Reading fixture.ts"],
+    ["rg needle fixture.ts", { type: "search", command: "rg needle fixture.ts", query: "needle", path: "fixture.ts" }, "Searching for needle in fixture.ts"],
+    ["ls fixture", { type: "listFiles", command: "ls fixture", path: "fixture" }, "Listing files in fixture"],
+  ] as const) {
+    const value = frame([{ id: "running", type: "commandExecution", payload: {
+      command: commandText, commandActions: [action], status: "inProgress",
+    } }], "streaming");
+    for (const detail of ["STEPS_COMMANDS", "STEPS_PROSE"] as const) {
+      const header = deriveAgentActivityHeaderPresentation({ blocks: value.blocks, lifecycle: {
+        isLatestVisibleUnit: true, isActivitySliceClosed: false, isExploring: true, inProgress: true,
+      } }, undefined, detail);
+      assert.equal(agentActivityHeaderAccessibleLabel(header.summary), expected);
+    }
+  }
+});

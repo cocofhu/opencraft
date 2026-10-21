@@ -388,7 +388,9 @@ export function deriveAgentActivityHeaderPresentation(unit: Pick<AgentActivityGr
       const presentation = presentToolActivity(activeBlock, registry);
       const skill = activeBlock.type === "command-execution" ? skillReadPresentation(activeBlock, detailLevel) : null;
       let text = skill ? `${running(activeBlock) ? "Reading" : skill.summary} ${skill.detail}` : `${presentation.summary}${presentation.detail ? ` ${presentation.detail}` : ""}`;
-      if (activeBlock.type === "command-execution" && !activeBlock.actions.length && detailLevel === "STEPS_COMMANDS") text = `Running ${activeBlock.command}`;
+      if (activeBlock.type === "command-execution"
+        && !activeBlock.actions.some(action => action.type === "read" || action.type === "search" || action.type === "list-files")
+        && detailLevel === "STEPS_COMMANDS") text = `Running ${activeBlock.command.trim() || "command"}`;
       return { state: "active", summaryKey: `active:${activeBlock.id}`, icon: presentation.icon, summary: { kind: "text", text }, active: true };
     }
     return { state: "thinking", summaryKey: "thinking", icon: null, summary: { kind: "text", text: "Thinking" }, active: true };
