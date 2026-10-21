@@ -101,11 +101,19 @@ try {
   assert.equal(parentQuery.summary.tokens,"500");assert.equal(childQuery.summary.tokens,"100");assert.equal(childQuery.summary.turns,1);
   await request(8,"thread/archive",{threadId:parentId});await request(9,"thread/archive",{threadId:childId});
   assert.equal((await request(10,"opencraft/token-usage/query",{from:today,through:today,scope:"team",threadId:childId},"admin")).summary.tokens,"100");
+  const rolloutPaths:string[]=[];
   for(const [n,threadId] of [parentId,childId].entries()){
    const native=await request(20+n,"thread/read",{threadId,includeTurns:false});
    assert.ok(typeof native.thread.path==="string"&&native.thread.path.startsWith(root+"/"));
-   await rm(native.thread.path,{force:true});
+   rolloutPaths.push(native.thread.path);
   }
+  // Exercise the actual native delete API after archive, with history intact, then read the
+  // Host ledger again. Deleting presentation/history must not erase accounting.
+  await request(30,"thread/delete",{threadId:childId});
+  await request(31,"thread/delete",{threadId:parentId});
+  assert.equal((await request(32,"opencraft/token-usage/query",{from:today,through:today,scope:"team",threadId:parentId},"admin")).summary.tokens,"500");
+  assert.equal((await request(33,"opencraft/token-usage/query",{from:today,through:today,scope:"team",threadId:childId},"admin")).summary.tokens,"100");
+  for(const path of rolloutPaths) await rm(path,{force:true});
   await adapter.close();
   const reopened=new CodexHostStateDatabase(dataDirectory);
   try{
@@ -113,6 +121,6 @@ try {
    assert.equal(ledger.query({from:today,through:today},()=>({actorId:"A",administrator:false})).summary.tokens,"500");
    assert.equal(ledger.query({from:today,through:today},()=>({actorId:"B",administrator:false})).summary.tokens,"100");
   }finally{reopened.close();}
-  console.log(JSON.stringify({passed:true,realCodexCLI:true,syntheticUpstream:true,identityBoundary:"synthetic trusted Host Actor port; not real login",inheritedTokens:500,newTokens:100,archiveRetainsUsage:true,fixtureRolloutRemovalAndHostRestartRetainUsage:true,parentTurnCount:1,childTurnCount:1}));
+  console.log(JSON.stringify({passed:true,realCodexCLI:true,syntheticUpstream:true,identityBoundary:"synthetic trusted Host Actor port; not real login",inheritedTokens:500,newTokens:100,archiveRetainsUsage:true,nativeDeleteApiRetainsUsage:true,fixtureRolloutRemovalAndHostRestartRetainUsage:true,parentTurnCount:1,childTurnCount:1}));
  }finally{reader.close();}
 }finally{await adapter.close();await new Promise(resolve=>model.close(resolve));await rm(root,{recursive:true,force:true});}
