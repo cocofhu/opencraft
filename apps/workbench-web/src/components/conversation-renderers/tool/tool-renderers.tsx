@@ -163,7 +163,7 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const customContent = useContext(ToolCallContentRendererContext);
   const customIcon = useContext(ToolCallIconRendererContext);
   const [mcpOpen, setMcpOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useActivityOpen(presentation.state === "running");
+  const [activityOpen, setActivityOpen] = useActivityOpen(presentation.state === "running" && presentation.canExpand);
   const [open, setOpen] = block.kind === "mcp" ? [mcpOpen, setMcpOpen] : [activityOpen, setActivityOpen];
   const content = customContent?.(block, presentation);
   const icon = customIcon?.(block, presentation);
