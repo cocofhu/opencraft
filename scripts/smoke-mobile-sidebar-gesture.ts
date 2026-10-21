@@ -15,6 +15,10 @@ assert.ok(isApplicationBranding(fixtureBranding));
 const source = `
 import{bindInteractionDensity}from'/apps/workbench-web/src/runtime/interaction-density';
 import React,{useState,useEffect,useSyncExternalStore} from 'react';
+import {WebChatDocument} from '@opencraft/chat-render-web';
+import {WorkbenchPresentationRootProvider} from '/apps/workbench-web/src/components/workbench-presentation-root.tsx';
+import appStyles from '/apps/workbench-web/src/styles/app.scss?inline';
+
 import {SettingsNavigation} from '/apps/workbench-web/src/components/settings-page.tsx';
 import {createApplicationNavigation} from '/apps/workbench-web/src/runtime/workbench-navigation.ts';
 import {ApplicationBrand} from '/apps/workbench-web/src/components/application-brand.tsx';
@@ -42,12 +46,13 @@ const contributions={subscribe:()=>()=>{},getSnapshot:()=>contributionSnapshot};
 function Context({showNewChat=true}){const[selected,setSelected]=useState('thread-0');window.selectFixtureThread=setSelected;useEffect(()=>{mounts++},[]);return <Sidebar showStart={false} showFooter={false} showNewChat={showNewChat} threads={threads} activeHostId='fixture' activeThreadId={selected} sidebarLayout={layout} onNewTask={()=>actions.push('New chat')} onOpenSettings={()=>{}} onSelectThread={(_host,id)=>actions.push(id)}/>}
 function App(){const preferences=useUiPreferencesRuntime();useEffect(()=>bindInteractionDensity(document,preferences),[preferences]);const route=useSyncExternalStore(navigationRouter.subscribe,navigationRouter.getSnapshot).applicationRoute;const[open,setOpen]=useState(false),[modal,setModal]=useState(false),[showNewChat,setShowNewChat]=useState(true);window.fixture={setDensity:value=>preferences.set('interface.touchFriendly',value),sidebarOpen:()=>open,setOpen,setModal,setShowNewChat,setThemePreference,returnToChat:()=>navigationRouter.openChat(),route:()=>navigationRouter.getSnapshot().applicationRoute,mounts:()=>mounts,actions};
 const navigation={layout:'unified',account:{snapshot:{phase:'authenticated',name:'Synthetic employee',avatarUrl:null},onOpen:()=>actions.push('Account'),onRefresh:async()=>{}},settingsActive:route.kind==='settings',onOpenSettings:()=>{actions.push('Settings');navigationRouter.openSettings();},actions:[...(stationaryProbe?[{id:'shell.search',title:'Search conversations',icon:'search',onInvoke:()=>setModal(true)}]:[]),{id:'shell.home',title:'Home',icon:'home',onInvoke:()=>actions.push('Home')},{id:'opencraft.tasks.navigation',title:'Tasks',icon:'columns',onInvoke:()=>actions.push('Tasks')},{id:'example.workspace.navigation',title:'Collaboration',icon:'messages',onInvoke:()=>actions.push('Collaboration')},{id:'skills',title:'Skills, extensions and cloud tools',icon:'sparkles',onInvoke:()=>actions.push('Skills')}]};
-return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description></Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
+return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description></Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
 header={<AppShellHeader navigationBrand={stationaryProbe ? brand : undefined} title='Workspace' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={stationaryProbe} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
 floatingSidebarHeader={()=> stationaryProbe ? <AppShellNavigationControls brand={brand} hostRole='transient' sidebarOpen={false} canGoBack={false} canGoForward={false} onToggleSidebar={()=>{}} onHome={()=>{}} onBack={()=>{}} onForward={()=>{}} actions={['sidebar-toggle']}/> : <div style={{height:'100%',display:'flex',alignItems:'center',padding:12}}>Conversations</div>}
 leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} presentation='sidebar' extensionContributions={contributions} profiles={[]} machines={[]} activeHostId='' onBack={()=>navigationRouter.openChat()} onSectionChange={slug=>{actions.push('Settings:'+slug);navigationRouter.openSettings(slug);}}/>:<Context showNewChat={showNewChat}/>}>
 <div style={{height:'100%',width:'100%',overflowY:'auto'}} data-main-scroll>
 ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentProbe record={action=>actions.push(action)}/>` : ""}
+${process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? `<WebChatDocument documentId="modal-input-probe" source={'![Boundary preview](data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22900%22 height=%22600%22%3E%3Crect width=%22900%22 height=%22600%22 fill=%22%23286fbb%22/%3E%3C/svg%3E)'} />` : ''}
 <div data-gesture-pad style={{height:240,display:'grid',placeItems:'center'}}>Swipe in content</div>
 <input aria-label='Draft' defaultValue='Keep this draft' style={{margin:12,width:'80%'}}/>
 <pre data-horizontal style={{overflowX:'auto',whiteSpace:'pre',margin:12}}>A deliberately long code line that scrolls horizontally and keeps its own touch gestures. A deliberately long code line that scrolls horizontally.</pre>
@@ -55,7 +60,11 @@ ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentPro
 ${process.env.OPENCRAFT_GESTURE_COMPOSITING_ONLY === "1" ? `<div className="composer-utility-scroll-area" data-overflow="true"><div className="composer-utility-scroll-area__content" style={{width:650}}>Masked horizontal composer utilities</div></div>` : ""}
 {Array.from({length:30},(_,i)=><p key={i} style={{padding:12}}>Message {i}</p>)}
 </div></AppShell></>}
-createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
+const host=document.getElementById('root');
+const shadow=new URLSearchParams(location.search).has('shadow')?host.attachShadow({mode:'open'}):null;
+const presentationRoot=shadow?document.createElement('div'):host;
+if(shadow){const style=document.createElement('style');style.textContent=appStyles;shadow.append(style,presentationRoot);presentationRoot.style.cssText='width:100vw;height:100dvh';}
+createIntlTestRoot(presentationRoot).render(<WorkbenchPresentationRootProvider target={presentationRoot}><App/></WorkbenchPresentationRootProvider>);`;
 const vite = await createServer({ configFile: false, root: process.cwd(), publicDir: "apps/workbench-web/public", logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-mobile-sidebar-gesture", esbuild: { jsx: "automatic", target: "esnext" }, server: { host: "127.0.0.1", port: 0, hmr: false },
   optimizeDeps: { entries: [], include: ["react", "react-dom/client", "react-intl", "@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@radix-ui/react-alert-dialog", "@deepseek-ai/cordis", "tslib"] },
   plugins: [pluginBranding(process.env.OPENCRAFT_SMOKE_BRANDING_WORKSPACE ?? process.cwd(), []), { name: "mobile-sidebar-gesture-fixture", resolveId: id => id === "/gesture-probe.tsx" ? id : null, load: id => id === "/gesture-probe.tsx" ? source : null,
@@ -67,14 +76,14 @@ const evidence: any[] = [];
 try {
   await mkdir(output, { recursive: true }); await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const reducedMotion of (process.env.OPENCRAFT_GESTURE_MOTION ? [process.env.OPENCRAFT_GESTURE_MOTION] : ["no-preference", "reduce"])) for (const theme of ["light", "dark"]) {
+  for (const reducedMotion of (process.env.OPENCRAFT_GESTURE_MOTION ? [process.env.OPENCRAFT_GESTURE_MOTION] : ["no-preference", "reduce"])) for (const theme of ["light", "dark"]) for (const shadow of (process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? [false,true] : [false])) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion });
     const page = await context.newPage(); page.setDefaultTimeout(8000);
     const errors: string[] = []; page.on("pageerror", (e: Error) => { errors.push(e.message); console.error(e.stack); });
     page.on("requestfailed", request => console.error("fixture request failed", request.url(), request.failure()));
     page.on("console", message => { if (message.type() === "error") console.error("fixture console", message.text()); });
     await page.addInitScript("window.__name=value=>value");
-    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`, {timeout:60000});
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}${shadow?"?shadow=1":""}`, {timeout:60000});
     await page.waitForFunction(() => !!(window as any).fixture, null, { timeout: 30000 });
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
     // Simulate notch/Home Indicator CSS env projections, which Chromium's mobile emulation leaves at zero.
@@ -105,6 +114,32 @@ try {
       }
     };
     await closed();
+    if (process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1') {
+      const preview=page.getByRole('button',{name:'Boundary preview',exact:true});
+      const dialog=page.locator('dialog[open]');
+      const row=page.locator('.app-shell-row');
+      const unchanged=async()=>{assert.equal(await panel.count(),0);assert(Math.abs(await row.evaluate(e=>e.getBoundingClientRect().x))<1);};
+      for(const kind of ['native','radix']) {
+        if(kind==='native')await preview.tap();else await page.evaluate(()=>(window as any).fixture.setModal(true));
+        if(kind==='native')await dialog.waitFor();else await page.getByRole('dialog',{name:'Gesture exclusion probe'}).waitFor();
+        // Start in letterboxing, not on image pixels. Verify held frames too.
+        await touch('touchStart',65,90);
+        for(let i=1;i<=8;i++){await touch('touchMove',65+28*i,90);await page.waitForTimeout(25);await unchanged();}
+        await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
+        if(kind==='native')await dialog.getByRole('button',{name:'Close image preview'}).tap();else await page.keyboard.press('Escape');
+        await page.waitForTimeout(150);
+        // The same contact revoked on modal open must never later commit.
+        await touch('touchStart',65,350);await touch('touchMove',135,350);await page.waitForTimeout(30);assert(await panel.count()>0);
+        if(kind==='native')await preview.evaluate((e:HTMLElement)=>e.click());else await page.evaluate(()=>(window as any).fixture.setModal(true));
+        await page.waitForTimeout(reducedMotion==='reduce'?100:650);await unchanged();
+        await touch('touchMove',300,350);await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
+        if(kind==='native')await dialog.getByRole('button',{name:'Close image preview'}).tap();else await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
+        await drag(65,320,350);await opened();await drag(200,45,350);await closed();
+      }
+      assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/modal-${shadow?'shadow':'document'}-${theme}-${reducedMotion}.png`});
+      evidence.push({theme,reducedMotion,shadow,nativeAndRadix:true,greyHeldFrames:true,heldContactRevoked:true,freshShellInputRestored:true,errors});await context.close();continue;
+    }
     if (process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === '1') {
       const main = page.locator('[data-main-scroll]');
       const reason = page.locator('[data-swipe-reason] button');

@@ -643,6 +643,12 @@ retain their panel viewport. Only the image viewport claims touch
 gestures, leaving modal close, gallery navigation and focus with their existing
 owners. Source changes, reopening and viewport resizing restore the fitted view.
 No page zoom, navigation or media reload is required for manipulation.
+The preview's whole modal input layer, including empty screen space, excludes
+background Shell gestures. Global capture listeners must resolve native dialog
+semantics, the composed path and the presentation root before admitting input;
+image-only propagation handling cannot establish modality. Opening the preview
+revokes an already-held background gesture; dismissal allows fresh gestures.
+
 
 Native Markdown images retain their intrinsic ratio within the current
 container and use a document-scoped native preview for adjacent images in
