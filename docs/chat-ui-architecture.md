@@ -1618,6 +1618,15 @@ while the former DOM is still connected. Actual disclosure unmount separately
 verifies hook cancellation. These adapter lifetime checks complement the real
 mouse/touch animation path; they do not claim Native or Electron acceptance.
 
+### Command elapsed presentation
+
+Active foreground commands retain an elapsed label when their protocol item has
+no start timestamp. The mounted view tracks its first observation only as a
+presentation fallback; a reported start wins and a completed item uses its
+reported duration. This local observation is not a reconstructed execution start
+or persistent history clock. Parked/hidden views stop ticking and recalibrate
+when shown; background terminal labels do not create an elapsed interval.
+
 ### Established
 
 - AppServer client, WebSocket, memory and Replay transports.
