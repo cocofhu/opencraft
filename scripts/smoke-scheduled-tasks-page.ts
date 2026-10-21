@@ -67,8 +67,8 @@ ws.on("connection", socket => socket.on("message", raw => {
   counts[method] = (counts[method] ?? 0) + 1;
   let result: unknown = {};
   if (method === "initialize") result = { serverInfo: { name: "fixture", version: "1" }, capabilities: { extensions: { "opencraft/conversation-schedules": { version: 1, summary: true, calendar: true } } } };
-  else if (method === "thread/list") result = { data: [thread, ...(createdPlan ? [{ ...thread, id: "new-schedule-thread", name: createdName }] : [])], nextCursor: null };
-  else if (method === "thread/read" || method === "thread/resume") result = { thread };
+  else if (method === "thread/list") result = { data: [thread], nextCursor: null };
+  else if (method === "thread/read" || method === "thread/resume") result = { thread: params.threadId === "new-schedule-thread" ? { ...thread, id: params.threadId, name: createdName } : params.threadId === "not-paginated" ? { ...thread, id: params.threadId, name: "Unlisted native conversation" } : thread };
   else if (method === "thread/loaded/list") result = { data: [] };
   else if (method === "thread/items/list" || method === "thread/turns/list") result = { data: [], nextCursor: null };
   else if (method === "model/list" || method === "project/list" || method === "skills/list" || method === "permissionProfile/list") result = { data: [] };
@@ -101,6 +101,7 @@ try {
     return { left: content.left - viewport.left, right: viewport.right - content.right, width: content.width };
   });
   assert.ok(inset.left >= 14 && inset.right >= 14 && inset.width <= 760, 'document inset/reading width: '+JSON.stringify(inset));
+  await catalog.getByText("Unlisted native conversation", { exact: true }).waitFor();
   assert.equal(await catalog.locator(".scheduled-tasks-page__row").count(), 2, "task without paginated thread metadata remains visible");
   assert.equal(counts["opencraft/schedules/read"] ?? 0, 0, "catalog has no per-row schedule reads");
   const ids = await page.locator('.shell-sidebar-navigation [data-action-id]').evaluateAll(elements => elements.map(el => el.getAttribute("data-action-id")));
@@ -121,6 +122,7 @@ try {
   const beforeFailure = await catalog.locator(".scheduled-tasks-page__list").boundingBox();
   failList = true; for (const client of ws.clients) client.send(JSON.stringify({ method: "opencraft/schedules/changed", params: {} }));
   await page.getByText("无法刷新定时任务。", { exact: true }).first().waitFor();
+  await catalog.getByText("Unlisted native conversation", { exact: true }).waitFor();
   assert.equal(await catalog.locator(".scheduled-tasks-page__row").count(), 2, "refresh failure preserves known tasks");
   assert.equal(await catalog.getByText("无法刷新定时任务。", { exact: true }).count(), 0, "error is delivered by Toast outside the catalog");
   const afterFailure = await catalog.locator(".scheduled-tasks-page__list").boundingBox();
@@ -222,7 +224,13 @@ try {
   assert.equal(counts['turn/start']??0,0,'creation does not submit a first turn');
   await keyboard.waitForFunction(el=>document.activeElement===el,await create.elementHandle());
   assert.equal(await create.evaluate(el=>document.activeElement===el),true,'creation restores focus');
-  console.log(JSON.stringify({creationEvidence,createdPlan,counts}));
+  await keyboard.locator('.scheduled-tasks-page__destination').filter({hasText:'原生 Agent 每日汇总'}).waitFor();
+  await keyboard.reload();
+  await keyboard.locator('.scheduled-tasks-page__destination').filter({hasText:'原生 Agent 每日汇总'}).waitFor();
+  const headingWidth=await keyboard.locator('.scheduled-tasks-page__header > :first-child').evaluate(el=>el.getBoundingClientRect().width);
+  assert.ok(headingWidth>200,'narrow catalog heading retains its reading width: '+headingWidth);
+  await keyboard.screenshot({path:output+'/created-name-after-reload-320.png'});
+  console.log(JSON.stringify({creationEvidence,createdPlan,counts,nativeNameAfterReload:true,headingWidth}));
   await keyboard.close();
   await page.goto(url + "feedback");
   await page.locator(".scheduled-tasks-page__row").waitFor();
