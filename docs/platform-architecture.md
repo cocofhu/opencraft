@@ -775,7 +775,7 @@ its write on a successor. Discovery failures remain errors, not unpin-all or
 unsupported success. Catalog notifications and connection recovery invalidate
 the same shared queries; no menu owns a polling loop or persistent pin set.
 
-The the downstream product site renders its own Agent sidebar around the embedded Workbench.
+The downstream site renders its own Agent sidebar around the embedded Workbench.
 The embedded element passes each Thread's pinned state and the current Host's
 discovered pin capability to that sidebar, and forwards pin commands to the same
 Thread management resource. The site shows pinned rows outside its recent-page
@@ -1058,7 +1058,7 @@ locale override, an `IDE` / `SYSTEM` / `FIRST_AVAILABLE` source policy, canonica
 BCP-47 tags, regional catalog matching, lazy messages, and a cached FormatJS Intl
 instance. `FIRST_AVAILABLE` prefers a non-English IDE locale, then a non-English
 system locale. The standalone Web/Electron adapter selects `SYSTEM`; the embedded
-host supplies the equivalent of Codex's IDE locale. Product region is not an input.
+host supplies its locale through the `ideLocale` input. Product region is not an input.
 
 `packages/i18n` owns `LocaleRuntime` and its narrow `IntlPort`. Each application
 gets its own runtime/cache. Its snapshot carries the exact Intl object consumed

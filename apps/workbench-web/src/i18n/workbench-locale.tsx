@@ -64,7 +64,7 @@ export class WorkbenchLocaleController implements IntlPort {
     return this.runtime.update({ ...this.#options,
       localeOverride: this.#preferences.get("locale.override"),
       systemLocale: this.#systemLocale,
-      // Desktop/Web standalone follows SYSTEM; embedded host locale is Codex's IDE input.
+      // Desktop/Web standalone follows SYSTEM; an embedding host supplies the IDE locale.
       localeSource: this.#options.localeSource ?? (this.#options.ideLocale ? "IDE" : "SYSTEM"),
     });
   }
