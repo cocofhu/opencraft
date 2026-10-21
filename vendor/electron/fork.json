@@ -22,6 +22,10 @@
     {
       "path": "patches/electron/0004-component-audio-boundary.patch",
       "sha256": "1956b7eb09429e4363d618a92dcf3b5480ceb1751b7e3c3f5caacaba6f2c0219"
+    },
+    {
+      "path": "patches/electron/0005-gtk-dialog-dynamic-symbols.patch",
+      "sha256": "2c39e7146a2b678f7ad6f1bec0a2ba19989048951b980cb0e86dc7ff56f5507d"
     }
   ]
 }

@@ -155,6 +155,11 @@ launching the audio service. Unset/empty names and the `.desktop` suffix retain
 their existing behavior. PulseAudio remains enabled and strict linker checks
 remain enabled. This does not change the native Copy or IME protocol.
 
+`0005-gtk-dialog-dynamic-symbols.patch` registers the two GTK functions used by
+Electron's file-dialog and printing patches with Chromium's existing dynamic
+symbol loader. GTK stays dynamically loaded; this neither links GTK eagerly nor
+disables file dialogs, printing or strict undefined-symbol checks.
+
 ## Verification and runtime adoption
 
 ```sh
