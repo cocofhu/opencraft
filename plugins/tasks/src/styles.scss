@@ -1,4 +1,3 @@
-@use "@opencraft/design-system/interaction-mixins.web" as controls;
 @use "@opencraft/design-system/typography.web" as type;
 @use "@opencraft/design-system/menu.web" as menu;
 
@@ -112,23 +111,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-.tasks-research {
-  @include type.role(metadata);
-  display: block;
-  color: var(--color-text-secondary);
-  margin-top: 8px;
-  overflow-wrap: anywhere;
-  &[data-research="proactive"] { color: var(--color-status-connected); }
-  &[data-research="needs_decision"] { color: var(--color-text); }
-}
-.tasks-research-fields {
-  display: grid;
-  gap: 10px;
-  padding-block: 12px;
-  border-block-start: 1px solid var(--color-border-subtle);
-  p { @include type.role(metadata); margin: 0; color: var(--color-text-secondary); }
-  .tasks-editor__content & textarea { min-height: 72px; height: 88px; }
 }
 .tasks-link > span {
   flex: 1;
@@ -468,18 +450,10 @@
   transition: border-color var(--transition-duration-basic), box-shadow var(--transition-duration-basic);
   // Pointer focus can outlive hover; only keyboard focus and a real open menu
   // keep actions revealed after the pointer leaves the physical card.
-  :root:not([data-pointer-focus]) &:has(:focus-visible),
-  &:has(.tasks-card__tools [data-state="open"]) {
+  &:hover, :root:not([data-pointer-focus]) &:has(:focus-visible), &:has(.tasks-card__tools [data-state="open"]) {
     border-color: var(--color-border-default);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 5%, transparent);
     .tasks-card__tools { opacity: 1; }
-  }
-  @include controls.hover-capable {
-    &:hover {
-      border-color: var(--color-border-default);
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 5%, transparent);
-      .tasks-card__tools { opacity: 1; }
-    }
   }
   &__heading { gap: 4px; min-height: 30px; }
   &__title { @include type.role(body); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -504,7 +478,7 @@
 .tasks-avatar { display: inline-flex; box-sizing: border-box; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--color-background-secondary); color: var(--color-text-secondary); @include type.role(label); }
 .tasks-avatar--empty { border: 1px dashed var(--color-border-default); background: transparent; }
 .tasks-avatar { overflow: hidden; > img { display: block; width: 100%; height: 100%; object-fit: cover; } }
-.tasks-row { grid-template-columns: 140px minmax(140px, 1fr) minmax(140px, 230px) minmax(0, 170px); padding: 8px; border-radius: var(--radius-md); @include controls.hover-capable { &:hover { background: var(--color-background-secondary); } } .tasks-meta { margin: 0; } }
+.tasks-row { grid-template-columns: 140px minmax(140px, 1fr) minmax(140px, 230px) minmax(0, 170px); padding: 8px; border-radius: var(--radius-md); &:hover { background: var(--color-background-secondary); } .tasks-meta { margin: 0; } }
 .tasks-members {
   @include type.role(metadata);
   color: var(--color-text-secondary);
@@ -660,7 +634,6 @@
 }
 .tasks-card__type { display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 8px; margin-bottom: 4px; }
 .tasks-card__tools { display: flex; gap: 0; opacity: 0; .settings-control-button { padding: 3px; width: 26px; min-width: 26px; height: 26px; } }
-@include controls.touch-input { .tasks-card__tools { opacity: 1; } }
 .tasks-card__progress { @include type.role(metadata); color: var(--color-text-secondary); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; border-inline-start: 2px solid var(--color-border-default); padding-inline-start: 8px; }
 .tasks-column__add { width: 100%; justify-content: start; margin-top: 4px; }
 .tasks-inline-create { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; > div { display: flex; gap: 6px; } > small { @include type.role(metadata); color: var(--color-text-tertiary); } }
@@ -713,7 +686,7 @@
     list-style: none; padding: 0; margin: 0;
     > li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--color-border-subtle); > div { min-width: 0; } }
   }
-  &__title { display: block; text-align: start; margin: 8px 0; padding: 0; border: 0; background: none; color: var(--color-text); cursor: pointer; overflow-wrap: anywhere; @include type.role(body); @include controls.hover-capable { &:hover { text-decoration: underline; } } }
+  &__title { display: block; text-align: start; margin: 8px 0; padding: 0; border: 0; background: none; color: var(--color-text); cursor: pointer; overflow-wrap: anywhere; @include type.role(body); &:hover { text-decoration: underline; } }
   &__metadata { color: var(--color-text-secondary); margin-bottom: 8px; @include type.role(metadata); }
   &__text { white-space: pre-wrap; overflow-wrap: anywhere; }
 }
@@ -805,7 +778,7 @@
     color: var(--color-text-secondary);
     text-align: start;
     @include type.role(metadata);
-    @include controls.hover-capable { &:hover { background: var(--color-background-button-tertiary-hover); color: var(--color-text); } }
+    &:hover { background: var(--color-background-button-tertiary-hover); color: var(--color-text); }
   }
   &__icon { display: flex; align-items: center; flex-shrink: 0; }
   &__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

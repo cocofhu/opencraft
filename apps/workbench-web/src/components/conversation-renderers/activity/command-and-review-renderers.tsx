@@ -21,7 +21,7 @@ import {
   writeToClipboard,
 } from "@opencraft/chat-render-web";
 import { useIntl } from "@opencraft/i18n/react";
-import { AlertIcon as AlertCircle, ModelIcon as Brain, ReviewShieldIcon } from "@opencraft/design-system-web/action-icons";
+import { AlertIcon as AlertCircle, ThinkingActivityIcon as Brain, ReviewShieldIcon } from "@opencraft/design-system-web/action-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
