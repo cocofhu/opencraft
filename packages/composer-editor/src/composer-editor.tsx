@@ -1032,11 +1032,14 @@ export const OpenCraftComposer = forwardRef<
   // the complete selectable catalog. Cached metadata cannot grant capabilities.
   const displayModel = selectedModel ?? (selectedModelValue === null ? null
     : resolveModelSelection(selectionCatalog?.displayModels ?? [], selectedModelValue));
-  const requestedEffort = composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort;
+  const effectiveEffort = composerSnapshot.draft.selections.model === undefined
+    || composerSnapshot.draft.selections.model === effectiveSelections?.model
+    ? effectiveSelections?.effort : undefined;
+  const requestedEffort = composerSnapshot.draft.selections.effort ?? effectiveEffort;
   const displayEffortValue = existingConversation ? requestedEffort ?? null : undefined;
   const selectedEffortValue = existingConversation && requestedEffort == null ? null : selectedModel ? resolveReasoningEffort(
     reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),
-    composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort,
+    requestedEffort,
   ) ?? null : null;
   const requestedServiceTier = composerSnapshot.draft.selections.serviceTier !== undefined
     ? composerSnapshot.draft.selections.serviceTier : effectiveSelections?.serviceTier;
@@ -1321,7 +1324,7 @@ export const OpenCraftComposer = forwardRef<
             // of silently resolving the Host default model.
             model: selectedModel?.value ?? selectedModelValue,
             ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedModel ? selectedServiceTier : requestedServiceTier } : {}),
-            ...(selectedModel && (!existingConversation || requestedEffort != null) ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
+            ...(selectedModel && (!existingConversation || requestedEffort != null) ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveEffort) } : {}),
           } };
         }
       } catch {
@@ -1430,6 +1433,7 @@ export const OpenCraftComposer = forwardRef<
       selectedModelValue,
       requestedServiceTier,
       requestedEffort,
+      effectiveEffort,
       existingConversation,
       selectedServiceTier,
       modelSelectionPolicy,
