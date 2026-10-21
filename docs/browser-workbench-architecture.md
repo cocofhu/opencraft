@@ -1369,3 +1369,15 @@ must pass the native clipboard probe and be selected during packaging. Native
 runtime adoption and physical desktop/mobile validation must be recorded
 separately. This does not complete native IME or multitouch, and a video surface
 still cannot provide the mobile OS's native text-selection handles.
+
+### Remote surface keyboard activation
+
+The presentation canvas remains focusable and contenteditable to receive desktop
+hardware-keyboard and composition events. It sets `inputmode="none"` and
+`virtualkeyboardpolicy="manual"`: focusing a tab, clicking streamed content or
+returning from its local menu must not implicitly request the mobile keyboard.
+These are client browser keyboard policies, not remote editability detection.
+The current surface does not yet offer automatic mobile keyboard activation for
+remote editors; that requires the native remote editing-state bridge. Desktop
+IME capture and remote Chromium's editing authority remain unchanged. Physical
+mobile keyboard behavior must be validated separately from touch emulation.

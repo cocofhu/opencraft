@@ -125,6 +125,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const container = document.createElement('div'); container.className = 'web-browser-surface'; container.dataset.browserPageId = id;
     Object.assign(container.style, { visibility: 'hidden', overflow: 'hidden', background: 'var(--background, #fff)' });
     const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; canvas.tabIndex = 0; canvas.contentEditable = 'true'; canvas.spellcheck = false;
+    // Editable captures desktop IME; the video surface is not a local editor.
+    // Focusing a tab or restoring a menu must never request a software keyboard.
+    canvas.inputMode = 'none'; canvas.setAttribute('virtualkeyboardpolicy', 'manual');
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas); this.root?.prepend(container);
