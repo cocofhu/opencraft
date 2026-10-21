@@ -74,7 +74,7 @@ test('v1 evidence upgrades without rewriting migration history and rejects check
     db.prepare('INSERT INTO schema_migrations VALUES(1,?,?,?)').run('bounded-derived-observations',createHash('sha256').update(observationSchemaV1).digest('hex'),now);
     const original=event({actorKind:'human',originClass:'interactive',recoveryId:'existing',kind:'recovery'});
     db.prepare('INSERT INTO events(event_id,at,received,kind,component,actor,body) VALUES(?,?,?,?,?,?,?)').run(original.eventId,now,now,'recovery','web','verified',JSON.stringify(original));db.close();
-    const store=new ObserveStore(path);assert.equal(store.outcome.status,'migrated');assert.equal(store.outcome.appliedVersion,3);
+    const store=new ObserveStore(path);assert.equal(store.outcome.status,'migrated');assert.equal(store.outcome.appliedVersion,4);
     assert.equal(store.events(now-1000,now+1000,Date.now()).find(row=>row.eventId===original.eventId).recoveryId,'existing');
     assert.equal(store.activity(now-1000,now+1000).humans,1);assert.equal(store.recoveries(now-1000,now+1000).value,1);
     store.db.prepare("UPDATE schema_migrations SET checksum='tampered' WHERE version=1").run();store.close();
@@ -109,4 +109,21 @@ test('installed CLI executes through a symlink and retains structured failures',
     const result=await new Promise(resolve=>execFile(process.execPath,[entry,'capabilities','--target',`unix://${directory}/missing.sock`,'--json'],{timeout:10000},(error,stdout)=>resolve({code:error?.code,stdout})));
     assert.equal(result.code,5);assert.equal(JSON.parse(result.stdout).error.code,'backend_unreachable');
   }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+test('latest component response stays bounded across 10000 clients; probe/cache/visibility cannot mix latency histograms',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-cardinality-'));
+  const service=await startObserve({directory,deploymentId:'cardinality-fixture',metricsPort:0,prometheus:'http://127.0.0.1:1'});
+  try{
+    for(let offset=0;offset<10000;offset+=32)service.store.ingest(Array.from({length:Math.min(32,10000-offset)},(_,i)=>event({kind:'client_signal',producerId:`client-${offset+i}`,incidentRef:`incident-${offset+i}`,executionId:`domain-${offset+i}`,actorKind:'human',originClass:'probe'})),'a'.repeat(64));
+    const status=await service.query('platform.status');assert(status.components.length<=11);assert(JSON.stringify(status).length<65536);
+    assert.equal(service.store.activity(now-1000,now+1000).humans,0);
+    const valid={actorKind:'human',visibility:'visible',originClass:'interactive',measurementScope:'in_page',engine:'codex'};
+    service.store.ingest([event({...valid,cache:'cold'}),event({...valid,cache:'warm'}),event({...valid,cache:'cold',originClass:'probe'}),event({...valid,cache:'cold',visibility:'hidden'}),event({...valid,cache:'cold',measurementScope:'rpc'})],'a'.repeat(64));
+    const counters=service.store.db.prepare("SELECT dimension,value FROM metrics WHERE name='foreground_operation_count' ORDER BY dimension").all();
+    assert.equal(counters.length,2);assert.deepEqual(counters.map(r=>r.value),[1,1]);assert.equal(service.store.activity(now-1000,now+1000).humans,1);
+    service.store.ingest([event({...valid,actorKind:'human',cache:'cold'})],'b'.repeat(64));
+    assert.equal(service.store.activity(now-1000,now+1000).humans,2);
+    assert(service.store.db.prepare('SELECT count(*) AS n FROM metrics').get().n<10000);
+  }finally{await service.close();await rm(directory,{recursive:true,force:true});}
 });

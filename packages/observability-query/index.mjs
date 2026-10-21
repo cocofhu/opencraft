@@ -1,10 +1,11 @@
 import { fault } from '../observability-contract/index.mjs';
-export const queryDefinitionRevision = 'observe-v1.1.2';
-const latency = 'histogram_quantile(0.95, sum by (le, operation) (rate(opencraft_operation_duration_seconds_bucket[5m])))';
+export const queryDefinitionRevision = 'observe-v1.1.3';
+const latency = 'histogram_quantile(0.95, sum by (le, operation, cache, engine) (rate(opencraft_interactive_operation_duration_seconds_bucket[5m])))';
 /** This is the only expression registry, shared by Observe and generated provisioning. */
 export const definitions = Object.freeze({
   'platform.status': { title: 'Platform and collection status', kind: 'resource_sample', promql: 'opencraft_producer_age_seconds', unit: 'seconds' },
-  'operations.latency': { title: 'Operation latency (histogram estimate)', kind: 'histogram_approximation', promql: latency, unit: 'seconds' },
+  'operations.latency': { title: 'Successful foreground interactive latency (5m estimate)', kind: 'histogram_approximation', promql: latency, unit: 'seconds' },
+  'operations.outcomes': {title:'Observed operation outcomes by source (5m estimate)',kind:'histogram_approximation',promql:'sum by (operation, outcome, origin) (increase(opencraft_observed_operations_total[5m]))',unit:'operations',windowSemantics:'rolling_5m_at_evaluation'},
   'recovery.episodes': { title: 'Recovery episodes (exact domain aggregation)', kind: 'exact_domain_aggregation', promql: 'opencraft_recovery_episodes', unit: 'episodes', windowSemantics:'rolling_24h_at_evaluation' },
   'execution.progress': { title: 'Observed execution lifecycle (exact domain aggregation)', kind: 'exact_domain_aggregation', promql: 'opencraft_executions', unit: 'executions', windowSemantics:'rolling_24h_at_evaluation' },
   'execution.stages': {title:'Active execution stages (latest observed state)',kind:'exact_domain_aggregation',promql:'opencraft_active_executions',unit:'executions',windowSemantics:'latest_observed_state_at_evaluation'},

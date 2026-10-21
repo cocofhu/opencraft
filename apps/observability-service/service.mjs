@@ -55,7 +55,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
   }
   function envelope(window) { return {schemaVersion,snapshotId:randomUUID(),deploymentId,queryDefinitionRevision,metricSchemaVersion:schemaVersion,
     window:{from:new Date(window.from).toISOString(),to:new Date(window.to).toISOString(),capturedAt:new Date(now()).toISOString(),dataThrough:new Date(now()).toISOString()},
-    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,availability:now()-p.received>limits.freshnessMs?'stale':'available',sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',identitySource:p.identity.identitySource??'unknown',producerMode:p.identity.producerMode??'unknown',version:p.identity.version??null,observedAt:new Date(p.received).toISOString()})),
+    ...coverage(),componentIdentityScope:'latest_observed_producer_per_component',components:store.producers().map(p=>({component:p.component,producerId:p.producer,availability:now()-p.received>limits.freshnessMs?'stale':'available',sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',identitySource:p.identity.identitySource??'unknown',producerMode:p.identity.producerMode??'unknown',version:p.identity.version??null,observedAt:new Date(p.received).toISOString()})),
     sampling:{operation:1,diagnostic:1},loss:{accepted:store.accepted,rejected:store.rejected,dropped:store.dropped,exportDropped,unobservableLoss:'unknown'},
     correlationGaps:[],evidenceExpiresAt:new Date(window.from+limits.retentionMs).toISOString() }; }
   async function query(name,input={},deadline=Date.now()+4200) {
@@ -112,8 +112,9 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     lines.push(`opencraft_recovery_episodes ${recoveries.value}`);
     // Finite dimensions only. Counts persist across service restarts in the derived store.
     for(const row of store.db.prepare('SELECT name,dimension,value FROM metrics').all()) {
-      if(row.name==='operation_bucket'){const [operation,le]=JSON.parse(row.dimension);lines.push(`opencraft_operation_duration_seconds_bucket{operation="${operation}",le="${le}"} ${row.value}`);}
-      if(row.name==='operation_count'||row.name==='operation_sum')lines.push(`opencraft_operation_duration_seconds_${row.name==='operation_count'?'count':'sum'}{operation="${row.dimension}"} ${row.value}`);
+      if(row.name==='foreground_operation_bucket'){const [operation,cache,engine,le]=JSON.parse(row.dimension);lines.push(`opencraft_interactive_operation_duration_seconds_bucket{operation="${operation}",cache="${cache}",engine="${engine}",le="${le}"} ${row.value}`);}
+      if(row.name==='foreground_operation_count'||row.name==='foreground_operation_sum'){const [operation,cache,engine]=JSON.parse(row.dimension);lines.push(`opencraft_interactive_operation_duration_seconds_${row.name==='foreground_operation_count'?'count':'sum'}{operation="${operation}",cache="${cache}",engine="${engine}"} ${row.value}`);}
+      if(row.name==='operation_outcome'){const [operation,outcome,origin]=JSON.parse(row.dimension);lines.push(`opencraft_observed_operations_total{operation="${operation}",outcome="${outcome}",origin="${origin}"} ${row.value}`);}
       if(row.name==='rpc'){const [method,outcome]=JSON.parse(row.dimension);lines.push(`opencraft_rpc_total{method="${method}",outcome="${outcome}"} ${row.value}`);}
     }
     return lines.join('\n')+'\n';

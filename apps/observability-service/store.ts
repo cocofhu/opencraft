@@ -1,5 +1,5 @@
 import { openManagedDatabase, createSchemaValidator } from '../../packages/sqlite-node/src/index.js';
-import { limits, sanitizeEvent } from '../../packages/observability-contract/index.mjs';
+import { limits, sanitizeEvent, components } from '../../packages/observability-contract/index.mjs';
 export const observationSchemaV1 = `
 CREATE TABLE events(seq INTEGER PRIMARY KEY, event_id TEXT NOT NULL UNIQUE, at INTEGER NOT NULL, received INTEGER NOT NULL, kind TEXT NOT NULL, component TEXT NOT NULL, actor TEXT, body TEXT NOT NULL) STRICT;
 CREATE INDEX events_window ON events(at,received);
@@ -20,6 +20,7 @@ CREATE TABLE execution_progress(domain_key TEXT PRIMARY KEY, engine TEXT NOT NUL
 CREATE INDEX execution_progress_active ON execution_progress(terminal,received);
 CREATE TABLE queue_samples(domain_key TEXT PRIMARY KEY, engine TEXT NOT NULL, count INTEGER NOT NULL, observed_at INTEGER NOT NULL, received INTEGER NOT NULL) STRICT;
 `;
+export const observationSchemaV4 = `CREATE INDEX producers_freshness ON producers(component,received DESC,producer DESC);`;
 const backfill = `
 INSERT OR IGNORE INTO activity_hours SELECT CAST(at/3600000 AS INTEGER),actor FROM events WHERE actor IS NOT NULL AND json_extract(body,'$.actorKind')='human' AND json_extract(body,'$.originClass')='interactive';
 INSERT OR IGNORE INTO recovery_episodes SELECT json_extract(body,'$.recoveryId'),min(at),max(at),'unknown' FROM events WHERE kind='recovery' AND json_extract(body,'$.recoveryId') IS NOT NULL GROUP BY json_extract(body,'$.recoveryId');
@@ -28,7 +29,7 @@ export class ObserveStore {
   db; outcome; accepted = 0; rejected = 0; dropped = 0;
   constructor(path: string, readonly now = Date.now) {
     const managed = openManagedDatabase({ path, legacyPolicy: 'reject', backup: {keep: 1},
-      validateSchema: createSchemaValidator(observationSchemaV1+observationSchemaV2+observationSchemaV3), migrations: [{version: 1, name: 'bounded-derived-observations', sql: observationSchemaV1},{version:2,name:'bounded-query-indexes-and-domain-rollups',sql:observationSchemaV2+backfill},{version:3,name:'execution-progress-and-queue-samples',sql:observationSchemaV3}] });
+      validateSchema: createSchemaValidator(observationSchemaV1+observationSchemaV2+observationSchemaV3+observationSchemaV4), migrations: [{version: 1, name: 'bounded-derived-observations', sql: observationSchemaV1},{version:2,name:'bounded-query-indexes-and-domain-rollups',sql:observationSchemaV2+backfill},{version:3,name:'execution-progress-and-queue-samples',sql:observationSchemaV3},{version:4,name:'latest-component-producer-index',sql:observationSchemaV4}] });
     this.db = managed.database; this.outcome = managed.outcome;
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=50; PRAGMA max_page_count=110000; PRAGMA journal_size_limit=33554432;');
   }
@@ -52,9 +53,13 @@ export class ObserveStore {
             .run(event.component,event.producerId,now,body);
           const add = (name: string, dimension: string, value: number) => this.db.prepare('INSERT INTO metrics VALUES(?,?,?) ON CONFLICT(name,dimension) DO UPDATE SET value=metrics.value+excluded.value').run(name,dimension,value);
           if (event.kind === 'rpc' && event.method && event.outcome) add('rpc',JSON.stringify([event.method,event.outcome]),1);
-          if (event.kind === 'operation' && event.operationType && event.outcome === 'ok' && event.durationMs !== undefined) {
-            for (const le of [.05,.1,.25,.5,1,2,5,10,30,60,Infinity]) if (event.durationMs / 1000 <= le) add('operation_bucket',JSON.stringify([event.operationType,le===Infinity?'+Inf':le]),1);
-            add('operation_count',event.operationType,1);add('operation_sum',event.operationType,event.durationMs/1000);
+          if(event.kind==='operation'&&event.operationType&&event.outcome&&!['started','progress'].includes(event.outcome))add('operation_outcome',JSON.stringify([event.operationType,event.outcome,event.originClass]),1);
+          // Histograms describe foreground interactive successes only. Source/cache/engine
+          // metadata is never inferred from request counts, a probe, or another session.
+          if (event.kind === 'operation' && event.operationType && event.outcome === 'ok' && event.durationMs !== undefined && event.originClass==='interactive' && event.visibility==='visible' && event.measurementScope===(event.operationType==='navigation'?'navigation':'in_page')) {
+            const dimension=JSON.stringify([event.operationType,event.cache??'unknown',event.engine??'unknown']);
+            for (const le of [.05,.1,.25,.5,1,2,5,10,30,60,Infinity]) if (event.durationMs / 1000 <= le) add('foreground_operation_bucket',JSON.stringify([event.operationType,event.cache??'unknown',event.engine??'unknown',le===Infinity?'+Inf':le]),1);
+            add('foreground_operation_count',dimension,1);add('foreground_operation_sum',dimension,event.durationMs/1000);
           }
           if(event.kind==='queue'&&event.executionId&&event.engine&&event.count!==undefined){
             this.db.prepare(`INSERT INTO queue_samples VALUES(?,?,?,?,?) ON CONFLICT(domain_key) DO UPDATE SET count=CASE WHEN excluded.observed_at>=queue_samples.observed_at THEN excluded.count ELSE queue_samples.count END,observed_at=MAX(queue_samples.observed_at,excluded.observed_at),received=MAX(queue_samples.received,excluded.received)`).run(event.engine+':'+event.executionId,event.engine,Math.floor(event.count),event.at,now);
@@ -82,7 +87,10 @@ export class ObserveStore {
     return this.db.prepare('SELECT body,received FROM events WHERE at>=? AND at<=? AND received<=? ORDER BY at,seq LIMIT ?')
       .all(from,to,through,count+1).map(row => ({...JSON.parse(row.body as string), receivedAt: row.received}));
   }
-  producers() { return this.db.prepare('SELECT component,producer,received,body FROM producers').all().map(row=>({...row, identity:JSON.parse(row.body as string)})); }
+  producers() {
+    const latest=this.db.prepare('SELECT component,producer,received,body FROM producers WHERE component=? ORDER BY received DESC,producer DESC LIMIT 1');
+    return components.flatMap(component=>{const row=latest.get(component);return row?[{...row,identity:JSON.parse(row.body as string)}]:[];});
+  }
   activity(from: number, to: number) {
     const first=Math.ceil(from/3600000),last=Math.floor(to/3600000);
     return this.db.prepare(`SELECT count(DISTINCT actor) AS humans FROM (

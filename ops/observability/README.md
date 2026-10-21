@@ -61,6 +61,8 @@ provisioning directory. No source checkout or enterprise service is required.
    configuration. Verify native discovery and actual CLI execution outside a checkout.
 
 Generate dashboards in a source checkout with `node ops/observability/generate.mjs`.
+Latency histograms include successful visible interactive operations only, separated by cache and engine; unknown dimensions stay explicit. Probe/background samples remain in evidence and source-separated outcome counters. Component identity responses contain the latest observed producer per component, not an inventory of every tab or process.
+
 The generated expressions come exclusively from `packages/observability-query`.
 Grafana and CLI queries use the same absolute evaluation timestamp. Domain gauges
 declare rolling 24h/7d scope; the 24h and 7d human totals are independent unions, not additive. Active execution stages and oldest effective progress age use domain identities; queue owner snapshots expire to unknown after 90s and never create execution rounds. Latest state in evidence is explicitly separate from historical-window events; missing internal capacity/model information remains unknown. histogram/counter rates are estimates over their stated
