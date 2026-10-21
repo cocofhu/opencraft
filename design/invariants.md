@@ -1,5 +1,14 @@
 # 工作区不变量
 
+## Image preview gestures
+
+Web image previews share a bounded local pinch/pan viewport. Manipulation never
+changes the document, page scale, source or active gallery index. Preview controls
+remain outside the transformed image and reachable at every scale; cancelling a
+pointer ends its participation without closing the modal or starting navigation.
+
+
+
 ## Internal projection metadata identity
 
 OpenCraft message projection writes use `__opencraft*` keys. The five exact

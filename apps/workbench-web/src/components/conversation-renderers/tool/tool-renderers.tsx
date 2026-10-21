@@ -6,7 +6,7 @@ import {
   type SubagentActivityRenderUnit, type TimelineBlock, type ToolCallContentPart,
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
-import { LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
+import { ZoomableImage, LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
 import { Bot, Check, ChevronRight, Circle, Code2, Globe2, ImageIcon, LoaderCircle, MessageSquare, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -239,7 +239,7 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
     </div>
     {open ? <ModalSurface label={alt} className="thread-generated-image-lightbox__dialog" layer="nested"
       presentation="fullscreen" showCloseButton={false} onDismiss={() => setOpen(false)}>
-      <img src={media.source} alt={alt} />
+      <ZoomableImage src={media.source} alt={alt} />
       <div className="thread-generated-image-lightbox__toolbar">
         <a href={media.source} download={block.savedPath?.split(/[\\/]/u).at(-1) ?? "generated-image.png"}>Save</a>
         <button type="button" aria-label="Close generated image 1" onClick={() => setOpen(false)}><X size={18} /></button>

@@ -1,7 +1,7 @@
 import { AvatarImage, IdentityAvatarContext } from "@opencraft/extension-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { UserMessageTimelineBlock } from "@opencraft/chat-core";
-import { WebUserMessageDocument, resolveStandardChatResource, writeTextToClipboard } from "@opencraft/chat-render-web";
+import { ZoomableImage, WebUserMessageDocument, resolveStandardChatResource, writeTextToClipboard } from "@opencraft/chat-render-web";
 import {
   AlertCircle,
   Check,
@@ -211,7 +211,7 @@ function UserMessageImageViewer({
   return (
     <ModalSurface className="thread-user-image-lightbox" label={label} layer="nested" onDismiss={onClose} returnFocus={returnFocus} size="workspace">
       {media.source !== null && failedSource !== media.source
-        ? <img alt={label} draggable={false} onError={() => setFailedSource(media.source)} src={media.source} />
+        ? <ZoomableImage key={documentId} alt={label} onError={() => setFailedSource(media.source)} src={media.source} />
         : <div className="thread-user-image-lightbox__unavailable" role="status">{media.status === "loading" ? <FormattedMessage id="chat.image.loading" defaultMessage="Loading image…" /> : <FormattedMessage id="chat.image.unavailable" defaultMessage="Image unavailable" />}</div>}
       {imageCount > 1 ? (
         <div className="thread-user-image-lightbox__navigation">
