@@ -85,9 +85,10 @@ export function ImSources({
                 <SettingsListItem
                   key={JSON.stringify([s.channelId, s.source.chatId, s.source.threadId, s.source.senderId])}
                   label={`${s.source.chatType === "direct" ? "私聊" : s.source.chatType === "group" ? "群聊" : "聊天"} · ${s.source.chatId}`}
-                  description={`${s.provider === "wecom" ? "企业微信" : s.provider === "slack" ? "Slack" : s.provider} · ${s.name} · 最近收到于 ${new Date(s.lastSeen).toLocaleString()}`}
+                  description={`${s.provider === "wecom" ? "企业微信" : s.provider === "slack" ? "Slack" : s.provider} · ${s.name}`}
                   metadata={
-                    [s.source.threadId && "话题 " + s.source.threadId,
+                    ["最近收到于 " + new Date(s.lastSeen).toLocaleString(document.documentElement.lang || undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }),
+                      s.source.threadId && "话题 " + s.source.threadId,
                       s.source.chatType === "group" && "发言人 " + s.source.senderId]
                       .filter(Boolean).join(" · ") || undefined
                   }
