@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -359,6 +360,14 @@ export async function startHeadlessServer(options = {}, composition = {}) {
         if (hostId !== "local-codex") throw new Error(`Unknown server Host ${hostId}`);
         return new McpAppsTransport(new MachineIdentityTransport(machineIdentity, "Codex", () => options.createCodexTransport?.() ?? new CodexEngineAdapter({
           createThreadMetadata,
+          tokenUsage: {
+            queryWorkerEntry: existsSync(fileURLToPath(new URL('./token-usage-query-worker.mjs',import.meta.url)))
+              ? fileURLToPath(new URL('./token-usage-query-worker.mjs',import.meta.url))
+              : fileURLToPath(new URL('../apps/opencraft-daemon/src/token-usage-query-worker.ts',import.meta.url)),
+            serverId: `server:${machineIdentity.machineId}:codex`,
+            actor: context => actorStore.isCurrent(context) ? actorStore.get(context.actorId) : null,
+            submission: (threadId,inputId) => actorCollaboration.usageSubmission(threadId,inputId),
+          },
           collaboration: {
             queuedContext: (thread,inputId,input) => actorCollaboration.queuedReferenceContext(thread,inputId,input),
             continued: (thread,previous,turn) => actorCollaboration.executionContinued(thread,previous,turn),

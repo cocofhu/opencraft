@@ -1,6 +1,13 @@
+import { CODEX_HOST_TOKEN_USAGE_FROZEN } from "./token-usage-frozen-schema.js";
+import { CODEX_HOST_TOKEN_USAGE_ACTORS } from "./token-usage-actor-schema.js";
+import { CODEX_HOST_TOKEN_USAGE_ATTEMPTS } from "./token-usage-attempt-schema.js";
+import { CODEX_HOST_TOKEN_USAGE_QUERY } from "./token-usage-query-schema.js";
+import { CODEX_HOST_TOKEN_USAGE_COUNTERS } from "./token-usage-counter-schema.js";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { openManagedDatabase, createSchemaValidator, createMissingLegacyObjects, type DatabaseOutcome } from "@opencraft/sqlite-node";
+import { CODEX_HOST_TOKEN_USAGE } from "./token-usage-schema.js";
+import { CODEX_HOST_TOKEN_USAGE_RUNTIME } from "./token-usage-runtime-schema.js";
 
 export const CODEX_HOST_STATE_BASELINE = `
 CREATE TABLE codex_host_queue (
@@ -73,7 +80,8 @@ CREATE TABLE ioa_presence_sync (
   thread_id TEXT PRIMARY KEY, reconciled_at_ms INTEGER NOT NULL
 ) STRICT;
 `;
-const FULL_SCHEMA = LEGACY_SCHEMA + CODEX_HOST_IOA_CREATORS + CODEX_HOST_SENDER_ORIGINS + CODEX_HOST_CATALOG;
+const PRE_TOKEN_USAGE_SCHEMA = LEGACY_SCHEMA + CODEX_HOST_IOA_CREATORS + CODEX_HOST_SENDER_ORIGINS + CODEX_HOST_CATALOG;
+const FULL_SCHEMA = PRE_TOKEN_USAGE_SCHEMA + CODEX_HOST_TOKEN_USAGE + CODEX_HOST_TOKEN_USAGE_RUNTIME + CODEX_HOST_TOKEN_USAGE_COUNTERS + CODEX_HOST_TOKEN_USAGE_QUERY + CODEX_HOST_TOKEN_USAGE_ATTEMPTS + CODEX_HOST_TOKEN_USAGE_ACTORS + CODEX_HOST_TOKEN_USAGE_FROZEN;
 // The early surviving source and deployed CREATE/ALTER sequence prove these
 // room layouts. Only known objects/constraints are accepted; records are retained.
 const LEGACY_ROOM_COLUMNS = [
@@ -85,9 +93,14 @@ const LEGACY_ROOM_COLUMNS = [
 const legacyCandidates = LEGACY_ROOM_COLUMNS.map(columns => createMissingLegacyObjects(
   LEGACY_SCHEMA.replace(/CREATE TABLE codex_bot_rooms \([\s\S]*?\);/, `CREATE TABLE codex_bot_rooms (${columns});`),
 ));
+// The exact previously accepted unledgered v5 layout remains an accepted
+// upgrade input. Do not broaden this to arbitrary subsets of later schemas.
+const previousLegacy = createMissingLegacyObjects(PRE_TOKEN_USAGE_SCHEMA);
+const previousObjectCount = (PRE_TOKEN_USAGE_SCHEMA.match(/CREATE (?:TABLE|INDEX) /g) ?? []).length;
 const legacyMigration = {
   accepts: (fingerprint: string, objects: Parameters<(typeof legacyCandidates)[number]["accepts"]>[1]) =>
-    legacyCandidates.some(candidate => candidate.accepts(fingerprint, objects)),
+    legacyCandidates.some(candidate => candidate.accepts(fingerprint, objects)) ||
+    (objects.length === previousObjectCount && previousLegacy.accepts(fingerprint, objects)),
   migrate: (database: DatabaseSync) => {
     const columns = database.prepare("PRAGMA table_info(codex_bot_rooms)").all().map(row => String(row.name));
     if (columns.length && columns.join(",") !== "thread_id,created_ms,cwd,draft,native_thread_id") {
@@ -103,18 +116,28 @@ const legacyMigration = {
 };
 
 /** Queue and message provenance share the existing per-Host file and transaction owner. */
+export const CODEX_HOST_STATE_MIGRATIONS = [
+  { version: 1, name: "codex-host-state", sql: CODEX_HOST_STATE_BASELINE },
+  { version: 2, name: "codex-bot-state", sql: CODEX_HOST_BOT_STATE },
+  { version: 3, name: "ioa-thread-creators", sql: CODEX_HOST_IOA_CREATORS },
+  { version: 4, name: "message-sender-origins", sql: CODEX_HOST_SENDER_ORIGINS },
+  { version: 5, name: "durable-thread-catalog", sql: CODEX_HOST_CATALOG },
+  { version: 6, name: "token-usage-metering", sql: CODEX_HOST_TOKEN_USAGE },
+  { version: 7, name: "token-usage-recovery", sql: CODEX_HOST_TOKEN_USAGE_RUNTIME },
+  { version: 8, name: "token-usage-native-counters", sql: CODEX_HOST_TOKEN_USAGE_COUNTERS },
+  { version: 9, name: "token-usage-query-indexes", sql: CODEX_HOST_TOKEN_USAGE_QUERY },
+  { version: 10, name: "token-usage-delivery-attempts", sql: CODEX_HOST_TOKEN_USAGE_ATTEMPTS },
+  { version: 11, name: "token-usage-actor-projections", sql: CODEX_HOST_TOKEN_USAGE_ACTORS },
+  { version: 12, name: "token-usage-frozen-coverage", sql: CODEX_HOST_TOKEN_USAGE_FROZEN },
+] as const;
+
 export class CodexHostStateDatabase {
   readonly database: DatabaseSync;
   readonly outcome: DatabaseOutcome;
   constructor(directory: string) {
     const path = join(directory, "codex-host-queue.sqlite");
-    const managed = openManagedDatabase({ path, legacyPolicy: "reject-unknown", validateSchema: createSchemaValidator(FULL_SCHEMA), migrations: [
-      { version: 1, name: "codex-host-state", sql: CODEX_HOST_STATE_BASELINE },
-      { version: 2, name: "codex-bot-state", sql: CODEX_HOST_BOT_STATE },
-      { version: 3, name: "ioa-thread-creators", sql: CODEX_HOST_IOA_CREATORS },
-      { version: 4, name: "message-sender-origins", sql: CODEX_HOST_SENDER_ORIGINS },
-      { version: 5, name: "durable-thread-catalog", sql: CODEX_HOST_CATALOG },
-    ], legacyMigration });
+    const managed = openManagedDatabase({ path, legacyPolicy: "reject-unknown", validateSchema: createSchemaValidator(FULL_SCHEMA),
+      migrations: CODEX_HOST_STATE_MIGRATIONS, legacyMigration });
     this.database = managed.database;
     this.outcome = managed.outcome;
   }

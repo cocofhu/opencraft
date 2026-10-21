@@ -329,6 +329,8 @@ import type {
 } from "./generated/v2";
 
 export interface AppServerMethodMap extends AppServerBotMethodMap, AppServerCodexAccountMethodMap, AppServerProcessMethodMap, AppServerAttachmentMethodMap, ProfileSkillsMethodMap, ThreadPinsMethodMap, TasksMethodMap, ConversationSchedulesMethodMap {
+  "opencraft/token-usage/configure": { params: {enabled:boolean}; result: {enabled:boolean;enabledAt:number;revision:number} };
+  "opencraft/token-usage/query": { params: Record<string, unknown>; result: import("./token-usage.js").TokenUsageSnapshot };
   "opencraft/collaboration": { params: Record<string, unknown>; result: Record<string, unknown> };
   "mcpServer/resource/read": { params: McpResourceReadParams; result: McpResourceReadResponse };
   "mcpServer/tool/call": { params: McpServerToolCallParams; result: McpServerToolCallResponse };

@@ -33,7 +33,8 @@ export function headlessWebHostDefinitions() {
   }];
 }
 
-export function buildHeadlessBundle(output, { headlessEntry = join(repositoryRoot, "scripts/headless-server.mjs") } = {}) {
+export async function buildHeadlessBundle(output, { headlessEntry = join(repositoryRoot, "scripts/headless-server.mjs") } = {}) {
+  await build({entryPoints:[join(repositoryRoot,"apps/opencraft-daemon/src/token-usage-query-worker.ts")],outfile:join(dirname(output),"token-usage-query-worker.mjs"),bundle:true,platform:"node",format:"esm",target:"node26",logLevel:"warning"});
   return build({
     entryPoints: [resolve(headlessEntry)],
     // Product-local packages resolve first; this is a trusted build fallback.

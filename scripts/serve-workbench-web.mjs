@@ -669,7 +669,11 @@ export async function createWorkbenchWebServer({
     };
     const actor = actorService?.authenticate(request);
     const ownerId = actor?.actorId ?? (principal ? JSON.stringify([principal.provider, principal.subject]) : submissionContext.sender ? `employee:${submissionContext.sender.loginName}` : "local-anonymous");
-    submissionContext = { ...submissionContext, ...(actor ? {actorContext: actor} : {}), resourceOwner: {id: ownerId, assertCurrent() {
+    submissionContext = { ...submissionContext, tokenUsageAuthority: () => {
+      if (socket.destroyed || !actorAllowed() || (submissionContext.validUntil !== undefined && submissionContext.validUntil <= Date.now())) return null;
+      const current = actorService?.usageAuthority(request);
+      return current && current.actorId === actor?.actorId ? current : null;
+    }, ...(actor ? {actorContext: actor} : {}), resourceOwner: {id: ownerId, assertCurrent() {
       if (socket.destroyed || !actorAllowed() || (actor && actorService.authenticate(request)?.actorId !== actor.actorId)
         || (submissionContext.validUntil !== undefined && submissionContext.validUntil <= Date.now())
         || (principal && !accessService.role(principal))) throw new Error("App resource authority revoked");

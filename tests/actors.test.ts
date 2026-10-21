@@ -363,3 +363,23 @@ test('a Web entry without an Actor authority does not serve HTML as a successful
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: 'missing' });
 });
+
+test('statistics authority follows current human instance role, never management grants or Session proofs', async t => {
+  const {store}=await fixture(t);
+  const principal=human();let administrator=false,admitted=true,current=true;
+  const access=new ActorAccess(store,{authenticateHuman:request=>request.headers.cookie==='verified-human'?principal:null,
+    admitted:()=>admitted,administrator:()=>administrator,isHumanCurrent:()=>current});
+  const request={headers:{cookie:'verified-human'}};
+  const actor=access.authenticate(request)!;
+  assert.deepEqual(access.usageAuthority(request),{actorId:actor.actorId,administrator:false});
+  store.setGrant(actor.actorId,store.managementResource,'actors.manage',true,'local-operator');
+  assert.equal(access.manages(request,actor),true);
+  assert.equal(access.usageAuthority(request)?.administrator,false,'actors.manage is not statistics team authority');
+  administrator=true;assert.equal(access.usageAuthority(request)?.administrator,true);
+  administrator=false;assert.equal(access.usageAuthority(request)?.administrator,false,'role downgrade is observed on an existing connection');
+  current=false;assert.equal(access.usageAuthority(request),null);current=true;
+  admitted=false;assert.equal(access.usageAuthority(request),null);admitted=true;
+  const session=store.createSession('machine','local-operator');const credential=store.issueCredential(session.id,Date.now()+60000,'local-operator');
+  assert.equal(access.usageAuthority({headers:{authorization:'Bearer '+credential.token}}),null,'a Session cannot become a human dashboard viewer');
+  store.setEnabled(actor.actorId,false,'local-operator');assert.equal(access.usageAuthority(request),null);
+});

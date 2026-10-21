@@ -74,6 +74,7 @@ export async function packageWebServer({ version, webRoot = join(repositoryRoot,
     for (const [entry, target, format] of [
       [executionProfile === 'headless' ? headlessGatewayEntry : 'scripts/server-deployment/gateway.mjs', 'gateway.mjs', 'esm'],
       ['apps/opencraft-daemon/src/bin.ts', 'daemon.cjs', 'cjs'],
+      ['apps/opencraft-daemon/src/token-usage-query-worker.ts', 'token-usage-query-worker.mjs', 'esm'],
       ['apps/local-agent-host/src/dsh-capability-plugin.mjs', 'dsh-capability-plugin.mjs', 'esm'],
       ['scripts/server-deployment/dsh-host.mjs', 'dsh-host.mjs', 'esm'],
     ]) {

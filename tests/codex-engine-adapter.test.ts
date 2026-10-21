@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -29,7 +30,7 @@ function waitFor(frames: Array<Record<string, unknown>>, predicate: (frame: Reco
   });
 }
 
-function createRoutingAdapter(root: string, frames: Array<Record<string, unknown>>, nativeQueueSteerVersion: 0 | 1 | 2 = 0, steerResponse?: string, nativeSubscriptionGraceMs?: number, desktop?: LocalDesktopService, autoTitles = false): CodexEngineAdapter {
+function createRoutingAdapter(root: string, frames: Array<Record<string, unknown>>, nativeQueueSteerVersion: 0 | 1 | 2 = 0, steerResponse?: string, nativeSubscriptionGraceMs?: number, desktop?: LocalDesktopService, autoTitles = false, tokenUsage?:ConstructorParameters<typeof CodexEngineAdapter>[0]["tokenUsage"]): CodexEngineAdapter {
   const adapter = new CodexEngineAdapter({
     executable: process.execPath,
     runtimeDirectory: root,
@@ -41,6 +42,7 @@ function createRoutingAdapter(root: string, frames: Array<Record<string, unknown
     createMaintenanceClient: async () => { throw new Error("not used"); },
     logDiagnostic: () => undefined,
     nativeSubscriptionGraceMs,
+    tokenUsage,
     desktop,
   });
   adapter.subscribeMessage(frame => frames.push(JSON.parse(frame)));
@@ -73,6 +75,11 @@ test("model capacity failures continue with exponential backoff capped at 120 se
     const accepted = (await request("capacity:inputs", "test/readAcceptedInputs", {})).data;
     assert.deepEqual(accepted.at(-1).params.input, []);
     assert.match(accepted.at(-1).params.clientUserMessageId, /^capacity-retry:/);
+    const usageDb=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+    try{
+      const fact=usageDb.prepare("SELECT actor_id,actor_kind,source_kind,mode FROM token_usage_submissions WHERE server_id=? AND thread_id=? AND input_id=?").get("local-codex",threadId,accepted.at(-1).params.clientUserMessageId);
+      assert.deepEqual({...fact},{actor_id:null,actor_kind:"session",source_kind:"system",mode:"start"});
+    }finally{usageDb.close();}
     await request("capacity:fail-again", "test/completeTurn", { threadId, codexErrorInfo: "serverOverloaded" });
     await new Promise(resolve => setTimeout(resolve, 1_100));
     assert.equal((await request("capacity:before-second-backoff", "test/readAcceptedInputs", {})).data.length, 2);
@@ -1214,4 +1221,63 @@ test("Host binds each submission to its trusted sender and keeps queued authors 
     const withoutId = await request("a", "turn/steer", { threadId, expectedTurnId: turnId, input: [{ type: "text", text: "no id" }] });
     assert.match(withoutId.error.message, /Message identity/);
   } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+
+test("usage attempts follow the actual queue dispatcher and retain definitive rejection outcomes",async()=>{
+ const root=await mkdtemp(join(tmpdir(),"oc-usage-attempt-host-")),frames:Array<Record<string,unknown>>=[];
+ const adapter=createRoutingAdapter(root,frames,0,undefined,undefined,undefined,false,{serverId:"fixture",actor:context=>({id:context.actorId,kind:"human"}),submission:(threadId,inputId)=>inputId.startsWith("queued-")?{threadId,inputId,actorId:"A",actorKind:"human",mode:"start",sourceKind:"human",submittedAt:1000}:null});
+ let seq=0;
+ const request=async(actorId:string,method:string,params:Record<string,unknown>)=>{
+  const id="usage-attempt:"+(++seq);
+  await adapter.sendWithContext(JSON.stringify({id,method,params,[LOGICAL_CLIENT_FIELD]:actorId}),{sender:null,actorContext:{actorId,generation:1,credentialId:null,expiresAt:Date.now()+60000}});
+  return await waitFor(frames,f=>f.id===id) as any;
+ };
+ try{
+  await adapter.connect();await initializeClient(adapter,frames,"A");await initializeClient(adapter,frames,"B");
+  const threadId=(await request("A","thread/start",{testNoServerRequest:true})).result.thread.id;
+  const turnId=(await request("A","turn/start",{threadId,clientUserMessageId:"start-A",input:[{type:"text",text:"synthetic"}]})).result.turn.id;
+  const queued=(await request("A","thread/queue/add",{threadId,clientUserMessageId:"queued-A",input:[{type:"text",text:"synthetic"}]})).result.queuedSubmission;
+  assert.ok((await request("B","thread/queue/steer",{threadId,queuedSubmissionId:queued.id,expectedTurnId:turnId})).result);
+  const rejected=await request("B","turn/steer",{threadId,clientUserMessageId:"rejected-B",expectedTurnId:"different-turn",input:[{type:"text",text:"synthetic"}]});
+  assert.ok(rejected.error);
+  const db=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+  try{
+   const dispatched=db.prepare("SELECT actor_id,mode,outcome,turn_id FROM token_usage_attempts WHERE input_id='queued-A'").get()!;
+   assert.deepEqual({...dispatched},{actor_id:"B",mode:"steer",outcome:"accepted",turn_id:turnId});
+   assert.equal(db.prepare("SELECT actor_id FROM token_usage_submissions WHERE input_id='queued-A'").get()!.actor_id,"B");
+   assert.equal(db.prepare("SELECT outcome FROM token_usage_attempts WHERE input_id='rejected-B'").get()!.outcome,"rejected");
+   assert.equal(db.prepare("SELECT count(*) AS n FROM token_usage_admissions WHERE input_id='rejected-B'").get()!.n,0);
+   const fallback=(await request("A","thread/queue/add",{threadId,clientUserMessageId:"queued-fallback",input:[{type:"text",text:"synthetic"}]})).result.queuedSubmission;
+   assert.ok((await request("B","thread/queue/steer",{threadId,queuedSubmissionId:fallback.id,expectedTurnId:"different-turn"})).error);
+   await request("A","test/completeTurn",{threadId});
+   const deadline=Date.now()+3000;
+   while(Date.now()<deadline&&!db.prepare("SELECT 1 FROM token_usage_attempts WHERE input_id='queued-fallback' AND outcome='accepted'").get())await new Promise(resolve=>setTimeout(resolve,10));
+   const attempts=db.prepare("SELECT actor_id,mode,outcome FROM token_usage_attempts WHERE input_id='queued-fallback' ORDER BY submitted_ms,attempt_id").all();
+   assert.equal(attempts.length,2);
+   assert.ok(attempts.some(row=>row.actor_id==="B"&&row.mode==="steer"&&row.outcome==="rejected"));
+   assert.ok(attempts.some(row=>row.actor_id==="A"&&row.mode==="start"&&row.outcome==="accepted"));
+   assert.equal(db.prepare("SELECT count(*) AS n FROM token_usage_input_conflicts WHERE input_id='queued-fallback'").get()!.n,0);
+  }finally{db.close();}
+ }finally{await adapter.close();await rm(root,{recursive:true,force:true});}
+});
+
+test("ambiguous native rejection remains unknown and exposes a recovery gap",async()=>{
+ const root=await mkdtemp(join(tmpdir(),"oc-usage-unknown-host-")),frames:Array<Record<string,unknown>>=[];
+ const adapter=createRoutingAdapter(root,frames,0,"ambiguous");let seq=0;
+ const request=async(method:string,params:Record<string,unknown>)=>{
+  const id="usage-unknown:"+(++seq);await adapter.send(JSON.stringify({id,method,params,[LOGICAL_CLIENT_FIELD]:"writer"}));return await waitFor(frames,f=>f.id===id) as any;
+ };
+ try{
+  await adapter.connect();await initializeClient(adapter,frames,"writer");
+  const threadId=(await request("thread/start",{testNoServerRequest:true})).result.thread.id;
+  const turnId=(await request("turn/start",{threadId,clientUserMessageId:"initial",input:[{type:"text",text:"synthetic"}]})).result.turn.id;
+  assert.ok((await request("turn/steer",{threadId,expectedTurnId:turnId,clientUserMessageId:"uncertain",input:[{type:"text",text:"synthetic"}]})).error);
+  const db=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+  try{
+   assert.equal(db.prepare("SELECT outcome FROM token_usage_attempts WHERE input_id='uncertain'").get()!.outcome,"unknown");
+   assert.equal(db.prepare("SELECT count(*) AS n FROM token_usage_admissions WHERE input_id='uncertain'").get()!.n,0);
+   assert.ok(Number(db.prepare("SELECT count(*) AS n FROM token_usage_gaps WHERE thread_id=? AND reason='source-offline' AND ends_ms IS NULL").get(threadId)!.n)>0);
+  }finally{db.close();}
+ }finally{await adapter.close();await rm(root,{recursive:true,force:true});}
 });

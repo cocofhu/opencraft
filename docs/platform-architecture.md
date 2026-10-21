@@ -3102,3 +3102,20 @@ leaves retry ownership with the Host.
 
 
 Conversation resources use the same core Collaboration message/idempotency/handoff authority as Actor channels. Stable references, bounded untrusted native-history context, explicit model delegation and the existing Host queue are documented in [conversation interoperability](architecture/conversation-interoperability.md). Renderer routes never supply execution identity.
+
+
+### Token usage collection controls and account presentation
+
+The optional Token usage Settings view consumes the trusted first-party Host
+query capability. Its collection control appears only when the current snapshot
+explicitly declares `canConfigure`; the Host requires the current instance
+administrator and accepts only a boolean `enabled` on its configure method.
+Collection and view lifecycles remain independent. Pausing retains acquired
+amounts and exposes incomplete coverage; re-enabling admits only new turns.
+Account scope changes remount the presentation before reusing any snapshot,
+and pending controls fence their late effects to the original generation. The
+Host remains the authorization authority; presentation scope never grants access.
+Number/date formatting follows the app locale, with Chinese and English copy
+using the existing Settings bilingual presentation convention.
+
+The usage view retains its current content height while a filter or drilldown query is pending. Returning from a conversation restores the summary cursor, scroll position and initiating row focus within the existing Settings viewport; it does not create another scroll owner. Account changes still remount and clear the previous principal’s snapshot.

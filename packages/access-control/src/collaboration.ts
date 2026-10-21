@@ -235,6 +235,20 @@ export class Collaboration {
   executionStarted(threadId: string, inputId: string, turnId: string) {
     this.database.prepare('UPDATE conversation_authorities SET turn_id=? WHERE thread_id=? AND input_id=? AND turn_id IS NULL').run(turnId,threadId,inputId);
   }
+  /** Trusted historical identity lookup for usage admission recovery. This does
+   * not grant execution or statistics access, and never reads message bodies. */
+  usageSubmission(threadId: string, inputId: string) {
+    const authority=this.database.prepare("SELECT actor_id,created_at FROM conversation_authorities WHERE thread_id=? AND input_id=?").get(threadId,inputId);
+    const request=inputId.startsWith(ACTOR_INPUT_PREFIX) ? this.database.prepare("SELECT requester_id,mode,created_at FROM actor_execution_requests WHERE id=? AND thread_id=? AND (server_id=? OR (server_id IS NULL AND host_id='local-codex'))")
+      .get(inputId.slice(ACTOR_INPUT_PREFIX.length),threadId,this.execution.serverId??null) : null;
+    const actorId=authority?.actor_id??request?.requester_id;
+    const actor=typeof actorId === "string" ? this.actors.get(actorId):null;
+    if (!actor) return null;
+    return {threadId,inputId,actorId:actor.id,actorKind:actor.kind,
+      mode:request?.mode === "steer" ? "steer" as const:"start" as const,
+      sourceKind:actor.kind === "human" ? "human" as const:"system" as const,
+      submittedAt:Number(authority?.created_at??request?.created_at)};
+  }
   #authority(threadId: string, turnId: string) {
     return this.database.prepare('SELECT * FROM conversation_authorities WHERE thread_id=? AND turn_id=? UNION ALL SELECT a.* FROM conversation_authorities a JOIN conversation_turn_authorities t ON t.authority_id=a.id WHERE t.thread_id=? AND t.turn_id=? LIMIT 1').get(threadId,turnId,threadId,turnId);
   }

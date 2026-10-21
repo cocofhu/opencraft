@@ -238,3 +238,141 @@ records and remain unknown; opening metadata never relabels them as the viewer.
 ### Codex 重置券元数据（2026-10-17）
 
 AccountPool owner 的 v2 迁移只向 pool_accounts 追加可空重置券数量与确认时间，保留v1 SQL与校验和。已知无账本旧结构转换到同一目标；凭据、账号、亲和性和已有用量不重建。数量未知不写0；推理header观测不改券元数据。升级后不使用仅认识v1的旧owner打开v2库；回退优先前向修复或兼容迁移版本，不以旧备份覆盖后续业务数据。
+
+
+## Codex Host v6: token metering foundations
+
+The existing `CodexHostStateDatabase` appends migration v6 without changing the
+published v1–v5 SQL or checksums. Its connection and transaction owner also owns
+usage coverage intervals, turns, accepted-input facts, versioned usage sources,
+derived allocations and recovery checkpoints. The metering ledger borrows this
+owner; it neither creates tables at request time nor closes the connection.
+The exact previously accepted unledgered v5 schema remains an upgrade input;
+unrecognized partial schemas and modified published histories remain rejected.
+
+Counts are canonical decimal strings in storage and JSON, with BigInt arithmetic
+in the projection. A source replacement, allocations and its replay checkpoint
+commit together. Response facts and validated per-turn snapshots are alternative
+sources, while thread cumulative totals are never directly counted as a turn.
+The native rollout reader accepts only paths resolved inside trusted native
+storage, replays complete bounded lines, and retains incomplete tails. Native
+records without actual provider/model evidence retain unknown model identities.
+The physical Host now observes accepted inputs before Renderer filtering and
+replays native facts independently of visible clients. This wiring does not
+by itself prove complete recovery or the full acceptance workload.
+
+
+Native admission recovery decodes only `event_msg/item_completed` records whose
+item is `UserMessage` and contains a stable `client_id`, with matching native
+thread and turn IDs. This proves the accepted target, not the human identity or
+input mode. A collector must join that ID to a trusted persisted submission
+receipt; body text, copied authors and message ordering are not identity facts.
+Rejected steer requests are not converted into accepted participants.
+
+
+Recovery metadata appends v7: trusted submissions are captured independently of
+native accepted-input IDs and their exact target turns, so an admission cannot
+be inferred from a sender row or an unconsumed queue entry. A missing identity
+keeps the entire known amount pending; a later trusted join rebuilds the same
+projection. Trusted Host ingress records submissions before forwarding; native
+ACKs and durable records supply accepted targets. Conflicting trusted identities
+for one input ID persist ambiguity and hold the whole turn pending, including
+after restart. Derived model buckets share this same database.
+
+Native response counts, verified per-turn reports and replay progress use the
+same synchronous transaction, after bounded file I/O has completed. A durable
+terminal marker and a validated per-turn report are required by the native
+settlement check. Missing response facts can fall back to the validated report;
+complete response facts replace that report instead of adding to it. Rollout
+references, safe gap categories and source observation times share the existing
+Host owner. A changed source path or backward cursor requires reconciliation;
+active gaps prevent a complete native settlement declaration.
+
+
+Read-only statistics run in a bounded per-Host Worker against the already
+migrated file. Its own read-only, query-only connection never creates a file,
+migrates or writes usage. Each query uses a deferred SQLite snapshot, exact
+BigInt reduction and signed cursors bound to filters, authority and revision.
+The Host rechecks the current human/instance role after asynchronous reads and
+immediately before delivery; stale logical clients receive no response. Worker
+exit/timeout rejects queued reads and allows lazy recovery without affecting
+model execution. Its handle is closed on worker shutdown. The shared migration
+owner remains the only writer. Packaged Headless artifacts include the compiled
+worker beside their entry point; source probes use the source loader explicitly.
+Successful replay can repair persistent transient acquisition gaps after restart;
+invalid/replaced-source evidence is not silently cleared by a later empty pass.
+
+
+Native ephemeral counters append v8 without changing published v6/v7 SQL. Only
+a physical native thread/start response proving an empty ephemeral thread may
+establish a zero baseline. Durable epoch, per-turn baseline, cumulative values
+and a broken marker prevent inherited/reset counters from becoming new usage.
+The live collector retains only safe counts and correlation IDs in bounded
+batches. Missing or failed facts break the lineage and remain partial; a new
+Host never invents a baseline for an old ephemeral thread. Native terminal and
+validated per-turn snapshots use the existing settlement rule. Usage survives
+client disconnection and ephemeral native history removal.
+
+
+Token usage v9 adds covering indexes and exact daily projections for the
+Asia/Shanghai deployment scope. The ledger updates facts, allocations, source
+cursors and day contributions in one transaction, using decimal strings and
+BigInt arithmetic. Stored per-turn contributions allow corrections and frozen
+turns to remove their prior contribution without scanning unrelated history.
+Pre-existing facts rebuild in batches of at most 100 turns with a durable cursor;
+queries use the authoritative bounded-detail/bulk path until rebuilding finishes.
+Other timezones and thread/turn intersections retain the exact generic path.
+The Host schedules rebuild batches between event-loop turns, retries storage
+failures on its normal recovery tick and cancels work when closed. Day rows are
+rebuildable derived data, never a second source of usage facts.
+
+
+Token usage v10 appends immutable delivery-attempt metadata without changing
+v6–v9: verified requester identity, actual dispatch mode, pending/accepted/rejected/
+unknown outcome and a native target only when confirmed. An attempt outcome does
+not itself admit a participant. Definitive rejection permits a later authorized
+queue dispatch to change requester or mode; unknown delivery cannot justify that
+conversion. Every attempt retains its original identity. Historical queue-author
+receipts only fill unknown identities and never overwrite a verified dispatcher.
+A new physical ledger marks surviving pending attempts unknown and records a
+replayable acquisition gap. Native ACKs and durable admission facts retain their
+separate authority; late reports still revise the original turn.
+
+Owned title-generation jobs and capacity continuations declare system origin at
+creation, without matching body text or ID prefixes. Title collection runs before
+its presentation filter. A verified empty ephemeral title thread establishes its
+counter baseline; the owned unsubscribe ACK retires only its in-memory registry
+entry after preceding counter work, retaining persisted usage and provenance.
+
+
+Token usage v11 adds rebuildable actor/day/model aggregates with per-turn reversible
+contributions. The Host updates them in the same transaction as allocations, source
+facts and recovery cursors, using exact decimal strings and BigInt arithmetic. A
+person contributes one turn to the unfiltered row, even when that turn has several
+models; a model-filtered row counts each matching turn once. Frozen turns preserve their acquired contribution and mark incomplete
+coverage; they reject subsequent collection. The additive migration resets the existing bounded
+projection cursor; existing day contributions are preserved and actor contributions
+are built without counting day totals twice. Until backfill is complete, queries
+use the exact detail path. No view or plugin owns or repairs these tables.
+
+
+Token usage v12 repairs pre-v12 projections that omitted frozen turns. It resets
+only affected scopes' bounded cursor and removes their frozen actor projection
+markers, so the preserved authoritative buckets/allocations can rebuild day and
+actor summaries without duplicate contributions. Queries include acquired frozen
+usage and count those turns as incomplete, even after collection is re-enabled.
+The admin-only `opencraft/token-usage/configure` method toggles this persisted
+Host setting; closing the dashboard never changes collection. Invalid scope
+fields and non-admin identities are rejected before any write.
+
+
+Token collection telemetry is process-local and fixed-cardinality: committed
+source insert/correction/dedup/exclusion counts, unique gap insertions, reconciliation
+count, write/query failures, latest successful acquisition/reconciliation times,
+and the most recent 256 write/query latencies. Effects are published after the
+outer ledger transaction commits; rollback cannot report collected facts. These
+counters never participate in usage arithmetic and reset at process start.
+Read responses attach diagnostics only after rechecking the current administrator;
+personal non-admin responses contain no diagnostics. No source IDs, prompt content
+or credentials become metric labels. The optional Settings view exposes the
+same bounded diagnostic snapshot with an explicit process-lifetime explanation.
