@@ -2322,3 +2322,19 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Skill and Hook presentation compatibility
+
+Skill read activities recognize local `.codex`/`.agents` skill roots, including
+`.system` and `_import` scopes, cached plugin skills, and plugin-root `SKILL.md`
+definitions. Directory markers and definition/script resource names are matched
+case-insensitively; original path spelling remains the navigation identity.
+Imported or plugin-root definitions retain the same skill name, wrench icon and
+read-activity visibility rules as ordinary skill definitions. Parsing supplies
+presentation metadata; it does not grant execution or filesystem access.
+
+Hook details label system, MDM, cloud requirements/configuration and legacy
+managed configuration sources as Admin. The original protocol source is retained
+in statistics; unknown future sources remain Unknown. This projection changes
+neither Hook execution nor approval policy.

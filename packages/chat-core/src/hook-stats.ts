@@ -124,7 +124,12 @@ export function summarizeHookRuns(value: unknown): HookStats | null {
 
 export function formatHookSource(source: string): "Admin" | "User" | "Project" | "Plugin" | "Session" | "Unknown" {
   switch (source) {
-    case "system": return "Admin";
+    case "system":
+    case "mdm":
+    case "cloudRequirements":
+    case "cloudManagedConfig":
+    case "legacyManagedConfigFile":
+    case "legacyManagedConfigMdm": return "Admin";
     case "user": return "User";
     case "project": return "Project";
     case "plugin": return "Plugin";

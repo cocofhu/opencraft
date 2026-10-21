@@ -66,6 +66,11 @@ test("blocked prompt delivery retains sources even when feedback is empty", () =
 });
 
 test("source and event labels preserve protocol compatibility and unknown values", () => {
+  for (const source of ["mdm", "cloudRequirements", "cloudManagedConfig", "legacyManagedConfigFile", "legacyManagedConfigMdm"]) {
+    const stats = summarizeHookRuns([run({ source })])!;
+    assert.equal(stats.runs[0].source, source, "preserve the protocol source");
+    assert.equal(formatHookSource(stats.runs[0].source), "Admin", source);
+  }
   for (const [source, expected] of [["system", "Admin"], ["sessionFlags", "Session"],
     ["project", "Project"], ["plugin", "Plugin"], ["user", "User"], ["admin", "Unknown"]]) {
     assert.equal(formatHookSource(source), expected);
