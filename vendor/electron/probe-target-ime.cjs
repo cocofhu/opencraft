@@ -76,6 +76,12 @@ app.whenReady().then(async () => {
   await load();
 
   await test('native composition and commit, ordered DOM events', async () => {
+    // Compare with Chromium's own native input path; do not invent trust flags
+    // for scoped events (compositionend is currently untrusted upstream too).
+    await reset();
+    await wc.debugger.sendCommand('Input.imeSetComposition', { text: 'ni', selectionStart: 2, selectionEnd: 2 });
+    await wc.debugger.sendCommand('Input.insertText', { text: '你' });
+    const nativeEvents = await run('events');
     const state = await reset();
     const preedit = await apply(state, 'compose', 'ni');
     assert.equal(preedit.status, 'processed');
@@ -92,7 +98,7 @@ app.whenReady().then(async () => {
     assert.ok(names.includes('compositionend'));
     assert.ok(names.includes('beforeinput') && names.includes('input'));
     assert.ok(names.indexOf('compositionstart') < names.indexOf('compositionend'));
-    assert.ok(await run("events.every(e=>e.trusted)"));
+    assert.deepEqual(await run('events'), nativeEvents);
     assert.ok(await run("events.some(e=>e.type==='input'&&e.isComposing)"));
     assert.equal(committed.context.compositionId, '');
   });
