@@ -2346,3 +2346,14 @@ has completed. User collapse survives progress, settlement starts with its own
 choice, and completed history starts collapsed. Empty step lists remain summary
 rows. Transport failure takes precedence over earlier running progress; the View
 does not invent progress or issue a handoff command.
+
+### Host-owned tool details
+
+The optional Conversation tool-content renderer claims the body whenever it
+returns a value other than `undefined`. Claimed content, including explicit
+`null` or `false` suppression, takes precedence over built-in thread-tool cards.
+The renderer is called once per tool render; its body is not duplicated with
+the default content. Default thread creation/navigation stays semantic when
+the Host returns `undefined` or does not provide the port. Handoff disclosures
+exist only for reported progress steps; an empty step list leaves a summary row.
+These choices own presentation and cannot create a Thread or execute a tool.
