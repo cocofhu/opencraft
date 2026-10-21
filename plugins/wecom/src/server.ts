@@ -91,7 +91,7 @@ export class WeComPlugin {
       const rawText = content(body);
       // Group callbacks retain the bot mention. Only recognize a command after
       // that transport decoration; ordinary prose remains the original input.
-      const text = chatType === 'group' && rawText ? rawText.trim().replace(/^@\S+[ \t]+(?=\/(?:new|switch)(?:[ \t]|$))/u,'') : rawText;
+      const text = chatType === 'group' && rawText ? rawText.replace(/^[ \t]*@\S+[ \t]+(?=\/(?:new|switch)(?:[ \t]|$))/u,'') : rawText;
       if (!chatType || typeof chatId !== 'string' || !text?.trim()) return;
       const streamId = randomUUID();
       let replied = false;

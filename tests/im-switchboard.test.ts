@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
@@ -8,8 +8,18 @@ import { ImPlugin, imSourceKey, type ImExecutionPort } from '../plugins/im/src/s
 import { SwitchboardStore } from '../plugins/im/src/store';
 import type { ConversationRef } from '../packages/appserver-protocol/src/collaboration';
 import { encodeConversationRef } from '../packages/appserver-protocol/src/collaboration';
+import { readImConfiguration } from '../scripts/im-plugins.mjs';
 
 function deferred<T>() { let resolve!: (value:T) => void; const promise = new Promise<T>(r => {resolve=r;}); return {promise,resolve}; }
+
+test('private configuration parse errors do not expose credential snippets or raw causes',async t => {
+  const root=await mkdtemp(join(tmpdir(),'im-config-')); t.after(()=>rm(root,{recursive:true,force:true}));
+  const path=join(root,'private.json');
+  await writeFile(path,'{"secret":"sentinel-fixture-private-value",',{mode:0o600});
+  await assert.rejects(readImConfiguration(path),(error:Error) => error.message === 'Unable to read private IM configuration' && error.cause === undefined);
+  await writeFile(path,JSON.stringify({schemaVersion:1,endpoints:[]})); assert.deepEqual(await readImConfiguration(path),[]);
+  await writeFile(path,JSON.stringify({schemaVersion:1,endpoints:[],module:'untrusted'})); await assert.rejects(readImConfiguration(path),/Invalid IM configuration/);
+});
 async function fixture(t: any) {
   const root = await mkdtemp(join(tmpdir(),'im-switchboard-')), path = join(root,'im.sqlite');
   const store = new SwitchboardStore(path), replies: string[] = [], inputs: {ref:ConversationRef; key:string; text:string}[] = [];

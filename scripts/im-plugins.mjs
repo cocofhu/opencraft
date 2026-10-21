@@ -13,7 +13,9 @@ function fields(value, allowed) {
 function identifier(value) { if (typeof value !== 'string' || !value.trim() || value.length > 512 || /[\x00-\x1f\x7f]/u.test(value)) throw new Error('Invalid IM identifier'); return value; }
 export async function readImConfiguration(path) {
   if (!path) return null;
-  const config = await readPrivateJson(path);
+  let config;
+  try { config = await readPrivateJson(path); }
+  catch { throw new Error('Unable to read private IM configuration'); }
   fields(config,['schemaVersion','endpoints']);
   if (config.schemaVersion !== 1 || !Array.isArray(config.endpoints) || config.endpoints.length > 32) throw new Error('Invalid IM configuration');
   const ids = new Set(), bots = new Set();

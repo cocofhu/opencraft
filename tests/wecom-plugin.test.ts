@@ -51,8 +51,8 @@ test('group bot mentions permit binding commands while ordinary text and direct 
   const f=await fixture(t);
   f.callback('new',{...body,msgid:'new',text:{content:'@RobotA /new'}});
   f.callback('switch',{...body,msgid:'switch',text:{content:'@RobotA /switch opencraft://conversation/v1/server/thread'}});
-  f.callback('prose',{...body,msgid:'prose',text:{content:'@RobotA explain this'}});
+  f.callback('prose',{...body,msgid:'prose',text:{content:'  @RobotA explain this  '}});
   f.callback('direct',{...body,msgid:'direct',chattype:'single',text:{content:'@RobotA /new'}});
   await f.until(()=>f.messages.length===4);
-  assert.deepEqual(f.messages.map(message=>message.text),['/new','/switch opencraft://conversation/v1/server/thread','@RobotA explain this','@RobotA /new']);
+  assert.deepEqual(f.messages.map(message=>message.text),['/new','/switch opencraft://conversation/v1/server/thread','  @RobotA explain this  ','@RobotA /new']);
 });
