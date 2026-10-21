@@ -172,6 +172,11 @@ function AgentActivity({
   const inlineSubagentActivity = unit.inlineSubagentActivity;
   const reflow = useDisclosureReflow();
   const hasAnimatedContent = layout.visibleUnits.length > 0 || inlineSubagentActivity !== null;
+  const visibleContent = open ? layout.visibleUnits : layout.persistentUnits;
+  // One keyed list keeps persistent Apps mounted while restoring chronological
+  // expanded content. Separate persistent/expanded trees duplicate the surface.
+  const keepsPersistentContent = layout.showToggle && unit.partitions.persistentUnits.length > 0;
+  const hasContent = visibleContent.length > 0 || (open && inlineSubagentActivity !== null);
   const renderContent = (contentUnits: readonly AgentActivityContentUnit[]) => (
     <ConversationEntryMotionContext.Provider value={animateEntry}>
       <AgentActivityContent contentUnits={contentUnits} onRetry={onRetry}
@@ -179,10 +184,10 @@ function AgentActivity({
     </ConversationEntryMotionContext.Provider>
   );
   useLayoutEffect(() => {
-    // Closing removes this body synchronously; opening an empty body has no
-    // animation. Both still need the viewport's final layout settlement.
-    if (!open || !hasAnimatedContent) reflow.complete();
-  }, [hasAnimatedContent, open, reflow.complete]);
+    // A persistent surface keeps this keyed list mounted. When there is no
+    // outer entrance animation, settle after committing the visible rows.
+    if (!open || !hasAnimatedContent || keepsPersistentContent) reflow.complete();
+  }, [hasAnimatedContent, keepsPersistentContent, open, reflow.complete]);
   return (
     <section
       className="thread-agent-activity"
@@ -208,19 +213,13 @@ function AgentActivity({
           onCollapsedChange(open);
         }}
       /> : null}
-      {layout.persistentUnits.length > 0 ? (
-        <div className="thread-agent-activity__persistent-content">
-          {layout.showToggle ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
-          {renderContent(layout.persistentUnits)}
-        </div>
-      ) : null}
       {/* This disclosure only animates entry. A presence owner without an exit
           animation would defer removal past our collapsed layout completion. */}
-      {open && hasAnimatedContent ? (
+      {hasContent ? (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
             className="thread-agent-activity__outer-content"
-            initial={animateEntry ? { opacity: 0, y: prefersReducedMotion ? 0 : -8 } : false}
+            initial={animateEntry && !keepsPersistentContent ? { opacity: 0, y: prefersReducedMotion ? 0 : -8 } : false}
             key="content"
             onAnimationComplete={(definition) => {
               if (open && typeof definition === "object" && !Array.isArray(definition)
@@ -229,12 +228,12 @@ function AgentActivity({
             transition={{ duration: prefersReducedMotion ? 0.12 : 0.22, ease: [0.33, 1, 0.68, 1] }}
           >
             {layout.showToggle ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
-            {layout.visibleUnits.length > 0
-              ? renderContent(layout.visibleUnits)
+            {visibleContent.length > 0
+              ? renderContent(visibleContent)
               : null}
-            {inlineSubagentActivity === null ? null : (
+            {!open || inlineSubagentActivity === null ? null : (
               <>
-                {layout.visibleUnits.length > 0 ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
+                {visibleContent.length > 0 ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
                 <SubagentActivityGroup unit={inlineSubagentActivity} />
               </>
             )}

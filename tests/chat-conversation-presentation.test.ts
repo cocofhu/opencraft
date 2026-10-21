@@ -11,6 +11,7 @@ import {
   deriveAgentActivityHeaderPresentation,
   groupTimelineFramesByTurn,
   projectTimeline,
+  resolveAgentActivityLayout,
   skillReadPresentation,
   shouldRenderAgentThinkingPlaceholder,
   type TimelineSourceTurn,
@@ -20,6 +21,45 @@ import {
   registerBuiltinThreadProjectors,
   type ThreadNotificationProjector,
 } from "@opencraft/appserver-session";
+
+test("expanded Activity gives each persistent transcript or App one rendered slot", () => {
+  const voice = { id: "realtime-delegation-followup", type: "userMessage", payload: {
+    clientId: "voice-followup", content: [{ type: "text", text: "<realtime_delegation><input>Continue.</input></realtime_delegation>" }],
+  } };
+  const app = { id: "app", type: "mcpToolCall", payload: { server: "fixture", tool: "render",
+    status: "completed", appContext: { resourceUri: "ui://fixture/app" }, result: { content: [] } } };
+  for (const persistent of [voice, app]) {
+    const plan = createAssistantTurnPresentationPlan(frame([
+      { id: "command", type: "commandExecution", payload: { command: "fixture", status: "completed" } },
+      persistent,
+      { id: "answer", type: "agentMessage", payload: { text: "Done.", phase: "final_answer", completed: true } },
+    ], "complete"), undefined, { keepMcpAppEntriesPersistent: true, renderMcpApps: true });
+    const activity = plan.slots[0];
+    if (activity?.type !== "agent-activity") throw new Error("Expected Activity");
+    for (const collapsed of [true, false]) {
+      const layout = resolveAgentActivityLayout(activity, collapsed);
+      const rendered = [...layout.preToggleUnits, ...layout.persistentUnits,
+        ...(!layout.isCollapsed ? layout.visibleUnits : [])];
+      assert.equal(rendered.filter(unit => unit.type === "standalone" && unit.block.sourceItemIds.includes(persistent.id)).length, 1);
+      assert.equal(new Set(rendered.map(unit => unit.id)).size, rendered.length);
+    }
+  }
+});
+
+test("a realtime handoff starts fresh feedback after earlier pending work", () => {
+  const voice = { id: "realtime-delegation-followup", type: "userMessage", payload: {
+    clientId: "voice-followup", content: [{ type: "text", text: "<realtime_delegation><input>Continue.</input></realtime_delegation>" }],
+  } };
+  for (const work of [
+    { id: "command", type: "commandExecution", payload: { command: "fixture", status: "inProgress" } },
+    { id: "image", type: "imageGeneration", payload: { status: "pending", result: "" } },
+  ]) {
+    const assistant = frame([work, voice]);
+    assert.equal(shouldRenderAgentThinkingPlaceholder(assistant), true);
+    assert.equal(createTimelineTurnPresentationPlan({ turnId: assistant.turnId, status: "streaming", frames: [assistant] },
+      undefined, { isMostRecentTurn: true }).thinkingOwner.type, "turn");
+  }
+});
 
 test("a historical unfinished todo cannot retain current Activity ownership", () => {
   const todo = (id: string, status: string) => ({ id, type: "todo-list", payload: { plan: [{ step: "Inspect", status }] } });

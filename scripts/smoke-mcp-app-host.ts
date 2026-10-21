@@ -120,6 +120,21 @@ try {
     await page.evaluate(()=>window.fixture.setAvailable(true));
     await app.locator("#result").filter({hasText:'"count":2'}).waitFor();
     assert.equal(await app.locator("#isolation").textContent(),"isolated");
+    const appFrame = await page.locator("iframe").elementHandle();
+    await app.locator("body").evaluate(element => {
+      const input = document.createElement("input");
+      input.id = "disclosure-draft";
+      element.append(input);
+    });
+    await app.locator("#disclosure-draft").fill("Keep this App input");
+    const details = page.locator(".thread-agent-activity__turn-toggle > button");
+    for (let toggle = 0; toggle < 4; toggle++) {
+      await details.click();
+      assert.equal(await page.locator("iframe").count(), 1, "expanded details must not duplicate the App");
+      assert.equal(await appFrame!.evaluate(element => element.isConnected), true, "detail toggles retain the original iframe");
+      assert.equal(await app.locator("#disclosure-draft").inputValue(), "Keep this App input");
+    }
+    await app.locator("#disclosure-draft").evaluate(element => element.remove());
     const initialHeight = await page.locator("iframe").evaluate(element=>element.getBoundingClientRect().height);
     await app.locator("body").evaluate(element=>{const extra=document.createElement("div");extra.id="size-probe";extra.style.height="500px";element.append(extra)});
     await page.waitForFunction(height=>document.querySelector("iframe").getBoundingClientRect().height>height+400,initialHeight);
