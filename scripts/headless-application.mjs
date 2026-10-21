@@ -21,6 +21,8 @@ import { readDaemonMachineIdentity } from "../apps/opencraft-daemon/src/machine-
 import { readSshCodexServerBindings, createSshCodexEngineAdapter } from "../apps/opencraft-daemon/src/ssh-codex-connections.ts";
 import { SshManagement } from "../apps/opencraft-daemon/src/ssh-management.ts";
 import { startLocalAgentHost } from "../apps/local-agent-host/src/main.ts";
+import { startEngineHost } from "../apps/local-agent-host/src/engine-host.ts";
+import { PiEngine } from "../plugins/pi-engine/src/index.ts";
 import { createWorkbenchWebServer } from "./serve-workbench-web.mjs";
 import { maintainHeadlessCodexHost } from "./headless-host-readiness.mjs";
 import { readTaskCodexConversations } from "./tasks-conversation-catalog.mjs";
@@ -63,6 +65,8 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
   let desktopControl = false;
   let dataDirectory = env.OPENCRAFT_SERVER_DATA_DIR;
   let machineName = env.OPENCRAFT_MACHINE_NAME;
+  let engines = ["dsh"];
+  let defaultEngine;
   let sshServersFile;
   let sshConfig;
   let sshPublicOrigin;
@@ -89,6 +93,11 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
       trustedInternalDesktop = true;
     } else if (argument === "--desktop-control") {
       desktopControl = true;
+    } else if (argument === "--engines") {
+      engines = (argv[++index] ?? "").split(",");
+      if (!engines.length || new Set(engines).size !== engines.length || engines.some(id => !["dsh", "pi"].includes(id))) throw new Error("--engines requires dsh, pi, or dsh,pi");
+    } else if (argument === "--default-engine") {
+      defaultEngine = argv[++index];
     } else if (argument === "--machine-name") {
       machineName = argv[++index];
       if (!machineName?.trim() || machineName.startsWith("--")) throw new Error("--machine-name requires a name");
@@ -146,7 +155,9 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
   // availability after private configuration is loaded, before starting execution.
   if (desktopControl && !localDesktop && !trustedInternalDesktop) throw new Error("Desktop control requires an explicit desktop access policy");
   if (localDesktop && host !== "127.0.0.1") throw new Error("Local desktop requires a loopback-only listener");
-  return { help: false, host, port, dataDirectory: resolve(dataDirectory), allowUnauthenticatedPublic,
+  defaultEngine ??= engines[0];
+  if (!engines.includes(defaultEngine)) throw new Error("Default engine must be enabled");
+  return { help: false, host, port, ...(engines.length !== 1 || engines[0] !== "dsh" ? { engines, defaultEngine } : {}), dataDirectory: resolve(dataDirectory), allowUnauthenticatedPublic,
     ...(machineName ? { machineName } : {}),
     ...(sshConfig ? { sshConfig } : {}),
     ...(accessControl ? { accessControl } : {}), ...(relayConnectFile ? { relayConnectFile } : {}),
@@ -316,7 +327,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     }
     const machineIdentity = await readDaemonMachineIdentity(dataDirectory, options.machineName);
     const startAgent = options.startAgentHost ?? startLocalAgentHost;
-    agent = await startAgent({
+    const startDsh = () => startAgent({
       dshExecutable: options.dshExecutable ?? join(root, "runtime/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js"),
       dshCapabilityPlugin: options.dshCapabilityPlugin ?? join(root, "runtime/dsh/opencraft-capability-plugin.mjs"),
       runtimeDirectory: options.runtimeDirectory ?? join(root, "runtime"),
@@ -334,6 +345,15 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       },
       machineIdentity,
     });
+    const engines = options.engines ?? ["dsh"];
+    if (engines.includes("pi")) {
+      agent = await startEngineHost({
+        providers: [new PiEngine({ directory: join(dataDirectory, "pi"), cwd: options.runtimeDirectory ?? join(root, "runtime") })],
+        defaultEngine: options.defaultEngine ?? (engines.includes("dsh") ? "dsh" : "pi"), machine: machineIdentity,
+        resources: { projectDirectory: join(dataDirectory, "projects"), attachmentDirectory: join(dataDirectory, "agent", "attachments") },
+        ...(engines.includes("dsh") ? { legacy: { id: "dsh", label: "DeepSeek Harness", start: startDsh } } : {}),
+      });
+    } else agent = await startDsh();
     const codexStorageOutcomes = new Map();
     const storageOpened = hostId => outcomes => codexStorageOutcomes.set(hostId, outcomes.map(({ name, outcome }) => ({
       hostId, name, status: outcome.status, appliedVersion: outcome.appliedVersion,
@@ -456,7 +476,7 @@ export async function runHeadlessCli({ parseArguments = parseHeadlessArguments, 
       process.stdout.write('Optional instance-owned membership: --access-control (memberships.sqlite under --data-dir); administer with access-admin. --access-member-provider PROVIDER admits verified identities from that provider as ordinary members; explicit revocations and admin roles remain authoritative. --relay-connect-file ABSOLUTE_PRIVATE_JSON enables an outbound relay and requires instance membership.\n');
       process.stdout.write('Optional human login (bundled opencraft.account plugin for local accounts): --human-auth-config ABSOLUTE_PRIVATE_JSON (local accounts and OIDC); provision with human-account. Add --access-control to require instance membership.\n');
       for (const line of help) process.stdout.write(line + '\n');
-      process.stdout.write("Usage: opencraft-server [--host 127.0.0.1|0.0.0.0] [--port 10000] [--data-dir PATH] [--machine-name NAME] [--ssh-servers PRIVATE_JSON] [--ssh-public-origin HTTPS_ORIGIN | --ssh-public-access] [--ssh-require-access-key] [--ssh-access-file PRIVATE_FILE] [--allow-unauthenticated-public] [--local-desktop | --trusted-internal-desktop] [--desktop-control]\nDefault: loopback only; SSH management uses shared installation access without an extra key. --ssh-require-access-key or --ssh-access-file enables key protection. Public SSH requires explicit opt-in; every permitted visitor can use saved connections in shared mode. HTTP provides no transport encryption. Desktop requires an installed verified observer. Trusted-internal desktop trusts everyone able to access this deployment; operator-owned network admission is required. Optional desktop control requires a separate installed private native executor.\n");
+      process.stdout.write("Usage: opencraft-server [--host 127.0.0.1|0.0.0.0] [--port 10000] [--data-dir PATH] [--machine-name NAME] [--engines dsh,pi|pi|dsh] [--default-engine dsh|pi] [--ssh-servers PRIVATE_JSON] [--ssh-public-origin HTTPS_ORIGIN | --ssh-public-access] [--ssh-require-access-key] [--ssh-access-file PRIVATE_FILE] [--allow-unauthenticated-public] [--local-desktop | --trusted-internal-desktop] [--desktop-control]\nDefault: loopback only; SSH management uses shared installation access without an extra key. --ssh-require-access-key or --ssh-access-file enables key protection. Public SSH requires explicit opt-in; every permitted visitor can use saved connections in shared mode. HTTP provides no transport encryption. Desktop requires an installed verified observer. Trusted-internal desktop trusts everyone able to access this deployment; operator-owned network admission is required. Optional desktop control requires a separate installed private native executor.\n");
       return;
     }
     const server = await startServer(args);
