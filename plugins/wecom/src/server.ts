@@ -88,7 +88,10 @@ export class WeComPlugin {
       if (!body || body.aibotid !== this.options.botId || body.compat_info !== undefined || typeof body.msgid !== 'string' || typeof sender !== 'string') return;
       const chatType = body.chattype === 'single' ? 'direct' : body.chattype === 'group' ? 'group' : null;
       const chatId = chatType === 'direct' ? sender : body.chatid;
-      const text = content(body);
+      const rawText = content(body);
+      // Group callbacks retain the bot mention. Only recognize a command after
+      // that transport decoration; ordinary prose remains the original input.
+      const text = chatType === 'group' && rawText ? rawText.trim().replace(/^@\S+[ \t]+(?=\/(?:new|switch)(?:[ \t]|$))/u,'') : rawText;
       if (!chatType || typeof chatId !== 'string' || !text?.trim()) return;
       const streamId = randomUUID();
       let replied = false;

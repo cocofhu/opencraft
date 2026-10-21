@@ -91,6 +91,8 @@ It uses the fixed official WSS endpoint, Bot ID/secret subscription, 30-second
 heartbeats and bounded exponential reconnect. Callback Bot ID and sender are
 checked; `compat_info` sources are not admitted as ordinary human messages.
 Text, recognized voice text and text portions of mixed messages enter IM.
+Group command recognition accepts a leading single bot mention before `/new`
+or `/switch`; ordinary prose and direct-message mentions remain unchanged.
 Attachments, welcome events, template cards and proactive push are out of scope.
 
 After core admission it sends a processing stream update and, after execution,
