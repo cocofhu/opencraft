@@ -1265,6 +1265,28 @@ Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性�
 
 远程网页跟随 Presentation 的 `viewportSize`（CSS 宽高）；responsive 模式使用内容区实时尺寸，设备尺寸预设使用其逻辑视口，不取客户端 devicePixelRatio，远端默认 DPR=1。尚无 View 时回退1280×720。`open.input.viewport` 和同连接 `viewport` 请求传宽高，尺寸归一为偶数、最小64、最长边4096，并以H.264 level 4的8192个16×16宏块（约2百万像素）限制软件渲染资源；超限按比例收缩。worker返回并先发布实际 `viewport` 配置，再输出该代关键帧；调整同一WebContents内容尺寸，不导航或重建DOM。客户端100ms合并尺寸、至多一个请求进行中及一个最新待处理，拖动期间持续更新；编码器按新尺寸重建、旧代结果失效，WebCodecs/MSE及输入坐标使用已生效尺寸。设备预设由共享BrowserViewportMode派生deviceProfile并随同几何传递；手机/平板使用worker内部私有Chromium仿真同步一致的移动UA/Client Hints（含iOS profile）、viewport meta语义、screen方向及触屏，DPR固定1。移动/触控profile将有界鼠标按下/移动/抬起串行转为Chromium真实touch序列，指针取消/捕获丢失与设备切换撤销未完成手势。桌面预设/关闭设备栏恢复桌面UA、metrics和鼠标；自定义调宽与旋转保留所选profile，同尺寸profile变更也必须应用。能力声明deviceEmulation=full仅表示该Chromium仿真链路，iOS标签不表示Safari/WebKit内核。首次直接以移动profile建立Page时先初始化本地about:blank renderer，再应用设备身份，之后才允许目标导航；设备切换不刷新、不重建DOM；按UA生成的服务端正文在后续导航或用户刷新时应用。worker串行化设备重配，并在导航/输入前等待已提交的设备变更，客户端不暴露任意CDP/UA/JS。软件 H.264 text hint、实时编码、Annex B；30fps 是活动上限，1.2秒后10fps，再2.8秒后2fps。静态去重不编码；非交互小更新固定150ms合并；仅一帧编码中和一帧最新待处理。全服务共享一个可信编码 renderer，各页面编码器在隐藏时释放。队列丢弃发生在编码前；编码后的预测帧保序，慢客户端断开后请求新关键帧，显示端只留最新解码帧。WebCodecs 无周期性关键帧；MSE 按缓冲回收水位请求关键帧，只在实际编码媒体积累时触发，静态不产生额外帧。鼠标形状同步，位置使用客户端系统光标。
 
-同源 WebSocket 复用 admission、actor身份、到期和撤权；每个连接只持有 actor+随机持久化 storage lease 的页面。服务器生成物理分区 ID；Page、storage ID 与瞬时连接分离。View park 只停视频；显式 close 释放页面，保留 Cookie 分区。断连60秒回收物理页面，重连恢复分区并在页面已回收时重载 URL，不声称恢复原 DOM/JS。预览桥在目标文档内运行，只暴露已有类型化操作，敏感字段拒绝及 revision/ref 校验复用原实现，语义输入不声称 trustedInput。远程手动坐标输入作用于同一目标 WebContents。
+同源 WebSocket 复用 admission、actor身份、到期和撤权；每个连接只持有 actor+随机持久化 storage lease 的页面。服务器生成物理分区 ID；Page、storage ID 与瞬时连接分离。View park 只停视频；显式 close 释放页面，保留 Cookie 分区。观看连接断开或 Application dispose 仅取消活动输入并停流，远端 Tab 不因断线计时销毁；每 owner 最多16页、全服务最多64页，不静默淘汰驻留页面。重新挂接存活 WebContents 时同步原生 URL/title/导航状态，禁止初始客户端导航覆盖原 DOM/JS。Tab、分区恢复身份、Scope/Thread 关联与工具栏元数据由同源认证的 Server 持有，客户端同步投影启动时加载，写入按 owner 版本比较拒绝旧客户端覆盖，并以同一 mutation ID 处理丢失确认；既有本地元数据只在远端全空时晋升，原本地记录保留且不作为权限凭据。恢复文件在私有目录以600权限原子替换，损坏拒绝读取而不清空。服务端进程退出保留 URL、有效尺寸/设备语义、zoom 及原隔离登录分区，下一次挂接重新加载；这与运行中重连有明确 resumed/restored 区别，不声称恢复任意 DOM/JS/表单/内存历史。明确 close/discard 删除恢复记录并释放页面，Cookie 分区仍遵循原保留策略。所有操作继续按当前 owner 校验，元数据同步不授予页面操作权限。预览桥在目标文档内运行，只暴露已有类型化操作，敏感字段拒绝及 revision/ref 校验复用原实现，语义输入不声称 trustedInput。远程手动坐标输入作用于同一目标 WebContents。
 
 站点权限默认拒绝、下载默认阻止、popup 转为当前 scope 的受管标签。远程站点权限设置、下载管理、音频、跨后端运行中状态迁移、原生设备模拟尚未提供。登录态保留在服务端隔离分区，不发送到客户端。
+
+
+### Remote tab state and viewer lifecycle
+
+A remote tab outlives its display socket. Its renderer is authoritative for page
+content and editing; local presentation owns video decoding, client geometry
+and system input. Disconnect suspends video production and releases pressed
+keys, buttons and touch contacts without navigating or destroying the page.
+Input/control boundaries are ordered in the worker; moves are flushed before
+release and local compositions are discarded across a connection change.
+This is still final-text input, not the complete native IME bridge described
+above. Touch remains the existing single-contact emulation path.
+
+Durable metadata uses the existing authenticated WebSocket admission. Browser
+records and conversation aliases are scoped to the gateway owner; their IDs
+never grant access. Concurrent stale metadata writes fail with STATE_CONFLICT
+and require synchronization rather than silently replacing another client's
+tabs. Ordinary client cleanup detaches; explicit tab close deletes its remote
+recovery record. A worker restart recreates the tab from the saved URL and
+configuration using its persistent partition. In-memory selection, scroll,
+forms, navigation history and JavaScript heap are preserved only while that
+WebContents remains alive.

@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import WebSocket from 'ws';
+import { once } from 'node:events';
 import { createWorkbenchWebServer } from './serve-workbench-web.mjs';
 import { RemoteBrowserService } from './remote-browser-service.mjs';
 import { packageBrowserRuntime } from './package-browser-runtime.mjs';
@@ -19,6 +20,7 @@ const receive = service.receive.bind(service);
 service.receive = message => { if (message.type === 'frame') { frames++; streamBytes += Buffer.from(message.bytes, 'base64').length; } receive(message); };
 // A real typed bridge, Page runtime, manager/use claims and Dynamic Tool Host.
 const source = `
+import {RemoteBrowserStorage} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/remote-browser-storage.ts'))};
 import {RemoteBrowserSurfaceHost} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/remote-browser-surface-host.ts'))};
 import {WebBrowserPageRuntime} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/web-browser-runtime.ts'))};
 import {BrowserPresentationCoordinator} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/browser-presentation-coordinator.ts'))};
@@ -26,8 +28,9 @@ import {BrowserWorkbenchCoordinator} from ${JSON.stringify(join(root, 'apps/work
 import {WebBrowserDynamicToolHost} from ${JSON.stringify(join(root, 'apps/workbench-web/src/browser/web-browser-tool-host.ts'))};
 import {createConversationBindingStore} from '@opencraft/workbench-runtime';
 import {createConversationKey} from '@opencraft/chat-core';
-const surfaces=new RemoteBrowserSurfaceHost(); surfaces.setRoot(document.getElementById('root'));
-const storage={getItem:()=>null,setItem:()=>{}};
+void(async()=>{
+const storage=await RemoteBrowserStorage.create();
+const surfaces=new RemoteBrowserSurfaceHost(storage,'opencraft.remote-browser-storage.v1'); surfaces.setRoot(document.getElementById('root'));
 const pages=new WebBrowserPageRuntime(surfaces,null,()=>null,storage);
 const presentations=new BrowserPresentationCoordinator(pages,surfaces);
 const bindings=createConversationBindingStore();bindings.bind('scope',createConversationKey('host','thread'));
@@ -35,11 +38,13 @@ const panels={open:()=>({id:'panel'}),close(){},dispatch(){},ensureOwner(){}};
 const workbench=new BrowserWorkbenchCoordinator(pages,panels,bindings,storage);
 const tool=new WebBrowserDynamicToolHost(pages,workbench);
 const context={hostId:'host',threadId:'thread',turnId:'turn',callId:'call'};
-const tab=tool.open(context,{url:location.origin+'/demo.html',visible:false});
+const previous=workbench.listForOwner('scope')[0];
+const tab=previous?{tabId:previous.tab.id}:tool.open(context,{url:location.origin+'/demo.html',visible:false});
 const page=workbench.getTabSnapshot(tab.tabId).pageId;
 const slot=document.createElement('div'); slot.style.position='fixed';slot.style.pointerEvents='none'; document.body.append(slot); let presentation;
 pages.prepareSurface(page);
-window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(width=1280,height=720){slot.style.width=width+'px';slot.style.height=height+'px';if(!presentation)presentation=presentations.present({pageId:page,tabId:tab.tabId,viewId:'proof',surface:'right-panel',slot,viewportMode:{type:'responsive'}});else presentation.measure();},showMode(mode){this.show();presentation.updateViewportMode(mode);},hide(){presentation?.dispose();presentation=null;}};
+window.poc={storage,surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(width=1280,height=720){slot.style.width=width+'px';slot.style.height=height+'px';if(!presentation)presentation=presentations.present({pageId:page,tabId:tab.tabId,viewId:'proof',surface:'right-panel',slot,viewportMode:{type:'responsive'}});else presentation.measure();},showMode(mode){this.show();presentation.updateViewportMode(mode);},hide(){presentation?.dispose();presentation=null;},async detach(){presentation?.dispose();workbench.dispose();pages.dispose();surfaces.dispose();await storage.flush();storage.dispose();}};
+})();
 `;
 await build({ stdin: { contents: source, resolveDir: root, sourcefile: 'remote-browser-fixture.ts', loader: 'ts' }, outfile: join(web, 'smoke.js'), bundle: true, format: 'iife', platform: 'browser', target: 'chrome130' });
 await writeFile(join(web, 'index.html'), '<!doctype html><style>html,body{margin:0}#root{position:fixed;inset:0}.web-browser-surface{position:absolute}</style><div id="root"></div><script src="/smoke.js"></script>');
@@ -93,6 +98,17 @@ try {
   const screenshot = await view.evaluate(async () => (window as any).poc.use({ action: 'screenshot' }));
   assert(screenshot.imageUrl.startsWith('data:image/png;base64,'));
   await writeFile(join(temporary, 'target.png'), Buffer.from(screenshot.imageUrl.split(',')[1], 'base64'));
+
+  // Tear down every local browser projection. Then clear localStorage and
+  // restore using only the authenticated Server metadata and live WebContents.
+  const identity = await view.evaluate(async () => { const p=(window as any).poc; await p.storage.flush(); return {page:p.page,tab:p.tab.tabId}; });
+  await view.evaluate(async () => { await (window as any).poc.detach(); localStorage.clear(); });
+  // Exceed the former 60-second eviction window with no presentation/socket.
+  await new Promise(resolve => setTimeout(resolve, 61000));
+  await view.reload(); await view.waitForFunction(() => (window as any).poc);
+  assert.deepEqual(await view.evaluate(() => {const p=(window as any).poc;return {page:p.page,tab:p.tab.tabId};}),identity);
+  await view.evaluate(async () => (window as any).poc.use({action:'wait',text:'Hello Human',timeout_ms:10000}));
+  await view.evaluate(() => (window as any).poc.show());
 
   // Park retains the actual DOM but shuts off the video producer.
   await view.evaluate(() => { const p = (window as any).poc; p.hide(); });
@@ -155,6 +171,12 @@ try {
   await view.waitForTimeout(350); const before = frames; await view.waitForTimeout(1200); const staticFrames = frames - before;
   assert.equal(staticFrames, 0, 'unchanged page must not send video keepalive frames');
   assert.deepEqual(errors, []);
+  // Restart only this isolated browser worker. URL/config/profile restore is
+  // explicit, and the in-memory form must reset: this is not a JS heap snapshot.
+  const previousConnection = await view.evaluate(() => {const p=(window as any).poc;return p.surfaces.pages.get(p.page).connection;});
+  const exited = once(service.child, 'exit'); service.child.stdin.end(); await exited;
+  await view.waitForFunction(previous => { const p=(window as any).poc, surface=p.surfaces.pages.get(p.page); return surface.connection>previous && surface.opened; }, previousConnection, {timeout:30000});
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Ready', timeout_ms: 10000 }));
   await view.evaluate(async () => (window as any).poc.use({ action: 'close' }));
-  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['fresh-mobile-before-navigation','cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','mobile-ua-metrics-touch','mobile-mouse-touch-event','rotate-preserves-profile','custom-resize-preserves-profile','android-client-hints','tablet-profile','desktop-restoration','static-zero-frames','explicit-close'], errors }));
+  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['fresh-mobile-before-navigation','cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','server-metadata-with-empty-client-storage','application-detach-preserves-tab','reattach-without-navigation','disconnected-over-60-seconds','browser-process-restart-restores-url-config','restart-does-not-claim-heap-restore','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','mobile-ua-metrics-touch','mobile-mouse-touch-event','rotate-preserves-profile','custom-resize-preserves-profile','android-client-hints','tablet-profile','desktop-restoration','static-zero-frames','explicit-close'], errors }));
 } finally { await browser?.close(); service.close(); await gateway.close(); }
