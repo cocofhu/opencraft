@@ -1,3 +1,4 @@
+import { MAX_ARCHIVE_BYTES, MAX_UNPACKED_BYTES } from './archive-limits.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -78,7 +79,7 @@ export function createNpmReleaseSource({ registry = DEFAULT_REGISTRY, channel = 
       const packed = await npm(['pack', `${packageName}@${release.version}`, '--pack-destination', directory, '--json'], directory);
       const path = join(directory, parseNpmPackResult(packed).filename);
       const archiveStat = await stat(path);
-      if (archiveStat.size > 256 * 1024 * 1024) throw new Error('Web archive too large');
+      if (archiveStat.size > MAX_ARCHIVE_BYTES) throw new Error('Web archive too large');
       const buffer = await readFile(path);
       const [algorithm, expected] = release.integrity.split('-');
       const actual = createHash(algorithm).update(buffer).digest();
@@ -96,7 +97,7 @@ export async function unpackPackage(archive, directory) {
       const parts = path.split('/');
       if (!path.startsWith('package/') || parts.includes('..') || path.includes('\\')
         || !['File', 'Directory'].includes(entry.type) || ++count > 20_000
-        || (bytes += entry.size || 0) > 512 * 1024 * 1024) { invalid = true; return false; }
+        || (bytes += entry.size || 0) > MAX_UNPACKED_BYTES) { invalid = true; return false; }
       return true;
     },
   });
