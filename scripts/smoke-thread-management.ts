@@ -22,8 +22,13 @@ function Probe() {
     connectionHostLabel: 'Local', serverOrigin: threadServerOrigin({ serverId: 'local-server', label: 'Local' }),
   })));
   const [active, setActive] = useState('fixture');
+  const [deletable, setDeletable] = useState(false);
   window.fixture = {
     actions, setThemePreference,
+    enableDelete: () => setDeletable(true),
+    setTargetHost: hostId => setThreads(current => current.map(thread => thread.id === 'fixture'
+      ? { ...thread, connectionHostId: hostId, connectionHostLabel: hostId === 'local' ? 'Local' : 'Remote',
+          serverOrigin: threadServerOrigin({ serverId: hostId + '-server', label: hostId }) } : thread)),
     regroup: status => setThreads(current => current.map(thread => thread.id === 'fixture' ? { ...thread, status } : thread)),
     releaseFork: () => releaseFork(),
   };
@@ -31,7 +36,7 @@ function Probe() {
     <Sidebar threads={threads} activeHostId='local' activeThreadId={active} sidebarLayout={layout}
       onSelectThread={(hostId, id) => { actions.push(['select', hostId, id]); setActive(id); }}
       onNewTask={() => {}} onOpenSettings={() => {}} showFooter={false}
-      threadCapabilities={() => ({ rename: true, fork: true, archive: true, delete: false })}
+      threadCapabilities={() => ({ rename: true, fork: true, archive: true, delete: deletable })}
       threadActions={{
         onRename: async (target, title) => {
           setThreads(current => current.map(thread => thread.id === target.threadId ? { ...thread, title } : thread));
@@ -43,7 +48,7 @@ function Probe() {
           actions.push(['fork-complete', target.hostId, target.threadId]);
         },
         onArchive: async target => { actions.push(['archive', target.hostId, target.threadId]); },
-        onDelete: async () => { throw Error('unsupported'); },
+        onDelete: async target => { actions.push(['delete', target.hostId, target.threadId]); },
       }} />
   </div>;
 }
@@ -80,7 +85,7 @@ try {
     assert.equal(await page.locator("button button").count(), 0);
 
     const trigger = (title: string) => page.getByRole("button", { name: `Actions for ${title}`, exact: true });
-    const openActions = async (title: string) => {
+    const openActions = async (title: string, canDelete = false) => {
       const button = trigger(title);
       if (touch) {
         const box = await button.boundingBox(); assert.ok(box && box.width >= 44 && box.height >= 44);
@@ -88,7 +93,7 @@ try {
       } else { await button.locator("..").hover(); await button.click(); }
       await page.getByRole("menu").waitFor();
       assert.equal(await page.getByRole("menu").count(), 1);
-      assert.deepEqual(await page.getByRole("menuitem").allTextContents(), ["Rename", "Create branch", "Archive"]);
+      assert.deepEqual(await page.getByRole("menuitem").allTextContents(), ["Rename", "Create branch", "Archive", ...(canDelete ? ["Delete"] : [])]);
     };
     const invoke = async (locator: any) => { if (touch) await locator.tap(); else await locator.click(); };
 
@@ -151,8 +156,30 @@ try {
     assert.equal(await peer.getAttribute("aria-current"), "page");
     assert.equal(await renamed.getAttribute("aria-current"), null);
     assert.deepEqual(await page.evaluate(() => (window as any).fixture.actions.at(-1)), ["select", "local", "peer"]);
+    // Authoritative removal ends rename/delete ownership even if another Host
+    // still exposes the same Thread ID. Regrouping above keeps draft and focus.
+    const actionsBeforeRemoval = await page.evaluate(() => (window as any).fixture.actions.slice());
+    await openActions("Renamed fixture");
+    await invoke(page.getByRole("menuitem", { name: "Rename", exact: true }));
+    await input.fill("Unsubmitted draft");
+    await page.evaluate(() => (window as any).fixture.setTargetHost("remote"));
+    await input.waitFor({ state: "hidden" });
+    assert.equal(await page.getByRole("dialog").count(), 0, "removed target closes rename");
+    await row("Renamed fixture").waitFor();
+    assert.equal(await peer.getAttribute("aria-current"), "page", "target removal does not navigate");
+    await page.evaluate(() => { (window as any).fixture.setTargetHost("local"); (window as any).fixture.enableDelete(); });
+    await openActions("Renamed fixture", true);
+    await invoke(page.getByRole("menuitem", { name: "Delete", exact: true }));
+    const deletion = page.getByRole("dialog", { name: "Delete conversation", exact: true });
+    await deletion.waitFor();
+    await page.evaluate(() => (window as any).fixture.regroup("error"));
+    assert.equal(await deletion.isVisible(), true, "valid delete survives regrouping");
+    await page.evaluate(() => (window as any).fixture.setTargetHost("remote"));
+    await deletion.waitFor({ state: "hidden" });
+    assert.equal(await page.getByRole("dialog").count(), 0, "removed target closes delete");
+    assert.deepEqual(await page.evaluate(() => (window as any).fixture.actions), actionsBeforeRemoval, "cleanup does not submit stale actions");
     assert.deepEqual(errors, []);
     await context.close();
   }
-  console.log("PASS: real Sidebar actions across light/dark × desktop/touch; rename draft/focus and held fork survive task-flow regrouping; menu capabilities, independent touch targets, navigation and current row semantics. Action RPCs synthetic.");
+  console.log("PASS: real Sidebar actions across light/dark × desktop/touch; rename draft/focus and held fork survive task-flow regrouping; removed Host/Thread closes rename/delete without submitting; same ID on another Host cannot keep stale modals; menu capabilities, independent touch targets, navigation and current row semantics. Action RPCs synthetic.");
 } finally { await browser?.close(); await server.close(); }

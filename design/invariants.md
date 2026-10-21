@@ -1838,3 +1838,8 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+## Sidebar modal target membership
+
+Rename/delete dialogs dismiss when their exact Host/Thread leaves the complete Sidebar directory. Search, filtering, pagination and regrouping do not revoke a still-present target or lose its draft/focus. A same-ID Thread on another Host cannot preserve a removed target's modal. Cleanup does not submit actions or change selection. Existing `smoke:thread-management` verifies regroup continuity and both removal paths across desktop/touch and themes.
