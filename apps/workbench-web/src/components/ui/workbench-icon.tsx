@@ -1,3 +1,4 @@
+import React from "react";
 import type { ComponentType } from "react";
 import type { ActionIconProps } from "@opencraft/design-system-web/action-icons";
 import { ModelIcon as Brain, ModelIcon as BrainCircuit, FolderIcon as Folder, MicrophoneIcon as Mic, AddIcon as Plus, SearchIcon as Search, SettingsGearIcon as Settings, ComposeIcon as SquarePen, TerminalIcon as TerminalSquare } from "@opencraft/design-system-web/action-icons";

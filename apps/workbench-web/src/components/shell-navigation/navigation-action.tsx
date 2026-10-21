@@ -1,3 +1,4 @@
+import React from "react";
 import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";

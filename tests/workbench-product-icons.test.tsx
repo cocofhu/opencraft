@@ -1,3 +1,4 @@
+import { ModelIcon as Brain, ModelIcon as BrainCircuit } from "@opencraft/design-system-web/action-icons";
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import React, { createElement } from "react";
@@ -109,8 +110,8 @@ test("shared actions retain semantic mapping and classic/core role geometry", ()
       const markup = render(createElement(NavigationIcon, {name, selected}), style);
       assert.match(markup, new RegExp(`data-action-glyph="${kind}"`));
       assert.match(markup, new RegExp(`data-navigation-glyph-variant="${selected ? "selected" : "outline"}"`));
-      assert.match(markup, /width="14"/);
-      assert.match(markup, /height="14"/);
+      assert.match(markup, new RegExp(`width="${style === "classic" ? 15 : 14}"`));
+      assert.match(markup, new RegExp(`height="${style === "classic" ? 15 : 14}"`));
       assert.match(markup, /aria-hidden="true"/);
       if (name === "folder") assert.match(markup, new RegExp(`fill="${style === "classic" && selected ? "currentColor" : "none"}"`));
     }

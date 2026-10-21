@@ -18,7 +18,7 @@ test("recovery presentation retains painted history across syncing and failure",
   assert.equal(conversationRecoveryPresentation({ authoritative: true, hasVisibleHistory: true, failed: false }), "none");
 });
 
-test("cold loading and background sync use passive rings; failures keep an actionable retry", () => {
+test("cold loading keeps its ring; retained history stays quiet until manual recovery is needed", () => {
   const runtime = new LocaleRuntime([]);
   const render = (child: ReactElement) => renderToStaticMarkup(createElement(IntlRuntimeProvider, { runtime, children: child }));
   const notice = render(createElement(ConversationRecoveryNotice, { failed: false, reconnecting: true }));
@@ -26,17 +26,14 @@ test("cold loading and background sync use passive rings; failures keep an actio
   const error = render(createElement(ConversationRecoveryNotice, { failed: true, reconnecting: true, onRetry() {} }));
   const loading = render(createElement(ConversationRecoveryEmptyState, { failed: false }));
   const coldError = render(createElement(ConversationRecoveryEmptyState, { failed: true, onRetry() {} }));
-  assert.match(notice, /conversation-recovery-notice/);
-  assert.doesNotMatch(notice, /workbench-loading-spinner|conversation-hydration-stage/);
-  assert.match(syncing, /Syncing/);
-  assert.match(syncing, /workbench-loading-spinner/);
-  assert.match(syncing, /conversation-recovery-loading__label/);
-  assert.doesNotMatch(syncing, /conversation-recovery-notice__dot/);
+  assert.equal(notice, "");
+  assert.equal(syncing, "");
   assert.match(error, /role="alert"/);
   assert.match(error, /<button/);
   assert.match(loading, /role="status"/);
   assert.match(loading, /conversation-recovery-loading__label/);
-  assert.match(loading, /<svg[^>]*aria-hidden="true"[^>]*focusable="false"/);
+  assert.match(loading, /<svg[^>]*aria-hidden="true"/);
+  assert.match(loading, /<svg[^>]*focusable="false"/);
   assert.match(loading, /<circle[^>]*opacity="0.3"/);
   assert.doesNotMatch(loading, /<button|tabindex|skeleton__line/);
   assert.match(coldError, /role="alert"/);
@@ -90,7 +87,7 @@ test("technical details distinguish history errors and never copy remote text or
   } finally { runtime.dispose(); }
 });
 
-test("in-progress cold and retained recovery expose safe readable progress and copy details", async () => {
+test("loading hides technical observations while failures retain diagnostic details", async () => {
  const {createConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText}=await import("../apps/workbench-web/src/runtime/conversation-recovery-diagnostic");
  const diagnostic={...createConversationRecoveryDiagnostic({stage:"history",error:null,runtime:"ready",transport:{state:"open"}}),code:"PENDING",progress:{
   recoveryId:"local-episode",startedAt:1000,stage:"backoff" as const,stageStartedAt:2000,attempt:2,retryAt:5000,
@@ -101,11 +98,37 @@ test("in-progress cold and retained recovery expose safe readable progress and c
  assert.match(text,/lastFailureCode: TIMEOUT/);assert.match(text,/attemptsStarted: 2/);
  const runtime=new LocaleRuntime([]);
  try {
-  for(const child of [createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic})]){
+  for(const child of [
+   createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),
+   createElement(ConversationRecoveryNotice,{failed:false,reconnecting:false,diagnostic}),
+   createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),
+   createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic}),
+   createElement(ConversationRecoveryEmptyState,{failed:true,diagnostic}),
+  ]){
    const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
-   assert.match(html,/Waiting to retry/);assert.match(html,/Attempts started: 2/);assert.match(html,/Last failure: TIMEOUT/);
+   if (child.type === ConversationRecoveryNotice) assert.equal(html, "", "automatic retry remains silent even after an intermediate failure");
+   else assert.match(html,/role="(?:status|alert)"/);
+   assert.doesNotMatch(html,/Technical details|Copy details|Attempts started|elapsed|Retry in|TIMEOUT|local-episode|<details|<pre/);
+  }
+  const terminalDiagnostic={...diagnostic,progress:{...diagnostic.progress,stage:"failed" as const}};
+  for(const child of [
+   createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic:terminalDiagnostic,onRetry(){}}),
+   createElement(ConversationRecoveryEmptyState,{failed:true,diagnostic:terminalDiagnostic,onRetry(){}}),
+  ]){
+   const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
+   assert.match(html,/Try again/);
    assert.match(html,/Technical details/);assert.match(html,/Copy details/);
    assert.doesNotMatch(html,/<details[^>]*open/);
   }
  }finally{runtime.dispose();}
+});
+
+test('console prints the full allowlisted clipboard snapshot with physical correlation', async context => {
+ const {logConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText,createConversationRecoveryDiagnostic}=await import('../apps/workbench-web/src/runtime/conversation-recovery-diagnostic');
+ const values:unknown[][]=[];context.mock.method(console,'log',(...args:unknown[])=>{values.push(args);});
+ const diagnostic=createConversationRecoveryDiagnostic({stage:'history',runtime:'ready',error:{code:'TIMEOUT',message:'secret-body'},transport:{state:'open',attemptId:'11111111-1111-4111-8111-111111111111',reason:'secret-url'}});
+ const expected=conversationRecoveryDiagnosticText(diagnostic,1234);
+ assert.equal(logConversationRecoveryDiagnostic(diagnostic,1234),expected);
+ assert.deepEqual(values,[['[conversation-recovery] details\n'+expected]]);
+ assert.match(expected,/attemptId: 11111111-1111-4111-8111-111111111111/);assert.doesNotMatch(expected,/secret/);
 });
