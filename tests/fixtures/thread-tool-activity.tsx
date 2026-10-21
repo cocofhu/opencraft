@@ -1,4 +1,3 @@
-import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import React, { useState } from "react";
 import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import { Context } from "@deepseek-ai/cordis";
