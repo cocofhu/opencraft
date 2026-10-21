@@ -15,6 +15,7 @@ const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "da
 document.documentElement.dataset.theme = theme;
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
+const inputScenario = new URLSearchParams(location.search).get("scenario") === "inputs";
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[] };
 probe.openedThreads = [];
 function tool(id: string, name: string, arguments_: unknown, status = "completed", output?: unknown): TimelineSourceItem {
@@ -27,7 +28,19 @@ function tool(id: string, name: string, arguments_: unknown, status = "completed
 function Demo() {
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
-  const items: TimelineSourceItem[] = [
+  const items: TimelineSourceItem[] = inputScenario ? [
+    { id: "dsh-write", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "write", status: phase,
+      arguments: { path: "/workspace/input-probe.txt", content: "DSH_WRITE_BODY\nsecond line" },
+      contentItems: phase === "inProgress" ? null : [{ type: "inputText", text: "Write completed" }], success: phase === "inProgress" ? null : true } },
+    { id: "dsh-edit", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "edit", status: "completed",
+      arguments: { path: "/workspace/input-probe.txt", old_string: "DSH_OLD_TEXT", new_string: "DSH_NEW_TEXT" },
+      contentItems: [{ type: "inputText", text: "Replacement completed" }], success: true } },
+    { id: "dsh-read", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "read", status: "failed",
+      arguments: { path: "/workspace/input-probe.txt", offset: 120, limit: 60 },
+      contentItems: [{ type: "inputText", text: "Read failed" }], success: false } },
+    { id: "mcp-input", type: "mcpToolCall", payload: { server: "input-probe", tool: "inspect_input", status: "completed",
+      arguments: { value: "MCP_ARGUMENT_STAYS_IN_RAW" }, result: { content: [{ type: "text", text: "MCP returned content" }] } } },
+  ] : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
