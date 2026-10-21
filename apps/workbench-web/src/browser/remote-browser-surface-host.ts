@@ -143,7 +143,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     receiver.autocomplete = 'off'; receiver.setAttribute('autocorrect', 'off'); receiver.autocapitalize = 'none';
     receiver.inputMode = 'none'; receiver.setAttribute('virtualkeyboardpolicy', 'manual');
     Object.assign(receiver.style, { position: 'absolute', left: '0', top: '0', width: '1px', height: '1px',
-      opacity: '0', padding: '0', border: '0', fontSize: '16px', pointerEvents: 'none', resize: 'none' });
+      opacity: '0', padding: '0', border: '0', font: 'var(--typography-mobile-input-font)', letterSpacing: 'var(--typography-mobile-input-tracking)', pointerEvents: 'none', resize: 'none' });
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
