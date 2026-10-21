@@ -365,6 +365,7 @@ try {
       .thread-activity-item__header, .thread-activity-item__header * { transition: none !important; }
       .thread-activity-item__icon { width:16px; }
       .thread-activity-item__icon > svg { width:16px; height:16px; }
+      .thread-activity-item__icon > .activity-glyph[data-activity-glyph] { width:16px; height:16px; stroke-width:1.8; }
       .thread-activity-item__icon > .lucide { stroke-width:2; }
       .thread-activity-item__icon > .lucide-brain { width:14px; height:14px; stroke-width:1.8; }
       .thread-activity-item__icon > [data-codex-activity-icon="read"] { width:15px; height:15px; }
