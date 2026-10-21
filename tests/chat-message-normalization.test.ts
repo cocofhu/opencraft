@@ -249,3 +249,38 @@ test("saved content-only steering retains text and absorbs its server echo", () 
   assert.equal(messages[0]?.messageKind, "steering");
   assert.deepEqual(messages[0]?.sourceItemIds, ["local", "server"]);
 });
+
+
+test("singleton typed input compares exactly like a one-part array", () => {
+  for (const part of [
+    { type: "text", text: "Keep the draft" }, { type: "text", text: "" },
+    { type: "image", url: "https://example.test/image.png" }, { type: "localImage", path: "/synthetic/image.png" },
+    { type: "mention", name: "context", path: "/synthetic/context" }, { type: "input_text", text: "ignored" },
+  ]) assert.deepEqual(codexUserMessageCompareKey(part), codexUserMessageCompareKey([part]));
+  assert.notDeepEqual(codexUserMessageCompareKey({ type: "text", text: "one" }), codexUserMessageCompareKey({ type: "text", text: "two" }));
+  assert.notDeepEqual(codexUserMessageCompareKey({ type: "localImage", path: "/synthetic/image.png" }), codexUserMessageCompareKey({ type: "text", text: "" }));
+});
+
+test("unrelated singleton steering and user messages keep both visible bodies", () => {
+  const part = (value: string) => ({ type: "text", text: value });
+  for (const input of [part("Keep the draft"), [part("Keep the draft")]]) for (const content of [part("Delete the draft"), [part("Delete the draft")]]) {
+    const { messages } = projectedMessages({ items: [steer("local", input, { status: "accepted" }), user("server", content)] });
+    assert.deepEqual(messages.map(message => message.message), ["Keep the draft", "Delete the draft"]);
+    assert.deepEqual(messages.map(message => message.sourceItemIds), [["local"], ["server"]]);
+  }
+  const matching = projectedMessages({ items: [steer("local", part("Keep the draft"), { status: "accepted" }), user("server", part("Keep the draft"))] });
+  assert.equal(matching.messages.length, 1);
+  assert.deepEqual(matching.messages[0]?.sourceItemIds, ["local", "server"]);
+});
+
+test("a singleton image must not borrow the identity of an unrelated text echo", () => {
+  const result = normalize({ params: { input: { type: "localImage", path: "/synthetic/image.png" } }, items: [user("server", { type: "text", text: "separate message" })] });
+  assert.equal(result.items[0]?.id, "turn:composer-user-message");
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["turn:composer-user-message"]);
+});
+
+test("singleton Host display spans retain the acknowledged content", () => {
+  const content = { type: "text", text: locator, textElements: [{ placeholder: "opencraft:staged-file:v1", byteRange: { start: 0, end: new TextEncoder().encode(locator).length } }] };
+  const result = normalize({ params: { input: { type: "text", text: "request" }, clientUserMessageId: "c" }, items: [user("server", content, { clientId: "c" })] });
+  assert.deepEqual(payload(result.items[0]).content, content);
+});
