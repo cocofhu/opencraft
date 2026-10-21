@@ -5,7 +5,11 @@ interface CodeTextProps {
   readonly highlightedHtml: string | null;
 }
 
-type Endpoint = { readonly offset: number } | {
+type Endpoint = {
+  readonly code: HTMLElement;
+  readonly source: string;
+  readonly offset: number;
+} | {
   readonly node: Node;
   readonly offset: number;
 };
@@ -17,15 +21,21 @@ interface CodeSelection {
 }
 
 function endpoint(code: HTMLElement, node: Node, offset: number): Endpoint {
-  if (!code.contains(node)) return { node, offset };
-  const range = code.ownerDocument.createRange();
-  range.selectNodeContents(code);
+  // The other endpoint may belong to another code surface whose syntax tokens
+  // are replaced in this same commit. Keep its stable code root, not a token.
+  const root = code.contains(node) ? code
+    : (node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement)?.closest("code");
+  if (!root) return { node, offset };
+  const range = root.ownerDocument.createRange();
+  range.selectNodeContents(root);
   range.setEnd(node, offset);
-  return { offset: range.toString().length };
+  return { code: root, source: root.textContent ?? "", offset: range.toString().length };
 }
 
-function resolveEndpoint(code: HTMLElement, point: Endpoint): { node: Node; offset: number } | null {
+function resolveEndpoint(point: Endpoint): { node: Node; offset: number } | null {
   if ("node" in point) return point.node.isConnected ? point : null;
+  const code = point.code;
+  if (!code.isConnected || !(code.textContent ?? "").startsWith(point.source)) return null;
   const walker = code.ownerDocument.createTreeWalker(code, NodeFilter.SHOW_TEXT);
   let remaining = point.offset;
   let node: Node | null;
@@ -58,8 +68,8 @@ export class CodeText extends Component<CodeTextProps, object, CodeSelection | n
   componentDidUpdate(_previous: Readonly<CodeTextProps>, _state: object, snapshot: CodeSelection | null) {
     const code = this.element.current;
     if (!code || !snapshot) return;
-    const anchor = resolveEndpoint(code, snapshot.anchor);
-    const focus = resolveEndpoint(code, snapshot.focus);
+    const anchor = resolveEndpoint(snapshot.anchor);
+    const focus = resolveEndpoint(snapshot.focus);
     if (anchor && focus) snapshot.selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
   }
 

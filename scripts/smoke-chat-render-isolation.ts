@@ -168,13 +168,51 @@ try {
     await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "dark" }); });
     await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
     assert.equal(await page.evaluate(() => window.getSelection()!.toString()), spanningSelection, "A selection spanning code and prose survives recoloring");
+    // Both selected endpoints can live in syntax tokens replaced by the same
+    // theme update. Include a third code surface inside the selected range.
+    await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({
+      source: "```ts\nconst firstSelected = 42;\n```\n\nMiddle prose.\n\n```js\nconst middle = 0;\n```\n\nMore prose.\n\n```ts\nconst lastSelected = 84;\n```",
+      streaming: false,
+    }); });
+    await page.waitForFunction(() => (window as any).events.filter((event: any) => event.reason === "code-highlight").length === 3);
+    await page.evaluate(backwards => {
+      const codes = Array.from(document.querySelectorAll("figure.chat-code-block code"));
+      const first = document.createTreeWalker(codes[0]!, NodeFilter.SHOW_TEXT).nextNode()!;
+      const walker = document.createTreeWalker(codes[2]!, NodeFilter.SHOW_TEXT);
+      let last: Node = codes[2]!, node: Node | null;
+      while ((node = walker.nextNode()) !== null) last = node;
+      const selection = window.getSelection()!;
+      if (backwards) selection.setBaseAndExtent(last, last.textContent!.length - 1, first, 1);
+      else selection.setBaseAndExtent(first, 1, last, last.textContent!.length - 1);
+      (window as any).selectedCodeRoots = codes;
+      (window as any).selectedFocusOwner = document.activeElement;
+    }, width === 1280);
+    const multiCodeSelection = () => page.evaluate(() => {
+      const codes = Array.from(document.querySelectorAll("figure.chat-code-block code"));
+      const selection = window.getSelection()!;
+      const point = (node: Node | null, position: number) => {
+        const index = codes.findIndex(code => node && code.contains(node));
+        if (index < 0 || !node) return null;
+        const range = document.createRange(); range.selectNodeContents(codes[index]!); range.setEnd(node, position);
+        return { index, offset: range.toString().length };
+      };
+      return { text: selection.toString(), anchor: point(selection.anchorNode, selection.anchorOffset),
+        focus: point(selection.focusNode, selection.focusOffset), scrollY: window.scrollY,
+        sameRoots: (window as any).selectedCodeRoots.every((code: Node, i: number) => code === codes[i]),
+        sameFocus: (window as any).selectedFocusOwner === document.activeElement };
+    });
+    const multiCodeBefore = await multiCodeSelection();
+    assert.ok(multiCodeBefore.text.includes("lastSelected"));
+    await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "light" }); });
+    await page.waitForFunction(() => (window as any).events.filter((event: any) => event.reason === "code-highlight").length === 3);
+    assert.deepEqual(await multiCodeSelection(), multiCodeBefore, "Recoloring multiple code blocks keeps both selected endpoints and direction");
     await page.evaluate(() => window.getSelection()!.removeAllRanges());
     await page.evaluate(() => (window as any).fixture.patch({ streaming: false, dialect: "user-message" }));
     assert.equal(await page.locator(".opencraft-chat-document").getAttribute("data-chat-document-dialect"), "user-message");
     assert.ok(await root!.evaluate((e: Element) => e.isConnected), "Document DOM remains mounted");
     assert.deepEqual(errors, []);
     await page.screenshot({ path: `${output}/${width}.png` });
-    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, codeSelectionContinuity: true, domRetained: true, errors });
+    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, codeSelectionContinuity: true, multiCodeSelectionContinuity: true, domRetained: true, errors });
     await context.close();
   }
   console.log(JSON.stringify({ passed: true, results }));
