@@ -480,7 +480,7 @@ export class ImPlugin {
   resume(endpointId: string) {
     const endpoint = this.endpoints.get(endpointId);
     if (!endpoint) return;
-    for (const m of this.store.recoverable()) {
+    for (const m of this.store.recoverable(endpointId)) {
       if (
         m.channel_id !== endpointId ||
         this.messages.get(m.id)?.done === false

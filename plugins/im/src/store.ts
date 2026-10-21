@@ -365,12 +365,12 @@ export class SwitchboardStore {
       )
       .all(id, Math.min(limit, 500)) as unknown as StoredMessage[];
   }
-  recoverable(): StoredMessage[] {
+  recoverable(channelId: string): StoredMessage[] {
     return this.managed.database
       .prepare(
-        "SELECT * FROM im_messages WHERE state IN ('accepted','submitted','reply_pending') ORDER BY created_at LIMIT 500",
+        "SELECT * FROM im_messages WHERE channel_id=? AND state IN ('accepted','submitted','reply_pending') ORDER BY created_at LIMIT 1024",
       )
-      .all() as unknown as StoredMessage[];
+      .all(channelId) as unknown as StoredMessage[];
   }
   interruptUncertain() {
     this.managed.database

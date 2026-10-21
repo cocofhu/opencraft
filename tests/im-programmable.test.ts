@@ -387,3 +387,17 @@ test("public workbench Host is explicitly mapped to the core Server; HTTP writes
   authenticated = null;
   assert.equal((await request(true)).status, 401);
 });
+
+
+test("recovery reads every admitted message of the ready channel beyond other-channel backlog", async (t) => {
+  const store = new SwitchboardStore(join(await root(t), "im.sqlite"));
+  t.after(() => store.close());
+  for (let i = 0; i < 601; i++) {
+    const channel = i < 501 ? "offline" : "ready";
+    store.accept({id: `backlog-${i}`, channel_id: channel, fingerprint: String(i), actor_id: "human", source: "{}", text: "hello", route_revision: 1, decision: "{}", reply_address: "{}"});
+    store.patch(`backlog-${i}`, {state: "submitted", request_id: `request-${i}`});
+  }
+  assert.equal(store.recoverable("ready").length, 100);
+  assert.equal(store.recoverable("offline").length, 501);
+  assert.ok(store.recoverable("ready").every(message => message.channel_id === "ready"));
+});
