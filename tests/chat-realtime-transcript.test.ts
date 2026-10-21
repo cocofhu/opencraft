@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline } from "../packages/chat-core/src/index";
 import {
   parseRealtimeDelegation, realtimeDelegationText, realtimeDelegationHandoffId,
 } from "../packages/chat-core/src/realtime-transcript";
