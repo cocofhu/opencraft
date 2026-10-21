@@ -40,7 +40,7 @@ export function composerCapabilitiesOptions(hostId: string, threadId: string | n
       // must never publish, even if the transport resolves much later.
       signal.throwIfAborted();
       for (const model of models) reasoningCapability(model.supportedReasoningEfforts.map(e=>e.reasoningEffort),model.defaultReasoningEffort);
-      return { models };
+      return { models, metadataReader: reader };
     },
   });
 }

@@ -1930,7 +1930,7 @@ export const OpenCraftComposer = forwardRef<
     selectedModel?.efforts.find(
       (effort) => effort.value === selectedEffortValue,
     ) ?? null;
-  const effortLabel = modelDisplayOnly && visibleEffortValue !== null
+  const effortLabel = modelDisplayOnly && visibleEffortValue != null
     ? displayReasoningEffort({ value: visibleEffortValue, label: modelIdentifierLabel(visibleEffortValue), description: null })
     : selectedEffort === null
       ? selectedEffortValue === null
@@ -2330,7 +2330,7 @@ export const OpenCraftComposer = forwardRef<
               {modelDisplayOnly ? <span className="opencraft-composer-mode opencraft-composer-mode--inherited" title={intelligenceLabel}>
                 <span className="opencraft-composer-mode__model-label">{compactSelectedModelLabel}</span>
                 {visibleEffortValue != null ? <span className="opencraft-composer-mode__effort-label">{effortLabel}</span> : null}
-                {displayFast ? <LightningIcon className="opencraft-composer-mode__fast" size={14} filled aria-label="Fast" /> : null}
+                {displayFast ? <Zap className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label="Fast" /> : null}
               </span> : null}
               {!modelDisplayOnly && modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
