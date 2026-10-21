@@ -25,6 +25,17 @@ so each surface is an explicit matrix target with its own artifact contract.
 | `expo-android-internal-apk` | Expo prebuild + Gradle release | Installable internal APK | Linux/macOS with JDK and Android SDK |
 | `expo-android-release-apk` | Expo prebuild + Gradle, external PKCS12 signing | Configured public application ID, signed APK and filing text | Linux with JDK, Android SDK and release key |
 
+## Repository-owned Electron source fork
+
+[`vendor/electron`](../vendor/electron/README.md) owns the fixed Electron source
+baseline, checksummed patch series and explicit source/sync/build commands. Its
+initial native patch exposes observation-only editing metadata and caret bounds;
+source verification is separate from compilation and real native input testing.
+Normal desktop and browser-runtime packages continue using their existing pinned
+distribution until a compiled custom artifact is explicitly integrated and
+validated. The fork's initial build entry targets Linux; macOS/Windows builds and
+physical input-method validation remain separate work.
+
 ## Developer diagnostics and browser evidence
 
 Default builds, `npm run gate` and public product-entry tests use the current
