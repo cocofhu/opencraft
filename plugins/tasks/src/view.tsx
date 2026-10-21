@@ -1,3 +1,4 @@
+import { UrgentPriorityIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon } from "@opencraft/design-system-web/action-icons";
 import { ChevronRightIcon } from "@opencraft/design-system-web/action-icons";
 import { AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X, EditIcon as Pencil, MoreIcon as MoreHorizontal, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import {
@@ -311,7 +312,7 @@ function TaskMeta({ task, members, compactOwner = false }: { task: TaskDetail; m
   const member = members.find(member => member.id === task.assigneeId);
   const name = member?.name ?? task.assigneeId ?? t("unassigned");
   return <div className={`tasks-meta${compactOwner ? " tasks-meta--card" : ""}`}>
-    {task.priority && task.priority !== "none" ? <span className={`tasks-priority tasks-priority--${task.priority}`} title={t("priority")}>{task.priority === "urgent" ? "‼" : task.priority === "high" ? "↑" : task.priority === "low" ? "↓" : "−"} {t(task.priority)}</span> : null}
+    {task.priority && task.priority !== "none" ? <span className={`tasks-priority tasks-priority--${task.priority}`} title={t("priority")}>{task.priority === "urgent" ? <UrgentPriorityIcon size={14} /> : task.priority === "high" ? <ArrowUpIcon size={14} /> : task.priority === "low" ? <ArrowDownIcon size={14} /> : <MinusIcon size={14} />} {t(task.priority)}</span> : null}
     {task.dueDate ? <time dateTime={task.dueDate} className={isOverdue(task) ? "tasks-due tasks-due--overdue" : "tasks-due"} title={`${t("dueDate")}: ${task.dueDate}${isOverdue(task) ? ` · ${t("overdue")}` : ""}`}>{task.dueDate.slice(5).replace("-", "/")}</time> : null}
     <span className="tasks-owner" title={`${t("assignee")}: ${name}`} role={compactOwner ? "img" : undefined} aria-label={compactOwner ? `${t("assignee")}: ${name}` : undefined}><MemberAvatar member={member} name={name} assigned={!!task.assigneeId} />{compactOwner ? null : <span className="tasks-owner__name">{name}</span>}</span>
   </div>;

@@ -1,3 +1,4 @@
+import { LoadingRingIcon } from "@opencraft/design-system-web/action-icons";
 /// <reference path="./styles.d.ts" />
 import "./panel.web.scss";
 import type { CloudDesktopPluginAdapter } from "./index";
@@ -201,7 +202,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
           title={intl.formatMessage({ id: "desktop.paste", defaultMessage: "Paste" })}
           disabled={!snapshot.canPaste || snapshot.clipboardBusy} aria-busy={snapshot.clipboardBusy || undefined}
           onClick={() => void controller.current?.pasteClipboard(() => navigator.clipboard.readText())}>
-          {snapshot.clipboardBusy ? <span aria-hidden="true" className="ui-button__spinner" /> : null}
+          {snapshot.clipboardBusy ? <LoadingRingIcon size={14} className="ui-button__spinner" /> : null}
           <span className="ui-button__label"><ClipboardPaste size={16} aria-hidden="true" /></span>
         </button> : null}
         <button type="button" className="ui-desktop-view__action"

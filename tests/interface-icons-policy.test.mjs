@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { inspectInterfaceIcons } from "../scripts/check-interface-icons.mjs";
+import { inspectInterfaceIcons, inspectInterfaceIconStyles } from "../scripts/check-interface-icons.mjs";
 
 test("stock artwork is rejected through aliases, registries and re-exports", () => {
   for (const source of [
@@ -8,6 +8,34 @@ test("stock artwork is rejected through aliases, registries and re-exports", () 
     'export { Bot } from "lucide-react";',
     'import * as Stock from "lucide-react";',
   ]) assert.equal(inspectInterfaceIcons(source, "plugins/example/src/view.tsx").length, 1);
+});
+
+test("generated controls cannot escape ownership through font characters", () => {
+  for (const source of [
+    'const button = <button><span aria-hidden>↵</span></button>;',
+    'const priority = <span>{high ? "↑" : "↓"}</span>;',
+    'const preview = <li>{checked ? "☑ " : "☐ "}</li>;',
+    'const back = <button>‹ Channels</button>;',
+    'const next = <button>Customize →</button>;',
+  ]) assert.ok(inspectInterfaceIcons(source, "plugins/example/src/view.tsx").length > 0);
+  for (const source of [
+    'const shortcut = <button>Continue<kbd>↵</kbd></button>;',
+    'const dimensions = <span>800 × 600</span>;',
+    'const history = <p>{`${from} → ${to}`}</p>;',
+    'const deletions = <i>−{change.deletions}</i>;',
+    'const content = <p>{userContent}</p>;',
+    'const title = <span title="↑">Priority</span>;',
+  ]) assert.deepEqual(inspectInterfaceIcons(source, "plugins/example/src/view.tsx"), []);
+});
+
+test("CSS spinners and pseudo-element copy/check drawings cannot bypass ownership", () => {
+  for (const source of [
+    '.busy { border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 1s infinite; }',
+    '.status { &.is-running { border: 1.5px solid gray; border-top-color: black; animation: spin 1s infinite; } }',
+    '.chat-code-action__copy::before { content: ""; border: 1px solid; }',
+    '.chat-code-action__check::before { content: ""; border: solid; transform: rotate(45deg); }',
+  ]) assert.equal(inspectInterfaceIconStyles(source, "fixture.scss").length, 1);
+  assert.deepEqual(inspectInterfaceIconStyles('.button { border: 1px solid currentColor; } .glyph { animation: spin 1s infinite; } .frame::before { content: ""; border: 1px solid; }', "fixture.scss"), []);
 });
 test("inline controls are rejected while shared artwork, avatars and retained silhouettes are accepted", () => {
   assert.equal(inspectInterfaceIcons("const icon = <svg><path d='M1 1'/></svg>", "packages/chat-render-web/src/control.tsx").length, 1);

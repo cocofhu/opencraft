@@ -468,7 +468,7 @@
   @include type.role(metadata);
   color: var(--color-text-secondary);
 }
-.tasks-priority { white-space: nowrap; }
+.tasks-priority { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .tasks-priority--urgent, .tasks-due--overdue { color: var(--color-text-danger); }
 .tasks-priority--high { color: var(--color-text); }
 .tasks-due { white-space: nowrap; }

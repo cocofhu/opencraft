@@ -127,3 +127,14 @@ export const HookIcon = glyph("hook", <><circle cx="12" cy="5" r="2.5" /><path d
 export const EnvironmentsIcon = glyph("environments", <><rect x="4" y="7" width="11.5" height="5" rx="1.5" /><rect x="4" y="15" width="11.5" height="5" rx="1.5" /><path d="M8 9.5h3.5M8 17.5h3.5M6 3.5h9l-2-2M20 7v13l2-2" /></>);
 
 export const ReviewShieldIcon = glyph("review-shield", <Shield><path d="m8.5 10 2 2-2 2m5 1H16" /></Shield>);
+
+/** Static utility marks share the same rounded canvas as the retained layout family. */
+export const WrapTextIcon = glyph("wrap-text", <><path d="M4.5 6h15M4.5 11.5H16a3 3 0 0 1 0 6h-5m3-3-3 3 3 3M4.5 17.5H7" /></>);
+export const MinusIcon = glyph("minus", <path d="M5 12h14" />);
+export const UrgentPriorityIcon = glyph("priority-urgent", <><path d="M9 5.5v8m6-8v8" /><circle cx="9" cy="18" r=".75" fill="currentColor" stroke="none" /><circle cx="15" cy="18" r=".75" fill="currentColor" stroke="none" /></>);
+export function CheckboxIcon({ checked = false, ...props }: ActionIconProps & { readonly checked?: boolean }) {
+  return <ActionGlyph {...props} kind={checked ? "checkbox-checked" : "checkbox"}>
+    <rect x="4.5" y="4.5" width="15" height="15" rx="2.75" />
+    {checked ? <path d="m8 12 2.75 2.75L16 9.5" /> : null}
+  </ActionGlyph>;
+}

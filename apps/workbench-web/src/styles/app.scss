@@ -1774,8 +1774,9 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   &.is-pending {
     width: 14px;
     height: 14px;
-    border: 1.5px solid var(--color-border-strong);
-    border-top-color: var(--color-icon-secondary);
+    display: grid;
+    place-items: center;
+    color: var(--color-icon-secondary);
     background: transparent;
     animation: sidebar-activity-spin 800ms linear infinite;
   }
@@ -2402,15 +2403,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   }
 }
 
-.hostless-empty-view__spinner {
-  width: 15px;
-  height: 15px;
-  margin-top: 20px;
-  border: 1.5px solid var(--color-border-subtle);
-  border-top-color: var(--color-text-secondary);
-  border-radius: 50%;
-  animation: startup-shell-spin 700ms linear infinite;
-}
+
 
 .settings-page-loading {
   width: 100%;

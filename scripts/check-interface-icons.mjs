@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import ts from "typescript";
+import scss from "postcss-scss";
 
 const root = resolve(import.meta.dirname, "..");
 const retainedLayout = "packages/design-system-web/src/retained-layout-icons.tsx";
@@ -18,6 +19,24 @@ export function inspectInterfaceIcons(source, file) {
   const errors = [];
   const fail = (node, reason) => errors.push(`${file}:${ast.getLineAndCharacterOfPosition(node.getStart(ast)).line + 1} ${reason}`);
   function visit(node) {
+    // Keep keyboard legends and document text distinct from generated control artwork.
+    if (!file.includes("native/") && (ts.isJsxText(node) || ts.isStringLiteral(node))) {
+      let parent = node.parent;
+      let inJsx = ts.isJsxText(node);
+      let keyboard = false;
+      while (parent && !ts.isSourceFile(parent)) {
+        if (ts.isJsxAttribute(parent)) break;
+        if (ts.isJsxExpression(parent)) inJsx = true;
+        if (ts.isJsxElement(parent) && parent.openingElement.tagName.getText(ast) === "kbd") keyboard = true;
+        parent = parent.parent;
+      }
+      const text = node.text.trim();
+      const numericPrefix = ts.isJsxText(node) && text === "−" && ts.isJsxElement(node.parent)
+        && node.parent.children.some(child => ts.isJsxExpression(child));
+      if (inJsx && !keyboard && !numericPrefix && (/^[⌄‹›☑☐▧↵‼↑↓−]$/u.test(text) || /^‹\s|\s→$/u.test(text))) {
+        fail(node, "generated control glyphs must use shared SVG, not font characters");
+      }
+    }
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier?.text === "lucide-react") {
       if (file !== retainedLayout) fail(node, "general Web glyphs must use design-system-web/action-icons");
       else if (!ts.isExportDeclaration(node) || !node.exportClause || !ts.isNamedExports(node.exportClause)
@@ -35,16 +54,36 @@ export function inspectInterfaceIcons(source, file) {
   return errors;
 }
 
+/** Inspect drawing declarations, rather than treating every decorative border as an icon. */
+export function inspectInterfaceIconStyles(source, file) {
+  const errors = [];
+  const tree = scss.parse(source, { from: file });
+  tree.walkRules(rule => {
+    const declarations = (rule.nodes ?? []).filter(node => node.type === "decl");
+    const has = expression => declarations.some(d => expression.test(`${d.prop}:${d.value}`));
+    const spinner = has(/^border(?:-width)?:.*(?:solid|[\d.]+px)/u)
+      && has(/^border-(?:top|right|bottom|left)-color:/u)
+      && has(/^animation(?:-name)?:/u);
+    const pseudoArtwork = /(?:icon|glyph|__copy|__check)[\w-]*::(?:before|after)/u.test(rule.selector)
+      && has(/^content:["']{2}$/u) && has(/^border(?:-width)?:/u);
+    if (spinner || pseudoArtwork) errors.push(`${file}:${rule.source.start.line} CSS-drawn interface artwork must use shared SVG (${rule.selector})`);
+  });
+  return errors;
+}
+
 function sources(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     if (["node_modules", "dist", "__tests__"].includes(entry.name)) return [];
     const file = resolve(directory, entry.name);
-    return entry.isDirectory() ? sources(file) : /\.[jt]sx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name) ? [file] : [];
+    return entry.isDirectory() ? sources(file) : /\.(?:[jt]sx?|s?css)$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name) ? [file] : [];
   });
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const files = ["apps/workbench-web/src", "packages", "plugins"].flatMap(directory => sources(resolve(root, directory)));
-  const errors = files.flatMap(file => inspectInterfaceIcons(readFileSync(file, "utf8"), relative(root, file).replaceAll("\\", "/")));
+  const directories = process.argv.slice(2);
+  const files = (directories.length ? directories : ["apps/workbench-web/src", "packages", "plugins"]).flatMap(directory => sources(resolve(root, directory)));
+  const errors = files.flatMap(file => /\.s?css$/.test(file)
+    ? inspectInterfaceIconStyles(readFileSync(file, "utf8"), relative(root, file).replaceAll("\\", "/"))
+    : inspectInterfaceIcons(readFileSync(file, "utf8"), relative(root, file).replaceAll("\\", "/")));
   if (errors.length) { console.error(errors.join("\n")); process.exitCode = 1; }
   else console.log(`Interface icon ownership verified across ${files.length} source files (retained layout and avatar exceptions explicit).`);
 }

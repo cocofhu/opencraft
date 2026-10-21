@@ -1,4 +1,4 @@
-import { CheckIcon } from "@opencraft/design-system-web/action-icons";
+import { CheckIcon, ChevronDownIcon } from "@opencraft/design-system-web/action-icons";
 import * as Popover from "@radix-ui/react-popover";
 import React, { useId, useRef, useState, type ReactNode } from "react";
 
@@ -36,7 +36,7 @@ export function SettingsSearchSelect({ id, label, value, groups, disabled, onCha
       <button id={id} type="button" className="settings-search-select__trigger" disabled={disabled}>
         {selected?.icon}<span className="settings-search-select__copy"><strong>{selected?.label ?? (value ? "Selection unavailable" : `Select ${label.toLowerCase()}`)}</strong>
           {selectedGroup ? <small>{selectedGroup.label}</small> : null}</span>
-        <span aria-hidden="true">⌄</span>
+        <ChevronDownIcon size={16} />
       </button>
     </Popover.Trigger>
     <Popover.Portal>

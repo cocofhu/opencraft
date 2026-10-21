@@ -99,3 +99,13 @@ overlapping objects remain intentional; decorative gaps are not a house style.
 Review the entire family at 16/20/24px in both themes, including dense compound
 glyphs. Calibrate activity paint bounds at the existing rail owner after geometry
 changes; never change global strokes or the retained panel glyphs to compensate.
+
+CSS borders, pseudo-elements and Unicode glyphs are also artwork. Sidebar running/opening,
+generic Button busy and desktop clipboard progress consume LoadingRingIcon; their existing
+state, slot and reduced-motion owners remain. Code copy/success/wrap, task priorities,
+IM navigation, Settings search/back and generated overview checkbox/image placeholders
+consume the same SVG package. Preserve document text and image alt text, keyboard kbd
+symbols, dimension multiplication signs and textual history arrows. Unused legacy loading
+CSS is removed instead of declaring an unmounted spinner migrated. The icon policy also
+checks generated control characters and CSS-drawn spinners/copy/check shapes. Product
+workspaces can pass explicit paths to check:icons; no product path is embedded in the core.
