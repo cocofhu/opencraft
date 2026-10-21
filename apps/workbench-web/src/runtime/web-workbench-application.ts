@@ -224,7 +224,7 @@ export async function createWebWorkbenchApplication(
       }
       resolveTerminalRuntime = (hostId) => activeSupervisor.registry.getRuntime(hostId);
       await panelRuntime.install(SideChatService, { resolveHost: (hostId: string) => activeSupervisor.registry.ensureConnected(hostId) });
-      await panelRuntime.install(createSideChatPanelPlugin(panelRuntime.context.sideChats, conversationBindings));
+      await panelRuntime.install(createSideChatPanelPlugin(panelRuntime.context.sideChats, conversationBindings, hostId => activeSupervisor.registry.getRuntime(hostId)));
       const desktopKind = (
         globalThis as typeof globalThis & { readonly opencraftDesktop?: { readonly kind?: string } }
       ).opencraftDesktop?.kind;

@@ -12524,5 +12524,9 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 // Inherited model metadata has no pointer or menu interaction.
 .opencraft-composer-mode--inherited {
   cursor: default;
-  &:hover { background: transparent; color: var(--color-text-secondary); }
+  pointer-events: none;
+  .opencraft-composer-mode__model-label { flex: 0 1 auto; }
+  .opencraft-composer-mode__effort-label { display: inline-flex; }
 }
+
+.opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }

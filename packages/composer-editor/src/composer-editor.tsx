@@ -171,6 +171,7 @@ export interface ComposerAgentModelGroup {
 export interface ComposerSelectionCatalog {
   readonly agentGroups?: readonly ComposerAgentModelGroup[];
   readonly models: readonly ComposerModelOption[];
+  readonly displayModels?: readonly ComposerModelOption[];
   readonly permissionProfiles: readonly ComposerPermissionOption[];
   readonly isFetching?: boolean;
   readonly modelError?: string | null;
@@ -197,6 +198,12 @@ export interface ComposerExecutionTarget {
 }
 
 type SelectionPicker = "intelligence" | "permissions";
+
+function modelIdentifierLabel(value: string): string {
+  return value.replace(/^:/, "").split(/[-_\s]+/u).filter(Boolean)
+    .map(part => /^gpt$/iu.test(part) ? "GPT" : `${part[0]?.toUpperCase() ?? ""}${part.slice(1).toLowerCase()}`)
+    .join(" ");
+}
 
 function compactModelLabel(label: string): string {
   return label.replace(/^GPT[-\s]+/iu, "").replace(/-(?=[\p{L}])/gu, " ");
@@ -991,6 +998,9 @@ export const OpenCraftComposer = forwardRef<
     catalogDefaultModel?.value ??
     null;
   const selectedModel = resolveModelSelection(catalogModels, selectedModelValue);
+  const displayModel = selectedModel ?? resolveModelSelection(selectionCatalog?.displayModels ?? [], selectedModelValue);
+  const visibleEffortValue = modelDisplayOnly ? effectiveSelections?.effort ?? null : undefined;
+  const displayFast = modelDisplayOnly && effectiveSelections?.serviceTier === "fast";
   const selectedEffortValue = selectedModel ? resolveReasoningEffort(
     reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),
     composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort,
@@ -1910,17 +1920,18 @@ export const OpenCraftComposer = forwardRef<
   };
 
   const modelLabel =
-    selectedModel?.label ??
+    displayModel?.label ??
     (selectedModelValue === null
       ? intl.formatMessage({ id: "chat.model", defaultMessage: "Model" })
-      : formatSelectionLabel(selectedModelValue));
+      : modelIdentifierLabel(selectedModelValue));
   const compactSelectedModelLabel = compactModelLabel(modelLabel);
   const selectedEffort =
     selectedModel?.efforts.find(
       (effort) => effort.value === selectedEffortValue,
     ) ?? null;
-  const effortLabel =
-    selectedEffort === null
+  const effortLabel = modelDisplayOnly && visibleEffortValue !== null
+    ? displayReasoningEffort({ value: visibleEffortValue, label: modelIdentifierLabel(visibleEffortValue), description: null })
+    : selectedEffort === null
       ? selectedEffortValue === null
         ? intl.formatMessage({
             id: "chat.reasoning",
@@ -1932,7 +1943,7 @@ export const OpenCraftComposer = forwardRef<
     id: "chat.reasoning",
     defaultMessage: "Reasoning",
   });
-  const intelligenceLabel = selectedModel?.efforts.length
+  const intelligenceLabel = (modelDisplayOnly ? visibleEffortValue != null : selectedModel?.efforts.length)
     ? `${modelLabel}, ${reasoningLabel}: ${effortLabel}`
     : modelLabel;
   const permissionsLabel = intl.formatMessage({ id: "composer.permissions", defaultMessage: "Permissions" });
@@ -2315,8 +2326,10 @@ export const OpenCraftComposer = forwardRef<
               </span>
             )}
             <div className="opencraft-composer-picker-region">
-              {modelDisplayOnly ? <span className="opencraft-composer-mode opencraft-composer-mode--inherited" title={modelLabel}>
+              {modelDisplayOnly ? <span className="opencraft-composer-mode opencraft-composer-mode--inherited" title={intelligenceLabel}>
                 <span className="opencraft-composer-mode__model-label">{compactSelectedModelLabel}</span>
+                {visibleEffortValue != null ? <span className="opencraft-composer-mode__effort-label">{effortLabel}</span> : null}
+                {displayFast ? <LightningIcon className="opencraft-composer-mode__fast" size={14} filled aria-label="Fast" /> : null}
               </span> : null}
               {!modelDisplayOnly && modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
