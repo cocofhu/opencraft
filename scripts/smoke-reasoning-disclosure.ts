@@ -88,6 +88,7 @@ try {
       assert.deepEqual(errors, []); await page.close(); continue;
     }
 
+    await update("reset");
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
