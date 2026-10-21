@@ -7,8 +7,8 @@ function createControls(command) {
   const ordered = new Set(['input', 'text', 'ime', 'copy', 'viewport', 'visible', 'zoom', 'close']);
   return message => {
     const page = message.page;
-    const move = message.method === 'input' && message.input?.type === 'mouseMove';
-    const signature = move ? JSON.stringify([message.input.button, message.input.modifiers, message.input.pointerType]) : null;
+    const move = message.method === 'input' && ['mouseMove', 'touchMove'].includes(message.input?.type);
+    const signature = move ? JSON.stringify([message.input.type, message.input.button, message.input.modifiers, message.input.pointerType, Array.isArray(message.input.touchPoints) ? message.input.touchPoints.map(p => p?.id).sort((a, b) => a - b) : null]) : null;
     const previous = moves.get(page);
     if (move && previous?.signature === signature) {
       previous.message = message;

@@ -65,3 +65,18 @@ test('native pointer identity is a pending motion boundary on hybrid devices', a
   release(); await Promise.all([down, ...moves]);
   assert.deepEqual(seen.slice(1).map(m => [m.input.pointerType, m.input.x]), [['touch', 0], ['mouse', 2]]);
 });
+
+test('complete touch snapshots coalesce only within the same set and preserve every contact edge', async () => {
+ let release;const gate=new Promise(r=>release=r),seen=[];
+ const dispatch=createControls(async m=>{seen.push(m);if(seen.length===1)await gate});
+ const touch=(type,ids,x)=>({page:'a',method:'input',input:{type,touchPoints:ids.map(id=>({id,x,y:id}))}});
+ const ops=[dispatch(touch('touchStart',[1],0))];await tick();
+ for(let x=1;x<=80;x++)ops.push(dispatch(touch('touchMove',[1],x)));
+ ops.push(dispatch(touch('touchStart',[1,2],80)));
+ for(let x=81;x<=150;x++)ops.push(dispatch(touch('touchMove',x%2?[1,2]:[2,1],x)));
+ ops.push(dispatch(touch('touchEnd',[2],150)),dispatch(touch('touchMove',[2],155)),dispatch(touch('touchEnd',[],155)));
+ release();await Promise.all(ops);
+ assert.deepEqual(seen.map(m=>[m.input.type,m.input.touchPoints.map(p=>p.id),m.input.touchPoints[0]?.x]),[
+  ['touchStart',[1],0],['touchMove',[1],80],['touchStart',[1,2],80],['touchMove',[2,1],150],['touchEnd',[2],150],['touchMove',[2],155],['touchEnd',[],undefined],
+ ]);
+});

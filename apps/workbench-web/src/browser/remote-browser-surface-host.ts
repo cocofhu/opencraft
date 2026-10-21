@@ -10,14 +10,14 @@ import { remoteBrowserDeviceProfile } from './remote-browser-device';
 
 type Pending = { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 interface Page {
-  media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLTextAreaElement; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean;
+  media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLTextAreaElement; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
   events: BrowserSurfaceEvents; navigation: number; url: BrowserUrl | null | undefined; socket: WebSocket | null;
   restored: boolean; resumed: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
   viewportMeasured: boolean; width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
   resizeTimer: ReturnType<typeof setTimeout> | null; resizing: boolean;
-  nativeCopy: boolean; interaction: number; menuIntent: string | null; automation: BrowserAutomation; resetInput: () => void; inputDispose: () => void;
+  nativeCopy: boolean; interaction: number; menuIntent: string | null; automation: BrowserAutomation; resetPointers: () => void; resetInput: () => void; inputDispose: () => void;
 }
 /** Physical pages live on the Server. Canvas is only a presentation consumer;
  * the existing tool host still owns thread/tab authorization and use claims. */
@@ -154,10 +154,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
-    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editable: false, nativeIme: false, events, navigation: 0, url: undefined, socket: null,
+    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
       nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
-      latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetInput: () => {}, inputDispose: () => {} };
+      latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetPointers: () => {}, resetInput: () => {}, inputDispose: () => {} };
     if (!this.storageIds.has(id)) { this.storageIds.set(id, p.lease); this.persistStorage(); }
     const call = async (method: string, input?: unknown) => { await p.ready; return this.call(p, 'automation', { method, input }); };
     p.automation = {
@@ -195,7 +195,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       ws.onopen = () => { if (!current()) return; clearTimeout(timer);
         const viewport = p.viewportMeasured ? { ...p.viewport } : undefined;
         void this.call(p, 'open', { lease: p.lease, viewport, defaultDeviceProfile: remoteBrowserDeviceProfile() }).then(async config => {
-          if (!current()) return; p.resumed = config.resumed === true; p.restored = (config.resumed || config.restored) && !!config.navigation?.url && config.navigation.url !== 'about:blank'; p.nativeCopy = config.nativeCopy === true; p.nativeIme = config.nativeIme === true; this.keyboardChanged(); this.applyViewport(p, config);
+          if (!current()) return; p.resumed = config.resumed === true; p.restored = (config.resumed || config.restored) && !!config.navigation?.url && config.navigation.url !== 'about:blank'; p.nativeCopy = config.nativeCopy === true; p.nativeIme = config.nativeIme === true; p.multiTouch = config.multiTouch === true; this.keyboardChanged(); this.applyViewport(p, config);
           const effective = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
           if (!p.viewportMeasured) p.viewport = effective;
           p.sentViewport = JSON.stringify(viewport ?? effective); p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
@@ -216,7 +216,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           if (message.state.isLoading) { this.retireMenu(p); p.resetInput(); this.resetKeyboard(p); }
           p.events.onNavigation?.(message.state);
           if (!message.state.isLoading) { if (message.state.url && message.state.url !== 'about:blank') p.url = message.state.url; p.events.onLoaded(message.state.title || null); }
-        } else if (message.type === 'viewport') this.applyViewport(p, message);
+        } else if (message.type === 'input-reset') p.resetPointers();
+        else if (message.type === 'viewport') this.applyViewport(p, message);
         else if (message.type === 'ime-state') {
           p.editable = message.editable === true; this.keyboardChanged();
           if (!p.editable) { p.ime?.retire(); this.resetKeyboard(p, false); }
@@ -282,7 +283,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const connection = p.connection;
     p.resizeTimer = setTimeout(() => {
       p.resizeTimer = null; if (p.closed || !p.opened || connection !== p.connection) return;
-      const viewport = { ...p.viewport }; p.resizing = true;
+      const viewport = { ...p.viewport }; p.resetPointers(); p.resizing = true;
       void this.call(p, 'viewport', viewport).then(() => {
         if (connection === p.connection) p.sentViewport = JSON.stringify(viewport);
       }).catch(error => { if (!p.closed && connection === p.connection) { p.sentViewport = JSON.stringify(viewport); p.events.onError(error.message); } })
@@ -337,26 +338,71 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const point = (event: MouseEvent) => { const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
       return { x: Math.round((event.clientX - r.left - (r.width - p.width * scale) / 2) / scale), y: Math.round((event.clientY - r.top - (r.height - p.height * scale) / 2) / scale) }; };
     const send = (input: unknown) => { if (!p.closed && !this.inputFailed && !p.blocked && p.visible && p.container.style.pointerEvents !== 'none' && p.opened) void this.call(p, 'input', input).catch(() => {}); };
-    let move: PointerEvent | null = null, raf = 0;
+    let move: PointerEvent | null = null, raf = 0, touchMoved = false;
     const captured = new Set<number>();
+    const contacts = new Map<number, { id: number; x: number; y: number; radiusX: number; radiusY: number; force: number }>();
+    let touchModifiers: unknown[] = [];
+    const contact = (event: PointerEvent) => {
+      const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
+      return { id: event.pointerId, ...point(event), radiusX: Math.min(1000, (event.width || 2) / scale / 2),
+        radiusY: Math.min(1000, (event.height || 2) / scale / 2), force: event.pressure };
+    };
+    const sendTouch = (type: string, event?: PointerEvent) => send({ type, touchPoints: [...contacts.values()],
+      modifiers: event ? modifiers(event) : touchModifiers, menuIntent: p.menuIntent });
     const flushMove = () => {
       cancelAnimationFrame(raf); raf = 0;
+      if (touchMoved) { touchMoved = false; sendTouch('touchMove'); }
       if (move) { send({ type: 'mouseMove', ...point(move), pointerType: move.pointerType, modifiers: [...modifiers(move), ...(move.buttons & 1 ? ['leftButtonDown'] : [])] }); move = null; }
     };
-    listen('pointermove', (event: PointerEvent) => { if (event.pointerType === 'touch' && !event.isPrimary) return; move = event; if (!raf) raf = requestAnimationFrame(flushMove); });
-    listen('pointerdown', (event: PointerEvent) => { if (event.pointerType === 'touch' && !event.isPrimary) return; event.preventDefault(); flushMove(); p.ime?.retire(); receiver.focus({ preventScroll: true }); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
+    p.resetPointers = () => {
+      move = null; touchMoved = false; contacts.clear(); cancelAnimationFrame(raf); raf = 0;
+      const ids = [...captured]; captured.clear();
+      for (const id of ids) if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+    };
+    listen('pointermove', (event: PointerEvent) => {
+      if (event.pointerType === 'touch' && p.multiTouch) {
+        if (!contacts.has(event.pointerId)) return;
+        contacts.set(event.pointerId, contact(event)); touchModifiers = modifiers(event); touchMoved = true;
+      } else {
+        if (event.pointerType === 'touch' && !event.isPrimary) return;
+        move = event;
+      }
+      if (!raf) raf = requestAnimationFrame(flushMove);
+    });
+    listen('pointerdown', (event: PointerEvent) => {
+      if (!this.acceptsInput(p)) return;
+      if (event.pointerType === 'touch' && !p.multiTouch && !event.isPrimary) return;
+      event.preventDefault(); flushMove();
+      if (event.pointerType === 'touch' && p.multiTouch && (contacts.has(event.pointerId) || contacts.size >= 10)) return;
+      p.ime?.retire(); receiver.focus({ preventScroll: true }); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
       this.retireMenu(p); p.menuIntent = crypto.randomUUID();
-      send({ type: 'mouseDown', ...point(event), pointerType: event.pointerType, menuIntent: p.menuIntent, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); });
-    listen('pointerup', (event: PointerEvent) => { if (event.pointerType === 'touch' && !event.isPrimary) return; flushMove(); send({ type: 'mouseUp', ...point(event), pointerType: event.pointerType, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); captured.delete(event.pointerId); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); });
-    const cancel = () => { move = null; cancelAnimationFrame(raf); raf = 0; captured.clear(); send({ type: 'touchCancel' }); };
-    listen('pointercancel', (event: PointerEvent) => { if (event.pointerType !== 'touch' || event.isPrimary) cancel(); });
+      if (event.pointerType === 'touch' && p.multiTouch) {
+        contacts.set(event.pointerId, contact(event)); sendTouch('touchStart', event);
+      } else send({ type: 'mouseDown', ...point(event), pointerType: event.pointerType, menuIntent: p.menuIntent, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) });
+    });
+    listen('pointerup', (event: PointerEvent) => {
+      if (event.pointerType === 'touch' && p.multiTouch) {
+        if (!contacts.has(event.pointerId)) return;
+        contacts.set(event.pointerId, contact(event)); touchMoved = true; touchModifiers = modifiers(event); flushMove();
+        contacts.delete(event.pointerId); sendTouch('touchEnd', event);
+      } else {
+        if (event.pointerType === 'touch' && !event.isPrimary) return;
+        flushMove(); send({ type: 'mouseUp', ...point(event), pointerType: event.pointerType, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) });
+      }
+      captured.delete(event.pointerId); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    });
+    const cancel = () => { p.resetPointers(); send({ type: 'touchCancel' }); };
+    listen('pointercancel', (event: PointerEvent) => { if (captured.has(event.pointerId)) cancel(); });
     listen('lostpointercapture', (event: PointerEvent) => { if (captured.has(event.pointerId)) cancel(); });
+    window.addEventListener('blur', cancel); cleanup.push(() => window.removeEventListener('blur', cancel));
+    const visibility = () => { if (document.hidden) cancel(); };
+    document.addEventListener('visibilitychange', visibility); cleanup.push(() => document.removeEventListener('visibilitychange', visibility));
     listen('contextmenu', event => event.preventDefault());
     listen('wheel', (event: WheelEvent) => { event.preventDefault(); this.retireMenu(p); send({ type: 'mouseWheel', ...point(event), deltaX: -event.deltaX, deltaY: -event.deltaY, modifiers: modifiers(event) }); }, { passive: false });
     const ime = p.ime = new RemoteBrowserIme(receiver, input => this.call(p, 'ime', input),
       () => this.acceptsInput(p), message => p.events.onError(message));
     const textListen = (name: string, handler: (event: any) => void) => { receiver.addEventListener(name, handler); cleanup.push(() => receiver.removeEventListener(name, handler)); };
-    p.resetInput = () => { move = null; cancelAnimationFrame(raf); raf = 0; captured.clear(); ime.retire(); };
+    p.resetInput = () => { p.resetPointers(); ime.retire(); };
     textListen('blur', () => { cancel(); p.resetInput(); receiver.inputMode = 'none'; receiver.setAttribute('virtualkeyboardpolicy', 'manual'); });
     textListen('compositionstart', () => ime.start());
     textListen('compositionupdate', (event: CompositionEvent) => ime.update(event.data));

@@ -1,0 +1,60 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const {createTouchInput}=createRequire(import.meta.url)('../scripts/remote-browser/touch.cjs');
+const p=(id,x=30)=>({id,x,y:50,force:.5,radiusX:4,radiusY:5});
+const frame=(type,...touchPoints)=>({type,touchPoints});
+
+test('independent fingers retain identity through partial release and re-add',async()=>{
+ const seen=[],t=createTouchInput(async v=>seen.push(v));
+ await t.apply(frame('touchStart',p(17)));
+ await t.apply(frame('touchStart',p(17),p(93,80)));
+ await t.apply(frame('touchMove',p(93,90),p(17,20)));
+ await t.apply(frame('touchEnd',p(93,90)));
+ assert(t.active);await t.apply(frame('touchMove',p(93,95)));
+ await t.apply(frame('touchStart',p(93,95),p(201,30)));
+ await t.apply(frame('touchEnd',p(201,30)));
+ await t.apply(frame('touchEnd'));
+ assert(!t.active);
+ assert.deepEqual(seen.map(v=>[v.type,v.touchPoints.map(p=>p.id)]),[
+  ['touchStart',[17]],['touchStart',[93]],['touchMove',[93,17]],['touchEnd',[17]],
+  ['touchMove',[93]],['touchStart',[201]],['touchEnd',[93]],['touchEnd',[]],
+ ]);
+});
+
+test('reset orders behind a native ACK and stale contacts never restart it',async()=>{
+ let release;const gate=new Promise(r=>release=r),seen=[];
+ const t=createTouchInput(async v=>{seen.push(v);if(seen.length===1)await gate});
+ const down=t.apply(frame('touchStart',p(1))),cancel=t.reset(),move=t.apply(frame('touchMove',p(1)));
+ await new Promise(r=>setImmediate(r));assert.equal(seen.length,1);
+ release();await Promise.all([down,cancel,move]);
+ await t.apply(frame('touchStart',p(1),p(2)));await t.apply(frame('touchEnd',p(2)));
+ assert.deepEqual(seen.map(v=>v.type),['touchStart','touchCancel']);assert(!t.active);
+ await t.apply(frame('touchStart',p(9)));assert(t.active);
+});
+
+test('invalid or oversized input is rejected before native side effects',async()=>{
+ const seen=[],t=createTouchInput(async v=>seen.push(v));
+ for(const input of [frame('touchStart',p(-1)),frame('touchStart',{...p(1),x:NaN}),frame('touchStart',{...p(1),force:2}),frame('touchStart',p(1),p(1)),frame('touchStart',...Array.from({length:11},(_,id)=>p(id))),{type:'touchMove',touchPoints:'bad'},frame('touchCancel',p(1))])await assert.rejects(t.apply(input),/Invalid touch/);
+ assert.equal(seen.length,0);
+ await t.apply(frame('touchStart',p(1)));
+ await assert.rejects(t.apply(frame('touchMove',p(2))),/sequence/);
+ await assert.rejects(t.apply(frame('touchEnd',p(1),p(2))),/sequence/);
+ assert.equal(seen.length,1);assert(t.active);
+});
+
+test('failed native acknowledgement cancels rather than retrying a press',async()=>{
+ let fail=true;const seen=[],t=createTouchInput(async v=>{seen.push(v);if(fail&&v.type==='touchStart'){fail=false;throw Error('lost ack')}});
+ await assert.rejects(t.apply(frame('touchStart',p(1))),/lost ack/);
+ assert(!t.active);assert.deepEqual(seen.map(v=>v.type),['touchStart','touchCancel']);
+ await t.apply(frame('touchMove',p(1)));assert.equal(seen.length,2);
+ await t.apply(frame('touchStart',p(9)));assert(t.active);
+});
+
+test('legacy mouse emulation remains single touch and respects modifiers',async()=>{
+ const seen=[],t=createTouchInput(async v=>seen.push(v));
+ await t.mouse({type:'mouseDown',x:20,y:30,modifiers:['shift']});
+ await t.mouse({type:'mouseMove',x:25,y:35});await t.mouse({type:'mouseUp'});
+ assert.deepEqual(seen.map(v=>v.type),['touchStart','touchMove','touchEnd']);
+ assert.equal(seen[0].modifiers,8);assert(!t.active);
+});
