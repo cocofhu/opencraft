@@ -56,9 +56,8 @@ export function useInputAuxiliaryMenuFocus(options: {
         const editing = editorHasFocus(editor);
         if ((event.pointerType === "touch" || event.pointerType === "pen") && editing && event.isPrimary && event.button === 0) {
           preserve.current = true;
-          // Own this opening intent; cancelling Radix's trigger default avoids focus transfer.
-          event.preventDefault();
-          latest.current.onOpenChange(!latest.current.open);
+          // The shared trigger retains native scrolling and opens on a completed tap.
+          // Record the focus lease now, without opening or taking focus.
         } else {
           preserve.current = false;
         }

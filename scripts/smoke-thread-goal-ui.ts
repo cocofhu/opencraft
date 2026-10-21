@@ -19,7 +19,7 @@ import {WorkbenchLocaleController,WorkbenchIntlProvider} from '/apps/workbench-w
 const preferences=await UiPreferencesRuntime.open({installation:new MemoryUiPreferenceStore()});
 const locale=new WorkbenchLocaleController(preferences);
 await locale.initialize();
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as DropdownMenu from '@opencraft/design-system-web/dropdown-menu';
 import {NewThreadDraftPage} from '/apps/workbench-web/src/components/new-thread-draft-page.tsx';
 import {createNewThreadGoalFlow} from '/apps/workbench-web/src/runtime/new-thread-goal.ts';
 import {FloatingComposerRegistryContext} from '/apps/workbench-web/src/components/thread-composer-presentation.tsx';

@@ -1,5 +1,5 @@
 import { ThreadGoalSurface } from "./thread-goal-surface";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { ThreadComposerPresentation } from "./thread-composer-presentation";
 import {

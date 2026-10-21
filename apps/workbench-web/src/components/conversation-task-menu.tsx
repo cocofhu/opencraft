@@ -1,7 +1,7 @@
 import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { Archive, Clock, GitFork, Info, ListTodo, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

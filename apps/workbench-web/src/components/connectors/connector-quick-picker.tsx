@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import { ChevronRight, ExternalLink, LoaderCircle, Plug, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";

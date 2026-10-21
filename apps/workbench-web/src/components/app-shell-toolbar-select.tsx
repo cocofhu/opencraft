@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { Check, ChevronDown, Laptop, Server } from "lucide-react";
 
 import type { PlatformToolbarSelectProps } from "@opencraft/extension-react";

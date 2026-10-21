@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { BrainCircuit, Check, ChevronDown, Pencil } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";

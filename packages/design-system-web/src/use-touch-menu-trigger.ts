@@ -15,7 +15,7 @@ export function useTouchMenuTrigger(enabled: boolean, onTap: () => void): HTMLAt
   return {
     onPointerDown(event) {
       reset();
-      touch.current = event.pointerType === "touch";
+      touch.current = (event.pointerType === "touch" || event.pointerType === "pen");
       if (!touch.current || !enabled) return;
       // Stop only Radix's eager open, not the browser's native pan gesture.
       event.preventDefault();

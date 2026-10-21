@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
   type FormEvent,
 } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ChartNoAxesCombined, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
