@@ -402,3 +402,6 @@ before the dedicated owner. Opening/import failure makes statistics unavailable
 without making execution unavailable. In-memory acquisition gaps also mark read
 coverage partial when an unwritable store cannot persist its own fault. Replayed
 native facts may clear only the existing replayable gap categories.
+
+
+The dedicated `token-usage.sqlite` owner appends migration 2, `token-usage-thread-query-index`, to index `(server_id, thread_id, started_ms, turn_id)` for per-thread date queries. The published isolated v1 and former Host migrations retain their SQL/name/checksum. Managed upgrades back up v1, preserve facts/allocation/recovery state, validate the complete v2 schema, and reject historical checksum mismatch before creating the index; the inactive legacy import remains read-only. No runtime DDL or schema downgrade is introduced.

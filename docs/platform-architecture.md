@@ -3148,3 +3148,6 @@ The optional dashboard selects a person from the existing authorized, paginated 
 
 
 Unchanged native metering metadata is idempotent at the persistence boundary: reconciliation compares stored execution/completeness evidence before rebuilding, and repeated rollout references or metadata cursors avoid writes. Effective participant completeness can remain false due to unresolved admissions without triggering polling rebuilds. Fact and admission mutations retain their own projection updates; changed terminal/response evidence continues through the normal reconciliation transaction. This does not alter source identity, equal allocation, database schema or query authorization.
+
+
+Dedicated metering store v2 adds a thread/date index so filtered thread/turn reads seek the selected thread before its date range. This changes query planning without changing allocation, snapshot revisions, query authorization or the former Host schema. The managed database migration and complete target validator own index creation; repeated opens do not recreate it.

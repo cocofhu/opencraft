@@ -5,12 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { CodexHostStateDatabase } from "../apps/opencraft-daemon/src/codex-host-state-database.js";
-import { TokenUsageStateDatabase } from "../apps/opencraft-daemon/src/token-usage-state-database.js";
+import { TokenUsageStateDatabase, TOKEN_USAGE_STATE_MIGRATIONS } from "../apps/opencraft-daemon/src/token-usage-state-database.js";
+import { openManagedDatabase, createSchemaValidator } from "../packages/sqlite-node/src/index.js";
 import { CodexTokenUsageLedger } from "../apps/opencraft-daemon/src/token-usage-ledger.js";
 import { CodexTokenUsageRuntime } from "../apps/opencraft-daemon/src/token-usage-runtime.js";
 
 const key = { threadId: "thread", turnId: "turn" };
-function seed(state: CodexHostStateDatabase | TokenUsageStateDatabase, id = "response", tokens = "600") {
+function seed(state: Pick<CodexHostStateDatabase, "database" | "transaction">, id = "response", tokens = "600") {
   const ledger = new CodexTokenUsageLedger(state, "server", () => 1000);
   ledger.startTurn(key, 1000, "human", true);
   for (const actorId of ["A", "B"]) ledger.recordInput(key, { inputId: actorId, actorId, actorKind: "human", mode: "start", admission: "confirmed" });
@@ -57,6 +58,53 @@ test("unchanged native metadata does not rewrite projections; late evidence stil
     ledger.advanceMetadataCursor(key.threadId, null);
     assert.equal(ledger.metadataCursor(key.threadId), null);
   } finally { state.close(); }
+}));
+
+test("v1 dedicated store upgrades its thread index without changing facts, allocation or published migration", () => fixture((directory) => {
+  const path = join(directory, "token-usage.sqlite");
+  const baseline = TOKEN_USAGE_STATE_MIGRATIONS[0];
+  const old = openManagedDatabase({ path, legacyPolicy: "reject-unknown", migrations: [baseline], validateSchema: createSchemaValidator(baseline.sql) });
+  const owner = { database: old.database, transaction<T>(callback: () => T): T {
+    old.database.exec("BEGIN IMMEDIATE");
+    try { const value = callback(); old.database.exec("COMMIT"); return value; }
+    catch (error) { old.database.exec("ROLLBACK"); throw error; }
+  } };
+  const ledger = seed(owner);
+  const query = { from: "1970-01-01", through: "1970-01-01", scope: "team", view: "turns", threadId: key.threadId };
+  const authorize = () => ({ actorId: "admin", administrator: true });
+  const before = ledger.query(query, authorize);
+  const migration = old.database.prepare("SELECT * FROM schema_migrations WHERE version=1").get();
+  const facts = old.database.prepare("SELECT * FROM token_usage_sources").all();
+  old.database.close();
+  let upgraded = new TokenUsageStateDatabase(directory);
+  try {
+    assert.equal(upgraded.outcome.appliedVersion, 2);
+    assert.equal(upgraded.outcome.status, "migrated");
+    assert.ok(upgraded.outcome.backupPath);
+    assert.deepEqual(upgraded.database.prepare("SELECT * FROM schema_migrations WHERE version=1").get(), migration);
+    assert.deepEqual(upgraded.database.prepare("SELECT * FROM token_usage_sources").all(), facts);
+    assert.deepEqual(new CodexTokenUsageLedger(upgraded, "server", () => 1000).query(query, authorize), before);
+    const plan = upgraded.database.prepare("EXPLAIN QUERY PLAN SELECT * FROM token_usage_turns WHERE server_id=? AND started_ms>=? AND started_ms<? AND thread_id=?").all("server", 0, 86400000, key.threadId);
+    assert.ok(plan.some(row => String(row.detail).includes("token_usage_turns_thread_query")), JSON.stringify(plan));
+  } finally { upgraded.close(); }
+  upgraded = new TokenUsageStateDatabase(directory);
+  try { assert.equal(upgraded.outcome.status, "up-to-date"); assert.equal(upgraded.outcome.backupPath, undefined); }
+  finally { upgraded.close(); }
+}));
+
+test("thread index upgrade rejects a changed published v1 checksum without changing facts or installing v2", () => fixture((directory) => {
+  const path = join(directory, "token-usage.sqlite"), baseline = TOKEN_USAGE_STATE_MIGRATIONS[0];
+  const old = openManagedDatabase({ path, legacyPolicy: "reject-unknown", migrations: [baseline], validateSchema: createSchemaValidator(baseline.sql) });
+  old.database.prepare("INSERT INTO token_usage_checkpoints VALUES(?,?,?)").run("server", "native", "preserved-cursor");
+  old.database.prepare("UPDATE schema_migrations SET checksum=? WHERE version=1").run("tampered");
+  old.database.close();
+  assert.throws(() => new TokenUsageStateDatabase(directory), /history|checksum/i);
+  const verify = new DatabaseSync(path, { readOnly: true });
+  try {
+    assert.equal(verify.prepare("SELECT count(*) AS n FROM schema_migrations").get()!.n, 1);
+    assert.equal(verify.prepare("SELECT cursor FROM token_usage_checkpoints WHERE server_id='server' AND lineage='native'").get()!.cursor, "preserved-cursor");
+    assert.equal(verify.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name='token_usage_turns_thread_query'").get()!.n, 0);
+  } finally { verify.close(); }
 }));
 
 test("dedicated metering owner copies all facts and recovery state exactly once without sender data or legacy writes", () => fixture((directory, legacy) => {
