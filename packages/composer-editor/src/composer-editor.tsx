@@ -1,3 +1,5 @@
+import { parseConversationRef, encodeConversationRef } from "@opencraft/appserver-protocol/collaboration";
+import { useConversationReferences } from "./conversation-references";
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
@@ -453,6 +455,7 @@ const tokenNode: NodeSpec = {
         "data-composer-token": "true",
         "data-id": node.attrs.id,
         "data-kind": node.attrs.kind,
+        ...(node.attrs.payload?.mentionKind === "thread" && typeof node.attrs.payload?.uri === "string" && parseConversationRef(node.attrs.payload.uri) ? {role:"button",tabindex:"0","data-conversation-reference":node.attrs.payload.uri} : {}),
         "data-label": node.attrs.label,
         ...(node.attrs.payload === null
           ? {}
@@ -854,6 +857,9 @@ export const OpenCraftComposer = forwardRef<
   const fileInputRef = useRef<HTMLInputElement>(null);
   // A native picker may outlive the Composer that opened it.
   const attachmentPickerOwnerRef = useRef<EditorView | null>(null);
+  const conversationReferences = useConversationReferences();
+  const conversationReferencesRef = useRef(conversationReferences);
+  conversationReferencesRef.current = conversationReferences;
   const suggestionQueryRef = useRef<SuggestionQuery | null>(null);
   const dismissedSuggestionRef = useRef<SuggestionQuery | null>(null);
   const suggestionListId = useId();
@@ -1062,7 +1068,8 @@ export const OpenCraftComposer = forwardRef<
     let active = true;
     const owner = { key: catalogRequestKey, catalog, controller };
     setCatalogResult({ ...owner, items: [], phase: "loading", error: null });
-    void Promise.resolve().then(() => catalog.search(
+    void Promise.resolve().then(async () => {
+      const results = await Promise.allSettled([catalog.search(
         {
           kind: catalogQueryKind,
           query: catalogQueryText,
@@ -1072,7 +1079,11 @@ export const OpenCraftComposer = forwardRef<
           limit: catalogQueryKind === "skill" ? Number.MAX_SAFE_INTEGER : 50,
         },
         abortController.signal,
-      ))
+      ), ...(catalogQueryKind === "mention" && conversationReferences ? [conversationReferences.search({kind:"mention",query:catalogQueryText,target:composerSnapshot.draft.target,limit:30},abortController.signal)] : [])]);
+      const entries = results.flatMap(r=>r.status === "fulfilled" ? [...r.value] : []);
+      if (!entries.length && results.every(r=>r.status === "rejected")) throw (results[0] as PromiseRejectedResult).reason;
+      return entries;
+    })
       .then(
         (entries) => {
           if (!active) return;
@@ -1087,7 +1098,7 @@ export const OpenCraftComposer = forwardRef<
       active = false;
       abortController.abort();
     };
-  }, [catalog, controller, catalogQueryKind, catalogQueryText, catalogTargetKey, catalogSearchActive, catalogRequestKey]);
+  }, [catalog, controller, catalogQueryKind, catalogQueryText, catalogTargetKey, catalogSearchActive, catalogRequestKey, conversationReferences]);
 
   const dismissSuggestions = useCallback(() => {
     dismissedSuggestionRef.current = suggestionQueryRef.current;
@@ -1102,7 +1113,7 @@ export const OpenCraftComposer = forwardRef<
     const isDismissed = candidate !== null && dismissed !== null && candidate.kind === dismissed.kind
       && candidate.from === dismissed.from && candidate.to === dismissed.to && candidate.query === dismissed.query;
     if (!isDismissed) dismissedSuggestionRef.current = null;
-    const next = isDismissed || (candidate?.kind === "mention" && !mentionSuggestionsEnabled)
+    const next = isDismissed || (candidate?.kind === "mention" && !mentionSuggestionsEnabled && !conversationReferencesRef.current)
       ? null
       : candidate;
     const previous = suggestionQueryRef.current;
@@ -1435,7 +1446,7 @@ export const OpenCraftComposer = forwardRef<
             }
           : suggestion.uri === undefined && suggestion.metadata === undefined
             ? null
-            : { uri: suggestion.uri, metadata: suggestion.metadata },
+            : { uri: suggestion.uri, metadata: suggestion.metadata, ...(suggestion.metadata?.mentionKind === "thread" ? {mentionKind:"thread"} : {}) },
     });
     const transaction = view.state.tr.replaceWith(query.from, query.to, token);
     transaction.insertText(" ", query.from + token.nodeSize);
@@ -1558,6 +1569,11 @@ export const OpenCraftComposer = forwardRef<
         new Plugin({
           key: suggestionPluginKey,
           props: {
+            handleDOMEvents: {keydown(_view,event) {
+              const uri=(event.target as HTMLElement).dataset?.conversationReference;
+              if(!uri||!["Enter"," "].includes(event.key)||!conversationReferencesRef.current)return false;
+              event.preventDefault();conversationReferencesRef.current.open(uri);return true;
+            }},
             handlePaste(_view, event) {
               const files = filesFromTransfer(event.clipboardData);
               if (files.length > 0) {
@@ -1565,6 +1581,16 @@ export const OpenCraftComposer = forwardRef<
                 return true;
               }
               const text = event.clipboardData?.getData("text/plain") ?? "";
+              const ref = parseConversationRef(text);
+              if (ref) {
+                event.preventDefault();
+                let label = ref.threadId;
+                try { label = new URL(text).searchParams.get("title")?.slice(0,120) || label; } catch { /* Canonical reference has no display hint. */ }
+                const uri = encodeConversationRef(ref);
+                const token = composerSchema.nodes.token.create({id:uri,kind:"mention",label,payload:{mentionKind:"thread",uri,metadata:{mentionKind:"thread"}}});
+                _view.dispatch(_view.state.tr.replaceSelectionWith(token).scrollIntoView());
+                return true;
+              }
               if (text.length >= 5000) {
                 appendFiles([
                   new File([text], "pasted-text.txt", { type: "text/plain" }),
@@ -1572,6 +1598,12 @@ export const OpenCraftComposer = forwardRef<
                 return true;
               }
               return false;
+            },
+            handleClickOn(_view, _pos, node, _nodePos, event, direct) {
+              if (!direct || node.type.name !== "token" || node.attrs.payload?.mentionKind !== "thread") return false;
+              const uri = node.attrs.payload?.uri;
+              if (typeof uri !== "string" || !parseConversationRef(uri) || !conversationReferencesRef.current) return false;
+              event.preventDefault(); conversationReferencesRef.current.open(uri); return true;
             },
             handleDrop(_view, event) {
               const files = filesFromTransfer(event.dataTransfer);

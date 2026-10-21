@@ -3006,9 +3006,9 @@ episode is active.
 
 ### 单 Hub 主体协作
 
-Headless 将 `access-control/actor-collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/actor-codex-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
+Headless 将 `access-control/collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/conversation-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
 
-会话引用与跨会话投递的[目标架构](architecture/conversation-interoperability.md)将 Actor 和 Conversation 资源分开：统一 Collaboration 接纳与交接，目标 Host 继续拥有执行队列，引擎及渠道通过窄端口接入。该文档规定下一步迁移，不表示当前已支持任意会话引用、后台模型工具或跨引擎/跨 Server 投递。
+[会话引用、读取与投递](architecture/conversation-interoperability.md)将Actor和Conversation资源分开，统一Collaboration接纳与交接，目标Host继续拥有执行队列。Headless本地Codex已接通稳定引用、按需历史、原始输入委托的服务端工具；其他引擎与跨Server投递须有实际适配，不因协议类型而自动可用。
 
 ### Read-only Office resource previews
 
@@ -3099,3 +3099,6 @@ An older Host without the `opencraft/capacity-retry` capability is supported by
 the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
+
+
+Conversation resources use the same core Collaboration message/idempotency/handoff authority as Actor channels. Stable references, bounded untrusted native-history context, explicit model delegation and the existing Host queue are documented in [conversation interoperability](architecture/conversation-interoperability.md). Renderer routes never supply execution identity.

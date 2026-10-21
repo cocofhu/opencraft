@@ -103,7 +103,7 @@ export interface AppServerHostCatalog {
   readonly connectorApprovals: ConnectorApprovalQueue;
   readonly agentRuntimes: AgentRuntimeAccess;
   readonly threadManagement: {
-    capabilities(hostId: string): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean };
+    capabilities(hostId: string): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean; reference?: boolean };
     setPinned(hostId: string, threadId: string, pinned: boolean): Promise<void>;
     rename(hostId: string, threadId: string, name: string): Promise<void>;
     delete(hostId: string, threadId: string): Promise<void>;

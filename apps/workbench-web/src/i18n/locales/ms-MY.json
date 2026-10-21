@@ -627,5 +627,21 @@
   "composer.model.retry": "Cuba lagi",
   "composer.model.configure": "Tambah lagi model",
   "composer.model.fallbackShort": "Sandaran",
-  "composer.model.empty": "Tiada model tersedia. Semak tetapan model."
+  "composer.model.empty": "Tiada model tersedia. Semak tetapan model.",
+  "conversation.reference.copy": "Salin rujukan perbualan",
+  "conversation.reference.label": "Perbualan",
+  "conversation.reference.unavailable": "Operasi tidak dapat disahkan. Simpan mesej dan semak penghantaran sebelum mencuba lagi.",
+  "conversation.reference.open": "Buka perbualan",
+  "conversation.reference.user": "Pengguna",
+  "conversation.reference.assistant": "Pembantu",
+  "conversation.reference.more": "Baca lagi",
+  "conversation.reference.message": "Mesej kepada perbualan ini",
+  "conversation.reference.check": "Semak penghantaran",
+  "conversation.reference.send": "Hantar mesej",
+  "conversation.reference.sending": "Menghantar…",
+  "conversation.reference.submitted": "Sasaran telah menerima mesej",
+  "conversation.reference.cancelled": "Dibatalkan",
+  "conversation.reference.rejected": "Mesej tidak dapat dihantar",
+  "conversation.reference.unknown": "Penghantaran perlu disemak",
+  "conversation.reference.queued": "Menunggu perbualan sasaran"
 }

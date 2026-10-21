@@ -1838,3 +1838,7 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+## Conversation references
+
+Copy, paste, @ search and saved links share a stable server/thread codec. Display titles and Host routes cannot replace identity. A reference dialog owns its captured target and pending draft across asynchronous operations; failures preserve the draft and retry key. Core authorization and native history remain authoritative. Delivery uses the existing Host queue independently of page lifetime. See [conversation interoperability](../docs/architecture/conversation-interoperability.md).

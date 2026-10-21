@@ -329,6 +329,7 @@ import type {
 } from "./generated/v2";
 
 export interface AppServerMethodMap extends AppServerBotMethodMap, AppServerCodexAccountMethodMap, AppServerProcessMethodMap, AppServerAttachmentMethodMap, ProfileSkillsMethodMap, ThreadPinsMethodMap, TasksMethodMap, ConversationSchedulesMethodMap {
+  "opencraft/collaboration": { params: Record<string, unknown>; result: Record<string, unknown> };
   "mcpServer/resource/read": { params: McpResourceReadParams; result: McpResourceReadResponse };
   "mcpServer/tool/call": { params: McpServerToolCallParams; result: McpServerToolCallResponse };
   "mcpServerStatus/list": { params: ListMcpServerStatusParams; result: ListMcpServerStatusResponse };
