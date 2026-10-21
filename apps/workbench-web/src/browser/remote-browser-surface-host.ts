@@ -11,6 +11,8 @@ interface Page {
   ready: Promise<void>; opened: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
+  width: number; height: number; viewport: { width: number; height: number }; sentViewport: string;
+  resizeTimer: ReturnType<typeof setTimeout> | null; resizing: boolean;
   automation: BrowserAutomation; inputDispose: () => void;
 }
 /** Physical pages live on the Server. Canvas is only a presentation consumer;
@@ -71,6 +73,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     Object.assign(p.container.style, { left: `${bounds.x - (origin?.left ?? 0)}px`, top: `${bounds.y - (origin?.top ?? 0)}px`,
       width: `${bounds.width}px`, height: `${bounds.height}px`, visibility: 'visible', opacity: phase === 'visible' ? '1' : '.001',
       pointerEvents: phase === 'visible' && !p.blocked ? 'auto' : 'none' });
+    if (layout.viewportSize.width > 0 && layout.viewportSize.height > 0) {
+      p.viewport = { width: Math.max(1, Math.round(layout.viewportSize.width)), height: Math.max(1, Math.round(layout.viewportSize.height)) };
+      this.queueViewport(p);
+    }
     p.blocked = false;
     const visible = phase === 'visible';
     if (p.visible !== visible) { p.visible = visible; this.run(p, 'visible', { visible }); }
@@ -84,7 +90,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   close(id: BrowserPageId) {
     const p = this.pages.get(id); if (!p || p.closed) return;
     if (p.opened) { try { p.socket?.send(JSON.stringify({ id: crypto.randomUUID(), method: 'close' })); } catch {} }
-    p.closed = true; if (p.reconnect) clearTimeout(p.reconnect);
+    p.closed = true; if (p.reconnect) clearTimeout(p.reconnect); if (p.resizeTimer) clearTimeout(p.resizeTimer);
     p.inputDispose(); p.socket?.close(); this.resetDecoder(p);
     this.rejectPending(p); p.container.remove(); this.pages.delete(id); this.hostIdentities.delete(id);
     for (const listener of this.closeListeners) listener(id);
@@ -101,6 +107,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     container.append(canvas); this.root?.prepend(container);
     const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, events, url: undefined, socket: null,
       ready: Promise.resolve(), opened: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
+      width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, inputDispose: () => {} };
     const call = async (method: string, input?: unknown) => { await p.ready; return this.call(p, 'automation', { method, input }); };
     p.automation = {
@@ -122,10 +129,11 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       const timer = setTimeout(() => { reject(new Error('Browser connection timed out')); ws.close(); }, 20000);
       const current = () => !p.closed && p.connection === generation;
       ws.onopen = () => { if (!current()) return;
-        void this.call(p, 'open', { lease: p.lease }).then(async config => {
-          if (!current()) return; p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
+        const viewport = { ...p.viewport };
+        void this.call(p, 'open', { lease: p.lease, viewport }).then(async config => {
+          if (!current()) return; this.applyViewport(p, config); p.sentViewport = JSON.stringify(viewport); p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
           if (generation > 1 && !config.resumed) await this.call(p, 'navigate', { url: p.url ?? null });
-          this.run(p, 'visible', { visible: p.visible });
+          this.queueViewport(p); this.run(p, 'visible', { visible: p.visible });
         }).catch(error => { clearTimeout(timer); reject(error); p.events.onError(error.message); ws.close(1000); });
       };
       ws.onmessage = event => {
@@ -139,7 +147,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         } else if (message.type === 'navigation') {
           p.events.onNavigation?.(message.state);
           if (!message.state.isLoading) { if (message.state.url && message.state.url !== 'about:blank') p.url = message.state.url; p.events.onLoaded(message.state.title || null); }
-        } else if (message.type === 'cursor' && typeof message.cursor === 'string' && /^[a-z-]+$/.test(message.cursor)) p.canvas.style.cursor = message.cursor;
+        } else if (message.type === 'viewport') this.applyViewport(p, message);
+        else if (message.type === 'cursor' && typeof message.cursor === 'string' && /^[a-z-]+$/.test(message.cursor)) p.canvas.style.cursor = message.cursor;
         else if (message.type === 'new-window') p.events.onNewWindow?.(message.url, false);
         else if (message.type === 'error') p.events.onError(message.message);
       };
@@ -147,11 +156,30 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       ws.onclose = event => {
         clearTimeout(timer); reject(new Error('Browser connection closed'));
         if (!current()) return;
-        p.opened = false; this.rejectPending(p); this.resetDecoder(p);
+        p.opened = false; if (p.resizeTimer) clearTimeout(p.resizeTimer); p.resizeTimer = null; p.resizing = false; this.rejectPending(p); this.resetDecoder(p);
         if (event.code === 1000 || event.code === 1008 || p.retries >= 5) { p.events.onError('Browser disconnected; reload this tab'); return; }
         p.reconnect = setTimeout(() => { p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
       };
     });
+  }
+  private applyViewport(p: Page, config: { width: number; height: number }) {
+    if (!Number.isInteger(config.width) || !Number.isInteger(config.height) || config.width < 1 || config.height < 1) return;
+    if (p.width === config.width && p.height === config.height) return;
+    this.resetDecoder(p); p.width = p.canvas.width = config.width; p.height = p.canvas.height = config.height;
+  }
+  private queueViewport(p: Page) {
+    if (p.closed || !p.opened || p.resizing || p.resizeTimer || p.sentViewport === JSON.stringify(p.viewport)) return;
+    // Existing presentation geometry owns resize. Bound reconfiguration to one
+    // in flight plus the latest pending size; keep updating during held drags.
+    const connection = p.connection;
+    p.resizeTimer = setTimeout(() => {
+      p.resizeTimer = null; if (p.closed || !p.opened || connection !== p.connection) return;
+      const viewport = { ...p.viewport }; p.resizing = true;
+      void this.call(p, 'viewport', viewport).then(() => {
+        if (connection === p.connection) p.sentViewport = JSON.stringify(viewport);
+      }).catch(error => { if (!p.closed && connection === p.connection) { p.sentViewport = JSON.stringify(viewport); p.events.onError(error.message); } })
+        .finally(() => { if (connection === p.connection) { p.resizing = false; this.queueViewport(p); } });
+    }, 100);
   }
   private call(p: Page, method: string, input?: unknown): Promise<any> {
     if (p.closed || p.socket?.readyState !== WebSocket.OPEN) return Promise.reject(new BrowserAutomationError('PAGE_CLOSED', 'Browser disconnected', true));
@@ -171,7 +199,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         const video = document.createElement('video');
         Object.assign(video.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' });
         p.canvas.style.position = 'relative'; p.container.prepend(video); p.video = video;
-        p.media = new H264MediaSource(video, () => { this.resetDecoder(p); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
+        p.media = new H264MediaSource(video, p.width, p.height, () => { this.resetDecoder(p); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
       }
       p.media.push(bytes);
     } else {
@@ -184,7 +212,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           if (p.closed || p.decoder !== decoder) { frame.close(); return; }
           p.latest?.close(); p.latest = frame;
           if (!p.raf) p.raf = requestAnimationFrame(() => { p.raf = 0; const latest = p.latest; p.latest = null;
-            if (latest) { p.canvas.getContext('2d', { alpha: false })?.drawImage(latest, 0, 0, 1280, 720); latest.close(); } });
+            if (latest) { p.canvas.getContext('2d', { alpha: false })?.drawImage(latest, 0, 0, p.width, p.height); latest.close(); } });
         }, error: recover });
         p.decoder = decoder;
         p.decoder.configure({ codec: 'avc1.42E028', optimizeForLatency: true });
@@ -198,8 +226,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const canvas = p.canvas, cleanup: (() => void)[] = [];
     const listen = (name: string, handler: (event: any) => void, options?: AddEventListenerOptions) => { canvas.addEventListener(name, handler, options); cleanup.push(() => canvas.removeEventListener(name, handler, options)); };
     const modifiers = (event: MouseEvent | KeyboardEvent) => [event.shiftKey && 'shift', event.ctrlKey && 'control', event.altKey && 'alt', event.metaKey && 'meta'].filter(Boolean);
-    const point = (event: MouseEvent) => { const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / 1280, r.height / 720);
-      return { x: Math.round((event.clientX - r.left - (r.width - 1280 * scale) / 2) / scale), y: Math.round((event.clientY - r.top - (r.height - 720 * scale) / 2) / scale) }; };
+    const point = (event: MouseEvent) => { const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
+      return { x: Math.round((event.clientX - r.left - (r.width - p.width * scale) / 2) / scale), y: Math.round((event.clientY - r.top - (r.height - p.height * scale) / 2) / scale) }; };
     const send = (input: unknown) => { if (!p.closed && !p.blocked && p.visible && p.container.style.pointerEvents !== 'none' && p.opened) void this.call(p, 'input', input).catch(() => {}); };
     let move: PointerEvent | null = null, raf = 0;
     listen('pointermove', (event: PointerEvent) => { move = event; if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (move) send({ type: 'mouseMove', ...point(move), modifiers: [...modifiers(move), ...(move.buttons & 1 ? ['leftButtonDown'] : [])] }); }); });

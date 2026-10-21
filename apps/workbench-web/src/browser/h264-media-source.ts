@@ -16,14 +16,14 @@ function nals(data: Uint8Array) {
   }
   return starts.map((start, i) => data.subarray(start.at + start.size, starts[i + 1]?.at ?? data.length));
 }
-function init(sps: Uint8Array, pps: Uint8Array) {
+function init(sps: Uint8Array, pps: Uint8Array, width: number, height: number) {
   const avcc = box('avcC', bytes(1,sps[1]!,sps[2]!,sps[3]!,255,225,sps.length >> 8,sps.length),sps,bytes(1,pps.length >> 8,pps.length),pps);
-  const avc1 = box('avc1', new Uint8Array(6), bytes(0,1), new Uint8Array(16), bytes(5,0,2,208), u32(0x480000,0x480000,0), bytes(0,1), new Uint8Array(32), bytes(0,24,255,255), avcc);
+  const avc1 = box('avc1', new Uint8Array(6), bytes(0,1), new Uint8Array(16), bytes(width >> 8,width,height >> 8,height), u32(0x480000,0x480000,0), bytes(0,1), new Uint8Array(32), bytes(0,24,255,255), avcc);
   const stbl = box('stbl', full('stsd',0,0,u32(1),avc1), ...['stts','stsc','stco'].map(type => full(type,0,0,u32(0))), full('stsz',0,0,u32(0,0)));
   const dinf = box('dinf', full('dref',0,0,u32(1),full('url ',0,1)));
   const minf = box('minf',full('vmhd',0,1,new Uint8Array(8)),dinf,stbl);
   const mdia = box('mdia',full('mdhd',0,0,u32(0,0,90000,0),bytes(0x55,0xc4,0,0)),full('hdlr',0,0,u32(0),text('vide'),new Uint8Array(12),text('Video\0')),minf);
-  const trak = box('trak',full('tkhd',0,7,u32(0,0,1,0,0),new Uint8Array(8),new Uint8Array(8),matrix,u32(1280 << 16,720 << 16)),mdia);
+  const trak = box('trak',full('tkhd',0,7,u32(0,0,1,0,0),new Uint8Array(8),new Uint8Array(8),matrix,u32(width << 16,height << 16)),mdia);
   const mvhd = full('mvhd',0,0,u32(0,0,90000,0,0x10000),bytes(1,0,0,0),new Uint8Array(8),matrix,new Uint8Array(24),u32(2));
   return concat(box('ftyp',text('isom'),u32(512),text('isomiso6avc1mp41')),box('moov',mvhd,trak,box('mvex',full('trex',0,0,u32(1,1,3000,0,0)))));
 }
@@ -46,7 +46,7 @@ export class H264MediaSource {
   private primed = false;
   private lastKey = 0;
   private needsKey = false;
-  constructor(private video: HTMLVideoElement, private recover: () => void, private requestKey: () => void) {
+  constructor(private video: HTMLVideoElement, private width: number, private height: number, private recover: () => void, private requestKey: () => void) {
     video.muted = true; video.autoplay = true; video.playsInline = true;
     this.url = URL.createObjectURL(this.source); video.src = this.url;
     this.source.addEventListener('sourceopen', () => { if (this.disposed) return;
@@ -84,7 +84,7 @@ export class H264MediaSource {
     if (this.disposed || packet.byteLength < 10) return;
     const data = new Uint8Array(packet), key = data[0] === 1, units = nals(data.subarray(9));
     for (const unit of units) { if ((unit[0]! & 31) === 7) this.sps = unit.slice(); if ((unit[0]! & 31) === 8) this.pps = unit.slice(); }
-    if (!this.sequence) { if (!key || !this.sps || !this.pps) return; this.queue.push(init(this.sps, this.pps)); }
+    if (!this.sequence) { if (!key || !this.sps || !this.pps) return; this.queue.push(init(this.sps, this.pps, this.width, this.height)); }
     const samples = units.filter(unit => ![7,8,9].includes(unit[0]! & 31));
     const sample = concat(...samples.flatMap(unit => [u32(unit.length), unit]));
     // A virtual contiguous 30Hz timeline avoids long empty media ranges when

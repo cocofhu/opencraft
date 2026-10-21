@@ -192,6 +192,8 @@ Headless Linux 分发及 managed headless execution 包携带 `runtime/browser/`
 
 非 root Server 直接以自身用户启动沙箱 Electron，profile 在 Server data dir 的 `remote-browser`。root Gateway 默认通过 systemd transient child 使用 DynamicUser、PrivateTmp、NoNewPrivileges 和只读 runtime 挂载，不把远程网页以 root 运行，不关闭 Chromium sandbox；需要 systemd、可用用户命名空间。该模式 profile 由 systemd 保存在 `/var/lib/opencraft-browser-<data-dir-hash>`（对应 `/var/lib/private/`），备份/删除实例时须包含此目录。受管升级不清除该目录，不重启 core 或独立 DSH。退出关闭子进程 stdin，子进程及其窗口退出；非 root 模式随 IPC 断开退出。
 
+网页按客户端内容区CSS尺寸重新排版，远端DPR固定1（默认100%网页缩放），不会因Retina屏额外渲染多倍像素；无View时回退1280×720。实时调宽合并重配，保留原页面、输入及滚动，资源上限与控制协议见浏览器架构文档。
+
 仅隔离测试可显式设置 `OPENCRAFT_BROWSER_ALLOW_NO_SANDBOX=1`；默认关闭，不应在正式环境启用。运行时目录只含公开代码和 Electron 资产，权限统一为可读/可遍历，以便 DynamicUser 只读挂载；用户数据仍私有。
 
 查看 `GET /__opencraft_browser/capabilities` 可知分发是否包含 runtime；该探测不等于编码器和 Linux 动态依赖已实机验证。实际媒体与类型化控制复用 `/__opencraft_browser/stream` 的同源及现有认证/撤权。原始页面 JS/CDP/Node 入口不暴露。

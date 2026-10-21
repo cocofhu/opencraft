@@ -5,7 +5,33 @@ const { join } = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createInterface } = require('node:readline');
 const ipc = typeof process.send === 'function';
-const width = 1280, height = 720;
+// CSS pixels, independent of the viewer's devicePixelRatio. Bound software
+// surfaces to H.264 level 4's 8192 macroblocks, including portrait windows.
+function viewport(input = {}) {
+  if (input.width === undefined && input.height === undefined) return { width: 1280, height: 720 };
+  if (!Number.isFinite(input.width) || !Number.isFinite(input.height) || input.width <= 0 || input.height <= 0) throw new Error('Invalid viewport');
+  const scale = Math.min(1, 4096 / input.width, 4096 / input.height, Math.sqrt(2097152 / (input.width * input.height)));
+  let width = Math.max(64, Math.round(input.width * scale / 2) * 2), height = Math.max(64, Math.round(input.height * scale / 2) * 2);
+  while (Math.ceil(width / 16) * Math.ceil(height / 16) > 8192) {
+    if (width >= height) width -= 2; else height -= 2;
+  }
+  return { width, height };
+}
+const configuration = p => ({ width: p.width, height: p.height, dpr: 1, codec: 'avc1.42E028' });
+function resize(p, input) {
+  const size = viewport(input);
+  if (size.width === p.width && size.height === p.height) return configuration(p);
+  p.epoch++; p.inFlight = false; p.key = true;
+  clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null;
+  encoderWindow.webContents.send('release-encoder', p.id);
+  Object.assign(p, size);
+  // Announce before requesting paints so consumers replace old decoders before
+  // the new epoch's first keyframe. Keep the same WebContents and DOM.
+  send({ type: 'viewport', page: p.id, ...configuration(p) });
+  p.window.setContentSize(p.width, p.height);
+  if (p.visible) { activity(p); p.window.webContents.invalidate(); }
+  return configuration(p);
+}
 const pages = new Map();
 let encoderWindow, encoderReady = false;
 const bridge = readFileSync(join(__dirname, 'preview-bridge.js'), 'utf8');
@@ -20,7 +46,7 @@ const send = (message, callback) => {
   else process.stdout.write(JSON.stringify(message) + '\n', callback);
 };
 const validUrl = value => { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Unsupported browser URL'); return url.href; };
-function diffArea(a, b) {
+function diffArea(a, b, width, height) {
   if (!a || a.length !== b.length) return width * height;
   const x = new Uint32Array(a.buffer, a.byteOffset, a.length / 4), y = new Uint32Array(b.buffer, b.byteOffset, b.length / 4);
   let left = width, right = -1, top = height, bottom = -1;
@@ -43,14 +69,14 @@ function activity(p) {
 function pump(p) {
   if (p.closed || !p.visible || !encoderReady || p.inFlight || !p.pending || p.mergeUntil > performance.now()) return;
   const frame = p.pending, bytes = frame.bytes || frame.image.toBitmap();
-  const area = diffArea(p.previous, bytes);
+  const area = diffArea(p.previous, bytes, p.width, p.height);
   if (!area && !p.key) { p.pending = null; return; }
-  if (!p.key && !p.interactive && area <= width * height * .08 && !frame.merged) {
+  if (!p.key && !p.interactive && area <= p.width * p.height * .08 && !frame.merged) {
     frame.bytes = bytes; p.mergeUntil = performance.now() + 150;
     p.mergeTimer = setTimeout(() => { p.mergeUntil = 0; if (p.pending) p.pending.merged = true; pump(p); }, 150); return;
   }
   p.pending = null; p.previous = bytes; p.inFlight = true;
-  encoderWindow.webContents.send('encode-frame', { id: p.id, epoch: p.epoch, bytes, timestamp: frame.timestamp, key: p.key }); p.key = false;
+  encoderWindow.webContents.send('encode-frame', { id: p.id, epoch: p.epoch, width: p.width, height: p.height, bytes, timestamp: frame.timestamp, key: p.key }); p.key = false;
 }
 function refresh(p) {
   p.key = true; p.previous = null;
@@ -69,8 +95,9 @@ function closePage(id) {
   p.pending = p.previous = p.latest = null;
   encoderWindow.webContents.send('release-encoder', id); p.window.destroy();
 }
-async function createPage(id) {
-  if (pages.has(id)) return;
+async function createPage(id, input) {
+  if (pages.has(id)) return resize(pages.get(id), input);
+  const { width, height } = viewport(input);
   if (pages.size >= 64) throw new Error('Browser page limit reached');
   const partition = `persist:remote-${id}`;
   const ses = session.fromPartition(partition);
@@ -79,7 +106,7 @@ async function createPage(id) {
   ses.on('will-download', event => event.preventDefault());
   const window = new BrowserWindow({ width, height, useContentSize: true, show: true, frame: false,
     webPreferences: { partition, offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
-  const p = { id, window, epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
+  const p = { id, window, width, height, epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
   wc.setFrameRate(2); wc.stopPainting();
@@ -90,7 +117,7 @@ async function createPage(id) {
   wc.on('render-process-gone', () => send({ type: 'error', page: id, message: 'Browser renderer exited; reload this tab' }));
   wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
   wc.on('paint', (_event, _dirty, image) => {
-    if (image.getSize().width !== width || image.getSize().height !== height) return;
+    if (image.getSize().width !== p.width || image.getSize().height !== p.height) return;
     p.latest = image;
     p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p);
   });
@@ -99,6 +126,7 @@ async function createPage(id) {
     send({ type: 'cursor', page: id, cursor: aliases[cursor] || cursor });
   });
 
+  return configuration(p);
 }
 async function automation(p, method, input) {
   if (!['readContext', 'inspect', 'click', 'fill', 'press', 'scroll', 'wait'].includes(method)) throw new Error('Unsupported browser operation');
@@ -124,9 +152,10 @@ async function automation(p, method, input) {
 }
 async function command(message) {
   const { page: id, method, input = {} } = message;
-  if (method === 'create') { await createPage(id); return { width, height, codec: 'avc1.42E028' }; }
+  if (method === 'create') return createPage(id, input);
   const p = pages.get(id); if (!p) throw new Error('Browser page closed');
   const wc = p.window.webContents;
+  if (method === 'viewport') return resize(p, input);
   if (method === 'close') { closePage(id); return; }
   if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
   if (method === 'reload') { wc.reload(); return; }
@@ -140,7 +169,7 @@ async function command(message) {
       // Paint may initially return the surface cached before parking. Capture
       // once on reveal so changes made while parked reach the viewer too.
       const epoch = p.epoch, image = await wc.capturePage();
-      if (!p.closed && p.visible && p.epoch === epoch) { p.latest = image; p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p); }
+      if (!p.closed && p.visible && p.epoch === epoch && image.getSize().width === p.width && image.getSize().height === p.height) { p.latest = image; p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p); }
     }
     else { wc.stopPainting(); p.epoch++; p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
     return;

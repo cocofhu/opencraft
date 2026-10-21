@@ -6,7 +6,7 @@ import { access, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const methods = new Set(['navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'automation', 'close']);
+const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
 /** Gateway-owned process and page leases. A client gets only its own page port,
  * never a CDP endpoint, filesystem path or arbitrary JavaScript evaluator. */
@@ -131,10 +131,11 @@ export class RemoteBrowserService {
             if (ws.readyState !== WebSocket.OPEN) return;
             page = existing ?? { id: createHash('sha256').update(key).digest('hex'), key, ownerId, socket: ws };
             clearTimeout(page.timer); page.socket = ws; this.pages.set(key, page);
-            try { await this.request(page.id, 'create'); }
+            let config;
+            try { config = await this.request(page.id, 'create', message.input?.viewport); }
             catch (error) { this.pages.delete(key); page = null; throw error; }
             if (ws.readyState !== WebSocket.OPEN) { this.pages.delete(page.key); void this.request(page.id, 'close').catch(() => {}); page = null; return; }
-            reply(message.id, { width: 1280, height: 720, codec: 'avc1.42E028', resumed: !!existing });
+            reply(message.id, { ...config, resumed: !!existing });
             opening = false; return;
           }
           if (!page || !methods.has(message.method)) throw new Error('Browser page not opened');

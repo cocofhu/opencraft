@@ -37,12 +37,13 @@ const tool=new WebBrowserDynamicToolHost(pages,workbench);
 const context={hostId:'host',threadId:'thread',turnId:'turn',callId:'call'};
 const tab=tool.open(context,{url:location.origin+'/demo.html',visible:false});
 const page=workbench.getTabSnapshot(tab.tabId).pageId;
+const slot=document.createElement('div'); slot.style.position='fixed';slot.style.pointerEvents='none'; document.body.append(slot); let presentation;
 pages.prepareSurface(page);
-window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(){surfaces.commit(page,{visualBounds:{x:0,y:0,width:1280,height:720},stageBounds:{x:0,y:0,width:1280,height:720},viewportSize:{width:1280,height:720},scale:1},'visible');}};
+window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(width=1280,height=720){slot.style.width=width+'px';slot.style.height=height+'px';if(!presentation)presentation=presentations.present({pageId:page,tabId:tab.tabId,viewId:'proof',surface:'right-panel',slot,viewportMode:{type:'responsive'}});else presentation.measure();},hide(){presentation?.dispose();presentation=null;}};
 `;
 await build({ stdin: { contents: source, resolveDir: root, sourcefile: 'remote-browser-fixture.ts', loader: 'ts' }, outfile: join(web, 'smoke.js'), bundle: true, format: 'iife', platform: 'browser', target: 'chrome130' });
 await writeFile(join(web, 'index.html'), '<!doctype html><style>html,body{margin:0}#root{position:fixed;inset:0}.web-browser-surface{position:absolute}</style><div id="root"></div><script src="/smoke.js"></script>');
-await writeFile(join(web, 'demo.html'), '<!doctype html><meta charset="utf-8"><title>Remote browser proof</title><style>input,button{font-size:24px}body{font:24px sans-serif;margin:30px}#result{margin-top:20px}</style><label>Name <input aria-label="Name" id="name"></label><button onclick="document.querySelector(\'#result\').textContent=\'Hello \'+document.querySelector(\'#name\').value">Submit</button><input type="password" aria-label="Password" value="never-export-this"><div id="result">Ready</div>');
+await writeFile(join(web, 'demo.html'), '<!doctype html><meta charset="utf-8"><title>Remote browser proof</title><style>input,button{font-size:24px}body{font:24px sans-serif;margin:30px}#result{margin-top:20px}</style><label>Name <input aria-label="Name" id="name"></label><button onclick="document.querySelector(\'#result\').textContent=\'Hello \'+document.querySelector(\'#name\').value">Submit</button><input type="password" aria-label="Password" value="never-export-this"><div id="result">Ready</div><div id="geometry"></div><script>const update=()=>document.querySelector("#geometry").textContent="Viewport "+innerWidth+"x"+innerHeight+" DPR "+devicePixelRatio;addEventListener("resize",update);update()</script>' );
 await writeFile(join(web, 'version.json'), '{}');
 const gateway = await createWorkbenchWebServer({ root: web, loopbackOnly: true, remoteBrowserService: service });
 const address = await gateway.listen({ host: '127.0.0.1', port: 0 });
@@ -52,7 +53,7 @@ try {
   const forbidden = new WebSocket(origin.replace('http:', 'ws:') + '/__opencraft_browser/stream', { origin: 'https://untrusted.invalid' });
   await assert.rejects(new Promise((done, reject) => { forbidden.on('open', done); forbidden.on('error', reject); }), /403/);
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, headless: true, args: process.getuid?.() === 0 ? ['--no-sandbox'] : [] });
-  const view = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const view = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
   if (process.env.OPENCRAFT_TEST_MSE === '1') await view.addInitScript(() => { delete (window as any).VideoDecoder; });
   const errors: string[] = []; view.on('pageerror', error => errors.push(error.message));
   await view.goto(origin);
@@ -74,7 +75,7 @@ try {
   const crossThread = await view.evaluate(async () => { const p = (window as any).poc; try { await p.tool.browserUse({ ...p.context, threadId: 'other' }, { action: 'inspect', tab_id: p.tab.tabId }); return null; } catch (e: any) { return e.code; } });
   assert(crossThread);
   await view.evaluate(() => (window as any).poc.show());
-  await view.waitForFunction(() => { const p = (window as any).poc; const canvas = p.surfaces.presentationPort(p.page).guest; const video = document.querySelector('video'); if (video) return video.videoWidth === 1280 && video.readyState >= 2; const data = canvas.getContext('2d').getImageData(0, 0, 1280, 720).data; return data.some((v: number, i: number) => i % 4 !== 3 && v > 100); });
+  await view.waitForFunction(() => { const p = (window as any).poc; const canvas = p.surfaces.presentationPort(p.page).guest; const video = document.querySelector('video'); if (canvas.width !== 1280 || canvas.height !== 720) return false; if (video) return video.videoWidth === 1280 && video.videoHeight === 720 && video.readyState >= 2; const data = canvas.getContext('2d').getImageData(0, 0, 1280, 720).data; return data.some((v: number, i: number) => i % 4 !== 3 && v > 100); });
   await view.mouse.click(170, 47); await view.keyboard.press('Control+A'); await view.keyboard.type('Human'); await view.mouse.click(430, 47);
   await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Human' }));
   const screenshot = await view.evaluate(async () => (window as any).poc.use({ action: 'screenshot' }));
@@ -82,7 +83,7 @@ try {
   await writeFile(join(temporary, 'target.png'), Buffer.from(screenshot.imageUrl.split(',')[1], 'base64'));
 
   // Park retains the actual DOM but shuts off the video producer.
-  await view.evaluate(() => { const p = (window as any).poc; p.surfaces.park(p.page); });
+  await view.evaluate(() => { const p = (window as any).poc; p.hide(); });
   await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Human' }));
   await view.evaluate(() => (window as any).poc.show());
   await view.evaluate(async dataUrl => { const image = new Image(); image.src = dataUrl; await image.decode(); (window as any).poc.reference = image; }, screenshot.imageUrl);
@@ -98,10 +99,30 @@ try {
     let difference = 0; for (let i = 0; i < a.length; i++) difference += Math.abs(a[i]! - b[i]!);
     return difference / a.length < 3;
   });
+  // Actual layout pixels, not a scaled 720p canvas and not viewer DPR=2.
+  const sizes = [[460, 820], [1024, 600], [480, 860]];
+  for (const [width, height] of sizes) {
+    await view.evaluate(({ width, height }) => (window as any).poc.show(width, height), { width, height });
+    await view.evaluate(async ({ width, height }) => (window as any).poc.use({ action: 'wait', text: `Viewport ${width}x${height} DPR 1`, timeout_ms: 10000 }), { width, height });
+    await view.waitForFunction(({ width, height }) => {
+      const canvas = (window as any).poc.surfaces.presentationPort((window as any).poc.page).guest;
+      const video = document.querySelector('video');
+      return canvas.width === width && canvas.height === height && (video ? video.videoWidth === width && video.videoHeight === height && video.readyState >= 2 : canvas.getContext('2d').getImageData(40, 40, 1, 1).data[3] === 255);
+    }, { width, height });
+    await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Human', timeout_ms: 5000 }));
+  }
+  // Coalesce held drag updates while ensuring the final reverse resize lands.
+  await view.evaluate(async () => { for (const width of [700, 680, 620, 580, 640, 720, 900, 800]) {
+    (window as any).poc.show(width, 720); await new Promise(resolve => setTimeout(resolve, 35));
+  } });
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Viewport 800x720 DPR 1', timeout_ms: 10000 }));
+  await view.waitForFunction(() => { const video = document.querySelector('video'); const canvas = (window as any).poc.surfaces.presentationPort((window as any).poc.page).guest; return video ? video.videoWidth === 800 && video.videoHeight === 720 && video.readyState >= 2 : canvas.width === 800 && canvas.height === 720; });
+  await view.mouse.click(170, 47); await view.keyboard.press('Control+A'); await view.keyboard.type('Resized'); await view.mouse.click(430, 47);
+  await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Resized', timeout_ms: 5000 }));
   await view.screenshot({ path: join(temporary, 'remote-tab.png') });
   await view.waitForTimeout(350); const before = frames; await view.waitForTimeout(1200); const staticFrames = frames - before;
   assert.equal(staticFrames, 0, 'unchanged page must not send video keepalive frames');
   assert.deepEqual(errors, []);
   await view.evaluate(async () => (window as any).poc.use({ action: 'close' }));
-  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','static-zero-frames','explicit-close'], errors }));
+  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','static-zero-frames','explicit-close'], errors }));
 } finally { await browser?.close(); service.close(); await gateway.close(); }
