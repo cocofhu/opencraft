@@ -1,4 +1,5 @@
 import { ReplayIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
+import { NativeSelect } from "@opencraft/design-system-web/native-controls";
 import {
   botMessageStableKey,
   botMessageText,
@@ -374,7 +375,7 @@ function BotInteractionCard({
                   : ""}
               />
             ) : (
-              <select
+              <NativeSelect
                 disabled={busy}
                 multiple={question.multiple}
                 onChange={(event) => {
@@ -396,7 +397,7 @@ function BotInteractionCard({
                     {choice.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
           </label>
         ))}

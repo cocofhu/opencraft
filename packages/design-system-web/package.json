@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
+    "./native-controls": "./src/native-controls.tsx",
     "./progress": "./src/progress.tsx",
     "./discrete-slider": "./src/discrete-slider.tsx",
     "./action-icons": "./src/action-icons.tsx",

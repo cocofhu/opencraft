@@ -1589,7 +1589,7 @@ export function createTasksView(
               {state.recycled.map(task => <li key={task.id} className="tasks-recycle__row">
                 <div><strong>{task.title}</strong><div className="tasks-recycle__metadata">
                   {t(task.status)} · {t("restoreBy")} {new Date(task.deletedAt! + state.recycleBinRetentionMs!).toLocaleString()}
-                </div><details><summary>{t("description")}</summary><p className="tasks-recycle__description">{task.description}</p></details></div>
+                </div><details><summary className="ui-native-disclosure">{t("description")}</summary><p className="tasks-recycle__description">{task.description}</p></details></div>
                 <SettingsButton disabled={state.pending || state.phase !== "ready"} aria-label={`${t("restore")} ${task.title}`}
                   onClick={() => { setRestoringId(task.id); void model.mutate(TASKS.restore, { id: task.id, expectedRevision: task.revision }).finally(() => setRestoringId(null)); }}>
                   {restoringId === task.id ? t("restoring") : t("restore")}

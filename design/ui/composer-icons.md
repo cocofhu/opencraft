@@ -134,3 +134,18 @@ The Workspace editor configures search in its top panel slot. The floating chat
 input may cover the bottom slot on narrow screens; moving the dependency-owned
 panel keeps its shared close/checkbox controls reachable without changing search,
 replacement, file-save or draft ownership.
+
+
+Notification status and close glyphs are explicitly provided through the toast
+library's supported icons API. Reuse the shared success/info/warning/error SVGs,
+ProgressIndicator and CloseIcon; keep notice history, deduplication, lifetime and
+owner cleanup unchanged. NativeSelect adapts single-select arrows while retaining
+the native element, attributes, ref, keyboard and popup; multiple/size lists have
+no arrow. MCP numeric fields opt into the shared stepper paint without enabling
+spinners on controls that intentionally hide them. Native disclosure markers use
+the existing shared adapter. Check real paint as well as source ownership.
+
+The design-system CSS radio marker is already centrally owned. Browser audio and
+video controls remain platform UI; changing those requires a complete accessible
+media control owner rather than replacing isolated icons. These explicit limits
+and forced-colors native fallbacks are not general Web icon exceptions.

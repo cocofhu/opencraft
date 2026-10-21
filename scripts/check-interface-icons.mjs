@@ -18,7 +18,36 @@ export function inspectInterfaceIcons(source, file) {
   const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const errors = [];
   const fail = (node, reason) => errors.push(`${file}:${ast.getLineAndCharacterOfPosition(node.getStart(ast)).line + 1} ${reason}`);
+  const sharedGlyphs = new Set();
+  const toasters = new Set();
+  for (const node of ast.statements) {
+    if (!ts.isImportDeclaration(node) || !node.importClause?.namedBindings || !ts.isNamedImports(node.importClause.namedBindings)) continue;
+    for (const item of node.importClause.namedBindings.elements) {
+      if (node.moduleSpecifier.text === "@opencraft/design-system-web/action-icons" || node.moduleSpecifier.text === "./action-icons") sharedGlyphs.add(item.name.text);
+      if (node.moduleSpecifier.text === "sonner" && (item.propertyName?.text ?? item.name.text) === "Toaster") toasters.add(item.name.text);
+    }
+  }
+  function containsGlyph(node) {
+    return ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && sharedGlyphs.has(node.tagName.getText(ast)))
+      || !!ts.forEachChild(node, containsGlyph);
+  }
   function visit(node) {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(ast);
+      const attributes = node.attributes.properties;
+      const hasAttribute = name => attributes.some(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(ast) === name);
+      if (toasters.has(tag) && !hasAttribute("icons")) fail(node, "notification defaults must be mapped to shared SVG icons");
+      if (tag === "select") {
+        let shell = ts.isJsxOpeningElement(node) ? node.parent.parent : node.parent;
+        while (shell && !ts.isJsxElement(shell) && !ts.isSourceFile(shell)) shell = shell.parent;
+        if (!shell || !containsGlyph(shell)) fail(node, "native select arrows must use a shared SVG adapter");
+      }
+      if (tag === "summary") {
+        const adapted = attributes.some(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(ast) === "className"
+          && attribute.initializer && ts.isStringLiteral(attribute.initializer) && attribute.initializer.text.split(/\s+/u).includes("ui-native-disclosure"));
+        if (!adapted && !containsGlyph(node.parent)) fail(node, "native disclosure markers must use shared SVG");
+      }
+    }
     // Keep keyboard legends and document text distinct from generated control artwork.
     if (!file.includes("native/") && (ts.isJsxText(node) || ts.isStringLiteral(node))) {
       let parent = node.parent;

@@ -1850,3 +1850,9 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
 - Workspace code search uses the editor's top panel slot so the existing floating
   chat input cannot cover search options or replacement controls on narrow screens.
   Search query, replacement, editor draft and save ownership remain unchanged.
+
+- Notification and native-selection artwork: dependency defaults are mapped to
+  shared SVG at the notification owner. Native selects keep their original
+  element, attributes and keyboard/popup behavior; multiple/size lists never gain
+  a dropdown arrow. Numeric stepper paint is opt-in where hidden spinners already
+  serve another control. Forced-colors native paint remains intentional.

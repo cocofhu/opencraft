@@ -2,6 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { inspectInterfaceIcons, inspectInterfaceIconStyles } from "../scripts/check-interface-icons.mjs";
 
+test("dependency defaults and browser arrows require explicit shared artwork", () => {
+  const imports = 'import { ChevronDownIcon as Arrow } from "@opencraft/design-system-web/action-icons";';
+  for (const source of [
+    'import { Toaster as Notices } from "sonner"; const x = <Notices/>;',
+    'const x = <label>Provider<select><option>A</option></select></label>;',
+    'const x = <details><summary>Details</summary></details>;',
+  ]) assert.ok(inspectInterfaceIcons(source, "fixture.tsx").length > 0);
+  for (const source of [
+    'import { Toaster as Notices } from "sonner"; const x = <Notices icons={sharedIcons}/>;',
+    imports + 'const x = <span><select/><Arrow/></span>;',
+    imports + 'const x = <span><select>{options}</select>{multiple ? null : <Arrow/>}</span>;',
+    'const x = <details><summary className="ui-native-disclosure">Details</summary></details>;',
+    imports + 'const x = <summary><span>Details<Arrow/></span></summary>;',
+  ]) assert.deepEqual(inspectInterfaceIcons(source, "fixture.tsx"), []);
+});
+
 test("stock artwork is rejected through aliases, registries and re-exports", () => {
   for (const source of [
     'import { House as H } from "lucide-react"; const registry = { home: H };',

@@ -24,7 +24,7 @@
   @include glyph(close);
   cursor: pointer;
 }
-:where(input.settings-control-input[type="number"])::-webkit-inner-spin-button {
+:where(input.settings-control-input[type="number"], input.ui-native-number[type="number"])::-webkit-inner-spin-button {
   appearance: none;
   width: 16px;
   height: 24px;
@@ -54,6 +54,26 @@
   &:indeterminate::before { @include glyph(checkbox-indeterminate); }
   &:checked, &:indeterminate { color: var(--color-text-accent); }
   &:disabled { @include controls.disabled-feedback; }
+}
+
+.ui-native-select {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  > select { width: 100%; box-sizing: border-box; }
+  &:not([data-list]) > select {
+    appearance: none;
+    padding-inline-end: 32px;
+  }
+  > svg {
+    position: absolute;
+    inset-inline-end: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    pointer-events: none;
+  }
+  &:has(> select:disabled) > svg { @include controls.disabled-feedback; }
 }
 
 .ui-native-disclosure {
@@ -110,7 +130,9 @@ details[open] > .ui-native-disclosure::before { @include glyph(chevron-down); }
   // expose native pseudo-elements. This fallback is intentional accessibility.
   :where(input[type="date"], input[type="datetime-local"])::-webkit-calendar-picker-indicator,
   :where(input[type="search"])::-webkit-search-cancel-button,
-  :where(input.settings-control-input[type="number"])::-webkit-inner-spin-button { appearance: auto; mask: none; background: revert; }
+  :where(input.settings-control-input[type="number"], input.ui-native-number[type="number"])::-webkit-inner-spin-button { appearance: auto; mask: none; background: revert; }
+  .ui-native-select:not([data-list]) > select { appearance: auto; padding-inline-end: revert; }
+  .ui-native-select > svg { display: none; }
   :where(input[type="checkbox"]) { appearance: auto; &::before { display: none; } }
   .ui-control-glyph, .ui-native-disclosure::before,
   .workspace-code-editor .cm-panel.cm-search button[name="close"]::before { color: CanvasText; forced-color-adjust: none; }

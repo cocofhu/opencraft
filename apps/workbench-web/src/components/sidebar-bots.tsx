@@ -1,4 +1,5 @@
 import { LoadingRingIcon as LoaderCircle, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { NativeSelect } from "@opencraft/design-system-web/native-controls";
 import { useIntl } from "@opencraft/i18n/react";
 import {
   DndContext,
@@ -368,9 +369,9 @@ function CreateBotDialog({ creation, onClose, onCreated }: {
         {creation.targets.length > 1 ? (
           <label>
             <span>Provider</span>
-            <select value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)}>
+            <NativeSelect value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)}>
               {creation.targets.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.label}</option>)}
-            </select>
+            </NativeSelect>
           </label>
         ) : null}
         {error === null ? null : <div className="sidebar-bot-dialog__error" role="alert">{error}</div>}

@@ -5978,7 +5978,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     display: grid;
     gap: 5px;
 
-    > span {
+    > span:not(.ui-native-select) {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -6003,7 +6003,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
 
     > input,
-    > select,
+    > :where(.ui-native-select) > select,
     > button {
       width: 100%;
       min-height: 34px;
