@@ -1437,3 +1437,7 @@ Healthy reload keeps its existing transport. Policy closure does not trigger
 automatic retries; an explicit retry still requires server authorization.
 Explicit navigation intent has its own sequence, so synchronizing the remote
 URL during reconnect cannot drop a newer user navigation or revive an older one.
+When reload recreates a physical page, its recovery navigation is already the
+reload operation. Do not immediately reload that new WebContents: before the
+first commit this would reload about:blank and cancel the intended navigation.
+Reloading a resumed live page still issues the native reload command.
