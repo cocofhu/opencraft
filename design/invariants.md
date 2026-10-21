@@ -1848,3 +1848,12 @@ than filtering the currently paginated conversation rows. Opening a task uses it
 Host/thread identity; management reuses the existing per-conversation editor.
 The catalog owns neither execution timers nor a separate draft or mutation model.
 
+### Scheduled task creation
+
+The catalog creates a new durable conversation without starting a Turn. A shared
+utility modal owns transient draft/focus; Host schedule state and recurrence
+remain authoritative. Submission disables closing and duplicate actions. A known
+thread identity is reused after name/save errors; an unknown creation result is
+shown for manual reconciliation, never retried automatically. Server switching
+clears server-specific skills and permissions. The shared modal body scrolls while
+primary and cancel actions remain reachable in short and narrow viewports.

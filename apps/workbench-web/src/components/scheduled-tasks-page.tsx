@@ -9,13 +9,16 @@ import { useAsyncNotices } from "./async-notices";
 import { scheduledTasksMessages as messages } from "./scheduled-tasks-messages";
 import { projectScheduledTaskRows } from "../runtime/scheduled-task-rows";
 import "../styles/scheduled-tasks-page.scss";
+import { ScheduleCreateDialog } from "./schedule-create-dialog";
+import { scheduleCreateMessages } from "./schedule-create-messages";
 
-/** Read-only application catalog. Schedule writes remain in the per-conversation editor. */
+/** Host-owned catalog with conversation-backed creation and management. */
 export function ScheduledTasksPage() {
   const catalog = useScheduledTaskCatalog();
   const intl = useIntl(), notices = useAsyncNotices();
   const [selected, select] = useState<{ hostId: string; threadId: string; scope: string; port: ConversationSchedulesRequestPort } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [creating, setCreating] = useState(false);
   const returnFocus = useRef<HTMLElement | null>(null);
   const text = (key: keyof typeof messages) => intl.formatMessage(messages[key]);
   const source = selected && catalog.scheduleCatalogs.find(host => host.hostId === selected.hostId && host.scope === selected.scope);
@@ -37,6 +40,7 @@ export function ScheduledTasksPage() {
   return <section className="scheduled-tasks-page" aria-label={text("title")}>
     <div className="scheduled-tasks-page__header">
       <SettingsPageHeader title={text("title")} description={text("description")} />
+      <SettingsButton variant="primary" disabled={!hosts.some(host => host.creation && host.port)} onClick={event => { returnFocus.current = event.currentTarget; setCreating(true); }}>{intl.formatMessage(scheduleCreateMessages.title)}</SettingsButton>
       <SettingsButton variant="quiet" disabled={pending} aria-busy={pending} onClick={() => void refresh()} aria-label={text("refresh")}>
         <RefreshCw size={16} aria-hidden="true" className={pending ? "scheduled-tasks-page__refresh-pending" : undefined} />
         {text("refresh")}
@@ -73,6 +77,7 @@ export function ScheduledTasksPage() {
       })}
       {hosts.length === 0 ? <p className="scheduled-tasks-page__empty" role="status">{text(catalog.discovery === "loading" ? "loading" : catalog.discovery === "error" ? "loadError" : "unsupported")}</p> : null}
     </div>
+    {creating ? <ScheduleCreateDialog hosts={hosts} onClose={() => setCreating(false)} returnFocus={() => returnFocus.current} onCreated={() => { void refresh(); }} /> : null}
     {selected && source ? <ConversationSchedulesPanel key={`${selected.scope}:${selected.threadId}`} hostId={selected.hostId} threadId={selected.threadId} scope={selected.scope}
       onClose={() => select(null)} returnFocus={() => returnFocus.current} port={selected.port} /> : null}
   </section>;

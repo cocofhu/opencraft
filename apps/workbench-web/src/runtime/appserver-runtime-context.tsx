@@ -773,10 +773,17 @@ export function useMultiHostThreadCatalog(): {
     scheduleCatalogs: hosts.map((host, index): HostScheduleCatalog => {
       const query = scheduleQueries[index]!;
       const runtime = application.registry.peekRuntime(host.hostId);
-      const capability = runtime?.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { summary?: unknown } | undefined;
+      const capability = runtime?.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { summary?: unknown; calendar?: unknown } | undefined;
       const readable = admitted[index] && phases[index] === "ready";
       const profile = application.profiles.find(value => value.hostId === host.hostId)!;
       const epoch = application.managedHostCatalog?.getAuthorizationEpoch();
+      const assertScope = () => {
+        const current = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === host.hostId);
+        if (!runtime || application.registry.peekRuntime(host.hostId) !== runtime || current?.revision !== profile.revision
+          || (host.kind === "remote-ssh" && epoch !== application.managedHostCatalog?.getAuthorizationEpoch())
+          || !canReadHostThreadCatalog(current, runtime.getSnapshot().phase, application.managedHostCatalog?.getSnapshot() ?? null)
+          || runtime.getSnapshot().phase !== "ready") throw new Error("Schedule catalog scope changed");
+      };
       const port: ConversationSchedulesRequestPort | null = readable && runtime?.resources.host.canRequest?.("opencraft/schedules/read") === true ? {
         request: async (method, params) => {
           const current = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === host.hostId);
@@ -792,6 +799,27 @@ export function useMultiHostThreadCatalog(): {
         schedules: displayable[index] ? query.data?.schedules ?? [] : [],
         phase: !readable ? "offline" : capability?.summary !== true || runtime?.resources.host.canRequest?.("opencraft/schedules/list") !== true ? "unsupported" : query.isError ? "error" : query.isPending ? "loading" : "ready",
         cached: displayable[index] && query.data !== undefined, port,
+        ...(port && runtime?.resources.host.canRequest?.("thread/start") === true ? { creation: {
+          calendar: capability?.calendar === true,
+          options: async () => {
+            assertScope();
+            const permissions = await runtime.resources.composerCatalog.listPermissionProfiles({ limit: 100, cursor: null });
+            const skills = runtime.resources.host.canRequest?.("skills/list") === true
+              ? await runtime.resources.protocol.request("skills/list", {}) : { data: [] };
+            assertScope();
+            return { permissions: permissions.data, skills: [...new Map(skills.data.flatMap(entry => entry.skills.filter(skill => skill.enabled).map(skill => [skill.name, { name: skill.name, description: skill.description }] as const))).values()] };
+          },
+          createConversation: async () => {
+            assertScope();
+            const result = await runtime.resources.protocol.request("thread/start", { ephemeral: false });
+            // Return an acknowledged identity even if admission was revoked during the request.
+            return result.thread.id;
+          },
+          nameConversation: async (threadId: string, name: string) => {
+            assertScope();
+            await runtime.resources.protocol.request("thread/name/set", { threadId, name });
+          },
+        } } : {}),
         retry: async () => { if (readable && capability?.summary === true && runtime?.resources.host.canRequest?.("opencraft/schedules/list") === true) await query.refetch(); },
       };
     }),

@@ -1,6 +1,6 @@
 export const scheduledTasksMessages = {
   title: { id: "schedules.catalog.title", defaultMessage: "Scheduled tasks" },
-  description: { id: "schedules.catalog.description", defaultMessage: "Create schedules from a conversation’s menu." },
+  description: { id: "schedules.catalog.description", defaultMessage: "Create and manage tasks run by your server’s agent." },
   connected: { id: "schedules.catalog.connected", defaultMessage: "Connected" },
   disconnected: { id: "schedules.catalog.disconnected", defaultMessage: "Disconnected" },
   failed: { id: "schedules.catalog.failed", defaultMessage: "Refresh failed" },

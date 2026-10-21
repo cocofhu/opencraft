@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CONVERSATION_SCHEDULES as METHODS, type ConversationSchedule, type ConversationSchedulesRequestPort, type ConversationScheduleRun } from "@opencraft/appserver-protocol";
+import { CONVERSATION_SCHEDULES as METHODS, type ConversationSchedule, type ConversationSchedulesRequestPort, type ConversationScheduleRun, type ScheduleCalendar } from "@opencraft/appserver-protocol";
 import { useIntl } from "@opencraft/i18n/react";
 import { SettingsButton, SettingsPanel, SettingsNotice, SettingsListItem, SettingsTextInput, SettingsSelect } from "@opencraft/extension-react";
 import { useAsyncNotices } from "./async-notices";
 import { ModalSurface } from "./modal";
+import { scheduleCreateMessages as createMessages } from "./schedule-create-messages";
 import "../styles/conversation-schedules.scss";
 
 const messages = {
@@ -54,10 +55,10 @@ function localDate(value: number) {
   const date = new Date(value);
   return new Date(value - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
-interface Draft { permissions: string; prompt: string; when: string; minutes: string; repeating: boolean; revision: number; }
+interface Draft { permissions: string; prompt: string; when: string; minutes: string; repeating: boolean; revision: number; calendar: ScheduleCalendar | null; zone: string; }
 function draftFor(plan: ConversationSchedule | null): Draft {
   return { permissions: plan?.permissions ?? "", prompt: plan?.prompt ?? "", when: localDate(plan?.nextRunAt ?? Date.now() + 300000),
-    minutes: String(plan?.intervalMinutes ?? 60), repeating: plan?.intervalMinutes != null, revision: plan?.revision ?? 0 };
+    minutes: String(plan?.intervalMinutes ?? 60), repeating: plan?.intervalMinutes != null, revision: plan?.revision ?? 0, calendar: plan?.calendar ?? null, zone: plan?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC" };
 }
 export function ConversationSchedulesPanel(props: {
   port: ConversationSchedulesRequestPort; scope: string; hostId: string; threadId: string;
@@ -69,12 +70,12 @@ export function ConversationSchedulesPanel(props: {
   const query = useQuery({ queryKey: key, queryFn: () => props.port.request(METHODS.read, { threadId: props.threadId }), retry: false, refetchInterval: 5000 });
   const [draft, setDraft] = useState<Draft | null>(null);
   const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const zone = detectedZone && detectedZone !== "Etc/Unknown" ? detectedZone : "UTC";
+  const zone = draft?.zone ?? query.data?.schedule?.timeZone ?? (detectedZone && detectedZone !== "Etc/Unknown" ? detectedZone : "UTC");
   const mutation = useMutation({
     mutationFn: async (command: { type: "save"; value: Draft } | { type: "action"; action: "pause" | "resume" | "delete" | "run-now" | "review"; revision: number }) => {
       if (command.type === "save") return props.port.request(METHODS.save, { threadId: props.threadId,
         permissions: command.value.permissions || null, expectedRevision: command.value.revision, prompt: command.value.prompt,
-        nextRunAt: new Date(command.value.when).getTime(), intervalMinutes: command.value.repeating ? Number(command.value.minutes) : null, timeZone: zone });
+        nextRunAt: new Date(command.value.when).getTime(), intervalMinutes: command.value.repeating ? Number(command.value.minutes) : null, timeZone: command.value.zone, calendar: command.value.calendar });
       return props.port.request(METHODS.action, { threadId: props.threadId, expectedRevision: command.revision, action: command.action });
     },
     retry: false,
@@ -97,7 +98,7 @@ export function ConversationSchedulesPanel(props: {
         {query.isError && !query.data ? <SettingsNotice>{text("loadError")} <SettingsButton onClick={() => void query.refetch()}>{text("retry")}</SettingsButton></SettingsNotice> : null}
         {query.data && !draft ? <>
           {exists ? <SettingsListItem label={stateLabel(plan.status)} description={plan.prompt}
-            metadata={plan.status === "active" ? `${permissionLabel(plan.permissions)} · ${plan.intervalMinutes ? intl.formatMessage(messages.every, { minutes: plan.intervalMinutes }) : text("once")} · ${new Date(plan.nextRunAt).toLocaleString(intl.locale, { timeZone: plan.timeZone })} · ${plan.timeZone}` : undefined} />
+            metadata={plan.status === "active" ? `${permissionLabel(plan.permissions)} · ${plan.calendar ? `${intl.formatMessage(createMessages[plan.calendar.period])} ${plan.calendar.times.join(", ")}` : plan.intervalMinutes ? intl.formatMessage(messages.every, { minutes: plan.intervalMinutes }) : text("once")} · ${new Date(plan.nextRunAt).toLocaleString(intl.locale, { timeZone: plan.timeZone })} · ${plan.timeZone}` : undefined} />
             : <SettingsNotice>{text("empty")}</SettingsNotice>}
           <div className="conversation-schedules__actions">
             <SettingsButton disabled={mutation.isPending || inFlight} onClick={() => setDraft(draftFor(plan))}>{text(exists ? "edit" : "create")}</SettingsButton>
@@ -118,9 +119,14 @@ export function ConversationSchedulesPanel(props: {
           {profiles?.find(profile => profile.id === draft.permissions)?.openCraftMode === "full" ? <SettingsNotice>{text("fullAccessHint")}</SettingsNotice> : null}
           <label>{text("when")}<SettingsTextInput aria-label={text("when")} type="datetime-local" required value={draft.when} disabled={mutation.isPending} onChange={event => update({ when: event.target.value })} /></label>
           <SettingsNotice>{text("zone")}: {zone}</SettingsNotice>
-          <label>{text("repeat")}<SettingsSelect aria-label={text("repeat")} value={draft.repeating ? "repeat" : "once"} disabled={mutation.isPending} onChange={event => update({ repeating: event.target.value === "repeat" })}>
-            <option value="once">{text("once")}</option><option value="repeat">{text("interval")}</option>
+          <label>{text("repeat")}<SettingsSelect aria-label={text("repeat")} value={draft.calendar ? "calendar" : draft.repeating ? "repeat" : "once"} disabled={mutation.isPending} onChange={event => update({ repeating: event.target.value === "repeat", calendar: event.target.value === "calendar" ? draft.calendar : null })}>
+            {draft.calendar ? <option value="calendar">{intl.formatMessage(createMessages.recurring)}</option> : null}<option value="once">{text("once")}</option><option value="repeat">{text("interval")}</option>
           </SettingsSelect></label>
+          {draft.calendar ? <>
+            <label>{intl.formatMessage(createMessages.period)}<SettingsSelect value={draft.calendar.period} onChange={event => update({ calendar: { ...draft.calendar!, period: event.target.value as ScheduleCalendar["period"], days: [1] } })}>{(["daily", "weekly", "monthly"] as const).map(period => <option key={period} value={period}>{intl.formatMessage(createMessages[period])}</option>)}</SettingsSelect></label>
+            <label>{intl.formatMessage(createMessages.times)}<SettingsTextInput required value={draft.calendar.times.join(", ")} onChange={event => update({ calendar: { ...draft.calendar!, times: event.target.value.split(/[,，]\s*/) } })} /></label>
+            {draft.calendar.period !== "daily" ? <label>{intl.formatMessage(createMessages[draft.calendar.period === "monthly" ? "monthdays" : "days"])}<SettingsTextInput required value={draft.calendar.days.join(",")} onChange={event => update({ calendar: { ...draft.calendar!, days: event.target.value.split(/[,，]/).map(Number) } })} /></label> : null}
+          </> : null}
           {draft.repeating ? <label>{text("minutes")}<SettingsTextInput aria-label={text("minutes")} type="number" min={1} max={525600} required value={draft.minutes} disabled={mutation.isPending} onChange={event => update({ minutes: event.target.value })} /></label> : null}
           <div className="conversation-schedules__actions"><SettingsButton type="button" disabled={mutation.isPending} onClick={() => setDraft(null)}>{text("cancel")}</SettingsButton><SettingsButton type="submit" variant="primary" disabled={mutation.isPending}>{text("save")}</SettingsButton></div>
         </form> : null}

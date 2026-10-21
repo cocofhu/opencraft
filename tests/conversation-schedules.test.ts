@@ -176,3 +176,38 @@ test("explicit permissions survive restart, snapshot each occurrence and reject 
     assert.equal(f.service.read("thread").schedule!.permissions, null);
   } finally { await f.close(); }
 });
+
+// Native Host timing: reference product interaction does not introduce a second scheduler.
+import { nextCalendarRun, nextIntervalRun } from "@opencraft/appserver-protocol";
+test("calendar rules respect zone, multiple times and selected dates", () => {
+  assert.equal(nextCalendarRun({ period: "daily", times: ["18:00", "09:00"], days: [] }, "Asia/Shanghai", Date.parse("2026-10-21T02:00Z")), Date.parse("2026-10-21T10:00Z"));
+  assert.equal(nextCalendarRun({ period: "weekly", times: ["09:00"], days: [1, 5] }, "Asia/Shanghai", Date.parse("2026-10-21T02:00Z")), Date.parse("2026-10-23T01:00Z"));
+  assert.equal(nextCalendarRun({ period: "monthly", times: ["09:00"], days: [31] }, "UTC", Date.parse("2026-04-01T00:00Z")), Date.parse("2026-05-31T09:00Z"));
+});
+test("DST gap is skipped and ambiguous wall time executes once", () => {
+  assert.equal(nextCalendarRun({ period: "daily", times: ["02:30"], days: [] }, "America/New_York", Date.parse("2026-03-08T00:00Z")), Date.parse("2026-03-09T06:30Z"));
+  const calendar = { period: "daily" as const, times: ["01:30"], days: [] };
+  assert.equal(nextCalendarRun(calendar, "America/New_York", Date.parse("2026-11-01T00:00Z")), Date.parse("2026-11-01T05:30Z"));
+  assert.equal(nextCalendarRun(calendar, "America/New_York", Date.parse("2026-11-01T05:31Z")), Date.parse("2026-11-02T06:30Z"));
+});
+test("effective windows and interval weekdays preserve interval phase", () => {
+  const window = { startAt: null, endAt: null, weekdays: [1] };
+  assert.equal(nextIntervalRun(Date.parse("2026-10-25T09:15Z"), 60, "UTC", Date.parse("2026-10-25T09:15Z"), window), Date.parse("2026-10-26T00:15Z"));
+  assert.equal(nextCalendarRun({ period: "daily", times: ["09:00"], days: [] }, "UTC", Date.parse("2026-10-21T10:00Z"), { ...window, weekdays: [0,1,2,3,4,5,6], endAt: Date.parse("2026-10-22T08:00Z") }), null);
+});
+test("calendar plan persists, executes through native port with skill instruction, and advances", async () => {
+  const f = await fixture();
+  let instructions = "";
+  f.port.submit = async (_run, prompt) => { instructions = prompt; return { state: "completed" }; };
+  try {
+    const now = 1800000000000;
+    const date = new Date(now + 60000).toISOString().slice(11,16);
+    const value = await f.service.handle("opencraft/schedules/save", { threadId: "thread", expectedRevision: 0, prompt: "Check report", nextRunAt: now, intervalMinutes: null, timeZone: "UTC", calendar: { period: "daily", times: [date], days: [] }, skills: ["reporting"] }, null);
+    assert.ok(value.schedule!.calendar);
+    f.advance(120000); await f.service.tick();
+    assert.match(instructions, /reporting/);
+    assert.equal(f.service.read("thread").schedule!.status, "active");
+    assert.ok(f.service.read("thread").schedule!.nextRunAt > now + 120000);
+    await assert.rejects(f.service.handle("opencraft/schedules/save", { threadId: "thread", expectedRevision: f.service.read("thread").schedule!.revision, prompt: "bad", nextRunAt: now+180000, intervalMinutes: null, timeZone: "UTC", calendar: { period: "weekly", times: ["25:00"], days: [] } }, null));
+  } finally { await f.close(); }
+});

@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { ConversationScheduleSummary, ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
+import type { ConversationScheduleSummary, ConversationSchedulesRequestPort, OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
 
 export interface HostScheduleCatalog {
   readonly hostId: string;
@@ -9,6 +9,12 @@ export interface HostScheduleCatalog {
   readonly phase: "loading" | "ready" | "offline" | "error" | "unsupported";
   readonly cached: boolean;
   readonly port: ConversationSchedulesRequestPort | null;
+  readonly creation?: {
+    readonly calendar: boolean;
+    options(): Promise<{ permissions: OpenCraftPermissionProfile[]; skills: { name: string; description: string }[] }>;
+    createConversation(): Promise<string>;
+    nameConversation(threadId: string, name: string): Promise<void>;
+  };
   retry(): Promise<void>;
 }
 export interface ScheduledTaskCatalog {
