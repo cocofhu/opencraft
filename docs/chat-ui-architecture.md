@@ -2322,3 +2322,16 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Live tool disclosure state
+
+Generic dynamic tools use the shared activity disclosure state: a running tool
+with a body starts open, a user collapse survives progress updates, and settled
+details have their own initially collapsed choice. A historical completed tool
+therefore starts collapsed without an expand-then-collapse frame. MCP details
+retain a separate initially collapsed choice. Presentation still owns whether
+a tool has a body; an unknown compact dynamic tool does not expose its payload.
+`smoke-thread-tool-activity.ts` exercises native Items through the original
+projector and complete Conversation, including completed/failed settlement,
+manual reopening, historical restore and MCP/compact controls.

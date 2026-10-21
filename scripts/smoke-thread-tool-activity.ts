@@ -23,7 +23,7 @@ const results = [];
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -71,6 +71,67 @@ try {
     console.log(JSON.stringify({ width, theme, passed: true }));
     await page.close();
   }
+  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
+        port: number;
+    }).port}/?theme=${theme}&scenario=live`;
+    await page.goto(url);
+    await page.locator('[data-phase="running"]').waitFor();
+    const activate = (n: ReturnType<typeof page.locator>) => width === 390 ? n.tap() : n.click();
+    const reveal = async () => { for (let i = 0; i < 20; i++) {
+        const closed = page.locator('.thread-agent-activity__group > .thread-agent-activity__group-disclosure > .thread-activity-item__header > button[aria-expanded="false"]');
+        if (!await closed.count())
+            break;
+        await activate(closed.first());
+    } };
+    await reveal();
+    const liveRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__detail', { hasText: '/workspace/live.txt' }) }).first();
+    await liveRow.waitFor();
+    const live = liveRow.locator(':scope > .thread-activity-item__header button[aria-expanded]');
+    await live.waitFor();
+    const settledRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__detail', { hasText: '/workspace/settled.txt' }) }).first();
+    const mcpRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__summary', { hasText: 'Mcp probe' }) }).first();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'running');
+    const features: Record<string, boolean> = { liveInitiallyOpen: await live.getAttribute('aria-expanded') === 'true', liveBodyInitiallyVisible: await page.getByText('LIVE_WRITE_BODY', { exact: false }).first().isVisible(), mcpInitiallyClosed: await mcpRow.locator(':scope > .thread-activity-item__header button[aria-expanded]').getAttribute('aria-expanded') === 'false', settledInitiallyClosed: await settledRow.locator(':scope > .thread-activity-item__header button[aria-expanded]').getAttribute('aria-expanded') === 'false', compactPayloadSuppressed: !await page.getByText('COMPACT_PAYLOAD_CONTROL', { exact: false }).count() };
+    await page.screenshot({ path: join(output, `live-${width}-${theme}-initial.png`) });
+    if (await live.getAttribute('aria-expanded') === 'true')
+        await activate(live);
+    await page.evaluate(() => (window as any).setPhase('progress'));
+    await page.locator('[data-phase="progress"]').waitFor();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.content === 'UPDATED_WRITE_BODY');
+    features.manualCollapseRetained = await live.getAttribute('aria-expanded') === 'false';
+    await activate(live);
+    await page.getByText('UPDATED_WRITE_BODY', { exact: false }).first().waitFor();
+    await page.evaluate(() => (window as any).setPhase('completed'));
+    await page.locator('[data-phase="completed"]').waitFor();
+    const settledLive = liveRow.getByRole('button', { name: 'Wrote', exact: true });
+    await settledLive.waitFor();
+    features.settlementReturnsCollapsed = await settledLive.getAttribute('aria-expanded') === 'false';
+    if (await settledLive.getAttribute('aria-expanded') === 'false')
+        await activate(settledLive);
+    features.settledManuallyReachable = await page.getByText('LIVE_WRITE_BODY', { exact: false }).first().isVisible();
+    await page.goto(url + '&initial=completed&history=1');
+    await page.locator('[data-phase="completed"]').waitFor();
+    await reveal();
+    features.historicalSettledCollapsed = await liveRow.getByRole('button', { name: 'Wrote', exact: true }).getAttribute('aria-expanded') === 'false';
+    await page.goto(url);
+    await page.locator('[data-phase="running"]').waitFor();
+    await reveal();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'running');
+    await page.evaluate(() => (window as any).setPhase('failed'));
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'failed');
+    features.failedSettlementCollapsed = await live.getAttribute('aria-expanded') === 'false';
+    assert.ok(Object.values(features).every(Boolean), JSON.stringify(features));
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    results.push({ width, theme, liveTools: features });
+    await page.close();
+}
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

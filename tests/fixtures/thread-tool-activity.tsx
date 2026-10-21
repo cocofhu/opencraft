@@ -1,3 +1,4 @@
+import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import React, { useState } from "react";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline, type TimelineSourceItem } from "@opencraft/chat-core";
@@ -55,4 +56,54 @@ function Demo() {
     </TimelineBlockRendererProvider>
   </div>;
 }
-createIntlTestRoot(document.getElementById("root")!).render(<Demo />);
+const liveQuery = new URLSearchParams(location.search);
+const liveProbe = window as unknown as {
+  setPhase: (phase: string) => void;
+  observed: Record<string, { status: string; content?: string }>;
+};
+liveProbe.observed = {};
+function LiveToolsDemo() {
+  const [phase, setPhase] = useState(liveQuery.get("initial") ?? "running");
+  liveProbe.setPhase = setPhase;
+  type Dynamic = Extract<ThreadItem, { type: "dynamicToolCall" }>;
+  const running = phase === "running" || phase === "progress";
+  const status: Dynamic["status"] = running ? "inProgress" : phase === "failed" ? "failed" : "completed";
+  const dynamic = (id: string, namespace: string, tool: string, args: Dynamic["arguments"], state = status): Dynamic => ({
+    type: "dynamicToolCall", id, namespace, tool, arguments: args, status: state,
+    success: state === "inProgress" ? null : state !== "failed", durationMs: state === "inProgress" ? null : 12,
+    contentItems: state === "inProgress" ? [] : [{ type: "inputText", text: "Write completed" }],
+  });
+  const native: ThreadItem[] = [
+    dynamic("live-write", "deepseek-harness", "write", {
+      path: "/workspace/live.txt", content: phase === "progress" ? "UPDATED_WRITE_BODY" : "LIVE_WRITE_BODY",
+    }),
+    dynamic("settled-write", "deepseek-harness", "write", {
+      path: "/workspace/settled.txt", content: "SETTLED_WRITE_BODY",
+    }, "completed"),
+    dynamic("compact", "unregistered", "inspect", { secret: "COMPACT_PAYLOAD_CONTROL" }),
+    { type: "mcpToolCall", id: "mcp", server: "fixture", tool: "mcp_probe", arguments: {},
+      appContext: null, mcpAppUi: null, pluginId: null, readOnlyHint: null, status: "inProgress",
+      result: { _meta: null, content: [{ type: "text", text: "MCP_RESULT_CONTROL" }], structuredContent: null },
+      error: null, durationMs: null },
+  ];
+  const items: TimelineSourceItem[] = native.map(({ id, type, ...payload }) => ({ id, type, payload }));
+  const historical = liveQuery.get("history") === "1";
+  const timeline = projectTimeline({
+    key: createConversationKey("fixture", "live-tools"), revision: ["running", "progress", "completed", "failed"].indexOf(phase),
+    authoritative: true, phase: historical ? "painted" : "live",
+    turns: [{ id: "turn", status: historical ? "complete" : "streaming", items }],
+  }, registry);
+  return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
+    <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
+      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        renderToolCallIcon={block => {
+          if (block.callId !== null) liveProbe.observed[block.callId] = {
+            status: block.status, content: (block.input as { content?: string } | null)?.content,
+          };
+          return undefined;
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+    </TimelineBlockRendererProvider>
+  </div>;
+}
+
+createIntlTestRoot(document.getElementById("root")!).render(new URLSearchParams(location.search).get("scenario") === "live" ? <LiveToolsDemo /> : <Demo />);
