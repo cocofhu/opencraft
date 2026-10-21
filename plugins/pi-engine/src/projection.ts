@@ -1,3 +1,4 @@
+import { CompactionEntry, UserEntry } from "@earendil-works/pi-durable";
 import type { PiSnapshot } from "./session.js";
 
 type Value = Record<string, any>;
@@ -51,9 +52,15 @@ export function projectPiSnapshot(session: { id: string; cwd: string; tools: Val
     turns.push(result); taskGroups.set(result, new Set()); return result;
   };
   for (const entry of snapshot.entries) {
+    // Compaction contributes a user-role summary to MODEL context, not a new
+    // user input. Its independent task must not extend a completed Turn's time.
+    if (CompactionEntry.is(entry)) {
+      if (turn) turn.items.push({ type: "contextCompaction", id: `${session.id}:compaction:${entry.id}` });
+      continue;
+    }
     let messageIndex = 0;
     for (const message of entry.model ?? []) {
-      if (message.role === "user") turn = makeTurn(submissions.get(entry.id), entry.id, message, entry.kind === "opencraft.input" ? entry.data as Value : {});
+      if (message.role === "user" && (submissions.has(entry.id) || UserEntry.is(entry) || entry.kind === "opencraft.input")) turn = makeTurn(submissions.get(entry.id), entry.id, message, entry.kind === "opencraft.input" ? entry.data as Value : {});
       else if (turn && message.role === "assistant") {
         const key = entry.byTaskId ?? `entry-${entry.id}`;
         const ordinal = counts.get(key) ?? 0; counts.set(key, ordinal + 1);

@@ -425,3 +425,43 @@ test("Pi online first attachment waits for baseline without claiming offline cus
   assert.match(modelContext, /first-attachment.txt/); assert.equal(methods.filter(method => method === "turn/start").length, 1);
   assert.ok(methods.indexOf("thread/resume") < methods.indexOf("turn/start"));
 });
+
+
+test("Pi native compaction and passive context writes never invent user Turns", async t => {
+  const { Harness, createRegistry, CompactionEntry } = await import("@earendil-works/pi-durable");
+  const { openNodeSqliteStorage } = await import("@earendil-works/pi-durable/storage/sqlite/node");
+  const { BACKGROUND_CONTEXT: context } = await import("@earendil-works/chord/context");
+  const { writeFile } = await import("node:fs/promises");
+  const { randomUUID } = await import("node:crypto");
+  const directory = await mkdtemp(join(tmpdir(), "pi-native-compaction-")); t.after(() => rm(directory, { recursive: true, force: true }));
+  const { models } = fixtureModels([fauxAssistantMessage("first answer"), fauxAssistantMessage("second answer"),
+    fauxAssistantMessage("native compaction summary"), fauxAssistantMessage("third answer")]);
+  const id = `pi_${randomUUID()}`, file = join(directory, `${id}.sqlite`);
+  const storage = await openNodeSqliteStorage(file);
+  const harness = await Harness.open(storage, { models, registry: createRegistry(), settings: { compaction: { enabled: false, keepRecentTokens: 1 } } }, context);
+  t.after(() => harness.close(context));
+  const root = await harness.root(context); await root.configure({ model: { provider: "faux", modelId: "faux-1" }, cwd: directory }, context);
+  const submit = async (n: number) => {
+    const requestId = `${id}:turn:client:input-${n}`, text = `user input ${n}`;
+    const submission = await root.submit({ type: "input", content: text, requestId, whenBusy: "reject",
+      entry: { kind: "opencraft.input", data: { turnId: requestId, clientId: `input-${n}`, input: [{ type: "text", text, text_elements: [] }], createdAtMs: Date.now() } } }, context);
+    assert.equal((await submission.wait(context)).status, "done");
+  };
+  await submit(1); await submit(2);
+  const task = await root.compact(undefined, context); await harness.waitForTask(task, context);
+  const compacted = await root.context(context); assert.ok(compacted.entries.some(entry => CompactionEntry.is(entry)));
+  const write = await root.submit({ type: "write", entry: { kind: "application.context", model: [{ role: "user", content: [{ type: "text", text: "passive context" }], timestamp: Date.now() }] } }, context);
+  assert.equal((await write.wait(context)).status, "done");
+  await submit(3); await harness.close(context);
+  const now = Math.floor(Date.now() / 1000);
+  await writeFile(join(directory, `${id}.json`), JSON.stringify({ format: "pi-durable-1", id, cwd: directory,
+    model: piModel("faux", "faux-1"), name: null, preview: "", createdAt: now, updatedAt: now, archived: false, tools: [] }));
+  const engine = new PiEngine({ directory, cwd: directory, models }); t.after(() => engine.close());
+  const history = (await engine.request("thread/read", { threadId: id, includeTurns: true }, noTools)).thread.turns;
+  assert.equal(history.length, 3); assert.deepEqual(history.map((turn: any) => turn.items[0].clientId), ["input-1", "input-2", "input-3"]);
+  assert.equal(history.flatMap((turn: any) => turn.items).filter((item: any) => item.type === "contextCompaction").length, 1);
+  assert.ok(history.every((turn: any) => turn.status === "completed"));
+  await engine.close();
+  const reopened = new PiEngine({ directory, cwd: directory, models }); t.after(() => reopened.close());
+  assert.deepEqual((await reopened.request("thread/resume", { threadId: id }, noTools)).thread.turns, history);
+});

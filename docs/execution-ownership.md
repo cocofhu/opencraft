@@ -407,3 +407,5 @@ policy. Pi accepts that redundant equivalent representation, while validating ev
 supplied permission field and rejecting any restricted or custom value.
 
 Online first submissions with ready attachments or context wait for the existing Thread hydration owner before entering Conversation admission. The command retains the original references and checks lease lifetime after hydration. The text-only offline outbox does not take custody of transient asset handles; offline refusal and uncertain-execution fencing remain unchanged.
+
+Native user-role model context is not itself user admission. Only input submissions, native UserEntry and the adapter input entry start Turns. CompactionEntry renders a stable contextCompaction item on the prior Turn without changing its execution duration; passive context writes cannot invent a user Turn.
