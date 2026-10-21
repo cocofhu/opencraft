@@ -536,7 +536,7 @@ export function createAppServerWorkbenchRuntime(
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
     reconnect: () => runtime.reconnect(), delaysMs: config.reconnectDelaysMs,
     stableMs: config.reconnectStableMs, log: config.onRecoveryEvent ? event => config.onRecoveryEvent!({
-      ...event, generation: client?.connectionGeneration ?? 0, eventAtMs: clock.now?.() ?? Date.now(), ...((currentTransport?.status as {attemptId?:string}|undefined)?.attemptId ? {attemptId:(currentTransport!.status as {attemptId:string}).attemptId} : {}),
+      ...event, generation: client?.connectionGeneration ?? 0, eventAtMs: clock.now?.() ?? Date.now(), ...((currentTransport?.status as {attemptId?:string}|undefined)?.attemptId ? {attemptId:(currentTransport!.status as {attemptId?:string}).attemptId} : {}),
     }) : undefined, changed: () => publish(),
   });
   let automaticReconnectBlock: TransportStatus | null = null;
