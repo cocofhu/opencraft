@@ -20,7 +20,7 @@ export function AIFollowUp({ tasks, members, aiResearch, activity, port, onOpenC
   const text = (cn: string, en: string) => zh ? cn : en;
   const [ownerFilter, setOwnerFilter] = useState("");
   const candidates = aiResearch ? tasks.filter(isMorningResearchTask) : [];
-  const ownerName = (id: string | null) => members.find(member => member.id === id)?.name ?? id ?? text("未分配", "Unassigned");
+  const ownerName = (id: string | null | undefined) => members.find(member => member.id === id)?.name ?? id ?? text("未分配", "Unassigned");
   const ownerIds = [...new Set(candidates.flatMap(task => task.assigneeId ? [task.assigneeId] : []))];
   // Keep a selected owner reachable if their last item disappears during refresh.
   if (ownerFilter.startsWith("member:") && !ownerIds.includes(ownerFilter.slice(7))) ownerIds.push(ownerFilter.slice(7));

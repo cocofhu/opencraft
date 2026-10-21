@@ -79,7 +79,7 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  await filter.selectOption('');
  const multi=page.getByRole('button',{name:'选择关联会话：Overdue handoff',exact:true});
  if(width<600)await multi.tap();else await multi.click();
- await page.getByRole('menuitem',{name:'关联会话 2',exact:true}).click();
+ await page.getByRole('menuitem',{name:'关联会话 1',exact:true}).click();
  assert.deepEqual(await page.evaluate(()=>window.openedConversations.at(-1)),{serverId:'server-second',threadId:'thread-second'});
  const first=await card.boundingBox();const second=await page.locator('[data-ai-follow-up-task-id="Overdue handoff"]').boundingBox();
  assert.ok(first&&second);if(width===1440)assert.ok(Math.abs(first.y-second.y)<2&&second.x>first.x,'Desktop cards share a scannable row');else assert.ok(second.y>first.y,'Narrow cards stack');
