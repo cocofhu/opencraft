@@ -2322,3 +2322,14 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Approval reviews on tools without results
+
+An attached automatic approval review owns an expandable body even when the
+tool presenter has no content surface. While a tool is awaiting a decision, users
+can open its review progress and subsequent denial rationale. This does not grant
+a generic compact tool an input/output surface, invent an empty result, or change
+the tool's initially collapsed state. Review identity and state remain owned by
+the runtime and chat-core; Web only combines the existing disclosure and review
+list. Tools without reviews retain their presenter's expansion policy.

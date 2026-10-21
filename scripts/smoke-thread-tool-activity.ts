@@ -71,6 +71,51 @@ try {
     console.log(JSON.stringify({ width, theme, passed: true }));
     await page.close();
   }
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=reviews`);
+    await page.locator('[data-phase="inProgress"]').waitFor();
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+    for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    const reviewed = [page.getByRole("button", { name: "Reviewed · Running", exact: true }), page.getByRole("button", { name: "Inspect · Running", exact: true })];
+    for (const trigger of reviewed) {
+      assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Pending reviews preserve the tool's collapsed default");
+      await activate(trigger);
+    }
+    const reviews = page.locator(".thread-auto-review");
+    assert.equal(await reviews.count(), 2);
+    for (let index = 0; index < 2; index++) {
+      await activate(reviews.nth(index).locator(":scope > button"));
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), "Reviewing this request.");
+    }
+    assert.equal(await page.locator(".thread-tool-details").count(), 0, "Review details do not grant a tool payload surface");
+    await page.evaluate(() => (window as any).changeThreadToolPhase("denied"));
+    await page.locator('[data-phase="denied"]').waitFor();
+    for (let index = 0; index < 2; index++) {
+      assert.equal(await reviewed[index]!.getAttribute("aria-expanded"), "true");
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), `REVIEW_REASON_${index}: add permission context.`);
+      assert.equal(await reviews.nth(index).getAttribute("data-warning"), "true");
+      await activate(reviewed[index]!);
+      await activate(reviewed[index]!);
+      await activate(reviews.nth(index).locator(":scope > button"));
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), `REVIEW_REASON_${index}: add permission context.`);
+    }
+    const plain = page.locator(".thread-activity-item[data-status] > .thread-activity-item__header").filter({ hasText: "Plain · Running" });
+    assert.equal(await plain.count(), 1);
+    assert.equal(await plain.locator("button[aria-expanded]").count(), 0, "An unrelated pending tool stays compact");
+    assert.equal(await page.locator(".thread-tool-details").count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: join(output, `reviews-${width}-${theme}.png`) });
+    results.push({ width, theme, pendingToolReviewsReachable: true, denialReasonUpdates: true, compactPayloadPreserved: true, collapseAndReopen: true });
+    console.log(JSON.stringify({ width, theme, toolReviews: true, passed: true }));
+    await page.close();
+  }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {
