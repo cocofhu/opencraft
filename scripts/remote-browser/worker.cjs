@@ -5,6 +5,7 @@ const { join } = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createInterface } = require('node:readline');
 const { installClipboard } = require('./clipboard.cjs');
+const { initializeNativeFocus } = require('./focus.cjs');
 app.commandLine.appendSwitch('opencraft-remote-clipboard');
 const ipc = typeof process.send === 'function';
 // CSS pixels, independent of the viewer's devicePixelRatio. Bound software
@@ -168,6 +169,7 @@ function closePage(id) {
   const p = pages.get(id); if (!p) return;
   pages.delete(id); p.closed = true;
   p.clipboard?.dispose();
+  p.focusDispose?.();
   clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer);
   p.pending = p.previous = p.latest = null;
   encoderWindow.webContents.send('release-encoder', id); p.window.destroy();
@@ -214,8 +216,9 @@ async function createPage(id, input) {
   // The debugger stays private to the worker, shared with device emulation.
   try {
     await wc.loadURL('about:blank');
-    if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
-    await wc.debugger.sendCommand('Emulation.setFocusEmulationEnabled', { enabled: true });
+    p.focusDispose = await initializeNativeFocus(wc, () => {
+      if (!p.closed) send({ type: 'error', page: id, message: 'Browser frame initialization failed; reload this tab' });
+    });
     if (profile !== 'desktop') await resize(p, {...input, width, height});
     return configuration(p);
   } catch (error) { closePage(id); throw error; }

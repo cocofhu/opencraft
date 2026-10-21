@@ -1327,7 +1327,10 @@ page-focus context before remote navigation. Ozone headless OS-window focus and
 injected mouse clicks alone do not focus its renderer. Chromium's existing
 focus emulation lets independent page viewers retain their own native focused
 element; it does not refocus an old editor when Copy executes. Parking video
-does not toggle page focus or dispatch an extra editor blur.
+does not toggle page focus or dispatch an extra editor blur. Cross-site iframe
+renderers have separate focus contexts. A private, recursive iframe-target
+attachment initializes each one before resuming its script; initialization
+failure or detach always resumes a waiting target and cannot leave it paused.
 
 The remote worker now exposes a narrowly typed copy-back operation and native
 context-menu notifications. A client right-click or keyboard-menu intent must
