@@ -44,10 +44,10 @@ async function emulateDevice(p, size, profile) {
     const platform = ios ? (profile === 'iphone' ? 'iPhone' : 'iPad') : android ? 'Linux armv8l' : p.desktopPlatform;
     const metadata = { brands: [{brand:'Chromium',version:process.versions.chrome.split('.')[0]}],
       fullVersionList: [{brand:'Chromium',version:process.versions.chrome}], fullVersion:process.versions.chrome,
-      platform:android?'Android':p.desktopPlatformName, platformVersion:android?'14.0.0':'',
-      architecture:android?'arm':process.arch === 'arm64'?'arm':'x86', bitness:'64', model:'', mobile:profile === 'android-phone' };
+      platform:ios?'iOS':android?'Android':p.desktopPlatformName, platformVersion:ios?'18.0.0':android?'14.0.0':'',
+      architecture:ios||android?'arm':process.arch === 'arm64'?'arm':'x86', bitness:'64', model:'', mobile:ios||profile === 'android-phone' };
     wc.setUserAgent(ua);
-    await command('Emulation.setUserAgentOverride', {userAgent:ua,platform,...(ios?{}:{userAgentMetadata:metadata})});
+    await command('Emulation.setUserAgentOverride', {userAgent:ua,platform,userAgentMetadata:metadata});
   }
   const mobile = !['desktop','desktop-touch'].includes(profile), touch = profile !== 'desktop';
   if (mobile) await command('Emulation.setDeviceMetricsOverride', {
