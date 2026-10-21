@@ -1215,3 +1215,35 @@ test("Host binds each submission to its trusted sender and keeps queued authors 
     assert.match(withoutId.error.message, /Message identity/);
   } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
 });
+
+test("scheduled permission snapshots reach native Codex and survive adapter recovery", async () => {
+  const root = await mkdtemp(join(tmpdir(), "opencraft-schedule-permissions-"));
+  let frames: Array<Record<string, unknown>> = [], adapter = createRoutingAdapter(root, frames);
+  const request = async (id: string, method: string, params: Record<string, unknown>) => {
+    await adapter.send(JSON.stringify({ id, method, params, [LOGICAL_CLIENT_FIELD]: "writer" }));
+    const response = await waitFor(frames, frame => frame.id === id);
+    assert.equal(response.error, undefined); return response.result as any;
+  };
+  try {
+    await adapter.connect(); await initializeClient(adapter, frames, "writer");
+    const threadId = (await request("schedule:create", "thread/start", { cwd: root, testNoServerRequest: true })).thread.id;
+    const view = await request("schedule:read", "opencraft/schedules/read", { threadId });
+    assert.ok(view.permissionProfiles.some((profile: any) => profile.id === "opencraft:permission-mode:full" && profile.allowed));
+    await request("schedule:save", "opencraft/schedules/save", { threadId, expectedRevision: 0, prompt: "scheduled check",
+      nextRunAt: Date.now() + 60000, intervalMinutes: 60, timeZone: "UTC", permissions: "opencraft:permission-mode:full" });
+    await adapter.close(); frames = []; adapter = createRoutingAdapter(root, frames);
+    await adapter.connect(); await initializeClient(adapter, frames, "writer");
+    const restored = await request("schedule:restored", "opencraft/schedules/read", { threadId });
+    assert.equal(restored.schedule.permissions, "opencraft:permission-mode:full");
+    await request("schedule:now", "opencraft/schedules/action", { threadId, expectedRevision: restored.schedule.revision, action: "run-now" });
+    let inputs: any[] = [];
+    for (let attempt = 0; attempt < 60; attempt++) {
+      inputs = (await request(`schedule:inputs:${attempt}`, "test/readAcceptedInputs", {})).data;
+      if (inputs.length) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.equal(inputs.length, 1);
+    assert.equal(inputs.at(-1).params.permissions, ":danger-full-access");
+    assert.match(inputs.at(-1).params.clientUserMessageId, /^schedule:/);
+  } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
+});

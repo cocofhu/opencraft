@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { dshScheduleExecutionPort } from "../apps/local-agent-host/src/dsh-schedules.js";
-const run = { id: "schedule:one:1", threadId: "s", scheduleId: "one", scheduledAt: 1, state: "submitting" as const, turnId: null, updatedAt: 1 };
+const run = { id: "schedule:one:1", threadId: "s", scheduleId: "one", scheduledAt: 1, permissions: "opencraft:permission-mode:full", state: "submitting" as const, turnId: null, updatedAt: 1 };
 function fixture() {
   let sent = 0, prepared = 0, prior: any = null, goal: any = null, busy = false, archived = false, temporary = false;
   const adapter: any = { dispatch: async (method: string) => method === "thread/goal/get" ? { goal } : { thread: { id: "s", status: { type: busy ? "active" : "idle" } } },
     dispatchOwned: async (method: string, params: any, owner: any) => {
-      sent++; assert.equal(method, "turn/start"); assert.equal(params.clientUserMessageId, run.id); assert.equal(owner.identity.id, "opencraft-scheduler");
+      sent++; assert.equal(params.permissions, "opencraft:permission-mode:full"); assert.equal(method, "turn/start"); assert.equal(params.clientUserMessageId, run.id); assert.equal(owner.identity.id, "opencraft-scheduler");
       prior = { turnId: "t", state: "running" }; return { turn: { id: "t" } };
     } };
   const authority: any = { scheduleInput: () => prior, table: { get: () => busy ? { turnId: "human" } : prior?.state === "running" ? { turnId: "t" } : null },

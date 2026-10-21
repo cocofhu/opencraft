@@ -254,6 +254,15 @@ execution across daylight-saving changes. The existing conversation menu is
 the only creation entry. Editing and background reads do not replace a form's
 captured revision or unsaved draft.
 
+The editor lists the Host's verified permission profiles and stores the selected
+profile on the plan. An omitted selection retains conversation defaults; legacy
+plans are never silently promoted to Full access. Each occurrence snapshots its
+selection before admission. Codex resolves it to an allowed native profile before
+claiming the durable queue row, including after restart; DSH passes it through
+its existing permission authority. Changing a plan does not change an admitted
+occurrence. The Host rejects unknown or disabled profile selections on save,
+and the engine remains authoritative at execution time.
+
 `ScheduleExecutionPort` separates scheduling from engine admission. An adapter
 validates the target, attempts non-interrupting submission using the occurrence
 ID, and independently inspects execution outcome. Codex reuses its durable
