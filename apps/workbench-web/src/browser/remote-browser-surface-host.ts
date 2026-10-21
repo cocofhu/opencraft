@@ -1,5 +1,5 @@
 import { H264MediaSource } from './h264-media-source';
-import { BrowserAutomationError, type BrowserAutomation, type BrowserPageId, type BrowserUrl, type BrowserViewportLayout } from '@opencraft/browser-core';
+import { BrowserAutomationError, type BrowserAutomation, type BrowserDeviceProfile, type BrowserPageId, type BrowserUrl, type BrowserViewportLayout } from '@opencraft/browser-core';
 import type { BrowserSurfaceEvents, BrowserSurfaceHost } from './web-browser-surface-host';
 import type { PresentationHostPort } from './opencraft-presentation-host';
 import { serverStorageKey, serverUrl } from '../runtime/server-context';
@@ -11,7 +11,7 @@ interface Page {
   ready: Promise<void>; opened: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
-  width: number; height: number; viewport: { width: number; height: number }; sentViewport: string;
+  width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
   resizeTimer: ReturnType<typeof setTimeout> | null; resizing: boolean;
   automation: BrowserAutomation; inputDispose: () => void;
 }
@@ -74,7 +74,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       width: `${bounds.width}px`, height: `${bounds.height}px`, visibility: 'visible', opacity: phase === 'visible' ? '1' : '.001',
       pointerEvents: phase === 'visible' && !p.blocked ? 'auto' : 'none' });
     if (layout.viewportSize.width > 0 && layout.viewportSize.height > 0) {
-      p.viewport = { width: Math.max(1, Math.round(layout.viewportSize.width)), height: Math.max(1, Math.round(layout.viewportSize.height)) };
+      p.viewport = { width: Math.max(1, Math.round(layout.viewportSize.width)), height: Math.max(1, Math.round(layout.viewportSize.height)), deviceProfile: layout.deviceProfile ?? "desktop" };
       this.queueViewport(p);
     }
     p.blocked = false;
@@ -112,7 +112,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const call = async (method: string, input?: unknown) => { await p.ready; return this.call(p, 'automation', { method, input }); };
     p.automation = {
       capabilities: { protocolVersion: 1, backend: 'preview-bridge', domInspection: true, semanticInput: true, trustedInput: false,
-        networkObservation: 'fetch-xhr', screenshot: true, deviceEmulation: 'none' },
+        networkObservation: 'fetch-xhr', screenshot: true, deviceEmulation: 'full' },
       readContext: input => call('readContext', input), inspect: () => call('inspect'), click: input => call('click', input),
       fill: input => call('fill', input), press: input => call('press', input), scroll: input => call('scroll', input),
       wait: input => call('wait', input), dispose: () => {} };

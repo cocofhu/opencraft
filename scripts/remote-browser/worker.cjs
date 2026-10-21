@@ -17,20 +17,75 @@ function viewport(input = {}) {
   }
   return { width, height };
 }
-const configuration = p => ({ width: p.width, height: p.height, dpr: 1, codec: 'avc1.42E028' });
-function resize(p, input) {
-  const size = viewport(input);
-  if (size.width === p.width && size.height === p.height) return configuration(p);
-  p.epoch++; p.inFlight = false; p.key = true;
-  clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null;
-  encoderWindow.webContents.send('release-encoder', p.id);
-  Object.assign(p, size);
-  // Announce before requesting paints so consumers replace old decoders before
-  // the new epoch's first keyframe. Keep the same WebContents and DOM.
-  send({ type: 'viewport', page: p.id, ...configuration(p) });
-  p.window.setContentSize(p.width, p.height);
-  if (p.visible) { activity(p); p.window.webContents.invalidate(); }
-  return configuration(p);
+const deviceProfiles = new Set(['desktop', 'iphone', 'ipad', 'android-phone', 'android-tablet', 'desktop-touch']);
+function deviceProfile(input = {}) {
+  const profile = input.deviceProfile ?? 'desktop';
+  if (!deviceProfiles.has(profile)) throw new Error('Invalid device profile');
+  return profile;
+}
+const configuration = p => ({ width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028' });
+function userAgent(p, profile) {
+  const chrome = process.versions.chrome;
+  if (profile === 'iphone') return 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  if (profile === 'ipad') return 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  if (profile.startsWith('android-')) return `Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chrome}${profile === 'android-phone' ? ' Mobile' : ''} Safari/537.36`;
+  return p.desktopUserAgent;
+}
+async function emulateDevice(p, size, profile) {
+  const wc = p.window.webContents;
+  if (profile === 'desktop' && !wc.debugger.isAttached()) return;
+  if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+  // This debugger is private to the worker. Clients select a bounded profile,
+  // never CDP commands, JavaScript, or arbitrary UA/header overrides.
+  const command = (method, input) => wc.debugger.sendCommand(method, input);
+  if (profile !== p.deviceProfile || !p.deviceConfigured) {
+    const android = profile.startsWith('android-'), ios = profile === 'iphone' || profile === 'ipad';
+    const ua = userAgent(p, profile);
+    const platform = ios ? (profile === 'iphone' ? 'iPhone' : 'iPad') : android ? 'Linux armv8l' : p.desktopPlatform;
+    const metadata = { brands: [{brand:'Chromium',version:process.versions.chrome.split('.')[0]}],
+      fullVersionList: [{brand:'Chromium',version:process.versions.chrome}], fullVersion:process.versions.chrome,
+      platform:android?'Android':p.desktopPlatformName, platformVersion:android?'14.0.0':'',
+      architecture:android?'arm':process.arch === 'arm64'?'arm':'x86', bitness:'64', model:'', mobile:profile === 'android-phone' };
+    wc.setUserAgent(ua);
+    await command('Emulation.setUserAgentOverride', {userAgent:ua,platform,...(ios?{}:{userAgentMetadata:metadata})});
+  }
+  const mobile = !['desktop','desktop-touch'].includes(profile), touch = profile !== 'desktop';
+  if (mobile) await command('Emulation.setDeviceMetricsOverride', {
+    ...size, screenWidth:size.width, screenHeight:size.height, deviceScaleFactor:1, mobile:true, scale:1,
+    screenOrientation:{type:size.width > size.height?'landscapePrimary':'portraitPrimary',angle:size.width > size.height?90:0} });
+  else await command('Emulation.clearDeviceMetricsOverride');
+  await command('Emulation.setTouchEmulationEnabled', {enabled:touch,maxTouchPoints:1});
+  await command('Emulation.setEmitTouchEventsForMouse', {enabled:touch,configuration:mobile?'mobile':'desktop'});
+  p.deviceConfigured = true;
+}
+function resize(p, input = {}) {
+  // A single writer orders rapid preset/rotation changes and navigation against
+  // the effective device state, including changes with identical pixel sizes.
+  const size = viewport(input), profile = deviceProfile(input);
+  const operation = (p.viewportQueue ?? Promise.resolve()).then(async () => {
+    if (p.closed) throw new Error('Browser page closed');
+    if (size.width === p.width && size.height === p.height && profile === p.deviceProfile) return configuration(p);
+    const previous = {width:p.width,height:p.height}, previousProfile = p.deviceProfile;
+    p.reconfiguring = true; p.epoch++; p.inFlight = false; p.key = true;
+    clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null;
+    encoderWindow.webContents.send('release-encoder', p.id);
+    try {
+      p.window.setContentSize(size.width, size.height);
+      await emulateDevice(p, size, profile);
+      Object.assign(p, size, {deviceProfile:profile});
+    } catch (error) {
+      p.window.setContentSize(previous.width, previous.height);
+      p.deviceConfigured = false;
+      await emulateDevice(p, previous, previousProfile).catch(() => {});
+      throw error;
+    } finally { p.reconfiguring = false; }
+    // Same WebContents/DOM. Announce before the new epoch's first keyframe.
+    send({ type: 'viewport', page: p.id, ...configuration(p) });
+    if (p.visible) { activity(p); p.window.webContents.invalidate(); }
+    return configuration(p);
+  });
+  p.viewportQueue = operation.catch(() => {});
+  return operation;
 }
 const pages = new Map();
 let encoderWindow, encoderReady = false;
@@ -67,7 +122,7 @@ function activity(p) {
   }, 1200);
 }
 function pump(p) {
-  if (p.closed || !p.visible || !encoderReady || p.inFlight || !p.pending || p.mergeUntil > performance.now()) return;
+  if (p.closed || p.reconfiguring || !p.visible || !encoderReady || p.inFlight || !p.pending || p.mergeUntil > performance.now()) return;
   const frame = p.pending, bytes = frame.bytes || frame.image.toBitmap();
   const area = diffArea(p.previous, bytes, p.width, p.height);
   if (!area && !p.key) { p.pending = null; return; }
@@ -98,6 +153,7 @@ function closePage(id) {
 async function createPage(id, input) {
   if (pages.has(id)) return resize(pages.get(id), input);
   const { width, height } = viewport(input);
+  const profile = deviceProfile(input);
   if (pages.size >= 64) throw new Error('Browser page limit reached');
   const partition = `persist:remote-${id}`;
   const ses = session.fromPartition(partition);
@@ -106,7 +162,9 @@ async function createPage(id, input) {
   ses.on('will-download', event => event.preventDefault());
   const window = new BrowserWindow({ width, height, useContentSize: true, show: true, frame: false,
     webPreferences: { partition, offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
-  const p = { id, window, width, height, epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
+  const p = { id, window, width, height, deviceProfile:'desktop', deviceConfigured:false,
+    desktopUserAgent:window.webContents.getUserAgent(), desktopPlatform:process.platform === 'darwin'?'MacIntel':process.platform === 'win32'?'Win32':'Linux x86_64',
+    desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
   wc.setFrameRate(2); wc.stopPainting();
@@ -117,7 +175,7 @@ async function createPage(id, input) {
   wc.on('render-process-gone', () => send({ type: 'error', page: id, message: 'Browser renderer exited; reload this tab' }));
   wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
   wc.on('paint', (_event, _dirty, image) => {
-    if (image.getSize().width !== p.width || image.getSize().height !== p.height) return;
+    if (p.reconfiguring || image.getSize().width !== p.width || image.getSize().height !== p.height) return;
     p.latest = image;
     p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p);
   });
@@ -126,6 +184,7 @@ async function createPage(id, input) {
     send({ type: 'cursor', page: id, cursor: aliases[cursor] || cursor });
   });
 
+  if (profile !== 'desktop') await resize(p, {...input, width, height});
   return configuration(p);
 }
 async function automation(p, method, input) {
@@ -156,6 +215,7 @@ async function command(message) {
   const p = pages.get(id); if (!p) throw new Error('Browser page closed');
   const wc = p.window.webContents;
   if (method === 'viewport') return resize(p, input);
+  if (method !== 'close') await p.viewportQueue;
   if (method === 'close') { closePage(id); return; }
   if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
   if (method === 'reload') { wc.reload(); return; }

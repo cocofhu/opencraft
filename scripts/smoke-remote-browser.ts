@@ -39,11 +39,11 @@ const tab=tool.open(context,{url:location.origin+'/demo.html',visible:false});
 const page=workbench.getTabSnapshot(tab.tabId).pageId;
 const slot=document.createElement('div'); slot.style.position='fixed';slot.style.pointerEvents='none'; document.body.append(slot); let presentation;
 pages.prepareSurface(page);
-window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(width=1280,height=720){slot.style.width=width+'px';slot.style.height=height+'px';if(!presentation)presentation=presentations.present({pageId:page,tabId:tab.tabId,viewId:'proof',surface:'right-panel',slot,viewportMode:{type:'responsive'}});else presentation.measure();},hide(){presentation?.dispose();presentation=null;}};
+window.poc={surfaces,pages,presentations,tool,context,tab,page,async use(args){return tool.browserUse(context,{...args,tab_id:tab.tabId});},show(width=1280,height=720){slot.style.width=width+'px';slot.style.height=height+'px';if(!presentation)presentation=presentations.present({pageId:page,tabId:tab.tabId,viewId:'proof',surface:'right-panel',slot,viewportMode:{type:'responsive'}});else presentation.measure();},showMode(mode){this.show();presentation.updateViewportMode(mode);},hide(){presentation?.dispose();presentation=null;}};
 `;
 await build({ stdin: { contents: source, resolveDir: root, sourcefile: 'remote-browser-fixture.ts', loader: 'ts' }, outfile: join(web, 'smoke.js'), bundle: true, format: 'iife', platform: 'browser', target: 'chrome130' });
 await writeFile(join(web, 'index.html'), '<!doctype html><style>html,body{margin:0}#root{position:fixed;inset:0}.web-browser-surface{position:absolute}</style><div id="root"></div><script src="/smoke.js"></script>');
-await writeFile(join(web, 'demo.html'), '<!doctype html><meta charset="utf-8"><title>Remote browser proof</title><style>input,button{font-size:24px}body{font:24px sans-serif;margin:30px}#result{margin-top:20px}</style><label>Name <input aria-label="Name" id="name"></label><button onclick="document.querySelector(\'#result\').textContent=\'Hello \'+document.querySelector(\'#name\').value">Submit</button><input type="password" aria-label="Password" value="never-export-this"><div id="result">Ready</div><div id="geometry"></div><script>const update=()=>document.querySelector("#geometry").textContent="Viewport "+innerWidth+"x"+innerHeight+" DPR "+devicePixelRatio;addEventListener("resize",update);update()</script>' );
+await writeFile(join(web, 'demo.html'), '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remote browser proof</title><style>input,button{font-size:24px}body{font:24px sans-serif;margin:30px}#result{margin-top:20px}</style><label>Name <input aria-label="Name" id="name"></label><button onclick="document.querySelector(\'#result\').textContent=\'Hello \'+document.querySelector(\'#name\').value">Submit</button><input type="password" aria-label="Password" value="never-export-this"><div id="result">Ready</div><div id="geometry"></div><script>const update=()=>document.querySelector("#geometry").textContent="Viewport "+innerWidth+"x"+innerHeight+" DPR "+devicePixelRatio;addEventListener("resize",update);update()</script><pre id="device"></pre><button style="position:fixed;left:10px;top:180px" ontouchstart="this.textContent=String(Number(this.textContent)+1)">0</button><script>function reportDevice(){let ua=navigator.userAgent;let profile=ua.includes("iPhone")?"iphone":ua.includes("iPad")?"ipad":ua.includes("Android")?(ua.includes("Mobile")?"android-phone":"android-tablet"):"desktop";document.querySelector("#device").textContent="Device "+profile+" "+innerWidth+"x"+innerHeight+" DPR"+devicePixelRatio+" touch"+navigator.maxTouchPoints+" coarse:"+matchMedia("(pointer:coarse)").matches+" orientation:"+screen.orientation.type+" hint:"+navigator.userAgentData?.mobile}setInterval(reportDevice,100);reportDevice()</script>' );
 await writeFile(join(web, 'version.json'), '{}');
 const gateway = await createWorkbenchWebServer({ root: web, loopbackOnly: true, remoteBrowserService: service });
 const address = await gateway.listen({ host: '127.0.0.1', port: 0 });
@@ -119,10 +119,30 @@ try {
   await view.waitForFunction(() => { const video = document.querySelector('video'); const canvas = (window as any).poc.surfaces.presentationPort((window as any).poc.page).guest; return video ? video.videoWidth === 800 && video.videoHeight === 720 && video.readyState >= 2 : canvas.width === 800 && canvas.height === 720; });
   await view.mouse.click(170, 47); await view.keyboard.press('Control+A'); await view.keyboard.type('Resized'); await view.mouse.click(430, 47);
   await view.evaluate(async () => (window as any).poc.use({ action: 'wait', text: 'Hello Resized', timeout_ms: 5000 }));
+  // Real Chromium semantics, not just an identically sized desktop picture.
+  const device = async (presetId: string, width: number, height: number, expected: string, deviceProfile?: string) => {
+    await view.evaluate(mode => (window as any).poc.showMode(mode), {type:'device',presetId,width,height,...(deviceProfile?{deviceProfile}:{})});
+    await view.evaluate(async text => (window as any).poc.use({action:'wait',text,timeout_ms:10000}), expected);
+    await view.waitForFunction(({width,height}) => {const v=document.querySelector('video');const c=document.querySelector('canvas')!;return c.width===width&&c.height===height&&(!v||(v.videoWidth===width&&v.videoHeight===height&&v.readyState>=2));},{width:Math.round(width/2)*2,height:Math.round(height/2)*2});
+    await view.evaluate(async () => (window as any).poc.use({action:'wait',text:'Hello Resized',timeout_ms:5000}));
+  };
+  await device('iphone-15-pro-max',430,932,'Device iphone 430x932 DPR1 touch1 coarse:true orientation:portrait-primary');
+  const touchCanvas = await view.locator('canvas').boundingBox();
+  assert(touchCanvas); const scale = touchCanvas.width / 430;
+  await view.mouse.click(touchCanvas.x+30*scale,touchCanvas.y+200*scale);
+  await view.evaluate(async () => (window as any).poc.use({action:'wait',text:'1',timeout_ms:5000}));
+  await device('iphone-15-pro-max',932,430,'Device iphone 932x430 DPR1 touch1 coarse:true orientation:landscape-primary');
+  await device('responsive',480,860,'Device iphone 480x860 DPR1 touch1 coarse:true','iphone');
+  await device('pixel-8',412,916,'Device android-phone 412x916 DPR1 touch1 coarse:true');
+  await view.evaluate(async () => (window as any).poc.use({action:'wait',text:'hint:true',timeout_ms:5000}));
+  await device('ipad-air',820,1180,'Device ipad 820x1180 DPR1 touch1 coarse:true');
+  await device('laptop',1024,768,'Device desktop 1024x768 DPR1 touch0 coarse:false');
+  await view.evaluate(() => (window as any).poc.showMode({type:'responsive'}));
+  await view.evaluate(async () => (window as any).poc.use({action:'wait',text:'Device desktop 1280x720 DPR1 touch0 coarse:false',timeout_ms:10000}));
   await view.screenshot({ path: join(temporary, 'remote-tab.png') });
   await view.waitForTimeout(350); const before = frames; await view.waitForTimeout(1200); const staticFrames = frames - before;
   assert.equal(staticFrames, 0, 'unchanged page must not send video keepalive frames');
   assert.deepEqual(errors, []);
   await view.evaluate(async () => (window as any).poc.use({ action: 'close' }));
-  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','static-zero-frames','explicit-close'], errors }));
+  console.log(JSON.stringify({ ok: true, origin, evidence: temporary, codec: 'H264', software: true, staticFrames, frames, streamBytes, decoder: process.env.OPENCRAFT_TEST_MSE ? 'MSE' : 'WebCodecs', sandbox: 'dynamic-user', checks: ['cross-origin-denied','real-dynamic-tool-host','sensitive-fill-blocked','context-redacted','thread-scope-denied','H264-decoded','human-canvas-input','screenshot','park-preserves-dom','visible-frame-matches-target','responsive-portrait-and-wide','DPR1-on-DPR2-viewer','resize-preserves-dom','held-drag-final-size','resized-input','mobile-ua-metrics-touch','mobile-mouse-touch-event','rotate-preserves-profile','custom-resize-preserves-profile','android-client-hints','tablet-profile','desktop-restoration','static-zero-frames','explicit-close'], errors }));
 } finally { await browser?.close(); service.close(); await gateway.close(); }
