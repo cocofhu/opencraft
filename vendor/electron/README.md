@@ -165,6 +165,11 @@ counter one out-of-line definition. This preserves a single counter across
 translation units with component builds and keeps the compiler's duplicate-object
 check enabled.
 
+`0007-offscreen-input-callback-definitions.patch` moves the three native input
+forwarding callbacks from the offscreen header to its implementation file,
+retaining the original base-class calls and Chromium's non-inline virtual-method
+check. It does not add a production local IME adapter.
+
 ## Verification and runtime adoption
 
 ```sh

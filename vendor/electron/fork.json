@@ -30,6 +30,10 @@
     {
       "path": "patches/electron/0006-single-native-object-counter.patch",
       "sha256": "a4f86b8e026ba2d201bbeddf19ab193eb30a719438ce270ef8c9cc2898fcba21"
+    },
+    {
+      "path": "patches/electron/0007-offscreen-input-callback-definitions.patch",
+      "sha256": "0e7d3737500001c28f521567b6855d96243746ff86729a2eeb1e5b2f02a28297"
     }
   ]
 }
