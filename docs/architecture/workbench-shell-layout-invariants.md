@@ -177,3 +177,7 @@ input/control rectangles plus the client source revision. It carries no input
 content, route, account or user-agent values and never feeds positioning. It is
 limited to 64 observations per mounted host and uses the existing diagnostic
 transport. Controlled browser viewports still do not prove native iOS acceptance.
+
+Primary and body-portalled floating Shell hosts share the same origin/extent
+projection. Fixed descendants inside either host use local coordinates; the
+viewport origin is never applied again within those hosts.

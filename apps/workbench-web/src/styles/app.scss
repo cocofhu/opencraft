@@ -362,7 +362,7 @@ button {
 // The Web adapter owns the visual frame in layout-viewport coordinates.
 // Pan changes its origin, never its available capacity. Containment gives
 // fixed descendants the same frame without applying the origin twice.
-html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
+html[data-timeline-tracks-visual-viewport="true"] :is(.app-shell-root, .app-shell-floating-overlay-root) {
   contain: layout;
   top: var(--timeline-available-viewport-top, 0px);
   left: var(--timeline-available-viewport-left, 0px);

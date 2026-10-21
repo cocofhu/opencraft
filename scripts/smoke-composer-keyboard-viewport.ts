@@ -56,6 +56,7 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
   caretEvidence.push(caret);
  }
  assert(new Set(caretEvidence.map(c=>c.scroll)).size>2,'exercise actual conversation scrolling');
+ await page.evaluate(()=>{const floating=document.createElement('div');floating.className='app-shell-floating-overlay-root';document.body.appendChild(floating)});
  await page.locator('.thread-scroll').evaluate(e=>{e.scrollTop=0});
  const text=Array.from({length:28},(_,i)=>'Long mobile draft line '+i).join('\n');await editor.fill(text);const rendered=await editor.innerText();await editor.evaluate(e=>(window as any).keptEditor=e);
  // Exercise the editor's own scroll owner as well as the transcript's owner.
@@ -99,8 +100,10 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
    const r=document.querySelector('.app-shell-root')!.getBoundingClientRect();
    const button=document.querySelector('.opencraft-composer-submit')!.getBoundingClientRect();
    const edit=document.querySelector('.opencraft-composer-editor')!;
-   return {height,offset,top:r.top,bottom:r.bottom,sendBottom:button.bottom,sameEditor:edit===(window as any).keptEditor,focused:document.activeElement===edit};
+   const floating=document.querySelector('.app-shell-floating-overlay-root')!.getBoundingClientRect();
+   return {floatingTop:floating.top,floatingHeight:floating.height,height,offset,top:r.top,bottom:r.bottom,sendBottom:button.bottom,sameEditor:edit===(window as any).keptEditor,focused:document.activeElement===edit};
   },[height,offset]);
+  assert(Math.abs(sample.floatingTop-sample.offset)<=1&&Math.abs(sample.floatingHeight-height)<=1,`portalled Shell frame has the same visual plane: ${JSON.stringify(sample)}`);
   assert(Math.abs(sample.top-sample.offset)<=1,`visual origin must not move Shell on screen: ${JSON.stringify(sample)}`);
   assert(Math.abs(sample.bottom-sample.offset-height)<=1,JSON.stringify(sample));
   assert(sample.sendBottom-sample.offset<=height+1&&sample.sameEditor&&sample.focused,JSON.stringify(sample));
@@ -153,5 +156,5 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
   assert(Math.abs(measured.height-measured.visualHeight)<=1);assert(Math.abs(measured.width-measured.visualWidth)<=1);
   assert.equal(await nativeEditor.innerText(),'Native viewport draft');evidence.push({native:true,engine:process.env.OPENCRAFT_BROWSER_ENGINE??'chromium',...measured});
  }
- await nativeContext.close();console.log('Keyboard available-space/send reachability, per-frame pan independence and native viewport checks passed');}
+ await nativeContext.close();console.log('Keyboard available-space/send reachability, per-frame visual origin and native viewport checks passed');}
 finally{await writeFile('.local/composer-keyboard/result.json',JSON.stringify(evidence,null,2));await browser.close();await vite.close()}
