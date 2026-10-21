@@ -76,11 +76,11 @@ function Demo() {
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
       <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
         onOpenSubagent={id => probe.openedThreads.push(id)}
-        renderToolCallContent={hostContentScenario && hostMode !== "absent" ? block => { probe.hostRenderedModes[block.callId] = hostMode; return hostMode === "fallback" ? undefined
+        renderToolCallContent={hostContentScenario && hostMode !== "absent" ? block => { probe.hostRenderedModes[block.callId ?? block.id] = hostMode; return hostMode === "fallback" ? undefined
           : hostMode === "null" ? null : hostMode === "false" ? false
           : <section data-host-body={block.callId}>
               <label>Host note {block.callId}<input aria-label={"Host note " + block.callId} defaultValue="" /></label>
-              <button type="button" onClick={() => probe.hostActions.push(block.callId)}>Host action {block.callId}</button>
+              <button type="button" onClick={() => probe.hostActions.push(block.callId ?? block.id)}>Host action {block.callId}</button>
             </section>; } : undefined}
         footer={<div style={{ height: 48 }}>Composer fixture</div>} />
     </TimelineBlockRendererProvider>
