@@ -7,6 +7,7 @@ import {
   SettingsNotice,
 } from "@opencraft/extension-react";
 import { ImClient } from "./client";
+import "./sources.scss";
 export function ImSources({
   fetcher,
   hostId,
@@ -25,7 +26,12 @@ export function ImSources({
           channelId: string;
           name: string;
           provider: string;
-          source: { chatId: string; threadId?: string; senderId: string };
+          source: {
+            chatId: string;
+            chatType?: string;
+            threadId?: string;
+            senderId: string;
+          };
           revision: number;
           lastSeen: number;
         }[]
@@ -60,69 +66,73 @@ export function ImSources({
     };
   }, [fetcher, hostId, threadId, retry]);
   return (
-    <>
-      <p>多个来源进入同一会话时共享上下文；回复回到触发消息的聊天。</p>
-      {failed ? (
-        <SettingsNotice>
-          暂时无法读取来源，当前服务可能不支持这个会话。
-          <SettingsButton onClick={() => setRetry((v) => v + 1)}>
-            重试
-          </SettingsButton>
-        </SettingsNotice>
-      ) : sources === null ? (
-        <SettingsNotice>正在读取来源…</SettingsNotice>
-      ) : (
-        <SettingsGroup appearance="plain">
-          {sources.length ? (
-            sources.map((s, i) => (
-              <SettingsListItem
-                key={i}
-                label={s.name + " · " + s.source.chatId}
-                description={`${s.provider === "wecom" ? "企业微信" : "Slack"} · v${s.revision} · ${new Date(s.lastSeen).toLocaleString()}`}
-                metadata={
-                  s.source.threadId ? "话题 " + s.source.threadId : undefined
-                }
-                actions={
-                  <SettingsButton onClick={onOpenSettings}>
-                    查看渠道路由
-                  </SettingsButton>
-                }
-              />
-            ))
-          ) : (
-            <SettingsNotice>
-              近期消息记录中还没有这个会话的 IM 来源。
-            </SettingsNotice>
-          )}
-        </SettingsGroup>
-      )}
-      <p>
-        让其他聊天进入这里：在渠道路由中选择此会话，或将引用用于自定义函数。
-      </p>
-      <pre
-        className="ui-text--code"
-        style={{
-          whiteSpace: "pre-wrap",
-          overflowWrap: "anywhere",
-        }}
-      >
-        {reference}
-      </pre>
+    <div className="im-sources">
+      <p className="im-sources__intro">来自聊天工具的消息，可以在这个会话中处理。</p>
+      <div className="im-sources__records" aria-live="polite" aria-busy={sources === null && !failed}>
+        {failed ? (
+          <SettingsNotice>
+            暂时无法读取聊天来源，请重试。
+            <SettingsButton onClick={() => setRetry((v) => v + 1)}>
+              重试
+            </SettingsButton>
+          </SettingsNotice>
+        ) : sources === null ? (
+          <SettingsNotice>正在读取来源…</SettingsNotice>
+        ) : (
+          <SettingsGroup appearance="plain">
+            {sources.length ? (
+              sources.map((s) => (
+                <SettingsListItem
+                  key={JSON.stringify([s.channelId, s.source.chatId, s.source.threadId, s.source.senderId])}
+                  label={`${s.source.chatType === "direct" ? "私聊" : s.source.chatType === "group" ? "群聊" : "聊天"} · ${s.source.chatId}`}
+                  description={`${s.provider === "wecom" ? "企业微信" : s.provider === "slack" ? "Slack" : s.provider} · ${s.name} · 最近收到于 ${new Date(s.lastSeen).toLocaleString()}`}
+                  metadata={
+                    [s.source.threadId && "话题 " + s.source.threadId,
+                      s.source.chatType === "group" && "发言人 " + s.source.senderId]
+                      .filter(Boolean).join(" · ") || undefined
+                  }
+                  actions={
+                    <SettingsButton onClick={onOpenSettings}>
+                      渠道设置
+                    </SettingsButton>
+                  }
+                />
+              ))
+            ) : (
+              <SettingsNotice className="im-sources__empty">
+                <strong>暂无近期聊天来源</strong>
+                <p>收到企业微信、Slack 等消息后，会在这里显示对应的聊天。</p>
+              </SettingsNotice>
+            )}
+          </SettingsGroup>
+        )}
+      </div>
       <SettingsActions>
-        <SettingsButton
-          disabled={!reference}
-          onClick={() =>
-            void navigator.clipboard
-              .writeText(reference)
-              .catch(() => reportError("暂时无法复制，请手动选择会话引用。"))
-          }
-        >
-          复制会话引用
-        </SettingsButton>
         <SettingsButton variant="primary" onClick={onOpenSettings}>
-          选择渠道
+          接入聊天
         </SettingsButton>
       </SettingsActions>
-    </>
+      <p className="im-sources__help">
+        回复会发回收到这条消息的聊天。<br />
+        多个聊天接入这里时，会共用本会话的历史记录。
+      </p>
+      <details className="im-sources__advanced">
+        <summary>自定义路由</summary>
+        <p>复制此会话引用，在渠道的路由函数中使用。</p>
+        {reference ? <pre>{reference}</pre> : <p>读取来源后可获取会话引用。</p>}
+        <SettingsActions>
+          <SettingsButton
+            disabled={!reference}
+            onClick={() =>
+              void navigator.clipboard
+                .writeText(reference)
+                .catch(() => reportError("暂时无法复制，请手动选择会话引用。"))
+            }
+          >
+            复制会话引用
+          </SettingsButton>
+        </SettingsActions>
+      </details>
+    </div>
   );
 }

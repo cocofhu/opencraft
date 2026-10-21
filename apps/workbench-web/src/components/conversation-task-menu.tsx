@@ -203,7 +203,7 @@ export function ConversationTaskMenu(props: Props) {
             <Clock size={16} aria-hidden="true" />{intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" })}
           </DropdownMenu.Item> : null}
           {props.im ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setImOpen(true); }}>
-            <Info size={16} aria-hidden="true" />IM 来源
+            <Info size={16} aria-hidden="true" />聊天来源
           </DropdownMenu.Item> : null}
           {props.project || props.workspaceDirectory ? <DropdownMenu.Item disabled={busy} onSelect={() => {
             modalHandoff.current = true; setDetailsOpen(true);
@@ -214,8 +214,8 @@ export function ConversationTaskMenu(props: Props) {
     {renameOpen ? <ConversationRenameDialog value={name} pending={rename.isPending}
       onChange={setName} onSubmit={title => rename.mutate(title)} onDismiss={() => setRenameOpen(false)}
       returnFocus={() => trigger.current} /> : null}
-    {imOpen && props.im ? <ModalSurface label="IM 来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={() => trigger.current}>
-      <SettingsPanel title="IM 来源" footer={<SettingsButton onClick={() => setImOpen(false)}>完成</SettingsButton>}>
+    {imOpen && props.im ? <ModalSurface label="聊天来源" closeLabel="关闭聊天来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={() => trigger.current}>
+      <SettingsPanel title="聊天来源">
         <Suspense fallback={null}><ImSources fetcher={props.im.fetcher} hostId={props.serverId} threadId={props.threadId}
           onOpenSettings={() => { setImOpen(false); props.im!.openSettings(); }} reportError={message => notices.error({key:"im-sources",message})} /></Suspense>
       </SettingsPanel>

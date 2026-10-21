@@ -30,8 +30,16 @@ Connection changes, reconnect, disable and delete use the same managed transport
 there is no extra test socket. Delete removes this channel's credentials, sender
 links and mappings; native conversation history remains. Drafts survive Settings
 navigation in memory and clear when the extension or authenticated person changes.
-The conversation menu's **IM 来源** shows observed recent sources and copies the
-authoritative conversation reference. It does not create another binding table.
+The conversation menu's **聊天来源** shows observed recent chats first, followed by
+the **接入聊天** action opening channel settings. Routing is still configured in
+the channel; opening settings does not establish a binding. An empty recent list
+does not mean no routing is configured. Replies return to their originating chat;
+chats routed here share this conversation's history. **自定义路由** is collapsed by
+default and contains the authoritative conversation reference and copy action.
+Chat names are not resolved by this API, so source rows retain their real chat
+identifiers rather than inventing participant names. There is no additional
+binding table. The read-only dialog uses the standard close button without a
+redundant completion action.
 
 ## One routing contract
 
