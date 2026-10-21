@@ -1,3 +1,4 @@
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";
 import {
@@ -50,6 +51,7 @@ export function WorkbenchIcon({ name, size, purpose = "settings", className }: {
   readonly className?: string;
 }) {
   const classic = useWorkbenchPresentation().iconStyle === "classic";
+  if (name === "settings") return <SettingsGearIcon size={size ?? workbenchIconSize(classic, purpose)} className={className} data-workbench-icon="settings" />;
   const Icon = resolveWorkbenchIcon(name, classic, purpose);
   const stroke = !classic && purpose === "navigation" ? workbenchIconMetrics.coreNavigation.stroke
     : (classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke;

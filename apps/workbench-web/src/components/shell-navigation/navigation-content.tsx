@@ -1,5 +1,6 @@
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Gauge, LogIn, LogOut, Settings, User } from "lucide-react";
+import { Gauge, LogIn, LogOut, User } from "lucide-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { IntlShape } from "@opencraft/i18n";
 import { useEffect, useState } from "react";
@@ -123,7 +124,7 @@ function AccountContent({ config, compact, onInvoke }: {
       </button>}
       <button type="button" onClick={() => onInvoke(account.onOpen)}><User size={16} /><span><FormattedMessage id="account.title" defaultMessage="Account" /></span></button>
     </>
-    <button type="button" onClick={() => onInvoke(config.onOpenSettings)}><Settings size={16} /><span><FormattedMessage id="settings.title" defaultMessage="Settings" /></span></button>
+    <button type="button" onClick={() => onInvoke(config.onOpenSettings)}><SettingsGearIcon size={16} /><span><FormattedMessage id="settings.title" defaultMessage="Settings" /></span></button>
     {account.onSignOut ? <button type="button" disabled={signingOut} onClick={async () => {
       setSigningOut(true);
       setError(null);

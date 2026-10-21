@@ -1,3 +1,4 @@
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";
 import { createElement } from "react";
@@ -35,5 +36,6 @@ export function NavigationIcon({ name, size, selected = false }: {
       ? selected && !silhouette ? workbenchIconMetrics.navigation.selectedStroke : workbenchIconMetrics.navigation.stroke
       : workbenchIconMetrics.coreNavigation.stroke,
   };
+  if (name === "settings") return <SettingsGearIcon size={props.size} data-navigation-glyph-variant={selected ? "selected" : "outline"} />;
   return createElement(icon, props);
 }

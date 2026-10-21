@@ -1,3 +1,4 @@
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { shortcutLabel, shortcutAria } from "../workbench-shortcuts";
 import { createPortal } from "react-dom";
 import * as ContextMenu from "@radix-ui/react-context-menu";
@@ -13,7 +14,6 @@ import {
   LoaderCircle,
   SquarePen,
   UserRound,
-  Settings,
   Search,
   Check,
 } from "lucide-react";
@@ -339,7 +339,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
       </div>
       {showFooter ? <div className="sidebar-panel__footer">
         {footerActions.map(navigationAction)}
-        <SidebarNavigationItem title={text("settings.title", "Settings")} icon={<Settings size={18} />} onInvoke={() => dismissAfter(onOpenSettings)} />
+        <SidebarNavigationItem title={text("settings.title", "Settings")} icon={<SettingsGearIcon size={18} />} onInvoke={() => dismissAfter(onOpenSettings)} />
       </div> : null}
       <ThreadActionModals owner={actionOwner} />
     </div>
