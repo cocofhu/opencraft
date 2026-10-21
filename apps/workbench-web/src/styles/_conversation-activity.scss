@@ -28,14 +28,56 @@
     object-fit: contain;
   }
 
-  // Static shared glyphs retain the existing rail's painted weight.
-  > .ui-action-glyph { stroke-width: 1.44; }
-  > :is([data-action-glyph="model"], [data-action-glyph="tool"],
-    [data-action-glyph="agent"], [data-action-glyph="monitor"],
-    [data-action-glyph="message"], [data-action-glyph="globe"],
-    [data-action-glyph="book"], [data-action-glyph="edit"], [data-action-glyph="folder"]) {
-    width: 18px;
-    height: 18px;
-    stroke-width: 1.6;
+  // Keep the painted silhouette near 15px and the stroke at 1.2 CSS pixels.
+  // Shared source canvases have different optical padding; the rail owns calibration.
+  > .ui-action-glyph { width: 22.5px; height: 22.5px; stroke-width: 1.28; }
+  > :is([data-action-glyph="checklist"], [data-action-glyph="tool"]) {
+    width: 21.82px; height: 21.82px; stroke-width: 1.32;
   }
+  > [data-action-glyph="monitor"] {
+    width: 21.18px; height: 21.18px; stroke-width: 1.36;
+  }
+  > :is([data-action-glyph="square"], [data-action-glyph="document"],
+    [data-action-glyph="code-file"], [data-action-glyph="text-file"],
+    [data-action-glyph="diff-file"], [data-action-glyph="json-file"], [data-action-glyph="image-file"]) {
+    width: 25.72px; height: 25.72px; stroke-width: 1.12;
+  }
+}
+
+// Open process artwork uses source-canvas padding to balance the same rail.
+.thread-activity-item__icon > .activity-glyph {
+  stroke-width: 1.44;
+
+  &[data-activity-glyph="terminal"],
+  &[data-activity-glyph="files"],
+  &[data-activity-glyph="patch"],
+  &[data-activity-glyph="browser"],
+  &[data-activity-glyph="agent"] {
+    width: 22.5px;
+    height: 22.5px;
+    stroke-width: 1.28;
+  }
+
+  &[data-activity-glyph="read"] {
+    width: 21.18px;
+    height: 21.18px;
+    stroke-width: 1.36;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .thread-activity-item__icon[data-running="true"] > .activity-glyph {
+    > .activity-glyph__pulse { animation: activity-glyph-pulse 2.8s ease-in-out infinite; }
+    > .activity-glyph__cursor { animation: activity-glyph-cursor 1.5s steps(1, end) infinite; }
+  }
+}
+
+@keyframes activity-glyph-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes activity-glyph-cursor {
+  0%, 65% { opacity: 1; }
+  66%, 100% { opacity: 0.15; }
 }
