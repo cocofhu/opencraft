@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arbitrateMobileGesture, mobileGestureVelocity, mobileSidebarWidth, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget } from "../apps/workbench-web/src/components/mobile-sidebar-gesture";
+import { arbitrateMobileGesture, mobileGestureVelocity, mobileSidebarWidth, sidebarReleaseVelocity, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget } from "../apps/workbench-web/src/components/mobile-sidebar-gesture";
 
 test("small movement and vertical scrolling do not acquire a sidebar gesture", () => {
   assert.equal(sidebarGestureAxis(-4, 3), "pending");
@@ -46,6 +46,13 @@ test("speed uses the recent window, retains pauses and rejects opposite motion",
   assert.equal(mobileGestureVelocity([{ x: 0, time: 0 }, { x: 80, time: 80 }], 80, 200), 0);
   assert.equal(mobileGestureVelocity([{ x: 0, time: 0 }, { x: 20, time: 100 }], 100, 180), 1);
   assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: -0.8 }), "content");
+});
+
+test("sidebar release retains its established sampling and stationary release behavior", () => {
+  const samples = [{ x: 0, time: 0 }, { x: 30, time: 40 }, { x: 70, time: 100 }];
+  assert.equal(sidebarReleaseVelocity(samples, 80, 120), 80 / 120);
+  assert.equal(sidebarReleaseVelocity([{ x: 0, time: 0 }, { x: 50, time: 150 }], 50, 180), 0);
+  assert.equal(sidebarReleaseVelocity(samples, 70, 300), 70 / 300);
 });
 test("right swipe reveals and left swipe closes proportionally to actual width", () => {
   assert.equal(sidebarGestureProgress(0, 100, 400), .25);

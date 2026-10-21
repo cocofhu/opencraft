@@ -56,7 +56,7 @@ const contributions={subscribe:()=>()=>{},getSnapshot:()=>contributionSnapshot};
 function Context({showNewChat=true}){const[selected,setSelected]=useState('thread-0');window.selectFixtureThread=setSelected;useEffect(()=>{mounts++},[]);return <Sidebar showStart={false} showFooter={false} showNewChat={showNewChat} threads={threads} activeHostId='fixture' activeThreadId={selected} sidebarLayout={layout} onNewTask={()=>actions.push('New chat')} onOpenSettings={()=>{}} onSelectThread={(_host,id)=>actions.push(id)}/>}
 function App(){const preferences=useUiPreferencesRuntime();useEffect(()=>bindInteractionDensity(document,preferences),[preferences]);const route=useSyncExternalStore(navigationRouter.subscribe,navigationRouter.getSnapshot).applicationRoute;const[open,setOpen]=useState(false),[modal,setModal]=useState(false),[showNewChat,setShowNewChat]=useState(true);window.fixture={setDensity:value=>preferences.set('interface.touchFriendly',value),sidebarOpen:()=>open,setOpen,setModal,setShowNewChat,setThemePreference,returnToChat:()=>navigationRouter.openChat(),route:()=>navigationRouter.getSnapshot().applicationRoute,mounts:()=>mounts,actions};
 const navigation={layout:'unified',account:{snapshot:{phase:'authenticated',name:'Synthetic employee',avatarUrl:null},onOpen:()=>actions.push('Account'),onRefresh:async()=>{}},settingsActive:route.kind==='settings',onOpenSettings:()=>{actions.push('Settings');navigationRouter.openSettings();},actions:[...(stationaryProbe?[{id:'shell.search',title:'Search conversations',icon:'search',onInvoke:()=>setModal(true)}]:[]),{id:'shell.home',title:'Home',icon:'home',onInvoke:()=>actions.push('Home')},{id:'opencraft.tasks.navigation',title:'Tasks',icon:'columns',onInvoke:()=>actions.push('Tasks')},{id:'example.workspace.navigation',title:'Collaboration',icon:'messages',onInvoke:()=>actions.push('Collaboration')},{id:'skills',title:'Skills, extensions and cloud tools',icon:'sparkles',onInvoke:()=>actions.push('Skills')}]};
-return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description></Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
+return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description>${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div style={{height:200,overflow:'auto'}}><WebChatDocument documentId="modal-arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/></div>` : ""}</Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
 header={<AppShellHeader navigationBrand={stationaryProbe ? brand : undefined} title='Workspace' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={stationaryProbe} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
 floatingSidebarHeader={()=> stationaryProbe ? <AppShellNavigationControls brand={brand} hostRole='transient' sidebarOpen={false} canGoBack={false} canGoForward={false} onToggleSidebar={()=>{}} onHome={()=>{}} onBack={()=>{}} onForward={()=>{}} actions={['sidebar-toggle']}/> : <div style={{height:'100%',display:'flex',alignItems:'center',padding:12}}>Conversations</div>}
 leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} presentation='sidebar' extensionContributions={contributions} profiles={[]} machines={[]} activeHostId='' onBack={()=>navigationRouter.openChat()} onSectionChange={slug=>{actions.push('Settings:'+slug);navigationRouter.openSettings(slug);}}/>:<Context showNewChat={showNewChat}/>}>
@@ -102,7 +102,7 @@ try {
     await page.waitForTimeout(250);
     if (process.env.OPENCRAFT_GESTURE_COMPOSITING_ONLY !== '1') await page.evaluate(()=>{(window as any).touchReceipts=[];for(const type of ['touchstart','touchmove','touchend','touchcancel'])document.addEventListener(type,(e:Event)=>{const t=e as TouchEvent;const list=document.querySelector<HTMLElement>('.app-shell-floating-left-panel .shell-sidebar__scroll');if(list&&list.scrollTop>0)(window as any).lastSidebarScroll=list.scrollTop;(window as any).touchReceipts.push({type,cancelable:t.cancelable,prevented:t.defaultPrevented,target:(t.target as Element)?.className,x:t.touches[0]?.clientX,y:t.touches[0]?.clientY,open:document.querySelector('.app-shell-floating-left-panel')?.getBoundingClientRect().x,selection:window.getSelection()?.toString()});},false);});
     const cdp = await context.newCDPSession(page);
-    const touch = async (type: string, x = 0, y = 250, second = false) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" || type === "touchCancel" ? [] : [{ x, y, id: 1 }, ...(second ? [{ x: x + 20, y: y + 20, id: 2 }] : [])] });
+    const touch = async (type: string, x = 0, y = 250, second = false, timestamp?: number) => cdp.send("Input.dispatchTouchEvent", { type, ...(timestamp === undefined ? {} : { timestamp }), touchPoints: type === "touchEnd" || type === "touchCancel" ? [] : [{ x, y, id: 1 }, ...(second ? [{ x: x + 20, y: y + 20, id: 2 }] : [])] });
     const drag = async (from: number, to: number, y = 250, slow = true) => {
       await touch('touchStart',from,y);
       for(let i=1;i<=8;i++){ await touch('touchMove',from+(to-from)*i/8,y); await page.waitForTimeout(20); }
@@ -176,7 +176,7 @@ try {
         assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),p.left,'navigation never scrolls content');
         await touch('touchMove',p.x+180,p.y+3); await touch('touchEnd'); await settle(); await opened();
         assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),p.left);
-        await page.evaluate(()=>(window as any).fixture.setOpen(false)); await settle(); await closed();
+        await page.keyboard.press('Escape'); await settle(); await closed();
 
         const slow = await at(scroller);
         await touch('touchStart',slow.x,slow.y); await page.waitForTimeout(125);
@@ -218,7 +218,22 @@ try {
       await page.evaluate(()=>(window as any).fixture.setModal(true)); await page.waitForTimeout(80);
       await touch('touchMove',held.x+170,held.y); await touch('touchEnd'); await settle();
       assert.ok(Math.abs((await row.boundingBox())!.x)<1,'opening a modal revokes navigation');
+      const modalCode = page.getByRole('dialog').locator('.chat-code-block__scroller');
+      assert.equal(await modalCode.evaluate((node: HTMLElement)=>getComputedStyle(node).touchAction),'auto','foreground modal keeps native panning');
+      await modalCode.evaluate((node: HTMLElement)=>{node.scrollLeft=120});
+      const modalBox=(await modalCode.boundingBox())!;
+      await touch('touchStart',modalBox.x+180,modalBox.y+modalBox.height/2);
+      await touch('touchMove',modalBox.x+130,modalBox.y+modalBox.height/2);await page.waitForTimeout(30);
+      await touch('touchMove',modalBox.x+50,modalBox.y+modalBox.height/2);await touch('touchEnd');await page.waitForTimeout(100);
+      assert.ok((await modalCode.evaluate((node: HTMLElement)=>node.scrollLeft))>140,'native horizontal reading works inside foreground dialog');
+      assert.ok(Math.abs((await row.boundingBox())!.x)<1);
       await page.evaluate(()=>(window as any).fixture.setModal(false)); await settle();
+      const edge=await at(scroller,120);const edgeBox=(await scroller.boundingBox())!;
+      const edgeX=Math.max(edgeBox.x+1,20);assert.ok(edgeX<24,'fixture touches registered content in reserved edge');
+      await touch('touchStart',edgeX,edge.y);await touch('touchMove',edgeX+100,edge.y);await touch('touchEnd');await settle();await closed();
+      await scroller.evaluate((node: HTMLElement)=>{node.dataset.sidebarGesture='ignore'});
+      assert.equal(await scroller.evaluate((node: HTMLElement)=>getComputedStyle(node).touchAction),'auto','exclusive owner on scrollport itself restores native input');
+      await scroller.evaluate((node: HTMLElement)=>{delete node.dataset.sidebarGesture});
       // A touch content momentum writer is stopped by the next contact.
       const momentum=await at(scroller,120);
       await touch('touchStart',momentum.x+100,momentum.y); await touch('touchMove',momentum.x+50,momentum.y); await touch('touchMove',momentum.x,momentum.y); await touch('touchEnd');
@@ -255,10 +270,11 @@ try {
       for (const locator of [reason, inspected, generated, sent, page.locator('[data-swipe-action]'), page.locator('[data-swipe-link]'), page.locator('[data-swipe-role]')]) {
         const before = await actions(), {x,y} = await position(locator);
         console.log('content swipe target', await locator.evaluate((node: Element) => node.outerHTML.slice(0,150)),{x,y});
-        await touch('touchStart',x,y); await touch('touchMove',x+Math.min(80,(364-x)*.4),y); await page.waitForTimeout(20);
+        const flickTime = Date.now()/1000;
+        await touch('touchStart',x,y,false,flickTime); await touch('touchMove',x+Math.min(80,(364-x)*.4),y,false,flickTime+.02); await page.waitForTimeout(20);
         const held = await page.locator('.app-shell-row').evaluate(node => new DOMMatrixReadOnly(getComputedStyle(node).transform).m41);
         assert.ok(held > 30, 'clickable content follows a held rightward gesture');
-        await touch('touchMove',364,y); await touch('touchEnd'); await page.waitForTimeout(650); await opened();
+        await touch('touchMove',364,y,false,flickTime+.04); await touch('touchEnd',0,250,false,flickTime+.05); await page.waitForTimeout(650); await opened();
         assert.deepEqual(await actions(),before,'swiping does not invoke the action');
         assert.equal(await reason.getAttribute('aria-expanded'),'false','swiping never expands reasoning');
         assert.equal(await inspected.getAttribute('aria-expanded'),'false','swiping never expands inspected-image activity');

@@ -1,7 +1,7 @@
 import { animate, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { PANEL_SPRING_TRANSITION } from "./use-panel-animation";
-import { MOBILE_SIDEBAR_EDGE_RESERVE, MOBILE_SIDEBAR_REVEAL_DIRECTION, MOBILE_GESTURE_COMPETITION, arbitrateMobileGesture, mobileGestureVelocity, sidebarGestureProgress, sidebarGestureTarget, type GestureSample, type MobileGestureOwner } from "./mobile-sidebar-gesture";
+import { MOBILE_SIDEBAR_EDGE_RESERVE, MOBILE_SIDEBAR_REVEAL_DIRECTION, arbitrateMobileGesture, mobileGestureVelocity, sidebarReleaseVelocity, sidebarGestureProgress, sidebarGestureTarget, type GestureSample, type MobileGestureOwner } from "./mobile-sidebar-gesture";
 
 interface HorizontalScroll {
   element: HTMLElement; start: number; min: number; max: number;
@@ -146,7 +146,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       if (transaction.horizontal && !transaction.horizontal.element.isConnected) { cancel(); return; }
       const velocity = mobileGestureVelocity(transaction.samples, touch.clientX, event.timeStamp);
       transaction.samples.push({ x: touch.clientX, time: event.timeStamp });
-      while (transaction.samples.length > 2 && transaction.samples[1]!.time < event.timeStamp - MOBILE_GESTURE_COMPETITION.sampleWindow) transaction.samples.shift();
+      while (transaction.samples.length > 2 && transaction.samples[1]!.time < event.timeStamp - 100) transaction.samples.shift();
       const horizontal = transaction.horizontal;
       const owner = arbitrateMobileGesture({
         owner: transaction.owner, dx, dy, elapsed: event.timeStamp - transaction.startedAt, velocity,
@@ -194,7 +194,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
         }
         return;
       }
-      const next = sidebarGestureTarget(progress.get(), velocity * MOBILE_SIDEBAR_REVEAL_DIRECTION, touch.clientX - transaction.x, transaction.initiallyOpen);
+      const next = sidebarGestureTarget(progress.get(), sidebarReleaseVelocity(transaction.samples, touch.clientX, event.timeStamp) * MOBILE_SIDEBAR_REVEAL_DIRECTION, touch.clientX - transaction.x, transaction.initiallyOpen);
       settleRef.current(next);
       if (next !== latest.current.open) latest.current.onOpenChange(next);
     };

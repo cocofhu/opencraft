@@ -39,6 +39,13 @@ export function mobileGestureVelocity(samples: readonly GestureSample[], x: numb
   return (x - first.x) / Math.max(1, time - first.time);
 }
 
+/** Preserve the sidebar's existing 100ms release sampling independently of admission. */
+export function sidebarReleaseVelocity(samples: readonly GestureSample[], x: number, time: number): number {
+  const last = samples[samples.length - 1];
+  const first = last && samples.find(sample => sample.time >= last.time - 100);
+  return first && time > first.time ? (x - first.x) / (time - first.time) : 0;
+}
+
 /** Only pending contacts compete. A committed owner keeps the contact on reversal. */
 export function arbitrateMobileGesture(input: {
   owner: MobileGestureOwner; dx: number; dy: number; elapsed: number; velocity: number;
