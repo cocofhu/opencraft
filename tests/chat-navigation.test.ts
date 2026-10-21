@@ -8,7 +8,7 @@ import type {
   ThreadTurnsListResponse,
 } from "@opencraft/appserver-protocol";
 import {
-  createCodexV3ConversationNavigationSource,
+  createV3ConversationNavigationSource,
   createEmptyThreadView,
   createThreadViewReplicaProjectionBarrier,
   mergeTurns,
@@ -178,7 +178,7 @@ test("V3 source enumerates lightweight Turns and hydrates only the hovered Turn"
     }
     throw new Error(`Unexpected cursor ${params.cursor}`);
   };
-  const source = createCodexV3ConversationNavigationSource({
+  const source = createV3ConversationNavigationSource({
     threadId: "thread-one",
     pageSize: 2,
     port: {
@@ -274,7 +274,7 @@ test("V3 navigation carries the pre-read baseline through cached preview hydrati
   let release: (value: ThreadTurnsListResponse) => void = () => undefined;
   const held = new Promise<ThreadTurnsListResponse>(resolve => { release = resolve; });
   let readStarted = false;
-  const source = createCodexV3ConversationNavigationSource({ threadId: "thread-one", port: {
+  const source = createV3ConversationNavigationSource({ threadId: "thread-one", port: {
     getView: () => view,
     subscribeView: () => () => undefined,
     listTurns: async params => {
@@ -312,7 +312,7 @@ test("V3 navigation carries the pre-read baseline through cached preview hydrati
 
 test("V3 source fails closed when the bounded prompt-index scan is incomplete", async () => {
   const view = { ...createEmptyThreadView("local", "long-thread"), resumeState: "resumed" as const };
-  const source = createCodexV3ConversationNavigationSource({
+  const source = createV3ConversationNavigationSource({
     threadId: "long-thread",
     maxPages: 2,
     pageSize: 1,
@@ -522,7 +522,7 @@ test("V3 recovery index is demand driven, preserves unchanged reconnects and fen
   const listeners = new Set<() => void>();
   let reads = 0, release!: (page: ThreadTurnsListResponse) => void;
   const stale = new Promise<ThreadTurnsListResponse>(resolve => { release = resolve; });
-  const source = createCodexV3ConversationNavigationSource({ threadId: "thread-one", port: {
+  const source = createV3ConversationNavigationSource({ threadId: "thread-one", port: {
     getView: () => view,
     subscribeView(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     async listTurns(params) {

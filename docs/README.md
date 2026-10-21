@@ -23,7 +23,7 @@ OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench
 
 - GitHub 是目标核心上游，下游产品持有私有装配并消费固定版本；状态见 [迁移状态](upstream-transition.md)，不建立两套可写核心。
 - `opencraft/` 保持独立 npm workspace 和锁文件，`frontend/` 保持独立 pnpm workspace 和锁文件。
-- AppServer 事件游标、投影状态和 durable history 的生命周期必须一致；Hermes 转译遵循 Hermes Desktop 语义，Chat Runtime 遵循 Codex 的 Turn、queue、steer、工具活动和滚动所有权。
+- AppServer 事件游标、投影状态和 durable history 的生命周期必须一致；Hermes 转译遵循 Hermes Desktop 语义，Chat Runtime 统一 Turn、queue、steer、工具活动和滚动所有权，各引擎适配保留其原生协议与能力边界。
 - Web、Expo 与 Electron 共享领域模型和设计 token，但平台能力通过显式 adapter/port 接入，不能用平台条件分支破坏核心状态机。
 - 下游产品工作区中的机械生成过渡兼容层由该产品持有，源码所有权在其前端服务；生成目录禁止手改。
 

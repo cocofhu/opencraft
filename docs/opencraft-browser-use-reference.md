@@ -50,7 +50,7 @@ Controller Lease。纯 Web 任意跨域 iframe 仍只有呈现能力；只有安
 4. Agent 通过 `get_tab_context` 按需读取页面正文、选区和表单可见文本；
 5. Agent 通过 `browser_use` 导航、观察和操作受支持页面；
 6. Browser Use 调用以标准 `item/tool/call` 往返 AppServer、HyperNode 与当前 OpenCraft 客户端；
-7. 工具调用在 ChatUI 中按 Codex 的 Browser Activity 语义呈现；
+7. 工具调用在 ChatUI 中按 Browser Activity 契约呈现；
 8. Web、Electron 和 Expo 共享同一套领域模型、命令、恢复与错误语义。
 
 本书不把以下内容伪装成已解决：
@@ -358,7 +358,7 @@ Electron 和 Expo 按真实能力上报 backend/action；禁止 Web iframe 冒�
 
 ### 9.1 `vela_app.open_in_vela`
 
-输入应与 Codex 的 browser presentation intent 保持同形：
+浏览器呈现请求使用以下输入形状：
 
 ```ts
 type OpenInOpenCraftInput = {
@@ -429,8 +429,7 @@ type GetTabContextInput = {
 
 ### 9.3 `vela_browser.browser_use`
 
-这是 OpenCraft 的公共 action contract；它复现 Codex Browser Use 的产品语义，不声称 action
-名称来自 Codex 私有实现。
+这是 OpenCraft 的公共 action contract，定义浏览器观察、导航与操作请求。
 
 ```ts
 type BrowserUseInput =

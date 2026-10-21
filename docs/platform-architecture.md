@@ -1305,7 +1305,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `appserver-replica-storage-node` | atomic JSON persistence for servers and Lab | Node filesystem |
 | `appserver-replica-storage-web` | transactional client cache | IndexedDB |
 | `appserver-replica-storage-expo` | transactional native client cache | Expo SQLite |
-| `appserver-session` | Codex Desktop Resume/View hydration and V3 compatibility reader adapter | none |
+| `appserver-session` | AppServer Resume/View hydration and V3 compatibility reader adapter | none |
 | `appserver-transport-websocket` | browser, React Native and direct daemon WebSocket | WebSocket only |
 | `appserver-transport-memory` | deterministic in-process AppServer | none |
 | `appserver-transport-replay` | frame recording and deterministic replay | none |
@@ -1318,7 +1318,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `chat-runtime` | Replica-derived Timeline snapshots and command/history ports | none |
 | `composer-core` | portable document, target-scoped draft, SubmitIntent and controller | none |
 | `composer-appserver` | lossless document compiler and native Codex command port | none |
-| `timeline-virtualizer` | Codex Turn window, restore, anchors, follow and spacer policy | none |
+| `timeline-virtualizer` | Turn window, restore, anchors, follow and spacer policy | none |
 | `workbench-runtime` | HostRuntime registry; per-Host client ownership, Thread catalog and Replica/Session orchestration | none |
 | `workbench-resources` (proposed) | renderer-neutral resource identity, durable route and presentation contracts | none |
 | `extension-contract` (proposed) | versioned manifest, identity, optional access declarations, contributions and RPC | none |
@@ -2530,7 +2530,7 @@ establish native parity.
 Expo Web is a first-class output of `apps/workbench-expo`, not a compatibility
 mode hidden inside the Vite app. It is appropriate for mobile-width browsers,
 PWA distribution, and validating universal routes. The Vite app remains the
-desktop browser/Electron target where precise Codex layout and mature chunk
+desktop browser/Electron target where precise Workbench layout and mature chunk
 control matter.
 
 Production routing can send desktop browsers to the Vite deployment and mobile

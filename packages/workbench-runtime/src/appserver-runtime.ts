@@ -83,9 +83,9 @@ import {
   type ReplicaClientStorage,
 } from "@opencraft/appserver-replica";
 import {
-  codexThreadReplicaScope,
-  createCodexV3ConversationNavigationSource,
-  createCodexThreadReplicaSource,
+  threadViewReplicaScope,
+  createV3ConversationNavigationSource,
+  createThreadViewReplicaSource,
   createCordisThreadSessionRuntime,
   createThreadViewReplicaProjectionBarrier,
   reconcileHydratedTurn,
@@ -924,7 +924,7 @@ export function createAppServerWorkbenchRuntime(
       throw new Error("AppServer command port is unavailable");
     const currentCommandPort = commandPort;
     const replica = new ReplicaClient<ReplicaJsonValue>({
-      scope: codexThreadReplicaScope(hostId, threadId),
+      scope: threadViewReplicaScope(hostId, threadId),
       storageKey: storageKey(hostId, threadId),
       storage: volatileThreadViewReplicaStorage,
       pageSize: config.pageSize ?? 100,
@@ -992,7 +992,7 @@ export function createAppServerWorkbenchRuntime(
       const projectionBarrier =
         createThreadViewReplicaProjectionBarrier(replica);
       navigation = new ConversationNavigationController(
-        createCodexV3ConversationNavigationSource({
+        createV3ConversationNavigationSource({
           threadId,
           port: {
             getView: () => currentSession.views.get(threadId),
@@ -1210,7 +1210,7 @@ export function createAppServerWorkbenchRuntime(
           // history behind a slow connector/tool registration request.
           void recovery.span("capability-ready", () => ensureBindingCapabilities(binding)).catch(() => undefined);
         } finally { stopPreview(); }
-        const source = createCodexThreadReplicaSource(
+        const source = createThreadViewReplicaSource(
           currentSession.views,
           hostId,
           binding.threadId,

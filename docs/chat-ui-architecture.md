@@ -241,7 +241,7 @@ explicit distinction between implemented coordination and pending delivery guara
 OpenCraft uses the latest Codex AppServer `Thread -> Turn -> Item` protocol. The
 AppServer remains the business write authority. ChatUI consumes one normalized
 Conversation Read Model: a V4 ReplicaClient for a V4-native Authority, or a
-snapshot-oriented compatibility projection for Codex V3 Resume. Web and Native
+snapshot-oriented compatibility projection for AppServer V3 Resume. Web and Native
 surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
@@ -313,7 +313,7 @@ WebSocket / Replay Transport
 Codex AppServer protocol
           |
 Conversation Read Model
-V4 ReplicaClient or Codex V3 compatibility projection
+V4 ReplicaClient or AppServer V3 compatibility projection
           |
 Conversation Runtime
           |
@@ -985,7 +985,7 @@ execution policy. See [migration contract](../design/dsh-engine-migration.md).
    not a cross-host identity.
 2. React components never import a WebSocket, JSON-RPC client, Electron bridge,
    Session View store or Replica Journal entry.
-3. `appserver-session` may translate Codex V3 Resume/history into the common
+3. `appserver-session` may translate AppServer V3 Resume/history into the common
    reader contract. Its local View revisions are snapshot continuity hints,
    not a server-sequenced V4 Journal.
 4. A Transcript, Timeline Frame and Timeline Block are disposable projections.
@@ -1074,7 +1074,7 @@ transactions, without requiring a platform scroll event. Persisted restoration
 by anchor/count remains a different operation; neither rule sorts the transcript
 or takes over response following.
 
-In the Codex V3 compatibility reader, an established Turn/Item slot is not
+In the AppServer V3 compatibility reader, an established Turn/Item slot is not
 derived from status, update time, or opaque ID. Live updates merge by identity
 without moving that slot. Ordered history owns topology only within its fetched
 window; a navigation locator index is a placement hint for one unloaded Turn,
@@ -1662,7 +1662,7 @@ history, or remounting the Conversation.
 
 - `appserver-session` currently materializes a Thread View before exposing it
   through the ReplicaClient-shaped reader. This is the compatibility ingestion
-  boundary, not proof that Codex V3 has a V4 Authority or retained Journal.
+  boundary, not proof that AppServer V3 has a V4 Authority or retained Journal.
 - `DisplayTurn` remains exported only for older fixtures. Neither application
   host uses it as its conversation read model.
 - Browser attachment blobs require a compatible Host attachment-staging

@@ -4,7 +4,7 @@ import test from "node:test";
 import { AppServerRpcError, JsonRpcAppServerClient } from "@opencraft/appserver-client";
 import {
   createCordisThreadSessionRuntime,
-  createCodexThreadReplicaSource,
+  createThreadViewReplicaSource,
   createThreadViewFrameScheduler,
   reconcileHistoryTurns,
   type CordisThreadSessionRuntime,
@@ -257,7 +257,7 @@ test("ordered text bursts publish once and completion catches up without a frame
     let publications = 0;
     harness.runtime.views.subscribeThread("thread-one", () => { publications += 1; });
     const replicaEvents: string[] = [];
-    const source = createCodexThreadReplicaSource(harness.runtime.views, harness.client.hostId, "thread-one");
+    const source = createThreadViewReplicaSource(harness.runtime.views, harness.client.hostId, "thread-one");
     const removeReplica = source.subscribe(event => replicaEvents.push(event.kind));
     const delta = (itemId: string, text: string) => harness.emit("item/agentMessage/delta",
       { threadId: "thread-one", turnId: "live", itemId, delta: text });

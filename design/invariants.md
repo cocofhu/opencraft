@@ -1102,7 +1102,7 @@ and does not receive the standard task-flow continuation button.
 
 ### Shared floating material
 
-Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across Codex/Frost/Lavender light/dark and desktop/touch.
+Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across Neutral/Frost/Lavender light/dark and desktop/touch.
 
 ### Desktop navigation surface (2026-10-15)
 
@@ -1281,7 +1281,7 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 
 ## Global conversation search
 
-Title results remain available immediately; Codex message results add an escaped snippet and Server provenance. Closing/retyping/revoking a connection cannot publish late results or relocate another conversation. The dialog preserves keyboard ownership and drafts. Loading, per-Server failure/retry, title-only support, disconnected sources and remaining pages are explicit; incomplete coverage is never reported as an exhaustive empty match. Selecting a visible message reuses authoritative hydration and measured virtualized positioning, at the containing prompt for assistant matches. A raw-history match without a visible locator opens with a positioning notice; it does not claim an exact jump.
+Title results remain available immediately; Message results add an escaped snippet and Server provenance. Closing/retyping/revoking a connection cannot publish late results or relocate another conversation. The dialog preserves keyboard ownership and drafts. Loading, per-Server failure/retry, title-only support, disconnected sources and remaining pages are explicit; incomplete coverage is never reported as an exhaustive empty match. Selecting a visible message reuses authoritative hydration and measured virtualized positioning, at the containing prompt for assistant matches. A raw-history match without a visible locator opens with a positioning notice; it does not claim an exact jump.
 
 
 ### Mobile search presentation

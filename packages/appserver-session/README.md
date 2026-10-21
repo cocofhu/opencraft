@@ -1,6 +1,6 @@
 # @opencraft/appserver-session
 
-Cordis-governed Codex Desktop Resume semantics. This package owns mounted
+Cordis-governed AppServer Resume semantics. This package owns mounted
 Thread Views and hydration orchestration; it does not own the physical
 transport or the future Replica journal.
 

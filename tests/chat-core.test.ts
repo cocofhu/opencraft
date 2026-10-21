@@ -73,7 +73,7 @@ function activityHeaderFor(
   return deriveAgentActivityHeaderPresentation(group);
 }
 
-test("Hook lifecycle summaries match Codex counts, filtering, and adjacent-run coalescing", () => {
+test("Hook lifecycle summaries preserve counts, filtering, and adjacent-run coalescing", () => {
   const stats = summarizeHookRuns([
     {
       id: "lint",
@@ -2113,7 +2113,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated exactly like Codex", () => {
+test("MCP JSON text is promoted and deduplicated with structured content", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",
@@ -2186,7 +2186,7 @@ test("Agent Activity reproduces active labels and deterministic completed summar
   }
 });
 
-test("Web Search action details match Codex search, open-page, and find-in-page labels", () => {
+test("Web Search action details describe search, open-page, and find-in-page actions", () => {
   const blocks = projectTimeline(source([{
     id: "turn-web-actions",
     status: "complete",
