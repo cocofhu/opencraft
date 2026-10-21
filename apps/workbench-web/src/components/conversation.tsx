@@ -272,7 +272,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
-      <Suspense key={question.id} fallback={null}><AsyncQuestionCard
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}><AsyncQuestionCard
         question={question}
         title={<WebChatDocument
           conversationId={documentContext.conversationId}
