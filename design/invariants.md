@@ -1838,3 +1838,12 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+## Single-line title badge placement (2026-10-21)
+Thread badge contributions may select `title` for a single-line row. Shell suppresses
+visible project/status metadata, keeps it in the navigation tooltip and retains
+activity indicators, scheduling and the independent menu hit lane. Badge and title
+are sibling controls, vertically centered; the title shrinks with ellipsis while
+accessories retain intrinsic width. Default trailing and metadata layouts remain
+unchanged. The real Sidebar consumer checks title-only geometry, narrow columns,
+keyboard focus, menus and independent badge popovers in both input modes/themes.

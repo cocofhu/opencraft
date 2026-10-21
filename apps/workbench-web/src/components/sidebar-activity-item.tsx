@@ -66,7 +66,7 @@ export function SidebarActivityItem({
   readonly disabled?: boolean;
   readonly twoLine?: boolean;
   readonly badge?: ReactNode;
-  readonly badgePlacement?: "trailing" | "metadata";
+  readonly badgePlacement?: "trailing" | "metadata" | "title";
   readonly goalActive?: boolean;
   readonly onInvoke: () => void;
   readonly pending: boolean;
@@ -78,13 +78,14 @@ export function SidebarActivityItem({
   readonly unread: boolean;
 }) {
   const intl = useIntl();
+  const titleOnly = badgePlacement === "title";
   const scheduleLabel = !schedule ? null : schedule.needsReview
     ? intl.formatMessage({ id: "sidebar.schedule.review", defaultMessage: "Scheduled task: needs checking" })
     : schedule.status === "paused"
       ? intl.formatMessage({ id: "sidebar.schedule.paused", defaultMessage: "Scheduled task: paused" })
       : intl.formatMessage({ id: "sidebar.schedule.next", defaultMessage: "Scheduled task: next run {time}" }, { time: intl.formatDate(schedule.nextRunAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) });
   return (
-    <div className="sidebar-activity-item-container" data-has-badge={badge ? "true" : undefined} data-row-lines={twoLine || project ? "two" : "one"}><button
+    <div className="sidebar-activity-item-container" data-has-badge={badge ? "true" : undefined} data-badge-placement={titleOnly ? "title" : undefined} data-row-lines={!titleOnly && (twoLine || project) ? "two" : "one"}><button
       type="button"
       disabled={disabled}
       className={[
@@ -101,7 +102,7 @@ export function SidebarActivityItem({
       <span className="sidebar-activity-item__body">
         <span className="sidebar-activity-item__title-line"><span className="sidebar-activity-item__title">{title}</span>
           {scheduleLabel ? <span className="sidebar-activity-item__schedule" role="img" aria-label={scheduleLabel} title={scheduleLabel}><Clock size={16} aria-hidden="true" /></span> : null}</span>
-        {twoLine || project ? <span className="sidebar-activity-item__metadata">
+        {!titleOnly && (twoLine || project) ? <span className="sidebar-activity-item__metadata">
           {twoLine ? <span className="sidebar-activity-item__state-label">{status === "running" ? <FormattedMessage id="sidebar.status.running" defaultMessage="Running" /> : status === "review" ? <FormattedMessage id="sidebar.status.review" defaultMessage="Ready for review" /> : status === "error" ? <FormattedMessage id="sidebar.status.error" defaultMessage="Conversation error" /> : <FormattedMessage id="sidebar.status.unread" defaultMessage="New reply" />}</span> : null}
           {twoLine && project ? <span aria-hidden="true">·</span> : null}
           {project ? <span className="sidebar-activity-item__project">{project}</span> : null}

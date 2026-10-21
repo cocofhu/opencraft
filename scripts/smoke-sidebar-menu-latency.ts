@@ -22,7 +22,7 @@ let snapshot={revision:0,mode:'creator',modes:[{id:'creator',label:'By creator'}
 const listeners=new Set();const publish=patch=>{snapshot={...snapshot,...patch,revision:snapshot.revision+1};for(const listener of listeners)listener()};
 const grouping={id:'probe',getSnapshot:()=>snapshot,subscribe:listener=>{listeners.add(listener);return()=>listeners.delete(listener)},watch:()=>()=>{},project:refs=>{window.projections++;return[{id:'all',label:'All conversations',avatarUrl:null,collapsed:false,threads:refs}]},setMode:mode=>publish({mode}),toggleGroup:()=>{}};
 // Synthetic badge content; the controlled plugin contract and Radix popover are real.
-const badge={id:'probe',Component:({threadId,open,onOpenChange,onCloseAutoFocus,portalContainer})=><Popover.Root open={open} onOpenChange={onOpenChange}><Popover.Trigger asChild><button aria-label={'People '+threadId}>People</button></Popover.Trigger><Popover.Portal container={portalContainer}><Popover.Content onCloseAutoFocus={onCloseAutoFocus}>Participants {threadId}</Popover.Content></Popover.Portal></Popover.Root>};
+const badge={id:'probe',placement:new URL(location.href).searchParams.has('title')?'title':undefined,Component:({threadId,open,onOpenChange,onCloseAutoFocus,portalContainer})=><Popover.Root open={open} onOpenChange={onOpenChange}><Popover.Trigger asChild><button aria-label={'People '+threadId}>People</button></Popover.Trigger><Popover.Portal container={portalContainer}><Popover.Content onCloseAutoFocus={onCloseAutoFocus}>Participants {threadId}</Popover.Content></Popover.Portal></Popover.Root>};
 window.rowsProcessed=0;window.projections=0;window.actions=[];
 const actions={onRename:async()=>{},onFork:async()=>{},onArchive:async()=>window.actions.push('archive'),onDelete:async()=>{},onSetPinned:async()=>window.actions.push('pin')};
 const capabilities=()=>({pin:true,rename:true,fork:true,archive:true,delete:true});
@@ -126,6 +126,31 @@ try {
     assert.deepEqual(errors, []);
     evidence.push({ rows, cpuRate: 4, samples, interactionRegression: true });
     await page.close();
+  }
+  for (const touch of [false, true]) for (const theme of ['light', 'dark']) {
+    const context = await browser.newContext({viewport:{width:390,height:800},hasTouch:touch,isMobile:touch});
+    const page = await context.newPage();
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?rows=3&title`);
+    await page.locator('.sidebar-activity-item').nth(2).waitFor();
+    await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
+    assert.equal(await page.locator('[data-row-lines="one"]').count(),3);
+    assert.equal(await page.locator('.sidebar-activity-item__metadata').count(),0);
+    assert.ok((await page.locator('.sidebar-activity-item').first().getAttribute('title'))?.includes('workspace'));
+    const geometry=await page.locator('.sidebar-activity-item-container').evaluateAll(rows=>rows.map(row=>{
+      const title=row.querySelector('.sidebar-activity-item__title')!.getBoundingClientRect();
+      const badge=row.querySelector('.sidebar-activity-item__badge-slot')!.getBoundingClientRect();
+      return {clear:title.right<=badge.left,center:Math.abs(title.y+title.height/2-badge.y-badge.height/2)};
+    }));
+    assert.ok(geometry.every(row=>row.clear&&row.center<1),JSON.stringify(geometry));
+    await page.getByRole('button',{name:'People t0',exact:true}).click();
+    await page.getByText('Participants t0',{exact:true}).waitFor();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button',{name:'Actions for Conversation 0',exact:true}).focus();
+    await page.keyboard.press('Enter');
+    await page.getByRole('menuitem',{name:'Pin',exact:true}).click();
+    assert.deepEqual(await page.evaluate(()=>(window as any).actions),['pin']);
+    evidence.push({titleOnly:true,touch,theme,geometry});
+    await context.close();
   }
   console.log(JSON.stringify({ passed: true, output, evidence }));
 } finally {

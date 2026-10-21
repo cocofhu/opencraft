@@ -11929,6 +11929,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
   &[data-row-lines="two"] .sidebar-activity-item { min-height: max(48px, calc(var(--size-control-hit-min) + 12px)); }
 }
+// A title-only contribution shares the title track and retains the action hit lane.
+.sidebar-activity-item-container[data-badge-placement="title"] {
+  column-gap: var(--gap-control-group);
+  .sidebar-activity-item { min-height: max(40px, var(--size-control-hit-min)); }
+}
 .sidebar-activity-item__project {
   @include typography.role(label, tertiary);
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

@@ -12,6 +12,7 @@ export interface ThreadBadgeProps {
 }
 export interface ThreadBadgeContribution {
   readonly id: string;
-  readonly placement?: "trailing" | "metadata";
+  /** Title selects a single visible title row without project/status metadata. */
+  readonly placement?: "trailing" | "metadata" | "title";
   readonly Component: ComponentType<ThreadBadgeProps>;
 }
