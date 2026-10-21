@@ -912,6 +912,18 @@ Verification: `scripts/smoke-composer-keyboard-viewport.ts` simulates iOS
 VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
 
+The Web viewport port is the only writer of the Shell viewport projection.
+Native geometry events start a bounded one-second reconciliation window on mobile
+browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
+This covers a native transition finishing after its last event. Page restoration,
+foregrounding, orientation and the next touch invalidate the same projection.
+Hidden/disposed ports stop sampling, and desktop hosts retain event-driven reads.
+Actual VisualViewport geometry remains authoritative even without editor focus:
+blur never implies a closed keyboard, and recovery never forces layout height,
+scroll, focus, selection or editor replacement. A browser reporting incorrect
+native geometry still requires device evidence; synthetic timing is not physical
+iOS/in-app verification.
+
 Full-width Terminal consumes two separate geometry owners: the Shell follows the
 VisualViewport once; the Composer publishes its measured bottom occlusion,
 including bottom padding and the visible latest-turn card, to the Shell anchor.
