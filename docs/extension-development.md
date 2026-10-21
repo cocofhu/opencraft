@@ -27,6 +27,13 @@ and the entry-specific contracts in [plugin architecture](plugin-architecture.md
 A product may use internal trusted renderers; that does not expose React, Cordis
 or arbitrary application services to installed Extensions.
 
+Internal contribution changes must update both their typed contract and runtime
+validator. Thread badge placement validation exhaustively covers the declared
+placement union, including `title`, while rejecting unknown values. Consumer
+checks must activate the real optional plugin branch through the production
+registry and verify activation, contributions and unload; rendering a component
+directly cannot detect an activation transaction rolling back.
+
 ## Build and run the first extension
 
 Use the pinned Node version in `.nvmrc` and run these commands from your own clone:

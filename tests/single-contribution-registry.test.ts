@@ -7,6 +7,32 @@ import { ExtensionSupervisor } from "@opencraft/extension-runtime";
 import type { ExtensionActivationIdentity } from "@opencraft/extension-contract";
 
 const owner: ExtensionActivationIdentity = { extensionId: "test.contribution", activationId: "activation", generation: 1 };
+// A rejected badge rolls back its whole extension, so exercise activation too.
+for (const placement of [undefined, "trailing", "metadata", "title"] as const) {
+  test(`badge: ${placement ?? "default"} placement activates and unloads`, async t => {
+    const registry = new ThreadBadgeContributionRegistry();
+    const supervisor = new ExtensionSupervisor({ platform: "web", internalContributions: { threadBadge: registry.createAdapter() } });
+    t.after(() => supervisor.dispose());
+    const contribution = { id: "test.badge", Component: () => null, placement };
+    await supervisor.activate({
+      manifest: { manifestVersion: 1, id: "test.badge", name: "Badge", version: "1.0.0", apiVersion: 1,
+        platforms: ["web"], trust: "trusted", activationEvents: ["*"] },
+      activate(api) { api.internal.register("threadBadge", contribution); },
+    });
+    assert.equal(supervisor.getSnapshot().extensions[0]?.status, "active");
+    assert.equal(registry.getSnapshot().contribution, contribution);
+    await supervisor.deactivate("test.badge");
+    assert.equal(registry.getSnapshot().contribution, null);
+  });
+}
+
+test("badge: unknown and non-string placements cannot acquire the slot", () => {
+  const registry = new ThreadBadgeContributionRegistry();
+  for (const placement of ["unknown", "toString", "__proto__", null, true, 1, {}, []]) {
+    assert.throws(() => registry.createAdapter().prepare(owner, { id: "test.badge", Component: () => null, placement }), /Invalid thread badge contribution/);
+    assert.equal(registry.getSnapshot().contribution, null);
+  }
+});
 const fixtures = [
   { name: "badge", registry: () => new ThreadBadgeContributionRegistry(), contribution: { id: "test.badge", Component: () => null } },
   { name: "avatar", registry: () => new IdentityAvatarContributionRegistry(), contribution: { id: "test.avatar", resolve: () => null } },
