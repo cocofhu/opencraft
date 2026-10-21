@@ -35,6 +35,7 @@ export class PiDurableSession {
   private root!: Conversation;
   private storage!: Storage;
   private release?: () => Promise<void>;
+  private readonly skillPrompts = new Map<string, string>();
   private readonly environments = new Map<string, NodeExecutionEnv>();
   private entries: EntryRecord[] = [];
   private readonly submissions = new Map<number, SubmissionRecord>();
@@ -58,7 +59,17 @@ export class PiDurableSession {
         return `Working directory: ${cwd}\n` + loadProjectContextFiles({ cwd, agentDir: this.options.agentDirectory })
           .map(file => `# ${file.path}\n${file.content}`).join("\n\n");
       }, { tag: false }),
-      section("skills", input => piSkillsPrompt(input.agent.cwd ?? this.options.cwd, this.options.agentDirectory), { tag: false }),
+      section("skills", input => {
+        if (!process.env.OPENCRAFT_OFFICIAL_SKILLS_ROOT) return '';
+        const cwd = input.agent.cwd ?? this.options.cwd;
+        let prompt = this.skillPrompts.get(cwd);
+        if (prompt === undefined) {
+          prompt = piSkillsPrompt(cwd, this.options.agentDirectory);
+          if (this.skillPrompts.size >= 16) this.skillPrompts.delete(this.skillPrompts.keys().next().value!);
+          this.skillPrompts.set(cwd, prompt);
+        }
+        return prompt;
+      }, { tag: false }),
     ], tools: this.options.tools.map(tool => defineTool({
       name: tool.piName, description: tool.description, parameters: tool.inputSchema,
       // The native intent is unsafe to replay: reconnect never repeats an external effect.

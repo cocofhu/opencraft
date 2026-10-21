@@ -17,6 +17,7 @@ const ids = ['eventId', 'producerId', 'operationId', 'executionId', 'recoveryId'
 const enums = { kind: kinds, component: components, operationType: operations, outcome: outcomes,
   stage: stages, method: methods, originClass: origins, actorKind: ['human','agent','session','unknown'],
   measurementScope: ['navigation','in_page','rpc','domain','process','client'],
+  observedBy: ['self','gateway'],
   cache: ['cold','warm','unknown'], visibility: ['visible','hidden','unknown'], engine: ['codex','dsh','pi','none','unknown'] };
 /** Unknown keys are discarded; malformed known keys reject only this record. */
 export function sanitizeEvent(input, now = Date.now()) {
@@ -36,7 +37,8 @@ export function sanitizeEvent(input, now = Date.now()) {
     if (!Number.isFinite(input[key]) || input[key] < 0 || input[key] > Number.MAX_SAFE_INTEGER) return null;
     event[key] = input[key];
   }
-  for (const key of ['sourceRevision','buildId','workloadDigest']) if (input[key] !== undefined && input[key] !== null) {
+  for (const key of ['sourceRevision','buildId','workloadDigest']) if (input[key] !== undefined) {
+    if (input[key] === null) { event[key] = null; continue; }
     if (typeof input[key] !== 'string' || !revision.test(input[key])) return null;
     event[key] = input[key];
   }

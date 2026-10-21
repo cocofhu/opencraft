@@ -396,6 +396,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
           coreEndpoint: options.codexCoreEndpoint,
           coreAuthToken: options.codexCoreAuthToken,
           coreHostOverlays: options.codexCoreEndpoint !== undefined,
+          observationComponent: 'gateway',
           botConversations: options.botConversations === true,
           nativeCodexHomeDirectory: join(dataDirectory, "native-codex"),
           desktop,
@@ -411,7 +412,11 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       connectConnection: (id, assertAdmission) => appHostServer.ensureHostConnected(id, assertAdmission),
       legacyServers: sshServers.map(binding => binding.descriptor),
     });
-    observability = await createObservabilityIngress(process.env.OPENCRAFT_OBSERVE_INGRESS_CONFIG, {access:instanceAccess,actors:actorStore});
+    try {
+      observability = await createObservabilityIngress(process.env.OPENCRAFT_OBSERVE_INGRESS_CONFIG, { access: instanceAccess, actors: identity?.actorStore, executionHealth: options.getExecutionHealth });
+    } catch {
+      process.stderr.write('Observability configuration unavailable; workbench continues without observation ingress.\n');
+    }
     const createWeb = options.createWebServer ?? createWorkbenchWebServer;
     web = await createWeb({
       root: webRoot,

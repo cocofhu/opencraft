@@ -51,17 +51,15 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
   }
   function envelope(window) { return {schemaVersion,snapshotId:randomUUID(),deploymentId,queryDefinitionRevision,metricSchemaVersion:schemaVersion,
     window:{from:new Date(window.from).toISOString(),to:new Date(window.to).toISOString(),capturedAt:new Date(now()).toISOString(),dataThrough:new Date(now()).toISOString()},
-    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedAt:new Date(p.received).toISOString()})),
+    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',observedAt:new Date(p.received).toISOString()})),
     sampling:{operation:1,diagnostic:1},loss:{accepted:store.accepted,rejected:store.rejected,dropped:store.dropped,exportDropped,unobservableLoss:'unknown'},
     correlationGaps:[],evidenceExpiresAt:new Date(window.from+limits.retentionMs).toISOString() }; }
-  async function query(name,input={}) {
+  async function query(name,input={},deadline=Date.now()+4200) {
     const definition=requireQuery(name), window=windowFor(input,now(),name==='usage.activity'?limits.retentionMs:limits.maxWindowMs);
     const result={...envelope(window),query:name,measurementKind:definition.kind,unit:definition.unit,windowSemantics:definition.windowSemantics??'selected_window'};
-    if(name==='components.versions')return result;
-    if(name==='data.coverage'||name==='platform.status')return result;
-    if(definition.promql) {
+        if(definition.promql) {
       const url=new URL('/api/v1/query',prometheus);url.searchParams.set('query',definition.promql);url.searchParams.set('time',String(window.to/1000));
-      try {const response=await fetch(url,{signal:AbortSignal.timeout(4000)});if(!response.ok)throw Error();const value=await response.json();
+      try {const response=await fetch(url,{signal:AbortSignal.timeout(Math.max(1,Math.min(4000,deadline-Date.now())))});if(!response.ok)throw Error();const value=await response.json();
         if(value.status!=='success')throw Error();return {...result,evaluationAt:new Date(window.to).toISOString(),stepSeconds:15,expression:definition.promql,values:value.data.result};
       }catch{return {...result,status:'degraded',coverage:'partial',availability:'backend_unreachable',values:[]};}
     }
@@ -76,7 +74,12 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     result.observedDomainsAtCapture={executions:store.executions(window.from,window.to),verifiedHumanUnion:store.activity(window.from,window.to).humans};
     result.measurements={};
     const names=Object.keys(definitions).filter(name=>!['incident.read','baseline.compare'].includes(name));
-    for(const name of names) result.measurements[name]=await query(name,{from:result.window.from,to:result.window.to});
+    // One absolute deadline includes queued work; an unavailable backend never multiplies the CLI wait.
+    const deadline=Date.now()+4000;let cursor=0;
+    await Promise.all(Array.from({length:Math.min(5,names.length)},async()=>{
+      while(cursor<names.length){const name=names[cursor++];result.measurements[name]=await query(name,{from:result.window.from,to:result.window.to},deadline);}
+    }));
+    if(Object.values(result.measurements).some(value=>value.coverage!=='complete'))result.coverage='partial';
     result.findings=issues(result);return result;
   }
   function metrics() {

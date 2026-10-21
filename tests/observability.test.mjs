@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
@@ -43,4 +44,19 @@ test('real socket, domain dedup, immutable CLI output, unknown query and unavail
     const value=await run(['snapshot','--target',target,'--out',out,'--json']);assert.equal(value.schemaVersion,1);assert.equal(value.coverage,'partial');
     const original=await readFile(out,'utf8');await assert.rejects(()=>run(['snapshot','--target',target,'--out',out]),e=>e.code==='EEXIST');assert.equal(await readFile(out,'utf8'),original);
   }finally{await service.close();await rm(directory,{recursive:true,force:true});}
+});
+
+test('unknown component identity clears prior identity; unresponsive snapshot shares one deadline',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-deadline-'));
+  const stalled=createServer((_req,_res)=>{});await new Promise(resolve=>stalled.listen(0,'127.0.0.1',resolve));
+  const service=await startObserve({directory,deploymentId:'deadline-test',metricsPort:0,prometheus:`http://127.0.0.1:${stalled.address().port}`});
+  try{
+    service.store.ingest([event({kind:'producer',component:'core',producerId:'independent',sourceRevision:'old-core',buildId:'old-build'})]);
+    service.store.ingest([event({kind:'producer',component:'core',producerId:'independent',sourceRevision:null,buildId:null,observedBy:'gateway'})]);
+    const identity=service.store.producers().find(row=>row.producer==='independent').identity;
+    assert.equal(identity.sourceRevision,undefined);assert.equal(identity.buildId,undefined);assert.equal(identity.observedBy,'gateway');
+    const started=performance.now();const snapshot=await service.snapshot();
+    assert(performance.now()-started<4500);assert.equal(snapshot.coverage,'partial');
+    assert(Object.values(snapshot.measurements).every(value=>value.availability==='backend_unreachable'));
+  }finally{stalled.closeAllConnections();await new Promise(resolve=>stalled.close(resolve));await service.close();await rm(directory,{recursive:true,force:true});}
 });

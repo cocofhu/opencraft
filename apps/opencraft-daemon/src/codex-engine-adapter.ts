@@ -102,6 +102,7 @@ interface CapacityRetry {
 }
 
 interface SharedCodexRoutingOptions {
+  readonly observationComponent?: 'core' | 'gateway';
   readonly onStorageOpened?: (outcomes: readonly { name: string; outcome: DatabaseOutcome }[]) => void;
   readonly createThreadMetadata?: (database: import("node:sqlite").DatabaseSync, context: import("@opencraft/appserver-client").ThreadMetadataContext) => import("@opencraft/appserver-client").ThreadMetadataExtension;
   readonly logDiagnostic?: (event: Record<string, unknown>) => void;
@@ -1095,7 +1096,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       if (typeof message.method === "string") this.receiveServerRequest(id, message);
       return;
     }
-    nodeObserver('core').execution('codex', String(message.method), message.params);
+    nodeObserver(this.options.observationComponent ?? 'core').execution('codex', String(message.method), message.params);
     if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     const threadId = string(record(message.params).threadId) || string(record(record(message.params).thread).id);
     this.durableCatalog?.observe(string(message.method), message.params);

@@ -17,7 +17,7 @@ provisioning directory. No source checkout or enterprise service is required.
    disk quota. Do not place business data in these filesystems.
 2. Set `OPENCRAFT_OBSERVE_DIRECTORY` and `OPENCRAFT_OBSERVE_PUBLIC_ORIGIN` in a private
    `.env`. The latter is the existing authenticated workbench origin, with no trailing
-   slash. Ports 23302–23306 bind loopback only. Grafana has **no TCP listener**; its
+   slash. Ports 23302–23306 and 23308 bind loopback only. Grafana has **no TCP listener**; its
    socket is protected by the private parent directory. Live is explicitly disabled.
 3. Create an owned 0600 JSON configuration for Observe:
 
@@ -46,8 +46,8 @@ provisioning directory. No source checkout or enterprise service is required.
    sanitized client diagnostics but cannot read the deployment's data. No configured
    authority means no dashboard access. Do not expose Grafana, Observe, Loki or
    Prometheus through a separate public listener.
-6. Register the reusable `createObservabilityExtension` with the workbench product's
-   existing server-extension assembly. It discovers the fixed origin's capabilities
+6. The generic workbench includes the optional `createObservabilityExtension`. Custom
+   product assemblies register it with their existing server-extension assembly. It discovers the fixed origin's capabilities
    after startup. The navigation command opens the authenticated dashboard in a new
    tab with `noopener`; it does not select a conversation Host.
 7. Install/symlink `runtime/observe-cli.mjs` as `opencraft-observe`. Authorized

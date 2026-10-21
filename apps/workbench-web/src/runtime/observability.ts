@@ -7,7 +7,7 @@ let buildId: string | null = null, sourceRevision: string | null = null;
 const producerId = typeof crypto !== 'undefined' ? crypto.randomUUID() : 'unavailable';
 let pending: { event: Event; size: number }[] = [], recent: {event: Event; size: number}[] = [];
 let pendingBytes = 0, recentBytes = 0, dropped = 0, timer: ReturnType<typeof setTimeout> | undefined;
-let sending = false, failures = 0, lastAttempt = 0;
+let sending = false, failures = 0, lastAttempt = 0, immediateAttempted = false;
 const methods = new Set(['initialize','runtime/machine/read','thread/read','thread/resume','thread/list','turn/start','turn/steer','turn/interrupt','model/list','config/read','config/value/write']);
 function schedule() {
   if (timer || sending || !pending.length || document.visibilityState === 'hidden') return;
@@ -16,15 +16,15 @@ function schedule() {
 }
 async function flush() {
   if (!enabled || sending || !pending.length || document.visibilityState === 'hidden') return;
-  const events: Event[] = []; let size = 0;
-  while (pending.length && events.length < 32 && size + pending[0].size <= 32768) {
-    const item = pending.shift()!;pendingBytes -= item.size;size += item.size;events.push(item.event);
+  const events: Event[] = []; let size = 13;
+  while (pending.length && events.length < 32 && size + pending[0].size + 1 <= 32768) {
+    const item = pending.shift()!;pendingBytes -= item.size;size += item.size + 1;events.push(item.event);
   }
   sending = true; lastAttempt = Date.now();
   try { const response = await fetch('/__opencraft_observe/events',{method:'POST',credentials:'same-origin',redirect:'error',
     headers:{'content-type':'application/json'},body:JSON.stringify({events}),signal:AbortSignal.timeout(4500)});
     if (!response.ok) { dropped += events.length; failures++; if ([401,403,404].includes(response.status)) enabled = false; }
-    else failures = 0;
+    else { failures = 0; immediateAttempted = false; }
   } catch { dropped += events.length; failures++; }
   finally { sending = false; schedule(); }
 }
@@ -37,7 +37,9 @@ export function observeEvent(fields: Event) {
   if (size > 2048 || pending.length >= 2048 || pendingBytes + size > 262144) { dropped++; return; }
   pending.push({event,size});pendingBytes += size;recent.push({event,size});recentBytes += size;
   while (recent.length > 128 || recentBytes > 131072) recentBytes -= recent.shift()!.size;
-  schedule();
+  if (['failed','timeout'].includes(String(fields.outcome)) && !immediateAttempted && !sending && document.visibilityState === 'visible') {
+    immediateAttempted = true;clearTimeout(timer);timer = undefined;void flush();
+  } else schedule();
 }
 export function beginObservedOperation(operationType: string, fields: Event = {}) {
   const started = performance.now(), operationId = typeof crypto !== "undefined" ? crypto.randomUUID() : "unavailable";
@@ -58,7 +60,9 @@ export function installClientObservation(client: AppServerClient) {
   });
 }
 export function observeRecovery(event: Readonly<Record<string,string|number>>) {
-  const stage = String(event.stage);
+  const nativeStage = String(event.stage);
+  const mapped: Record<string,string> = {'settled':'ready','host-ready':'initializing','history-started':'history','history-authoritative':'history','history-failed':'failed','history-backoff':'backoff','manual-block':'blocked'};
+  const stage = mapped[nativeStage] ?? nativeStage;
   const stages = new Set(['connecting','initializing','backoff','blocked','queued','history','ready','failed']);
   if (!stages.has(stage)) return;
   observeEvent({kind:'recovery',recoveryId:String(event.recoveryId),stage,outcome:stage==='ready'?'ok':stage==='failed'?'failed':'progress',

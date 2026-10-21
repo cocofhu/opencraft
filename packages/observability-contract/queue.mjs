@@ -12,9 +12,9 @@ export function createEventQueue({ maxEvents = limits.queueEvents, maxBytes = li
       pending.push({ event, size }); bytes += size; return true;
     },
     take() {
-      const result = []; let size = 0;
-      while (pending.length && result.length < limits.batchEvents && size + pending[0].size <= limits.batchBytes) {
-        const next = pending.shift(); bytes -= next.size; size += next.size; result.push(next.event);
+      const result = []; let size = 13;
+      while (pending.length && result.length < limits.batchEvents && size + pending[0].size + 1 <= limits.batchBytes) {
+        const next = pending.shift(); bytes -= next.size; size += next.size + 1; result.push(next.event);
       }
       return result;
     },
