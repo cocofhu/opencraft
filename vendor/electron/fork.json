@@ -54,6 +54,10 @@
     {
       "path": "patches/electron/0012-atomic-offscreen-visual-properties.patch",
       "sha256": "470b09e43bba56fb0f43aefab638e87c88b773fd428de6f128bc7a09e12f5457"
+    },
+    {
+      "path": "patches/electron/0013-native-form-input-identity.patch",
+      "sha256": "6504cd7b3409ab36e8f8ec796f9895b980f9cdf6e465e286f18799e6cf0a622b"
     }
   ]
 }

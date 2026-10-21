@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
-const { installIme } = createRequire(import.meta.url)('../scripts/remote-browser/ime.cjs');
+const { installIme, keyboardPolicy } = createRequire(import.meta.url)('../scripts/remote-browser/ime.cjs');
 const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', other = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 function fixture() {
   const wc = new EventEmitter(), calls = [], events = [];
-  let result, observed = { active: true, type: 1, caretBounds: {x:10,y:20,width:0,height:18}, value: 'must-not-leave-worker' };
-  const frame = { async getNativeImeContextForTesting() { return { available: true, token: 'first', compositionId: '' }; },
+  let result, observed = { active: true, type: 1, targetIdentity:'document:1', caretBounds: {x:10,y:20,width:0,height:18}, value: 'must-not-leave-worker' };
+  const frame = { async getNativeImeContextForTesting() { return { available: true, targetIdentity:observed.targetIdentity, inputType:observed.type, token: 'first', compositionId: '' }; },
     async applyNativeImeForTesting(input) { calls.push(input); return result ?? { status: 'processed', context: { available: true, token: 'next', compositionId: input.type === 'compose' ? 'owned' : '' } }; } };
   wc.focusedFrame = wc.mainFrame = frame; wc.getNativeTextInputState = () => observed;
   const p = { window: {webContents:wc}, visible: true, closed: false, document:'doc', id:'page' };
@@ -43,7 +43,7 @@ test('native rejection ends the transaction instead of retrying another editor',
   }finally{f.port.dispose()}
 });
 test('observations expose bounded geometry and editability, never text or native capabilities', () => {
-  const f=fixture();try {f.port.observe();assert.deepEqual(f.events.at(-1),{type:'ime-state',page:'page',editable:true,caret:{x:10,y:20,width:0,height:18}});
+  const f=fixture();try {f.port.observe();const state=f.events.at(-1);assert.equal(state.editable,true);assert.deepEqual(state.caret,{x:10,y:20,width:0,height:18});assert.equal(state.keyboard.kind,'text');assert.equal(typeof state.editor,'string');assert(!JSON.stringify(state).includes('must-not-leave-worker'));assert(!JSON.stringify(state).includes('document:1'));assert(!JSON.stringify(state).includes('token'));
     f.state({active:true,type:2,password:true});f.port.observe();assert.equal(f.events.at(-1).editable,false);
   }finally{f.port.dispose()}
 });
@@ -51,4 +51,36 @@ test('invalid commands and oversized text never dispatch native edits', async ()
   const f=fixture();try {await assert.rejects(f.port.apply({id:'bad',type:'begin'}));await f.port.apply({id,type:'begin'});
     await assert.rejects(f.port.apply({id,type:'commit',text:'x'.repeat(16385)}));assert.equal(f.calls.length,0);
   }finally{f.port.dispose()}
+});
+
+test('all native text entry kinds expose keyboard traits; non-text pickers do not', () => {
+  for(const [type,kind,mode] of [[1,'text','text'],[2,'password','text'],[3,'search','search'],[4,'email','email'],[5,'number','decimal'],[6,'tel','tel'],[7,'url','url'],[14,'textarea','text'],[15,'contenteditable','text']]) {
+    const state={active:true,targetIdentity:'doc:1',type,password:type===2};
+    const p=keyboardPolicy(state);assert.equal(p.kind,kind);assert.equal(p.inputMode,mode);assert.equal(p.secure,type===2);
+    assert.equal(keyboardPolicy({...state,mode:1}).autoKeyboard,false);
+    assert.equal(keyboardPolicy({...state,mode:7,action:6}).enterKeyHint,'search');
+    assert.equal(keyboardPolicy({...state,virtualKeyboardPolicy:1}).autoKeyboard,false);
+  }
+  for(const type of [0,8,9,10,11,12,13,16,17]) assert.equal(keyboardPolicy({active:true,targetIdentity:'d:1',type}),null);
+  assert.equal(keyboardPolicy({active:false,type:1,targetIdentity:'d:1'}),null);
+  assert.equal(keyboardPolicy({active:true,type:1,targetIdentity:'d:1',flags:1<<12}).secure,true);
+});
+test('new form editors require the observed opaque id and reject delayed password input', async () => {
+  const f=fixture();try {
+    f.state({active:true,type:2,password:true,targetIdentity:'doc:password'});f.port.observe();const password=f.events.at(-1).editor;
+    await assert.rejects(f.port.apply({id,type:'begin'}),/target changed/);
+    await f.port.apply({id,type:'begin',editor:password});await f.port.apply({id,type:'compose',text:'fake'});
+    f.state({active:true,type:3,targetIdentity:'doc:search'});f.port.observe();const search=f.events.at(-1).editor;
+    assert.notEqual(search,password);await assert.rejects(f.port.apply({id,type:'commit',text:'fake'}));
+    await assert.rejects(f.port.apply({id:other,type:'begin',editor:password}));
+    await f.port.apply({id:other,type:'begin',editor:search});await f.port.apply({id:other,type:'commit',text:'查询'});
+    assert.equal(f.calls.at(-1).text,'查询');assert(f.calls.some(c=>c.type==='cancel'));
+  }finally{f.port.dispose()}
+});
+test('native capture must match observed document, node and input kind', async () => {
+  for(const native of [{targetIdentity:'other:1',inputType:1},{targetIdentity:'document:1',inputType:2}]) {
+    const f=fixture();try{f.frame.getNativeImeContextForTesting=async()=>({available:true,token:'safe',...native});
+      await assert.rejects(f.port.apply({id,type:'begin'}));assert.equal(f.calls.length,0);
+    }finally{f.port.dispose()}
+  }
 });

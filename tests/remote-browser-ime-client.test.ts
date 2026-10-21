@@ -45,3 +45,13 @@ test('final compositionupdate and compositionend in one native event task send o
   f.ime.update('你');f.ime.end('你');await tick();
   assert.deepEqual(f.calls.map(c=>[c.input.type,c.input.text]),[['begin',undefined],['compose','ni'],['commit','你']]);
 });
+
+test('late terminal and cancellation retain their original editor identity', async () => {
+  const receiver={value:''} as HTMLInputElement;
+  let editor='password-field'; const calls:any[]=[];
+  const ime=new RemoteBrowserIme(receiver,async input=>{calls.push(input)},()=>true,()=>{},()=>editor);
+  ime.start(); editor='search-field'; ime.end('fake'); await tick();
+  assert(calls.every(c=>c.editor==='password-field'));
+  ime.start(); ime.retire(); await tick();
+  assert(calls.filter(c=>c.id===calls.at(-1).id).every(c=>c.editor==='search-field'));
+});

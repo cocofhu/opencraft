@@ -8,9 +8,10 @@ import { RemoteBrowserIme } from './remote-browser-ime';
 import { BrowserLocalMenuController } from './browser-local-menu';
 import { remoteBrowserDeviceProfile } from './remote-browser-device';
 
+interface RemoteKeyboardPolicy { kind: string; secure: boolean; inputMode: string; enterKeyHint: string; multiline: boolean; autoKeyboard: boolean; }
 type Pending = { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 interface Page {
-  media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLTextAreaElement; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
+  media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLInputElement; editor: string | null; keyboard: RemoteKeyboardPolicy | null; keyboardIntent: { pointer: number; x: number; y: number; editor: string | null; until: number; completed: boolean } | null; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
   events: BrowserSurfaceEvents; navigation: number; url: BrowserUrl | null | undefined; socket: WebSocket | null;
   restored: boolean; resumed: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
@@ -34,12 +35,23 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     // Must stay synchronous inside the local button gesture for mobile WebViews.
     // A canvas touch may already focus the manual receiver. Re-focus after
     // changing policy rather than relying on focus() on an active element.
-    if (p.receiver.inputMode !== 'text' && document.activeElement === p.receiver) p.receiver.blur();
-    p.receiver.inputMode = 'text'; p.receiver.setAttribute('virtualkeyboardpolicy', 'auto');
+    if (p.receiver.inputMode === 'none' && document.activeElement === p.receiver) p.receiver.blur();
+    p.receiver.inputMode = p.keyboard?.inputMode === 'none' ? 'text' : p.keyboard?.inputMode || 'text'; p.receiver.setAttribute('virtualkeyboardpolicy', 'auto');
     p.receiver.focus({ preventScroll: true });
   }
   private keyboardChanged() { for (const listener of this.keyboardListeners) listener(); }
-  private resetKeyboard(p: Page, blur = true) { if (blur || p.receiver.inputMode === 'text') p.receiver.blur(); p.editable = false; p.receiver.inputMode = 'none'; p.receiver.setAttribute('virtualkeyboardpolicy', 'manual'); this.keyboardChanged(); }
+  private resetKeyboard(p: Page, blur = true) { if (blur || p.receiver.inputMode === 'text') p.receiver.blur(); p.editable = false; p.editor = null; p.keyboard = null; p.keyboardIntent = null; p.receiver.value = ''; p.receiver.type = 'text'; p.receiver.inputMode = 'none'; p.receiver.setAttribute('virtualkeyboardpolicy', 'manual'); this.keyboardChanged(); }
+  private updateKeyboard(p: Page) {
+    const intent = p.keyboardIntent;
+    const tappedNewEditor = intent?.completed && performance.now() < intent.until && intent.editor !== p.editor;
+    // No asynchronous focus: only update input views on the receiver already
+    // focused in the user's gesture. Scrolling and multiple contacts disarm it.
+    if (p.editable && p.keyboard && document.activeElement === p.receiver
+      && (p.receiver.inputMode !== 'none' || tappedNewEditor && p.keyboard.autoKeyboard)) {
+      p.receiver.inputMode = p.keyboard.inputMode;
+      p.receiver.setAttribute('virtualkeyboardpolicy', 'auto');
+    }
+  }
   private root: HTMLElement | null = null;
   private storageIds = new Map<BrowserPageId, string>();
   constructor(private readonly storage: BrowserMetadataStorage = localStorage, private readonly storageKey = serverStorageKey('opencraft.remote-browser-storage.v1')) {
@@ -145,7 +157,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const container = document.createElement('div'); container.className = 'web-browser-surface'; container.dataset.browserPageId = id;
     Object.assign(container.style, { visibility: 'hidden', overflow: 'hidden', background: 'var(--background, #fff)' });
     const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; canvas.tabIndex = -1;
-    const receiver = document.createElement('textarea'); receiver.tabIndex = 0; receiver.className = 'ui-text--mobile-input';
+    const receiver = document.createElement('input'); receiver.type = 'text'; receiver.tabIndex = 0; receiver.className = 'ui-text--mobile-input';
     receiver.setAttribute('aria-label', 'Remote browser keyboard input'); receiver.spellcheck = false;
     receiver.autocomplete = 'off'; receiver.setAttribute('autocorrect', 'off'); receiver.autocapitalize = 'none';
     receiver.inputMode = 'none'; receiver.setAttribute('virtualkeyboardpolicy', 'manual');
@@ -154,7 +166,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
-    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
+    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editor: null, keyboard: null, keyboardIntent: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
       nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetPointers: () => {}, resetInput: () => {}, inputDispose: () => {} };
@@ -219,7 +231,18 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         } else if (message.type === 'input-reset') p.resetPointers();
         else if (message.type === 'viewport') this.applyViewport(p, message);
         else if (message.type === 'ime-state') {
-          p.editable = message.editable === true; this.keyboardChanged();
+          const oldEditor = p.editor;
+          const keyboard = message.keyboard;
+          p.editable = message.editable === true;
+          p.editor = p.editable && typeof message.editor === 'string' ? message.editor : null;
+          p.keyboard = keyboard && ['text','password','search','email','number','tel','url','textarea','contenteditable'].includes(keyboard.kind)
+            && ['none','text','search','email','url','tel','numeric','decimal'].includes(keyboard.inputMode)
+            && ['enter','done','go','next','previous','search','send'].includes(keyboard.enterKeyHint) ? keyboard : null;
+          if (oldEditor !== p.editor) { p.ime?.retire(); p.receiver.value = ''; }
+          p.receiver.type = p.keyboard?.secure ? 'password' : 'text';
+          p.receiver.enterKeyHint = p.keyboard?.enterKeyHint || 'enter';
+          this.updateKeyboard(p);
+          this.keyboardChanged();
           if (!p.editable) { p.ime?.retire(); this.resetKeyboard(p, false); }
           const b = message.caret, r = p.canvas.getBoundingClientRect();
           if (b && Number.isFinite(b.x) && Number.isFinite(b.y) && Number.isFinite(b.height)) {
@@ -360,6 +383,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       for (const id of ids) if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
     };
     listen('pointermove', (event: PointerEvent) => {
+      const intent = p.keyboardIntent;
+      if (intent && Math.hypot(event.clientX - intent.x, event.clientY - intent.y) > 10) p.keyboardIntent = null;
       if (event.pointerType === 'touch' && p.multiTouch) {
         if (!contacts.has(event.pointerId)) return;
         contacts.set(event.pointerId, contact(event)); touchModifiers = modifiers(event); touchMoved = true;
@@ -374,7 +399,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       if (event.pointerType === 'touch' && !p.multiTouch && !event.isPrimary) return;
       event.preventDefault(); flushMove();
       if (event.pointerType === 'touch' && p.multiTouch && (contacts.has(event.pointerId) || contacts.size >= 10)) return;
-      p.ime?.retire(); receiver.focus({ preventScroll: true }); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
+      p.ime?.retire(); p.keyboardIntent = event.pointerType === 'touch' && event.isPrimary && captured.size === 0 ? { pointer:event.pointerId, x:event.clientX, y:event.clientY, editor:p.editor, until:0, completed:false } : null; receiver.focus({ preventScroll: true }); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
       this.retireMenu(p); p.menuIntent = crypto.randomUUID();
       if (event.pointerType === 'touch' && p.multiTouch) {
         contacts.set(event.pointerId, contact(event)); sendTouch('touchStart', event);
@@ -389,9 +414,12 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         if (event.pointerType === 'touch' && !event.isPrimary) return;
         flushMove(); send({ type: 'mouseUp', ...point(event), pointerType: event.pointerType, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) });
       }
+      if (p.keyboardIntent?.pointer === event.pointerId && Math.hypot(event.clientX - p.keyboardIntent.x, event.clientY - p.keyboardIntent.y) <= 10) {
+        p.keyboardIntent.completed = true; p.keyboardIntent.until = performance.now() + 2000; this.updateKeyboard(p);
+      }
       captured.delete(event.pointerId); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     });
-    const cancel = () => { p.resetPointers(); send({ type: 'touchCancel' }); };
+    const cancel = () => { p.keyboardIntent = null; p.resetPointers(); send({ type: 'touchCancel' }); };
     listen('pointercancel', (event: PointerEvent) => { if (captured.has(event.pointerId)) cancel(); });
     listen('lostpointercapture', (event: PointerEvent) => { if (captured.has(event.pointerId)) cancel(); });
     window.addEventListener('blur', cancel); cleanup.push(() => window.removeEventListener('blur', cancel));
@@ -400,7 +428,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     listen('contextmenu', event => event.preventDefault());
     listen('wheel', (event: WheelEvent) => { event.preventDefault(); this.retireMenu(p); send({ type: 'mouseWheel', ...point(event), deltaX: -event.deltaX, deltaY: -event.deltaY, modifiers: modifiers(event) }); }, { passive: false });
     const ime = p.ime = new RemoteBrowserIme(receiver, input => this.call(p, 'ime', input),
-      () => this.acceptsInput(p), message => p.events.onError(message));
+      () => this.acceptsInput(p), message => p.events.onError(message), () => p.editor);
     const textListen = (name: string, handler: (event: any) => void) => { receiver.addEventListener(name, handler); cleanup.push(() => receiver.removeEventListener(name, handler)); };
     p.resetInput = () => { p.resetPointers(); ime.retire(); };
     textListen('blur', () => { cancel(); p.resetInput(); receiver.inputMode = 'none'; receiver.setAttribute('virtualkeyboardpolicy', 'manual'); });
@@ -422,7 +450,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       if (text && this.acceptsInput(p)) ime.commit(text);
     });
     textListen('paste', (event: ClipboardEvent) => { event.preventDefault(); const text = event.clipboardData?.getData('text/plain'); if (text && this.acceptsInput(p)) ime.commit(text.slice(0, 10000)); });
-    const keys: Record<string, string> = { ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space' };
+    const keys: Record<string, string> = { Enter: 'Return', Escape: 'Escape', ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space' };
     textListen('keydown', (event: KeyboardEvent) => { if (ime.composing || event.isComposing || ['Process', 'Unidentified'].includes(event.key) || event.keyCode === 229) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
         event.preventDefault();
