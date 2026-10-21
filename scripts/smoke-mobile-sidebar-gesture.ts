@@ -12,6 +12,9 @@ const fixtureBranding = process.env.OPENCRAFT_SMOKE_BRANDING_FILE
   ? JSON.parse(readFileSync(process.env.OPENCRAFT_SMOKE_BRANDING_FILE, "utf8"))
   : DEFAULT_APPLICATION_BRANDING;
 assert.ok(isApplicationBranding(fixtureBranding));
+const boundaryImage = process.env.OPENCRAFT_GESTURE_MODAL_ONLY === "1"
+  ? "![Boundary preview](data:image/png;base64," + (await sharp({ create: { width: 900, height: 600, channels: 3, background: "#286fbb" } }).png().toBuffer()).toString("base64") + ")"
+  : "";
 const source = `
 import{bindInteractionDensity}from'/apps/workbench-web/src/runtime/interaction-density';
 import React,{useState,useEffect,useSyncExternalStore} from 'react';
@@ -52,7 +55,7 @@ floatingSidebarHeader={()=> stationaryProbe ? <AppShellNavigationControls brand=
 leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} presentation='sidebar' extensionContributions={contributions} profiles={[]} machines={[]} activeHostId='' onBack={()=>navigationRouter.openChat()} onSectionChange={slug=>{actions.push('Settings:'+slug);navigationRouter.openSettings(slug);}}/>:<Context showNewChat={showNewChat}/>}>
 <div style={{height:'100%',width:'100%',overflowY:'auto'}} data-main-scroll>
 ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentProbe record={action=>actions.push(action)}/>` : ""}
-${process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? `<WebChatDocument documentId="modal-input-probe" source={'![Boundary preview](data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22900%22 height=%22600%22%3E%3Crect width=%22900%22 height=%22600%22 fill=%22%23286fbb%22/%3E%3C/svg%3E)'} />` : ''}
+${process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? `<WebChatDocument documentId="modal-input-probe" source={${JSON.stringify(boundaryImage)}} />` : ''}
 <div data-gesture-pad style={{height:240,display:'grid',placeItems:'center'}}>Swipe in content</div>
 <input aria-label='Draft' defaultValue='Keep this draft' style={{margin:12,width:'80%'}}/>
 <pre data-horizontal style={{overflowX:'auto',whiteSpace:'pre',margin:12}}>A deliberately long code line that scrolls horizontally and keeps its own touch gestures. A deliberately long code line that scrolls horizontally.</pre>
@@ -126,16 +129,17 @@ try {
         await touch('touchStart',65,90);
         for(let i=1;i<=8;i++){await touch('touchMove',65+28*i,90);await page.waitForTimeout(25);await unchanged();}
         await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
-        if(kind==='native')await dialog.getByRole('button',{name:'Close image preview'}).tap();else await page.keyboard.press('Escape');
+        if(kind==='native'){await dialog.getByRole('button',{name:'Close image preview'}).click();await dialog.waitFor({state:'hidden'});}else await page.keyboard.press('Escape');
         await page.waitForTimeout(150);
         // The same contact revoked on modal open must never later commit.
-        await touch('touchStart',65,350);await touch('touchMove',135,350);await page.waitForTimeout(30);assert(await panel.count()>0);
+        const pad=await page.locator('[data-gesture-pad]').boundingBox();assert.ok(pad);const shellY=pad.y+pad.height/2;
+        await touch('touchStart',65,shellY);await touch('touchMove',135,shellY);await page.waitForTimeout(80);assert(await panel.count()>0);
         if(kind==='native')await preview.evaluate((e:HTMLElement)=>e.click());else await page.evaluate(()=>(window as any).fixture.setModal(true));
         await page.waitForTimeout(reducedMotion==='reduce'?100:650);await unchanged();
-        await touch('touchMove',300,350);await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
-        if(kind==='native')await dialog.getByRole('button',{name:'Close image preview'}).tap();else await page.keyboard.press('Escape');
+        await touch('touchMove',300,shellY);await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
+        if(kind==='native'){await dialog.getByRole('button',{name:'Close image preview'}).click();await dialog.waitFor({state:'hidden'});}else await page.keyboard.press('Escape');
         await page.waitForTimeout(100);
-        await drag(65,320,350);await opened();await drag(200,45,350);await closed();
+        await drag(65,320,shellY);await opened();await drag(200,45,shellY);await closed();
       }
       assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/modal-${shadow?'shadow':'document'}-${theme}-${reducedMotion}.png`});
       evidence.push({theme,reducedMotion,shadow,nativeAndRadix:true,greyHeldFrames:true,heldContactRevoked:true,freshShellInputRestored:true,errors});await context.close();continue;

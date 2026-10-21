@@ -68,16 +68,20 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
 
   useLayoutEffect(() => {
     if (!enabled) return;
-    const cancel = () => {
+    const cancel = (immediate = false) => {
       if (!gesture.current) return;
       const previous = gesture.current.initiallyOpen;
       if (gesture.current.dragging) suppressClick.current = performance.now() + 500;
-      gesture.current = null; setDragging(false); settleRef.current(previous);
+      gesture.current = null; setDragging(false);
+      if (immediate) {
+        ++generation.current; progress.stop(); target.current = previous;
+        progress.set(previous ? 1 : 0); setPresent(previous);
+      } else settleRef.current(previous);
     };
     const foregroundOwnsInput = (event?: Event) => {
       const shell = root.current;
       if (!shell || !hasForegroundInputOwner(shell, event?.composedPath())) return false;
-      cancel();
+      cancel(true);
       // A newly opened input layer owns its clicks too, including the first
       // close/navigation action after revoking an in-flight Shell contact.
       suppressClick.current = 0;
@@ -150,9 +154,10 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     document.addEventListener("touchstart", start, { passive: true, capture: true });
     document.addEventListener("touchmove", move, { passive: false, capture: true });
     document.addEventListener("touchend", end, { passive: false, capture: true });
-    document.addEventListener("touchcancel", cancel, true);
+    const cancelContact = () => cancel();
+    document.addEventListener("touchcancel", cancelContact, true);
     document.addEventListener("click", click, true);
-    window.addEventListener("resize", cancel);
+    window.addEventListener("resize", cancelContact);
     // A modal appearing while the finger is held revokes the old gesture now,
     // rather than letting its later move/end write behind the foreground view.
     const foreground = new MutationObserver(() => { if (gesture.current) foregroundOwnsInput(); });
@@ -163,8 +168,8 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     return () => {
       foreground.disconnect();
       document.removeEventListener("touchstart", start, true); document.removeEventListener("touchmove", move, true);
-      document.removeEventListener("touchend", end, true); document.removeEventListener("touchcancel", cancel, true);
-      document.removeEventListener("click", click, true); window.removeEventListener("resize", cancel);
+      document.removeEventListener("touchend", end, true); document.removeEventListener("touchcancel", cancelContact, true);
+      document.removeEventListener("click", click, true); window.removeEventListener("resize", cancelContact);
       gesture.current = null;
     };
   }, [enabled, overlay, root, progress, width]);
