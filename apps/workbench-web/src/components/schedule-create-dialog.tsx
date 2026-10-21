@@ -75,7 +75,7 @@ export function ScheduleCreateDialog({ hosts, onClose, returnFocus, onCreated }:
     } finally { submitting.current = false; if (alive.current) setPending(false); }
   };
   return <ModalSurface label={text("title")} size="wide" appearance="utility" onDismiss={() => { if (!submitting.current) onClose(); }} dismissOnOutsidePress={false} showCloseButton={!pending} returnFocus={returnFocus}>
-    <SettingsPanel title={text("title")} footer={<div className="schedule-create__actions"><SettingsButton disabled={pending} onClick={onClose}>{text("cancel")}</SettingsButton><SettingsButton type="submit" form="schedule-create" variant="primary" loading={pending} disabled={!host || !options || pending || uncertain}>{text(pending ? "saving" : "create")}</SettingsButton></div>}>
+    <SettingsPanel title={text("title")} footer={<div className="schedule-create__actions"><SettingsButton disabled={pending} onClick={onClose}>{text("cancel")}</SettingsButton><SettingsButton type="submit" form="schedule-create" variant="primary" aria-busy={pending} disabled={!host || !options || pending || uncertain}>{text(pending ? "saving" : "create")}</SettingsButton></div>}>
       <form id="schedule-create" className="schedule-create" onSubmit={event => { event.preventDefault(); void submit(); }}>
         <SettingsNotice>{text("hint")}</SettingsNotice>
         <fieldset disabled={pending} className="schedule-create__fields">
