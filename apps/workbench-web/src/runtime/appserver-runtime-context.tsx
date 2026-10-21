@@ -239,7 +239,7 @@ export function AppServerRuntimeProvider({
       delete: async (hostId, id) => { const port = await manager(hostId, "delete"); await port.delete!(id); },
       archive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.archive!(id); },
       unarchive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.unarchive!(id); },
-      fork: async (hostId, id) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id })).id; },
+      fork: async (hostId, id, lastTurnId) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id, excludeTurns: true, ...(lastTurnId === undefined ? {} : { lastTurnId }) })).id; },
       listArchived: async hostId => {
         const port = await manager(hostId, "archive");
         const all: Array<{ id: string; name?: string | null; preview?: string }> = [];

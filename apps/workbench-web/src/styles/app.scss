@@ -6444,6 +6444,20 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
+// Keep acknowledged intent visible while the disabled button cannot hold focus.
+.thread-message-actions:has([data-turn-fork][aria-busy="true"]) {
+  opacity: 1;
+  > :not(time) { opacity: 1; }
+}
+@media (any-pointer: coarse), (hover: none) {
+  .thread-message-actions:has([data-turn-fork]) { opacity: 1; > :not(time) { opacity: 1; } }
+}
+:root[data-touch-interaction] .thread-message-actions:has([data-turn-fork]) {
+  opacity: 1;
+  > :not(time) { opacity: 1; }
+}
+
+
 .thread-message-actions {
   display: flex;
   height: 20px;

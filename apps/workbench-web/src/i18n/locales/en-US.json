@@ -401,6 +401,7 @@
   "sidebar.thread.deleteDescription": "This conversation will be permanently removed and cannot be recovered.",
   "sidebar.thread.deleteQuestion": "Delete “{title}”?",
   "sidebar.thread.deleteTitle": "Delete conversation",
+  "conversation.forkFromTurn": "Branch from here",
   "sidebar.thread.fork": "Create branch",
   "sidebar.thread.forking": "Creating branch for {title}",
   "sidebar.thread.name": "Conversation name",

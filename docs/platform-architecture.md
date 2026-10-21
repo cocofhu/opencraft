@@ -860,6 +860,7 @@ visible pending state while that acknowledgment is outstanding;
 once acknowledged, it opens the child without waiting for a background thread
 catalog refresh. A changed route scope prevents the late result from stealing
 navigation, while the catalog refresh still runs for eventual list freshness.
+Ordinary menu Fork requests metadata only (`excludeTurns: true`); opening the child uses the normal paginated history path, avoiding a full-history response that the catalog would discard. Completed, failed and interrupted historical replies expose “Branch from here”, passing their native `lastTurnId` inclusively. Pending/streaming and cached non-authoritative views expose no executable turn fork. The parent history is unchanged; later turns are omitted from the child by the engine, never by slicing rendered messages. The action disables duplicate clicks while pending and reports failures without automatic retry.
 Ordinary Fork keeps the native AppServer parameter semantics and has no
 Workbench request deadline; unlike short reads, a large-history Fork must not
 be declared failed after the generic 30 seconds. A transport loss still leaves
