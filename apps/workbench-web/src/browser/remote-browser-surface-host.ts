@@ -53,7 +53,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const p = this.require(id);
     return { container: p.container, guest: p.canvas, ready: p.ready,
       commit: (layout, visible) => this.commit(id, layout, visible ? 'visible' : 'staged'),
-      park: () => this.park(id), close: () => this.close(id), clearCover: () => {}, cover: () => {} };
+      park: () => this.park(id), close: () => this.release(id, false), clearCover: () => {}, cover: () => {} };
   }
   navigate(id: BrowserPageId, _title: string, url: BrowserUrl | null, events: BrowserSurfaceEvents, force = false): boolean {
     const absent = !this.pages.has(id);
@@ -103,7 +103,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     p.closed = true; if (p.reconnect) clearTimeout(p.reconnect); if (p.resizeTimer) clearTimeout(p.resizeTimer);
     p.inputDispose(); p.socket?.close(); this.resetDecoder(p);
     this.rejectPending(p); p.container.remove(); this.pages.delete(id); this.hostIdentities.delete(id);
-    for (const listener of this.closeListeners) listener(id);
+    if (destroy) for (const listener of this.closeListeners) listener(id);
   }
   private discard(lease: string) {
     const url = new URL(serverUrl('/__opencraft_browser/stream'), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
