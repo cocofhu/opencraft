@@ -125,8 +125,8 @@ try {
       });
       assert.ok(geometry.terminalBottom <= geometry.composerTop + 1, JSON.stringify({ device: device.name, height, top, geometry }));
       assert.ok(geometry.screenBottom <= geometry.composerTop + 1, "last terminal row stays outside composer occlusion");
-      assert.ok(geometry.composerBottom <= top + height + 1);
-      assert.ok(Math.abs(geometry.rootBottom - (top + height)) < 1, "keyboard height consumed once by Shell");
+      assert.ok(geometry.composerBottom <= (scale === 1 ? height : device.height) + 1);
+      assert.ok(Math.abs(geometry.rootBottom - (scale === 1 ? height : device.height)) < 1, "Shell consumes available extent without native pan translation or pinch reflow");
       assert.equal(geometry.keyboard, String(scale === 1 && height + top < device.height));
       assert.ok(geometry.rows > 0); assert.ok(geometry.sameEditor && geometry.sameTerminal);
       assert.equal(await editor.innerText(), "Keep terminal draft");

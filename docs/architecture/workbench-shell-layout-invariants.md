@@ -163,3 +163,7 @@ block insets. The shared stack intersects this capacity with its platform budget
 header/route chrome cannot be counted as input space. Heading gaps shrink as
 space, not structural padding with an irreducible minimum. Long draft/attachment
 content yields to the action footer without changing editor or draft identity.
+
+Terminal keyboard checks use this same available-frame contract: native pan does
+not add to Shell bounds, pinch magnification does not reflow its layout, and
+terminal grid/Composer non-overlap and local overlay ownership remain asserted.
