@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {createServer} from 'vite';
 const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? 'playwright');
-const {chromium} = playwright.default ?? playwright;
+const engines = playwright.default ?? playwright;
+const engine = process.env.OPENCRAFT_BROWSER_ENGINE === "webkit" ? engines.webkit : engines.chromium;
 const source=`import React from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {createComposerController} from '@opencraft/composer-core';
@@ -15,7 +16,7 @@ const queued=Array.from({length:6},(_,i)=>({id:'q'+i,preview:'Queued message '+i
 function App(){useTimelineViewportHost({kind:'browser',platform:'linux',safeArea:{left:0,right:0}});return <div className='app-shell-root'><div style={{height:56}}>Header</div><div className='thread-scroll-layout' style={{height:'calc(100% - 56px)'}}><div className='thread-scroll'><div className='thread-scroll-footer' data-thread-scroll-footer='true'><div className='thread-scroll-footer__content thread-layout-width'><OpenCraftComposer controller={controller} queuedSubmissions={queued} placeholder='Write a message' onSubmit={()=>{window.fixture.sent++;return false}} onCancel={()=>{}}/></div></div><div style={{height:1600,flexShrink:0}}>Long conversation</div></div></div></div>}
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
 const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',resolve:{dedupe:['react','react-dom']},cacheDir:'node_modules/.vite-composer-keyboard',esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0},plugins:[{name:'fixture',resolveId:id=>id==='/keyboard.tsx'?id:null,load:id=>id==='/keyboard.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url!=='/')return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/keyboard.tsx"></script>')})}}]});
-await mkdir('.local/composer-keyboard',{recursive:true});await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const evidence=[];
+await mkdir('.local/composer-keyboard',{recursive:true});await vite.listen();const browser=await engine.launch(process.env.OPENCRAFT_BROWSER_ENGINE === 'webkit' ? {} : {executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const evidence=[];
 try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'});
  await context.addInitScript(()=>{const v=new EventTarget();Object.assign(v,{width:390,height:844,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,'visualViewport',{value:v});(window as any).setViewport=(height:number,offsetTop:number,emit=true)=>{Object.assign(v,{height,offsetTop});if(emit){v.dispatchEvent(new Event('resize'));v.dispatchEvent(new Event('scroll'))}}});
@@ -101,16 +102,37 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  await page.waitForFunction(()=>Math.abs(document.querySelector('.app-shell-root')!.getBoundingClientRect().height-844)<1);
  assert.equal(await editor.evaluate(e=>document.activeElement===e),true,'viewport recovery preserves native focus');
  await page.evaluate(()=>(window as any).setViewport(844,0));await page.waitForTimeout(150);assert.equal(await editor.innerText(),rendered);await page.screenshot({path:'.local/composer-keyboard/'+theme+'-'+newera+'.png'});
- // A fixed containing-block origin can move independently of native metrics.
- // Translate the ancestor as an adversarial coordinate input, not an iOS emulation.
- for(const nativeOrigin of [90.125,180,-70,0]){
-  await page.evaluate(origin=>{document.body.style.transform=`translateY(${origin}px)`;(window as any).setViewport(440,180)},nativeOrigin);
-  await page.waitForTimeout(80);
-  const geometry=await page.locator('.app-shell-root').evaluate(e=>({top:e.getBoundingClientRect().top,height:e.getBoundingClientRect().height,raw:document.documentElement.style.getPropertyValue('--timeline-visual-viewport-offset-top')}));
-  assert(Math.abs(geometry.top-180)<=1,`fixed frame must cover visual rectangle, not add native origin twice: ${JSON.stringify({nativeOrigin,geometry})}`);
-  assert.equal(geometry.height,440);assert.equal(geometry.raw,'180px');evidence.push({theme,newera,nativeOrigin,geometry});
-  assert(await editor.evaluate(e=>e===(window as any).keptEditor&&e===document.activeElement),'coordinate projection preserves editor identity and focus');
+ // Output readback may be stale/different from the viewport's coordinate space.
+ // It must not become another input to page placement. This is a counterexample
+ // to the old feedback assumption, not a claim about UIKit's exact internals.
+ await page.evaluate(()=>{
+  const original=HTMLElement.prototype.getBoundingClientRect;
+  (window as any).readActualRect=original;
+  HTMLElement.prototype.getBoundingClientRect=function(){
+   const r=original.call(this);if(!this.classList.contains('app-shell-root'))return r;
+   return new DOMRect(r.x,r.y-180,r.width,r.height);
+  };
+  (window as any).setViewport(440,180);
+ });
+ await page.waitForTimeout(150);
+ const geometry=await page.locator('.app-shell-root').evaluate(e=>{const r=(window as any).readActualRect.call(e);return {top:r.top,height:r.height}});
+ assert(Math.abs(geometry.top-180)<=1,`placement cannot feed back from a rendered rectangle: ${JSON.stringify(geometry)}`);
+ assert.equal(geometry.height,440);evidence.push({theme,newera,readbackCounterexample:geometry});
+ await page.evaluate(()=>{HTMLElement.prototype.getBoundingClientRect=(window as any).readActualRect;(window as any).setViewport(844,0)});
+ await context.close();
+
  }
- await page.evaluate(()=>{document.body.style.transform='';(window as any).setViewport(844,0)});await page.waitForTimeout(80);await context.close();
-}console.log('Keyboard viewport/send reachability and draft continuity passed');}
+ // Native browser metrics: no replacement VisualViewport, ancestor transform or
+ // supplied expected origin. Both engines must project their own document frame.
+ const nativeContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const nativePage=await nativeContext.newPage();await nativePage.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
+ const nativeEditor=nativePage.locator('.opencraft-composer-editor');await nativeEditor.fill('Native viewport draft');
+ for(const height of [844,540,280,440,844]){
+  await nativePage.setViewportSize({width:390,height});await nativePage.waitForTimeout(100);
+  const measured=await nativePage.evaluate(()=>{const shell=document.querySelector('.app-shell-root')!,r=shell.getBoundingClientRect(),vv=visualViewport!;return {top:r.top+scrollY,left:r.left+scrollX,height:r.height,width:r.width,pageTop:vv.pageTop,pageLeft:vv.pageLeft,visualHeight:vv.height,visualWidth:vv.width,scrollY}});
+  assert(Math.abs(measured.top-measured.pageTop)<=1);assert(Math.abs(measured.left-measured.pageLeft)<=1);
+  assert(Math.abs(measured.height-measured.visualHeight)<=1);assert(Math.abs(measured.width-measured.visualWidth)<=1);
+  assert.equal(await nativeEditor.innerText(),'Native viewport draft');evidence.push({native:true,engine:process.env.OPENCRAFT_BROWSER_ENGINE??'chromium',...measured});
+ }
+ await nativeContext.close();console.log('Keyboard viewport/send reachability, output independence and native viewport geometry passed');}
 finally{await writeFile('.local/composer-keyboard/result.json',JSON.stringify(evidence,null,2));await browser.close();await vite.close()}

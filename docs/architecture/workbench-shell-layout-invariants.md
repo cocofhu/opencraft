@@ -140,16 +140,20 @@ Every AppShell change must demonstrate all of the following:
 
 ## Mobile keyboard coordinate frames
 
-The browser viewport port owns native observations and the fixed-frame projection.
-VisualViewport size is the available space, not proof that a fixed container needs
-its raw offset applied again. Measure the untransformed Shell's client origin minus
-its current CSS inset; subtract this native origin from the visual offset before
-publishing the next inset. Both read values use CSS pixels in the same client
-coordinate system. The root itself must remain untransformed; drawer movement
-belongs to its row. Late native origin changes use the existing bounded reconciliation.
-Keep raw native metrics distinct from this signed CSS placement and preserve focus,
-selection, draft and child DOM. Synthetic native-origin inputs verify the coordinate
-invariant but do not assert physical iOS compositor behavior.
+Mobile browser Shell placement uses one explicit document coordinate system.
+The Web viewport port publishes the visual rectangle's `pageTop/pageLeft` in the
+initial containing block; when unavailable, document scroll plus visual offset
+provides the same coordinates. The mobile Shell is absolute in that block, while
+html/body remain structural clips without fixed positioning. Layout containment
+anchors its fixed descendants to this shared Shell frame. Desktop remains fixed.
+Visible dimensions and the raw layout-relative offsets retain their native values.
+Never infer native movement from the Shell's rendered rectangle minus its CSS
+inset: keyboard compositor movement and client readback can differ in origin or
+time, making that output-dependent correction feed back into placement. Native
+page-scroll events and bounded late reconciliation invalidate the same owner.
+No focus/selection/draft reset, forced document scrolling or per-feature offset.
+Browser-native viewport/resize checks and explicit readback counterexamples are
+separate from physical iOS/WeChat soft-keyboard acceptance.
 
 The new-thread route fits the actual Composer height in this shared frame and
 centers its content group with flexible remaining space. It cannot switch input

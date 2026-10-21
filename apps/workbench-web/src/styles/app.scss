@@ -359,9 +359,19 @@ button {
   }
 }
 
+// The visible rectangle is positioned in document coordinates. Fixed html/body
+// and fixed Shells use a browser-dependent native keyboard translation; they
+// cannot be used to measure their own origin and then compensate it again.
+html[data-timeline-tracks-visual-viewport="true"],
+html[data-timeline-tracks-visual-viewport="true"] body {
+  position: static;
+}
+
 html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
-  top: var(--timeline-fixed-viewport-top, 0px);
-  left: var(--timeline-fixed-viewport-left, 0px);
+  position: absolute;
+  contain: layout;
+  top: var(--timeline-page-viewport-top, 0px);
+  left: var(--timeline-page-viewport-left, 0px);
   width: var(--timeline-visual-viewport-width, 100%);
   height: var(--timeline-visual-viewport-height, 100%);
 }

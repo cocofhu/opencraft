@@ -913,15 +913,20 @@ VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
 
 The Web viewport port is the only writer of the Shell viewport projection.
-Native visible size/offset and CSS fixed-frame placement are separate quantities.
-The Web adapter measures the untransformed Shell rectangle and its currently
-applied CSS inset in the same client coordinate system. The native fixed origin
-is `rect.origin - appliedInset`; the next inset is `visualOffset - nativeOrigin`.
-Only the residual is applied, including signed compensation. A native origin
-change invalidates the projection even when VisualViewport metrics are unchanged;
-the correction itself cannot feed back into the observed origin. Reads precede
-writes in the same shared frame. There is no blur/refocus, forced document scroll,
-per-feature keyboard offset or second height owner.
+Mobile browser Shell placement uses one explicit document coordinate system.
+The Web viewport port publishes the visual rectangle's `pageTop/pageLeft` in the
+initial containing block; when unavailable, document scroll plus visual offset
+provides the same coordinates. The mobile Shell is absolute in that block, while
+html/body remain structural clips without fixed positioning. Layout containment
+anchors its fixed descendants to this shared Shell frame. Desktop remains fixed.
+Visible dimensions and the raw layout-relative offsets retain their native values.
+Never infer native movement from the Shell's rendered rectangle minus its CSS
+inset: keyboard compositor movement and client readback can differ in origin or
+time, making that output-dependent correction feed back into placement. Native
+page-scroll events and bounded late reconciliation invalidate the same owner.
+No focus/selection/draft reset, forced document scrolling or per-feature offset.
+Browser-native viewport/resize checks and explicit readback counterexamples are
+separate from physical iOS/WeChat soft-keyboard acceptance.
 
 New-thread pages center a content-sized heading/Composer group. Flexible spare
 space and optional heading space contract before the Composer; the action region

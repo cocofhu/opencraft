@@ -16,25 +16,16 @@ interface WebTimelineViewportRoot {
 export interface WebTimelineViewportOptions {
   readonly kind: Exclude<TimelineRenderHostKind, "native">;
   readonly platform: "darwin" | "win32" | "linux";
-  /** Read the untransformed fixed frame before this port writes its projection. */
-  readonly measureFixedFrame?: () => WebFixedViewportFrame | null;
 }
 
-export interface WebFixedViewportFrame {
-  readonly topPx: number;
-  readonly leftPx: number;
-  readonly appliedTopPx: number;
-  readonly appliedLeftPx: number;
-}
-
-/** Browser metrics and CSS fixed coordinates may have different origins. */
-export function resolveWebFixedViewportOffset(
-  snapshot: TimelineViewportSnapshot,
-  frame: WebFixedViewportFrame | null = null,
+/** Coordinates in the initial containing block, independent of rendered output. */
+export function readWebVisualViewportPageOrigin(
+  windowObject: Pick<Window, "visualViewport" | "scrollX" | "scrollY">,
 ): { readonly topPx: number; readonly leftPx: number } {
+  const visual = windowObject.visualViewport;
   return {
-    topPx: snapshot.visualOffset.topPx - (frame === null ? 0 : frame.topPx - frame.appliedTopPx),
-    leftPx: snapshot.visualOffset.leftPx - (frame === null ? 0 : frame.leftPx - frame.appliedLeftPx),
+    topPx: visual?.pageTop ?? windowObject.scrollY + (visual?.offsetTop ?? 0),
+    leftPx: visual?.pageLeft ?? windowObject.scrollX + (visual?.offsetLeft ?? 0),
   };
 }
 
@@ -112,7 +103,7 @@ export function applyTimelineViewportDocumentState(
   root: WebTimelineViewportRoot,
   snapshot: TimelineViewportSnapshot,
   policy: TimelineViewportPolicy,
-  fixedOffset = resolveWebFixedViewportOffset(snapshot),
+  pageOrigin = { topPx: snapshot.visualOffset.topPx, leftPx: snapshot.visualOffset.leftPx },
 ): void {
   root.dataset.timelineOverscroll = policy.threadOverscroll;
   root.dataset.timelineElasticEffect = String(policy.localElasticEffect);
@@ -124,8 +115,8 @@ export function applyTimelineViewportDocumentState(
   root.style.setProperty("--timeline-visual-viewport-height", `${snapshot.visualViewport.heightPx}px`);
   root.style.setProperty("--timeline-visual-viewport-offset-left", `${snapshot.visualOffset.leftPx}px`);
   root.style.setProperty("--timeline-visual-viewport-offset-top", `${snapshot.visualOffset.topPx}px`);
-  root.style.setProperty("--timeline-fixed-viewport-left", `${fixedOffset.leftPx}px`);
-  root.style.setProperty("--timeline-fixed-viewport-top", `${fixedOffset.topPx}px`);
+  root.style.setProperty("--timeline-page-viewport-left", `${pageOrigin.leftPx}px`);
+  root.style.setProperty("--timeline-page-viewport-top", `${pageOrigin.topPx}px`);
   root.style.setProperty("--timeline-keyboard-inset-bottom", `${snapshot.keyboardInsetBottomPx}px`);
 }
 
@@ -171,12 +162,8 @@ export function createWebTimelineViewportPort(
     });
   };
   let snapshot = read();
-  const measureFixedOffset = (value: TimelineViewportSnapshot) => resolveWebFixedViewportOffset(
-    value, policy.tracksVisualViewport ? options.measureFixedFrame?.() ?? null : null,
-  );
-  const fixedGeometryTolerancePx = 1 / Math.max(1, windowObject.devicePixelRatio || 1);
-  let fixedOffset = measureFixedOffset(snapshot);
-  applyTimelineViewportDocumentState(root, snapshot, policy, fixedOffset);
+  let pageOrigin = readWebVisualViewportPageOrigin(windowObject);
+  applyTimelineViewportDocumentState(root, snapshot, policy, pageOrigin);
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
@@ -185,7 +172,7 @@ export function createWebTimelineViewportPort(
     frame = null;
     if (disposed || documentObject.visibilityState === "hidden") return;
     const next = read();
-    const nextFixedOffset = measureFixedOffset(next);
+    const nextPageOrigin = readWebVisualViewportPageOrigin(windowObject);
     if (
       next.editableFocused !== snapshot.editableFocused
       || next.scale !== snapshot.scale
@@ -195,15 +182,13 @@ export function createWebTimelineViewportPort(
       || next.visualViewport.heightPx !== snapshot.visualViewport.heightPx
       || next.visualOffset.leftPx !== snapshot.visualOffset.leftPx
       || next.visualOffset.topPx !== snapshot.visualOffset.topPx
-      // Client rectangles quantize layout; do not feed subpixel readback noise
-      // into another CSS write. The envelope remains within one physical pixel.
-      || Math.abs(nextFixedOffset.topPx - fixedOffset.topPx) > fixedGeometryTolerancePx
-      || Math.abs(nextFixedOffset.leftPx - fixedOffset.leftPx) > fixedGeometryTolerancePx
+      || nextPageOrigin.topPx !== pageOrigin.topPx
+      || nextPageOrigin.leftPx !== pageOrigin.leftPx
     ) {
       revision += 1;
       snapshot = { ...next, revision };
-      fixedOffset = nextFixedOffset;
-      applyTimelineViewportDocumentState(root, snapshot, policy, fixedOffset);
+      pageOrigin = nextPageOrigin;
+      applyTimelineViewportDocumentState(root, snapshot, policy, pageOrigin);
       for (const listener of listeners) listener();
     }
     if (now < settleUntil) scheduleFrame();
@@ -221,6 +206,7 @@ export function createWebTimelineViewportPort(
   };
   const visualViewport = windowObject.visualViewport;
   windowObject.addEventListener("resize", schedule, { passive: true });
+  windowObject.addEventListener("scroll", schedule, { passive: true });
   visualViewport?.addEventListener("resize", schedule, { passive: true });
   visualViewport?.addEventListener("scroll", schedule, { passive: true });
   documentObject.addEventListener("focusin", schedule, { passive: true });
@@ -248,6 +234,7 @@ export function createWebTimelineViewportPort(
       if (frame !== null) windowObject.cancelAnimationFrame(frame);
       frame = null;
       windowObject.removeEventListener("resize", schedule);
+      windowObject.removeEventListener("scroll", schedule);
       visualViewport?.removeEventListener("resize", schedule);
       visualViewport?.removeEventListener("scroll", schedule);
       documentObject.removeEventListener("focusin", schedule);
