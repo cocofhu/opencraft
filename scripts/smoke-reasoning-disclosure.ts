@@ -84,12 +84,12 @@ try {
           const box = svg.getBoundingClientRect();
           return { width: box.width, height: box.height, color: getComputedStyle(svg).color };
         };
-        return { thought: rect(thought), isBrain: thought.classList.contains('lucide-brain'), slotColor: getComputedStyle(slot).color,
+        return { thought: rect(thought), isBrain: thought.getAttribute('data-activity-glyph') === 'thinking', slotColor: getComputedStyle(slot).color,
           renderedStroke: parseFloat(getComputedStyle(thought).strokeWidth) * thought.getBoundingClientRect().width / thought.viewBox.baseVal.width };
       });
       assert.equal(icons.isBrain, true, 'thinking retains the recognizable brain glyph');
-      assert.equal(icons.thought.width, 18);
-      assert.equal(icons.thought.height, 18);
+      assert.equal(icons.thought.width, 20);
+      assert.equal(icons.thought.height, 20);
       assert.equal(icons.thought.color, icons.slotColor, 'thinking inherits the shared activity slot color');
       assert.ok(Math.abs(icons.renderedStroke - 1.2) < 0.01, 'brain keeps a light stroke at its actual rendered scale');
       await page.screenshot({ path: join(output, `${engine}-${theme}-${touch ? 'touch' : 'mouse'}-long-detail.png`) });
@@ -342,7 +342,7 @@ try {
       const summary = header.querySelector('.thread-activity-item__summary')!;
       const box = svg.getBBox(), screen = svg.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const type = getComputedStyle(summary);
-      return { glyph: svg.getAttribute('data-codex-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
+      return { glyph: svg.getAttribute('data-activity-glyph') ?? svg.getAttribute('data-codex-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
         fontSize: parseFloat(type.fontSize), weight: type.fontWeight,
         width: screen.width, visibleWidth: box.width * screen.width / svg.viewBox.baseVal.width,
         centerOffset: Math.abs(screen.x + screen.width / 2 - slot.x - slot.width / 2),

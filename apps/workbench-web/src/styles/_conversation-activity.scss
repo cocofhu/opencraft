@@ -45,3 +45,41 @@
     stroke-width: 1.6;
   }
 }
+
+// Open process artwork uses source-canvas padding to balance the same rail.
+.thread-activity-item__icon > .activity-glyph {
+  stroke-width: 1.44;
+
+  &[data-activity-glyph="terminal"],
+  &[data-activity-glyph="files"],
+  &[data-activity-glyph="patch"],
+  &[data-activity-glyph="browser"],
+  &[data-activity-glyph="agent"] {
+    width: 22.5px;
+    height: 22.5px;
+    stroke-width: 1.28;
+  }
+
+  &[data-activity-glyph="read"] {
+    width: 21.18px;
+    height: 21.18px;
+    stroke-width: 1.36;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .thread-activity-item__icon[data-running="true"] > .activity-glyph {
+    > .activity-glyph__pulse { animation: activity-glyph-pulse 2.8s ease-in-out infinite; }
+    > .activity-glyph__cursor { animation: activity-glyph-cursor 1.5s steps(1, end) infinite; }
+  }
+}
+
+@keyframes activity-glyph-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes activity-glyph-cursor {
+  0%, 65% { opacity: 1; }
+  66%, 100% { opacity: 0.15; }
+}

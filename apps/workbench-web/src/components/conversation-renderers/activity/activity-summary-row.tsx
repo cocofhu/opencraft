@@ -11,7 +11,7 @@ export function ActivitySummaryRow({ icon, summary, running = false }: {
 }) {
   return (
     <div className="thread-activity-item__header thread-activity-item__header-content">
-      <ActivityIcon>{icon}</ActivityIcon>
+      <ActivityIcon running={running}>{icon}</ActivityIcon>
       <CadencedShimmer active={running} className="thread-activity-item__summary">{summary}</CadencedShimmer>
     </div>
   );

@@ -60,7 +60,7 @@ try {
       const label = header.querySelector('.thread-activity-item__summary')!;
       const style = getComputedStyle(label), box = icon.getBBox(), rect = icon.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const scale = rect.width / icon.viewBox.baseVal.width;
-      return { glyph: icon.getAttribute('data-codex-activity-icon') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
+      return { glyph: icon.getAttribute('data-activity-glyph') ?? icon.getAttribute('data-codex-activity-icon') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
         paths: icon.innerHTML, fontSize: parseFloat(style.fontSize), family: style.fontFamily, weight: style.fontWeight,
         lineHeight: parseFloat(style.lineHeight), width: rect.width, visibleWidth: box.width * scale,
         stroke: parseFloat(getComputedStyle(icon).strokeWidth) * scale,
@@ -85,7 +85,7 @@ try {
     }
     const normal = await measure();
     const kinds = new Set(normal.map(row => row.glyph));
-    for (const glyph of ["terminal", "read", "lucide-brain", "lucide-image", "lucide-list-checks"]) assert.ok(kinds.has(glyph), glyph);
+    for (const glyph of ["terminal", "read", "thinking", "lucide-image", "lucide-list-checks"]) assert.ok(kinds.has(glyph), glyph);
     assert.ok(kinds.size >= 14, "include every tool glyph and supplemental file/interaction/web consumer");
     await writeFile(join(output, `${width}-${dpr}-${theme}-all-glyphs.json`), JSON.stringify(normal));
     for (const row of normal) {

@@ -20,10 +20,11 @@ import {
   writeToClipboard,
 } from "@opencraft/chat-render-web";
 import { useIntl } from "@opencraft/i18n/react";
-import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
+import { ThinkingActivityIcon } from "../../activity-glyphs";
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
 import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
@@ -46,7 +47,7 @@ export function ReasoningBlock({ block, presentation, active = block.streaming, 
   if (selected === null) return <></>;
   return <div className="thread-reasoning" data-conversation-row="activity" data-reasoning-id={block.id} data-reasoning-active={active}>
     <ActivityDisclosure
-      icon={<Brain />}
+      icon={<ThinkingActivityIcon />}
       summary={active ? <ThinkingLabel /> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
       detail={selected.header}
       running={active}
