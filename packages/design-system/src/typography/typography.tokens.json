@@ -9,6 +9,10 @@
       "web": "var(--font-family-ui)",
       "native": "system"
     },
+    "count": {
+      "web": "\"OpenCraft Rounded Count\", var(--font-family-ui)",
+      "native": "system"
+    },
     "mono": {
       "web": "\"SF Mono\", \"SFMono-Regular\", \"JetBrains Mono Variable\", ui-monospace, Menlo, Monaco, Consolas, \"Liberation Mono\", monospace",
       "native": "monospace",
@@ -94,6 +98,7 @@
         "navigationLabel": { "family": "ui", "scale": "navigationLabel", "weight": "medium" },
         "threadTitle": { "family": "ui", "scale": "threadTitle", "weight": "regular" },
         "threadListTitle": { "family": "ui", "scale": "threadListTitle", "weight": "regular" },
+        "countBadge": { "family": "count", "scale": "metadata", "weight": "bold" },
         "metadata": { "family": "ui", "scale": "metadata", "weight": "regular" },
         "label": { "family": "ui", "scale": "label", "weight": "regular" },
         "code": { "family": "mono", "scale": "code", "weight": "regular" },
@@ -177,6 +182,7 @@
         "navigationLabel": { "family": "ui", "scale": "navigationLabel", "weight": "medium" },
         "threadTitle": { "family": "ui", "scale": "threadTitle", "weight": "medium" },
         "threadListTitle": { "family": "ui", "scale": "threadTitle", "weight": "medium" },
+        "countBadge": { "family": "count", "scale": "metadata", "weight": "bold" },
         "metadata": { "family": "ui", "scale": "metadata", "weight": "regular" },
         "label": { "family": "ui", "scale": "label", "weight": "regular" },
         "code": { "family": "mono", "scale": "code", "weight": "regular" },
