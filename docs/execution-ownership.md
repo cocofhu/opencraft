@@ -305,3 +305,14 @@ The marker has no effect on activity grouping, unread or execution state.
 ## 主体协作输入
 
 Headless 的主体协作服务将执行请求交给现有 CodexHostQueue，以稳定 clientUserMessageId 查询回执和恢复，不拥有第二个运行领取者。queue 与 steer 分别授权，steer 固定 expectedTurnId；Actor 代次、实例准入、目标 grant 和运行绑定在入队及领取前复核。协作提交不等于任务完成，结果不明先查询，绝不自动换成另一种执行模式。完整契约见[主体协作接口](actor-collaboration-api.md)。
+
+### Trusted native transport composition
+
+Headless composition may supply `decorateCodexNativeTransport`, applied only to
+the independent Core native transport when Headless owns Host overlays. This
+in-process boundary runs after Host execution/input admission and retains the
+original account control client. It must preserve native request correlation,
+notifications, connection ownership and caller tool/permission semantics. It is
+not configured through renderer RPCs and never owns the Core process. Product
+provider catalogs and protocol adaptation belong to product composition, not the
+shared Codex adapter or global native configuration.

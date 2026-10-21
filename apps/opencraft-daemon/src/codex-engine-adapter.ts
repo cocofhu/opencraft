@@ -121,6 +121,8 @@ interface LocalCodexEngineOptions extends SharedCodexRoutingOptions {
   readonly coreAuthToken?: string;
   /** Headless owns downstream overlays while the independent core owns only native/accounts. */
   readonly coreHostOverlays?: boolean;
+  /** Trusted in-process native transport decoration; never supplied by an RPC. */
+  readonly decorateNativeTransport?: (transport: DuplexTransport) => DuplexTransport;
   readonly botConversations?: boolean;
   /** Opt in before migrating a legacy embedded writer to independently owned core storage. */
   readonly writerOwnership?: boolean;
@@ -245,6 +247,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   private readonly tasks: TasksService | null;
   private readonly coreBridge: CodexCoreBridge | null;
   private readonly nativeCore: CodexNativeCoreTransport | null;
+  private readonly nativeTransport: DuplexTransport | null;
   private releaseOverlays: (() => void) | null = null;
   private botBridge: CodexBotBridge | null = null;
   private readonly botNativeRequests = new Map<string, { clientId: string; resolve(value: unknown): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>();
@@ -278,6 +281,8 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (options.kind !== "remote" && options.coreHostOverlays && !options.coreEndpoint) throw new Error("Host overlays require an explicit core endpoint");
     this.nativeCore = options.kind !== "remote" && options.coreEndpoint && options.coreHostOverlays
       ? new CodexNativeCoreTransport(options.coreEndpoint, options.coreAuthToken ?? "") : null;
+    this.nativeTransport = this.nativeCore
+      ? options.kind !== "remote" && options.decorateNativeTransport ? options.decorateNativeTransport(this.nativeCore) : this.nativeCore : null;
     this.coreBridge = options.kind !== "remote" && options.coreEndpoint !== undefined && !options.coreHostOverlays
       ? new CodexCoreBridge(options.coreEndpoint, options.coreAuthToken ?? "") : null;
     if (this.coreBridge) {
@@ -300,7 +305,7 @@ export class CodexEngineAdapter implements DuplexTransport {
 
   private get physicalAvailable(): boolean {
     return this.options.kind === "remote" ? this.options.transport.status.state === "open"
-      : this.nativeCore ? this.nativeCore.status.state === "open" : this.child !== null;
+      : this.nativeCore ? this.nativeTransport!.status.state === "open" : this.child !== null;
   }
   private get desktopService(): LocalDesktopService | undefined {
     return this.options.kind === "remote" ? undefined : this.options.desktop;
@@ -423,7 +428,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       emit: (event, owner) => { try { this.emit(event as unknown as RpcRecord, this.botOwnerClient(owner)); } catch { /* retired client */ } },
     });
     if (this.nativeCore) {
-      const transport = this.nativeCore;
+      const transport = this.nativeTransport!;
       this.remoteDisposers.push(transport.subscribeMessage(this.receivePhysicalLine), transport.subscribeStatus(status => {
         if (["closing", "closed"].includes(this.statusValue.state)) return;
         if (status.state === "failed" || status.state === "closed") {
@@ -806,7 +811,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.rejectBotRequests(new Error("Codex AppServer closed"));
       this.botBridge?.dispose(); this.botBridge = null;
       for (const dispose of this.remoteDisposers.splice(0)) dispose();
-      await this.nativeCore?.close();
+      await this.nativeTransport?.close();
       this.rejectInternalRequests(new Error("Codex AppServer closed"));
       await this.attachmentStaging?.close();
       if (this.options.kind === "remote") await this.options.transport.close();
@@ -2103,7 +2108,7 @@ export class CodexEngineAdapter implements DuplexTransport {
         throw new Error("Remote delivery outcome is unknown");
       });
     }
-    if (this.nativeCore) return this.nativeCore.send(JSON.stringify(message));
+    if (this.nativeCore) return this.nativeTransport!.send(JSON.stringify(message));
     if (this.child === null || this.child.stdin.destroyed) throw new Error("Codex AppServer stdin is closed");
     this.child.stdin.write(`${JSON.stringify(message)}\n`);
   }
