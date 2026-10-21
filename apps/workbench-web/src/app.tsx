@@ -671,7 +671,9 @@ export function App({
   // The committed View has a display identity before network lease acquisition.
   // This local binding never grants execution or authoritative history access.
   const displayKey = useConversationViewDisplayKey();
-  const { selection: display } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
+  const { selection: display, scope: displayScope, hasSubmission } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
+  const displayHostId = displayKey?.hostId ?? null;
+  const displayThreadId = displayKey?.threadId ?? null;
   const visibleTimeline = display.timeline;
   const showingDisplayCache = display.source !== "history" && display.source !== "empty";
   const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
@@ -2170,7 +2172,7 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
+                {(recoveryPresentation === "warm-loading" && !hasSubmission) || recoveryPresentation === "warm-error" ? (
                   <ConversationRecoveryNotice
                     failed={recoveryPresentation === "warm-error"}
                     requiresUpdate={recoveryRequiresUpdate}

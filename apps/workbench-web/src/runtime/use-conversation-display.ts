@@ -35,5 +35,5 @@ export function useConversationDisplay(
     && loaded.timeline.key.hostId === hostId && loaded.timeline.key.threadId === threadId ? loaded.timeline : null);
   const selection = useMemo(() => selectConversationDisplay({ key, timeline, cached, submission }),
     [key, timeline, cached, submission]);
-  return { selection, scope };
+  return { selection, scope, hasSubmission: submission !== null };
 }
