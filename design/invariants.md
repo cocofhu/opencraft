@@ -445,9 +445,12 @@ committed ownership never changes on reversal or later acceleration. A competing
 sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
 horizontal/vertical ratio 1.8 within 100ms of meaningful movement; speed is
 averaged over the last 80ms. Stationary contact time does not consume this window.
-After a rested first sample, speed is unknown until the next timed motion segment.
-A slow horizontal contact with measured speed commits to content by 100ms of
-movement or 28px. Pending, direction-locked horizontal contacts in registered
+A prompt first sample may establish fast intent; a low initial estimate cannot
+establish reading because event delivery may include contact latency. Later speed
+uses samples beginning at meaningful movement, excluding touchstart latency.
+A rested first sample has unknown speed until the next timed segment. Passing
+28px alone never commits reading: a non-winning contact keeps the observation
+window and commits to content at 100ms of movement or on release. Pending, direction-locked horizontal contacts in registered
 scrollports prevent native takeover without moving either surface; vertical and
 ambiguous input remain available to the browser. A one-sample horizontal contact
 finishes as local reading on release rather than disappearing or synthesizing a

@@ -1,7 +1,7 @@
 import { animate, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { PANEL_SPRING_TRANSITION } from "./use-panel-animation";
-import { MOBILE_SIDEBAR_EDGE_RESERVE, MOBILE_SIDEBAR_REVEAL_DIRECTION, MOBILE_GESTURE_COMPETITION, MOBILE_GESTURE_DEADZONE, arbitrateMobileGesture, mobileGestureVelocity, sidebarReleaseVelocity, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget, type GestureSample, type MobileGestureOwner } from "./mobile-sidebar-gesture";
+import { MOBILE_SIDEBAR_EDGE_RESERVE, MOBILE_SIDEBAR_REVEAL_DIRECTION, MOBILE_GESTURE_COMPETITION, MOBILE_GESTURE_DEADZONE, arbitrateMobileGesture, mobileGestureAdmissionVelocity, mobileGestureVelocity, sidebarReleaseVelocity, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget, type GestureSample, type MobileGestureOwner } from "./mobile-sidebar-gesture";
 
 interface HorizontalScroll {
   element: HTMLElement; start: number; min: number; max: number;
@@ -150,7 +150,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
         // speed when the first movement arrives after a stationary interval.
         if (event.timeStamp - transaction.samples[0]!.time > MOBILE_GESTURE_COMPETITION.sampleWindow) transaction.samples = [];
       }
-      const velocity = transaction.samples.length ? mobileGestureVelocity(transaction.samples, touch.clientX, event.timeStamp) : null;
+      const velocity = mobileGestureAdmissionVelocity(transaction.samples, touch.clientX, event.timeStamp, transaction.motionStartedAt);
       transaction.samples.push({ x: touch.clientX, time: event.timeStamp });
       while (transaction.samples.length > 2 && transaction.samples[1]!.time < event.timeStamp - 100) transaction.samples.shift();
       const horizontal = transaction.horizontal;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arbitrateMobileGesture, mobileGestureVelocity, mobileSidebarWidth, sidebarReleaseVelocity, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget } from "../apps/workbench-web/src/components/mobile-sidebar-gesture";
+import { arbitrateMobileGesture, mobileGestureAdmissionVelocity, mobileGestureVelocity, mobileSidebarWidth, sidebarReleaseVelocity, sidebarGestureAxis, sidebarGestureProgress, sidebarGestureTarget } from "../apps/workbench-web/src/components/mobile-sidebar-gesture";
 
 test("small movement and vertical scrolling do not acquire a sidebar gesture", () => {
   assert.equal(sidebarGestureAxis(-4, 3), "pending");
@@ -17,8 +17,20 @@ const competingContact = {
 test("a deliberate fast horizontal drag wins before rich content starts scrolling", () => {
   assert.equal(arbitrateMobileGesture(competingContact), "sidebar");
   assert.equal(arbitrateMobileGesture({ ...competingContact, dx: 27 }), "pending");
-  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: 0.64 }), "content");
-  assert.equal(arbitrateMobileGesture({ ...competingContact, dy: 20 }), "content");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: 0.64 }), "pending");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, dy: 20 }), "pending");
+});
+
+test("a delayed first move cannot irreversibly assign a later fast segment to reading", () => {
+  const samples = [{ x: 0, time: 0 }];
+  const first = mobileGestureAdmissionVelocity(samples, 32, 60, 60);
+  assert.equal(arbitrateMobileGesture({ ...competingContact, dx: 32, elapsed: 0, velocity: first }), "pending");
+  samples.push({ x: 32, time: 60 });
+  const speed = mobileGestureAdmissionVelocity(samples, 80, 90, 60);
+  assert.equal(speed, 1.6);
+  assert.equal(arbitrateMobileGesture({ ...competingContact, dx: 80, elapsed: 30, velocity: speed }), "sidebar");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, elapsed: 100, velocity: .15 }), "content");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, elapsed: 110, velocity: null }), "content");
 });
 
 test("rested contacts wait for measured motion instead of being classified as slow", () => {
@@ -53,7 +65,7 @@ test("speed uses the recent window, retains pauses and rejects opposite motion",
   assert.equal(mobileGestureVelocity([{ x: 0, time: 0 }], 32, 40), 0.8);
   assert.equal(mobileGestureVelocity([{ x: 0, time: 0 }, { x: 80, time: 80 }], 80, 200), 0);
   assert.equal(mobileGestureVelocity([{ x: 0, time: 0 }, { x: 20, time: 100 }], 100, 180), 1);
-  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: -0.8 }), "content");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: -0.8 }), "pending");
 });
 
 test("sidebar release retains its established sampling and stationary release behavior", () => {

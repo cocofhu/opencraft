@@ -166,6 +166,34 @@ try {
         assert.equal(await locator.evaluate((node: HTMLElement) => getComputedStyle(node).touchAction), 'pan-y pinch-zoom');
         return {x,y,left:await locator.evaluate((node: HTMLElement) => node.scrollLeft)};
       };
+      if (process.env.OPENCRAFT_GESTURE_MOTION_PROBE === '1') {
+        const scenes=[];
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) for (const delay of [60,85,180]) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);await page.waitForTimeout(delay);
+          await touch('touchMove',p.x+32,p.y+1,false,t+delay/1000);await page.waitForTimeout(20);
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left,'a delayed/coalesced first move cannot commit reading prematurely');
+          assert.ok(Math.abs((await row.boundingBox())!.x)<1);
+          await touch('touchMove',p.x+80,p.y+2,false,t+(delay+30)/1000);await page.waitForTimeout(20);
+          assert.ok((await row.boundingBox())!.x>60,'measured fast motion wins before content moves');
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left);
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,delay,observedFastSegment:true,contentStable:true});
+        }
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);
+          await touch('touchMove',p.x+32,p.y+1,false,t+.06);await page.waitForTimeout(20);
+          await touch('touchMove',p.x+40,p.y+1,false,t+.17);await page.waitForTimeout(20);
+          assert.ok(Math.abs((await scroller.evaluate((e:HTMLElement)=>e.scrollLeft))-(p.left-40))<2,'observed slow motion still commits reading');
+          await touch('touchMove',p.x+100,p.y+1,false,t+.19);await page.waitForTimeout(20);
+          assert.ok(Math.abs((await row.boundingBox())!.x)<1,'committed reading still cannot change owners');
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,slowReading:true,committedOwnerLocked:true});
+        }
+        assert.deepEqual(errors,[]);assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
+        evidence.push({theme,reducedMotion,motionEvidence:scenes});await context.close();continue;
+      }
       if (process.env.OPENCRAFT_GESTURE_REST_PROBE === '1') {
         const scenes=[];
         for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) for (const rest of [0,180]) {

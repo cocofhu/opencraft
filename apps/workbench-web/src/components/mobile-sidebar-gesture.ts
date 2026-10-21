@@ -40,6 +40,18 @@ export function mobileGestureVelocity(samples: readonly GestureSample[], x: numb
   return (x - first.x) / Math.max(1, time - first.time);
 }
 
+/** Admission measures motion segments; contact latency cannot dilute later speed. */
+export function mobileGestureAdmissionVelocity(samples: readonly GestureSample[], x: number, time: number, motionStartedAt: number | null): number | null {
+  if (motionStartedAt === null) return null;
+  const moving = samples.filter(sample => sample.time >= motionStartedAt);
+  if (moving.length) return mobileGestureVelocity(moving, x, time);
+  // A prompt first sample can prove a flick, but a low estimate cannot prove
+  // reading intent: the browser may have delayed/coalesced the initial move.
+  const first = samples[0];
+  return first && time - first.time <= MOBILE_GESTURE_COMPETITION.sampleWindow
+    ? mobileGestureVelocity(samples, x, time) : null;
+}
+
 /** Preserve the sidebar's existing 100ms release sampling independently of admission. */
 export function sidebarReleaseVelocity(samples: readonly GestureSample[], x: number, time: number): number {
   const last = samples[samples.length - 1];
@@ -64,12 +76,13 @@ export function arbitrateMobileGesture(input: {
   if (input.ended) return "content";
   // A rested contact can deliver its first movement as a coalesced sample.
   // Wait for a timed motion segment instead of treating missing speed as slow.
-  if (input.velocity === null) return "pending";
   const policy = MOBILE_GESTURE_COMPETITION;
-  if (Math.abs(dx) >= policy.distance && input.elapsed <= policy.decisionWindow
+  if (input.velocity !== null && Math.abs(dx) >= policy.distance && input.elapsed <= policy.decisionWindow
     && Math.abs(dx) >= Math.abs(dy) * policy.directionRatio
     && Math.sign(dx) * input.velocity >= policy.velocity) return "sidebar";
-  if (Math.abs(dx) >= policy.distance || input.elapsed >= policy.decisionWindow) return "content";
+  // Distance proves sufficient travel, not slow intent. Keep observing until
+  // the bounded motion window expires; content has not moved while pending.
+  if (input.elapsed >= policy.decisionWindow) return "content";
   return "pending";
 }
 
