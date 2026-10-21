@@ -124,8 +124,8 @@ must never widen the thread, main viewport, or AppShell.
 
 ## Mobile contact ownership
 
-The existing Shell touch controller owns one arbitration transaction. Code and
-table renderers declare a scroll capability, not navigation handlers. Pending
+The existing Shell touch controller owns one arbitration transaction. Code,
+table and read-only command-output renderers declare a scroll capability, not navigation handlers. Pending
 contacts resolve to sidebar, content or native input; a committed owner keeps the
 sequence until end/cancel. Only that owner writes movement. Slow local reading
 and quick deliberate navigation compete before either commits; input, selection,

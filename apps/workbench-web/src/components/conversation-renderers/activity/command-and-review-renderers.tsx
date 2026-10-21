@@ -160,7 +160,7 @@ function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlo
     <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
       <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
     </div>
-    <div className="thread-shell-output__output"><pre><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
+    <div className="thread-shell-output__output"><pre data-horizontal-scroll="true"><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
       {output ? <TerminalCopyButton value={output} label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} /> : null}
     </div>
     {!running ? <div className="thread-shell-output__footer" data-status={block.status}><span>

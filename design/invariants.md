@@ -438,9 +438,11 @@ reasoning/tool disclosures and image previews) do not own horizontal input merel
 because they are clickable. They may start a sidebar gesture; taps and small
 unrecognized movement still activate the original control. A recognized swipe
 suppresses its synthesized click without blocking the next deliberate tap.
-Inline code/table scrollports declare `data-horizontal-scroll="true"`. Within an
+Inline code/table and read-only command-output scrollports declare `data-horizontal-scroll="true"`. Within an
 enabled mobile Shell, the existing touch controller arbitrates one contact:
-`pending → sidebar | content | native`. Ambiguous diagonals remain pending;
+`pending → sidebar | content | native`. Command output participates at its actual
+two-axis `pre` viewport; its native vertical scroll/follow state and copy/disclosure
+actions remain with the renderer. Interactive terminals remain exclusive. Ambiguous diagonals remain pending;
 committed ownership never changes on reversal or later acceleration. A competing
 sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
 horizontal/vertical ratio 1.8 within 100ms of meaningful movement; speed is

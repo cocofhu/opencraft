@@ -24,6 +24,7 @@ const arbitrationMarkdown = [
 const source = `
 import{bindInteractionDensity}from'/apps/workbench-web/src/runtime/interaction-density';
 import React,{useState,useEffect,useSyncExternalStore} from 'react';
+import {CommandBlock} from '/apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx';
 import {WebChatDocument} from '@opencraft/chat-render-web';
 import {WorkbenchPresentationRootProvider} from '/apps/workbench-web/src/components/workbench-presentation-root.tsx';
 import appStyles from '/apps/workbench-web/src/styles/app.scss?inline';
@@ -33,6 +34,8 @@ import {SettingsNavigation} from '/apps/workbench-web/src/components/settings-pa
 import {createApplicationNavigation} from '/apps/workbench-web/src/runtime/workbench-navigation.ts';
 import {ApplicationBrand} from '/apps/workbench-web/src/components/application-brand.tsx';
 const joinBrand = ${JSON.stringify(fixtureBranding)};
+const commandBlock={type:'command-execution',id:'gesture-command',sourceItemIds:['gesture-command'],callId:null,command:'tail -3 /fixture/artifact.log',cwd:'/fixture',processId:null,startedAtMs:null,turnInProgress:false,output:${JSON.stringify(Array.from({length:30},(_,i)=>`line ${i}: `+'column_value '.repeat(70)).join("
+"))},exitCode:0,durationMs:100,actions:[],automaticApprovalReviews:[],status:'complete'};
 import * as Dialog from '@radix-ui/react-dialog';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {AppShell} from '/apps/workbench-web/src/components/app-shell.tsx';
@@ -63,7 +66,7 @@ leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} pres
 <div style={{height:'100%',width:'100%',overflowY:'auto'}} data-main-scroll>
 ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentProbe record={action=>actions.push(action)}/>` : ""}
 ${process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? `<WebChatDocument documentId="modal-input-probe" source={${JSON.stringify(boundaryImage)}} />` : ''}
-${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div data-gesture-rich style={{padding:16}}><WebChatDocument documentId="arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/></div>` : ""}
+${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div data-gesture-rich style={{padding:16}}><WebChatDocument documentId="arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/><div data-gesture-command><CommandBlock block={commandBlock}/></div></div>` : ""}
 <div data-gesture-pad style={{height:240,display:'grid',placeItems:'center'}}>Swipe in content</div>
 <input aria-label='Draft' defaultValue='Keep this draft' style={{margin:12,width:'80%'}}/>
 <pre data-horizontal style={{overflowX:'auto',whiteSpace:'pre',margin:12}}>A deliberately long code line that scrolls horizontally and keeps its own touch gestures. A deliberately long code line that scrolls horizontally.</pre>
@@ -156,6 +159,7 @@ try {
       const row = page.locator('.app-shell-row');
       const main = page.locator('[data-main-scroll]');
       const measurements: any[] = [];
+      await page.locator('[data-gesture-command] button[aria-expanded]').click();
       const settle = async () => { await page.waitForTimeout(650); };
       const at = async (locator: any, offset = 120) => {
         await locator.scrollIntoViewIfNeeded();
@@ -168,7 +172,7 @@ try {
       };
       if (process.env.OPENCRAFT_GESTURE_MOTION_PROBE === '1') {
         const scenes=[];
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) for (const delay of [60,85,180]) {
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) for (const delay of [60,85,180]) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);await page.waitForTimeout(delay);
           await touch('touchMove',p.x+32,p.y+1,false,t+delay/1000);await page.waitForTimeout(20);
@@ -180,7 +184,7 @@ try {
           await touch('touchCancel');await settle();await closed();
           scenes.push({selector,delay,observedFastSegment:true,contentStable:true});
         }
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);
           await touch('touchMove',p.x+32,p.y+1,false,t+.06);await page.waitForTimeout(20);
@@ -196,7 +200,7 @@ try {
       }
       if (process.env.OPENCRAFT_GESTURE_REST_PROBE === '1') {
         const scenes=[];
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) for (const rest of [0,180]) {
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) for (const rest of [0,180]) {
           const scroller=page.locator('[data-gesture-rich] '+selector);
           const p=await at(scroller);const t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);
@@ -212,7 +216,7 @@ try {
           await touch('touchCancel');await settle();await closed();
           scenes.push({selector,rest,sidebar:true,contentStable:true});
         }
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller);
           await touch('touchStart',p.x,p.y);await page.waitForTimeout(180);
           await touch('touchMove',p.x+35,p.y+1);await page.waitForTimeout(20);
@@ -225,7 +229,7 @@ try {
         assert.deepEqual(errors,[]);evidence.push({theme,reducedMotion,earlySamples:scenes});
         await context.close();continue;
       }
-      for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
+      for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
         const scroller = page.locator('[data-gesture-rich] '+selector);
         const p = await at(scroller);
         await touch('touchStart',p.x,p.y); await touch('touchMove',p.x+50,p.y+2);
