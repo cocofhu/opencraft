@@ -66,7 +66,7 @@ export const frame = {
   sidebarMinWidth: sidebarListMinimumWidth,
   sidebarMaxWidth: 520,
   /** Mobile drawer keeps full-size controls in a narrower reading column. */
-  sidebarMobileWidthRatio: 0.85,
+  sidebarMobileWidthRatio: 0.90,
   rightPanelDefaultWidth: 600,
   rightPanelMinWidth: 320,
   rightPanelMaxWidth: 640,
