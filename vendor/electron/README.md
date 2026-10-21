@@ -218,3 +218,8 @@ touch behavior remain with their existing owners.
 Electron's MIT notice is retained in `LICENSE.electron` and in the expanded
 upstream source. Built distributions must also retain Chromium and other bundled
 dependency licenses and notices.
+
+The component-build patch exports the Chromium/gin/GTK entry points used by
+Electron, keeps GTK calls on the existing dynamic stub loader, and explicitly
+links Viz client, double-conversion and Zstd compression implementations. It
+retains strict linker diagnostics and does not change native copy authorization.

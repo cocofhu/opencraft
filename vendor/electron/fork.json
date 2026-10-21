@@ -42,6 +42,10 @@
     {
       "path": "patches/electron/0009-component-libuv-link.patch",
       "sha256": "4b003e82b184bd336861c11acca91cb27520c267db20c4e25873ffda882d5865"
+    },
+    {
+      "path": "patches/electron/0010-component-api-exports.patch",
+      "sha256": "d940e573cdfe345c33be87af52981d2b1945b49e77fffa45dd86b12950105a91"
     }
   ]
 }
