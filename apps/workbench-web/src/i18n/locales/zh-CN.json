@@ -114,6 +114,7 @@
   "settings.back": "返回应用",
   "settings.sections": "设置分类",
   "settings.archived": "已归档会话",
+  "settings.tokenUsage": "Token 用量",
   "settings.plugins": "插件",
   "settings.plugins.description": "查看已安装的插件及其当前状态。",
   "settings.laboratory": "实验室",

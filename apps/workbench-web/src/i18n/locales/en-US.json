@@ -479,6 +479,7 @@
   "navigation.home": "Home",
   "panel.files": "Files",
   "panel.openFiles": "Open files",
+  "settings.tokenUsage": "Token usage",
   "settings.plugins": "Plugins",
   "settings.plugins.description": "View installed plugins and their current status.",
   "schedules.title": "Scheduled task",

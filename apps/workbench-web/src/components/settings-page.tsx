@@ -13,8 +13,7 @@ import {
   Search,
   Server,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-const TokenUsageDashboard=lazy(()=>import("./token-usage-dashboard"));
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { defineMessages } from "@opencraft/i18n";
 import { LanguageSetting } from "../i18n/language-setting";
@@ -219,7 +218,6 @@ export function SettingsNavigation({
             </>
           )}
 
-          <button type="button" aria-current={section === "token-usage" ? "page" : undefined} onClick={()=>onSectionChange("token-usage")}>{intl.locale.toLowerCase().startsWith("zh")?"Token 用量":"Token usage"}</button>
           <ManagementNavigationGroup
             title="Agent"
             pages={agentPages}
@@ -249,7 +247,6 @@ export function SettingsNavigation({
         </button> : null}
         <div className="settings-page__navigation-heading"><FormattedMessage id="settings.groups.application" defaultMessage="Application" /></div>
         <div className="settings-page__navigation-list">
-          <button type="button" aria-current={section === "token-usage" ? "page" : undefined} onClick={()=>onSectionChange("token-usage")}><Database size={16}/><span>{intl.locale.toLowerCase().startsWith("zh")?"Token 用量":"Token usage"}</span></button>
           <button
             type="button"
             aria-current={section === "chat" ? "page" : undefined}
@@ -474,7 +471,6 @@ export function SettingsContent({
               {configurationMachine !== null ? <SettingsMachineIdentity machine={configurationMachine} platform={platform} onSectionChange={onSectionChange} /> : null}
               {section === "machines" ? <SettingsMachines machines={machines} platform={platform} onSectionChange={onSectionChange} />
               : selectedMachine !== null ? <SettingsMachine machine={selectedMachine} pages={extensionPages.filter(page => page.management === undefined)} platform={platform} onSectionChange={onSectionChange} />
-              : section === "token-usage" ? <Suspense fallback={<p role="status">{intl.locale.toLowerCase().startsWith("zh")?"正在加载用量看板…":"Loading usage dashboard…"}</p>}><TokenUsageDashboard key={activeHostId} hostId={activeHostId}/></Suspense>
               : section === "servers" && platform === "web" && browserServerContext() ? <ServerSelectionSettings />
               : section === 'hub-network' && platform === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === 'true' ? <HubNetworkSettings />
               : section.startsWith("execution-") ? null

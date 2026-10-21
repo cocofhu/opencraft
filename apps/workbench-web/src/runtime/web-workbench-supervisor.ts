@@ -1,3 +1,4 @@
+import { tokenUsageBuiltin } from "./token-usage-builtin";
 import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
@@ -507,7 +508,7 @@ export async function createWebWorkbenchApplicationSupervisor(
       installations: cordis.extensionInstallations,
       loader: new BrowserModuleUrlExtensionLoader(),
       supervisor: extensions,
-      builtins: platform === "web" ? clientProduct?.builtins ?? [] : [],
+      builtins: [tokenUsageBuiltin, ...(platform === "web" ? clientProduct?.builtins ?? [] : [])],
     });
     startupRollback.push(() => extensionManager.dispose());
     if (options.optionalFeatureStartup !== undefined) {
