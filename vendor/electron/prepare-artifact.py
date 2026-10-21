@@ -41,7 +41,7 @@ def main():
     source = json.loads(verified.stdout)
     environment = {key: value for key, value in os.environ.items()
                    if key not in ['ELECTRON_RUN_AS_NODE', 'NODE_OPTIONS', 'NODE_PATH', 'DISPLAY', 'WAYLAND_DISPLAY']}
-    probe = subprocess.run([str(distribution / 'electron'), '--no-sandbox',
+    probe = subprocess.run([str(distribution / 'electron'), '--no-sandbox', '--ozone-platform=headless',
                             str(here / 'probe-native-clipboard.cjs')], env=environment,
                            text=True, capture_output=True, timeout=90)
     args.evidence.mkdir(parents=True, exist_ok=True)

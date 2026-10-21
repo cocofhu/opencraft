@@ -1322,6 +1322,13 @@ editor. Clipboard results must be scoped to the requesting browser session,
 then written to the client clipboard under its user-gesture contract; the
 server's global OS clipboard is not a remote clipboard transport.
 
+Each offscreen page initializes a local blank renderer and a private native
+page-focus context before remote navigation. Ozone headless OS-window focus and
+injected mouse clicks alone do not focus its renderer. Chromium's existing
+focus emulation lets independent page viewers retain their own native focused
+element; it does not refocus an old editor when Copy executes. Parking video
+does not toggle page focus or dispatch an extra editor blur.
+
 The remote worker now exposes a narrowly typed copy-back operation and native
 context-menu notifications. A client right-click or keyboard-menu intent must
 still own the current presentation when the notification arrives. The local

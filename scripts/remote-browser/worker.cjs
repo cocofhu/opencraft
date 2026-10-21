@@ -207,13 +207,18 @@ async function createPage(id, input) {
     send({ type: 'cursor', page: id, cursor: aliases[cursor] || cursor });
   });
 
-  if (profile !== 'desktop') {
-    // CDP emulation needs an initialized renderer even when the first real
-    // navigation has not happened. Never load a remote URL before its identity.
+  // Offscreen Ozone windows do not gain renderer page focus from OS window
+  // focus or injected mouse events. Give each independent remote page its own
+  // native focus context; this changes no focused element or selection and
+  // remains stable when another viewer/page receives input or video is parked.
+  // The debugger stays private to the worker, shared with device emulation.
+  try {
     await wc.loadURL('about:blank');
-    await resize(p, {...input, width, height});
-  }
-  return configuration(p);
+    if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+    await wc.debugger.sendCommand('Emulation.setFocusEmulationEnabled', { enabled: true });
+    if (profile !== 'desktop') await resize(p, {...input, width, height});
+    return configuration(p);
+  } catch (error) { closePage(id); throw error; }
 }
 async function automation(p, method, input) {
   if (!['readContext', 'inspect', 'click', 'fill', 'press', 'scroll', 'wait'].includes(method)) throw new Error('Unsupported browser operation');

@@ -26,7 +26,7 @@ python3 vendor/electron/manage.py checkout
 python3 vendor/electron/manage.py verify
 python3 vendor/electron/manage.py sync
 python3 vendor/electron/manage.py build --jobs 16
-vendor/electron/.work/src/out/OpenCraft/electron vendor/electron/probe.cjs
+vendor/electron/.work/src/out/OpenCraft/electron --ozone-platform=headless vendor/electron/probe.cjs
 ```
 
 Every command accepts `--root /absolute/isolated/build-root` to move the gclient
@@ -93,7 +93,7 @@ experiment deliberately rejects passwords, EditContext and other unsupported
 editor types; these remain necessary work before claiming a general IME bridge.
 
 ```sh
-vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox \
+vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox --ozone-platform=headless \
   vendor/electron/probe-target-ime.cjs
 ```
 
@@ -137,7 +137,7 @@ frames. It also checks that the host clipboard is unchanged. DOM access is only
 fixture setup and assertion. A stock binary must fail the capability check.
 
 ```sh
-vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox \
+vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox --ozone-platform=headless \
   vendor/electron/probe-native-clipboard.cjs
 ```
 
