@@ -1631,7 +1631,7 @@ export function createAppServerWorkbenchRuntime(
         async unarchive(threadId) { return (await requireClient().request("thread/unarchive", { threadId })).thread as ProtocolThread; },
         supportsSideChat(threadId) {
           const capability = parseThreadLifecycleCapability(executionEngineExtension(requireClient().initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_THREAD_LIFECYCLE_EXTENSION));
-          return capability?.fork === true && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
+          return (capability?.fork === true || capability?.ephemeralFork === true) && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
         },
         async injectItems(threadId, items) {
           await requireClient().request("thread/inject_items", { threadId, items: [...items] });
@@ -1669,7 +1669,10 @@ export function createAppServerWorkbenchRuntime(
           await currentClient.request("thread/unsubscribe", { threadId });
           if (disposed || generation !== lifecycleGeneration || client !== currentClient || currentClient.connectionGeneration !== connectionGeneration) return;
           const current = bindings.get(threadId);
-          if (current && (current !== binding || hasHardResidencyReason(current))) {
+          // Temporary ownership ends here even if its final projection has not
+          // settled yet. Only a new consumer can require reattachment.
+          const retained = current && (ephemeralThreadIds.has(threadId) ? current.retainCount > 0 : hasHardResidencyReason(current));
+          if (current && (current !== binding || retained)) {
             // The unsubscribe won on the wire; the new consumer must actually
             // reattach, not merely retain a stale local projection.
             requireSession().resume.markNeedsResume(threadId);

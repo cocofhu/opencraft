@@ -81,7 +81,7 @@ export class SideChatService extends Service {
       runtime = await this.config.resolveHost(parent.hostId);
       if (!current()) throw new Error("Side chat creation was cancelled");
       if (!runtime.resources.threads.fork || !runtime.resources.threads.unsubscribe || !runtime.resources.threads.injectItems
-        || runtime.resources.threads.supportsSideChat?.() === false) throw new Error("This host does not support temporary side chats");
+        || runtime.resources.threads.supportsSideChat?.(parent.threadId) === false) throw new Error("This host does not support temporary side chats");
       const child = await runtime.resources.threads.fork({ threadId: parent.threadId, cwd, ephemeral: true, excludeTurns: true, developerInstructions: SIDE_CHAT_INSTRUCTIONS });
       childId = child.id;
       if (!current()) throw new Error("Side chat creation was cancelled");
