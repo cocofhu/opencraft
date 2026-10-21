@@ -22,6 +22,7 @@ document.documentElement.dataset.theme = theme;
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
 const probe = window as any;
+probe.openedSubagents = [];
 let restore: ConversationRestoreSnapshot | null = null;
 const text = "First returned line\nCurrent returned line";
 const markdown = "# **Checking the result**\n\nRead *carefully* and `a_b`.\n\n- First step\n- Second step\n\n```js\nconst a_b = 42;\n```\n\n[The file](file:///work/a.ts) [Unsafe](javascript:alert(1))\n\n<script>window.__unsafeReasoning = true</script>\n\n**Current check**";
@@ -76,6 +77,20 @@ function Demo() {
     if (action === "long-empty" || action === "long-empty-clock") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
       setTurn(longEmptyResponse(selectedEngine, action === "long-empty-clock")); return;
+    }
+    if (action === "subagent-many" || action === "subagent-many-single") {
+      restore = null; setGeneration(value => value + 1);
+      const names = ["Aster", "Birch", "Cedar", "Dahlia", "Elm", "Fir", "Ginkgo", "Hazel"];
+      const ids = names.map((_, index) => "density-agent-" + index);
+      const states = Object.fromEntries(names.map((displayName, index) =>
+        [ids[index]!, { status: "completed", displayName, message: displayName + " finished" }]));
+      const items: TimelineSourceItem[] = action === "subagent-many-single"
+        ? [{ id: "density-wait", type: "collabAgentToolCall", payload: { tool: "wait", status: "completed",
+          receiverThreadIds: ids, agentsStates: states, prompt: "Wait for the density audit" } }]
+        : names.map((name, index) => ({ id: "density-operation-" + index, type: "collabAgentToolCall",
+          payload: { tool: "spawnAgent", status: "completed", receiverThreadIds: [ids[index]!],
+            agentsStates: { [ids[index]!]: states[ids[index]!] }, prompt: "Inspect " + name } }));
+      setTurn({ id: "turn", status: "streaming", items }); return;
     }
     if (action === "activity-metrics") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
@@ -160,7 +175,7 @@ function Demo() {
     phase: "live", turns: [turn] }, registry);
   return <div data-revision={revision} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
-      {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" initialRestoreSnapshot={restore}
+      {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })} initialRestoreSnapshot={restore}
         documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work",
           onOpenResource: (target, decision) => probe.openedReasoningResources.push({ target, kind: decision.kind }) }}
         onRestoreSnapshotChange={value => { restore = value; }}

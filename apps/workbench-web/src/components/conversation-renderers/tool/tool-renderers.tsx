@@ -271,6 +271,9 @@ function Agents({ blocks, grouped, renderToggle }: {
     : deriveSubagentActivityPresentation(blocks[0]!);
   const running = blocks.some(block => block.status === "running" || block.status === "pending");
   const [open, setOpen] = useActivityOpen(running);
+  const [showAllAgents, setShowAllAgents] = useState(false);
+  const visibleAgents = showAllAgents ? presentation.agents : presentation.agents.slice(0, 3);
+  const hiddenAgentCount = presentation.agents.length - visibleAgents.length;
   const reflow = useDisclosureReflow();
   const height = useDisclosureHeight("auto");
   return <section className="thread-subagent-activity" data-status={blocks.at(-1)?.status} data-open={open || undefined}>
@@ -278,12 +281,15 @@ function Agents({ blocks, grouped, renderToggle }: {
       {renderToggle({ label: presentation.actionLabel, open, disabled: !presentation.expandable, onClick: event => {
           reflow.begin(event.currentTarget); setOpen(!open);
         } })}
-      <div className="thread-subagent-chips">{presentation.agents.map(agent =>
+      <div className="thread-subagent-chips">{visibleAgents.map(agent =>
         <button key={agent.threadId} type="button" className="thread-subagent-chip" data-status={agent.status}
           title={agent.model ?? undefined} aria-label={"Open " + agent.displayName + " subagent"}
           disabled={navigation.open === null} onClick={() => navigation.open?.(agent.threadId, agent.displayName)}>
           <Avatar agent={agent} /><span>{agent.displayName}</span>{agent.role ? <small>{agent.role}</small> : null}
-        </button>)}</div>
+        </button>)}
+        {hiddenAgentCount > 0 ? <button type="button" className="thread-subagent-chips__more"
+          onClick={() => setShowAllAgents(true)}>{hiddenAgentCount} more</button> : null}
+      </div>
       <span className="thread-subagent-activity__status">{presentation.groupStatusLabel}</span>
       {presentation.expandable ? <ChevronRight size={12} className="thread-subagent-activity__chevron" /> : null}
     </div>

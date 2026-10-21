@@ -8573,6 +8573,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
 .thread-subagent-chips {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
 
@@ -8581,6 +8582,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 
   &__more {
+    flex-shrink: 0;
+    white-space: nowrap;
     height: 24px;
     padding: 0 4px;
     border: 0;
@@ -8634,6 +8637,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
   &__header {
     display: flex;
+    flex-wrap: wrap;
     min-width: 0;
     min-height: 32px;
     align-items: center;

@@ -2322,3 +2322,12 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+### Subagent summary density
+
+The summary initially exposes at most three agent chips and a remaining-agent
+count action. Expanding that count exposes all navigation chips independently of
+the detail disclosure. This keeps narrow summaries readable while the shared core
+continues to own every agent identity and status. The header and chip rail wrap
+naturally when a long operation label or an explicit full list needs more room;
+the remaining-agent action stays on one line.

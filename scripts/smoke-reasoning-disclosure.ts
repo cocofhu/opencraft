@@ -23,6 +23,7 @@ try {
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
   const results = [];
   const activityScales = [];
+  const subagentDetails = [];
   for (const touch of [false, true]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width: touch ? 390 : 1024, height: 900 }, hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
@@ -59,6 +60,35 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--subagents-only")) {
+      for (const scene of ["subagent-many", "subagent-many-single"]) {
+        await update(scene);
+        const agents = page.locator('.thread-subagent-activity');
+        const header = agents.locator('.thread-subagent-activity__header');
+        await header.waitFor();
+        const chips = header.locator('.thread-subagent-chip');
+        assert.equal(await chips.count(), 3);
+        assert.ok(await chips.evaluateAll(nodes => nodes.every(node =>
+          (node.querySelector('span:not(.thread-subagent-avatar)') as HTMLElement).clientWidth > 0)));
+        await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-${scene}.png`) });
+        await activate(header.getByRole('button', { name: '5 more', exact: true }));
+        assert.equal(await chips.count(), 8);
+        await activate(header.getByRole('button', { name: 'Open Hazel subagent', exact: true }));
+        assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+          [{ threadId: 'density-agent-7', displayName: 'Hazel' }]);
+        const toggle = agents.locator('.thread-subagent-activity__toggle');
+        if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        const rows = agents.locator('.thread-subagent-details__row');
+        await rows.last().waitFor(); assert.equal(await rows.count(), 8);
+        const content = await agents.locator('.thread-subagent-details__inner').innerText();
+        await activate(toggle); await activate(toggle);
+        assert.equal(await agents.locator('.thread-subagent-details__inner').innerText(), content);
+        assert.equal(await chips.count(), 8, 'detail disclosure retains the explicit full chip list');
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+        subagentDetails.push({ scene, theme, touch });
+      }
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -398,7 +428,7 @@ try {
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of localizedLabels) {
+  for (const [locale, running, settled] of (process.argv.includes("--subagents-only") ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -422,6 +452,7 @@ try {
     await page.screenshot({ path: join(output, `codex-${locale}-touch-long-detail.png`) });
     await page.close();
   }
+  await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
   console.log(JSON.stringify({ passed: results, localizedLabels: localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
