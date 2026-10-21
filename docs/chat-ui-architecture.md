@@ -635,8 +635,9 @@ to tighten adjacent root paragraphs, while first/last heading and divider
 margins follow the same document-edge rules.
 Web image previews share `ZoomableImage` across user attachments, Markdown,
 generated images and workspace image resources. The preview owns a transient
-1–5× transform: two pointers zoom around their midpoint; one pointer pans a
-zoomed image against the actual preview viewport. Lightbox viewports fill the
+0.2–5× transform: two pointers zoom and freely rotate around their midpoint;
+one pointer pans against bounds derived from the rotated image and the actual
+preview viewport. Shrinking below the fitted size remains available. Lightbox viewports fill the
 available screen independently of the fitted image dimensions; zoomed pixels
 must be visible outside the initial image rectangle. Embedded workspace resources
 retain their panel viewport. Only the image viewport claims touch

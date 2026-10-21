@@ -2,7 +2,8 @@
 
 ## Image preview gestures
 
-Web image previews share a bounded local pinch/pan viewport. Lightboxes use the
+Web image previews share a bounded local pinch/rotate/pan viewport. Scaling spans 0.2–5× the fitted size;
+rotation and scaling preserve the two-finger anchor, with rotated bounds for pan. Lightboxes use the
 full available screen as that viewport, never the initial image rectangle;
 embedded resources retain the panel boundary. Manipulation never
 changes the document, page scale, source or active gallery index. Preview controls

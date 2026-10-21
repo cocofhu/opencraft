@@ -71,7 +71,7 @@ createIntlTestRoot(presentationRoot).render(<WorkbenchPresentationRootProvider t
 const vite = await createServer({ configFile: false, root: process.cwd(), publicDir: "apps/workbench-web/public", logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-mobile-sidebar-gesture", esbuild: { jsx: "automatic", target: "esnext" }, server: { host: "127.0.0.1", port: 0, hmr: false },
   optimizeDeps: { entries: [], include: ["react", "react-dom/client", "react-intl", "@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@radix-ui/react-alert-dialog", "@deepseek-ai/cordis", "tslib"] },
   plugins: [pluginBranding(process.env.OPENCRAFT_SMOKE_BRANDING_WORKSPACE ?? process.cwd(), []), { name: "mobile-sidebar-gesture-fixture", resolveId: id => id === "/gesture-probe.tsx" ? id : null, load: id => id === "/gesture-probe.tsx" ? source : null,
-    configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><div id="root"></div><script type="module" src="/gesture-probe.tsx"></script>'); }); },
+    configureServer(server) { server.middlewares.use((req, res, next) => { if (new URL(req.url??"/","http://fixture").pathname !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><div id="root"></div><script type="module" src="/gesture-probe.tsx"></script>'); }); },
   }],
 });
 let browser: any;

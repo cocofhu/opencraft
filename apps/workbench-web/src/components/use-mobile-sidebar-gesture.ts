@@ -17,7 +17,7 @@ function hasForegroundInputOwner(shell: HTMLElement, path: EventTarget[] = []): 
   const scope = shell.getRootNode() as Document | ShadowRoot;
   const scopes = scope === shell.ownerDocument ? [scope] : [scope, shell.ownerDocument];
   return scopes.some(root => [...root.querySelectorAll(foregroundInputSelector)].some(node =>
-    node.getClientRects().length > 0 && !node.closest('[hidden],[inert],[aria-hidden="true"]')));
+    node.getClientRects().length > 0 && (node.matches('dialog:modal') || !node.closest('[hidden],[inert],[aria-hidden="true"]'))));
 }
 
 function ownsHorizontalInput(path: EventTarget[], boundary: HTMLElement): boolean {
@@ -82,6 +82,12 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       const shell = root.current;
       if (!shell || !hasForegroundInputOwner(shell, event?.composedPath())) return false;
       cancel(true);
+      // Native showModal may dispatch touchcancel before its open mutation is
+      // observed. Revoke that already-settling background animation as well.
+      if (target.current !== null) {
+        ++generation.current; progress.stop();
+        progress.set(target.current ? 1 : 0); setPresent(target.current);
+      }
       // A newly opened input layer owns its clicks too, including the first
       // close/navigation action after revoking an in-flight Shell contact.
       suppressClick.current = 0;
@@ -160,7 +166,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     window.addEventListener("resize", cancelContact);
     // A modal appearing while the finger is held revokes the old gesture now,
     // rather than letting its later move/end write behind the foreground view.
-    const foreground = new MutationObserver(() => { if (gesture.current) foregroundOwnsInput(); });
+    const foreground = new MutationObserver(() => { if (gesture.current || (progress.get() > 0 && progress.get() < 1)) foregroundOwnsInput(); });
     const scope = root.current?.getRootNode();
     const observation = { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "aria-modal", "role", "hidden", "aria-hidden"] };
     if (scope) foreground.observe(scope, observation);

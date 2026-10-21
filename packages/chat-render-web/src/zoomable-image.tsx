@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type ImgHTMLAttributes, type PointerEvent 
 import "./zoomable-image.scss";
 
 type Point = { x: number; y: number };
-type Transform = Point & { scale: number };
+type Transform = Point & { scale: number; rotation: number };
 type ImageProps = Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "title" | "onError" | "onLoad"> & {
   readonly fitToContainer?: boolean;
   readonly onBackgroundClick?: () => void;
 };
-const fitted: Transform = { x: 0, y: 0, scale: 1 };
+const fitted: Transform = { x: 0, y: 0, scale: 1, rotation: 0 };
 
 /** Transient image manipulation; the surrounding preview retains navigation and focus. */
 export function ZoomableImage(props: ImageProps) {
@@ -20,7 +20,7 @@ function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: 
   const pointers = useRef(new Map<number, Point>());
   const current = useRef(fitted);
   const backgroundPress = useRef<Point | null>(null);
-  const gesture = useRef<{ center: Point; distance: number; transform: Transform } | null>(null);
+  const gesture = useRef<{ center: Point; distance: number; angle: number; transform: Transform } | null>(null);
   const [transform, setTransform] = useState(fitted);
   const [viewportHeight, setViewportHeight] = useState(0);
 
@@ -36,6 +36,7 @@ function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: 
         y: (first.y + (second?.y ?? first.y)) / 2 - box.top - box.height / 2,
       },
       distance: second ? Math.hypot(second.x - first.x, second.y - first.y) : 0,
+      angle: second ? Math.atan2(second.y - first.y, second.x - first.x) : 0,
     };
   };
   const rebase = () => {
@@ -60,7 +61,7 @@ function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: 
     event.stopPropagation();
     rebase();
   };
-  return <div className="opencraft-zoomable-image" ref={viewport} data-zoomed={transform.scale > 1 || undefined}
+  return <div className="opencraft-zoomable-image" ref={viewport} data-zoomed={transform.scale !== 1 || transform.rotation !== 0 || undefined}
     onPointerDown={event => {
       if (event.button !== 0) return;
       event.stopPropagation();
@@ -78,16 +79,23 @@ function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: 
       const start = gesture.current;
       const next = measure();
       if (!start || !next || !image.current || !viewport.current) return;
-      const scale = Math.min(5, Math.max(1, start.distance > 0
+      const scale = Math.min(5, Math.max(0.2, start.distance > 0
         ? start.transform.scale * next.distance / start.distance : start.transform.scale));
       const ratio = scale / start.transform.scale;
-      const limitX = Math.max(0, (image.current.offsetWidth * scale - viewport.current.clientWidth) / 2);
-      const limitY = Math.max(0, (image.current.offsetHeight * scale - viewport.current.clientHeight) / 2);
+      const angle = start.distance > 0 ? next.angle - start.angle : 0;
+      const delta = Math.atan2(Math.sin(angle), Math.cos(angle));
+      const rotation = start.transform.rotation + delta;
+      const cosine = Math.cos(rotation), sine = Math.sin(rotation);
+      const width = image.current.offsetWidth, height = image.current.offsetHeight;
+      const limitX = Math.max(0, ((Math.abs(cosine) * width + Math.abs(sine) * height) * scale - viewport.current.clientWidth) / 2);
+      const limitY = Math.max(0, ((Math.abs(sine) * width + Math.abs(cosine) * height) * scale - viewport.current.clientHeight) / 2);
       const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
+      const anchorX = start.center.x - start.transform.x, anchorY = start.center.y - start.transform.y;
+      const c = Math.cos(delta), s = Math.sin(delta);
       current.current = {
-        scale,
-        x: clamp(next.center.x - (start.center.x - start.transform.x) * ratio, limitX),
-        y: clamp(next.center.y - (start.center.y - start.transform.y) * ratio, limitY),
+        scale, rotation,
+        x: clamp(next.center.x - (c * anchorX - s * anchorY) * ratio, limitX),
+        y: clamp(next.center.y - (s * anchorX + c * anchorY) * ratio, limitY),
       };
       setTransform(current.current);
     }}
@@ -96,7 +104,7 @@ function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: 
     <img {...props} draggable={false} ref={image}
       style={{
         maxHeight: fitToContainer && viewportHeight > 0 ? viewportHeight : undefined,
-        transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+        transform: `translate(${transform.x}px, ${transform.y}px) rotate(${transform.rotation}rad) scale(${transform.scale})`,
       }} />
   </div>;
 }
