@@ -1,4 +1,4 @@
-import { asTurnId, createConversationKey, createTimelineTurnPresentationPlan, groupTimelineFramesByTurn, resolveAgentActivityLayout, type TimelineSnapshot, type WorkStatusItem } from "@opencraft/chat-core";
+import { asTurnId, createConversationKey, createTimelineTurnPresentationPlan, groupTimelineFramesByTurn, resolveAgentActivityLayout, type TimelineSnapshot, type UserMessageTimelineBlock, type WorkStatusItem } from "@opencraft/chat-core";
 
 import type { SubmissionReceipt, SubmitIntent } from "@opencraft/composer-core";
 import { submittedMessageDisplay } from "./submitted-message-display";
@@ -30,6 +30,7 @@ interface DisplayMessage {
   readonly sentAtMs: number | null;
   readonly durationMs: number | null;
   readonly workStatus: WorkStatusItem | null;
+  readonly sender?: UserMessageTimelineBlock["sender"];
 }
 
 const VERSION = 1;
@@ -58,7 +59,15 @@ function completedWork(value: unknown): WorkStatusItem | null {
   return { type: "worked-for", status: work.status, startedAtMs: start, completedAtMs: end };
 }
 
-/** Keep known static clocks through a partial history preview, never through authority. */
+function messageSender(value: unknown): UserMessageTimelineBlock["sender"] {
+  if (typeof value !== "object" || value === null) return null;
+  const sender = value as Record<string, unknown>;
+  return sender.kind === "employee" && typeof sender.loginName === "string"
+    && sender.loginName.trim().length > 0 && sender.loginName.length <= 256
+    ? { kind: "employee", loginName: sender.loginName } : null;
+}
+
+/** Keep known static clocks and per-message sender through preview, never authority. */
 export function retainPreviewTiming(preview: TimelineSnapshot, display: TimelineSnapshot | null): TimelineSnapshot {
   if (preview.authoritative || display === null || preview.key.hostId !== display.key.hostId
     || preview.key.threadId !== display.key.threadId) return preview;
@@ -70,7 +79,8 @@ export function retainPreviewTiming(preview: TimelineSnapshot, display: Timeline
       const prior = known.get(JSON.stringify([frame.turnId, frame.type, block.type, block.id]));
       if (!prior) return block;
       if (block.type === "user-message" && prior.block.type === "user-message") {
-        return block.sentAtMs == null ? { ...block, sentAtMs: prior.block.sentAtMs } : block;
+        return { ...block, sentAtMs: block.sentAtMs ?? prior.block.sentAtMs,
+          sender: block.sender === undefined ? prior.block.sender : block.sender };
       }
       if (block.type !== "text" || prior.block.type !== "text") return block;
       if (frame.status === "complete" && !block.streaming && block.completed !== false && block.phase === "final_answer"
@@ -98,6 +108,8 @@ export function selectConversationDisplayTimeline(timeline: TimelineSnapshot | n
     if (block.type !== "text" && block.type !== "user-message") continue;
     const incoming = clocks.get(JSON.stringify([frame.turnId, frame.type, block.type, block.id]));
     if (block.sentAtMs != null && (!incoming || !("sentAtMs" in incoming.block) || incoming.block.sentAtMs == null)) return display;
+    if (block.type === "user-message" && block.sender != null
+      && (!incoming || incoming.block.type !== "user-message" || incoming.block.sender === undefined)) return display;
     if (frame.type === "assistant" && (frame.durationMs != null || completedWork(frame.workStatus) !== null)
       && (!incoming || (frame.durationMs != null && incoming.frame.durationMs == null)
         || (completedWork(frame.workStatus) !== null && completedWork(incoming.frame.workStatus) === null))) return display;
@@ -124,7 +136,7 @@ function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] 
         if (block.type !== "user-message" || block.messageKind !== "user" || !block.message.trim()) continue;
         messages.push({ id: block.id, turnId: frame.turnId, role: "user", text: block.message.slice(0, MAX_MESSAGE_CHARACTERS),
           kind: "text", phase: "final_answer", completed: true,
-          sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: null, workStatus: null });
+          sentAtMs: nonnegativeNumber(block.sentAtMs), durationMs: null, workStatus: null, sender: messageSender(block.sender) });
       }
     } else if (frame.type === "assistant") {
       for (const block of frame.blocks) {
@@ -195,7 +207,8 @@ function parse(value: string | null, hostId: string, threadId: string, now: numb
         phase: message.phase === "commentary" ? "commentary" : "final_answer",
         completed: message.completed !== false,
         sentAtMs: nonnegativeNumber(message.sentAtMs), durationMs: nonnegativeNumber(message.durationMs),
-        workStatus: message.role === "assistant" ? completedWork(message.workStatus) : null });
+        workStatus: message.role === "assistant" ? completedWork(message.workStatus) : null,
+        sender: message.role === "user" ? messageSender(message.sender) : null });
     }
     return { messages, savedAt: candidate.savedAt };
   } catch { return null; }
@@ -228,6 +241,7 @@ function paint(hostId: string, threadId: string, messages: readonly DisplayMessa
             type: "user-message" as const, id: message.id, sourceItemIds: [], message: message.text,
             content: [{ type: "text" as const, text: message.text, textElements: [] }], attachments: [],
             messageKind: "user" as const, clientId: null, steeringStatus: null, sentAtMs: message.sentAtMs,
+            sender: message.sender,
             deliveryStatus: "sent" as const, referencesPriorConversation: false, reviewMode: false,
             pullRequestFixMode: false, autoResolveSync: false, goal: false, hookFeedback: false,
             commentCount: 0, hasExternalAttachments: false,

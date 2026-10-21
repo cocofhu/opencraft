@@ -36,7 +36,7 @@ import {
 } from "./activity-disclosure";
 import { SubagentActivityGroup } from "../tool/tool-renderers";
 import { ToolActivityPresenterContext, ConversationDetailContext } from "../render-contexts";
-import { ActivityDisclosureHeader, ActivityDisclosureLabel, WorkStatusDivider } from "./work-status";
+import { ActivityDisclosureHeader, WorkStatusDivider } from "./work-status";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
 import { ReasoningBlock } from "./command-and-review-renderers";
 
@@ -171,7 +171,12 @@ function AgentActivity({
   const open = !layout.isCollapsed;
   const inlineSubagentActivity = unit.inlineSubagentActivity;
   const reflow = useDisclosureReflow();
-  const hasAnimatedContent = layout.visibleUnits.length > 0 || inlineSubagentActivity !== null;
+  const staticWork = unit.contentUnits.find(content => content.type === "worked-for");
+  const staticHeader = !layout.showToggle && inlineSubagentActivity === null
+    && unit.contentUnits.every(content => content.type === "worked-for")
+    && (staticWork?.type !== "worked-for" || staticWork.item.status !== "working")
+    && (unit.workedDurationMs !== null || (staticWork?.type === "worked-for" && staticWork.item.status !== "working"));
+  const hasAnimatedContent = !staticHeader && (layout.visibleUnits.length > 0 || inlineSubagentActivity !== null);
   const renderContent = (contentUnits: readonly AgentActivityContentUnit[]) => (
     <ConversationEntryMotionContext.Provider value={animateEntry}>
       <AgentActivityContent contentUnits={contentUnits} onRetry={onRetry}
@@ -191,10 +196,10 @@ function AgentActivity({
       data-collapsed={layout.isCollapsed || undefined}
       data-force-expanded={unit.forceExpanded || undefined}
     >
-      {!layout.showToggle && unit.contentUnits.length === 0 && unit.inlineSubagentActivity === null
-        && unit.workedDurationMs !== null ? <div className="thread-work-status">
-          <ActivityDisclosureLabel item={null} durationMs={unit.workedDurationMs} count={0} />
-        </div> : null}
+      {staticHeader ? <ActivityDisclosureHeader
+        item={staticWork?.type === "worked-for" ? staticWork.item : null}
+        durationMs={unit.workedDurationMs} count={0} open={false}
+      /> : null}
       {layout.preToggleUnits.length > 0 ? (
         <div className="thread-agent-activity__pre-toggle">
           {renderContent(layout.preToggleUnits)}

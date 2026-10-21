@@ -491,3 +491,47 @@ test("hidden duration cannot gain a cached label that was never visible", async 
   assert.ok(cached.frames.every(frame => frame.displayDurationMs == null));
   assert.ok(plan.assistant?.slots.every(slot => slot.type !== "agent-activity"));
 });
+
+test("reload retains each message sender and a partial preview cannot erase it", async () => {
+  const local = storage();
+  const sender = { kind: "employee" as const, loginName: "fixture.employee" };
+  const source = { ...timeline(true), frames: timeline(true).frames.map(frame => frame.type === "user"
+    ? { ...frame, blocks: frame.blocks.map(block => ({ ...block, sender })) } : frame) };
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(source);
+  const restored = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const user = restored.frames[0]!.blocks[0]!;
+  assert.ok(user.type === "user-message");
+  assert.deepEqual(user.sender, sender);
+  assert.equal(restored.authoritative, false);
+  const preview = timeline(false);
+  const retained = retainPreviewTiming(preview, restored).frames[0]!.blocks[0]!;
+  assert.ok(retained.type === "user-message");
+  assert.deepEqual(retained.sender, sender);
+  const regrouped = { ...preview, frames: preview.frames.map(frame => ({ ...frame, turnId: asTurnId("different-turn") })) };
+  assert.equal(selectConversationDisplayTimeline(regrouped, restored), restored, "even undated sender rows survive regrouped preview");
+  const corrected = { ...preview, frames: preview.frames.map(frame => frame.type === "user"
+    ? { ...frame, blocks: frame.blocks.map(block => ({ ...block, sender: null })) } : frame) };
+  const removed = retainPreviewTiming(corrected, restored).frames[0]!.blocks[0]!;
+  assert.ok(removed.type === "user-message");
+  assert.equal(removed.sender, null, "explicit sender removal wins over inherited display");
+  const authoritative = timeline(true);
+  assert.equal(selectConversationDisplayTimeline(authoritative, restored), authoritative, "authority removes stale sender");
+  const other = { ...preview, key: createConversationKey("other", "thread") };
+  assert.equal(retainPreviewTiming(other, restored), other);
+});
+
+test("stored sender parsing is bounded and old or malformed data cannot invent identity", async () => {
+  const local = storage();
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(timeline(true));
+  const [key, value] = [...local.data][0]!;
+  for (const sender of [undefined, null, { kind: "admin", loginName: "fixture" }, { kind: "employee", loginName: " " },
+    { kind: "employee", loginName: "x".repeat(257) }, { kind: "employee", loginName: 123 }]) {
+    const stored = JSON.parse(value);
+    stored.messages[0].sender = sender;
+    local.data.set(key, JSON.stringify(stored));
+    const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+    const user = cached.frames[0]!.blocks[0]!;
+    assert.ok(user.type === "user-message");
+    assert.equal(user.sender, null);
+  }
+});

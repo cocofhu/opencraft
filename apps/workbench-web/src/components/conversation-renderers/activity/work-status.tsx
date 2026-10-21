@@ -60,7 +60,7 @@ export function ActivityDisclosureHeader({
   readonly durationMs: number | null;
   readonly count: number;
   readonly open: boolean;
-  readonly onToggle: (anchor: HTMLButtonElement) => void;
+  readonly onToggle?: (anchor: HTMLButtonElement) => void;
 }) {
   const labelId = useId();
   return (
@@ -69,14 +69,15 @@ export function ActivityDisclosureHeader({
         className="thread-agent-activity__turn-toggle"
         contentClassName="thread-agent-activity__turn-toggle-content"
         labelId={labelId}
-        onToggle={onToggle}
+        interactive={onToggle !== undefined}
+        onToggle={(anchor) => onToggle?.(anchor)}
         open={open}
         reflowOwned
       >
           <span id={labelId}>
             <ActivityDisclosureLabel item={item} durationMs={durationMs} count={count} />
           </span>
-          <ChevronRight aria-hidden="true" className={open ? "is-open" : undefined} size={12} />
+          {onToggle ? <ChevronRight aria-hidden="true" className={open ? "is-open" : undefined} size={12} /> : null}
       </OverlayDisclosureTrigger>
       <div className="thread-agent-activity__rule-row">
         <div className="thread-work-status__rule" />

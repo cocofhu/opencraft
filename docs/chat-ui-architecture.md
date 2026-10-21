@@ -50,6 +50,12 @@ failed images retain a same-size person icon. Attachment-only messages use
 the same label. Unknown or absent senders leave no label. The label consumes
 the individual message snapshot, never the current footer account or Turn author,
 and is excluded from copied message text and native model input.
+The scoped paint-only history cache retains this validated per-message sender
+with the message body. A partial preview may inherit an absent sender only for
+the exact same message; an explicit sender and authoritative corrections win.
+The existing avatar contribution resolves its stable photo URL; the same-size
+fallback keeps geometry while the image loads. No cached sender authenticates
+the viewer or grants interaction authority.
 
 ## Queued-message sender display
 
@@ -2366,5 +2372,7 @@ A completed history may provide only aggregate duration, without observed work
 start/end clocks. The shared presenter retains a previously visible aggregate label through
 paint-only displayDurationMs when tool/reasoning bodies were omitted. Hidden
 activity cannot acquire a label on reload merely because Turn duration exists. Web and Expo render a
-plain static label without inventing a work interval or an empty disclosure.
+static label and the same full-width rule/header geometry as completed history,
+without inventing a work interval or an empty disclosure. The static header has
+no disclosure button or chevron; authoritative work bodies restore that action.
 An active Turn's aggregate duration is still not persisted.
