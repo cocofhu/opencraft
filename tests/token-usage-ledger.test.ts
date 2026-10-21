@@ -456,3 +456,21 @@ test("v12 repairs formerly hidden frozen usage using preserved authoritative all
   assert.equal(ledger.readTurn(key)?.frozen,true);assert.equal(ledger.readTurn(key)?.observedTokens,"17");
  }finally{state.close();await rm(directory,{recursive:true,force:true});}
 });
+
+test("repeated source corrections reuse native SQL statements without retaining per-source keys", () => fixture(state => {
+  let preparations = 0;
+  const prepare = state.database.prepare.bind(state.database);
+  state.database.prepare = ((sql: string) => { preparations++; return prepare(sql); }) as typeof state.database.prepare;
+  const ledger = new CodexTokenUsageLedger(state, "statement-owner", () => 1000);
+  ledger.startTurn(key, 1000, "human", true);
+  ledger.recordInput(key, input());
+  for (let version = 0; version < 3; version++) ledger.recordSource(source(String(100 + version), "corrected", { version }));
+  const warmed = preparations;
+  for (let version = 3; version < 203; version++) ledger.recordSource(source(String(100 + version), "corrected", { version }));
+  assert.equal(preparations, warmed, "steady-state corrections must not allocate new native statements");
+  assert.equal(ledger.readTurn(key)?.observedTokens, "302");
+  ledger.recordInput(key, { ...input("B"), mode: "steer" });
+  ledger.reconcile(key, complete);
+  assert.deepEqual(ledger.readAllocations(key).map(row => row.tokens), ["151", "151"]);
+  assert.equal(ledger.readTurn(key)?.allocationState, "settled");
+}));
