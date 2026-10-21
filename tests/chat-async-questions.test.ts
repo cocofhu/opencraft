@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement, type ReactNode } from "react";
+import React, { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -21,7 +21,12 @@ import {
 import { AsyncQuestionCard } from "../apps/workbench-web/src/components/conversation/async-question-card";
 import { AsyncQuestionContext } from "../apps/workbench-web/src/components/conversation-renderers/render-contexts";
 
-const renderLocalized = (node: ReactNode) => renderToStaticMarkup(createElement(IntlProvider, { locale: "en-US" }, node));
+const renderLocalized = (node: ReactNode) => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "React");
+  Object.assign(globalThis, { React });
+  try { return renderToStaticMarkup(createElement(IntlProvider, { locale: "en-US", defaultLocale: "en-US" }, node)); }
+  finally { if (previous) Object.defineProperty(globalThis, "React", previous); else Reflect.deleteProperty(globalThis, "React"); }
+};
 
 const questionId = (messageId: string, index: number) => JSON.stringify(["request_user_input_async", messageId, index]);
 
