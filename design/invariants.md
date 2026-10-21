@@ -1838,3 +1838,8 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+## Saved Sidebar directory refresh failures
+
+A ready transport response with `cachedAt` is a saved directory after a failed refresh, not an authoritative successful refresh. Retain its rows and the existing failure/retry slot; error responses with that metadata use the same saved-directory explanation. In-flight reads stay quiet (`aria-busy` only), successful refresh clears the feedback, and Retry reads only that Host without selecting a Thread or remounting rows. Existing `smoke:sidebar-thread-catalog` covers ready/error saved results, timestamp zero, retry, quiet refetch and success on desktop/touch in both themes.

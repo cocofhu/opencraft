@@ -332,8 +332,30 @@ try {
     await page.getByRole('button', { name: 'Filters', exact: true }).click();
     await page.getByRole('menuitemradio', { name: 'All servers', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.sidebar-activity-item').length === 4);
+    // A successful Hub response may contain a saved directory after refresh failed.
+    // Transport success must not hide the failure or its Host-scoped retry.
+    const cachedMessage = page.getByText("Showing saved Remote conversations; refresh failed", { exact: true });
+    const rowsBeforeCachedRetry = await page.locator('.sidebar-activity-item').elementHandles();
+    const actionsBeforeCachedRetry = await page.evaluate(() => (window as any).fixture.actions.slice());
+    for (const catalog of [{ phase: 'ready', cachedAt: 0 }, { phase: 'error', cachedAt: 123 }]) {
+      await page.evaluate(catalog => (window as any).fixture.setCatalogs([{ hostId: 'ssh:remote', label: 'Remote', ...catalog }]), catalog);
+      await cachedMessage.waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Retry', exact: true }).count(), 1);
+      assert.equal(await page.locator('.sidebar-activity-item').count(), 4, 'saved directory failure keeps existing rows');
+      if (touch) await retry.tap(); else await retry.click();
+      await page.locator('.sidebar-tasks[aria-busy="true"]').waitFor({ state: 'attached' });
+      assert.equal(await page.locator('.sidebar-catalog-feedback').count(), 0, 'cached retry remains visually quiet');
+      for (const [index, row] of rowsBeforeCachedRetry.entries()) assert.equal(await row.evaluate((row, index) => row === document.querySelectorAll('.sidebar-activity-item')[index], index), true, 'cached retry preserves row identity');
+    }
+    assert.deepEqual(await page.evaluate(() => (window as any).fixture.actions), [...actionsBeforeCachedRetry, 'ssh:remote', 'ssh:remote'], 'saved-directory retries only read their exact Host');
+    await page.evaluate(() => (window as any).fixture.setCatalogs([{ hostId: 'ssh:remote', label: 'Remote', phase: 'loading', cachedAt: 123 }]));
+    await page.locator('.sidebar-tasks[aria-busy="true"]').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('.sidebar-catalog-feedback').count(), 0, 'in-flight cached refresh adds no feedback row');
+    await page.evaluate(() => (window as any).fixture.setCatalogs([{ hostId: 'ssh:remote', label: 'Remote', phase: 'ready' }]));
+    await page.locator('.sidebar-tasks[aria-busy="false"]').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('.sidebar-catalog-feedback').count(), 0, 'successful refresh removes cached failure');
     assert.deepEqual(errors, []);
-    evidence.push({ touch, theme, reducedMotion: true, quietLoading: true, loadingNotEmpty: true, stableHistoryGeometry: true, failedHostIsolation: true, scopedRetry: true, discoveryRetryWithoutProfiles: true, matchingResultsOnly: true, filteredRowsHaveNoFooter: true, loadMorePreservesFilters: true, serverFilterSurvivesReload: true, missingFilteredServerNeverBroadens: true, offlineControlsDisabled: true, capabilityLossPreservesRows: true, successfulEmpty: true, cachedRowsStableThroughReconnect: true, revokedCacheHidden: true, nativePinPresentation: true, unsupportedPinHidden: true, pinDoesNotConsumeRecentBudget: true });
+    evidence.push({ touch, theme, reducedMotion: true, quietLoading: true, savedDirectoryFailureRetry: true, loadingNotEmpty: true, stableHistoryGeometry: true, failedHostIsolation: true, scopedRetry: true, discoveryRetryWithoutProfiles: true, matchingResultsOnly: true, filteredRowsHaveNoFooter: true, loadMorePreservesFilters: true, serverFilterSurvivesReload: true, missingFilteredServerNeverBroadens: true, offlineControlsDisabled: true, capabilityLossPreservesRows: true, successfulEmpty: true, cachedRowsStableThroughReconnect: true, revokedCacheHidden: true, nativePinPresentation: true, unsupportedPinHidden: true, pinDoesNotConsumeRecentBudget: true });
     await context.close();
   }
   console.log(JSON.stringify({ ok: true, realSidebar: true, evidence }));

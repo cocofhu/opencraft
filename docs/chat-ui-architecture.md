@@ -2024,6 +2024,13 @@ and manual expansion in light/dark and desktop/touch.
 
 ## Sidebar catalog lifecycle and row metadata
 
+A transport-successful catalog can still report a failed refresh through
+`cachedAt`, while retaining the last successful directory. Sidebar keeps those
+rows and presents its existing saved-conversations message and Host-scoped Retry
+for ready or failed reads. An in-flight refresh stays quiet, including when it
+retains that metadata; successful authoritative refresh removes the failure.
+Retry never selects a Thread, broadens the Server filter or replaces row owners.
+
 The application subscribes to native Thread lifecycle events per client lease.
 Catalog notifications cancel older catalog reads, including an unresolved first
 fetch, before updating existing rows with `thread/status/changed` or `turn/started`.
