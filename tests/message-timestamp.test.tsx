@@ -57,3 +57,17 @@ test("missing and invalid clocks are omitted while epoch zero remains real", t =
   for (const value of [null, undefined, NaN, Infinity, 9e15]) assert.equal(render(value), "");
   assert.match(render(0), /1970-01-01T00:00:00.000Z/);
 });
+
+
+test("unknown resolved zone names retain the viewer's native local clock", t => {
+  freeze(t, "2026-10-21T15:00:00+08:00");
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  t.mock.method(Intl.DateTimeFormat.prototype, "resolvedOptions", function (this: Intl.DateTimeFormat) {
+    return { ...resolvedOptions.call(this), timeZone: "Etc/Unknown" };
+  });
+  const instant = Date.parse("2026-10-21T14:33:00+08:00");
+  for (const assistant of [false, true]) {
+    assert.equal(label(render(instant, "en-US", assistant)), "2:33 PM");
+    assert.equal(label(render(instant, "zh-CN", assistant)), "14:33");
+  }
+});

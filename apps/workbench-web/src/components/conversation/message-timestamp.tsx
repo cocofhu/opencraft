@@ -17,7 +17,6 @@ export function MessageTimestamp({ sentAtMs, assistant = false }: {
   const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
   if (dayOffset < 0 && dayOffset > -7) options.weekday = "long";
   else if (dayOffset !== 0) {
