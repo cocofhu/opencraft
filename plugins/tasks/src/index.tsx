@@ -3,7 +3,8 @@ import type {
   TasksMethod,
   TasksMethodMap,
 } from "@opencraft/appserver-protocol";
-import { createTasksView } from "./view";
+import { lazy, Suspense } from "react";
+import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
 export const TASKS_EXTENSION_ID = "opencraft.tasks";
 export const TASKS_VIEW_ID = "opencraft.tasks.board";
 export interface TaskConversationActivity {
@@ -67,9 +68,16 @@ export function createTasksExtension(
         icon: "columns",
         order: 35,
       });
+      // Keep the factory stable for this activation: controllers, editor draft
+      // and view memory still survive closing/reopening the Tasks surface.
+      const TasksView = lazy(async () => {
+        const { createTasksView } = await import("./view");
+        if (api.signal.aborted) return { default: () => null };
+        return { default: createTasksView(ports, api.signal, api.localPreferences) };
+      });
       api.internal.register("platformViewRenderer", {
         viewType: TASKS_VIEW_ID,
-        Component: createTasksView(ports, api.signal, api.localPreferences),
+        Component: (props: ExtensionSettingsViewProps) => <Suspense fallback={null}><TasksView {...props} /></Suspense>,
       });
     },
   };

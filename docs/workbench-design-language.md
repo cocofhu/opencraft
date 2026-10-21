@@ -133,7 +133,7 @@ current input, and supports both nested rules and complete root selectors.
 Split hover from keyboard focus, open and selected branches before applying the
 gate; do not gate the complete state list. `controls.touch-input` keeps essential
 copy, edit and card actions available on coarse devices and after hybrid touch.
-Neither helper changes the saved touch-density preference. Hover entry handlers
+Neither helper changes the saved touch-density preference. Tasks presentation and its stylesheet load when its view opens; the renderer factory remains stable for the extension activation so reopening preserves existing controller and draft ownership. Hover convergence must retain the startup resource budgets. Hover entry handlers
 must distinguish mouse pointers; touch and pen activate through explicit actions.
 Separate HTML documents bind their own input signal. `npm run check:hover`
 enforces these rules for first-party styles and hover entry handlers; product
