@@ -95,7 +95,7 @@ export function ShikiCodeRenderer({
 
   if (!isCodeFence) return null;
 
-  const highlightedHtml = !complete || highlighted === null
+  const highlightedHtml = !complete || highlighted === null || !code.startsWith(highlighted.code)
     ? null
     : appendUnhighlightedCodeTail(highlighted.code, highlighted.html, code);
 
