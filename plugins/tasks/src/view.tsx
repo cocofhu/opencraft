@@ -1144,6 +1144,7 @@ export function createTasksView(
   preferences?: TrustedExtensionApiV1["localPreferences"],
 ) {
   const localSelections = new Map<string, string>();
+  const aiOwnerSelections = new Map<string, string>();
   let controller: TasksController | null = null;
   let archiveController: TasksArchiveController | null = null;
   const positions = new Map<string, number>();
@@ -1165,6 +1166,7 @@ export function createTasksView(
       for (const activity of activities.values()) activity.dispose();
       activities.clear();
       localSelections.clear();
+      aiOwnerSelections.clear();
       remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "" };
     },
     { once: true },
@@ -1629,7 +1631,7 @@ export function createTasksView(
             </div>
           ) : <>
           {morningOpen ? <MorningOverview /> : null}
-          {draft.mode === "ai" && !morningOpen && !managementOpen && !overviewOpen ? <AIFollowUp tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} activity={state.activity} port={morningPort} onOpenConversation={host.openConversation ? open : undefined} /> : null}
+          {draft.mode === "ai" && !morningOpen && !managementOpen && !overviewOpen ? <AIFollowUp tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} activity={state.activity} port={morningPort} ownerFilter={aiOwnerSelections.get(memberScope) ?? ""} onOwnerFilterChange={value => { aiOwnerSelections.set(memberScope, value); refreshLocalSelection(epoch => epoch + 1); }} onOpenConversation={host.openConversation ? open : undefined} /> : null}
           {archiveOpen && state.archive ? <ArchivePanel model={archives} members={state.members} pending={state.pending} reportError={reportError} ports={ports} session={editorSession}
             activityFor={item => { let activity = activities.get(item.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, item.id, () => {}); activities.set(item.id, activity); } return activity; }}
             onRead={id => ports.request(authority!, TASKS.read, { id })} onOpen={open} onRestore={async item => { const saved = await model.mutate(TASKS.unarchive, { id: item.id, expectedRevision: item.revision }); await archives.refresh(); return saved; }} /> : null}

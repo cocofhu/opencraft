@@ -69,6 +69,9 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  await filter.selectOption('member:owner-a');assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),2);
  assert.deepEqual(await page.locator('.tasks-ai-follow-up__counts strong').allTextContents(),['2','1','0','0']);
  assert.equal(await page.locator('[data-ai-follow-up-task-id="Overdue handoff"]').count(),0);
+ await page.getByRole('radio',{name:'看板',exact:true}).click();await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();
+ assert.equal(await filter.inputValue(),'member:owner-a','Owner selection survives leaving the follow-up view');
+ await page.getByText('等待判断 80 小时',{exact:true}).waitFor();assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),2);
  const cta=card.getByRole('button',{name:'打开会话：Oldest handoff',exact:true});
  if(width<600)await cta.tap();else {await cta.focus();await page.keyboard.press('Enter');}
  assert.deepEqual(await page.evaluate(()=>window.openedConversations),[{serverId:'server-test',threadId:'thread-Oldest handoff'}]);

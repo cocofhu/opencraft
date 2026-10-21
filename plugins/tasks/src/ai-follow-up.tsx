@@ -8,17 +8,18 @@ import { isMorningResearchTask, isOverdueHandoff, readResearchHandoff, type Read
 import "./ai-follow-up.scss";
 
 /** Read-only projection of the task authority; triage never implies an AI handoff. */
-export function AIFollowUp({ tasks, members, aiResearch, activity, port, onOpenConversation }: {
+export function AIFollowUp({ tasks, members, aiResearch, activity, port, ownerFilter, onOwnerFilterChange, onOpenConversation }: {
   tasks: readonly TaskDetail[];
   members: readonly TaskMember[];
   aiResearch: boolean;
   activity: boolean;
   port: TasksRequestPort;
+  ownerFilter: string;
+  onOwnerFilterChange(value: string): void;
   onOpenConversation?: (link: TaskConversation) => void;
 }) {
   const zh = useIntl().locale.startsWith("zh");
   const text = (cn: string, en: string) => zh ? cn : en;
-  const [ownerFilter, setOwnerFilter] = useState("");
   const candidates = aiResearch ? tasks.filter(isMorningResearchTask) : [];
   const ownerName = (id: string | null | undefined) => members.find(member => member.id === id)?.name ?? id ?? text("未分配", "Unassigned");
   const ownerIds = [...new Set(candidates.flatMap(task => task.assigneeId ? [task.assigneeId] : []))];
@@ -70,7 +71,7 @@ export function AIFollowUp({ tasks, members, aiResearch, activity, port, onOpenC
       <p>{text("按 Owner 跟进 AI 预研、待决策事项与下一步协作", "Follow AI research and decisions by owner")}</p>
     </div>
     {aiResearch ? <div className="tasks-ai-follow-up__filters">
-      <label><span>Owner</span><SettingsSelect aria-label={text("按 Owner 筛选", "Filter by owner")} value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}>
+      <label><span>Owner</span><SettingsSelect aria-label={text("按 Owner 筛选", "Filter by owner")} value={ownerFilter} onChange={event => onOwnerFilterChange(event.target.value)}>
         <option value="">{text("所有 Owner", "All owners")}</option>
         <option value="unassigned">{text("未分配", "Unassigned")}</option>
         {ownerIds.map(id => <option key={id} value={`member:${id}`}>{ownerName(id)}</option>)}
