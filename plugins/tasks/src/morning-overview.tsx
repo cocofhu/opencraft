@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Users, Activity, Boxes, Send, ArrowRight, ChevronDown, ChevronUp, Clock, CircleHelp } from "lucide-react";
 import { SettingsButton } from "@opencraft/extension-react";
 import { useIntl } from "@opencraft/i18n/react";
@@ -128,6 +128,17 @@ function MorningTaskCard({ task, report, overdue, owner, wait, zh, onOpen }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const contentId = useId();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [canExpand, setCanExpand] = useState(false);
+  useEffect(() => {
+    if (expanded || !contentRef.current) return;
+    const content = contentRef.current;
+    const measure = () => setCanExpand(Array.from(content.querySelectorAll("dd, p")).some(field => field.scrollHeight > field.clientHeight + 1));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [expanded, task.aiResearchReason, report]);
   const text = (cn: string, en: string) => zh ? cn : en;
   const reviewing = task.status === "in_review";
   const status = reviewing ? report ? text("待你判断", "Ready for review") : text("待核实交接", "Handoff unverified")
@@ -137,16 +148,16 @@ function MorningTaskCard({ task, report, overdue, owner, wait, zh, onOpen }: {
       {reviewing ? <span className="tasks-morning__wait"><Clock size={14} aria-hidden="true" />{wait}</span> : null}
     </div>
     <h4>{task.title}</h4>
-    <div id={contentId} className={`tasks-morning__content${expanded ? " is-expanded" : ""}`}>
+    <div ref={contentRef} id={contentId} className={`tasks-morning__content${expanded ? " is-expanded" : ""}`}>
       {report ? <dl className="tasks-morning__handoff">
         <div className="tasks-morning__decision"><dt>{text("需要你判断", "Your decision")}</dt><dd>{report.decision}</dd></div>
         <div><dt>{text("已完成的产出", "Research output")}</dt><dd>{report.output}</dd></div>
         <div><dt>{text("判断后下一步", "Next step after review")}</dt><dd>{report.nextStep}</dd></div>
       </dl> : <div className="tasks-morning__basis"><span>{text("预研依据", "Research basis")}</span><p>{task.aiResearchReason || text("预研依据待补充", "Research basis to be added")}</p></div>}
     </div>
-    <div className="tasks-morning__disclosure"><SettingsButton variant="quiet" aria-expanded={expanded} aria-controls={contentId} onClick={() => setExpanded(value => !value)}>
+    {canExpand ? <div className="tasks-morning__disclosure"><SettingsButton variant="quiet" aria-expanded={expanded} aria-controls={contentId} onClick={() => setExpanded(value => !value)}>
       {expanded ? text("收起摘要", "Collapse summary") : text("展开完整摘要", "Expand full summary")}{expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
-    </SettingsButton></div>
+    </SettingsButton></div> : null}
     <div className="tasks-morning__item-footer"><div><span>{text("跟进人", "Owner")}</span><span>{owner}</span></div>
       <SettingsButton variant={reviewing && report ? "primary" : "secondary"} onClick={() => onOpen(task)} aria-label={text(`查看事项：${task.title}`, `Open task: ${task.title}`)}>
         {reviewing && report ? text("查看待判断事项", "Review details") : text("查看详情", "View details")}<ArrowRight size={16} aria-hidden="true" />

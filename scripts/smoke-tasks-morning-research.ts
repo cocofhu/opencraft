@@ -44,6 +44,7 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  await page.getByText('尚无有效交接 · 未开始计时',{exact:true}).waitFor();assert.equal(await page.locator('[data-morning-back]').evaluate(el=>el===document.activeElement),true);
  const bounds=await page.locator('.tasks-morning').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,body:document.documentElement.scrollWidth,viewport:innerWidth}));assert.ok(bounds.scroll<=bounds.width+1&&bounds.body<=bounds.viewport+1,JSON.stringify({width,theme,bounds}));
  const entryBox=await page.locator('[data-morning-back]').boundingBox();assert.ok(entryBox&&entryBox.x>=0);
+ assert.equal(await page.locator('[data-morning-task-id="No handoff"]').getByRole('button',{name:'展开完整摘要',exact:true}).count(),0,'Short summaries must not offer a no-op expansion');
  const card=page.locator('[data-morning-task-id="Oldest handoff"]');
  const cta=card.getByRole('button',{name:'查看事项：Oldest handoff',exact:true});assert.match(await cta.innerText(),/查看待判断事项/);
  const outputField=card.locator('.tasks-morning__handoff > div').nth(1).locator('dd');
@@ -56,6 +57,7 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  const first=await card.boundingBox();const second=await page.locator('[data-morning-task-id="Overdue handoff"]').boundingBox();
  assert.ok(first&&second);if(width===1440)assert.ok(Math.abs(first.y-second.y)<2&&second.x>first.x,'Desktop cards share a scannable row');else assert.ok(second.y>first.y,'Narrow cards stack');
  const metrics=await page.locator('.tasks-morning__metrics').boundingBox();const groups=await page.locator('.tasks-morning__groups').boundingBox();assert.ok(metrics&&groups&&metrics.y>=groups.y+groups.height,'Actionable tasks precede unconnected metrics');
+ await page.locator('.tasks-morning').evaluate(el=>{(document.activeElement as HTMLElement)?.blur();el.scrollTop=0;});
  await page.screenshot({path:join(output,`${width}-${theme}.png`)});
  await page.getByRole('button',{name:'查看事项：Oldest handoff',exact:true}).click();const title=page.locator('.tasks-editor').getByRole('textbox',{name:'标题',exact:true});await title.fill('Retained morning draft');await page.getByRole('button',{name:'关闭任务详情',exact:true}).click();
  await page.getByRole('button',{name:'查看事项：Oldest handoff',exact:true}).click();assert.equal(await title.inputValue(),'Retained morning draft');await page.getByRole('button',{name:'关闭任务详情',exact:true}).click();
