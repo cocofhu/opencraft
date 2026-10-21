@@ -1236,6 +1236,16 @@ the previous presentation claim. Automation input/focus locks remain on the Host
 
 
 
+### Replaced host registration completion (2026-10-21)
+
+When a selected host is replaced before it has registered or painted, the
+transition retires that host's current presentation reference before showing its
+replacement. A later registration may finish preparing the retained backing but
+must keep its old presentation parked. The selected tab, visible page and input
+recipient must agree; logical pages and drafts remain alive until explicitly
+closed. Current owner, reference and generation fences also apply to this early
+replacement path.
+
 ### Browser Host registry contract (2026-10-20)
 
 The explicitly copied manager class is independently expressed from frozen
@@ -1258,14 +1268,3 @@ toolbar and manager consume the same six declared exports. Numeric helpers
 round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
-
-
-### Replaced host registration completion (2026-10-21)
-
-When a selected host is replaced before it has registered or painted, the
-transition retires that host's current presentation reference before showing its
-replacement. A later registration may finish preparing the retained backing but
-must keep its old presentation parked. The selected tab, visible page and input
-recipient must agree; logical pages and drafts remain alive until explicitly
-closed. Current owner, reference and generation fences also apply to this early
-replacement path.
