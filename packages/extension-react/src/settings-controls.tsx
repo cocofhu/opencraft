@@ -1,4 +1,3 @@
-import { LoadingRingIcon } from "@opencraft/design-system-web/action-icons";
 import type {
   ButtonHTMLAttributes,
   HTMLAttributes,
