@@ -12526,7 +12526,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   cursor: default;
   pointer-events: none;
   .opencraft-composer-mode__model-label { flex: 0 1 auto; }
-  .opencraft-composer-mode__effort-label { display: inline-flex; }
+  padding-inline: 0;
 }
 
 .opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }
