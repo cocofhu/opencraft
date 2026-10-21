@@ -223,3 +223,6 @@ The component-build patch exports the Chromium/gin/GTK entry points used by
 Electron, keeps GTK calls on the existing dynamic stub loader, and explicitly
 links Viz client, double-conversion and Zstd compression implementations. It
 retains strict linker diagnostics and does not change native copy authorization.
+
+Linux explicitly depends on the GTK component exporting those entry points;
+GTK itself remains dynamically loaded by the existing stub implementation.

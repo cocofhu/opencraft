@@ -46,6 +46,10 @@
     {
       "path": "patches/electron/0010-component-api-exports.patch",
       "sha256": "d940e573cdfe345c33be87af52981d2b1945b49e77fffa45dd86b12950105a91"
+    },
+    {
+      "path": "patches/electron/0011-explicit-gtk-component-dependency.patch",
+      "sha256": "1159d0911788e537ca2fb9044b3f54694e69559abc33261587777138d239ae34"
     }
   ]
 }
