@@ -50,6 +50,7 @@ const errorLabel = (value: string) =>
   ({
     revision_conflict: "配置已在其他窗口更新。请重新载入，合并草稿后再启用。",
     human_authentication_required: "请登录后管理 IM 渠道。",
+    same_origin_required: "请求来源校验失败，请重新打开当前站点后重试。",
     bot_already_configured: "这个机器人已配置，请使用已有渠道。",
     connection_failed: "暂时无法连接，请核对凭据后重试。",
     channel_denied: "当前账号无权执行此操作。",
@@ -73,7 +74,7 @@ function Status({ value }: { value: string }) {
 export function createImView(controller: ImController) {
   return function ImChannels(props: ExtensionSettingsViewProps) {
     const [document, setDocument] = useState<ImDocument | null>(null),
-      [loadError, setLoadError] = useState(false),
+      [loadError, setLoadError] = useState<string | null>(null),
       [selected, setSelected] = useState<string | null>(null),
       [tab, setTab] = useState("route");
     const [pending, setPending] = useState<string | null>(null),
@@ -133,11 +134,11 @@ export function createImView(controller: ImController) {
           }
           actorRef.current = value.actorId;
           setDocument(value);
-          setLoadError(false);
+          setLoadError(null);
         }
       } catch (error) {
         if (alive.current && own === generation.current) {
-          setLoadError(true);
+          setLoadError(errorLabel(error instanceof Error ? error.message : "operation_failed"));
           if (
             error instanceof Error &&
             ["human_authentication_required", "channel_denied"].includes(
@@ -383,7 +384,7 @@ export function createImView(controller: ImController) {
         />
         {!document ? (
           <SettingsNotice>
-            {loadError ? "暂时无法读取渠道。请登录并重试。" : "正在加载渠道…"}
+            {loadError ? `暂时无法读取渠道。${loadError}` : "正在加载渠道…"}
             <Button onClick={() => void reload()}>重试</Button>
           </SettingsNotice>
         ) : !current ? (

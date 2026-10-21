@@ -355,7 +355,7 @@ test("public workbench Host is explicitly mapped to the core Server; HTTP writes
     }),
     /unsupported_host/,
   );
-  const request = async (origin: boolean) => {
+  const request = async (origin: boolean, headers: Record<string, string> = {}) => {
     let status = 0,
       value: any;
     const req: any = Readable.from([
@@ -364,7 +364,7 @@ test("public workbench Host is explicitly mapped to the core Server; HTTP writes
     Object.assign(req, {
       url: "/__opencraft_im",
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...headers },
     });
     await service.handle(
       req,
@@ -382,6 +382,11 @@ test("public workbench Host is explicitly mapped to the core Server; HTTP writes
   };
   assert.equal((await request(false)).status, 403);
   assert.equal((await request(true)).status, 200);
+  // Actual domain deployment: no provider origin override and no loopback proof.
+  assert.equal((await request(false, {host: "join.example", origin: "https://join.example"})).status, 200);
+  assert.equal((await request(false, {host: "join.example", origin: "http://join.example"})).status, 200);
+  assert.equal((await request(false, {host: "join.example", origin: "https://evil.example", "x-forwarded-host": "evil.example"})).status, 403);
+  assert.equal((await request(false, {host: "join.example", origin: "null"})).status, 403);
   authenticated = { ...actor, credentialId: "session-agent" };
   assert.equal((await request(true)).status, 401);
   authenticated = null;

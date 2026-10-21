@@ -101,7 +101,8 @@ const server = await createServer({
               '<html><body><div id="app"></div><script type="module" src="/im-proof.tsx"></script></body></html>',
             );
           } else if (req.url?.startsWith("/__opencraft_im"))
-            void service.handle(req, res, () => true);
+            // Exercise exact browser Origin/Host instead of bypassing CSRF checks.
+            void service.handle(req, res, () => false);
           else next();
         });
       },

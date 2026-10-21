@@ -568,9 +568,17 @@ export class ImChannelService {
       send(404, { error: "missing" });
       return true;
     }
+    // Match ActorAccess and collaboration writes: TLS may terminate before
+    // this listener. Host is preserved by the trusted proxy; forwarded headers
+    // never confer origin authority.
+    const origin = request.headers.origin;
+    const trustedOrigin = this.dependencies.actorAccess.options?.trustedOrigin?.(request);
+    const humanOrigin = typeof origin === "string" &&
+      (origin === trustedOrigin ||
+        ["http:", "https:"].some(protocol => origin === protocol + "//" + request.headers.host));
     if (
       request.headers["content-type"]?.split(";")[0] !== "application/json" ||
-      !sameOrigin(request, true)
+      !(humanOrigin || sameOrigin(request, true))
     ) {
       send(403, { error: "same_origin_required" });
       return true;
