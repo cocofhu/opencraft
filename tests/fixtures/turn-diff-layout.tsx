@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { TurnDiffTimelineBlock } from "@opencraft/chat-core";
+import type { TimelineStatus, TurnDiffTimelineBlock } from "@opencraft/chat-core";
 import { TurnDiffReviewDialog } from "../../apps/workbench-web/src/components/conversation/turn-diff-review-dialog";
 import gitCases from "./turn-diff-git-cases.json";
 import { reviewDiffForFile } from "../../apps/workbench-web/src/components/conversation/turn-diff-review";
@@ -28,6 +28,9 @@ const layoutDiff = files.map(([path, added, removed]) => [
 const selectedCase = new URLSearchParams(location.search).get("gitCase");
 const diff = selectedCase === "all" ? gitCases.map(entry => entry.diff).join("")
   : gitCases.find(entry => entry.name === selectedCase)?.diff ?? layoutDiff;
+const requestedStatus = new URLSearchParams(location.search).get("turnStatus");
+const status: TimelineStatus = requestedStatus === "failed" || requestedStatus === "interrupted" ? requestedStatus : "complete";
+const withoutAssistant = new URLSearchParams(location.search).has("withoutAssistant");
 const ctx = new Context();
 await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
@@ -38,9 +41,9 @@ for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme
 }
 const timeline = projectTimeline({
   key: createConversationKey("fixture", "diff-layout"), revision: 1, authoritative: true, phase: "live",
-  turns: [{ id: "turn", status: "complete", unifiedDiff: diff, items: [
+  turns: [{ id: "turn", status, unifiedDiff: diff, items: [
     { id: "question", type: "userMessage", payload: { text: "Update files" } },
-    { id: "answer", type: "agentMessage", payload: { text: "Updated.", completed: true, phase: "final_answer" } },
+    ...withoutAssistant ? [] : [{ id: "answer", type: "agentMessage", payload: { text: "Updated.", completed: true, phase: "final_answer" } }],
   ] }],
 }, createDefaultTimelineProjectorRegistry());
 function Fixture() {
