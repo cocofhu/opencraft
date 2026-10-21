@@ -31,7 +31,7 @@ export function createImExtension(
         title: "IM 渠道",
         viewId: IM_SETTINGS_ID + ".view",
         group: "Server",
-        icon: "messages-square",
+        icon: "message-circle",
         platforms: ["web"],
       });
       api.internal.register("platformViewRenderer", {
