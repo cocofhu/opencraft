@@ -1,12 +1,15 @@
+import { frame } from "@opencraft/design-system/tokens";
+
 /** Swipe right to reveal the left sidebar; swipe left to dismiss. */
 export const MOBILE_SIDEBAR_REVEAL_DIRECTION = 1;
 export const MOBILE_SIDEBAR_EDGE_RESERVE = 24;
 // A visible front-page strip remains large enough to dismiss by touch.
 export const MOBILE_SIDEBAR_PAGE_PEEK = 64;
 
-/** Fit the normal sidebar width to the screen, retaining a dismissal gutter. */
+/** Narrow only the mobile projection; saved desktop width and hit targets stay intact. */
 export function mobileSidebarWidth(viewportWidth: number, savedWidth: number): number {
-  return Math.min(Math.max(0, viewportWidth - MOBILE_SIDEBAR_PAGE_PEEK), Math.max(0, savedWidth));
+  const fittedWidth = Math.min(Math.max(0, viewportWidth - MOBILE_SIDEBAR_PAGE_PEEK), Math.max(0, savedWidth));
+  return Math.floor(fittedWidth * frame.sidebarMobileWidthRatio);
 }
 
 export function sidebarGestureAxis(dx: number, dy: number): "pending" | "horizontal" | "vertical" {
