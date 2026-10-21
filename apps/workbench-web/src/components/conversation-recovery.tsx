@@ -102,26 +102,22 @@ export function ConversationRecoveryEmptyState({ failed, requiresUpdate = false,
   );
 }
 
-export function ConversationRecoveryNotice({ failed, reconnecting, requiresUpdate = false, onRetry, diagnostic }: {
+export function ConversationRecoveryNotice({ failed, requiresUpdate = false, onRetry, diagnostic }: {
   readonly failed: boolean;
-  readonly reconnecting: boolean;
+  readonly reconnecting?: boolean;
   readonly diagnostic?: ConversationRecoveryDiagnostic;
   readonly requiresUpdate?: boolean;
   readonly onRetry?: () => void;
 }) {
-  const syncing = !failed && !reconnecting;
+  // An intermediate request error is not a stopped recovery episode.
+  // The existing owner keeps retrying without putting chrome over retained history.
+  const stage = diagnostic?.progress?.stage;
+  if (!failed || (!requiresUpdate && stage !== undefined && stage !== "failed" && stage !== "blocked")) return null;
   return (
-    <div className={`conversation-recovery-notice${syncing ? " conversation-recovery-notice--syncing" : ""}`} role={failed ? "alert" : "status"}>
-      {syncing ? <LoadingSpinner /> : <span className="conversation-recovery-notice__dot" aria-hidden="true" />}
-      <span className={syncing ? "conversation-recovery-loading__label" : undefined}>{failed
-        ? requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.reconnect.failed" defaultMessage="Could not reconnect" />
-        : reconnecting
-          ? <FormattedMessage id="chat.reconnect.pending" defaultMessage="Reconnecting…" />
-          : <FormattedMessage id="chat.sync.pending" defaultMessage="Syncing…" />}
-      </span>
-      {failed && !requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
-      {diagnostic && (!failed || diagnostic.progress) ? <RecoveryProgressDetails key={diagnostic.viewKey} diagnostic={diagnostic} failed={failed} /> : null}
-      {failed && diagnostic && !diagnostic.progress ? <RecoveryTechnicalDetails key={`${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
+    <div className="conversation-recovery-notice" role="alert">
+      <span>{requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.reconnect.failed" defaultMessage="Could not reconnect" />}</span>
+      {!requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
+      {diagnostic ? <RecoveryTechnicalDetails key={diagnostic.viewKey ?? conversationRecoveryDiagnosticText(diagnostic)} diagnostic={diagnostic} /> : null}
     </div>
   );
 }

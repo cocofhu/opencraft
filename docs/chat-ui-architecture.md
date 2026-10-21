@@ -2290,10 +2290,12 @@ snapshot carries connection progress; each resident Thread carries only its own
 history progress. UI never substitutes background Thread work for the current
 conversation. Timestamps, actual starts, the scheduler's retry deadline and a
 bounded machine-code failure are local metadata, with at most twelve stage events.
-A visible recovery notice and cold-history surface expose elapsed time and a
-collapsed copyable report before failure as well as during automatic retries.
-The presentation clock pauses in background tabs and never schedules work.
-Authoritative recovery removes the notice; invalidation fences late observations.
+With readable history, automatic retries render no recovery notice, including
+intermediate request errors. Terminal/blocked failure or a required update uses
+a normal-flow action row above the Composer with a collapsed copyable report.
+Cold-history presentation retains its separate existing surface. Presentation
+never schedules work; authoritative recovery removes the manual action row and
+invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
 its correlation ID and attempt count cannot inherit the completed report.
@@ -2322,3 +2324,13 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+### Retained-history recovery presentation
+
+With readable history, automatic connection/history recovery and intermediate failures
+render no floating notice or spinner. Only terminal/blocked failure or required client
+update presents an action row in normal flow above the Composer, with collapsed
+copyable technical details. Existing recovery owners, cold-state presentation,
+authority, outbox and command replay remain unchanged. The Application keeps its
+Composer and transcript mounted. `tests/conversation-recovery.test.tsx` checks
+quiet automatic retry and actionable failures.

@@ -2091,6 +2091,14 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
+                    {draft === null && recoveryPresentation === "warm-error" ? (
+                      <ConversationRecoveryNotice
+                        failed
+                        requiresUpdate={recoveryRequiresUpdate}
+                        diagnostic={recoveryDiagnostic}
+                        onRetry={retryConversationRecovery}
+                      />
+                    ) : null}
                     {conversationContribution?.beforeComposer}
                     {snapshot.conversation?.continuation.error ? (
                       <p role="alert">{snapshot.conversation.continuation.error.message}</p>
@@ -2179,15 +2187,7 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
-                  <ConversationRecoveryNotice
-                    failed={recoveryPresentation === "warm-error"}
-                    requiresUpdate={recoveryRequiresUpdate}
-                    diagnostic={recoveryDiagnostic}
-                    reconnecting={snapshot.phase === "reconnecting" || snapshot.conversation?.phase === "offline"}
-                    onRetry={retryConversationRecovery}
-                  />
-                ) : null}
+
               </>
             )}
           </div>

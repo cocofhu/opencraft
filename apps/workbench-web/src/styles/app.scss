@@ -218,35 +218,17 @@ body {
 }
 
 .conversation-recovery-notice {
-  position: absolute;
-  z-index: 4;
-  top: calc(var(--thread-content-top-inset) + 8px);
-  left: 50%;
   display: flex;
   flex-wrap: wrap;
-  width: max-content;
-  max-width: calc(100% - 32px);
-  min-height: 32px;
-  box-sizing: border-box;
   align-items: center;
+  min-width: 0;
   gap: 8px;
-  padding: 4px 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  background: var(--color-background-elevated-primary-opaque);
+  padding-block: 4px;
+  margin-bottom: 8px;
   color: var(--color-text-secondary);
   font: var(--typography-metadata-font);
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
-  transform: translateX(-50%);
   letter-spacing: var(--typography-metadata-tracking);
-}
-
-.conversation-recovery-notice--syncing:not(:has(.conversation-recovery-progress)) {
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  overflow-wrap: anywhere;
 }
 
 .conversation-recovery-progress {
@@ -292,14 +274,6 @@ body {
   pre { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; user-select: text; }
   p { margin: 4px 0; }
   [role="status"] { margin-inline-start: 8px; }
-}
-
-.conversation-recovery-notice__dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: currentColor;
 }
 
 @keyframes conversation-recovery-appear {

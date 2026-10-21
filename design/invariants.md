@@ -1845,3 +1845,13 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+### Retained-history recovery presentation
+
+With readable history, automatic connection/history recovery and intermediate failures
+render no floating notice or spinner. Only terminal/blocked failure or required client
+update presents an action row in normal flow above the Composer, with collapsed
+copyable technical details. Existing recovery owners, cold-state presentation,
+authority, outbox and command replay remain unchanged. The Application keeps its
+Composer and transcript mounted. `tests/conversation-recovery.test.tsx` checks
+quiet automatic retry and actionable failures.
