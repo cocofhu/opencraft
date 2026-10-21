@@ -1399,3 +1399,12 @@ independently validate each operation. Rejection after dispatch cannot roll back
 website handler side effects. This bridge does not implement surrounding-text
 reconversion, remote editor mirroring, mobile OS selection handles, password
 input or arbitrary native input types, and does not complete multitouch.
+
+### Empty remote tab recovery
+
+The worker bootstrap `about:blank` is represented as a null recovery URL, including
+when reading older checkpoints. Reopening an empty tab never sends that sentinel
+through the external HTTP(S) navigation command. A restored empty document does
+not suppress the viewer's pending initial target URL; a resumed or restored
+nonempty remote page remains authoritative and is not navigated again. Explicit
+blank navigation still uses null, and external URL restrictions remain intact.

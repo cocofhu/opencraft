@@ -8,6 +8,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'ime', 'copy', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
+// The worker's bootstrap document is an empty tab, not an external URL.
+const checkpointUrl = url => url === 'about:blank' || url === '' ? null : url;
 /** Gateway-owned process and page leases. A client gets only its own page port,
  * never a CDP endpoint, filesystem path or arbitrary JavaScript evaluator. */
 export class RemoteBrowserService {
@@ -31,7 +33,7 @@ export class RemoteBrowserService {
       for (const p of saved.pages) {
         if (typeof p.ownerId !== 'string' || typeof p.key !== 'string' || p.id !== createHash('sha256').update(p.key).digest('hex')
           || JSON.parse(p.key)[0] !== p.ownerId) throw new Error('Invalid browser state');
-        this.pages.set(p.key, { ...p, socket: null, live: false });
+        this.pages.set(p.key, { ...p, url: checkpointUrl(p.url), socket: null, live: false });
       }
       for (const [owner, state] of saved.states) this.states.set(owner, state);
       this.loaded = true;
@@ -154,7 +156,7 @@ export class RemoteBrowserService {
       message.error ? request.reject(Object.assign(new Error(message.error.message), message.error)) : request.resolve(message.value); return;
     }
     const p = [...this.pages.values()].find(page => page.id === message.page);
-    if (p && !p.recovering && message.type === 'navigation' && !message.state.isLoading) { p.url = message.state.url; this.checkpoint(); }
+    if (p && !p.recovering && message.type === 'navigation' && !message.state.isLoading) { p.url = checkpointUrl(message.state.url); this.checkpoint(); }
     if (p && message.type === 'viewport') { p.viewport = { width: message.width, height: message.height, deviceProfile: message.deviceProfile }; this.checkpoint(); }
     const ws = p?.socket;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -227,7 +229,7 @@ export class RemoteBrowserService {
                 if (recoveryUrl) await this.request(page.id, 'navigate', { url: recoveryUrl });
                 config = await this.request(page.id, 'snapshot');
               }
-              page.recovering = false; if (config.navigation?.url) page.url = config.navigation.url;
+              page.recovering = false; page.url = checkpointUrl(config.navigation?.url) ?? null;
               page.viewport = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
               await this.persist(); authorize();
               if (ws.readyState !== WebSocket.OPEN) { this.detach(page, ws); return; }

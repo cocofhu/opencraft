@@ -18,11 +18,11 @@ class FixtureService extends RemoteBrowserService {
     this.commands.push({ id, method, input });
     let p = this.physical.get(id);
     if (method === 'create') {
-      if (!p) this.physical.set(id, p = { width: 1280, height: 720, deviceProfile: 'desktop', url: '', memory: randomUUID() });
+      if (!p) this.physical.set(id, p = { width: 1280, height: 720, deviceProfile: 'desktop', url: 'about:blank', memory: randomUUID() });
       Object.assign(p, input); return { ...p, navigation: { url: p.url, title: 'Fixture', isLoading: false } };
     }
     if (method === 'close') { this.physical.delete(id); return; }
-    if (method === 'navigate') { p.url = input.url; this.receive({ type: 'navigation', page: id, state: { url: p.url, title: 'Fixture', isLoading: false } }); }
+    if (method === 'navigate') { if (input.url && !['https:', 'http:'].includes(new URL(input.url).protocol)) throw new Error('Unsupported browser URL'); p.url = input.url ?? 'about:blank'; this.receive({ type: 'navigation', page: id, state: { url: p.url, title: 'Fixture', isLoading: false } }); }
     if (method === 'snapshot') return { ...p, navigation: { url: p.url, title: 'Fixture', isLoading: false } };
   }
 }
@@ -121,5 +121,44 @@ test('corrupt state fails closed and is preserved instead of being replaced with
     await writeFile(path, '{broken');
     const a = await f.connect('a'); await assert.rejects(a.call('state'), /could not be read/); await a.detach();
     assert.equal(await readFile(path, 'utf8'), '{broken');
+  } finally { await f.close(); }
+});
+
+
+test('blank bootstrap checkpoints reopen without navigating an unsupported external URL', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), first = await f.connect('owner-a');
+    await first.call('open', { lease });
+    assert.equal([...f.service.pages.values()][0].url, null);
+    await first.detach(); await f.restart();
+    const second = await f.connect('owner-a');
+    const restored = await second.call('open', { lease });
+    assert.equal(restored.navigation.url, 'about:blank');
+    assert.equal(f.service.commands.filter(c => c.method === 'navigate').length, 0);
+    await second.call('navigate', { url: 'https://example.test/after-reopen' });
+    assert.equal([...f.service.pages.values()][0].url, 'https://example.test/after-reopen');
+    await second.call('navigate', { url: null });
+    assert.equal([...f.service.pages.values()][0].url, null);
+    await second.detach();
+  } finally { await f.close(); }
+});
+
+test('legacy about:blank recovery records migrate on read without clearing tab identities', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), first = await f.connect('owner-a');
+    await first.call('open', { lease }); await first.detach(); await f.restart();
+    const path = join(f.directory, 'remote-browser/tabs.json');
+    const saved = JSON.parse(await readFile(path, 'utf8')); saved.pages[0].url = 'about:blank';
+    await writeFile(path, JSON.stringify(saved));
+    const second = await f.connect('owner-a');
+    const restored = await second.call('open', { lease });
+    assert.equal(restored.restored, true); assert.equal(restored.navigation.url, 'about:blank');
+    assert.equal(f.service.pages.size, 1); assert.equal([...f.service.pages.values()][0].url, null);
+    assert.equal(f.service.commands.filter(c => c.method === 'navigate').length, 0);
+    assert.equal(JSON.parse(await readFile(path, 'utf8')).pages[0].id, saved.pages[0].id);
+    await assert.rejects(second.call('navigate', { url: 'file:///tmp/private' }), /Unsupported browser URL/);
+    await second.call('navigate', { url: 'https://example.test/recovered' }); await second.detach();
   } finally { await f.close(); }
 });
