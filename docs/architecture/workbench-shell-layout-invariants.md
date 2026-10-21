@@ -175,8 +175,15 @@ terminal grid/Composer non-overlap and local overlay ownership remain asserted.
 The bounded geometry diagnostic records raw viewport sizes, origin, Shell and
 input/control rectangles plus the client source revision. It carries no input
 content, route, account or user-agent values and never feeds positioning. It is
-limited to 64 observations per mounted host and uses the existing diagnostic
-transport. Controlled browser viewports still do not prove native iOS acceptance.
+rate limited with a 64-observation burst and eight credits restored per second,
+with duplicate suppression and an 80ms minimum interval. A long-lived page must
+not permanently lose later keyboard cycles after its first burst. It also records
+CSS top/height, document client height and root/body rectangles separately from
+raw viewport offsets; these are observations, never a positioning correction.
+The existing diagnostic transport accepts old geometry reports as well as the
+strictly numeric optional fields. Controlled browser viewports still do not prove
+native iOS acceptance, including whether client rectangles match a synthetic
+visual-offset subtraction during a native transition.
 
 Primary and body-portalled floating Shell hosts share the same origin/extent
 projection. Fixed descendants inside either host use local coordinates; the

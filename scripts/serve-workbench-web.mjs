@@ -223,13 +223,14 @@ function validRecoveryDiagnostic(report) {
 }
 
 const viewportGeometryKeys = new Set(["layoutHeight", "layoutWidth", "visualHeight", "visualWidth", "visualTop", "visualLeft", "pageTop", "scrollY", "scale", "shellTop", "shellHeight", "editorTop", "sendBottom", "editing"]);
+const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight"]);
 function validViewportDiagnostic(report) {
   return report?.kind === "viewport"
     && typeof report.episode === "string" && /^viewport-[a-z0-9]{1,20}$/.test(report.episode)
     && typeof report.sourceRevision === "string" && /^[a-f0-9]{40}$/.test(report.sourceRevision)
-    && Object.keys(report).length === viewportGeometryKeys.size + 3
+    && [...viewportGeometryKeys].every(key => Number.isFinite(report[key]))
     && Object.entries(report).every(([key, value]) => ["kind", "episode", "sourceRevision"].includes(key)
-      || (viewportGeometryKeys.has(key) && Number.isFinite(value) && Math.abs(value) <= 100_000))
+      || ((viewportGeometryKeys.has(key) || viewportOptionalGeometryKeys.has(key)) && Number.isFinite(value) && Math.abs(value) <= 100_000))
     && [0, 1].includes(report.editing) && report.scale > 0 && report.scale <= 20;
 }
 

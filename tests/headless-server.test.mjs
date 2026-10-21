@@ -611,7 +611,13 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   });
   assert.equal((await postViewport(viewport)).status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-viewport"), { serverProtocolVersion: 2, event: "client-viewport", ...viewport });
-  for (const invalid of [{ ...viewport, text: "private" }, { ...viewport, route: "/private" },
+  const projectedViewport = { ...viewport, cssTop: 172, cssHeight: 440, clientHeight: 844,
+    rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844 };
+  assert.equal((await postViewport(projectedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...projectedViewport });
+  const missingRequiredViewport = { ...projectedViewport }; delete missingRequiredViewport.visualHeight;
+  for (const invalid of [missingRequiredViewport, { ...projectedViewport, cssTop: 1e9 },
+    { ...projectedViewport, bodyTop: "private" }, { ...viewport, text: "private" }, { ...viewport, route: "/private" },
     { ...viewport, sourceRevision: "private" }, { ...viewport, editorTop: "private" },
     { ...viewport, shellTop: null }, { ...viewport, scale: 0 }, { ...viewport, shellTop: 1e9 }]) {
     assert.equal((await postViewport(invalid)).status, 400, "Viewport diagnostics accept bounded geometry only");
