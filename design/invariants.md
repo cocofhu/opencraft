@@ -1838,3 +1838,13 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+### Legacy realtime envelope presentation
+
+The exact lowercase outer realtime envelope still marks protocol data. Inner
+input, source and transcript tags retain case-insensitive matching and the first
+complete pair. Role markers consume at most one optional separator whitespace;
+repeated bare CR or Unicode line separators cannot be swallowed into an assistant
+entry. Preserve decoded text, ordinary multiline continuation, input deduplication
+and handoff identity in the shared parser; Web and Native consume its typed block.

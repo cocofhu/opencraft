@@ -55,3 +55,28 @@ test("realtime handoff identifiers strip the exact prefix only", () => {
   assert.equal(realtimeDelegationHandoffId("realtime-delegation-next"), "next");
   assert.equal(realtimeDelegationHandoffId("xrealtime-delegation-next"), null);
 });
+
+
+test("legacy voice envelopes keep case-insensitive inner tags and typed timeline projection", () => {
+  const markup = envelope("<SoUrCe>transcript_tail_flush</SoUrCe><TrAnScRiPt_DeLtA>assistant: Ready</TrAnScRiPt_DeLtA><InPuT>Hello voice</InPuT>");
+  assert.deepEqual(parseRealtimeDelegation(markup), { input: "Hello voice", source: "transcript_tail_flush", transcriptDelta: "assistant: Ready", transcript: [{ role: "assistant", text: "Ready" }, { role: "user", text: "Hello voice" }] });
+  for (const type of ["userMessage", "steeringUserMessage"]) {
+    const snapshot = projectTimeline({ key: createConversationKey("fixture", "legacy-voice"), revision: 1, phase: "live", authoritative: true,
+      turns: [{ id: "turn", status: "complete", items: [{ id: "realtime-delegation-legacy", type, payload: { content: [{ type: "text", text: markup }], input: [{ type: "text", text: markup }] } }] }],
+    }, createDefaultTimelineProjectorRegistry());
+    const blocks = snapshot.frames.flatMap(frame => frame.blocks);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0]?.type, "realtime-transcript");
+    if (blocks[0]?.type !== "realtime-transcript") throw new Error("Expected a typed legacy transcript");
+    assert.deepEqual(blocks[0].entries, [{ role: "assistant", text: "Ready" }, { role: "user", text: "Hello voice" }]);
+    assert.equal(blocks[0].handoffId, "legacy");
+  }
+});
+
+test("voice role markers do not absorb repeated bare line separators", () => {
+  for (const separator of ["\r\r", "\u2028\u2028", "\u2029\u2029", "\r\u2028"]) {
+    assert.deepEqual(parseRealtimeDelegation(envelope(`<transcript_delta>assistant:${separator}user: next</transcript_delta><input>latest</input>`))?.transcript, [{ role: "user", text: "latest" }]);
+  }
+  assert.deepEqual(parseRealtimeDelegation(envelope("<transcript_delta>assistant:\rReady</transcript_delta><input>latest</input>"))?.transcript, [{ role: "assistant", text: "Ready" }, { role: "user", text: "latest" }]);
+  assert.deepEqual(parseRealtimeDelegation(envelope("<transcript_delta>assistant:   Ready\ncontinuation</transcript_delta><input>latest</input>"))?.transcript, [{ role: "assistant", text: "Ready\ncontinuation" }, { role: "user", text: "latest" }]);
+});

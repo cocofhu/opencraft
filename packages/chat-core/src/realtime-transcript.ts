@@ -29,11 +29,12 @@ const entities: Readonly<Record<string, string>> = {
 
 function tagValue(body: string, name: string): string | null {
   const opening = `<${name}>`;
-  const start = body.indexOf(opening);
+  const start = body.search(new RegExp(opening, "i"));
   if (start < 0) return null;
-  const end = body.indexOf(`</${name}>`, start + opening.length);
+  const content = body.slice(start + opening.length);
+  const end = content.search(new RegExp(`</${name}>`, "i"));
   if (end < 0) return null;
-  return body.slice(start + opening.length, end)
+  return content.slice(0, end)
     .replace(/&(lt|gt|quot|apos|amp);/g, (_, entity: string) => entities[entity]!)
     .trim();
 }
@@ -47,7 +48,7 @@ function transcriptEntries(delta: string | null, input: string): RealtimeTranscr
     if (role !== null && text.length > 0) result.push({ role, text });
   };
   for (const line of (delta ?? "").split(/\r?\n/)) {
-    const marker = /^(user|assistant):\s*(.*)$/i.exec(line);
+    const marker = /^(user|assistant):\s?(.*)$/i.exec(line);
     if (marker) {
       finish();
       role = marker[1]!.toLowerCase() as RealtimeTranscriptEntry["role"];
