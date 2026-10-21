@@ -34,7 +34,7 @@ const server = await createServer({ configFile: false, root: process.cwd(), logL
   resolve: { dedupe: ["react", "react-dom", "react-intl"] },
   optimizeDeps: { include: ["react", "react-dom/client", "react/jsx-runtime", "react-intl"] },
   define: { "process.env.NEXT_PUBLIC_REGION": '"cn"', "process.env.NEXT_PUBLIC_PREVIEW_LOCALES": '""',
-    "import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_HEADLESS_CODEX": '"false"' },
+    "import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN": '"false"', "import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST": '"false"' },
   server: { host: "127.0.0.1", port: 0, hmr: false },
   plugins: [{name: "render-extensions-proof", resolveId: id => id === "/proof.tsx" ? id : null, load: id => id === "/proof.tsx" ? source : null,
     configureServer(vite) { vite.middlewares.use((req, res, next) => {

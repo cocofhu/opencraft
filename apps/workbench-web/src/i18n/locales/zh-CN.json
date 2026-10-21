@@ -498,7 +498,7 @@
   "notices.clear": "清空记录",
   "notices.scope": "当前页面会话 · 保留最近 50 条通知",
   "notices.empty": "暂无通知",
-  "sidebar.search.scope": "全部服务器 · 标题与 Codex 消息",
+  "sidebar.search.scope": "全部服务器 · 标题与消息",
   "sidebar.search.count": "{count} 个会话",
   "sidebar.search.loading": "正在加载会话…",
   "sidebar.search.empty": "没有匹配的会话",

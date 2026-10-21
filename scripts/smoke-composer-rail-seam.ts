@@ -6,7 +6,7 @@ const {chromium}=playwright.default??playwright;
 await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
 try {
  const quick=process.argv.includes("--quick");
- for(const dpr of quick?[2]:[1,2,3]) for(const palette of quick?["codex"]:["codex","frost"]) for(const mode of quick?["light"]:["light","dark"]) for(const variant of quick?["newera"]:["newera","off","desktop"]){
+ for(const dpr of quick?[2]:[1,2,3]) for(const palette of quick?["neutral"]:["neutral","frost"]) for(const mode of quick?["light"]:["light","dark"]) for(const variant of quick?["newera"]:["newera","off","desktop"]){
   const context=await browser.newContext({viewport:{width:variant==="desktop"?1280:390,height:844},hasTouch:variant!=="desktop",deviceScaleFactor:dpr});
   const page=await context.newPage();const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");

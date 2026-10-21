@@ -3448,7 +3448,7 @@ test("Codex skill paths produce stable semantic names for local and cached plugi
   assert.equal(plugin?.isSkillDefinitionFile, true);
 });
 
-test("Agent Activity disclosure follows the Codex state table", () => {
+test("Agent Activity disclosure follows the presentation state table", () => {
   assert.deepEqual(resolveAgentActivityDisclosure({
     hasFinalAssistantStarted: false,
     hasRenderableAgentItems: true,

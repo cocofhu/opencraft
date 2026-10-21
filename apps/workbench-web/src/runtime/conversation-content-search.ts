@@ -53,7 +53,7 @@ export function serializeContentSearch() {
   };
 }
 
-export function createCodexContentSearchSource(input: {
+export function createAppServerContentSearchSource(input: {
   readonly key: string; readonly hostId: string; readonly label: string;
   readonly available: boolean; readonly supported: boolean;
   readonly assertCurrent: () => void;

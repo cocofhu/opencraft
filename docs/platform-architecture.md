@@ -673,7 +673,7 @@ is dispatched by the dictation keyboard owner; Enter on a control remains native
 button activation. Send availability while capturing does not depend on publishing
 provisional draft content. Cancel, error or owner loss
 resolve completion negatively, so late results cannot authorize a send. Repeated
-stop requests share one completion. Escape cancels; a Codex-style 150ms hold
+stop requests share one completion. Escape cancels; a 150ms hold
 separates release-to-insert from the synthesized click. The gesture owns its
 pointer-ID release/cancel listener independently of the trigger's inert state;
 blur releases a held gesture, while cancellation/unmount removes its ownership.
@@ -1498,7 +1498,7 @@ Trusted build composition selects an explicit, immutable presentation policy
 (`WorkbenchWebBuildFeatures.presentation`), independently of product identity.
 The build validates and serializes icon style, default theme ID and hidden builtin
 theme IDs; the renderer reads it synchronously before its first appearance snapshot.
-Public defaults use the standard icon adapter and Codex theme. A custom identity
+Public defaults use the standard icon adapter and Neutral theme. A custom identity
 alone never changes artwork, palette defaults or the catalog. Existing async client
 product entries keep their account/engine lifecycle and need no additional export.
 Saved theme intent and existing storage/theme IDs retain their previous authority;
@@ -2956,8 +2956,7 @@ localized unknown label.
 ### Host-owned automatic Codex conversation titles
 
 The shared local or SSH Codex product adapter observes newly created durable Threads and starts
-one background title attempt after their first accepted text input. Like Codex
-App, it uses the existing initialized AppServer connection for a private
+one background title attempt after their first accepted text input. It uses the existing initialized AppServer connection for a private
 ephemeral Thread, a structured `turn/start` result, then `thread/name/set` on the
 original Thread. Actual `model/list` availability selects Luna, then mini; it
 never changes the conversation model or creates a second credential owner.
