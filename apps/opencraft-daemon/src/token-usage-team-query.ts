@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 /** Whole-team reductions stay inside a single read snapshot and return only
  * grouped rows plus a bounded detail page. usage_sum is a JS BigInt aggregate;
  * neither SQLite's signed-64 SUM nor floating point touches token values. */
-export function readTeamUsage(db:DatabaseSync,input:{serverId:string;start:number;end:number;modelKey?:string;threadId?:string;turnId?:string;view:string;after:string;limit:number}) {
+export function readTeamUsage(db:Pick<DatabaseSync,"prepare">,input:{serverId:string;start:number;end:number;modelKey?:string;threadId?:string;turnId?:string;view:string;after:string;limit:number}) {
   const args:(string|number)[]=[],model=input.modelKey;
   if(model!==undefined)args.push(model);
   args.push(input.serverId,input.start,input.end);

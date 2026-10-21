@@ -1,3 +1,4 @@
+import type { StatementSync } from "node:sqlite";
 import { readTeamUsage } from "./token-usage-team-query.js";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { CodexHostStateDatabase } from "./codex-host-state-database.js";
@@ -33,6 +34,15 @@ function midnight(date: string, format: Intl.DateTimeFormat): number {
  * source IDs or filesystem paths are returned. SQLite INTEGER SUM is avoided:
  * token counts can exceed both JS safe integers and SQLite signed 64 bits. */
 export class TokenUsageQuery {
+  private readonly statements = new Map<string, StatementSync>();
+  private statement(sql: string): StatementSync {
+    const existing = this.statements.get(sql);
+    if (existing) return existing;
+    const statement = this.state.database.prepare(sql);
+    if (this.statements.size === 128) this.statements.delete(this.statements.keys().next().value!);
+    this.statements.set(sql, statement);
+    return statement;
+  }
   private readonly midnightFormat: Intl.DateTimeFormat;
   private readonly dateFormat: Intl.DateTimeFormat;
   constructor(private readonly state: Pick<CodexHostStateDatabase,"database">, readonly serverId: string, readonly timezone="Asia/Shanghai", private readonly now=Date.now, private readonly secret: Uint8Array=randomBytes(32)) {
@@ -68,10 +78,10 @@ export class TokenUsageQuery {
     const limit=p.limit??50;
     if(typeof limit!=="number"||!Number.isSafeInteger(limit)||limit<1||limit>100) return invalid();
     const binding=JSON.stringify([this.serverId,authority.actorId,authority.administrator,scope,actorId??null,start,end,p.modelKey??null,p.threadId??null,p.turnId??null,view,limit]);
+    let bulkIterator:Iterator<Record<string,unknown>>|null=null;
     this.state.database.exec("BEGIN");
     try {
-      const db=this.state.database;
-      const coverage=db.prepare("SELECT * FROM token_usage_scopes WHERE server_id=?").get(this.serverId);
+      const coverage=this.statement("SELECT * FROM token_usage_scopes WHERE server_id=?").get(this.serverId);
       if(!coverage) return invalid();
       const revision=Number(coverage.revision);
       let after="";
@@ -101,23 +111,23 @@ export class TokenUsageQuery {
       const personal=actorId!==undefined;
       const turnSql=(personal?`WITH owned AS MATERIALIZED (SELECT DISTINCT thread_id,turn_id FROM token_usage_inputs WHERE server_id=? AND actor_id=? AND actor_kind='human' AND admission='confirmed') SELECT t.* FROM owned CROSS JOIN token_usage_turns t ON t.thread_id=owned.thread_id AND t.turn_id=owned.turn_id `:"SELECT t.* FROM token_usage_turns t ")+`WHERE t.server_id=? AND t.started_ms>=? AND t.started_ms<?${filter} ORDER BY t.started_ms,t.thread_id,t.turn_id`;
       const turnParameters=personal?[this.serverId,actorId!,...parameters]:parameters;
-      const buckets=db.prepare("SELECT model_key,provider,model,tokens FROM token_usage_buckets WHERE server_id=? AND thread_id=? AND turn_id=? ORDER BY model_key");
-      const shares=db.prepare("SELECT actor_id,model_key,tokens FROM token_usage_allocations WHERE server_id=? AND thread_id=? AND turn_id=?");
-      const participants=db.prepare("SELECT count(DISTINCT actor_id) AS count FROM token_usage_inputs WHERE server_id=? AND thread_id=? AND turn_id=? AND admission='confirmed' AND actor_kind='human' AND actor_id IS NOT NULL");
-      const team=actorId===undefined&&this.timezone==="Asia/Shanghai"?readTeamUsage(db,{serverId:this.serverId,start,end,view:String(view),after,limit,modelKey:p.modelKey as string|undefined,threadId:p.threadId as string|undefined,turnId:p.turnId as string|undefined}):null;
+      const buckets=this.statement("SELECT model_key,provider,model,tokens FROM token_usage_buckets WHERE server_id=? AND thread_id=? AND turn_id=? ORDER BY model_key");
+      const shares=this.statement("SELECT actor_id,model_key,tokens FROM token_usage_allocations WHERE server_id=? AND thread_id=? AND turn_id=?");
+      const participants=this.statement("SELECT count(DISTINCT actor_id) AS count FROM token_usage_inputs WHERE server_id=? AND thread_id=? AND turn_id=? AND admission='confirmed' AND actor_kind='human' AND actor_id IS NOT NULL");
+      const team=actorId===undefined&&this.timezone==="Asia/Shanghai"?readTeamUsage({prepare:sql=>this.statement(sql)},{serverId:this.serverId,start,end,view:String(view),after,limit,modelKey:p.modelKey as string|undefined,threadId:p.threadId as string|undefined,turnId:p.turnId as string|undefined}):null;
       if(team){
         known=team.known;allocated=team.allocated;turnCount=team.turnCount;missingUsage=team.missingUsage;unknownModelTurns=team.unknownModelTurns;rows=team.rows;
         Object.assign(totals,team.totals);
       }
-      let bulkIterator:Iterator<Record<string,unknown>>|null=null,bulkRow:IteratorResult<Record<string,unknown>>|null=null;
+      let bulkRow:IteratorResult<Record<string,unknown>>|null=null;
       if(personal){
         // Stream one joined range scan rather than issuing two statements for
         // every turn. Only the current turn's buckets and shares are retained.
         const selected=turnSql.slice(0,turnSql.lastIndexOf(" ORDER BY"));
         const bulk="WITH selected AS MATERIALIZED ("+selected+") SELECT t.thread_id,t.turn_id,b.model_key,b.provider,b.model,b.tokens,a.actor_id,a.tokens AS share_tokens FROM selected t CROSS JOIN token_usage_buckets b ON b.server_id=t.server_id AND b.thread_id=t.thread_id AND b.turn_id=t.turn_id LEFT JOIN token_usage_allocations a ON a.server_id=b.server_id AND a.thread_id=b.thread_id AND a.turn_id=b.turn_id AND a.model_key=b.model_key AND a.actor_id=? ORDER BY t.started_ms,t.thread_id,t.turn_id,b.model_key";
-        bulkIterator=db.prepare(bulk).iterate(...turnParameters,actorId!);bulkRow=bulkIterator.next();
+        bulkIterator=this.statement(bulk).iterate(...turnParameters,actorId!);bulkRow=bulkIterator.next();
       }
-      if(!team)for(const turn of db.prepare(turnSql).iterate(...turnParameters)) {
+      if(!team)for(const turn of this.statement(turnSql).iterate(...turnParameters)) {
         const ids=[this.serverId,String(turn.thread_id),String(turn.turn_id)];
         const allBuckets:Record<string,unknown>[]=personal?[]:buckets.all(...ids),allShares:Record<string,unknown>[]=personal?[]:shares.all(...ids);
         while(bulkIterator&&bulkRow&&!bulkRow.done&&bulkRow.value.thread_id===turn.thread_id&&bulkRow.value.turn_id===turn.turn_id){
@@ -167,11 +177,15 @@ export class TokenUsageQuery {
       if(current.actorId!==authority.actorId||current.administrator!==authority.administrator) throw new TokenUsageQueryError("forbidden");
       const gapScope=actorId===undefined?"":" AND EXISTS(SELECT 1 FROM token_usage_inputs i WHERE i.server_id=t.server_id AND i.thread_id=t.thread_id AND i.turn_id=t.turn_id AND i.actor_id=? AND i.admission='confirmed')";
       const gapParams: (string|number)[]=[this.serverId,start,end];if(actorId!==undefined)gapParams.push(actorId);
-      const gaps=Number(db.prepare(`SELECT count(*) AS count FROM token_usage_gaps g WHERE g.server_id=? AND ends_ms IS NULL AND (thread_id IS NULL OR EXISTS(SELECT 1 FROM token_usage_turns t WHERE t.server_id=g.server_id AND t.thread_id=g.thread_id AND t.started_ms>=? AND t.started_ms<?${gapScope}))`).get(...gapParams)!.count);
+      const gaps=Number(this.statement(`SELECT count(*) AS count FROM token_usage_gaps g WHERE g.server_id=? AND ends_ms IS NULL AND (thread_id IS NULL OR EXISTS(SELECT 1 FROM token_usage_turns t WHERE t.server_id=g.server_id AND t.thread_id=g.thread_id AND t.started_ms>=? AND t.started_ms<?${gapScope}))`).get(...gapParams)!.count);
       return {serverId:this.serverId,canQueryTeam:authority.administrator,canConfigure:authority.administrator,scope,actorId:actorId??null,asOf:this.now(),snapshotRevision:revision,timezone:this.timezone,policyVersion:"equal-turn-v1",view,
         coverage:{enabled:coverage.enabled===1,enabledAt:coverage.enabled_at_ms,partial:gaps>0||missingUsage>0,openGaps:gaps,missingUsage,unknownModelTurns},
         summary:{tokens:(actorId===undefined?known:allocated).toString(),...(actorId===undefined?{rawTokens:known.toString()}:{}),allocatedTokens:allocated.toString(),turns:turnCount,threads:team?team.threadCount:threads.size,categories:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,v.toString()]))},
         daily:team?team.daily:serialized(daily),models:team?team.models:serialized(models),rows:page.map(({key,...row})=>view==="turns"?row:{key,...row}),nextCursor};
-    } finally { this.state.database.exec("ROLLBACK"); }
+    } finally {
+      // Manual join iteration must release its active statement even when a
+      // malformed fact or authorization check throws before natural exhaustion.
+      try { bulkIterator?.return?.(); } finally { this.state.database.exec("ROLLBACK"); }
+    }
   }
 }

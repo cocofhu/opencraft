@@ -9,10 +9,10 @@ import { TokenUsageQueryError } from "../apps/opencraft-daemon/src/token-usage-q
 const at=Date.parse("2026-10-20T16:00:00Z");
 const params={from:"2026-10-21",through:"2026-10-21"};
 const A=()=>({actorId:"A",administrator:false}), B=()=>({actorId:"B",administrator:false}), admin=()=>({actorId:"admin",administrator:true});
-async function fixture(body:(ledger:CodexTokenUsageLedger)=>void) {
+async function fixture(body:(ledger:CodexTokenUsageLedger,state:CodexHostStateDatabase)=>void) {
   const path=await mkdtemp(join(tmpdir(),"oc-query-"));const state=new CodexHostStateDatabase(path);
   const ledger=new CodexTokenUsageLedger(state,"server",()=>at);
-  try{body(ledger);}finally{state.close();await rm(path,{recursive:true,force:true});}
+  try{body(ledger,state);}finally{state.close();await rm(path,{recursive:true,force:true});}
 }
 function turn(ledger:CodexTokenUsageLedger,id:string,actors:string[],counts=["5","5"],startedAt=at) {
   const key={threadId:"thread",turnId:id};
@@ -158,4 +158,23 @@ test("conversation count spans every matching turn rather than only the current 
   assert.equal(ledger.query({...params,scope,threadId:"shared",limit:1},authorize).summary.threads,1);
   assert.equal(ledger.query({...params,scope,modelKey:JSON.stringify(["p","m2"]),limit:1},authorize).summary.threads,1);
  }
+}));
+
+
+test("query SQL statement allocation is bounded across repeated authorized reads",()=>fixture((ledger,state)=>{
+  turn(ledger,"first",["A","B"]);
+  turn(ledger,"second",["A"]);
+  let preparations=0;
+  const prepare=state.database.prepare.bind(state.database);
+  state.database.prepare=((sql:string)=>{preparations++;return prepare(sql);}) as typeof state.database.prepare;
+  const first=ledger.query(params,A);
+  const warmed=preparations;
+  for(let n=0;n<200;n++)assert.equal(ledger.query(params,A).summary.tokens,first.summary.tokens);
+  assert.equal(preparations,warmed,"steady-state reads must not repeatedly allocate native statements");
+  // A failed reduction must release its manual bulk iterator and snapshot so
+  // the same physical query owner can serve a later repaired committed state.
+  state.database.prepare("UPDATE token_usage_buckets SET tokens='malformed' WHERE turn_id='first'").run();
+  assert.throws(()=>ledger.query(params,A));
+  state.database.prepare("UPDATE token_usage_buckets SET tokens='5' WHERE turn_id='first'").run();
+  assert.equal(ledger.query(params,A).summary.tokens,first.summary.tokens);
 }));
