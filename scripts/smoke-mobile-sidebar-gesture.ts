@@ -34,8 +34,7 @@ import {SettingsNavigation} from '/apps/workbench-web/src/components/settings-pa
 import {createApplicationNavigation} from '/apps/workbench-web/src/runtime/workbench-navigation.ts';
 import {ApplicationBrand} from '/apps/workbench-web/src/components/application-brand.tsx';
 const joinBrand = ${JSON.stringify(fixtureBranding)};
-const commandBlock={type:'command-execution',id:'gesture-command',sourceItemIds:['gesture-command'],callId:null,command:'tail -3 /fixture/artifact.log',cwd:'/fixture',processId:null,startedAtMs:null,turnInProgress:false,output:${JSON.stringify(Array.from({length:30},(_,i)=>`line ${i}: `+'column_value '.repeat(70)).join("
-"))},exitCode:0,durationMs:100,actions:[],automaticApprovalReviews:[],status:'complete'};
+const commandBlock={type:'command-execution',id:'gesture-command',sourceItemIds:['gesture-command'],callId:null,command:'tail -3 /fixture/artifact.log',cwd:'/fixture',processId:null,startedAtMs:null,turnInProgress:false,output:${JSON.stringify(Array.from({length:30},(_,i)=>`line ${i}: `+'column_value '.repeat(70)).join("\n"))},exitCode:0,durationMs:100,actions:[],automaticApprovalReviews:[],status:'complete'};
 import * as Dialog from '@radix-ui/react-dialog';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {AppShell} from '/apps/workbench-web/src/components/app-shell.tsx';
