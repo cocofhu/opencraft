@@ -40,3 +40,13 @@ selection, danger, disabled and busy semantics belong to their controls.
 The left/right split-panel and sidebar toggles are explicitly retained as drawn,
 per user feedback. Do not replace their artwork or change their geometry while
 unifying action icons. They also demonstrate the desired restrained proportions.
+
+Loading and reset/retry artwork also belongs to `action-icons`. `LoadingRingIcon`
+uses the shared progress geometry (faint full track and a foreground arc), with
+round 1.5-unit strokes. `ProgressIndicator` reuses it while retaining its existing
+24px slot, document-timeline phase and live reduced-motion cancellation. Composer
+stop/attachment/transcription feedback retains its existing motion and size.
+`ResetIcon` uses one counterclockwise arc and open return corner for model-default
+reset, voice retry and attachment retry. Disabled/default state and callbacks stay
+with their existing controls. Check a non-default effort returning to its model
+default without replacing the editor or changing the draft.

@@ -1,4 +1,4 @@
-import { LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
+import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
@@ -46,10 +46,8 @@ import {
   FileCode2,
   FileText,
   Image,
-  LoaderCircle,
   Paperclip,
   Plus,
-  RotateCcw,
   Sparkles,
   X,
 } from "lucide-react";
@@ -2058,14 +2056,14 @@ export const OpenCraftComposer = forwardRef<
                     : <img alt="" draggable={false} src={previewUrl} />}
                   {attachment.lifecycle === "pending" || attachment.lifecycle === "processing" || attachment.lifecycle === "uploading" ? (
                     <span aria-label={`Preparing ${attachment.name}`} className="opencraft-composer-image-attachment__status" role="status">
-                      <LoaderCircle aria-hidden="true" size={22} />
+                      <LoadingRingIcon aria-hidden="true" size={22} />
                     </span>
                   ) : null}
                   {attachment.lifecycle === "failed" ? (
                     <span className="opencraft-composer-image-attachment__status is-failed">
                       {attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
                         <button aria-label={`Retry ${attachment.name}: ${attachment.error ?? "Image preparation failed"}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)} type="button">
-                          <RotateCcw aria-hidden="true" size={20} />
+                          <ResetIcon aria-hidden="true" size={20} />
                         </button>
                       ) : <CircleAlert aria-label={attachment.error ?? "Image preparation failed"} role="img" size={20} />}
                     </span>
@@ -2093,7 +2091,7 @@ export const OpenCraftComposer = forwardRef<
                   </span>
                   <span className="opencraft-composer-attachment__actions">
                     {attachment.lifecycle === "failed" && attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
-                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><RotateCcw size={13} /></button>
+                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><ResetIcon size={13} /></button>
                     ) : null}
                     <button type="button" aria-label={`Remove ${attachment.name}`} onClick={() => removeAttachment(attachment.id)}><X size={13} /></button>
                   </span>
