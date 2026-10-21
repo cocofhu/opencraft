@@ -100,8 +100,8 @@ field, while an absent `off` does not advertise disabling. Provider wire strings
 are preserved. Speech models and their credentials do not enter this projection.
 
 Native providers use only the product credential resolver; missing referenced
-credentials make that provider unavailable, and null references support keyless
-endpoints. No key, command or second writable model document is copied to Pi.
+credentials or an unbound (null) reference make that provider unavailable.
+The API-key execution port never invents a token to advertise unconfigured endpoints. No key, command or second writable model document is copied to Pi.
 Legacy native `models.json` is read once for stable aliases: exact provider ID,
 or a unique name/protocol/base URL match. A private `model-provider-bindings.json`
 keeps that identity across rename/restart; it owns aliases only, not capabilities

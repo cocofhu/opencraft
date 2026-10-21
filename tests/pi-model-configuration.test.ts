@@ -81,15 +81,18 @@ test('legacy alias is a one-time unique metadata match and survives rename, rest
   assert.equal(reopened.models.getModel('custom-stable', 'arbitrary-model'), undefined);
 });
 
-test('credential rotation/removal and keyless endpoints apply without restarting, with no auth copy', async t => {
+test('credential rotation/removal and unbound references update availability without an auth copy', async t => {
   const f = await fixture(t);
   assert.equal((await f.config.models.getAuth('custom-stable'))!.auth.apiKey, 'test-key-in-memory');
   await f.credentials.set('EXAMPLE_CREDENTIAL', 'rotated-key'); await f.engine.models();
   assert.equal((await f.config.models.getAuth('custom-stable'))!.auth.apiKey, 'rotated-key');
   await f.credentials.remove('EXAMPLE_CREDENTIAL'); assert.deepEqual(await f.engine.models(), []);
   await assert.rejects(f.engine.request('thread/start', {model: piModel('custom-stable', 'arbitrary-model')}, client), /unavailable/);
-  await f.update(doc => {doc.providers[0]!.credentialRef = null;}); assert.equal((await f.engine.models()).length, 1);
-  assert.equal((await f.config.models.getAuth('custom-stable'))!.auth.apiKey, undefined);
+  await f.update(doc => {doc.providers[0]!.credentialRef = null;}); assert.deepEqual(await f.engine.models(), []);
+  await f.credentials.set('EXAMPLE_CREDENTIAL', 'newly-bound-key');
+  assert.deepEqual(await f.engine.models(), []);
+  await f.update(doc => {doc.providers[0]!.credentialRef = 'EXAMPLE_CREDENTIAL';});
+  assert.equal((await f.engine.models()).length, 1);
   await assert.rejects(readFile(join(f.directory, 'auth.json')), {code: 'ENOENT'});
 });
 

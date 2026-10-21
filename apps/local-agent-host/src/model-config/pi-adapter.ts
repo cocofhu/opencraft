@@ -72,7 +72,7 @@ export class PiModelEngineAdapter implements ModelEnginePort {
       if (!api) throw new ModelConfigurationApplyError('Pi不支持所配置的模型协议，请检查提供商配置。');
       const key = provider.credentialRef ? await credentials.resolve(provider.credentialRef) : undefined;
       // An unresolved reference never falls back to native files or process-global provider credentials.
-      if (provider.credentialRef && !key) continue;
+      if (!key) continue;
       const id = bindings[provider.id]!;
       const baseUrl = provider.baseUrl || this.endpoints.get(provider.catalogId ?? provider.id);
       if (!baseUrl) throw new ModelConfigurationApplyError('Pi模型提供商缺少服务地址，请检查配置。');
@@ -97,7 +97,7 @@ export class PiModelEngineAdapter implements ModelEnginePort {
       providers.push(createProvider({id, name: provider.name, baseUrl, models, api,
         auth: {apiKey: {name: 'OpenCraft configuration',
           check: async () => ({type: 'api_key', source: 'OpenCraft configuration'}),
-          resolve: async () => ({auth: key ? {apiKey: key} : {}, source: 'OpenCraft configuration'})}}}));
+          resolve: async () => ({auth: {apiKey: key}, source: 'OpenCraft configuration'})}}}));
     }
     // Resolve and validate the entire next projection before replacing native providers.
     const next = new Set(providers.map(provider => provider.id));
