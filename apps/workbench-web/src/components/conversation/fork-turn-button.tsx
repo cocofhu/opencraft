@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { GitFork, LoaderCircle } from "lucide-react";
+import { GitFork } from "lucide-react";
+import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import { useIntl } from "@opencraft/i18n/react";
 
 /** A fork is a mutation with a possibly unknown outcome; never retry it automatically. */
@@ -20,7 +21,7 @@ export function ForkTurnButton({ fork }: { readonly fork: () => Promise<void> })
           setError(reason instanceof Error ? reason.message : String(reason));
         }).finally(() => { pending.current = false; setBusy(false); });
       }}>
-      {busy ? <LoaderCircle size={13} /> : <GitFork size={13} />}
+      {busy ? <ProgressIndicator /> : <GitFork size={13} />}
     </button>
     {error === null ? null : <span role="alert">{error}</span>}
   </>;
