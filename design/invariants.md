@@ -1706,3 +1706,7 @@ Morning overview is a read-only projection of the task controller snapshot, with
   human wait clock; strict >72h highlights are ordered longest first. Ordinary
   progress, triage and task timestamps cannot establish/reset that clock. Leaving
   review ends the round; unknown history stays unknown. The morning view is read-only.
+
+### Morning research card hierarchy
+
+Morning research is a task-oriented reading surface: decision request precedes output and next step, one labeled detail destination remains visible, and a separate accessible summary disclosure reveals uncropped original content. Status/wait/owner retain their existing authority; the UI does not introduce approval or execution writes. Pending metric checks are unknown; unconnected product metrics stay explicit and subordinate to actionable cards. Cards reflow within the Tasks container using existing typography, semantic paired colors and shared SettingsButton controls.

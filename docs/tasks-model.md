@@ -439,3 +439,7 @@ view reevaluates elapsed time every minute. An old review card without a valid
 report has no clock. History failures or incomplete bounded pagination are shown
 as unknown, with retry; they are never converted into inferred timestamps or
 complete zero totals. Historical timestamps are not backfilled from task age.
+
+### Morning card reading and actions
+
+The morning view leads with review/overdue/research/queue counts and places the four explicitly unconnected product metrics after the task groups. Pending or incomplete handoff checks use an unknown marker rather than a verified zero. Each task card orders status and waiting time, title, decision requested, completed output, next step, then owner and a labeled task-detail action. Desktop cards use two columns; narrow containers use one. Long fields show a three-line preview with a keyboard/touch disclosure that exposes the complete original text. Disclosure is presentation only; Review details/View details invoke the same existing editor owner without approving, moving or starting work. Invalid/unavailable handoffs remain explicit and never gain ready-for-review status from triage alone.

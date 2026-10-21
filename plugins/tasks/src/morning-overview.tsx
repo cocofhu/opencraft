@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Users, Activity, Boxes, Send, ArrowUpRight, CircleHelp } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { Users, Activity, Boxes, Send, ArrowRight, ChevronDown, ChevronUp, Clock, CircleHelp } from "lucide-react";
 import { SettingsButton } from "@opencraft/extension-react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { TaskDetail, TaskMember, TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -69,16 +69,15 @@ export function MorningOverview({ tasks, members, aiResearch, activity, port, on
       <p>{text("产品运行情况与 AI 预研推进", "Product health and AI research progress")}</p>
       <span>{text("全看板 · 不受列表筛选影响", "Whole board · independent of browse filters")}</span>
     </div>
-    <section className="tasks-morning__metrics" aria-label={text("产品核心数据", "Core product metrics")}>
-      {metrics.map(({ label, icon: Icon, hint }) => <section className="tasks-morning__metric" key={label} aria-label={label}>
-        <div><Icon size={18} aria-hidden="true" /><h3>{label}</h3></div>
-        <p className="tasks-morning__metric-value">{text("待补充", "To be added")}</p>
-        <span>{hint}</span>
-      </section>)}
-    </section>
     <section className="tasks-morning__brief" aria-label={text("晨会简报", "Morning brief")}>
       <CircleHelp size={20} aria-hidden="true" />
       <div><h3>{text("今天，哪些事项需要人推动？", "What needs human attention today?")}</h3>
+        {aiResearch ? <div className="tasks-morning__counts" aria-label={text("预研状态汇总", "Research status summary")}>
+          <span><strong>{checking ? "—" : decisions.length}</strong>{text("待判断", "To review")}</span>
+          <span className={overdue.length ? "tasks-morning__count--warning" : undefined}><strong>{checking || unavailable ? "—" : overdue.length}</strong>{text("等待超过 72 小时", "Waiting over 72h")}</span>
+          <span><strong>{running.length}</strong>{text("预研中", "Researching")}</span>
+          <span><strong>{queued.length}</strong>{text("待启动", "Queued")}</span>
+        </div> : null}
         <p>{aiResearch && checking ? text("正在核实 AI 预研交接记录…", "Checking AI research handoffs…") : aiResearch
           ? text(`已核实 ${overdue.length} 项等待判断超过 72 小时；${running.length} 项预研中，${queued.length} 项待启动。`, `Verified: ${overdue.length} decisions waiting over 72 hours; ${running.length} researching; ${queued.length} queued.`)
           : text("当前连接尚未提供预研分流，请恢复支持该能力的任务连接。", "Research triage is unavailable on this task connection.")}</p>
@@ -93,21 +92,66 @@ export function MorningOverview({ tasks, members, aiResearch, activity, port, on
           {group.items.map(task => {
             const report = handoffFor(task);
             const ageHours = report ? Math.max(0, Math.floor((now - report.readyAt) / 3_600_000)) : 0;
-            return <li className={`tasks-morning__item${group.id === "overdue" ? " tasks-morning__item--overdue" : ""}`} key={task.id} data-morning-task-id={task.id}>
-              <div className="tasks-morning__item-heading"><h4>{task.title}</h4><SettingsButton variant="quiet" onClick={() => onOpen(task)} aria-label={text(`查看事项：${task.title}`, `Open task: ${task.title}`)}><ArrowUpRight size={16} aria-hidden="true" /></SettingsButton></div>
-              {report ? <dl className="tasks-morning__handoff"><dt>{text("阶段产出", "Output")}</dt><dd>{report.output}</dd><dt>{text("需要判断", "Decision")}</dt><dd>{report.decision}</dd><dt>{text("判断后下一步", "Next step")}</dt><dd>{report.nextStep}</dd></dl> : <p>{task.aiResearchReason || text("预研依据待补充", "Research basis to be added")}</p>}
-              <div className="tasks-morning__item-footer"><span>{members.find(member => member.id === task.assigneeId)?.name ?? text("尚未承接", "Unassigned")}</span>
-                {task.status === "in_review" ? <span>{report
-                  ? text(`等待判断 ${ageHours} 小时`, `Waiting for a decision: ${ageHours} hours`)
-                  : reports.loading || reports.key !== reviewKey ? text("正在核实交接记录…", "Checking handoff…")
-                    : reports.errors.has(task.id) || !activity ? text("交接记录暂不可用 · 未计算时长", "Handoff unavailable · time not calculated")
-                      : text("尚无有效交接 · 未开始计时", "No valid handoff · clock not started")}</span>
-                  : <span>{text("未开始人工等待计时", "Human wait clock not started")}</span>}
-              </div>
-            </li>;
+            const wait = task.status === "in_review" ? report
+              ? text(`等待判断 ${ageHours} 小时`, `Waiting for a decision: ${ageHours} hours`)
+              : checking ? text("正在核实交接记录…", "Checking handoff…")
+                : reports.errors.has(task.id) || !activity ? text("交接记录暂不可用 · 未计算时长", "Handoff unavailable · time not calculated")
+                  : text("尚无有效交接 · 未开始计时", "No valid handoff · clock not started")
+              : text("未开始人工等待计时", "Human wait clock not started");
+            return <MorningTaskCard key={task.id} task={task} report={report} overdue={group.id === "overdue"}
+              owner={members.find(member => member.id === task.assigneeId)?.name ?? text("尚未承接", "Unassigned")}
+              wait={wait} zh={zh} onOpen={onOpen} />;
           })}
         </ul>}
       </section>)}
     </div> : null}
+    <section className="tasks-morning__metrics" aria-label={text("产品核心数据", "Core product metrics")}>
+      {metrics.map(({ label, icon: Icon, hint }) => <section className="tasks-morning__metric" key={label} aria-label={label}>
+        <div><Icon size={18} aria-hidden="true" /><h3>{label}</h3></div>
+        <p className="tasks-morning__metric-value">{text("待补充", "To be added")}</p>
+        <span>{hint}</span>
+      </section>)}
+    </section>
   </section>;
+}
+
+
+/** Presentation-only disclosure; the task and review workflow retain their existing owners. */
+function MorningTaskCard({ task, report, overdue, owner, wait, zh, onOpen }: {
+  task: TaskDetail;
+  report: ReadyResearchHandoff | null | undefined;
+  overdue: boolean;
+  owner: string;
+  wait: string;
+  zh: boolean;
+  onOpen(task: TaskDetail): void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
+  const text = (cn: string, en: string) => zh ? cn : en;
+  const reviewing = task.status === "in_review";
+  const status = reviewing ? report ? text("待你判断", "Ready for review") : text("待核实交接", "Handoff unverified")
+    : task.status === "in_progress" ? text("预研中", "Researching") : text("待启动", "Queued");
+  return <li className={`tasks-morning__item${overdue ? " tasks-morning__item--overdue" : ""}`} data-morning-task-id={task.id}>
+    <div className="tasks-morning__item-meta"><span className={`tasks-morning__status tasks-morning__status--${report ? "review" : "neutral"}`}>{status}</span>
+      {reviewing ? <span className="tasks-morning__wait"><Clock size={14} aria-hidden="true" />{wait}</span> : null}
+    </div>
+    <h4>{task.title}</h4>
+    <div id={contentId} className={`tasks-morning__content${expanded ? " is-expanded" : ""}`}>
+      {report ? <dl className="tasks-morning__handoff">
+        <div className="tasks-morning__decision"><dt>{text("需要你判断", "Your decision")}</dt><dd>{report.decision}</dd></div>
+        <div><dt>{text("已完成的产出", "Research output")}</dt><dd>{report.output}</dd></div>
+        <div><dt>{text("判断后下一步", "Next step after review")}</dt><dd>{report.nextStep}</dd></div>
+      </dl> : <div className="tasks-morning__basis"><span>{text("预研依据", "Research basis")}</span><p>{task.aiResearchReason || text("预研依据待补充", "Research basis to be added")}</p></div>}
+    </div>
+    <div className="tasks-morning__disclosure"><SettingsButton variant="quiet" aria-expanded={expanded} aria-controls={contentId} onClick={() => setExpanded(value => !value)}>
+      {expanded ? text("收起摘要", "Collapse summary") : text("展开完整摘要", "Expand full summary")}{expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+    </SettingsButton></div>
+    <div className="tasks-morning__item-footer"><div><span>{text("跟进人", "Owner")}</span><span>{owner}</span></div>
+      <SettingsButton variant={reviewing && report ? "primary" : "secondary"} onClick={() => onOpen(task)} aria-label={text(`查看事项：${task.title}`, `Open task: ${task.title}`)}>
+        {reviewing && report ? text("查看待判断事项", "Review details") : text("查看详情", "View details")}<ArrowRight size={16} aria-hidden="true" />
+      </SettingsButton>
+    </div>
+    {!reviewing ? <span className="tasks-morning__clock-note">{wait}</span> : null}
+  </li>;
 }
