@@ -2344,3 +2344,12 @@ Reduced motion paints a static minimum-height signal and suppresses sample-drive
 repaints, while bounded sample collection and recording controls continue. A
 preference change redraws once, and disposal releases the listener with the
 subscription, observer and pending frame.
+
+
+User-message acknowledgement preserves the saved params `clientId` alias when
+`clientUserMessageId` is absent, and saved steering may use `content` when `input`
+is absent. Host-staged display spans accept both `text_elements`/`textElements`
+and `byte_range`/`byteRange`, as the typed message projector does. An enriched
+server echo must remain one message with its original attachment card and
+source anchors; accepting saved field spellings does not relax the exact UTF-8
+span or legacy locator checks.

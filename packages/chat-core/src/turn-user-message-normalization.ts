@@ -43,7 +43,7 @@ export function codexUserMessageCompareKey(value: unknown): UserMessageCompareKe
 
 function inputOf(item: TimelineSourceItem): unknown {
   const data = record(item.payload);
-  return item.type === "steeringUserMessage" ? data.input : data.content ?? data.input;
+  return item.type === "steeringUserMessage" ? data.input ?? data.content : data.content ?? data.input;
 }
 
 function clientOf(data: RecordValue): string | null {
@@ -68,12 +68,13 @@ function hasStagedDisplay(input: unknown): boolean {
   const mentions = input.map(record).filter(part => part.type === "mention" && typeof part.name === "string" && typeof part.path === "string");
   for (const part of input) {
     const data = record(part);
-    if (data.type !== "text" || typeof data.text !== "string" || !Array.isArray(data.text_elements)) continue;
+    const elements = data.text_elements ?? data.textElements;
+    if (data.type !== "text" || typeof data.text !== "string" || !Array.isArray(elements)) continue;
     const text = data.text;
     const length = new TextEncoder().encode(text).length;
-    for (const element of data.text_elements) {
+    for (const element of elements) {
       const span = record(element);
-      const range = record(span.byte_range);
+      const range = record(span.byteRange ?? span.byte_range);
       if (range.start !== 0 || range.end !== length) continue;
       if (span.placeholder === "opencraft:staged-file:v1") return true;
       if (span.placeholder === "" && mentions.some(mention => text ===
@@ -120,7 +121,7 @@ const initialEchoPrefix = new Set([
 ]);
 
 function initialEcho(turn: TimelineSourceTurn, params: RecordValue): TimelineSourceItem | undefined {
-  const client = string(params.clientUserMessageId);
+  const client = string(params.clientUserMessageId) ?? string(params.clientId);
   for (const item of turn.items) {
     if (initialEchoPrefix.has(item.type)) continue;
     if (item.type === "userMessage" && (
@@ -138,7 +139,7 @@ function canonicalMessage(turn: TimelineSourceTurn, params: RecordValue, server?
   return {
     id, type: "userMessage", payload: {
       ...projectionPayload(data), id, type: "userMessage", content,
-      clientId: string(params.clientUserMessageId) ?? clientOf(data),
+      clientId: string(params.clientUserMessageId) ?? string(params.clientId) ?? clientOf(data),
       attachments: params.attachments ?? data.attachments,
       sender: data.sender ?? params.sender ?? null,
       commentAttachments: params.commentAttachments ?? data.commentAttachments,
@@ -155,7 +156,7 @@ function localMessage(item: TimelineSourceItem, server?: TimelineSourceItem): Ti
   const acknowledged = record(server?.payload);
   return { ...item, payload: {
     ...projectionPayload(data),
-    input: server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : data.input,
+    input: server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : inputOf(item),
     attachments: data.attachments ?? acknowledged.attachments,
     sender: acknowledged.sender ?? data.sender ?? null,
     __opencraftMessageKind: "steering", __opencraftSourceItemIds: identities(item, server),
@@ -166,7 +167,7 @@ function localMessage(item: TimelineSourceItem, server?: TimelineSourceItem): Ti
 export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): TimelineSourceTurn {
   const params = record(turn.params);
   const canonical = params.input != null && !(Array.isArray(params.input) && params.input.length === 0);
-  const client = string(params.clientUserMessageId);
+  const client = string(params.clientUserMessageId) ?? string(params.clientId);
   const echo = canonical ? initialEcho(turn, params) : undefined;
   const { latest, consumed } = steeringAcknowledgements(turn.items);
   const items: TimelineSourceItem[] = [];
