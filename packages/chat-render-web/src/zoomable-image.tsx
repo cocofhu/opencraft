@@ -3,7 +3,7 @@ import "./zoomable-image.scss";
 
 type Point = { x: number; y: number };
 type Transform = Point & { scale: number };
-type ImageProps = Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "title" | "onError" | "onLoad">;
+type ImageProps = Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "title" | "onError" | "onLoad"> & { readonly fitToContainer?: boolean };
 const fitted: Transform = { x: 0, y: 0, scale: 1 };
 
 /** Transient image manipulation; the surrounding preview retains navigation and focus. */
@@ -11,13 +11,14 @@ export function ZoomableImage(props: ImageProps) {
   return <ImageViewport key={props.src} {...props} />;
 }
 
-function ImageViewport(props: ImageProps) {
+function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
   const viewport = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const current = useRef(fitted);
   const gesture = useRef<{ center: Point; distance: number; transform: Transform } | null>(null);
   const [transform, setTransform] = useState(fitted);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   const measure = () => {
     const points = [...pointers.current.values()].slice(0, 2);
@@ -39,6 +40,7 @@ function ImageViewport(props: ImageProps) {
   };
   useEffect(() => {
     const observer = new ResizeObserver(() => {
+      setViewportHeight(viewport.current!.clientHeight);
       pointers.current.clear();
       gesture.current = null;
       current.current = fitted;
@@ -83,6 +85,9 @@ function ImageViewport(props: ImageProps) {
     }}
     onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}>
     <img {...props} draggable={false} ref={image}
-      style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }} />
+      style={{
+        maxHeight: fitToContainer && viewportHeight > 0 ? viewportHeight : undefined,
+        transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+      }} />
   </div>;
 }
