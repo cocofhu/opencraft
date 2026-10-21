@@ -1313,6 +1313,13 @@ The ordered worker queue coalesces only adjacent moves with the same contact set
 partial release and new contacts are never coalesced. Older workers/clients retain
 the single-contact mouse-emulation path.
 
+Viewer pointer IDs are opaque local capture identities, not native protocol IDs.
+Each active finger receives a free wire slot from 0 through 9; it retains that
+slot until release/cancellation, and a remaining finger never changes slots when
+another is lifted. This includes iOS WebKit's random unsigned 32-bit IDs, which
+can exceed the private Chromium protocol's signed integer range. Reset retires
+both identities together; the worker continues to reject invalid wire IDs.
+
 The private native adapter selects Chromium's per-contact DevTools dispatcher
 (`SyntheticPointerActions` disabled in this dedicated runtime). Start/end send
 only changed native contacts; releasing one finger never releases/represses its

@@ -365,9 +365,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const captured = new Set<number>();
     const contacts = new Map<number, { id: number; x: number; y: number; radiusX: number; radiusY: number; force: number }>();
     let touchModifiers: unknown[] = [];
-    const contact = (event: PointerEvent) => {
+    const contact = (event: PointerEvent, id = contacts.get(event.pointerId)!.id) => {
       const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
-      return { id: event.pointerId, ...point(event), radiusX: Math.min(1000, (event.width || 2) / scale / 2),
+      return { id, ...point(event), radiusX: Math.min(1000, (event.width || 2) / scale / 2),
         radiusY: Math.min(1000, (event.height || 2) / scale / 2), force: event.pressure };
     };
     const sendTouch = (type: string, event?: PointerEvent) => send({ type, touchPoints: [...contacts.values()],
@@ -402,7 +402,11 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       p.ime?.retire(); p.keyboardIntent = event.pointerType === 'touch' && event.isPrimary && captured.size === 0 ? { pointer:event.pointerId, x:event.clientX, y:event.clientY, editor:p.editor, until:0, completed:false } : null; receiver.focus({ preventScroll: true }); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
       this.retireMenu(p); p.menuIntent = crypto.randomUUID();
       if (event.pointerType === 'touch' && p.multiTouch) {
-        contacts.set(event.pointerId, contact(event)); sendTouch('touchStart', event);
+        // Local IDs belong to the viewer (iOS uses unsigned random IDs). Only
+        // bounded per-contact slots cross the signed native protocol boundary.
+        const used = new Set([...contacts.values()].map(point => point.id));
+        let id = 0; while (used.has(id)) id++;
+        contacts.set(event.pointerId, contact(event, id)); sendTouch('touchStart', event);
       } else send({ type: 'mouseDown', ...point(event), pointerType: event.pointerType, menuIntent: p.menuIntent, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) });
     });
     listen('pointerup', (event: PointerEvent) => {
