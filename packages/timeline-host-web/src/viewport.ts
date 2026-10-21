@@ -95,20 +95,47 @@ export function applyTimelineViewportDocumentState(
   policy: TimelineViewportPolicy,
   fixedFrameOffset = snapshot.visualOffset,
 ): void {
+  applyTimelineViewportDocumentExtent(root, snapshot, policy);
+  applyTimelineViewportDocumentOrigin(root, snapshot, policy, fixedFrameOffset);
+}
+
+function setViewportProperty(root: WebTimelineViewportRoot, name: string, value: number): void {
+  const cssValue = `${value}px`;
+  if (root.style.getPropertyValue(name) !== cssValue) root.style.setProperty(name, cssValue);
+}
+
+function applyTimelineViewportDocumentExtent(
+  root: WebTimelineViewportRoot,
+  snapshot: TimelineViewportSnapshot,
+  policy: TimelineViewportPolicy,
+): void {
   const layout = projectTimelineViewportLayout(snapshot);
-  root.dataset.timelineOverscroll = policy.threadOverscroll;
-  root.dataset.timelineElasticEffect = String(policy.localElasticEffect);
-  root.dataset.timelineTracksVisualViewport = String(policy.tracksVisualViewport);
-  root.dataset.timelineKeyboardOpen = String(snapshot.keyboardInsetBottomPx > 0);
-  root.style.setProperty("--timeline-layout-viewport-width", `${snapshot.layoutViewport.widthPx}px`);
-  root.style.setProperty("--timeline-layout-viewport-height", `${snapshot.layoutViewport.heightPx}px`);
-  root.style.setProperty("--timeline-available-viewport-width", `${layout.availableViewport.widthPx}px`);
-  root.style.setProperty("--timeline-available-viewport-height", `${layout.availableViewport.heightPx}px`);
+  const attributes = {
+    timelineOverscroll: policy.threadOverscroll,
+    timelineElasticEffect: String(policy.localElasticEffect),
+    timelineTracksVisualViewport: String(policy.tracksVisualViewport),
+    timelineKeyboardOpen: String(snapshot.keyboardInsetBottomPx > 0),
+  };
+  for (const [key, value] of Object.entries(attributes)) {
+    if (root.dataset[key] !== value) root.dataset[key] = value;
+  }
+  setViewportProperty(root, "--timeline-layout-viewport-width", snapshot.layoutViewport.widthPx);
+  setViewportProperty(root, "--timeline-layout-viewport-height", snapshot.layoutViewport.heightPx);
+  setViewportProperty(root, "--timeline-available-viewport-width", layout.availableViewport.widthPx);
+  setViewportProperty(root, "--timeline-available-viewport-height", layout.availableViewport.heightPx);
+}
+
+function applyTimelineViewportDocumentOrigin(
+  root: WebTimelineViewportRoot,
+  snapshot: TimelineViewportSnapshot,
+  policy: TimelineViewportPolicy,
+  fixedFrameOffset: TimelineViewportSnapshot["visualOffset"],
+): void {
   // Capacity and the browser's fixed-position coordinate basis are independent.
   // The Web port measures that basis outside the positioned application tree.
   const followsVisualOrigin = policy.tracksVisualViewport && Math.abs(snapshot.scale - 1) <= 0.01;
-  root.style.setProperty("--timeline-available-viewport-top", `${followsVisualOrigin ? fixedFrameOffset.topPx : 0}px`);
-  root.style.setProperty("--timeline-available-viewport-left", `${followsVisualOrigin ? fixedFrameOffset.leftPx : 0}px`);
+  setViewportProperty(root, "--timeline-available-viewport-top", followsVisualOrigin ? fixedFrameOffset.topPx : 0);
+  setViewportProperty(root, "--timeline-available-viewport-left", followsVisualOrigin ? fixedFrameOffset.leftPx : 0);
 }
 
 export function createWebTimelineViewportPort(
@@ -178,18 +205,25 @@ export function createWebTimelineViewportPort(
         - windowObject.scrollX - (reference?.left ?? 0),
     };
   };
+  const commitDocumentState = (next: TimelineViewportSnapshot) => {
+    // Shrinking the focused editor's containing block can itself move the
+    // browser's native fixed plane. Commit capacity before measuring that plane;
+    // otherwise the origin describes the previous layout for a painted frame.
+    applyTimelineViewportDocumentExtent(root, next, policy);
+    const offset = readFixedFrameOffset(); // independent read also flushes layout
+    applyTimelineViewportDocumentOrigin(root, next, policy, offset);
+    return offset;
+  };
   let snapshot = read();
-  let fixedFrameOffset = readFixedFrameOffset();
-  applyTimelineViewportDocumentState(root, snapshot, policy, fixedFrameOffset);
+  let fixedFrameOffset = commitDocumentState(snapshot);
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
   };
-  const publish = (now: number) => {
-    frame = null;
+  const reconcile = () => {
     if (disposed || documentObject.visibilityState === "hidden") return;
+    const nextFixedFrameOffset = commitDocumentState(read());
     const next = read();
-    const nextFixedFrameOffset = readFixedFrameOffset();
     if (
       next.editableFocused !== snapshot.editableFocused
       || next.scale !== snapshot.scale
@@ -205,9 +239,12 @@ export function createWebTimelineViewportPort(
       revision += 1;
       snapshot = { ...next, revision };
       fixedFrameOffset = nextFixedFrameOffset;
-      applyTimelineViewportDocumentState(root, snapshot, policy, fixedFrameOffset);
       for (const listener of listeners) listener();
     }
+  };
+  const publish = (now: number) => {
+    frame = null;
+    reconcile();
     if (now < settleUntil) scheduleFrame();
   };
   const schedule = () => {
@@ -221,11 +258,18 @@ export function createWebTimelineViewportPort(
     settleUntil = windowObject.performance.now() + settleDurationMs;
     scheduleFrame();
   };
+  const onViewportChange = () => {
+    schedule();
+    // Native viewport events may be delivered after this frame's rAF phase.
+    // Finish their shared geometry commit before returning to browser painting.
+    // Focus and touch only invalidate; they do not yet describe new geometry.
+    if (policy.tracksVisualViewport) reconcile();
+  };
   const visualViewport = windowObject.visualViewport;
-  windowObject.addEventListener("resize", schedule, { passive: true });
-  windowObject.addEventListener("scroll", schedule, { passive: true });
-  visualViewport?.addEventListener("resize", schedule, { passive: true });
-  visualViewport?.addEventListener("scroll", schedule, { passive: true });
+  windowObject.addEventListener("resize", onViewportChange, { passive: true });
+  windowObject.addEventListener("scroll", onViewportChange, { passive: true });
+  visualViewport?.addEventListener("resize", onViewportChange, { passive: true });
+  visualViewport?.addEventListener("scroll", onViewportChange, { passive: true });
   documentObject.addEventListener("focusin", schedule, { passive: true });
   documentObject.addEventListener("focusout", schedule, { passive: true });
   if (policy.tracksVisualViewport) {
@@ -250,10 +294,10 @@ export function createWebTimelineViewportPort(
       disposed = true;
       if (frame !== null) windowObject.cancelAnimationFrame(frame);
       frame = null;
-      windowObject.removeEventListener("resize", schedule);
-      windowObject.removeEventListener("scroll", schedule);
-      visualViewport?.removeEventListener("resize", schedule);
-      visualViewport?.removeEventListener("scroll", schedule);
+      windowObject.removeEventListener("resize", onViewportChange);
+      windowObject.removeEventListener("scroll", onViewportChange);
+      visualViewport?.removeEventListener("resize", onViewportChange);
+      visualViewport?.removeEventListener("scroll", onViewportChange);
       documentObject.removeEventListener("focusin", schedule);
       documentObject.removeEventListener("focusout", schedule);
       if (policy.tracksVisualViewport) {

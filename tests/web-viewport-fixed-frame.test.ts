@@ -101,3 +101,47 @@ test("pinch magnification retains layout capacity and does not apply fixed-frame
     assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-available-viewport-height"), "688px");
   } finally { f.close(); }
 });
+
+test("a capacity commit measures the fixed basis after layout-induced native focus pan", () => {
+  const f = fixture();
+  try {
+    f.visual.height = 688; f.frame(20);
+    f.input.focus(); f.input.setSelectionRange(2, 2);
+    const style = f.win.document.documentElement.style;
+    const setProperty = style.setProperty.bind(style);
+    style.setProperty = (name, value, priority) => {
+      setProperty(name, value, priority);
+      if (name === "--timeline-available-viewport-height" && value === "394px") {
+        // On-device observation: capacity changes first, native focus pan then
+        // changes the zero-inset fixed plane before subscribers/browser paint.
+        f.native.top = -294; f.scroll(294);
+        f.visual.pageTop = 294; f.visual.offsetTop = 294;
+      }
+    };
+    const samples: number[] = [];
+    f.port.subscribe(() => samples.push(f.css("top") + f.native.top - (f.visual.pageTop - f.win.scrollY)));
+    f.visual.height = 394; f.frame(40);
+    assert.deepEqual(samples, [0], "Subscribers must see the committed capacity and its current coordinate basis together");
+    assert.equal(f.css("top"), 294);
+    assert.equal(f.win.document.activeElement, f.input);
+    assert.equal(f.input.selectionStart, 2); assert.equal(f.input.value, "preserve draft");
+  } finally { f.close(); }
+});
+
+test("mobile viewport events commit before returning even after the current animation frame", () => {
+  const f = fixture();
+  try {
+    f.frame(20);
+    f.native.top = -294; f.scroll(294);
+    Object.assign(f.visual, { height: 394, pageTop: 294, offsetTop: 294 });
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    assert.equal(f.css("top"), 294, "No stale origin while waiting for a later rAF");
+    const revision = f.port.getSnapshot().revision;
+    f.frame(40);
+    assert.equal(f.port.getSnapshot().revision, revision, "Settling does not duplicate a committed observation");
+    f.native.top = 0; f.scroll(0);
+    Object.assign(f.visual, { height: 688, pageTop: 0, offsetTop: 0 });
+    f.win.dispatchEvent(new f.win.Event("scroll"));
+    assert.equal(f.css("top"), 0);
+  } finally { f.close(); }
+});

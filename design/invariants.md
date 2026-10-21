@@ -925,6 +925,15 @@ window scroll; CSS placement is that origin minus the fixed reference origin.
 This is a coordinate conversion, not an additive page-scroll correction or
 feedback from the already-positioned Shell. Native reference changes invalidate
 the shared projection even when raw VisualViewport values remain unchanged.
+
+The Web port commits available capacity before measuring the independent fixed
+reference: resizing a focused containing block can itself change the browser's
+native coordinate plane. Origin projection and subscriber publication belong to
+that same layout commit. Mobile native viewport events reconcile synchronously
+before returning to browser paint, with the existing bounded rAF reconciliation
+reserved for later native updates; they must not defer a known invalid origin to
+the next animation frame. Unchanged CSS and data attributes are not rewritten.
+
 Layout capacity comes from document client size and visual size; innerHeight may
 already be visually reduced in WKWebView. Layout containment keeps internal
 fixed descendants in the same frame without reapplying the conversion.
