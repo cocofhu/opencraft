@@ -40,7 +40,7 @@ export function ActivityDisclosureLabel({
   const intl = useIntl();
   if (item !== null) return <WorkStatusLabel item={item} />;
   return (
-    <span>
+    <span data-work-duration={durationMs ?? undefined}>
       {durationMs !== null
         ? intl.formatMessage(statusMessages.workedFor, { time: formatWorkDuration(durationMs, intl.locale) })
         : intl.formatMessage({ id: "chat.previousMessages", defaultMessage: "{count, plural, one {# previous message} other {# previous messages}}" }, { count })}

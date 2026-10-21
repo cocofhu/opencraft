@@ -36,7 +36,7 @@ import {
 } from "./activity-disclosure";
 import { SubagentActivityGroup } from "../tool/tool-renderers";
 import { ToolActivityPresenterContext, ConversationDetailContext } from "../render-contexts";
-import { ActivityDisclosureHeader, WorkStatusDivider } from "./work-status";
+import { ActivityDisclosureHeader, ActivityDisclosureLabel, WorkStatusDivider } from "./work-status";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
 import { ReasoningBlock } from "./command-and-review-renderers";
 
@@ -191,6 +191,10 @@ function AgentActivity({
       data-collapsed={layout.isCollapsed || undefined}
       data-force-expanded={unit.forceExpanded || undefined}
     >
+      {!layout.showToggle && unit.contentUnits.length === 0 && unit.inlineSubagentActivity === null
+        && unit.workedDurationMs !== null ? <div className="thread-work-status">
+          <ActivityDisclosureLabel item={null} durationMs={unit.workedDurationMs} count={0} />
+        </div> : null}
       {layout.preToggleUnits.length > 0 ? (
         <div className="thread-agent-activity__pre-toggle">
           {renderContent(layout.preToggleUnits)}

@@ -14,6 +14,9 @@ await mkdir(output,{recursive:true});
 const threadId='cold-open-fixture',question='Previously seen question',cachedAnswer='Previously seen answer',restoredAnswer='Fresh authoritative answer';
 const thread={id:threadId,name:'Cold open fixture',preview:question,cwd:'/fixture',path:null,historyMode:'paginated',modelProvider:'openai',createdAt:1,updatedAt:1,status:{type:'idle'},source:'appServer',turns:[]};
 let hold=false,fresh=false,active=false,previewStage=false,longActive=false;
+const durationOnly = process.env.OPENCRAFT_COLD_OPEN_DURATION_ONLY === '1';
+const regroupPreview = process.env.OPENCRAFT_COLD_OPEN_REGROUPED_PREVIEW === '1';
+const clockSelector = '.thread-agent-activity__turn-header, [data-work-status], [data-work-duration]';
 const previewAnswer='Fresh preview answer';
 const heldResume:Array<()=>void>=[];
 const releaseResume=()=>{for(const deliver of heldResume.splice(0))deliver()};
@@ -31,6 +34,14 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
     {type:'userMessage',id:'fixture-question',sentAtMs:1700000000000,content:[{type:'text',text:question,textElements:[]}]},
     {type:'reasoning',id:'fixture-reasoning',summary:['Checking the answer'],content:[],startedAtMs:1700000000000},
     {type:'agentMessage',id:'fixture-answer',startedAtMs:1700000054000,text:fresh?restoredAnswer:cachedAnswer,phase:'final_answer'}]};
+   if (durationOnly && !active) {
+    delete (turn as any).firstTurnWorkItemStartedAtMs;
+    delete (turn as any).finalAssistantStartedAtMs;
+    for (const item of turn.items) {
+      if (item.type === 'agentMessage') (item as any).sentAtMs = 1700000054000;
+      delete (item as any).startedAtMs;
+    }
+   }
    if (active && longActive) turn.items.splice(1, 0, ...Array.from({ length: 68 }, (_, i) => ({
     type: 'reasoning', id: `long-reasoning-${i}`, summary: [`Long active reasoning ${i}`], content: [], startedAtMs: 1700000000000 + i,
    })));
@@ -54,7 +65,7 @@ const appHost=new AppHostServer({logicalClientRouting:true,createTransport(){
    if(previewStage&&rpc.method==='thread/resume') {
     assert.equal(typeof rpc.params.historyPreviewToken,'string','Preview has a request-scoped owner');
     const {startedAtMs,firstTurnWorkItemStartedAtMs,finalAssistantStartedAtMs,durationMs,...partial}=turn;
-    const preview={...partial,items:turn.items.map(item=>{
+    const preview={...partial,...(regroupPreview?{id:'regrouped-window'}:{}),items:turn.items.map(item=>{
       const {startedAtMs,sentAtMs,...message}=item as any;
       return message.type==='agentMessage'?{...message,text:previewAnswer}:message;
     })};
@@ -98,7 +109,7 @@ try{for(const width of [390,1100]){
    (window as any).firstTimingPaint = {
     user: document.querySelectorAll('.thread-user-message time').length,
     assistant: document.querySelectorAll('[data-assistant-message-sent-time]').length,
-    work: document.querySelector('[data-work-status]')?.textContent ?? '',
+    work: document.querySelector('.thread-agent-activity__turn-header, [data-work-status], [data-work-duration]')?.textContent ?? '',
    };
   });
  });
@@ -106,7 +117,7 @@ try{for(const width of [390,1100]){
  await page.getByText(cachedAnswer,{exact:true}).waitFor();
  await page.waitForFunction(()=>Object.keys(localStorage).some(key=>key.startsWith('opencraft.display.')&&localStorage.getItem(key)?.includes('Previously seen answer')));
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z');
- await page.locator('[data-work-status]').filter({hasText:'54'}).waitFor();
+ await page.locator(clockSelector).first().filter({hasText:'54'}).waitFor();
  hold=true;fresh=true;previewStage=true;const requestStart=requests.length;await page.reload();await page.locator('.local-conversation-page').waitFor();
  await page.getByText(cachedAnswer,{exact:true}).waitFor({timeout:3000});
  const first = await page.evaluate(() => (window as any).firstTimingPaint);
@@ -114,7 +125,7 @@ try{for(const width of [390,1100]){
  assert.equal(first.assistant,1,'Assistant date exists at the first text paint');
  assert.match(first.work,/54/,'Completed clock exists at the first text paint');
  assert.equal(await page.locator('.thread-user-message time').getAttribute('datetime'),'2023-11-14T22:13:20.000Z','Date paints before initialization completes');
- assert.match(await page.locator('[data-work-status]').innerText(),/54/,'Completed clock paints with cached text');
+ assert.match(await page.locator(clockSelector).first().innerText(),/54/,'Completed clock paints with cached text');
  await assertDatesVisible(page);
  assert.equal(await page.locator('.thread-agent-activity button').count(),0,'Cached work has no tool actions');
  assert.ok(held.length>0,'Cached history paints while connection initialization remains held');
@@ -123,9 +134,17 @@ try{for(const width of [390,1100]){
  const editor=page.locator('[contenteditable="true"]').first();
  await editor.fill('Keep this unsent draft');
  await page.screenshot({path:join(output,`cached-before-connect-${width}.png`)});
- release();await page.getByText(previewAnswer,{exact:true}).waitFor();
+ release();
+ if(regroupPreview){
+  const deadline=Date.now()+10_000;
+  while(!heldResume.length&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,20));
+  assert.ok(heldResume.length,'Regrouped preview arrived before final Resume');
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.getByText(cachedAnswer,{exact:true}).count(),1);
+  assert.equal(await page.getByText(previewAnswer,{exact:true}).count(),0);
+ }else await page.getByText(previewAnswer,{exact:true}).waitFor();
  assert.ok(heldResume.length>0);await assertDatesVisible(page);
- assert.match(await page.locator('[data-work-status]').innerText(),/54/);
+ assert.match(await page.locator(clockSelector).first().innerText(),/54/);
  await page.screenshot({path:join(output,`preview-before-resume-${width}.png`)});
  releaseResume();previewStage=false;await page.getByText(restoredAnswer,{exact:true}).waitFor();
  assert.equal(await editor.innerText(),'Keep this unsent draft','Canonical restoration preserves the unsent draft');

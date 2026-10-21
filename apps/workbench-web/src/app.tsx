@@ -71,7 +71,7 @@ import {
   equalWorkbenchLocation,
   findHostConnectionInterventionError,
   projectComposerModelChoices,
-  retainPreviewTiming,
+  selectConversationDisplayTimeline,
 } from "@opencraft/workbench-runtime";
 import { OPENCRAFT_THREAD_QUEUE_EXTENSION, OPENCRAFT_PERMISSION_MODES_EXTENSION, supportsAtomicQueuedSteer, supportsUnconfirmedSteerDiscard, type OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
 import {
@@ -699,7 +699,7 @@ export function App({
   const displayTimeline = memoryTimeline ?? (cachedTimeline?.scope === displayScope
     && cachedTimeline.timeline.key.hostId === displayHostId
     && cachedTimeline.timeline.key.threadId === displayThreadId ? cachedTimeline.timeline : null);
-  const previewTimeline = useMemo(() => timeline === null ? null : retainPreviewTiming(timeline, displayTimeline), [timeline, displayTimeline]);
+  const previewTimeline = useMemo(() => timeline === null ? null : selectConversationDisplayTimeline(timeline, displayTimeline), [timeline, displayTimeline]);
   const visibleTimeline = timeline !== null && timeline.frames.length > 0
     ? previewTimeline
     : firstSubmissionTimeline !== null ? firstSubmissionTimeline

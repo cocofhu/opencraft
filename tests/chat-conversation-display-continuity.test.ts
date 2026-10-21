@@ -5,6 +5,7 @@ import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimel
 import {
   createConversationDisplayContinuity,
   retainPreviewTiming,
+  selectConversationDisplayTimeline,
   type ConversationDisplayStorage,
 } from "@opencraft/workbench-runtime";
 
@@ -432,4 +433,61 @@ test("a completed work interval remains static while its final reply is still ar
   assert.ok(activity?.type === "agent-activity");
   assert.equal(activity.contentUnits.find(unit => unit.type === "worked-for")?.item.status, "worked");
   assert.ok(cached.frames.every(frame => frame.workStatus?.status !== "working"));
+});
+
+
+test("a regrouped partial preview cannot replace cached dates and duration before authority", async () => {
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: storage() });
+  const source = timedTimeline();
+  await cache.observe(source);
+  const display = cache.peek("host", "thread")!;
+  const preview = { ...timeline(false), frames: timeline(false).frames.map(frame => ({
+    ...frame, turnId: asTurnId("regrouped-history-window"),
+    blocks: frame.blocks.map(block => block.type === "text" ? { ...block, text: "Fresh regrouped preview" } : block),
+  })) };
+  assert.equal(selectConversationDisplayTimeline(preview, display), display,
+    "known clocks stay with cached text while the partial history regroups");
+  const authoritative = { ...preview, authoritative: true };
+  assert.equal(selectConversationDisplayTimeline(authoritative, display), authoritative,
+    "authority can replace the whole display and remove old clocks");
+  const compatible = retainPreviewTiming(timeline(false), display);
+  assert.equal(selectConversationDisplayTimeline(compatible, display)?.frames[1]?.blocks[0]?.id, "answer");
+  assert.equal(selectConversationDisplayTimeline(preview, null), preview);
+  assert.equal(selectConversationDisplayTimeline(preview, { ...display, key: createConversationKey("foreign", "thread") }), preview,
+    "another scope never supplies a fallback");
+});
+
+test("duration-only history renders its observed aggregate without inventing a work interval", async () => {
+  const local = storage();
+  const source = { ...timedTimeline(), frames: timedTimeline().frames.map(frame => frame.type === "assistant"
+    ? { ...frame, workStatus: null, blocks: [{ type: "reasoning" as const, id: "observed-work", sourceItemIds: [], summary: "Previously visible work", detail: null, streaming: false }, ...frame.blocks] }
+    : frame) };
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(source);
+  const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const plan = createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(cached)[0]!, undefined, { isMostRecentTurn: true });
+  const activity = plan.assistant?.slots.find(slot => slot.type === "agent-activity");
+  assert.ok(activity?.type === "agent-activity", "the duration has a surface even without cached tools or reasoning");
+  assert.equal(activity.workedDurationMs, 54_000);
+  assert.equal(activity.partitions.workedForItem, null);
+  const preview = selectConversationDisplayTimeline(timeline(false), cached)!;
+  const previewPlan = createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(preview)[0]!);
+  const previewActivity = previewPlan.assistant?.slots.find(slot => slot.type === "agent-activity");
+  assert.equal(previewActivity?.workedDurationMs, 54_000, "a text-only compatible preview retains the visible duration surface");
+  assert.ok(cached.frames.every(frame => frame.workStatus == null), "no timestamps are fabricated from the duration");
+  const active = { ...source, frames: source.frames.map(frame => ({ ...frame, status: "streaming" as const })) };
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(active);
+  assert.ok(createConversationDisplayContinuity({ namespace: "account", storage: local }).peek("host", "thread") === null);
+  const reloaded = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  assert.ok(reloaded.frames.every(frame => frame.durationMs === null), "an active aggregate is still not retained");
+});
+
+
+test("hidden duration cannot gain a cached label that was never visible", async () => {
+  const local = storage();
+  const hidden = { ...timeline(true), frames: timeline(true).frames.map(frame => ({ ...frame, durationMs: 8_000, workStatus: null })) };
+  await createConversationDisplayContinuity({ namespace: "account", storage: local }).observe(hidden);
+  const cached = (await createConversationDisplayContinuity({ namespace: "account", storage: local }).load("host", "thread"))!;
+  const plan = createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(cached)[0]!);
+  assert.ok(cached.frames.every(frame => frame.displayDurationMs == null));
+  assert.ok(plan.assistant?.slots.every(slot => slot.type !== "agent-activity"));
 });

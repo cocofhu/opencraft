@@ -2353,3 +2353,18 @@ An authoritative worked/stopped interval with an observed end is static even if
 its final reply is still arriving and the Turn remains active. Preserve that
 interval with the reply. Never persist a working interval or infer an end from
 the active Turn's aggregate duration.
+
+
+A provisional history window can regroup or omit cached messages. After exact
+message timing is merged, a preview that still loses a known cached date,
+completed interval or static duration keeps the previous display until authority.
+A compatible preview can update its text immediately; authoritative history can
+always replace the display and correct or remove clocks. This selection is
+account/Host/Thread scoped and never grants execution authority.
+
+A completed history may provide only aggregate duration, without observed work
+start/end clocks. The shared presenter retains a previously visible aggregate label through
+paint-only displayDurationMs when tool/reasoning bodies were omitted. Hidden
+activity cannot acquire a label on reload merely because Turn duration exists. Web and Expo render a
+plain static label without inventing a work interval or an empty disclosure.
+An active Turn's aggregate duration is still not persisted.

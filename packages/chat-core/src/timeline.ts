@@ -593,6 +593,8 @@ interface TimelineFrameBase<TType extends string> {
   readonly status: TimelineStatus;
   /** AppServer Turn duration: disclosure-label fallback only, not the work clock. */
   readonly durationMs: number | null;
+  /** Previously visible aggregate label retained after activity bodies were omitted. */
+  readonly displayDurationMs?: number | null;
   readonly workStatus?: WorkStatusItem | null;
   /** Turn-owned resource, never an ordered message or disclosure boundary. */
   readonly changeSummary?: TurnDiffTimelineBlock | null;
