@@ -168,6 +168,52 @@ try {
     await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "dark" }); });
     await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
     assert.equal(await page.evaluate(() => window.getSelection()!.toString()), spanningSelection, "A selection spanning code and prose survives recoloring");
+    // A growing word keeps its rendered span but React replaces its text.
+    // Keep the reader's exact range across word and whitespace appends.
+    for (const sample of [
+      { source: "Alpha selected", start: 6, end: 14, suffix: "More" },
+      { source: "Alpha selected", start: 6, end: 14, suffix: " more words" },
+      { source: "你好🙂 selected", start: 0, end: "你好🙂 selected".length, suffix: " more words" },
+    ]) {
+      await page.evaluate(source => (window as any).fixture.patch({ source, streaming: true }), sample.source);
+      await page.evaluate(({ start, end, backwards }) => {
+        const paragraph = document.querySelector(".opencraft-chat-document p")!;
+        const point = (offset: number) => {
+          const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+          let node: Node | null;
+          while ((node = walker.nextNode()) !== null) {
+            const length = node.textContent!.length;
+            if (offset <= length) return { node, offset };
+            offset -= length;
+          }
+          throw new Error("Selection offset outside the rendered paragraph");
+        };
+        const a = point(start), b = point(end);
+        window.getSelection()!.setBaseAndExtent(backwards ? b.node : a.node, backwards ? b.offset : a.offset,
+          backwards ? a.node : b.node, backwards ? a.offset : b.offset);
+        (window as any).selectedProse = paragraph;
+        (window as any).selectedProseFocus = document.activeElement;
+      }, { start: sample.start, end: sample.end, backwards: width === 1280 });
+      const proseSelection = () => page.evaluate(() => {
+        const paragraph = document.querySelector(".opencraft-chat-document p")!;
+        const selection = window.getSelection()!;
+        const point = (node: Node | null, offset: number) => {
+          if (!node || !paragraph.contains(node)) return null;
+          const range = document.createRange(); range.selectNodeContents(paragraph); range.setEnd(node, offset);
+          return range.toString().length;
+        };
+        return { text: selection.toString(), anchor: point(selection.anchorNode, selection.anchorOffset),
+          focus: point(selection.focusNode, selection.focusOffset), scrollY: window.scrollY,
+          sameParagraph: (window as any).selectedProse === paragraph,
+          sameFocus: (window as any).selectedProseFocus === document.activeElement };
+      });
+      const before = await proseSelection();
+      assert.equal(before.text, sample.source.slice(sample.start, sample.end));
+      await page.evaluate(source => (window as any).fixture.patch({ source }), sample.source + sample.suffix);
+      assert.deepEqual(await proseSelection(), before, "Appending to prose retains selected text, direction and UTF-16 offsets");
+      await page.evaluate(() => (window as any).fixture.patch({ streaming: false }));
+      assert.deepEqual(await proseSelection(), before, "Settling prose does not disturb the range");
+    }
     // Both selected endpoints can live in syntax tokens replaced by the same
     // theme update. Include a third code surface inside the selected range.
     await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({
@@ -212,7 +258,7 @@ try {
     assert.ok(await root!.evaluate((e: Element) => e.isConnected), "Document DOM remains mounted");
     assert.deepEqual(errors, []);
     await page.screenshot({ path: `${output}/${width}.png` });
-    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, codeSelectionContinuity: true, multiCodeSelectionContinuity: true, domRetained: true, errors });
+    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, codeSelectionContinuity: true, proseSelectionContinuity: true, multiCodeSelectionContinuity: true, domRetained: true, errors });
     await context.close();
   }
   console.log(JSON.stringify({ passed: true, results }));
