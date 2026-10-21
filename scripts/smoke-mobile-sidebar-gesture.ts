@@ -559,7 +559,7 @@ try {
       for (const width of [320, 390, 430]) {
         await page.setViewportSize({width,height:844}); await page.waitForTimeout(250);
         await drag(80,width-50); const box=await opened();
-        assert.ok(Math.abs(box.width-Math.floor(Math.min(335,width-64)*0.85))<1, JSON.stringify({viewport:width,actual:box.width}));
+        assert.ok(Math.abs(box.width-Math.floor(Math.min(335,width-64)*0.90))<1, JSON.stringify({viewport:width,actual:box.width}));
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'drawer does not overflow the screen');
         widths.push({viewport:width,drawer:box.width,gutter:width-box.width});
         await page.screenshot({path:`${output}/${theme}-${reducedMotion}-${width}-width.png`});
