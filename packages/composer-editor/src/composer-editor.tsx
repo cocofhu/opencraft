@@ -199,7 +199,7 @@ export interface ComposerExecutionTarget {
 type SelectionPicker = "intelligence" | "permissions";
 
 function compactModelLabel(label: string): string {
-  return label.replace(/^GPT-/iu, "").replace(/-(?=[\p{L}])/gu, " ");
+  return label.replace(/^GPT[-\s]+/iu, "").replace(/-(?=[\p{L}])/gu, " ");
 }
 
 function displayReasoningEffort(effort: ComposerReasoningEffortOption): string {
@@ -753,6 +753,8 @@ export interface OpenCraftComposerProps {
   selectionCatalog?: ComposerSelectionCatalog;
   /** user remembers defaults; session overrides only this conversation; host-default offers no override. */
   modelSelectionPolicy?: import("@opencraft/composer-core").ModelSelectionPolicy;
+  /** Show inherited execution settings without offering or submitting model overrides. */
+  modelDisplayOnly?: boolean;
   effectiveSelections?: ComposerEffectiveSelections;
   executionTarget?: ComposerExecutionTarget;
   defaultFollowUpAction?: ComposerFollowUpAction;
@@ -818,6 +820,7 @@ export const OpenCraftComposer = forwardRef<
     placeholder: suppliedPlaceholder,
     selectionCatalog,
     modelSelectionPolicy = "user",
+    modelDisplayOnly = false,
     effectiveSelections,
     executionTarget,
     defaultFollowUpAction: preferredFollowUpAction = "queue",
@@ -982,7 +985,7 @@ export const OpenCraftComposer = forwardRef<
     });
   }, [controller, composerSnapshot.draft.id, composerSnapshot.draft.target.type, newThreadDefaultPermission]);
   const catalogDefaultModel = resolveModelSelection(catalogModels, undefined);
-  const selectedModelValue = modelSelectionPolicy === "host-default" ? catalogDefaultModel?.value ?? null :
+  const selectedModelValue = modelDisplayOnly ? effectiveSelections?.model ?? null : modelSelectionPolicy === "host-default" ? catalogDefaultModel?.value ?? null :
     composerSnapshot.draft.selections.model ??
     effectiveSelections?.model ??
     catalogDefaultModel?.value ??
@@ -1229,7 +1232,7 @@ export const OpenCraftComposer = forwardRef<
       const view = editorViewRef.current;
       const dictation = controller.getInputInteractionSnapshot();
       if (!dictationFinished && dictation !== null) {
-        if (dictation.phase !== "listening" || disabled || submissionDisabled || (modelSelectionPolicy === "user" && selectedModelValue === null) || composerSnapshot.hasProcessingAssets) return;
+        if (dictation.phase !== "listening" || disabled || submissionDisabled || (!modelDisplayOnly && modelSelectionPolicy === "user" && selectedModelValue === null) || composerSnapshot.hasProcessingAssets) return;
         const draftId = controller.getSnapshot().draft.id;
         const committed = await dictation.finish();
         if (committed && editorViewRef.current === view && editorControllerRef.current === controller
@@ -1257,7 +1260,11 @@ export const OpenCraftComposer = forwardRef<
       let intent: SubmitIntent;
       try {
         intent = controller.createSubmitIntent();
-        if (selectedModelValue !== null && !isStreaming && editingQueuedSubmissionId === null
+        if (modelDisplayOnly) {
+          const { model: _model, effort: _effort, serviceTier: _tier, ...selections } = intent.selections;
+          intent = { ...intent, selections };
+        }
+        if (!modelDisplayOnly && selectedModelValue !== null && !isStreaming && editingQueuedSubmissionId === null
           && (modelSelectionPolicy !== "session" || intent.selections.model !== undefined)) {
           intent = { ...intent, selections: { ...intent.selections,
             // Preserve an unavailable explicit choice so Runtime rejects it instead
@@ -1371,6 +1378,7 @@ export const OpenCraftComposer = forwardRef<
       selectedModel,
       selectedModelValue,
       modelSelectionPolicy,
+      modelDisplayOnly,
       effectiveSelections?.effort,
     ],
   );
@@ -2215,7 +2223,7 @@ export const OpenCraftComposer = forwardRef<
           data-input-mode={voiceActive ? "dictation" : "standard"}
         >
           {inputInteraction === null ? null : <DictationFooter interaction={inputInteraction}
-            canSend={!disabled && !submissionDisabled && !composerSnapshot.hasUnavailableAssets && (modelSelectionPolicy !== "user" || selectedModelValue !== null)}
+            canSend={!disabled && !submissionDisabled && !composerSnapshot.hasUnavailableAssets && (modelDisplayOnly || modelSelectionPolicy !== "user" || selectedModelValue !== null)}
             onSend={() => { void submit(); }} onCancel={cancelInputInteraction} />}
           <div
             ref={footerLayout.attachmentRef}
@@ -2307,11 +2315,14 @@ export const OpenCraftComposer = forwardRef<
               </span>
             )}
             <div className="opencraft-composer-picker-region">
-              {modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
+              {modelDisplayOnly ? <span className="opencraft-composer-mode opencraft-composer-mode--inherited" title={modelLabel}>
+                <span className="opencraft-composer-mode__model-label">{compactSelectedModelLabel}</span>
+              </span> : null}
+              {!modelDisplayOnly && modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
                 focus={intelligenceFocus} /> : null}
-              {modelSelectionPolicy === "user" ? <DropdownMenu.Root
+              {!modelDisplayOnly && modelSelectionPolicy === "user" ? <DropdownMenu.Root
                 modal={false}
                 open={openPicker === "intelligence"}
                 onOpenChange={changePicker("intelligence")}
