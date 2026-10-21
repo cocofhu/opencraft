@@ -151,3 +151,28 @@ test("summary is content-free, keeps paused/unknown plans and only notifies sema
     await f.restart(); assert.deepEqual(f.service.list(), { schedules: [] });
   } finally { await f.close(); }
 });
+
+
+test("explicit permissions survive restart, snapshot each occurrence and reject unapproved profiles", async () => {
+  const f = await fixture();
+  f.port.permissionProfiles = async () => [{ id: "opencraft:permission-mode:full", description: null, allowed: true }, { id: "disabled", description: null, allowed: false }];
+  const save = (permissions: string | null | undefined) => f.service.handle("opencraft/schedules/save", {
+    threadId: "thread", expectedRevision: f.service.read("thread").schedule?.revision ?? 0,
+    prompt: "task", nextRunAt: 1800000000000, intervalMinutes: 60, timeZone: "UTC", permissions,
+  }, null);
+  try {
+    await f.save(); assert.equal(f.service.read("thread").schedule!.permissions, null);
+    for (const value of ["disabled", "made-up"]) await assert.rejects(save(value), /Invalid schedule/);
+    await save("opencraft:permission-mode:full"); await f.restart();
+    assert.equal(f.service.read("thread").schedule!.permissions, "opencraft:permission-mode:full");
+    f.setBusy(true); await f.service.tick();
+    const run = f.service.read("thread").runs[0]!;
+    assert.equal(run.permissions, "opencraft:permission-mode:full");
+    await f.action("pause"); await save(null);
+    assert.equal(f.service.executionPermissions("thread", run.id), "opencraft:permission-mode:full");
+    assert.equal(f.service.executionPermissions("other", run.id), null);
+    await f.restart();
+    assert.equal(f.service.executionPermissions("thread", run.id), "opencraft:permission-mode:full");
+    assert.equal(f.service.read("thread").schedule!.permissions, null);
+  } finally { await f.close(); }
+});

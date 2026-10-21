@@ -13,6 +13,9 @@ const messages = {
   edit: { id: "schedules.edit", defaultMessage: "Edit" },
   empty: { id: "schedules.empty", defaultMessage: "Schedule a prompt to run in this conversation." },
   hint: { id: "schedules.hint", defaultMessage: "Runs on the server, even after you close this page. Waits while the conversation is busy." },
+  permissions: { id: "schedules.permissions", defaultMessage: "Permissions" },
+  defaultPermissions: { id: "schedules.permissions.default", defaultMessage: "Use conversation defaults" },
+  fullAccessHint: { id: "schedules.permissions.fullHint", defaultMessage: "Full access allows this task to run commands and access files outside the workspace without approval." },
   prompt: { id: "schedules.prompt", defaultMessage: "What should it do?" },
   when: { id: "schedules.when", defaultMessage: "First run" },
   repeat: { id: "schedules.repeat", defaultMessage: "Repeat" },
@@ -51,9 +54,9 @@ function localDate(value: number) {
   const date = new Date(value);
   return new Date(value - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
-interface Draft { prompt: string; when: string; minutes: string; repeating: boolean; revision: number; }
+interface Draft { permissions: string; prompt: string; when: string; minutes: string; repeating: boolean; revision: number; }
 function draftFor(plan: ConversationSchedule | null): Draft {
-  return { prompt: plan?.prompt ?? "", when: localDate(plan?.nextRunAt ?? Date.now() + 300000),
+  return { permissions: plan?.permissions ?? "", prompt: plan?.prompt ?? "", when: localDate(plan?.nextRunAt ?? Date.now() + 300000),
     minutes: String(plan?.intervalMinutes ?? 60), repeating: plan?.intervalMinutes != null, revision: plan?.revision ?? 0 };
 }
 export function ConversationSchedulesPanel(props: {
@@ -70,7 +73,7 @@ export function ConversationSchedulesPanel(props: {
   const mutation = useMutation({
     mutationFn: async (command: { type: "save"; value: Draft } | { type: "action"; action: "pause" | "resume" | "delete" | "run-now" | "review"; revision: number }) => {
       if (command.type === "save") return props.port.request(METHODS.save, { threadId: props.threadId,
-        expectedRevision: command.value.revision, prompt: command.value.prompt,
+        permissions: command.value.permissions || null, expectedRevision: command.value.revision, prompt: command.value.prompt,
         nextRunAt: new Date(command.value.when).getTime(), intervalMinutes: command.value.repeating ? Number(command.value.minutes) : null, timeZone: zone });
       return props.port.request(METHODS.action, { threadId: props.threadId, expectedRevision: command.revision, action: command.action });
     },
@@ -80,6 +83,8 @@ export function ConversationSchedulesPanel(props: {
     onSettled: () => cache.invalidateQueries({ queryKey: key }),
   });
   const plan = query.data?.schedule ?? null, exists = plan && plan.status !== "deleted";
+  const profiles = query.data?.permissionProfiles;
+  const permissionLabel = (id: string | null | undefined) => profiles?.find(profile => profile.id === id)?.openCraftLabel ?? profiles?.find(profile => profile.id === id)?.id ?? id ?? text("defaultPermissions");
   const inFlight = query.data?.runs.some(run => ["waiting", "submitting", "running", "unknown"].includes(run.state));
   const action = (value: "pause" | "resume" | "delete" | "run-now" | "review") => { if (plan) mutation.mutate({ type: "action", action: value, revision: plan.revision }); };
   const update = (value: Partial<Draft>) => setDraft(prior => prior ? { ...prior, ...value } : prior);
@@ -92,7 +97,7 @@ export function ConversationSchedulesPanel(props: {
         {query.isError && !query.data ? <SettingsNotice>{text("loadError")} <SettingsButton onClick={() => void query.refetch()}>{text("retry")}</SettingsButton></SettingsNotice> : null}
         {query.data && !draft ? <>
           {exists ? <SettingsListItem label={stateLabel(plan.status)} description={plan.prompt}
-            metadata={plan.status === "active" ? `${plan.intervalMinutes ? intl.formatMessage(messages.every, { minutes: plan.intervalMinutes }) : text("once")} · ${new Date(plan.nextRunAt).toLocaleString(intl.locale, { timeZone: plan.timeZone })} · ${plan.timeZone}` : undefined} />
+            metadata={plan.status === "active" ? `${permissionLabel(plan.permissions)} · ${plan.intervalMinutes ? intl.formatMessage(messages.every, { minutes: plan.intervalMinutes }) : text("once")} · ${new Date(plan.nextRunAt).toLocaleString(intl.locale, { timeZone: plan.timeZone })} · ${plan.timeZone}` : undefined} />
             : <SettingsNotice>{text("empty")}</SettingsNotice>}
           <div className="conversation-schedules__actions">
             <SettingsButton disabled={mutation.isPending || inFlight} onClick={() => setDraft(draftFor(plan))}>{text(exists ? "edit" : "create")}</SettingsButton>
@@ -105,6 +110,12 @@ export function ConversationSchedulesPanel(props: {
         </> : null}
         {draft ? <form className="conversation-schedules__form" onSubmit={event => { event.preventDefault(); if (!mutation.isPending) mutation.mutate({ type: "save", value: draft }); }}>
           <label>{text("prompt")}<textarea aria-label={text("prompt")} className="settings-control-input" required maxLength={32000} rows={4} value={draft.prompt} disabled={mutation.isPending} onChange={event => update({ prompt: event.target.value })} /></label>
+          {profiles ? <label>{text("permissions")}<SettingsSelect aria-label={text("permissions")} value={draft.permissions} disabled={mutation.isPending} onChange={event => update({ permissions: event.target.value })}>
+            <option value="">{text("defaultPermissions")}</option>
+            {draft.permissions && !profiles.some(profile => profile.id === draft.permissions) ? <option value={draft.permissions} disabled>{draft.permissions}</option> : null}
+            {profiles.map(profile => <option key={profile.id} value={profile.id} disabled={!profile.allowed}>{profile.openCraftLabel ?? profile.id}</option>)}
+          </SettingsSelect></label> : null}
+          {profiles?.find(profile => profile.id === draft.permissions)?.openCraftMode === "full" ? <SettingsNotice>{text("fullAccessHint")}</SettingsNotice> : null}
           <label>{text("when")}<SettingsTextInput aria-label={text("when")} type="datetime-local" required value={draft.when} disabled={mutation.isPending} onChange={event => update({ when: event.target.value })} /></label>
           <SettingsNotice>{text("zone")}: {zone}</SettingsNotice>
           <label>{text("repeat")}<SettingsSelect aria-label={text("repeat")} value={draft.repeating ? "repeat" : "once"} disabled={mutation.isPending} onChange={event => update({ repeating: event.target.value === "repeat" })}>
