@@ -350,6 +350,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       agent = await startEngineHost({
         providers: [new PiEngine({ directory: join(dataDirectory, "pi"), cwd: options.runtimeDirectory ?? join(root, "runtime") })],
         defaultEngine: options.defaultEngine ?? (engines.includes("dsh") ? "dsh" : "pi"), machine: machineIdentity,
+        resources: { projectDirectory: join(dataDirectory, "projects"), attachmentDirectory: join(dataDirectory, "agent", "attachments") },
         ...(engines.includes("dsh") ? { legacy: { id: "dsh", label: "DeepSeek Harness", start: startDsh } } : {}),
       });
     } else agent = await startDsh();

@@ -1,3 +1,4 @@
+import { LocalHostResources } from "./host-resources.js";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -16,7 +17,9 @@ export async function startEngineHost(options: {
   defaultEngine: string;
   legacy?: { id: string; label: string; start(): Promise<LegacyHost> };
   machine?: unknown;
+  resources?: { projectDirectory?: string; attachmentDirectory?: string };
 }) {
+  const resources = options.resources || !options.legacy ? new LocalHostResources(options.resources) : undefined;
   const registry = new Map(options.providers.map(provider => [provider.id, provider]));
   if (registry.size !== options.providers.length || options.legacy && registry.has(options.legacy.id)) throw new Error("Duplicate execution engine");
   if (!registry.has(options.defaultEngine) && options.defaultEngine !== options.legacy?.id) throw new Error("Default execution engine is not enabled");
@@ -155,6 +158,7 @@ export async function startEngineHost(options: {
             ...(options.legacy ? [{ id: options.legacy.id, label: options.legacy.label }] : []),
             ...options.providers.map(provider => ({ id: provider.id, label: provider.label, state: readiness.get(provider.id) })),
           ] }); return; }
+          if (resources?.handles(method)) { reply(await resources.request(method, params)); return; }
           if (method === "runtime/machine/read") { reply({ machine: options.machine }); return; }
           if (method === "initialize") {
             const piInitialization = {
@@ -165,7 +169,7 @@ export async function startEngineHost(options: {
             // capabilities. Failure must reject initialization, not silently
             // manufacture a successful Pi handshake for a DSH conversation.
             const initialized = options.legacy ? await callLegacy(method, params, clientId) : piInitialization;
-            reply({ ...initialized, capabilities: { ...initialized.capabilities, extensions: { ...initialized.capabilities?.extensions,
+            reply({ ...initialized, capabilities: { ...initialized.capabilities, extensions: { ...initialized.capabilities?.extensions, ...resources?.extensions,
               "opencraft/execution-engines": { version: 1, defaultEngine: options.defaultEngine, providers: options.providers.map(provider => ({ id: provider.id, threadPrefix: provider.threadPrefix, modelPrefix: provider.modelPrefix, extensions: provider.extensions })) },
               "opencraft/scoped-model-catalog": { version: 1 } } } }); return;
           }
@@ -187,14 +191,19 @@ export async function startEngineHost(options: {
               ...(options.legacy ? [allLegacy(method, params, clientId).then(data => ({ data: method === "model/list" ? data.map(model => ({ ...model,
                 groupKey: `dsh:${model.groupKey ?? "models"}`, groupLabel: `DSH · ${model.groupLabel ?? "Models"}`,
                 isDefault: options.defaultEngine === options.legacy?.id && model.isDefault })) : data }))] : []),
-              ...options.providers.map(provider => provider.request(method, params, state.owner)),
+              ...options.providers.map(provider => provider.request(method, params, state.owner).then(page => ({ ...page, data: method === "model/list"
+                ? page.data.map((model: Value) => ({ ...model, isDefault: provider.id === options.defaultEngine && model.isDefault })) : page.data }))),
             ]);
             const pages = outcomes.flatMap(outcome => outcome.status === "fulfilled" ? [outcome.value] : []);
             if (!pages.length) throw new Error("No execution engine catalog is available");
             const unavailableEngines = outcomes.flatMap((outcome, index) => outcome.status === "rejected" ? [[...(options.legacy ? [options.legacy.id] : []), ...options.providers.map(provider => provider.id)][index]] : []);
             let entries = pages.flatMap(page => page.data);
-            if (method === "thread/list") entries.sort((a,b) => b.updatedAt - a.updatedAt);
-            else if (options.defaultEngine !== options.legacy?.id) { const first = entries.find(entry => registry.get(options.defaultEngine)?.ownsModel(entry.model)); if (first) first.isDefault = true; }
+            if (method === "thread/list") {
+              const key = params.sortKey === "updated_at" ? "updatedAt" : "createdAt";
+              const direction = params.sortDirection === "asc" ? 1 : -1;
+              entries.sort((a,b) => direction * (a[key] - b[key]) || String(a.id).localeCompare(String(b.id)));
+            }
+            else if (options.defaultEngine !== options.legacy?.id && !entries.some(entry => entry.isDefault)) { const first = entries.find(entry => registry.get(options.defaultEngine)?.ownsModel(entry.model)); if (first) first.isDefault = true; }
             const offset = params.cursor == null ? 0 : /^engines:\d+$/u.test(params.cursor) ? Number(params.cursor.slice(8)) : NaN;
             if (!Number.isSafeInteger(offset) || offset < 0) throw new Error("Invalid engine catalog cursor");
             const limit = Math.max(1, Math.min(200, Number(params.limit) || 100));
@@ -233,6 +242,7 @@ export async function startEngineHost(options: {
       await new Promise<void>(resolve => sockets.close(() => resolve()));
       await new Promise<void>(resolve => server.close(() => resolve()));
       await Promise.allSettled(options.providers.map(provider => provider.close()));
+      await resources?.close();
       await (await legacy?.catch(() => undefined))?.close();
     },
   };

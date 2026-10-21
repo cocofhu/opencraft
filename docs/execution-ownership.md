@@ -330,12 +330,17 @@ resume or translate one another's ledgers.
 
 Pi uses deployment-local `pi/auth.json` and `pi/models.json` under the server data
 directory, in the coding-agent formats. These are distinct from DSH connection
-settings. Do not copy credentials into thread metadata. The initial integration
-accepts text, native coding tools and client-declared platform tools. Platform tool
+settings. Do not copy credentials into thread metadata. The integration accepts text, local file references, explicitly selected skill files,
+and base64/local images when the selected model accepts images, alongside native coding
+tools and client-declared platform tools. Audio and remote-image/file-ID inputs are rejected.
+Additional context preserves its source and application/untrusted classification inside
+the submitted user context; it is never promoted to system instructions. Original input
+blocks and client identity are atomically recorded in the native input entry, including
+queued admission, rather than in a parallel message store. Platform tool
 leases expire on client disconnect; they are not marked replay-safe, so recovery
 cannot repeat an external side effect on that assumption. Workspace AGENTS.md files
 are loaded by the coding-agent context loader. Workspace project IDs are retained as catalog metadata across restart; they do not enable project-specific runtime instructions or change the native cwd. The canonical Full access profile and equivalent never-approve/danger-full-access policy are accepted on creation, restore and turns; restricted/custom permission profiles are rejected before execution. Fork/side chat, injected
-history, profile skills, schedules and alternative permission profiles are not yet
+history, managed profile skills, schedules and alternative permission profiles are not yet
 implemented by this provider. Native tools run with the execution owner's filesystem
 and process permissions; this provider does not advertise a sandbox.
 
@@ -365,3 +370,38 @@ also expires Pi client/tool leases on that frontend and briefly reconnects its
 Pi conversations. It does not close either engine owner or restart its process.
 Independent recovery of engines would require an explicit engine-generation
 protocol; it is not implied by reconnecting an internal socket.
+
+### Pi durable field and projection contract
+
+Start, Resume and turn configuration share validation. Model and thinking, cwd and
+developer instructions belong to native AgentDoc; base instructions use a native
+conversation document rendered through a prompt section. A cwd change rebuilds its
+execution environment and workspace context at the next request. Only one workspace
+root equal to cwd is currently supported. Nonempty schema constraints, collaboration
+modes and other unimplemented semantic overrides fail explicitly; accepting a prompt
+request does not imply those options took effect. Legacy history remains negotiated.
+
+One projection consumes native entries, submissions, task timestamps, LiveDoc and
+UsageDoc for streaming and history. Generation task identity plus immutable assistant
+position identifies an in-flight response and its committed entry; entries without
+native task attribution use their entry identity. Original input spans survive reload.
+Tool namespaces and image output survive projection, and unsupported tool media fail
+instead of returning a success placeholder. Bash progress uses the retained native
+window; replacement/trim emits a full item update rather than a false appended delta.
+
+A live platform-tool owner cannot be replaced during execution. Disconnect revokes
+its lease and rejects pending calls; a successor may attach the same tool definitions
+after the old owner expires. Replies are checked against the captured lease, so a
+late reply cannot mutate the successor. Reattachment never replays an unsafe call.
+Storage/watch failure explicitly settles the visible turn as failed while retaining
+the native ledger and recovery hint for inspection on reopen.
+
+Project catalogs, filesystem browsing and upload staging are Host resources. The
+multi-engine endpoint serves the same deployment directories with or without DSH;
+enabling Pi does not create a separate project database. Provider catalogs filter
+project/cwd/provider/source first, then Host applies a common stable sort and pagination.
+Corrupt individual Pi indexes remain on disk and do not prevent loading other sessions.
+
+The Workbench may resend Full access together with its resolved native sandbox
+policy. Pi accepts that redundant equivalent representation, while validating every
+supplied permission field and rejecting any restricted or custom value.

@@ -103,6 +103,9 @@ test("Pi-only Host routes models and threads without allocating a legacy Host", 
     socket.on("message", listener); socket.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
   });
   const initialized = await call("initialize"); assert.equal(initialized.capabilities.extensions["opencraft/execution-engines"].defaultEngine, "pi");
+  const project = await call("project/create", { name: "Pi workspace", roots: [{ path: f.directory }], idempotencyKey: "pi-only-project" });
+  assert.equal((await call("project/list")).data[0].id, project.project.id);
+  assert.equal((await call("fs/getMetadata", { path: f.directory })).isDirectory, true);
   const models = await call("model/list"); assert.equal(models.data[0].groupLabel, "Pi · faux"); assert.equal(models.data[0].isDefault, true);
   const thread = await call("thread/start", { model: models.data[0].model, cwd: f.directory }); assert.match(thread.thread.id, /^pi_/);
   await assert.rejects(call("turn/start", { threadId: "existing-dsh-thread", model: models.data[0].model }), /change execution engines/);
@@ -200,7 +203,8 @@ test("workspace first submission accepts native full access and retains project 
         input: [{ type: "text", text: "must not execute" }], ...override }, noTools), /Full access only/);
     }
   }
-  await assert.rejects(reopened.request("thread/start", { model: piModel("faux", "faux-1"), developerInstructions: "do not discard" }, noTools), /custom instructions/);
+  const instructed = await reopened.request("thread/start", { model: piModel("faux", "faux-1"), developerInstructions: "do not discard" }, noTools);
+  assert.equal(instructed.thread.historyMode, "legacy");
   assert.equal((await reopened.request("thread/read", { threadId: created.thread.id, includeTurns: true }, noTools)).thread.turns.length, 1);
 });
 
@@ -258,4 +262,132 @@ test("Pi workspace outbox drains after baseline and waits for native completion 
   assert.equal(restored.thread.turns.length, 2);
   assert.equal(restored.thread.turns[0].items.find((item: any) => item.type === "userMessage").clientId, "first-workspace-client");
   assert.equal(restored.thread.turns[1].items.find((item: any) => item.type === "userMessage").clientId, "second-workspace-client");
+});
+
+test("Pi native input metadata, context, thinking, identity and timing survive restart", async t => {
+  const { fauxThinking } = await import("@earendil-works/pi-ai/providers/faux");
+  let captured = "";
+  const f = await fixture(t, [(ctx: any) => { captured = JSON.stringify(ctx); return fauxAssistantMessage([fauxThinking("reasoning body"), { type: "text", text: "answer body" }]); }]);
+  const created = await f.engine.request("thread/start", { cwd: f.directory, baseInstructions: "BASE_CONTRACT", developerInstructions: "DEVELOPER_CONTRACT" }, noTools);
+  const input = [{ type: "text", text: "question", text_elements: [{ byteRange: { start: 0, end: 8 }, placeholder: "element" }] }];
+  const params = { threadId: created.thread.id, clientUserMessageId: "stable-input", input,
+    additionalContext: { app: { kind: "application", value: "APPLICATION_CONTEXT" }, file: { kind: "untrusted", value: "UNTRUSTED_CONTEXT" } } };
+  const done = completed(f.engine);
+  await f.engine.request("turn/start", params, noTools);
+  const final = structuredClone(await done);
+  assert.match(captured, /BASE_CONTRACT/); assert.match(captured, /DEVELOPER_CONTRACT/);
+  assert.match(captured, /APPLICATION_CONTEXT/); assert.match(captured, /UNTRUSTED_CONTEXT/);
+  assert.ok(final.items.some((item: any) => item.type === "reasoning" && item.content.includes("reasoning body")));
+  assert.notEqual(final.durationMs, null); assert.notEqual(final.completedAt, null);
+  const read = await f.engine.request("thread/read", { threadId: created.thread.id, includeTurns: true }, noTools);
+  assert.deepEqual(read.thread.turns[0], final);
+  assert.deepEqual(final.items[0].content, input);
+  await f.engine.close();
+  const reopened = new PiEngine({ directory: f.directory, cwd: f.directory, models: fixtureModels([]).models }); t.after(() => reopened.close());
+  const restored = await reopened.request("thread/resume", { threadId: created.thread.id }, noTools);
+  assert.deepEqual(restored.thread.turns[0], final);
+  const retry = await reopened.request("turn/start", params, noTools);
+  assert.deepEqual(retry.turn, final); assert.equal(restored.thread.turns.length, 1);
+});
+
+test("Pi applies saved defaults and durable resume overrides, rejects unsupported semantics", async t => {
+  const directory = await mkdtemp(join(tmpdir(), "pi-config-contract-")); t.after(() => rm(directory, { recursive: true, force: true }));
+  const other = join(directory, "other"); const { mkdir } = await import("node:fs/promises"); await mkdir(other);
+  const faux = fauxProvider({ models: [{ id: "first", reasoning: true }, { id: "second", reasoning: true }] });
+  const runtime = createModels(); runtime.setProvider(faux.provider);
+  const models = Object.assign(runtime, { getAvailableSnapshot: () => faux.models }) as unknown as ModelRuntime;
+  const engine = new PiEngine({ directory, cwd: directory, models }); t.after(() => engine.close());
+  await engine.request("config/batchWrite", { edits: [{ keyPath: "model", value: piModel("faux", "second") }, { keyPath: "model_reasoning_effort", value: "high" }] }, noTools);
+  const created = await engine.request("thread/start", {}, noTools);
+  assert.equal(created.model, piModel("faux", "second")); assert.equal(created.reasoningEffort, "high");
+  assert.deepEqual((await engine.models()).filter(model => model.isDefault).map(model => model.model), [piModel("faux", "second")]);
+  const host = await startEngineHost({ providers: [engine], defaultEngine: "pi" }); t.after(() => host.close());
+  const socket = new WebSocket(host.websocketUrl); t.after(() => socket.terminate());
+  await new Promise<void>((resolve, reject) => { socket.once("open", resolve); socket.once("error", reject); });
+  let next = 0;
+  const call = (method: string) => new Promise<any>((resolve, reject) => {
+    const id = ++next;
+    const listener = (data: WebSocket.RawData) => { const reply = JSON.parse(data.toString()); if (reply.id !== id) return;
+      socket.off("message", listener); reply.error ? reject(new Error(reply.error.message)) : resolve(reply.result); };
+    socket.on("message", listener); socket.send(JSON.stringify({ jsonrpc: "2.0", id, method, params: {} }));
+  });
+  await call("initialize");
+  assert.deepEqual((await call("model/list")).data.filter((model: any) => model.isDefault).map((model: any) => model.model), [piModel("faux", "second")]);
+  const resumed = await engine.request("thread/resume", { threadId: created.thread.id, model: piModel("faux", "first"), cwd: other,
+    excludeTurns: true, initialTurnsPage: { limit: 5, itemsView: "full", sortDirection: "desc" },
+    runtimeWorkspaceRoots: [other], baseInstructions: "replacement", developerInstructions: "developer" }, noTools);
+  assert.equal(resumed.model, piModel("faux", "first")); assert.equal(resumed.cwd, other);
+  assert.equal(resumed.thread.historyMode, "legacy"); assert.equal(resumed.initialTurnsPage, null);
+  for (const fields of [{ outputSchema: { type: "object" } }, { serviceTier: "priority" }, { disabledPluginIds: ["opencraft"] },
+    { runtimeWorkspaceRoots: [directory, other] }, { collaborationMode: { mode: "plan" } }]) {
+    await assert.rejects(engine.request("turn/start", { threadId: created.thread.id, input: [{ type: "text", text: "question" }], ...fields }, noTools));
+  }
+  await assert.rejects(engine.request("thread/resume", { threadId: created.thread.id, history: [] }, noTools), /history/);
+  await engine.close();
+  const reopened = new PiEngine({ directory, cwd: directory, models }); t.after(() => reopened.close());
+  const restored = await reopened.request("thread/resume", { threadId: created.thread.id }, noTools);
+  assert.equal(restored.cwd, other); assert.equal(restored.model, piModel("faux", "first")); assert.equal(restored.reasoningEffort, "high");
+});
+
+test("Pi catalog filters before sorting, and one corrupt index cannot disable other threads", async t => {
+  const f = await fixture(t, []);
+  const a = await f.engine.request("thread/start", { projectId: "A" }, noTools);
+  const b = await f.engine.request("thread/start", { projectId: "B" }, noTools);
+  assert.deepEqual((await f.engine.request("thread/list", { projectId: "A" }, noTools)).data.map((row: any) => row.id), [a.thread.id]);
+  for (const filter of [{ projectId: null }, { cwd: "/missing-workspace" }, { modelProviders: ["other"] }, { sourceKinds: ["cli"] }, { sectionId: "section" }, { parentThreadId: a.thread.id }])
+    assert.equal((await f.engine.request("thread/list", filter, noTools)).data.length, 0);
+  const rows = (await f.engine.request("thread/list", { sortKey: "created_at", sortDirection: "asc" }, noTools)).data;
+  assert.equal(rows.length, 2); assert.ok(rows[0].createdAt <= rows[1].createdAt);
+  const { writeFile } = await import("node:fs/promises");
+  await f.engine.close(); await writeFile(join(f.directory, "pi_deadbeef.json"), "{broken");
+  const reopened = new PiEngine({ directory: f.directory, cwd: f.directory, models: fixtureModels([]).models }); t.after(() => reopened.close());
+  const restored = await reopened.request("thread/list", {}, noTools); assert.equal(restored.data.length, 2);
+  assert.ok(restored.data.some((row: any) => row.id === b.thread.id));
+});
+
+test("Pi reattaches an expired owner during a live turn without stealing a live lease", async t => {
+  const f = await fixture(t, [fauxAssistantMessage("a deliberately slow answer for reconnect")], 5);
+  const a = { ...noTools }, b = { ...noTools };
+  const created = await f.engine.request("thread/start", {}, a), threadId = created.thread.id;
+  await f.engine.request("turn/start", { threadId, input: [{ type: "text", text: "question" }] }, a);
+  await assert.rejects(f.engine.request("runtime/capabilities/register", { threadId, dynamicTools: [] }, b), /owner during a Pi turn/);
+  f.engine.disconnect(a);
+  await f.engine.request("thread/resume", { threadId }, b);
+  assert.equal((await f.engine.request("runtime/capabilities/register", { threadId, dynamicTools: [] }, b)).registered, 0);
+  await f.engine.request("turn/interrupt", { threadId }, b);
+});
+
+test("Pi platform images preserve model content and original tool namespace in live and restored history", async t => {
+  let modelContext = "";
+  const f = await fixture(t, [fauxAssistantMessage([fauxToolCall("opencraft_0_lookup", {}, { id: "media-call" })], { stopReason: "toolUse" }),
+    (ctx: any) => { modelContext = JSON.stringify(ctx); return fauxAssistantMessage("done"); }]);
+  const owner = { notify() {}, async request() { return { success: true, contentItems: [{ type: "inputImage", imageUrl: "data:image/png;base64,AA==" }] }; } };
+  const created = await f.engine.request("thread/start", { dynamicTools: [{ type: "namespace", name: "platform", tools: [{ type: "function", name: "lookup", description: "lookup", inputSchema: { type: "object" } }] }] }, owner);
+  const done = completed(f.engine);
+  await f.engine.request("turn/start", { threadId: created.thread.id, input: [{ type: "text", text: "lookup" }] }, owner);
+  const final = structuredClone(await done), tool = final.items.find((item: any) => item.type === "dynamicToolCall");
+  assert.equal(tool.namespace, "platform"); assert.equal(tool.tool, "lookup"); assert.equal(tool.success, true);
+  assert.equal(tool.contentItems[0].type, "inputImage"); assert.notEqual(tool.durationMs, null); assert.match(modelContext, /image\/png/);
+  assert.deepEqual((await f.engine.request("thread/read", { threadId: created.thread.id, includeTurns: true }, owner)).thread.turns[0], final);
+});
+
+test("Pi file/skill/image input is explicit and upload staging works without DSH", async t => {
+  const f = await fixture(t, []);
+  const { LocalHostResources } = await import("../apps/local-agent-host/src/host-resources.js");
+  const { compilePiInput } = await import("../plugins/pi-engine/src/input.js");
+  const { writeFile } = await import("node:fs/promises");
+  const resources = new LocalHostResources({ projectDirectory: join(f.directory, "projects"), attachmentDirectory: join(f.directory, "attachments") });
+  t.after(() => resources.close());
+  const staged: any = await resources.request("attachment/stage", { clientAttachmentId: "file-one", name: "note.txt", mimeType: "text/plain", size: 4,
+    source: { kind: "client-bytes", dataBase64: Buffer.from("note").toString("base64") } });
+  const ref = staged.attachment ?? staged.ref;
+  assert.equal(ref.location.kind, "host-file");
+  const skill = join(f.directory, "SKILL.md"); await writeFile(skill, "SKILL_CONTENT");
+  const compiled = await compilePiInput([{ type: "mention", name: "note.txt", path: ref.location.path }, { type: "skill", name: "selected", path: skill }], null, f.directory, { input: ["text"] });
+  assert.match(JSON.stringify(compiled), /SKILL_CONTENT/); assert.match(JSON.stringify(compiled), /note.txt/);
+  await assert.rejects(compilePiInput([{ type: "image", url: "data:image/png;base64,AA==" }], null, f.directory, { input: ["text"] }), /does not support image/);
+  const image = await compilePiInput([{ type: "image", url: "data:image/png;base64,AA==" }], null, f.directory, { input: ["text", "image"] });
+  assert.equal(image[0].mimeType, "image/png");
+  await assert.rejects(compilePiInput([{ type: "localImage", path: join(f.directory, "missing.png") }], null, f.directory, { input: ["image"] }));
+  await assert.rejects(compilePiInput([{ type: "audio", url: "data:audio/wav;base64,AA==" }], null, f.directory, { input: ["text"] }), /input.audio/);
 });
