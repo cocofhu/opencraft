@@ -431,13 +431,30 @@ content; a leftward drag dismisses it, following the iOS direction convention.
 The Shell owns one progress MotionValue for direct manipulation, reversal and
 settling. Short slow gestures return to the starting intent; distance or a
 horizontal flick commits. Cancellation, multitouch and resize return to the
-starting intent. Vertical scrolling, editors, horizontal scroll areas, selection,
-menus and dialogs keep their own input; the outer 24px remains reserved for
+starting intent. Vertical scrolling, editors, unregistered horizontal scroll areas,
+selection, menus and dialogs keep their own input; the outer 24px remains reserved for
 browser/OS gestures. Ordinary buttons, links and clickable content (including
 reasoning/tool disclosures and image previews) do not own horizontal input merely
 because they are clickable. They may start a sidebar gesture; taps and small
 unrecognized movement still activate the original control. A recognized swipe
 suppresses its synthesized click without blocking the next deliberate tap.
+Inline code/table scrollports declare `data-horizontal-scroll="true"`. Within an
+enabled mobile Shell, the existing touch controller arbitrates one contact:
+`pending → sidebar | content | native`. Ambiguous diagonals remain pending;
+committed ownership never changes on reversal or later acceleration. A competing
+sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
+horizontal/vertical ratio 1.8 within 100ms; speed is averaged over the last 80ms.
+A slow horizontal contact commits to content by 100ms or 28px. A scrollport already
+at the requested boundary can yield to the ordinary sidebar threshold. These are
+initial tuning values, not physical-device or universal platform constants.
+The mobile Shell sets `touch-action: pan-y pinch-zoom` only for these declared
+scrollports outside exclusive input layers. It drives content `scrollLeft` only
+after content wins, preserving native vertical scrolling and zoom. Native wheel,
+keyboard and desktop/standalone Chat remain native. No content offset is written
+when sidebar wins, and non-cancelable competing input is left to the browser.
+Content momentum is bounded, respects reduced motion and is revoked by a new
+contact, modal, resize or unmount. Foreground layers, editors and explicit ignore
+regions retain native behavior; the outer 24px never acquires the sidebar.
 An image lightbox or a genuinely overflowing horizontal gallery retains its own input.
 The entire foreground input layer owns the sequence, including image-preview
 letterboxing/scrims and controls. Shell admission resolves the composed event

@@ -122,6 +122,21 @@ inside that scroller. A long code line may scroll within the code block, but it
 must never widen the thread, main viewport, or AppShell.
 
 
+## Mobile contact ownership
+
+The existing Shell touch controller owns one arbitration transaction. Code and
+table renderers declare a scroll capability, not navigation handlers. Pending
+contacts resolve to sidebar, content or native input; a committed owner keeps the
+sequence until end/cancel. Only that owner writes movement. Slow local reading
+and quick deliberate navigation compete before either commits; input, selection,
+foreground dialogs, media and unregistered horizontal owners remain exclusive.
+The [mobile gesture contract](../../design/invariants.md#mobile-sidebar-gestures)
+owns thresholds and lifecycle details. Touch-action is scoped to enabled mobile
+Shells and declared inline scrollports; native vertical input, pinch zoom,
+keyboard/wheel and non-mobile/standalone presentation remain available. Native
+scroll acquisition, multi-touch, detached content and foreground layers revoke
+pending input rather than creating two movement writers.
+
 ## OpenCraft acceptance rules
 
 Every AppShell change must demonstrate all of the following:

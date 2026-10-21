@@ -11,7 +11,54 @@ export function mobileSidebarWidth(viewportWidth: number, savedWidth: number): n
 
 export function sidebarGestureAxis(dx: number, dy: number): "pending" | "horizontal" | "vertical" {
   if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return "pending";
-  return Math.abs(dx) > Math.abs(dy) * 1.25 ? "horizontal" : "vertical";
+  if (Math.abs(dx) > Math.abs(dy) * 1.25) return "horizontal";
+  if (Math.abs(dy) > Math.abs(dx) * 1.25) return "vertical";
+  return "pending";
+}
+
+export type MobileGestureOwner = "pending" | "sidebar" | "content" | "native";
+export interface GestureSample { x: number; time: number }
+
+/** CSS pixels and monotonic event timestamps; shared by recognition and release. */
+export const MOBILE_GESTURE_COMPETITION = {
+  distance: 28, velocity: 0.65, directionRatio: 1.8, sampleWindow: 80, decisionWindow: 100,
+} as const;
+
+export function mobileGestureVelocity(samples: readonly GestureSample[], x: number, time: number): number {
+  const cutoff = time - MOBILE_GESTURE_COMPETITION.sampleWindow;
+  let first = samples[0];
+  if (!first || first.time >= time) return 0;
+  for (const sample of samples.slice(1)) {
+    if (sample.time > cutoff) break;
+    first = sample;
+  }
+  const next = samples.find(sample => sample.time > first!.time) ?? { x, time };
+  if (first.time < cutoff && next.time > cutoff) {
+    first = { x: first.x + (next.x - first.x) * (cutoff - first.time) / (next.time - first.time), time: cutoff };
+  }
+  return (x - first.x) / Math.max(1, time - first.time);
+}
+
+/** Only pending contacts compete. A committed owner keeps the contact on reversal. */
+export function arbitrateMobileGesture(input: {
+  owner: MobileGestureOwner; dx: number; dy: number; elapsed: number; velocity: number;
+  sidebarAllowed: boolean; initiallyOpen: boolean; horizontalContent: boolean; contentCanScroll: boolean;
+}): MobileGestureOwner {
+  if (input.owner !== "pending") return input.owner;
+  const { dx, dy } = input;
+  const axis = sidebarGestureAxis(dx, dy);
+  if (axis === "vertical") return "native";
+  if (axis === "pending") return "pending";
+  if (!input.sidebarAllowed || (!input.initiallyOpen && dx * MOBILE_SIDEBAR_REVEAL_DIRECTION <= 0)) {
+    return input.horizontalContent ? "content" : "native";
+  }
+  if (!input.horizontalContent || !input.contentCanScroll) return "sidebar";
+  const policy = MOBILE_GESTURE_COMPETITION;
+  if (Math.abs(dx) >= policy.distance && input.elapsed <= policy.decisionWindow
+    && Math.abs(dx) >= Math.abs(dy) * policy.directionRatio
+    && Math.sign(dx) * input.velocity >= policy.velocity) return "sidebar";
+  if (Math.abs(dx) >= policy.distance || input.elapsed >= policy.decisionWindow) return "content";
+  return "pending";
 }
 
 export function sidebarGestureProgress(start: number, dx: number, width: number): number {
