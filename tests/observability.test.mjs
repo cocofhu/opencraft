@@ -33,7 +33,7 @@ test('comparison rejects missing/mixed workload and detects paired improvement a
 });
 test('real socket, domain dedup, immutable CLI output, unknown query and unavailable backend',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-'));
-  const service=await startObserve({directory,deploymentId:'test',metricsPort:0});
+  const service=await startObserve({directory,deploymentId:'test',metricsPort:0,prometheus:'http://127.0.0.1:1'});
   try{
     const events=[event({kind:'execution',component:'core',engine:'codex',executionId:'one',outcome:'started'}),event({kind:'execution',component:'core',engine:'codex',executionId:'one',outcome:'ok'}),event({kind:'execution',component:'core',engine:'codex',executionId:'one',outcome:'started'})];
     const receipt=await socketRequest(service.socketPath,'/events',{events:[events[0],{bad:'record'},events[1],events[2]]});
