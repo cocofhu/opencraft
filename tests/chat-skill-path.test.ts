@@ -78,7 +78,7 @@ test("Skill reads and plugin identity retain canonical names and title grammar",
     assert.deepEqual(skillReadPresentation(block, "STEPS_PROSE"), {
       visible: true, summary: "Read", detail: `${label} skill`,
     }, skillId);
-    const plugin = parseSkillPath(`/workspace/plugins/${skillId}/skills/pdf/SKILL.md`);
+    const plugin = parseSkillPath(`/workspace/.codex/plugins/cache/market/${skillId}/1/skills/pdf/SKILL.md`);
     assert.equal(plugin?.pluginDisplayName, label, skillId);
     assert.equal(plugin?.pluginId, skillId, skillId);
     assert.equal(parseSkillPath(path)?.skillId, skillId, skillId);
