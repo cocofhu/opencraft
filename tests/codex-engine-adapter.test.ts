@@ -75,7 +75,7 @@ test("model capacity failures continue with exponential backoff capped at 120 se
     const accepted = (await request("capacity:inputs", "test/readAcceptedInputs", {})).data;
     assert.deepEqual(accepted.at(-1).params.input, []);
     assert.match(accepted.at(-1).params.clientUserMessageId, /^capacity-retry:/);
-    const usageDb=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+    const usageDb=new DatabaseSync(join(root,"data","token-usage.sqlite"),{readOnly:true});
     try{
       const fact=usageDb.prepare("SELECT actor_id,actor_kind,source_kind,mode FROM token_usage_submissions WHERE server_id=? AND thread_id=? AND input_id=?").get("local-codex",threadId,accepted.at(-1).params.clientUserMessageId);
       assert.deepEqual({...fact},{actor_id:null,actor_kind:"session",source_kind:"system",mode:"start"});
@@ -1241,7 +1241,7 @@ test("usage attempts follow the actual queue dispatcher and retain definitive re
   assert.ok((await request("B","thread/queue/steer",{threadId,queuedSubmissionId:queued.id,expectedTurnId:turnId})).result);
   const rejected=await request("B","turn/steer",{threadId,clientUserMessageId:"rejected-B",expectedTurnId:"different-turn",input:[{type:"text",text:"synthetic"}]});
   assert.ok(rejected.error);
-  const db=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+  const db=new DatabaseSync(join(root,"data","token-usage.sqlite"),{readOnly:true});
   try{
    const dispatched=db.prepare("SELECT actor_id,mode,outcome,turn_id FROM token_usage_attempts WHERE input_id='queued-A'").get()!;
    assert.deepEqual({...dispatched},{actor_id:"B",mode:"steer",outcome:"accepted",turn_id:turnId});
@@ -1273,7 +1273,7 @@ test("ambiguous native rejection remains unknown and exposes a recovery gap",asy
   const threadId=(await request("thread/start",{testNoServerRequest:true})).result.thread.id;
   const turnId=(await request("turn/start",{threadId,clientUserMessageId:"initial",input:[{type:"text",text:"synthetic"}]})).result.turn.id;
   assert.ok((await request("turn/steer",{threadId,expectedTurnId:turnId,clientUserMessageId:"uncertain",input:[{type:"text",text:"synthetic"}]})).error);
-  const db=new DatabaseSync(join(root,"data","codex-host-queue.sqlite"),{readOnly:true});
+  const db=new DatabaseSync(join(root,"data","token-usage.sqlite"),{readOnly:true});
   try{
    assert.equal(db.prepare("SELECT outcome FROM token_usage_attempts WHERE input_id='uncertain'").get()!.outcome,"unknown");
    assert.equal(db.prepare("SELECT count(*) AS n FROM token_usage_admissions WHERE input_id='uncertain'").get()!.n,0);
