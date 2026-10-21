@@ -2322,3 +2322,14 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Raw tool result facts
+
+The Web Raw dialog preserves the tool transport's result shape. MCP protocol failures
+include the error message and protocol kind; an absent envelope stays null. A received
+MCP result retains its content, structuredContent and raw envelope, including isError
+without reclassifying it as a protocol failure. Dynamic tools retain success and the
+complete contentItems. Invocation identity falls back from server to namespace. The
+existing JSON preview and copy action consume the same complete value; none of these
+display fields can change execution, permissions or the compact-tool policy.

@@ -23,7 +23,7 @@ const results = [];
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!process.argv.includes("--raw-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -69,6 +69,59 @@ try {
     assert.deepEqual(errors, []);
     results.push({ width, theme, navigationAndCreatedCard: true, transferSteps: true, failedPollVisible: true, reportedStepStates: true, allSurfacePhases: true, allPhases: true });
     console.log(JSON.stringify({ width, theme, passed: true }));
+    await page.close();
+  }
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript(() => {
+      (window as any).__name = (value: unknown) => value;
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+        writeText: async (text: string) => { (window as any).rawClipboard = text; },
+      } });
+    });
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=raw`);
+    await page.locator("[data-phase]").waitFor();
+    const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
+    for (let index = 0; index < 30; index++) {
+      const closed = page.locator('.thread-activity-item__hit-target[aria-expanded="false"]');
+      if (await closed.count() === 0) break;
+      await activate(closed.first());
+    }
+    const rawButtons = page.getByRole("button", { name: "Show raw tool call output", exact: true });
+    assert.equal(await rawButtons.count(), 6);
+    const values: any[] = [];
+    for (let index = 0; index < 6; index++) {
+      await activate(rawButtons.nth(index));
+      const dialog = page.getByRole("dialog");
+      await dialog.waitFor();
+      await page.evaluate(() => { (window as any).rawClipboard = ""; });
+      await activate(dialog.getByRole("button", { name: "Copy code", exact: true }));
+      await page.waitForFunction(() => (window as any).rawClipboard.length > 0);
+      values.push(JSON.parse(await page.evaluate(() => (window as any).rawClipboard)));
+      if (index === 0 || index === 4) await page.screenshot({ path: join(output, `raw-${index}-${width}-${theme}.png`) });
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+    }
+    assert.deepEqual(values[0], {
+      callId: "protocol-error", invocation: { server: "raw-probe", tool: "protocol_error", arguments: { path: "/workspace/report.txt" } }, durationMs: 120,
+      result: { type: "error", kind: "protocol", error: "PROTOCOL_FAILURE: connection closed before a result", rawError: { message: "PROTOCOL_FAILURE: connection closed before a result" } },
+    });
+    assert.equal(values[1].result, null, "A missing MCP envelope remains absent");
+    assert.deepEqual(values[2].result, { type: "success", content: [{ type: "text", text: "MCP_SUCCESS" }], structuredContent: { value: 42 }, raw: { content: [{ type: "text", text: "MCP_SUCCESS" }], structuredContent: { value: 42 } } });
+    assert.equal(values[3].result.type, "success", "A tool-reported error is a received MCP result, not a protocol failure");
+    assert.equal(values[3].result.raw.isError, true);
+    assert.equal(values[3].result.content[0].text, "REPORTED_ERROR: item absent");
+    for (const [index, success, text] of [[4, false, "DYNAMIC_FAILURE_CONTENT"], [5, true, "DYNAMIC_SUCCESS_CONTENT"]] as const) {
+      assert.equal(values[index].invocation.server, "deepseek-harness");
+      assert.deepEqual(values[index].result, { success, contentItems: [{ type: "inputText", text }] });
+    }
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    results.push({ width, theme, rawProtocolError: true, absentEnvelope: true, receivedMcpError: true, dynamicResultFacts: true, fullJsonCopy: true });
+    console.log(JSON.stringify({ width, theme, rawOutput: true, passed: true }));
     await page.close();
   }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
