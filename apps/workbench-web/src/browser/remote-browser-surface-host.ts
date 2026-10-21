@@ -166,7 +166,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   private resetDecoder(p: Page) { if (p.decoder && p.decoder.state !== 'closed') p.decoder.close(); p.decoder = null; p.media?.dispose(); p.media = null; p.video?.remove(); p.video = null; p.latest?.close(); p.latest = null; cancelAnimationFrame(p.raf); p.raf = 0; p.needsKey = true; }
   private decode(p: Page, bytes: ArrayBuffer) {
     if (bytes.byteLength < 10) return;
-    if (typeof VideoDecoder === 'undefined') {
+    if (typeof VideoDecoder === 'undefined' || typeof EncodedVideoChunk === 'undefined') {
       if (!p.media) {
         const video = document.createElement('video');
         Object.assign(video.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' });
