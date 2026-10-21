@@ -26,6 +26,39 @@ async function fixture(run: (directory: string, legacy: CodexHostStateDatabase) 
   try { await run(directory, legacy); } finally { legacy.close(); await rm(directory, { recursive: true, force: true }); }
 }
 
+test("unchanged native metadata does not rewrite projections; late evidence still reallocates", () => fixture((directory) => {
+  const state = new TokenUsageStateDatabase(directory);
+  try {
+    const ledger = seed(state);
+    const complete = { executionState: "completed" as const, participantsComplete: true, usageComplete: true, responsesComplete: true };
+    ledger.recordInput(key, { inputId: "late", actorId: null, actorKind: "unknown", mode: "steer", admission: "pending" });
+    assert.equal(ledger.readTurn(key)?.allocationState, "pending");
+    const before = ledger.readTurn(key);
+    const scope = ledger.coverage().revision;
+    const changes = () => state.database.prepare("SELECT total_changes() AS n").get()!.n;
+    const priorChanges = changes();
+    for (let i = 0; i < 100; i++) {
+      ledger.reconcile(key, complete);
+      ledger.rememberRollout(key.threadId, "/fixture/rollout.jsonl");
+      ledger.advanceMetadataCursor(key.threadId, null);
+    }
+    assert.equal(changes(), priorChanges, "metadata polling must not write or rebuild unchanged state");
+    assert.deepEqual(ledger.readTurn(key), before);
+    assert.equal(ledger.coverage().revision, scope);
+    assert.throws(() => ledger.rememberRollout(key.threadId, "/changed.jsonl"), /source changed/);
+    ledger.recordInput(key, { inputId: "late", actorId: "C", actorKind: "human", mode: "steer", admission: "confirmed" });
+    assert.equal(ledger.readTurn(key)?.allocationState, "settled");
+    assert.deepEqual(ledger.readAllocations(key).map(row => row.tokens), ["200", "200", "200"]);
+    ledger.recordSource({ ...key, lineage: "native", sourceId: "late-response", kind: "response", version: 0, provider: "provider", model: "model", counts: { totalTokens: "300" } });
+    assert.deepEqual(ledger.readAllocations(key).map(row => row.tokens), ["300", "300", "300"]);
+    assert.throws(() => ledger.reconcile(key, { ...complete, executionState: "running" }), /return to running/);
+    ledger.advanceMetadataCursor(key.threadId, "next-page");
+    assert.equal(ledger.metadataCursor(key.threadId), "next-page");
+    ledger.advanceMetadataCursor(key.threadId, null);
+    assert.equal(ledger.metadataCursor(key.threadId), null);
+  } finally { state.close(); }
+}));
+
 test("dedicated metering owner copies all facts and recovery state exactly once without sender data or legacy writes", () => fixture((directory, legacy) => {
   const old = seed(legacy);
   legacy.database.prepare("INSERT INTO message_senders VALUES(?,?,?,?)").run("thread", "body", "SENSITIVE_SYNTHETIC_CANARY", 1000);

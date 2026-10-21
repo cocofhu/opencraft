@@ -218,7 +218,9 @@ export class CodexTokenUsageLedger {
     return row?.cursor as string|null??null;
   }
   advanceMetadataCursor(threadId:string,cursor:string|null):void {
+    requiredId(threadId);
     if(cursor!==null)requiredId(cursor);
+    if(this.metadataCursor(threadId)===cursor)return;
     this.write(()=>{this.statement("INSERT INTO token_usage_metadata_scans VALUES(?,?,?) ON CONFLICT(server_id,thread_id) DO UPDATE SET cursor=excluded.cursor").run(this.serverId,requiredId(threadId),cursor);});
   }
   hasRunningTurnsOutside(threadId:string,known:readonly string[]):boolean {
@@ -406,6 +408,11 @@ export class CodexTokenUsageLedger {
   rememberRollout(threadId: string, path: string): void {
     requiredId(threadId);
     if (typeof path !== "string" || !path || path.length > 32768) throw new TypeError("Invalid native rollout reference");
+    const known = this.rollout(threadId);
+    if (known) {
+      if (known.path !== path) throw new Error("Native rollout source changed; reconciliation required");
+      return;
+    }
     this.write(() => {
       const existing = this.rollout(threadId);
       if (existing && existing.path !== path) throw new Error("Native rollout source changed; reconciliation required");
@@ -602,6 +609,16 @@ export class CodexTokenUsageLedger {
     readonly usageComplete: boolean; readonly responsesComplete: boolean;
   }): void {
     const ids = this.key(key);
+    // Fact and admission mutations rebuild their own projections. Repeated
+    // native metadata must not scan all historical sources or revise cursors.
+    // Compare stored evidence rather than readTurn's effective completeness:
+    // unresolved admissions can legitimately keep effective completeness false.
+    const stored = this.statement("SELECT execution_state,participants_complete,usage_complete,responses_complete,frozen FROM token_usage_turns WHERE server_id=? AND thread_id=? AND turn_id=?").get(...ids);
+    if (!stored || stored.frozen === 1) return;
+    if (stored.execution_state === evidence.executionState &&
+      stored.participants_complete === (evidence.participantsComplete ? 1 : 0) &&
+      stored.usage_complete === (evidence.usageComplete ? 1 : 0) &&
+      stored.responses_complete === (evidence.responsesComplete ? 1 : 0)) return;
     this.write(() => {
       const turn = this.readTurn(key);
       if (!turn || turn.frozen) return;
