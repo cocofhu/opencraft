@@ -2322,3 +2322,8 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Website tool call details
+
+Browser WebMCP child calls retain separate Tool and Result JSON previews. The Tool preview identifies the tool, website, read-only hint and parsed input; list operations use the Listed website tools summary. Parse complete JSON for reading, preserve truncated or invalid text exactly, and label truncated input/results. An absent result adds no Result section. Reuse the shared code preview and its scroll budget, keep each document identity scoped to the parent call, and preserve data when details are closed and reopened.

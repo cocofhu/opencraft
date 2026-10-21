@@ -15,6 +15,20 @@ const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "da
 document.documentElement.dataset.theme = theme;
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
+const webMcpScenario = new URLSearchParams(location.search).get("scenario") === "webmcp";
+const webMcpItems: TimelineSourceItem[] = [{ id: "webmcp-browser", type: "mcpToolCall", payload: {
+  server: "node_repl", tool: "browser_click", status: "completed", arguments: {},
+  result: { content: [], _meta: { "codex/toolSurface": { kind: "browserUse", backend: "iab", webMcpCalls: [
+    { kind: "listTools", name: "webmcp_list_tools", sourceHostname: "catalog.example.test", outputJson: JSON.stringify([{ name: "lookup_item" }]) },
+    { kind: "invokeTool", name: "lookup_item", title: "Look up an item", description: "Find an item in this website", readOnlyHint: true, sourceHostname: "catalog.example.test",
+      inputJson: JSON.stringify({ query: { id: "INPUT_42", region: "上海" }, options: { limit: 40 } }),
+      outputJson: JSON.stringify({ items: Array.from({ length: 40 }, (_, id) => ({ id, title: "RESULT_" + id, available: true })), last: "LAST_RESULT" }) },
+    { kind: "invokeTool", name: "truncated_query", title: "Partial query", readOnlyHint: false, sourceHostname: "catalog.example.test",
+      inputJson: '{"query":"PARTIAL_INPUT', inputTruncated: true, outputJson: '{"result":"PARTIAL_OUTPUT', outputTruncated: true },
+    { kind: "invokeTool", name: "plain_response", title: "Plain response", inputJson: "PLAIN_INPUT", outputJson: "PLAIN_OUTPUT" },
+    { kind: "invokeTool", name: "empty_response", title: "Empty response", inputJson: "false", outputJson: null },
+  ] } } },
+} }];
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[] };
 probe.openedThreads = [];
 function tool(id: string, name: string, arguments_: unknown, status = "completed", output?: unknown): TimelineSourceItem {
@@ -27,7 +41,7 @@ function tool(id: string, name: string, arguments_: unknown, status = "completed
 function Demo() {
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
-  const items: TimelineSourceItem[] = [
+  const items: TimelineSourceItem[] = webMcpScenario ? webMcpItems : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
