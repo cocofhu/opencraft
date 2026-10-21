@@ -925,7 +925,10 @@ per-feature keyboard offset or second height owner.
 
 New-thread pages center a content-sized heading/Composer group. Flexible spare
 space and optional heading space contract before the Composer; the action region
-retains its content height. No height breakpoint exchanges fractional grid rows,
+retains its controls. The route publishes its actual size-container capacity minus
+its own block insets to the shared Composer budget; editor/preview content yields
+before actions. Optional heading gaps are shrinkable space, not padding that
+continues consuming a minimum after the heading collapses. No height breakpoint exchanges fractional grid rows,
 negative margins and auto rows while the keyboard animates. A continuous change
 of available height must produce continuous input placement while controls remain
 reachable, including both sides of the former 540px threshold.

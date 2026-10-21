@@ -156,3 +156,9 @@ centers its content group with flexible remaining space. It cannot switch input
 placement discontinuously at a viewport-height breakpoint; optional heading space
 contracts before action controls. Existing and new conversation routes share the
 same viewport owner, not separate keyboard-recovery controllers.
+
+Composer capacity is local to its route's size container, minus that route's own
+block insets. The shared stack intersects this capacity with its platform budget;
+header/route chrome cannot be counted as input space. Heading gaps shrink as
+space, not structural padding with an irreducible minimum. Long draft/attachment
+content yields to the action footer without changing editor or draft identity.

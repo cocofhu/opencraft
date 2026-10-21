@@ -1937,6 +1937,12 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .new-thread-draft-layout {
+  --draft-block-start: 24px;
+  --draft-block-end: 16px;
+  --draft-composer-gap: 6px;
+  // The route owns these insets; the shared Composer consumes its remaining
+  // containing-block capacity, not the entire browser/keyboard viewport.
+  --composer-available-block-size: calc(100cqh - var(--draft-block-start) - var(--draft-block-end) - var(--draft-composer-gap));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1944,7 +1950,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-width: 0;
   min-height: 100%;
   flex: 1;
-  padding-top: 24px;
+  padding-top: var(--draft-block-start);
 }
 
 .new-thread-draft-hero {
@@ -1952,12 +1958,20 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   overflow: clip;
-  padding: 0 var(--padding-toolbar) 32px;
+  padding: 0 var(--padding-toolbar);
+
+  &::after {
+    content: "";
+    flex: 0 1 32px;
+    min-height: 0;
+  }
 
   h1 {
+    flex: 0 0 auto;
     width: min(100%, var(--thread-content-max-width));
     margin: 0;
     color: var(--color-text);
@@ -3690,7 +3704,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  padding: 6px 0 16px;
+  padding: var(--draft-composer-gap) 0 var(--draft-block-end);
 }
 
 .new-thread-draft-composer-width {
@@ -12110,7 +12124,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .opencraft-composer-stack {
       display: flex;
       flex-direction: column;
-      max-height: max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px));
+      max-height: min(var(--composer-available-block-size, var(--timeline-visual-viewport-height)), max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px)));
     }
     .opencraft-composer-shell {
       display: flex;
