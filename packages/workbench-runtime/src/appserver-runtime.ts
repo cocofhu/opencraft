@@ -323,6 +323,7 @@ export interface AppServerProtocolResourcePort {
   request<TMethod extends AppServerMethod>(
     method: TMethod,
     params: AppServerMethodParams<TMethod>,
+    options?: import("@opencraft/appserver-protocol").AppServerRequestOptions,
   ): Promise<AppServerMethodResult<TMethod>>;
 }
 
@@ -1564,9 +1565,9 @@ export function createAppServerWorkbenchRuntime(
   const runtime: AppServerWorkbenchRuntime = {
     resources: {
       protocol: {
-        request(method, params) {
+        request(method, params, options) {
           assertMethodAccess(method);
-          return requireClient().request(method, params);
+          return requireClient().request(method, params, options);
         },
       },
       goals,

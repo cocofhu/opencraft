@@ -741,7 +741,7 @@ export function useMultiHostThreadCatalog(): {
       }
     };
     const protocol: import("@opencraft/workbench-runtime").AppServerProtocolResourcePort = {
-      request: (method, params) => runtime!.resources.protocol.request(method, params),
+      request: (method, params, options) => runtime!.resources.protocol.request(method, params, options),
     };
     const scope = {
       key: JSON.stringify([host.hostId, profile.revision, epoch, generation, available]),
