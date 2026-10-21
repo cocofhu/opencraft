@@ -120,7 +120,11 @@ export class RemoteBrowserService {
       const env = { ...process.env, OPENCRAFT_BROWSER_DATA_DIR: this.dataDirectory };
       // A trusted runtime needs no inherited Node hooks or ambient desktop.
       for (const name of ['ELECTRON_RUN_AS_NODE','NODE_OPTIONS','NODE_PATH','DISPLAY','WAYLAND_DISPLAY']) delete env[name];
-      const flags = ['--ozone-platform=headless', '--ozone-override-screen-size=1920,1080', '--disable-gpu'];
+      // Keep compositing on the CPU while allowing WebGL through software ANGLE.
+      // Some mobile pages require a WebGL context even for device detection.
+      // SwiftShader is an explicit software backend, not hardware acceleration.
+      const flags = ['--ozone-platform=headless', '--ozone-override-screen-size=1920,1080', '--disable-gpu',
+        '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
       const isolated = process.getuid?.() === 0 && !this.allowNoSandbox;
       this.isolated = isolated;
       let child;
