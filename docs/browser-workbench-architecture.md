@@ -1427,3 +1427,13 @@ frame, without WebContents' global did-stop-loading gate. Native document
 generation checks still reject stale results. This permits browser inspection
 and interaction in a committed document while a subresource is stalled; no
 client JavaScript evaluator or CDP endpoint is exposed.
+
+A failed open or terminally disconnected transport does not make the tab's
+ready promise reusable. Explicit reload or replacement navigation establishes
+a new connection generation using the same persisted storage lease and current
+server admission. It retires the old transport, pending RPCs, input and media
+before connecting; late old results/closures cannot clear the new connection.
+Healthy reload keeps its existing transport. Policy closure does not trigger
+automatic retries; an explicit retry still requires server authorization.
+Explicit navigation intent has its own sequence, so synchronizing the remote
+URL during reconnect cannot drop a newer user navigation or revive an older one.

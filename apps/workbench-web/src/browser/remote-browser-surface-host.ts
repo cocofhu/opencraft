@@ -10,8 +10,8 @@ import { BrowserLocalMenuController } from './browser-local-menu';
 type Pending = { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 interface Page {
   media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLTextAreaElement; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean;
-  events: BrowserSurfaceEvents; url: BrowserUrl | null | undefined; socket: WebSocket | null;
-  restored: boolean; ready: Promise<void>; opened: boolean; closed: boolean; visible: boolean; blocked: boolean;
+  events: BrowserSurfaceEvents; navigation: number; url: BrowserUrl | null | undefined; socket: WebSocket | null;
+  restored: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
   viewportMeasured: boolean; width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
@@ -78,12 +78,14 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const absent = !this.pages.has(id);
     if (absent && !this.hostIdentities.has(id)) this.backing?.(id);
     const p = this.ensure(id, events); p.events = events;
-    if (!force && p.url === url) return absent;
+    if (!force && p.url === url && !p.disconnected) return absent;
+    const navigation = ++p.navigation;
     p.url = url;
+    if (p.disconnected) this.reconnect(p);
     // Capture the requested URL; replacement before connection must not issue
     // an obsolete navigation after the latest one.
-    void p.ready.then(() => { if (!p.closed && p.url === url && !(absent && p.restored && !force)) return this.call(p, force ? 'reload' : 'navigate', { url }); })
-      .catch(error => { if (!p.closed && p.url === url) p.events.onError(error.message); });
+    void p.ready.then(() => { if (!p.closed && p.navigation === navigation && !(absent && p.restored && !force)) return this.call(p, force ? 'reload' : 'navigate', { url }); })
+      .catch(error => { if (!p.closed && p.navigation === navigation) p.events.onError(error.message); });
     return true;
   }
   stop(id: BrowserPageId) { this.run(this.require(id), 'stop'); }
@@ -150,8 +152,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
-    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editable: false, nativeIme: false, events, url: undefined, socket: null,
-      nativeCopy: false, interaction: 0, menuIntent: null, restored: false, ready: Promise.resolve(), opened: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
+    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editable: false, nativeIme: false, events, navigation: 0, url: undefined, socket: null,
+      nativeCopy: false, interaction: 0, menuIntent: null, restored: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetInput: () => {}, inputDispose: () => {} };
     if (!this.storageIds.has(id)) { this.storageIds.set(id, p.lease); this.persistStorage(); }
@@ -167,7 +169,21 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     return p;
   }
   private rejectPending(p: Page) { for (const request of p.pending.values()) { clearTimeout(request.timer); request.reject(new BrowserAutomationError('PAGE_CLOSED', 'Browser disconnected', true)); } p.pending.clear(); }
+  private resetTransport(p: Page) {
+    this.retireMenu(p); p.resetInput(); this.resetKeyboard(p); p.opened = false;
+    if (p.resizeTimer) clearTimeout(p.resizeTimer);
+    p.resizeTimer = null; p.resizing = false; this.rejectPending(p); this.resetDecoder(p);
+  }
+  private reconnect(p: Page) {
+    // Retire the previous generation before closing it: its delayed close and
+    // open rejection must not clear the replacement connection's state.
+    ++p.connection;
+    if (p.reconnect) clearTimeout(p.reconnect);
+    p.reconnect = null; p.socket?.close(); this.resetTransport(p); p.retries = 0;
+    p.ready = this.connect(p); void p.ready.catch(error => { if (!p.closed) p.events.onError(error.message); });
+  }
   private connect(p: Page): Promise<void> {
+    p.disconnected = false;
     const generation = ++p.connection;
     return new Promise((resolve, reject) => {
       const url = new URL(serverUrl('/__opencraft_browser/stream'), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -184,7 +200,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           if (p.restored && config.navigation) { p.events.onNavigation?.(config.navigation); if (!config.navigation.isLoading) p.events.onLoaded(config.navigation.title || null); if (config.navigation.url) p.url = config.navigation.url; }
           if (generation > 1 && !p.restored) await this.call(p, 'navigate', { url: p.url ?? null });
           this.queueViewport(p); this.run(p, 'visible', { visible: p.visible });
-        }).catch(error => { clearTimeout(timer); reject(error); p.events.onError(error.message); ws.close(1000); });
+        }).catch(error => { clearTimeout(timer); reject(error); if (!current()) return; p.disconnected = true; p.events.onError(error.message); ws.close(1000); });
       };
       ws.onmessage = event => {
         if (!current()) return;
@@ -218,10 +234,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       ws.onclose = event => {
         clearTimeout(timer); reject(new Error('Browser connection closed'));
         if (!current()) return;
-        this.retireMenu(p);
-        p.resetInput(); this.resetKeyboard(p); p.opened = false; if (p.resizeTimer) clearTimeout(p.resizeTimer); p.resizeTimer = null; p.resizing = false; this.rejectPending(p); this.resetDecoder(p);
+        p.disconnected = true; this.resetTransport(p);
         if (event.code === 1000 || event.code === 1008 || p.retries >= 5) { p.events.onError('Browser disconnected; reload this tab'); return; }
-        p.reconnect = setTimeout(() => { p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
+        p.reconnect = setTimeout(() => { p.reconnect = null; p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
       };
     });
   }
