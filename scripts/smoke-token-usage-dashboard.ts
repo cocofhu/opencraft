@@ -22,7 +22,7 @@ const port={getSnapshot:()=>({...connection}),subscribe:()=>()=>{},request:async
  const personal=params.scope!=='team';
  const tokens=personal?'1000':'2000';
  return {serverId:'fixture',canQueryTeam:true,scope:params.scope,actorId:personal?'A':null,asOf:Date.now(),snapshotRevision:3,timezone:'Asia/Shanghai',policyVersion:'equal-turn-v1',view:params.view,
- coverage:{enabled:true,enabledAt:Date.now()-100000,partial:false,openGaps:0,missingUsage:0,unknownModelTurns:0},summary:{tokens,allocatedTokens:tokens,turns:1,categories:{settled:tokens,provisional:'0',pending:'0',system:'0',unknown:'0'}},
+ coverage:{enabled:true,enabledAt:Date.now()-100000,partial:false,openGaps:0,missingUsage:0,unknownModelTurns:0},summary:{tokens,allocatedTokens:tokens,turns:1,threads:1,categories:{settled:tokens,provisional:'0',pending:'0',system:'0',unknown:'0'}},
  diagnostics:{since:Date.now(),counts:{collected:3,corrected:1,deduplicated:7,excluded:0,missing:0,reconciled:1,writeFailures:0,queryFailures:0},lastSourceSuccessAt:Date.now()-1000,lastReconcileAt:Date.now()-1000,writeLatency:{count:20,samples:20,p95Ms:1.2,maxMs:2},queryLatency:{count:2,samples:2,p95Ms:3.4,maxMs:4}},
  daily:[{key:params.from,tokens,turns:1}],models:[{key:'["provider","actual-model"]',tokens,turns:1}],
  rows:params.view==='turns'?[{threadId:'thread-fixture',turnId:'turn-fixture',startedAt:Date.now(),executionState:'completed',allocationState:'settled',rawTokens:'2000',allocatedTokens:tokens,participantCount:2,revision:3,models:[]}]:window.expanded?Array.from({length:30},(_,n)=>({key:(params.cursor?'thread-page2-':'thread-page1-')+n,tokens,turns:1})):[{key:params.view==='actors'?'A':'thread-fixture',tokens,turns:1}],nextCursor:window.expanded&&!params.cursor?'fixture-page2':null};
@@ -39,6 +39,8 @@ try {
  page.on("pageerror",(error:Error)=>errors.push(error.message));
  await page.goto(vite.resolvedUrls!.local[0]!);
  await page.getByRole("heading",{name:locale==="en-US"?"My allocated usage":"我的分摊用量"}).waitFor();
+ await page.getByRole("heading",{name:locale==="en-US"?"Usage by model":"模型用量",exact:true}).waitFor();
+ await page.getByRole("region",{name:locale==="en-US"?"Usage by model":"模型用量",exact:true}).getByText("provider / actual-model",{exact:true}).waitFor();
  await page.getByRole("button",{name:"thread-fixture",exact:true}).click();
  await page.getByText("turn-fixture",{exact:true}).waitFor();
  await page.getByRole("button",{name:locale==="en-US"?"Back to summary":"返回汇总"}).click();
