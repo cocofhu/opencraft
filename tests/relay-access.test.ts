@@ -14,7 +14,7 @@ import { createRelayServer } from "../apps/relay-server/src/server";
 import { connectRelay } from "../plugins/relay-connect/src/server";
 import { FixtureRequestIdentity, signedFixtureIdentity as signed } from "./fixtures/request-identity";
 import { createWorkbenchWebServer } from "../scripts/serve-workbench-web.mjs";
-import { createHeadlessBackendProxy } from "../scripts/web-deployment/headless-backend.mjs";
+import { createHeadlessBackendProxy, isHeadlessBackendPath } from "../scripts/web-deployment/headless-backend.mjs";
 import { relayPathAllowed } from "../packages/relay-protocol/src";
 import { DatabaseSync } from 'node:sqlite';
 
@@ -190,7 +190,13 @@ test('IM list traverses relay, managed Web proxy, verified human admission and c
   const im=await ImChannelService.open([],{dataDirectory:dir,actors,actorAccess:human,collaboration:{execution:{serverId:'im-server',hostId:'im-host'}},getAppHost:()=>null,admittedActor:id=>access.admitsActor(id)});t.after(()=>im.close());
   const web=await createWorkbenchWebServer({root:dir,appServerTarget:null,loopbackOnly:true,accessService:access,actorService:human,getImService:()=>im});t.after(()=>web.close());
   const address=await web.listen({host:'127.0.0.1',port:0});const proxy=createHeadlessBackendProxy(`http://127.0.0.1:${address.port}`);
-  const front=createServer((req,res)=>proxy.http(req,res,()=>{}));front.listen(0,'127.0.0.1');await once(front,'listening');t.after(()=>new Promise<void>(resolve=>{front.close(()=>resolve());front.closeAllConnections();}));
+  // Match the managed entry dispatch: an omitted API route would first consume
+  // the one-use relay assertion during document admission, then fail forwarding.
+  const front=createServer(async(req,res)=>{
+    const path=new URL(req.url!, 'http://entry.test').pathname;
+    if(isHeadlessBackendPath(path))proxy.http(req,res,()=>{});
+    else if(await proxy.admitDocument(req,res))proxy.http(req,res,()=>{});
+  });front.listen(0,'127.0.0.1');await once(front,'listening');t.after(()=>new Promise<void>(resolve=>{front.close(()=>resolve());front.closeAllConnections();}));
   const identity=new FixtureRequestIdentity();t.after(()=>identity.close());
   const route={...scope,credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,pair.privateKey),identityProvider:identity.identityProvider(),targetPort:(front.address() as any).port};
   const relay=createRelayServer([route]);relay.server.listen(0,'127.0.0.1');await once(relay.server,'listening');t.after(()=>relay.close());
