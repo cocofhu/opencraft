@@ -36,20 +36,29 @@ function codeElement(document: Document, text: string): HTMLElement {
   return pre;
 }
 
+function excludedFromCopy(element: Element): boolean {
+  return copyRole(element) === "exclude"
+    || element.classList.contains("sr-only")
+    || element.getAttribute("aria-hidden") === "true"
+    || (element.tagName === "IMG" && element.getAttribute("alt") === "");
+}
+
+/** Raw source whitespace is significant; only the shared copy exclusions apply. */
+function codeText(node: Node): string {
+  if (node.nodeType === 3) return node.textContent ?? "";
+  if (node.nodeType !== 1 || excludedFromCopy(node as Element)) return "";
+  return Array.from(node.childNodes).map(codeText).join("");
+}
+
 function rebuildNode(document: Document, input: Node): Node | null {
   if (input.nodeType === 3) return document.createTextNode(input.textContent ?? "");
   if (input.nodeType !== 1) return null;
   const element = input as Element;
   const role = copyRole(element);
-  if (
-    role === "exclude"
-    || element.classList.contains("sr-only")
-    || element.getAttribute("aria-hidden") === "true"
-    || (element.tagName === "IMG" && element.getAttribute("alt") === "")
-  ) return null;
+  if (excludedFromCopy(element)) return null;
 
   if (role === "code-block") {
-    return codeElement(document, element.getAttribute("data-markdown-copy-text") ?? element.textContent ?? "");
+    return codeElement(document, element.getAttribute("data-markdown-copy-text") ?? codeText(element));
   }
   if (role === "rich-block") {
     const content = element.querySelector("[data-markdown-copy-content]");

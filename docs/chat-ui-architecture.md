@@ -2336,3 +2336,10 @@ selection direction and endpoints outside the code, without moving focus or
 scrolling. A replacement that changes existing source does not restore stale
 offsets. Streaming completion and theme recoloring keep the reader's selection;
 source text, highlighting policy and the code surface keep their owners. When a range crosses code surfaces, capture both stable code roots and text offsets: a theme update may replace tokens at both ends in one commit. Resolve only roots whose existing source remains unchanged or extended.
+
+Code-block clipboard extraction honors the same descendant exclusions as ordinary
+Markdown when full-source metadata is absent, including cloned partial ranges
+crossing code surfaces. Language captions, controls and hidden duplicates stay
+out of quotes; raw source whitespace and Unicode remain intact. Explicit full
+source metadata keeps its existing authority. The shared copy owner supplies
+this rule to copy and Add to chat, without changing native selection or drafts.
