@@ -1,3 +1,4 @@
+import { cancelFrame, frame } from "motion/react";
 import type {
   BrowserPageId,
   BrowserTabId,
@@ -89,18 +90,14 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
       viewportMode: tab.viewportMode,
     });
     presentationRef.current = presentation;
-    let frameId: number | null = null;
-    const scheduleMeasure = () => {
-      if (frameId !== null) return;
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        presentation.measure();
-      });
-    };
+    // Read after Motion commits ancestor transforms and pane dimensions.
+    // A separate browser RAF can run before Motion's final DOM write.
+    const measure = () => presentation.measure();
+    const scheduleMeasure = () => { frame.postRender(measure); };
     const unsubscribeLayout = rightPanelLayoutTick.on("change", scheduleMeasure);
     scheduleMeasure();
     return () => {
-      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      cancelFrame(measure);
       unsubscribeLayout();
       if (presentationRef.current === presentation) presentationRef.current = null;
       presentation.dispose();

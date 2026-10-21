@@ -1564,3 +1564,5 @@ inputmode change with visible OS keyboard approval.
 ### Shell mode transitions and browser layout
 
 The Shell tool surface uses the destination split/full-width layout, while its outer aside animates the visibility aperture. Closing retains the last content mode until a new visible intent selects a destination. Full-width interpolation is never sent as an intermediate browser viewport: H.264 frames can arrive after the container expands and otherwise produce centered gutters and repeated reflow. Ordinary split-handle and window resizing still update live content width; there is no viewport freeze or delayed reveal timer. Surface border treatment follows the retained content mode as well, so hiding cannot introduce a one-pixel viewport change.
+
+The Shell layout signal includes mobile foreground translation, not just pane dimensions. Portaled surfaces measure in Motion postRender after ancestor transforms commit; ResizeObserver alone does not observe positional changes. Cancel scheduled reads with the presentation lifecycle.

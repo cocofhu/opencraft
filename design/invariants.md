@@ -1848,3 +1848,5 @@ without changing input coordinates or physical-page identity. Ordinary divider
 and window resizing remain live; parking preserves the normal viewport.
 
 - Tool maximization/visibility animates the aperture independently of the content layout endpoint. Retain the last layout mode while closed; a new visible intent picks the endpoint immediately. Normal handle/window resizing remains live. Chrome borders follow the content mode so visibility alone cannot resize embedded pages.
+
+- Portaled browser surfaces follow Shell foreground translation after Motion DOM writes, including the terminal frame; unchanged viewport size must not suppress position updates.

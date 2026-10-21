@@ -616,6 +616,11 @@ export function AppShell({
   // One progress drives foreground travel and stationary sidebar depth; translating the row leaves the root's
   // viewport coordinates (and gesture acquisition) unchanged.
   const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
+  // The physical browser surface is portaled outside the moving row. Publish
+  // position changes too: ResizeObserver cannot see an ancestor translation.
+  useLayoutEffect(() => mobilePageX.on("change", () => {
+    rightPanelLayoutTick.set(rightPanelLayoutTick.get() + 1);
+  }), [mobilePageX, rightPanelLayoutTick]);
   const mobilePageBlocked = mobileSidebarEnabled && (drawerRequested || floatingIntent.requested || mobileGesture.dragging);
   const sidebarPresentation = resolveSidebarPresentation({
     docked: sidebarOpen,
