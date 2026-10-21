@@ -33,6 +33,7 @@ export function useConversationDisplay(
   // A new observation in memory wins, and old account/key reads cannot paint.
   const cached = memory ?? (loaded?.scope === scope
     && loaded.timeline.key.hostId === hostId && loaded.timeline.key.threadId === threadId ? loaded.timeline : null);
-  return useMemo(() => selectConversationDisplay({ key, timeline, cached, submission }),
+  const selection = useMemo(() => selectConversationDisplay({ key, timeline, cached, submission }),
     [key, timeline, cached, submission]);
+  return { selection, scope };
 }

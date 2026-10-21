@@ -671,7 +671,7 @@ export function App({
   // The committed View has a display identity before network lease acquisition.
   // This local binding never grants execution or authoritative history access.
   const displayKey = useConversationViewDisplayKey();
-  const display = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
+  const { selection: display } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
   const visibleTimeline = display.timeline;
   const showingDisplayCache = display.source !== "history" && display.source !== "empty";
   const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
