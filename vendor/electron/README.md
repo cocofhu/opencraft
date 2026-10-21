@@ -175,6 +175,11 @@ for service workers. Workers have no frame/editor/selection, so native clipboard
 and IME context calls return unavailable; edit/copy commands return an explicit
 unsupported target with no dispatch. They do not read or write any clipboard.
 
+`0009-component-libuv-link.patch` keeps Linux's whole-archive static libuv link
+for static builds. Component builds use the exported shared libuv already present
+in the normal dependency graph. It does not fabricate an archive or suppress
+undefined-symbol checks.
+
 ## Verification and runtime adoption
 
 ```sh

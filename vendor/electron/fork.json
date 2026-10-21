@@ -38,6 +38,10 @@
     {
       "path": "patches/electron/0008-service-worker-native-commands.patch",
       "sha256": "c6a91c7d49907be56345b29c7b2bd06ed36b67333de4da6c9f1ca01830c542d9"
+    },
+    {
+      "path": "patches/electron/0009-component-libuv-link.patch",
+      "sha256": "4b003e82b184bd336861c11acca91cb27520c267db20c4e25873ffda882d5865"
     }
   ]
 }
