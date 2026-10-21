@@ -240,6 +240,13 @@ mean work just started. Subsequent live insertions and manual disclosure opening
 retain their existing entry motion and reduced-motion behavior. This changes no
 Turn clocks, provenance, history persistence or execution state.
 
+Activity-group bodies are keyboard-interactive only in their expanded phase.
+Opening and closing bodies remain inert and hidden from accessibility navigation;
+visual height animation cannot keep invisible tool actions in the Tab order.
+The disclosure trigger keeps focus, and expanding restores normal keyboard access.
+Verify closing and expanded Tab sequences alongside reflow and interrupted motion
+in `scripts/smoke-disclosure-reflow.ts`.
+
 ## Turn completion reminders
 
 - TURN-NOTIFY-01: Turn completion reminders are a shared OpenCraft platform
