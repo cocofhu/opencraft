@@ -223,7 +223,7 @@ function validRecoveryDiagnostic(report) {
 }
 
 const viewportGeometryKeys = new Set(["layoutHeight", "layoutWidth", "visualHeight", "visualWidth", "visualTop", "visualLeft", "pageTop", "scrollY", "scale", "shellTop", "shellHeight", "editorTop", "sendBottom", "editing"]);
-const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight"]);
+const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight", "fixedTop", "fixedLeft"]);
 function validViewportDiagnostic(report) {
   return report?.kind === "viewport"
     && typeof report.episode === "string" && /^viewport-[a-z0-9]{1,20}$/.test(report.episode)

@@ -23,6 +23,7 @@ export function createViewportDiagnostics() {
     const rect = shell.getBoundingClientRect();
     const rootRect = document.documentElement.getBoundingClientRect();
     const bodyRect = document.body.getBoundingClientRect();
+    const fixedRect = document.querySelector("[data-timeline-fixed-reference]")?.getBoundingClientRect();
     const style = window.getComputedStyle(shell);
     const active = document.activeElement;
     const editing = active instanceof HTMLElement && (active.isContentEditable || /^(INPUT|TEXTAREA)$/.test(active.tagName));
@@ -39,6 +40,7 @@ export function createViewportDiagnostics() {
       clientHeight: document.documentElement.clientHeight,
       rootTop: rootRect.top, rootHeight: rootRect.height,
       bodyTop: bodyRect.top, bodyHeight: bodyRect.height,
+      fixedTop: fixedRect?.top ?? 0, fixedLeft: fixedRect?.left ?? 0,
       editorTop: editing ? active.getBoundingClientRect().top : 0,
       sendBottom: send?.bottom ?? 0, editing: Number(editing),
     };

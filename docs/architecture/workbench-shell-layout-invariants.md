@@ -144,12 +144,17 @@ The browser owns native coordinate movement; the application owns layout capacit
 The shared snapshot retains raw visual offsets, sizes and focus observations.
 `projectTimelineViewportLayout` derives an available extent, independently of
 pageTop, document scroll and focus. Pinch magnification does not reflow layout.
-CSS fixed positioning uses layout-viewport coordinates, while the visible
-rectangle begins at VisualViewport.offsetTop/offsetLeft. The Web adapter projects
-this origin independently of capacity; the fixed Shell uses that origin exactly
-once. Screen placement is client position minus visual offset, not client zero.
-Layout containment keeps internal fixed descendants in the same frame without
-reapplying the origin. PageTop/document scroll are not fixed-frame offsets.
+The Web adapter measures a zero-inset fixed reference outside the Shell. The
+reference never consumes application viewport CSS or participates in input. Its
+client rectangle supplies the native fixed coordinate basis, separately from the
+reported visual offset. The visible client origin is visual page position minus
+window scroll; CSS placement is that origin minus the fixed reference origin.
+This is a coordinate conversion, not an additive page-scroll correction or
+feedback from the already-positioned Shell. Native reference changes invalidate
+the shared projection even when raw VisualViewport values remain unchanged.
+Layout capacity comes from document client size and visual size; innerHeight may
+already be visually reduced in WKWebView. Layout containment keeps internal
+fixed descendants in the same frame without reapplying the conversion.
 No Shell-rectangle feedback, per-feature compensation, forced scrolling or
 focus/selection reset. Height-first/pan-later and reverse ordering must preserve
 screen placement, not a constant CSS top. Bounded late reconciliation
@@ -179,7 +184,8 @@ rate limited with a 64-observation burst and eight credits restored per second,
 with duplicate suppression and an 80ms minimum interval. A long-lived page must
 not permanently lose later keyboard cycles after its first burst. It also records
 CSS top/height, document client height and root/body rectangles separately from
-raw viewport offsets; these are observations, never a positioning correction.
+raw viewport offsets and the independent fixed reference. Diagnostic records
+never feed positioning; the shared adapter owns its own live reference read.
 The existing diagnostic transport accepts old geometry reports as well as the
 strictly numeric optional fields. Controlled browser viewports still do not prove
 native iOS acceptance, including whether client rectangles match a synthetic

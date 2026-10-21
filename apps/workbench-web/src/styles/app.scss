@@ -359,7 +359,7 @@ button {
   }
 }
 
-// The Web adapter owns the visual frame in layout-viewport coordinates.
+// The Web adapter converts the visible frame into the measured fixed basis.
 // Pan changes its origin, never its available capacity. Containment gives
 // fixed descendants the same frame without applying the origin twice.
 html[data-timeline-tracks-visual-viewport="true"] :is(.app-shell-root, .app-shell-floating-overlay-root) {

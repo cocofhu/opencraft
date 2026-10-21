@@ -612,7 +612,7 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   assert.equal((await postViewport(viewport)).status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-viewport"), { serverProtocolVersion: 2, event: "client-viewport", ...viewport });
   const projectedViewport = { ...viewport, cssTop: 172, cssHeight: 440, clientHeight: 844,
-    rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844 };
+    rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844, fixedTop: -60, fixedLeft: 0 };
   assert.equal((await postViewport(projectedViewport)).status, 202);
   assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...projectedViewport });
   const missingRequiredViewport = { ...projectedViewport }; delete missingRequiredViewport.visualHeight;

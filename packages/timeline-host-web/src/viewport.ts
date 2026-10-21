@@ -93,6 +93,7 @@ export function applyTimelineViewportDocumentState(
   root: WebTimelineViewportRoot,
   snapshot: TimelineViewportSnapshot,
   policy: TimelineViewportPolicy,
+  fixedFrameOffset = snapshot.visualOffset,
 ): void {
   const layout = projectTimelineViewportLayout(snapshot);
   root.dataset.timelineOverscroll = policy.threadOverscroll;
@@ -103,12 +104,11 @@ export function applyTimelineViewportDocumentState(
   root.style.setProperty("--timeline-layout-viewport-height", `${snapshot.layoutViewport.heightPx}px`);
   root.style.setProperty("--timeline-available-viewport-width", `${layout.availableViewport.widthPx}px`);
   root.style.setProperty("--timeline-available-viewport-height", `${layout.availableViewport.heightPx}px`);
-  // Fixed positioning uses layout-viewport coordinates. Size and origin are
-  // independent: native visual panning must not shrink capacity a second time,
-  // but its origin is required to keep the frame visually stationary.
+  // Capacity and the browser's fixed-position coordinate basis are independent.
+  // The Web port measures that basis outside the positioned application tree.
   const followsVisualOrigin = policy.tracksVisualViewport && Math.abs(snapshot.scale - 1) <= 0.01;
-  root.style.setProperty("--timeline-available-viewport-top", `${followsVisualOrigin ? snapshot.visualOffset.topPx : 0}px`);
-  root.style.setProperty("--timeline-available-viewport-left", `${followsVisualOrigin ? snapshot.visualOffset.leftPx : 0}px`);
+  root.style.setProperty("--timeline-available-viewport-top", `${followsVisualOrigin ? fixedFrameOffset.topPx : 0}px`);
+  root.style.setProperty("--timeline-available-viewport-left", `${followsVisualOrigin ? fixedFrameOffset.leftPx : 0}px`);
 }
 
 export function createWebTimelineViewportPort(
@@ -130,6 +130,16 @@ export function createWebTimelineViewportPort(
       ? resolvedPlatform
       : options.platform,
   });
+  // This zero-inset reference is never positioned by our viewport CSS. Reading
+  // Shell's rectangle instead would feed our previous output back into input.
+  // WKWebView may move the fixed plane independently of VisualViewport events.
+  const fixedReference = policy.tracksVisualViewport ? documentObject.createElement("div") : null;
+  if (fixedReference) {
+    fixedReference.dataset.timelineFixedReference = "";
+    fixedReference.setAttribute("aria-hidden", "true");
+    fixedReference.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;margin:0;visibility:hidden;pointer-events:none;contain:strict;";
+    documentObject.body.append(fixedReference);
+  }
   let revision = 0;
   let frame: number | null = null;
   let disposed = false;
@@ -142,8 +152,10 @@ export function createWebTimelineViewportPort(
     const visualViewport = windowObject.visualViewport;
     return createWebTimelineViewportSnapshot({
       editableFocused: isEditableElement(documentObject.activeElement),
-      layoutHeightPx: windowObject.innerHeight,
-      layoutWidthPx: windowObject.innerWidth,
+      // innerHeight can already describe the keyboard-reduced visual viewport
+      // in WKWebView while the CSS layout viewport remains at its old height.
+      layoutHeightPx: root.clientHeight || windowObject.innerHeight,
+      layoutWidthPx: root.clientWidth || windowObject.innerWidth,
       revision,
       scale: visualViewport?.scale ?? 1,
       visualHeightPx: visualViewport?.height,
@@ -152,8 +164,23 @@ export function createWebTimelineViewportPort(
       visualWidthPx: visualViewport?.width,
     });
   };
+  const readFixedFrameOffset = () => {
+    if (!fixedReference) return { topPx: 0, leftPx: 0 };
+    const visual = windowObject.visualViewport;
+    const reference = fixedReference?.getBoundingClientRect();
+    // Both terms are client coordinates. pageTop - scrollY supplies the visible
+    // client origin without assuming offsetTop and native document pan update
+    // atomically. Subtract the independently observed zero-inset fixed origin.
+    return {
+      topPx: (visual?.pageTop ?? windowObject.scrollY + (visual?.offsetTop ?? 0))
+        - windowObject.scrollY - (reference?.top ?? 0),
+      leftPx: (visual?.pageLeft ?? windowObject.scrollX + (visual?.offsetLeft ?? 0))
+        - windowObject.scrollX - (reference?.left ?? 0),
+    };
+  };
   let snapshot = read();
-  applyTimelineViewportDocumentState(root, snapshot, policy);
+  let fixedFrameOffset = readFixedFrameOffset();
+  applyTimelineViewportDocumentState(root, snapshot, policy, fixedFrameOffset);
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
@@ -162,6 +189,7 @@ export function createWebTimelineViewportPort(
     frame = null;
     if (disposed || documentObject.visibilityState === "hidden") return;
     const next = read();
+    const nextFixedFrameOffset = readFixedFrameOffset();
     if (
       next.editableFocused !== snapshot.editableFocused
       || next.scale !== snapshot.scale
@@ -171,10 +199,13 @@ export function createWebTimelineViewportPort(
       || next.visualViewport.heightPx !== snapshot.visualViewport.heightPx
       || next.visualOffset.leftPx !== snapshot.visualOffset.leftPx
       || next.visualOffset.topPx !== snapshot.visualOffset.topPx
+      || nextFixedFrameOffset.topPx !== fixedFrameOffset.topPx
+      || nextFixedFrameOffset.leftPx !== fixedFrameOffset.leftPx
     ) {
       revision += 1;
       snapshot = { ...next, revision };
-      applyTimelineViewportDocumentState(root, snapshot, policy);
+      fixedFrameOffset = nextFixedFrameOffset;
+      applyTimelineViewportDocumentState(root, snapshot, policy, fixedFrameOffset);
       for (const listener of listeners) listener();
     }
     if (now < settleUntil) scheduleFrame();
@@ -233,6 +264,7 @@ export function createWebTimelineViewportPort(
         documentObject.removeEventListener("touchstart", schedule, true);
       }
       listeners.clear();
+      fixedReference?.remove();
     },
   };
 }

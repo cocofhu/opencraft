@@ -917,12 +917,17 @@ The browser owns native coordinate movement; the application owns layout capacit
 The shared snapshot retains raw visual offsets, sizes and focus observations.
 `projectTimelineViewportLayout` derives an available extent, independently of
 pageTop, document scroll and focus. Pinch magnification does not reflow layout.
-CSS fixed positioning uses layout-viewport coordinates, while the visible
-rectangle begins at VisualViewport.offsetTop/offsetLeft. The Web adapter projects
-this origin independently of capacity; the fixed Shell uses that origin exactly
-once. Screen placement is client position minus visual offset, not client zero.
-Layout containment keeps internal fixed descendants in the same frame without
-reapplying the origin. PageTop/document scroll are not fixed-frame offsets.
+The Web adapter measures a zero-inset fixed reference outside the Shell. The
+reference never consumes application viewport CSS or participates in input. Its
+client rectangle supplies the native fixed coordinate basis, separately from the
+reported visual offset. The visible client origin is visual page position minus
+window scroll; CSS placement is that origin minus the fixed reference origin.
+This is a coordinate conversion, not an additive page-scroll correction or
+feedback from the already-positioned Shell. Native reference changes invalidate
+the shared projection even when raw VisualViewport values remain unchanged.
+Layout capacity comes from document client size and visual size; innerHeight may
+already be visually reduced in WKWebView. Layout containment keeps internal
+fixed descendants in the same frame without reapplying the conversion.
 No Shell-rectangle feedback, per-feature compensation, forced scrolling or
 focus/selection reset. Height-first/pan-later and reverse ordering must preserve
 screen placement, not a constant CSS top. Bounded late reconciliation
