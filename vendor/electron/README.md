@@ -160,6 +160,11 @@ Electron's file-dialog and printing patches with Chromium's existing dynamic
 symbol loader. GTK stays dynamically loaded; this neither links GTK eagerly nor
 disables file dialogs, printing or strict undefined-symbol checks.
 
+`0006-single-native-object-counter.patch` gives the native trackable-object ID
+counter one out-of-line definition. This preserves a single counter across
+translation units with component builds and keeps the compiler's duplicate-object
+check enabled.
+
 ## Verification and runtime adoption
 
 ```sh
