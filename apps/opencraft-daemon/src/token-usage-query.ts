@@ -14,11 +14,10 @@ function add(map: Map<string, Sum>, key: string, tokens: bigint): void {
 function serialized(map: Map<string, Sum>) { return [...map].sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>({key,tokens:value.tokens.toString(),turns:value.turns})); }
 function invalid(): never { throw new TokenUsageQueryError("invalid-query"); }
 /** Resolve a civil midnight through Intl instead of assuming an offset or the process timezone. */
-function midnight(date: string, timezone: string): number {
+function midnight(date: string, format: Intl.DateTimeFormat): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return invalid();
   const utc=Date.parse(date+"T00:00:00Z");
   if (!Number.isFinite(utc) || new Date(utc).toISOString().slice(0,10)!==date) return invalid();
-  const format=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
   let result=utc;
   for(let i=0;i<4;i++) {
     const parts=Object.fromEntries(format.formatToParts(result).map(p=>[p.type,p.value]));
@@ -34,7 +33,13 @@ function midnight(date: string, timezone: string): number {
  * source IDs or filesystem paths are returned. SQLite INTEGER SUM is avoided:
  * token counts can exceed both JS safe integers and SQLite signed 64 bits. */
 export class TokenUsageQuery {
+  private readonly midnightFormat: Intl.DateTimeFormat;
+  private readonly dateFormat: Intl.DateTimeFormat;
   constructor(private readonly state: Pick<CodexHostStateDatabase,"database">, readonly serverId: string, readonly timezone="Asia/Shanghai", private readonly now=Date.now, private readonly secret: Uint8Array=randomBytes(32)) {
+    // Intl owns native ICU allocations. Reuse the two immutable formatters for
+    // this physical query owner rather than allocating four on every read.
+    this.midnightFormat=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
+    this.dateFormat=new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit"});
     state.database.aggregate<bigint>("usage_sum",{start:0n,step:(sum,value)=>sum+BigInt(String(value??"0")),result:sum=>sum.toString()});
   }
   read(value: unknown, authorize: ()=>TokenUsageAuthority | null) {
@@ -54,10 +59,10 @@ export class TokenUsageQuery {
     if(!["turns","threads","actors"].includes(String(view))) return invalid();
     if(view==="actors"&&!authority.administrator) throw new TokenUsageQueryError("forbidden");
     if(typeof p.from!=="string"||typeof p.through!=="string") return invalid();
-    const start=midnight(p.from,this.timezone);
-    midnight(p.through,this.timezone);
+    const start=midnight(p.from,this.midnightFormat);
+    midnight(p.through,this.midnightFormat);
     const endDate=new Date(Date.parse(p.through+"T00:00:00Z")+86_400_000).toISOString().slice(0,10);
-    const end=midnight(endDate,this.timezone);
+    const end=midnight(endDate,this.midnightFormat);
     if(end<=start||Date.parse(endDate+"T00:00:00Z")-Date.parse(p.from+"T00:00:00Z")>366*86_400_000) return invalid();
     for(const key of ["modelKey","threadId","turnId"]) if(p[key]!==undefined&&(typeof p[key]!=="string"||!(p[key] as string).length||(p[key] as string).length>2048)) return invalid();
     const limit=p.limit??50;
@@ -82,7 +87,7 @@ export class TokenUsageQuery {
         if(decoded[1]!==revision) throw new TokenUsageQueryError("stale-snapshot");
         after=decoded[2];
       }
-      const dateFormat=new Intl.DateTimeFormat("en-CA",{timeZone:this.timezone,year:"numeric",month:"2-digit",day:"2-digit"});
+      const dateFormat=this.dateFormat;
       const totals: Record<string,bigint>={settled:0n,provisional:0n,pending:0n,system:0n,unknown:0n};
       const daily=new Map<string,Sum>(), models=new Map<string,Sum>(), threads=new Map<string,Sum>(), people=new Map<string,Sum>();
       let rows: {key:string;[key:string]:unknown}[]=[];
