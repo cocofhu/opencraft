@@ -168,7 +168,7 @@ export class RemoteBrowserService {
     if (!this.child || (this.isolated ? this.child.stdin.destroyed : !this.child.connected)) return Promise.reject(new Error('Browser unavailable'));
     const id = randomUUID();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.requests.delete(id); reject(new Error('Browser operation timed out')); }, method === 'navigate' ? 45000 : 20000);
+      const timer = setTimeout(() => { this.requests.delete(id); reject(new Error(`Browser operation timed out (${method})`)); }, 20000);
       timer.unref(); this.requests.set(id, { resolve, reject, timer });
       const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(new Error('Browser disconnected')); } };
       if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input }) + '\n', failed);
@@ -228,6 +228,12 @@ export class RemoteBrowserService {
                 if (recoveryZoom !== 100) await this.request(page.id, 'zoom', { percent: recoveryZoom });
                 if (recoveryUrl) await this.request(page.id, 'navigate', { url: recoveryUrl });
                 config = await this.request(page.id, 'snapshot');
+                // loadURL has accepted the recovery, but may not have committed
+                // its first document yet. Keep the saved remote target as the
+                // authority so a viewer's stale initial URL cannot replace it.
+                if (recoveryUrl && !checkpointUrl(config.navigation?.url)) {
+                  config.navigation = { ...config.navigation, url: recoveryUrl, isLoading: true };
+                }
               }
               page.recovering = false; page.url = checkpointUrl(config.navigation?.url) ?? null;
               page.viewport = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };

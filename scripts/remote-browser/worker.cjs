@@ -197,8 +197,9 @@ async function createPage(id, input) {
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
   for (const event of ['will-navigate', 'will-redirect']) wc.on(event, (e, url) => { try { validUrl(url); } catch { e.preventDefault(); } });
-  wc.on('did-start-navigation', (_e, _url, inPlace, mainFrame) => { if (mainFrame && !inPlace) { p.document = randomUUID(); p.bridgeInstalled = null; } });
+  wc.on('did-start-navigation', (_e, _url, inPlace, mainFrame) => { if (mainFrame && !inPlace) { p.document = randomUUID(); p.bridgeInstalled = null; p.domReady = false; } });
   for (const event of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated']) wc.on(event, () => { state(p); if (p.visible) activity(p); });
+  wc.on('dom-ready', () => { p.domReady = true; });
   wc.on('render-process-gone', () => send({ type: 'error', page: id, message: 'Browser renderer exited; reload this tab' }));
   wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
   wc.on('paint', (_event, _dirty, image) => {
@@ -227,9 +228,18 @@ async function createPage(id, input) {
 }
 async function automation(p, method, input) {
   if (!['readContext', 'inspect', 'click', 'fill', 'press', 'scroll', 'wait'].includes(method)) throw new Error('Unsupported browser operation');
-  const generation = p.document;
+  const generation = p.document, wc = p.window.webContents;
+  if (!p.domReady) await new Promise((resolve, reject) => {
+    const clean = () => { wc.off('dom-ready', ready); wc.off('did-start-navigation', changed); wc.off('destroyed', destroyed); };
+    const ready = () => { clean(); resolve(); };
+    const destroyed = () => { clean(); reject(new Error('Browser page closed')); };
+    const changed = (_event, _url, inPlace, mainFrame) => { if (mainFrame && !inPlace) { clean(); reject(new Error('Browser document changed')); } };
+    wc.once('dom-ready', ready); wc.on('did-start-navigation', changed); wc.once('destroyed', destroyed);
+  });
+  if (p.document !== generation || p.closed) throw new Error('Browser document changed');
+  const frame = wc.mainFrame;
   const key = 'opencraft.remote.bridge.' + generation;
-  p.bridgeInstalled ??= p.window.webContents.executeJavaScript(`${bridge}\n;(() => {
+  p.bridgeInstalled ??= frame.executeJavaScript(`${bridge}\n;(() => {
     const api = OpenCraftPreviewBridgeRuntime;
     const cleanup = api.installPreviewBridgeRuntime({window,parentOrigin:location.origin});
     const adapter = new api.PreviewBridgeAdapter({hostWindow:window,frameWindow:window,targetOrigin:location.origin,previewId:${JSON.stringify(p.id + ':' + generation)},generation:1});
@@ -237,7 +247,7 @@ async function automation(p, method, input) {
   })()`);
   await p.bridgeInstalled;
   if (p.document !== generation || p.closed) throw new Error('Browser document changed');
-  const result = await p.window.webContents.executeJavaScript(`(async () => {
+  const result = await frame.executeJavaScript(`(async () => {
     const state=window[Symbol.for(${JSON.stringify(key)})];
     if(!state) throw new Error('Browser document changed');
     try { return {ok:true,value:await state.adapter[${JSON.stringify(method)}](${JSON.stringify(input || {})})}; }
@@ -260,7 +270,15 @@ async function command(message) {
     if (input.context !== undefined && (typeof input.context !== 'string' || !/^[a-zA-Z0-9-]{20,100}$/.test(input.context))) throw new Error('Invalid copy context');
     return p.clipboard.copy(input.context);
   }
-  if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
+  if (method === 'navigate') {
+    const url = input.url === null ? 'about:blank' : validUrl(input.url);
+    p.previous = null; if (p.visible) activity(p);
+    // Navigation acceptance is not page load completion. A slow subresource
+    // must not block attaching video or the user's stop/replacement command.
+    // Native navigation/did-fail-load events remain the result authority.
+    void wc.loadURL(url).catch(() => {});
+    return;
+  }
   if (method === 'reload') { wc.reload(); return; }
   if (method === 'stop') { wc.stop(); return; }
   if (method === 'back') { if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); return; }

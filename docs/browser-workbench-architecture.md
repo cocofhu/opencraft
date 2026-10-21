@@ -1408,3 +1408,22 @@ through the external HTTP(S) navigation command. A restored empty document does
 not suppress the viewer's pending initial target URL; a resumed or restored
 nonempty remote page remains authoritative and is not navigated again. Explicit
 blank navigation still uses null, and external URL restrictions remain intact.
+
+
+### Navigation acceptance and loading
+
+Remote `navigate` acknowledges Chromium accepting a validated HTTP(S) target;
+it does not wait for all resources or the native loadURL Promise. Native
+navigation/loading/failure events remain authoritative. A stalled subresource
+must not prevent video attachment, stop, replacement navigation or reconnect.
+During process recovery, the saved remote URL remains authoritative before the
+first document commits; a viewer's stale initial target cannot replace it.
+The WebSocket handshake deadline ends at transport open. The separate open RPC
+allows bounded worker startup and creation; timeout messages identify the
+operation without exposing the target URL or page content.
+
+The private, typed automation bridge executes against the captured native main
+frame, without WebContents' global did-stop-loading gate. Native document
+generation checks still reject stale results. This permits browser inspection
+and interaction in a committed document while a subresource is stalled; no
+client JavaScript evaluator or CDP endpoint is exposed.

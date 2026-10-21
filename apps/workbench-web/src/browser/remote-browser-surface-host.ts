@@ -174,7 +174,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       const ws = new WebSocket(url); ws.binaryType = 'arraybuffer'; p.socket = ws;
       const timer = setTimeout(() => { reject(new Error('Browser connection timed out')); ws.close(); }, 20000);
       const current = () => !p.closed && p.connection === generation;
-      ws.onopen = () => { if (!current()) return;
+      ws.onopen = () => { if (!current()) return; clearTimeout(timer);
         const viewport = p.viewportMeasured ? { ...p.viewport } : undefined;
         void this.call(p, 'open', { lease: p.lease, viewport }).then(async config => {
           if (!current()) return; p.restored = (config.resumed || config.restored) && !!config.navigation?.url && config.navigation.url !== 'about:blank'; p.nativeCopy = config.nativeCopy === true; p.nativeIme = config.nativeIme === true; this.keyboardChanged(); this.applyViewport(p, config);
@@ -277,7 +277,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const id = crypto.randomUUID();
     if (['input','text','visible','keyframe'].includes(method)) { p.socket.send(JSON.stringify({ id, method, input })); return Promise.resolve(); }
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { p.pending.delete(id); reject(new Error('Browser operation timed out')); }, method === 'navigate' ? 50000 : 25000);
+      const timer = setTimeout(() => { p.pending.delete(id); reject(new Error(`Browser operation timed out (${method})`)); }, method === 'open' ? 45000 : 25000);
       p.pending.set(id, { resolve, reject, timer }); p.socket!.send(JSON.stringify({ id, method, input }));
     });
   }

@@ -12,7 +12,7 @@ import { RemoteBrowserService } from '../scripts/remote-browser-service.mjs';
 // Replace only Electron process transport. Real admission-scoped service, WS,
 // persistence and reconnect behavior are exercised against a deterministic page.
 class FixtureService extends RemoteBrowserService {
-  commands = []; physical = new Map();
+  commands = []; physical = new Map(); pendingNavigation = false;
   async start() { await this.load(); }
   async request(id, method, input) {
     this.commands.push({ id, method, input });
@@ -22,7 +22,7 @@ class FixtureService extends RemoteBrowserService {
       Object.assign(p, input); return { ...p, navigation: { url: p.url, title: 'Fixture', isLoading: false } };
     }
     if (method === 'close') { this.physical.delete(id); return; }
-    if (method === 'navigate') { if (input.url && !['https:', 'http:'].includes(new URL(input.url).protocol)) throw new Error('Unsupported browser URL'); p.url = input.url ?? 'about:blank'; this.receive({ type: 'navigation', page: id, state: { url: p.url, title: 'Fixture', isLoading: false } }); }
+    if (method === 'navigate') { if (input.url && !['https:', 'http:'].includes(new URL(input.url).protocol)) throw new Error('Unsupported browser URL'); if (!this.pendingNavigation) p.url = input.url ?? 'about:blank'; this.receive({ type: 'navigation', page: id, state: { url: p.url, title: 'Fixture', isLoading: this.pendingNavigation } }); }
     if (method === 'snapshot') return { ...p, navigation: { url: p.url, title: 'Fixture', isLoading: false } };
   }
 }
@@ -160,5 +160,29 @@ test('legacy about:blank recovery records migrate on read without clearing tab i
     assert.equal(JSON.parse(await readFile(path, 'utf8')).pages[0].id, saved.pages[0].id);
     await assert.rejects(second.call('navigate', { url: 'file:///tmp/private' }), /Unsupported browser URL/);
     await second.call('navigate', { url: 'https://example.test/recovered' }); await second.detach();
+  } finally { await f.close(); }
+});
+
+
+test('recovery keeps the saved remote target before navigation commits, then follows native redirects', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), first = await f.connect('owner-a');
+    await first.call('open', { lease });
+    await first.call('navigate', { url: 'https://example.test/remote-authority' });
+    await first.detach(); await f.restart();
+    f.service.pendingNavigation = true;
+    const second = await f.connect('owner-a');
+    const restored = await second.call('open', { lease });
+    assert.equal(restored.restored, true);
+    assert.equal(restored.navigation.url, 'https://example.test/remote-authority');
+    assert.equal(restored.navigation.isLoading, true);
+    await f.service.persistence;
+    let saved = JSON.parse(await readFile(join(f.directory, 'remote-browser/tabs.json'), 'utf8'));
+    assert.equal(saved.pages[0].url, 'https://example.test/remote-authority');
+    const record = [...f.service.pages.values()][0];
+    f.service.receive({ type: 'navigation', page: record.id, state: { url: 'https://example.test/redirected', isLoading: false } });
+    assert.equal(record.url, 'https://example.test/redirected');
+    await second.detach();
   } finally { await f.close(); }
 });
