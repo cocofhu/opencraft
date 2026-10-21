@@ -1,3 +1,4 @@
+import { browserPresentationClipPath } from "./browser-presentation-geometry";
 import {
   type BrowserAutomation,
   type BrowserPageId,
@@ -243,6 +244,7 @@ export class WebIframeSurfaceHost implements BrowserSurfaceHost {
     container.style.top = `${visualBounds.y - (origin?.top ?? 0)}px`;
     container.style.width = `${visualBounds.width}px`;
     container.style.height = `${visualBounds.height}px`;
+    container.style.clipPath = browserPresentationClipPath(layout);
     iframe.style.left = "0px";
     iframe.style.top = "0px";
     iframe.style.width = `${viewportSize.width}px`;

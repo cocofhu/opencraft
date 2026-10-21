@@ -1838,3 +1838,11 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+### Browser backing layout and aperture
+
+Browser layout consumes the current content slot, while the Shell aperture clips
+painting and hit testing. Visibility motion must not resize the page or encoder.
+Local iframe, Electron guest and remote canvas use the same measured clip,
+without changing input coordinates or physical-page identity. Ordinary divider
+and window resizing remain live; parking preserves the normal viewport.

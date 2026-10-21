@@ -165,7 +165,11 @@ export class BrowserPresentationCoordinator {
       { x: aperture.left, y: aperture.top, width: aperture.width, height: aperture.height },
       { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
     );
-    const layout = computeBrowserViewportLayout(bounds, record.viewportMode);
+    // The slot owns layout. The aperture owns visibility only; feeding its
+    // animated width back into the viewport reflows hidden/entering pages.
+    const layout = { ...computeBrowserViewportLayout(
+      { x: slot.left, y: slot.top, width: slot.width, height: slot.height }, record.viewportMode,
+    ), stageBounds: bounds };
     this.manager.setDeviceToolbarTabState(record.owner, record.snapshot.pageId, () => ({
       responsiveViewportSize: { ...layout.viewportSize },
       toolbarState: { isEnabled: record.viewportMode.type !== "responsive",

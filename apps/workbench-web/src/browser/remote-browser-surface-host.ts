@@ -1,3 +1,4 @@
+import { browserPresentationClipPath } from "./browser-presentation-geometry";
 import type { BrowserMetadataStorage } from './desktop-browser-storage';
 import { H264MediaSource } from './h264-media-source';
 import { BrowserAutomationError, type BrowserAutomation, type BrowserDeviceProfile, type BrowserPageId, type BrowserUrl, type BrowserViewportLayout } from '@opencraft/browser-core';
@@ -109,7 +110,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   commit(id: BrowserPageId, layout: BrowserViewportLayout, phase: 'staged' | 'visible') {
     const p = this.require(id), bounds = layout.visualBounds, origin = this.root?.getBoundingClientRect();
     Object.assign(p.container.style, { left: `${bounds.x - (origin?.left ?? 0)}px`, top: `${bounds.y - (origin?.top ?? 0)}px`,
-      width: `${bounds.width}px`, height: `${bounds.height}px`, visibility: 'visible', opacity: phase === 'visible' ? '1' : '.001',
+      width: `${bounds.width}px`, height: `${bounds.height}px`, clipPath: browserPresentationClipPath(layout), visibility: 'visible', opacity: phase === 'visible' ? '1' : '.001',
       pointerEvents: phase === 'visible' && !p.blocked && !this.inputFailed ? 'auto' : 'none' });
     if (layout.viewportSize.width > 0 && layout.viewportSize.height > 0) {
       p.viewportMeasured = true;

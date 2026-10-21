@@ -1541,3 +1541,22 @@ acknowledging while an orphan WebContents can still appear. Native close is
 idempotent so an uncertain acknowledgement can safely be retried. Cookie
 partitions retain the existing policy. Ordinary detach/park still preserves the
 live document. This fix does not introduce LRU or change tab limits.
+
+### Browser layout and visibility aperture (2026-10-22)
+
+The presentation slot supplies the live content layout viewport. The intersection
+with the Shell aperture and window supplies only stageBounds for painting and
+hit-test clipping. Responsive and fixed-device layout both use the slot before
+clipping. Remote H.264, local iframe and Electron guest adapters project that
+clip independently of backing dimensions. Hiding/revealing a panel therefore
+keeps the page at its content width; it does not send animated near-zero widths
+to the renderer or rebuild the encoder for visibility alone. Actual window or
+divider resize still changes the live slot and viewport during held drags.
+
+The reported keyboard recognition without automatic popup remains a separate
+activation limit: ime-state arrives asynchronously, and updateKeyboard only
+changes inputmode on an already focused receiver. It does not create a new
+trusted focus gesture. Manual Keyboard performs synchronous blur/policy/focus
+in the local event; first-touch automatic popup on physical WeChat is unverified
+and was reported unsuccessful. Do not equate editor recognition, focus, or an
+inputmode change with visible OS keyboard approval.
