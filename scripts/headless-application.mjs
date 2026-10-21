@@ -366,6 +366,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
               : fileURLToPath(new URL('../apps/opencraft-daemon/src/token-usage-query-worker.ts',import.meta.url)),
             serverId: `server:${machineIdentity.machineId}:codex`,
             actor: context => actorStore.isCurrent(context) ? actorStore.get(context.actorId) : null,
+            person: actorId => actorStore.get(actorId),
             submission: (threadId,inputId) => actorCollaboration.usageSubmission(threadId,inputId),
           },
           collaboration: {

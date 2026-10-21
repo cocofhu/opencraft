@@ -2,7 +2,7 @@
 export const TOKEN_USAGE_CONFIGURE = "opencraft/token-usage/configure";
 export const TOKEN_USAGE_QUERY = "opencraft/token-usage/query";
 export const TOKEN_USAGE_EXTENSION = "opencraft/token-usage";
-export interface TokenUsageAggregate { key: string; tokens: string; turns: number }
+export interface TokenUsageAggregate { key: string; tokens: string; turns: number; label?: string | null }
 export interface TokenUsageTurnDetail {
   threadId: string; turnId: string; startedAt: number; executionState: string;
   allocationState: string; rawTokens: string | null; allocatedTokens: string;

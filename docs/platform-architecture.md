@@ -3140,3 +3140,8 @@ restarts the worker. Source rebuilds select only the four fields they consume,
 reducing allocation without changing ordering or exact arithmetic. The limits
 and narrow row shape require measured resource/latency acceptance, not just
 successful compilation.
+
+
+#### Token usage people presentation
+
+The optional dashboard selects a person from the existing authorized, paginated people usage view. The Host decorates only authorized team people rows with current human Actor display names through its existing identity-directory port, then rechecks the original request authority before delivery. Names are presentation metadata, never a participant key, identity binding, allocation weight, or ledger column. The same signed paging/date/model intersection applies when browsing people; choosing a row returns to that person's allocated conversation totals, and clearing the filter restores the team view. Self queries do not resolve or expose other people's names. Missing directory entries remain explicitly unknown; no enterprise directory or statistics account system is introduced.

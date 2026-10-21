@@ -1,3 +1,4 @@
+import { labelUsagePeople } from "./token-usage-people.js";
 import { TokenUsageStateDatabase } from "./token-usage-state-database.js";
 import { TokenUsageTelemetry } from "./token-usage-telemetry.js";
 import { TokenUsageQueryService } from "./token-usage-query-service.js";
@@ -114,6 +115,7 @@ interface SharedCodexRoutingOptions {
     readonly serverId: string;
     readonly actor: (context: NonNullable<TransportSubmissionContext["actorContext"]>) => {id:string;kind:"human"|"session"} | null;
     readonly submission?: (threadId:string,inputId:string) => UsageSubmission | null;
+    readonly person?: (actorId:string) => {kind:string;displayName:string} | null;
   };
   readonly collaboration?: {
     queuedContext?(threadId: string, inputId: string, input: readonly unknown[]): Promise<unknown>;
@@ -618,7 +620,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       const epoch=this.clientEpoch(clientId);
       try {
         const authorize=context.tokenUsageAuthority??(()=>null),before=authorize();
-        const result=await this.tokenUsageQueries.read(message.params,authorize);
+        const result=labelUsagePeople(await this.tokenUsageQueries.read(message.params,authorize), this.options.tokenUsage?.person);
         const liveGaps=this.tokenUsage?.liveGapCount()??0;
         if(liveGaps)result.coverage={...result.coverage,partial:true,openGaps:Math.max(result.coverage.openGaps,liveGaps)};
         const after=authorize();
