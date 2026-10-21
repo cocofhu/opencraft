@@ -20,7 +20,7 @@ export class RemoteBrowserIme {
       this.pump(t);
     }).catch(error => this.failed(t, error));
   }
-  update(text: string) { if (text && this.composing && this.transaction) { this.transaction.pending = { type: 'compose', text }; this.pump(this.transaction); } }
+  update(text: string) { if (text && this.composing && this.transaction) { const t = this.transaction; t.pending = { type: 'compose', text }; setTimeout(() => this.pump(t), 0); } }
   end(text: string) {
     const t = this.transaction; this.composing = false; this.receiver.value = '';
     if (!t || t.terminal) return;

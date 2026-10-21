@@ -8,7 +8,7 @@ function fixture() {
   const ime = new RemoteBrowserIme(receiver, input => new Promise((resolve, reject) => calls.push({input,resolve,reject})), () => true, error => errors.push(error));
   return {receiver,calls,ime,errors};
 }
-const tick = () => new Promise<void>(resolve => queueMicrotask(resolve));
+const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 test('terminal commit queues before the next begin even when every response is held', async () => {
   const f=fixture(); f.ime.start(); f.ime.update('ni'); f.ime.end('你'); f.ime.start(); f.ime.update('hao'); f.ime.end('好');
   assert.deepEqual(f.calls.map(c=>[c.input.type,c.input.text]), [['begin',undefined],['commit','你'],['begin',undefined],['commit','好']]);
@@ -36,6 +36,12 @@ test('old rejected operation cannot clear the current native composition buffer'
 });
 
 test('empty cancellation update never consumes the owned preedit capability as an empty compose', async () => {
-  const f=fixture();f.ime.start();f.calls[0].resolve();await tick();f.ime.update('hao');f.calls[1].resolve();await tick();f.ime.update('');f.ime.end('');
+  const f=fixture();f.ime.start();f.calls[0].resolve();await tick();f.ime.update('hao');await tick();f.calls[1].resolve();await tick();f.ime.update('');f.ime.end('');
   assert.deepEqual(f.calls.map(c=>c.input.type),['begin','compose','cancel']);
+});
+
+test('final compositionupdate and compositionend in one native event task send one final edit', async () => {
+  const f=fixture();f.ime.start();f.calls[0].resolve();await tick();f.ime.update('ni');await tick();f.calls[1].resolve();await tick();
+  f.ime.update('你');f.ime.end('你');await tick();
+  assert.deepEqual(f.calls.map(c=>[c.input.type,c.input.text]),[['begin',undefined],['compose','ni'],['commit','你']]);
 });
