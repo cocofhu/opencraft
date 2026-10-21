@@ -69,6 +69,14 @@ export async function packageWebServer({ version, webRoot = join(repositoryRoot,
       define: { 'process.env.OPENCRAFT_RELAY_SOURCE_REVISION': JSON.stringify(web.sourceRevision ?? null), 'process.env.OPENCRAFT_RELAY_BUILD_ID': JSON.stringify(web.buildId) },
       banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" } });
   }
+  for (const [entry, name] of [['apps/observability-service/service.mjs','observe-service'],['apps/observability-cli/main.mjs','observe-cli']]) {
+    await build({entryPoints:[join(repositoryRoot,entry)],outfile:join(packageRoot,`runtime/${name}.mjs`),bundle:true,platform:'node',format:'esm',target:'node24',define:{'process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION':JSON.stringify(web.sourceRevision??null),'process.env.OPENCRAFT_OBSERVE_BUILD_ID':JSON.stringify(web.buildId)}});
+  }
+  await cp(join(repositoryRoot,'runtime/skills/opencraft-observe'),join(packageRoot,'runtime/skills/opencraft-observe'),{recursive:true});
+  await cp(join(repositoryRoot,'ops/observability'),join(packageRoot,'runtime/observability'),{recursive:true});
+  manifest.bin['opencraft-observe']='runtime/observe-cli.mjs';
+  await chmod(join(packageRoot,'runtime/observe-cli.mjs'),0o755);
+  await writeFile(join(packageRoot,'package.json'),JSON.stringify(manifest,null,2));
   if (execution) {
     await mkdir(join(packageRoot, 'execution'));
     for (const [entry, target, format] of [
@@ -78,7 +86,7 @@ export async function packageWebServer({ version, webRoot = join(repositoryRoot,
       ['scripts/server-deployment/dsh-host.mjs', 'dsh-host.mjs', 'esm'],
     ]) {
       await build({ nodePaths: [join(repositoryRoot, 'node_modules')], entryPoints: [resolve(repositoryRoot, entry)], outfile: join(packageRoot, 'execution', target),
-        bundle: true, platform: 'node', format, target: 'node22', external: ['bufferutil', 'utf-8-validate', 'cpu-features', '*.node', '@earendil-works/pi-*', '@earendil-works/chord'],
+        bundle: true, platform: 'node', format, target: 'node22', define:{'process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION':JSON.stringify(web.sourceRevision??null),'process.env.OPENCRAFT_OBSERVE_BUILD_ID':JSON.stringify(web.buildId)}, external: ['bufferutil', 'utf-8-validate', 'cpu-features', '*.node', '@earendil-works/pi-*', '@earendil-works/chord'],
         plugins: [{ name: 'execution-pty', setup(builder) { builder.onResolve({ filter: /^node-pty$/ }, () => ({ path: './native/node-pty/lib/index.js', external: true })); builder.onResolve({ filter: /^ssh2$/ }, () => ({ path: './native/node_modules/ssh2/lib/index.js', external: true })); } }],
         ...(format === 'esm' ? { banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" } } : {}) });
     }

@@ -1,3 +1,4 @@
+import { createObservabilityIngress } from "./observability-ingress.mjs";
 #!/usr/bin/env node
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
@@ -228,10 +229,12 @@ export async function startHeadlessServer(options = {}, composition = {}) {
   let hubController;
   let sshNativeRpc;
   let codexReadiness;
+  let observability;
   let closing = null;
   const close = () => {
     if (closing !== null) return closing;
     codexReadiness?.close();
+    observability?.close();
     closing = (async () => {
       relay?.close();
       hubController?.close();
@@ -408,9 +411,11 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       connectConnection: (id, assertAdmission) => appHostServer.ensureHostConnected(id, assertAdmission),
       legacyServers: sshServers.map(binding => binding.descriptor),
     });
+    observability = await createObservabilityIngress(process.env.OPENCRAFT_OBSERVE_INGRESS_CONFIG, {access:instanceAccess,actors:actorStore});
     const createWeb = options.createWebServer ?? createWorkbenchWebServer;
     web = await createWeb({
       root: webRoot,
+      observability,
       getExecutionHealth: options.getExecutionHealth,
       getHostReadiness: () => codexReadiness ? { "local-codex": codexReadiness.snapshot() } : {},
       appServerTarget: agent.websocketUrl,

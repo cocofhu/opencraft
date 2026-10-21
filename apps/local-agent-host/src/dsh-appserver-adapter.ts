@@ -1,3 +1,4 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { projectedHistoryHeadCursors, projectedItemsPage, projectedTurnsPage } from "./hypernode/thread-history.js";
@@ -591,6 +592,7 @@ export class DshAppServerAdapter {
   }
 
   private emit(method: string, params: unknown): void {
+    nodeObserver('dsh').execution('dsh', method, params);
     this.presentation.emit(method, params);
   }
 

@@ -1,3 +1,5 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
+nodeObserver("dsh");
 import { fileRequest } from "./host-resources.js";
 import { ConversationSchedules, ScheduleFault } from "@opencraft/host-schedules";
 import { CONVERSATION_SCHEDULES_EXTENSION } from "@opencraft/appserver-protocol";

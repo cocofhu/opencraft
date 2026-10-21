@@ -1,3 +1,4 @@
+import { installClientObservation } from "./observability";
 import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
@@ -775,13 +776,14 @@ export async function createWebWorkbenchApplicationSupervisor(
         clientRegistry: appServerRegistry.clients,
         installClientHandlers: (client) => {
           const stopDiagnostics = installAppServerDiagnostics(client, "runtime");
+          const stopObservation = installClientObservation(client);
           const tools = installWorkbenchDynamicToolHandlers(
             client,
             { browser: browserToolHost, terminal: terminalToolHost, connectors },
             { hostId: profile.hostId },
           );
           const catalog = bindThreadCatalogNotifications(client, profile.hostId, queryClient);
-          return () => { stopDiagnostics(); catalog(); tools(); };
+          return () => { stopObservation(); stopDiagnostics(); catalog(); tools(); };
         },
         });
       } catch (error) {

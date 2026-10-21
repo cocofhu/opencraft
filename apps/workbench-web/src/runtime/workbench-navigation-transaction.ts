@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import { FULL_WORKBENCH_PRESENTATION, type WorkbenchPresentationPolicy } from "../workbench-presentation-policy";
 import type {
   ConversationActivationCoordinator,
@@ -251,7 +252,9 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
     const origin = navigation.getSnapshot();
     const viewId = scope ?? createRouteScopeId();
     const epoch = beginIntent();
-    const operation = { location, viewId, promise: prepareNavigation(location, mode, viewId, epoch, origin) };
+    const finish = beginObservedOperation("thread_open", {cache:preferredView(location) ? "warm" : "cold"});
+    const promise = prepareNavigation(location, mode, viewId, epoch, origin).then(result => {finish(result?"ok":"aborted");return result;},error=>{finish("failed");throw error;});
+    const operation = { location, viewId, promise };
     pendingNavigation = operation;
     const clear = () => { if (pendingNavigation === operation) pendingNavigation = null; };
     void operation.promise.then(clear, clear);

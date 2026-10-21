@@ -1,3 +1,4 @@
+import { piSkillsPrompt } from "./skills.js";
 import { ModelRuntime, loadProjectContextFiles } from "@earendil-works/pi-coding-agent";
 import { BACKGROUND_CONTEXT as context, type Context } from "@earendil-works/chord/context";
 import { AgentDoc, InboxDoc, LiveDoc, UsageDoc, createRegistry, defineDoc, defineExtension, defineTool,
@@ -57,6 +58,7 @@ export class PiDurableSession {
         return `Working directory: ${cwd}\n` + loadProjectContextFiles({ cwd, agentDir: this.options.agentDirectory })
           .map(file => `# ${file.path}\n${file.content}`).join("\n\n");
       }, { tag: false }),
+      section("skills", input => piSkillsPrompt(input.agent.cwd ?? this.options.cwd, this.options.agentDirectory), { tag: false }),
     ], tools: this.options.tools.map(tool => defineTool({
       name: tool.piName, description: tool.description, parameters: tool.inputSchema,
       // The native intent is unsafe to replay: reconnect never repeats an external effect.

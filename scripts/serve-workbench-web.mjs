@@ -364,6 +364,7 @@ export async function createWorkbenchWebServer({
   actorService = null,
   actorCollaborationService = null,
   authService = null,
+  observability = null,
   mcpAppsService = null,
   hubService = null,
   speechPublicAccess = process.env.OPENCRAFT_SPEECH_PUBLIC_ACCESS === "1",
@@ -430,6 +431,10 @@ export async function createWorkbenchWebServer({
         const identity = accessService.authenticate(request);
         if (identity) { const unwatch = accessService.watch(identity, () => response.destroy()); response.once('close', unwatch); }
         if (await accessService.handle(request, response)) return;
+      }
+      if (url.pathname.startsWith("/__opencraft_observe/")) {
+        if (observability && await observability.handle(request, response)) return;
+        sendJson(response, url.pathname.endsWith("/capabilities") ? 200 : 503, url.pathname.endsWith("/capabilities") ? {available:false,telemetry:false} : {error:{code:"observation_unavailable",retryable:true}}); return;
       }
       if (hubService && await hubService.handle(request, response, () => {
         const identity = accessService?.authenticate(request);

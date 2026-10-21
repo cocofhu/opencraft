@@ -1,3 +1,4 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -62,13 +63,14 @@ export class PiEngine {
   private readonly modelsRuntime: ReturnType<typeof createPiModels>;
   private resolvedModels?: Awaited<ReturnType<typeof createPiModels>>;
   constructor(private readonly options: { directory: string; cwd: string; modelDirectory?: string; models?: Awaited<ReturnType<typeof createPiModels>>; configuration?: PiModelConfiguration }) {
+    nodeObserver("pi");
     this.modelsRuntime = (options.models ? Promise.resolve(options.models) : createPiModels(options.modelDirectory ?? options.directory))
       .then(models => { this.resolvedModels = models; return models; });
   }
   ownsThread(id: string) { return id.startsWith("pi_"); }
   ownsModel(id: string) { return id.startsWith("pi:"); }
   subscribe(listener: (method: string, params: Value) => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
-  private notify(method: string, params: Value) { for (const listener of this.listeners) listener(method, params); }
+  private notify(method: string, params: Value) { nodeObserver("pi").execution("pi", method, params); for (const listener of this.listeners) listener(method, params); }
   private load() {
     return this.loading ??= (async () => {
       await mkdir(this.options.directory, { recursive: true, mode: 0o700 });

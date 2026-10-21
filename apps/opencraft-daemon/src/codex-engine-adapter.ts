@@ -1,3 +1,4 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
 import { ConversationSchedules, ScheduleFault, type ScheduleExecutionPort } from "./conversation-schedules.js";
 import { CONVERSATION_SCHEDULES, CONVERSATION_SCHEDULES_EXTENSION, type ConversationScheduleRun } from "@opencraft/appserver-protocol";
 import type { DatabaseOutcome } from "@opencraft/sqlite-node";
@@ -1094,6 +1095,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       if (typeof message.method === "string") this.receiveServerRequest(id, message);
       return;
     }
+    nodeObserver('core').execution('codex', String(message.method), message.params);
     if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     const threadId = string(record(message.params).threadId) || string(record(record(message.params).thread).id);
     this.durableCatalog?.observe(string(message.method), message.params);

@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AccountModelDefaultsRecord, AccountModelSelection } from "@opencraft/workbench-runtime";
@@ -26,7 +27,7 @@ export function useAccountModelDefaults(accounts: PlatformAccountContributionReg
     && scope !== null && getScope() === scope, [accounts, contribution, owner, getScope, scope]);
   const query = useQuery({
     queryKey: keyFor(hostId), enabled: enabled && !!port && scope !== null,
-    queryFn: ({ signal }) => port!.read(scope!, hostId, signal),
+    queryFn: async ({ signal }) => { const finish=beginObservedOperation("configuration_confirmed");try{const result=await port!.read(scope!,hostId,signal);signal.throwIfAborted();if(!current()){finish("aborted");return result;}finish("ok");return result;}catch(error){finish(signal.aborted?"aborted":"failed");throw error;} },
     staleTime: 0, retry: false,
   });
   const remember = useCallback((selection: AccountModelSelection, host: string) => {
@@ -41,7 +42,8 @@ export function useAccountModelDefaults(accounts: PlatformAccountContributionReg
       if (!current()) return;
       await client.cancelQueries({ queryKey: key });
       if (!current()) return;
-      const record = await port.write(scope, host, prior.revision, selection, owner.controller.signal);
+      const finishSave=beginObservedOperation("preference_save");
+      let record;try{record=await port.write(scope,host,prior.revision,selection,owner.controller.signal);finishSave(current()?"ok":"aborted");}catch(error){finishSave(owner.controller.signal.aborted?"aborted":"failed");throw error;}
       if (!current()) return;
       client.setQueryData(key, record);
       setFailure(null);

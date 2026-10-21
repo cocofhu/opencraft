@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import type { ConversationScheduleSummary } from "@opencraft/appserver-protocol";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createCodexContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
@@ -953,6 +954,15 @@ export function useComposerCatalog(
     () => permissionProfiles.data?.pages.flatMap((page) => page.data) ?? [],
     [permissionProfiles.data],
   );
+
+  const currentModels=capabilities.data?.models;
+  const observationOwner = useMemo(() => ({finish:null as ReturnType<typeof beginObservedOperation> | null,done:false}), [snapshot.hostId,threadId,connectionGeneration]);
+  useEffect(()=>{observationOwner.finish=beginObservedOperation("configuration_confirmed");return ()=>{if(!observationOwner.done)observationOwner.finish?.("aborted");};},[observationOwner]);
+  useEffect(() => {
+    if (!observationOwner.done && currentModels && !personalDefaults.isPending && !personalDefaults.error && !capabilities.error) {
+      observationOwner.done=true;observationOwner.finish?.("ok",{count:currentModels.length});
+    }
+  },[observationOwner,currentModels,personalDefaults.isPending,personalDefaults.error,capabilities.error]);
 
   return {
     personalDefaultsPending: personalDefaults.isPending,

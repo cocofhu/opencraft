@@ -1,3 +1,5 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
+nodeObserver("core");
 import { unlink } from "node:fs/promises";
 import { connect } from "node:net";
 

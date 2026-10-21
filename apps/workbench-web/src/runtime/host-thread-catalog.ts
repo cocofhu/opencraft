@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import type { SshConnectionView, SshCodexServerDescriptor } from "@opencraft/app-host-protocol";
 import type { HostConnectionProfile } from "@opencraft/workbench-runtime";
 import type { AppServerWorkbenchRuntime, HostRuntimeRegistry } from "@opencraft/workbench-runtime";
@@ -104,6 +105,9 @@ export async function readHostThreadCatalog(input: {
       throw new Error("此连接当前不可读取会话，请刷新连接列表。");
     }
   };
+  const finishFull = beginObservedOperation("catalog_complete");
+  const finishFirst = beginObservedOperation("catalog_first");
+  try {
   assertCurrent();
   const runtime = await input.registry.ensureConnected(input.profile.hostId);
   assertCurrent();
@@ -120,11 +124,14 @@ export async function readHostThreadCatalog(input: {
     // partial catalog as a successful complete search after a failed page.
     assertCurrent();
     pages.push(page);
+    if (pages.length === 1) finishFirst("ok", {count:page.data.length});
     cursor = page.nextCursor ?? null;
     if (cursor !== null && cursors.has(cursor)) throw new Error("Repeated thread catalog cursor");
     if (cursor !== null) cursors.add(cursor);
     if (pages.length === 1 && cursor !== null && page.data.length > 0) input.onInitialPage?.(page);
   } while (cursor !== null);
   // The first page backfills old pins, which can recur in later recent pages.
+  finishFull("ok", {count:mergeThreadCatalogPages(pages).length});
   return { ...pages[0]!, data: mergeThreadCatalogPages(pages), nextCursor: null };
+  } catch(error) { const outcome=input.signal?.aborted?"aborted":"failed";finishFirst(outcome);finishFull(outcome);throw error; }
 }
