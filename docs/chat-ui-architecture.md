@@ -2330,7 +2330,7 @@ their existing owners.
 
 ### Code text selection
 
-Streaming prose segments preserve native selection before React replaces a growing text node. Prose and code share endpoint capture and restoration, including UTF-16 offsets, direction and independently updating text roots. Existing source replacements keep native behavior; the original word segmentation, fade timeline, DOM structure, focus and scrolling keep their owners.
+Streaming prose segments preserve native selection before React replaces a growing text node. The original text-node renderer owns one snapshot boundary across its existing word spans, rather than adding a React lifecycle owner for every word; boundary refs identify the existing contiguous span run and release ownership on unmount. Prose and code share endpoint capture and restoration, including UTF-16 offsets, direction and independently updating text roots. Existing source replacements keep native behavior; the original word segmentation, fade timeline, DOM structure, focus and scrolling keep their owners.
 
 The code text renderer snapshots native selection endpoints before an append or
 syntax-only DOM update and restores their text offsets afterwards. Preserve

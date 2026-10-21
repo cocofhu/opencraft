@@ -8,51 +8,61 @@ import "./prose.scss";
 
 type SegmentedTextNode = Extract<ChatDocumentNode, { kind: "text" | "color-swatch" }>;
 
-interface TextSegmentProps {
-  readonly segment: SegmentedTextNode["segments"][number];
-  readonly index: number;
-  readonly context: ChatNodeRendererProps["context"];
+interface SegmentedTextProps {
+  readonly node: SegmentedTextNode;
+  readonly props: ChatNodeRendererProps;
 }
 
-class TextSegment extends Component<TextSegmentProps, object, TextSelectionSnapshot | null> {
-  private element: HTMLSpanElement | null = null;
+class SegmentedText extends Component<SegmentedTextProps, object, TextSelectionSnapshot | null> {
+  private first: HTMLSpanElement | null = null;
+  private last: HTMLSpanElement | null = null;
 
-  getSnapshotBeforeUpdate(previous: Readonly<TextSegmentProps>): TextSelectionSnapshot | null {
-    const text = this.props.segment.text;
-    if (text === previous.segment.text || !text.startsWith(previous.segment.text)) return null;
-    return captureTextSelection(this.element);
+  getSnapshotBeforeUpdate(previous: Readonly<SegmentedTextProps>): TextSelectionSnapshot | null {
+    const text = this.props.node.text;
+    if (text === previous.node.text || !text.startsWith(previous.node.text)) return null;
+    const { first, last } = this;
+    if (!first || !last) return null;
+    const selection = first.ownerDocument.getSelection();
+    for (const node of [selection?.anchorNode, selection?.focusNode]) {
+      const element = (node?.nodeType === 1 ? node as Element : node?.parentElement)?.closest<HTMLElement>("[data-chat-text-segment]");
+      // This text node renders a contiguous run of existing sibling spans.
+      if (element && element.parentNode === first.parentNode
+        && (element === first || first.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING)
+        && (element === last || last.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING)) {
+        return captureTextSelection(element);
+      }
+    }
+    return null;
   }
 
-  componentDidUpdate(_previous: Readonly<TextSegmentProps>, _state: object, snapshot: TextSelectionSnapshot | null) {
+  componentDidUpdate(_previous: Readonly<SegmentedTextProps>, _state: object, snapshot: TextSelectionSnapshot | null) {
     restoreTextSelection(snapshot);
   }
 
   render() {
-    const { segment, index, context } = this.props;
-    return <span
-      className={segment.entering && !context.fadeTimeline?.isSettled(segment.key, performance.now()) ? "chat-stream-fade-in" : undefined}
-      data-chat-stream-enter={segment.entering || undefined}
-      data-chat-text-segment=""
-      ref={element => {
-        this.element = element;
-        if (element === null || !segment.entering || context.fadeTimeline === undefined) return;
-        const delayMs = context.fadeTimeline.delayFor(segment.key, performance.now()) ?? 0;
-        element.style.setProperty("--fade-delay", `${delayMs}ms`);
-      }}
-      style={segment.entering ? { "--fade-delay": `${context.fadeTimeline?.cachedDelayFor(segment.key, performance.now()) ?? Math.min(index * 16, 96)}ms` } as CSSProperties : undefined}
-      onAnimationEnd={event => {
-        if (event.target !== event.currentTarget) return;
-        context.fadeTimeline?.settle(segment.key);
-        context.requestMeasurement?.({ geometryChanged: false, reason: "stream-animation" });
-      }}
-    >{segment.text}</span>;
+    const { node, props: { context } } = this.props;
+    return <>{node.segments.map((segment, index) => (
+      <span
+        key={segment.key}
+        className={segment.entering && !context.fadeTimeline?.isSettled(segment.key, performance.now()) ? "chat-stream-fade-in" : undefined}
+        data-chat-stream-enter={segment.entering || undefined}
+        data-chat-text-segment=""
+        ref={index === 0 || index === node.segments.length - 1 || (segment.entering && context.fadeTimeline !== undefined) ? element => {
+          if (index === 0) this.first = element;
+          if (index === node.segments.length - 1) this.last = element;
+          if (element === null || !segment.entering || context.fadeTimeline === undefined) return;
+          const delayMs = context.fadeTimeline.delayFor(segment.key, performance.now()) ?? 0;
+          element.style.setProperty("--fade-delay", `${delayMs}ms`);
+        } : undefined}
+        style={segment.entering ? { "--fade-delay": `${context.fadeTimeline?.cachedDelayFor(segment.key, performance.now()) ?? Math.min(index * 16, 96)}ms` } as CSSProperties : undefined}
+        onAnimationEnd={event => {
+          if (event.target !== event.currentTarget) return;
+          context.fadeTimeline?.settle(segment.key);
+          context.requestMeasurement?.({ geometryChanged: false, reason: "stream-animation" });
+        }}
+      >{segment.text}</span>
+    ))}</>;
   }
-}
-
-function SegmentedText({ node, props }: { readonly node: SegmentedTextNode; readonly props: ChatNodeRendererProps }) {
-  return <>{node.segments.map((segment, index) => (
-    <TextSegment key={segment.key} segment={segment} index={index} context={props.context} />
-  ))}</>;
 }
 
 function children(props: ChatNodeRendererProps): ReactNode {
