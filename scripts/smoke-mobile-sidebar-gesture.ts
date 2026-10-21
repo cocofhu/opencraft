@@ -15,6 +15,7 @@ assert.ok(isApplicationBranding(fixtureBranding));
 const boundaryImage = process.env.OPENCRAFT_GESTURE_MODAL_ONLY === "1"
   ? "![Boundary preview](data:image/png;base64," + (await sharp({ create: { width: 900, height: 600, channels: 3, background: "#286fbb" } }).png().toBuffer()).toString("base64") + ")"
   : "";
+const arbitrationScrollSelectors = ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre','.unregistered-rich-scroll','.unregistered-nested-inner'];
 const arbitrationMarkdown = [
   "```text", "Reading a long code line: " + "column_value ".repeat(70), "```", "",
   "| " + Array.from({length:8},(_,i)=>"Field "+i).join(" | ") + " |",
@@ -159,6 +160,13 @@ try {
       const main = page.locator('[data-main-scroll]');
       const measurements: any[] = [];
       await page.locator('[data-gesture-command] button[aria-expanded]').click();
+      // Insert ordinary DOM after mount: no registration attribute or React hook.
+      await page.locator('[data-gesture-rich]').evaluate((root:HTMLElement)=>{
+        const reader=document.createElement('div');reader.className='unregistered-rich-scroll';reader.style.cssText='overflow:auto;white-space:nowrap;margin:16px 0;padding:8px';reader.textContent='Unregistered reader '+ 'column_value '.repeat(100);root.append(reader);
+        const outer=document.createElement('div');outer.className='unregistered-nested-outer';outer.style.cssText='overflow:auto;margin:16px 0';
+        const inner=document.createElement('div');inner.className='unregistered-nested-inner';inner.style.cssText='overflow:auto;width:700px;white-space:nowrap;padding:8px';inner.textContent='Nested reader '+ 'column_value '.repeat(150);outer.append(inner);root.append(outer);
+        const exclusive=document.createElement('div');exclusive.className='unregistered-native-owner';exclusive.dataset.sidebarGesture='ignore';exclusive.style.cssText='overflow:auto;white-space:nowrap;width:240px;height:45px;margin:16px 0';exclusive.textContent='Native owner '+ 'column_value '.repeat(70);outer.append(exclusive);
+      });
       const settle = async () => { await page.waitForTimeout(650); };
       const at = async (locator: any, offset = 120) => {
         await locator.scrollIntoViewIfNeeded();
@@ -166,12 +174,12 @@ try {
         const box = await locator.boundingBox(); assert.ok(box && box.width > 150);
         const x = Math.max(40, box.x + 35), y = box.y + Math.min(box.height/2, 28);
         assert.equal(await locator.evaluate((node: HTMLElement) => node.scrollWidth > node.clientWidth+100), true);
-        assert.equal(await locator.evaluate((node: HTMLElement) => getComputedStyle(node).touchAction), 'pan-y pinch-zoom');
+        assert.equal(await locator.evaluate((node: HTMLElement) => getComputedStyle(node).touchAction), 'auto');
         return {x,y,left:await locator.evaluate((node: HTMLElement) => node.scrollLeft)};
       };
       if (process.env.OPENCRAFT_GESTURE_MOTION_PROBE === '1') {
         const scenes=[];
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) for (const delay of [60,85,180]) {
+        for (const selector of arbitrationScrollSelectors) for (const delay of [60,85,180]) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);await page.waitForTimeout(delay);
           await touch('touchMove',p.x+32,p.y+1,false,t+delay/1000);await page.waitForTimeout(20);
@@ -183,7 +191,7 @@ try {
           await touch('touchCancel');await settle();await closed();
           scenes.push({selector,delay,observedFastSegment:true,contentStable:true});
         }
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
+        for (const selector of arbitrationScrollSelectors) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);
           await touch('touchMove',p.x+32,p.y+1,false,t+.06);await page.waitForTimeout(20);
@@ -199,7 +207,7 @@ try {
       }
       if (process.env.OPENCRAFT_GESTURE_REST_PROBE === '1') {
         const scenes=[];
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) for (const rest of [0,180]) {
+        for (const selector of arbitrationScrollSelectors) for (const rest of [0,180]) {
           const scroller=page.locator('[data-gesture-rich] '+selector);
           const p=await at(scroller);const t=Date.now()/1000;
           await touch('touchStart',p.x,p.y,false,t);
@@ -215,7 +223,7 @@ try {
           await touch('touchCancel');await settle();await closed();
           scenes.push({selector,rest,sidebar:true,contentStable:true});
         }
-        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
+        for (const selector of arbitrationScrollSelectors) {
           const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller);
           await touch('touchStart',p.x,p.y);await page.waitForTimeout(180);
           await touch('touchMove',p.x+35,p.y+1);await page.waitForTimeout(20);
@@ -228,7 +236,7 @@ try {
         assert.deepEqual(errors,[]);evidence.push({theme,reducedMotion,earlySamples:scenes});
         await context.close();continue;
       }
-      for (const selector of ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre']) {
+      for (const selector of arbitrationScrollSelectors) {
         const scroller = page.locator('[data-gesture-rich] '+selector);
         const p = await at(scroller);
         await touch('touchStart',p.x,p.y); await touch('touchMove',p.x+50,p.y+2);
@@ -274,6 +282,21 @@ try {
         assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),vertical.left);
         measurements.push({selector,held:held!.x,slowContentOffset:localLeft,vertical:true,cancel:true,boundary:true});
       }
+      // Nested reading must select a readable parent before committing an owner.
+      const inner=page.locator('.unregistered-nested-inner'),outer=page.locator('.unregistered-nested-outer');
+      await outer.evaluate((e:HTMLElement)=>{e.scrollLeft=120});const nested=await at(inner,0);
+      const nt=Date.now()/1000;await touch('touchStart',nested.x,nested.y,false,nt);
+      await touch('touchMove',nested.x+25,nested.y,false,nt+.13);await touch('touchMove',nested.x+35,nested.y,false,nt+.24);await page.waitForTimeout(30);
+      assert.equal(await inner.evaluate((e:HTMLElement)=>e.scrollLeft),0);
+      assert.ok(Math.abs(await outer.evaluate((e:HTMLElement)=>e.scrollLeft)-85)<2,'exhausted inner reader yields to readable parent');
+      assert.ok(Math.abs((await row.boundingBox())!.x)<1);await touch('touchCancel');await settle();
+      // An exclusive child inside that reader stays native, without inherited CSS restrictions.
+      const native=page.locator('.unregistered-native-owner');await outer.evaluate((e:HTMLElement)=>{e.scrollLeft=0});await native.scrollIntoViewIfNeeded();await native.evaluate((e:HTMLElement)=>{e.scrollLeft=120});
+      assert.equal(await native.evaluate((e:HTMLElement)=>getComputedStyle(e).touchAction),'auto');
+      const nb=(await native.boundingBox())!,nx=Math.max(40,nb.x+40),ny=nb.y+20;
+      await touch('touchStart',nx,ny);await touch('touchMove',nx+50,ny);await page.waitForTimeout(35);await touch('touchMove',nx+100,ny);await touch('touchEnd');await settle();await closed();
+      assert.ok(await native.evaluate((e:HTMLElement)=>e.scrollLeft)<100,'exclusive child keeps native horizontal pan');
+      measurements.push({unregisteredDynamic:true,nestedParent:true,exclusiveChildNative:true});
       // Modal input restores native horizontal panning and revokes held navigation.
       const scroller=page.locator('[data-gesture-rich] .chat-code-block__scroller');
       const held=await at(scroller);
@@ -789,8 +812,8 @@ try {
     await drag(250,80);await closed();await drag(10,220);await closed();
     await touch('touchStart',140);await touch('touchMove',145,170);await touch('touchMove',280,160);await touch('touchEnd');await page.waitForTimeout(200);await closed();
     await page.locator('[data-main-scroll]').evaluate((e: HTMLElement)=>e.scrollTop=0);
-    // Editors and horizontal code retain their own touch input.
-    for(const selector of ['input','[data-editor]','[data-horizontal]']) {
+    // Input owners retain their own touch input; ordinary readers need no opt-in.
+    for(const selector of ['input','[data-editor]']) {
       const rect=await page.locator(selector).boundingBox();assert.ok(rect);
       await drag(Math.max(60,rect!.x+50),Math.min(320,rect!.x+180),rect!.y+rect!.height/2);await closed();
     }

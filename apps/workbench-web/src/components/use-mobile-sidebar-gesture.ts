@@ -9,7 +9,7 @@ interface HorizontalScroll {
 
 interface Gesture {
   id: number; x: number; y: number; width: number; start: number; initiallyOpen: boolean;
-  owner: MobileGestureOwner; sidebarAllowed: boolean; horizontal: HorizontalScroll | null;
+  owner: MobileGestureOwner; sidebarAllowed: boolean; horizontal: HorizontalScroll | null; scrollports: HorizontalScroll[];
   motionStartedAt: number | null; samples: GestureSample[];
 }
 
@@ -25,20 +25,17 @@ function hasForegroundInputOwner(shell: HTMLElement, path: EventTarget[] = []): 
     node.getClientRects().length > 0 && (node.matches('dialog:modal') || !node.closest('[hidden],[inert],[aria-hidden="true"]'))));
 }
 
-function horizontalInput(path: EventTarget[], boundary: HTMLElement): HorizontalScroll | "exclusive" | null {
-  let horizontal: HorizontalScroll | null = null;
+function horizontalInput(path: EventTarget[], boundary: HTMLElement): HorizontalScroll[] | "exclusive" {
+  const horizontal: HorizontalScroll[] = [];
   for (const node of path) {
     if (node === boundary) break;
     if (!(node instanceof Element)) continue;
-    if (node.matches('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="slider"],iframe,canvas,video,audio,.xterm,[data-sidebar-gesture="ignore"],[role="dialog"],[role="menu"],[role="listbox"]')) return "exclusive";
+    if (node.matches('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="slider"],[role="scrollbar"],[draggable="true"],iframe,canvas,video,audio,.xterm,[data-sidebar-gesture="ignore"],[role="dialog"],[role="menu"],[role="listbox"]')) return "exclusive";
     if (node instanceof HTMLElement && node.scrollWidth > node.clientWidth + 1
       && /auto|scroll/.test(getComputedStyle(node).overflowX)) {
-      if (node.dataset.horizontalScroll !== "true") return "exclusive";
-      if (!horizontal) {
-        const extent = node.scrollWidth - node.clientWidth;
-        const rtl = getComputedStyle(node).direction === "rtl";
-        horizontal = { element: node, start: node.scrollLeft, min: rtl ? -extent : 0, max: rtl ? 0 : extent };
-      }
+      const extent = node.scrollWidth - node.clientWidth;
+      const rtl = getComputedStyle(node).direction === "rtl";
+      horizontal.push({ element: node, start: node.scrollLeft, min: rtl ? -extent : 0, max: rtl ? 0 : extent });
     }
   }
   return horizontal;
@@ -120,8 +117,9 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       const path = event.composedPath();
       const boundary = surface && path.includes(surface) ? surface : shell && path.includes(shell) ? shell : null;
       if (!boundary || foregroundOwnsInput(event) || window.getSelection()?.toString()) return;
-      const horizontal = horizontalInput(path, boundary);
-      if (horizontal === "exclusive") return;
+      const scrollports = horizontalInput(path, boundary);
+      if (scrollports === "exclusive") return;
+      const horizontal = scrollports[0] ?? null;
       // Clickable content (reasoning disclosures, image previews, links) can
       // also start a swipe. Axis locking preserves taps/vertical scrolling;
       // the recognized drag suppresses its click in end/cancel below.
@@ -130,7 +128,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       // Leave both screen edges to browser/OS navigation gestures.
       const sidebarAllowed = touch.clientX >= viewport.left + MOBILE_SIDEBAR_EDGE_RESERVE && touch.clientX <= viewport.right - MOBILE_SIDEBAR_EDGE_RESERVE;
       if (!sidebarAllowed && !horizontal) return;
-      gesture.current = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width: width.get(), start: progress.get(), initiallyOpen: latest.current.open, owner: "pending", sidebarAllowed, horizontal, motionStartedAt: null, samples: [{ x: touch.clientX, time: event.timeStamp }] };
+      gesture.current = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width: width.get(), start: progress.get(), initiallyOpen: latest.current.open, owner: "pending", sidebarAllowed, horizontal, scrollports, motionStartedAt: null, samples: [{ x: touch.clientX, time: event.timeStamp }] };
     };
     const move = (event: TouchEvent) => {
       const transaction = gesture.current;
@@ -153,6 +151,10 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       const velocity = mobileGestureAdmissionVelocity(transaction.samples, touch.clientX, event.timeStamp, transaction.motionStartedAt);
       transaction.samples.push({ x: touch.clientX, time: event.timeStamp });
       while (transaction.samples.length > 2 && transaction.samples[1]!.time < event.timeStamp - 100) transaction.samples.shift();
+      // Resolve the innermost viewport that can read in this direction before
+      // committing. An exhausted nested viewport must not hide a readable parent.
+      if (transaction.owner === "pending") transaction.horizontal = transaction.scrollports.find(port =>
+        dx > 0 ? port.start > port.min + 1 : port.start < port.max - 1) ?? transaction.scrollports[0] ?? null;
       const horizontal = transaction.horizontal;
       const owner = arbitrateMobileGesture({
         owner: transaction.owner, dx, dy, elapsed: transaction.motionStartedAt === null ? 0 : event.timeStamp - transaction.motionStartedAt, velocity,
@@ -163,8 +165,8 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       if (owner === "native") { gesture.current = null; return; }
       if (owner === "pending") {
         // Reserve a recognized horizontal contact while deciding its writer.
-        // Otherwise the browser makes later moves non-cancelable, even though
-        // touch-action forbids native horizontal scrolling in this scrollport.
+        // Cancel the first direction-locked move, before native panning starts.
+        // No component marker or ancestor touch-action restriction is required.
         if (horizontal && sidebarGestureAxis(dx, dy) === "horizontal" && event.cancelable) event.preventDefault();
         return;
       }
@@ -193,7 +195,9 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
       if (transaction.owner === "pending") {
         const touch = Array.from(event.changedTouches).find(t => t.identifier === transaction.id)!;
         const dx = touch.clientX - transaction.x, dy = touch.clientY - transaction.y;
-        const horizontal = transaction.horizontal;
+        const horizontal = transaction.scrollports.find(port =>
+          dx > 0 ? port.start > port.min + 1 : port.start < port.max - 1) ?? transaction.scrollports[0] ?? null;
+        transaction.horizontal = horizontal;
         transaction.owner = arbitrateMobileGesture({
           owner: "pending", dx, dy, elapsed: 0, velocity: null, ended: true,
           sidebarAllowed: transaction.sidebarAllowed, initiallyOpen: transaction.initiallyOpen,

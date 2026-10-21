@@ -375,14 +375,6 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   min-height: 0;
 }
 
-// Registered scrollports compete before native horizontal panning starts.
-// Vertical reading and pinch zoom stay native; foreground/exclusive input does too.
-$mobile-gesture-exclusive-owner: ':is(dialog, [aria-modal="true"], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [role="slider"], input, textarea, select, [contenteditable]:not([contenteditable="false"]), iframe, canvas, video, audio, .xterm, [data-sidebar-gesture="ignore"])';
-:is(.has-mobile-sidebar-gestures, .app-shell-floating-overlay-root[data-mobile-sidebar="true"])
-  [data-horizontal-scroll="true"]:not(#{$mobile-gesture-exclusive-owner}):not(#{$mobile-gesture-exclusive-owner} *) {
-  touch-action: pan-y pinch-zoom;
-}
-
 .app-shell-left-panel {
   display: flex;
   padding-top: var(--height-toolbar);

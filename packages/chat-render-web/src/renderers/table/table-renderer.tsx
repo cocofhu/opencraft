@@ -81,7 +81,7 @@ export function TableRenderer({ context, node, renderNodes }: ChatNodeRendererPr
 
   return (
     <div className="chat-table-container" data-markdown-table="true" data-wide-block={context.allowWideBlocks || undefined}>
-      <div aria-label="Table" className={`chat-table-scroller${context.allowWideBlocks ? " horizontal-scroll-fade-mask" : ""}`} data-horizontal-scroll="true" role="region" tabIndex={0}>
+      <div aria-label="Table" className={`chat-table-scroller${context.allowWideBlocks ? " horizontal-scroll-fade-mask" : ""}`} role="region" tabIndex={0}>
         <div className="chat-table-wrapper"><TableContents node={node} renderNodes={renderNodes} /></div>
       </div>
       <div className="chat-table-actions" data-markdown-copy="exclude">
