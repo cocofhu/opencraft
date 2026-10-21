@@ -143,3 +143,19 @@ test("paused collection retains acquired turn amounts and exposes missing covera
  ledger.setEnabled(true);
  assert.equal(ledger.query(params,A).summary.tokens,"123");assert.equal(ledger.query(params,A).coverage.partial,true);
 }));
+
+
+test("conversation count spans every matching turn rather than only the current page",()=>fixture(ledger=>{
+ for(const [threadId,turnId,model] of [["shared","one","m1"],["shared","two","m2"],["other","three","m1"]]){
+  const key={threadId,turnId};ledger.startTurn(key,at,"human",true);
+  ledger.recordInput(key,{inputId:turnId,actorId:"A",actorKind:"human",mode:"start",admission:"confirmed"});
+  ledger.recordSource({...key,lineage:"native",sourceId:turnId,kind:"response",version:0,provider:"p",model,counts:{totalTokens:"10"}});
+ }
+ for(const authorize of [A,admin])for(const scope of authorize===A?["self"]:["self","team"]){
+  const result=ledger.query({...params,scope,limit:1},authorize);
+  if(authorize===admin&&scope==="self"){assert.equal(result.summary.threads,0);continue;}
+  assert.equal(result.rows.length,1);assert.equal(result.summary.turns,3);assert.equal(result.summary.threads,2);
+  assert.equal(ledger.query({...params,scope,threadId:"shared",limit:1},authorize).summary.threads,1);
+  assert.equal(ledger.query({...params,scope,modelKey:JSON.stringify(["p","m2"]),limit:1},authorize).summary.threads,1);
+ }
+}));

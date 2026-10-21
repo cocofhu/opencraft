@@ -170,7 +170,7 @@ export class TokenUsageQuery {
       const gaps=Number(db.prepare(`SELECT count(*) AS count FROM token_usage_gaps g WHERE g.server_id=? AND ends_ms IS NULL AND (thread_id IS NULL OR EXISTS(SELECT 1 FROM token_usage_turns t WHERE t.server_id=g.server_id AND t.thread_id=g.thread_id AND t.started_ms>=? AND t.started_ms<?${gapScope}))`).get(...gapParams)!.count);
       return {serverId:this.serverId,canQueryTeam:authority.administrator,canConfigure:authority.administrator,scope,actorId:actorId??null,asOf:this.now(),snapshotRevision:revision,timezone:this.timezone,policyVersion:"equal-turn-v1",view,
         coverage:{enabled:coverage.enabled===1,enabledAt:coverage.enabled_at_ms,partial:gaps>0||missingUsage>0,openGaps:gaps,missingUsage,unknownModelTurns},
-        summary:{tokens:(actorId===undefined?known:allocated).toString(),...(actorId===undefined?{rawTokens:known.toString()}:{}),allocatedTokens:allocated.toString(),turns:turnCount,categories:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,v.toString()]))},
+        summary:{tokens:(actorId===undefined?known:allocated).toString(),...(actorId===undefined?{rawTokens:known.toString()}:{}),allocatedTokens:allocated.toString(),turns:turnCount,threads:team?team.threadCount:threads.size,categories:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,v.toString()]))},
         daily:team?team.daily:serialized(daily),models:team?team.models:serialized(models),rows:page.map(({key,...row})=>view==="turns"?row:{key,...row}),nextCursor};
     } finally { this.state.database.exec("ROLLBACK"); }
   }

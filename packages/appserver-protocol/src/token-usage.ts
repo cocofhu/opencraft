@@ -13,7 +13,7 @@ export interface TokenUsageSnapshot {
   serverId:string;canQueryTeam:boolean;canConfigure?:boolean;scope:"self"|"team";actorId:string|null;
   asOf:number;snapshotRevision:number;timezone:string;policyVersion:string;view:"turns"|"threads"|"actors";
   coverage:{enabled:boolean;enabledAt:number;partial:boolean;openGaps:number;missingUsage:number;unknownModelTurns:number};
-  summary:{tokens:string;rawTokens?:string;allocatedTokens:string;turns:number;categories:Record<string,string>};
+  summary:{tokens:string;rawTokens?:string;allocatedTokens:string;turns:number;threads?:number;categories:Record<string,string>};
   daily:TokenUsageAggregate[];models:TokenUsageAggregate[];
   rows:(TokenUsageTurnDetail|TokenUsageAggregate)[];nextCursor:string|null;diagnostics?:TokenUsageDiagnostics;
 }

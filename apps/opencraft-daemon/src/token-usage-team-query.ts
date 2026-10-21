@@ -66,5 +66,6 @@ export function readTeamUsage(db:DatabaseSync,input:{serverId:string;start:numbe
         models:buckets.all(...ids).filter(b=>model===undefined||b.model_key===model).map(b=>({key:String(b.model_key),provider:b.provider,model:b.model,tokens:String(b.tokens)}))});
     }
   }
-  return {totals,known,allocated,turnCount,missingUsage,unknownModelTurns,daily,models,rows};
+  const threadCount=Number(grouped("SELECT count(DISTINCT thread_id) AS n FROM selected")[0]!.n);
+  return {totals,known,allocated,turnCount,threadCount,missingUsage,unknownModelTurns,daily,models,rows};
 }
