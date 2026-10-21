@@ -242,7 +242,7 @@
     "smoke:host-composer-commands": "tsx scripts/smoke-host-composer-commands.ts",
     "test:react-runtime": "tsx --test tests/host-composer-commands.test.ts tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs tests/workbench-presentation-policy.test.ts tests/workbench-product-icons.test.tsx tests/workbench-navigation-icons.test.ts tests/workbench-appearance-theme.test.ts",
     "test:extension-example": "tsx --test tests/extension-example.test.ts",
-    "test:pi-engine": "tsx --test tests/pi-durable-engine.test.ts tests/pi-runtime-packaging.test.mjs"
+    "test:pi-engine": "tsx --test tests/pi-durable-engine.test.ts tests/pi-model-configuration.test.ts tests/pi-runtime-packaging.test.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

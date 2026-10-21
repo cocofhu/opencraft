@@ -10,6 +10,11 @@ import type { ExecutionEngineClient as EngineClient } from "@opencraft/appserver
 export { piModel } from "./contract.js";
 
 type Value = Record<string, any>;
+export interface PiModelConfiguration {
+  synchronize(): Promise<void>;
+  defaults(): {model: string | null; effort?: string};
+  writeDefaults(value: {model: string | null; effort?: string}): Promise<void>;
+}
 interface Session {
   format: "pi-durable-1"; id: string; cwd: string; model: string; name: string | null; preview: string;
   createdAt: number; updatedAt: number; archived: boolean; projectId?: string | null; pendingRecovery?: boolean; tools: Value[];
@@ -56,7 +61,7 @@ export class PiEngine {
   private readonly operations = new Map<string, Promise<unknown>>();
   private readonly modelsRuntime: ReturnType<typeof createPiModels>;
   private resolvedModels?: Awaited<ReturnType<typeof createPiModels>>;
-  constructor(private readonly options: { directory: string; cwd: string; modelDirectory?: string; models?: Awaited<ReturnType<typeof createPiModels>> }) {
+  constructor(private readonly options: { directory: string; cwd: string; modelDirectory?: string; models?: Awaited<ReturnType<typeof createPiModels>>; configuration?: PiModelConfiguration }) {
     this.modelsRuntime = (options.models ? Promise.resolve(options.models) : createPiModels(options.modelDirectory ?? options.directory))
       .then(models => { this.resolvedModels = models; return models; });
   }
@@ -81,7 +86,7 @@ export class PiEngine {
     })();
   }
   async start() {
-    await this.load(); await this.modelsRuntime;
+    await this.load(); await this.modelsRuntime; await this.options.configuration?.synchronize();
     for (const session of this.sessions.values()) {
       if (!session.pendingRecovery || session.archived) continue;
       try { const native = await this.native(session); await this.refresh(session); if (session.active) native.resume(); }
@@ -206,14 +211,15 @@ export class PiEngine {
     this.notify("thread/status/changed", { threadId: session.id, status: { type: "systemError" } });
   }
   async models(): Promise<Value[]> {
+    await this.options.configuration?.synchronize();
     const available = (await this.modelsRuntime).getAvailableSnapshot(), saved = await this.defaults();
-    const defaultModel = available.some((model: Value) => piModel(model.provider, model.id) === saved.model) ? saved.model : available[0] && piModel(available[0].provider, available[0].id);
+    const defaultModel = available.some((model: Value) => piModel(model.provider, model.id) === saved.model) ? saved.model : this.options.configuration ? null : available[0] && piModel(available[0].provider, available[0].id);
     return available.map((model: Value) => {
       const levels = getSupportedThinkingLevels(model as any);
       return { id: piModel(model.provider, model.id), model: piModel(model.provider, model.id), displayName: model.name ?? model.id,
         description: `${model.provider} · Pi Coding Agent`, groupKey: `pi:${model.provider}`, groupLabel: `Pi · ${model.provider}`, hidden: false, isDefault: piModel(model.provider, model.id) === defaultModel,
         supportedReasoningEfforts: levels.map(level => ({ reasoningEffort: level === "off" ? "none" : level, description: level })),
-        defaultReasoningEffort: thinking(model, null, false) === "off" ? "none" : thinking(model, null, false),
+        defaultReasoningEffort: thinking(model, piModel(model.provider, model.id) === defaultModel ? saved.effort : null, false) === "off" ? "none" : thinking(model, piModel(model.provider, model.id) === defaultModel ? saved.effort : null, false),
         inputModalities: model.input?.includes("image") ? ["text", "image"] : ["text"], contextWindow: model.contextWindow, maxTokens: model.maxTokens,
         source: "builtin", additionalSpeedTiers: [], serviceTiers: [], upgrade: null };
     });
@@ -233,6 +239,7 @@ export class PiEngine {
       sandbox: { type: "dangerFullAccess" }, activePermissionProfile: { id: fullAccessProfile, extends: null }, reasoningEffort: session.effort ?? null, multiAgentMode: "explicitRequestOnly" };
   }
   private async defaults(): Promise<Value> {
+    if (this.options.configuration) return this.options.configuration.defaults();
     try { return JSON.parse(await readFile(join(this.options.directory, "defaults.json"), "utf8")); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; return {}; }
   }
@@ -266,21 +273,23 @@ export class PiEngine {
   }
   private async handle(method: string, params: Value, client: EngineClient): Promise<any> {
     await this.load(); if (this.closed) throw new Error("Pi engine is closed");
+    if (["config/read", "config/batchWrite", "thread/start", "thread/resume", "turn/start"].includes(method)) await this.options.configuration?.synchronize();
     if (method === "config/read") {
       const saved = await this.defaults();
-      return { config: { model: saved.model ?? (await this.models())[0]?.model ?? null, model_reasoning_effort: saved.effort ?? null }, origins: {}, layers: null };
+      return { config: { model: saved.model ?? (await this.models()).find(model => model.isDefault)?.model ?? null, model_reasoning_effort: saved.effort ?? null }, origins: {}, layers: null };
     }
     if (method === "config/batchWrite") {
       const saved = await this.defaults();
       for (const edit of params.edits ?? []) {
-        if (edit.keyPath === "model") { if (edit.value != null) { const ref = selection(edit.value); if (!(await this.modelsRuntime).getModel(ref.provider, ref.modelId)) throw new Error("Pi model is unavailable"); } saved.model = edit.value; }
+        if (edit.keyPath === "model") { if (edit.value != null) { const ref = selection(edit.value); if (!(await this.modelsRuntime).getAvailableSnapshot().some(model => model.provider === ref.provider && model.id === ref.modelId)) throw new Error("Pi model is unavailable"); } saved.model = edit.value; }
         else if (edit.keyPath === "model_reasoning_effort") saved.effort = edit.value;
         else throw new Error("Unsupported Pi default setting");
       }
       if (saved.effort != null) {
-        const ref = selection(saved.model ?? (await this.models())[0]?.model ?? "");
+        const ref = selection(saved.model ?? (await this.models()).find(model => model.isDefault)?.model ?? "");
         thinking((await this.modelsRuntime).getModel(ref.provider, ref.modelId)!, saved.effort, true);
       }
+      if (this.options.configuration) {await this.options.configuration.writeDefaults({model: saved.model ?? null, effort: saved.effort}); return {status: "ok"};}
       const temporary = join(this.options.directory, `defaults.${randomUUID()}.tmp`);
       await writeFile(temporary, JSON.stringify(saved), { mode: 0o600 }); await rename(temporary, join(this.options.directory, "defaults.json")); return { status: "ok" };
     }
@@ -303,7 +312,7 @@ export class PiEngine {
     if (method === "thread/start") {
       assertPiFields(params);
       if (params.projectId != null && (typeof params.projectId !== "string" || !params.projectId.trim())) throw new Error("Invalid workspace project identity");
-      const saved = await this.defaults(), model = params.model ?? saved.model ?? (await this.models())[0]?.model;
+      const saved = await this.defaults(), model = params.model ?? saved.model ?? (await this.models()).find(model => model.isDefault)?.model;
       selection(model ?? "");
       const session: Session = { format: "pi-durable-1", id: `pi_${randomUUID()}`, cwd: await workspace(params, this.options.cwd), model,
         projectId: params.projectId ?? null, threadSource: params.threadSource ?? null, sessionStartSource: params.sessionStartSource ?? null,

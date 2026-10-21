@@ -22,6 +22,7 @@ import { readSshCodexServerBindings, createSshCodexEngineAdapter } from "../apps
 import { SshManagement } from "../apps/opencraft-daemon/src/ssh-management.ts";
 import { startLocalAgentHost } from "../apps/local-agent-host/src/main.ts";
 import { startEngineHost } from "../apps/local-agent-host/src/engine-host.ts";
+import { createPiModelConfiguration } from "../apps/local-agent-host/src/model-config/pi-adapter.ts";
 import { PiEngine } from "../plugins/pi-engine/src/index.ts";
 import { createWorkbenchWebServer } from "./serve-workbench-web.mjs";
 import { maintainHeadlessCodexHost } from "./headless-host-readiness.mjs";
@@ -347,8 +348,9 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     });
     const engines = options.engines ?? ["dsh"];
     if (engines.includes("pi")) {
+      const piModels = await createPiModelConfiguration(join(dataDirectory, "models"), join(dataDirectory, "pi"));
       agent = await startEngineHost({
-        providers: [new PiEngine({ directory: join(dataDirectory, "pi"), cwd: options.runtimeDirectory ?? join(root, "runtime") })],
+        providers: [new PiEngine({ ...piModels, directory: join(dataDirectory, "pi"), cwd: options.runtimeDirectory ?? join(root, "runtime") })],
         defaultEngine: options.defaultEngine ?? (engines.includes("dsh") ? "dsh" : "pi"), machine: machineIdentity,
         resources: { projectDirectory: join(dataDirectory, "projects"), attachmentDirectory: join(dataDirectory, "agent", "attachments") },
         ...(engines.includes("dsh") ? { legacy: { id: "dsh", label: "DeepSeek Harness", start: startDsh } } : {}),
