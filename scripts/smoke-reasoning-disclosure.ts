@@ -454,6 +454,6 @@ try {
   }
   await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, localizedLabels: localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, subagentDetails, localizedLabels: process.argv.includes("--subagents-only") ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }
