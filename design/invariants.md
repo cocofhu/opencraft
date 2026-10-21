@@ -1842,3 +1842,7 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
 ### Side chat slash command
 
 An existing conversation’s Composer advertises `/side` alongside its Host shortcuts. Explicit submission of the standalone command invokes the same Side Chat panel action as the toolbar, with the current conversation owner and working directory. It never sends or queues model input, including during an active turn. A stale owner, unavailable action or failed fork retains the command draft and reports failure. Arguments, attachments, context and code remain ordinary prompt content. New-thread composers do not advertise a fork command.
+
+### Inline command discovery
+
+Composer commands are discovered directly from slash suggestions in the editor. A non-empty shortcut catalog must not introduce a command-library button or separate footer menu. Selecting a suggestion inserts editable text; explicit submission owns execution.

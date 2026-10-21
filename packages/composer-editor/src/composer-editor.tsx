@@ -51,7 +51,6 @@ import {
   Plus,
   RotateCcw,
   ShieldCheck,
-  Sparkles,
   X,
   Zap,
 } from "lucide-react";
@@ -862,7 +861,6 @@ export const OpenCraftComposer = forwardRef<
   const filteredSuggestionsRef = useRef<readonly Suggestion[]>([]);
   const suggestionLoadingRef = useRef(false);
   const selectedSuggestionRef = useRef(0);
-  const refocusAfterShortcutSelectionRef = useRef(false);
   const pendingSubmissionRef = useRef<{
     readonly controller: ComposerController;
     readonly token: symbol;
@@ -923,7 +921,6 @@ export const OpenCraftComposer = forwardRef<
     finally { if (epoch === agentSelectionEpoch.current) setSwitchingAgentId(null); }
   };
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [shortcutMenuOpen, setShortcutMenuOpen] = useState(false);
   const afterAddMenuClose = useRef<(() => void) | null>(null);
   const [editingQueuedSubmissionId, setEditingQueuedSubmissionId] = useState<
     string | null
@@ -2294,35 +2291,6 @@ export const OpenCraftComposer = forwardRef<
                 event.currentTarget.value = "";
               }}
             />
-            {shortcutCommands && shortcutCommands.length > 0 ? (
-              <DropdownMenu.Root modal={false} open={shortcutMenuOpen} onOpenChange={setShortcutMenuOpen}>
-                <DropdownMenu.Trigger asChild>
-                  <button className="opencraft-composer-shortcut-trigger" type="button" disabled={disabled}>
-                    <Sparkles size={15} aria-hidden="true" />
-                    <span><FormattedMessage id="composer.commands" defaultMessage="Commands" /></span>
-                    <ChevronDown size={13} aria-hidden="true" />
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal container={portalContainer}>
-                  <DropdownMenu.Content className="opencraft-composer-selection-menu opencraft-composer-shortcut-menu" align="start" side="top" sideOffset={6} collisionPadding={6} aria-label={intl.formatMessage({ id: "composer.commands", defaultMessage: "Commands" })} onCloseAutoFocus={(event) => {
-                    if (!refocusAfterShortcutSelectionRef.current) return;
-                    refocusAfterShortcutSelectionRef.current = false;
-                    event.preventDefault();
-                    controller.focus();
-                  }}>
-                    {shortcutCommands.map((command) => (
-                      <DropdownMenu.Item key={command.name} className="opencraft-composer-selection-menu__item" onSelect={() => {
-                        refocusAfterShortcutSelectionRef.current = true;
-                        controller.insertText(`/${command.name} `);
-                      }}>
-                        <span className="opencraft-composer-shortcut-menu__command">/{command.name}</span>
-                        <span className="opencraft-composer-shortcut-menu__description">{command.description}</span>
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            ) : null}
             {entryActions}
           </div>
           <div

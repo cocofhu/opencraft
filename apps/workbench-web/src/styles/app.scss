@@ -9586,56 +9586,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-.opencraft-composer-shortcut-trigger {
-  display: inline-flex;
-  height: var(--composer-control-size, 28px);
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: var(--typography-metadata-font);
-  white-space: nowrap;
-  cursor: default;
-
-  &:hover,
-  &[data-state="open"] {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-border-focus);
-    outline-offset: 2px;
-  }
-
-  letter-spacing: var(--typography-metadata-tracking)
-}
-
-.opencraft-composer-shortcut-menu {
-  width: min(260px, calc(100vw - 16px));
-
-  .opencraft-composer-selection-menu__item {
-    justify-content: flex-start;
-    gap: 12px;
-  }
-}
-
-.opencraft-composer-shortcut-menu__command {
-  flex: 0 0 auto;
-  color: var(--color-text);
-}
-
-.opencraft-composer-shortcut-menu__description {
-  color: var(--color-text-secondary);
-}
-
 .opencraft-voice-input-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -12254,8 +12204,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     clip-path: circle(50%); // Match pointer hit testing to the visible circle.
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
   }
-  .opencraft-composer-mode,
-  .opencraft-composer-shortcut-trigger {
+  .opencraft-composer-mode {
     border-radius: var(--radius-composer-newera-capsule);
     clip-path: inset(0 round var(--radius-composer-newera-capsule));
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
@@ -12299,7 +12248,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .opencraft-composer-footer { display: contents; }
     .opencraft-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
     .opencraft-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .opencraft-composer-shortcut-trigger,
     .opencraft-composer-icon-button--context,
     .opencraft-composer-icon-button--attachment { display: none; }
     // Dictation replaces this same row. The inactive editor stays mounted and

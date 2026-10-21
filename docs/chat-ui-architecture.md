@@ -246,7 +246,9 @@ surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
 Host providers may declare localized Composer shortcuts as ordinary prompts or
-standalone actions. Selecting either only inserts editable text; explicit send is
+standalone actions. Commands are discovered by typing `/` in the editor; declaring
+shortcuts must not add a command-library button or a separate toolbar menu.
+Selecting a suggestion only inserts editable text; explicit send is
 required. The core matches only a single paragraph with no attachments/context
 and no arguments. Ordinary prompts and unmatched input retain normal submission,
 including queue admission. The optional resident `composerCommands` port binds an
