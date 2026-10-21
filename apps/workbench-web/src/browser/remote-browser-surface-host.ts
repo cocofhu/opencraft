@@ -138,12 +138,12 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const container = document.createElement('div'); container.className = 'web-browser-surface'; container.dataset.browserPageId = id;
     Object.assign(container.style, { visibility: 'hidden', overflow: 'hidden', background: 'var(--background, #fff)' });
     const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; canvas.tabIndex = -1;
-    const receiver = document.createElement('textarea'); receiver.tabIndex = 0;
+    const receiver = document.createElement('textarea'); receiver.tabIndex = 0; receiver.className = 'ui-text--mobile-input';
     receiver.setAttribute('aria-label', 'Remote browser keyboard input'); receiver.spellcheck = false;
     receiver.autocomplete = 'off'; receiver.setAttribute('autocorrect', 'off'); receiver.autocapitalize = 'none';
     receiver.inputMode = 'none'; receiver.setAttribute('virtualkeyboardpolicy', 'manual');
     Object.assign(receiver.style, { position: 'absolute', left: '0', top: '0', width: '1px', height: '1px',
-      opacity: '0', padding: '0', border: '0', font: 'var(--typography-mobile-input-font)', letterSpacing: 'var(--typography-mobile-input-tracking)', pointerEvents: 'none', resize: 'none' });
+      opacity: '0', padding: '0', border: '0', pointerEvents: 'none', resize: 'none' });
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
