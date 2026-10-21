@@ -10,6 +10,7 @@ import {
   type PreviewBridgeChildMessage,
 } from "@opencraft/browser-preview-bridge";
 import type { PresentationHostPort } from "./opencraft-presentation-host";
+import type { BrowserLocalMenuController } from './browser-local-menu';
 
 export interface BrowserSurfaceEvents {
   onNewWindow?(url: string, background: boolean): void;
@@ -22,6 +23,7 @@ export interface BrowserSurfaceEvents {
 export interface BrowserNewTabLabels { readonly title: string; readonly hint: string }
 
 export interface BrowserSurfaceHost {
+  readonly localMenu?: BrowserLocalMenuController;
   setNewTabLabels?(labels: BrowserNewTabLabels): void;
   trackPointerNearBottom?(pageId: BrowserPageId, height: number, listener: (near: boolean) => void): () => void;
   setZoom?(pageId: BrowserPageId, percent: number): void;

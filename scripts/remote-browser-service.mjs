@@ -6,7 +6,7 @@ import { access, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'automation', 'close']);
+const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'copy', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
 /** Gateway-owned process and page leases. A client gets only its own page port,
  * never a CDP endpoint, filesystem path or arbitrary JavaScript evaluator. */
@@ -246,6 +246,7 @@ export class RemoteBrowserService {
           const target = page;
           const value = await this.request(target.id, message.method, message.input);
           authorize();
+          if (page !== target || target.socket !== ws || this.pages.get(target.key) !== target || ws.readyState !== WebSocket.OPEN) return;
           if (message.method === 'close') { this.pages.delete(target.key); page = null; await this.persist(); }
           if (message.method === 'zoom') { target.zoom = Number(message.input.percent); await this.persist(); }
           if (['navigate', 'viewport'].includes(message.method)) await this.persist();

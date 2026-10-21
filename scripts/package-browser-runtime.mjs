@@ -5,18 +5,25 @@ import { createRequire } from 'node:module';
 import { build } from 'esbuild';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { verifyRemoteBrowserArtifact } from './remote-browser-artifact.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-/** Ship the existing pinned Electron distribution, license notices included. */
+/** Ship a verified owned artifact when explicitly selected, otherwise the
+ * pinned stock runtime. The worker advertises only APIs that actually exist. */
 export async function packageBrowserRuntime(destination) {
   const require = createRequire(import.meta.url);
   // Release builds install dependencies with --ignore-scripts. Prepare only
   // this pinned runtime explicitly; Electron verifies its bundled checksums.
-  await promisify(execFile)(process.execPath, [join(dirname(require.resolve('electron/package.json')), 'install.js')],
-    { timeout: 300_000, maxBuffer: 1024 * 1024 });
-  const executable = require('electron');
+  let distribution;
+  if (process.env.OPENCRAFT_BROWSER_ELECTRON_DISTRIBUTION) {
+    distribution = await verifyRemoteBrowserArtifact(process.env.OPENCRAFT_BROWSER_ELECTRON_DISTRIBUTION, join(root, 'vendor/electron/fork.json'));
+  } else {
+    await promisify(execFile)(process.execPath, [join(dirname(require.resolve('electron/package.json')), 'install.js')],
+      { timeout: 300_000, maxBuffer: 1024 * 1024 });
+    distribution = dirname(require('electron'));
+  }
   await mkdir(destination, { recursive: true });
-  await cp(dirname(executable), join(destination, 'electron'), { recursive: true });
-  for (const name of ['worker.cjs','encoder-preload.cjs','encoder.html'])
+  await cp(distribution, join(destination, 'electron'), { recursive: true });
+  for (const name of ['worker.cjs','clipboard.cjs','encoder-preload.cjs','encoder.html'])
     await cp(join(root, 'scripts/remote-browser', name), join(destination, name));
   await build({ entryPoints: [join(root, 'packages/browser-preview-bridge/src/index.ts')], outfile: join(destination, 'preview-bridge.js'),
     bundle: true, format: 'iife', globalName: 'OpenCraftPreviewBridgeRuntime', platform: 'browser', target: 'chrome120' });

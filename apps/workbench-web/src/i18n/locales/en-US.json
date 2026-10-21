@@ -625,5 +625,7 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "browser.menu.copy": "Copy",
+  "browser.menu.copyLink": "Copy link address"
 }

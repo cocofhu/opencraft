@@ -4,6 +4,7 @@ import { BrowserAutomationError, type BrowserAutomation, type BrowserDeviceProfi
 import type { BrowserSurfaceEvents, BrowserSurfaceHost } from './web-browser-surface-host';
 import type { PresentationHostPort } from './opencraft-presentation-host';
 import { serverStorageKey, serverUrl } from '../runtime/server-context';
+import { BrowserLocalMenuController } from './browser-local-menu';
 
 type Pending = { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 interface Page {
@@ -14,12 +15,14 @@ interface Page {
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
   viewportMeasured: boolean; width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
   resizeTimer: ReturnType<typeof setTimeout> | null; resizing: boolean;
-  automation: BrowserAutomation; resetInput: () => void; inputDispose: () => void;
+  nativeCopy: boolean; interaction: number; menuIntent: string | null; automation: BrowserAutomation; resetInput: () => void; inputDispose: () => void;
 }
 /** Physical pages live on the Server. Canvas is only a presentation consumer;
  * the existing tool host still owns thread/tab authorization and use claims. */
 export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   readonly nativeNavigation = true;
+  readonly localMenu = new BrowserLocalMenuController();
+  private menuOwner: Page | null = null;
   private root: HTMLElement | null = null;
   private storageIds = new Map<BrowserPageId, string>();
   constructor(private readonly storage: BrowserMetadataStorage = localStorage, private readonly storageKey = serverStorageKey('opencraft.remote-browser-storage.v1')) {
@@ -44,7 +47,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   setBackingFactory(factory: ((id: BrowserPageId) => void) | null) { this.backing = factory; }
   setUseFactory(factory: ((id: BrowserPageId) => () => void) | null) { this.use = factory; }
   acquireUse(id: BrowserPageId) { return this.use?.(id) ?? (() => {}); }
-  setRoot(root: HTMLElement | null) { this.root = root; if (root) for (const p of this.pages.values()) root.prepend(p.container); }
+  setRoot(root: HTMLElement | null) { this.root = root; if (root) for (const p of this.pages.values()) root.prepend(p.container); else this.localMenu.retire(); }
   onClose(listener: (id: BrowserPageId) => void) { this.closeListeners.add(listener); return () => { this.closeListeners.delete(listener); }; }
   setZoom(id: BrowserPageId, percent: number) { this.run(this.require(id), 'zoom', { percent }); }
   async capture(id: BrowserPageId): Promise<string> { const p = this.require(id); await p.ready; return this.call(p, 'capture'); }
@@ -85,9 +88,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const visible = phase === 'visible';
     if (p.visible !== visible) { p.visible = visible; this.run(p, 'visible', { visible }); }
   }
-  block(id: BrowserPageId) { const p = this.pages.get(id); if (p) { p.resetInput(); this.run(p, 'input', { type: 'touchCancel' }); p.blocked = true; p.container.style.pointerEvents = 'none'; } }
+  block(id: BrowserPageId) { const p = this.pages.get(id); if (p) { this.retireMenu(p); p.resetInput(); this.run(p, 'input', { type: 'touchCancel' }); p.blocked = true; p.container.style.pointerEvents = 'none'; } }
   park(id: BrowserPageId) {
     const p = this.pages.get(id); if (!p) return;
+    this.retireMenu(p);
     p.resetInput(); p.container.style.visibility = 'hidden'; p.container.style.pointerEvents = 'none';
     if (p.visible) { p.visible = false; this.run(p, 'visible', { visible: false }); }
   }
@@ -97,6 +101,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   }
   private release(id: BrowserPageId, destroy: boolean) {
     const p = this.pages.get(id); if (!p || p.closed) return;
+    this.retireMenu(p);
     if (destroy) {
       if (p.opened) { try { p.socket?.send(JSON.stringify({ id: crypto.randomUUID(), method: 'close' })); } catch {} }
       else this.discard(p.lease);
@@ -124,7 +129,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
     container.append(canvas); this.root?.prepend(container);
     const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, events, url: undefined, socket: null,
-      restored: false, ready: Promise.resolve(), opened: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
+      nativeCopy: false, interaction: 0, menuIntent: null, restored: false, ready: Promise.resolve(), opened: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetInput: () => {}, inputDispose: () => {} };
     if (!this.storageIds.has(id)) { this.storageIds.set(id, p.lease); this.persistStorage(); }
@@ -150,7 +155,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       ws.onopen = () => { if (!current()) return;
         const viewport = p.viewportMeasured ? { ...p.viewport } : undefined;
         void this.call(p, 'open', { lease: p.lease, viewport }).then(async config => {
-          if (!current()) return; p.restored = config.resumed || config.restored; this.applyViewport(p, config);
+          if (!current()) return; p.restored = config.resumed || config.restored; p.nativeCopy = config.nativeCopy === true; this.applyViewport(p, config);
           const effective = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
           if (!p.viewportMeasured) p.viewport = effective;
           p.sentViewport = JSON.stringify(viewport ?? effective); p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
@@ -168,9 +173,11 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           p.pending.delete(message.id); clearTimeout(request.timer);
           message.error ? request.reject(new BrowserAutomationError(message.error.code, message.error.message, message.error.retryable)) : request.resolve(message.value);
         } else if (message.type === 'navigation') {
+          if (message.state.isLoading) this.retireMenu(p);
           p.events.onNavigation?.(message.state);
           if (!message.state.isLoading) { if (message.state.url && message.state.url !== 'about:blank') p.url = message.state.url; p.events.onLoaded(message.state.title || null); }
         } else if (message.type === 'viewport') this.applyViewport(p, message);
+        else if (message.type === 'context-menu') this.showMenu(p, message);
         else if (message.type === 'cursor' && typeof message.cursor === 'string' && /^[a-z-]+$/.test(message.cursor)) p.canvas.style.cursor = message.cursor;
         else if (message.type === 'new-window') p.events.onNewWindow?.(message.url, false);
         else if (message.type === 'error') p.events.onError(message.message);
@@ -179,6 +186,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       ws.onclose = event => {
         clearTimeout(timer); reject(new Error('Browser connection closed'));
         if (!current()) return;
+        this.retireMenu(p);
         p.resetInput(); p.opened = false; if (p.resizeTimer) clearTimeout(p.resizeTimer); p.resizeTimer = null; p.resizing = false; this.rejectPending(p); this.resetDecoder(p);
         if (event.code === 1000 || event.code === 1008 || p.retries >= 5) { p.events.onError('Browser disconnected; reload this tab'); return; }
         p.reconnect = setTimeout(() => { p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
@@ -189,6 +197,34 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     if (!Number.isInteger(config.width) || !Number.isInteger(config.height) || config.width < 1 || config.height < 1) return;
     if (p.width === config.width && p.height === config.height) return;
     this.resetDecoder(p); p.width = p.canvas.width = config.width; p.height = p.canvas.height = config.height;
+  }
+  private retireMenu(p: Page) { ++p.interaction; p.menuIntent = null; if (this.menuOwner === p) { this.menuOwner = null; this.localMenu.retire(); } }
+  private acceptsInput(p: Page) {
+    return this.root !== null && !p.closed && !this.inputFailed && !p.blocked && p.visible && p.opened && p.container.style.pointerEvents !== 'none';
+  }
+  private copyCurrent(p: Page) {
+    this.menuOwner = p;
+    const connection = p.connection, interaction = p.interaction;
+    const current = () => this.acceptsInput(p) && p.connection === connection && p.interaction === interaction;
+    this.localMenu.copy(() => this.call(p, 'copy'), current, message => p.events.onError(message));
+  }
+  private showMenu(p: Page, menu: { intent?: unknown; context?: unknown; x?: unknown; y?: unknown; copy?: unknown; link?: unknown }) {
+    if (!this.acceptsInput(p) || typeof menu.x !== 'number' || !Number.isFinite(menu.x)
+      || typeof menu.y !== 'number' || !Number.isFinite(menu.y) || !p.menuIntent || menu.intent !== p.menuIntent) return;
+    const context = typeof menu.context === 'string' && /^[a-zA-Z0-9-]{20,100}$/.test(menu.context) ? menu.context : undefined;
+    let link: string | undefined;
+    try { const url = new URL(String(menu.link)); if (['https:', 'http:'].includes(url.protocol) && url.href.length <= 16384) link = url.href; } catch {}
+    const copy = p.nativeCopy && menu.copy === true && context !== undefined;
+    if (!copy && !link) return;
+    const connection = p.connection, interaction = p.interaction;
+    const current = () => this.acceptsInput(p) && p.connection === connection && p.interaction === interaction;
+    const r = p.canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
+    this.menuOwner = p;
+    this.localMenu.open({ copy, link: link !== undefined,
+      x: r.left + (r.width - p.width * scale) / 2 + menu.x * scale,
+      y: r.top + (r.height - p.height * scale) / 2 + menu.y * scale,
+      current, run: action => action === 'copy' ? this.call(p, 'copy', { context }) : Promise.resolve({ text: link! }),
+      focus: () => { if (current()) p.canvas.focus({ preventScroll: true }); }, error: message => p.events.onError(message) });
   }
   private queueViewport(p: Page) {
     if (p.closed || !p.opened || p.resizing || p.resizeTimer || p.sentViewport === JSON.stringify(p.viewport)) return;
@@ -260,13 +296,14 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     };
     listen('pointermove', (event: PointerEvent) => { move = event; if (!raf) raf = requestAnimationFrame(flushMove); });
     listen('pointerdown', (event: PointerEvent) => { event.preventDefault(); flushMove(); canvas.focus(); captured.add(event.pointerId); canvas.setPointerCapture(event.pointerId);
-      send({ type: 'mouseDown', ...point(event), button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); });
+      this.retireMenu(p); p.menuIntent = crypto.randomUUID();
+      send({ type: 'mouseDown', ...point(event), menuIntent: p.menuIntent, button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); });
     listen('pointerup', (event: PointerEvent) => { flushMove(); send({ type: 'mouseUp', ...point(event), button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); captured.delete(event.pointerId); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); });
     const cancel = () => { move = null; cancelAnimationFrame(raf); raf = 0; captured.clear(); send({ type: 'touchCancel' }); };
     listen('pointercancel', cancel);
     listen('lostpointercapture', (event: PointerEvent) => { if (captured.has(event.pointerId)) cancel(); });
     listen('contextmenu', event => event.preventDefault());
-    listen('wheel', (event: WheelEvent) => { event.preventDefault(); send({ type: 'mouseWheel', ...point(event), deltaX: -event.deltaX, deltaY: -event.deltaY, modifiers: modifiers(event) }); }, { passive: false });
+    listen('wheel', (event: WheelEvent) => { event.preventDefault(); this.retireMenu(p); send({ type: 'mouseWheel', ...point(event), deltaX: -event.deltaX, deltaY: -event.deltaY, modifiers: modifiers(event) }); }, { passive: false });
     let composing = false, compositionConnection = 0;
     p.resetInput = () => { move = null; cancelAnimationFrame(raf); raf = 0; composing = false; compositionConnection = 0; captured.clear(); canvas.textContent = ''; };
     listen('blur', () => { cancel(); p.resetInput(); });
@@ -274,9 +311,20 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     listen('compositionend', (event: CompositionEvent) => { const valid = composing && compositionConnection === p.connection; composing = false; if (valid && p.opened && p.visible && !p.blocked && !this.inputFailed && p.container.style.pointerEvents !== 'none') void this.call(p, 'text', { text: event.data }).catch(() => {}); canvas.textContent = ''; });
     listen('paste', (event: ClipboardEvent) => { event.preventDefault(); const text = event.clipboardData?.getData('text/plain'); if (text && p.opened && p.visible && !p.blocked && !this.inputFailed && p.container.style.pointerEvents !== 'none') void this.call(p, 'text', { text: text.slice(0, 10000) }).catch(() => {}); });
     const keys: Record<string, string> = { ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space' };
-    listen('keydown', (event: KeyboardEvent) => { if (composing || event.isComposing || event.key === 'Process') return; if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') return; event.preventDefault(); send({ type: 'keyDown', keyCode: keys[event.key] || event.key, modifiers: modifiers(event) });
+    listen('keydown', (event: KeyboardEvent) => { if (composing || event.isComposing || event.key === 'Process') return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+        event.preventDefault();
+        if (!event.repeat && this.acceptsInput(p)) {
+          if (p.nativeCopy) this.copyCurrent(p); else p.events.onError('This browser runtime does not support copying yet');
+        }
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') return;
+      this.retireMenu(p);
+      if (event.key === 'ContextMenu' || event.key === 'F10' && event.shiftKey) p.menuIntent = crypto.randomUUID();
+      event.preventDefault(); send({ type: 'keyDown', keyCode: keys[event.key] || event.key, menuIntent: p.menuIntent, modifiers: modifiers(event) });
       if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) send({ type: 'char', keyCode: event.key }); });
-    listen('keyup', (event: KeyboardEvent) => { if (composing || event.isComposing || event.key === 'Process') return; if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') return; event.preventDefault(); send({ type: 'keyUp', keyCode: keys[event.key] || event.key, modifiers: modifiers(event) }); });
+    listen('keyup', (event: KeyboardEvent) => { if (composing || event.isComposing || event.key === 'Process') return; if ((event.ctrlKey || event.metaKey) && ['c', 'v'].includes(event.key.toLowerCase())) return; event.preventDefault(); send({ type: 'keyUp', keyCode: keys[event.key] || event.key, modifiers: modifiers(event) }); });
     return () => { p.resetInput(); cleanup.forEach(dispose => dispose()); };
   }
 }

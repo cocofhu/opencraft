@@ -112,6 +112,39 @@ Chinese input testing, or multitouch. It does not modify graphics/compositing,
 streaming or the serving runtime. A clean patch replay is source evidence;
 native compilation and a passing native probe must be recorded separately.
 
+## Target-bound native clipboard bridge
+
+`0003-target-bound-native-clipboard.patch` adds experimental WebFrameMain
+`getNativeClipboardContextForTesting()` and `copyNativeClipboardForTesting(token)`
+methods. A single-use token binds the actual renderer document, native focus and
+selection generations. No selected text is exported by the context operation.
+The command invokes Chromium's native Copy path and captures its final text and
+HTML, including website `copy` overrides and clipboard policy callbacks.
+Passwords and unsupported targets are rejected.
+
+The dedicated worker opts in with `--opencraft-remote-clipboard`. In that mode,
+ClipboardHost accepts writes only inside its ordered capture interval and never
+flushes them to the server OS clipboard. It refuses server clipboard reads.
+Ordinary desktop processes do not opt in. Unsupported formats, multiple commits,
+stale targets or no data return explicit failure. Capture is bounded to 65,536
+UTF-16 code units across text and HTML. A dispatched website handler can have
+side effects even if later validation rejects its result; there is no rollback.
+
+`probe-native-clipboard.cjs` checks real input/textarea/contenteditable/document
+copy, website text/HTML overrides, empty prevented copies, unrelated DOM changes,
+unsupported formats, token replay, focus/selection A→B→A, navigation and child
+frames. It also checks that the host clipboard is unchanged. DOM access is only
+fixture setup and assertion. A stock binary must fail the capability check.
+
+```sh
+vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox \
+  vendor/electron/probe-native-clipboard.cjs
+```
+
+Native source/type checks do not prove the runtime probe. macOS native menus,
+physical devices, cross-origin child frames and a complete local IME adapter
+require separate verification.
+
 ## Verification and runtime adoption
 
 ```sh
@@ -123,11 +156,29 @@ The source tests reject corrupted patches, unknown clean commits, dirty source
 and escaping patch paths. CI replays the real series without compiling Chromium.
 It does not report native behavior as tested.
 
-This foundation does **not** replace OpenCraft's installed Electron dependency
-or packaged browser runtime. Runtime adoption must select the verified custom
-artifact for both desktop packaging and the remote browser worker, check native
-API capability, and preserve the existing browser session/permission ownership.
-H.264, variable-frame-rate streaming and touch behavior are unchanged here.
+The installed desktop Electron dependency is not automatically replaced.
+For a Linux remote-browser distribution, build the complete `electron_dist_zip`
+target, extract that archive to an isolated distribution directory, then run:
+
+```sh
+python3 vendor/electron/prepare-artifact.py \
+  --distribution /absolute/owned/distribution \
+  --source-root /absolute/isolated/build-root \
+  --evidence /absolute/probe-evidence
+OPENCRAFT_BROWSER_ELECTRON_DISTRIBUTION=/absolute/owned/distribution \
+  npm run package:headless:linux:amd64
+```
+
+The producer verifies the exact fork and executes the native clipboard probe
+from the extracted distribution before writing its byte inventory and marker.
+Packaging verifies that marker against the current `fork.json`, versions,
+licenses, executable and every shipped file. An explicitly selected invalid
+artifact fails rather than falling back. Without this environment variable,
+packaging retains the pinned stock runtime and the worker advertises native
+copy as unavailable. This packaging path does not claim that any deployment has
+adopted the owned binary; record the actual running artifact separately.
+Browser session/permission ownership, H.264, variable-frame-rate streaming and
+touch behavior remain with their existing owners.
 
 Electron's MIT notice is retained in `LICENSE.electron` and in the expanded
 upstream source. Built distributions must also retain Chromium and other bundled

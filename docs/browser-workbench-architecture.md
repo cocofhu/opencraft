@@ -1322,9 +1322,38 @@ editor. Clipboard results must be scoped to the requesting browser session,
 then written to the client clipboard under its user-gesture contract; the
 server's global OS clipboard is not a remote clipboard transport.
 
-This is the intended boundary, not an implemented capability. The current
-remote surface forwards mouse drag and click counts and accepts plain-text
-paste, but suppresses its local context menu and has no copy-back protocol.
-Native selection observation in the fork experiment does not provide these
-missing menu and clipboard operations.
+The remote worker now exposes a narrowly typed copy-back operation and native
+context-menu notifications. A client right-click or keyboard-menu intent must
+still own the current presentation when the notification arrives. The local
+Electron Menu or Web Radix menu offers Copy and, for HTTP(S) links, Copy link
+address. Ctrl/Cmd+C uses the same copy-back operation. Opening a local menu
+preserves the remote focus and selection. Website-owned menus remain in the
+remote page when its context-menu event prevents the native menu.
 
+Copy requires the owned Electron fork's target-bound clipboard capability;
+stock runtimes advertise it as unavailable. The renderer issues a single-use
+native document/focus/selection token. Executing Copy validates that token,
+dispatches Chromium's real editor command, and captures the final ClipboardHost
+text/HTML writes on the same ordered Mojo pipe, including website copy handlers
+and existing policy callbacks. ClipboardHost does not flush these writes to the
+server OS clipboard. A moved target, navigation, unsupported format, nested copy
+or missing data rejects the result. Rejection after dispatch does not roll back
+website event-handler side effects. The initial result limit is 65,536 UTF-16
+code units across text and HTML; images/custom formats, cut and native paste
+transactions are outside this capability.
+
+Page/session permission checks and current presentation/connection generations
+fence the result again before a local user intent can write the client
+clipboard. Async Clipboard API clients create promised text/HTML items during
+the local gesture; plain-only results receive an equivalent inert HTML
+alternative. LAN HTTP uses the browser clipboard command and reports refusal.
+Retiring the view rejects pending data, but no protocol can revoke a clipboard
+write already accepted by the local OS/browser. Client clipboard permission and
+activation rules still apply.
+
+The fork source, worker, client menu and artifact-selection paths are connected.
+Source integration alone does not enable native copy: a complete owned binary
+must pass the native clipboard probe and be selected during packaging. Native
+runtime adoption and physical desktop/mobile validation must be recorded
+separately. This does not complete native IME or multitouch, and a video surface
+still cannot provide the mobile OS's native text-selection handles.

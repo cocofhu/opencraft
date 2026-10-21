@@ -14,6 +14,10 @@
     {
       "path": "patches/electron/0002-target-bound-native-ime-poc.patch",
       "sha256": "619b46df7b1d5e4d06169346e387b424a5ce7882b6b43f61fbb3381c45ef129f"
+    },
+    {
+      "path": "patches/electron/0003-target-bound-native-clipboard.patch",
+      "sha256": "a7a34ad717b52a9b46770d201191ec79b34451cd70d7f08928352058ffd47ca5"
     }
   ]
 }

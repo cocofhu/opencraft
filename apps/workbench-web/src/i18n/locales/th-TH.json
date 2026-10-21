@@ -627,5 +627,7 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "browser.menu.copy": "คัดลอก",
+  "browser.menu.copyLink": "คัดลอกที่อยู่ลิงก์"
 }

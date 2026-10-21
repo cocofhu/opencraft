@@ -4,6 +4,8 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createInterface } = require('node:readline');
+const { installClipboard } = require('./clipboard.cjs');
+app.commandLine.appendSwitch('opencraft-remote-clipboard');
 const ipc = typeof process.send === 'function';
 // CSS pixels, independent of the viewer's devicePixelRatio. Bound software
 // surfaces to H.264 level 4's 8192 macroblocks, including portrait windows.
@@ -23,7 +25,7 @@ function deviceProfile(input = {}) {
   if (!deviceProfiles.has(profile)) throw new Error('Invalid device profile');
   return profile;
 }
-const configuration = p => ({ navigation: navigation(p), width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028' });
+const configuration = p => ({ navigation: navigation(p), width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028', nativeCopy: p.clipboard?.available() === true });
 function userAgent(p, profile) {
   const chrome = process.versions.chrome;
   if (profile === 'iphone') return 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -165,6 +167,7 @@ async function resetInput(p) {
 function closePage(id) {
   const p = pages.get(id); if (!p) return;
   pages.delete(id); p.closed = true;
+  p.clipboard?.dispose();
   clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer);
   p.pending = p.previous = p.latest = null;
   encoderWindow.webContents.send('release-encoder', id); p.window.destroy();
@@ -186,6 +189,7 @@ async function createPage(id, input) {
     desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
+  p.clipboard = installClipboard(p, send);
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
   for (const event of ['will-navigate', 'will-redirect']) wc.on(event, (e, url) => { try { validUrl(url); } catch { e.preventDefault(); } });
@@ -242,6 +246,10 @@ async function command(message) {
   if (method !== 'close') await p.viewportQueue;
   if (method === 'snapshot') return configuration(p);
   if (method === 'close') { closePage(id); return; }
+  if (method === 'copy') {
+    if (input.context !== undefined && (typeof input.context !== 'string' || !/^[a-zA-Z0-9-]{20,100}$/.test(input.context))) throw new Error('Invalid copy context');
+    return p.clipboard.copy(input.context);
+  }
   if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
   if (method === 'reload') { wc.reload(); return; }
   if (method === 'stop') { wc.stop(); return; }
@@ -249,6 +257,7 @@ async function command(message) {
   if (method === 'forward') { if (wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); return; }
   if (method === 'visible') {
     p.visible = input.visible === true;
+    if (!p.visible) p.clipboard.retire();
     if (p.visible) {
       wc.startPainting(); activity(p); refresh(p);
       // Paint may initially return the surface cached before parking. Capture
@@ -266,6 +275,10 @@ async function command(message) {
   if (method === 'input') {
     const allowed = ['mouseMove','mouseDown','mouseUp','mouseWheel','keyDown','keyUp','char','touchCancel'];
     if (!allowed.includes(input.type)) throw new Error('Invalid input');
+    if (['mouseDown', 'keyDown'].includes(input.type)) {
+      p.clipboard.retire();
+      p.contextIntent = typeof input.menuIntent === 'string' && /^[a-zA-Z0-9-]{20,100}$/.test(input.menuIntent) ? input.menuIntent : null;
+    }
     if (input.type !== 'mouseMove') activity(p);
     // Copy the finite, typed input surface; no arbitrary Electron options.
     const event = { type: input.type };
@@ -312,7 +325,7 @@ app.whenReady().then(async () => {
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
   await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
   const controls = new Map();
-  const ordered = new Set(['input', 'text', 'viewport', 'visible', 'zoom', 'close']);
+  const ordered = new Set(['input', 'text', 'copy', 'viewport', 'visible', 'zoom', 'close']);
   const receive = message => {
     let operation;
     if (ordered.has(message.method)) {
