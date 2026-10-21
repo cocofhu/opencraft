@@ -128,3 +128,9 @@ retain their owner. Device toolbar selects retain native selection and focus wit
 a shared ChevronDown overlay. Unassigned task avatars use a shared person glyph;
 assigned initials and profile images retain their meaning. Source checks alone do
 not establish coverage of runtime-generated or browser-painted controls.
+
+
+The Workspace editor configures search in its top panel slot. The floating chat
+input may cover the bottom slot on narrow screens; moving the dependency-owned
+panel keeps its shared close/checkbox controls reachable without changing search,
+replacement, file-save or draft ownership.

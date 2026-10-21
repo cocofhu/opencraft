@@ -1845,3 +1845,8 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
   keyboard/label focus, validation, system pickers and CodeMirror command owners.
   Forced-colors fallbacks remain accessible; retained sidebar/panel artwork and
   collaboration numeral font are unchanged.
+
+
+- Workspace code search uses the editor's top panel slot so the existing floating
+  chat input cannot cover search options or replacement controls on narrow screens.
+  Search query, replacement, editor draft and save ownership remain unchanged.
