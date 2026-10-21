@@ -7,7 +7,7 @@ const html = readFileSync(new URL("../apps/workbench-web/index.html", import.met
 const bootstrap = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
   .map(match => match[1]).find(script => script.includes("isResizeObserverDeliveryWarning"))!;
 
-function fixture() {
+function fixture({ recoverySupported = false, recovered = false } = {}) {
   const listeners = new Map<string, (event: any) => void>();
   const reports: { url: string; body?: any }[] = [];
   const elements = new Map<string, any>();
@@ -17,11 +17,12 @@ function fixture() {
   };
   let surface: any = null;
   let reloads = 0;
+  const navigations: string[] = [];
   const context = vm.createContext({
     addEventListener: (type: string, listener: (event: any) => void) => listeners.set(type, listener),
     document: {
       getElementById: () => surface,
-      querySelector: () => ({ getAttribute: () => "same-build", setAttribute() {} }),
+      querySelector: (selector: string) => ({ getAttribute: () => selector.includes("resource-recovery") ? (recoverySupported ? "supported" : null) : "same-build", setAttribute() {} }),
       createElement: () => ({ style: {}, setAttribute() {}, querySelector: field }),
       body: { append: (element: any) => { surface = element; } },
       documentElement: { dataset: {}, classList: { add() {} }, style: {} },
@@ -30,13 +31,14 @@ function fixture() {
       reports.push({ url, body: options?.body ? JSON.parse(options.body) : undefined });
       return { ok: true, json: async () => ({ buildId: "same-build" }) };
     },
-    location: { href: "https://example.test/", reload: () => { ++reloads; } },
+    URL,
+    location: { href: `https://example.test/local/thread?keep=1${recovered ? "&opencraft-resource-recovery=prior" : ""}`, reload: () => { ++reloads; }, replace: (url: string) => { navigations.push(url); } },
     localStorage: { getItem: () => null },
     sessionStorage: { getItem: () => null, setItem() {} },
     setTimeout() {},
   });
   vm.runInContext(bootstrap, context);
-  return { context, listeners, reports, field, reloads: () => reloads };
+  return { context, listeners, reports, field, navigations, reloads: () => reloads };
 }
 
 test("Vite must propagate storage evaluation failures to the application boundary", () => {
@@ -69,9 +71,35 @@ test("actual resource failures still use the existing release recovery", async (
   const f = fixture();
   let prevented = false;
   f.listeners.get("vite:preloadError")!({ payload: new Error("chunk unavailable"), preventDefault: () => { prevented = true; } });
-  assert.equal(prevented, true);
+  assert.equal(prevented, false, "the original import rejection must reach its caller");
   await new Promise(resolve => setImmediate(resolve));
   assert.match(f.reports[0].url, /^\/version.json\?recovery=/);
   assert.equal(f.field("[data-recovery-title]").textContent, "界面资源未能加载");
   assert.equal(f.field("[data-release-error]").hidden, false);
+});
+
+
+test("same-build module failure retries the graph once without changing app identity", async () => {
+  const f = fixture({ recoverySupported: true });
+  await vm.runInContext(`__opencraftRecoverRelease(new Error('Importing a module script failed.'))`, f.context);
+  assert.equal(f.navigations.length, 1);
+  const target = new URL(f.navigations[0]);
+  assert.equal(target.origin, "https://example.test");
+  assert.equal(target.pathname, "/local/thread");
+  assert.equal(target.searchParams.get("keep"), "1");
+  assert.match(target.searchParams.get("opencraft-resource-recovery")!, /^[a-z0-9-]+$/);
+  await vm.runInContext(`__opencraftRecoverRelease(new Error('Importing a module script failed.'))`, f.context);
+  assert.equal(f.navigations.length, 1, "nested preload failures cannot race retries");
+  const retry = fixture({ recoverySupported: true, recovered: true });
+  await vm.runInContext(`__opencraftRecoverRelease(new Error('Importing a module script failed.'))`, retry.context);
+  assert.equal(retry.navigations.length, 0, "persistent failures must not loop");
+  assert.equal(retry.field("[data-recovery-title]").textContent, "界面资源未能加载");
+});
+
+test("evaluation errors and storage failures never trigger cache recovery", async () => {
+  for (const expression of ["new Error('broken module evaluation')", "Object.assign(new Error('blocked'), { name: 'BrowserStorageError' })"]) {
+    const f = fixture({ recoverySupported: true });
+    await vm.runInContext(`__opencraftRecoverRelease(${expression})`, f.context);
+    assert.equal(f.navigations.length, 0);
+  }
 });

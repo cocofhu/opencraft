@@ -75,6 +75,15 @@
           ? { name: error.name, message: error.message, stack: error.stack }
           : { message: String(error ?? "A JavaScript module failed to load") };
         const isStorageFailure = (error) => error?.name === "BrowserStorageError";
+        const retryResources = () => {
+          if (document.querySelector('meta[name="opencraft-resource-recovery"]')?.getAttribute("content") !== "supported") {
+            location.reload();
+            return;
+          }
+          const target = new URL(location.href);
+          target.searchParams.set("opencraft-resource-recovery", `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+          location.replace(target.href);
+        };
         const showReleaseFailure = (error) => {
           const failure = describeFailure(error);
           let surface = document.getElementById("opencraft-release-failure");
@@ -90,10 +99,11 @@
               <pre data-release-error style="max-height:160px;overflow:auto;white-space:pre-wrap;padding:12px;border-radius:10px;background:#f3f3f3;font:12px/1.45 ui-monospace,monospace"></pre>
               <button type="button" style="margin-top:16px;padding:8px 14px;border:0;border-radius:9px;background:#202020;color:#fff;cursor:pointer">重新加载</button>
             </section>`;
-            surface.querySelector("button")?.addEventListener("click", () => location.reload());
+
             document.body.append(surface);
           }
           const storageFailure = isStorageFailure(error);
+          surface.querySelector("button").onclick = storageFailure ? () => location.reload() : retryResources;
           surface.querySelector("[data-recovery-kind]").textContent = storageFailure
             ? "OpenCraft" : "OpenCraft release recovery";
           surface.querySelector("[data-recovery-title]").textContent = storageFailure
@@ -107,6 +117,7 @@
             details.textContent = storageFailure ? "" : `${failure.name ? `${failure.name}: ` : ""}${failure.message}`;
           }
         };
+        let resourceRecoveryStarted = false;
         const recoverRelease = async (error, source = "chunk-load") => {
           // An import can reject because its evaluation opened local storage.
           // This is not a missing release chunk and must never trigger a build reload.
@@ -116,6 +127,10 @@
             showReleaseFailure(error);
             return;
           }
+          // Nested Vite preload wrappers can report the same rejected import.
+          // Retain its first failure instead of racing several recovery navigations.
+          if (resourceRecoveryStarted) return;
+          resourceRecoveryStarted = true;
           const failure = describeFailure(error);
           const activeBuildId = currentBuildId();
           let latestBuildId = null;
@@ -150,13 +165,18 @@
             activeBuildId,
             latestBuildId,
           });
+          if (/Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module/i.test(failure.message)
+            && document.querySelector('meta[name="opencraft-resource-recovery"]')?.getAttribute("content") === "supported"
+            && !new URL(location.href).searchParams.has("opencraft-resource-recovery")) {
+            retryResources();
+            return;
+          }
           showReleaseFailure(error);
         };
         addEventListener("vite:preloadError", (event) => {
-          // preventDefault makes Vite swallow the import rejection. Let storage
-          // errors reach ApplicationBootstrap and its typed recovery boundary.
+          // Preserve rejected imports: preventDefault makes Vite resolve them
+          // as undefined, hiding the original failure behind a property error.
           if (isStorageFailure(event.payload)) return;
-          event.preventDefault();
           void recoverRelease(event.payload, "vite-preload-error");
         });
         globalThis.__opencraftRecoverRelease = recoverRelease;
