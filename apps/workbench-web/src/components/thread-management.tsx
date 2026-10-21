@@ -17,6 +17,7 @@ import {
 import { ConfirmationModalSurface } from "./modal/confirmation-modal-surface";
 import { ConversationRenameDialog } from "./conversation-rename-dialog";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
+import { useTouchMenuTrigger } from "./use-touch-menu-trigger";
 import type { SidebarThreadMenuKind } from "./sidebar-thread-menu-state";
 import "../styles/context-menu.scss";
 
@@ -137,6 +138,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   ].filter((item): item is NonNullable<typeof item> => item !== null);
   // Keep the navigation subtree mounted when a runtime loses capabilities.
   const hasMenu = menuItems.length > 0 || !!contextMenuExtra;
+  const touchTrigger = useTouchMenuTrigger(!disabled && !busy && hasMenu, () => onOpenMenuChange("dropdown", openMenuKind !== "dropdown"));
   const onMenuCloseAutoFocus = (event: Event) => {
     onCloseAutoFocus?.(event);
     if (!modalHandoff.current) return;
@@ -157,7 +159,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
       </ContextMenu.Root>
       <DropdownMenu.Root open={!disabled && hasMenu && openMenuKind === "dropdown"} onOpenChange={open => onOpenMenuChange("dropdown", open)}>
         {hasMenu ? <DropdownMenu.Trigger asChild>
-          <button type="button" className="sidebar-activity-item__menu-trigger" aria-describedby={activityLabelId} aria-label={intl.formatMessage(forking ? { id: "sidebar.thread.forking", defaultMessage: "Creating branch for {title}" } : { id: "sidebar.thread.actions", defaultMessage: "Actions for {title}" }, { title: target.title })} aria-busy={forking || undefined} data-forking={forking || undefined} disabled={busy || disabled}>
+          <button {...touchTrigger} type="button" className="sidebar-activity-item__menu-trigger" aria-describedby={activityLabelId} aria-label={intl.formatMessage(forking ? { id: "sidebar.thread.forking", defaultMessage: "Creating branch for {title}" } : { id: "sidebar.thread.actions", defaultMessage: "Actions for {title}" }, { title: target.title })} aria-busy={forking || undefined} data-forking={forking || undefined} disabled={busy || disabled}>
             {forking ? <LoaderCircle size={14} aria-hidden="true" /> : <MoreHorizontal className="sidebar-activity-item__menu-dots" size={14} aria-hidden="true" />}
           </button>
         </DropdownMenu.Trigger> : null}

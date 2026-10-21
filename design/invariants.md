@@ -1838,3 +1838,10 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+- Sidebar More menus open on a completed touch tap, after the browser has retained
+  the gesture as a click. Touch down alone never opens them; movement beyond
+  10 CSS pixels, ancestor scrolling, cancellation, another pointer, release
+  outside the hit area or a hold beyond 500ms invalidates that tap. These guards
+  never prevent native scrolling. Row long-press/right-click and Radix keyboard,
+  focus, dismissal and the single Sidebar menu owner remain unchanged.
