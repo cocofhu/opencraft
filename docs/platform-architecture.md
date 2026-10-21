@@ -3129,3 +3129,14 @@ The Token usage view is a managed optional built-in (`opencraft.token-usage`) on
 The physical Token ledger reuses parameterized SQLite statements in a SQL-shape map bounded to 128 entries, avoiding per-event native statement allocation. The database owner still closes the connection; exact allocations, transaction boundaries and authorization are unchanged. No actor-keyed or completed-result cache is introduced.
 
 The read-only usage query owner also bounds native prepared statements to 128 SQL shapes and lends only its prepare port to team projections. Manual bulk iterators close before snapshot rollback on success and exceptions, allowing later reads to reuse that physical owner. This is statement reuse, not a completed-response or per-person cache.
+
+Token metering has its own managed `token-usage.sqlite` physical transaction owner
+and an atomic, read-only import from former shared Host tables. Sender/queue
+storage remains independent; no collector writes two ledgers. A metering lock or
+failed open cannot block native input admission, and unpersisted acquisition
+gaps mark returned coverage partial. Query workers have a 64MiB old-generation
+and 4MiB young-generation limit; scan failure rejects bounded reads and lazily
+restarts the worker. Source rebuilds select only the four fields they consume,
+reducing allocation without changing ordering or exact arithmetic. The limits
+and narrow row shape require measured resource/latency acceptance, not just
+successful compilation.

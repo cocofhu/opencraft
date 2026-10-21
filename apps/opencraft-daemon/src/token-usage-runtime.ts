@@ -69,12 +69,15 @@ export class CodexTokenUsageRuntime {
   private readonly pending = new Set<string>();
   private readonly active = new Set<string>();
   private readonly gaps = new Map<string, string>();
+  private gapRetryAfter = "";
   private readonly settling = new Map<string,number>();
   private readonly receiptAfter=new Map<string,string>();
   private readonly abort = new AbortController();
   private timer: ReturnType<typeof setInterval> | null = null;
   private scheduled: ReturnType<typeof setImmediate> | null = null;
   private draining = false;
+  /** Includes faults which an unwritable store could not persist. */
+  liveGapCount(): number { return this.gaps.size; }
   private enabled(): boolean {
     try { return this.ledger.coverage().enabled; }
     catch { try { this.port.diagnostic("storage-read"); } catch {} return false; }
@@ -89,7 +92,7 @@ export class CodexTokenUsageRuntime {
     const home = text(record(value).codexHome);
     if (!home || this.nativeHome || this.abort.signal.aborted) return;
     this.nativeHome = home;
-    this.timer = setInterval(() => { this.scheduleProjection(); for (const thread of new Set([...this.active,...this.settling.keys()])) this.schedule(thread); }, 2000);
+    this.timer = setInterval(() => { this.scheduleProjection(); for (const thread of new Set([...this.active,...this.settling.keys()])) this.schedule(thread); this.retryGaps(); }, 2000);
     this.timer.unref();
     this.scheduleProjection();
     void this.restore().catch(() => { if (!this.abort.signal.aborted) { try { this.port.diagnostic("recovery-read"); } catch {} } });
@@ -157,6 +160,17 @@ export class CodexTokenUsageRuntime {
     if (this.gaps.has(threadId) || this.gaps.size >= 256) return;
     const id = randomUUID(); this.gaps.set(threadId, id);
     try { this.ledger.noteGap({ id, threadId, reason }); } catch { /* an unwritable store cannot persist its own fault */ }
+  }
+  private retryGaps(): void {
+    const keys = [...this.gaps.keys()];
+    if (!keys.length) return;
+    const first = (keys.indexOf(this.gapRetryAfter) + 1) % keys.length;
+    // A completed thread can still regain a durable source after an outage.
+    // Keep the retry rate bounded and rotate rather than forgetting its gap.
+    for (let i = 0; i < Math.min(8, keys.length); i++) {
+      const key = keys[(first + i) % keys.length]!;
+      this.schedule(key); this.gapRetryAfter = key;
+    }
   }
   private schedule(threadId: string): void {
     if (this.abort.signal.aborted || this.ephemeral.has(threadId) || !this.nativeHome || !this.enabled()) return;
@@ -283,6 +297,6 @@ export class CodexTokenUsageRuntime {
     this.counterWork.length=0;this.ephemeral.clear();
     if (this.timer) clearInterval(this.timer);
     if (this.scheduled) clearImmediate(this.scheduled);
-    this.pending.clear(); this.active.clear(); this.gaps.clear(); this.settling.clear();this.receiptAfter.clear();
+    this.pending.clear(); this.active.clear(); this.gaps.clear(); this.gapRetryAfter=""; this.settling.clear();this.receiptAfter.clear();
   }
 }

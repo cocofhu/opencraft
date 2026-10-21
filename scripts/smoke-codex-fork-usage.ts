@@ -10,7 +10,7 @@ import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol";
 import { AccountPoolStore } from "@opencraft/account-pool-host";
 
 import { CodexEngineAdapter } from "../apps/opencraft-daemon/src/codex-engine-adapter.js";
-import { CodexHostStateDatabase } from "../apps/opencraft-daemon/src/codex-host-state-database.js";
+import { TokenUsageStateDatabase } from "../apps/opencraft-daemon/src/token-usage-state-database.js";
 import { CodexTokenUsageLedger } from "../apps/opencraft-daemon/src/token-usage-ledger.js";
 import { replayRolloutUsage } from "../apps/opencraft-daemon/src/token-usage-rollout.js";
 
@@ -89,7 +89,7 @@ try {
  const childId=fork.thread.id;assert.notEqual(childId,parentId);
  const next=await request(5,"turn/start",{threadId:childId,clientUserMessageId:"child-B",input:[{type:"text",text:"Synthetic fork followup",text_elements:[]}]},"B");
  await waitFor(frame=>frame.method==="turn/completed"&&frame.params.turn.id===next.turn.id);
- const reader=new DatabaseSync(join(dataDirectory,"codex-host-queue.sqlite"),{readOnly:true});
+ const reader=new DatabaseSync(join(dataDirectory,"token-usage.sqlite"),{readOnly:true});
  try{
   const deadline=Date.now()+20000;let rows;
   while(Date.now()<deadline){rows=reader.prepare("SELECT thread_id,turn_id,observed_tokens,allocation_state FROM token_usage_turns WHERE thread_id IN (?,?) ORDER BY thread_id,turn_id").all(parentId,childId);if(rows.length===2&&rows.every(row=>row.allocation_state==="settled"))break;await new Promise(resolve=>setTimeout(resolve,30));}
@@ -115,7 +115,7 @@ try {
   assert.equal((await request(33,"opencraft/token-usage/query",{from:today,through:today,scope:"team",threadId:childId},"admin")).summary.tokens,"100");
   for(const path of rolloutPaths) await rm(path,{force:true});
   await adapter.close();
-  const reopened=new CodexHostStateDatabase(dataDirectory);
+  const reopened=new TokenUsageStateDatabase(dataDirectory);
   try{
    const ledger=new CodexTokenUsageLedger(reopened,"fork-probe");
    assert.equal(ledger.query({from:today,through:today},()=>({actorId:"A",administrator:false})).summary.tokens,"500");

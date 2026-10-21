@@ -376,3 +376,29 @@ Read responses attach diagnostics only after rechecking the current administrato
 personal non-admin responses contain no diagnostics. No source IDs, prompt content
 or credentials become metric labels. The optional Settings view exposes the
 same bounded diagnostic snapshot with an explicit process-lifetime explanation.
+
+### Dedicated Token metering owner
+
+`TokenUsageStateDatabase` owns `token-usage.sqlite` per physical Codex Host. Its
+independent v1 migration contains the existing metering schema and an atomic
+legacy-import receipt. Published Host v1–v12 migrations and their checksums stay
+unchanged. Queue/identity retain `codex-host-queue.sqlite`; only metering writes
+and the read worker select the dedicated file, so a metering writer lock cannot
+lock trusted sender admission.
+
+Before starting collection, the new owner attaches the validated former file
+read-only and copies all metering facts, allocations, projections, coverage and
+recovery state in one destination transaction. It copies no queue, sender, body
+or credential tables. Failure rolls back all copied rows and the receipt; retry
+uses the same managed destination. The former tables remain an inactive recovery
+source and are never updated by the new collector. Reopen verifies the recorded
+legacy scope revisions, skips copying and preserves new data. If an old binary
+has written a divergent legacy history after cutover, statistics fail closed and
+both histories remain intact; no automatic downgrade or guessed merge is offered.
+No account/session data is removed and no published migration is rewritten.
+
+The Host reports both managed outcomes and closes the collector/read worker
+before the dedicated owner. Opening/import failure makes statistics unavailable
+without making execution unavailable. In-memory acquisition gaps also mark read
+coverage partial when an unwritable store cannot persist its own fault. Replayed
+native facts may clear only the existing replayable gap categories.

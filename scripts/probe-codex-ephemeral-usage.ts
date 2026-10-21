@@ -10,7 +10,7 @@ import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol";
 import { AccountPoolStore } from "@opencraft/account-pool-host";
 
 import { CodexEngineAdapter } from "../apps/opencraft-daemon/src/codex-engine-adapter.js";
-import { CodexHostStateDatabase } from "../apps/opencraft-daemon/src/codex-host-state-database.js";
+import { TokenUsageStateDatabase } from "../apps/opencraft-daemon/src/token-usage-state-database.js";
 import { CodexTokenUsageLedger } from "../apps/opencraft-daemon/src/token-usage-ledger.js";
 import { replayRolloutUsage } from "../apps/opencraft-daemon/src/token-usage-rollout.js";
 
@@ -88,7 +88,7 @@ try {
   await waitFor(frame => frame.method === "turn/completed" && frame.params.turn.id === second.turn.id);
   const notifications=frames.filter(frame=>["thread/tokenUsage/updated"].includes(frame.method)).map(frame=>frame.params);
   const acceptedInputs=frames.filter(frame=>frame.method==="item/completed").map(frame=>({threadId:frame.params.threadId,turnId:frame.params.turnId,type:frame.params.item?.type,keys:Object.keys(frame.params.item??{}),clientId:frame.params.item?.clientId??frame.params.item?.client_id??null}));
-  const database=new DatabaseSync(join(dataDirectory,"codex-host-queue.sqlite"),{readOnly:true});
+  const database=new DatabaseSync(join(dataDirectory,"token-usage.sqlite"),{readOnly:true});
   const reader={database,close:()=>database.close()};
   let collected;
   try {

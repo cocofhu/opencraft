@@ -19,7 +19,7 @@ export class TokenUsageQueryService {
     const worker=new Worker(`const {workerData}=require('node:worker_threads');
       if(workerData.entry.endsWith('.ts')) {require('tsx/cjs');require(workerData.entry);}
       else {import(require('node:url').pathToFileURL(workerData.entry).href).catch(()=>process.exit(1));}`,
-      {eval:true,workerData:{entry:this.options.entry,databasePath:this.options.databasePath,serverId:this.options.serverId,timezone:"Asia/Shanghai",secret:this.secret}});
+      {eval:true,resourceLimits:{maxOldGenerationSizeMb:64,maxYoungGenerationSizeMb:4},workerData:{entry:this.options.entry,databasePath:this.options.databasePath,serverId:this.options.serverId,timezone:"Asia/Shanghai",secret:this.secret}});
     this.worker=worker;
     worker.on("message",message=>{
       if(this.worker!==worker)return;

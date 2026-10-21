@@ -73,7 +73,7 @@ function timestamp(value: number): number {
  */
 export class CodexTokenUsageLedger {
   readonly serverId: string;
-  private readonly state: CodexHostStateDatabase;
+  private readonly state: Pick<CodexHostStateDatabase,"database"|"transaction">;
   private readonly now: () => number;
   private writing = false;
   private committedEffects:(()=>void)[]=[];
@@ -96,7 +96,7 @@ export class CodexTokenUsageLedger {
   query(value: unknown, authorize: () => TokenUsageAuthority | null) {
     return (this.queryOwner ??= new TokenUsageQuery(this.state, this.serverId, "Asia/Shanghai", this.now)).read(value, authorize);
   }
-  constructor(state: CodexHostStateDatabase, serverId: string, now: () => number = Date.now, readonly telemetry=new TokenUsageTelemetry()) {
+  constructor(state: Pick<CodexHostStateDatabase,"database"|"transaction">, serverId: string, now: () => number = Date.now, readonly telemetry=new TokenUsageTelemetry()) {
     this.state = state;
     this.serverId = requiredId(serverId);
     this.now = now;
@@ -632,7 +632,7 @@ export class CodexTokenUsageLedger {
   }
   private rebuild(ids: [string, string, string]): void {
     const turn = this.statement("SELECT * FROM token_usage_turns WHERE server_id=? AND thread_id=? AND turn_id=?").get(...ids)!;
-    const sources = this.statement("SELECT * FROM token_usage_sources WHERE server_id=? AND thread_id=? AND turn_id=? ORDER BY source_version DESC,lineage,source_id").all(...ids);
+    const sources = this.statement("SELECT source_kind,provider,model,counts_json FROM token_usage_sources WHERE server_id=? AND thread_id=? AND turn_id=? ORDER BY source_version DESC,lineage,source_id").all(...ids);
     const responses = sources.filter(row => row.source_kind === "response");
     const snapshot = sources.find(row => row.source_kind === "turn-snapshot");
     // The adapter supplies a validated per-turn snapshot, never the native

@@ -90,7 +90,7 @@ try {
   const steer=await request(4,"turn/steer",{threadId,expectedTurnId:first.turn.id,clientUserMessageId:"steer-B",actorId:"UNTRUSTED_CLAIM",input:[{type:"text",text:"SENSITIVE_SYNTHETIC_STEER",text_elements:[]}]},"B");
   assert.equal(steer.turnId,first.turn.id);
   await adapter.send(JSON.stringify({method:"runtime/client/disconnect",params:{},[LOGICAL_CLIENT_FIELD]:"usage-smoke"}));
-  const reader=new DatabaseSync(join(dataDirectory,"codex-host-queue.sqlite"),{readOnly:true});
+  const reader=new DatabaseSync(join(dataDirectory,"token-usage.sqlite"),{readOnly:true});
   try {
     const deadline=Date.now()+20000;
     let turn;

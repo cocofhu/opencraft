@@ -1,3 +1,4 @@
+import { TokenUsageStateDatabase } from "./token-usage-state-database.js";
 import { TokenUsageTelemetry } from "./token-usage-telemetry.js";
 import { TokenUsageQueryService } from "./token-usage-query-service.js";
 import { TokenUsageQueryError } from "./token-usage-query.js";
@@ -253,6 +254,8 @@ export class CodexEngineAdapter implements DuplexTransport {
   private queue: CodexHostQueue | null = null;
   private schedules: ConversationSchedules | null = null;
   private hostState: CodexHostStateDatabase | null = null;
+  private tokenUsageState: TokenUsageStateDatabase | null = null;
+  private tokenUsageStorageUnavailable = false;
   private tokenUsage: CodexTokenUsageRuntime | null = null;
   private tokenUsageQueries: TokenUsageQueryService | null = null;
   private identity: ThreadIdentity | null = null;
@@ -379,6 +382,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   get storageOutcomes(): readonly { name: string; outcome: DatabaseOutcome }[] {
     return [
       ...(this.hostState ? [{ name: "codex-host-state", outcome: this.hostState.outcome }] : []),
+      ...(this.tokenUsageState ? [{ name: "token-usage", outcome: this.tokenUsageState.outcome }] : []),
       ...(this.schedules ? [{ name: "conversation-schedules", outcome: this.schedules.outcome }] : []),
       ...(this.messageAttachments ? [{ name: "codex-message-attachments", outcome: this.messageAttachments.outcome }] : []),
       ...(this.tasks?.outcome ? [{ name: "tasks", outcome: this.tasks.outcome }] : []),
@@ -433,13 +437,20 @@ export class CodexEngineAdapter implements DuplexTransport {
     this.hostState = new CodexHostStateDatabase(dataRoot);
     try {
       const telemetry=new TokenUsageTelemetry();
-      if(this.options.tokenUsage?.queryWorkerEntry)this.tokenUsageQueries=new TokenUsageQueryService({entry:this.options.tokenUsage.queryWorkerEntry,databasePath:join(this.options.dataDirectory,"codex-host-queue.sqlite"),serverId:this.options.tokenUsage.serverId,telemetry});
-      this.tokenUsage = new CodexTokenUsageRuntime(new CodexTokenUsageLedger(this.hostState,this.options.tokenUsage?.serverId ?? "local-codex",Date.now,telemetry), {
+      this.tokenUsageState = new TokenUsageStateDatabase(dataRoot, join(dataRoot,"codex-host-queue.sqlite"));
+      this.tokenUsage = new CodexTokenUsageRuntime(new CodexTokenUsageLedger(this.tokenUsageState,this.options.tokenUsage?.serverId ?? "local-codex",Date.now,telemetry), {
         request:(method,params)=>this.requestPhysical(method,params,5000),
         submission:this.options.tokenUsage?.submission,
         diagnostic:category=>this.diagnostic({event:"token-usage-partial",category}),
       });
-    } catch { this.diagnostic({event:"token-usage-unavailable",category:"storage-open"}); }
+      if(this.options.tokenUsage?.queryWorkerEntry)this.tokenUsageQueries=new TokenUsageQueryService({entry:this.options.tokenUsage.queryWorkerEntry,databasePath:join(dataRoot,"token-usage.sqlite"),serverId:this.options.tokenUsage.serverId,telemetry});
+    } catch {
+      this.tokenUsageStorageUnavailable=true;
+      this.tokenUsageQueries?.close();this.tokenUsageQueries=null;
+      this.tokenUsage?.close();this.tokenUsage=null;
+      this.tokenUsageState?.close();this.tokenUsageState=null;
+      this.diagnostic({event:"token-usage-unavailable",category:"storage-open"});
+    }
     const queue = new CodexHostQueue(dataRoot, this.hostState.database);
     try {
       const migrated = this.nativeCore ? 0 : queue.migrateNativeQueue(runtimeRoot);
@@ -589,7 +600,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     const id = responseId(message.id);
     if (id !== null && message.method === "opencraft/token-usage/configure") {
       if (!this.initializedClients.has(clientId)) {this.emit({id,error:{code:-32600,message:"Client is not initialized"}},clientId);return;}
-      if (!this.tokenUsage) {this.emit({id,error:{code:-32601,message:"Token statistics are unsupported"}},clientId);return;}
+      if (!this.tokenUsage) {this.emit({id,error:{code:this.tokenUsageStorageUnavailable?-32000:-32601,message:this.tokenUsageStorageUnavailable?"unavailable":"Token statistics are unsupported"}},clientId);return;}
       const authority=context.tokenUsageAuthority?.();
       if(!authority||!authority.administrator){this.emit({id,error:{code:authority?403:401,message:authority?"forbidden":"unauthorized"}},clientId);return;}
       const params=record(message.params);
@@ -603,11 +614,13 @@ export class CodexEngineAdapter implements DuplexTransport {
     }
     if (id !== null && message.method === "opencraft/token-usage/query") {
       if (!this.initializedClients.has(clientId)) { this.emit({id,error:{code:-32600,message:"Client is not initialized"}},clientId); return; }
-      if (!this.tokenUsageQueries) { this.emit({id,error:{code:-32601,message:"Token statistics are unsupported"}},clientId); return; }
+      if (!this.tokenUsageQueries) { this.emit({id,error:{code:this.tokenUsageStorageUnavailable?-32000:-32601,message:this.tokenUsageStorageUnavailable?"unavailable":"Token statistics are unsupported"}},clientId); return; }
       const epoch=this.clientEpoch(clientId);
       try {
         const authorize=context.tokenUsageAuthority??(()=>null),before=authorize();
         const result=await this.tokenUsageQueries.read(message.params,authorize);
+        const liveGaps=this.tokenUsage?.liveGapCount()??0;
+        if(liveGaps)result.coverage={...result.coverage,partial:true,openGaps:Math.max(result.coverage.openGaps,liveGaps)};
         const after=authorize();
         if(!after)throw new TokenUsageQueryError("unauthorized");
         if(!before||after.actorId!==before.actorId||after.administrator!==before.administrator)throw new TokenUsageQueryError("forbidden");
@@ -950,6 +963,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.queue = null;
       this.identity?.close();
       this.identity = null;
+      this.tokenUsageState?.close();this.tokenUsageState=null;this.tokenUsageStorageUnavailable=false;
       this.hostState?.close();
       this.hostState = null;
       this.messageAttachments?.close();
