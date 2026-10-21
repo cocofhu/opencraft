@@ -56,6 +56,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import {
+  lazy, Suspense,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -82,7 +83,7 @@ import {
 } from "./conversation/document-context";
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
-import { AsyncQuestionCard } from "./conversation/async-question-card";
+const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card").then(module => ({ default: module.AsyncQuestionCard })));
 import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
@@ -271,8 +272,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
-      <AsyncQuestionCard
-        key={question.id}
+      <Suspense key={question.id} fallback={null}><AsyncQuestionCard
         question={question}
         title={<WebChatDocument
           conversationId={documentContext.conversationId}
@@ -285,7 +285,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
           source={question.title}
           theme={documentContext.theme}
         />}
-      />
+      /></Suspense>
     ))}
   </>;
 }

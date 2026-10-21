@@ -408,7 +408,11 @@ library icons and identity artwork remain available. The Shell and navigation
 adapters retain their existing role sizes, selected fill/stroke, hit areas and
 fallback behavior; sidebar/split-toggle artwork is explicitly preserved.
 See [action artwork](../design/ui/composer-icons.md) for this shared owner and
-its reduced-motion and busy-state boundaries.
+its reduced-motion and busy-state boundaries. The optional async-question card
+loads its component and stylesheet together on first use, within a boundary
+around that card. Question state remains above the boundary, and unrelated
+conversation content and draft/editor owners remain mounted. Its styles do not
+occupy the startup CSS budget of conversations without a question.
 
 
 Extensions declare semantic icon names for navigation and settings pages. The Web
