@@ -209,9 +209,9 @@ function UserMessageImageViewer({
   }, [imageCount, onNext, onPrevious]);
   const label = intl.formatMessage({ id: "chat.image.position", defaultMessage: "Attached image {index} of {count}" }, { index: index + 1, count: imageCount });
   return (
-    <ModalSurface className="thread-user-image-lightbox" label={label} layer="nested" onDismiss={onClose} returnFocus={returnFocus} size="workspace">
+    <ModalSurface className="thread-user-image-lightbox" presentation="fullscreen" label={label} layer="nested" onDismiss={onClose} returnFocus={returnFocus} size="workspace">
       {media.source !== null && failedSource !== media.source
-        ? <ZoomableImage key={documentId} alt={label} onError={() => setFailedSource(media.source)} src={media.source} />
+        ? <ZoomableImage onBackgroundClick={onClose} key={documentId} alt={label} onError={() => setFailedSource(media.source)} src={media.source} />
         : <div className="thread-user-image-lightbox__unavailable" role="status">{media.status === "loading" ? <FormattedMessage id="chat.image.loading" defaultMessage="Loading image…" /> : <FormattedMessage id="chat.image.unavailable" defaultMessage="Image unavailable" />}</div>}
       {imageCount > 1 ? (
         <div className="thread-user-image-lightbox__navigation">

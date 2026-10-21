@@ -2,7 +2,9 @@
 
 ## Image preview gestures
 
-Web image previews share a bounded local pinch/pan viewport. Manipulation never
+Web image previews share a bounded local pinch/pan viewport. Lightboxes use the
+full available screen as that viewport, never the initial image rectangle;
+embedded resources retain the panel boundary. Manipulation never
 changes the document, page scale, source or active gallery index. Preview controls
 remain outside the transformed image and reachable at every scale; cancelling a
 pointer ends its participation without closing the modal or starting navigation.

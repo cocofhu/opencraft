@@ -3,7 +3,10 @@ import "./zoomable-image.scss";
 
 type Point = { x: number; y: number };
 type Transform = Point & { scale: number };
-type ImageProps = Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "title" | "onError" | "onLoad"> & { readonly fitToContainer?: boolean };
+type ImageProps = Pick<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "title" | "onError" | "onLoad"> & {
+  readonly fitToContainer?: boolean;
+  readonly onBackgroundClick?: () => void;
+};
 const fitted: Transform = { x: 0, y: 0, scale: 1 };
 
 /** Transient image manipulation; the surrounding preview retains navigation and focus. */
@@ -11,11 +14,12 @@ export function ZoomableImage(props: ImageProps) {
   return <ImageViewport key={props.src} {...props} />;
 }
 
-function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
+function ImageViewport({ fitToContainer = false, onBackgroundClick, ...props }: ImageProps) {
   const viewport = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const current = useRef(fitted);
+  const backgroundPress = useRef<Point | null>(null);
   const gesture = useRef<{ center: Point; distance: number; transform: Transform } | null>(null);
   const [transform, setTransform] = useState(fitted);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -41,6 +45,7 @@ function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       setViewportHeight(viewport.current!.clientHeight);
+      backgroundPress.current = null;
       pointers.current.clear();
       gesture.current = null;
       current.current = fitted;
@@ -60,6 +65,8 @@ function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
       if (event.button !== 0) return;
       event.stopPropagation();
       pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      backgroundPress.current = pointers.current.size === 1 && event.target === event.currentTarget
+        ? { x: event.clientX, y: event.clientY } : null;
       event.currentTarget.setPointerCapture(event.pointerId);
       rebase();
     }}
@@ -67,6 +74,7 @@ function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
       if (!pointers.current.has(event.pointerId)) return;
       event.stopPropagation();
       pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (backgroundPress.current && Math.hypot(event.clientX - backgroundPress.current.x, event.clientY - backgroundPress.current.y) > 6) backgroundPress.current = null;
       const start = gesture.current;
       const next = measure();
       if (!start || !next || !image.current || !viewport.current) return;
@@ -83,7 +91,8 @@ function ImageViewport({ fitToContainer = false, ...props }: ImageProps) {
       };
       setTransform(current.current);
     }}
-    onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}>
+    onPointerUp={finish} onPointerCancel={event => { backgroundPress.current = null; finish(event); }} onLostPointerCapture={finish}
+    onClick={() => { if (backgroundPress.current) onBackgroundClick?.(); backgroundPress.current = null; }}>
     <img {...props} draggable={false} ref={image}
       style={{
         maxHeight: fitToContainer && viewportHeight > 0 ? viewportHeight : undefined,

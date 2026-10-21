@@ -237,9 +237,9 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
       {context.onEditGeneratedImage ? <button type="button" className="thread-generated-image-edit"
         aria-label="Edit generated image 1" onClick={() => context.onEditGeneratedImage?.(block)}>Edit</button> : null}
     </div>
-    {open ? <ModalSurface label={alt} className="thread-generated-image-lightbox__dialog" layer="nested"
+    {open ? <ModalSurface label={alt} className="thread-generated-image-lightbox__dialog" presentation="fullscreen" layer="nested"
       presentation="fullscreen" showCloseButton={false} onDismiss={() => setOpen(false)}>
-      <ZoomableImage src={media.source} alt={alt} />
+      <ZoomableImage onBackgroundClick={() => setOpen(false)} src={media.source} alt={alt} />
       <div className="thread-generated-image-lightbox__toolbar">
         <a href={media.source} download={block.savedPath?.split(/[\\/]/u).at(-1) ?? "generated-image.png"}>Save</a>
         <button type="button" aria-label="Close generated image 1" onClick={() => setOpen(false)}><X size={18} /></button>
