@@ -64,9 +64,27 @@ export async function startEngineHost(options: {
       const threadId = params.threadId ?? params.thread?.id;
       for (const state of clients.values()) if (threadId && state.opened.has(threadId)) state.owner.notify(method, params);
     }));
-    const failBackend = () => {
+    // A frontend connection owns one backend incarnation. Replacing only the
+    // backend would lose its connection-scoped Thread attachments while the
+    // frontend still considers their history authoritative. Let the existing
+    // client reconnect/Resume owner establish the entire successor instead.
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      const connection = backend;
       backend = undefined; backendStarting = undefined;
-      for (const call of internal.values()) { clearTimeout(call.timer); call.reject(new Error("DSH connection closed")); } internal.clear();
+      subscriptions.forEach(unsubscribe => unsubscribe());
+      for (const state of clients.values()) for (const provider of options.providers) provider.disconnect(state.owner);
+      clients.clear();
+      for (const call of internal.values()) { clearTimeout(call.timer); call.reject(new Error("Host connection closed")); } internal.clear();
+      for (const call of platform.values()) { clearTimeout(call.timer); call.reject(new Error("Platform tool owner disconnected")); } platform.clear();
+      if (connection?.readyState === WebSocket.CONNECTING) connection.terminate();
+      else connection?.close();
+    };
+    const failBackend = (connection: WebSocket) => {
+      if (stopped || backend !== connection) return;
+      stop();
+      socket.close(1012, "Execution connection lost; reconnect to restore");
     };
     const connectBackend = () => backendStarting ??= (async () => {
       const host = await legacyHost();
@@ -74,6 +92,7 @@ export async function startEngineHost(options: {
       if (stopped || closing) throw new Error("Host connection closed");
       const connection = new WebSocket(target); backend = connection;
       connection.on("message", data => {
+        if (stopped || backend !== connection) return;
         let message: Value; try { message = JSON.parse(data.toString()); } catch { connection.close(); return; }
         const pending = internal.get(String(message.id));
         if (pending && !message.method) {
@@ -81,12 +100,16 @@ export async function startEngineHost(options: {
           message.error ? pending.reject(new Error(message.error.message)) : pending.resolve(message.result);
         } else send(message);
       });
-      connection.on("close", failBackend); connection.on("error", () => {});
-      await new Promise<void>((resolve, reject) => { connection.once("open", resolve); connection.once("error", reject); });
+      connection.on("close", () => failBackend(connection)); connection.on("error", () => failBackend(connection));
+      await new Promise<void>((resolve, reject) => {
+        connection.once("open", resolve); connection.once("error", reject);
+        connection.once("close", () => reject(new Error("DSH connection closed before opening")));
+      });
       if (stopped) { connection.close(); throw new Error("Host connection closed"); } return connection;
     })().catch(error => { backendStarting = undefined; throw error; });
     const callLegacy = async (method: string, params: Value, clientId: string) => {
       const connection = await connectBackend(), id = `engine-host:${randomUUID()}`;
+      if (stopped || backend !== connection || connection.readyState !== WebSocket.OPEN) throw new Error("Host connection closed");
       return new Promise<any>((resolve, reject) => {
         const timer = setTimeout(() => { internal.delete(id); reject(new Error(`DSH ${method} timed out`)); }, 30_000);
         internal.set(id, { resolve, reject, timer }); connection.send(JSON.stringify({ jsonrpc: "2.0", id, method, params, [LOGICAL_CLIENT_FIELD]: clientId }));
@@ -103,6 +126,7 @@ export async function startEngineHost(options: {
       return data;
     };
     socket.on("message", data => {
+      if (stopped) return;
       void (async () => {
         let frame: Value;
         try { frame = JSON.parse(data.toString()); } catch { send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Invalid JSON" } }); return; }
@@ -137,7 +161,10 @@ export async function startEngineHost(options: {
               userAgent: "opencraft-pi-durable/1.3.0", platformFamily: "unix", platformOs: process.platform,
               capabilities: { extensions: { "opencraft/thread-lifecycle": { version: 1, fork: false, ephemeral: false, injectItems: false, rename: true, archive: true, unsubscribe: true }, "opencraft/host-capabilities": { version: 1 } } },
             };
-            const initialized = options.legacy ? await callLegacy(method, params, clientId).catch(() => piInitialization) : piInitialization;
+            // A configured legacy backend supplies this Host's negotiated
+            // capabilities. Failure must reject initialization, not silently
+            // manufacture a successful Pi handshake for a DSH conversation.
+            const initialized = options.legacy ? await callLegacy(method, params, clientId) : piInitialization;
             reply({ ...initialized, capabilities: { ...initialized.capabilities, extensions: { ...initialized.capabilities?.extensions,
               "opencraft/execution-engines": { version: 1, defaultEngine: options.defaultEngine, providers: options.providers.map(provider => ({ id: provider.id, threadPrefix: provider.threadPrefix, modelPrefix: provider.modelPrefix, extensions: provider.extensions })) },
               "opencraft/scoped-model-catalog": { version: 1 } } } }); return;
@@ -181,7 +208,11 @@ export async function startEngineHost(options: {
             reply(result); return;
           }
           if (params.threadId && options.providers.some(provider => provider.ownsModel(params.model ?? ""))) throw new Error("Create a new conversation to change execution engines");
-          if (frame.id === undefined) { (await connectBackend()).send(JSON.stringify(frame)); return; }
+          if (frame.id === undefined) {
+            const connection = await connectBackend();
+            if (!stopped && backend === connection && connection.readyState === WebSocket.OPEN) connection.send(JSON.stringify(frame));
+            return;
+          }
           reply(await callLegacy(method, params, clientId));
         } catch (error) {
           if (frame.id !== undefined) send({ jsonrpc: "2.0", id: frame.id, [LOGICAL_CLIENT_FIELD]: clientId,
@@ -189,12 +220,8 @@ export async function startEngineHost(options: {
         }
       })();
     });
-    socket.on("close", () => {
-      stopped = true; backend?.close(); subscriptions.forEach(stop => stop());
-      for (const state of clients.values()) for (const provider of options.providers) provider.disconnect(state.owner);
-      for (const pending of platform.values()) { clearTimeout(pending.timer); pending.reject(new Error("Platform tool owner disconnected")); } platform.clear();
-      failBackend();
-    });
+    socket.on("close", stop);
+    socket.on("error", () => { stop(); socket.terminate(); });
   });
   await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
   return {

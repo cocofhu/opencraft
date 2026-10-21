@@ -343,3 +343,25 @@ Engine registration is trusted server composition, not installable client code o
 an authorization grant. Actor admission and Host access stay at the existing ingress.
 The current registry composes the local DSH/Pi endpoint; Codex's existing endpoint
 continues independently. Enabling this registry does not migrate Codex into it.
+
+### Backend connection loss and client recovery
+
+The multi-engine Host treats each frontend connection and its DSH backend as one
+connection incarnation. Losing the backend revokes the frontend incarnation,
+settles pending RPC and platform-tool leases, and closes the frontend with a
+retryable service-restart close. Late target resolution and backend frames cannot
+allocate or publish into a retired incarnation. The Host does not silently swap
+backend sockets: DSH Thread attachments belong to the old physical connection.
+
+The existing client connection owner reconnects and negotiates capabilities;
+Thread recovery then issues Resume, restores its history boundary and reattaches
+notifications before marking that Thread authoritative. Host readiness and Thread
+authority remain separate. Recovery does not replay accepted execution requests.
+When DSH is configured, its initialization failure rejects the Host handshake
+instead of substituting Pi capabilities. Pi-only composition never allocates DSH.
+
+This contract uses the current Host-wide connection unit: a DSH connection loss
+also expires Pi client/tool leases on that frontend and briefly reconnects its
+Pi conversations. It does not close either engine owner or restart its process.
+Independent recovery of engines would require an explicit engine-generation
+protocol; it is not implied by reconnecting an internal socket.
