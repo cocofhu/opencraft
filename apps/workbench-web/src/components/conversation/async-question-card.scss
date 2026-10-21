@@ -51,7 +51,6 @@
   &__send { flex: 0 0 auto; }
   &__send .ui-button__label { display: inline-flex; align-items: center; gap: calc(var(--spacing) * 2); }
   &__send svg { width: 15px; height: 15px; }
-  &__send { @include controls.touch-input { min-height: 44px; } }
   &__status { margin: 0; }
   &[data-state="answered"], &[data-state="dismissed"] { border-color: transparent; background: var(--color-background-button-secondary); }
   &__result {
@@ -59,14 +58,14 @@
     > summary {
       display: flex;
       min-width: 0;
-      min-height: 28px;
+      min-height: max(28px, var(--size-control-hit-min));
       align-items: center;
       gap: calc(var(--spacing) * 2);
       list-style: none;
       cursor: pointer;
       &::-webkit-details-marker { display: none; }
       :root:not([data-touch-interaction]) &:focus-visible { @include controls.focus-indicator; }
-      @include controls.touch-input { min-height: 44px; flex-wrap: wrap; }
+      flex-wrap: wrap;
       > svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--color-status-success); }
     }
     > .thread-async-question__title { margin-top: calc(var(--spacing) * 3); }

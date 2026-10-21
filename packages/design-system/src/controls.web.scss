@@ -248,7 +248,6 @@
   border-radius: var(--radius-choice-control);
   background: transparent;
   cursor: pointer;
-  @include touch-input { min-height: max(44px, var(--size-control-hit-min)); }
   @include hover-capable {
     &:hover:not(:has(input:disabled)) { background: var(--color-background-navigation-hover); }
   }
