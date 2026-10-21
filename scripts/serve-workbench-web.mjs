@@ -386,7 +386,7 @@ export async function createWorkbenchWebServer({
   let lastImRejection = {key: "", at: 0};
   const imRejectionCodes = new Set([
     "authentication_required", "instance_access_denied", "actor_access_denied",
-    "actor_resource_interface_required", "human_authentication_required",
+    "actor_resource_interface_required", "human_authentication_required", "unsupported_host",
     "im_unavailable", "same_origin_required", "channel_denied", "missing",
     "too_large", "operation_failed", "invalid_input", "invalid_operation",
     "revision_conflict", "channel_missing", "invalid_route", "invalid_route_result",

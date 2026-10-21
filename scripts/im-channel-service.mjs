@@ -624,6 +624,7 @@ export class ImChannelService {
         "invalid_delivery",
         "invalid_platform",
         "invalid_operation",
+        "unsupported_host",
         "invalid_input",
       ]);
       const code = allowed.has(error?.message)
