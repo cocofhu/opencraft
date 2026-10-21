@@ -1017,7 +1017,7 @@ diff --git a/shell/renderer/electron_api_service_impl.cc b/shell/renderer/electr
 +                        ? NativeOperation::kCancel
 +                        : NativeOperation::kCompose;
 +  const auto edit = input->ApplyNativeImeForTesting(
-+      type, blink::WebString::FromUTF16(operation->text),
++      type, blink::WebString::FromUtf16(operation->text),
 +      operation->selection_start, operation->selection_end, expected, focus,
 +      composition);
 +  result->dispatched = edit.dispatched;

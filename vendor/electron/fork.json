@@ -13,7 +13,7 @@
     },
     {
       "path": "patches/electron/0002-target-bound-native-ime-poc.patch",
-      "sha256": "4409590771e8ac7ba6eeb9f41f53c91725cba64b464eeb3a355dec55439b7f5d"
+      "sha256": "619b46df7b1d5e4d06169346e387b424a5ce7882b6b43f61fbb3381c45ef129f"
     }
   ]
 }
