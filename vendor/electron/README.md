@@ -145,6 +145,16 @@ Native source/type checks do not prove the runtime probe. macOS native menus,
 physical devices, cross-origin child frames and a complete local IME adapter
 require separate verification.
 
+## Linux component build audio boundary
+
+`0004-component-audio-boundary.patch` repairs two upstream PulseAudio naming
+references from Chromium shared libraries back into the Electron executable.
+The media component reads the same `CHROME_DESKTOP` app ID directly; the existing
+Electron UI-thread child-launch hook sets the current application name before
+launching the audio service. Unset/empty names and the `.desktop` suffix retain
+their existing behavior. PulseAudio remains enabled and strict linker checks
+remain enabled. This does not change the native Copy or IME protocol.
+
 ## Verification and runtime adoption
 
 ```sh

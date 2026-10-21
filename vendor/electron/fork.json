@@ -18,6 +18,10 @@
     {
       "path": "patches/electron/0003-target-bound-native-clipboard.patch",
       "sha256": "a7a34ad717b52a9b46770d201191ec79b34451cd70d7f08928352058ffd47ca5"
+    },
+    {
+      "path": "patches/electron/0004-component-audio-boundary.patch",
+      "sha256": "1956b7eb09429e4363d618a92dcf3b5480ceb1751b7e3c3f5caacaba6f2c0219"
     }
   ]
 }
