@@ -31,6 +31,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   showKeyboard(id: BrowserPageId) {
     const p = this.require(id); if (!this.canShowKeyboard(id)) return;
     // Must stay synchronous inside the local button gesture for mobile WebViews.
+    // A canvas touch may already focus the manual receiver. Re-focus after
+    // changing policy rather than relying on focus() on an active element.
+    if (p.receiver.inputMode !== 'text' && document.activeElement === p.receiver) p.receiver.blur();
     p.receiver.inputMode = 'text'; p.receiver.setAttribute('virtualkeyboardpolicy', 'auto');
     p.receiver.focus({ preventScroll: true });
   }
