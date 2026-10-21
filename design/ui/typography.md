@@ -158,3 +158,11 @@ advances and open counters. Badge owners retain exact-count formatting,
 accessible labels, hit areas and responsive fitting; the font does not own counts.
 Verify a real consumer with the font loaded, long counts, font failure fallback,
 light/dark surfaces and touch input. Do not apply the numeric family to names.
+
+The typography generator emits two adapters: `_generated.web.scss` owns global
+CSS variables and forwards the role names; `_roles.web.scss` contains only the
+Sass role-name list. The mixin entry imports the latter so isolated component
+styles do not silently re-emit every global font variable. The application loads
+the global typography/tokens entry once. `generate:typography --check` checks both
+files, and the real Sass regression checks that a local numeric role emits no
+`:root` while global typography still supplies the required variables.
