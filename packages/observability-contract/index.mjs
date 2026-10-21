@@ -13,11 +13,11 @@ export const components = ['web', 'gateway', 'core', 'codex', 'dsh', 'pi', 'obse
 export const origins = ['interactive', 'automation', 'operator', 'probe', 'unknown'];
 const id = /^[a-zA-Z0-9_.:-]{1,128}$/u;
 const revision = /^[a-zA-Z0-9_.:+-]{1,128}$/u;
-const ids = ['eventId', 'producerId', 'operationId', 'executionId', 'recoveryId', 'requestId', 'incidentRef', 'pairId'];
+const ids = ['eventId', 'producerId', 'attemptId', 'operationId', 'executionId', 'recoveryId', 'requestId', 'incidentRef', 'pairId'];
 const enums = { kind: kinds, component: components, operationType: operations, outcome: outcomes,
   stage: stages, method: methods, originClass: origins, actorKind: ['human','agent','session','unknown'],
   measurementScope: ['navigation','in_page','rpc','domain','process','client'],
-  observedBy: ['self','gateway'],
+  observedBy: ['self','gateway'], identitySource: ['self','health','installed_artifact','installed_manifest','unknown'], producerMode: ['native','health_projection','client'],
   cache: ['cold','warm','unknown'], visibility: ['visible','hidden','unknown'], engine: ['codex','dsh','pi','none','unknown'] };
 /** Unknown keys are discarded; malformed known keys reject only this record. */
 export function sanitizeEvent(input, now = Date.now()) {
@@ -37,12 +37,12 @@ export function sanitizeEvent(input, now = Date.now()) {
     if (!Number.isFinite(input[key]) || input[key] < 0 || input[key] > Number.MAX_SAFE_INTEGER) return null;
     event[key] = input[key];
   }
-  for (const key of ['sourceRevision','buildId','workloadDigest']) if (input[key] !== undefined) {
+  for (const key of ['sourceRevision','buildId','version','workloadDigest']) if (input[key] !== undefined) {
     if (input[key] === null) { event[key] = null; continue; }
     if (typeof input[key] !== 'string' || !revision.test(input[key])) return null;
     event[key] = input[key];
   }
-  if (!Number.isFinite(input.at) || Math.abs(input.at - now) > limits.retentionMs) return null;
+  if (!Number.isFinite(input.at) || (input.at > now + 30000 || now - input.at > limits.retentionMs)) return null;
   event.at = input.at;
   event.originClass ??= 'unknown'; event.actorKind ??= 'unknown';
   return new TextEncoder().encode(JSON.stringify(event)).length <= limits.eventBytes ? event : null;

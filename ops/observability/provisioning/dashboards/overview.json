@@ -12,14 +12,14 @@
   },
   "tags": [
     "opencraft",
-    "observe-v1.1.0"
+    "observe-v1.1.1"
   ],
   "panels": [
     {
       "id": 1,
       "type": "timeseries",
       "title": "Platform and collection status",
-      "description": "platform.status; resource_sample; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "platform.status; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -49,7 +49,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "Operation latency (histogram estimate)",
-      "description": "operations.latency; histogram_approximation; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "operations.latency; histogram_approximation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 0,
@@ -79,7 +79,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Recovery episodes (exact domain aggregation)",
-      "description": "recovery.episodes; exact_domain_aggregation; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "recovery.episodes; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 8,
@@ -109,7 +109,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "Observed execution lifecycle (exact domain aggregation)",
-      "description": "execution.progress; exact_domain_aggregation; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "execution.progress; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 8,
@@ -139,7 +139,7 @@
       "id": 5,
       "type": "timeseries",
       "title": "Dependency attempts (counter estimate)",
-      "description": "dependencies.summary; histogram_approximation; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "dependencies.summary; histogram_approximation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 16,
@@ -169,7 +169,7 @@
       "id": 6,
       "type": "timeseries",
       "title": "Process resident memory",
-      "description": "resources.summary; resource_sample; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "resources.summary; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 16,
@@ -198,8 +198,8 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Observed verified humans (7d union)",
-      "description": "usage.activity; exact_domain_aggregation; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "title": "Observed interactive verified humans (7d union)",
+      "description": "usage.activity; exact_domain_aggregation; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 24,
@@ -229,7 +229,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "Component identity coverage",
-      "description": "components.versions; resource_sample; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "components.versions; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 12,
         "y": 24,
@@ -259,7 +259,7 @@
       "id": 9,
       "type": "timeseries",
       "title": "Collection losses",
-      "description": "data.coverage; resource_sample; observe-v1.1.0. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
+      "description": "data.coverage; resource_sample; observe-v1.1.1. Absence of samples does not establish health. Exact rolling domain gauges are evaluated at the selected timestamp; counters/histograms are estimates.",
       "gridPos": {
         "x": 0,
         "y": 32,
@@ -284,6 +284,29 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 90,
+      "type": "timeseries",
+      "title": "Process CPU cores (sampled)",
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "opencraft-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(opencraft_process_cpu_seconds_total[5m])",
+          "legendFormat": "{{component}}",
+          "range": true
+        }
+      ]
     },
     {
       "id": 100,

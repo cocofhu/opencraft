@@ -1,5 +1,4 @@
 import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
-nodeObserver("dsh");
 import { fileRequest } from "./host-resources.js";
 import { ConversationSchedules, ScheduleFault } from "@opencraft/host-schedules";
 import { CONVERSATION_SCHEDULES_EXTENSION } from "@opencraft/appserver-protocol";
@@ -125,6 +124,7 @@ export async function startLocalAgentHost(options: {
   readonly taskServerId?: string;
   readonly taskConversationCatalog?: (serverId: string, search: string, limit: number, cursor?: string | null) => Promise<unknown>;
 } = {}) {
+  nodeObserver("dsh");
   const storage = options.storage ?? openLocalAgentStorage({ dataDirectory: options.dataDirectory });
   const cleanup: (() => void | Promise<void>)[] = [() => storage.close()];
   let stopAccepting: (() => Promise<void>) | undefined;

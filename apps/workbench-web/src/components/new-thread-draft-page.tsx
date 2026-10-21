@@ -1,3 +1,4 @@
+import { useObservedReadiness } from '../runtime/observability-react';
 import { ThreadGoalSurface } from "./thread-goal-surface";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
@@ -486,6 +487,7 @@ export function NewThreadDraftPage({
 }: NewThreadDraftPageProps) {
   const intl = useIntl();
   const composerRef = useRef<OpenCraftComposerHandle>(null);
+  useObservedReadiness(draft.scopeId, connectionPhase === 'ready' && !personalDefaultsPending && !draftSubmissionOwnsNavigation(draft.phase));
   const portalContainer = useWorkbenchPresentationRoot();
 
   if (draft.submission !== null) {

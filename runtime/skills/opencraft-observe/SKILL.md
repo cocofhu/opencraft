@@ -18,12 +18,12 @@ opencraft-observe incident --ref "$OBS_INCIDENT" --out "$OBS_EVIDENCE" --json
 
 Choose new output paths; evidence files are never overwritten. Incident retrieval reads already captured evidence and cannot capture a browser, retry a turn or restart a component. Retain no_capture/partial/expired findings. A later capture must not be presented as part of the original snapshot.
 
-Distinguish whole navigation from an RPC, catalog first page from completion, cached display from authoritative recovery/configuration and submission readiness, recovery episodes from physical attempts, and execution domain facts from subscriptions or steer requests. Activity is observed verified-human union, not billing or token allocation. Histograms and resource samples are estimates, not exact operation records.
+Distinguish whole navigation from an RPC, catalog first page from completion, cached display from authoritative recovery/configuration and submission readiness, recovery episodes from physical attempts, and execution domain facts from subscriptions or steer requests. Activity is observed interactive verified-human union, not billing or token allocation. Histograms and resource samples are estimates, not exact operation records.
 
 Form a falsifiable hypothesis from this evidence. Follow the user's existing authorization and delivery workflow for any change, then verify actual running component revisions. Capture a separate after window with the same operation boundary, cache state, engine, workload, source classification and sampling:
 
 ```sh
-opencraft-observe compare --before "$OBS_BEFORE" --after "$OBS_AFTER" --json
+opencraft-observe compare --before "$OBS_BEFORE" --after "$OBS_AFTER" --operation thread_open --cache cold --json
 ```
 
 The comparison requires at least 20 paired synthetic operations or 100 uniform real operations. Missing coverage, different workloads or insufficient samples yield inconclusive; do not force a green result or claim causality. Include failures, unknowns, resource and behavior side effects with any observed improvement. Do not generate paid inference or replay user messages merely to increase sample counts.

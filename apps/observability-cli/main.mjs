@@ -7,13 +7,13 @@ import { fault, schemaVersion } from '../../packages/observability-contract/inde
 import { compare, issues } from '../../packages/observability-query/index.mjs';
 export async function run(argv,env=process.env) {
   const command=argv.shift();const options={};
-  for(let i=0;i<argv.length;i++){const key=argv[i];if(key==='--json'){options.json=true;continue;}if(!['--target','--window','--from','--to','--out','--ref','--snapshot','--finding','--before','--after'].includes(key)||options[key.slice(2)]!==undefined||!argv[i+1]||argv[i+1].startsWith('--'))throw fault('invalid_arguments');options[key.slice(2)]=argv[++i];}
+  for(let i=0;i<argv.length;i++){const key=argv[i];if(key==='--json'){options.json=true;continue;}if(!['--target','--window','--from','--to','--out','--ref','--snapshot','--finding','--before','--after','--operation','--cache','--engine'].includes(key)||options[key.slice(2)]!==undefined||!argv[i+1]||argv[i+1].startsWith('--'))throw fault('invalid_arguments');options[key.slice(2)]=argv[++i];}
   if(!['capabilities','status','snapshot','incident','issues','explain','compare'].includes(command))throw fault('invalid_command');
   const offline=async path=>{if(!path)throw fault('missing_file_argument');const info=await lstat(path);if(!info.isFile()||info.size>1048576)throw fault('invalid_snapshot');const value=JSON.parse(await readFile(path,'utf8'));if(value.schemaVersion!==schemaVersion)throw fault('incompatible_schema',409);return value;};
   let result;
   if(command==='issues')result={schemaVersion,findings:issues(await offline(options.snapshot))};
   else if(command==='explain'){const snapshot=await offline(options.snapshot);const finding=issues(snapshot).find(f=>f.id===options.finding);if(!finding)throw fault('unknown_finding');result={schemaVersion,snapshotId:snapshot.snapshotId,window:snapshot.window,finding,unchanged:true,evidenceExpiresAt:snapshot.evidenceExpiresAt,evidenceAvailability:Date.parse(snapshot.evidenceExpiresAt)<Date.now()?"expired":snapshot.captureStatus,evidenceRefs:snapshot.events?.filter(e=>e.incidentRef).map(e=>e.incidentRef)??[]};}
-  else if(command==='compare')result=compare(await offline(options.before),await offline(options.after));
+  else if(command==='compare')result=compare(await offline(options.before),await offline(options.after),{...(options.operation?{operationType:options.operation}:{}),...(options.cache?{cache:options.cache}:{}),...(options.engine?{engine:options.engine}:{})});
   else {
     const target=options.target??env.OPENCRAFT_OBSERVE_TARGET;
     if(!target?.startsWith('unix:///'))throw fault('target_required');
@@ -27,6 +27,7 @@ export async function run(argv,env=process.env) {
     }
     if(result.schemaVersion!==schemaVersion)throw fault('incompatible_schema',409);
   }
+  result={...result,clientIdentity:{component:'cli',sourceRevision:process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION??null,buildId:process.env.OPENCRAFT_OBSERVE_BUILD_ID??null}};
   if(options.out)await writeFile(resolve(options.out),JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
   return result;
 }

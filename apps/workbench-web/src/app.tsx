@@ -1,3 +1,4 @@
+import { useObservedReadiness } from './runtime/observability-react';
 import { executionEngineExtension } from "@opencraft/appserver-client";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
@@ -577,6 +578,8 @@ export function App({
     }
   }, [extensionProjection.activeView, extensionViewOpen, workbenchNavigation]);
   const activeConversationRestoreKey = conversationViewIdentity.viewId;
+  useObservedReadiness(draft === null ? activeConversationRestoreKey : null, snapshot.phase === 'ready' && activeThreadLease !== null
+    && snapshot.conversation?.authoritative === true && runtime.resources.host.canRequest?.('turn/start') === true);
   useEffect(() => () => {
     pendingLatestTurnPlacementRef.current = null;
     conversationScrollApiRef.current?.releaseLatestTurnSubmitPlacementCapture();

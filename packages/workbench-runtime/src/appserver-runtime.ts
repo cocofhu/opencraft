@@ -535,7 +535,9 @@ export function createAppServerWorkbenchRuntime(
   let connectionRevision = 0;
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
     reconnect: () => runtime.reconnect(), delaysMs: config.reconnectDelaysMs,
-    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent, changed: () => publish(),
+    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent ? event => config.onRecoveryEvent!({
+      ...event, generation: client?.connectionGeneration ?? 0, eventAtMs: clock.now?.() ?? Date.now(), ...(currentTransport?.status.attemptId ? {attemptId: currentTransport.status.attemptId} : {}),
+    }) : undefined, changed: () => publish(),
   });
   let automaticReconnectBlock: TransportStatus | null = null;
   // Presentation only: initialization cleanup must not erase the failed attempt ID.

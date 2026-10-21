@@ -1,6 +1,9 @@
 import { createServer } from 'node:http';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
+import { ObserveStore, observationSchemaV1 } from '../apps/observability-service/store.ts';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -59,4 +62,21 @@ test('unknown component identity clears prior identity; unresponsive snapshot sh
     assert(performance.now()-started<4500);assert.equal(snapshot.coverage,'partial');
     assert(Object.values(snapshot.measurements).every(value=>value.availability==='backend_unreachable'));
   }finally{stalled.closeAllConnections();await new Promise(resolve=>stalled.close(resolve));await service.close();await rm(directory,{recursive:true,force:true});}
+});
+
+test('v1 evidence upgrades without rewriting migration history and rejects checksum tampering',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-observe-upgrade-')),path=join(directory,'observe.sqlite');
+  try{
+    const db=new DatabaseSync(path);
+    db.exec(observationSchemaV1+"CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,name TEXT NOT NULL,checksum TEXT NOT NULL,applied_at INTEGER NOT NULL) STRICT");
+    db.prepare('INSERT INTO schema_migrations VALUES(1,?,?,?)').run('bounded-derived-observations',createHash('sha256').update(observationSchemaV1).digest('hex'),now);
+    const original=event({actorKind:'human',originClass:'interactive',recoveryId:'existing',kind:'recovery'});
+    db.prepare('INSERT INTO events(event_id,at,received,kind,component,actor,body) VALUES(?,?,?,?,?,?,?)').run(original.eventId,now,now,'recovery','web','verified',JSON.stringify(original));db.close();
+    const store=new ObserveStore(path);assert.equal(store.outcome.status,'migrated');assert.equal(store.outcome.appliedVersion,2);
+    assert.equal(store.events(now-1000,now+1000,Date.now()).find(row=>row.eventId===original.eventId).recoveryId,'existing');
+    assert.equal(store.activity(now-1000,now+1000).humans,1);assert.equal(store.recoveries(now-1000,now+1000).value,1);
+    store.db.prepare("UPDATE schema_migrations SET checksum='tampered' WHERE version=1").run();store.close();
+    assert.throws(()=>new ObserveStore(path));
+    const inspect=new DatabaseSync(path,{readOnly:true});assert.equal(inspect.prepare('SELECT count(*) AS n FROM events').get().n,1);inspect.close();
+  }finally{await rm(directory,{recursive:true,force:true});}
 });

@@ -1,5 +1,5 @@
 import { request as httpRequest } from 'node:http';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { socketRequest, nodeObserver } from '../packages/observability-contract/node.mjs';
 import { sanitizeEvent } from '../packages/observability-contract/index.mjs';
@@ -13,15 +13,34 @@ export async function createObservabilityIngress(path,{access,actors,executionHe
   const observer=nodeObserver('gateway',{socketPath:config.socketPath});
   const pseudonym=value=>createHmac('sha256',config.pseudonymKey).update(value).digest('hex');
   let closed=false,healthBusy=false;
+  async function processSample(pid){
+    if(!Number.isSafeInteger(pid)||pid<1)return null;
+    try{
+      const [status,stat]=await Promise.all([readFile(`/proc/${pid}/status`,'utf8'),readFile(`/proc/${pid}/stat`,'utf8')]);
+      const fields=stat.slice(stat.lastIndexOf(')')+2).trim().split(/\s+/u),rss=/^VmRSS:\s+(\d+) kB$/mu.exec(status);
+      const ticks=config.clockTicksPerSecond;
+      return {processStart:fields[19],...(rss?{rssBytes:Number(rss[1])*1024}:{}),
+        ...(Number.isFinite(ticks)&&ticks>0?{cpuSeconds:(Number(fields[11])+Number(fields[12]))/ticks}:{})};
+    }catch{return null;}
+  }
   async function observeDependencies(){
     if(closed||healthBusy||!executionHealth)return;healthBusy=true;
     try{
       const health=await Promise.race([executionHealth(),new Promise((_,reject)=>{const timer=setTimeout(()=>reject(Error()),5500);timer.unref();})]);
       for(const component of ['core','dsh']){
         const identity=health?.[component];if(!Number.isSafeInteger(identity?.pid)||identity.pid<1)continue;
+        const sample=await processSample(identity.pid);
+        let binding=config.componentIdentities?.[component];
+        if(binding?.pid!==identity.pid||binding?.processStart!==sample?.processStart)binding=null;
         const version=value=>typeof value==='string'&&/^[a-zA-Z0-9_.:+-]{1,128}$/u.test(value)?value:null;
-        observer.emit({kind:'producer',component,producerId:pseudonym(JSON.stringify([component,identity.pid])),observedBy:'gateway',
-          sourceRevision:version(identity.sourceRevision),buildId:version(identity.buildId),originClass:'operator'});
+        observer.emit({kind:'resource',component,...(sample?.rssBytes!==undefined?{rssBytes:sample.rssBytes}:{}),...(sample?.cpuSeconds!==undefined?{cpuSeconds:sample.cpuSeconds}:{}),producerId:pseudonym(JSON.stringify([component,identity.pid])),observedBy:'gateway',producerMode:'health_projection',identitySource:identity.sourceRevision?'health':binding?.identitySource??'unknown',
+          sourceRevision:version(identity.sourceRevision??binding?.sourceRevision),buildId:version(identity.buildId??binding?.buildId),version:version(identity.version??binding?.version),originClass:'operator'});
+        if(component==='core'&&Number.isSafeInteger(identity.codexPid)){
+          const native=await processSample(identity.codexPid);
+          if(native)observer.emit({kind:'resource',component:'codex',producerId:pseudonym(JSON.stringify(['codex',identity.codexPid,native.processStart])),
+            observedBy:'gateway',producerMode:'health_projection',identitySource:'unknown',sourceRevision:null,buildId:null,
+            ...(native.rssBytes!==undefined?{rssBytes:native.rssBytes}:{}),...(native.cpuSeconds!==undefined?{cpuSeconds:native.cpuSeconds}:{}),originClass:'operator'});
+        }
       }
     }catch{/* Independent dependency failure remains missing/stale in coverage. */}finally{healthBusy=false;}
   }
@@ -46,13 +65,15 @@ export async function createObservabilityIngress(path,{access,actors,executionHe
       let input;try{input=JSON.parse(Buffer.concat(chunks));}catch{send(res,400,{error:{code:'invalid_json'}});return true;}
       if(!Array.isArray(input.events)||input.events.length>32){send(res,400,{error:{code:'invalid_batch'}});return true;}
       const actor=actors?.findHuman(principal),verifiedActor=actor?pseudonym(actor.id):null;
+      const probeHeader=req.headers['x-opencraft-observe-source'];
+      const probe=typeof config.probeKey==='string'&&/^[a-f0-9]{64}$/u.test(config.probeKey)&&typeof probeHeader==='string'&&/^[a-f0-9]{64}$/u.test(probeHeader)&&timingSafeEqual(Buffer.from(probeHeader),Buffer.from(config.probeKey));
       const events=input.events.map(raw=>{
         if(!['operation','rpc','recovery','client_signal','producer'].includes(raw?.kind))return null;
-        const event=sanitizeEvent({...raw,component:'web',observedBy:'self',actorKind:actor?'human':'unknown',originClass:'interactive'});
+        const event=sanitizeEvent({...raw,component:'web',observedBy:'self',identitySource:'self',producerMode:'client',actorKind:actor?'human':'unknown',originClass:probe?'probe':'interactive'});
         if(!event)return null;
         event.producerId=pseudonym(JSON.stringify([principal.provider,principal.subject,event.producerId]));
         event.eventId=pseudonym(JSON.stringify([event.producerId,event.eventId]));
-        for(const key of ['operationId','executionId','recoveryId','requestId','incidentRef','pairId'])if(event[key])event[key]=pseudonym(JSON.stringify([event.producerId,event[key]]));
+        for(const key of ['operationId','executionId','recoveryId','attemptId','requestId','incidentRef','pairId'])if(event[key])event[key]=pseudonym(JSON.stringify([event.producerId,event[key]]));
         return event;
       });
       ingressActive++;try{const result=await socketRequest(config.socketPath,'/events',{events,verifiedActor});send(res,200,result);}catch{send(res,503,{error:{code:'observation_unavailable',retryable:true}});}finally{ingressActive--;}return true;

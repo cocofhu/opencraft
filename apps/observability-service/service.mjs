@@ -35,23 +35,27 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     catch{exportDropped+=events.length;}finally{exporting=false;}
   }
   const exportTimer=setInterval(()=>void exportLogs(),1000);exportTimer.unref();
+  let backendBusy=false;
   let backendHealth={prometheus:'unknown',loki:'unknown',collector:'unknown',grafana:'unknown'};
   async function checkBackends() {
+    if(backendBusy)return;backendBusy=true;
+    try{
     const base=new URL(collector),health=new URL(collector);health.port=String(Number(base.port)+4);health.pathname='/';
     const jobs=[['prometheus',new URL('/-/ready',prometheus).href],['loki',new URL('/ready',`http://127.0.0.1:${Number(base.port)-1}`).href],['collector',health.href]];
     await Promise.all(jobs.map(async([name,url])=>{try{backendHealth[name]=(await fetch(url,{signal:AbortSignal.timeout(3500)})).ok?'available':'unavailable';}catch{backendHealth[name]='unavailable';}}));
     backendHealth.grafana=await new Promise(resolve=>{const req=httpRequest({socketPath:resolveGrafanaSocket(),path:'/__opencraft_observe/grafana/api/health'},res=>{res.resume();resolve(res.statusCode===200?'available':'unavailable');});req.setTimeout(3500,()=>req.destroy());req.on('error',()=>resolve('unavailable'));req.end();});
+    }finally{backendBusy=false;}
   }
   const resolveGrafanaSocket=()=>resolve(directory,'../grafana/grafana.sock');
   function coverage() {
     const all = store.producers();
     const producers=essential.map(component=>{const rows=all.filter(p=>p.component===component);const latest=rows.sort((a,b)=>b.received-a.received)[0];
-      return {component,availability:!latest?'missing':now()-latest.received>limits.freshnessMs?'stale':'available',dataThrough:latest?new Date(latest.received).toISOString():null};});
+      return {component,availability:!latest?'missing':now()-latest.received>limits.freshnessMs?component==='web'?'no_recent_capture':'stale':'available',dataThrough:latest?new Date(latest.received).toISOString():null};});
     return {status:producers.every(p=>p.availability==='available')&&Object.values(backendHealth).every(v=>v==='available')?'ok':'unknown',coverage:producers.every(p=>p.availability==='available')&&Object.values(backendHealth).every(v=>v==='available')?'complete':'partial',producers,backends:{...backendHealth}};
   }
   function envelope(window) { return {schemaVersion,snapshotId:randomUUID(),deploymentId,queryDefinitionRevision,metricSchemaVersion:schemaVersion,
     window:{from:new Date(window.from).toISOString(),to:new Date(window.to).toISOString(),capturedAt:new Date(now()).toISOString(),dataThrough:new Date(now()).toISOString()},
-    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',observedAt:new Date(p.received).toISOString()})),
+    ...coverage(),components:store.producers().map(p=>({component:p.component,producerId:p.producer,sourceRevision:p.identity.sourceRevision??null,buildId:p.identity.buildId??null,observedBy:p.identity.observedBy??'self',identitySource:p.identity.identitySource??'unknown',producerMode:p.identity.producerMode??'unknown',version:p.identity.version??null,observedAt:new Date(p.received).toISOString()})),
     sampling:{operation:1,diagnostic:1},loss:{accepted:store.accepted,rejected:store.rejected,dropped:store.dropped,exportDropped,unobservableLoss:'unknown'},
     correlationGaps:[],evidenceExpiresAt:new Date(window.from+limits.retentionMs).toISOString() }; }
   async function query(name,input={},deadline=Date.now()+4200) {
@@ -70,6 +74,12 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     const rows=store.events(window.from,window.to,now());
     result.truncated=rows.length>limits.rows; result.events=rows.slice(0,limits.rows);
     result.captureStatus=result.events.length?'captured':'no_capture';
+    const operations=new Map();
+    for(const event of result.events)if(event.kind==='operation'&&event.operationId){
+      const previous=operations.get(event.operationId);
+      if(!previous||previous.outcome==='started'||previous.outcome==='progress')operations.set(event.operationId,event);
+    }
+    result.unfinishedOperations=[...operations.values()].filter(event=>['started','progress'].includes(event.outcome)).map(event=>({operationId:event.operationId,operationType:event.operationType,outcome:'unfinished',lastObservedAt:new Date(event.at).toISOString(),clientVisibility:event.visibility??'unknown',interpretation:'No terminal capture; does not establish a client freeze or business failure.'}));
     if(result.truncated){result.coverage='partial';result.captureStatus='partial';}
     result.observedDomainsAtCapture={executions:store.executions(window.from,window.to),verifiedHumanUnion:store.activity(window.from,window.to).humans};
     result.measurements={};
@@ -88,11 +98,13 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
       const p=store.producers().filter(p=>p.component===component).sort((a,b)=>b.received-a.received)[0];
       if(p){lines.push(`opencraft_producer_age_seconds{component="${component}"} ${Math.max(0,nowMs-p.received)/1000}`,
         `opencraft_component_identity_known{component="${component}"} ${p.identity.sourceRevision?1:0}`);
+        if(p.identity.cpuSeconds!==undefined)lines.push(`opencraft_process_cpu_seconds_total{component="${component}"} ${p.identity.cpuSeconds}`);
+        if(p.identity.heapBytes!==undefined)lines.push(`opencraft_process_heap_bytes{component="${component}"} ${p.identity.heapBytes}`);
         if(p.identity.rssBytes!==undefined)lines.push(`opencraft_process_rss_bytes{component="${component}"} ${p.identity.rssBytes}`);}
     }
     lines.push(`opencraft_active_humans_7d ${store.activity(nowMs-limits.retentionMs,nowMs).humans}`);
     for(const row of store.executions(nowMs-86400000,nowMs))lines.push(`opencraft_executions{outcome="${row.outcome}"} ${row.count}`);
-    const recoveries=store.db.prepare("SELECT count(DISTINCT json_extract(body,'$.recoveryId')) AS value FROM events WHERE kind='recovery' AND at>=?").get(nowMs-86400000);
+    const recoveries=store.recoveries(nowMs-86400000,nowMs);
     lines.push(`opencraft_recovery_episodes ${recoveries.value}`);
     // Finite dimensions only. Counts persist across service restarts in the derived store.
     for(const row of store.db.prepare('SELECT name,dimension,value FROM metrics').all()) {

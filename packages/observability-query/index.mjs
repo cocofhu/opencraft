@@ -1,5 +1,5 @@
 import { fault } from '../observability-contract/index.mjs';
-export const queryDefinitionRevision = 'observe-v1.1.0';
+export const queryDefinitionRevision = 'observe-v1.1.1';
 const latency = 'histogram_quantile(0.95, sum by (le, operation) (rate(opencraft_operation_duration_seconds_bucket[5m])))';
 /** This is the only expression registry, shared by Observe and generated provisioning. */
 export const definitions = Object.freeze({
@@ -9,7 +9,7 @@ export const definitions = Object.freeze({
   'execution.progress': { title: 'Observed execution lifecycle (exact domain aggregation)', kind: 'exact_domain_aggregation', promql: 'opencraft_executions', unit: 'executions', windowSemantics:'rolling_24h_at_evaluation' },
   'dependencies.summary': { title: 'Dependency attempts (counter estimate)', kind: 'histogram_approximation', promql: 'sum by (method, outcome) (increase(opencraft_rpc_total[5m]))', unit: 'attempts' },
   'resources.summary': { title: 'Process resident memory', kind: 'resource_sample', promql: 'opencraft_process_rss_bytes', unit: 'bytes' },
-  'usage.activity': { title: 'Observed verified humans (7d union)', kind: 'exact_domain_aggregation', promql: 'opencraft_active_humans_7d', unit: 'humans', windowSemantics:'rolling_7d_at_evaluation' },
+  'usage.activity': { title: 'Observed interactive verified humans (7d union)', kind: 'exact_domain_aggregation', promql: 'opencraft_active_humans_7d', unit: 'humans', windowSemantics:'rolling_7d_at_evaluation' },
   'components.versions': { title: 'Component identity coverage', kind: 'resource_sample', promql: 'opencraft_component_identity_known', unit: 'boolean' },
   'data.coverage': { title: 'Collection losses', kind: 'resource_sample', promql: 'opencraft_telemetry_losses_total', unit: 'events' },
   'incident.read': { title: 'Captured incident evidence', kind: 'event_sample', unit: 'events' },
@@ -23,12 +23,17 @@ export function issues(snapshot) {
   if (failures.length) result.push({ id: 'observed-failures', severity: 'warning', evidenceKind: 'observed', count: failures.length, hypothesis: 'Inspect the recorded operation and dependency stages; association does not establish cause.' });
   return result;
 }
-export function compare(before, after) {
+export function compare(before, after, dimensions = {}) {
+  const allowed={operationType:['navigation','thread_open','catalog_first','catalog_complete','configuration_confirmed','submit_ready','preference_save','recovery'],cache:['cold','warm'],engine:['codex','dsh','pi','none']};
+  if(Object.entries(dimensions).some(([key,value])=>!allowed[key]?.includes(value)))throw fault('invalid_comparison_dimensions');
+  const matches=e=>Object.entries(dimensions).every(([key,value])=>e[key]===value);
   const reasons = [];
   for (const key of ['deploymentId','queryDefinitionRevision','metricSchemaVersion']) if (before[key] !== after[key]) reasons.push(`different_${key}`);
   if (before.coverage !== 'complete' || after.coverage !== 'complete' || before.loss?.dropped || after.loss?.dropped) reasons.push('incomplete_capture');
-  const select = s => (s.events ?? []).filter(e => e.kind === 'operation' && e.outcome === 'ok' && Number.isFinite(e.durationMs));
-  const left = select(before), right = select(after);
+  const select = s => (s.events ?? []).filter(e => e.kind === 'operation' && matches(e) && e.outcome === 'ok' && Number.isFinite(e.durationMs));
+  let left = select(before), right = select(after);
+  if([...left,...right].some(e=>!e.workloadDigest||!['cold','warm'].includes(e.cache)||!['codex','dsh','pi','none'].includes(e.engine)||!e.measurementScope))reasons.push('missing_workload_metadata');
+  if(left.some(e=>e.eventId&&right.some(r=>r.eventId===e.eventId)))reasons.push('reused_samples');
   const group = e => JSON.stringify([e.operationType,e.measurementScope,e.cache,e.engine,e.originClass,e.workloadDigest]);
   const groups = rows => [...new Set(rows.map(group))].sort();
   if (JSON.stringify(groups(left)) !== JSON.stringify(groups(right))) reasons.push('incompatible_workload');
@@ -37,12 +42,15 @@ export function compare(before, after) {
   if (real) { if (left.length < 100 || right.length < 100) reasons.push('insufficient_real_samples'); }
   else {
     const paired = left.filter(e => e.pairId && right.some(r => r.pairId === e.pairId));
-    if (paired.length < 20 || new Set(paired.map(e => e.pairId)).size < 20) reasons.push('insufficient_paired_samples');
+    const pairs=new Set(paired.map(e=>e.pairId));
+    if (pairs.size < 20) reasons.push('insufficient_paired_samples');
+    if(paired.length!==pairs.size||right.filter(e=>pairs.has(e.pairId)).length!==pairs.size)reasons.push('ambiguous_pair_samples');
+    left=left.filter(e=>pairs.has(e.pairId));right=right.filter(e=>pairs.has(e.pairId));
   }
   const summary = rows => ({ count: rows.length, medianMs: percentile(rows.map(e => e.durationMs),.5), sampleP95Ms: percentile(rows.map(e => e.durationMs),.95), failures: rows.filter(e => e.outcome === 'failed').length });
   const a = summary(left), b = summary(right);
-  const direction = a.medianMs && b.medianMs < a.medianMs && b.sampleP95Ms < a.sampleP95Ms ? 'improved' : b.medianMs > a.medianMs && b.sampleP95Ms > a.sampleP95Ms ? 'regressed' : 'inconclusive';
-  return { schemaVersion: 1, status: reasons.length ? 'inconclusive' : direction, reasons, before: a, after: b,
+  const direction = a.medianMs !== null && b.medianMs !== null && b.medianMs < a.medianMs && b.sampleP95Ms < a.sampleP95Ms ? 'improved' : b.medianMs > a.medianMs && b.sampleP95Ms > a.sampleP95Ms ? 'regressed' : 'inconclusive';
+  return { schemaVersion: 1, dimensions, components:{before:before.components??[],after:after.components??[]}, status: reasons.length ? 'inconclusive' : direction, reasons, before: a, after: b,
     evidenceKind: 'observed_association', causal: false, sideEffects: { beforeLoss: before.loss, afterLoss: after.loss,
       beforeFailures: (before.events??[]).filter(e=>['failed','timeout'].includes(e.outcome)).length,
       afterFailures: (after.events??[]).filter(e=>['failed','timeout'].includes(e.outcome)).length } };

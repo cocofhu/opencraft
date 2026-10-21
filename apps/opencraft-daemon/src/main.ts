@@ -1,5 +1,4 @@
 import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
-nodeObserver("core");
 import { unlink } from "node:fs/promises";
 import { connect } from "node:net";
 
@@ -58,6 +57,7 @@ export async function startOpenCraftDaemon(options: {
   /** Deployment display name; defaults to the OS computer name. */
   readonly machineName?: string;
 }) {
+  nodeObserver("core");
   const machineIdentity = await readDaemonMachineIdentity(options.dataDirectory, options.machineName);
   process.chdir(options.runtimeDirectory);
   const releaseStorageOwner = await acquireLocalAgentStorageOwner(options.dataDirectory);

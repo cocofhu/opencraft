@@ -296,3 +296,31 @@ SQLite 使用项目既有持久化、事务、升级与备份契约。变更、�
 - [启动/性能基线与整页导航范围](startup-performance.md)。
 - [持久化生命周期](sqlite-lifecycle.md)、[Skill 发现协议](appserver-profile-skills-protocol-v1.md)。
 - [验收矩阵与证据格式](observability-acceptance.md)。
+
+### Implementation measurement notes
+
+The `navigation` operation ends at the existing startup-finished event and uses
+the browser navigation time origin. It is distinct from `submit_ready`, whose
+existing Host/history/capability or draft-configuration predicates are observed
+without changing admission. Unsettled captured operation starts are reported as
+`unfinished`, never as proof of a frozen client. An idle browser without new
+events has no recent capture; the client does not add a heartbeat upload timer.
+
+Independent legacy processes can be projected by Gateway health. Their versions
+are null unless self-reported or bound to the actual PID/start and installed
+artifact/manifest by the trusted operator profile. `observedBy`, `producerMode`
+and `identitySource` disclose this provenance. Imported modules do not start
+component producers: initialization belongs to the actual process owner.
+
+A private per-deployment probe key can classify controlled browser measurements
+as `probe` at the authenticated ingress. It does not grant authentication or
+query access, and is never embedded in the page. Verified-human activity counts
+only interactive-origin observations; probes retain their own origin and cannot
+increase the real-human union. The query registry revision identifies this
+semantics. Hourly actor rollups plus exact boundary-hour samples avoid full raw
+retention scans without changing the selected-window union.
+
+Comparison can select an operation/cache/engine from immutable evidence; it
+rejects missing workload dimensions, overlapping sample IDs and ambiguous pairs.
+Selection does not rewrite either capture. CLI results include the installed
+CLI's own build/source identity separately from server components.
