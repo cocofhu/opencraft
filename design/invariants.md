@@ -927,6 +927,10 @@ page-scroll events and bounded late reconciliation invalidate the same owner.
 No focus/selection/draft reset, forced document scrolling or per-feature offset.
 Browser-native viewport/resize checks and explicit readback counterexamples are
 separate from physical iOS/WeChat soft-keyboard acceptance.
+Composer primary buttons preserve editor focus by cancelling mouse down only.
+Cancelling touch pointerdown can suppress WebKit click synthesis, so it cannot
+be used as a focus-retention mechanism for Send or Stop. Activation stays on click
+for pointer, keyboard and assistive input; do not submit on touchstart.
 
 New-thread pages center a content-sized heading/Composer group. Flexible spare
 space and optional heading space contract before the Composer; the action region
