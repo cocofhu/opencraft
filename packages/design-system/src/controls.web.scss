@@ -235,3 +235,50 @@
   .ui-discrete-slider__range { background: Highlight; }
   .ui-discrete-slider__thumb { background: Canvas; border: 1px solid CanvasText; }
 }
+
+// Single-choice rows retain native radio semantics and one input-adaptive target.
+@mixin choice-control {
+  @include typography.role(body, primary);
+  display: flex;
+  min-height: max(var(--height-choice-row), var(--size-control-hit-min));
+  align-items: center;
+  gap: calc(var(--spacing) * 2.5);
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-choice-control);
+  background: transparent;
+  cursor: pointer;
+  @include touch-input { min-height: max(44px, var(--size-control-hit-min)); }
+  @include hover-capable {
+    &:hover:not(:has(input:disabled)) { background: var(--color-background-navigation-hover); }
+  }
+  &:has(input:checked) {
+    background: var(--color-background-choice-selected);
+    border-color: var(--color-border-choice-selected);
+  }
+  :root:not([data-touch-interaction]) &:has(input:focus-visible) { @include focus-indicator; }
+  &:has(input:disabled) { cursor: default; }
+  > input[type="radio"] {
+    appearance: none;
+    display: grid;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    place-content: center;
+    margin: 0;
+    border: 1px solid var(--color-text-tertiary);
+    border-radius: var(--radius-full);
+    background: transparent;
+    outline: none;
+    &:checked {
+      border-color: var(--opencraft-base-accent);
+      background: var(--opencraft-base-accent);
+      &::after { content: ""; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--color-text-on-accent); }
+    }
+  }
+  > span { min-width: 0; overflow-wrap: anywhere; }
+  @media (forced-colors: active) {
+    &:has(input:checked) { border-color: Highlight; }
+    > input[type="radio"] { appearance: auto; &:checked::after { display: none; } }
+  }
+}

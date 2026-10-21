@@ -649,5 +649,20 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "chat.question.pending": "需要你确认",
+  "chat.question.other": "自定义回答",
+  "chat.question.answer": "你的回答",
+  "chat.question.placeholder": "输入你的回答…",
+  "chat.question.hint": "选择后发送",
+  "chat.question.send": "发送回答",
+  "chat.question.view": "查看问题",
+  "chat.question.answered": "已回答",
+  "chat.question.dismissed": "已被后续消息替代",
+  "chat.question.unconfirmed": "尚未确认送达",
+  "chat.question.sending": "正在发送…",
+  "chat.question.queued": "回答已加入队列",
+  "chat.question.offline": "连接后即可回答",
+  "chat.question.failure": "回答未发送，选择已保留，请重试。",
+  "chat.question.retry": "选择已保留，请重试"
 }

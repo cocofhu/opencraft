@@ -1,10 +1,16 @@
 import type { AsyncQuestion } from "@opencraft/chat-core";
+import { useIntl } from "@opencraft/i18n/react";
+import { ArrowRight, Check, ChevronDown, CircleHelp } from "lucide-react";
 import * as React from "react";
 
+import { useOptionalAsyncNotices } from "../async-notices-context";
 import { AsyncQuestionContext } from "../conversation-renderers/render-contexts";
+import { Button } from "../ui/button";
 
 export function AsyncQuestionCard({ question, title }: { readonly question: AsyncQuestion; readonly title: React.ReactNode }) {
   const context = React.useContext(AsyncQuestionContext);
+  const intl = useIntl();
+  const notices = useOptionalAsyncNotices();
   const titleId = React.useId();
   const state = context.states.get(question.id) ?? "pending";
   const queued = context.queuedIds.has(question.id);
@@ -18,70 +24,95 @@ export function AsyncQuestionCard({ question, title }: { readonly question: Asyn
   const submitAnswer = () => {
     if (canAnswer && selected.length > 0 && context.answer !== null) void context.answer(question, selected);
   };
-  const status = state === "answered" ? "Answered"
-    : state === "dismissed" ? "Superseded by a later message"
-      : state === "unconfirmed" ? "Delivery unconfirmed"
-        : state === "sending" || submitting ? "Sending answer…"
-          : queued ? "Answer in follow-up queue" : context.answer === null ? "Connect to answer" : null;
+  const error = context.errors[question.id];
+  const failure = intl.formatMessage({ id: "chat.question.failure", defaultMessage: "Answer not sent. Your selection is saved; please retry." });
+  React.useEffect(() => {
+    if (error) notices?.error({ key: `question:${question.id}`, message: failure });
+  }, [error, failure, notices, question.id]);
+  const sending = state === "sending" || submitting;
+  const status = state === "answered" ? intl.formatMessage({ id: "chat.question.answered", defaultMessage: "Answered" })
+    : state === "dismissed" ? intl.formatMessage({ id: "chat.question.dismissed", defaultMessage: "Superseded by a later message" })
+      : state === "unconfirmed" ? intl.formatMessage({ id: "chat.question.unconfirmed", defaultMessage: "Delivery unconfirmed" })
+        : sending ? intl.formatMessage({ id: "chat.question.sending", defaultMessage: "Sending answer…" })
+          : queued ? intl.formatMessage({ id: "chat.question.queued", defaultMessage: "Answer in follow-up queue" })
+            : context.answer === null ? intl.formatMessage({ id: "chat.question.offline", defaultMessage: "Connect to answer" }) : null;
+  const resolved = state === "answered" || state === "dismissed";
+  const answer = context.answers.get(question.id);
+  const viewQuestion = intl.formatMessage({ id: "chat.question.view", defaultMessage: "View question" });
   return (
-    <section className="thread-async-question" data-state={status === null ? "pending" : state}>
-      <fieldset aria-labelledby={titleId} disabled={!canAnswer}>
-        <div className="thread-async-question__title" id={titleId}>{title}</div>
-        {state === "pending" && !queued ? (
-          <>
-            {question.options.length > 0 ? (
-              <div className="thread-async-question__options" role="group" aria-label="Suggested answers">
-                {question.options.map((option, index) => (
-                  <label key={`${index}:${option}`}>
+    <section className="thread-async-question" data-state={state !== "pending" ? state : queued ? "queued" : sending ? "sending" : state}>
+      {resolved ? (
+        <details className="thread-async-question__result">
+          <summary>
+            {state === "answered" ? <Check aria-hidden="true" /> : null}
+            <span className="thread-async-question__status">{status}</span>
+            {state === "answered" && answer !== undefined ? <span className="thread-async-question__answer">{answer}</span> : null}
+            <span className="thread-async-question__disclosure">{viewQuestion}<ChevronDown aria-hidden="true" /></span>
+          </summary>
+          <div className="thread-async-question__title">{title}</div>
+        </details>
+      ) : (
+        <fieldset aria-labelledby={titleId} disabled={!canAnswer}>
+          <div className="thread-async-question__eyebrow"><CircleHelp aria-hidden="true" />{intl.formatMessage({ id: "chat.question.pending", defaultMessage: "Your input needed" })}</div>
+          <div className="thread-async-question__title" id={titleId}>{title}</div>
+          {state === "pending" && !queued ? (
+            <>
+              {question.options.length > 0 ? (
+                <div className="thread-async-question__options" role="radiogroup" aria-labelledby={titleId}>
+                  {question.options.map((option, index) => (
+                    <label key={`${index}:${option}`}>
+                      <input
+                        checked={draft.selectedIndex === index}
+                        name={`async-question:${question.id}`}
+                        onChange={() => context.updateDraft(question.id, { ...draft, selectedIndex: index })}
+                        type="radio"
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                  <label>
                     <input
-                      checked={draft.selectedIndex === index}
+                      checked={draft.selectedIndex === null}
                       name={`async-question:${question.id}`}
-                      onChange={() => context.updateDraft(question.id, { ...draft, selectedIndex: index })}
+                      onChange={() => context.updateDraft(question.id, { ...draft, selectedIndex: null })}
                       type="radio"
                     />
-                    <span>{option}</span>
+                    <span>{intl.formatMessage({ id: "chat.question.other", defaultMessage: "Custom answer" })}</span>
                   </label>
-                ))}
-                <label>
-                  <input
-                    checked={draft.selectedIndex === null}
-                    name={`async-question:${question.id}`}
-                    onChange={() => context.updateDraft(question.id, { ...draft, selectedIndex: null })}
-                    type="radio"
-                  />
-                  <span>Other</span>
-                </label>
+                </div>
+              ) : null}
+              {draft.selectedIndex === null ? (
+                <textarea
+                  aria-label={intl.formatMessage({ id: "chat.question.answer", defaultMessage: "Your answer" })}
+                  onChange={(event) => context.updateDraft(question.id, { selectedIndex: null, otherText: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey
+                      || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!event.repeat) submitAnswer();
+                  }}
+                  placeholder={intl.formatMessage({ id: "chat.question.placeholder", defaultMessage: "Type your answer…" })}
+                  rows={2}
+                  value={draft.otherText}
+                />
+              ) : null}
+              <div className="thread-async-question__footer">
+                <span className="thread-async-question__hint" role="status">
+                  {status ?? (error ? intl.formatMessage({ id: "chat.question.retry", defaultMessage: "Selection saved. Try again." })
+                    : intl.formatMessage({ id: "chat.question.hint", defaultMessage: "Select, then send" }))}
+                </span>
+                <Button
+                  className="thread-async-question__send"
+                  disabled={!canAnswer || selected.length === 0}
+                  loading={sending}
+                  onClick={submitAnswer}
+                >{intl.formatMessage({ id: "chat.question.send", defaultMessage: "Send answer" })}<ArrowRight aria-hidden="true" /></Button>
               </div>
-            ) : null}
-            {draft.selectedIndex === null ? (
-              <textarea
-                aria-label="Your answer"
-                onChange={(event) => context.updateDraft(question.id, { selectedIndex: null, otherText: event.target.value })}
-                onKeyDown={(event) => {
-                  if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey
-                    || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  if (!event.repeat) submitAnswer();
-                }}
-                placeholder="Type your answer"
-                rows={2}
-                value={draft.otherText}
-              />
-            ) : null}
-            <div className="thread-async-question__footer">
-              <button
-                className="thread-async-question__send"
-                disabled={!canAnswer || selected.length === 0}
-                onClick={submitAnswer}
-                type="button"
-              >Send answer</button>
-              {context.errors[question.id] ? <span role="alert">{context.errors[question.id]}</span> : null}
-            </div>
-          </>
-        ) : null}
-        {status !== null ? <p className="thread-async-question__status" role="status">{status}</p> : null}
-      </fieldset>
+            </>
+          ) : status !== null ? <p className="thread-async-question__status" role="status">{status}</p> : null}
+        </fieldset>
+      )}
     </section>
   );
 }

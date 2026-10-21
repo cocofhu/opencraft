@@ -627,5 +627,20 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "chat.question.pending": "ต้องการคำตอบจากคุณ",
+  "chat.question.other": "คำตอบอื่น",
+  "chat.question.answer": "คำตอบของคุณ",
+  "chat.question.placeholder": "พิมพ์คำตอบของคุณ…",
+  "chat.question.hint": "เลือกแล้วส่ง",
+  "chat.question.send": "ส่งคำตอบ",
+  "chat.question.view": "ดูคำถาม",
+  "chat.question.answered": "ตอบแล้ว",
+  "chat.question.dismissed": "มีข้อความใหม่มาแทนที่แล้ว",
+  "chat.question.unconfirmed": "ยังไม่ยืนยันการส่ง",
+  "chat.question.sending": "กำลังส่งคำตอบ…",
+  "chat.question.queued": "คำตอบอยู่ในคิวแล้ว",
+  "chat.question.offline": "เชื่อมต่อเพื่อตอบ",
+  "chat.question.failure": "ส่งคำตอบไม่สำเร็จ บันทึกตัวเลือกแล้ว โปรดลองอีกครั้ง",
+  "chat.question.retry": "บันทึกตัวเลือกแล้ว ลองอีกครั้ง"
 }

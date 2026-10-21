@@ -26,6 +26,7 @@ function Demo() {
     <main style={{ padding: 24, width: "min(100%, 420px)" }}>
       <AsyncQuestionContext.Provider value={{
         states: new Map([[question.id, "pending"]]),
+        answers: new Map(),
         queuedIds: new Set(),
         submittingIds: new Set(),
         drafts,

@@ -8,7 +8,7 @@ import {
   createTimelineTurnPresentationPlan,
   activeTimelineTurnTodo,
   ReasoningPresentationCache,
-  deriveAsyncQuestionStates,
+  deriveAsyncQuestionPresentation,
   groupTimelineFramesByTurn,
   presentAutomationUpdate,
   type AssistantTurnPresentationPlan,
@@ -743,7 +743,7 @@ export function Conversation({
   );
   const asyncQuestionDraftsRef = useRef(asyncQuestionDrafts);
   asyncQuestionDraftsRef.current = asyncQuestionDrafts;
-  const asyncQuestionStates = useMemo(() => deriveAsyncQuestionStates(timeline ?? { frames: [] }), [timeline]);
+  const asyncQuestionPresentation = useMemo(() => deriveAsyncQuestionPresentation(timeline ?? { frames: [] }), [timeline]);
   const [asyncQuestionSubmitting, setAsyncQuestionSubmitting] = useState<ReadonlySet<string>>(() => new Set());
   const asyncQuestionSubmittingRef = useRef(new Set<string>());
   const [asyncQuestionErrors, setAsyncQuestionErrors] = useState<Readonly<Record<string, string>>>({});
@@ -773,14 +773,15 @@ export function Conversation({
   }, [onAnswerAsyncQuestion]);
   const asyncQuestionQueuedIds = useMemo(() => new Set(queuedAsyncQuestionIds), [queuedAsyncQuestionIds]);
   const asyncQuestionContext = useMemo<AsyncQuestionContextValue>(() => ({
-    states: asyncQuestionStates,
+    states: asyncQuestionPresentation.states,
+    answers: asyncQuestionPresentation.answers,
     queuedIds: asyncQuestionQueuedIds,
     drafts: asyncQuestionDrafts,
     submittingIds: asyncQuestionSubmitting,
     errors: asyncQuestionErrors,
     answer: onAnswerAsyncQuestion === undefined ? null : answerAsyncQuestion,
     updateDraft: updateAsyncQuestionDraft,
-  }), [asyncQuestionStates, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
+  }), [asyncQuestionPresentation, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
   const handleActivityCollapsedChange = useCallback((id: string, collapsed: boolean) => {
     setActivityCollapsedById((current) => current[id] === collapsed
       ? current

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import {
@@ -8,6 +9,7 @@ import {
   createTimelineTurnPresentationPlan,
   createDefaultTimelineProjectorRegistry,
   deriveAsyncQuestionStates,
+  deriveAsyncQuestionPresentation,
   displayAsyncQuestionReply,
   groupTimelineFramesByTurn,
   parseAsyncQuestionReply,
@@ -18,6 +20,8 @@ import {
 } from "@opencraft/chat-core";
 import { AsyncQuestionCard } from "../apps/workbench-web/src/components/conversation/async-question-card";
 import { AsyncQuestionContext } from "../apps/workbench-web/src/components/conversation-renderers/render-contexts";
+
+const renderLocalized = (node: ReactNode) => renderToStaticMarkup(createElement(IntlProvider, { locale: "en-US" }, node));
 
 const questionId = (messageId: string, index: number) => JSON.stringify(["request_user_input_async", messageId, index]);
 
@@ -116,6 +120,7 @@ test("async question card renders touch choices and a free-text answer without t
   const question: AsyncQuestion = { id: questionId("message", 0), title: "Which way?", options: ["A", "B"] };
   const context = {
     states: new Map([[question.id, "pending" as const]]),
+    answers: new Map([[question.id, "Accepted elsewhere"]]),
     queuedIds: new Set<string>(),
     drafts: { [question.id]: { selectedIndex: null, otherText: "My answer" } },
     submittingIds: new Set<string>(),
@@ -123,19 +128,43 @@ test("async question card renders touch choices and a free-text answer without t
     answer: async () => undefined,
     updateDraft: () => undefined,
   };
-  const markup = renderToStaticMarkup(createElement(AsyncQuestionContext.Provider, { value: context },
+  const markup = renderLocalized(createElement(AsyncQuestionContext.Provider, { value: context },
     createElement(AsyncQuestionCard, { question, title: createElement("span", null, question.title) })));
   assert.match(markup, /<fieldset aria-labelledby="([^"]+)"/u);
   assert.match(markup, /class="thread-async-question__title" id="[^"]+"/u);
   assert.match(markup, /Which way\?/u);
   assert.doesNotMatch(markup, /<legend>/u);
-  assert.match(markup, /Suggested answers/u);
-  assert.match(markup, /<span>Other<\/span>/u);
+  assert.match(markup, /role="radiogroup" aria-labelledby=/u);
+  assert.match(markup, /<span>Custom answer<\/span>/u);
   assert.match(markup, /<textarea[^>]*>My answer<\/textarea>/u);
   assert.match(markup, /Send answer/u);
-  const answered = renderToStaticMarkup(createElement(AsyncQuestionContext.Provider, {
+  const answered = renderLocalized(createElement(AsyncQuestionContext.Provider, {
     value: { ...context, states: new Map([[question.id, "answered" as const]]) },
   }, createElement(AsyncQuestionCard, { question, title: createElement("span", null, question.title) })));
   assert.match(answered, /Answered/u);
+  assert.match(answered, /Accepted elsewhere/u);
+  assert.doesNotMatch(answered, /My answer/u);
+  assert.match(answered, /<details[^>]*><summary>/u);
+  assert.match(answered, /View question/u);
+  assert.match(answered, /Which way\?/u);
   assert.doesNotMatch(answered, /Send answer/u);
+});
+
+
+test("question results use only accepted ordered replies, including restoration and another client", () => {
+  const question: AsyncQuestion = { id: questionId("message", 0), title: "Which way?", options: ["A", "B"] };
+  const reply = (deliveryStatus?: string, answer = "Accepted on another client\nSecond line") => ({
+    id: "reply", type: "steeringUserMessage", payload: { type: "steeringUserMessage", clientId: "another-client", deliveryStatus,
+      content: [{ type: "text", text: renderAsyncQuestionReply(question, answer) }] },
+  });
+  for (const delivery of ["sending", "unknown", "failed", "not-sent"]) {
+    assert.equal(deriveAsyncQuestionPresentation(timeline([asyncMessage, reply(delivery)])).answers.size, 0, delivery);
+  }
+  const accepted = deriveAsyncQuestionPresentation(timeline([asyncMessage, reply()]));
+  assert.equal(accepted.states.get(question.id), "answered");
+  assert.equal(accepted.answers.get(question.id), "Accepted on another client\nSecond line");
+  assert.equal(accepted.answers.has(questionId("message", 1)), false);
+  assert.deepEqual([...deriveAsyncQuestionPresentation(timeline([asyncMessage, reply()])).answers], [...accepted.answers]);
+  assert.equal(deriveAsyncQuestionPresentation(timeline([reply(), asyncMessage])).answers.size, 0);
+  assert.equal(deriveAsyncQuestionPresentation(timeline([asyncMessage, reply(undefined, "Updated reply")])).answers.get(question.id), "Updated reply");
 });

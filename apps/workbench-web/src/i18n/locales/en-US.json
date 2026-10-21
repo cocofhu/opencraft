@@ -625,5 +625,20 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "chat.question.pending": "Your input needed",
+  "chat.question.other": "Custom answer",
+  "chat.question.answer": "Your answer",
+  "chat.question.placeholder": "Type your answer…",
+  "chat.question.hint": "Select, then send",
+  "chat.question.send": "Send answer",
+  "chat.question.view": "View question",
+  "chat.question.answered": "Answered",
+  "chat.question.dismissed": "Superseded by a later message",
+  "chat.question.unconfirmed": "Delivery unconfirmed",
+  "chat.question.sending": "Sending answer…",
+  "chat.question.queued": "Answer in follow-up queue",
+  "chat.question.offline": "Connect to answer",
+  "chat.question.failure": "Answer not sent. Your selection is saved; please retry.",
+  "chat.question.retry": "Selection saved. Try again."
 }
