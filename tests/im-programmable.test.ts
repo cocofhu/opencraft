@@ -406,3 +406,13 @@ test("recovery reads every admitted message of the ready channel beyond other-ch
   assert.equal(store.recoverable("offline").length, 501);
   assert.ok(store.recoverable("ready").every(message => message.channel_id === "ready"));
 });
+
+test('channel client preserves admission error codes and classifies non-JSON proxy failures', async () => {
+  const {ImClient, ImHttpError} = await import('../plugins/im/src/client');
+  for (const [status, code] of [[401,'authentication_required'],[403,'actor_access_denied'],[503,'im_unavailable']] as const) {
+    const client = new ImClient(async () => new Response(JSON.stringify({error:code}), {status}));
+    await assert.rejects(client.request({action:'list'}), error => error instanceof ImHttpError && error.code===code && error.status===status);
+  }
+  const invalid=new ImClient(async () => new Response('<html>upstream unavailable</html>',{status:502}));
+  await assert.rejects(invalid.request({action:'list'}), error => error instanceof ImHttpError && error.code==='invalid_server_response' && error.status===502);
+});

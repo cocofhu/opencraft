@@ -175,3 +175,26 @@ test('provider admission accepts verified employees without enrollment, retains 
   store.setActor(actor.id,'member',false,'fixture');assert.equal(access.admissionStatus(request()),403,'actor membership revocation wins');
   store.setActor(actor.id,'member',true,'fixture');actors.setEnabled(actor.id,false,'fixture');assert.equal(access.admissionStatus(request()),403,'disabled human wins');
 });
+
+test('IM list traverses relay, managed Web proxy, verified human admission and channel service', async t => {
+  const {ActorStore} = await import('../packages/access-control/src/actors');
+  const {ActorAccess} = await import('../packages/access-control/src/actor-access');
+  const {ImChannelService} = await import('../scripts/im-channel-service.mjs');
+  const dir = await mkdtemp(join(tmpdir(), 'relay-im-')); t.after(() => rm(dir,{recursive:true,force:true}));
+  await writeFile(join(dir,'index.html'),'IM');
+  const pair=keys(), scope={issuer:'fixture',instanceId:'im',origin:'https://im.test'};
+  const actors=new ActorStore(join(dir,'actors.sqlite')); t.after(()=>actors.close());
+  const members=new MembershipStore(join(dir,'members.sqlite')); t.after(()=>members.close());members.set(principal,'admin',true,'fixture');
+  const access=new InstanceAccess(members,[new AssertionProvider(scope,pair.publicKey)],actors);
+  const human=new ActorAccess(actors,{authenticateHuman:r=>access.authenticate(r),admitted:p=>access.role(p)!==null,administrator:p=>access.role(p)==='admin',trustedOrigin:r=>access.trustedOrigin(r)});
+  const im=await ImChannelService.open([],{dataDirectory:dir,actors,actorAccess:human,collaboration:{execution:{serverId:'im-server',hostId:'im-host'}},getAppHost:()=>null,admittedActor:id=>access.admitsActor(id)});t.after(()=>im.close());
+  const web=await createWorkbenchWebServer({root:dir,appServerTarget:null,loopbackOnly:true,accessService:access,actorService:human,getImService:()=>im});t.after(()=>web.close());
+  const address=await web.listen({host:'127.0.0.1',port:0});const proxy=createHeadlessBackendProxy(`http://127.0.0.1:${address.port}`);
+  const front=createServer((req,res)=>proxy.http(req,res,()=>{}));front.listen(0,'127.0.0.1');await once(front,'listening');t.after(()=>new Promise<void>(resolve=>{front.close(()=>resolve());front.closeAllConnections();}));
+  const identity=new FixtureRequestIdentity();t.after(()=>identity.close());
+  const route={...scope,credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,pair.privateKey),identityProvider:identity.identityProvider(),targetPort:(front.address() as any).port};
+  const relay=createRelayServer([route]);relay.server.listen(0,'127.0.0.1');await once(relay.server,'listening');t.after(()=>relay.close());
+  const base=`http://127.0.0.1:${(relay.server.address() as any).port}`;const client=connectRelay({relay:base,credential:route.credential,targetPort:route.targetPort,allowLoopbackInsecure:true});t.after(()=>client.close());await waitFor(()=>relay.connected('im'));
+  const response=await virtualFetch(base+'/__opencraft_im',{method:'POST',headers:{host:'im.test',origin:scope.origin,'content-type':'application/json',...signed()},body:Buffer.from(JSON.stringify({action:'list'}))});
+  const document=await response.json();assert.equal(response.status,200,JSON.stringify(document));assert.deepEqual(document.channels,[]);assert.equal(document.serverId,'im-server');assert.equal(actors.get(document.actorId)?.kind,'human');
+});

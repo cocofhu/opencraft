@@ -31,6 +31,9 @@ export interface ImDocument {
   serverId: string;
   workbenchHostId: string;
 }
+export class ImHttpError extends Error {
+  constructor(readonly code: string, readonly status: number) { super(code); }
+}
 export class ImClient {
   constructor(readonly fetcher: typeof fetch) {}
   async request<T>(body: Record<string, unknown>): Promise<T> {
@@ -39,8 +42,14 @@ export class ImClient {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    const value = await response.json();
-    if (!response.ok) throw new Error(value?.error ?? "operation_failed");
+    let value: any;
+    try { value = await response.json(); }
+    catch { throw new ImHttpError("invalid_server_response", response.status); }
+    if (!response.ok) {
+      const code = typeof value?.error === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(value.error)
+        ? value.error : "invalid_server_response";
+      throw new ImHttpError(code, response.status);
+    }
     return value as T;
   }
 }
