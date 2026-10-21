@@ -1,14 +1,14 @@
 # Composer action artwork
 
-The microphone and lightning share the restrained rounded line-art language of
-conversation activity glyphs. `packages/design-system-web/src/composer-action-icons.tsx`
-owns their SVG artwork. Voice input and Composer controls consume the same exports;
+Microphone, lightning, stop, permission and settings glyphs share the restrained rounded line-art language of
+conversation activity glyphs. `packages/design-system-web/src/action-icons.tsx`
+owns their SVG artwork. Voice input, Composer controls and settings entrances consume the same exports;
 no feature carries a second bolt or microphone path.
 
 Use a simple capsule and open receiver for the microphone, with a matching slash
 when the existing voice state requires it. Commands, full-access permissions,
-the shared lightning supports the same outline and filled silhouette for service-tier actions.
-Consumers retain their checked state and accessible label semantics.
+Fast menu actions and the compact Fast indicator use one lightning silhouette.
+Fast retains its existing filled enabled state and accessible checked/label semantics.
 These are action glyphs, not provider logos or activity rows.
 
 Existing control owners retain geometry: the microphone uses the shared
@@ -30,3 +30,13 @@ collapsed footer, command/permission icons, original hit areas and stable editor
 geometry. Existing dictation and model-menu smoke scenarios retain interaction
 coverage. Browser speech/Host fixtures do not establish physical microphone or
 external ASR behavior.
+
+The stop control retains its ring and rounded square, and its existing pending
+spinner. Read and edit permissions share one folded-page silhouette with distinct
+line/code interiors; the permission entrance keeps its checked shield. Settings
+entrances share one rounded six-tooth gear with an open hub. Existing color,
+selection, danger, disabled and busy semantics belong to their controls.
+
+The left/right split-panel and sidebar toggles are explicitly retained as drawn,
+per user feedback. Do not replace their artwork or change their geometry while
+unifying action icons. They also demonstrate the desired restrained proportions.

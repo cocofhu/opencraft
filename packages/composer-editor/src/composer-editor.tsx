@@ -1,4 +1,4 @@
-import { ComposerLightningIcon } from "@opencraft/design-system-web/composer-action-icons";
+import { LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
@@ -42,7 +42,6 @@ import {
   BrainCircuit,
   Check,
   ChevronDown,
-  CircleStop,
   CircleAlert,
   FileCode2,
   FileText,
@@ -51,7 +50,6 @@ import {
   Paperclip,
   Plus,
   RotateCcw,
-  ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
@@ -271,13 +269,13 @@ function SelectionMenuItemContent({
 
 function permissionMenuLeadingIcon(mode: ComposerPermissionOption["mode"]): ReactNode {
   if (mode === "full") {
-    return <ComposerLightningIcon size={18} />;
+    return <LightningIcon size={18} />;
   }
   if (mode === "read-only") {
-    return <FileText size={18} strokeWidth={1.65} />;
+    return <PermissionDocumentIcon size={18} />;
   }
-  if (mode == null) return <ShieldCheck size={18} strokeWidth={1.65} />;
-  return <FileCode2 size={18} strokeWidth={1.65} />;
+  if (mode == null) return <PermissionShieldIcon size={18} />;
+  return <PermissionDocumentIcon size={18} editable />;
 }
 
 function formatSelectionLabel(value: string): string {
@@ -2178,7 +2176,7 @@ export const OpenCraftComposer = forwardRef<
                 >
                   <span>
                     {suggestion.kind === "command" ? (
-                      <ComposerLightningIcon size={15} />
+                      <LightningIcon size={15} />
                     ) : suggestion.kind === "skill" ? (
                       <SkillIcon source={suggestion.metadata?.iconSmallUrl ?? suggestion.metadata?.iconSmall} />
                     ) : (
@@ -2547,7 +2545,7 @@ export const OpenCraftComposer = forwardRef<
                         permissionTriggerTitle
                       }
                     >
-                      <ShieldCheck size={14} />
+                      <PermissionShieldIcon size={14} />
                       <span className="opencraft-composer-mode__permission-label">
                         {permissionSelectionLabel}
                       </span>
@@ -2658,7 +2656,7 @@ export const OpenCraftComposer = forwardRef<
                   occurredAt: Date.now(),
                 })}
               >
-                <CircleStop size={17} />
+                <StopCircleIcon size={17} />
               </button>
             ) : (
               <button

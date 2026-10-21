@@ -1,4 +1,4 @@
-import { ComposerMicrophoneIcon } from "@opencraft/design-system-web/composer-action-icons";
+import { MicrophoneIcon } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { ComposerActionHost } from "@opencraft/extension-react";
@@ -266,7 +266,7 @@ export function createVoiceInputAction(provider: SpeechInputProvider) {
           start();
         }}
       >
-        <ComposerMicrophoneIcon off={phase === "error"} className="ui-composer-input-icon" />
+        <MicrophoneIcon off={phase === "error"} className="ui-composer-input-icon" />
       </button>
     );
   };
