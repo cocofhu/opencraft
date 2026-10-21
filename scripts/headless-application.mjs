@@ -413,7 +413,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       legacyServers: sshServers.map(binding => binding.descriptor),
     });
     try {
-      observability = await createObservabilityIngress(process.env.OPENCRAFT_OBSERVE_INGRESS_CONFIG, { access: instanceAccess, actors: identity?.actorStore, executionHealth: options.getExecutionHealth });
+      observability = await createObservabilityIngress(process.env.OPENCRAFT_OBSERVE_INGRESS_CONFIG, { access: instanceAccess, actors: actorStore, executionHealth: options.getExecutionHealth });
     } catch {
       process.stderr.write('Observability configuration unavailable; workbench continues without observation ingress.\n');
     }
