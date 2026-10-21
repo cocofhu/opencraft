@@ -443,6 +443,10 @@ export async function createWebWorkbenchApplicationSupervisor(
       });
     }
     if (headlessAppHost !== null) {
+      await extensions.loadOptional("opencraft.im", async () => {
+        const { createImExtension } = await import("@opencraft/plugin-im");
+        return createImExtension(serverFetch);
+      });
       for (const extension of options.serverExtensions ?? []) {
         await extensions.loadOptional(extension.id, () => extension.load({
           fetcher: serverFetch,

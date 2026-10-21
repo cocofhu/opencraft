@@ -16,9 +16,12 @@ import { ConversationRenameDialog } from "./conversation-rename-dialog";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 import "../styles/context-menu.scss";
 
+const ImSources = lazy(() => import("@opencraft/plugin-im/sources").then(module => ({default:module.ImSources})));
+
 const ConversationInformationDialog = lazy(() => import("./conversation-information-dialog"));
 
 interface Props {
+  readonly im?: { fetcher: typeof fetch; openSettings(): void };
   readonly port?: TasksRequestPort;
   readonly schedules?: ConversationSchedulesRequestPort;
   readonly scope: string;
@@ -129,6 +132,7 @@ export function ConversationTaskMenu(props: Props) {
   const modalHandoff = useRef(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [imOpen, setImOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [schedulesOpen, setSchedulesOpen] = useState(false);
   const [name, setName] = useState("");
@@ -198,6 +202,9 @@ export function ConversationTaskMenu(props: Props) {
           {props.schedules ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setSchedulesOpen(true); }}>
             <Clock size={16} aria-hidden="true" />{intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" })}
           </DropdownMenu.Item> : null}
+          {props.im ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setImOpen(true); }}>
+            <Info size={16} aria-hidden="true" />IM 来源
+          </DropdownMenu.Item> : null}
           {props.project || props.workspaceDirectory ? <DropdownMenu.Item disabled={busy} onSelect={() => {
             modalHandoff.current = true; setDetailsOpen(true);
           }}><Info size={16} aria-hidden="true" />{intl.formatMessage({ id: "chat.details.title", defaultMessage: "Conversation info" })}</DropdownMenu.Item> : null}
@@ -207,6 +214,12 @@ export function ConversationTaskMenu(props: Props) {
     {renameOpen ? <ConversationRenameDialog value={name} pending={rename.isPending}
       onChange={setName} onSubmit={title => rename.mutate(title)} onDismiss={() => setRenameOpen(false)}
       returnFocus={() => trigger.current} /> : null}
+    {imOpen && props.im ? <ModalSurface label="IM 来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={() => trigger.current}>
+      <SettingsPanel title="IM 来源" footer={<SettingsButton onClick={() => setImOpen(false)}>完成</SettingsButton>}>
+        <Suspense fallback={null}><ImSources fetcher={props.im.fetcher} hostId={props.serverId} threadId={props.threadId}
+          onOpenSettings={() => { setImOpen(false); props.im!.openSettings(); }} reportError={message => notices.error({key:"im-sources",message})} /></Suspense>
+      </SettingsPanel>
+    </ModalSurface> : null}
     {detailsOpen ? <Suspense fallback={null}><ConversationInformationDialog project={props.project} workspaceDirectory={props.workspaceDirectory}
       onDismiss={() => setDetailsOpen(false)} returnFocus={() => trigger.current} /></Suspense> : null}
     {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={() => trigger.current} /> : null}

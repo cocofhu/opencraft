@@ -1,9 +1,6 @@
-import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { readPrivateJson } from '../packages/identity-core/src/node.ts';
-import { ImPlugin, ImFault } from '../plugins/im/src/server.ts';
-import { SwitchboardStore } from '../plugins/im/src/store.ts';
-import { WeComPlugin } from '../plugins/wecom/src/server.ts';
+import { ImFault } from '../plugins/im/src/server.ts';
 import { conversationRef, encodeConversationRef } from '../packages/appserver-protocol/src/collaboration.ts';
 import { callConversationHost } from './conversation-execution.mjs';
 
@@ -97,23 +94,7 @@ export function createImExecution({actors,collaboration,getAppHost,admittedActor
   };
 }
 
-export function startImPlugins(endpoints, {dataDirectory,...dependencies}) {
-  if (!endpoints?.length) return null;
-  const store = new SwitchboardStore(join(dataDirectory,'im-switchboard.sqlite'));
-  const im = new ImPlugin(store,createImExecution(dependencies));
-  const adapters = [];
-  const errors = new Map();
-  try {
-    for (const endpoint of endpoints) {
-      im.register(endpoint);
-      adapters.push(new WeComPlugin({botId:endpoint.botId,secret:endpoint.secret,receive:message => im.receive(endpoint.id,message),
-        onError:code => errors.set(endpoint.id,code),onState:state => { if (state === 'ready') errors.delete(endpoint.id); }}));
-    }
-    for (const adapter of adapters) adapter.start();
-  } catch (error) { for (const adapter of adapters) adapter.close(); void im.close(); throw error; }
-  return {
-    outcome:store.outcome,
-    states:() => endpoints.map((endpoint,index) => ({id:endpoint.id,provider:endpoint.provider,state:adapters[index].state,...(errors.has(endpoint.id) ? {lastError:errors.get(endpoint.id)} : {})})),
-    async close() { for (const adapter of adapters) adapter.close(); await im.close(); },
-  };
+export async function startImPlugins(endpoints, dependencies) {
+  const { ImChannelService } = await import('./im-channel-service.mjs');
+  return ImChannelService.open(endpoints??[],dependencies);
 }

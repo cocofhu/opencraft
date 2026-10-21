@@ -366,6 +366,7 @@ export async function createWorkbenchWebServer({
   actorCollaborationService = null,
   authService = null,
   mcpAppsService = null,
+  getImService = () => null,
   hubService = null,
   speechPublicAccess = process.env.OPENCRAFT_SPEECH_PUBLIC_ACCESS === "1",
   webSocketHeartbeatIntervalMs = 15_000,
@@ -431,6 +432,11 @@ export async function createWorkbenchWebServer({
         const identity = accessService.authenticate(request);
         if (identity) { const unwatch = accessService.watch(identity, () => response.destroy()); response.once('close', unwatch); }
         if (await accessService.handle(request, response)) return;
+      }
+      if(url.pathname === '/__opencraft_im' || url.pathname.startsWith('/__opencraft_im/')) {
+        const service=getImService();
+        if(service && await service.handle(request,response,sameOrigin))return;
+        sendJson(response,503,{error:'im_unavailable'});return;
       }
       if (hubService && await hubService.handle(request, response, () => {
         const identity = accessService?.authenticate(request);

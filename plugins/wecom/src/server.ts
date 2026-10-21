@@ -83,6 +83,7 @@ export class WeComPlugin {
         frame.errcode === 0 ? entry.resolve() : entry.reject(new Error('WeCom request rejected'));
         return;
       }
+      if(frame.cmd === 'aibot_event_callback' && (object(frame.body)?.eventtype === 'disconnected_event' || object(object(frame.body)?.event)?.eventtype === 'disconnected_event')) { this.close();this.stateChanged('disconnected');return; }
       if (frame.cmd !== 'aibot_msg_callback' || this.phase !== 'ready') return;
       const body = object(frame.body), sender = object(body?.from)?.userid;
       if (!body || body.aibotid !== this.options.botId || body.compat_info !== undefined || typeof body.msgid !== 'string' || typeof sender !== 'string') return;
@@ -91,11 +92,12 @@ export class WeComPlugin {
       const rawText = content(body);
       // Group callbacks retain the bot mention. Only recognize a command after
       // that transport decoration; ordinary prose remains the original input.
-      const text = chatType === 'group' && rawText ? rawText.replace(/^[ \t]*@\S+[ \t]+(?=\/(?:new|switch)(?:[ \t]|$))/u,'') : rawText;
+      const text = chatType === 'group' && rawText ? rawText.replace(/^[ \t]*@\S+[ \t]+(?=\/(?:new|switch|identify)(?:[ \t]|$))/u,'') : rawText;
       if (!chatType || typeof chatId !== 'string' || !text?.trim()) return;
       const streamId = randomUUID();
       let replied = false;
       const message: ImMessage = Object.freeze({id:body.msgid,source:Object.freeze({chatId,chatType,senderId:sender}),text,
+        replyAddress:Object.freeze({provider:'wecom',reqId,streamId,expiresAt:Date.now()+9*60_000}),
         accepted: async () => {
           if (this.stopped || this.socket !== socket || this.phase !== 'ready') throw new Error('WeCom callback unavailable');
           await this.send(socket,{cmd:'aibot_respond_msg',headers:{req_id:reqId},body:{msgtype:'stream',stream:{id:streamId,finish:false,content:'正在处理…'}}});
@@ -108,6 +110,12 @@ export class WeComPlugin {
         }});
       this.track(Promise.resolve().then(() => this.options.receive(message)).catch(() => { this.options.onError?.('message'); }));
     });
+  }
+  async deliver(address: Record<string, unknown>, answer: string) {
+    const socket=this.socket;
+    if(address.provider!=='wecom'||typeof address.reqId!=='string'||typeof address.streamId!=='string'||typeof address.expiresAt!=='number'||address.expiresAt<=Date.now()||!socket||this.phase!=='ready')throw new Error('WeCom reply unavailable');
+    if(!answer.trim()||Buffer.byteLength(answer)>20_000)throw new Error('WeCom reply too large');
+    await this.send(socket,{cmd:'aibot_respond_msg',headers:{req_id:address.reqId},body:{msgtype:'stream',stream:{id:address.streamId,finish:true,content:answer}}});
   }
   private track(job: Promise<void>) { this.jobs.add(job); void job.finally(() => this.jobs.delete(job)).catch(() => {}); }
   private send(socket: WebSocket, frame: Frame, acknowledged?: () => void): Promise<void> {
