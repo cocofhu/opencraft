@@ -103,7 +103,12 @@ export function applyTimelineViewportDocumentState(
   root.style.setProperty("--timeline-layout-viewport-height", `${snapshot.layoutViewport.heightPx}px`);
   root.style.setProperty("--timeline-available-viewport-width", `${layout.availableViewport.widthPx}px`);
   root.style.setProperty("--timeline-available-viewport-height", `${layout.availableViewport.heightPx}px`);
-
+  // Fixed positioning uses layout-viewport coordinates. Size and origin are
+  // independent: native visual panning must not shrink capacity a second time,
+  // but its origin is required to keep the frame visually stationary.
+  const followsVisualOrigin = policy.tracksVisualViewport && Math.abs(snapshot.scale - 1) <= 0.01;
+  root.style.setProperty("--timeline-available-viewport-top", `${followsVisualOrigin ? snapshot.visualOffset.topPx : 0}px`);
+  root.style.setProperty("--timeline-available-viewport-left", `${followsVisualOrigin ? snapshot.visualOffset.leftPx : 0}px`);
 }
 
 export function createWebTimelineViewportPort(

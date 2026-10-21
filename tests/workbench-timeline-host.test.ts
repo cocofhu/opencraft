@@ -1693,7 +1693,7 @@ test("available layout is independent of native pan, focus and pinch magnificati
   });
 });
 
-test("native focus pan is observation only and cannot translate the application", () => {
+test("native focus pan maps the fixed frame origin without changing capacity", () => {
   const f = viewportPortFixture();
   try {
     f.input.focus(); f.input.setSelectionRange(2, 2);
@@ -1706,6 +1706,10 @@ test("native focus pan is observation only and cannot translate the application"
     f.win.dispatchEvent(new f.win.Event("scroll")); f.frame(40);
     assert.equal(f.port.getSnapshot().visualOffset.topPx, 180);
     assert.equal(style.getPropertyValue("--timeline-available-viewport-height"), "440px");
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-top"), "180px");
+    // CSS top is a layout coordinate; subtract the visual origin to test
+    // screen placement. Document scrolling is not another fixed-frame offset.
+    assert.equal(Number.parseFloat(style.getPropertyValue("--timeline-available-viewport-top")) - f.visual.offsetTop, 0);
     assert.equal(style.getPropertyValue("--timeline-page-viewport-top"), "");
     assert.equal(style.getPropertyValue("--timeline-visual-viewport-offset-top"), "");
     const revision = f.port.getSnapshot().revision; f.frame(60);

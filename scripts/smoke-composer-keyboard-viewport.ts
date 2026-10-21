@@ -81,15 +81,16 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  assert(new Set(editorScroll).size>2,'exercise actual long-draft internal scrolling');
  for(const [height,offset] of [[360,120],[280,220],[360,0]]){
   await editor.focus();await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,offset]);await page.waitForTimeout(200);
-  const editRect=await editor.boundingBox();assert.ok(editRect&&editRect.y>=56&&editRect.y+editRect.height<=height,`Editor visible: ${JSON.stringify(editRect)}`);
-  const send=page.locator('.opencraft-composer-submit').last();const rect=await send.boundingBox();assert.ok(rect&&rect.y>=56&&rect.y+rect.height<=height,`Send must remain above keyboard: ${JSON.stringify(rect)} in stable frame 0..${height}`);
+  const editRect=await editor.boundingBox();assert.ok(editRect&&editRect.y-offset>=56&&editRect.y+editRect.height-offset<=height,`Editor visible: ${JSON.stringify(editRect)}`);
+  const send=page.locator('.opencraft-composer-submit').last();const rect=await send.boundingBox();assert.ok(rect&&rect.y-offset>=56&&rect.y+rect.height-offset<=height,`Send must remain above keyboard: ${JSON.stringify(rect)} in visual frame ${offset}..${offset+height}`);
   assert.ok(await send.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}),'Send hit target unobstructed');
   assert.equal(await editor.evaluate(e=>e===(window as any).keptEditor),true);assert.equal(await editor.innerText(),rendered);
   const before=await page.evaluate(()=>(window as any).fixture.sent);await send.tap();assert.equal(await page.evaluate(()=>(window as any).fixture.sent),before+1,'Send works on first touch without closing keyboard');
   evidence.push({theme,newera,height,offset,send:rect,caretEvidence});
  }
  // Sample every animation frame, including height-first / pan-later and the
- // reverse ordering. A native pan cannot become another Shell translation.
+ // reverse ordering. Measure screen placement relative to the visual origin,
+ // not layout-client zero. The native pan itself is a separate input.
  const trajectory=[];
  for(const [height,offset] of [[844,0],[760,0],[640,0],[540,0],[440,0],[440,172],[440,160],[440,90],[440,0],[440,172],[540,172],[640,90],[760,0],[844,0]]){
   const sample=await page.evaluate(async([height,offset])=>{
@@ -100,9 +101,9 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
    const edit=document.querySelector('.opencraft-composer-editor')!;
    return {height,offset,top:r.top,bottom:r.bottom,sendBottom:button.bottom,sameEditor:edit===(window as any).keptEditor,focused:document.activeElement===edit};
   },[height,offset]);
-  assert(Math.abs(sample.top)<=1,`native pan must not move Shell: ${JSON.stringify(sample)}`);
-  assert(Math.abs(sample.bottom-height)<=1,JSON.stringify(sample));
-  assert(sample.sendBottom<=height+1&&sample.sameEditor&&sample.focused,JSON.stringify(sample));
+  assert(Math.abs(sample.top-sample.offset)<=1,`visual origin must not move Shell on screen: ${JSON.stringify(sample)}`);
+  assert(Math.abs(sample.bottom-sample.offset-height)<=1,JSON.stringify(sample));
+  assert(sample.sendBottom-sample.offset<=height+1&&sample.sameEditor&&sample.focused,JSON.stringify(sample));
   trajectory.push(sample);
  }
  evidence.push({theme,newera,trajectory});
@@ -134,7 +135,7 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  });
  await page.waitForTimeout(150);
  const geometry=await page.locator('.app-shell-root').evaluate(e=>{const r=(window as any).readActualRect.call(e);return {top:r.top,height:r.height}});
- assert(Math.abs(geometry.top)<=1,`placement cannot feed back from a rendered rectangle: ${JSON.stringify(geometry)}`);
+ assert(Math.abs(geometry.top-180)<=1,`placement cannot feed back from a rendered rectangle: ${JSON.stringify(geometry)}`);
  assert.equal(geometry.height,440);evidence.push({theme,newera,readbackCounterexample:geometry});
  await page.evaluate(()=>{HTMLElement.prototype.getBoundingClientRect=(window as any).readActualRect;(window as any).setViewport(844,0)});
  await context.close();

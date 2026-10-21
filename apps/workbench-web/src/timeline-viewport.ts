@@ -2,6 +2,8 @@ import { createWebTimelineViewportPort, resolveWebTimelinePlatform } from "@open
 import { resolveTimelineViewportPolicy, type TimelineViewportPolicy } from "@opencraft/timeline-virtualizer";
 import { useLayoutEffect, useMemo } from "react";
 
+import { createViewportDiagnostics } from "./runtime/viewport-diagnostics";
+
 import type { WindowChromeSnapshot } from "./window-chrome";
 
 /**
@@ -29,8 +31,18 @@ export function useTimelineViewportHost(windowChrome: WindowChromeSnapshot): Tim
       kind: windowChrome.kind,
       platform: windowChrome.platform,
     });
-    return () => port.dispose();
-  }, [windowChrome.kind, windowChrome.platform]);
+    const report = createViewportDiagnostics();
+    let finalReport: number | undefined;
+    const observe = () => {
+      report();
+      window.clearTimeout(finalReport);
+      // A compositor/readback update can arrive after the last raw metric.
+      // This observation never writes layout or changes the viewport port.
+      finalReport = window.setTimeout(report, 120);
+    };
+    const unsubscribe = policy.tracksVisualViewport ? port.subscribe(observe) : () => {};
+    return () => { window.clearTimeout(finalReport); unsubscribe(); port.dispose(); };
+  }, [windowChrome.kind, windowChrome.platform, policy.tracksVisualViewport]);
 
   return policy;
 }

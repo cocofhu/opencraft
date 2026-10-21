@@ -917,11 +917,15 @@ The browser owns native coordinate movement; the application owns layout capacit
 The shared snapshot retains raw visual offsets, sizes and focus observations.
 `projectTimelineViewportLayout` derives an available extent, independently of
 pageTop, document scroll and focus. Pinch magnification does not reflow layout.
-The fixed Shell keeps its native top/left anchor; only its available width/height
-change. Its layout containment anchors fixed descendants to the same capacity.
-No page-origin CSS projection, Shell-rectangle feedback, per-feature compensation,
-forced scrolling or focus/selection reset. Height-first/pan-later observations and
-the reverse ordering must not translate the Shell. Bounded late reconciliation
+CSS fixed positioning uses layout-viewport coordinates, while the visible
+rectangle begins at VisualViewport.offsetTop/offsetLeft. The Web adapter projects
+this origin independently of capacity; the fixed Shell uses that origin exactly
+once. Screen placement is client position minus visual offset, not client zero.
+Layout containment keeps internal fixed descendants in the same frame without
+reapplying the origin. PageTop/document scroll are not fixed-frame offsets.
+No Shell-rectangle feedback, per-feature compensation, forced scrolling or
+focus/selection reset. Height-first/pan-later and reverse ordering must preserve
+screen placement, not a constant CSS top. Bounded late reconciliation
 belongs to this same owner; it does not infer keyboard completion from blur.
 Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
 separate evidence: endpoint reachability is insufficient to verify transitions.

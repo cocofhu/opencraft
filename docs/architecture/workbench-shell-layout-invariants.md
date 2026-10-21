@@ -144,11 +144,15 @@ The browser owns native coordinate movement; the application owns layout capacit
 The shared snapshot retains raw visual offsets, sizes and focus observations.
 `projectTimelineViewportLayout` derives an available extent, independently of
 pageTop, document scroll and focus. Pinch magnification does not reflow layout.
-The fixed Shell keeps its native top/left anchor; only its available width/height
-change. Its layout containment anchors fixed descendants to the same capacity.
-No page-origin CSS projection, Shell-rectangle feedback, per-feature compensation,
-forced scrolling or focus/selection reset. Height-first/pan-later observations and
-the reverse ordering must not translate the Shell. Bounded late reconciliation
+CSS fixed positioning uses layout-viewport coordinates, while the visible
+rectangle begins at VisualViewport.offsetTop/offsetLeft. The Web adapter projects
+this origin independently of capacity; the fixed Shell uses that origin exactly
+once. Screen placement is client position minus visual offset, not client zero.
+Layout containment keeps internal fixed descendants in the same frame without
+reapplying the origin. PageTop/document scroll are not fixed-frame offsets.
+No Shell-rectangle feedback, per-feature compensation, forced scrolling or
+focus/selection reset. Height-first/pan-later and reverse ordering must preserve
+screen placement, not a constant CSS top. Bounded late reconciliation
 belongs to this same owner; it does not infer keyboard completion from blur.
 Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
 separate evidence: endpoint reachability is insufficient to verify transitions.
@@ -164,6 +168,12 @@ header/route chrome cannot be counted as input space. Heading gaps shrink as
 space, not structural padding with an irreducible minimum. Long draft/attachment
 content yields to the action footer without changing editor or draft identity.
 
-Terminal keyboard checks use this same available-frame contract: native pan does
-not add to Shell bounds, pinch magnification does not reflow its layout, and
+Terminal keyboard checks use this same available-frame contract: native pan shifts
+layout-coordinate bounds once but not their screen-coordinate projection, pinch magnification does not reflow its layout, and
 terminal grid/Composer non-overlap and local overlay ownership remain asserted.
+
+The bounded geometry diagnostic records raw viewport sizes, origin, Shell and
+input/control rectangles plus the client source revision. It carries no input
+content, route, account or user-agent values and never feeds positioning. It is
+limited to 64 observations per mounted host and uses the existing diagnostic
+transport. Controlled browser viewports still do not prove native iOS acceptance.

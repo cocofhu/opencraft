@@ -359,12 +359,13 @@ button {
   }
 }
 
-// Browser coordinates and keyboard occlusion have separate owners. Native
-// focus panning never becomes a CSS top/left translation of the entire Shell.
-// Only available extent is projected; containment gives fixed descendants the
-// same available frame as ordinary content.
+// The Web adapter owns the visual frame in layout-viewport coordinates.
+// Pan changes its origin, never its available capacity. Containment gives
+// fixed descendants the same frame without applying the origin twice.
 html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   contain: layout;
+  top: var(--timeline-available-viewport-top, 0px);
+  left: var(--timeline-available-viewport-left, 0px);
   width: var(--timeline-available-viewport-width, 100%);
   height: var(--timeline-available-viewport-height, 100%);
 }
