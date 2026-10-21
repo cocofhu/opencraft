@@ -161,7 +161,7 @@ try {
     await page.evaluate(()=>window.fixture.setTheme("dark"));
     await app.locator("#theme").filter({hasText:"dark"}).waitFor();
     assert.equal(await page.evaluate(()=>window.fixture.reads.length),1);
-    assert.equal(await page.locator(".thread-agent-activity__persistent-content iframe").count(),1);
+    assert.equal(await page.locator(".mcp-app iframe").count(),1);
     assert.equal(await app.locator("body").evaluate(async()=>{try{await fetch("https://mcp-app-denied.invalid/leak");return false}catch{return true}}),true);
     await app.locator("#message").click(); await page.waitForFunction(()=>window.fixture.messages.length===1);
     await app.locator("#context").click();
