@@ -2322,3 +2322,12 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Sidebar directory track bounds
+
+The directory and nested groups own a bounded single grid column. A long project
+name or saved-directory failure message cannot enlarge the track past the actual
+Sidebar viewport or clip its Retry button. Existing truncation and action slots
+remain responsible for content; this does not change Shell width, mobile drawer
+preferences, selection, grouping or refresh semantics.

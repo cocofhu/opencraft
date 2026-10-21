@@ -160,10 +160,15 @@ try {
     await page.evaluate(() => {
       const f = (window as any).fixture;
       f.setThreads([f.row(0)]);
-      f.setCatalogs([{ hostId: "ssh:remote", label: "Remote", phase: "error" }]);
+      f.setCatalogs([{ hostId: "ssh:remote", label: "Remote Server with a deliberately long directory label", phase: "error" }]);
     });
     const retry = page.getByRole("button", { name: "Retry", exact: true });
     await retry.waitFor();
+    const retryBounds = await retry.boundingBox();
+    const sidebarBounds = await page.locator('.sidebar-panel').boundingBox();
+    assert.ok(retryBounds && sidebarBounds && retryBounds.x >= sidebarBounds.x
+      && retryBounds.x + retryBounds.width <= sidebarBounds.x + sidebarBounds.width + 1,
+      'Retry is fully inside the Sidebar before interaction or automatic scrolling');
     assert.equal(await page.locator(".sidebar-activity-item").count(), 1, "one failed server retains healthy rows");
     // Scheme C: directory is auxiliary text below the title, never a chip or title column.
     await page.evaluate(() => {
