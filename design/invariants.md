@@ -1838,3 +1838,12 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+## Streamed code fence continuity (2026-10-21)
+
+A Web non-Mermaid code fence keeps one surface, wrap control and scroller while
+streaming and closing. Completion cannot remove a focused control or reset local
+horizontal scrolling. Open code stays plain; only a complete fence enables
+copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
+presentation without changing the canonical source or replacing the surface.

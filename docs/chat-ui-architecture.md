@@ -718,7 +718,11 @@ and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
 until a complete fence is present and caps tokenization at 12,000 characters;
 larger or still-streaming fences remain plain text. Highlighting is presentation
-only and never changes the copied code or Timeline content.
+only and never changes the copied code or Timeline content. Web assigns one code-surface owner to each
+non-Mermaid fence from its first streamed bytes through completion. Closing the
+fence enables near-viewport highlighting and complete-only copy/SVG preview
+without replacing the surface, wrap control or scroller, retaining focus and
+local horizontal position. Open fences remain plain text.
 
 Complete Mermaid fences share Web's source preparation rule. Native reads a
 bundled, offline renderer only when a diagram is present and runs it inside a
