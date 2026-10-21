@@ -1,5 +1,5 @@
-import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 #!/usr/bin/env node
+import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";

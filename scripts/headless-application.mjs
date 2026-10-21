@@ -1,5 +1,5 @@
-import { RemoteBrowserService } from './remote-browser-service.mjs';
 #!/usr/bin/env node
+import { RemoteBrowserService } from './remote-browser-service.mjs';
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";

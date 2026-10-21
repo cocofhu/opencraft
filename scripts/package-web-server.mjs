@@ -1,5 +1,5 @@
-import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 #!/usr/bin/env node
+import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 import { optimizeWebImages } from './optimize-web-images.mjs';
 import { packageWebResources, copyPdfLicenses } from './package-web-resources.mjs';
 import { mkdir, readFile, writeFile, cp, rm, chmod } from 'node:fs/promises';
