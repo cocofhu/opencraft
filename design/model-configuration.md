@@ -66,6 +66,17 @@ Only explicit choices on the new-conversation page immediately update personal m
 
 Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
 
+## 会话模型的首帧展示
+
+已有会话的模型与推理档位先从该会话 execution 快照或当前 Composer 的显式选择展示，
+不等待完整模型目录。未知模型显示中性入口，未知档位不显示默认档位；不能借用个人、
+Host 或其他会话的默认来填充。已有 runtime/View 保留的会话快照可立即用于展示。
+相同 Host/runtime 已完成目录中的精确匹配模型元数据可复用显示名称，但只作为展示，
+不提供可选项、输入能力或提交授权；按会话隔离的目录与发送时服务端校验保持。
+历史会话不读取个人默认和新会话 config/read。目录刷新和分页在后台完成，失败保留
+已知会话配置；切换 Host/runtime 后不复用前一个所有者的展示元数据。
+
+
 ## 会话选择与产品目录
 
 Composer 的 `ModelSelectionPolicy` 显式区分三种模式：`user` 使用用户选择，

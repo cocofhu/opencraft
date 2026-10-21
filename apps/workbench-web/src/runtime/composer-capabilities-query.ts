@@ -40,7 +40,7 @@ export function composerCapabilitiesOptions(hostId: string, threadId: string | n
       // must never publish, even if the transport resolves much later.
       signal.throwIfAborted();
       for (const model of models) reasoningCapability(model.supportedReasoningEfforts.map(e=>e.reasoningEffort),model.defaultReasoningEffort);
-      return { models };
+      return { models, metadataReader: reader };
     },
   });
 }
@@ -56,3 +56,17 @@ export const changesComposerCapabilities = (method: string) => [
   "runtime/providers/reapply",
   "runtime/models/setEnabled", "runtime/models/delete", "runtime/settings/mutate",
 ].includes(method);
+
+/** Reuse completed metadata only within the same Host runtime. The scoped query
+ * remains the sole source of selectable choices and submission validation. */
+export function cachedComposerModelMetadata(client: QueryClient, hostId: string, reader: CapabilitiesReader): readonly Model[] {
+  const models = new Map<string, Model>();
+  const queries = client.getQueryCache().findAll({ queryKey: composerCapabilitiesKey(hostId) })
+    .filter(query => (query.state.data as { metadataReader?: CapabilitiesReader } | undefined)?.metadataReader === reader)
+    .sort((a, b) => a.state.dataUpdatedAt - b.state.dataUpdatedAt);
+  for (const query of queries) {
+    const data = query.state.data as { models: readonly Model[] };
+    for (const model of data.models) models.set(model.id, model);
+  }
+  return [...models.values()];
+}

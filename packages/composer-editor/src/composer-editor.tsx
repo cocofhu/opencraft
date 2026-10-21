@@ -172,6 +172,8 @@ export interface ComposerAgentModelGroup {
 export interface ComposerSelectionCatalog {
   readonly agentGroups?: readonly ComposerAgentModelGroup[];
   readonly models: readonly ComposerModelOption[];
+  /** Cached names/capabilities for the selected model only; never selectable choices. */
+  readonly displayModels?: readonly ComposerModelOption[];
   readonly permissionProfiles: readonly ComposerPermissionOption[];
   readonly isFetching?: boolean;
   readonly modelError?: string | null;
@@ -1019,18 +1021,28 @@ export const OpenCraftComposer = forwardRef<
     });
   }, [controller, composerSnapshot.draft.id, composerSnapshot.draft.target.type, newThreadDefaultPermission]);
   const catalogDefaultModel = resolveModelSelection(catalogModels, undefined);
+  const existingConversation = composerSnapshot.draft.target.type !== "new-thread";
   const selectedModelValue = modelDisplayOnly ? effectiveSelections?.model ?? null : modelSelectionPolicy === "host-default" ? catalogDefaultModel?.value ?? null :
     composerSnapshot.draft.selections.model ??
     effectiveSelections?.model ??
-    catalogDefaultModel?.value ??
+    (existingConversation ? null : catalogDefaultModel?.value) ??
     null;
-  const selectedModel = resolveModelSelection(catalogModels, selectedModelValue);
-  const selectedEffortValue = selectedModel ? resolveReasoningEffort(
+  const selectedModel = selectedModelValue === null && existingConversation ? null : resolveModelSelection(catalogModels, selectedModelValue);
+  // Execution snapshots and retained Composer intent paint without waiting for
+  // the complete selectable catalog. Cached metadata cannot grant capabilities.
+  const displayModel = selectedModel ?? (selectedModelValue === null ? null
+    : resolveModelSelection(selectionCatalog?.displayModels ?? [], selectedModelValue));
+  const requestedEffort = composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort;
+  const displayEffortValue = existingConversation ? requestedEffort ?? null : undefined;
+  const selectedEffortValue = existingConversation && requestedEffort == null ? null : selectedModel ? resolveReasoningEffort(
     reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),
     composerSnapshot.draft.selections.effort ?? effectiveSelections?.effort,
   ) ?? null : null;
   const requestedServiceTier = composerSnapshot.draft.selections.serviceTier !== undefined
     ? composerSnapshot.draft.selections.serviceTier : effectiveSelections?.serviceTier;
+  const displayFast = existingConversation
+    ? requestedServiceTier === "fast" || !!displayModel?.serviceTiers?.some(tier => tier.id === requestedServiceTier && tier.name.toLowerCase() === "fast")
+    : undefined;
   const selectedServiceTier = selectedModel?.serviceTiers?.some(tier => tier.id === requestedServiceTier)
     ? requestedServiceTier ?? null : null;
   // Null means inherit, including drafts saved by the former default option.
@@ -1308,8 +1320,8 @@ export const OpenCraftComposer = forwardRef<
             // Preserve an unavailable explicit choice so Runtime rejects it instead
             // of silently resolving the Host default model.
             model: selectedModel?.value ?? selectedModelValue,
-            ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedServiceTier } : {}),
-            ...(selectedModel ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
+            ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined ? { serviceTier: selectedModel ? selectedServiceTier : requestedServiceTier } : {}),
+            ...(selectedModel && (!existingConversation || requestedEffort != null) ? { effort: resolveReasoningEffort(reasoningCapability(selectedModel.efforts.map(e=>e.value),selectedModel.defaultEffort),intent.selections.effort ?? effectiveSelections?.effort) } : {}),
           } };
         }
       } catch {
@@ -1417,6 +1429,8 @@ export const OpenCraftComposer = forwardRef<
       selectedModel,
       selectedModelValue,
       requestedServiceTier,
+      requestedEffort,
+      existingConversation,
       selectedServiceTier,
       modelSelectionPolicy,
       modelDisplayOnly,
@@ -1953,29 +1967,28 @@ export const OpenCraftComposer = forwardRef<
   };
 
   const modelLabel =
-    selectedModel?.label ??
+    displayModel?.label ??
     (selectedModelValue === null
       ? intl.formatMessage({ id: "chat.model", defaultMessage: "Model" })
       : formatSelectionLabel(selectedModelValue));
   const compactSelectedModelLabel = compactModelLabel(modelLabel);
-  const selectedEffort =
-    selectedModel?.efforts.find(
-      (effort) => effort.value === selectedEffortValue,
-    ) ?? null;
+  const visibleEffortValue = existingConversation ? displayEffortValue : selectedEffortValue;
+  const selectedEffort = displayModel?.efforts.find(effort => effort.value === visibleEffortValue)
+    ?? (visibleEffortValue == null ? null : { value: visibleEffortValue, label: formatSelectionLabel(visibleEffortValue), description: null });
   const effortLabel =
     selectedEffort === null
-      ? selectedEffortValue === null
+      ? visibleEffortValue == null
         ? intl.formatMessage({
             id: "chat.reasoning",
             defaultMessage: "Reasoning",
           })
-        : formatSelectionLabel(selectedEffortValue)
+        : formatSelectionLabel(visibleEffortValue)
       : displayReasoningEffort(selectedEffort);
   const reasoningLabel = intl.formatMessage({
     id: "chat.reasoning",
     defaultMessage: "Reasoning",
   });
-  const intelligenceLabel = selectedModel?.efforts.length
+  const intelligenceLabel = visibleEffortValue != null
     ? `${modelLabel}, ${reasoningLabel}: ${effortLabel}`
     : modelLabel;
   const permissionsLabel = intl.formatMessage({ id: "composer.permissions", defaultMessage: "Permissions" });
@@ -2400,13 +2413,13 @@ export const OpenCraftComposer = forwardRef<
                 onOpenChange={changePicker("intelligence")} onSelect={selectModel} portalContainer={portalContainer}
                 focus={intelligenceFocus} /> : null}
               {!modelDisplayOnly && modelSelectionPolicy === "user" ? <ComposerModelPicker
-                label={compactSelectedModelLabel} modelLabel={modelLabel} fullLabel={intelligenceLabel} effortLabel={selectedModel?.efforts.length ? effortLabel : undefined}
+                label={compactSelectedModelLabel} modelLabel={modelLabel} fullLabel={intelligenceLabel} effortLabel={visibleEffortValue != null ? effortLabel : undefined}
                 disabled={disabled} open={openPicker === "intelligence"} onOpenChange={changePicker("intelligence")}
                 portalContainer={portalContainer} focus={intelligenceFocus}
                 efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
-                serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier}
+                serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier} displayFast={displayFast}
                 onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
-                effort={selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
+                effort={existingConversation ? displayEffortValue ?? null : selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);
                 }}>
@@ -2562,7 +2575,7 @@ export const OpenCraftComposer = forwardRef<
             </div>
           </div>
           <div ref={footerLayout.endRef} className="opencraft-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
-            {selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast")) ? (
+            {(displayFast ?? selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast"))) ? (
               <span className="opencraft-composer-collapsed-fast" role="img" aria-label="Fast">
                 <Zap size={15} fill="currentColor" aria-hidden="true" />
               </span>

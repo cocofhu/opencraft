@@ -7,7 +7,7 @@ import type { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focu
 
 /** Presentation only. Catalog, selection and remembered defaults retain their owners. */
 export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel, disabled, open, onOpenChange, portalContainer, focus,
-  efforts, effort, defaultEffort, onEffortChange, serviceTiers, serviceTier, onServiceTierChange, children }: {
+  efforts, effort, defaultEffort, onEffortChange, serviceTiers, serviceTier, displayFast, onServiceTierChange, children }: {
   readonly label: string;
   readonly modelLabel: string;
   readonly fullLabel: string;
@@ -23,6 +23,8 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
   readonly onEffortChange: (value: string) => void;
   readonly serviceTiers: readonly { readonly id: string; readonly name: string; readonly description: string }[];
   readonly serviceTier: string | null;
+  /** Snapshot indicator only; selectable tiers still come from the scoped catalog. */
+  readonly displayFast?: boolean;
   readonly onServiceTierChange: (value: string | null) => void;
   readonly children: ReactNode;
 }) {
@@ -39,7 +41,8 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
   const reasoningLabel = intl.formatMessage({ id: "chat.reasoning", defaultMessage: "Reasoning" });
   const fast = serviceTiers.find(tier => tier.id === "fast" || tier.name.toLowerCase() === "fast");
   const fastEnabled = !!fast && serviceTier === fast.id;
-  const triggerLabel = fastEnabled ? `${fullLabel} · ${fast.name}` : fullLabel;
+  const showFast = displayFast ?? fastEnabled;
+  const triggerLabel = showFast ? `${fullLabel} · ${fast?.name ?? "Fast"}` : fullLabel;
   const resetLabel = intl.formatMessage({ id: "composer.resetEffort", defaultMessage: "Reset reasoning to model default" });
   const canReset = defaultEffort !== null && effort !== defaultEffort && efforts.some(option => option.value === defaultEffort);
   const title = (current?: string) => (
@@ -81,7 +84,7 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
             <BrainCircuit className="opencraft-composer-mode__model-icon" size={16} aria-hidden="true" />
             <span className="opencraft-composer-mode__model-label">{label}</span>
             {effortLabel ? <span className="opencraft-composer-mode__effort-label">{effortLabel}</span> : null}
-            {fastEnabled ? <Zap className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label={fast.name} /> : null}
+            {showFast ? <Zap className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label={fast?.name ?? "Fast"} /> : null}
           </button>
         </DropdownMenu.Trigger>
       </div>
@@ -92,7 +95,7 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
               <DiscreteSlider key={JSON.stringify(efforts.map(option => option.value))} appearance="capsule"
                 renderValue={title} options={efforts} value={effort} label={reasoningLabel} unsetLabel={effortLabel ?? reasoningLabel}
                 preservePointerFocus={focus.preservesEditorFocus} onValueChange={onEffortChange} />
-          </div> : title()}
+          </div> : title(effortLabel)}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

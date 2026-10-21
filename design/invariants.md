@@ -1,5 +1,9 @@
 # 工作区不变量
 
+## Conversation model display continuity
+
+Existing conversation model and effort labels reflect its own execution or explicit draft choice before catalog hydration. Unknown settings never become a default effort. Completed model metadata may paint the matching label within one Host runtime, but cannot seed another Thread's selectable catalog or authorize submission. Historical views do not fetch new-conversation defaults.
+
 ## Internal projection metadata identity
 
 OpenCraft message projection writes use `__opencraft*` keys. The five exact

@@ -1196,6 +1196,7 @@ export function App({
   const composerSelectionCatalog = useMemo<ComposerSelectionCatalog>(
     () => ({
       models: projectComposerModelChoices(composerCatalog.models),
+      displayModels: projectComposerModelChoices(composerCatalog.displayModels),
       permissionProfiles: composerCatalog.permissionProfiles.map((rawProfile) => {
         const profile = rawProfile as OpenCraftPermissionProfile;
         return {
@@ -1243,6 +1244,7 @@ export function App({
       composerCatalog.rememberModelDefaults,
       composerCatalog.retryModels,
       composerCatalog.models,
+      composerCatalog.displayModels,
       composerCatalog.permissionProfileError,
       composerCatalog.permissionProfiles,
       supportsPermissionModes,
