@@ -504,7 +504,13 @@ metadata without removing a real `a/` or `b/` directory. Binary and mode-only
 sections remain zero-count files. Inside a hunk, lines beginning `+++` or `---`
 are changed code; only pre-hunk file headers are metadata. Repeated paths retain
 first-observed order and aggregate counts. Review indexes the same decoded paths;
-the original unified diff remains unchanged.
+the original unified diff remains unchanged. The shared review-line parser
+tracks the declared old/new hunk ranges. Within a hunk, `+++` and `---` remain
+changed code with source line numbers and intraline highlights. Completing a
+hunk or starting another file ends that numbering scope; file metadata and
+patch separators never acquire source line numbers or become collapsible
+unchanged code. Partial add/delete observations remain readable without
+invented line numbers.
 
 The aggregate is a **Turn-owned resource**, not an ordered transcript Item.
 `chat-runtime` passes `unifiedDiff` separately from source Items; `chat-core`

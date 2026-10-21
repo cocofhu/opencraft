@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import type { TurnDiffTimelineBlock } from "@opencraft/chat-core";
+import { TurnDiffReviewDialog } from "../../apps/workbench-web/src/components/conversation/turn-diff-review-dialog";
 import gitCases from "./turn-diff-git-cases.json";
 import { reviewDiffForFile } from "../../apps/workbench-web/src/components/conversation/turn-diff-review";
 import { Context } from "@deepseek-ai/cordis";
@@ -41,14 +43,20 @@ const timeline = projectTimeline({
     { id: "answer", type: "agentMessage", payload: { text: "Updated.", completed: true, phase: "final_answer" } },
   ] }],
 }, createDefaultTimelineProjectorRegistry());
-createIntlTestRoot(document.getElementById("root")!).render(
+function Fixture() {
+  const [review, setReview] = useState<{ block: TurnDiffTimelineBlock; path: string | null } | null>(null);
+  return (
   <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
     <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
       documentContext={{ conversationId: "diff-layout", hostId: "fixture", cwd: "/workspace", theme,
         onReviewTurnDiff: (block, path) => {
           document.documentElement.dataset.reviewPath = path ?? "";
           document.documentElement.dataset.reviewDiff = reviewDiffForFile(block.unifiedDiff, path ?? null);
+          if (new URLSearchParams(location.search).has("review")) setReview({ block, path: path ?? null });
         } }}
       onVisibleContentReady={() => { document.documentElement.dataset.conversationReady = "true"; }} />
-  </TimelineBlockRendererProvider>,
-);
+    {review !== null ? <TurnDiffReviewDialog block={review.block} initialPath={review.path} onClose={() => setReview(null)} /> : null}
+  </TimelineBlockRendererProvider>
+  );
+}
+createIntlTestRoot(document.getElementById("root")!).render(<Fixture />);
