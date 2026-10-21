@@ -55,7 +55,8 @@ async function emulateDevice(p, size, profile) {
     screenOrientation:{type:size.width > size.height?'landscapePrimary':'portraitPrimary',angle:size.width > size.height?90:0} });
   else await command('Emulation.clearDeviceMetricsOverride');
   await command('Emulation.setTouchEmulationEnabled', {enabled:touch,maxTouchPoints:1});
-  await command('Emulation.setEmitTouchEventsForMouse', {enabled:touch,configuration:mobile?'mobile':'desktop'});
+  // Electron's injected mouse events bypass Chromium's mouse-to-touch hook.
+  // The bounded input adapter below emits actual touch sequences instead.
   p.deviceConfigured = true;
 }
 function resize(p, input = {}) {
@@ -65,6 +66,8 @@ function resize(p, input = {}) {
   const operation = (p.viewportQueue ?? Promise.resolve()).then(async () => {
     if (p.closed) throw new Error('Browser page closed');
     if (size.width === p.width && size.height === p.height && profile === p.deviceProfile) return configuration(p);
+    await p.touchQueue;
+    if (p.touchActive) { await p.window.webContents.debugger.sendCommand('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]}); p.touchActive=false; }
     const previous = {width:p.width,height:p.height}, previousProfile = p.deviceProfile;
     p.reconfiguring = true; p.epoch++; p.inFlight = false; p.key = true;
     clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null;
@@ -239,7 +242,7 @@ async function command(message) {
   if (method === 'zoom') { const percent = Number(input.percent); if (!Number.isFinite(percent) || percent < 25 || percent > 500) throw new Error('Invalid zoom'); wc.setZoomFactor(percent / 100); return; }
   if (method === 'text') { if (typeof input.text !== 'string' || input.text.length > 10000) throw new Error('Invalid text'); activity(p); await wc.insertText(input.text); return; }
   if (method === 'input') {
-    const allowed = ['mouseMove','mouseDown','mouseUp','mouseWheel','keyDown','keyUp','char'];
+    const allowed = ['mouseMove','mouseDown','mouseUp','mouseWheel','keyDown','keyUp','char','touchCancel'];
     if (!allowed.includes(input.type)) throw new Error('Invalid input');
     if (input.type !== 'mouseMove') activity(p);
     // Copy the finite, typed input surface; no arbitrary Electron options.
@@ -248,6 +251,19 @@ async function command(message) {
     if (['left','right','middle'].includes(input.button)) event.button = input.button;
     if (typeof input.keyCode === 'string' && input.keyCode.length <= 64) event.keyCode = input.keyCode;
     if (Array.isArray(input.modifiers)) event.modifiers = input.modifiers.filter(v => ['shift','control','alt','meta','leftButtonDown'].includes(v));
+    if (p.deviceProfile !== 'desktop' && ['mouseMove','mouseDown','mouseUp','touchCancel'].includes(event.type) && (!event.button || event.button === 'left')) {
+      const operation = (p.touchQueue ?? Promise.resolve()).then(async () => {
+        if (p.closed) return;
+        const type = event.type === 'mouseDown' ? 'touchStart' : event.type === 'mouseMove' ? 'touchMove' : event.type === 'mouseUp' ? 'touchEnd' : 'touchCancel';
+        if (type !== 'touchStart' && !p.touchActive) return;
+        if (type === 'touchStart' && p.touchActive) await wc.debugger.sendCommand('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+        p.touchActive = type === 'touchStart' || type === 'touchMove';
+        await wc.debugger.sendCommand('Input.dispatchTouchEvent', {type,touchPoints:p.touchActive?[{x:event.x,y:event.y,id:0,radiusX:1,radiusY:1,force:1}]:[]});
+      });
+      p.touchQueue = operation.catch(() => {});
+      return operation;
+    }
+    if (event.type === 'touchCancel') return;
     wc.sendInputEvent(event); return;
   }
   if (method === 'automation') { activity(p); return automation(p, input.method, input.input); }

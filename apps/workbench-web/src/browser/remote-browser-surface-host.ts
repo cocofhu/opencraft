@@ -234,6 +234,8 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     listen('pointerdown', (event: PointerEvent) => { event.preventDefault(); canvas.focus(); canvas.setPointerCapture(event.pointerId);
       send({ type: 'mouseDown', ...point(event), button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); });
     listen('pointerup', (event: PointerEvent) => { send({ type: 'mouseUp', ...point(event), button: ['left','middle','right'][event.button], clickCount: event.detail || 1, modifiers: modifiers(event) }); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); });
+    listen('pointercancel', () => { move = null; send({ type: 'touchCancel' }); });
+    listen('lostpointercapture', () => { move = null; send({ type: 'touchCancel' }); });
     listen('contextmenu', event => event.preventDefault());
     listen('wheel', (event: WheelEvent) => { event.preventDefault(); send({ type: 'mouseWheel', ...point(event), deltaX: -event.deltaX, deltaY: -event.deltaY, modifiers: modifiers(event) }); }, { passive: false });
     let composing = false;
