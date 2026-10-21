@@ -52,8 +52,21 @@ try {
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);
     assert.deepEqual(await actions(), [{ type: "accept-elicitation", content: { tags: ["fast"] } }]);
-    await show("tool");
+    await show("multiline");
     const approval = page.locator(".thread-mcp-tool-approval");
+    const steps = approval.locator("dd > span");
+    const expectedSteps = Array.from({ length: 35 }, (_, index) => String(index + 1)).join("\n");
+    const collapsed = await steps.boundingBox();
+    assert.ok(collapsed && collapsed.height <= 80, "short multiline preview stays within four lines");
+    await approval.getByRole("button", { name: "Expand steps", exact: true }).click();
+    assert.equal(await steps.innerText(), expectedSteps);
+    const expanded = await steps.boundingBox();
+    assert.ok(expanded && expanded.height > collapsed.height * 4, "all multiline content becomes readable");
+    await approval.getByRole("button", { name: "Collapse steps", exact: true }).click();
+    assert.ok((await steps.boundingBox())!.height <= 80);
+    assert.deepEqual(await actions(), []);
+    await page.screenshot({ path: `/tmp/opencraft-mcp-multiline-${width}.png`, fullPage: true });
+    await show("tool");
     assert.equal(await approval.getAttribute("data-risk-level"), "high");
     await approval.getByRole("button", { name: "Expand payload", exact: true }).click();
     assert.match(await approval.locator('[data-expanded="true"]').innerText(), /x{140}/);
@@ -112,5 +125,5 @@ try {
     await page.close();
   }
   assert.deepEqual(errors, []);
-  console.log("PASS: real MCP interaction panel at 390/1200px; validation, typed and required anyOf form submit, browser-origin once/session/always/deny, risk, JSON expansion, persistence, setup handoffs, connector auth and generic URL actions");
+  console.log("PASS: real MCP interaction panel at 390/1200px; validation, typed and required anyOf form submit, browser-origin once/session/always/deny, risk, short multiline/JSON expansion, persistence, setup handoffs, connector auth and generic URL actions");
 } finally { await browser?.close(); await vite.close(); }

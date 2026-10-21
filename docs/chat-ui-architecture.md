@@ -2337,3 +2337,12 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+### MCP approval multiline parameters
+
+Approval string values become expandable above 120 characters or four newline-separated
+lines. The initial text preview stays at four lines; Expand reveals the original value
+and Collapse restores the compact view without submitting an approval. The shared
+chat-core presentation helper owns this policy. Short multiline text must not stretch
+the approval card merely because its character count remains below the threshold.
+The existing elicitation tests, fixture and smoke exercise this boundary.
