@@ -1,4 +1,4 @@
-@use "./controls.web" as controls;
+@use "./interaction-mixins.web" as controls;
 @use "./typography.web" as typography;
 
 // The media adapter owns scale/input; this primitive only fits the aperture
