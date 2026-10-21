@@ -1767,7 +1767,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     @include icons.goal-motion;
   }
 
-  &.is-ready.is-unread,
+  &.is-ready.is-unread { background: var(--color-icon-accent); }
   &.is-review,
   &.is-error { background: var(--color-text-tertiary); }
   &.is-running,
