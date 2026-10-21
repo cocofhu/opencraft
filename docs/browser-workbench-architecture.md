@@ -86,6 +86,24 @@ OpenCraft 也不采用“整个 Renderer 只能有一个 Cordis Context”的全
 > 每个物理资源只有一个生命周期所有者；一个 `ApplicationSupervisor` 显式拥有多个
 > 生命周期域，每个域可以使用自己的 Cordis Context/Fiber。
 
+### 原生远程编辑运行时
+
+自有 Electron 源码定义与补丁由 [vendor/electron](../vendor/electron/README.md)
+持有。首个补丁恢复 OSR 的 Chromium 文本状态管线，并提供只读原生选区、组合范围和
+光标几何查询；它不是原子快照，不包含输入授权或跨文档唯一编辑身份，当前发行包
+尚未消费此 fork。缺失的几何保持不可用，不由 DOM 或控件边缘推测。
+
+第二个补丁是测试用途的原生目标绑定实验：通过每 frame 的 Mojo 通道取得单次
+context token，在 renderer 内校验文档、焦点代次、组合代次和原生编辑快照，再调用
+Chromium 的组合/提交/取消。Blink 编辑路径中的 scoped guard 在网站同步事件回调后
+复核原始焦点和编辑根；取消还要求属于本轮创建的组合会话。不把已发生的网站脚本
+副作用描述为可回滚，不将 renderer 断连后的未知结果自动重试。详见 vendor README
+和 `probe-target-ime.cjs`；源码重放、原生编译与探针实测分别记录。
+
+后续输入桥接保持远端原生编辑器为正文唯一写入者，本地系统输入法拥有候选会话。
+严格目标绑定、焦点/文档代次、迟到提交/取消、原生客户端上下文、触摸及 DevTools
+共存需要独立运行验证；不能用源码重放成功替代真实编辑体验或权限验证。
+
 ## 2. 第一性原理
 
 ### 2.1 身份必须描述不随投影改变的事实
@@ -1259,6 +1277,7 @@ round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
 
+
 ## Linux Server 远程网页 Surface（2026-10-21）
 
 Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性启动独立进程；不渲染工作台 UI、不公开 CDP。支持 H.264 的客户端使用 RemoteBrowserSurfaceHost（安全上下文优先 WebCodecs，HTTP/其他客户端使用原生 MSE），现有 Tab、Page、Presentation manager、BrowserDynamicToolHost 与线程归属检查保持；普通 Web iframe 与桌面原生 guest 继续使用原适配。渲染地点固定为所连 Server，不因 Thread 的执行 Host 或 SSH Host 改变。远程网页直接访问该 Server 的网络；不把 SSH loopback 代理 URL 交给另一个执行地点。
@@ -1290,3 +1309,22 @@ recovery record. A worker restart recreates the tab from the saved URL and
 configuration using its persistent partition. In-memory selection, scroll,
 forms, navigation history and JavaScript heap are preserved only while that
 WebContents remains alive.
+
+### Local menus and remote selection boundary
+
+Remote selection and editing remain Chromium-owned. Context menus belong to
+the client presentation: an Electron client may use a native Menu, while a
+Web client renders its own local menu. A video surface does not supply the
+mobile OS text-selection menu. Menu availability comes from the remote native
+context, and commands must validate their page, document and target generation
+again when executed. Opening a local menu must not blur or reset the remote
+editor. Clipboard results must be scoped to the requesting browser session,
+then written to the client clipboard under its user-gesture contract; the
+server's global OS clipboard is not a remote clipboard transport.
+
+This is the intended boundary, not an implemented capability. The current
+remote surface forwards mouse drag and click counts and accepts plain-text
+paste, but suppresses its local context menu and has no copy-back protocol.
+Native selection observation in the fork experiment does not provide these
+missing menu and clipboard operations.
+

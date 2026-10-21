@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/electron/electron.git",
+  "tag": "v44.8.0",
+  "version": "44.8.0",
+  "revision": "60169b45c12488c6fda237af7f6425526a7ce5f0",
+  "chromiumVersion": "152.0.7977.167",
+  "patchDate": "2026-10-21T06:00:00Z",
+  "patches": [
+    {
+      "path": "patches/electron/0001-observe-native-text-input-state.patch",
+      "sha256": "6803467eb8ecd7300b21ba4f50cc31705770b4c5d1b44e2f07ddd25f7d37c7f4"
+    },
+    {
+      "path": "patches/electron/0002-target-bound-native-ime-poc.patch",
+      "sha256": "619b46df7b1d5e4d06169346e387b424a5ce7882b6b43f61fbb3381c45ef129f"
+    }
+  ]
+}
