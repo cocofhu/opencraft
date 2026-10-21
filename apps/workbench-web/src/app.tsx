@@ -2035,7 +2035,7 @@ export function App({
                     onReviewTurnDiff: openTurnDiffReview,
                     composerChangeSummaryTurnId: snapshot.conversation?.activeTurn?.turnId ?? null,
                     onForkTurn: !showingDisplayCache && snapshot.conversation?.authoritative === true
-                      && activeThreadId !== null && hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId).fork
+                      && activeThreadId !== null && hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
                       ? turnId => forkAndOpenThread({
                           routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
                           fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId, turnId),
