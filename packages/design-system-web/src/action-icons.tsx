@@ -1,4 +1,4 @@
-import type { ReactNode, SVGProps } from "react";
+import React, { type ReactNode, type SVGProps } from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
 
 interface ActionIconProps extends Omit<SVGProps<SVGSVGElement>, "children" | "width" | "height"> {
