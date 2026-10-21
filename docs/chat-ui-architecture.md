@@ -49,7 +49,7 @@ local time zone: today shows hours/minutes, the preceding six calendar days add
 the weekday, and other days add month/day. Calendar-day comparison survives DST.
 Both roles use an unpadded numeric hour and a two-digit minute; the locale owns
 the hour cycle. A full localized date/time with zone is available in the title,
-while `datetime` preserves the original instant. Formatting uses the browser default local zone directly, rather than feeding its resolved name back as an explicit zone: some runtimes report `Etc/Unknown` while default local formatting still works. Missing or invalid values render
+while `datetime` preserves the original instant. Known local zone names remain explicit so the shared Intl cache follows local-zone changes. When a runtime reports `Etc/Unknown`, leave the zone unspecified: native default local formatting still works, but feeding that unknown name back as an explicit zone fails. Missing or invalid values render
 no clock. Existing always-visible timestamps, action disclosure and alignment
 remain independent; this view never derives or persists a replacement time.
 

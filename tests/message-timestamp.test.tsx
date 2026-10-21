@@ -71,3 +71,18 @@ test("unknown resolved zone names retain the viewer's native local clock", t => 
     assert.equal(label(render(instant, "zh-CN", assistant)), "14:33");
   }
 });
+
+
+test("a shared application formatter follows changes of the viewer's local zone", t => {
+  freeze(t, "2026-10-21T15:00:00+08:00");
+  const intl = createIntl({ locale: "en-US", messages: {} });
+  const instant = Date.parse("2026-10-21T14:33:00+08:00");
+  for (const zone of ["Asia/Shanghai", "America/New_York"]) {
+    process.env.TZ = zone;
+    const expected = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(instant);
+    for (const assistant of [false, true]) {
+      const html = renderToStaticMarkup(<RawIntlProvider value={intl}><MessageTimestamp sentAtMs={instant} assistant={assistant} /></RawIntlProvider>);
+      assert.equal(label(html), expected);
+    }
+  }
+});
