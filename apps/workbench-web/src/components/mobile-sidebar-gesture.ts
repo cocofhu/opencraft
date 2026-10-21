@@ -1,6 +1,7 @@
 /** Swipe right to reveal the left sidebar; swipe left to dismiss. */
 export const MOBILE_SIDEBAR_REVEAL_DIRECTION = 1;
 export const MOBILE_SIDEBAR_EDGE_RESERVE = 24;
+export const MOBILE_GESTURE_DEADZONE = 8;
 // A visible front-page strip remains large enough to dismiss by touch.
 export const MOBILE_SIDEBAR_PAGE_PEEK = 64;
 
@@ -10,7 +11,7 @@ export function mobileSidebarWidth(viewportWidth: number, savedWidth: number): n
 }
 
 export function sidebarGestureAxis(dx: number, dy: number): "pending" | "horizontal" | "vertical" {
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return "pending";
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < MOBILE_GESTURE_DEADZONE) return "pending";
   if (Math.abs(dx) > Math.abs(dy) * 1.25) return "horizontal";
   if (Math.abs(dy) > Math.abs(dx) * 1.25) return "vertical";
   return "pending";
@@ -48,8 +49,8 @@ export function sidebarReleaseVelocity(samples: readonly GestureSample[], x: num
 
 /** Only pending contacts compete. A committed owner keeps the contact on reversal. */
 export function arbitrateMobileGesture(input: {
-  owner: MobileGestureOwner; dx: number; dy: number; elapsed: number; velocity: number;
-  sidebarAllowed: boolean; initiallyOpen: boolean; horizontalContent: boolean; contentCanScroll: boolean;
+  owner: MobileGestureOwner; dx: number; dy: number; elapsed: number; velocity: number | null;
+  sidebarAllowed: boolean; initiallyOpen: boolean; horizontalContent: boolean; contentCanScroll: boolean; ended?: boolean;
 }): MobileGestureOwner {
   if (input.owner !== "pending") return input.owner;
   const { dx, dy } = input;
@@ -60,6 +61,10 @@ export function arbitrateMobileGesture(input: {
     return input.horizontalContent ? "content" : "native";
   }
   if (!input.horizontalContent || !input.contentCanScroll) return "sidebar";
+  if (input.ended) return "content";
+  // A rested contact can deliver its first movement as a coalesced sample.
+  // Wait for a timed motion segment instead of treating missing speed as slow.
+  if (input.velocity === null) return "pending";
   const policy = MOBILE_GESTURE_COMPETITION;
   if (Math.abs(dx) >= policy.distance && input.elapsed <= policy.decisionWindow
     && Math.abs(dx) >= Math.abs(dy) * policy.directionRatio

@@ -166,6 +166,37 @@ try {
         assert.equal(await locator.evaluate((node: HTMLElement) => getComputedStyle(node).touchAction), 'pan-y pinch-zoom');
         return {x,y,left:await locator.evaluate((node: HTMLElement) => node.scrollLeft)};
       };
+      if (process.env.OPENCRAFT_GESTURE_REST_PROBE === '1') {
+        const scenes=[];
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) for (const rest of [0,180]) {
+          const scroller=page.locator('[data-gesture-rich] '+selector);
+          const p=await at(scroller);const t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);
+          if(rest) await page.waitForTimeout(rest);
+          for (const [i,dx] of [15,25,50,180].entries()) {
+            await touch('touchMove',p.x+dx,p.y+1,false,t+rest/1000+.02*(i+1));
+            await page.waitForTimeout(20);
+          }
+          const trace=await page.evaluate(()=>(window as any).touchReceipts);
+          await writeFile(`${output}/${theme}-${reducedMotion}-${selector.slice(1)}-${rest}-trace.json`,JSON.stringify({trace,left:await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),row:await row.boundingBox()},null,2));
+          assert.ok((await row.boundingBox())!.x>100,'small initial samples and a rested contact must still reveal sidebar');
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left,'pending reservation never writes content');
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,rest,sidebar:true,contentStable:true});
+        }
+        for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller);
+          await touch('touchStart',p.x,p.y);await page.waitForTimeout(180);
+          await touch('touchMove',p.x+35,p.y+1);await page.waitForTimeout(20);
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left);
+          await touch('touchEnd');await settle();await closed();
+          assert.ok(Math.abs((await scroller.evaluate((e:HTMLElement)=>e.scrollLeft))-(p.left-35))<2,'a single motion sample finishes as local reading');
+          scenes.push({selector,singleSampleReading:true});
+        }
+        assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
+        assert.deepEqual(errors,[]);evidence.push({theme,reducedMotion,earlySamples:scenes});
+        await context.close();continue;
+      }
       for (const selector of ['.chat-code-block__scroller','.chat-table-scroller']) {
         const scroller = page.locator('[data-gesture-rich] '+selector);
         const p = await at(scroller);
@@ -180,6 +211,7 @@ try {
 
         const slow = await at(scroller);
         await touch('touchStart',slow.x,slow.y); await page.waitForTimeout(125);
+        await touch('touchMove',slow.x+25,slow.y); await page.waitForTimeout(100);
         await touch('touchMove',slow.x+35,slow.y); await page.waitForTimeout(30);
         const localLeft = await scroller.evaluate((node: HTMLElement)=>node.scrollLeft);
         assert.ok(Math.abs(localLeft-(slow.left-35))<2,'slow drag scrolls the same content');

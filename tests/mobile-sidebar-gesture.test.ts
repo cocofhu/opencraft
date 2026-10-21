@@ -21,6 +21,14 @@ test("a deliberate fast horizontal drag wins before rich content starts scrollin
   assert.equal(arbitrateMobileGesture({ ...competingContact, dy: 20 }), "content");
 });
 
+test("rested contacts wait for measured motion instead of being classified as slow", () => {
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: null }), "pending");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, elapsed: 20, velocity: 1.25 }), "sidebar");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: null, dx: 2, dy: 35 }), "native");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: null, contentCanScroll: false }), "sidebar");
+  assert.equal(arbitrateMobileGesture({ ...competingContact, velocity: null, ended: true }), "content");
+});
+
 test("slow or late intent commits to content and cannot become navigation later", () => {
   const slow = { ...competingContact, dx: 18, elapsed: 110, velocity: 0.15 };
   const owner = arbitrateMobileGesture(slow);

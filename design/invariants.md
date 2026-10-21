@@ -443,8 +443,15 @@ enabled mobile Shell, the existing touch controller arbitrates one contact:
 `pending → sidebar | content | native`. Ambiguous diagonals remain pending;
 committed ownership never changes on reversal or later acceleration. A competing
 sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
-horizontal/vertical ratio 1.8 within 100ms; speed is averaged over the last 80ms.
-A slow horizontal contact commits to content by 100ms or 28px. A scrollport already
+horizontal/vertical ratio 1.8 within 100ms of meaningful movement; speed is
+averaged over the last 80ms. Stationary contact time does not consume this window.
+After a rested first sample, speed is unknown until the next timed motion segment.
+A slow horizontal contact with measured speed commits to content by 100ms of
+movement or 28px. Pending, direction-locked horizontal contacts in registered
+scrollports prevent native takeover without moving either surface; vertical and
+ambiguous input remain available to the browser. A one-sample horizontal contact
+finishes as local reading on release rather than disappearing or synthesizing a
+click. A scrollport already
 at the requested boundary can yield to the ordinary sidebar threshold. These are
 initial tuning values, not physical-device or universal platform constants.
 The mobile Shell sets `touch-action: pan-y pinch-zoom` only for these declared

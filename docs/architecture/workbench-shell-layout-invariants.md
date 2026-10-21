@@ -133,7 +133,7 @@ foreground dialogs, media and unregistered horizontal owners remain exclusive.
 The [mobile gesture contract](../../design/invariants.md#mobile-sidebar-gestures)
 owns thresholds and lifecycle details. Touch-action is scoped to enabled mobile
 Shells and declared inline scrollports; native vertical input, pinch zoom,
-keyboard/wheel and non-mobile/standalone presentation remain available. Native
+keyboard/wheel and non-mobile/standalone presentation remain available. Pending horizontal recognition reserves the cancelable stream before its movement owner commits; the decision clock starts at meaningful motion, excluding stationary contact time. Unknown speed waits for a timed segment. Native
 scroll acquisition, multi-touch, detached content and foreground layers revoke
 pending input rather than creating two movement writers.
 
