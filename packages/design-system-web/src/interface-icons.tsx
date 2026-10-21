@@ -90,7 +90,7 @@ export const PaletteIcon = glyph("palette", <><path d="M12 4a8 8 0 1 0 2.8 15.5c
 export const BellIcon = glyph("bell", <path d="M7 10a5 5 0 0 1 10 0c0 5 2 5.5 2 7H5c0-1.5 2-2 2-7Zm3 10h4M12 3.5V5" />);
 export const PinIcon = glyph("pin", <path d="M9 4.5h9m-7 0v5l-5 4.5h8.5l.5-4.5 3-5M10 14l-5 6" />);
 export const PinOffIcon = glyph("pin-off", <path d="M11 4.5h7l-3 5-.2 1.5M8 8v1.5L5 14h8M10 14l-5 6M4 4l16 16" />);
-export const GripIcon = glyph("grip", <><circle cx="9" cy="6" r="0.8" fill="currentColor" stroke="none" /><circle cx="15" cy="6" r="0.8" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="0.8" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="0.8" fill="currentColor" stroke="none" /><circle cx="9" cy="18" r="0.8" fill="currentColor" stroke="none" /><circle cx="15" cy="18" r="0.8" fill="currentColor" stroke="none" /></>);
+export const GripIcon = glyph("grip", <><circle cx="9" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="6" r="1.2" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="9" cy="18" r="1.2" fill="currentColor" stroke="none" /><circle cx="15" cy="18" r="1.2" fill="currentColor" stroke="none" /></>);
 export const LoginIcon = glyph("login", <path d="M14 4.5h3a2.5 2.5 0 0 1 2.5 2.5v10a2.5 2.5 0 0 1-2.5 2.5h-3M4.5 12h10M10 7.5l4.5 4.5-4.5 4.5" />);
 export const LogoutIcon = glyph("logout", <path d="M10 4.5H7A2.5 2.5 0 0 0 4.5 7v10A2.5 2.5 0 0 0 7 19.5h3M10 12h10m-4.5-4.5L20 12l-4.5 4.5" />);
 export const AtSignIcon = glyph("mention", <><circle cx="11.5" cy="12" r="3.25" /><path d="M14.75 8.75v5.75a2 2 0 0 0 4 0V12a7.25 7.25 0 1 0-5 6.9" /></>);

@@ -245,7 +245,7 @@ function SelectionMenuItemContent({
           className="opencraft-composer-selection-menu__trailing"
           aria-hidden="true"
         >
-          <Check size={16} strokeWidth={1.75} />
+          <Check size={16} />
         </span>
       ) : null}
     </>
@@ -2215,7 +2215,7 @@ export const OpenCraftComposer = forwardRef<
                 aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                 onClick={openAttachmentPicker}
               >
-                <Plus size={16} />
+                <Plus size={20} />
               </button>
             ) : (
               <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={(open) => {
@@ -2228,7 +2228,7 @@ export const OpenCraftComposer = forwardRef<
                     type="button"
                     aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                   >
-                    <Plus size={16} />
+                    <Plus size={20} />
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
@@ -2530,11 +2530,11 @@ export const OpenCraftComposer = forwardRef<
                         permissionTriggerTitle
                       }
                     >
-                      <PermissionShieldIcon size={14} />
+                      <PermissionShieldIcon size={18} />
                       <span className="opencraft-composer-mode__permission-label">
                         {permissionSelectionLabel}
                       </span>
-                      <ChevronDown size={12} />
+                      <ChevronDown size={14} />
                     </button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal container={portalContainer}>

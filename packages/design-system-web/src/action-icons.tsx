@@ -52,7 +52,7 @@ export function PermissionShieldIcon(props: ActionIconProps) {
 
 /** The same gear is used by Shell, account menus and settings contributions. */
 export function SettingsGearIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="settings">
+  return <ActionGlyph strokeWidth={1.5} {...props} kind="settings">
     <path d="M8.93 5.58 Q9.21 5.42 9.34 5.01 L9.82 3.54 Q9.95 3.13 10.69 3.13 L13.31 3.13 Q14.05 3.13 14.18 3.54 L14.66 5.01 Q14.79 5.42 15.07 5.58 L16.03 6.13 Q16.30 6.29 16.73 6.20 L18.23 5.88 Q18.66 5.79 19.02 6.43 L20.33 8.70 Q20.70 9.34 20.41 9.66 L19.39 10.81 Q19.10 11.13 19.10 11.44 L19.10 12.56 Q19.10 12.87 19.39 13.19 L20.41 14.34 Q20.70 14.66 20.33 15.30 L19.02 17.57 Q18.66 18.21 18.23 18.12 L16.73 17.80 Q16.30 17.71 16.03 17.87 L15.07 18.42 Q14.79 18.58 14.66 18.99 L14.18 20.46 Q14.05 20.87 13.31 20.87 L10.69 20.87 Q9.95 20.87 9.82 20.46 L9.34 18.99 Q9.21 18.58 8.93 18.42 L7.97 17.87 Q7.70 17.71 7.27 17.80 L5.77 18.12 Q5.34 18.21 4.98 17.57 L3.67 15.30 Q3.30 14.66 3.59 14.34 L4.61 13.19 Q4.90 12.87 4.90 12.56 L4.90 11.44 Q4.90 11.13 4.61 10.81 L3.59 9.66 Q3.30 9.34 3.67 8.70 L4.98 6.43 Q5.34 5.79 5.77 5.88 L7.27 6.20 Q7.70 6.29 7.97 6.13Z" />
     <circle cx="12" cy="12" r="3.1" />
   </ActionGlyph>;
@@ -106,7 +106,7 @@ export function DeleteIcon(props: ActionIconProps) {
 }
 
 export function MoreIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="more"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="more"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" /></ActionGlyph>;
 }
 
 export function AddIcon(props: ActionIconProps) {

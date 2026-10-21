@@ -6,7 +6,7 @@ export interface ActionIconProps extends Omit<SVGProps<SVGSVGElement>, "children
   readonly "aria-label"?: string;
 }
 
-export function ActionGlyph({ size = 20, strokeWidth = 1.5, className, "aria-label": label, kind, children, ...attributes }: ActionIconProps & {
+export function ActionGlyph({ size = 20, strokeWidth = 2, className, "aria-label": label, kind, children, ...attributes }: ActionIconProps & {
   readonly kind: string;
   readonly children: ReactNode;
 }) {

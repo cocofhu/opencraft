@@ -14,7 +14,7 @@ These are action glyphs, not provider logos or activity rows.
 Existing control owners retain geometry: the microphone uses the shared
 `ui-composer-input-icon` token (20px normally, 24px on touch), with the existing
 44px touch target. Model/menu/compact glyphs retain their respective slots and
-labels. The 24-unit SVG artwork uses 1.5-unit round strokes and `currentColor`;
+labels. The 24-unit action SVG artwork uses 2-unit round strokes and `currentColor`;
 small markers and larger touch controls remain optically appropriate to their role.
 Do not import the process rail into input controls or reduce the microphone's
 existing touch size to make all outer canvases identical.
@@ -149,3 +149,26 @@ The design-system CSS radio marker is already centrally owned. Browser audio and
 video controls remain platform UI; changing those requires a complete accessible
 media control owner rather than replacing isolated icons. These explicit limits
 and forced-colors native fallbacks are not general Web icon exceptions.
+
+
+Common interface glyphs need a consistent optical weight at their actual size.
+`ActionGlyph` owns a 2-unit rounded stroke for actions, files, alerts, devices,
+menus and navigation. Outline navigation uses the same weight in both its token
+and Web adapter. Consumers must not restore a thinner stroke in feature CSS;
+image, table, Mermaid, citation and native-control adapters inherit the shared
+artwork. Semantic selected-state weights still belong to navigation.
+
+Filled marks need area rather than stroke: the three More dots use 1.5-unit
+radii and grip dots use 1.2-unit radii, so 14/16px controls remain legible. Keep
+their existing centers, slot, color and callbacks. Composer uses a 20px add
+glyph, an 18px permission shield and a 14px permission chevron within existing
+targets. The scroll-to-bottom arrow uses a 2-unit stroke; touch scales its canvas
+to 23px without a separate hairline override.
+
+The explicitly retained sidebar/split artwork and settings gear keep their
+existing geometry and weight; the gear explicitly retains 1.5 units. Activity
+rails retain their calibrated 1.2px effective stroke, and loading rings retain
+shared progress geometry. These are separate semantic owners, not feature-level
+thin overrides. Collaboration numerals keep their existing font. Review the
+whole family at 14/16/20/24px in both themes, including compound glyphs and dots;
+then inspect real sidebar menus, Composer, content toolbars and disabled states.

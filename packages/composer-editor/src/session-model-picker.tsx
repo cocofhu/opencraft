@@ -78,7 +78,7 @@ export function SessionModelPicker({ catalog, label, selected, disabled, open, o
                   <span className="opencraft-composer-selection-menu__copy"><span className="opencraft-composer-selection-menu__label"><span className="opencraft-composer-model-label-with-role">
                     <span className="opencraft-composer-model-label-with-role__name">{model.label}</span>
                     {model.configuredRole === "fallback" ? <span className="opencraft-composer-model-role" data-role="fallback"><FormattedMessage id="composer.model.fallbackShort" defaultMessage="Backup" /></span> : null}
-                  </span></span></span>{isSelected ? <span className="opencraft-composer-selection-menu__trailing" aria-hidden="true"><Check size={16} strokeWidth={1.75} /></span> : null}
+                  </span></span></span>{isSelected ? <span className="opencraft-composer-selection-menu__trailing" aria-hidden="true"><Check size={16} /></span> : null}
                 </DropdownMenu.Item>;
               });
               return group.label === null ? <Fragment key={group.key}>{items}</Fragment> : <DropdownMenu.Group key={group.key}>

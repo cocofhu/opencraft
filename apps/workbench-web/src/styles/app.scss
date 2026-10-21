@@ -3021,7 +3021,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.5;
     color: var(--color-text-secondary);
     pointer-events: none;
     transform: translateY(-50%);
@@ -12146,7 +12145,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     width: var(--size-transcript-float-icon-touch);
     height: var(--size-transcript-float-icon-touch);
     stroke: currentColor;
-    stroke-width: var(--width-transcript-float-icon-touch);
     stroke-linejoin: round;
   }
   .thread-scroll-to-bottom-button__dot {

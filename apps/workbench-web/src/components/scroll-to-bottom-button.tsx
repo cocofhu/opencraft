@@ -30,7 +30,7 @@ export function ScrollToBottomButton({
           <i className="thread-scroll-to-bottom-button__dot" />
           <i className="thread-scroll-to-bottom-button__dot" />
         </span>
-      ) : <ArrowUpIcon size={20} className="thread-scroll-to-bottom-button__icon" />}
+      ) : <ArrowUpIcon size={20} strokeWidth={2} className="thread-scroll-to-bottom-button__icon" />}
     </button>
   );
 }

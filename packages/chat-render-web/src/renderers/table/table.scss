@@ -132,7 +132,7 @@
 .chat-table-actions button:hover,
 .chat-table-preview__toolbar button:hover { color: var(--text-primary); background: var(--alpha-06); }
 .chat-table-actions svg,
-.chat-table-preview__toolbar svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
+.chat-table-preview__toolbar svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
 
 .chat-table-preview {
   width: min(920px, calc(100vw - 48px));
