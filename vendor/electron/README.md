@@ -68,6 +68,50 @@ replay, compilation and native probe are three different results. Real OS IME,
 OOPIF, scrolling/zoom, full editing consistency and touch/DevTools coexistence
 need subsequent native validation.
 
+## Target-bound native IME experiment
+
+`0002-target-bound-native-ime-poc.patch` adds two **experimental, testing-only**
+`WebFrameMain` methods, `getNativeImeContextForTesting()` and
+`applyNativeImeForTesting({ token, compositionId, type, text, selectionStart,
+selectionEnd })`. Types are `compose`, `commit`, and `cancel`; selection offsets
+are UTF-16 offsets within the supplied text. The native renderer returns an
+opaque, single-use context token, native ranges, and an owned composition ID.
+It keeps the native text snapshot private. This is a single-caller experiment
+with one outstanding context, not a production remote-input protocol.
+
+The operation checks the document, native focus generation (including A→B→A),
+native composition generation and native text/selection snapshot in the target
+renderer. A scoped Blink guard checks the original focused element and editable
+root again after synchronous website editing handlers. It never refocuses an
+old editor. Cancel requires the composition created by this experiment, in the
+same document and focus generation; an empty composition command without that
+ownership is rejected before it can delete selected text.
+
+The implementation uses Chromium's actual composition and editing paths. Page
+DOM access in `probe-target-ime.cjs` is fixture setup and assertion only. The
+experiment deliberately rejects passwords, EditContext and other unsupported
+editor types; these remain necessary work before claiming a general IME bridge.
+
+```sh
+vendor/electron/.work/src/out/OpenCraft/electron --no-sandbox \
+  vendor/electron/probe-target-ime.cjs
+```
+
+The probe covers native compose/commit, token replay, focus changes, A→B→A,
+selection changes, owned cancel, stale cancel, navigation, and synchronous
+`beforeinput`, `compositionstart`, legacy `textInput`, and `input` handlers.
+`dispatched: false` means no native edit was dispatched. A handler may modify
+the website, detach a frame or change focus during a dispatched operation;
+`dispatched: true` plus `target-changed-during-operation` does not promise rollback
+of website side effects. A renderer disconnect has an unknown outcome and must
+not be retried as an exactly-once operation.
+
+This patch does not implement surrounding-text/geometry updates, a controller
+lease, concurrent requests, a local macOS/Windows/Linux IME adapter, physical
+Chinese input testing, or multitouch. It does not modify graphics/compositing,
+streaming or the serving runtime. A clean patch replay is source evidence;
+native compilation and a passing native probe must be recorded separately.
+
 ## Verification and runtime adoption
 
 ```sh

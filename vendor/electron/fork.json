@@ -10,6 +10,10 @@
     {
       "path": "patches/electron/0001-observe-native-text-input-state.patch",
       "sha256": "6803467eb8ecd7300b21ba4f50cc31705770b4c5d1b44e2f07ddd25f7d37c7f4"
+    },
+    {
+      "path": "patches/electron/0002-target-bound-native-ime-poc.patch",
+      "sha256": "df522b606e5a1fc179da1e2f1da592cf1f70ed8766f4527a64607ff384280f36"
     }
   ]
 }
