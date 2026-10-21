@@ -170,6 +170,11 @@ forwarding callbacks from the offscreen header to its implementation file,
 retaining the original base-class calls and Chromium's non-inline virtual-method
 check. It does not add a production local IME adapter.
 
+`0008-service-worker-native-commands.patch` completes the renderer IPC interface
+for service workers. Workers have no frame/editor/selection, so native clipboard
+and IME context calls return unavailable; edit/copy commands return an explicit
+unsupported target with no dispatch. They do not read or write any clipboard.
+
 ## Verification and runtime adoption
 
 ```sh

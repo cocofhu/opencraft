@@ -34,6 +34,10 @@
     {
       "path": "patches/electron/0007-offscreen-input-callback-definitions.patch",
       "sha256": "0e7d3737500001c28f521567b6855d96243746ff86729a2eeb1e5b2f02a28297"
+    },
+    {
+      "path": "patches/electron/0008-service-worker-native-commands.patch",
+      "sha256": "c6a91c7d49907be56345b29c7b2bd06ed36b67333de4da6c9f1ca01830c542d9"
     }
   ]
 }
