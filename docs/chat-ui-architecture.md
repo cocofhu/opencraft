@@ -2326,3 +2326,13 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Code text selection
+
+The code text renderer snapshots native selection endpoints before an append or
+syntax-only DOM update and restores their text offsets afterwards. Preserve
+selection direction and endpoints outside the code, without moving focus or
+scrolling. A replacement that changes existing source does not restore stale
+offsets. Streaming completion and theme recoloring keep the reader's selection;
+source text, highlighting policy and the code surface keep their owners.

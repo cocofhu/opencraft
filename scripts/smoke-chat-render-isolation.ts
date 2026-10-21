@@ -118,12 +118,63 @@ try {
     assert.equal(await scroller!.evaluate((e: HTMLElement) => e.scrollLeft), scrollLeft, "Highlighting keeps local scroll");
     assert.ok(await toggle!.evaluate((e: Element) => e === document.activeElement), "Highlighting keeps control focus");
     assert.equal(await surface.locator("code").textContent(), appendedCode.slice("```js\n".length));
+    // The reader can select code before the stream finishes. Syntax colors
+    // must not erase that selection, including its backwards direction.
+    const selectableCode = "```ts\nconst selected = 42;\nconsole.log('你好🙂');";
+    await page.evaluate(source => (window as any).fixture.patch({ source }), selectableCode);
+    await surface.locator("code").filter({ hasText: "selected" }).waitFor();
+    await surface.locator("code").evaluate((element, backwards) => {
+      const text = element.firstChild!;
+      const start = element.textContent!.indexOf("selected");
+      window.getSelection()!.setBaseAndExtent(text, start + (backwards ? 8 : 0), text, start + (backwards ? 0 : 8));
+    }, width === 1280);
+    const selectionState = () => surface.locator("code").evaluate(element => {
+      const selection = window.getSelection()!;
+      const offset = (node: Node | null, position: number) => {
+        if (!node || !element.contains(node)) return null;
+        const range = document.createRange();
+        range.selectNodeContents(element); range.setEnd(node, position);
+        return range.toString().length;
+      };
+      return { text: selection.toString(), anchor: offset(selection.anchorNode, selection.anchorOffset), focus: offset(selection.focusNode, selection.focusOffset) };
+    });
+    const selected = await selectionState();
+    assert.equal(selected.text, "selected");
+    const selectionAppend = selectableCode + "\n// Additional streamed code";
+    await page.evaluate(source => (window as any).fixture.patch({ source }), selectionAppend);
+    assert.deepEqual(await selectionState(), selected, "Streaming append keeps code selection and direction");
+    await page.evaluate(source => { (window as any).events = []; (window as any).fixture.patch({ source }); }, selectionAppend + "\n```\n\nTrailing text.");
+    await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
+    assert.deepEqual(await selectionState(), selected, "Fence completion and highlight keep code selection");
+    await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "dark" }); });
+    await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
+    assert.deepEqual(await selectionState(), selected, "Theme recoloring keeps code selection");
+    const trailing = page.locator(".opencraft-chat-document p").filter({ hasText: "Trailing text." });
+    await trailing.evaluate(element => {
+      const text = document.createTreeWalker(element, NodeFilter.SHOW_TEXT).nextNode()!;
+      window.getSelection()!.setBaseAndExtent(text, 0, text, 8);
+    });
+    await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "light" }); });
+    await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
+    assert.equal(await page.evaluate(() => window.getSelection()!.toString()), "Trailing", "Recoloring does not steal a selection outside code");
+    const spanningSelection = await page.evaluate(() => {
+      const code = document.querySelector("figure.chat-code-block code")!;
+      const trailing = Array.from(document.querySelectorAll(".opencraft-chat-document p")).find(element => element.textContent === "Trailing text.")!;
+      const proseText = document.createTreeWalker(trailing, NodeFilter.SHOW_TEXT).nextNode()!;
+      const codeText = document.createTreeWalker(code, NodeFilter.SHOW_TEXT).nextNode()!;
+      window.getSelection()!.setBaseAndExtent(proseText, 8, codeText, 0);
+      return window.getSelection()!.toString();
+    });
+    await page.evaluate(() => { (window as any).events = []; (window as any).fixture.patch({ theme: "dark" }); });
+    await page.waitForFunction(() => (window as any).events.some((event: any) => event.reason === "code-highlight"));
+    assert.equal(await page.evaluate(() => window.getSelection()!.toString()), spanningSelection, "A selection spanning code and prose survives recoloring");
+    await page.evaluate(() => window.getSelection()!.removeAllRanges());
     await page.evaluate(() => (window as any).fixture.patch({ streaming: false, dialect: "user-message" }));
     assert.equal(await page.locator(".opencraft-chat-document").getAttribute("data-chat-document-dialect"), "user-message");
     assert.ok(await root!.evaluate((e: Element) => e.isConnected), "Document DOM remains mounted");
     assert.deepEqual(errors, []);
     await page.screenshot({ path: `${output}/${width}.png` });
-    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, domRetained: true, errors });
+    results.push({ width, unchanged, contextDelta, callbacks: [0, 1], mediaAndHighlight: true, themeOnly: true, fenceCompletionFocusAndScroll: true, codeSelectionContinuity: true, domRetained: true, errors });
     await context.close();
   }
   console.log(JSON.stringify({ passed: true, results }));
