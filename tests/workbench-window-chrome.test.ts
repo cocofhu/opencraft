@@ -260,3 +260,28 @@ test("macOS desktop uses a snapshot-safe focus-driven native surface", () => {
   assert.doesNotMatch(appShellHeader, /traffic-light-snapshot/u);
   assert.doesNotMatch(appStyles, /traffic-light-snapshot/u);
 });
+
+
+test("window chrome projection settles without rewriting observed identity", () => {
+  const writes: string[] = [];
+  const dataset = new Proxy({} as DOMStringMap, {
+    set(target, key, value) {
+      writes.push(String(key));
+      return Reflect.set(target, key, value);
+    },
+  });
+  const root = { dataset };
+  applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
+  assert.deepEqual(writes, ["opencraftWindowType", "codexOs"]);
+  writes.length = 0;
+  // MutationObserver callbacks and repeated resize events must reach a fixed point.
+  for (let index = 0; index < 20; index += 1) {
+    applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
+  }
+  assert.deepEqual(writes, []);
+  applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "darwin" });
+  assert.deepEqual(writes, ["opencraftWindowType"]);
+  writes.length = 0;
+  applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "win32" });
+  assert.deepEqual(writes, ["codexOs"]);
+});
