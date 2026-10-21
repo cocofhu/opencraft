@@ -1,3 +1,4 @@
+import { ComposerLightningIcon } from "@opencraft/design-system-web/composer-action-icons";
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
@@ -53,7 +54,6 @@ import {
   ShieldCheck,
   Sparkles,
   X,
-  Zap,
 } from "lucide-react";
 import {
   Fragment,
@@ -271,7 +271,7 @@ function SelectionMenuItemContent({
 
 function permissionMenuLeadingIcon(mode: ComposerPermissionOption["mode"]): ReactNode {
   if (mode === "full") {
-    return <Zap size={18} strokeWidth={1.65} />;
+    return <ComposerLightningIcon size={18} />;
   }
   if (mode === "read-only") {
     return <FileText size={18} strokeWidth={1.65} />;
@@ -2178,7 +2178,7 @@ export const OpenCraftComposer = forwardRef<
                 >
                   <span>
                     {suggestion.kind === "command" ? (
-                      <Zap size={15} />
+                      <ComposerLightningIcon size={15} />
                     ) : suggestion.kind === "skill" ? (
                       <SkillIcon source={suggestion.metadata?.iconSmallUrl ?? suggestion.metadata?.iconSmall} />
                     ) : (

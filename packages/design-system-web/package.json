@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./progress": "./src/progress.tsx",
-    "./discrete-slider": "./src/discrete-slider.tsx"
+    "./discrete-slider": "./src/discrete-slider.tsx",
+    "./composer-action-icons": "./src/composer-action-icons.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

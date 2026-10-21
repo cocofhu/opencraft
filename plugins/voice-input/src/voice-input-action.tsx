@@ -1,4 +1,4 @@
-import { Mic, MicOff } from "lucide-react";
+import { ComposerMicrophoneIcon } from "@opencraft/design-system-web/composer-action-icons";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { ComposerActionHost } from "@opencraft/extension-react";
@@ -266,9 +266,7 @@ export function createVoiceInputAction(provider: SpeechInputProvider) {
           start();
         }}
       >
-        {phase === "error"
-          ? <MicOff className="ui-composer-input-icon" aria-hidden="true" />
-          : <Mic className="ui-composer-input-icon" aria-hidden="true" />}
+        <ComposerMicrophoneIcon off={phase === "error"} className="ui-composer-input-icon" />
       </button>
     );
   };
