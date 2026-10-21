@@ -127,3 +127,66 @@ test('latest component response stays bounded across 10000 clients; probe/cache/
     assert(service.store.db.prepare('SELECT count(*) AS n FROM metrics').get().n<10000);
   }finally{await service.close();await rm(directory,{recursive:true,force:true});}
 });
+
+
+for (const capability of ['normal', 'no-randomUUID', 'no-crypto']) {
+  test(`client observation remains usable with ${capability}`, async () => {
+    const moduleUrl = new URL('../apps/workbench-web/src/runtime/observability.ts', import.meta.url).href;
+    const contractUrl = new URL('../packages/observability-contract/index.mjs', import.meta.url).href;
+    const source = `
+      import assert from 'node:assert/strict';
+      if (${JSON.stringify(capability)} === 'no-randomUUID') Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined });
+      if (${JSON.stringify(capability)} === 'no-crypto') Object.defineProperty(globalThis, 'crypto', { configurable: true, value: undefined });
+      const document = Object.assign(new EventTarget(), { visibilityState: 'visible', querySelector: () => null });
+      const window = new EventTarget();
+      Object.assign(globalThis, { document, window, PerformanceObserver: class { static supportedEntryTypes = []; } });
+      Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
+        now: () => 10, timeOrigin: Date.now() - 10,
+        getEntriesByType: () => [{ startTime: 0, type: 'navigate' }],
+      } });
+      const batches = [];
+      let capabilityReads = 0;
+      globalThis.fetch = async (url, options) => {
+        if (url.endsWith('/capabilities')) { capabilityReads++; return { ok: true, json: async () => ({ telemetry: true, available: false }) }; }
+        assert.equal(url, '/__opencraft_observe/events');
+        batches.push(JSON.parse(options.body).events);
+        return { ok: true };
+      };
+      const observation = await import(${JSON.stringify(moduleUrl)});
+      const disabled = observation.beginObservedOperation('thread_open'); disabled('ok');
+      observation.observeEvent({ kind: 'producer' });
+      assert.equal(capabilityReads, 0); assert.deepEqual(batches, []);
+      const controller = new AbortController();
+      await observation.createObservabilityExtension().activate({ signal: controller.signal });
+      const finish = observation.beginObservedOperation('thread_open'); finish('ok'); finish('failed');
+      let lifecycle, unsubscribed = false;
+      const client = { connectionGeneration: 2, subscribeRequestLifecycle(callback) { lifecycle = callback; return () => { unsubscribed = true; }; } };
+      const dispose = observation.installClientObservation(client);
+      lifecycle({ type: 'completed', durationMs: 3, hostId: 'fixture', id: 1, method: 'thread/read' });
+      client.connectionGeneration = 3;
+      lifecycle({ type: 'timed-out', durationMs: 4, hostId: 'fixture', id: 1, method: 'thread/read' });
+      await new Promise(resolve => setImmediate(resolve));
+      controller.abort(); dispose();
+      const events = batches.flat();
+      assert(events.length >= 6); assert(unsubscribed);
+      const { sanitizeEvent } = await import(${JSON.stringify(contractUrl)});
+      assert(events.every(event => sanitizeEvent(event) !== null));
+      assert(events.every(event => event.producerId !== 'unavailable'));
+      assert.equal(new Set(events.map(event => event.producerId)).size, 1);
+      assert.equal(new Set(events.map(event => event.eventId)).size, events.length);
+      const operations = events.filter(event => event.operationType === 'thread_open');
+      assert.deepEqual(operations.map(event => event.outcome), ['started', 'ok']);
+      assert.equal(operations[0].operationId, operations[1].operationId);
+      const navigation = events.find(event => event.operationType === 'navigation');
+      assert(navigation); assert.notEqual(navigation.operationId, operations[0].operationId);
+      const requests = events.filter(event => event.kind === 'rpc');
+      assert.equal(requests.length, 2); assert.notEqual(requests[0].requestId, requests[1].requestId);
+      assert(requests[1].incidentRef); assert.notEqual(requests[1].incidentRef, requests[1].eventId);
+      console.log('client observation capability passed');
+    `;
+    const stdout = await new Promise((resolve, reject) => execFile(process.execPath,
+      ['--import', 'tsx', '--input-type=module', '-e', source],
+      (error, stdout, stderr) => error ? reject(Object.assign(error, { stdout, stderr })) : resolve(stdout)));
+    assert.match(stdout, /client observation capability passed/);
+  });
+}

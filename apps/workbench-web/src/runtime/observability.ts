@@ -1,3 +1,4 @@
+import { createClientId } from "@opencraft/composer-core";
 import type { AppServerClient } from '@opencraft/appserver-client';
 import type { TrustedExtensionDefinition } from '@opencraft/extension-runtime';
 
@@ -10,7 +11,7 @@ export function subscribeObservationEnabled(listener: () => void) {
   return () => { enabledListeners.delete(listener); };
 }
 let buildId: string | null = null, sourceRevision: string | null = null;
-const producerId = typeof crypto !== 'undefined' ? crypto.randomUUID() : 'unavailable';
+const producerId = createClientId();
 let pending: { event: Event; size: number }[] = [], recent: {event: Event; size: number}[] = [];
 let pendingBytes = 0, recentBytes = 0, dropped = 0, timer: ReturnType<typeof setTimeout> | undefined;
 let sending = false, failures = 0, lastAttempt = 0, immediateAttempted = false;
@@ -36,8 +37,8 @@ async function flush() {
 }
 export function observeEvent(fields: Event) {
   if (!enabled) return;
-  const event: Event = { schemaVersion:1,component:'web',producerId,eventId:crypto.randomUUID(),at:Date.now(),
-    ...(fields.outcome==='failed'||fields.outcome==='timeout'?{incidentRef:crypto.randomUUID()}:{}),
+  const event: Event = { schemaVersion:1,component:'web',producerId,eventId:createClientId(),at:Date.now(),
+    ...(fields.outcome==='failed'||fields.outcome==='timeout'?{incidentRef:createClientId()}:{}),
     buildId,sourceRevision,visibility:document.visibilityState==='visible'?'visible':'hidden',originClass:'interactive',dropped,...fields };
   const size = new TextEncoder().encode(JSON.stringify(event)).length;
   if (size > 2048 || pending.length >= 2048 || pendingBytes + size > 262144) { dropped++; return; }
@@ -48,7 +49,7 @@ export function observeEvent(fields: Event) {
   } else schedule();
 }
 export function beginObservedOperation(operationType: string, fields: Event = {}) {
-  const started = performance.now(), operationId = typeof crypto !== "undefined" ? crypto.randomUUID() : "unavailable";
+  const started = performance.now(), operationId = createClientId();
   let settled = false;
   observeEvent({kind:'operation',operationType,operationId,outcome:'started',measurementScope:'in_page',...fields});
   return (outcome: 'ok' | 'failed' | 'aborted' = 'ok', extra: Event = {}) => {
@@ -57,7 +58,7 @@ export function beginObservedOperation(operationType: string, fields: Event = {}
   };
 }
 export function installClientObservation(client: AppServerClient) {
-  const clientId=typeof crypto!=='undefined'?crypto.randomUUID():'unavailable';
+  const clientId=createClientId();
   return client.subscribeRequestLifecycle(event => {
     if (!['completed','failed','timed-out','aborted'].includes(event.type)) return;
     if (!('durationMs' in event)) return;
@@ -99,7 +100,7 @@ export function createObservabilityExtension(title = 'Platform monitoring'): Tru
     if(enabled){
       for(const listener of enabledListeners)listener();
       const navigation=performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-      if(navigation)observeEvent({kind:'operation',operationType:'navigation',operationId:crypto.randomUUID(),outcome:'ok',
+      if(navigation)observeEvent({kind:'operation',operationType:'navigation',operationId:createClientId(),outcome:'ok',
         at:Math.round(performance.timeOrigin+startupFinishedAt),durationMs:Math.max(0,startupFinishedAt-navigation.startTime),measurementScope:'navigation',stage:'ready',cache:navigation.type==='back_forward'?'warm':'cold'});
     }
     let longTasks: PerformanceObserver | undefined;
