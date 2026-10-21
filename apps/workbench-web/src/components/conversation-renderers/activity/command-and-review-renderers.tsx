@@ -156,11 +156,12 @@ function TerminalCopyButton({ value, label }: { readonly value: string; readonly
 function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlock, { type: "command-execution" }>; readonly running: boolean }) {
   const intl = useIntl();
   const output = normalizeTerminalOutput(block.output ?? "");
+  const displayOutput = /\S/u.test(output) ? output : running ? "" : block.resultMissing ? "Execution result unavailable" : "No output";
   return <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
     <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
       <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
     </div>
-    <div className="thread-shell-output__output"><pre><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
+    <div className="thread-shell-output__output"><pre><code><AnsiTerminalText>{displayOutput}</AnsiTerminalText></code></pre>
       {output ? <TerminalCopyButton value={output} label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} /> : null}
     </div>
     {!running ? <div className="thread-shell-output__footer" data-status={block.status}><span>

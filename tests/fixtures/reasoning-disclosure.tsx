@@ -63,6 +63,18 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("command-output-")) {
+      const mode = action.slice("command-output-".length);
+      const running = mode === "reset" || mode.startsWith("running");
+      if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
+      setTurn({ id: "turn", status: running ? "streaming" : "complete", items: [
+        { id: "output-command", type: "commandExecution", payload: {
+          command: "printf 'ready\\n'", status: running ? "inProgress" : mode === "failed" ? "failed" : "completed",
+          aggregatedOutput: mode === "running-output" ? "\u001b[31mred\u001b[0m\nready" : mode.endsWith("spaces") ? " \n\t" : null,
+          exitCode: running ? null : mode === "failed" ? 2 : 0, resultMissing: mode === "missing",
+        } },
+      ] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
