@@ -1404,7 +1404,10 @@ every response or treating `reasoning.available` liveness as that content.
 
 `chat-core` owns selection, chronological slots and single live Thinking
 arbitration. Stable Turn/Item identity survives streaming, completion and
-history updates. Reasoning and Bash/Read/tool groups have separate inner
+history updates. A patch item changing multiple files retains its whole-group
+summary and disclosure when the Turn settles. Completion does not reveal a file
+list that the user collapsed; one-file patches retain the existing plain-row
+behavior. Reasoning and Bash/Read/tool groups have separate inner
 disclosures inside the same contiguous response work container. The newest
 current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.
