@@ -269,6 +269,11 @@ function Agents({ blocks, grouped, renderToggle }: {
   const navigation = useContext(SubagentNavigationContext);
   const presentation = grouped ? deriveSubagentActivityGroupPresentation(blocks)
     : deriveSubagentActivityPresentation(blocks[0]!);
+  const detailsByThread = new Map<string, { block: AgentBlock; actionLabel: string }>();
+  for (const block of blocks) {
+    const detail = deriveSubagentActivityPresentation(block);
+    for (const agent of detail.agents) detailsByThread.set(agent.threadId, { block, actionLabel: detail.actionLabel });
+  }
   const running = blocks.some(block => block.status === "running" || block.status === "pending");
   const [open, setOpen] = useActivityOpen(running);
   const reflow = useDisclosureReflow();
@@ -291,19 +296,23 @@ function Agents({ blocks, grouped, renderToggle }: {
       initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
       style={{ height }} transition={{ duration: 0.3 }} onAnimationComplete={reflow.complete}>
       <div className="thread-subagent-details__inner">
-      {(grouped ? [blocks.at(-1)!] : blocks).map(block => {
-        const detail = grouped ? presentation : deriveSubagentActivityPresentation(block);
-        return <div key={block.id}>{detail.agents.map(agent => <div key={agent.threadId} className="thread-subagent-details__row" data-status={agent.status}>
-          <Avatar agent={agent} /><div><p><span>{detail.actionLabel} </span><strong>{agent.displayName}</strong>
-            {!grouped && block.prompt ? <> with the instructions: <span>{block.prompt}</span></> : !grouped && block.action ? <> · {block.action}</> : null}
+      {presentation.agents.map(agent => {
+        const { block, actionLabel } = detailsByThread.get(agent.threadId)!;
+        return <div key={agent.threadId} className="thread-subagent-details__row" data-status={agent.status}>
+          <Avatar agent={agent} /><div><p><span>{actionLabel} </span><strong>{agent.displayName}</strong>
+            {block.prompt && block.tool === "spawnAgent" ? <> with the instructions: <span>{block.prompt}</span></>
+              : block.prompt && (block.tool === "sendInput" || block.tool === "resumeAgent") ? <>: <span>{block.prompt}</span></>
+              : !block.prompt && block.action ? <> · {block.action}</> : null}
             <small> · {agent.statusLabel}</small></p>
             {agent.statusMessage ? <p className="thread-subagent-details__message">{agent.statusMessage}</p> : null}
-          </div></div>)}
-          {!grouped && (block.reasoningEffort || block.agentPath) ? <p className="thread-subagent-details__meta">{[
-            block.reasoningEffort ? "Reasoning: " + block.reasoningEffort : null, block.agentPath,
-          ].filter(Boolean).join(" · ")}</p> : null}
-        </div>;
+          </div></div>;
       })}
+      {!grouped && blocks[0]?.tool === "wait" && blocks[0].prompt ?
+        <p className="thread-subagent-details__input">Input: {blocks[0].prompt}</p> : null}
+      {!grouped && (blocks[0]?.reasoningEffort || blocks[0]?.agentPath) ?
+        <p className="thread-subagent-details__meta">{[
+          blocks[0].reasoningEffort ? "Reasoning: " + blocks[0].reasoningEffort : null, blocks[0].agentPath,
+        ].filter(Boolean).join(" · ")}</p> : null}
     </div></motion.div> : null}</AnimatePresence>
   </section>;
 }
@@ -317,7 +326,7 @@ export function SubagentBlock({ block }: { block: AgentBlock }) {
 }
 
 export function SubagentActivityGroup({ unit }: { readonly unit: SubagentActivityRenderUnit }) {
-  return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped renderToggle={props =>
+  return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped={unit.blocks.length > 1} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
       <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>

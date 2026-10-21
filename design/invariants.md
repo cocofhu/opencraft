@@ -1812,7 +1812,10 @@ independent of its parent. Images use the existing Host media loader and resourc
 port, with Host/conversation/cwd/document/source identity invalidating old previews.
 View expansion does not grant tool approval, execute output or own thread state.
 Subagent grouping uses current core-derived agent state; individual instructions
-remain available without repeating stale historical prompts in grouped rows.
+remain available without repeating stale historical prompts in grouped rows. Each
+expanded row uses that agent’s latest matching operation and instruction, while
+its identity and status remain core-derived. A one-operation group retains its
+input, reasoning effort and agent path details.
 Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
 
 
