@@ -353,6 +353,7 @@ export async function createWorkbenchWebServer({
   sshServerDescriptors = [],
   sshManagement = null,
   getStorageOutcomes,
+  getPluginHealth,
   getExecutionHealth,
   getHostReadiness,
   desktopService = null,
@@ -463,12 +464,12 @@ export async function createWorkbenchWebServer({
       if (url.pathname === "/health" && getExecutionHealth) {
         try {
           const health = await getExecutionHealth();
-          sendJson(response, 200, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
+          sendJson(response, 200, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getPluginHealth ? {plugins:getPluginHealth()} : {}), ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
         } catch { sendJson(response, 503, { ok: false }); }
         return;
       }
       if (url.pathname === "/__opencraft_health") {
-        sendJson(response, 200, { ok: true, appServerConfigured: normalizedTarget !== null, ...(getHostReadiness ? { hosts: getHostReadiness() } : {}), ...(getStorageOutcomes ? { storage: getStorageOutcomes() } : {}) });
+        sendJson(response, 200, { ok: true, appServerConfigured: normalizedTarget !== null, ...(getPluginHealth ? {plugins:getPluginHealth()} : {}), ...(getHostReadiness ? { hosts: getHostReadiness() } : {}), ...(getStorageOutcomes ? { storage: getStorageOutcomes() } : {}) });
         return;
       }
       if (url.pathname === "/__opencraft_ssh_servers") {

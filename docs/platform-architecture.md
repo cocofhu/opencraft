@@ -1,5 +1,10 @@
 # OpenCraft platform architecture
 
+Optional Headless [IM and WeCom server plugins](im-switchboard.md) share existing
+human authorization, Collaboration input receipts and the Host queue. IM owns
+durable `switchboard` bindings and runtime reply context; WeCom owns its protocol
+connection. Source keys are not grants; replies never follow a later binding.
+
 The Web/Electron renderer attaches `appserver-diagnostics` to normal runtime
 clients and startup identity probes. Console events correlate host, renderer
 client instance, connection generation, RPC ID, method and elapsed time for

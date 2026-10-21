@@ -2,7 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { APP_HOST_PROTOCOL_VERSION } from '@opencraft/app-host-protocol/version';
 
 /** Narrow internal logical-client lane; no client-supplied RPC method or Host is forwarded. */
-function call(appHost, binding, requestId, method, params) {
+export function callConversationHost(appHost, binding, requestId, method, params, submissionContext) {
   const clientId = `actor-service:${randomUUID()}`, leaseId = randomUUID();
   return new Promise((resolve, reject) => {
     let connection, receive, generation, finished = false;
@@ -30,12 +30,12 @@ function call(appHost, binding, requestId, method, params) {
               const frame = JSON.parse(message.frame);
               if (frame.method || !['init', 'operation'].includes(frame.id)) return;
               if (frame.error) return finish(Object.assign(new Error('Actor engine request rejected'), { code: frame.error.code }));
-              if (frame.id === 'init') send('operation', method, { ...params, threadId: binding.threadId });
+              if (frame.id === 'init') send('operation', method, { ...params, ...(binding.threadId ? {threadId: binding.threadId} : {}) });
               else finish(null, frame.result);
             } catch (error) { finish(error); }
           } else if (message.type === 'fatal' || message.type === 'host/status' && ['failed', 'closed'].includes(message.status.state)) finish(new Error('Actor Host closed'));
         },
-      }, clientId, { sender: null, collaborationRequestId: requestId });
+      }, clientId, submissionContext ?? { sender: null, collaborationRequestId: requestId });
       receive?.({ type: 'hello', protocolVersion: APP_HOST_PROTOCOL_VERSION, rendererId: clientId });
     } catch (error) { finish(error); }
   });
@@ -44,7 +44,7 @@ export function createConversationExecution(getAppHost, {serverId, hostId = "loc
   const invoke = (binding, id, method, params) => {
     if (binding.hostId !== hostId) throw new Error('Unsupported Actor execution Host');
     const host = getAppHost(); if (!host) throw new Error('Actor Host unavailable');
-    return call(host, binding, id, method, params);
+    return callConversationHost(host, binding, id, method, params);
   };
   const binding = threadId => ({hostId, threadId});
   return {

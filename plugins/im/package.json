@@ -1,0 +1,1 @@
+{"name":"@opencraft/plugin-im","version":"0.1.0","private":true,"type":"module","exports":{"./server":"./src/server.ts","./store":"./src/store.ts"},"dependencies":{"@opencraft/appserver-protocol":"0.1.0","@opencraft/identity-core":"*","@opencraft/sqlite-node":"0.1.0"},"scripts":{"typecheck":"tsc --noEmit"}}
