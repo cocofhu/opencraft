@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
+import WebSocket from 'ws';
+import {startEngineHost} from '../apps/local-agent-host/src/engine-host.js';
 import {mkdtemp, mkdir, rm, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -134,4 +136,24 @@ test('native SDK request preserves configured reasoning wire values and image in
   assert.equal(requests[1]!.authorization, 'Bearer new-synthetic-key');
   assert.equal(requests[1]!.body.messages[0].content[1].type, 'image_url');
   assert.equal((await send(undefined)).stopReason, 'stop'); assert.equal(Object.hasOwn(requests[2]!.body, 'reasoning_effort'), false);
+});
+
+
+test('Engine Host preserves an explicit missing model default and refreshes a later configured default', async t => {
+  const f = await fixture(t);
+  const host = await startEngineHost({providers: [f.engine], defaultEngine: 'pi'}); t.after(() => host.close());
+  const socket = new WebSocket(host.websocketUrl); await once(socket, 'open'); t.after(() => socket.close());
+  let id = 0;
+  const call = (method: string) => new Promise<any>((resolve, reject) => {
+    const key = ++id;
+    const listener = (raw: WebSocket.RawData) => {const value = JSON.parse(String(raw)); if (value.id !== key) return;
+      socket.off('message', listener); value.error ? reject(new Error(value.error.message)) : resolve(value.result);};
+    socket.on('message', listener); socket.send(JSON.stringify({jsonrpc: '2.0', id: key, method, params: {}}));
+  });
+  assert.equal((await call('model/list')).data.some((row: any) => row.isDefault), false);
+  assert.equal((await call('config/read')).config.model, null);
+  await f.update(doc => {doc.defaultModel = {providerId: 'custom-stable', modelId: 'arbitrary-model', reasoningEffort: 'high'};});
+  const selected = (await call('model/list')).data.filter((row: any) => row.isDefault);
+  assert.equal(selected.length, 1); assert.equal(selected[0].model, piModel('custom-stable', 'arbitrary-model'));
+  assert.equal((await call('config/read')).config.model_reasoning_effort, 'high');
 });

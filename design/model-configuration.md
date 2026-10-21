@@ -109,5 +109,6 @@ or credentials. Ambiguous alias collisions fail rather than rebind a Thread.
 Standalone Pi retains its native configuration when no product port is injected.
 
 Managed Pi default reads/writes use the shared document and CAS. A null product
-default remains null; catalog order never supplies a managed default. Explicit
+default remains null; the multi-engine Host also preserves this value rather than
+marking its first catalog entry as default. Explicit
 conversation and account choices keep their original owners.

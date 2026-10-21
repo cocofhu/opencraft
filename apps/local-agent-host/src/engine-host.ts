@@ -203,7 +203,6 @@ export async function startEngineHost(options: {
               const direction = params.sortDirection === "asc" ? 1 : -1;
               entries.sort((a,b) => direction * (a[key] - b[key]) || String(a.id).localeCompare(String(b.id)));
             }
-            else if (options.defaultEngine !== options.legacy?.id && !entries.some(entry => entry.isDefault)) { const first = entries.find(entry => registry.get(options.defaultEngine)?.ownsModel(entry.model)); if (first) first.isDefault = true; }
             const offset = params.cursor == null ? 0 : /^engines:\d+$/u.test(params.cursor) ? Number(params.cursor.slice(8)) : NaN;
             if (!Number.isSafeInteger(offset) || offset < 0) throw new Error("Invalid engine catalog cursor");
             const limit = Math.max(1, Math.min(200, Number(params.limit) || 100));
