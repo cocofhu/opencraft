@@ -12,7 +12,7 @@ interface Page {
   restored: boolean; ready: Promise<void>; opened: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
-  width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
+  viewportMeasured: boolean; width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
   resizeTimer: ReturnType<typeof setTimeout> | null; resizing: boolean;
   automation: BrowserAutomation; resetInput: () => void; inputDispose: () => void;
 }
@@ -77,6 +77,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       width: `${bounds.width}px`, height: `${bounds.height}px`, visibility: 'visible', opacity: phase === 'visible' ? '1' : '.001',
       pointerEvents: phase === 'visible' && !p.blocked && !this.inputFailed ? 'auto' : 'none' });
     if (layout.viewportSize.width > 0 && layout.viewportSize.height > 0) {
+      p.viewportMeasured = true;
       p.viewport = { width: Math.max(1, Math.round(layout.viewportSize.width)), height: Math.max(1, Math.round(layout.viewportSize.height)), deviceProfile: layout.deviceProfile ?? "desktop" };
       this.queueViewport(p);
     }
@@ -124,7 +125,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     container.append(canvas); this.root?.prepend(container);
     const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, events, url: undefined, socket: null,
       restored: false, ready: Promise.resolve(), opened: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
-      width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
+      viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetInput: () => {}, inputDispose: () => {} };
     if (!this.storageIds.has(id)) { this.storageIds.set(id, p.lease); this.persistStorage(); }
     const call = async (method: string, input?: unknown) => { await p.ready; return this.call(p, 'automation', { method, input }); };
@@ -147,9 +148,12 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       const timer = setTimeout(() => { reject(new Error('Browser connection timed out')); ws.close(); }, 20000);
       const current = () => !p.closed && p.connection === generation;
       ws.onopen = () => { if (!current()) return;
-        const viewport = { ...p.viewport };
+        const viewport = p.viewportMeasured ? { ...p.viewport } : undefined;
         void this.call(p, 'open', { lease: p.lease, viewport }).then(async config => {
-          if (!current()) return; p.restored = config.resumed || config.restored; this.applyViewport(p, config); p.sentViewport = JSON.stringify(viewport); p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
+          if (!current()) return; p.restored = config.resumed || config.restored; this.applyViewport(p, config);
+          const effective = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
+          if (!p.viewportMeasured) p.viewport = effective;
+          p.sentViewport = JSON.stringify(viewport ?? effective); p.opened = true; p.retries = 0; clearTimeout(timer); resolve();
           if (p.restored && config.navigation) { p.events.onNavigation?.(config.navigation); if (!config.navigation.isLoading) p.events.onLoaded(config.navigation.title || null); if (config.navigation.url) p.url = config.navigation.url; }
           if (generation > 1 && !p.restored) await this.call(p, 'navigate', { url: p.url ?? null });
           this.queueViewport(p); this.run(p, 'visible', { visible: p.visible });
