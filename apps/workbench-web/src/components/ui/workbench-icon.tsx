@@ -1,15 +1,10 @@
+import type { ComponentType } from "react";
+import type { ActionIconProps } from "@opencraft/design-system-web/action-icons";
+import { ModelIcon as Brain, ModelIcon as BrainCircuit, FolderIcon as Folder, MicrophoneIcon as Mic, AddIcon as Plus, SearchIcon as Search, SettingsGearIcon as Settings, ComposeIcon as SquarePen, TerminalIcon as TerminalSquare } from "@opencraft/design-system-web/action-icons";
 import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";
-import {
-  Blocks, Brain, Palette, MessageSquare, Activity, Archive, ArrowLeft, ArrowRight, AudioLines, Bot, BrainCircuit,
-  CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, FileCode2, Folder,
-  GitBranch, Globe2, Keyboard, HardDrive, House, LayoutGrid, ListTodo, MessageCircle,
-  MessagesSquare, Mic, Monitor, PanelLeft, PanelLeftClose, Plug,
-  Plus, Search, Server, Settings, SlidersHorizontal, Sparkles, SunMoon,
-  SquarePen, TerminalSquare, UserRound, UserRoundCog, UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { Blocks, Palette, MessageSquare, Activity, Archive, ArrowLeft, ArrowRight, AudioLines, Bot, CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, FileCode2, GitBranch, Globe2, Keyboard, HardDrive, House, LayoutGrid, ListTodo, MessageCircle, MessagesSquare, Monitor, PanelLeft, PanelLeftClose, Plug, Server, SlidersHorizontal, Sparkles, SunMoon, UserRound, UserRoundCog, UsersRound,  } from "lucide-react";
 
 /** Wire names stay semantic. Only this Web adapter selects the artwork. */
 export const workbenchIconRegistry = {
@@ -25,7 +20,7 @@ export const workbenchIconRegistry = {
   sliders: SlidersHorizontal, sparkles: Sparkles, start: SquarePen,
   tasks: ListTodo, terminal: TerminalSquare, user: UserRound,
   "user-round": UserRound, "user-round-cog": UserRoundCog, users: UsersRound,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, ComponentType<ActionIconProps>>;
 
 export type WorkbenchIconName = keyof typeof workbenchIconRegistry;
 

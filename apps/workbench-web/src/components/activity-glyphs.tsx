@@ -1,4 +1,5 @@
-import { BookOpen, FileDiff, Folder, Globe2, Pencil, Search, Square, TerminalSquare } from "lucide-react";
+import { FolderIcon as Folder, EditIcon as Pencil, SearchIcon as Search, TerminalIcon as TerminalSquare } from "@opencraft/design-system-web/action-icons";
+import { BookOpen, FileDiff, Globe2, Square } from "lucide-react";
 import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;

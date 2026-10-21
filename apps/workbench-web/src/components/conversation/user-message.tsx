@@ -1,22 +1,9 @@
+import { CheckIcon as Check, ChevronLeftIcon as ChevronLeft, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, CopyIcon as Copy, LoadingRingIcon as LoaderCircle } from "@opencraft/design-system-web/action-icons";
 import { AvatarImage, IdentityAvatarContext } from "@opencraft/extension-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { UserMessageTimelineBlock } from "@opencraft/chat-core";
 import { WebUserMessageDocument, resolveStandardChatResource, writeTextToClipboard } from "@opencraft/chat-render-web";
-import {
-  AlertCircle,
-  Check,
-  ChevronLeft,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  Copy,
-  FileText,
-  ImageIcon,
-  LoaderCircle,
-  MessageSquare,
-  Wrench,
-  UserRound,
-} from "lucide-react";
+import { AlertCircle, Circle, FileText, ImageIcon, MessageSquare, Wrench, UserRound } from "lucide-react";
 import {
   type ReactNode,
   useContext,

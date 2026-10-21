@@ -1,3 +1,4 @@
+import { LoadingRingIcon as LoaderCircle, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import type {
   BrowserPageId,
   BrowserTabId,
@@ -12,16 +13,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { PanelToolbarActionContext } from "@opencraft/workbench-panels";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { usePanelPresentation } from "../components/panel-presentation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
-  Globe2,
-  LoaderCircle,
-  MonitorSmartphone,
-  RotateCw,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Globe2, MonitorSmartphone, RotateCw } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,

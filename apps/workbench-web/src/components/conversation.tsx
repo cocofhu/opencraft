@@ -1,3 +1,4 @@
+import { ResetIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -49,13 +50,7 @@ import { UserMessageNavigationRail } from "./user-message-navigation-rail";
 import { ConversationSearchPosition } from "./conversation-search-position";
 import { DisclosureReflowContext } from "./use-disclosure-reflow";
 import { useLatestTurnFollowContentRef } from "./latest-turn-follow-content";
-import {
-  AlertCircle,
-  ArrowRight,
-  CalendarClock,
-  FileCode2,
-  RotateCcw,
-} from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarClock, FileCode2 } from "lucide-react";
 import {
   motion,
   type MotionValue,

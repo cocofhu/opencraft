@@ -1,7 +1,8 @@
+import { CheckIcon as Check } from "@opencraft/design-system-web/action-icons";
 import "./styles.scss";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "@opencraft/i18n/react";
-import { MessageSquare, Check } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { ModalSurface } from "../../components/modal/modal-surface";
 import { useShellPresentation } from "../../components/shell-presentation";
 import { useAsyncNotices } from "../../components/async-notices-context";

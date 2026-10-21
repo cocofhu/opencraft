@@ -1,5 +1,6 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown } from "@opencraft/design-system-web/action-icons";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check, ChevronDown, Laptop, Server } from "lucide-react";
+import { Laptop, Server } from "lucide-react";
 
 import type { PlatformToolbarSelectProps } from "@opencraft/extension-react";
 

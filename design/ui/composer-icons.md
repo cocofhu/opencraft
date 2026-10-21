@@ -19,6 +19,20 @@ small markers and larger touch controls remain optically appropriate to their ro
 Do not import the process rail into input controls or reduce the microphone's
 existing touch size to make all outer canvases identical.
 
+The same module also supplies common copy/edit/compose/delete/more/add/close,
+check, attachment and directional chevron controls. Static model, search,
+terminal and folders share its proportions; they never inherit a process cursor
+or pulse. The semantic Workbench registry accepts shared SVG components as well
+as supplemental library icons, preserving classic/core role metrics and fallback
+selection. Brand/provider artwork, file-type identities and retained panel toggles
+remain separate owners.
+
+All Web loading controls, including SettingsButton and the startup/recovery
+spinner, consume LoadingRingIcon. Existing classes still own rotation, slot size,
+reduced-motion and when a busy state is visible. Replacing SVG artwork must not
+add a loading state to cached refreshes. Reset/retry, refresh, viewport rotation
+and conversation replay have separate exports and keep their original callbacks.
+
 This artwork owns no animation or behavior. Recording feedback remains with the
 voice footer; recording, failure/retry, cancel and draft/selection ownership are
 unchanged. Decorative SVGs are hidden from accessibility; a supplied label creates

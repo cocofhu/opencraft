@@ -1,3 +1,4 @@
+import { AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X, EditIcon as Pencil, MoreIcon as MoreHorizontal, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import {
   lazy,
   Suspense,
@@ -13,7 +14,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChartNoAxesCombined, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartNoAxesCombined, Columns3, List, SlidersHorizontal, MessageSquare, ArrowUpRight, UserRound, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";

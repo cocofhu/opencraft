@@ -1,6 +1,7 @@
+import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, EditIcon as Pencil } from "@opencraft/design-system-web/action-icons";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { BrainCircuit, Check, ChevronDown, Pencil } from "lucide-react";
+
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { ComposerModelOption, ComposerSelectionCatalog } from "./composer-editor";

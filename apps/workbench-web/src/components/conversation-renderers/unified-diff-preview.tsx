@@ -1,3 +1,4 @@
+import { MoreIcon as MoreHorizontal } from "@opencraft/design-system-web/action-icons";
 import {
   collapseUnifiedDiffContext,
   parseUnifiedDiff,
@@ -5,7 +6,7 @@ import {
   type UnifiedDiffRenderRow,
   type UnifiedDiffSegment,
 } from "@opencraft/chat-core";
-import { MoreHorizontal } from "lucide-react";
+
 import { useMemo, useState } from "react";
 
 function DiffSegments({ segments, text }: { readonly segments: readonly UnifiedDiffSegment[] | null; readonly text: string }) {

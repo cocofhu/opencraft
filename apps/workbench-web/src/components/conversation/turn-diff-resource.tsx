@@ -1,8 +1,9 @@
+import { ChevronDownIcon as ChevronDown } from "@opencraft/design-system-web/action-icons";
 import type { TimelineSnapshot, TurnDiffTimelineBlock } from "@opencraft/chat-core";
 import { resolveStandardChatResource } from "@opencraft/chat-render-web";
 import { useIntl } from "@opencraft/i18n/react";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useContext, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement } from "react";
 import { ChangeResourceIcon } from "../activity-glyphs";

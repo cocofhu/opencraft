@@ -1,3 +1,4 @@
+import { FolderIcon as Folder, FolderOpenIcon as FolderOpen, LoadingRingIcon as LoaderCircle, EditIcon as Pencil, ResetIcon as RotateCcw, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { FilePreviewView, officeFileKind } from "@opencraft/file-preview-web";
 import { preparePreviewResources } from "./prepare-preview-resources";
 import { WebChatDocument } from "@opencraft/chat-render-web";
@@ -9,18 +10,7 @@ import { parse, serialize, type DefaultTreeAdapterTypes } from "parse5";
 import type { BlobProgress } from "@opencraft/blob-resources";
 import type { FuzzyFileSearchResult } from "@opencraft/appserver-protocol/generated";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
-import {
-  AlertTriangle,
-  Download,
-  Folder,
-  FolderOpen,
-  Image as ImageIcon,
-  LoaderCircle,
-  Pencil,
-  RotateCcw,
-  Save,
-  Search,
-} from "lucide-react";
+import { AlertTriangle, Download, Image as ImageIcon, Save } from "lucide-react";
 import {
   lazy,
   Suspense,

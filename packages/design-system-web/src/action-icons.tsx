@@ -1,7 +1,7 @@
 import React, { type ReactNode, type SVGProps } from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
 
-interface ActionIconProps extends Omit<SVGProps<SVGSVGElement>, "children" | "width" | "height"> {
+export interface ActionIconProps extends Omit<SVGProps<SVGSVGElement>, "children" | "width" | "height"> {
   readonly size?: number;
   readonly className?: string;
   readonly "aria-label"?: string;
@@ -11,7 +11,7 @@ function ActionGlyph({ size = 20, strokeWidth = 1.5, className, "aria-label": la
   readonly kind: string;
   readonly children: ReactNode;
 }) {
-  return <svg {...attributes} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}
+  return <svg {...attributes} width={size} height={size} viewBox="0 0 24 24" fill={attributes.fill ?? "none"} stroke="currentColor" strokeWidth={strokeWidth}
     strokeLinecap="round" strokeLinejoin="round" focusable="false"
     className={["ui-action-glyph", className].filter(Boolean).join(" ")}
     data-action-glyph={kind} aria-hidden={label ? undefined : true} aria-label={label} role={label ? "img" : undefined}>
@@ -88,4 +88,85 @@ export function ResetIcon(props: ActionIconProps) {
     <path d="M5 9a8 8 0 1 1-1 5" />
     <path d="M5 4.5V9h4.5" />
   </ActionGlyph>;
+}
+
+
+/** Static controls use the same quiet contours without process-row animation. */
+export function SearchIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="search"><path d="M15.6 13.9A6.7 6.7 0 1 0 13.9 15.6M16.4 16.4 21 21" /></ActionGlyph>;
+}
+
+export function TerminalIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="terminal"><path d="M16 4H7.2A3.2 3.2 0 0 0 4 7.2v9.6A3.2 3.2 0 0 0 7.2 20h9.6a3.2 3.2 0 0 0 3.2-3.2V9" /><path d="m7.5 9 3 3-3 3m6 0H17" /></ActionGlyph>;
+}
+
+export function ModelIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="model"><path d="M12 7c0-3.7-5-4.4-5.8-.8-3.5.6-3.8 4.8-1.3 6.3-1 3.1 1.1 5.7 4 5.2M12 7c0-3.7 5-4.4 5.8-.8 3.5.6 3.8 4.8 1.3 6.3 1 3.1-1.1 5.7-4 5.2M12 7v12M6.2 6.2c0 1.6.9 2.5 2.3 2.5m9.3-2.5c0 1.6-.9 2.5-2.3 2.5" /></ActionGlyph>;
+}
+
+export function CopyIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="copy"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M15.5 4H6.5A2.5 2.5 0 0 0 4 6.5v9" /></ActionGlyph>;
+}
+
+export function EditIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="edit"><path d="m5 14.5 9.9-9.9a2.1 2.1 0 0 1 3 0l1.5 1.5a2.1 2.1 0 0 1 0 3l-9.9 9.9L4 20l1-5.5Zm8.4-8.4 4.5 4.5" /></ActionGlyph>;
+}
+
+export function ComposeIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="compose"><path d="M11 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4M10 11l7-7a2.1 2.1 0 0 1 3 3l-7 7-4 1 1-4Zm5.5-5.5 3 3" /></ActionGlyph>;
+}
+
+export function DeleteIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="delete"><path d="M4.5 6.5h15M9 6.5V4h6v2.5m-9 0 1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 10v6.5M14 10v6.5" /></ActionGlyph>;
+}
+
+export function MoreIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="more"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></ActionGlyph>;
+}
+
+export function AddIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="add"><path d="M12 5v14M5 12h14" /></ActionGlyph>;
+}
+
+export function CloseIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="close"><path d="m6 6 12 12M6 18 18 6" /></ActionGlyph>;
+}
+
+export function CheckIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="check"><path d="m5 12 4.5 4.5L19 7" /></ActionGlyph>;
+}
+
+export function AttachmentIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="attachment"><path d="m9 13 6.5-6.5a2.5 2.5 0 0 1 3.5 3.5L10.5 18.5a4.5 4.5 0 0 1-6.4-6.4L13 3.2" /></ActionGlyph>;
+}
+
+export function ChevronDownIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="chevron-down"><path d="m6 9 6 6 6-6" /></ActionGlyph>;
+}
+export function ChevronUpIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="chevron-up"><path d="m6 15 6-6 6 6" /></ActionGlyph>;
+}
+export function ChevronRightIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="chevron-right"><path d="m9 6 6 6-6 6" /></ActionGlyph>;
+}
+export function ChevronLeftIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="chevron-left"><path d="m15 6-6 6 6 6" /></ActionGlyph>;
+}
+
+export function FolderIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="folder"><path d="M4 6.8A2.8 2.8 0 0 1 6.8 4H10l2.2 2.5h5A2.8 2.8 0 0 1 20 9.3v8a2.7 2.7 0 0 1-2.7 2.7H6.7A2.7 2.7 0 0 1 4 17.3V6.8Z" /></ActionGlyph>;
+}
+export function FolderOpenIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="folder-open"><path d="M4 10V6.8A2.8 2.8 0 0 1 6.8 4H10l2.2 2.5h5A2.8 2.8 0 0 1 20 9M4 12h16l-2 6a3 3 0 0 1-2.8 2H6.7A2.7 2.7 0 0 1 4 17.3V12Z" /></ActionGlyph>;
+}
+
+/** Refresh, viewport rotation and conversation replay retain distinct meanings. */
+export function RefreshIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="refresh"><path d="M19 8a7.5 7.5 0 0 0-12.3-2M5 4v5h5M5 16a7.5 7.5 0 0 0 12.3 2M19 20v-5h-5" /></ActionGlyph>;
+}
+export function RotateIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="rotate"><rect x="8.5" y="7.5" width="7" height="11" rx="1.5" transform="rotate(25 12 13)" /><path d="M5 8a8 8 0 0 1 13-3M18 1.5V5h-3.5" /></ActionGlyph>;
+}
+export function ReplayIcon(props: ActionIconProps) {
+  return <ActionGlyph {...props} kind="replay"><path d="M5 9a8 8 0 1 1-1 5M5 4.5V9h4.5" /><path d="m11 9 4 3-4 3V9Z" /></ActionGlyph>;
 }

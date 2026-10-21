@@ -1,8 +1,9 @@
+import { LoadingRingIcon as LoaderCircle, MoreIcon as MoreHorizontal, EditIcon as Pencil } from "@opencraft/design-system-web/action-icons";
 import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Archive, Clock, GitFork, Info, ListTodo, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
+import { Archive, Clock, GitFork, Info, ListTodo, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";

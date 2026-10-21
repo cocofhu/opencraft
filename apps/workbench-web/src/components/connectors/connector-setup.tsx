@@ -1,5 +1,6 @@
+import { CheckIcon as Check } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { ConnectorDefinition, ConnectorInstance, ConnectorOAuthProgress, ConnectorProbe } from "@opencraft/connector-core";
 import { connectorErrorMessage, type ConnectorOperation, type ManagedConnectorController } from "@opencraft/workbench-runtime";
 import { SettingsActions, SettingsGroup, SettingsNotice, SettingsRow, SettingsTextInput } from "@opencraft/extension-react";

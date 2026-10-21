@@ -1,3 +1,4 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, SearchIcon as Search, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import {
   aggregateUserInputQuestionAnswers,
   selectUserInputQuestionOption,
@@ -20,18 +21,7 @@ import {
   codexSetupTaskOptions,
   type SetupCodexContextSource,
 } from "@opencraft/workbench-runtime";
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Globe2,
-  MessageSquare,
-  Search,
-  Wrench,
-  X,
-} from "lucide-react";
+import { AlertCircle, Globe2, MessageSquare, Wrench } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useCallback,

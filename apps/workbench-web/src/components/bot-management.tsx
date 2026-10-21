@@ -1,8 +1,9 @@
+import { LoadingRingIcon as LoaderCircle, MoreIcon as MoreHorizontal, AddIcon as Plus, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Bot, LoaderCircle, MessagesSquare, MoreHorizontal, Plus, RefreshCw } from "lucide-react";
+import { Bot, MessagesSquare } from "lucide-react";
 import {
   SettingsButton,
   SettingsIconButton,

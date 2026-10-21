@@ -1,3 +1,4 @@
+import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, AttachmentIcon as Paperclip, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
@@ -36,21 +37,7 @@ import {
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, composerDocumentToPlainText } from "@opencraft/composer-core";
-import {
-  ArrowUp,
-  AtSign,
-  BrainCircuit,
-  Check,
-  ChevronDown,
-  CircleAlert,
-  FileCode2,
-  FileText,
-  Image,
-  Paperclip,
-  Plus,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowUp, AtSign, CircleAlert, FileCode2, FileText, Image, Sparkles } from "lucide-react";
 import {
   Fragment,
   forwardRef,

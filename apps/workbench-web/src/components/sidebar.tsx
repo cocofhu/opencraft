@@ -1,3 +1,4 @@
+import { ChevronDownIcon as ChevronDown, LoadingRingIcon as LoaderCircle, ComposeIcon as SquarePen, SearchIcon as Search, CheckIcon as Check } from "@opencraft/design-system-web/action-icons";
 import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { shortcutLabel, shortcutAria } from "../workbench-shortcuts";
 import { createPortal } from "react-dom";
@@ -8,15 +9,7 @@ import { AvatarImage, type ThreadBadgeContribution, type ThreadListGroupingContr
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 
 import { useIntl } from "@opencraft/i18n/react";
-import {
-  ChevronDown,
-  ListFilter,
-  LoaderCircle,
-  SquarePen,
-  UserRound,
-  Search,
-  Check,
-} from "lucide-react";
+import { ListFilter, UserRound } from "lucide-react";
 import type { ServerRouteLocality, ThreadServerOrigin, WorkbenchThread } from "@opencraft/workbench-runtime";
 import type {
   SidebarEntity,

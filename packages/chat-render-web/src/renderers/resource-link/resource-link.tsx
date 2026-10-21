@@ -1,9 +1,10 @@
+import { CopyIcon as Copy } from "@opencraft/design-system-web/action-icons";
 import { chatFileCitationPresentation, chatReferenceTarget, useSettledResourceTarget, type ChatNodeRendererProps, type ChatResourcePolicyService } from "@opencraft/chat-render-react";
 import type { ChatResourceDecision, ChatResourceOpenIntent } from "@opencraft/chat-render-react";
 import { FormattedMessage } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Copy, ExternalLink, Globe2 } from "lucide-react";
+import { ExternalLink, Globe2 } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 
 import { writeTextToClipboard } from "../../clipboard";

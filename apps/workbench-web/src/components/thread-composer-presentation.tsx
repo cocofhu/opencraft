@@ -1,3 +1,4 @@
+import { ChevronDownIcon as ChevronDown, AddIcon as Plus } from "@opencraft/design-system-web/action-icons";
 import {
   createContext,
   useCallback,
@@ -13,7 +14,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, MessageSquare, Plus } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import {
   groupTimelineFramesByTurn,
   type TimelineSnapshot,

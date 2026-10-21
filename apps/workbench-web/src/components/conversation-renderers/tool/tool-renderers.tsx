@@ -1,3 +1,4 @@
+import { CheckIcon as Check, ChevronRightIcon as ChevronRight, LoadingRingIcon as LoaderCircle, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import {
   codexAppThreadNavigationTarget, createdThreadToolResult,
   deriveSubagentActivityGroupPresentation, deriveSubagentActivityPresentation,
@@ -7,7 +8,7 @@ import {
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
 import { LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
-import { Bot, Check, ChevronRight, Circle, Code2, Globe2, ImageIcon, LoaderCircle, MessageSquare, X } from "lucide-react";
+import { Bot, Circle, Code2, Globe2, ImageIcon, MessageSquare } from "lucide-react";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";

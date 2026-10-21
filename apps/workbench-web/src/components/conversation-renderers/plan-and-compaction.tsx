@@ -1,3 +1,4 @@
+import { ChevronDownIcon as ChevronDown } from "@opencraft/design-system-web/action-icons";
 import * as Popover from "@radix-ui/react-popover";
 import { useWorkbenchPresentationRoot } from "../workbench-presentation-root";
 import { useIntl } from "@opencraft/i18n/react";
@@ -7,7 +8,7 @@ import {
   type TimelineBlock,
 } from "@opencraft/chat-core";
 import { WebChatDocument } from "@opencraft/chat-render-web";
-import { ChevronDown, Download, ListChecks } from "lucide-react";
+import { Download, ListChecks } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   useContext,

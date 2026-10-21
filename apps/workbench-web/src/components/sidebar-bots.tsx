@@ -1,3 +1,4 @@
+import { LoadingRingIcon as LoaderCircle, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import {
   DndContext,
@@ -36,7 +37,7 @@ import {
   type SidebarLayoutStore,
 } from "@opencraft/sidebar-layout";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bot, LoaderCircle, Plus, X } from "lucide-react";
+import { Bot } from "lucide-react";
 import {
   useCallback,
   createContext,

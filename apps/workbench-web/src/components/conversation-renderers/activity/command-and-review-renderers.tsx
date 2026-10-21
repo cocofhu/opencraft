@@ -1,3 +1,4 @@
+import { CheckIcon as Check, ChevronRightIcon as ChevronRight, CopyIcon as Copy } from "@opencraft/design-system-web/action-icons";
 import {
   formatAutomaticApprovalReviewSummary,
   formatAutomaticApprovalReviewTitle,
@@ -20,7 +21,7 @@ import {
   writeToClipboard,
 } from "@opencraft/chat-render-web";
 import { useIntl } from "@opencraft/i18n/react";
-import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
+import { AlertCircle, Brain, Shield, Terminal } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";

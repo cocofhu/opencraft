@@ -1,9 +1,10 @@
+import { RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FormattedMessage, useIntl } from '@opencraft/i18n/react';
 import { WEB_UPDATE_PATH, parseWebUpdateStatus } from '@opencraft/web-update-protocol';
 import { SettingsPageHeader, SettingsSection, SettingsGroup, SettingsRow, SettingsActions, SettingsButton, SettingsNotice, SettingsTextInput } from '@opencraft/extension-react';
-import { RefreshCw } from 'lucide-react';
+
 import { browserServerContext } from '../runtime/server-context';
 
 export function hasManagedWebUpdates(): boolean {
