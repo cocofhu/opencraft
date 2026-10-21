@@ -89,11 +89,11 @@ test("shared filter controls retain their authored dimensions", () => {
 
 test("local typography mixins emit no global variables but the global adapter provides them", () => {
   const directory = fileURLToPath(new URL("../packages/design-system/src/", import.meta.url)).replaceAll("\\", "/");
-  const local = compileString(`@use "${directory}typography-mixins.web" as typography; .probe { @include typography.role(count-badge, tertiary); }`).css;
+  const local = compileString('@use "typography-mixins.web" as typography; .probe { @include typography.role(count-badge, tertiary); }', { loadPaths: [directory] }).css;
   assert.doesNotMatch(local, /:root|--font-family-ui:/u);
   assert.match(local, /font-family: var\(--typography-count-badge-family\)/u);
   assert.match(local, /color: var\(--color-text-tertiary\)/u);
-  const global = compileString(`@use "${directory}typography.web";`).css;
+  const global = compileString('@use "typography.web";', { loadPaths: [directory] }).css;
   assert.match(global, /--font-family-count:/u);
   assert.match(global, /--typography-count-badge-weight: 700/u);
 });
