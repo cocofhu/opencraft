@@ -1838,3 +1838,7 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+### Side chat model display
+
+Side chat displays its fork’s current execution model as compact, non-interactive Composer metadata. It offers no model menu and submits no model, effort or service-tier override; the child conversation retains execution ownership. Main conversation model controls are unchanged.
