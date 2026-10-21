@@ -150,7 +150,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
   await new Promise((yes,no)=>{api.once('error',no);api.listen(socketPath,yes);});await chmod(socketPath,0o600);
   const exporter=createServer((req,res)=>{if(req.method!=='GET'||!['/metrics','/health'].includes(req.url)){json(res,404,{error:{code:'missing'}});return;}if(req.url==='/health'){json(res,200,{ok:true,...coverage(),sourceRevision,buildId});return;}try{res.writeHead(200,{'content-type':'text/plain; version=0.0.4'});res.end(metrics());}catch{json(res,503,{error:{code:'storage_unavailable'}});}});
   await new Promise((yes,no)=>{exporter.once('error',no);exporter.listen(metricsPort,metricsHost,yes);});
-  function heartbeat(){store.ingest([{schemaVersion,kind:'resource',component:'observe',producerId,eventId:randomUUID(),at:now(),rssBytes:process.memoryUsage().rss,cpuSeconds:(process.cpuUsage().user+process.cpuUsage().system)/1e6,sourceRevision,buildId,originClass:'operator'}]);}
+  function heartbeat(){store.ingest([{schemaVersion,kind:'resource',component:'observe',producerId,eventId:randomUUID(),at:now(),rssBytes:process.memoryUsage().rss,cpuSeconds:(process.cpuUsage().user+process.cpuUsage().system)/1e6,sourceRevision,buildId,observedBy:'self',identitySource:'self',producerMode:'native',originClass:'operator'}]);}
   heartbeat();void checkBackends();const timer=setInterval(()=>{void checkBackends();try{heartbeat();store.prune();}catch{store.dropped++;}},30000);timer.unref();
   return {socketPath,store,query,snapshot,close:async()=>{clearInterval(timer);clearInterval(exportTimer);await Promise.all([new Promise(r=>api.close(r)),new Promise(r=>exporter.close(r))]);store.close();await unlink(socketPath).catch(()=>{});}};
 }

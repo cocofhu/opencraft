@@ -57,7 +57,7 @@ export async function startOpenCraftDaemon(options: {
   /** Deployment display name; defaults to the OS computer name. */
   readonly machineName?: string;
 }) {
-  nodeObserver("core");
+  nodeObserver("gateway");
   const machineIdentity = await readDaemonMachineIdentity(options.dataDirectory, options.machineName);
   process.chdir(options.runtimeDirectory);
   const releaseStorageOwner = await acquireLocalAgentStorageOwner(options.dataDirectory);
