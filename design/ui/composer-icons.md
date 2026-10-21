@@ -27,8 +27,8 @@ as supplemental library icons, preserving classic/core role metrics and fallback
 selection. Brand/provider artwork, file-type identities and retained panel toggles
 remain separate owners.
 
-All Web loading controls, including SettingsButton and the startup/recovery
-spinner, consume LoadingRingIcon. Existing classes still own rotation, slot size,
+Web loading controls and the startup/recovery spinner consume LoadingRingIcon.
+Existing classes still own rotation, slot size,
 reduced-motion and when a busy state is visible. Replacing SVG artwork must not
 add a loading state to cached refreshes. Reset/retry, refresh, viewport rotation
 and conversation replay have separate exports and keep their original callbacks.
