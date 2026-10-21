@@ -400,6 +400,13 @@ export function deriveAgentActivityHeaderPresentation(unit: Pick<AgentActivityGr
 export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFrame, registry?: ToolActivityPresenterRegistry): boolean {
   if (!live(frame.status)) return false;
   const blocks = frame.blocks.filter(block => !(block.type === "automatic-approval-review" && block.review.status === "approved"));
+  // Generated media owns its pending feedback within the current response.
+  // Earlier images must not suppress work after a new answer or input.
+  const responseBoundary = lastIndex(blocks, block => block.type === "user-message"
+    || (block.type === "text" && (isAssistantAnswerContent(block)
+      || block.delivery === "async" || (block.asyncQuestions?.length ?? 0) > 0)));
+  if (blocks.slice(responseBoundary + 1).some(block => block.type === "image"
+    && (block.status === "pending" || block.status === "running"))) return false;
   const block = blocks[blocks.length - 1];
   if (!block) return true;
   if (block.type === "reasoning") return true;

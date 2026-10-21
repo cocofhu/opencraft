@@ -1410,6 +1410,9 @@ current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.
 When no returned content exists, the existing noninteractive Thinking status
 retains its current owner rather than becoming an empty expand button.
+Pending generated images own their media progress surface, so the Turn does not
+add a separate Thinking placeholder. Completion releases that feedback; an image
+before the latest answer or input cannot suppress the next response.
 
 Reasoning presentation uses two phases: grouping and Thinking ownership inspect
 selected returned text without Markdown compilation, then each visible Item's
