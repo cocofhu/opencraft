@@ -56,7 +56,7 @@ function ToolImage({ source, alt, id }: { source: string; alt: string; id: strin
   const context = useContext(ConversationDocumentContext);
   const media = useConversationMediaSource(source, id, context.resolveImageSource);
   return media.source === null ? <span>{media.status === "loading" ? "Loading image…" : "Image unavailable"}</span>
-    : <img src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
+    : <img className="thread-tool-details__image" src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
 }
 
 function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
@@ -68,7 +68,7 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
       break;
     case "json": body = <JsonSurface value={part.value} documentId={id} />; break;
     case "unknown": body = <div className="thread-tool-details__unknown"><JsonPreview value={part.value} /></div>; break;
-    case "image": body = <div className="thread-tool-details__image"><ToolImage source={part.source} alt={part.alt ?? "Tool image"} id={id} /></div>; break;
+    case "image": body = <div><ToolImage source={part.source} alt={part.alt ?? "Tool image"} id={id} /></div>; break;
     case "audio": body = <audio className="thread-tool-details__audio" controls src={browserReadableImageSource(part.source, undefined) ?? undefined} />; break;
     case "resource-link": body = <div className="thread-tool-details__resource-link"><ResourceLink target={part.uri}>Read {part.name}</ResourceLink></div>; break;
     case "embedded-resource": body = <div className="thread-tool-details__embedded-resource">
