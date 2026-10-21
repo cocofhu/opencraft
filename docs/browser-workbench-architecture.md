@@ -1455,3 +1455,8 @@ DOM, focus, input selection and profile survive keyboard height changes, panel
 resizing and rotation; no page recreation or fixed viewport is used as a remedy.
 The native resize probe covers active CPU painting and preserved editor state;
 remote H264 and physical mobile input require their separate acceptance evidence.
+
+Remote browser timeout/renderer-exit diagnostics retain only a fixed event, a
+whitelisted command name and pending-request count, capped at twenty per service.
+They contain no URL, page/actor identity, input, arbitrary exception or native stderr.
+They identify a later timeout without making absence of events proof of health.

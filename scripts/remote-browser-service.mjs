@@ -21,6 +21,7 @@ export class RemoteBrowserService {
     this.spawnImpl = spawnImpl;
     this.claims = new Map(); this.pages = new Map(); this.requests = new Map(); this.sockets = new Set();
     this.states = new Map(); this.persistence = Promise.resolve();
+    this.diagnosticCount = 0;
     this.server = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: 128 * 1024 });
   }
   async load() {
@@ -155,6 +156,7 @@ export class RemoteBrowserService {
       this.requests.delete(message.id); clearTimeout(request.timer);
       message.error ? request.reject(Object.assign(new Error(message.error.message), message.error)) : request.resolve(message.value); return;
     }
+    if (message.type === 'error' && message.message === 'Browser renderer exited; reload this tab') this.diagnose('renderer_exited');
     const p = [...this.pages.values()].find(page => page.id === message.page);
     if (p && !p.recovering && message.type === 'navigation' && !message.state.isLoading) { p.url = checkpointUrl(message.state.url); this.checkpoint(); }
     if (p && message.type === 'viewport') { p.viewport = { width: message.width, height: message.height, deviceProfile: message.deviceProfile }; this.checkpoint(); }
@@ -164,11 +166,20 @@ export class RemoteBrowserService {
     if (message.type === 'frame') ws.send(Buffer.from(message.bytes, 'base64'), { binary: true });
     else { const { page, ...event } = message; ws.send(JSON.stringify(event)); }
   }
+  diagnose(event, method) {
+    if (this.diagnosticCount >= 20) return;
+    this.diagnosticCount++;
+    // Only owned enums and process counters: never request input, actor/page
+    // identifiers, URLs, arbitrary native stderr or exception messages.
+    console.warn('[opencraft-browser]', JSON.stringify({ event,
+      ...(method === 'create' || methods.has(method) ? { method } : {}),
+      pendingRequests: this.requests.size }));
+  }
   request(page, method, input) {
     if (!this.child || (this.isolated ? this.child.stdin.destroyed : !this.child.connected)) return Promise.reject(new Error('Browser unavailable'));
     const id = randomUUID();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.requests.delete(id); reject(new Error(`Browser operation timed out (${method})`)); }, 20000);
+      const timer = setTimeout(() => { this.requests.delete(id); this.diagnose('request_timeout', method); reject(new Error(`Browser operation timed out (${method})`)); }, 20000);
       timer.unref(); this.requests.set(id, { resolve, reject, timer });
       const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(new Error('Browser disconnected')); } };
       if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input }) + '\n', failed);
