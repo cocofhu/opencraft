@@ -71,7 +71,7 @@ function LiveToolsDemo() {
   const dynamic = (id: string, namespace: string, tool: string, args: Dynamic["arguments"], state = status): Dynamic => ({
     type: "dynamicToolCall", id, namespace, tool, arguments: args, status: state,
     success: state === "inProgress" ? null : state !== "failed", durationMs: state === "inProgress" ? null : 12,
-    contentItems: state === "inProgress" ? [] : [{ type: "inputText", text: "Write completed" }],
+    contentItems: [{ type: "inputText", text: phase === "progress" ? "UPDATED_WRITE_BODY" : "LIVE_WRITE_BODY" }],
   });
   const native: ThreadItem[] = [
     dynamic("live-write", "deepseek-harness", "write", {
