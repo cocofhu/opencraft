@@ -186,6 +186,7 @@ export interface ComposerSelectionCatalog {
 }
 
 export interface ComposerEffectiveSelections {
+  readonly serviceTier?: string | null;
   readonly agentId?: string | null;
   readonly model?: string | null;
   readonly effort?: string | null;
@@ -998,7 +999,7 @@ export const OpenCraftComposer = forwardRef<
     catalogDefaultModel?.value ??
     null;
   const selectedModel = resolveModelSelection(catalogModels, selectedModelValue);
-  const displayModel = selectedModel ?? resolveModelSelection(selectionCatalog?.displayModels ?? [], selectedModelValue);
+  const displayModel = selectedModelValue === null ? null : selectedModel ?? resolveModelSelection(selectionCatalog?.displayModels ?? [], selectedModelValue);
   const visibleEffortValue = modelDisplayOnly ? effectiveSelections?.effort ?? null : undefined;
   const displayFast = modelDisplayOnly && effectiveSelections?.serviceTier === "fast";
   const selectedEffortValue = selectedModel ? resolveReasoningEffort(
