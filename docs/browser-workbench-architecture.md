@@ -1441,3 +1441,17 @@ When reload recreates a physical page, its recovery navigation is already the
 reload operation. Do not immediately reload that new WebContents: before the
 first commit this would reload about:blank and cancel the intended navigation.
 Reloading a resumed live page still issues the native reload command.
+
+
+### Atomic native offscreen resize
+
+CPU offscreen rendering publishes viewport size and the matching LocalSurfaceId
+as one native visual-properties update. Screen-info notification during resize
+must not send the new dimensions with the previous surface ID: Chromium rejects
+that combination and terminates the renderer. The owned Electron view defers
+intermediate synchronization until root/delegated surfaces are ready, then uses
+the normal final synchronization and acknowledgement path. The same WebContents,
+DOM, focus, input selection and profile survive keyboard height changes, panel
+resizing and rotation; no page recreation or fixed viewport is used as a remedy.
+The native resize probe covers active CPU painting and preserved editor state;
+remote H264 and physical mobile input require their separate acceptance evidence.

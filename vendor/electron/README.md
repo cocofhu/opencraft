@@ -232,3 +232,17 @@ nonessential ELF symbols with the checked-out Chromium LLVM tool before the
 native probe and byte inventory. Dynamic symbols and runtime code remain; the
 marker records the tool hash and operation. Never strip an already stamped
 artifact or modify installed runtime bytes.
+
+
+## Atomic offscreen viewport updates
+
+Offscreen window resize must publish the new viewport and LocalSurfaceId together.
+`UpdateScreenInfo` can synchronously notify the renderer before OSR has allocated
+its next surface. The native view suppresses that intermediate synchronization
+and sends the final visual properties after both compositor and delegated
+surfaces have been updated. Chromium surface validation remains enabled.
+
+Run `electron --no-sandbox vendor/electron/probe-offscreen-resize.cjs` against
+the built runtime in an isolated profile. The CPU probe paints through keyboard
+height changes, width changes and rotations while retaining the document,
+input value, focus and selection. It does not test a physical phone keyboard.
