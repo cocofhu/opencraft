@@ -30,7 +30,8 @@ test("mobile drawer fits small screens, retains a dismissal gutter and does not 
     assert.ok(mobileSidebarWidth(width, 275) <= width - 64);
     assert.ok(mobileSidebarWidth(width, 520) <= width - 64);
   }
-  assert.equal(mobileSidebarWidth(390, 275), 275, "mobile no longer expands a narrow sidebar to a viewport percentage");
-  assert.equal(mobileSidebarWidth(430, 335), 335, "normal unified width remains stable on a larger phone");
-  assert.equal(mobileSidebarWidth(320, 335), 256, "small screens still retain their dismissal gutter");
+  assert.equal(mobileSidebarWidth(390, 275), 233, "mobile narrows its projection without rewriting the saved width");
+  assert.equal(mobileSidebarWidth(430, 335), 284, "larger phones also use the narrower mobile projection");
+  assert.equal(mobileSidebarWidth(320, 335), 217, "small screens narrow the already fitted drawer");
+  assert.equal(mobileSidebarWidth(390, 335), 277);
 });
