@@ -117,4 +117,51 @@ function LiveToolsDemo() {
   </div>;
 }
 
-createIntlTestRoot(document.getElementById("root")!).render(["live", "host-live"].includes(new URLSearchParams(location.search).get("scenario") ?? "") ? <LiveToolsDemo /> : <Demo />);
+const handoffParams = new URLSearchParams(location.search);
+const handoffProbe = window as unknown as {
+  setPhase: (phase: string) => void;
+  presentations: Record<string, { phase: string; canExpand: boolean; state: string }>;
+};
+handoffProbe.presentations = {};
+function HandoffToolsDemo() {
+  const [phase, setPhase] = useState(handoffParams.get("initial") ?? "queued");
+  handoffProbe.setPhase = setPhase;
+  const live = phase === "queued" || phase === "running";
+  const status = phase === "transport-failed" ? "failed" : "completed";
+  const item: Extract<ThreadItem, { type: "dynamicToolCall" }> = {
+    type: "dynamicToolCall", id: "handoff-live", namespace: "codex_app", tool: "handoff_thread",
+    arguments: { threadId: "source-al", destinationHostId: "target-al" },
+    status, success: status === "completed", durationMs: 23,
+    contentItems: [{ type: "inputText", text: JSON.stringify({
+      operationId: "transfer-al",
+      status: phase === "empty" ? "queued" : phase === "transport-failed" ? "running" : phase,
+      threadTitle: "AL transfer", destinationHostDisplayName: "Synthetic target",
+      steps: phase === "empty" ? [] : [
+        { id: "prepare-host-transfer", status: live ? "running" : "done" },
+        { id: "transfer-host-artifacts", status: live ? "pending" : phase === "error" ? "failed" : "done" },
+      ],
+    }) }],
+  };
+  const { id, type, ...payload } = item;
+  const items: TimelineSourceItem[] = [{ id, type, payload }];
+  const history = handoffParams.has("history");
+  const timeline = projectTimeline({
+    key: createConversationKey("fixture", "handoff-live-al"),
+    revision: ["queued", "running", "success", "error", "empty", "transport-failed"].indexOf(phase),
+    authoritative: true, phase: history ? "painted" : "live",
+    turns: [{ id: "turn", status: history ? "complete" : "streaming", items }],
+  }, registry);
+  return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
+    <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
+      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        renderToolCallIcon={(block, presentation) => {
+          handoffProbe.presentations[block.callId ?? block.id] = {
+            phase, canExpand: presentation.canExpand, state: presentation.state,
+          };
+          return undefined;
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+    </TimelineBlockRendererProvider>
+  </div>;
+}
+
+createIntlTestRoot(document.getElementById("root")!).render(handoffParams.get("scenario") === "handoff-live" ? <HandoffToolsDemo /> : ["live", "host-live"].includes(new URLSearchParams(location.search).get("scenario") ?? "") ? <LiveToolsDemo /> : <Demo />);

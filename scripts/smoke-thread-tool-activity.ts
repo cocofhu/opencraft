@@ -20,10 +20,11 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let inspectedPage: Awaited<ReturnType<NonNullable<typeof browser>["newPage"]>> | undefined;
 const results = [];
+const handoffOnly = process.argv.includes("--handoff-live-only");
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -71,7 +72,7 @@ try {
     console.log(JSON.stringify({ width, theme, passed: true }));
     await page.close();
   }
-  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -132,7 +133,7 @@ try {
     results.push({ width, theme, liveTools: features });
     await page.close();
 }
-  if (!process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -187,6 +188,61 @@ try {
     results.push({ width, theme, hostLiveDisclosure: true, settledMemory: true, explicitSuppression: true, historicalRestore: true });
     await page.close();
   }
+  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only"))
+    for (const width of [390, 1100])
+      for (const theme of ["light", "dark"]) {
+        const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+        inspectedPage = page;
+        const errors: string[] = [];
+        page.on("pageerror", e => errors.push(e.message));
+        await page.addInitScript("window.__name=value=>value");
+        const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
+          port: number;
+        }).port}/?theme=${theme}&scenario=handoff-live`;
+        await page.goto(url);
+        await page.locator('[data-phase="queued"]').waitFor();
+        const activate = (n: ReturnType<typeof page.locator>) => width === 390 ? n.tap() : n.click();
+        const row = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-handoff-steps') }).last();
+        await row.waitFor();
+        const trigger = row.locator(':scope > .thread-activity-item__header button[aria-expanded]');
+        await trigger.waitFor();
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'queued');
+        assert.equal(await page.evaluate(() => (window as any).presentations['handoff-live'].state), 'running');
+        const features: Record<string, boolean> = { queuedInitiallyOpen: await trigger.getAttribute('aria-expanded') === 'true', queuedStepsInitiallyVisible: await row.locator(':scope > .thread-activity-item__body-clip').getAttribute('aria-hidden') === 'false' };
+        await page.screenshot({ path: join(output, `handoff-live-${width}-${theme}-initial.png`) });
+        if (await trigger.getAttribute('aria-expanded') === 'true')
+          await activate(trigger);
+        await page.evaluate(() => (window as any).setPhase('running'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'running');
+        features.manualCollapseSurvivesProgress = await trigger.getAttribute('aria-expanded') === 'false';
+        await activate(trigger);
+        features.manualReopenShowsSteps = await page.getByText('Prepare host transfer', { exact: true }).isVisible();
+        await page.evaluate(() => (window as any).setPhase('success'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'completed');
+        features.settlementStartsCollapsed = await trigger.getAttribute('aria-expanded') === 'false';
+        if (await trigger.getAttribute('aria-expanded') === 'false')
+          await activate(trigger);
+        await page.evaluate(() => (window as any).setPhase('error'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'failed');
+        features.settledManualChoiceSurvivesFailure = await trigger.getAttribute('aria-expanded') === 'true';
+        await page.evaluate(() => (window as any).setPhase('empty'));
+        await page.locator('[data-phase="empty"]').waitFor();
+        features.emptyHandoffSummaryOnly = await page.locator('.thread-handoff-steps').count() === 0 && await page.locator('.thread-codex-app-tool-row button[aria-expanded]').count() === 0;
+        for (const phase of ['success', 'transport-failed']) {
+          await page.goto(url + '&initial=' + phase + '&history=1');
+          await page.locator('[data-phase="' + phase + '"]').waitFor();
+          await trigger.waitFor();
+          features['historical-' + phase + '-collapsed'] = await trigger.getAttribute('aria-expanded') === 'false';
+          features['historical-' + phase + '-state'] = await row.getAttribute('data-status') === (phase === 'success' ? 'completed' : 'failed');
+        }
+        assert.deepEqual(errors, []);
+        for (const [feature, present] of Object.entries(features))
+          assert.equal(present, true, feature);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+        results.push({ width, theme, handoffLiveDisclosure: true, ...features });
+        await page.close();
+      }
+
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

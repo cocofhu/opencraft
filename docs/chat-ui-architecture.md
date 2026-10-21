@@ -2338,3 +2338,11 @@ a tool has a body; an unknown compact dynamic tool does not expose its payload.
 `smoke-thread-tool-activity.ts` exercises native Items through the original
 projector and complete Conversation, including completed/failed settlement,
 manual reopening, historical restore and MCP/compact controls.
+
+
+Thread handoff rows with reported steps use that same running/settled choice.
+The operation's queued/running status determines presentation even when its RPC
+has completed. User collapse survives progress, settlement starts with its own
+choice, and completed history starts collapsed. Empty step lists remain summary
+rows. Transport failure takes precedence over earlier running progress; the View
+does not invent progress or issue a handoff command.
