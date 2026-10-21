@@ -31,6 +31,26 @@ export interface TimelineViewportSnapshot {
   readonly editableFocused: boolean;
 }
 
+/** Layout capacity, not a transform between browser coordinate spaces. */
+export interface TimelineViewportLayout {
+  readonly availableViewport: TimelineViewportSize;
+  readonly occludedBottomPx: number;
+}
+
+export function projectTimelineViewportLayout(snapshot: TimelineViewportSnapshot): TimelineViewportLayout {
+  const layout = snapshot.layoutViewport;
+  // Pinch zoom is native magnification, not a request to reflow the application.
+  const visual = Math.abs(snapshot.scale - 1) <= 0.01 ? snapshot.visualViewport : layout;
+  const availableViewport = {
+    widthPx: Math.min(layout.widthPx, visual.widthPx),
+    heightPx: Math.min(layout.heightPx, visual.heightPx),
+  };
+  return {
+    availableViewport,
+    occludedBottomPx: layout.heightPx - availableViewport.heightPx,
+  };
+}
+
 export interface TimelineViewportPort {
   getSnapshot(): TimelineViewportSnapshot;
   subscribe(listener: () => void): () => void;
@@ -44,7 +64,7 @@ export interface TimelineViewportPolicy {
   readonly threadOverscroll: TimelineThreadOverscroll;
   /** Whether the host can visibly render local rubber-band displacement. */
   readonly localElasticEffect: boolean;
-  /** Whether a VisualViewport adapter must move/resize the application surface. */
+  /** Whether the adapter publishes available layout capacity from VisualViewport. */
   readonly tracksVisualViewport: boolean;
 }
 

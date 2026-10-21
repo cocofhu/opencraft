@@ -140,26 +140,23 @@ Every AppShell change must demonstrate all of the following:
 
 ## Mobile keyboard coordinate frames
 
-Mobile browser Shell placement uses one explicit document coordinate system.
-The Web viewport port publishes the visual rectangle's `pageTop/pageLeft` in the
-initial containing block; when unavailable, document scroll plus visual offset
-provides the same coordinates. The mobile Shell is absolute in that block, while
-html/body remain structural clips without fixed positioning. Layout containment
-anchors its fixed descendants to this shared Shell frame. Desktop remains fixed.
-Visible dimensions and the raw layout-relative offsets retain their native values.
-Never infer native movement from the Shell's rendered rectangle minus its CSS
-inset: keyboard compositor movement and client readback can differ in origin or
-time, making that output-dependent correction feed back into placement. Native
-page-scroll events and bounded late reconciliation invalidate the same owner.
-No focus/selection/draft reset, forced document scrolling or per-feature offset.
-Browser-native viewport/resize checks and explicit readback counterexamples are
-separate from physical iOS/WeChat soft-keyboard acceptance.
+The browser owns native coordinate movement; the application owns layout capacity.
+The shared snapshot retains raw visual offsets, sizes and focus observations.
+`projectTimelineViewportLayout` derives an available extent, independently of
+pageTop, document scroll and focus. Pinch magnification does not reflow layout.
+The fixed Shell keeps its native top/left anchor; only its available width/height
+change. Its layout containment anchors fixed descendants to the same capacity.
+No page-origin CSS projection, Shell-rectangle feedback, per-feature compensation,
+forced scrolling or focus/selection reset. Height-first/pan-later observations and
+the reverse ordering must not translate the Shell. Bounded late reconciliation
+belongs to this same owner; it does not infer keyboard completion from blur.
+Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
+separate evidence: endpoint reachability is insufficient to verify transitions.
 
-The new-thread route fits the actual Composer height in this shared frame and
-centers its content group with flexible remaining space. It cannot switch input
-placement discontinuously at a viewport-height breakpoint; optional heading space
-contracts before action controls. Existing and new conversation routes share the
-same viewport owner, not separate keyboard-recovery controllers.
+Mobile new-thread input uses a bottom anchor shared with existing threads, while
+the heading yields spare space. Desktop retains the centered content group.
+No height breakpoint or focus mode exchanges the input DOM or re-centers it.
+Existing and new conversation routes share this viewport owner.
 
 Composer capacity is local to its route's size container, minus that route's own
 block insets. The shared stack intersects this capacity with its platform budget;

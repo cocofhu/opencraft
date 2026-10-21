@@ -125,9 +125,9 @@
 :root[data-ui-density="touch"] { @include mobile-search-page; }
 // Keyboard/zoom geometry has one writer: the existing Web timeline viewport port.
 :root[data-timeline-tracks-visual-viewport="true"] .modal-surface.conversation-search[data-appearance="utility"] {
-  --search-viewport-top: var(--timeline-visual-viewport-offset-top, 0px);
-  --search-viewport-left: var(--timeline-visual-viewport-offset-left, 0px);
-  --search-viewport-width: var(--timeline-visual-viewport-width, 100vw);
-  --search-viewport-height: var(--timeline-visual-viewport-height, 100dvh);
+  --search-viewport-top: 0px;
+  --search-viewport-left: 0px;
+  --search-viewport-width: var(--timeline-available-viewport-width, 100vw);
+  --search-viewport-height: var(--timeline-available-viewport-height, 100dvh);
 }
 :root[data-timeline-keyboard-open="true"] .conversation-search { --search-safe-bottom: 0px; }

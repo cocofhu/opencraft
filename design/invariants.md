@@ -902,8 +902,8 @@ core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向
 
 ## Mobile keyboard Composer budget
 
-The mobile browser Composer uses the Shell's published VisualViewport height,
-including iOS keyboard resize/pan. Queue and long editor content scroll within a
+The mobile browser Composer uses the Shell's shared available extent.
+Native focus pan stays an observation, not a second placement input. Queue and long editor content scroll within a
 bounded stack; the action footer does not shrink or enter the editor scroll area.
 Keeping the keyboard open must leave the Send hit target inside the visible
 surface and permit the first touch to submit. Height changes preserve the editor
@@ -913,28 +913,26 @@ VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
 
 The Web viewport port is the only writer of the Shell viewport projection.
-Mobile browser Shell placement uses one explicit document coordinate system.
-The Web viewport port publishes the visual rectangle's `pageTop/pageLeft` in the
-initial containing block; when unavailable, document scroll plus visual offset
-provides the same coordinates. The mobile Shell is absolute in that block, while
-html/body remain structural clips without fixed positioning. Layout containment
-anchors its fixed descendants to this shared Shell frame. Desktop remains fixed.
-Visible dimensions and the raw layout-relative offsets retain their native values.
-Never infer native movement from the Shell's rendered rectangle minus its CSS
-inset: keyboard compositor movement and client readback can differ in origin or
-time, making that output-dependent correction feed back into placement. Native
-page-scroll events and bounded late reconciliation invalidate the same owner.
-No focus/selection/draft reset, forced document scrolling or per-feature offset.
-Browser-native viewport/resize checks and explicit readback counterexamples are
-separate from physical iOS/WeChat soft-keyboard acceptance.
+The browser owns native coordinate movement; the application owns layout capacity.
+The shared snapshot retains raw visual offsets, sizes and focus observations.
+`projectTimelineViewportLayout` derives an available extent, independently of
+pageTop, document scroll and focus. Pinch magnification does not reflow layout.
+The fixed Shell keeps its native top/left anchor; only its available width/height
+change. Its layout containment anchors fixed descendants to the same capacity.
+No page-origin CSS projection, Shell-rectangle feedback, per-feature compensation,
+forced scrolling or focus/selection reset. Height-first/pan-later observations and
+the reverse ordering must not translate the Shell. Bounded late reconciliation
+belongs to this same owner; it does not infer keyboard completion from blur.
+Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
+separate evidence: endpoint reachability is insufficient to verify transitions.
 Composer primary buttons preserve editor focus by cancelling mouse down only.
 Cancelling touch pointerdown can suppress WebKit click synthesis, so it cannot
 be used as a focus-retention mechanism for Send or Stop. Activation stays on click
 for pointer, keyboard and assistive input; do not submit on touchstart.
 
-New-thread pages center a content-sized heading/Composer group. Flexible spare
-space and optional heading space contract before the Composer; the action region
-retains its controls. The route publishes its actual size-container capacity minus
+Mobile new-thread pages use the same bottom input anchor as existing threads;
+the heading owns flexible spare space. Desktop retains the centered content group.
+Keyboard changes cannot recenter the mobile input. The action region retains its controls. The route publishes its actual size-container capacity minus
 its own block insets to the shared Composer budget; editor/preview content yields
 before actions. Optional heading gaps are shrinkable space, not padding that
 continues consuming a minimum after the heading collapses. No height breakpoint exchanges fractional grid rows,

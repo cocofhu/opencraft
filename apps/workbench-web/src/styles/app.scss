@@ -359,21 +359,14 @@ button {
   }
 }
 
-// The visible rectangle is positioned in document coordinates. Fixed html/body
-// and fixed Shells use a browser-dependent native keyboard translation; they
-// cannot be used to measure their own origin and then compensate it again.
-html[data-timeline-tracks-visual-viewport="true"],
-html[data-timeline-tracks-visual-viewport="true"] body {
-  position: static;
-}
-
+// Browser coordinates and keyboard occlusion have separate owners. Native
+// focus panning never becomes a CSS top/left translation of the entire Shell.
+// Only available extent is projected; containment gives fixed descendants the
+// same available frame as ordinary content.
 html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
-  position: absolute;
   contain: layout;
-  top: var(--timeline-page-viewport-top, 0px);
-  left: var(--timeline-page-viewport-left, 0px);
-  width: var(--timeline-visual-viewport-width, 100%);
-  height: var(--timeline-visual-viewport-height, 100%);
+  width: var(--timeline-available-viewport-width, 100%);
+  height: var(--timeline-available-viewport-height, 100%);
 }
 
 .app-shell-row {
@@ -3722,6 +3715,20 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-width: 0;
   flex-direction: column;
   gap: 8px;
+}
+
+// Mobile input has the same bottom anchor before and after thread promotion.
+// The welcome heading owns spare space; it cannot recenter the input card when
+// keyboard height changes. The existing desktop content group remains centered.
+@media (max-width: 767px) and (any-pointer: coarse) {
+  .new-thread-draft-layout {
+    justify-content: flex-start;
+  }
+  .new-thread-draft-hero {
+    flex: 1 1 0;
+    justify-content: center;
+    &::after { display: none; }
+  }
 }
 
 @container new-thread-main (width <= 620px) {
@@ -12134,7 +12141,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .opencraft-composer-stack {
       display: flex;
       flex-direction: column;
-      max-height: min(var(--composer-available-block-size, var(--timeline-visual-viewport-height)), max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px)));
+      max-height: min(var(--composer-available-block-size, var(--timeline-available-viewport-height)), max(120px, calc(var(--timeline-available-viewport-height) - var(--height-toolbar) - 24px)));
     }
     .opencraft-composer-shell {
       display: flex;
@@ -12149,16 +12156,16 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       overscroll-behavior: contain;
     }
     .opencraft-composer-editor {
-      max-height: min(232px, calc(var(--timeline-visual-viewport-height) * .3));
+      max-height: min(232px, calc(var(--timeline-available-viewport-height) * .3));
     }
     .opencraft-composer-attached-rail { flex: 0 0 auto; }
     .opencraft-composer-queue-tray {
       flex: 0 0 auto;
-      max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-visual-viewport-height) * .25));
+      max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-available-viewport-height) * .25));
     }
     .opencraft-composer-footer { flex: 0 0 auto; }
     .opencraft-composer-attachments {
-      max-height: min(120px, calc(var(--timeline-visual-viewport-height) * .2));
+      max-height: min(120px, calc(var(--timeline-available-viewport-height) * .2));
       overflow-y: auto;
     }
   }

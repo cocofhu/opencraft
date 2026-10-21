@@ -1,5 +1,6 @@
 import {
   calculateSoftwareKeyboardInset,
+  projectTimelineViewportLayout,
   resolveTimelineViewportPolicy,
   type TimelineRenderHostKind,
   type TimelineRenderPlatform,
@@ -16,17 +17,6 @@ interface WebTimelineViewportRoot {
 export interface WebTimelineViewportOptions {
   readonly kind: Exclude<TimelineRenderHostKind, "native">;
   readonly platform: "darwin" | "win32" | "linux";
-}
-
-/** Coordinates in the initial containing block, independent of rendered output. */
-export function readWebVisualViewportPageOrigin(
-  windowObject: Pick<Window, "visualViewport" | "scrollX" | "scrollY">,
-): { readonly topPx: number; readonly leftPx: number } {
-  const visual = windowObject.visualViewport;
-  return {
-    topPx: visual?.pageTop ?? windowObject.scrollY + (visual?.offsetTop ?? 0),
-    leftPx: visual?.pageLeft ?? windowObject.scrollX + (visual?.offsetLeft ?? 0),
-  };
 }
 
 export function resolveWebTimelinePlatform({
@@ -103,21 +93,17 @@ export function applyTimelineViewportDocumentState(
   root: WebTimelineViewportRoot,
   snapshot: TimelineViewportSnapshot,
   policy: TimelineViewportPolicy,
-  pageOrigin = { topPx: snapshot.visualOffset.topPx, leftPx: snapshot.visualOffset.leftPx },
 ): void {
+  const layout = projectTimelineViewportLayout(snapshot);
   root.dataset.timelineOverscroll = policy.threadOverscroll;
   root.dataset.timelineElasticEffect = String(policy.localElasticEffect);
   root.dataset.timelineTracksVisualViewport = String(policy.tracksVisualViewport);
   root.dataset.timelineKeyboardOpen = String(snapshot.keyboardInsetBottomPx > 0);
   root.style.setProperty("--timeline-layout-viewport-width", `${snapshot.layoutViewport.widthPx}px`);
   root.style.setProperty("--timeline-layout-viewport-height", `${snapshot.layoutViewport.heightPx}px`);
-  root.style.setProperty("--timeline-visual-viewport-width", `${snapshot.visualViewport.widthPx}px`);
-  root.style.setProperty("--timeline-visual-viewport-height", `${snapshot.visualViewport.heightPx}px`);
-  root.style.setProperty("--timeline-visual-viewport-offset-left", `${snapshot.visualOffset.leftPx}px`);
-  root.style.setProperty("--timeline-visual-viewport-offset-top", `${snapshot.visualOffset.topPx}px`);
-  root.style.setProperty("--timeline-page-viewport-left", `${pageOrigin.leftPx}px`);
-  root.style.setProperty("--timeline-page-viewport-top", `${pageOrigin.topPx}px`);
-  root.style.setProperty("--timeline-keyboard-inset-bottom", `${snapshot.keyboardInsetBottomPx}px`);
+  root.style.setProperty("--timeline-available-viewport-width", `${layout.availableViewport.widthPx}px`);
+  root.style.setProperty("--timeline-available-viewport-height", `${layout.availableViewport.heightPx}px`);
+
 }
 
 export function createWebTimelineViewportPort(
@@ -162,8 +148,7 @@ export function createWebTimelineViewportPort(
     });
   };
   let snapshot = read();
-  let pageOrigin = readWebVisualViewportPageOrigin(windowObject);
-  applyTimelineViewportDocumentState(root, snapshot, policy, pageOrigin);
+  applyTimelineViewportDocumentState(root, snapshot, policy);
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
@@ -172,7 +157,6 @@ export function createWebTimelineViewportPort(
     frame = null;
     if (disposed || documentObject.visibilityState === "hidden") return;
     const next = read();
-    const nextPageOrigin = readWebVisualViewportPageOrigin(windowObject);
     if (
       next.editableFocused !== snapshot.editableFocused
       || next.scale !== snapshot.scale
@@ -182,13 +166,10 @@ export function createWebTimelineViewportPort(
       || next.visualViewport.heightPx !== snapshot.visualViewport.heightPx
       || next.visualOffset.leftPx !== snapshot.visualOffset.leftPx
       || next.visualOffset.topPx !== snapshot.visualOffset.topPx
-      || nextPageOrigin.topPx !== pageOrigin.topPx
-      || nextPageOrigin.leftPx !== pageOrigin.leftPx
     ) {
       revision += 1;
       snapshot = { ...next, revision };
-      pageOrigin = nextPageOrigin;
-      applyTimelineViewportDocumentState(root, snapshot, policy, pageOrigin);
+      applyTimelineViewportDocumentState(root, snapshot, policy);
       for (const listener of listeners) listener();
     }
     if (now < settleUntil) scheduleFrame();
