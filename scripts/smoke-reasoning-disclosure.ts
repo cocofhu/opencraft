@@ -59,6 +59,35 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    for (const [kind, label] of [
+      ["started", "Compiler Reviewer started working"],
+      ["interacted", "Compiler Reviewer updated"],
+      ["interrupted", "Compiler Reviewer interrupted"],
+      ["completed", null],
+    ] as const) {
+      await update("subagent-lifecycle-" + kind);
+      const inline = page.locator('.thread-subagent-inline');
+      if (label === null) {
+        assert.equal(await inline.count(), 0, 'completed notices retain their existing aggregate presentation');
+      } else {
+        await inline.waitFor();
+        assert.equal(await inline.locator('span:not(.thread-subagent-avatar)').last().innerText(), label);
+        assert.equal(await page.locator('.thread-subagent-activity__status').count(), 0);
+      }
+      const before = await page.evaluate(() => (window as any).openedSubagents.length);
+      // Tap the label, not just the avatar/name chip: the whole notice navigates.
+      await activate(label === null ? page.getByRole('button', { name: 'Open Compiler Reviewer subagent', exact: true })
+        : inline.locator('span:not(.thread-subagent-avatar)').last());
+      assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
+      assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+        [{ threadId: 'lifecycle-child', displayName: 'Compiler Reviewer' }]);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      results.push({ scene: "subagent-lifecycle-" + kind, theme, touch, content: label });
+    }
+    if (process.argv.includes("--subagents-only")) {
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
+
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -398,7 +427,7 @@ try {
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of localizedLabels) {
+  for (const [locale, running, settled] of (process.argv.includes("--subagents-only") ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -423,6 +452,6 @@ try {
     await page.close();
   }
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, localizedLabels: localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, localizedLabels: process.argv.includes("--subagents-only") ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }

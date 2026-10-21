@@ -2322,3 +2322,13 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Subagent lifecycle notices
+
+A single native lifecycle notice without a collaboration tool uses the shared
+core inline status label and agent identity. Accepting a `started` notification
+does not mean that the child finished: started, interacted and interrupted remain
+visible as such. The whole inline button opens the child through the existing
+navigation context and is disabled without that capability. Collaboration tool
+groups and completed-notice projection keep their existing presentation.
