@@ -1576,3 +1576,19 @@ inputmode change with visible OS keyboard approval.
 The Shell tool surface uses the destination split/full-width layout, while its outer aside animates the visibility aperture. Closing retains the last content mode until a new visible intent selects a destination. Full-width interpolation is never sent as an intermediate browser viewport: H.264 frames can arrive after the container expands and otherwise produce centered gutters and repeated reflow. Ordinary split-handle and window resizing still update live content width; there is no viewport freeze or delayed reveal timer. Surface border treatment follows the retained content mode as well, so hiding cannot introduce a one-pixel viewport change.
 
 The Shell layout signal includes mobile foreground translation, not just pane dimensions. Portaled surfaces measure in Motion postRender after ancestor transforms commit; ResizeObserver alone does not observe positional changes. Cancel scheduled reads with the presentation lifecycle.
+
+### Durable close intent and acknowledgement
+
+A remote surface sends explicit closure over an independent discard connection,
+validates its matching successful result and retries lost/error replies while the
+application is alive. Disposing a presentation still detaches only. Removing an
+existing lease from the authenticated, revisioned storage mapping is a second
+explicit close signal; server metadata acceptance persists closing work before
+acknowledging, then retires native resources independently. Failed destruction
+is retried and pending work resumes after server restart. A persisted owner/lease
+fence also prevents an open waiting on process startup from creating a page after
+its discard already succeeded. Cookie partitions and ordinary parked tabs stay
+under the existing policy. This does not infer closure from absence of a viewer,
+from a missing/malformed historical mapping or from a resource limit. Old orphan
+records without a known close intent are not swept. A client killed before any
+close signal reaches the server still has no durable offline close guarantee.

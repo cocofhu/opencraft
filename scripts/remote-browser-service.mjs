@@ -10,6 +10,20 @@ const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forw
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
 // The worker's bootstrap document is an empty tab, not an external URL.
 const checkpointUrl = url => url === 'about:blank' || url === '' ? null : url;
+function removedStorageLeases(previous, next) {
+  const parse = value => {
+    if (typeof value !== 'string') return null;
+    try {
+      const entries = JSON.parse(value);
+      if (!entries || Array.isArray(entries) || typeof entries !== 'object') return null;
+      const leases = Object.values(entries);
+      if (leases.some(lease => typeof lease !== 'string' || !/^browser[:-][a-zA-Z0-9-]+$/.test(lease))) return null;
+      return new Set(leases.map(lease => lease.replace(':', '-')));
+    } catch { return null; }
+  };
+  const before = parse(previous), after = parse(next);
+  return before && after ? [...before].filter(lease => !after.has(lease)) : [];
+}
 /** Gateway-owned process and page leases. A client gets only its own page port,
  * never a CDP endpoint, filesystem path or arbitrary JavaScript evaluator. */
 export class RemoteBrowserService {
@@ -20,7 +34,7 @@ export class RemoteBrowserService {
     this.allowNoSandbox = allowNoSandbox;
     this.spawnImpl = spawnImpl;
     this.claims = new Map(); this.pages = new Map(); this.requests = new Map(); this.sockets = new Set();
-    this.states = new Map(); this.persistence = Promise.resolve();
+    this.states = new Map(); this.retiredLeases = new Set(); this.persistence = Promise.resolve();
     this.diagnosticCount = 0;
     this.server = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: 128 * 1024 });
   }
@@ -36,15 +50,21 @@ export class RemoteBrowserService {
           || JSON.parse(p.key)[0] !== p.ownerId) throw new Error('Invalid browser state');
         this.pages.set(p.key, { ...p, url: checkpointUrl(p.url), socket: null, live: false });
       }
+      if (saved.retired !== undefined && (!Array.isArray(saved.retired) || saved.retired.some(key => {
+        if (typeof key !== 'string') return true;
+        try { const pair = JSON.parse(key); return !Array.isArray(pair) || pair.length !== 2 || pair.some(v => typeof v !== 'string'); } catch { return true; }
+      }))) throw new Error('Invalid browser retirement state');
+      this.retiredLeases = new Set(saved.retired ?? []);
       for (const [owner, state] of saved.states) this.states.set(owner, state);
       this.loaded = true;
+      for (const page of this.pages.values()) if (page.closing) this.retryRetirement(page, 0);
     })();
     return this.loading;
   }
   persist() {
     const saved = JSON.stringify({ schemaVersion: 1,
-      pages: [...this.pages.values()].map(({ id, key, ownerId, url, viewport, zoom }) => ({ id, key, ownerId, url, viewport, zoom })),
-      states: [...this.states.entries()] });
+      pages: [...this.pages.values()].map(({ id, key, ownerId, url, viewport, zoom, closing }) => ({ id, key, ownerId, url, viewport, zoom, ...(closing ? { closing: true } : {}) })),
+      retired: [...this.retiredLeases], states: [...this.states.entries()] });
     const operation = this.persistence.then(async () => {
       const temporary = join(this.dataDirectory, 'tabs-' + randomUUID() + '.tmp');
       await writeFile(temporary, saved, { mode: 0o600 });
@@ -78,8 +98,24 @@ export class RemoteBrowserService {
       if (input.mutationId === previous.lastMutation) return { revision: previous.revision };
       if (input.expectedRevision !== previous.revision) throw Object.assign(new Error('Browser state changed in another client; reload to synchronize'), { code: 'STATE_CONFLICT' });
       const next = { revision: previous.revision + 1, lastMutation: input.mutationId, values: { ...previous.values, [input.key]: input.value } };
+      // Removing an existing storage lease is an explicit logical close. The
+      // accepted metadata mutation durably carries its cleanup intent, even if
+      // the separate viewer/discard connection never reaches this server.
+      const removed = input.key === 'storage' ? removedStorageLeases(previous.values.storage, input.value) : [];
+      const newlyRetired = removed.map(lease => JSON.stringify([ownerId, lease])).filter(key => !this.retiredLeases.has(key));
+      for (const key of newlyRetired) this.retiredLeases.add(key);
+      const retiring = removed.flatMap(lease => {
+        const page = this.pages.get(JSON.stringify([ownerId, lease]));
+        return page && !page.closing ? [page] : [];
+      });
+      for (const page of retiring) page.closing = true;
       this.states.set(ownerId, next);
-      try { await this.persist(); } catch (error) { this.states.set(ownerId, previous); throw error; }
+      try { await this.persist(); } catch (error) {
+        this.states.set(ownerId, previous);
+        for (const page of retiring) this.retryRetirement(page);
+        throw error;
+      }
+      for (const page of retiring) this.retryRetirement(page, 0);
       return { revision: next.revision };
     });
     this.metadataQueue = operation.catch(() => {});
@@ -94,7 +130,10 @@ export class RemoteBrowserService {
   retire(page) {
     if (page.retirement) return page.retirement;
     page.closing = true;
+    this.retiredLeases.add(page.key);
+    clearTimeout(page.retirementTimer); page.retirementTimer = null;
     page.retirement = (async () => {
+      await this.persist();
       // A close is a tab-owner operation, not a viewer reply. Once accepted it
       // must finish even if the viewer disconnects while native work awaits.
       if (page.creating) await page.creating.catch(() => {});
@@ -103,8 +142,16 @@ export class RemoteBrowserService {
       if (this.pages.get(page.key) === page) this.pages.delete(page.key);
       page.socket = null;
       await this.persist();
-    })().catch(error => { page.closing = false; page.retirement = null; throw error; });
+    })().catch(error => { page.retirement = null; this.retryRetirement(page); throw error; });
     return page.retirement;
+  }
+  retryRetirement(page, delay = 1000) {
+    if (this.closed || page.retirementTimer) return;
+    page.retirementTimer = setTimeout(() => {
+      page.retirementTimer = null;
+      if (!this.closed) void this.retire(page).catch(() => {});
+    }, delay);
+    page.retirementTimer.unref();
   }
   async available() {
     try { await Promise.all([access(this.executable), access(join(this.directory, 'worker.cjs'))]); return process.platform === 'linux'; }
@@ -226,6 +273,7 @@ export class RemoteBrowserService {
             if (!/^[a-zA-Z0-9-]{20,128}$/.test(message.input?.lease ?? '')) throw new Error('Invalid browser lease');
             await this.load(); authorize();
             const key = JSON.stringify([ownerId, message.input.lease]), target = this.pages.get(key);
+            this.retiredLeases.add(key);
             if (target) {
               const retired = this.retire(target); target.socket?.close(1000, 'Browser tab closed');
               await retired;
@@ -244,11 +292,13 @@ export class RemoteBrowserService {
             if (this.claims.has(key) && this.claims.get(key) !== ws) throw new Error('Browser page already attached');
             this.claims.set(key, ws); claimKey = key;
             await this.load(); authorize();
+            if (this.retiredLeases.has(key)) throw new Error('Browser tab is closed');
             const existing = this.pages.get(key);
             if (existing?.closing) throw new Error('Browser tab is closing');
             if (existing?.socket && existing.socket !== ws) throw new Error('Browser page already attached');
             if (!existing && (this.pages.size >= 64 || [...this.pages.values()].filter(p => p.ownerId === ownerId).length >= 16)) throw new Error('Browser page limit reached');
             await this.start(); authorize();
+            if (this.retiredLeases.has(key)) throw new Error('Browser tab is closed');
             if (ws.readyState !== WebSocket.OPEN) return;
             page = existing ?? { id: createHash('sha256').update(key).digest('hex'), key, ownerId, live: false, viewport: message.input?.viewport, zoom: 100, url: null };
             page.socket = ws; this.pages.set(key, page);
@@ -320,6 +370,7 @@ export class RemoteBrowserService {
     clearTimeout(this.checkpointTimer);
     if (this.loaded) void this.persist().catch(() => {});
     this.claims.clear();
+    for (const page of this.pages.values()) clearTimeout(page.retirementTimer);
     for (const request of this.requests.values()) { clearTimeout(request.timer); request.reject(new Error('Browser service closed')); }
     this.requests.clear();
     if (this.isolated) this.child?.stdin.end(); else this.child?.kill();

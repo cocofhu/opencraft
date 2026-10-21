@@ -216,7 +216,8 @@ test('accepted close completes after the viewer disconnects before native acknow
     assert.equal(f.service.pages.size, 0, 'closed page must stop occupying quota after detach');
     assert.deepEqual(JSON.parse(await readFile(join(f.directory,'remote-browser/tabs.json'),'utf8')).pages,[]);
     await f.restart(); const next = await f.connect('owner');
-    assert.equal((await next.call('open',{lease})).restored,false); await next.call('close'); await next.detach();
+    await assert.rejects(next.call('open',{lease}), /closed/);
+    assert.equal((await next.call('open',{lease:randomUUID()})).restored,false); await next.call('close'); await next.detach();
   } finally { finish?.(); await f.close(); }
 });
 
@@ -234,4 +235,74 @@ test('discard waits for an in-flight create and cannot leave an orphan native pa
     assert.deepEqual(JSON.parse(await readFile(join(f.directory,'remote-browser/tabs.json'),'utf8')).pages,[]);
     await first.detach();await control.detach();
   }finally{finish?.();await f.close()}
+});
+
+const until = async predicate => {
+  for (let i = 0; i < 200; i++) { if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 5)); }
+  assert.fail('Lifecycle work did not finish');
+};
+
+test('accepted mapping removal retires only that lease without a viewer close request', async () => {
+  const f = await fixture();
+  try {
+    const a = await f.connect('owner'), b = await f.connect('other'), state = await f.connect('owner');
+    const keep = 'browser-' + randomUUID(), drop = 'browser-' + randomUUID();
+    await a.call('open', { lease: keep }); await b.call('open', { lease: drop });
+    const viewer = await f.connect('owner'); await viewer.call('open', { lease: drop }); await viewer.detach();
+    const scope = (await state.call('state')).scope;
+    const write = (value, revision) => state.call('state', { scope, key: 'storage', value: JSON.stringify(value), expectedRevision: revision, mutationId: randomUUID() });
+    await write({ keep, drop }, 0); await write({ keep }, 1);
+    await until(() => f.service.pages.size === 2); await f.service.persistence;
+    assert.equal(f.service.physical.size, 2, 'keep and other-owner tabs survive');
+    assert.equal([...f.service.pages.values()].filter(p => p.ownerId === 'owner').length, 1);
+    await assert.rejects(state.call('open', { lease: drop }), /closed/);
+    await a.detach(); await b.detach(); await state.detach();
+  } finally { await f.close(); }
+});
+
+test('closure before native startup completes fences late creation, including after restart', async () => {
+  const f = await fixture(); let release;
+  try {
+    const viewer = await f.connect('owner'), control = await f.connect('owner'), lease = randomUUID();
+    let entered; const started = new Promise(resolve => entered = resolve), gate = new Promise(resolve => release = resolve);
+    f.service.start = async () => { entered(); await gate; };
+    const opening = viewer.call('open', { lease }).catch(error => error); await started;
+    await control.call('discard', { lease }); release();
+    assert.match((await opening).message, /closed/);
+    assert.equal(f.service.physical.size, 0); assert.equal(f.service.pages.size, 0);
+    await viewer.detach(); await control.detach(); await f.restart();
+    const next = await f.connect('owner'); await assert.rejects(next.call('open', { lease }), /closed/); await next.detach();
+  } finally { release?.(); await f.close(); }
+});
+
+test('failed native destruction remains durably closing and resumes after a server restart', async () => {
+  const f = await fixture();
+  try {
+    const viewer = await f.connect('owner'), lease = randomUUID(); await viewer.call('open', { lease });
+    const request = f.service.request.bind(f.service);
+    f.service.request = async (id, method, input) => { if (method === 'close') throw new Error('temporary native failure'); return request(id, method, input); };
+    await assert.rejects(viewer.call('close'), /temporary/);
+    const saved = JSON.parse(await readFile(join(f.directory, 'remote-browser/tabs.json'), 'utf8'));
+    assert.equal(saved.pages[0].closing, true);
+    await viewer.detach();
+    const reconnect = await f.connect('owner'); await assert.rejects(reconnect.call('open', { lease }), /closed/);
+    await reconnect.detach(); await viewer.detach(); await f.restart();
+    const state = await f.connect('owner'); await state.call('state');
+    await until(() => f.service.pages.size === 0); await f.service.persistence;
+    assert.deepEqual(JSON.parse(await readFile(join(f.directory, 'remote-browser/tabs.json'), 'utf8')).pages, []);
+    await state.detach();
+  } finally { await f.close(); }
+});
+
+test('missing or malformed historical mappings never trigger a sweep of unwatched tabs', async () => {
+  const f = await fixture();
+  try {
+    const viewer = await f.connect('owner'), state = await f.connect('owner'); await viewer.call('open', { lease: randomUUID() }); await viewer.detach();
+    const scope = (await state.call('state')).scope;
+    for (const [revision, value] of ['{}', '[]', '{}'].entries()) {
+      await state.call('state', { scope, key: 'storage', value, expectedRevision: revision, mutationId: randomUUID() });
+    }
+    assert.equal(f.service.physical.size, 1); assert.equal(f.service.pages.size, 1);
+    await state.detach();
+  } finally { await f.close(); }
 });

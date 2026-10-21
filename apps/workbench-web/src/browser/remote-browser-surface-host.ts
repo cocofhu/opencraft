@@ -135,22 +135,47 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   private release(id: BrowserPageId, destroy: boolean) {
     const p = this.pages.get(id); if (!p || p.closed) return;
     this.retireMenu(p);
-    if (destroy) {
-      if (p.opened) { try { p.socket?.send(JSON.stringify({ id: crypto.randomUUID(), method: 'close' })); } catch {} }
-      else this.discard(p.lease);
-    }
+    if (destroy) this.discard(p.lease);
     p.closed = true; if (p.reconnect) clearTimeout(p.reconnect); if (p.resizeTimer) clearTimeout(p.resizeTimer);
     p.inputDispose(); p.socket?.close(); this.resetDecoder(p);
     this.rejectPending(p); p.container.remove(); this.pages.delete(id); this.hostIdentities.delete(id);
     if (destroy) for (const listener of this.closeListeners) listener(id);
   }
+  private retirements = new Map<string, { socket: WebSocket | null; timer: ReturnType<typeof setTimeout> | null }>();
   private discard(lease: string) {
-    const url = new URL(serverUrl('/__opencraft_browser/stream'), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(url), timer = setTimeout(() => ws.close(), 20000);
-    ws.onopen = () => ws.send(JSON.stringify({ id: crypto.randomUUID(), method: 'discard', input: { lease } }));
-    ws.onmessage = () => ws.close(); ws.onerror = () => ws.close(); ws.onclose = () => clearTimeout(timer);
+    if (this.retirements.has(lease)) return;
+    const job = { socket: null as WebSocket | null, timer: null as ReturnType<typeof setTimeout> | null };
+    this.retirements.set(lease, job);
+    let attempts = 0;
+    const attempt = () => {
+      if (this.retirements.get(lease) !== job) return;
+      const url = new URL(serverUrl('/__opencraft_browser/stream'), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(url), id = crypto.randomUUID(); job.socket = ws;
+      let acknowledged = false;
+      job.timer = setTimeout(() => ws.close(), 25000);
+      ws.onopen = () => ws.send(JSON.stringify({ id, method: 'discard', input: { lease } }));
+      ws.onmessage = event => {
+        let message; try { message = JSON.parse(event.data); } catch { return; }
+        if (message.type !== 'result' || message.id !== id) return;
+        acknowledged = !message.error;
+        if (acknowledged) this.retirements.delete(lease);
+        ws.close();
+      };
+      ws.onerror = () => ws.close();
+      ws.onclose = () => {
+        if (job.timer) clearTimeout(job.timer);
+        job.socket = null;
+        if (!acknowledged && this.retirements.get(lease) === job)
+          job.timer = setTimeout(attempt, Math.min(10000, 250 * 2 ** Math.min(attempts++, 6)));
+      };
+    };
+    attempt();
   }
-  dispose() { for (const id of [...this.pages.keys()]) this.release(id, false); this.root = null; }
+  dispose() {
+    for (const id of [...this.pages.keys()]) this.release(id, false);
+    for (const job of this.retirements.values()) { if (job.timer) clearTimeout(job.timer); job.socket?.close(); }
+    this.retirements.clear(); this.root = null;
+  }
   fail(error: Error) { this.inputFailed = true; this.storageError = error; for (const p of this.pages.values()) { p.blocked = true; p.resetInput(); this.resetKeyboard(p); p.container.style.pointerEvents = 'none'; p.events.onError(error.message); } }
   private require(id: BrowserPageId) { const p = this.pages.get(id); if (!p) throw new Error('Browser page closed'); return p; }
   private ensure(id: BrowserPageId, events: BrowserSurfaceEvents): Page {
