@@ -1947,7 +1947,7 @@ not a second source of product policy.
   data result; `AnnouncementCenter` owns request/extension lifetime, while the
   renderer supplies the themed content recipe through the existing modal Host.
   Campaign eligibility, impression persistence and automatic scheduling stay
-  in a separate orchestration layer, matching Codex's announcement model.
+  in a separate orchestration layer.
   Renderer-owned static assets must be resolved to an absolute HTTP(S) or blob
   URL before entering that descriptor. Relative Vite asset strings are a Web
   adapter concern and must not weaken the renderer-neutral validation contract.
@@ -2423,7 +2423,7 @@ over either fixed region.
 
 `workbenchWindowMetrics` is the shared native/renderer window-size authority.
 The primary desktop window may shrink to 480px, matching the main content
-reserve and the current Codex primary-window contract. At that width the Shell
+reserve and the shared Workbench window contract. At that width the Shell
 uses its immersive fallback: application navigation, context and right tools
 are temporarily hidden without changing their saved open/Pin/width intent.
 Electron Main must consume this metric rather than maintaining a larger
