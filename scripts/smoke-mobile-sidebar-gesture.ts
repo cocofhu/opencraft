@@ -21,6 +21,7 @@ import React,{useState,useEffect,useSyncExternalStore} from 'react';
 import {WebChatDocument} from '@opencraft/chat-render-web';
 import {WorkbenchPresentationRootProvider} from '/apps/workbench-web/src/components/workbench-presentation-root.tsx';
 import appStyles from '/apps/workbench-web/src/styles/app.scss?inline';
+import mediaStyles from '/packages/chat-render-web/src/renderers/media/image.scss?inline';
 
 import {SettingsNavigation} from '/apps/workbench-web/src/components/settings-page.tsx';
 import {createApplicationNavigation} from '/apps/workbench-web/src/runtime/workbench-navigation.ts';
@@ -66,7 +67,7 @@ ${process.env.OPENCRAFT_GESTURE_COMPOSITING_ONLY === "1" ? `<div className="comp
 const host=document.getElementById('root');
 const shadow=new URLSearchParams(location.search).has('shadow')?host.attachShadow({mode:'open'}):null;
 const presentationRoot=shadow?document.createElement('div'):host;
-if(shadow){const style=document.createElement('style');style.textContent=appStyles;shadow.append(style,presentationRoot);presentationRoot.style.cssText='width:100vw;height:100dvh';}
+if(shadow){const style=document.createElement('style');style.textContent=appStyles+mediaStyles;shadow.append(style,presentationRoot);presentationRoot.style.cssText='width:100vw;height:100dvh';}
 createIntlTestRoot(presentationRoot).render(<WorkbenchPresentationRootProvider target={presentationRoot}><App/></WorkbenchPresentationRootProvider>);`;
 const vite = await createServer({ configFile: false, root: process.cwd(), publicDir: "apps/workbench-web/public", logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-mobile-sidebar-gesture", esbuild: { jsx: "automatic", target: "esnext" }, server: { host: "127.0.0.1", port: 0, hmr: false },
   optimizeDeps: { entries: [], include: ["react", "react-dom/client", "react-intl", "@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@radix-ui/react-alert-dialog", "@deepseek-ai/cordis", "tslib"] },

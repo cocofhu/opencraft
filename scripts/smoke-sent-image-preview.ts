@@ -18,7 +18,7 @@ const vite = await createServer({
       server.middlewares.use((request, response, next) => {
         if (request.url !== "/") return next();
         response.setHeader("content-type", "text/html");
-        response.end('<!doctype html><html><body><div id="host"></div><script type="module" src="/tests/fixtures/sent-image-preview.tsx"></script></body></html>');
+        response.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="host"></div><script type="module" src="/tests/fixtures/sent-image-preview.tsx"></script></body></html>');
       });
     },
   }],
