@@ -36,10 +36,10 @@ export function JsonPreview({ value }: { value: unknown }) {
   return value == null ? <></> : <pre>{json(value)}</pre>;
 }
 
-function JsonSurface({ value, documentId }: { value: unknown; documentId: string }) {
+function JsonSurface({ value, documentId, showActions = false }: { value: unknown; documentId: string; showActions?: boolean }) {
   const { theme } = useContext(ConversationDocumentContext);
   return <LazyHighlightedCodeSurface code={json(value)} language="json" title="JSON"
-    documentId={documentId} theme={theme} showActions={false} />;
+    documentId={documentId} theme={theme} showActions={showActions} />;
 }
 
 function ResourceLink({ target, children }: { target: string; children: import("react").ReactNode }) {
@@ -123,7 +123,7 @@ function RawToolOutput({ block }: { block: Tool }) {
   return <><button type="button" className="thread-tool-details__raw" title="Show raw tool call output"
     aria-label="Show raw tool call output" onClick={() => setOpen(true)}><Code2 size={12} /></button>
     {open ? <ModalSurface label={title} size="wide" layer="nested" onDismiss={() => setOpen(false)}>
-      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} />
+      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} showActions />
     </ModalSurface> : null}</>;
 }
 
