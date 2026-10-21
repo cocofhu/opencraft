@@ -30,6 +30,7 @@ try {
     const card = page.locator(".thread-async-question");
     const send = card.getByRole("button", { name: "发送回答" });
     await send.waitFor();
+    await card.locator(".opencraft-chat-document").waitFor();
     if (mobile) await card.getByText("需要你确认", { exact: true }).tap();
     const metrics = await card.evaluate((node: HTMLElement) => {
       const choices = [...node.querySelectorAll("label")];
@@ -49,8 +50,7 @@ try {
     const input = card.getByRole("textbox", { name: "你的回答" });
     await input.fill("保持这段草稿");
     await input.focus();
-    const focused = await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(2, 5); return el; });
-    void focused;
+    await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(2, 5); });
     await page.evaluate(() => (window as any).setQuestionPalette("lavender", "dark"));
     assert.equal(await input.inputValue(), "保持这段草稿");
     assert.deepEqual(await input.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd, document.activeElement === el]), [2, 5, true]);
