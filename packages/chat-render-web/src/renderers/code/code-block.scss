@@ -15,7 +15,8 @@
 
   figcaption {
     position: relative;
-    z-index: 2;
+    // Ordinary captions repaint with the surface during touch scrolling.
+    // Only the explicit sticky variant below needs a separate stacking level.
     display: flex;
     align-items: center;
     padding: 4px 8px;

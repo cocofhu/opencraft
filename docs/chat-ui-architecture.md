@@ -2322,3 +2322,10 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+
+Ordinary Web code captions stay in the surface's normal stacking order so touch
+scrolling repaints their language label and controls together with the code.
+Only the explicit sticky-header variant receives an elevated stacking level;
+source, wrap, copy behavior and surface geometry remain owned by the code frame.

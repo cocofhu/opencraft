@@ -1838,3 +1838,11 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+
+## Code caption paint continuity (2026-10-21)
+
+Ordinary Web code captions use normal stacking order with their code surface.
+Touch scrolling must not briefly expose a blank language/action bar while the
+code remains visible. Explicit sticky captions retain their elevated layer.
