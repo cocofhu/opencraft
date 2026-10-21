@@ -1448,7 +1448,9 @@ preedit and queues terminal edits in order. Local blur, park, navigation,
 disconnect and disposal retire the transaction.
 
 Physical keyboard keydown/keyup/character events remain available on non-editable
-pages, including arrows, Tab, Escape and shortcuts. Composition/Process/229
+pages, including arrows, Tab, Escape and shortcuts. Enter forwards the native
+Return character as well as key edges so native form submission and textarea
+line breaks can run; a non-editable page keeps the manual local key receiver. Composition/Process/229
 keystrokes are excluded to avoid inserting both a key character and IME commit.
 Browser/OS-reserved shortcuts, layout-specific dead keys and Bluetooth keyboard
 behavior need platform validation; remote handlers can reject edits. Rejection

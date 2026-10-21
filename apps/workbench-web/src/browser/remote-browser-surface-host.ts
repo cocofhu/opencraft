@@ -40,7 +40,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     p.receiver.focus({ preventScroll: true });
   }
   private keyboardChanged() { for (const listener of this.keyboardListeners) listener(); }
-  private resetKeyboard(p: Page, blur = true) { if (blur || p.receiver.inputMode === 'text') p.receiver.blur(); p.editable = false; p.editor = null; p.keyboard = null; p.keyboardIntent = null; p.receiver.value = ''; p.receiver.type = 'text'; p.receiver.inputMode = 'none'; p.receiver.setAttribute('virtualkeyboardpolicy', 'manual'); this.keyboardChanged(); }
+  private resetKeyboard(p: Page, blur = true) { if (blur) p.receiver.blur(); p.editable = false; p.editor = null; p.keyboard = null; p.keyboardIntent = null; p.receiver.value = ''; p.receiver.type = 'text'; p.receiver.inputMode = 'none'; p.receiver.setAttribute('virtualkeyboardpolicy', 'manual'); this.keyboardChanged(); }
   private updateKeyboard(p: Page) {
     const intent = p.keyboardIntent;
     const tappedNewEditor = intent?.completed && performance.now() < intent.until && intent.editor !== p.editor;
@@ -441,7 +441,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       if (event.inputType === 'insertText' && event.data) { event.preventDefault(); ime.commit(event.data); }
       else if (['deleteContentBackward', 'deleteContentForward', 'insertLineBreak', 'insertParagraph'].includes(event.inputType)) {
         event.preventDefault(); const keyCode = event.inputType === 'deleteContentBackward' ? 'Backspace' : event.inputType === 'deleteContentForward' ? 'Delete' : 'Return';
-        send({ type: 'keyDown', keyCode }); send({ type: 'keyUp', keyCode });
+        send({ type: 'keyDown', keyCode }); if (keyCode === 'Return') send({ type: 'char', keyCode: '\r' }); send({ type: 'keyUp', keyCode });
       }
     });
     textListen('input', (event: InputEvent) => {
@@ -463,6 +463,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       this.retireMenu(p);
       if (event.key === 'ContextMenu' || event.key === 'F10' && event.shiftKey) p.menuIntent = crypto.randomUUID();
       event.preventDefault(); send({ type: 'keyDown', keyCode: keys[event.key] || event.key, menuIntent: p.menuIntent, modifiers: modifiers(event) });
+      if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey) send({ type: 'char', keyCode: '\r', modifiers: modifiers(event) });
       if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) send({ type: 'char', keyCode: event.key }); });
     textListen('keyup', (event: KeyboardEvent) => { if (ime.composing || event.isComposing || ['Process', 'Unidentified'].includes(event.key) || event.keyCode === 229) return; if ((event.ctrlKey || event.metaKey) && ['c', 'v'].includes(event.key.toLowerCase())) return; event.preventDefault(); send({ type: 'keyUp', keyCode: keys[event.key] || event.key, modifiers: modifiers(event) }); });
     return () => { p.resetInput(); cleanup.forEach(dispose => dispose()); };
