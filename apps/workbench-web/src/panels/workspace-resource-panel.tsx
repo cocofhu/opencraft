@@ -10,7 +10,7 @@ import { parse, serialize, type DefaultTreeAdapterTypes } from "parse5";
 import type { BlobProgress } from "@opencraft/blob-resources";
 import type { FuzzyFileSearchResult } from "@opencraft/appserver-protocol/generated";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
-import { AlertTriangle, Download, Image as ImageIcon, Save } from "lucide-react";
+import { WarningIcon as AlertTriangle, DownloadIcon as Download, ImageIcon, SaveIcon as Save } from "@opencraft/design-system-web/action-icons";
 import {
   lazy,
   Suspense,

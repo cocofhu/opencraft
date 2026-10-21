@@ -3,7 +3,7 @@ import { AvatarImage, IdentityAvatarContext } from "@opencraft/extension-react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { UserMessageTimelineBlock } from "@opencraft/chat-core";
 import { WebUserMessageDocument, resolveStandardChatResource, writeTextToClipboard } from "@opencraft/chat-render-web";
-import { AlertCircle, Circle, FileText, ImageIcon, MessageSquare, Wrench, UserRound } from "lucide-react";
+import { AlertIcon as AlertCircle, CircleIcon as Circle, TextFileIcon as FileText, ImageIcon, MessageIcon as MessageSquare, ToolIcon as Wrench, PersonIcon as UserRound } from "@opencraft/design-system-web/action-icons";
 import {
   type ReactNode,
   useContext,

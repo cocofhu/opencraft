@@ -50,7 +50,7 @@ import { UserMessageNavigationRail } from "./user-message-navigation-rail";
 import { ConversationSearchPosition } from "./conversation-search-position";
 import { DisclosureReflowContext } from "./use-disclosure-reflow";
 import { useLatestTurnFollowContentRef } from "./latest-turn-follow-content";
-import { AlertCircle, ArrowRight, CalendarClock, FileCode2 } from "lucide-react";
+import { AlertIcon as AlertCircle, ArrowRightIcon as ArrowRight, CalendarIcon as CalendarClock, CodeFileIcon as FileCode2 } from "@opencraft/design-system-web/action-icons";
 import {
   motion,
   type MotionValue,

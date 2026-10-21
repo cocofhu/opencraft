@@ -1,5 +1,5 @@
 import type { ToolActivityIcon } from "@opencraft/chat-core";
-import { Bot, ImageIcon, Monitor, Wrench } from "lucide-react";
+import { AgentIcon as Bot, ImageIcon, MonitorIcon as Monitor, ToolIcon as Wrench } from "@opencraft/design-system-web/action-icons";
 import type { ReactNode } from "react";
 
 import {

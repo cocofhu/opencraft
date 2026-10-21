@@ -21,7 +21,7 @@ import {
   codexSetupTaskOptions,
   type SetupCodexContextSource,
 } from "@opencraft/workbench-runtime";
-import { AlertCircle, Globe2, MessageSquare, Wrench } from "lucide-react";
+import { AlertIcon as AlertCircle, GlobeIcon as Globe2, MessageIcon as MessageSquare, ToolIcon as Wrench } from "@opencraft/design-system-web/action-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useCallback,

@@ -2,7 +2,7 @@ import { ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, Chevr
 import * as Popover from "@radix-ui/react-popover";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Eye, EyeOff } from "lucide-react";
+import { EyeIcon as Eye, EyeOffIcon as EyeOff } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { SettingsButton, SettingsIconButton, SettingsNotice, SettingsSelect, SettingsSwitch, SettingsTextInput, type ExtensionSettingsViewProps } from "@opencraft/extension-react";
 import type { RuntimeProviderView, RuntimeModelView } from "@opencraft/appserver-protocol";

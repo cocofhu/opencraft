@@ -1,6 +1,6 @@
 import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Gauge, LogIn, LogOut, User } from "lucide-react";
+import { GaugeIcon as Gauge, LoginIcon as LogIn, LogoutIcon as LogOut, PersonIcon as User } from "@opencraft/design-system-web/action-icons";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { IntlShape } from "@opencraft/i18n";
 import { useEffect, useState } from "react";

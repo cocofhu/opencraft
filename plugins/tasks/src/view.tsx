@@ -1,3 +1,4 @@
+import { ChevronRightIcon } from "@opencraft/design-system-web/action-icons";
 import { AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X, EditIcon as Pencil, MoreIcon as MoreHorizontal, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import {
   lazy,
@@ -14,7 +15,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChartNoAxesCombined, Columns3, List, SlidersHorizontal, MessageSquare, ArrowUpRight, UserRound, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartIcon as ChartNoAxesCombined, ColumnsIcon as Columns3, ListIcon as List, SlidersIcon as SlidersHorizontal, MessageIcon as MessageSquare, ArrowUpRightIcon as ArrowUpRight, PersonIcon as UserRound, ArrowLeftIcon as ArrowLeft, ArchiveIcon as Archive, RestoreArchiveIcon as ArchiveRestore } from "@opencraft/design-system-web/action-icons";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";
@@ -526,7 +527,7 @@ function MemberIdentityEditor({ member, busy, onMember }: { member: TaskMember; 
   return <details ref={details} className="tasks-members tasks-member-profile" onToggle={event => {
     if (event.currentTarget.open && !edit) setEdit({ kind: member.identity?.kind ?? "", id: member.identity?.id ?? "", revision: member.revision, name: member.name });
   }}>
-    <summary>{t("avatarProfile")} · {member.name}</summary>
+    <summary><ChevronRightIcon size={14} />{t("avatarProfile")} · {member.name}</summary>
     {edit ? <>
       {edit.revision !== member.revision ? <SettingsNotice>{t("identityChanged")} <SettingsButton type="button" disabled={busy} onClick={() => setEdit({ kind: member.identity?.kind ?? "", id: member.identity?.id ?? "", revision: member.revision, name: member.name })}>{t("latestIdentity")}</SettingsButton></SettingsNotice> : null}
       <label>{t("identityKind")}<SettingsSelect aria-label={t("identityKind")} disabled={busy} value={edit.kind} onChange={e => setEdit({ ...edit, kind: e.target.value })}>
@@ -869,7 +870,7 @@ function Editor({
             </SettingsButton>
           </SettingsNotice>
         ) : null}
-            {properties ? <details ref={memberDetails} className="tasks-members"><summary>{t("addMember")}</summary>
+            {properties ? <details ref={memberDetails} className="tasks-members"><summary><ChevronRightIcon size={14} />{t("addMember")}</summary>
               <label>{t("memberName")}<SettingsTextInput aria-label={t("memberName")} maxLength={120} value={memberName} onChange={e=>setMemberName(e.target.value)} /></label>
               <label>{t("memberId")}<SettingsTextInput aria-label={t("memberId")} maxLength={256} value={memberId} onChange={e=>setMemberId(e.target.value)} /></label>
               <p>{t("memberHint")}</p>

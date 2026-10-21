@@ -14,7 +14,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { MessageSquare } from "lucide-react";
+import { MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import {
   groupTimelineFramesByTurn,
   type TimelineSnapshot,

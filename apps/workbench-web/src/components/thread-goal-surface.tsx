@@ -4,7 +4,7 @@ import { useWorkbenchPresentationActive } from "./workbench-presentation-activit
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
-import { CirclePause, Play, Target } from "lucide-react";
+import { PausedCircleIcon as CirclePause, PlayIcon as Play, TargetIcon as Target } from "@opencraft/design-system-web/action-icons";
 import type { ThreadGoalResource, ThreadGoalSnapshot } from "@opencraft/workbench-runtime";
 import { defineMessages, type IntlShape } from "@opencraft/i18n";
 import { useIntl } from "@opencraft/i18n/react";

@@ -27,7 +27,7 @@ import { menuGeometry } from "@opencraft/design-system/tokens";
 import { useMachineConnectionPhase } from "../runtime/appserver-runtime-context";
 import { ConnectionStatus } from "./target-connection-status";
 import { machineResourcePhaseLabel } from "./machine-resource-presentation";
-import { FolderPlus, GitBranch, Cloud, Laptop, Server } from "lucide-react";
+import { NewFolderIcon as FolderPlus, BranchIcon as GitBranch, CloudIcon as Cloud, LaptopIcon as Laptop, ServerIcon as Server } from "@opencraft/design-system-web/action-icons";
 import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,

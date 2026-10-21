@@ -9,21 +9,23 @@ after(() => { if (previousReact) Object.defineProperty(globalThis, "React", prev
 import { createIntl, RawIntlProvider } from "react-intl";
 import { SidebarActivityItem } from "../apps/workbench-web/src/components/sidebar-activity-item";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Palette, MessageSquare, Globe2, Activity, Plus, Server, UserRoundCog, SlidersHorizontal, UserRound, ListTodo, MessagesSquare, Blocks, CircleHelp } from "lucide-react";
+import { PaletteIcon as Palette, MessageIcon as MessageSquare, GlobeIcon as Globe2, PulseIcon as Activity, AddIcon as Plus, ServerIcon as Server, PersonSettingsIcon as UserRoundCog, SlidersIcon as SlidersHorizontal, PersonIcon as UserRound, TasksIcon as ListTodo, CollaborationIcon as MessagesSquare, ExtensionsIcon as Blocks, HelpIcon as CircleHelp } from "@opencraft/design-system-web/action-icons";
 import { WorkbenchProductContext, WorkbenchPresentationContext } from "../apps/workbench-web/src/workbench-product";
 import { WorkbenchIcon } from "../apps/workbench-web/src/components/ui/workbench-icon";
 import { NavigationIcon } from "../apps/workbench-web/src/components/shell-navigation/navigation-action";
 import { SidebarToggleIcon } from "../apps/workbench-web/src/chrome-actions/sidebar-toggle-icon";
 import { NewTaskIcon } from "../apps/workbench-web/src/chrome-actions/new-task-icon";
-import { ReferenceNavigationIcon, ReferenceSidebarToggleIcon } from "./fixtures/opencraft-icon-reference";
+import { ReferenceSidebarToggleIcon } from "./fixtures/opencraft-icon-reference";
 import { resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
 const render = (component: ReturnType<typeof createElement>, iconStyle: "classic" | "standard" = "classic") => renderToStaticMarkup(createElement(WorkbenchPresentationContext.Provider, { value: resolveWorkbenchPresentation({iconStyle}) }, component));
 const geometry = (markup: string) => [...markup.matchAll(/<(?:path|circle|rect|line|polyline|polygon|ellipse)\b[^>]*>/g)].map(match => match[0]);
-for (const selected of [false,true]) test(`Downstream navigation retains the fixed old artwork, size and selected/silhouette state (${selected})`, () => {
+for (const selected of [false,true]) test(`navigation uses shared artwork and preserves selected role (${selected})`, () => {
   for (const name of ["chat","message-circle","cloud","database","hard-drive","server","bot","applications","columns","unknown"]) {
     const actual=render(createElement(NavigationIcon,{name,selected}));
-    const reference=renderToStaticMarkup(createElement(ReferenceNavigationIcon,{name,selected}));
-    assert.equal(actual,reference,name);
+    assert.match(actual,/data-action-glyph=/);
+    assert.doesNotMatch(actual,/lucide/);
+    assert.match(actual,/width="15"/);
+    assert.match(actual,new RegExp(`data-navigation-glyph-variant="${selected ? "selected" : "outline"}"`));
   }
 });
 test("New task uses the shared semantic action while panel toggles retain their contract", () => {
@@ -35,7 +37,7 @@ test("New task uses the shared semantic action while panel toggles retain their 
   }
   for (const product of ["classic", "standard"] as const) for(const sidebarOpen of [false,true]) assert.equal(render(createElement(SidebarToggleIcon,{sidebarOpen}),product),renderToStaticMarkup(createElement(ReferenceSidebarToggleIcon,{sidebarOpen})));
 });
-test("semantic settings/panel icons retain old consumer-specific artwork and scale",()=>{
+test("semantic settings/panel icons share artwork while retaining consumer-specific scale",()=>{
   for(const [name,purpose,Icon,size] of [["appearance","settings",Palette,16],["chat","panel",MessageSquare,14],["browser","panel",Globe2,14],["activity","settings-page",Activity,16]] as const){
     const actual=render(createElement(WorkbenchIcon,{name,purpose}));
     const old=renderToStaticMarkup(createElement(Icon,{size,strokeWidth:2}));
@@ -61,7 +63,7 @@ test("identity alone never selects a different icon family", () => {
   const renderIdentity = (id: string) => renderToStaticMarkup(createElement(WorkbenchProductContext.Provider,
     {value: id}, createElement(WorkbenchIcon, {name: "appearance"})));
   assert.equal(renderIdentity("lightvela-web"), renderIdentity("an-unrelated-product"));
-  assert.match(renderIdentity("lightvela-web"), /lucide-sun-moon/);
+  assert.match(renderIdentity("lightvela-web"), /data-action-glyph="appearance"/);
 });
 
 

@@ -21,7 +21,7 @@ import { WebChatDocument, WebUserMessageDocument } from "@opencraft/chat-render-
 import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createClientId, createComposerController, type ComposerDraftStorage } from "@opencraft/composer-core";
 import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
-import { ArrowDown, CircleAlert, Pause, Play, UsersRound } from "lucide-react";
+import { ArrowDownIcon as ArrowDown, AlertIcon as CircleAlert, PauseIcon as Pause, PlayIcon as Play, PeopleIcon as UsersRound } from "@opencraft/design-system-web/action-icons";
 import {
   useCallback,
   useEffect,

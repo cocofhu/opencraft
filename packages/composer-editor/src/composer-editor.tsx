@@ -37,7 +37,7 @@ import {
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, composerDocumentToPlainText } from "@opencraft/composer-core";
-import { ArrowUp, AtSign, CircleAlert, FileCode2, FileText, Image, Sparkles } from "lucide-react";
+import { ArrowUpIcon as ArrowUp, AtSignIcon as AtSign, AlertIcon as CircleAlert, CodeFileIcon as FileCode2, TextFileIcon as FileText, ImageIcon as Image, SparklesIcon as Sparkles } from "@opencraft/design-system-web/action-icons";
 import {
   Fragment,
   forwardRef,

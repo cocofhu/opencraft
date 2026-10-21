@@ -9,7 +9,7 @@ import { AvatarImage, type ThreadBadgeContribution, type ThreadListGroupingContr
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 
 import { useIntl } from "@opencraft/i18n/react";
-import { ListFilter, UserRound } from "lucide-react";
+import { FilterIcon as ListFilter, PersonIcon as UserRound } from "@opencraft/design-system-web/action-icons";
 import type { ServerRouteLocality, ThreadServerOrigin, WorkbenchThread } from "@opencraft/workbench-runtime";
 import type {
   SidebarEntity,

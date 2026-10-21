@@ -28,18 +28,12 @@
     object-fit: contain;
   }
 
-  // Icon canvas padding differs. Calibrate licensed semantic artwork to
-  // ~15px painted geometry; effective Lucide stroke remains 1.2 CSS pixels.
-  > .lucide { stroke-width: 1.44; }
-  > .lucide-brain,
-  > .lucide-wrench,
-  > .lucide-bot,
-  > .lucide-monitor,
-  > .lucide-message-square,
-  > .lucide-earth,
-  > .lucide-book-open,
-  > .lucide-pencil,
-  > .lucide-folder {
+  // Static shared glyphs retain the existing rail's painted weight.
+  > .ui-action-glyph { stroke-width: 1.44; }
+  > :is([data-action-glyph="model"], [data-action-glyph="tool"],
+    [data-action-glyph="agent"], [data-action-glyph="monitor"],
+    [data-action-glyph="message"], [data-action-glyph="globe"],
+    [data-action-glyph="book"], [data-action-glyph="edit"], [data-action-glyph="folder"]) {
     width: 18px;
     height: 18px;
     stroke-width: 1.6;

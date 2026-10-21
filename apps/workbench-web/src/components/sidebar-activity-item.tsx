@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { WorkbenchThread } from "@opencraft/workbench-runtime";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
-import { Clock, Target } from "lucide-react";
+import { ClockIcon as Clock, TargetIcon as Target } from "@opencraft/design-system-web/action-icons";
 
 function ThreadActivity({
   id,

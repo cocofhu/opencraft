@@ -1,6 +1,6 @@
 import { RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowUpRight, CheckCheck, Layers3, Pin, Users } from "lucide-react";
+import { PulseIcon as Activity, ArrowUpRightIcon as ArrowUpRight, DoubleCheckIcon as CheckCheck, LayersIcon as Layers3, PinIcon as Pin, PeopleIcon as Users } from "@opencraft/design-system-web/action-icons";
 import { SettingsButton, SettingsNotice, SettingsSelect, SettingsTextInput, type PlatformViewHost } from "@opencraft/extension-react";
 import { useIntl } from "@opencraft/i18n/react";
 import { legacyDirectServerProjectionFromHost } from "@opencraft/workbench-runtime";

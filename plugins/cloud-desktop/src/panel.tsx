@@ -5,7 +5,7 @@ import React from "react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { ClipboardPaste, Keyboard, MonitorOff } from "lucide-react";
+import { PasteIcon as ClipboardPaste, KeyboardIcon as Keyboard, MonitorOffIcon as MonitorOff } from "@opencraft/design-system-web/action-icons";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { DesktopBackend } from "./contract";
 import { DesktopViewController, type DesktopViewSnapshot } from "./controller";

@@ -1,5 +1,5 @@
 import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
-import { Database, TableProperties } from "lucide-react";
+import { DatabaseIcon as Database, TableIcon as TableProperties } from "@opencraft/design-system-web/action-icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {

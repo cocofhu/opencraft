@@ -3,7 +3,7 @@ import { useAsyncNotices } from "./async-notices";
 import { useIntl } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Archive, GitFork, Pin, PinOff } from "lucide-react";
+import { ArchiveIcon as Archive, ForkIcon as GitFork, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {

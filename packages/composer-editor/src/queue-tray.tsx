@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import React, { useState } from "react";
-import { CircleAlert, CornerDownRight, GripVertical, Play, User } from "lucide-react";
+import { AlertIcon as CircleAlert, TurnRightIcon as CornerDownRight, GripIcon as GripVertical, PlayIcon as Play, PersonIcon as User } from "@opencraft/design-system-web/action-icons";
 
 /** Display-only author resolved by the host; the Composer owns no directory policy. */
 export interface ComposerQueueSender {

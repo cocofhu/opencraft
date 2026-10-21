@@ -3,7 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } fro
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Bot, MessagesSquare } from "lucide-react";
+import { AgentIcon as Bot, CollaborationIcon as MessagesSquare } from "@opencraft/design-system-web/action-icons";
 import {
   SettingsButton,
   SettingsIconButton,

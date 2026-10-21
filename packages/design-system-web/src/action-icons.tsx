@@ -1,23 +1,10 @@
-import React, { type ReactNode, type SVGProps } from "react";
+import React from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
-
-export interface ActionIconProps extends Omit<SVGProps<SVGSVGElement>, "children" | "width" | "height"> {
-  readonly size?: number;
-  readonly className?: string;
-  readonly "aria-label"?: string;
-}
-
-function ActionGlyph({ size = 20, strokeWidth = 1.5, className, "aria-label": label, kind, children, ...attributes }: ActionIconProps & {
-  readonly kind: string;
-  readonly children: ReactNode;
-}) {
-  return <svg {...attributes} width={size} height={size} viewBox="0 0 24 24" fill={attributes.fill ?? "none"} stroke="currentColor" strokeWidth={strokeWidth}
-    strokeLinecap="round" strokeLinejoin="round" focusable="false"
-    className={["ui-action-glyph", className].filter(Boolean).join(" ")}
-    data-action-glyph={kind} aria-hidden={label ? undefined : true} aria-label={label} role={label ? "img" : undefined}>
-    {children}
-  </svg>;
-}
+import { ActionGlyph, type ActionIconProps } from "./icon-glyph";
+export type { ActionIconProps } from "./icon-glyph";
+export * from "./interface-icons";
+export * from "./activity-icons";
+export * from "./retained-layout-icons";
 
 /** Input geometry remains owned by ui-composer-input-icon (including touch). */
 export function MicrophoneIcon({ off = false, ...props }: ActionIconProps & { readonly off?: boolean }) {

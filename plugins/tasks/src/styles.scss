@@ -567,8 +567,8 @@
     > .settings-control-select-shell, > .settings-control-input { flex: 0 1 65%; width: 65%; min-width: 0; }
   }
   .tasks-editor__properties .tasks-editor__fields { gap: 8px; }
-  .tasks-members summary { display: flex; align-items: center; min-height: 44px; padding: 0; &::before { content: "+"; margin-inline-end: 6px; } }
-  .tasks-members[open] summary::before { content: "−"; }
+  .tasks-members summary { display: flex; align-items: center; min-height: 44px; padding: 0; > svg { flex: none; margin-inline-end: 6px; } }
+  .tasks-members[open] > summary > svg { transform: rotate(90deg); }
   .tasks-editor__fields > .settings-control-button { align-self: flex-start; }
   .tasks-editor__conversations { padding-top: 16px; gap: 12px; }
   .tasks-editor__actions { padding-top: 8px; margin-top: 8px; }

@@ -34,7 +34,7 @@ test("Downstream navigation retains its existing silhouette and detailed selecte
     assert.match(render(name, true, "lightvela-web"), /fill="none"/);
     assert.match(render(name, true, "lightvela-web"), /stroke-width="2.5"/);
   }
-  assert.match(render("message-circle"), /lucide-message-circle/);
+  assert.match(render("message-circle"), /data-action-glyph="chat"/);
 });
 
 test("core navigation uses the downstream outline role without boldening selected glyphs", () => {

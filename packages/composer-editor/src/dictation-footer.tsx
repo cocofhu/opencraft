@@ -1,6 +1,6 @@
 import { CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { LoadingRingIcon, ResetIcon } from "@opencraft/design-system-web/action-icons";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUpIcon as ArrowUp, SquareIcon as Square } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState } from "react";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { ComposerAudioLevels, ComposerDictationInteraction } from "@opencraft/composer-core";

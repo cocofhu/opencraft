@@ -22,13 +22,16 @@ existing touch size to make all outer canvases identical.
 The same module also supplies common copy/edit/compose/delete/more/add/close,
 check, attachment and directional chevron controls. Static model, search,
 terminal and folders share its proportions; they never inherit a process cursor
-or pulse. The semantic Workbench registry accepts shared SVG components as well
-as supplemental library icons, preserving classic/core role metrics and fallback
-selection. Brand/provider artwork, file-type identities and retained panel toggles
-remain separate owners.
+or pulse. The semantic Workbench registry resolves the shared SVG components through
+an explicitly typed component resolver,
+preserving classic/core role metrics and fallback
+selection. Generic file-type frames also use this package; their code/JSON/image
+interiors retain the file semantics. Brand/provider artwork and generated avatars
+retain their identity. The retained panel silhouettes are exposed through this
+package unchanged.
 
-Web loading controls and the startup/recovery spinner consume LoadingRingIcon.
-Existing classes still own rotation, slot size,
+All Web loading controls, including SettingsButton and the startup/recovery
+spinner, consume LoadingRingIcon. Existing classes still own rotation, slot size,
 reduced-motion and when a busy state is visible. Replacing SVG artwork must not
 add a loading state to cached refreshes. Reset/retry, refresh, viewport rotation
 and conversation replay have separate exports and keep their original callbacks.
@@ -64,3 +67,24 @@ stop/attachment/transcription feedback retains its existing motion and size.
 reset, voice retry and attachment retry. Disabled/default state and callbacks stay
 with their existing controls. Check a non-default effort returning to its model
 default without replacing the editor or changing the draft.
+
+All general Web interface artwork now belongs to this package: navigation and
+contribution registries, connectors, alerts, account categories, devices, schedules,
+full arrows and links, tools, file frames, media/table/Mermaid controls and timeline
+indicators. `icon-glyph` owns the common canvas and decorative/labelled accessibility;
+`interface-icons` owns static shapes. `activity-icons` keeps the existing process
+classes and source geometry; `timeline-icons` keeps progress ratios, interpolation
+and gradient identifiers. Consumers retain their callbacks and motion policies.
+The Workbench compatibility activity entry only re-exports shared components.
+
+Only the two explicitly retained layout silhouettes use the licensed library,
+isolated in `retained-layout-icons`; do not import general Lucide artwork in Web
+consumers. Brand marks, generated avatars, diagrams and content SVG are different
+semantic objects. Native adapters keep their platform artwork outside this Web
+migration. Check dynamic icon registries as well as direct JSX: zero selected
+import names alone does not prove complete coverage.
+
+Run `npm run check:icons` to inspect direct imports, re-exports, dynamic registry
+inputs and inline control SVG across Web, shared packages and plugins. Test the
+policy with `node --test tests/interface-icons-policy.test.mjs`. Product workspaces
+consume the same entry and must be scanned in their own delivery verification.

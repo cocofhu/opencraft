@@ -13,7 +13,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { PanelToolbarActionContext } from "@opencraft/workbench-panels";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { usePanelPresentation } from "../components/panel-presentation";
-import { ArrowLeft, ArrowRight, ExternalLink, Globe2, MonitorSmartphone, RotateCw } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, ExternalLinkIcon as ExternalLink, GlobeIcon as Globe2, DevicesIcon as MonitorSmartphone, RedoIcon as RotateCw } from "@opencraft/design-system-web/action-icons";
 import {
   useEffect,
   useLayoutEffect,

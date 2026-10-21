@@ -10,7 +10,7 @@ import type {
   ConversationPanelState,
 } from "@opencraft/workbench-panels";
 import type { PanelRendererRegistration } from "@opencraft/workbench-panels-react";
-import { FileCode2, Globe2, Monitor, GitBranch, Maximize2, Minimize2, MessageSquare } from "lucide-react";
+import { CodeFileIcon as FileCode2, GlobeIcon as Globe2, MonitorIcon as Monitor, BranchIcon as GitBranch, ExpandIcon as Maximize2, CollapseIcon as Minimize2, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import {
   DndContext,
   closestCenter,

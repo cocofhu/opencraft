@@ -8,7 +8,7 @@ import {
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
 import { LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
-import { Bot, Circle, Code2, Globe2, ImageIcon, MessageSquare } from "lucide-react";
+import { AgentIcon as Bot, CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";

@@ -37,7 +37,7 @@ import {
   type SidebarLayoutStore,
 } from "@opencraft/sidebar-layout";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bot } from "lucide-react";
+import { AgentIcon as Bot } from "@opencraft/design-system-web/action-icons";
 import {
   useCallback,
   createContext,
