@@ -1,5 +1,12 @@
 # OpenCraft platform architecture
 
+The proposed cross-cutting observation plane is specified in
+[Observability V1](observability-platform.md), with a separate
+[functional and nonfunctional acceptance matrix](observability-acceptance.md).
+It observes existing owners and does not own execution, recovery or history.
+This is an implementation specification, not a claim that the optional stack,
+CLI or runtime Skill has already been deployed.
+
 The Web/Electron renderer attaches `appserver-diagnostics` to normal runtime
 clients and startup identity probes. Console events correlate host, renderer
 client instance, connection generation, RPC ID, method and elapsed time for
