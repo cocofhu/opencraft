@@ -2094,6 +2094,16 @@ export function createAppServerWorkbenchRuntime(
             // queue. Transport failure after adoption is a different boundary.
             if (!config.outbox || (phase === "ready" && binding.runtime.getSnapshot().authoritative && !binding.runtime.getSnapshot().queuedSubmissions.some(item => item.local))) assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
               : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+            // Online first inputs can own ready asset/context references while
+            // the new Thread is still hydrating. Keep that custody on this
+            // command; the offline text outbox cannot persist these handles.
+            if (phase === "ready" && !binding.runtime.getSnapshot().authoritative
+              && (intent.attachments.length > 0 || intent.context.length > 0)) {
+              assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
+                : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+              await hydrateBinding(binding, false);
+              if (released || binding.disposed) throw new Error(`Thread ${threadId} lease is released`);
+            }
             const receipt = await binding.runtime.submit(intent);
             if (receipt.turnId !== null)
               retainAcceptedTurn(binding, receipt.turnId);

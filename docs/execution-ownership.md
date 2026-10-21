@@ -405,3 +405,5 @@ Corrupt individual Pi indexes remain on disk and do not prevent loading other se
 The Workbench may resend Full access together with its resolved native sandbox
 policy. Pi accepts that redundant equivalent representation, while validating every
 supplied permission field and rejecting any restricted or custom value.
+
+Online first submissions with ready attachments or context wait for the existing Thread hydration owner before entering Conversation admission. The command retains the original references and checks lease lifetime after hydration. The text-only offline outbox does not take custody of transient asset handles; offline refusal and uncertain-execution fencing remain unchanged.

@@ -391,3 +391,37 @@ test("Pi file/skill/image input is explicit and upload staging works without DSH
   await assert.rejects(compilePiInput([{ type: "localImage", path: join(f.directory, "missing.png") }], null, f.directory, { input: ["image"] }));
   await assert.rejects(compilePiInput([{ type: "audio", url: "data:audio/wav;base64,AA==" }], null, f.directory, { input: ["text"] }), /input.audio/);
 });
+
+
+test("Pi online first attachment waits for baseline without claiming offline custody", async t => {
+  const { createAppServerWorkbenchRuntime } = await import("../packages/workbench-runtime/src/appserver-runtime.js");
+  const { WebSocketTransport } = await import("../packages/appserver-transport-websocket/src/index.js");
+  const { writeFile } = await import("node:fs/promises");
+  let modelContext = "";
+  const f = await fixture(t, [(context: any) => { modelContext = JSON.stringify(context); return fauxAssistantMessage("file received"); }]);
+  const file = join(f.directory, "first-attachment.txt"); await writeFile(file, "note");
+  const host = await startEngineHost({ providers: [f.engine], defaultEngine: "pi" }); t.after(() => host.close());
+  const methods: string[] = [];
+  const runtime = createAppServerWorkbenchRuntime({ hostId: "pi-first-attachment", hostKind: "durable",
+    outbox: { read: () => [], write: () => { throw new Error("Attachment must not enter the offline outbox"); }, subscribe: () => () => {} },
+    createTransport: () => {
+      const transport = new WebSocketTransport(host.websocketUrl), send = transport.send.bind(transport);
+      transport.send = frame => { methods.push(JSON.parse(frame).method); return send(frame); }; return transport;
+    },
+  });
+  t.after(() => runtime.dispose()); await runtime.connect();
+  const thread = await runtime.resources.threads.start({ model: piModel("faux", "faux-1"), cwd: f.directory });
+  const lease = await runtime.acquireThread(thread.id); t.after(() => lease.release());
+  assert.equal(lease.getSnapshot().authoritative, false);
+  const done = completed(f.engine);
+  const receipt = await lease.submit({ commandId: "first-attachment-command", clientMessageId: "first-attachment-client",
+    target: { type: "existing-thread", key: lease.getSnapshot().key },
+    document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "Read the file" }] }] },
+    attachments: [{ id: "first-attachment", kind: "file", name: "first-attachment.txt", mimeType: "text/plain", size: 4,
+      uri: `file://${file}`, lifecycle: "ready", error: null }],
+    context: [], selections: { model: piModel("faux", "faux-1"), permissionProfile: "opencraft:permission-mode:full" }, options: { autoContext: true }, createdAt: Date.now(),
+  });
+  assert.notEqual(receipt.disposition, "local-queue"); assert.equal((await done).status, "completed");
+  assert.match(modelContext, /first-attachment.txt/); assert.equal(methods.filter(method => method === "turn/start").length, 1);
+  assert.ok(methods.indexOf("thread/resume") < methods.indexOf("turn/start"));
+});
