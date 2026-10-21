@@ -2362,7 +2362,7 @@ the active Turn's aggregate duration.
 
 
 A provisional history window can regroup or omit cached messages. After exact
-message timing is merged, a preview that still loses a known cached date,
+message metadata is merged, a preview that still loses a known cached date,
 completed interval or static duration keeps the previous display until authority.
 A compatible preview can update its text immediately; authoritative history can
 always replace the display and correct or remove clocks. This selection is
@@ -2376,3 +2376,29 @@ static label and the same full-width rule/header geometry as completed history,
 without inventing a work interval or an empty disclosure. The static header has
 no disclosure button or chevron; authoritative work bodies restore that action.
 An active Turn's aggregate duration is still not persisted.
+
+
+### Display selection and provenance
+
+`ConversationDisplayContinuity` owns the bounded, account-scoped storage projection
+and transient first-submission handoff. It accepts authoritative observations only;
+stored data is validated at this boundary. It does not select what a View renders.
+
+`selectConversationDisplay` in workbench-runtime is the single pure display selector.
+It fences all candidates by the committed View's Host/Thread key and returns a
+Timeline with explicit history, preview, cache or submission provenance, or empty.
+Nonempty authoritative history wins. A first-submission echo survives an empty
+baseline until canonical user content retires it; otherwise authoritative empty
+history clears stale cache. A partial preview inherits missing metadata only for
+an exact Turn/frame-kind/block-kind/message identity, retaining cache if it still
+omits known visible metadata. Explicit sender removal and authoritative correction
+win. Active clocks never become completed intervals through this merge.
+
+The Web `useConversationDisplay` adapter owns subscriptions, cancellable cache reads
+and authoritative observation effects. Its loaded value is a scoped I/O receipt;
+synchronous continuity memory takes precedence. The App consumes the selector's
+Timeline and provenance instead of duplicating source precedence or inferring it
+from object identity. Provisional display suppresses history actions; command
+permission still requires the existing live runtime, authority and lease checks.
+Avatar media loading remains separate from message identity and display selection.
+This refactor retains the existing cache schema and storage keys.

@@ -4,8 +4,8 @@ import test from "node:test";
 import { asTurnId, createConversationKey, groupTimelineFramesByTurn, createTimelineTurnPresentationPlan, type TimelineSnapshot, assistantMessageActions } from "@opencraft/chat-core";
 import {
   createConversationDisplayContinuity,
-  retainPreviewTiming,
-  selectConversationDisplayTimeline,
+  retainPreviewMetadata,
+  selectConversationDisplay,
   type ConversationDisplayStorage,
 } from "@opencraft/workbench-runtime";
 
@@ -359,7 +359,7 @@ test("partial previews retain exact message clocks while showing fresh text unti
   const display = cache.peek("host", "thread")!;
   const preview = { ...timeline(false), frames: timeline(false).frames.map(frame => frame.type === "assistant"
     ? { ...frame, blocks: frame.blocks.map(block => block.type === "text" ? { ...block, text: "Fresher preview" } : block) } : frame) };
-  const result = retainPreviewTiming(preview, display);
+  const result = retainPreviewMetadata(preview, display);
   assert.equal(result.authoritative, false);
   const user = result.frames[0]!.blocks[0]!;
   assert.equal(user.type === "user-message" && user.sentAtMs, 100);
@@ -368,22 +368,22 @@ test("partial previews retain exact message clocks while showing fresh text unti
   assert.equal(answer.type === "text" && answer.sentAtMs, 54_100);
   assert.equal(result.frames[1]!.durationMs, 54_000);
   assert.equal(result.frames[1]!.workStatus?.status, "worked");
-  assert.equal(retainPreviewTiming({ ...preview, authoritative: true }, display).frames, preview.frames,
+  assert.equal(retainPreviewMetadata({ ...preview, authoritative: true }, display).frames, preview.frames,
     "authority can correct or remove clocks");
-  assert.equal(retainPreviewTiming(preview, null), preview);
+  assert.equal(retainPreviewMetadata(preview, null), preview);
   for (const key of [createConversationKey("other", "thread"), createConversationKey("host", "other")]) {
-    assert.equal(retainPreviewTiming(preview, { ...display, key }), preview);
+    assert.equal(retainPreviewMetadata(preview, { ...display, key }), preview);
   }
   const mismatched = { ...display, frames: display.frames.map(frame => ({ ...frame, turnId: asTurnId("other-turn") })) };
-  assert.equal(retainPreviewTiming(preview, mismatched).frames[1]!.durationMs, null);
+  assert.equal(retainPreviewMetadata(preview, mismatched).frames[1]!.durationMs, null);
   const otherBlock = { ...preview, frames: preview.frames.map(frame => ({ ...frame,
     blocks: frame.blocks.map(block => ({ ...block, id: "other-block" })) })) };
-  assert.equal(retainPreviewTiming(otherBlock, display).frames[1]!.durationMs, null);
+  assert.equal(retainPreviewMetadata(otherBlock, display).frames[1]!.durationMs, null);
   const active = { ...preview, frames: preview.frames.map(frame => ({ ...frame, status: "streaming" as const })) };
-  assert.equal(retainPreviewTiming(active, display).frames[1]!.workStatus, undefined);
-  assert.equal(retainPreviewTiming(active, display).frames[1]!.durationMs, null);
+  assert.equal(retainPreviewMetadata(active, display).frames[1]!.workStatus, undefined);
+  assert.equal(retainPreviewMetadata(active, display).frames[1]!.durationMs, null);
   const updated = { ...complete, authoritative: false };
-  assert.equal(retainPreviewTiming(updated, display).frames[1]!.workStatus, complete.frames[1]!.workStatus,
+  assert.equal(retainPreviewMetadata(updated, display).frames[1]!.workStatus, complete.frames[1]!.workStatus,
     "newly supplied clocks win");
 });
 
@@ -445,15 +445,15 @@ test("a regrouped partial preview cannot replace cached dates and duration befor
     ...frame, turnId: asTurnId("regrouped-history-window"),
     blocks: frame.blocks.map(block => block.type === "text" ? { ...block, text: "Fresh regrouped preview" } : block),
   })) };
-  assert.equal(selectConversationDisplayTimeline(preview, display), display,
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: preview, cached: display }).timeline, display,
     "known clocks stay with cached text while the partial history regroups");
   const authoritative = { ...preview, authoritative: true };
-  assert.equal(selectConversationDisplayTimeline(authoritative, display), authoritative,
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: authoritative, cached: display }).timeline, authoritative,
     "authority can replace the whole display and remove old clocks");
-  const compatible = retainPreviewTiming(timeline(false), display);
-  assert.equal(selectConversationDisplayTimeline(compatible, display)?.frames[1]?.blocks[0]?.id, "answer");
-  assert.equal(selectConversationDisplayTimeline(preview, null), preview);
-  assert.equal(selectConversationDisplayTimeline(preview, { ...display, key: createConversationKey("foreign", "thread") }), preview,
+  const compatible = retainPreviewMetadata(timeline(false), display);
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: compatible, cached: display }).timeline?.frames[1]?.blocks[0]?.id, "answer");
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: preview, cached: null }).timeline, preview);
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: preview, cached: { ...display, key: createConversationKey("foreign", "thread") } }).timeline, preview,
     "another scope never supplies a fallback");
 });
 
@@ -469,7 +469,7 @@ test("duration-only history renders its observed aggregate without inventing a w
   assert.ok(activity?.type === "agent-activity", "the duration has a surface even without cached tools or reasoning");
   assert.equal(activity.workedDurationMs, 54_000);
   assert.equal(activity.partitions.workedForItem, null);
-  const preview = selectConversationDisplayTimeline(timeline(false), cached)!;
+  const preview = selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: timeline(false), cached: cached }).timeline!;
   const previewPlan = createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(preview)[0]!);
   const previewActivity = previewPlan.assistant?.slots.find(slot => slot.type === "agent-activity");
   assert.equal(previewActivity?.workedDurationMs, 54_000, "a text-only compatible preview retains the visible duration surface");
@@ -504,20 +504,20 @@ test("reload retains each message sender and a partial preview cannot erase it",
   assert.deepEqual(user.sender, sender);
   assert.equal(restored.authoritative, false);
   const preview = timeline(false);
-  const retained = retainPreviewTiming(preview, restored).frames[0]!.blocks[0]!;
+  const retained = retainPreviewMetadata(preview, restored).frames[0]!.blocks[0]!;
   assert.ok(retained.type === "user-message");
   assert.deepEqual(retained.sender, sender);
   const regrouped = { ...preview, frames: preview.frames.map(frame => ({ ...frame, turnId: asTurnId("different-turn") })) };
-  assert.equal(selectConversationDisplayTimeline(regrouped, restored), restored, "even undated sender rows survive regrouped preview");
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: regrouped, cached: restored }).timeline, restored, "even undated sender rows survive regrouped preview");
   const corrected = { ...preview, frames: preview.frames.map(frame => frame.type === "user"
     ? { ...frame, blocks: frame.blocks.map(block => ({ ...block, sender: null })) } : frame) };
-  const removed = retainPreviewTiming(corrected, restored).frames[0]!.blocks[0]!;
+  const removed = retainPreviewMetadata(corrected, restored).frames[0]!.blocks[0]!;
   assert.ok(removed.type === "user-message");
   assert.equal(removed.sender, null, "explicit sender removal wins over inherited display");
   const authoritative = timeline(true);
-  assert.equal(selectConversationDisplayTimeline(authoritative, restored), authoritative, "authority removes stale sender");
+  assert.equal(selectConversationDisplay({ key: createConversationKey("host", "thread"), timeline: authoritative, cached: restored }).timeline, authoritative, "authority removes stale sender");
   const other = { ...preview, key: createConversationKey("other", "thread") };
-  assert.equal(retainPreviewTiming(other, restored), other);
+  assert.equal(retainPreviewMetadata(other, restored), other);
 });
 
 test("stored sender parsing is bounded and old or malformed data cannot invent identity", async () => {
@@ -534,4 +534,42 @@ test("stored sender parsing is bounded and old or malformed data cannot invent i
     assert.ok(user.type === "user-message");
     assert.equal(user.sender, null);
   }
+});
+
+
+test("display provenance follows cold restore, preview and authority without authorizing cached input", async () => {
+  const key = createConversationKey("host", "thread");
+  const local = storage();
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: local });
+  await cache.observe(timeline(true));
+  const cached = cache.peek("host", "thread")!;
+  const choose = (value: TimelineSnapshot | null, submission: TimelineSnapshot | null = null) =>
+    selectConversationDisplay({ key, timeline: value, cached, submission });
+  assert.deepEqual(selectConversationDisplay({ key, timeline: null, cached: null }), { source: "empty", timeline: null });
+  assert.deepEqual(choose(null), { source: "cache", timeline: cached });
+  const preview = choose(timeline(false));
+  assert.equal(preview.source, "preview");
+  assert.equal(preview.timeline?.authoritative, false);
+  const history = timeline(true);
+  assert.deepEqual(choose(history), { source: "history", timeline: history });
+  const empty = { ...history, frames: [] };
+  assert.deepEqual(choose(empty), { source: "history", timeline: empty }, "canonical deletion clears stale content");
+  cache.retainSubmission(submission(), accepted);
+  const echo = cache.peekSubmission("host", "thread")!;
+  assert.deepEqual(choose(empty, echo), { source: "submission", timeline: echo }, "creation echo survives empty baseline");
+  assert.deepEqual(choose(history, echo), { source: "history", timeline: history }, "canonical content replaces creation echo");
+  assert.deepEqual(choose({ ...empty, authoritative: false }), { source: "cache", timeline: cached });
+});
+
+test("a committed View rejects late history, cache and submission from another conversation", () => {
+  const old = timeline(true);
+  const cached = { ...old, authoritative: false };
+  for (const key of [null, createConversationKey("other", "thread"), createConversationKey("host", "other")]) {
+    assert.deepEqual(selectConversationDisplay({ key, timeline: old, cached, submission: cached }),
+      { source: "empty", timeline: null });
+  }
+  const key = createConversationKey("host", "next");
+  const next = { ...cached, key };
+  assert.deepEqual(selectConversationDisplay({ key, timeline: old, cached: next, submission: cached }),
+    { source: "cache", timeline: next }, "late old history cannot displace the new View's cached body");
 });
