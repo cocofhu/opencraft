@@ -1,0 +1,50 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve, relative } from "node:path";
+import { pathToFileURL } from "node:url";
+import ts from "typescript";
+
+const root = resolve(import.meta.dirname, "..");
+const retainedLayout = "packages/design-system-web/src/retained-layout-icons.tsx";
+const localArtwork = new Set([
+  "apps/workbench-web/src/chrome-actions/sidebar-toggle-icon.tsx",
+  "apps/workbench-web/src/components/sidebar-bots.tsx",
+  "plugins/bot-chat/src/bot-avatar.tsx",
+  "plugins/bot-chat/src/bot-avatar-stage.tsx",
+]);
+
+/** Inspect imports as well as JSX so aliases and dynamic registries cannot evade coverage. */
+export function inspectInterfaceIcons(source, file) {
+  const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const errors = [];
+  const fail = (node, reason) => errors.push(`${file}:${ast.getLineAndCharacterOfPosition(node.getStart(ast)).line + 1} ${reason}`);
+  function visit(node) {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier?.text === "lucide-react") {
+      if (file !== retainedLayout) fail(node, "general Web glyphs must use design-system-web/action-icons");
+      else if (!ts.isExportDeclaration(node) || !node.exportClause || !ts.isNamedExports(node.exportClause)
+        || node.exportClause.elements.some(item => !["PanelLeft", "PanelLeftClose"].includes(item.propertyName?.text ?? item.name.text))) {
+        fail(node, "only the explicitly retained layout silhouettes belong here");
+      }
+    }
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(ast) === "svg"
+      && !file.startsWith("packages/design-system-web/") && !localArtwork.has(file)) {
+      fail(node, "interface artwork belongs in the shared SVG package; content/brand exceptions must be explicit");
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  return errors;
+}
+
+function sources(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    if (["node_modules", "dist", "__tests__"].includes(entry.name)) return [];
+    const file = resolve(directory, entry.name);
+    return entry.isDirectory() ? sources(file) : /\.[jt]sx?$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name) ? [file] : [];
+  });
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const files = ["apps/workbench-web/src", "packages", "plugins"].flatMap(directory => sources(resolve(root, directory)));
+  const errors = files.flatMap(file => inspectInterfaceIcons(readFileSync(file, "utf8"), relative(root, file).replaceAll("\\", "/")));
+  if (errors.length) { console.error(errors.join("\n")); process.exitCode = 1; }
+  else console.log(`Interface icon ownership verified across ${files.length} source files (retained layout and avatar exceptions explicit).`);
+}
