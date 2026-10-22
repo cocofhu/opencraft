@@ -2021,3 +2021,14 @@ Sidebar search may reuse unchanged row presentation. Parent props, grouping and 
 Ordinary Web code captions use normal stacking order with their code surface.
 Touch scrolling must not briefly expose a blank language/action bar while the
 code remains visible. Explicit sticky captions retain their elevated layer.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
