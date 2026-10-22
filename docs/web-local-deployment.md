@@ -134,3 +134,13 @@ ABI 不匹配、共享库或 spawn helper 不可用均中止打包。受管 exec
 保留当前运行版本，既不手工覆盖 native 文件，也不绕过受管更新事务。
 
 配置了独立 DSH Host 时，执行健康检查直接观察受保护描述文件所声明的 Host 进程，不依赖引擎客户端是否已懒连接；多引擎首次浏览前也必须报告同一 Host 身份。不可用仍报告失败，安装器仍核对升级前后的 Host/engine PID。
+
+## Independent static documents
+
+The admitted static host serves a directory's `index.html` before its SPA fallback.
+A packaged `tools/probe/index.html` can therefore be visited at `/tools/probe`,
+`/tools/probe/` or its explicit HTML path, without starting Workbench. Use absolute
+asset URLs when the extensionless and trailing-slash forms share a document.
+Ordinary document admission, reserved API paths, GET/HEAD and revalidation policy
+remain in force; this does not add a public-authentication exception. Product
+composition owns its document and build entry, not the generic gateway.

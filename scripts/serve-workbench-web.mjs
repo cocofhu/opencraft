@@ -572,6 +572,9 @@ export async function createWorkbenchWebServer({
       }
       try {
         if (await serveFile(request, response, requestedPath, url.pathname)) return;
+        // Product-owned standalone documents can share the static origin without
+        // booting the Workbench SPA. Admission and reserved API routing stay above.
+        if (extname(url.pathname) === "" && await serveFile(request, response, join(requestedPath, "index.html"), url.pathname)) return;
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }
