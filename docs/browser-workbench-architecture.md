@@ -1772,3 +1772,13 @@ modifier semantics, sandboxing, page leases and memory-only stderr remain intact
 No public debugger endpoint or arbitrary input command surface is added.
 
 Media epochs are opaque, non-reused identities across renderer recreation, resize and parking. Encoder callbacks belong to their exact encoder instance; a late output/error cannot emit into, clear or release a replacement encoder for the same logical Tab. Worker accepts packets and failures only for the current media epoch.
+
+### Browser toolbar input action artwork (2026-10-22)
+
+The input-control and keyboard actions use the shared hand-drawn SVG family in
+`design-system-web/action-icons` and the existing toolbar icon slots. Control uses
+a pointer to take control and a crossed pointer to release it; keyboard uses the
+shared keyboard artwork. Localized accessible names and hint titles remain on
+the buttons. Unavailable controls stay absent, keyboard readiness still determines
+disabled state, and actions still call the existing surface owner without changing
+lease, focus or keyboard policy.
