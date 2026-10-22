@@ -31,5 +31,5 @@ export function SidebarFiltersMenu({ store, children }: { store: SidebarThreadMe
 /** The list context entrance shares the owner while keeping list rendering isolated. */
 export function SidebarListContextMenu({ store, children }: { store: SidebarThreadMenuStore; children: ReactNode }) {
   const open = useSyncExternalStore(store.subscribeListContext, store.getListContextOpen, store.getListContextOpen);
-  return <ContextMenuRoot modal={false} open={open} onOpenChange={store.setListContextOpen}>{children}</ContextMenuRoot>;
+  return <ContextMenuRoot open={open} onOpenChange={store.setListContextOpen}>{children}</ContextMenuRoot>;
 }

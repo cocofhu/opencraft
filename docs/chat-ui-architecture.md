@@ -2469,3 +2469,8 @@ participant popovers, while subscribing only to its own menu channel. Row
 context events remain row actions; a late close from any previous entrance
 cannot dismiss its replacement. Opening a menu changes neither grouping nor
 selection and must not rebuild the catalog or turn a long press into collapse.
+
+The list context entrance retains the original modal Radix behavior: a touch
+release after long press cannot activate the underlying group disclosure.
+Outside controls resume after dismissal; explicit menu handoffs keep the
+existing single owner and scoped close callbacks.
