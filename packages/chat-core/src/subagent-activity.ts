@@ -132,7 +132,7 @@ export function deriveSubagentActivityPresentation(block: SubagentTimelineBlock)
 }
 
 /**
- * Codex replaces a consecutive run of collaboration messages with one
+ * Replace a consecutive run of collaboration messages with one
  * aggregate activity item at the run's final position. Agent identity is
  * stable across create/message/wait/close updates; the newest state wins.
  */

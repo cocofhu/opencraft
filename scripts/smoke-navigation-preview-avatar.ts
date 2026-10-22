@@ -12,8 +12,8 @@ import {createRoot} from 'react-dom/client';
 import {IdentityAvatarContext} from '@opencraft/extension-react';
 import {UserMessageNavigationRail} from '/apps/workbench-web/src/components/user-message-navigation-rail.tsx';
 import '/apps/workbench-web/src/styles/app.scss';
-import {buildCodexThemeCssProperties,velaThemePalette} from '/packages/design-system/src/theme-engine.ts';
-window.setTheme=mode=>Object.entries(buildCodexThemeCssProperties(mode,velaThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
+import {buildOpenCraftThemeCssProperties,opencraftCanvasThemePalette} from '/packages/design-system/src/theme-engine.ts';
+window.setTheme=mode=>Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftCanvasThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
 const anchors=Array.from({length:6},(_,i)=>({id:'anchor-'+i,itemId:'item-'+i,turnKey:'turn-'+i,order:i,label:'Prompt '+i,isLoaded:true,isHeartbeat:false}));
 const snapshot={revision:1,phase:'ready',generation:'fixture',completeness:'complete',anchors,error:null};
 const source={getSnapshot:()=>snapshot,subscribe:()=>()=>{},prepare:async()=>{},

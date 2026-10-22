@@ -14,13 +14,10 @@
 Engine Adapter 投影到各自协议。产品层、Connector 层和 Composer 不得按 DSH、Codex、Hermes
 等引擎名称分支。
 
-## 参考事实与适用边界
+## 当前实现与适用边界
 
 | 实现 | 已验证做法 | 能借鉴什么 | 不能直接照搬什么 |
 |---|---|---|---|
-| `ref/workbuddy` | 产品特性 `DeferToolLoading` 默认开启；MCP 工具通过 `ToolSearch` 按需激活；meta tools 保留 MCP 所有者边界，物理工具使用 `mcp__server__tool` 身份 | 搜索优先、延迟加载；不把全部工具放进首轮上下文；不丢失能力所有者 | 恢复的前端/协议代码没有完整后端检索排序实现，不能假定其精确分页和权限模型 |
-| `ref/codex` | DynamicToolFunctionSpec 有 `deferLoading`；存在 `tool_search_always_defer_mcp_tools`；线程启动时提供动态工具目录，延迟工具由运行时搜索 | `deferLoading` 是工具目录属性；线程能力与 UI 列表分开；运行时原生 ToolSearch 优先 | OpenCraft 的 DSH/其他 Host 不一定都实现 Codex ToolSearch，不能只设置布尔字段就宣称完成 |
-| `ref/octop` | 腾讯文档 catalog 只允许 10 个工具；自定义 MCP 在 turn 前按选择加载，按 user/server/config fingerprint 缓存并注入 Agent | 仅用于解释它为何没有触发 224-tool 全量问题；本章程不借鉴该产品收敛策略 | 固定白名单会静默移除已连接服务的能力，与 OpenCraft 要求的完整可发现目录冲突；不得进入目标设计 |
 | OpenCraft 当前 | 会话先选择连接，再 `discover()` 所有工具，为每个完整 schema 生成 handle，一次 JSON 返回；总文本超过 262144 字符则整批失败 | 已有 scope、授权、approval、stale-handle 和 provider 生命周期可保留 | 全量 list 不是可扩展发现协议；MCP 的 cursor 只用于 Host 拉取，到了模型边界已经被彻底展开 |
 
 用户现场报告腾讯文档 MCP 暴露 224 个工具。当前 `ConnectorMcp.inventory` 允许最多 256 个，因此该目录会被完整接受；随后完整 `description + inputSchema + connectorId + handle` 一次性序列化，超过 256 KiB 后只返回通用错误，模型无法续读。这是协议建模问题，不是连接器未连接或某个工具执行失败。

@@ -9,7 +9,7 @@ const style = document.createElement("style");
 style.textContent = styles;
 document.head.append(style);
 root.className = "opencraft-embedded-workbench-root";
-root.style.cssText = "max-width:860px;margin:auto;padding:16px;--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:white;--codex-chat-font-size:15px";
+root.style.cssText = "max-width:860px;margin:auto;padding:16px;--color-text:#21272b;--color-text-tertiary:#77818a;--color-background-surface:white;--opencraft-chat-font-size:15px";
 const first = '<realtime_delegation><transcript_delta>assistant: Use &lt;main&gt; &amp; tests\nuser: Inspect the app.</transcript_delta><input>Inspect the app.</input></realtime_delegation>';
 const later = '<realtime_delegation><source>transcript_tail_flush</source><transcript_delta>assistant: &lt;img src=x onerror="window.transcriptExecuted=true"&gt;</transcript_delta><input>Continue.</input></realtime_delegation>';
 const source = {

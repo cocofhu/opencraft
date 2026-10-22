@@ -19,9 +19,9 @@ try {
     await page.getByRole('button',{name:'Settings',exact:true}).filter({visible:true}).first().click();
     await page.locator('.settings-page__navigation').getByRole('button',{name:'模型服务',exact:true}).click();
   };
-  const openModels = async () => { await page.locator('.codex-composer-mode--intelligence').filter({visible:true}).first().click(); };
+  const openModels = async () => { await page.locator('.opencraft-composer-mode--intelligence').filter({visible:true}).first().click(); };
   await openChat(); await openModels();
-  await page.locator('.codex-composer-selection-menu--intelligence [role=menuitem]').first().waitFor();
+  await page.locator('.opencraft-composer-selection-menu--intelligence [role=menuitem]').first().waitFor();
   await page.keyboard.press('Escape');
   await openSettings();
   await page.getByRole('button',{name:'添加提供商',exact:true}).filter({visible:true}).click();
@@ -39,7 +39,7 @@ try {
   await page.getByRole('switch',{name:`启用提供商：${name}`,exact:true}).click();
   await page.getByText('连接已配置 · 已启用',{exact:true}).waitFor();
   await openChat(); await openModels();
-  await page.locator('.codex-composer-selection-menu--intelligence').getByText(model,{exact:true}).waitFor();
+  await page.locator('.opencraft-composer-selection-menu--intelligence').getByText(model,{exact:true}).waitFor();
   await page.screenshot({path:'/tmp/opencraft-composer-model-sync.png'});
   await page.keyboard.press('Escape');
   await openSettings();
@@ -49,8 +49,8 @@ try {
   await page.getByRole('button',{name:'确认删除',exact:true}).click();
   await row.waitFor({state:'detached'});
   await openChat(); await openModels();
-  await page.waitForFunction((id:string)=>![...document.querySelectorAll('.codex-composer-selection-menu--intelligence [role=menuitem]')].some(el=>el.textContent?.includes(id)),model);
-  assert.equal(await page.locator('.codex-composer-selection-menu--intelligence').getByText(model,{exact:true}).count(),0);
+  await page.waitForFunction((id:string)=>![...document.querySelectorAll('.opencraft-composer-selection-menu--intelligence [role=menuitem]')].some(el=>el.textContent?.includes(id)),model);
+  assert.equal(await page.locator('.opencraft-composer-selection-menu--intelligence').getByText(model,{exact:true}).count(),0);
   await page.keyboard.press('Escape');
   console.log('Actual desktop Composer: warmed catalog -> configure/add/enable -> model visible -> delete -> model absent. No inference request; synthetic credentials only.');
 } finally { await browser.close(); }

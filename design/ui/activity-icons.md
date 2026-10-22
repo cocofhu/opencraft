@@ -27,22 +27,14 @@ controls or returned documents.
 The rail is centered in a 20px slot. Existing glyphs have different source
 viewBoxes/padding, so calibrated canvases produce roughly 15px visible geometry
 rather than identical outer boxes. Brain and other Lucide effective strokes
-(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled Codex
+(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled glyph
 contours retain their paths: no added strokes, filters, transforms or rendering
 hacks. Preserve normal vector antialiasing, caps/joins and theme color. Active,
 completed, folded and expanded states do not choose independent metrics.
 
-## Reference and choice
+## Presentation choice
 
-Codex extracted desktop 26.901.51231 uses one AgentActivityItem for compaction
-and tools (`Db` delegates to shared `Vna`; `Ana` owns its inline row and 6px gap).
-Its source uses the chat role for both and shared icon sizes; this is evidence
-for parity/ownership, not a requirement to enlarge OpenCraft status copy.
-BB pinned ref 62fe3bc46bd1d935b71482b62a1e0887ffb83487 (also checked 9ddb184) `TimelineRowHeader` and
-`ExpandableTimelineRow` use shared leading icons (`size-3.5`, 14px) and
-`CollapsibleHeader` text-sm (13px desktop, 15px touch in theme.css). Those are
-canvas dimensions, not measured painted silhouettes or proof of current native
-appearance. OpenCraft uses its existing body role, independently of reading preference, with
+OpenCraft uses its existing body role, independently of reading preference, with
 roughly15px visible glyphs alongside14px regular text. Do not shrink process copy
 to metadata merely to balance icons; glyph artwork and optical calibration remain unchanged.
 

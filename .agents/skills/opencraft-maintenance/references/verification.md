@@ -14,6 +14,8 @@
 
 | 范围 | 模型/协议检查 | 真实界面或运行时 |
 |---|---|---|
+| 设置页、创建/编辑表单、工具弹窗 | 按 [UI 工作流](ui-design.md) 确认容器、共享视觉壳、字段与反馈槽的组合；按改动复用既有消费方 smoke | 从相关首次入口打开实际表单，检查窄/宽及主题下标签/输入关系、密度、反馈与操作可达；记录实际看过的画面和判断，不以原型或生成截图替代产品复核 |
+| 任务目录、管理列表、页面层级 | 先按 `design/ui/collections.md` 选择范式、容器 owner 和主次动作；有客观布局缺陷时在既有消费者烟测补能拒绝旧行为的断言 | 在真实 Shell/路由检查留白、阅读顺序、动作层级及相关混合状态；触屏使用触控上下文与触摸输入，单改 viewport 不算触控验收。具体矩阵见该文档，不新增通用测试框架或每次修改的全局截图门禁 |
 | Sidebar 几何/动画 | `npm run test:shell-space`；`npx tsx --test tests/workbench-sidebar-dock.test.ts` | `npx tsx scripts/smoke-shared-sidebar.ts`；已确认的独立桌面 CDP 上运行 `scripts/smoke-primary-visibility.mjs` |
 | 登录/账户 | `npm run test:desktop-login` | 通用 `scripts/smoke-sign-in-menu.ts`；下游产品下游在产品目录运行 `npm run smoke:authentication-flows`，控件改动再跑 `npm run smoke:account-controls` |
 | 环境目录/创建服务（无产品页面） | `npm run test:environments` | 验证服务与 Chat/Host 消费边界；不得重建已删除的 Environment 页面作为验收替身 |
@@ -21,7 +23,7 @@
 | 本机项目目录选择 | `npm run test:projects` | `npm run smoke:project-picker`：显式提供已签名预览的 `OPENCRAFT_PROJECT_PICKER_EXECUTABLE`，使用隔离项目/profile；系统点击取消单独人工验收 |
 | Mac 语音输入 | `npm run test:native-speech`；构建native helper后运行 `npm run test:native-speech:lifecycle`；`npm run gate` | `npm run smoke:native-speech`、`npm run smoke:dictation-interaction`：显式设置 `OPENCRAFT_NATIVE_SPEECH_EXECUTABLE`，隔离profile的真实无录音probe与合成多片段helper验证原草稿/选区不变、final-only一次插入、取消/换草稿/设置持久化；真实权限、识别与task音频交接须另获授权，不能用合成结果冒充 |
 | 自适应面板 | `npm run test:adaptive-navigation` | 实际容器缩窄、内部 Back、重挂载后的草稿/滚动/焦点 |
-| 听写写入所有权 | `npm run test:native-speech` | `npm run smoke:dictation-ownership` 使用真实Core/CodexComposer/Voice组件，只替换ASR边界，验证旧选区不被替换、内容代次失效、reservation丢失/reentrant写入拒绝不发送；再以独立签名桌面跑正常链路 |
+| 听写写入所有权 | `npm run test:native-speech` | `npm run smoke:dictation-ownership` 使用真实Core/OpenCraftComposer/Voice组件，只替换ASR边界，验证旧选区不被替换、内容代次失效、reservation丢失/reentrant写入拒绝不发送；再以独立签名桌面跑正常链路 |
 | 协议/Host/会话 | `npm run check:boundaries`；按边界选择 `test:appserver`、`test:dsh-bridge`、`test:chat` | 相应运行时或回放路径；断线重连、晚到帧、宿主/会话切换 |
 | Terminal 字符网格/排版 | `npx tsx --test tests/workbench-terminal.test.ts`（含真实 PTY） | `npm run smoke:terminal-geometry`（需已安装 agent-browser）：真实 Panel/xterm，旧继承负例、DPR 1/2、字距/宽字符/resize/字体/显隐；再量当前 Electron 的字符 Range、光标、screen/host，不向用户 shell 发送测试命令 |
 | Hermes 多 Profile Bot | 通用扩展跑 `npm run test:extensions`；下游产品原 Profile 测试在下游产品的 `npm test` | 下游产品 Web 构建后在产品目录运行 `npm run smoke:hermes-profile-bots`：真实 Bridge/client/Cordis directory/resolver/source/Bot View，仅远端 Hermes 与控制面替身；切 Bot、发送、Host generation 替换与原历史恢复。真实账号、企业服务和推理需另获授权 |
@@ -62,11 +64,14 @@
 
 | 用户请求 | 应引导出的行为 |
 |---|---|
+| “给插件加个设置页面” | 即使没有提设计，也先由 design.md 选择真实消费者与容器；新增表单走首次入口和反馈状态，查看实际画面 |
+| “页面用了统一组件，为什么还是丑” | 审查整页阅读顺序、主次动作、空态节奏和表单密度；区分共享零件与组合，不重复承诺只换 token 就会统一 |
+| “只改一个字体，其他别动” | 只加载字体专题与相关消费者；不扩成整页改版或全局截图门禁 |
 | “先分析，为什么松手才跟上” | 不改代码；查实时/提交宽度与裁切策略，取按住证据，审查旧测试预期 |
 | “整改拖动” | 修共享几何源，分别保留显隐策略；验收双方向、反向、取消和实机，不改业务页补宽 |
 | “做成 Cordis 服务” | 先定生命周期/接口/释放，服务有实际 owner；不把所有 UI 状态搬进全局 Context |
 | “登录完别跳账户页” | 区分会话事实、登录完成与账户展示；保留匹配流程、代次及切页边界 |
-| “学习 LobeHub 改模型体验” | 对比现有能力，先明确可见流程变化；模型、连接、凭据分开，不把原有能力冒充新增 |
+| “参考其他产品改模型体验” | 对比现有能力，先明确可见流程变化；模型、连接、凭据分开，不把原有能力冒充新增 |
 | “构建给我看” | 新产物与新进程对应，独立 profile 验证；不隐含提交/推送/生产发布 |
 | “为了性能，拖动时先冻结内容可以吗” | 保留跟手与控件可达性；测量后优化更新范围，不以帧率替代交互正确性 |
 | “能不能只改几行 CSS” | 根据根因判断；CSS 足够则采用，否则修恢复不变量所需的最小模型边界，不以行数或重构规模衡量质量 |

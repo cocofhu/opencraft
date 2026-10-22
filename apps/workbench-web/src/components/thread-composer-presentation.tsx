@@ -94,9 +94,6 @@ function windowIsFocused() {
   return (window as any).opencraftDesktop?.getWindowFocused?.() ?? document.hasFocus();
 }
 
-/** Codex RightPanelComposerOverlay with OpenCraft route/browser/composer ports.
- * The portal's target is stable: moving presentation preserves the actual editor.
- */
 export function ThreadComposerPresentation({
   children,
   controller,
@@ -446,7 +443,7 @@ export function ThreadComposerPresentation({
       )
         return;
       const editor = composerElement.querySelector<HTMLElement>(
-        ".codex-composer-editor"
+        ".opencraft-composer-editor"
       );
       if (!editor) return;
       if (view.density === "compact") {

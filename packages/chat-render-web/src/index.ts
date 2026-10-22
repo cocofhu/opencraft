@@ -1,4 +1,5 @@
 export * from "./runtime";
+export { ZoomableImage } from "./zoomable-image";
 export * from "./runtime-context";
 export * from "./clipboard";
 export * from "./markdown-copy";

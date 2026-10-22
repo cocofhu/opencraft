@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createIntlTestRoot as createRoot } from "./intl-root";
 import { Context } from "@deepseek-ai/cordis";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import {
   createConversationKey,
   createDefaultTimelineProjectorRegistry,
@@ -20,7 +20,7 @@ import "../../apps/workbench-web/src/styles/app.scss";
 const ctx = new Context();
 document.documentElement.dataset.theme = "light";
 for (const [name, value] of Object.entries(
-  buildCodexThemeCssProperties("light"),
+  buildOpenCraftThemeCssProperties("light"),
 ))
   document.documentElement.style.setProperty(name, value);
 await ctx.plugin(TimelineBlockRendererRegistryService);

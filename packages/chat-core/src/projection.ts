@@ -32,13 +32,13 @@ export interface TimelineSourceTurn {
   readonly unifiedDiff?: string | null;
   readonly interruptedByThisClient?: boolean;
   readonly hookStats?: HookStats | null;
-  /** Complete Turn-start envelope retained for Codex UserMessage ownership. */
+  /** Complete Turn-start envelope retained for UserMessage ownership. */
   readonly params?: unknown;
   readonly mcpAppModelContextAttachments?: unknown;
   readonly preserveServerUserMessages?: boolean;
   /**
    * Protocol Items intentionally retained as non-visual display boundaries.
-   * Codex keeps `steered` acknowledgements in its normalized stream even
+   * Keep `steered` acknowledgements in the normalized stream even
    * though the React renderer returns null for them. Keeping their identities
    * here prevents history recovery from erasing provenance merely because a
    * renderer has no visible node for the Item.
@@ -194,7 +194,7 @@ function isImageViewToolBlock(block: TimelineBlock): block is Extract<TimelineBl
 }
 
 /**
- * Codex normalizes a contiguous run of imageView Items into one display Item.
+ * Normalize a contiguous run of imageView Items into one display Item.
  * Do this after projection so provenance anchors still retain every source
  * Item and feature projectors do not need a suppression/tombstone protocol.
  */
@@ -223,7 +223,7 @@ function coalesceAdjacentImageViews(blocks: readonly TimelineBlock[]): readonly 
 function expandCommandActions(blocks: readonly TimelineBlock[]): readonly TimelineBlock[] {
   return blocks.flatMap((block): readonly TimelineBlock[] => {
     if (block.type !== "command-execution" || block.actions.length <= 1) return [block];
-    // Codex emits one display `exec` per parsed command action while retaining
+    // Emit one display `exec` per parsed command action while retaining
     // the original commandExecution Item as their common provenance owner.
     return block.actions.map((action, index) => ({
       ...block,

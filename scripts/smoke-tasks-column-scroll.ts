@@ -26,8 +26,8 @@ const server = await startHeadlessServer({ root, dataDirectory: data,
   codexExecutable: process.env.OPENCRAFT_CODEX_EXECUTABLE ?? "codex", port: 0 });
 const browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
 const errors: string[] = [], results: unknown[] = [];
-const cases = baseline ? [{ width: 1440, theme: "light", palette: "codex" }] :
-  ["light", "dark"].flatMap(theme => [320, 390, 430, 600, 601, 820, 1440].map(width => ({ width, theme, palette: "codex" })))
+const cases = baseline ? [{ width: 1440, theme: "light", palette: "neutral" }] :
+  ["light", "dark"].flatMap(theme => [320, 390, 430, 600, 601, 820, 1440].map(width => ({ width, theme, palette: "neutral" })))
     .concat(["frost", "mist", "zencode"].flatMap(palette => ["light", "dark"].map(theme => ({ width: 1440, theme, palette }))));
 try {
   for (const { width, theme, palette } of cases) {
@@ -36,8 +36,8 @@ try {
       const page = await context.newPage(); page.setDefaultTimeout(15000);
       page.on("pageerror", error => errors.push(error.message));
       await page.addInitScript((id: string) => {
-        localStorage.setItem("vela.appearance-theme", "system");
-        localStorage.setItem("vela.appearance-theme-id", `vela.core.${id}`);
+        localStorage.setItem("opencraft.appearance-theme", "system");
+        localStorage.setItem("opencraft.appearance-theme-id", `opencraft.core.${id}`);
       }, palette);
       await page.emulateMedia({ colorScheme: theme as "light" | "dark" });
       await page.goto(server.url + "/views/opencraft.tasks.board");
@@ -82,7 +82,7 @@ try {
           await page.keyboard.press("Escape");
           await page.getByRole("dialog").waitFor({ state: "hidden" });
           assert.equal(await column.evaluate((el: HTMLElement) => el.scrollTop), 491);
-          if (width === 1440 && palette === "codex") {
+          if (width === 1440 && palette === "neutral") {
             await page.setViewportSize({ width: 390, height: 900 });
             await page.getByRole("radio", { name: /^Backlog / }).click();
             assert.equal(await header.isVisible(), false);

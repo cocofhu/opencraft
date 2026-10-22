@@ -1,6 +1,4 @@
-// Behavior restored from Codex r1532:
-// terminal/initialize-app-shell-drag-module-06089.ts and
-// terminal/use-app-shell-layout-motion-04358.ts.
+
 
 export const SIDEBAR_EDGE_REVEAL_WIDTH = 4;
 export const SIDEBAR_TRIGGER_PEEK_DELAY_MS = 100;
@@ -39,56 +37,34 @@ export interface FloatingSidebarPresenceOwnerInput {
   readonly layoutResizing: boolean;
 }
 
-/**
- * The closed panel has a deliberately narrow acquisition target. Once open,
- * the entire panel width becomes the retention target. This hysteresis is the
- * reason Codex's edge reveal feels intentional instead of twitchy.
- */
-export function resolveSidebarFloatingIntent({
-  docked,
-  currentlyRequested,
-  pointerX,
-  panelWidth,
-  triggerPeeked,
-  triggerSuppressed,
-}: SidebarFloatingIntentInput): boolean {
-  if (docked || triggerSuppressed) return false;
-  if (triggerPeeked) return true;
-  if (pointerX === null || pointerX < 0) return false;
+/** Project pointer acquisition and retention; the caller owns trigger state. */
+export function resolveSidebarFloatingIntent(input: SidebarFloatingIntentInput): boolean {
+  if (input.docked || input.triggerSuppressed) return false;
+  if (input.triggerPeeked) return true;
 
-  const acquisitionWidth = currentlyRequested
-    ? Math.max(0, panelWidth)
+  const limit = input.currentlyRequested
+    ? Math.max(0, input.panelWidth)
     : SIDEBAR_EDGE_REVEAL_WIDTH;
-  return pointerX <= acquisitionWidth;
+  const x = input.pointerX;
+  return x !== null && x >= 0 && x <= limit;
 }
 
-/** Layout presence owns the transition; the floating panel may mount only
- * after the layout panel is fully gone. */
-export function resolveSidebarPresentation({
-  docked,
-  layoutMounted,
-  layoutResizing,
-  floatingRequested,
-  floatingResizing,
-}: SidebarPresentationInput): SidebarPresentation {
-  if (docked) return "docked";
-  if (layoutMounted || layoutResizing) return "layout-transition";
-  if (floatingRequested || floatingResizing) return "floating";
-  return "hidden";
+/** Resolve the surface after honoring existing layout ownership. */
+export function resolveSidebarPresentation(input: SidebarPresentationInput): SidebarPresentation {
+  if (input.docked) return "docked";
+
+  const layoutOwnsSurface = input.layoutMounted || input.layoutResizing;
+  const floatingOwnsSurface = input.floatingRequested || input.floatingResizing;
+  return layoutOwnsSurface
+    ? "layout-transition"
+    : floatingOwnsSurface ? "floating" : "hidden";
 }
 
-/**
- * The floating panel owns its own pointer-leave exit animation while the
- * sidebar is undocked. A dock transaction removes that presence owner itself,
- * so an invisible exiting overlay cannot keep the persistent toolbar from
- * receiving hover. This is a different lifetime from floating visibility.
- */
-export function shouldMountFloatingSidebarPresenceOwner({
-  docked,
-  layoutMounted,
-  layoutResizing,
-}: FloatingSidebarPresenceOwnerInput): boolean {
-  return !docked && !layoutMounted && !layoutResizing;
+/** Visibility may exit independently once no docked layout owner remains. */
+export function shouldMountFloatingSidebarPresenceOwner(input: FloatingSidebarPresenceOwnerInput): boolean {
+  return input.docked === false
+    && input.layoutMounted === false
+    && input.layoutResizing === false;
 }
 
 /** Unified Shell has explicit dock/drawer commands; hover never owns its visibility. */

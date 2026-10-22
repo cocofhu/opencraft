@@ -28,7 +28,7 @@ try {
   await page.goto(`${vite.resolvedUrls!.local[0]}?dictation&pickerFocus&addMenu&mode=${test.mode}`);
   await page.waitForFunction(() => typeof (window as any).setTouch === "function");
   await page.evaluate(async ({ touch, newera }) => { await (window as any).setTouch(touch); await (window as any).setNewera(newera); }, test);
-  const editor = page.locator(".codex-composer-editor"), shell = page.locator(".codex-composer-shell"), mic = page.locator(".opencraft-voice-input-action"), voice = page.locator(".codex-composer-voice-footer"), outside = page.getByLabel("Outside input");
+  const editor = page.locator(".opencraft-composer-editor"), shell = page.locator(".opencraft-composer-shell"), mic = page.locator(".opencraft-voice-input-action"), voice = page.locator(".opencraft-composer-voice-footer"), outside = page.getByLabel("Outside input");
   const activate = async (target: any) => test.touch ? target.tap() : target.click();
   const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const call = (method: string, argument?: any) => page.evaluate(({ method, argument }) => (window as any).dictationFixture[method](argument), { method, argument });
@@ -39,7 +39,7 @@ try {
   await activate(mic); await voice.waitFor(); await settle();
   const started = await shell.boundingBox(); assert(started);
   if (before) { assert(started.height > initial.height + 20); await page.screenshot({ path: `${output}/before.png` }); evidence.push({ label, initial, started, reproduced: true }); await context.close(); continue; }
-  const stable = async (expected = initial) => { await settle(); const actual = await shell.boundingBox(); if (JSON.stringify(actual) !== JSON.stringify(expected)) console.log("GEOMETRY_DIAGNOSTIC", await page.evaluate(() => ({ active: document.activeElement?.outerHTML, root: document.querySelector(".codex-composer-stack")?.outerHTML.slice(0,500), voice: (window as any).composerController.getInputInteractionSnapshot()?.phase, snapshot:(window as any).composerController.getSnapshot(), editor: document.querySelector(".codex-composer-editor")?.innerHTML, animations: document.querySelector(".codex-composer-shell")?.getAnimations().map(a => ({ id:a.id, state:a.playState })) }))); assert.deepEqual(actual, expected, `${label}: recording phase must retain shell geometry`); };
+  const stable = async (expected = initial) => { await settle(); const actual = await shell.boundingBox(); if (JSON.stringify(actual) !== JSON.stringify(expected)) console.log("GEOMETRY_DIAGNOSTIC", await page.evaluate(() => ({ active: document.activeElement?.outerHTML, root: document.querySelector(".opencraft-composer-stack")?.outerHTML.slice(0,500), voice: (window as any).composerController.getInputInteractionSnapshot()?.phase, snapshot:(window as any).composerController.getSnapshot(), editor: document.querySelector(".opencraft-composer-editor")?.innerHTML, animations: document.querySelector(".opencraft-composer-shell")?.getAnimations().map(a => ({ id:a.id, state:a.playState })) }))); assert.deepEqual(actual, expected, `${label}: recording phase must retain shell geometry`); };
   const controls = async () => {
    const bounds = await shell.boundingBox(); assert(bounds);
    for (const button of await voice.locator("button").all()) {
@@ -52,7 +52,7 @@ try {
    assert.equal(await editor.evaluate(el => el === document.activeElement), false, "reserving dictation must not enter text editing");
   };
   await stable(); await controls(); assert.equal(await voice.getAttribute("data-voice-phase"), "starting");
-  await call("ready"); await page.waitForFunction(() => document.querySelector('.codex-composer-voice-footer')?.getAttribute('data-voice-phase') === 'listening');
+  await call("ready"); await page.waitForFunction(() => document.querySelector('.opencraft-composer-voice-footer')?.getAttribute('data-voice-phase') === 'listening');
   await call("level", 0.5); await stable(); await controls();
   await activate(page.getByRole("button", { name: "停止并写入文字", exact: true })); await stable(); await controls();
   assert.equal(await voice.getAttribute("data-voice-phase"), "transcribing");
@@ -69,7 +69,7 @@ try {
   await activate(page.getByRole("button", { name: "取消语音输入", exact: true })); await voice.waitFor({ state: "hidden" }); await stable();
   await activate(mic); await voice.waitFor(); await call("ready"); await activate(page.getByRole("button", { name: "停止并写入文字", exact: true }));
   await call("complete"); await voice.waitFor({ state: "hidden" }); await page.waitForTimeout(220);
-  assert.equal(await editor.innerText(), "识别后的文字"); if (!await editor.evaluate(el => el === document.activeElement)) console.log("FINAL_FOCUS_DIAGNOSTIC", await page.evaluate(() => ({ active:document.activeElement?.tagName, root:document.querySelector(".codex-composer-stack")?.outerHTML.slice(0,600), editorStyle:getComputedStyle(document.querySelector(".codex-composer-editor")!).visibility, editable:document.querySelector(".codex-composer-editor")?.getAttribute("contenteditable") })));
+  assert.equal(await editor.innerText(), "识别后的文字"); if (!await editor.evaluate(el => el === document.activeElement)) console.log("FINAL_FOCUS_DIAGNOSTIC", await page.evaluate(() => ({ active:document.activeElement?.tagName, root:document.querySelector(".opencraft-composer-stack")?.outerHTML.slice(0,600), editorStyle:getComputedStyle(document.querySelector(".opencraft-composer-editor")!).visibility, editable:document.querySelector(".opencraft-composer-editor")?.getAttribute("contenteditable") })));
   assert(await editor.evaluate(el => el === document.activeElement), `${label}: final text focuses editor`);
   const edited = await shell.boundingBox(); assert(edited); if (compact) assert(edited.height > initial.height + 20);
   await activate(mic); await voice.waitFor(); await stable(edited); await controls();

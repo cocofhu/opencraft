@@ -1,6 +1,6 @@
 import React, { useSyncExternalStore } from "react";
 import { createIntlTestRoot } from "./intl-root";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createComposerController } from "@opencraft/composer-core";
 import { createConversationKey } from "@opencraft/chat-core";
 import { WebSocketTransport } from "@opencraft/appserver-transport-websocket";
@@ -27,7 +27,7 @@ function App() {
   const snapshot = useSyncExternalStore(lease.subscribe, lease.getSnapshot);
   return <main style={{ maxWidth: 850, margin: "32px auto", padding: 12 }} data-authoritative={String(snapshot.authoritative)}>
     <h2>Reconnect outbox</h2>
-    <CodexComposer controller={controller} awaitSubmission isStreaming={snapshot.activeTurn !== null}
+    <OpenCraftComposer controller={controller} awaitSubmission isStreaming={snapshot.activeTurn !== null}
       availableFollowUpActions={!snapshot.authoritative || snapshot.queuedSubmissions.some(row => row.local)
         ? ["queue"] : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
       queuedSubmissions={snapshot.queuedSubmissions.map(row => queuedSubmissionPresentation(row, false))}

@@ -45,6 +45,10 @@ for(const width of [1000,390])for(const theme of ['light','dark']){
  await page.goto('http://127.0.0.1:'+(vite.httpServer!.address() as any).port);await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
  const hide=page.getByRole('button',{name:'Hide file tree',exact:true}),show=page.getByRole('button',{name:'Show file tree',exact:true});
  await page.frameLocator('iframe').getByRole('heading',{name:'Persistent preview'}).waitFor();
+ assert.equal(await show.getAttribute('aria-expanded'),'false');
+ assert.equal(await page.locator('.workspace-file-browser').isVisible(),false);
+ assert.ok((await page.locator('.workspace-file-viewer').boundingBox())!.width>=width-1);
+ await show.click();
  await page.getByRole('treeitem',{name:'nested',exact:true}).click();await page.getByRole('treeitem',{name:'child.html',exact:true}).waitFor();
  const tree=page.getByRole('tree',{name:'Workspace files'});await tree.evaluate((e:HTMLElement)=>e.scrollTop=100);
  const scroll=await tree.evaluate((e:HTMLElement)=>e.scrollTop);const initial=await page.locator('.workspace-file-viewer').boundingBox();

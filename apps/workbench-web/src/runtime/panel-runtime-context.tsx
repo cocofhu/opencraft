@@ -22,7 +22,6 @@ import {
 const PanelRuntimeContext = createContext<WorkbenchPanelReactRuntime | null>(null);
 
 export async function createWorkbenchPanelRuntime(context?: Context) {
-  // A wide window is not evidence that a task owns a detail surface. Codex
   // only lets an explicit panel route/action take width from the thread.
   // Keeping the service default (closed) also prevents an empty initial tab
   // from changing the measured MainContentViewport and its edge-scroll mode.

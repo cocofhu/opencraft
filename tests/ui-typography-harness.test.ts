@@ -56,7 +56,7 @@ test("semantic usage contracts prevent valid-token misuse on core paths", () => 
   assert.equal(nativeMonoFontFamily("android"), "monospace");
   assert.equal(nativeMonoFontFamily("unknown"), "monospace");
   const app = read("../apps/workbench-web/src/styles/app.scss");
-  for (const selector of ['.codex-composer-mode', '.codex-composer-mode__model-label', '.codex-composer-mode__effort-label']) {
+  for (const selector of ['.opencraft-composer-mode', '.opencraft-composer-mode__model-label', '.opencraft-composer-mode__effort-label']) {
     const block = app.slice(app.indexOf(`\n${selector} {`)).split('\n}')[0];
     assert.match(block, /typography\.role\(control-compact, secondary\)/u, selector);
   }

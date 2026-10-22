@@ -664,7 +664,7 @@ try {
   await page.getByLabel("Execution connection", { exact: true }).selectOption("local-codex");
   await page.getByRole("button", { name: "New conversation", exact: true }).click();
   await page.waitForURL((value: URL) => !value.pathname.startsWith("/views/"));
-  const editor = page.locator('.codex-composer-editor[role="textbox"]:visible');
+  const editor = page.locator('.opencraft-composer-editor[role="textbox"]:visible');
   await editor.waitFor();
   assert.match(await editor.innerText(), /Task to native chat/);
   await page.waitForFunction(() => Object.keys(localStorage).some(key => key.startsWith('opencraft.draft.v1.') && localStorage.getItem(key)?.includes('Task to native chat')));
@@ -678,7 +678,7 @@ try {
   assert.equal(flowTask.conversations.length, 0, "Opening a draft never creates a thread or sends a Turn");
   await page.reload();
   await editor.waitFor();
-  await page.waitForFunction(() => document.querySelector('.codex-composer-editor')?.textContent?.includes('Explicit first turn from a task'));
+  await page.waitForFunction(() => document.querySelector('.opencraft-composer-editor')?.textContent?.includes('Explicit first turn from a task'));
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   for (let attempt = 0; attempt < 100; attempt++) {
     flowTask = await directRpc("opencraft/tasks/read", { id: flowTask.id });

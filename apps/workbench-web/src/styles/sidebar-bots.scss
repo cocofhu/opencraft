@@ -149,15 +149,15 @@
 
   strong {
     color: var(--color-text);
-    font-size: var(--codex-sidebar-font-size);
+    font-size: var(--opencraft-sidebar-font-size);
     font-weight: var(--typography-primary-action-weight);
-    line-height: var(--codex-sidebar-line-height);
+    line-height: var(--opencraft-sidebar-line-height);
   }
 
   small {
     color: var(--color-text-tertiary);
-    font-size: var(--codex-sidebar-meta-font-size);
-    line-height: var(--codex-sidebar-meta-line-height);
+    font-size: var(--opencraft-sidebar-meta-font-size);
+    line-height: var(--opencraft-sidebar-meta-line-height);
   }
 }
 

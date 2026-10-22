@@ -24,7 +24,7 @@ export interface UserMessageWebLayout {
   readonly showBubble: boolean;
 }
 
-/** Requirements and source history: docs/provenance/user-message-replacement.md. */
+
 export function deriveUserMessageWebLayout(block: UserMessageTimelineBlock): UserMessageWebLayout {
   const images: UserMessageImagePart[] = [];
   const audio: UserMessageAudioPart[] = [];
