@@ -95,11 +95,23 @@ function hostToolItems(failed: boolean): TimelineSourceItem[] {
 }
 
 function Demo() {
+  const [mounted, setMounted] = useState(true);
+  const restore = useRef<ConversationRestoreSnapshot | null>(null);
+  const restoreScenario = new URLSearchParams(location.search).get("restore") === "1";
+  const websiteScenario = new URLSearchParams(location.search).get("scenario") === "webmcp-restore";
+  Object.assign(probe, { setThreadToolMounted: setMounted, clearThreadToolRestore: () => { restore.current = null; } });
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
   const [hostMode, setHostMode] = useState("content");
   probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
-  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : reviewScenario ? [
+  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
+    server: "node_repl", tool: "browser_click", status: "completed", arguments: {}, result: { content: [], _meta: { "codex/toolSurface": {
+      kind: "browserUse", backend: "iab", webMcpCalls: [
+        { kind: "invokeTool", name: "lookup_item", title: "Look up an item", inputJson: '{"id":42}', outputJson: '{"result":"WEBSITE_RESULT"}' },
+        { kind: "invokeTool", name: "plain_response", title: "Plain response", outputJson: 'SECOND_RESULT' },
+      ],
+    } } },
+  } }] : reviewScenario ? [
     ...["mcpToolCall", "dynamicToolCall"].map((type, index) => ({
       id: `reviewed-${index}`, type, payload: {
         server: "audit", namespace: "audit", tool: index === 0 ? "reviewed" : "inspect",
@@ -149,7 +161,9 @@ function Demo() {
     authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" || (reviewScenario && phase === "denied") ? "streaming" : "complete", items }] }, registry);
   return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        initialRestoreSnapshot={restoreScenario ? restore.current : undefined}
+        onRestoreSnapshotChange={restoreScenario ? snapshot => { restore.current = snapshot; } : undefined}
         onOpenSubagent={id => probe.openedThreads.push(id)}
         renderToolCallContent={hostContentScenario && hostMode !== "absent" ? block => { probe.hostRenderedModes[block.callId ?? block.id] = hostMode; return hostMode === "fallback" ? undefined
           : hostMode === "null" ? null : hostMode === "false" ? false
@@ -157,7 +171,7 @@ function Demo() {
               <label>Host note {block.callId}<input aria-label={"Host note " + block.callId} defaultValue="" /></label>
               <button type="button" onClick={() => probe.hostActions.push(block.callId ?? block.id)}>Host action {block.callId}</button>
             </section>; } : undefined}
-        footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }
@@ -238,6 +252,9 @@ const handoffProbe = window as unknown as {
 };
 handoffProbe.presentations = {};
 function HandoffToolsDemo() {
+  const [mounted, setMounted] = useState(true);
+  const restore = useRef<ConversationRestoreSnapshot | null>(null);
+  Object.assign(handoffProbe, { setHandoffMounted: setMounted, clearHandoffRestore: () => { restore.current = null; } });
   const [phase, setPhase] = useState(handoffParams.get("initial") ?? "queued");
   handoffProbe.setPhase = setPhase;
   const live = phase === "queued" || phase === "running";
@@ -267,7 +284,9 @@ function HandoffToolsDemo() {
   }, registry);
   return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        initialRestoreSnapshot={restore.current}
+        onRestoreSnapshotChange={snapshot => { restore.current = snapshot; }}
         renderToolCallIcon={(block, presentation) => {
           handoffProbe.presentations[block.callId ?? block.id] = {
             phase, canExpand: presentation.canExpand, state: presentation.state,

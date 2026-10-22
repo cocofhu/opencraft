@@ -93,7 +93,7 @@ function websiteToolValue(value: string | null, truncated: boolean): unknown {
 }
 
 function WebToolCall({ call, documentId }: { call: WebMcpToolSurfaceCall; documentId: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useActivityOpen(false, false, JSON.stringify(["webmcp", documentId, call.name]));
   const words = call.name.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").replace(/[_-]+/gu, " ").trim();
   const summary = call.kind === "listTools" ? "Listed website tools"
     : call.title ?? (words ? words[0]!.toLocaleUpperCase() + words.slice(1) : call.name);
@@ -151,7 +151,7 @@ function RawToolOutput({ block }: { block: Tool }) {
 function ThreadTool({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const navigation = useContext(SubagentNavigationContext);
-  const [open, setOpen] = useActivityOpen(presentation.state === "running");
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false, `thread-handoff:${block.id}`);
   const created = createdThreadToolResult(block);
   const target = codexAppThreadNavigationTarget(block);
   const handoff = threadHandoffToolResult(block);

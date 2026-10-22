@@ -83,6 +83,47 @@ try {
   }
 
   if (!restoreOnly) {
+  if (!process.argv.some(value => value.endsWith("-only")) || process.argv.includes("--website-view-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=webmcp-restore&restore=1&theme=${theme}`);
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const openGroups = async () => {
+      const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+      for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    };
+    await page.locator("[data-phase]").waitFor(); await openGroups();
+    const first = page.getByRole("button", { name: "Look up an item", exact: true });
+    const second = page.getByRole("button", { name: "Plain response", exact: true });
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    await activate(first); await activate(second);
+    const remount = async (fresh = false) => {
+      await page.evaluate(() => (window as unknown as { setThreadToolMounted(value: boolean): void }).setThreadToolMounted(false));
+      await first.waitFor({ state: "detached" });
+      if (fresh) await page.evaluate(() => (window as unknown as { clearThreadToolRestore(): void }).clearThreadToolRestore());
+      await page.evaluate(() => (window as unknown as { setThreadToolMounted(value: boolean): void }).setThreadToolMounted(true));
+      if (fresh) await openGroups();
+      await first.waitFor();
+    };
+    await remount();
+    assert.equal(await first.getAttribute("aria-expanded"), "true");
+    assert.equal(await second.getAttribute("aria-expanded"), "true");
+    const restoredOutput = page.locator('.thread-webmcp-details .chat-code-block pre').filter({hasText:'WEBSITE_RESULT'});
+    await restoredOutput.waitFor();
+    assert.deepEqual(JSON.parse(await restoredOutput.innerText()), {result:'WEBSITE_RESULT'});
+    await activate(first); await remount();
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    assert.equal(await second.getAttribute("aria-expanded"), "true");
+    await remount(true);
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    assert.equal(await second.getAttribute("aria-expanded"), "false");
+    assert.deepEqual(errors, []);
+    results.push({ width, theme, websiteViewChoices: true, independentCalls: true, freshViewCollapsed: true });
+    await page.close();
+  }
   if (!process.argv.includes("--raw-only") && !handoffOnly && !process.argv.includes("--host-content-only") && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
@@ -318,6 +359,16 @@ try {
         await page.screenshot({ path: join(output, `handoff-live-${width}-${theme}-initial.png`) });
         if (await trigger.getAttribute('aria-expanded') === 'true')
           await activate(trigger);
+        const restoreHandoff = async (fresh = false) => {
+          await page.evaluate(() => (window as any).setHandoffMounted(false));
+          await trigger.waitFor({ state: "detached" });
+          if (fresh) await page.evaluate(() => (window as any).clearHandoffRestore());
+          await page.evaluate(() => (window as any).setHandoffMounted(true));
+          await trigger.waitFor();
+        };
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Same View keeps explicit running handoff collapse");
+        features.runningChoiceRestored = true;
         await page.evaluate(() => (window as any).setPhase('running'));
         await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'running');
         features.manualCollapseSurvivesProgress = await trigger.getAttribute('aria-expanded') === 'false';
@@ -328,9 +379,22 @@ try {
         features.settlementStartsCollapsed = await trigger.getAttribute('aria-expanded') === 'false';
         if (await trigger.getAttribute('aria-expanded') === 'false')
           await activate(trigger);
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "true", "Same View keeps explicit settled handoff expansion");
+        features.settledChoiceRestored = true;
         await page.evaluate(() => (window as any).setPhase('error'));
         await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'failed');
         features.settledManualChoiceSurvivesFailure = await trigger.getAttribute('aria-expanded') === 'true';
+        await activate(trigger);
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Same View keeps explicit settled handoff collapse");
+        features.settledCollapseRestored = true;
+        await activate(trigger);
+        await restoreHandoff(true);
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Fresh settled View retains collapsed default");
+        await page.evaluate(() => (window as any).setPhase("queued"));
+        assert.equal(await trigger.getAttribute("aria-expanded"), "true", "Fresh running View retains open default");
+        features.freshViewDefaults = true;
         await page.evaluate(() => (window as any).setPhase('empty'));
         await page.locator('[data-phase="empty"]').waitFor();
         features.emptyHandoffSummaryOnly = await page.locator('.thread-handoff-steps').count() === 0 && await page.locator('.thread-codex-app-tool-row button[aria-expanded]').count() === 0;

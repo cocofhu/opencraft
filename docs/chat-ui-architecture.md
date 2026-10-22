@@ -2591,12 +2591,43 @@ scrolling. A replacement that changes existing source does not restore stale
 offsets. Streaming completion and theme recoloring keep the reader's selection;
 source text, highlighting policy and the code surface keep their owners. When a range crosses code surfaces, capture both stable code roots and text offsets: a theme update may replace tokens at both ends in one commit. Resolve only roots whose existing source remains unchanged or extended.
 
+### Tool detail choices in a retained View
+
+File-change diffs and tool disclosures keep their explicit choices in the owning
+Conversation View snapshot, keyed by tool block or patch block and file identity.
+The shared disclosure hook retains separate running-collapsed and settled-expanded
+choices; restoration does not change either phase's defaults. MCP details continue
+to start collapsed. A new View starts with the existing defaults, while returning
+to a retained View restores its choice before paint. Only presentation booleans
+are checkpointed. Website tool subcalls use the same View store, keyed by their
+source block, ordered subcall slot and tool name; each restores its own explicit
+choice independently and fresh Views retain collapsed defaults. Thread handoff
+step disclosures checkpoint their separate running and settled choices under
+the handoff block identity. Returning to the same View restores those choices;
+a fresh View keeps the running-open and settled-collapsed defaults. Output,
+permission, execution and App document state remain with
+
+their existing owners. Updated output is rendered from the current timeline.
+
+
 Code-block clipboard extraction honors the same descendant exclusions as ordinary
 Markdown when full-source metadata is absent, including cloned partial ranges
 crossing code surfaces. Language captions, controls and hidden duplicates stay
 out of quotes; raw source whitespace and Unicode remain intact. Explicit full
 source metadata keeps its existing authority. The shared copy owner supplies
 this rule to copy and Add to chat, without changing native selection or drafts.
+
+
+### Host-owned tool details
+
+The optional Conversation tool-content renderer claims the body whenever it
+returns a value other than `undefined`. Claimed content, including explicit
+`null` or `false` suppression, takes precedence over built-in thread-tool cards.
+The renderer is called once per tool render; its body is not duplicated with
+the default content. Default thread creation/navigation stays semantic when
+the Host returns `undefined` or does not provide the port. Handoff disclosures
+exist only for reported progress steps; an empty step list leaves a summary row.
+These choices own presentation and cannot create a Thread or execute a tool.
 
 Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
 
