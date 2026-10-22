@@ -272,6 +272,12 @@ test("code blocks share word-wrap preference and normalize language labels", () 
   assert.equal(publications, 1);
   assert.equal(codeLanguageLabel("tsx", false), "TypeScript");
   assert.equal(codeLanguageLabel("js", false), "JavaScript");
+  for (const [language, label] of [["arduino", "Arduino"], ["python-repl", "Python REPL"],
+    ["php-template", "PHP template"], ["patch", "Diff"]]) {
+    for (const input of [language, ` ${language.toUpperCase()} `]) {
+      for (const open of [false, true]) assert.equal(codeLanguageLabel(input, open), label);
+    }
+  }
   assert.equal(codeLanguageLabel(null, false), "Code");
   assert.equal(codeLanguageLabel(null, true), "");
   assert.deepEqual(resolveCodeSurfacePolicy({ code: "const x = 1", language: "ts" }), {

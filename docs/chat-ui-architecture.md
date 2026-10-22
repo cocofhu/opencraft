@@ -2595,6 +2595,14 @@ chat-core presentation helper owns this policy. Short multiline text must not st
 the approval card merely because its character count remains below the threshold.
 The existing elicitation tests, fixture and smoke exercise this boundary.
 
+
+## Code language labels
+
+Code block headers on Web and Native share the same language vocabulary, including
+Arduino, Python REPL, PHP template and the patch alias for Diff. Normalization
+ignores surrounding whitespace and casing. Unknown language tags retain their
+original text; labels do not choose a highlighter or change code, wrap or copy policy.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and
