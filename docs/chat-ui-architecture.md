@@ -2366,6 +2366,10 @@ not checkpointed; recovery never grants permission or sends a response.
 
 ### MCP App widget state continuity
 
+The inline App surface sits outside the raw tool-result disclosure. Collapsing raw
+details does not hide or dispose the App. Existing visibility, background and
+manual Pause owners still control its resource lifetime.
+
 MCP App widget data explicitly saved through `setWidgetState` lives in Application
 memory, separate from an iframe or virtualized Turn row. The active App owner
 selects the state by Host, Thread, source block, server, resource URI and call ID;
@@ -2386,7 +2390,12 @@ A different server, resource URI, call or source block starts a new document. Th
 old iframe and bridge dispose before loading its replacement; resource, error,
 token and navigation-load state belong to that document alone. Late resource
 results cannot revive it. A display-name update keeps the existing document.
-Without an owner-provided store, the surface uses the same typed cell locally.
+Without an owner-provided store, the surface keeps separate local cells by port
+key, source block, server, resource URI and call ID. Saved JSON and manual Pause
+cannot pass to a different App; returning to the original identity in that surface
+retains its own cell. These fallback cells end when the surface unmounts, and a
+different port key starts fresh. Cross-row or connection continuity requires the
+owner-provided Application store.
 
 ### MCP approval keyboard ownership
 
