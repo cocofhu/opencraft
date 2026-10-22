@@ -18,6 +18,15 @@ test("exact response usage ignores cumulative totals and sensitive extras", () =
   assert.equal(fact.turnCounts?.totalTokens,"7000");
   assert.doesNotMatch(JSON.stringify(fact.source),/SENSITIVE|100000|7000/);
   assert.deepEqual(nativeUsageFact(record(),"thread"),fact);
+
+  const identified = nativeUsageFact(record(),"thread",{provider:"opencraft-account-pool",model:"gpt-6.1-sol"});
+  assert.equal(identified?.kind,"source");
+  if(identified?.kind==="source"){
+    assert.equal(identified.source.provider,"opencraft-account-pool");
+    assert.equal(identified.source.model,"gpt-6.1-sol");
+    assert.equal(identified.source.counts.totalTokens,"1000");
+    assert.doesNotMatch(JSON.stringify(identified.source.counts),/opencraft-account-pool|gpt-6.1-sol/);
+  }
 });
 test("fork history and legacy thread counters never produce new response facts",()=>{
   assert.equal(nativeUsageFact(record(),"fork"),null);

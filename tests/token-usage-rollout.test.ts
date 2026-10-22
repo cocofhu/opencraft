@@ -50,6 +50,39 @@ test("native storage boundary rejects escapes and truncated cursors, and oversiz
   await rm(options.path); await writeFile(options.path,"x".repeat(100));
   await assert.rejects(replayRolloutUsage({...options,cursor:101}),/requires reconciliation/);
   await assert.rejects(replayRolloutUsage({...options,maxBytes:50}),/exceeds replay batch/);
+
+  // Oversized non-fact line is skipped without gap
+  const oversizedToolOutput = JSON.stringify({type:"response_item",payload:{output:"x".repeat(500)}})+"\n";
+  await writeFile(options.path, oversizedToolOutput + record("one", 100));
+  const skipResult = await replayRolloutUsage({...options, maxBytes: 300});
+  assert.equal(skipResult.skipped, 1);
+  assert.equal(skipResult.oversizedFact, false);
+  assert.equal(skipResult.cursor, oversizedToolOutput.length);
+  const nextReplay = await replayRolloutUsage({...options, maxBytes: 300, cursor: skipResult.cursor});
+  assert.equal(nextReplay.observed, 1);
+  assert.equal(nextReplay.changed, 1);
+
+  // Oversized fact line is skipped with gap (missing++)
+  const oversizedFactOutput = JSON.stringify({type:"event_msg",payload:{type:"item_completed",content:"y".repeat(500)}})+"\n";
+  await writeFile(options.path, oversizedFactOutput + record("two", 200));
+  const factSkipResult = await replayRolloutUsage({...options, maxBytes: 300});
+  assert.equal(factSkipResult.skipped, 1);
+  assert.equal(factSkipResult.oversizedFact, true);
+  assert.equal(factSkipResult.missing, 1);
+  assert.equal(factSkipResult.cursor, oversizedFactOutput.length);
+}));
+
+test("rollout replay parses session_meta and turn_context into source provider and model",()=>fixture(async options=>{
+  const meta = JSON.stringify({type:"session_meta",payload:{model_provider:"test-provider"}})+"\n";
+  const context = JSON.stringify({type:"turn_context",payload:{turn_id:"turn",model:"test-model"}})+"\n";
+  await writeFile(options.path, meta + context + record("one", 100));
+  const result = await replayRolloutUsage(options);
+  assert.equal(result.observed, 1);
+  const turn = options.ledger.readTurn(key);
+  assert.equal(turn?.observedTokens, "100");
+  const allocations = options.ledger.readAllocations(key);
+  assert.equal(allocations[0]?.provider, "test-provider");
+  assert.equal(allocations[0]?.model, "test-model");
 }));
 
 test("bounded replay joins actual admission IDs and settles only after a durable terminal plus per-turn report",()=>fixture(async options=>{

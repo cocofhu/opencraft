@@ -1,8 +1,8 @@
 import { nativeLiveAcceptedInputFact } from "./token-usage-native-facts.js";
 import { randomUUID } from "node:crypto";
-import { stat } from "node:fs/promises";
+import { stat, realpath } from "node:fs/promises";
 import { CodexTokenUsageLedger, normalizeUsageCounts, type UsageSource, type UsageSubmission, type UsageTurnKey, type UsageExecutionState } from "./token-usage-ledger.js";
-import { replayRolloutUsage } from "./token-usage-rollout.js";
+import { replayRolloutUsage, readTurnIdentity, type RolloutTurnIdentity } from "./token-usage-rollout.js";
 
 function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function text(value: unknown): string { return typeof value === "string" ? value : ""; }
@@ -69,6 +69,7 @@ export class CodexTokenUsageRuntime {
   private readonly pending = new Set<string>();
   private readonly active = new Set<string>();
   private readonly gaps = new Map<string, string>();
+  private readonly identities = new Map<string, RolloutTurnIdentity>();
   private gapRetryAfter = "";
   private readonly settling = new Map<string,number>();
   private readonly receiptAfter=new Map<string,string>();
@@ -92,10 +93,20 @@ export class CodexTokenUsageRuntime {
     const home = text(record(value).codexHome);
     if (!home || this.nativeHome || this.abort.signal.aborted) return;
     this.nativeHome = home;
+    this.seedGaps();
     this.timer = setInterval(() => { this.scheduleProjection(); for (const thread of new Set([...this.active,...this.settling.keys()])) this.schedule(thread); this.retryGaps(); }, 2000);
     this.timer.unref();
     this.scheduleProjection();
     void this.restore().catch(() => { if (!this.abort.signal.aborted) { try { this.port.diagnostic("recovery-read"); } catch {} } });
+  }
+  private seedGaps(): void {
+    try {
+      for (const gap of this.ledger.openGapThreads(256)) {
+        if (!this.gaps.has(gap.threadId)) this.gaps.set(gap.threadId, gap.id);
+      }
+    } catch {
+      try { this.port.diagnostic("recovery-read"); } catch {}
+    }
   }
   private scheduleProjection():void {
     if(this.abort.signal.aborted||this.projectionScheduled)return;
@@ -155,7 +166,7 @@ export class CodexTokenUsageRuntime {
     if (method === "turn/completed") this.active.delete(threadId);
     if (["turn/started", "turn/completed", "thread/tokenUsage/updated", "rawResponse/completed"].includes(method)) this.schedule(threadId);
   }
-  private missing(threadId: string, reason: "storage-write" | "queue-full" | "source-offline" | "unreplayable" | "invalid-source"): void {
+  private missing(threadId: string, reason: "storage-write" | "queue-full" | "source-offline" | "source-replaced" | "invalid-source" | "unreplayable" | "oversized-line"): void {
     try { this.port.diagnostic(reason); } catch { /* failure reporting never changes execution */ }
     if (this.gaps.has(threadId) || this.gaps.size >= 256) return;
     const id = randomUUID(); this.gaps.set(threadId, id);
@@ -230,7 +241,17 @@ export class CodexTokenUsageRuntime {
     signal.throwIfAborted();
     const path = text(thread.path);
     if (!path) { this.missing(threadId, "unreplayable"); return; }
-    this.ledger.rememberRollout(threadId, path);
+    let canonical: string;
+    try { canonical = await realpath(path); }
+    catch { this.missing(threadId, "source-replaced"); return; }
+    const storedBefore = this.ledger.rollout(threadId);
+    if (storedBefore && storedBefore.path !== canonical) {
+      let previousCanonical: string | null = null;
+      try { previousCanonical = await realpath(storedBefore.path); } catch { /* deleted */ }
+      if (previousCanonical !== canonical) { this.missing(threadId, "source-replaced"); return; }
+      this.ledger.repairRolloutPath(threadId, storedBefore.path, canonical);
+    }
+    this.ledger.rememberRollout(threadId, canonical);
     const stored = this.ledger.rollout(threadId)!;
     // The native paged API explicitly omits message/tool bodies.
     const metadataCursor=this.ledger.metadataCursor(threadId);
@@ -249,7 +270,13 @@ export class CodexTokenUsageRuntime {
       if (at === null || !this.ledger.startTurn(key, at, "unknown")) { excluded.add(turnId); return false; }
       return true;
     };
-    const replay = await replayRolloutUsage({ path, nativeHome:this.nativeHome!,threadId,ledger:this.ledger,cursor:Number(stored.cursor),maxFacts:32,excludedTurnIds:excluded,signal,
+    let identity = this.identities.get(threadId);
+    if (!identity) {
+      identity = await readTurnIdentity(canonical, Number(stored.cursor)) ?? undefined;
+      if (identity) this.identities.set(threadId, identity);
+    }
+    const replay = await replayRolloutUsage({ path: canonical, nativeHome:this.nativeHome!,threadId,ledger:this.ledger,cursor:Number(stored.cursor),maxFacts:32,excludedTurnIds:excluded,signal,
+      identity,
       onAdmission: fact => {
         if (!ensure(fact.turnId)) return;
         const trusted = this.port.submission?.(threadId,fact.inputId);
@@ -258,13 +285,17 @@ export class CodexTokenUsageRuntime {
       },
       onSourceTurn: key => ensure(key.turnId),
       onTerminal: turnId => { if (this.ledger.readTurn({threadId,turnId})) this.ledger.recordNativeTerminal({threadId,turnId}); },
-      onCommitCursor: cursor => this.ledger.advanceRollout(threadId,path,String(cursor)),
+      onCommitCursor: cursor => this.ledger.advanceRollout(threadId,canonical,String(cursor)),
+      onOversizedLine: (mayContainFact: boolean) => {
+        try { this.port.diagnostic(mayContainFact ? "oversized-usage-line" : "oversized-line-skipped"); } catch {}
+      },
     });
     signal.throwIfAborted();
     if (replay.blockedTurnId) ensure(replay.blockedTurnId);
-    if (replay.missing) this.missing(threadId,"invalid-source");
-    if (replay.more && replay.cursor > Number(stored.cursor) && (await stat(path)).size > replay.cursor) { this.schedule(threadId); return; }
-    if (!replay.missing) { this.ledger.resolveReplayGaps(threadId); this.gaps.delete(threadId); }
+    if (replay.oversizedFact) this.missing(threadId,"oversized-line");
+    else if (replay.missing) this.missing(threadId,"invalid-source");
+    if (replay.more && replay.cursor > Number(stored.cursor) && (await stat(canonical)).size > replay.cursor) { this.schedule(threadId); return; }
+    if (!replay.missing && !replay.oversizedFact) { this.ledger.resolveReplayGaps(threadId); this.gaps.delete(threadId); }
     let incompleteTerminal=false;
     for (const [turnId, turn] of metadata) {
       const key = {threadId,turnId}, known = this.ledger.readTurn(key);
@@ -297,6 +328,6 @@ export class CodexTokenUsageRuntime {
     this.counterWork.length=0;this.ephemeral.clear();
     if (this.timer) clearInterval(this.timer);
     if (this.scheduled) clearImmediate(this.scheduled);
-    this.pending.clear(); this.active.clear(); this.gaps.clear(); this.gapRetryAfter=""; this.settling.clear();this.receiptAfter.clear();
+    this.pending.clear(); this.active.clear(); this.gaps.clear(); this.identities.clear(); this.gapRetryAfter=""; this.settling.clear();this.receiptAfter.clear();
   }
 }

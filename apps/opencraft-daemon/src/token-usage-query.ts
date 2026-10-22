@@ -101,7 +101,7 @@ export class TokenUsageQuery {
       const totals: Record<string,bigint>={settled:0n,provisional:0n,pending:0n,system:0n,unknown:0n};
       const daily=new Map<string,Sum>(), models=new Map<string,Sum>(), threads=new Map<string,Sum>(), people=new Map<string,Sum>();
       let rows: {key:string;[key:string]:unknown}[]=[];
-      let known=0n,allocated=0n,turnCount=0,missingUsage=0,unknownModelTurns=0;
+      let known=0n,allocated=0n,turnCount=0,settledTurns=0,missingUsage=0,unknownModelTurns=0;
       const parameters: (string|number)[]=[this.serverId,start,end];
       let filter="";
       if(p.threadId!==undefined){filter+=" AND t.thread_id=?";parameters.push(p.threadId as string);}
@@ -116,7 +116,7 @@ export class TokenUsageQuery {
       const participants=this.statement("SELECT count(DISTINCT actor_id) AS count FROM token_usage_inputs WHERE server_id=? AND thread_id=? AND turn_id=? AND admission='confirmed' AND actor_kind='human' AND actor_id IS NOT NULL");
       const team=actorId===undefined&&this.timezone==="Asia/Shanghai"?readTeamUsage({prepare:sql=>this.statement(sql)},{serverId:this.serverId,start,end,view:String(view),after,limit,modelKey:p.modelKey as string|undefined,threadId:p.threadId as string|undefined,turnId:p.turnId as string|undefined}):null;
       if(team){
-        known=team.known;allocated=team.allocated;turnCount=team.turnCount;missingUsage=team.missingUsage;unknownModelTurns=team.unknownModelTurns;rows=team.rows;
+        known=team.known;allocated=team.allocated;turnCount=team.turnCount;settledTurns=team.settledTurns;missingUsage=team.missingUsage;unknownModelTurns=team.unknownModelTurns;rows=team.rows;
         Object.assign(totals,team.totals);
       }
       let bulkRow:IteratorResult<Record<string,unknown>>|null=null;
@@ -143,6 +143,7 @@ export class TokenUsageQuery {
         const amount=allocations.reduce((n,a)=>n+BigInt(String(a.tokens)),0n);
         const shown=actorId===undefined?raw:amount;
         turnCount++; known+=raw; allocated+=amount;
+        if(turn.allocation_state==="settled") settledTurns++;
         if(turn.observed_tokens===null||turn.frozen===1) missingUsage++;
         if(chosen.some(b=>b.provider===null||b.model===null)) unknownModelTurns++;
         totals[String(turn.allocation_state)]!+=shown;
@@ -178,9 +179,18 @@ export class TokenUsageQuery {
       const gapScope=actorId===undefined?"":" AND EXISTS(SELECT 1 FROM token_usage_inputs i WHERE i.server_id=t.server_id AND i.thread_id=t.thread_id AND i.turn_id=t.turn_id AND i.actor_id=? AND i.admission='confirmed')";
       const gapParams: (string|number)[]=[this.serverId,start,end];if(actorId!==undefined)gapParams.push(actorId);
       const gaps=Number(this.statement(`SELECT count(*) AS count FROM token_usage_gaps g WHERE g.server_id=? AND ends_ms IS NULL AND (thread_id IS NULL OR EXISTS(SELECT 1 FROM token_usage_turns t WHERE t.server_id=g.server_id AND t.thread_id=g.thread_id AND t.started_ms>=? AND t.started_ms<?${gapScope}))`).get(...gapParams)!.count);
+      const openGapIncidents=Number(this.statement(`SELECT count(*) AS count FROM (
+        SELECT COALESCE(g.thread_id,g.gap_key) AS incident,g.reason
+        FROM token_usage_gaps g
+        WHERE g.server_id=? AND g.ends_ms IS NULL
+          AND (g.thread_id IS NULL OR EXISTS(SELECT 1 FROM token_usage_turns t WHERE t.server_id=g.server_id AND t.thread_id=g.thread_id AND t.started_ms>=? AND t.started_ms<?${gapScope}))
+        GROUP BY incident,g.reason
+      )`).get(...gapParams)!.count);
+      const lastSource = this.statement("SELECT max(observed_ms) AS at FROM token_usage_sources WHERE server_id=?").get(this.serverId)?.at;
+      const lastSourceSuccessAt = lastSource == null || Number(lastSource) === 0 ? null : Number(lastSource);
       return {serverId:this.serverId,canQueryTeam:authority.administrator,canConfigure:authority.administrator,scope,actorId:actorId??null,asOf:this.now(),snapshotRevision:revision,timezone:this.timezone,policyVersion:"equal-turn-v1",view,
-        coverage:{enabled:coverage.enabled===1,enabledAt:coverage.enabled_at_ms,partial:gaps>0||missingUsage>0,openGaps:gaps,missingUsage,unknownModelTurns},
-        summary:{tokens:(actorId===undefined?known:allocated).toString(),...(actorId===undefined?{rawTokens:known.toString()}:{}),allocatedTokens:allocated.toString(),turns:turnCount,threads:team?team.threadCount:threads.size,categories:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,v.toString()]))},
+        coverage:{enabled:coverage.enabled===1,enabledAt:coverage.enabled_at_ms,partial:gaps>0||missingUsage>0,openGaps:gaps,openGapIncidents,missingUsage,unknownModelTurns,lastSourceSuccessAt},
+        summary:{tokens:(actorId===undefined?known:allocated).toString(),...(actorId===undefined?{rawTokens:known.toString()}:{}),allocatedTokens:allocated.toString(),turns:turnCount,settledTurns,threads:team?team.threadCount:threads.size,categories:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,v.toString()]))},
         daily:team?team.daily:serialized(daily),models:team?team.models:serialized(models),rows:page.map(({key,...row})=>view==="turns"?row:{key,...row}),nextCursor};
     } finally {
       // Manual join iteration must release its active statement even when a

@@ -12,7 +12,7 @@ export function readTeamUsage(db:Pick<DatabaseSync,"prepare">,input:{serverId:st
   const selected=`WITH selected AS ${input.threadId!==undefined||input.turnId!==undefined?"MATERIALIZED ":""}(SELECT t.*,${model===undefined?"t.observed_tokens":"mb.tokens"} AS raw,${model===undefined?"t.unknown_model":"(mb.provider IS NULL OR mb.model IS NULL)"} AS model_unknown FROM token_usage_turns t ${model===undefined?"":"JOIN token_usage_buckets mb ON mb.server_id=t.server_id AND mb.thread_id=t.thread_id AND mb.turn_id=t.turn_id AND mb.model_key=?"} WHERE t.server_id=? AND t.started_ms>=? AND t.started_ms<?${filters}) `;
   const grouped=(sql:string,extra:(string|number)[]=[])=>db.prepare(selected+sql).all(...args,...extra);
   const totals:Record<string,bigint>={settled:0n,provisional:0n,pending:0n,system:0n,unknown:0n};
-  let known=0n,allocated=0n,turnCount=0,missingUsage=0,unknownModelTurns=0;
+  let known=0n,allocated=0n,turnCount=0,settledTurns=0,missingUsage=0,unknownModelTurns=0;
   const ready=input.threadId===undefined&&input.turnId===undefined&&db.prepare("SELECT ready FROM token_usage_projection_state WHERE server_id=?").get(input.serverId)?.ready===1;
   const day=(ms:number)=>new Date(ms+8*3600000).toISOString().slice(0,10);
   const dailyArgs=[input.serverId,day(input.start),day(input.end)];
@@ -24,6 +24,7 @@ export function readTeamUsage(db:Pick<DatabaseSync,"prepare">,input:{serverId:st
   for(const row of states){
     const value=BigInt(String(row.tokens));totals[String(row.allocation_state)]=value;known+=value;turnCount+=Number(row.turns);missingUsage+=Number(row.missing);unknownModelTurns+=Number(row.unknown_count);
     if(row.allocation_state==="settled"||row.allocation_state==="provisional")allocated+=value;
+    if(row.allocation_state==="settled")settledTurns+=Number(row.turns);
   }
   const projection=(sql:string,extra:(string|number)[]=[])=>grouped(sql,extra).map(row=>({key:String(row.key),tokens:String(row.tokens),turns:Number(row.turns)}));
   // Join's fixed deployment timezone has no current DST; optimize this explicit
@@ -67,5 +68,5 @@ export function readTeamUsage(db:Pick<DatabaseSync,"prepare">,input:{serverId:st
     }
   }
   const threadCount=Number(grouped("SELECT count(DISTINCT thread_id) AS n FROM selected")[0]!.n);
-  return {totals,known,allocated,turnCount,threadCount,missingUsage,unknownModelTurns,daily,models,rows};
+  return {totals,known,allocated,turnCount,settledTurns,threadCount,missingUsage,unknownModelTurns,daily,models,rows};
 }

@@ -178,3 +178,34 @@ test("query SQL statement allocation is bounded across repeated authorized reads
   state.database.prepare("UPDATE token_usage_buckets SET tokens='5' WHERE turn_id='first'").run();
   assert.equal(ledger.query(params,A).summary.tokens,first.summary.tokens);
 }));
+
+test("coverage and summary expose settledTurns, lastSourceSuccessAt and openGapIncidents",()=>fixture((ledger,state)=>{
+  turn(ledger,"settled-1",["A"],["100"],at);
+  turn(ledger,"settled-2",["A"],["200"],at+1000);
+  // An uncompleted turn
+  const uncompletedKey = {threadId:"thread",turnId:"running-turn"};
+  ledger.startTurn(uncompletedKey,at+2000,"human",true);
+  ledger.recordInput(uncompletedKey,{inputId:"in-run",actorId:"A",actorKind:"human",mode:"start",admission:"confirmed"});
+  ledger.recordSource({...uncompletedKey,lineage:"native",sourceId:"src",kind:"response",version:0,provider:"p",model:"m",counts:{totalTokens:"50"}});
+
+  // Insert two gaps on same thread with same reason (should deduplicate to 1 incident)
+  ledger.noteGap({ id: "g1", reason: "source-offline", threadId: "thread" });
+  ledger.noteGap({ id: "g2", reason: "source-offline", threadId: "thread" });
+  // And one gap with different reason (making 2 incidents total)
+  ledger.noteGap({ id: "g3", reason: "oversized-line", threadId: "thread" });
+
+  const selfResult = ledger.query(params,A);
+  assert.equal(selfResult.summary.turns,3);
+  assert.equal(selfResult.summary.settledTurns,2);
+  assert.equal(selfResult.coverage.openGapIncidents,2);
+  assert.equal(typeof selfResult.coverage.lastSourceSuccessAt,"number");
+  assert.ok(selfResult.coverage.lastSourceSuccessAt! >= at);
+
+  const teamResult = ledger.query({...params,scope:"team"},admin);
+  assert.equal(teamResult.summary.turns,3);
+  assert.equal(teamResult.summary.settledTurns,2);
+  assert.equal(teamResult.coverage.openGapIncidents,2);
+  assert.equal(typeof teamResult.coverage.lastSourceSuccessAt,"number");
+  assert.ok(teamResult.coverage.lastSourceSuccessAt! >= at);
+}));
+
