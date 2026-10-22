@@ -7,6 +7,16 @@ Shared Web chrome writes the current platform to `data-opencraft-platform`;
 use `data-opencraft-activity-icon`. These temporary attributes do not own
 native engine protocol, persisted identities or glyph geometry.
 
+## Experimental mobile Web container
+
+The explicit public Expo Web-container entry packages the same complete Web
+Workbench application/UI graph. Native owns safe area, lifecycle, back and
+external navigation only; it must not duplicate Scope/View, drafts, navigation
+or panel state. Viewport changes retain the mounted document. RN remains the
+default until device/capability acceptance; downstream product assembly is
+independent. Packaging, bridge and acceptance boundaries are owned by
+[Mobile Workbench container](../docs/mobile-workbench-container.md).
+
 ## Conversation model display continuity
 
 Existing conversation model and effort labels reflect its own execution or explicit draft choice before catalog hydration. Unknown settings never become a default effort. Completed model metadata may paint the matching label within one Host runtime, but cannot seed another Thread's selectable catalog or authorize submission. Historical views do not fetch new-conversation defaults.

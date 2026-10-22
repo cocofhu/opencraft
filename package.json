@@ -24,6 +24,7 @@
   "scripts": {
     "gate:performance": "node scripts/performance/run.mjs",
     "test:performance-gate": "node --test tests/performance-gate.test.mjs",
+    "smoke:mobile-web-workbench": "tsx scripts/smoke-mobile-web-workbench.ts",
     "smoke:home-composer-focus": "tsx scripts/smoke-home-composer-focus.ts",
     "smoke:readable-chat-pane": "tsx scripts/smoke-readable-chat-pane.ts",
     "smoke:navigation-copy": "tsx scripts/smoke-contributed-navigation-copy.ts",
@@ -220,7 +221,7 @@
     "smoke:desktop-toolbar-feedback": "tsx scripts/smoke-desktop-toolbar-feedback.ts",
     "smoke:conversation-activity-metrics": "tsx scripts/smoke-conversation-activity-metrics.ts",
     "check:startup:cache": "node scripts/check-startup-cache.mjs",
-    "test:startup": "tsx --test tests/deferred-transport.test.ts tests/web-asset-encoding.test.mjs tests/startup-resource-policy.test.ts tests/startup-resource-composition.test.ts tests/developer-tool-inputs.test.ts tests/embedded-product-build.test.mjs tests/expo-product-entry.test.cjs tests/expo-native-build.test.cjs tests/browser-process-env.test.ts",
+    "test:startup": "tsx --test tests/mobile-workbench-container.test.ts tests/mobile-packaged-resources.test.mjs tests/deferred-transport.test.ts tests/web-asset-encoding.test.mjs tests/startup-resource-policy.test.ts tests/startup-resource-composition.test.ts tests/developer-tool-inputs.test.ts tests/embedded-product-build.test.mjs tests/expo-product-entry.test.cjs tests/expo-native-build.test.cjs tests/browser-process-env.test.ts",
     "smoke:tasks:v1": "tsx scripts/smoke-tasks-v1.ts",
     "smoke:browser-bootstrap": "tsx scripts/smoke-browser-bootstrap.ts",
     "lint:browser": "node scripts/check-browser-compatibility.mjs",

@@ -13,6 +13,13 @@ function localProductFile(value, { workspaceRoot, extensions, name }) {
 }
 
 function resolveProductEntry(appRoot, env = process.env) {
+  if (env.OPENCRAFT_EXPO_WORKBENCH && !["web", "native"].includes(env.OPENCRAFT_EXPO_WORKBENCH)) {
+    throw new Error("OPENCRAFT_EXPO_WORKBENCH must be web or native");
+  }
+  if (env.OPENCRAFT_EXPO_WORKBENCH === "web") {
+    if (env.OPENCRAFT_EXPO_PRODUCT_ENTRY) throw new Error("Select a public Workbench or a downstream product, not both");
+    return path.join(appRoot, "src/runtime/web-container-entry.ts");
+  }
   return localProductFile(env.OPENCRAFT_EXPO_PRODUCT_ENTRY, {
     workspaceRoot: path.resolve(appRoot, "../.."),
     extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],

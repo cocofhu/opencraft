@@ -12,3 +12,7 @@ node_modules/
 
 expo-env.d.ts
 # @end expo-cli
+
+assets/mobile-workbench.html
+public/mobile-workbench.html
+.cache/
