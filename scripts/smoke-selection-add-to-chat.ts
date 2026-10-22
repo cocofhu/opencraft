@@ -26,7 +26,7 @@ function App(){
  return <main style={{maxWidth:720,padding:20}}>
  <div key={thread+'scroll'} ref={setRoot} style={{height:360,overflow:'auto'}}>
   <label id='sender'>Sender metadata</label>
-  <section id='assistant'><WebChatDocument documentId={thread+'answer'} source={'Hello 世界 — selected answer.\\n\\nSecond paragraph /literal @nobody.\\n\\n'+(revision?'Streaming update.\\n\\n':'')+'\u0060\u0060\u0060ts\\nconst first = 1;\\nconst second = 2;\\n\u0060\u0060\u0060'} /></section>
+  <section id='assistant'><WebChatDocument documentId={thread+'answer'} source={'Hello 世界 — selected answer.\\n\\nSecond paragraph /literal @nobody.\\n\\n'+(revision?'Streaming update.\\n\\n':'')+'\u0060\u0060\u0060ts\\nconst first = 1;\\nconst second = 2;\\n\u0060\u0060\u0060\\n\\nMiddle prose.\\n\\n\u0060\u0060\u0060ts\\nconst third = 3;\\n\u0060\u0060\u0060'} /></section>
   <section id='user'><WebUserMessageDocument documentId={thread+'user'} source='Original user question 中文。' /></section>
   <div style={{height:500}} />
  </div>
@@ -99,6 +99,18 @@ try {
   // Partial code stays partial, with no code-header actions or full-block expansion.
   await select(page,'#assistant pre code',0,5);await action.waitFor();await action.click();
   assert.equal(await editor.locator('blockquote').last().innerText(),'const');
+  // A range crossing code surfaces includes the second caption in cloneContents;
+  // only its selected source belongs in the quote.
+  await page.evaluate(() => {
+    const codes = document.querySelectorAll('#assistant pre code');
+    const first = document.createTreeWalker(codes[0]!, NodeFilter.SHOW_TEXT).nextNode()!;
+    const last = document.createTreeWalker(codes[1]!, NodeFilter.SHOW_TEXT).nextNode()!;
+    const range = document.createRange(); range.setStart(first, 1); range.setEnd(last, 5);
+    window.getSelection()!.removeAllRanges(); window.getSelection()!.addRange(range);
+  });
+  await action.waitFor(); await action.click();
+  assert.equal((await editor.locator('blockquote').last().innerText()).replace(/\n+/g, '\n'),
+    'onst first = 1;\nconst second = 2;\nMiddle prose.\nconst');
   // A long selection beginning above the scroll viewport must expose a reachable action.
   await page.evaluate(()=>{document.querySelector('#assistant')!.parentElement!.scrollTop=90});
   await page.waitForTimeout(50);
@@ -142,7 +154,7 @@ try {
   await select(page,'#assistant p',0,6);await action.waitFor();
   await mobile.screenshot({path:'.local/selection-quote/mobile.png'});await touch.close();
   }
-  assert.deepEqual(errors,[]);await writeFile('.local/selection-quote/result.json',JSON.stringify({passed:true,nativeInput:input,mouseDrag:true,partialCode:true,undo:true,draftPreserved:true,caretAfterQuote:true,navigationDismiss:true,touch:!process.env.OPENCRAFT_CDP_URL,themes:true,client:process.env.OPENCRAFT_CDP_URL?"electron":"web"},null,2));
+  assert.deepEqual(errors,[]);await writeFile('.local/selection-quote/result.json',JSON.stringify({passed:true,nativeInput:input,mouseDrag:true,partialCode:true,crossCodeQuote:true,undo:true,draftPreserved:true,caretAfterQuote:true,navigationDismiss:true,touch:!process.env.OPENCRAFT_CDP_URL,themes:true,client:process.env.OPENCRAFT_CDP_URL?"electron":"web"},null,2));
   console.log('Selection → quote → edit → native submission passed; draft/context retention, undo, exact partial code, stale selection dismissal, themes verified (touch covered on Web).');
   if(!process.env.OPENCRAFT_CDP_URL)await page.close();
 } finally {await browser?.close();await vite.close();}
