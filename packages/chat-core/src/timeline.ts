@@ -463,7 +463,7 @@ export interface OptionPickerTimelineBlock extends TimelineBlockBase<"option-pic
 }
 
 /** Product-owned onboarding step requested through setup_codex_step. */
-export interface SetupCodexStepTimelineBlock extends TimelineBlockBase<"setup-codex-step"> {
+export interface SetupStepTimelineBlock extends TimelineBlockBase<"setup-codex-step"> {
   readonly requestId: string;
   readonly targetItemId: string | null;
   readonly method: "item/tool/call";
@@ -578,7 +578,7 @@ export type TimelineBlock =
   | ApprovalTimelineBlock
   | QuestionTimelineBlock
   | OptionPickerTimelineBlock
-  | SetupCodexStepTimelineBlock
+  | SetupStepTimelineBlock
   | SetupContextPickerTimelineBlock
   | McpElicitationTimelineBlock
   | ErrorTimelineBlock

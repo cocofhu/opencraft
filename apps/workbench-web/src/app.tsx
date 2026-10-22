@@ -154,6 +154,7 @@ import {
   useRootComposerController,
   useThreadCatalog,
   useMultiHostThreadCatalog,
+  useThreadPinWriter,
 } from "./runtime/appserver-runtime-context";
 import {
   setAppearanceThemeId,
@@ -381,8 +382,16 @@ export function App({
     },
     [runtime, snapshot.hostId, hostCatalog.agentRuntimes],
   );
-  const catalog = useThreadCatalog();
-  const multiHostCatalog = useMultiHostThreadCatalog();
+  const rawCatalog = useThreadCatalog();
+  const rawMultiHostCatalog = useMultiHostThreadCatalog();
+  const threadPinWriter = useThreadPinWriter();
+  const pinRevision = useSyncExternalStore(threadPinWriter.subscribe, threadPinWriter.getSnapshot, threadPinWriter.getSnapshot);
+  const catalog = { ...rawCatalog, threads: useMemo(() => rawCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: snapshot.hostId, threadId: thread.id }, thread)),
+  [rawCatalog.threads, threadPinWriter, pinRevision, snapshot.hostId, snapshot.connectionGeneration, snapshot.phase]) };
+  const multiHostCatalog = { ...rawMultiHostCatalog, threads: useMemo(() => rawMultiHostCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: thread.connectionHostId, threadId: thread.id }, thread)),
+  [rawMultiHostCatalog.threads, threadPinWriter, pinRevision]) };
   const projectCatalog = useProjectCatalog();
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
   const { sidebarOpen, setSidebarOpen } = useResponsiveSidebarDock();
@@ -623,8 +632,8 @@ export function App({
       label: intl.formatMessage({ id: "panel.newBrowser", defaultMessage: "New browser tab" }),
       creationLabel: intl.formatMessage({ id: "panel.browser", defaultMessage: "Browser" }),
     } : action.id === "opencraft.cloud-desktop.open" ? { ...action,
-      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
-      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
+      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
+      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
     } : action.id === "workspace.files.open" ? { ...action,
       label: intl.formatMessage({ id: "panel.openFiles", defaultMessage: "Open files" }),
       creationLabel: intl.formatMessage({ id: "panel.files", defaultMessage: "Files" }),
@@ -1347,11 +1356,10 @@ export function App({
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(embedded.hostId, threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }); }
+        await threadPinWriter.set({ hostId: embedded.hostId, threadId }, pinned);
       },
     });
-  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, navigateToHome, queryClient, sendMessage, snapshot.phase]);
+  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, threadPinWriter, navigateToHome, queryClient, sendMessage, snapshot.phase]);
   const workspaceSelectionEpoch = useRef(0);
   useLayoutEffect(() => {
     workspaceSelectionEpoch.current++;
@@ -1560,7 +1568,7 @@ export function App({
     open: panelState.right.open, fullWidth: panelState.rightPanelFullWidth,
     activeTabId: panelState.right.activeTabId,
     tabs: panelState.right.tabs.map(tab => ({ id: tab.id,
-      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" })
+      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" })
         : tab.kind === "browser" && tab.title === "New tab"
         ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title.slice(0, 512),
       kind: tab.kind, closable: tab.closable, preview: tab.preview })),
@@ -1651,7 +1659,7 @@ export function App({
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
-      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
       headerActionCount={conversationMenuAvailable ? 1 : 0}
       headerAction={conversationMenuAvailable ? (
         <Suspense fallback={<span className="chrome-button" />}>
@@ -1670,8 +1678,7 @@ export function App({
               ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
             onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
               ? async pinned => {
-                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, activeThreadId, pinned); }
-                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
+                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
               } : undefined}
             onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
               ? () => archiveThread({
@@ -1750,8 +1757,7 @@ export function App({
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
       onSetPinned: async (target, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(target.hostId, target.threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }); }
+        await threadPinWriter.set(target, pinned);
       },
       onRename: (target, title) => threadTitleWriter.rename(target, title),
       onFork: target => forkAndOpenThread({
@@ -1851,7 +1857,7 @@ export function App({
           header={embedded !== undefined && draft !== null && draft.submission === null && !presentation.rightPanel ? null : header}
           floatingSidebarHeader={(onDock) => !presentation.contextSidebar ? null : (
             <AppShellNavigationControls
-              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
               hostRole="transient"
               sidebarOpen={false}
               canGoBack={canGoBack}
@@ -2034,6 +2040,14 @@ export function App({
                     onOpenResource: openChatResource,
                     onReviewTurnDiff: openTurnDiffReview,
                     composerChangeSummaryTurnId: snapshot.conversation?.activeTurn?.turnId ?? null,
+                    onForkTurn: !showingDisplayCache && snapshot.conversation?.authoritative === true
+                      && activeThreadId !== null && hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
+                      ? turnId => forkAndOpenThread({
+                          routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+                          fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId, turnId),
+                          refreshThreads: refreshConversationCatalog,
+                          openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+                        }) : undefined,
                     theme: appearanceTheme.resolvedTheme,
                   }}
                   timeline={visibleTimeline}
