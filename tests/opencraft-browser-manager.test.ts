@@ -139,3 +139,34 @@ test("browser manager owns storage modes and mount claims", () => {
     manager.disposeAll();
   } finally { env.close(); }
 });
+
+test("replaced unregistered host stays parked when its registration completes late", () => {
+  const env = environment();
+  try {
+    const commits: Record<string, boolean[]> = { a: [], b: [] };
+    const makeHost = (id: string) => new OpenCraftPresentationHost({ conversationId: "owner", browserTabId: id }, {
+      container: { style: {}, isConnected: true } as unknown as HTMLElement,
+      guest: { focus() {} } as unknown as HTMLElement,
+      ready: Promise.resolve(),
+      commit: (_layout, visible) => commits[id]!.push(visible),
+      park() {}, close() {}, clearCover() {}, cover() {},
+    });
+    const Transition = createImplementation({});
+    const transition = new Transition(), a = makeHost("a"), b = makeHost("b");
+    const layout = { visualBounds: state.bounds, stageBounds: state.bounds,
+      viewportSize: { width: 500, height: 500 }, scale: 1 };
+    const aRef = {}, bRef = {};
+    transition.sync(a, { ...state, layout }, aRef, "right-panel");
+    b.markRegistered();
+    transition.sync(b, { ...state, layout }, bRef, "right-panel");
+    transition.detach(a, aRef, "right-panel", 1);
+    a.markRegistered();
+    transition.acknowledgeAttachment(a, 1, 1);
+    env.tick(); env.tick(); env.tick();
+    assert.equal(a.isPainted(), false, "late registration must not show the replaced page over the selected page");
+    assert.deepEqual(commits.a, []);
+    assert.equal(b.isPainted(), true);
+    assert(commits.b.includes(true));
+    transition.disposeAll();
+  } finally { env.close(); }
+});

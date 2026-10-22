@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import gitCases from "./fixtures/turn-diff-git-cases.json";
 import { spawnSync } from "node:child_process";
 import { createTurnChangeSummary, summarizeTurnDiff } from "../packages/chat-core/src/turn-diff";
 
@@ -24,13 +25,13 @@ test("git destination owns rename/deletion identity; metadata is not changed-lin
   });
 });
 
-test("quoted paths retain wire escapes except escaped quotes and backslashes", () => {
-  for (const [wire, expected] of [['a b', 'a b'], ['a\\tname', 'a\\tname'],
-    ['a\\303\\251', 'a\\303\\251'], ['a\\"name', 'a"name'], ['a\\\\name', 'a\\name']]) {
+test("quoted paths decode Git C escapes to repository file identity", () => {
+  for (const [wire, expected] of [['a b', 'a b'], ['a\\tname', 'a\tname'],
+    ['a\\303\\251', 'aé'], ['a\\"name', 'a"name'], ['a\\\\name', 'a\\name']]) {
     assert.equal(summarizeTurnDiff(`diff --git "a/old" "b/${wire}"\n+x`).files[0]?.path, expected);
   }
   assert.deepEqual(summarizeTurnDiff('diff --git a/a b/a   \n+x').files, []);
-  assert.deepEqual(summarizeTurnDiff('diff --git a/a b b/a b\n+x').files, []);
+  assert.deepEqual(summarizeTurnDiff('diff --git a/a b b/a b\n+x').files, [{ path: 'a b', additions: 1, deletions: 0 }]);
 });
 
 test("card identity, raw diff and execution state retain the public projection contract", () => {
@@ -59,4 +60,10 @@ test("adversarial quoted headers complete within an isolated process budget", ()
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stderr);
+});
+
+// These patches were produced by local Git; expected paths/counts come from its
+// independent --numstat -z output, including rename and binary observations.
+for (const entry of gitCases) test(`real Git summary: ${entry.name}`, () => {
+  assert.deepEqual(summarizeTurnDiff(entry.diff), entry.expected);
 });

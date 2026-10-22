@@ -1,7 +1,7 @@
 # Progress
 
 - Read root/service instructions, maintenance and verification skills, planning and desktop skills.
-- Analysis from previous turn confirmed actual Codex separates local native picking from remote Host picking and project ownership.
+- Project ownership, local native picking and remote Host picking are separate responsibilities.
 - Added OpenCraft ProjectRepository, Host project RPCs and narrow Electron native picker.
 - Connected shared menu with native capability and interaction epoch fencing; remote filesystem picker retained.
 - First focused tests: 12/12 passed; local Host, Electron and Web typechecks passed.

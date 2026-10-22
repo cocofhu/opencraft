@@ -68,6 +68,10 @@ identity (including null) wins, and restored/unrelated entries never inherit the
 current employee. Web resolves the enterprise identity contribution into generic name/avatar URL
 values; Composer owns only layout/fallback, not enterprise identity URLs or account policy. Queue
 editing/reordering never relabels its submitter; these values are display-only.
+Queue refresh keeps the current projection until a complete, current read succeeds.
+A queue-change notification received during a read invalidates that response;
+the coalesced follow-up read replaces it without publishing a stale empty list.
+A fresh empty response still removes consumed or deleted entries.
 
 ## Streaming projection and document reuse
 
@@ -104,6 +108,11 @@ command clocks stop in hidden documents or parked conversation surfaces and
 calibrate from wall time when shown. Native working shimmer stops on AppState
 background and reduced motion. None of these switches cancels remote execution,
 changes queue/draft ownership, or removes visible running feedback.
+Goal elapsed-time sampling retains its one-second cadence, but only publishes a
+presentation update when a displayed duration can change: seconds during the
+first minute, then whole minutes. Server accounting or Thread identity changes
+replace the sampled baseline immediately. This avoids rerendering the Composer
+for unchanged elapsed labels without changing execution accounting or Goal motion.
 
 The compiler caches immutable prefix AST nodes using Marked's actual top-level
 token boundaries, then parses the remaining tail. It retains the last block
@@ -246,7 +255,9 @@ surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
 Host providers may declare localized Composer shortcuts as ordinary prompts or
-standalone actions. Selecting either only inserts editable text; explicit send is
+standalone actions. Commands are discovered by typing `/` in the editor; declaring
+shortcuts must not add a command-library button or a separate toolbar menu.
+Selecting a suggestion only inserts editable text; explicit send is
 required. The core matches only a single paragraph with no attachments/context
 and no arguments. Ordinary prompts and unmatched input retain normal submission,
 including queue admission. The optional resident `composerCommands` port binds an
@@ -268,6 +279,21 @@ returns its own payload. The conversation runtime selects only the target turn,
 settles all response attempts before interrupt, carries the original provenance
 and releases its transient interrupt state on failure. The helper does not grant
 permissions or own pending-request removal.
+
+### MCP elicitation presentation
+
+The shared elicitation normalizer owns field options and metadata routing for
+the existing interaction views. Array fields retain titled string constants
+from `items.anyOf`, including their order and defaults; explicit field `oneOf`
+choices take precedence. Required selections must remain selectable before the
+existing typed form response is submitted.
+
+An empty-field request from `browser` or `browser-use` with a nonblank metadata
+`origin` and offered persistence scopes uses the tool-approval view. Its existing
+actions submit once, session or always responses only as offered by the request.
+Valid tool suggestions and URL requests retain their own routing. Presentation
+classification does not grant permissions; the Host remains the authority for
+the request and its response.
 
 The shared compiler's application link scanner returns raw label/destination and
 UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
@@ -498,6 +524,20 @@ Diff sections are indexed once per completed resource revision, not reparsed
 for every filename. These are Web adapter details; Native preserves its own
 touch surfaces while sharing the Turn resource and Review intent.
 
+The shared summary consumes actual Git paths: unquoted spaces and C-quoted
+UTF-8 bytes resolve to repository file identity, including extended rename/copy
+metadata without removing a real `a/` or `b/` directory. Binary and mode-only
+sections remain zero-count files. Inside a hunk, lines beginning `+++` or `---`
+are changed code; only pre-hunk file headers are metadata. Repeated paths retain
+first-observed order and aggregate counts. Review indexes the same decoded paths;
+the original unified diff remains unchanged. The shared review-line parser
+tracks the declared old/new hunk ranges. Within a hunk, `+++` and `---` remain
+changed code with source line numbers and intraline highlights. Completing a
+hunk or starting another file ends that numbering scope; file metadata and
+patch separators never acquire source line numbers or become collapsible
+unchanged code. Partial add/delete observations remain readable without
+invented line numbers.
+
 The aggregate is a **Turn-owned resource**, not an ordered transcript Item.
 `chat-runtime` passes `unifiedDiff` separately from source Items; `chat-core`
 projects it as `changeSummary` metadata and the assistant presentation plan's
@@ -510,6 +550,12 @@ not a second read authority. A resource-only recovered Turn may have an empty
 carrier Frame, never a fabricated message. Inline resource surfaces count toward
 the virtualizer's top-level geometry; Composer-routed live resources count toward
 footer geometry instead. Neither becomes a latest activity follow anchor.
+
+The Turn resource is read from Frame metadata independently of assistant Items.
+A Turn with only user or interaction Frames still materializes an empty assistant
+resource surface when it has a change summary. Completed, failed and interrupted
+Turns retain their Review entry even when no assistant message was returned;
+clearing the canonical resource removes it without inventing transcript content.
 
 Old `turnDiff` Items are lowered at the shared projection boundary and excluded
 from transcript/work-status derivation. An explicitly supplied Turn value,
@@ -527,7 +573,7 @@ Skill autocomplete treats a bare `$` as catalog browsing, not an empty file
 search. The Composer, runtime catalog and Skill search share this policy;
 `@` remains query-gated. Skills are scoped to the current Host/root set,
 enabled-only and deduplicated by authoritative path. Empty queries retain
-source order; typed queries match canonical name, display label and path.
+source order; typed queries match canonical name, display label and path. Query words and boundary patterns are prepared once per search, while normalized candidate fields are reused across its words; this does not add a cross-request cache or change fuzzy scores, tie ordering, limits or canonical identity.
 Discovery errors are rejected before query caching rather than stored as a
 successful empty catalog. A Host returning no metadata is not supplemented
 with renderer-local or fabricated Skills.
@@ -536,8 +582,7 @@ The picker displays loading, unavailable/retry and no-results states, supports
 wrapped arrow navigation (and macOS Ctrl-P/N), Enter/Tab insertion and mouse
 selection, and never submits while a Skill picker owns Enter. Escape/blur
 dismiss the current match without deleting its text; changing the match may
-reopen it. Unmatched queries containing whitespace dismiss as in the Codex
-reference. Selected text and code blocks do not activate the picker, and IME
+reopen it. Unmatched queries containing whitespace dismiss the picker. Selected text and code blocks do not activate the picker, and IME
 commit does not select or submit. Async results carry catalog, target, query,
 retry and controller ownership; stale completions cannot become selectable.
 Inserted resources retain canonical Skill name/path through the document
@@ -550,7 +595,7 @@ protocol payload, not remote Skill installation or model execution.
 Model-response URLs are resources, not page-local anchors. `chat-document`
 preserves the model-authored paragraph/heading/list/table structure and raw
 Markdown label; `chat-render-react` alone classifies and sanitizes the target;
-the Web renderer projects an allowed HTTP(S) target as a Codex-style inline
+the Web renderer projects an allowed HTTP(S) target as an inline
 mention with origin favicon, globe fallback, URL tooltip and Radix context
 actions. It never demotes a heading merely because its child is a link.
 Restricted or unsafe targets receive no href, favicon request or open action.
@@ -592,7 +637,7 @@ trackpad/wheel scrolling and scrollbar dragging retain browser text selection,
 link activation and vertical timeline scrolling. Appending rows keeps the same
 table and scrollport; no JavaScript pan controller or document-wide overflow is
 introduced. `scripts/smoke-markdown-table-scroll.ts` verifies the real renderer.
-Wide blocks use Codex-style automatic expansion beyond the prose column, bounded
+Wide blocks use automatic expansion beyond the prose column, bounded
 by the current reading surface rather than window width. The timeline supplies
 `--chat-wide-content-available-width` and `--wide-block-panel-max-width`; its
 viewport already excludes docked panels and accounts for content shift. Tables
@@ -633,6 +678,24 @@ apply the Web user-message paragraph rhythm without adding a trailing gap.
 It also carries the next document node: Web and Native use one Han-text test
 to tighten adjacent root paragraphs, while first/last heading and divider
 margins follow the same document-edge rules.
+Web image previews share `ZoomableImage` across user attachments, Markdown,
+generated images and workspace image resources. The preview owns a transient
+0.2–5× transform: two pointers zoom and freely rotate around their midpoint;
+one pointer pans against bounds derived from the rotated image and the actual
+preview viewport. Shrinking below the fitted size remains available. Lightbox viewports fill the
+available screen independently of the fitted image dimensions; zoomed pixels
+must be visible outside the initial image rectangle. Embedded workspace resources
+retain their panel viewport. Only the image viewport claims touch
+gestures, leaving modal close, gallery navigation and focus with their existing
+owners. Source changes, reopening and viewport resizing restore the fitted view.
+No page zoom, navigation or media reload is required for manipulation.
+The preview's whole modal input layer, including empty screen space, excludes
+background Shell gestures. Global capture listeners must resolve native dialog
+semantics, the composed path and the presentation root before admitting input;
+image-only propagation handling cannot establish modality. Opening the preview
+revokes an already-held background gesture; dismissal allows fresh gestures.
+
+
 Native Markdown images retain their intrinsic ratio within the current
 container and use a document-scoped native preview for adjacent images in
 source order. Its modal exists only while previewing; no browser page or
@@ -673,11 +736,24 @@ document identity as well as the resolved target. A context switch cannot
 reuse the previous image's loading result or keep its gallery open while the
 new Host media request settles. This applies to Markdown images, user
 attachments, generated images and tool image results.
+The Workbench conversation-media hook reuses its serialized presentation key
+within the mounted component while the source, resolved decision, Host,
+conversation, cwd and document identity remain unchanged. Scroll rerenders do
+not repeatedly serialize long inline image addresses. This is a local derived
+value, not a resource cache; request cancellation, stale-result fencing,
+release and measurement ownership remain with the existing media effect.
 User-message image attachments, generated images and image-view tool results
 consume the same conversation-media decision and Host loader. A Host file path
 is never rewritten to a phone-local `file://` URI; direct HTTP(S) and image
 data remain direct sources. Native preview opens the resolved image source in
 the conversation's gallery when no product-specific preview owner is supplied.
+
+MCP tool-result thumbnails retain their intrinsic aspect ratio inside the
+current details width and a 192px height budget. Those constraints and
+`object-fit` belong to the rendered image, rather than an outer wrapper that
+could let intrinsic pixels overlap later result parts. Small images are not
+upscaled. Collapsing and reopening uses the same media policy and bounded
+geometry; the Host loader and resource permissions remain unchanged.
 
 Web and Native derive file citation labels/targets and workspace mention
 targets from one renderer-neutral model. Native presents workspace mentions
@@ -712,7 +788,7 @@ Unspecified table-cell alignment and prose/heading writing direction are
 natural rather than forced LTR, matching Web's `dir="auto"` intent; explicit
 Markdown column alignment remains authoritative.
 
-Web and Native code fences now consume one Shiki grammar registry and Codex
+Web and Native code fences now consume one Shiki grammar registry and OpenCraft
 syntax theme. Web turns that result into HTML; Native projects its token colors
 and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
@@ -772,7 +848,7 @@ interruption and failure notifications are lifecycle summaries (`itemsView:
 "summary"`), never empty full Item snapshots. Full membership belongs to
 history reconstruction. Visible reasoning, assistant and tool Items settle
 before the Turn; only explicit completed output receives final-answer phase.
-Like Codex, `final_answer` is an optional Item rather than a prerequisite for a
+`final_answer` is an optional Item rather than a prerequisite for a
 completed Turn. A Turn with settled commentary or tool activity may complete
 without fabricating an answer; a completely empty completed Turn still fails
 closed as a provider/runtime contract violation.
@@ -1266,30 +1342,29 @@ set: an empty set hides the control, `none` means disable only when explicitly
 declared, and the model default must be a member of the same set. Hermes maps
 its Session-owned effort through the existing AppServer model/Turn fields;
 provider-specific wire clamping remains inside Hermes Runtime.
-The Web Composer presents model and reasoning through one Radix menu but keeps
-their hierarchy distinct. At desktop widths, models are the primary scrollable
-column and the selected model owns an adjacent detail column; narrow surfaces
-stack the same two regions without changing their state. The detail projection
-shows only catalog-authoritative metadata: user-authored display name, custom
-source, context/output limits, input modalities and declared reasoning efforts.
-It does not infer capabilities from a model name or render catalog descriptions
-in the compact picker. Selecting a model keeps the menu open so that this
-projection can refresh in place. Reasoning is a shared discrete slider: the current
-choice is named above a pill track with declared stops, filled range and a round
-thumb; endpoint labels show its range. The control derives order and count from
-the selected model, hides for no choices and is disabled for one choice. It does
-not infer unsupported options or write a default merely by opening the menu.
-Dragging previews locally; releasing commits once through the existing Composer
-selection/default action. Cancelled gestures discard preview. Arrow/Home/End/Page
-keys use Radix Slider semantics and are isolated from menu roving focus. Changes
-keep the menu open for further adjustment; Escape/outside dismiss as usual.
-Model changes preserve a compatible effort and otherwise resolve through that
-model's declared default rather than a global effort order. The shared Web Design
-System owns slider geometry, theme material, focus and disabled treatment.
-Its optional pointer-focus policy preserves the Composer's existing editor lease:
-a touch-origin drag temporarily removes thumb focusability so Radix focus calls
-cannot blur the editor; release/cancel restores keyboard access. It does not
-blur/refocus, rewrite native selection or implement another gesture controller.
+The standalone Web Composer prioritizes frequent reasoning changes. Its current
+model/effort label opens a focused capsule slider with only the selected model's
+declared efforts. Its title opens a compact Radix model list without capability
+or metadata detail panels. Model switching remains a second action. A lightning
+checkbox at the header's left projects only a declared Fast serviceTier,
+and the Composer label shows a lightning icon while enabled. Turning it off
+explicitly clears the previous tier with null; Fast uses the server's declared ID.
+Models without Fast hide the checkbox, and model switches clear incompatible
+tiers. Embedded session-only policy retains its model-only
+picker and Host-owned reasoning policy.
+
+The shared DiscreteSlider owns the capsule geometry, tick marks and themed
+selected fill/round thumb. The centered effort heading previews the held choice above the secondary full model name;
+dragging never writes defaults until release. The right-hand reset commits only the current model's declared default effort through the existing selection owner; no default disables it. It does not reset the model or service tier. The focused surface is compact on desktop, while touch actions retain their density-owned hit areas. Its start-aligned anchor remains stable when the Composer effort label changes width; a stationary pointer must not steal keyboard slider focus. Cancellation discards preview.
+Arrow/Home/End/Page keys remain slider-owned; ArrowDown from the title enters the
+slider. Touch-origin adjustment preserves the editor's existing native focus and
+selection through the auxiliary focus lease, including Fast toggles. Radix owns
+menu keyboard navigation and dismissal. Opening either layer writes no
+selection. No choices hides the slider; one choice is disabled. Model selection
+continues to preserve a compatible effort and otherwise resolves through that
+model's default. Catalog loading, failures, retry and Agent switching
+retain their existing owners, as do account defaults and the mounted editor.
+
 
 
 The Composer permissions menu contains only declared permission profiles, without
@@ -1327,7 +1402,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `composer-editor` | OpenCraft Web ProseMirror editor | authoritative drafts |
 | `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
-| `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
+| `workbench-web` | DOM Timeline, ProseMirror adapter and shared Web frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
 
 The Embedded Workbench keeps Sidebar presentation outside this table: the host
@@ -1408,12 +1483,18 @@ every response or treating `reasoning.available` liveness as that content.
 
 `chat-core` owns selection, chronological slots and single live Thinking
 arbitration. Stable Turn/Item identity survives streaming, completion and
-history updates. Reasoning and Bash/Read/tool groups have separate inner
+history updates. A patch item changing multiple files retains its whole-group
+summary and disclosure when the Turn settles. Completion does not reveal a file
+list that the user collapsed; one-file patches retain the existing plain-row
+behavior. Reasoning and Bash/Read/tool groups have separate inner
 disclosures inside the same contiguous response work container. The newest
 current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.
 When no returned content exists, the existing noninteractive Thinking status
 retains its current owner rather than becoming an empty expand button.
+Pending generated images own their media progress surface, so the Turn does not
+add a separate Thinking placeholder. Completion releases that feedback; an image
+before the latest answer or input cannot suppress the next response.
 
 Reasoning presentation uses two phases: grouping and Thinking ownership inspect
 selected returned text without Markdown compilation, then each visible Item's
@@ -1621,6 +1702,15 @@ height to change before sampling the heading. Detaching the viewport releases it
 while the former DOM is still connected. Actual disclosure unmount separately
 verifies hook cancellation. These adapter lifetime checks complement the real
 mouse/touch animation path; they do not claim Native or Electron acceptance.
+
+### Subagent detail continuity
+
+Grouped collaboration rows retain each agent’s latest matching operation and
+instruction. Their display names, status and messages still come from the shared
+core aggregate; a later operation for another agent cannot replace that detail.
+Older instructions for the same agent are not repeated. A single-operation group
+retains the standalone input, reasoning effort and agent path. Disclosure changes
+only presentation and does not start, message or approve a subagent.
 
 ### Established
 
@@ -2075,7 +2165,15 @@ normal navigation and to conversations opened from linked Tasks alike.
 The shared shell paints ordinary/Newera glass in a pointer-transparent background
 pseudo-element. Backdrop filters must not wrap the ProseMirror editing subtree;
 layout, keyboard viewport projection and the browser's native selection remain
-separate owners. Material variables consume theme tokens and opaque fallbacks.
+separate owners. User-selected model controls use one flex formatting context
+and consistent padding/gaps in empty and nonempty touch layouts around
+the mounted editor. Material variables consume theme tokens and opaque fallbacks.
+Within the sticky conversation footer, desktop paints a rectangular safe-area
+gutter with a straight upper edge below the shell. It does not fill the lower
+rounded-corner cutouts. Touch paints no gutter cover, leaving the same Composer
+floating above the transcript. Density changes affect only decorative paint;
+shell radius, glass, shadow, scroll ownership and editor/menu subtrees remain
+independent. There is no exterior contour sibling.
 Scroll/viewport regressions verify selection and adjacent-character geometry without
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.
@@ -2232,7 +2330,7 @@ not merely because a conversation is retained in the cache.
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 
-OpenCraftComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Focus alone does not change either policy. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
+OpenCraftComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Editor focus expands the empty automatic touch presentation; context chrome still requires stacked rows. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
 In short visual viewports, the Home grid reserves the Composer’s measured content height instead of fixed hero/composer row minima, keeping the send action above the keyboard.
 
 ### Recovery technical details
@@ -2294,9 +2392,12 @@ snapshot carries connection progress; each resident Thread carries only its own
 history progress. UI never substitutes background Thread work for the current
 conversation. Timestamps, actual starts, the scheduler's retry deadline and a
 bounded machine-code failure are local metadata, with at most twelve stage events.
-A visible recovery notice and cold-history surface expose elapsed time and a
-collapsed copyable report before failure as well as during automatic retries.
-The presentation clock pauses in background tabs and never schedules work.
+Loading and automatic retry surfaces show only their concise loading, syncing
+or reconnecting status. Elapsed time, attempts, retry deadlines, machine failure
+codes and the technical disclosure/copy action remain out of the loading DOM.
+Terminal failures retain their actionable retry/update instruction and collapsed
+copyable diagnostic report. The presentation clock is mounted only with failure
+details, pauses in background tabs and never schedules work.
 Authoritative recovery removes the notice; invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
@@ -2345,3 +2446,84 @@ crossing code surfaces. Language captions, controls and hidden duplicates stay
 out of quotes; raw source whitespace and Unicode remain intact. Explicit full
 source metadata keeps its existing authority. The shared copy owner supplies
 this rule to copy and Add to chat, without changing native selection or drafts.
+
+Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
+
+### Pasted multiline JSON
+
+The shared document compiler recognizes complete multiline JSON objects, arrays
+and a single named object/array member before Markdown indentation splits them.
+Plain introductory and trailing prose remain separate reading content. The JSON
+uses the existing code surface with the `json` language; its text and canonical
+source remain unchanged. Recognition validates structure without repairing or
+reserializing it. Explicit fenced code retains its declared language, while
+inline, invalid and incomplete JSON keep ordinary Markdown semantics.
+
+Program statement prefixes and call/statement suffixes are excluded from bare
+JSON recognition. Failed outer candidates are scanned once, without repeatedly
+parsing each nested suffix.
+
+Streaming input containing object braces follows the existing full-parser
+fallback: a later closing delimiter can promote previously separate Markdown
+blocks into one JSON surface, so those prefixes cannot be frozen early.
+
+### Conversation content search deadlines
+
+Native `thread/search` and `thread/searchOccurrences` may scan full raw history.
+Their bounded 120-second request deadline passes through the shared runtime
+protocol port, independently of the normal 30-second metadata deadline. Searches
+remain serialized per source: changing or clearing input aborts presentation and
+skips obsolete queued queries, while an already dispatched scan retains its
+physical lifetime until completion or timeout. This avoids spawning overlapping
+full-history scans. Late results still require the current query, connection and
+authorization scope; a slow source does not prevent another source from rendering
+its results. The longer deadline does not imply an indexed or faster search.
+
+### Initial user echoes and explicit steering acknowledgements
+
+User-message normalization may associate the initial params input with an echo
+following only allowlisted setup events (approval review, compaction, fork,
+model/reroute/personality, remote task and worktree initialization). The first
+other Item is an ownership boundary, even if a later message matches. Reuse
+retains server sender, attachments and source identity while params own ordinary
+composer content. Without params input, worktree initialization does not close
+the leading historical user segment. Steering echoes may match an explicit
+server message ID even when Host-enriched text differs and client ID is absent;
+only earlier eligible local rows receive acknowledgements. A stored server ID
+survives a history gap, and declined/backward rows remain separate.
+
+The dictation waveform consumes the live `prefers-reduced-motion` media query.
+Reduced motion paints a static minimum-height signal and suppresses sample-driven
+repaints, while bounded sample collection and recording controls continue. A
+preference change redraws once, and disposal releases the listener with the
+subscription, observer and pending frame.
+
+
+User-message acknowledgement preserves the saved params `clientId` alias when
+`clientUserMessageId` is absent, and saved steering may use `content` when `input`
+is absent. Host-staged display spans accept both `text_elements`/`textElements`
+and `byte_range`/`byteRange`, as the typed message projector does. An enriched
+server echo must remain one message with its original attachment card and
+source anchors; accepting saved field spellings does not relax the exact UTF-8
+span or legacy locator checks.
+
+
+The shared user-input readers accept a single typed content part as well as an
+array, matching the message projector and saved history input contract. Text
+comparison and image counts must not collapse a typed object to an empty input;
+unrelated local steering and server messages retain separate identities. The
+same single-part form participates in exact Host display-span recognition and
+realtime delegation parsing, so voice envelopes remain typed transcripts rather
+than literal user markup. Unsupported part kinds remain ignored.
+
+### Relational style invalidation during editing
+
+Message action rows keep their existing clock, pointer, keyboard, touch and
+pending-fork disclosure. Relational selectors target their actual button,
+hook-stat and fork-error owners with positive selectors; `:where` keeps the
+previous type-level specificity. A negated universal child after `:has()` can
+make unrelated Composer text insertion invalidate the conversation subtree.
+Task-list paragraph detection still owns grid activation and checkbox spacing.
+Non-checkbox children keep column two independently of that detection, because
+grid placement is inert outside a grid. No DOM, event, layout owner or preview
+lifetime change is needed.
