@@ -185,7 +185,7 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     bodyVariant={hasCoreBody || hasCustomBody ? "grouped" : "default"}
     accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : undefined}
     unmountBodyWhenCollapsed>
-    {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
+    {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}
       documentId={block.id + ":webmcp:" + index} />)}
