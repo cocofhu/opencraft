@@ -120,7 +120,7 @@ npm run smoke:server-updates
 npm run smoke:server-updates:systemd
 ```
 
-`test:server-updates` 覆盖安装/回退、执行启动失败、持久化失败、网站启动失败、进程中断恢复及 systemd 生命周期配置。smoke 使用隔离 HOME、合成账户和本地 Responses 端点，运行真实 Codex CLI、归档内 gateway/daemon、生产 SPA 和真实 npm；浏览器点安装时 shell 已在运行，断线后原 turn 完成，shell 开始/结束各一次、core/CLI/运行中子进程 PID 不变，再从页面回退。默认 smoke 的 systemd 边界由隔离进程重启替代；`:systemd` 入口在 `/run/systemd/system` 创建随机命名的临时 core/执行 unit，通过实际 `systemctl restart` 验证同一链路并在结束时删除自己的 unit。两种入口都不修改线上 unit、不使用真实账户或付费推理；生产服务器仍需核对权限与首次迁移。
+`test:server-updates` 通过 `tsx` 加载真实 TypeScript headless composition 依赖，覆盖安装/回退、执行启动失败、持久化失败、网站启动失败、进程中断恢复及 systemd 生命周期配置。独立 DSH 兼容边界测试仍构建完整 execution 归档，仅查询指定 service 成员以限制子进程输出；其三分钟预算覆盖完整打包，不削弱指针、服务身份或拒绝旧包的断言。smoke 使用隔离 HOME、合成账户和本地 Responses 端点，运行真实 Codex CLI、归档内 gateway/daemon、生产 SPA 和真实 npm；浏览器点安装时 shell 已在运行，断线后原 turn 完成，shell 开始/结束各一次、core/CLI/运行中子进程 PID 不变，再从页面回退。默认 smoke 的 systemd 边界由隔离进程重启替代；`:systemd` 入口在 `/run/systemd/system` 创建随机命名的临时 core/执行 unit，通过实际 `systemctl restart` 验证同一链路并在结束时删除自己的 unit。两种入口都不修改线上 unit、不使用真实账户或付费推理；生产服务器仍需核对权限与首次迁移。
 
 ## 本地源码与 npm 复用更新事务
 
@@ -240,7 +240,7 @@ Host overlay；需要保留这些能力时，先完成相应 adapter 接入，�
 结构拒绝，也不能移开后用空库替代。发现目标 preview 来自未提交或后续补丁时，将
 它与指定构建来源分别记录；未经确认不能把该 preview 当作已接收源码构建输入。
 
-完整保留下游 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
+完整保留下游 overlay 的受管 Headless 边界、历史数据保留和 writer 回归见
 [受管 Headless 与独立 core](managed-headless.md)。纯 core bridge 不能替代该模式。
 # Optional ordinary relay
 

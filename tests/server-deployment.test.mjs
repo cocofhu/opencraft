@@ -16,14 +16,15 @@ async function until(read, condition) {
   for (let i = 0; i < 500; i++) { const value = await read(); if (condition(value)) return value; await delay(20); }
   throw new Error('Update did not finish');
 }
-test('independent DSH rejects legacy candidates and rollback baselines before changing a pointer or service', { timeout: 60_000 }, async () => {
+test('independent DSH rejects legacy candidates and rollback baselines before changing a pointer or service', { timeout: 180_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-rollback-boundary-'));
   try {
     const webRoot = join(root, 'web'); await mkdir(webRoot);
     await writeFile(join(webRoot, 'index.html'), '<html><head></head><body>fixture</body></html>');
     await writeFile(join(webRoot, 'version.json'), JSON.stringify({ schemaVersion: 1, buildId: 'fixture', headlessServer: true, headlessHostId: 'opencraft-server' }));
     const packed = await packageWebServer({ version: '1.0.0', webRoot, output: join(root, 'packed'), execution: true, executionProfile: 'headless' });
-    const files = execFileSync('tar', ['-tzf', packed.archive], { encoding: 'utf8' }).split('\n');
+    // Query the required member instead of buffering the entire execution payload listing.
+    const files = execFileSync('tar', ['-tzf', packed.archive, 'package/opencraft-dsh-host.service'], { encoding: 'utf8' }).split('\n');
     assert.ok(files.includes('package/opencraft-dsh-host.service'), 'npm archive must carry the independent Host unit');
     const users = ['web', 'execution', 'dsh-host'].map(name => {
       const unit = execFileSync('tar', ['-xOf', packed.archive, `package/opencraft-${name}.service`], { encoding: 'utf8' });

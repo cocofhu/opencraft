@@ -243,19 +243,21 @@ test("RFB retries only classified transport loss after a presented frame", async
   }
 });
 
-test("clipboard sends no paste keys before text is provided, and revocation fences completion", async () => {
+test("clipboard advertises text before paste keys so lazy peers can request it; revocation fences completion", async () => {
   for (const revoke of [false, true]) {
     const f = fixture(); const abort = new AbortController();
     const connection = await f.adapter.connect(f.session, abort.signal);
     const surface = f.adapter.surfaces.mount(element, connection); ready(f);
     const lease = await connection.requestControl(abort.signal); surface.enableInput(lease);
     const pending = surface.pasteText!("hello", lease, abort.signal);
-    assert.equal(f.calls.some(call => call.startsWith("key:")), false);
+    const keys = f.calls.filter(call => call.startsWith("key:"));
+    assert.deepEqual(keys, ["key:65507:true", "key:118:undefined", "key:65507:false"]);
+    assert.ok(f.calls.indexOf("clipboard:hello") < f.calls.indexOf(keys[0]!), "Notify must precede paste keys");
     if (revoke) f.revoke();
     f.client().dispatchEvent(new Event("clipboardready"));
     if (revoke) {
       await assert.rejects(pending);
-      assert.equal(f.calls.some(call => call.startsWith("key:")), false);
+      assert.deepEqual(f.calls.filter(call => call.startsWith("key:")), keys, "late Provide cannot emit another shortcut");
     } else {
       await pending;
       assert.deepEqual(f.calls.filter(call => call.startsWith("key:")),
@@ -271,12 +273,71 @@ test("clipboard abort and concurrent attempts cannot leak keys into a later gran
   const surface = f.adapter.surfaces.mount(element, connection); ready(f);
   const lease = await connection.requestControl(abort.signal); surface.enableInput(lease);
   const pending = surface.pasteText!("first", lease, pasteAbort.signal);
+  const keys = f.calls.filter(call => call.startsWith("key:"));
   await assert.rejects(surface.pasteText!("second", lease, abort.signal));
   pasteAbort.abort(); await assert.rejects(pending);
   f.client().dispatchEvent(new Event("clipboardready"));
-  assert.equal(f.calls.some(call => call.startsWith("key:")), false);
+  assert.deepEqual(f.calls.filter(call => call.startsWith("key:")), keys);
   assert.ok(f.calls.includes("clipboard:clear"));
   connection.close();
+});
+
+test("clipboard retirement during advertisement prevents keys; basic synchronous Provide also completes", async () => {
+  for (const revoke of [false, true]) {
+    const f = fixture(), abort = new AbortController();
+    const connection = await f.adapter.connect(f.session, abort.signal);
+    const surface = f.adapter.surfaces.mount(element, connection); ready(f);
+    const lease = await connection.requestControl(abort.signal); surface.enableInput(lease);
+    f.client().clipboardPasteFrom = () => {
+      if (revoke) f.revoke(); else f.client().dispatchEvent(new Event("clipboardready"));
+    };
+    const pending = surface.pasteText!("text", lease, abort.signal);
+    if (revoke) { await assert.rejects(pending); assert.equal(f.calls.some(call => call.startsWith("key:")), false); }
+    else { await pending; assert.equal(f.calls.filter(call => call.startsWith("key:")).length, 3); }
+    connection.close();
+  }
+});
+
+test("Ctrl+V preserves native paste and consumes event text without clipboard-read permission", async () => {
+  const f = fixture(), abort = new AbortController();
+  const connection = await f.adapter.connect(f.session, abort.signal);
+  const surface = f.adapter.surfaces.mount(element, connection); ready(f);
+  surface.enableInput(await connection.requestControl(abort.signal));
+  const pasted: Promise<string>[] = [];
+  surface.setPasteHandler!(read => { pasted.push(read()); });
+  Object.defineProperty(dom.window.navigator, "clipboard", { configurable: true,
+    value: { readText() { throw new Error("Read permission denied"); } } });
+  try {
+    const key = new dom.window.KeyboardEvent("keydown", { key: "v", ctrlKey: true, bubbles: true, cancelable: true });
+    element.dispatchEvent(key);
+    assert.equal(key.defaultPrevented, false, "browser must still produce its native paste event");
+    assert.equal(pasted.length, 0, "keydown must not read the clipboard or send a raw V");
+    const paste = new dom.window.Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, "clipboardData", { value: { getData: () => "中文 native paste" } });
+    element.dispatchEvent(paste);
+    assert.equal(paste.defaultPrevented, true);
+    assert.deepEqual(await Promise.all(pasted), ["中文 native paste"]);
+    f.revoke(); element.dispatchEvent(paste);
+    assert.equal(pasted.length, 1, "revoked surface cannot consume a later paste");
+  } finally { connection.close(); delete (dom.window.navigator as any).clipboard; }
+});
+
+test("remote clipboard writes local text only for a current explicit copy gesture", async () => {
+  const f = fixture(), abort = new AbortController(), written: string[] = [];
+  const connection = await f.adapter.connect(f.session, abort.signal);
+  const surface = f.adapter.surfaces.mount(element, connection); ready(f);
+  surface.enableInput(await connection.requestControl(abort.signal));
+  surface.setPasteHandler!(() => {});
+  Object.defineProperty(dom.window.navigator, "clipboard", { configurable: true,
+    value: { async writeText(text: string) { written.push(text); } } });
+  const remote = (text: string) => f.client().dispatchEvent(new CustomEvent("clipboard", { detail: { text } }));
+  const copy = () => element.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "c", ctrlKey: true, bubbles: true }));
+  try {
+    remote("unsolicited"); assert.deepEqual(written, []);
+    copy(); remote("remote selection"); assert.deepEqual(written, ["remote selection"]);
+    remote("later update"); assert.deepEqual(written, ["remote selection"]);
+    copy(); f.revoke(); remote("retired response"); assert.deepEqual(written, ["remote selection"]);
+  } finally { connection.close(); delete (dom.window.navigator as any).clipboard; }
 });
 
 

@@ -45,7 +45,8 @@ export interface AppServerClientConfig {
  *
  * A handler returning a result only releases the response payload to the
  * client. `delivered` settles after that JSON-RPC response is physically sent
- * on the current transport (or the Host resolves the request independently).
+ * on the receiving connection (or the Host resolves the request independently).
+ * Connection loss rejects this receipt even if the handler is still running.
  */
 export interface ServerRequestResponseContext {
   readonly delivered: Promise<void>;
@@ -83,6 +84,7 @@ interface PendingRequest {
   startedAtMs: number;
   params: unknown;
   timeoutMs: number;
+  preparationTurnId?: string;
   resolve(value: unknown): void;
   reject(error: Error): void;
   timerId: ReturnType<typeof globalThis.setTimeout> | null;
@@ -92,6 +94,14 @@ interface PendingRequest {
 interface MutableServerRequestResponseContext extends ServerRequestResponseContext {
   resolve(): void;
   reject(error: Error): void;
+}
+
+interface ActiveServerRequest {
+  readonly request: JsonRpcRequest;
+  readonly revision: number;
+  readonly controller: AbortController;
+  readonly context: MutableServerRequestResponseContext;
+  phase: "handling" | "sending";
 }
 
 function createServerRequestResponseContext(): MutableServerRequestResponseContext {
@@ -208,7 +218,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
   private readonly requestLifecycleListeners = new Set<(event: AppServerRequestLifecycleEvent) => void>();
   private readonly serverRequestHandlers = new Map<string, ServerRequestHandler>();
   private readonly serverRequestInterceptors = new Set<AppServerServerRequestInterceptor>();
-  private readonly resolvedServerRequestIds = new Set<string>();
+  private readonly activeServerRequests = new Set<ActiveServerRequest>();
   private readonly removeMessageListener: () => void;
   private readonly removeStatusListener: () => void;
   private requestSequence = 0;
@@ -428,6 +438,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
     this.closed = true;
     this.initialized = null;
     this.rejectAllPending(new AppServerClientError("CLOSED", "AppServer client closed"));
+    this.invalidateServerRequests(new AppServerClientError("CLOSED", "AppServer client closed"));
     this.removeMessageListener();
     this.removeStatusListener();
     this.notificationListeners.clear();
@@ -436,7 +447,6 @@ export class JsonRpcAppServerClient implements AppServerClient {
     this.requestLifecycleListeners.clear();
     this.serverRequestHandlers.clear();
     this.serverRequestInterceptors.clear();
-    this.resolvedServerRequestIds.clear();
     await this.transport.close();
   }
 
@@ -458,10 +468,16 @@ export class JsonRpcAppServerClient implements AppServerClient {
         method: message.method,
         params: message.params,
       };
+      this.trackContextPreparation(notification);
       if (notification.method === "serverRequest/resolved") {
-        const requestId = (notification.params as { readonly requestId?: unknown }).requestId;
+        const { requestId, threadId } = notification.params as { readonly requestId?: unknown; readonly threadId?: unknown };
         if (typeof requestId === "string" || typeof requestId === "number") {
-          this.resolvedServerRequestIds.add(this.serverRequestKey(requestId));
+          for (const active of this.activeServerRequests) {
+            const requestThreadId = (active.request.params as { readonly threadId?: unknown } | null)?.threadId;
+            if (active.revision !== this.transportRevision || typeof active.request.id !== typeof requestId || active.request.id !== requestId) continue;
+            if (typeof threadId === "string" && typeof requestThreadId === "string" && threadId !== requestThreadId) continue;
+            this.settleServerRequest(active);
+          }
         }
       }
       this.dispatchNotification(notification);
@@ -511,60 +527,57 @@ export class JsonRpcAppServerClient implements AppServerClient {
   }
 
   private async answerServerRequest(request: JsonRpcRequest): Promise<void> {
-    const requestKey = this.serverRequestKey(request.id);
     const responseContext = createServerRequestResponseContext();
-    let result: unknown;
+    const active: ActiveServerRequest = {
+      request, revision: this.transportRevision, controller: new AbortController(),
+      context: responseContext, phase: "handling",
+    };
+    this.activeServerRequests.add(active);
+    let response: Parameters<typeof encodeJsonRpcMessage>[0];
     try {
       const serverRequest: AppServerServerRequest = {
         id: request.id,
         method: request.method,
         params: request.params,
       };
-      result = await this.dispatchServerRequest(serverRequest, responseContext);
+      const result = await this.dispatchServerRequest(serverRequest, responseContext);
+      response = { id: request.id, result };
     } catch (error) {
-      if (this.resolvedServerRequestIds.delete(requestKey)) {
-        responseContext.resolve();
-        return;
-      }
       const message = error instanceof Error ? error.message : String(error);
       const code = error instanceof AppServerRpcError ? error.code : -32000;
-      try {
-        await this.transport.send(encodeJsonRpcMessage({
-          id: request.id,
-          error: { code, message },
-        }));
-        responseContext.resolve();
-      } catch (sendError) {
-        const deliveryError = new AppServerClientError(
-          "TRANSPORT_ERROR",
-          `Failed to answer AppServer request ${request.method}`,
-          { cause: sendError },
-        );
-        responseContext.reject(deliveryError);
-        this.emitProtocolError(deliveryError);
-      }
+      response = { id: request.id, error: { code, message } };
+    }
+    // The owner is removed by resolution, connection loss or client disposal.
+    // A late handler may finish, but it no longer has a right to reply.
+    if (!this.activeServerRequests.has(active)) return;
+    if (this.closed || active.revision !== this.transportRevision || this.transport.status.state !== "open") {
+      this.settleServerRequest(active, new AppServerClientError("TRANSPORT_ERROR", "AppServer request belongs to a lost connection"));
       return;
     }
-    if (this.resolvedServerRequestIds.delete(requestKey)) {
-      responseContext.resolve();
-      return;
-    }
+    active.phase = "sending";
     try {
-      await this.transport.send(encodeJsonRpcMessage({ id: request.id, result }));
-      responseContext.resolve();
+      await this.transport.send(encodeJsonRpcMessage(response), active.controller.signal);
+      this.settleServerRequest(active);
     } catch (sendError) {
       const deliveryError = new AppServerClientError(
         "TRANSPORT_ERROR",
         `Failed to answer AppServer request ${request.method}`,
         { cause: sendError },
       );
-      responseContext.reject(deliveryError);
-      this.emitProtocolError(deliveryError);
+      if (this.settleServerRequest(active, deliveryError)) this.emitProtocolError(deliveryError);
     }
   }
 
-  private serverRequestKey(id: JsonRpcId): string {
-    return JSON.stringify([typeof id, id]);
+  private settleServerRequest(active: ActiveServerRequest, error?: Error): boolean {
+    if (!this.activeServerRequests.delete(active)) return false;
+    active.controller.abort();
+    if (error === undefined) active.context.resolve();
+    else active.context.reject(error);
+    return true;
+  }
+
+  private invalidateServerRequests(error: Error): void {
+    for (const active of this.activeServerRequests) this.settleServerRequest(active, error);
   }
 
   private dispatchNotification(notification: AppServerNotification): void {
@@ -632,11 +645,39 @@ export class JsonRpcAppServerClient implements AppServerClient {
   }
 
   private handleTransportStatus(status: TransportStatus): void {
+    if (status.state === "closing") {
+      this.invalidateServerRequests(new AppServerClientError("TRANSPORT_ERROR", "AppServer transport closed"));
+      return;
+    }
     if (status.state !== "closed" && status.state !== "failed") return;
     this.transportRevision += 1;
     this.initialized = null;
     const reason = status.reason == null ? "AppServer transport closed" : `AppServer transport closed: ${status.reason}`;
     this.rejectAllPending(new AppServerClientError("TRANSPORT_ERROR", reason), "failed");
+    this.invalidateServerRequests(new AppServerClientError("TRANSPORT_ERROR", reason));
+  }
+
+  private trackContextPreparation(notification: AppServerNotification): void {
+    const params = notification.params as { threadId?: unknown; turnId?: unknown; item?: { type?: unknown }; turn?: { id?: unknown } } | null;
+    if (typeof params?.threadId !== "string") return;
+    const started = notification.method === "item/started" && params.item?.type === "contextCompaction" && typeof params.turnId === "string";
+    const completed = notification.method === "turn/completed" && typeof params.turn?.id === "string";
+    if (!started && !completed) return;
+    for (const pending of this.pending.values()) {
+      if (pending.timeoutMs <= 0 || !["turn/start", "thread/resume"].includes(pending.method)) continue;
+      if ((pending.params as { threadId?: unknown } | null)?.threadId !== params.threadId) continue;
+      if (started) {
+        if (pending.preparationTurnId !== undefined) continue;
+        pending.preparationTurnId = params.turnId as string;
+      } else if (pending.preparationTurnId === undefined || pending.preparationTurnId !== params.turn?.id) continue;
+      // Context preparation is model work, not a stalled RPC. Extend only for
+      // the matching thread and never beyond a bounded absolute deadline.
+      const remaining = Math.max(0, pending.startedAtMs + Math.max(pending.timeoutMs, 180_000) - this.clock.now());
+      const delay = started ? remaining : Math.min(remaining, pending.timeoutMs);
+      if (pending.timerId !== null) this.clock.clearTimeout(pending.timerId);
+      pending.timerId = this.clock.setTimeout(() => this.rejectPending(pending.id,
+        new AppServerClientError("TIMEOUT", `AppServer request ${pending.method} timed out during context preparation`), "timed-out"), delay);
+    }
   }
 
   private rejectPending(

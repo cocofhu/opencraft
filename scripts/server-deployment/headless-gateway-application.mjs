@@ -3,7 +3,7 @@ import { resolve, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startHeadlessServer, parseHeadlessArguments } from '../headless-application.mjs';
 import { coreHealth } from './execution.mjs';
-import { attachDshHost } from './dsh-host-client.mjs';
+import { attachDshHost, readDshHostIdentity } from './dsh-host-client.mjs';
 
 /** Read dependencies concurrently and retain release identity even when one is
  * unavailable. A live gateway and a ready execution service are different facts. */
@@ -42,12 +42,11 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
   const token = (await readFile(tokenPath, 'utf8')).trim();
   const endpoint = required('OPENCRAFT_CODEX_CORE_ENDPOINT');
   const health = () => coreHealth(endpoint, tokenPath);
-  let dshAttachment;
+  const dshDescriptor = process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR;
   const app = await startServer({ ...options, root: releaseRoot, webRoot: join(releaseRoot, 'web'),
-    ...(process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR ? {
+    ...(dshDescriptor ? {
       startAgentHost: async agentOptions => {
-        dshAttachment = await attachDshHost(process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR, agentOptions.dataDirectory, agentOptions.machineIdentity.machineId);
-        return dshAttachment;
+        return attachDshHost(dshDescriptor, agentOptions.dataDirectory, agentOptions.machineIdentity.machineId);
       },
     } : {}),
     // Admission continues to consume the configured public host; bind only on loopback.
@@ -56,10 +55,10 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
     dshExecutable: required('OPENCRAFT_DSH_EXECUTABLE'),
     dshCapabilityPlugin: join(releaseRoot, 'execution/dsh-capability-plugin.mjs'),
     codexExecutable: required('OPENCRAFT_CODEX_EXECUTABLE'),
-    codexCoreEndpoint: endpoint, codexCoreAuthToken: token, botConversations: true,
+    codexCoreEndpoint: endpoint, codexCoreAuthToken: token,
     getExecutionHealth: () => observeExecutionHealth({ version: manifest.version,
       buildId: manifest.opencraftWeb.buildId, core: health,
-      ...(dshAttachment ? { dsh: () => dshAttachment.getIdentity() } : {}),
+      ...(dshDescriptor ? { dsh: () => readDshHostIdentity(dshDescriptor) } : {}),
     }),
   });
   console.log(`[opencraft headless] ${app.url}`);

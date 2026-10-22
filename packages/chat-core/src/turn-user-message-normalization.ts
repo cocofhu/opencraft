@@ -7,7 +7,6 @@ interface UserMessageCompareKey {
   readonly imageCount: number;
 }
 
-
 function record(value: unknown): RecordValue {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as RecordValue : {};
@@ -29,11 +28,15 @@ function string(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function contentParts(value: unknown): readonly unknown[] {
+  return value == null ? [] : Array.isArray(value) ? value : [value];
+}
+
 export function codexUserMessageCompareKey(value: unknown): UserMessageCompareKey {
   if (typeof value === "string") return { rawText: value, imageCount: 0 };
   const text: string[] = [];
   let imageCount = 0;
-  if (Array.isArray(value)) for (const part of value) {
+  for (const part of contentParts(value)) {
     const data = record(part);
     if (typeof part === "string") text.push(part);
     else if (data.type === "text" && typeof data.text === "string") text.push(data.text);
@@ -44,7 +47,7 @@ export function codexUserMessageCompareKey(value: unknown): UserMessageCompareKe
 
 function inputOf(item: TimelineSourceItem): unknown {
   const data = record(item.payload);
-  return item.type === "steeringUserMessage" ? data.input : data.content ?? data.input;
+  return item.type === "steeringUserMessage" ? data.input ?? data.content : data.content ?? data.input;
 }
 
 function clientOf(data: RecordValue): string | null {
@@ -65,16 +68,17 @@ function identities(item: TimelineSourceItem, server?: TimelineSourceItem): stri
 }
 
 function hasStagedDisplay(input: unknown): boolean {
-  if (!Array.isArray(input)) return false;
-  const mentions = input.map(record).filter(part => part.type === "mention" && typeof part.name === "string" && typeof part.path === "string");
-  for (const part of input) {
+  const parts = contentParts(input);
+  const mentions = parts.map(record).filter(part => part.type === "mention" && typeof part.name === "string" && typeof part.path === "string");
+  for (const part of parts) {
     const data = record(part);
-    if (data.type !== "text" || typeof data.text !== "string" || !Array.isArray(data.text_elements)) continue;
+    const elements = data.text_elements ?? data.textElements;
+    if (data.type !== "text" || typeof data.text !== "string" || !Array.isArray(elements)) continue;
     const text = data.text;
     const length = new TextEncoder().encode(text).length;
-    for (const element of data.text_elements) {
+    for (const element of elements) {
       const span = record(element);
-      const range = record(span.byte_range);
+      const range = record(span.byteRange ?? span.byte_range);
       if (range.start !== 0 || range.end !== length) continue;
       if (span.placeholder === "opencraft:staged-file:v1") return true;
       if (span.placeholder === "" && mentions.some(mention => text ===
@@ -102,8 +106,9 @@ function steeringAcknowledgements(items: readonly TimelineSourceItem[]) {
     const client = clientOf(record(server.payload));
     for (const localIndex of eligible) {
       const local = items[localIndex]!;
-      const localClient = clientOf(record(local.payload));
-      if ((client !== null && client === localClient) || equalInput(inputOf(local), inputOf(server))) {
+      const localData = record(local.payload);
+      const localClient = clientOf(localData);
+      if (string(localData.serverUserMessageId) === server.id || (client !== null && client === localClient) || equalInput(inputOf(local), inputOf(server))) {
         latest.set(localIndex, server);
         consumed.add(serverIndex);
         break;
@@ -113,6 +118,24 @@ function steeringAcknowledgements(items: readonly TimelineSourceItem[]) {
   return { latest, consumed };
 }
 
+/** Setup events can precede the initial echo without taking message ownership. */
+const initialEchoPrefix = new Set([
+  "automaticApprovalReview", "contextCompaction", "forkedFromConversation", "modelChanged",
+  "modelRerouted", "personalityChanged", "remoteTaskCreated", "worktreeInit",
+]);
+
+function initialEcho(turn: TimelineSourceTurn, params: RecordValue): TimelineSourceItem | undefined {
+  const client = string(params.clientUserMessageId) ?? string(params.clientId);
+  for (const item of turn.items) {
+    if (initialEchoPrefix.has(item.type)) continue;
+    if (item.type === "userMessage" && (
+      (client !== null && client === clientOf(record(item.payload))) || equalInput(params.input, inputOf(item))
+    )) return item;
+    break;
+  }
+  return undefined;
+}
+
 function canonicalMessage(turn: TimelineSourceTurn, params: RecordValue, server?: TimelineSourceItem): TimelineSourceItem {
   const id = server?.id ?? `${turn.id}:composer-user-message`;
   const data = record(server?.payload);
@@ -120,7 +143,7 @@ function canonicalMessage(turn: TimelineSourceTurn, params: RecordValue, server?
   return {
     id, type: "userMessage", payload: {
       ...projectionPayload(data), id, type: "userMessage", content,
-      clientId: string(params.clientUserMessageId) ?? clientOf(data),
+      clientId: string(params.clientUserMessageId) ?? string(params.clientId) ?? clientOf(data),
       attachments: params.attachments ?? data.attachments,
       sender: data.sender ?? params.sender ?? null,
       commentAttachments: params.commentAttachments ?? data.commentAttachments,
@@ -137,30 +160,27 @@ function localMessage(item: TimelineSourceItem, server?: TimelineSourceItem): Ti
   const acknowledged = record(server?.payload);
   return { ...item, payload: {
     ...projectionPayload(data),
-    input: server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : data.input,
+    input: server && hasStagedDisplay(inputOf(server)) ? inputOf(server) : inputOf(item),
     attachments: data.attachments ?? acknowledged.attachments,
     sender: acknowledged.sender ?? data.sender ?? null,
     __opencraftMessageKind: "steering", __opencraftSourceItemIds: identities(item, server),
-    serverUserMessageId: server?.id ?? null,
+    serverUserMessageId: server?.id ?? string(data.serverUserMessageId),
   } };
 }
 
 export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): TimelineSourceTurn {
   const params = record(turn.params);
   const canonical = params.input != null && !(Array.isArray(params.input) && params.input.length === 0);
-  const first = turn.items[0];
-  const client = string(params.clientUserMessageId);
-  const reuseFirst = canonical && first?.type === "userMessage" && (
-    (client !== null && client === clientOf(record(first.payload))) || equalInput(params.input, inputOf(first))
-  );
+  const client = string(params.clientUserMessageId) ?? string(params.clientId);
+  const echo = canonical ? initialEcho(turn, params) : undefined;
   const { latest, consumed } = steeringAcknowledgements(turn.items);
   const items: TimelineSourceItem[] = [];
   const hidden = new Set(turn.nonVisualItemIds ?? []);
   let leading = !canonical && turn.preserveServerUserMessages !== true;
-  if (canonical) items.push(canonicalMessage(turn, params, reuseFirst ? first : undefined));
+  if (canonical) items.push(canonicalMessage(turn, params, echo));
   for (let index = 0; index < turn.items.length; index++) {
     const item = turn.items[index]!;
-    if ((reuseFirst && index === 0) || consumed.has(index)) continue;
+    if (item === echo || consumed.has(index)) continue;
     if (item.type === "steeringUserMessage") {
       items.push(localMessage(item, latest.get(index)));
       continue;
@@ -172,7 +192,7 @@ export function normalizeCodexTurnUserMessages(turn: TimelineSourceTurn): Timeli
     }
     if (item.type !== "userMessage") {
       items.push(item);
-      if (item.type !== "hookPrompt") leading = false;
+      if (item.type !== "hookPrompt" && item.type !== "worktreeInit") leading = false;
       continue;
     }
     const data = record(item.payload);

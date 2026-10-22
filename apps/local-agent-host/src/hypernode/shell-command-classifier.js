@@ -1,8 +1,6 @@
-// Source: ref/hypernode/policy/src/services/shell-command-classifier.js
-// Only the Cordis registration base is replaced; classification remains pure.
+// Command classification is pure; Cordis owns registration.
 class Service { constructor(ctx) { this.ctx = ctx; } }
 
-// Semantic port of codex-shell-command 0.148.0-alpha.21 parse_command.rs.
 // Keep behavior changes test-driven against the vendored upstream corpus.
 
 const CONNECTORS = new Set(["&&", "||", "|", ";"]);
