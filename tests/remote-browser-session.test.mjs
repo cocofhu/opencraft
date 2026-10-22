@@ -126,6 +126,69 @@ test('another owner with the same lease gets a separate page and cannot discard 
   } finally { await f.close(); }
 });
 
+test('explicit viewer handoff keeps the live document and fences the displaced socket', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), a = await f.connect('owner'), b = await f.connect('owner');
+    const original = await a.call('open', { lease });
+    await a.call('navigate', { url: 'https://example.test/unsaved-document' });
+    const record = [...f.service.pages.values()][0], oldSocket = record.socket;
+    // Keep the displaced transport open to exercise delayed close and stale
+    // requests rather than relying on the local TCP close arriving promptly.
+    const close = oldSocket.close.bind(oldSocket); let transfer;
+    oldSocket.close = (code, reason) => { transfer = { code, reason }; };
+    const resumed = await b.call('open', { lease, takeover: true });
+    assert.equal(resumed.memory, original.memory); assert.equal(resumed.resumed, true);
+    assert.equal(resumed.navigation.url, 'https://example.test/unsaved-document');
+    assert.equal(transfer.code, 4009);
+    const count = f.service.commands.length;
+    await assert.rejects(a.call('navigate', { url: 'https://example.test/stale' }), /transferred/);
+    await assert.rejects(a.call('close'), /transferred/);
+    assert.equal(f.service.commands.length, count, 'stale viewer cannot mutate or retire the winner');
+    const winner = record.socket; close(4009, 'Browser viewer transferred'); await once(a.ws, 'close');
+    assert.equal(record.socket, winner, 'late close cannot detach replacement');
+    assert.equal(f.service.commands.filter(c => c.method === 'navigate').length, 1);
+    assert.equal(f.service.commands.filter(c => c.method === 'close').length, 0);
+    assert.equal(f.service.attachments.size, 0);
+    await b.call('close'); await b.detach();
+  } finally { await f.close(); }
+});
+
+test('concurrent takeover waits for bootstrap and a disconnected queued viewer cannot block its successor', async () => {
+  const f = await fixture(); let finish;
+  try {
+    const lease = randomUUID(), a = await f.connect('owner'), abandoned = await f.connect('owner'), b = await f.connect('owner');
+    let signal; const started = new Promise(resolve => signal = resolve), gate = new Promise(resolve => finish = resolve);
+    const request = f.service.request.bind(f.service); let creates = 0;
+    f.service.request = async (id, method, input) => {
+      if (method === 'create' && ++creates === 1) { signal(); await gate; }
+      return request(id, method, input);
+    };
+    const initial = a.call('open', { lease }); await started;
+    const failed = abandoned.call('open', { lease, takeover: true }).catch(() => {});
+    await abandoned.detach(); await failed;
+    const replacement = b.call('open', { lease, takeover: true });
+    finish();
+    const first = await initial, next = await replacement;
+    assert.equal(next.memory, first.memory); assert.equal(next.resumed, true);
+    assert.equal(f.service.physical.size, 1); assert.equal(f.service.pages.size, 1);
+    assert.equal(creates, 2, 'one initial bootstrap plus one ordered reconfiguration');
+    assert.equal(f.service.attachments.size, 0);
+    await b.call('close'); await b.detach();
+  } finally { finish?.(); await f.close(); }
+});
+
+test('takeover remains scoped to the authenticated owner', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), a = await f.connect('owner-a'), b = await f.connect('owner-b');
+    const first = await a.call('open', { lease }), second = await b.call('open', { lease, takeover: true });
+    assert.notEqual(second.memory, first.memory); assert.equal(f.service.pages.size, 2);
+    assert.equal(a.ws.readyState, WebSocket.OPEN);
+    await a.call('close'); await b.call('close'); await a.detach(); await b.detach();
+  } finally { await f.close(); }
+});
+
 test('corrupt state fails closed and is preserved instead of being replaced with an empty catalog', async () => {
   const f = await fixture();
   try {

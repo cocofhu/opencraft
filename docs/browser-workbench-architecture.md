@@ -1357,6 +1357,18 @@ and rejects the operation; no press is retried into another document. Resize
 clears local pointers without discarding the IME transaction. Native input is
 validated at the worker boundary; arbitrary CDP commands are never forwarded.
 
+Each owner-scoped remote tab has one active viewing/control socket. Updated
+viewers request `open.takeover: true`: the service serializes attachment
+bootstrap, detaches the previous socket and closes it with code 4009 before
+reattaching the same live native page. This preserves document state and avoids
+concurrent create/recovery cleanup racing with the replacement. A displaced
+socket cannot issue page commands, including close. The displaced client stops
+automatic reconnect and implicit navigation; explicit reload can take control
+again. Legacy opens without takeover still reject an occupied page, preventing
+older clients from automatically fighting the replacement. Different owners
+remain isolated even when their lease strings match. Explicit owner-scoped
+discard remains a tab lifecycle operation, independent of the viewing socket.
+
 A remote tab outlives its display socket. Its renderer is authoritative for page
 content and editing; local presentation owns video decoding, client geometry
 and system input. Disconnect suspends video production and releases pressed

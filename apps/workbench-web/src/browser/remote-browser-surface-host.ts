@@ -14,7 +14,7 @@ type Pending = { resolve(value: any): void; reject(error: Error): void; timer: R
 interface Page {
   media: H264MediaSource | null; video: HTMLVideoElement | null; cancelVideoReady: (() => void) | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLInputElement; editor: string | null; keyboard: RemoteKeyboardPolicy | null; keyboardIntent: { pointer: number; x: number; y: number; editor: string | null; until: number; completed: boolean } | null; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
   events: BrowserSurfaceEvents; navigation: number; url: BrowserUrl | null | undefined; socket: WebSocket | null;
-  restored: boolean; resumed: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; closed: boolean; visible: boolean; blocked: boolean;
+  restored: boolean; resumed: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; displaced: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
   reconnect: ReturnType<typeof setTimeout> | null; connection: number; retries: number; needsKey: boolean;
   viewportMeasured: boolean; width: number; height: number; viewport: { width: number; height: number; deviceProfile?: BrowserDeviceProfile }; sentViewport: string;
@@ -92,6 +92,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const absent = !this.pages.has(id);
     if (absent && !this.hostIdentities.has(id)) this.backing?.(id);
     const p = this.ensure(id, events); p.events = events;
+    // A transferred viewer must not compete with its replacement during layout
+    // or state synchronization. Explicit reload is the user's takeover intent.
+    if (p.displaced && !force) return false;
     if (!force && p.url === url && !p.disconnected) return absent;
     const navigation = ++p.navigation;
     p.url = url;
@@ -196,7 +199,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     Object.assign(canvas.style, { display: 'block', width: '100%', height: 'auto', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
     const p: Page = { media: null, video: null, cancelVideoReady: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editor: null, keyboard: null, keyboardIntent: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
-      nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
+      nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, displaced: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetPointers: () => {}, resetInput: () => {}, inputDispose: () => {} };
     if (!this.storageIds.has(id)) { this.storageIds.set(id, p.lease); this.persistStorage(); }
@@ -220,7 +223,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   private reconnect(p: Page) {
     // Retire the previous generation before closing it: its delayed close and
     // open rejection must not clear the replacement connection's state.
-    ++p.connection;
+    ++p.connection; p.displaced = false;
     if (p.reconnect) clearTimeout(p.reconnect);
     p.reconnect = null; p.socket?.close(); this.resetTransport(p); p.retries = 0;
     p.ready = this.connect(p); void p.ready.catch(error => { if (!p.closed) p.events.onError(error.message); });
@@ -235,7 +238,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
       const current = () => !p.closed && p.connection === generation;
       ws.onopen = () => { if (!current()) return; clearTimeout(timer);
         const viewport = p.viewportMeasured ? { ...p.viewport } : undefined;
-        void this.call(p, 'open', { lease: p.lease, viewport, defaultDeviceProfile: remoteBrowserDeviceProfile() }).then(async config => {
+        void this.call(p, 'open', { lease: p.lease, takeover: true, viewport, defaultDeviceProfile: remoteBrowserDeviceProfile() }).then(async config => {
           if (!current()) return; p.resumed = config.resumed === true; p.restored = (config.resumed || config.restored) && !!config.navigation?.url && config.navigation.url !== 'about:blank'; p.nativeCopy = config.nativeCopy === true; p.nativeIme = config.nativeIme === true; p.multiTouch = config.multiTouch === true; this.keyboardChanged(); this.applyViewport(p, config);
           const effective = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
           if (!p.viewportMeasured) p.viewport = effective;
@@ -290,6 +293,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         clearTimeout(timer); reject(new Error('Browser connection closed'));
         if (!current()) return;
         p.disconnected = true; this.resetTransport(p);
+        if (event.code === 4009) { p.displaced = true; p.events.onError('Browser tab opened in another client; reload this tab to take over'); return; }
         if (event.code === 1000 || event.code === 1008 || p.retries >= 5) { p.events.onError('Browser disconnected; reload this tab'); return; }
         p.reconnect = setTimeout(() => { p.reconnect = null; p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
       };

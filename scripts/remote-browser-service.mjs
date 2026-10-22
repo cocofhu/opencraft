@@ -35,6 +35,7 @@ export class RemoteBrowserService {
     this.allowNoSandbox = allowNoSandbox;
     this.spawnImpl = spawnImpl;
     this.claims = new Map(); this.pages = new Map(); this.requests = new Map(); this.sockets = new Set();
+    this.attachments = new Map();
     this.states = new Map(); this.retiredLeases = new Set(); this.persistence = Promise.resolve();
     this.diagnosticCount = 0;
     this.server = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: 128 * 1024 });
@@ -298,6 +299,7 @@ export class RemoteBrowserService {
         if (binary || pending >= 128) { ws.close(1008, 'Invalid browser request'); return; }
         let message;
         pending++;
+        let releaseAttachment;
         try {
           authorize(); message = JSON.parse(bytes.toString());
           if (typeof message.id !== 'string' || message.id.length > 100) throw new Error('Invalid request id');
@@ -324,7 +326,25 @@ export class RemoteBrowserService {
             opening = true;
             if (!/^[a-zA-Z0-9-]{20,128}$/.test(message.input?.lease ?? '')) throw new Error('Invalid browser lease');
             const key = JSON.stringify([ownerId, message.input.lease]);
-            if (this.claims.has(key) && this.claims.get(key) !== ws) throw new Error('Browser page already attached');
+            // Complete an earlier bootstrap before handing its live page to a
+            // replacement. Otherwise two create/config/cleanup paths can race.
+            const previous = this.attachments.get(key);
+            let unlock;
+            const attachment = new Promise(resolve => { unlock = resolve; });
+            this.attachments.set(key, attachment);
+            releaseAttachment = () => { unlock(); if (this.attachments.get(key) === attachment) this.attachments.delete(key); };
+            await previous;
+            authorize();
+            if (this.closed || ws.readyState !== WebSocket.OPEN) return;
+            const occupied = this.claims.get(key);
+            if (occupied && occupied !== ws) {
+              // Legacy clients do not understand transfer and would reconnect
+              // forever. Only the new, authenticated viewer opts into handoff.
+              if (message.input.takeover !== true && occupied.readyState === WebSocket.OPEN) throw new Error('Browser page already attached');
+              const attached = this.pages.get(key);
+              if (attached?.socket === occupied) this.detach(attached, occupied);
+              occupied.close(4009, 'Browser viewer transferred');
+            }
             this.claims.set(key, ws); claimKey = key;
             await this.load(); authorize();
             if (this.retiredLeases.has(key)) throw new Error('Browser tab is closed');
@@ -374,6 +394,7 @@ export class RemoteBrowserService {
           // Recheck at execution and before returning a result across async work.
           authorize();
           const target = page;
+          if (target.socket !== ws || this.claims.get(target.key) !== ws) throw new Error('Browser viewer transferred');
           if (message.method === 'close') {
             await this.retire(target);
             if (page === target) page = null;
@@ -388,7 +409,7 @@ export class RemoteBrowserService {
           if (!quietMethods.has(message.method)) reply(message.id, value);
         } catch (error) { opening = false; if (!page && claimKey && this.claims.get(claimKey) === ws) { this.claims.delete(claimKey); claimKey = null; }
           if (message?.id) reply(message.id, null, error); else ws.close(1008, 'Invalid browser request'); }
-        finally { pending--; }
+        finally { releaseAttachment?.(); pending--; }
       });
       ws.on('close', () => {
         this.sockets.delete(ws);
