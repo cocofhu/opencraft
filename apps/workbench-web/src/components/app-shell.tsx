@@ -920,6 +920,13 @@ export function AppShell({
           ) : null}
           </Sidecar>
 
+          {/* Paint is a sibling of the clipped content surface. Consume the
+              same current width as Sidecar, not the saved CSS width at root. */}
+          <motion.div
+            className="app-shell-content-depth"
+            aria-hidden="true"
+            style={{ left: totalLeftWidth }}
+          />
           <main
             className="main-content-surface"
             data-app-shell-main-surface="default"

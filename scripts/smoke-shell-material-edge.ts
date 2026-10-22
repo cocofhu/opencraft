@@ -292,7 +292,7 @@ try {
     const frameDivider=await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderTopColor);
     const actual=await page.evaluate(() => {
       const pane=getComputedStyle(document.querySelector('.main-content-surface')!);
-      const depth=getComputedStyle(document.querySelector('.app-shell-root')!,'::after');
+      const depth=getComputedStyle(document.querySelector('.app-shell-content-depth')!);
       return {shadow:depth.boxShadow==='none'?pane.boxShadow:depth.boxShadow,frameShadow:pane.boxShadow,
         depthTop:depth.top,depthLeft:depth.left,depthClip:depth.clipPath,depthPointer:depth.pointerEvents,
         context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor};
@@ -302,6 +302,48 @@ try {
     else {assert.notEqual(frameDivider,'rgba(0, 0, 0, 0)');assert.match(header.paint,/1px/);assert.equal(header.shadow,'none');}
     if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
     else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
+    if(name==='longing') {
+      assert.equal(await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
+      assert.equal(await page.locator('.app-shell-content-depth').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
+      const sampleDepth = () => page.evaluate(async () => {
+        const frames=[];
+        for(let i=0;i<12;i++) {
+          await new Promise(requestAnimationFrame);
+          const main=document.querySelector('.main-content-surface')!.getBoundingClientRect();
+          const depth=document.querySelector('.app-shell-content-depth')!.getBoundingClientRect();
+          frames.push({main:main.left,depth:depth.left});
+        }
+        return frames;
+      });
+      const assertDepth = (frames:Awaited<ReturnType<typeof sampleDepth>>) => {
+        assert.ok(frames.every(f=>Math.abs(f.main-f.depth)<1),JSON.stringify(frames));
+      };
+      await page.emulateMedia({reducedMotion:'no-preference'});
+      const saved=await page.evaluate(()=>(window as any).fixture.width);
+      const handle=await page.getByRole('separator',{name:'Resize sidebar',exact:true}).boundingBox();
+      assert.ok(handle); await page.mouse.move(handle.x+1,350); await page.mouse.down();
+      for(const dx of [-50,40,-20]) {
+        await page.mouse.move(handle.x+dx,350,{steps:5}); assertDepth(await sampleDepth());
+        assert.equal(await page.evaluate(()=>(window as any).fixture.width),saved);
+      }
+      await page.mouse.up();
+      await page.evaluate(()=>(window as any).fixture.setOpen(false));
+      const collapse=await sampleDepth(); assertDepth(collapse);
+      await page.evaluate(()=>(window as any).fixture.setOpen(true));
+      const reverse=await sampleDepth(); assertDepth(reverse);
+      await page.evaluate(()=>(window as any).fixture.setOpen(false));
+      await page.waitForFunction(()=>document.querySelector('.main-content-surface')!.getBoundingClientRect().left<1);
+      assertDepth(await sampleDepth());
+      await page.screenshot({path:join(output,`collapsed-${mode}.png`)});
+      await page.evaluate(()=>(window as any).fixture.setOpen(true));
+      await page.waitForFunction(()=>document.querySelector('.main-content-surface')!.getBoundingClientRect().left>100);
+      assertDepth(await sampleDepth());
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.evaluate(()=>(window as any).fixture.setOpen(false)); assertDepth(await sampleDepth());
+      await page.evaluate(()=>(window as any).fixture.setOpen(true)); assertDepth(await sampleDepth());
+      assert.equal(await page.getByLabel('Main draft').inputValue(),'这份草稿不会被材质变更重建');
+      evidence.push({name,mode,liveDepthHeldDrag:true,collapse,reverse,reducedDepth:true});
+    }
     await page.screenshot({path:join(output,`unified-${name}-${mode}.png`)});
     evidence.push({name,mode,presentation:'unified',...actual});
   }

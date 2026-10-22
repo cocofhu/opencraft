@@ -31,7 +31,8 @@
     align-self: start;
     // Local to the isolated activity list, below Shell chrome and portals.
     z-index: 1;
-    background: var(--color-surface);
+    background: var(--opencraft-sidebar-heading-background, var(--color-surface));
+    backdrop-filter: var(--opencraft-sidebar-heading-filter, none);
   }
   .sidebar-list-toolbar, .sidebar-new-chat, .sidebar-list-search, .sidebar-catalog-feedback { flex-shrink: 0; }
 }

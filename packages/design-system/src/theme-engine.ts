@@ -23,6 +23,9 @@ export interface OpenCraftThemeDefinition {
   shellMaterial?: {
     unifiedSurfaceElevation?: string;
     sidebarContextBackground?: string;
+    sidebarHeadingBackground?: string;
+    sidebarHeadingFilter?: string;
+    contentCornerRadius?: string;
     recessedHeaderBackground?: string;
     mainSurfaceElevation: string;
     sidebarBackground: string;
@@ -160,6 +163,9 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      sidebarHeadingFilter: "blur(28px)",
+      contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
       sidebarBackground: "rgb(207 228 255 / 42%)",
@@ -183,6 +189,9 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      sidebarHeadingFilter: "blur(28px)",
+      contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
       sidebarBackground: "rgb(27 56 91 / 42%)",
@@ -659,6 +668,9 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-panel-toolbar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-elevated-secondary)",
     "--opencraft-panel-divider-top": definition.shellMaterial?.recessedHeaderBackground ? "var(--height-toolbar)" : "0px",
     "--opencraft-panel-divider-clip": definition.shellMaterial?.recessedHeaderBackground ? "inset(0 -100% -100% -100%)" : "none",
+    "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "var(--color-surface)",
+    "--opencraft-sidebar-heading-filter": definition.shellMaterial?.sidebarHeadingFilter ?? "none",
+    "--opencraft-content-corner-radius": definition.shellMaterial?.contentCornerRadius ?? "0px",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
     // Recessed chrome has one paint owner. Repainting the same translucent
     // blue over Sidecar makes a darker brand tile even with identical tokens.

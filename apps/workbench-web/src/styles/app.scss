@@ -827,29 +827,33 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     left: var(--app-shell-header-left-slot-width, 0px);
     width: max(0px, calc(var(--app-shell-header-leading-paint-width, 100%) - var(--app-shell-header-left-slot-width, 0px)));
     height: var(--height-toolbar);
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
     box-shadow: var(--opencraft-header-content-elevation, none);
     clip-path: inset(calc(-1 * var(--height-toolbar)) 0 100% 0);
     pointer-events: none;
   }
-  &::after {
-    // Recessed depth starts below the toolbar. Paint outside the clipped main
-    // surface, using the same live Shell boundary as its title slot.
-    content: "";
+  .app-shell-content-depth {
+    // This paint-only sibling shares Sidecar's live layout MotionValue.
+    // Root's fallback left slot describes saved width, not current geometry.
     position: absolute;
     z-index: 1;
     top: var(--height-toolbar);
-    left: var(--app-shell-header-left-slot-width, 0px);
     right: 0;
     bottom: 0;
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
     box-shadow: var(--opencraft-unified-content-elevation, none);
     clip-path: inset(0 -100% -100% -100%);
     pointer-events: none;
   }
   .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-frame-elevation, var(--opencraft-unified-surface-elevation, none)); }
   .main-content-frame {
-    background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
+    background: var(--color-surface);
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+    overflow: clip;
   }
 }
+
+.app-shell-root:not(.has-unified-sidebar) .app-shell-content-depth { display: none; }
 
 // The slot and rail remain transparent to hit testing so their empty area is
 // native window chrome. Each concrete action exclusively reclaims its own hit
