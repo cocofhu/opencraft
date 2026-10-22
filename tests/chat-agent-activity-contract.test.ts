@@ -137,3 +137,30 @@ test("running classified exploration retains its semantic label at both detail l
     }
   }
 });
+
+test("hidden work before an earlier response does not leave an empty activity slot", () => {
+  const hidden: TimelineSourceItem = { id: "hidden", type: "reasoning", payload: { summary: [], content: [] } };
+  const reasoning: TimelineSourceItem = { id: "visible", type: "reasoning", payload: { content: ["Inspecting mobile"] } };
+  for (const earlier of [
+    { id: "partial", type: "agentMessage", payload: { phase: "partial_answer", text: "First response.", completed: true } },
+    { id: "async", type: "agentMessage", payload: { phase: "commentary", delivery: "async", questions: null, text: "Which constraint matters?", completed: true } },
+  ] satisfies TimelineSourceItem[]) {
+    for (const status of ["streaming", "complete"] as const) {
+      for (const phase of ["live", "painted"] as const) {
+        const value = freeze({ ...frame([hidden, earlier, reasoning, answer], status, phase), workStatus: status === "streaming"
+          ? { type: "worked-for" as const, status: "working" as const, startedAtMs: 100, completedAtMs: null }
+          : { type: "worked-for" as const, status: "worked" as const, startedAtMs: 100, completedAtMs: 1400 } });
+        const before = structuredClone(value);
+        const plan = createAssistantTurnPresentationPlan(value);
+        assert.deepEqual(plan.slots.map(slot => slot.type), ["assistant-content", "agent-activity", "assistant-content"]);
+        const activity = plan.slots[1];
+        assert.ok(activity?.type === "agent-activity");
+        assert.equal(activity.contentUnits.filter(unit => unit.type === "worked-for").length, 1);
+        assert.equal(activity.contentUnits.filter(unit => unit.type === "reasoning").length, 1);
+        assert.deepEqual(plan.slots.filter(slot => slot.type === "assistant-content").map(slot => slot.block.sourceItemIds[0]), [earlier.id, answer.id]);
+        assert.deepEqual(value, before);
+        assert.deepEqual(createAssistantTurnPresentationPlan(structuredClone(value)), plan);
+      }
+    }
+  }
+});

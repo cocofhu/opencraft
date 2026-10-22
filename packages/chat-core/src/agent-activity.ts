@@ -513,7 +513,11 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
     slots[clockIndex] = { ...owner, workedDurationMs: frame.durationMs, contentUnits,
       partitions: partitionAgentActivityContentUnits(contentUnits, partitionOptions) };
   }
-  return { slots, changeSummary };
+  // Only the assigned clock owner can keep an otherwise empty work segment.
+  // Earlier hidden observations must not reserve a timeline layout slot.
+  return { slots: slots.filter(slot => slot.type !== "agent-activity"
+    || slot.contentUnits.length > 0 || slot.inlineSubagentActivity !== null
+    || slot.workedDurationMs !== null), changeSummary };
 }
 
 export function activeTimelineTurnTodo(turn: TimelineTurnView, isMostRecentTurn: boolean): TodoTimelineBlock | null {

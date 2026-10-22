@@ -1078,6 +1078,11 @@ arbitrates at most one live Thinking owner from the current response suffix;
 closed earlier segments cannot inherit a later response's running state.
 Only one segment presents the Turn's work interval/total-duration fallback,
 and response-copy actions exclude questions and earlier inputs' answers.
+After assigning that clock, a work segment with no content units, inline
+subagents or assigned duration does not occupy a presentation slot. Hidden
+observations before an earlier response or asynchronous question cannot reserve
+an empty layout gap. Source observations and boundary identities remain intact;
+a clock-only segment, including a provided terminal duration, remains visible.
 Tests cover async-final questions, multiple answers and follow-ups, in-place
 streaming, phase/completion changes, disclosure, history prepend and refresh.
 
