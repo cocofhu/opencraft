@@ -208,7 +208,10 @@ export class SshAttachmentStagingService {
     for (const name of names.filter(name => name.endsWith(".json")).slice(0, 128)) {
       const id = name.slice(0, -5);
       if (id === excludeId) continue;
-      const manifest = await this.readManifest(id);
+      // Cleanup is best-effort: an unrelated record may belong to an old
+      // remote home or be unreadable. Preserve it and keep new uploads usable;
+      // direct access still performs the full manifest/path validation.
+      const manifest = await this.readManifest(id).catch(() => null);
       if (manifest?.phase === "pending-removal") await this.remove(id).catch(() => undefined);
     }
   }

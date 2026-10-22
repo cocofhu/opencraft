@@ -12,13 +12,30 @@ const fixtureBranding = process.env.OPENCRAFT_SMOKE_BRANDING_FILE
   ? JSON.parse(readFileSync(process.env.OPENCRAFT_SMOKE_BRANDING_FILE, "utf8"))
   : DEFAULT_APPLICATION_BRANDING;
 assert.ok(isApplicationBranding(fixtureBranding));
+const boundaryImage = process.env.OPENCRAFT_GESTURE_MODAL_ONLY === "1"
+  ? "![Boundary preview](data:image/png;base64," + (await sharp({ create: { width: 900, height: 600, channels: 3, background: "#286fbb" } }).png().toBuffer()).toString("base64") + ")"
+  : "";
+const arbitrationScrollSelectors = ['.chat-code-block__scroller','.chat-table-scroller','.thread-shell-output__output > pre','.unregistered-rich-scroll','.unregistered-nested-inner'];
+const arbitrationMarkdown = [
+  "```text", "Reading a long code line: " + "column_value ".repeat(70), "```", "",
+  "| " + Array.from({length:8},(_,i)=>"Field "+i).join(" | ") + " |",
+  "| " + Array.from({length:8},()=>"---").join(" | ") + " |",
+  ...Array.from({length:4},(_,row)=>"| "+Array.from({length:8},(_,i)=>"Cell_"+row+"_"+i+"_readable_value").join(" | ")+" |"),
+].join("\n");
 const source = `
 import{bindInteractionDensity}from'/apps/workbench-web/src/runtime/interaction-density';
 import React,{useState,useEffect,useSyncExternalStore} from 'react';
+import {CommandBlock} from '/apps/workbench-web/src/components/conversation-renderers/activity/command-and-review-renderers.tsx';
+import {WebChatDocument} from '@opencraft/chat-render-web';
+import {WorkbenchPresentationRootProvider} from '/apps/workbench-web/src/components/workbench-presentation-root.tsx';
+import appStyles from '/apps/workbench-web/src/styles/app.scss?inline';
+import mediaStyles from '/packages/chat-render-web/src/renderers/media/image.scss?inline';
+
 import {SettingsNavigation} from '/apps/workbench-web/src/components/settings-page.tsx';
 import {createApplicationNavigation} from '/apps/workbench-web/src/runtime/workbench-navigation.ts';
 import {ApplicationBrand} from '/apps/workbench-web/src/components/application-brand.tsx';
 const joinBrand = ${JSON.stringify(fixtureBranding)};
+const commandBlock={type:'command-execution',id:'gesture-command',sourceItemIds:['gesture-command'],callId:null,command:'tail -3 /fixture/artifact.log',cwd:'/fixture',processId:null,startedAtMs:null,turnInProgress:false,output:${JSON.stringify(Array.from({length:30},(_,i)=>`line ${i}: `+'column_value '.repeat(70)).join("\n"))},exitCode:0,durationMs:100,actions:[],automaticApprovalReviews:[],status:'complete'};
 import * as Dialog from '@radix-ui/react-dialog';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {AppShell} from '/apps/workbench-web/src/components/app-shell.tsx';
@@ -32,7 +49,7 @@ import {MobileSidebarContentProbe} from '/tests/fixtures/mobile-sidebar-content.
 import '/apps/workbench-web/src/styles/app.scss';
 initializeAppearanceTheme();
 const layout=await SidebarLayoutStore.open({load:async()=>null,save:async(_scope,doc)=>doc});
-const threads=Array.from({length:35},(_,i)=>({id:'thread-'+i,title:'Conversation '+i,project:'workspace',pinned:true,status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'fixture',connectionHostLabel:'Synthetic server',...legacyDirectServerProjectionFromHost({hostId:'fixture',hostKind:'remote-ssh',label:'Synthetic server'})}));
+const threads=Array.from({length:35},(_,i)=>({id:'thread-'+i,title:'协同对话标题字符完整显示测试'+i,project:'workspace',pinned:true,status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'fixture',connectionHostLabel:'Synthetic server',...legacyDirectServerProjectionFromHost({hostId:'fixture',hostKind:'remote-ssh',label:'Synthetic server'})}));
 const stationaryProbe=${JSON.stringify(process.env.OPENCRAFT_GESTURE_INPLACE_ONLY === "1" || process.env.OPENCRAFT_GESTURE_STACK_ONLY === "1")};
 const brand=<ApplicationBrand branding={joinBrand}/>;
 let mounts=0;const actions=[];
@@ -42,12 +59,14 @@ const contributions={subscribe:()=>()=>{},getSnapshot:()=>contributionSnapshot};
 function Context({showNewChat=true}){const[selected,setSelected]=useState('thread-0');window.selectFixtureThread=setSelected;useEffect(()=>{mounts++},[]);return <Sidebar showStart={false} showFooter={false} showNewChat={showNewChat} threads={threads} activeHostId='fixture' activeThreadId={selected} sidebarLayout={layout} onNewTask={()=>actions.push('New chat')} onOpenSettings={()=>{}} onSelectThread={(_host,id)=>actions.push(id)}/>}
 function App(){const preferences=useUiPreferencesRuntime();useEffect(()=>bindInteractionDensity(document,preferences),[preferences]);const route=useSyncExternalStore(navigationRouter.subscribe,navigationRouter.getSnapshot).applicationRoute;const[open,setOpen]=useState(false),[modal,setModal]=useState(false),[showNewChat,setShowNewChat]=useState(true);window.fixture={setDensity:value=>preferences.set('interface.touchFriendly',value),sidebarOpen:()=>open,setOpen,setModal,setShowNewChat,setThemePreference,returnToChat:()=>navigationRouter.openChat(),route:()=>navigationRouter.getSnapshot().applicationRoute,mounts:()=>mounts,actions};
 const navigation={layout:'unified',account:{snapshot:{phase:'authenticated',name:'Synthetic employee',avatarUrl:null},onOpen:()=>actions.push('Account'),onRefresh:async()=>{}},settingsActive:route.kind==='settings',onOpenSettings:()=>{actions.push('Settings');navigationRouter.openSettings();},actions:[...(stationaryProbe?[{id:'shell.search',title:'Search conversations',icon:'search',onInvoke:()=>setModal(true)}]:[]),{id:'shell.home',title:'Home',icon:'home',onInvoke:()=>actions.push('Home')},{id:'opencraft.tasks.navigation',title:'Tasks',icon:'columns',onInvoke:()=>actions.push('Tasks')},{id:'example.workspace.navigation',title:'Collaboration',icon:'messages',onInvoke:()=>actions.push('Collaboration')},{id:'skills',title:'Skills, extensions and cloud tools',icon:'sparkles',onInvoke:()=>actions.push('Skills')}]};
-return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description></Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
+return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description>${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div style={{height:200,overflow:'auto'}}><WebChatDocument documentId="modal-arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/></div>` : ""}</Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
 header={<AppShellHeader navigationBrand={stationaryProbe ? brand : undefined} title='Workspace' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={stationaryProbe} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
 floatingSidebarHeader={()=> stationaryProbe ? <AppShellNavigationControls brand={brand} hostRole='transient' sidebarOpen={false} canGoBack={false} canGoForward={false} onToggleSidebar={()=>{}} onHome={()=>{}} onBack={()=>{}} onForward={()=>{}} actions={['sidebar-toggle']}/> : <div style={{height:'100%',display:'flex',alignItems:'center',padding:12}}>Conversations</div>}
 leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} presentation='sidebar' extensionContributions={contributions} profiles={[]} machines={[]} activeHostId='' onBack={()=>navigationRouter.openChat()} onSectionChange={slug=>{actions.push('Settings:'+slug);navigationRouter.openSettings(slug);}}/>:<Context showNewChat={showNewChat}/>}>
 <div style={{height:'100%',width:'100%',overflowY:'auto'}} data-main-scroll>
 ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentProbe record={action=>actions.push(action)}/>` : ""}
+${process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? `<WebChatDocument documentId="modal-input-probe" source={${JSON.stringify(boundaryImage)}} />` : ''}
+${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div data-gesture-rich style={{padding:16}}><WebChatDocument documentId="arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/><div data-gesture-command><CommandBlock block={commandBlock}/></div></div>` : ""}
 <div data-gesture-pad style={{height:240,display:'grid',placeItems:'center'}}>Swipe in content</div>
 <input aria-label='Draft' defaultValue='Keep this draft' style={{margin:12,width:'80%'}}/>
 <pre data-horizontal style={{overflowX:'auto',whiteSpace:'pre',margin:12}}>A deliberately long code line that scrolls horizontally and keeps its own touch gestures. A deliberately long code line that scrolls horizontally.</pre>
@@ -55,11 +74,15 @@ ${process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === "1" ? `<MobileSidebarContentPro
 ${process.env.OPENCRAFT_GESTURE_COMPOSITING_ONLY === "1" ? `<div className="composer-utility-scroll-area" data-overflow="true"><div className="composer-utility-scroll-area__content" style={{width:650}}>Masked horizontal composer utilities</div></div>` : ""}
 {Array.from({length:30},(_,i)=><p key={i} style={{padding:12}}>Message {i}</p>)}
 </div></AppShell></>}
-createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
+const host=document.getElementById('root');
+const shadow=new URLSearchParams(location.search).has('shadow')?host.attachShadow({mode:'open'}):null;
+const presentationRoot=shadow?document.createElement('div'):host;
+if(shadow){const style=document.createElement('style');style.textContent=appStyles+mediaStyles;shadow.append(style,presentationRoot);presentationRoot.style.cssText='width:100vw;height:100dvh';}
+createIntlTestRoot(presentationRoot).render(<WorkbenchPresentationRootProvider target={presentationRoot}><App/></WorkbenchPresentationRootProvider>);`;
 const vite = await createServer({ configFile: false, root: process.cwd(), publicDir: "apps/workbench-web/public", logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-mobile-sidebar-gesture", esbuild: { jsx: "automatic", target: "esnext" }, server: { host: "127.0.0.1", port: 0, hmr: false },
   optimizeDeps: { entries: [], include: ["react", "react-dom/client", "react-intl", "@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@radix-ui/react-alert-dialog", "@deepseek-ai/cordis", "tslib"] },
   plugins: [pluginBranding(process.env.OPENCRAFT_SMOKE_BRANDING_WORKSPACE ?? process.cwd(), []), { name: "mobile-sidebar-gesture-fixture", resolveId: id => id === "/gesture-probe.tsx" ? id : null, load: id => id === "/gesture-probe.tsx" ? source : null,
-    configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><div id="root"></div><script type="module" src="/gesture-probe.tsx"></script>'); }); },
+    configureServer(server) { server.middlewares.use((req, res, next) => { if (new URL(req.url??"/","http://fixture").pathname !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><div id="root"></div><script type="module" src="/gesture-probe.tsx"></script>'); }); },
   }],
 });
 let browser: any;
@@ -67,14 +90,14 @@ const evidence: any[] = [];
 try {
   await mkdir(output, { recursive: true }); await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const reducedMotion of (process.env.OPENCRAFT_GESTURE_MOTION ? [process.env.OPENCRAFT_GESTURE_MOTION] : ["no-preference", "reduce"])) for (const theme of ["light", "dark"]) {
+  for (const reducedMotion of (process.env.OPENCRAFT_GESTURE_MOTION ? [process.env.OPENCRAFT_GESTURE_MOTION] : ["no-preference", "reduce"])) for (const theme of ["light", "dark"]) for (const shadow of (process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1' ? [false,true] : [false])) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion });
     const page = await context.newPage(); page.setDefaultTimeout(8000);
     const errors: string[] = []; page.on("pageerror", (e: Error) => { errors.push(e.message); console.error(e.stack); });
     page.on("requestfailed", request => console.error("fixture request failed", request.url(), request.failure()));
     page.on("console", message => { if (message.type() === "error") console.error("fixture console", message.text()); });
     await page.addInitScript("window.__name=value=>value");
-    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`, {timeout:60000});
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}${shadow?"?shadow=1":""}`, {timeout:60000});
     await page.waitForFunction(() => !!(window as any).fixture, null, { timeout: 30000 });
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
     // Simulate notch/Home Indicator CSS env projections, which Chromium's mobile emulation leaves at zero.
@@ -82,7 +105,7 @@ try {
     await page.waitForTimeout(250);
     if (process.env.OPENCRAFT_GESTURE_COMPOSITING_ONLY !== '1') await page.evaluate(()=>{(window as any).touchReceipts=[];for(const type of ['touchstart','touchmove','touchend','touchcancel'])document.addEventListener(type,(e:Event)=>{const t=e as TouchEvent;const list=document.querySelector<HTMLElement>('.app-shell-floating-left-panel .shell-sidebar__scroll');if(list&&list.scrollTop>0)(window as any).lastSidebarScroll=list.scrollTop;(window as any).touchReceipts.push({type,cancelable:t.cancelable,prevented:t.defaultPrevented,target:(t.target as Element)?.className,x:t.touches[0]?.clientX,y:t.touches[0]?.clientY,open:document.querySelector('.app-shell-floating-left-panel')?.getBoundingClientRect().x,selection:window.getSelection()?.toString()});},false);});
     const cdp = await context.newCDPSession(page);
-    const touch = async (type: string, x = 0, y = 250, second = false) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" || type === "touchCancel" ? [] : [{ x, y, id: 1 }, ...(second ? [{ x: x + 20, y: y + 20, id: 2 }] : [])] });
+    const touch = async (type: string, x = 0, y = 250, second = false, timestamp?: number) => cdp.send("Input.dispatchTouchEvent", { type, ...(timestamp === undefined ? {} : { timestamp }), touchPoints: type === "touchEnd" || type === "touchCancel" ? [] : [{ x, y, id: 1 }, ...(second ? [{ x: x + 20, y: y + 20, id: 2 }] : [])] });
     const drag = async (from: number, to: number, y = 250, slow = true) => {
       await touch('touchStart',from,y);
       for(let i=1;i<=8;i++){ await touch('touchMove',from+(to-from)*i/8,y); await page.waitForTimeout(20); }
@@ -105,6 +128,213 @@ try {
       }
     };
     await closed();
+    if (process.env.OPENCRAFT_GESTURE_MODAL_ONLY === '1') {
+      const preview=page.getByRole('button',{name:'Boundary preview',exact:true});
+      const dialog=page.locator('dialog[open]');
+      const row=page.locator('.app-shell-row');
+      const unchanged=async()=>{assert.equal(await panel.count(),0);assert(Math.abs(await row.evaluate(e=>e.getBoundingClientRect().x))<1);};
+      for(const kind of ['native','radix']) {
+        if(kind==='native')await preview.tap();else await page.evaluate(()=>(window as any).fixture.setModal(true));
+        if(kind==='native')await dialog.waitFor();else await page.getByRole('dialog',{name:'Gesture exclusion probe'}).waitFor();
+        // Start in letterboxing, not on image pixels. Verify held frames too.
+        await touch('touchStart',65,90);
+        for(let i=1;i<=8;i++){await touch('touchMove',65+28*i,90);await page.waitForTimeout(25);await unchanged();}
+        await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
+        if(kind==='native'){await dialog.getByRole('button',{name:'Close image preview'}).click();await dialog.waitFor({state:'hidden'});}else await page.keyboard.press('Escape');
+        await page.waitForTimeout(150);
+        // The same contact revoked on modal open must never later commit.
+        const pad=await page.locator('[data-gesture-pad]').boundingBox();assert.ok(pad);const shellY=pad.y+pad.height/2;
+        await touch('touchStart',65,shellY);await touch('touchMove',135,shellY);await page.waitForTimeout(80);assert(await panel.count()>0);
+        if(kind==='native')await preview.evaluate((e:HTMLElement)=>e.click());else await page.evaluate(()=>(window as any).fixture.setModal(true));
+        await page.waitForTimeout(reducedMotion==='reduce'?100:650);await unchanged();
+        await touch('touchMove',300,shellY);await touch('touchEnd');await page.waitForTimeout(150);await unchanged();
+        if(kind==='native'){await dialog.getByRole('button',{name:'Close image preview'}).click();await dialog.waitFor({state:'hidden'});}else await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
+        await drag(65,320,shellY);await opened();await drag(200,45,shellY);await closed();
+      }
+      assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/modal-${shadow?'shadow':'document'}-${theme}-${reducedMotion}.png`});
+      evidence.push({theme,reducedMotion,shadow,nativeAndRadix:true,greyHeldFrames:true,heldContactRevoked:true,freshShellInputRestored:true,errors});await context.close();continue;
+    }
+    if (process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === '1') {
+      const row = page.locator('.app-shell-row');
+      const main = page.locator('[data-main-scroll]');
+      const measurements: any[] = [];
+      await page.locator('[data-gesture-command] button[aria-expanded]').click();
+      // Insert ordinary DOM after mount: no registration attribute or React hook.
+      await page.locator('[data-gesture-rich]').evaluate((root:HTMLElement)=>{
+        const reader=document.createElement('div');reader.className='unregistered-rich-scroll';reader.style.cssText='overflow:auto;white-space:nowrap;margin:16px 0;padding:8px';reader.textContent='Unregistered reader '+ 'column_value '.repeat(100);root.append(reader);
+        const outer=document.createElement('div');outer.className='unregistered-nested-outer';outer.style.cssText='overflow:auto;margin:16px 0';
+        const inner=document.createElement('div');inner.className='unregistered-nested-inner';inner.style.cssText='overflow:auto;width:700px;white-space:nowrap;padding:8px';inner.textContent='Nested reader '+ 'column_value '.repeat(150);outer.append(inner);root.append(outer);
+        const exclusive=document.createElement('div');exclusive.className='unregistered-native-owner';exclusive.dataset.sidebarGesture='ignore';exclusive.style.cssText='overflow:auto;white-space:nowrap;width:240px;height:45px;margin:16px 0';exclusive.textContent='Native owner '+ 'column_value '.repeat(70);outer.append(exclusive);
+      });
+      const settle = async () => { await page.waitForTimeout(650); };
+      const at = async (locator: any, offset = 120) => {
+        await locator.scrollIntoViewIfNeeded();
+        await locator.evaluate((node: HTMLElement, left: number) => { node.scrollLeft = left; }, offset);
+        const box = await locator.boundingBox(); assert.ok(box && box.width > 150);
+        const x = Math.max(40, box.x + 35), y = box.y + Math.min(box.height/2, 28);
+        assert.equal(await locator.evaluate((node: HTMLElement) => node.scrollWidth > node.clientWidth+100), true);
+        assert.equal(await locator.evaluate((node: HTMLElement) => getComputedStyle(node).touchAction), 'auto');
+        return {x,y,left:await locator.evaluate((node: HTMLElement) => node.scrollLeft)};
+      };
+      if (process.env.OPENCRAFT_GESTURE_MOTION_PROBE === '1') {
+        const scenes=[];
+        for (const selector of arbitrationScrollSelectors) for (const delay of [60,85,180]) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);await page.waitForTimeout(delay);
+          await touch('touchMove',p.x+32,p.y+1,false,t+delay/1000);await page.waitForTimeout(20);
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left,'a delayed/coalesced first move cannot commit reading prematurely');
+          assert.ok(Math.abs((await row.boundingBox())!.x)<1);
+          await touch('touchMove',p.x+80,p.y+2,false,t+(delay+30)/1000);await page.waitForTimeout(20);
+          assert.ok((await row.boundingBox())!.x>60,'measured fast motion wins before content moves');
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left);
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,delay,observedFastSegment:true,contentStable:true});
+        }
+        for (const selector of arbitrationScrollSelectors) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller),t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);
+          await touch('touchMove',p.x+32,p.y+1,false,t+.06);await page.waitForTimeout(20);
+          await touch('touchMove',p.x+40,p.y+1,false,t+.17);await page.waitForTimeout(20);
+          assert.ok(Math.abs((await scroller.evaluate((e:HTMLElement)=>e.scrollLeft))-(p.left-40))<2,'observed slow motion still commits reading');
+          await touch('touchMove',p.x+100,p.y+1,false,t+.19);await page.waitForTimeout(20);
+          assert.ok(Math.abs((await row.boundingBox())!.x)<1,'committed reading still cannot change owners');
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,slowReading:true,committedOwnerLocked:true});
+        }
+        assert.deepEqual(errors,[]);assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
+        evidence.push({theme,reducedMotion,motionEvidence:scenes});await context.close();continue;
+      }
+      if (process.env.OPENCRAFT_GESTURE_REST_PROBE === '1') {
+        const scenes=[];
+        for (const selector of arbitrationScrollSelectors) for (const rest of [0,180]) {
+          const scroller=page.locator('[data-gesture-rich] '+selector);
+          const p=await at(scroller);const t=Date.now()/1000;
+          await touch('touchStart',p.x,p.y,false,t);
+          if(rest) await page.waitForTimeout(rest);
+          for (const [i,dx] of [15,25,50,180].entries()) {
+            await touch('touchMove',p.x+dx,p.y+1,false,t+rest/1000+.02*(i+1));
+            await page.waitForTimeout(20);
+          }
+          const trace=await page.evaluate(()=>(window as any).touchReceipts);
+          await writeFile(`${output}/${theme}-${reducedMotion}-${selector.slice(1)}-${rest}-trace.json`,JSON.stringify({trace,left:await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),row:await row.boundingBox()},null,2));
+          assert.ok((await row.boundingBox())!.x>100,'small initial samples and a rested contact must still reveal sidebar');
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left,'pending reservation never writes content');
+          await touch('touchCancel');await settle();await closed();
+          scenes.push({selector,rest,sidebar:true,contentStable:true});
+        }
+        for (const selector of arbitrationScrollSelectors) {
+          const scroller=page.locator('[data-gesture-rich] '+selector),p=await at(scroller);
+          await touch('touchStart',p.x,p.y);await page.waitForTimeout(180);
+          await touch('touchMove',p.x+35,p.y+1);await page.waitForTimeout(20);
+          assert.equal(await scroller.evaluate((e:HTMLElement)=>e.scrollLeft),p.left);
+          await touch('touchEnd');await settle();await closed();
+          assert.ok(Math.abs((await scroller.evaluate((e:HTMLElement)=>e.scrollLeft))-(p.left-35))<2,'a single motion sample finishes as local reading');
+          scenes.push({selector,singleSampleReading:true});
+        }
+        assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
+        assert.deepEqual(errors,[]);evidence.push({theme,reducedMotion,earlySamples:scenes});
+        await context.close();continue;
+      }
+      for (const selector of arbitrationScrollSelectors) {
+        const scroller = page.locator('[data-gesture-rich] '+selector);
+        const p = await at(scroller);
+        await touch('touchStart',p.x,p.y); await touch('touchMove',p.x+50,p.y+2);
+        await page.waitForTimeout(35);
+        const held = await row.boundingBox();
+        assert.ok(held && held.x > 30, 'fast drag from overflowing rich content must move the sidebar');
+        assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),p.left,'navigation never scrolls content');
+        await touch('touchMove',p.x+180,p.y+3); await touch('touchEnd'); await settle(); await opened();
+        assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),p.left);
+        await page.keyboard.press('Escape'); await settle(); await closed();
+
+        const slow = await at(scroller);
+        await touch('touchStart',slow.x,slow.y); await page.waitForTimeout(125);
+        await touch('touchMove',slow.x+25,slow.y); await page.waitForTimeout(100);
+        await touch('touchMove',slow.x+35,slow.y); await page.waitForTimeout(30);
+        const localLeft = await scroller.evaluate((node: HTMLElement)=>node.scrollLeft);
+        assert.ok(Math.abs(localLeft-(slow.left-35))<2,'slow drag scrolls the same content');
+        assert.ok(Math.abs((await row.boundingBox())!.x)<1,'content movement never moves sidebar');
+        await touch('touchMove',slow.x+100,slow.y); await page.waitForTimeout(30);
+        assert.ok(Math.abs((await row.boundingBox())!.x)<1,'later acceleration cannot steal a content contact');
+        await touch('touchMove',slow.x+50,slow.y); await page.waitForTimeout(30);
+        assert.ok(Math.abs((await scroller.evaluate((node: HTMLElement)=>node.scrollLeft))-(slow.left-50))<2,'content reversal retains its owner');
+        await touch('touchCancel'); await settle(); await closed();
+
+        const cancelled = await at(scroller);
+        await touch('touchStart',cancelled.x,cancelled.y); await touch('touchMove',cancelled.x+55,cancelled.y);
+        await page.waitForTimeout(25); assert.ok((await row.boundingBox())!.x>30);
+        await touch('touchCancel'); await settle(); await closed();
+        assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),cancelled.left);
+
+        const boundary = await at(scroller,0);
+        await touch('touchStart',boundary.x,boundary.y); await page.waitForTimeout(120);
+        await touch('touchMove',boundary.x+35,boundary.y); await page.waitForTimeout(25);
+        assert.ok((await row.boundingBox())!.x>20,'an exhausted direction yields to the ordinary sidebar gesture');
+        await touch('touchCancel'); await settle(); await closed();
+
+        const vertical = await at(scroller);
+        const beforeY = await main.evaluate((node: HTMLElement)=>node.scrollTop);
+        await touch('touchStart',vertical.x+60,vertical.y); await touch('touchMove',vertical.x+61,vertical.y-40);
+        await page.waitForTimeout(30); await touch('touchMove',vertical.x+61,vertical.y-90); await touch('touchEnd'); await settle();
+        await closed();
+        assert.ok(await main.evaluate((node: HTMLElement, before: number)=>node.scrollTop>before+10,beforeY),'rich content preserves native vertical reading');
+        assert.equal(await scroller.evaluate((node: HTMLElement)=>node.scrollLeft),vertical.left);
+        measurements.push({selector,held:held!.x,slowContentOffset:localLeft,vertical:true,cancel:true,boundary:true});
+      }
+      // Nested reading must select a readable parent before committing an owner.
+      const inner=page.locator('.unregistered-nested-inner'),outer=page.locator('.unregistered-nested-outer');
+      await outer.evaluate((e:HTMLElement)=>{e.scrollLeft=120});const nested=await at(inner,0);
+      const nt=Date.now()/1000;await touch('touchStart',nested.x,nested.y,false,nt);
+      await touch('touchMove',nested.x+25,nested.y,false,nt+.13);await touch('touchMove',nested.x+35,nested.y,false,nt+.24);await page.waitForTimeout(30);
+      assert.equal(await inner.evaluate((e:HTMLElement)=>e.scrollLeft),0);
+      assert.ok(Math.abs(await outer.evaluate((e:HTMLElement)=>e.scrollLeft)-85)<2,'exhausted inner reader yields to readable parent');
+      assert.ok(Math.abs((await row.boundingBox())!.x)<1);await touch('touchCancel');await settle();
+      // An exclusive child inside that reader stays native, without inherited CSS restrictions.
+      const native=page.locator('.unregistered-native-owner');await outer.evaluate((e:HTMLElement)=>{e.scrollLeft=0});await native.scrollIntoViewIfNeeded();await native.evaluate((e:HTMLElement)=>{e.scrollLeft=120});
+      assert.equal(await native.evaluate((e:HTMLElement)=>getComputedStyle(e).touchAction),'auto');
+      const nb=(await native.boundingBox())!,nx=Math.max(40,nb.x+40),ny=nb.y+20;
+      await touch('touchStart',nx,ny);await touch('touchMove',nx+50,ny);await page.waitForTimeout(35);await touch('touchMove',nx+100,ny);await touch('touchEnd');await settle();await closed();
+      assert.ok(await native.evaluate((e:HTMLElement)=>e.scrollLeft)<100,'exclusive child keeps native horizontal pan');
+      measurements.push({unregisteredDynamic:true,nestedParent:true,exclusiveChildNative:true});
+      // Modal input restores native horizontal panning and revokes held navigation.
+      const scroller=page.locator('[data-gesture-rich] .chat-code-block__scroller');
+      const held=await at(scroller);
+      await touch('touchStart',held.x,held.y); await touch('touchMove',held.x+55,held.y); await page.waitForTimeout(30);
+      await page.evaluate(()=>(window as any).fixture.setModal(true)); await page.waitForTimeout(80);
+      await touch('touchMove',held.x+170,held.y); await touch('touchEnd'); await settle();
+      assert.ok(Math.abs((await row.boundingBox())!.x)<1,'opening a modal revokes navigation');
+      const modalCode = page.getByRole('dialog').locator('.chat-code-block__scroller');
+      assert.equal(await modalCode.evaluate((node: HTMLElement)=>getComputedStyle(node).touchAction),'auto','foreground modal keeps native panning');
+      await modalCode.evaluate((node: HTMLElement)=>{node.scrollLeft=120});
+      const modalBox=(await modalCode.boundingBox())!;
+      await touch('touchStart',modalBox.x+180,modalBox.y+modalBox.height/2);
+      await touch('touchMove',modalBox.x+130,modalBox.y+modalBox.height/2);await page.waitForTimeout(30);
+      await touch('touchMove',modalBox.x+50,modalBox.y+modalBox.height/2);await touch('touchEnd');await page.waitForTimeout(100);
+      assert.ok((await modalCode.evaluate((node: HTMLElement)=>node.scrollLeft))>140,'native horizontal reading works inside foreground dialog');
+      assert.ok(Math.abs((await row.boundingBox())!.x)<1);
+      await page.evaluate(()=>(window as any).fixture.setModal(false)); await settle();
+      const edge=await at(scroller,120);const edgeBox=(await scroller.boundingBox())!;
+      const edgeX=Math.max(edgeBox.x+1,20);assert.ok(edgeX<24,'fixture touches registered content in reserved edge');
+      await touch('touchStart',edgeX,edge.y);await touch('touchMove',edgeX+100,edge.y);await touch('touchEnd');await settle();await closed();
+      await scroller.evaluate((node: HTMLElement)=>{node.dataset.sidebarGesture='ignore'});
+      assert.equal(await scroller.evaluate((node: HTMLElement)=>getComputedStyle(node).touchAction),'auto','exclusive owner on scrollport itself restores native input');
+      await scroller.evaluate((node: HTMLElement)=>{delete node.dataset.sidebarGesture});
+      // A touch content momentum writer is stopped by the next contact.
+      const momentum=await at(scroller,120);
+      await touch('touchStart',momentum.x+100,momentum.y); await touch('touchMove',momentum.x+50,momentum.y); await touch('touchMove',momentum.x,momentum.y); await touch('touchEnd');
+      await page.waitForTimeout(30); await touch('touchStart',momentum.x,momentum.y);
+      const stopped=await scroller.evaluate((node: HTMLElement)=>node.scrollLeft);
+      await page.waitForTimeout(120);
+      assert.ok(Math.abs((await scroller.evaluate((node: HTMLElement)=>node.scrollLeft))-stopped)<1,'new contact stops old content momentum');
+      await touch('touchCancel');
+      assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
+      await page.screenshot({path:`${output}/${theme}-${reducedMotion}-arbitration.png`});
+      await page.setViewportSize({width:1280,height:844}); await settle();
+      assert.equal(await scroller.evaluate((node: HTMLElement)=>getComputedStyle(node).touchAction),'auto','desktop restores native panning');
+      assert.deepEqual(errors,[]); evidence.push({theme,reducedMotion,arbitration:measurements,momentumCancelled:true,modalRevoked:true,desktopNative:true});
+      await context.close(); continue;
+    }
     if (process.env.OPENCRAFT_GESTURE_CONTENT_ONLY === '1') {
       const main = page.locator('[data-main-scroll]');
       const reason = page.locator('[data-swipe-reason] button');
@@ -126,10 +356,11 @@ try {
       for (const locator of [reason, inspected, generated, sent, page.locator('[data-swipe-action]'), page.locator('[data-swipe-link]'), page.locator('[data-swipe-role]')]) {
         const before = await actions(), {x,y} = await position(locator);
         console.log('content swipe target', await locator.evaluate((node: Element) => node.outerHTML.slice(0,150)),{x,y});
-        await touch('touchStart',x,y); await touch('touchMove',x+Math.min(80,(364-x)*.4),y); await page.waitForTimeout(20);
+        const flickTime = Date.now()/1000;
+        await touch('touchStart',x,y,false,flickTime); await touch('touchMove',x+Math.min(80,(364-x)*.4),y,false,flickTime+.02); await page.waitForTimeout(20);
         const held = await page.locator('.app-shell-row').evaluate(node => new DOMMatrixReadOnly(getComputedStyle(node).transform).m41);
         assert.ok(held > 30, 'clickable content follows a held rightward gesture');
-        await touch('touchMove',364,y); await touch('touchEnd'); await page.waitForTimeout(650); await opened();
+        await touch('touchMove',364,y,false,flickTime+.04); await touch('touchEnd',0,250,false,flickTime+.05); await page.waitForTimeout(650); await opened();
         assert.deepEqual(await actions(),before,'swiping does not invoke the action');
         assert.equal(await reason.getAttribute('aria-expanded'),'false','swiping never expands reasoning');
         assert.equal(await inspected.getAttribute('aria-expanded'),'false','swiping never expands inspected-image activity');
@@ -290,16 +521,26 @@ try {
       };
       await page.evaluate(() => {
         (window as any).unsafeSidebarPaint = [];
-        new MutationObserver(() => {
+        const sample = () => {
           const host = document.querySelector<HTMLElement>('.app-shell-floating-overlay-root[data-mobile-sidebar]');
           const foreground = document.querySelector<HTMLElement>('.app-shell-root.has-mobile-sidebar-gestures');
           if (!host || !foreground) return;
           const back = getComputedStyle(host), front = getComputedStyle(foreground);
-          // Exit presence can retain an inert panel after the page returns to
-          // its ordinary stacking order. Its backing must release in that frame.
-          if (back.backgroundImage !== 'none' && !(Number(front.zIndex) > Number(back.zIndex)))
-            (window as any).unsafeSidebarPaint.push({front:front.zIndex, back:back.zIndex});
-        }).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['data-mobile-sidebar-present','aria-hidden']});
+          const panel = host.querySelector<HTMLElement>('.app-shell-floating-left-panel');
+          const content = panel ? getComputedStyle(panel) : null;
+          const contentPaints = content && content.visibility === 'visible'
+            && content.display !== 'none' && Number(content.opacity) > 0;
+          // aria-hidden/inert revoke input, not paint. Inspect the actual text
+          // surface as well as its backing through the final removal frames.
+          if ((back.backgroundImage !== 'none' || contentPaints)
+            && !(Number(front.zIndex) > Number(back.zIndex)))
+            (window as any).unsafeSidebarPaint.push({front:front.zIndex, back:back.zIndex,
+              contentPaints, exiting:panel?.getAttribute('aria-hidden')});
+        };
+        new MutationObserver(sample).observe(document.body, {subtree:true, childList:true,
+          attributes:true, attributeFilter:['style','data-mobile-sidebar-present','aria-hidden']});
+        const frame = () => { sample(); requestAnimationFrame(frame); };
+        requestAnimationFrame(frame);
       });
       const readStack=()=>page.evaluate(()=>{
         const panel=document.querySelector<HTMLElement>('.app-shell-floating-left-panel')!;
@@ -308,7 +549,7 @@ try {
         const page=document.querySelector('.app-shell-row')!.getBoundingClientRect();
         const peek=document.elementFromPoint(innerWidth-12,200);
         return {drawerLeft:drawer.left,drawerRight:drawer.right,layoutWidth:panel.clientWidth,scale:matrix.a,opacity:Number(style.opacity),wash:Number(getComputedStyle(document.querySelector('.app-shell-mobile-sidebar-wash')!).opacity),
-          pageLeft:page.left,peek:innerWidth-page.left,
+          frontWash:Number(getComputedStyle(document.querySelector('.app-shell-mobile-page-wash')!).opacity),pageLeft:page.left,peek:innerWidth-page.left,
           radius:getComputedStyle(document.querySelector('.app-shell-row')!).borderTopLeftRadius,
           hit:peek?.classList.contains('app-shell-mobile-page-dismiss')};
       });
@@ -342,6 +583,7 @@ try {
         for(const sample of [a,b]) {
           assert.ok(Math.abs(sample.drawerLeft)<1,'sidebar never slides in from offscreen');
           assert.ok(sample.drawerRight>sample.pageLeft+20,'page uncovers the stationary rear layer');
+          assert.ok(Math.abs(sample.frontWash + sample.wash - (reducedMotion==='reduce'?0:.65))<.002,'foreground and sidebar wash remain reciprocal');
           if(reducedMotion==='reduce') assert.ok(sample.scale===1&&sample.opacity===1&&sample.wash===0,'reduced motion skips depth');
           else assert.ok(sample.scale<1&&sample.scale>.9&&sample.opacity<1&&sample.opacity>.45&&sample.wash>0&&sample.wash<.65,JSON.stringify(sample));
         }
@@ -374,7 +616,7 @@ try {
         assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
         evidence.push({theme,reducedMotion,width,material,stack,held:[a,b],sameEntrance:true,escape:true,gestureReopen:true});
       }
-      assert.deepEqual(await page.evaluate(() => (window as any).unsafeSidebarPaint), [], 'backing never paints above the returned page during exit presence');
+      assert.deepEqual(await page.evaluate(() => (window as any).unsafeSidebarPaint), [], 'sidebar content and backing never paint above the returned page during exit presence');
       await page.setViewportSize({width:1280,height:844});await page.waitForTimeout(300);
       const desktop=page.locator('.app-shell-touch-sidebar-toggle button');await desktop.waitFor();
       await desktop.tap();await page.waitForTimeout(650);assert.equal(await row.evaluate((e:HTMLElement)=>getComputedStyle(e).transform),'none','desktop does not translate');
@@ -559,7 +801,7 @@ try {
       for (const width of [320, 390, 430]) {
         await page.setViewportSize({width,height:844}); await page.waitForTimeout(250);
         await drag(80,width-50); const box=await opened();
-        assert.ok(Math.abs(box.width-Math.min(335,width-24))<1, JSON.stringify({viewport:width,actual:box.width}));
+        assert.ok(Math.abs(box.width-Math.floor(Math.min(335,width-64)*0.90))<1, JSON.stringify({viewport:width,actual:box.width}));
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'drawer does not overflow the screen');
         widths.push({viewport:width,drawer:box.width,gutter:width-box.width});
         await page.screenshot({path:`${output}/${theme}-${reducedMotion}-${width}-width.png`});
@@ -581,8 +823,8 @@ try {
     await drag(250,80);await closed();await drag(10,220);await closed();
     await touch('touchStart',140);await touch('touchMove',145,170);await touch('touchMove',280,160);await touch('touchEnd');await page.waitForTimeout(200);await closed();
     await page.locator('[data-main-scroll]').evaluate((e: HTMLElement)=>e.scrollTop=0);
-    // Editors and horizontal code retain their own touch input.
-    for(const selector of ['input','[data-editor]','[data-horizontal]']) {
+    // Input owners retain their own touch input; ordinary readers need no opt-in.
+    for(const selector of ['input','[data-editor]']) {
       const rect=await page.locator(selector).boundingBox();assert.ok(rect);
       await drag(Math.max(60,rect!.x+50),Math.min(320,rect!.x+180),rect!.y+rect!.height/2);await closed();
     }
@@ -599,7 +841,7 @@ try {
     // A short, fast right flick may commit without crossing the distance threshold.
     await touch('touchStart',100);await touch('touchMove',165);await touch('touchEnd');await page.waitForTimeout(650);await opened();
     await drag(285,65,400);await closed();
-    await drag(80,310);const full=await opened();assert.ok(full.width<390&&full.width>=275,'Drawer leaves a backdrop gutter');
+    await drag(80,310);const full=await opened();assert.ok(full.width<390&&full.width>=230,'Drawer leaves a backdrop gutter');
     assert.equal(await page.getByLabel('Draft', { exact: true }).inputValue(),'Keep this draft');
     const safe=await page.evaluate(()=>{
       const surface=document.querySelector('.app-shell-floating-left-panel__surface')!,header=document.querySelector('.app-shell-floating-left-panel__header')!,footer=document.querySelector('.app-shell-floating-left-panel .shell-sidebar__rail-footer')!;

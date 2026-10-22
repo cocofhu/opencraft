@@ -31,7 +31,7 @@ test('protocol classifier preserves fragmented HTTP/SSH boundaries and rejects o
   }
 });
 
-test('same public port keeps Web HTTP/WS separate from authenticated SSH native Host proxy', async () => {
+for (const direct of [false, true]) test(`same public port keeps ${direct ? 'direct' : 'proxied'} Web HTTP/WS separate from authenticated SSH native Host proxy`, async () => {
   const host = identity(), user = identity(), wrong = identity();
   const listeners = new Set(); let status = { state: 'idle' };
   const statuses = new Set();
@@ -46,13 +46,13 @@ test('same public port keeps Web HTTP/WS separate from authenticated SSH native 
   const appHost = new AppHostServer({ logicalClientRouting: true, physicalHostLifetime: 'server', createTransport: () => adapter });
   const native = await createSshNativeRpcGateway(appHost, { connectTimeoutMs: 1000 });
   const backendHttp = createServer((_req, res) => res.end('private-headless'));
-  const staticHttp = createServer((req, res) => res.end('web:' + req.headers['x-forwarded-for']));
+  const staticHttp = createServer((req, res) => { res.setHeader('x-observed-local-port', String(req.socket.localPort)); res.end('web:' + req.headers['x-forwarded-for']); });
   const webSockets = new WebSocketServer({ server: staticHttp });
   webSockets.on('connection', socket => socket.on('message', data => socket.send('web:' + data)));
   const backendPort = await listen(backendHttp), webPort = await listen(staticHttp);
   const backend = createSshHttpIngress({ hostKey: host.privateKey, authorizedKeys: { fixture: [user.publicKey] }, httpPort: backendPort, codexPort: native.port });
   const backendAddress = await backend.listen({ port: 0 });
-  const ingress = createProtocolIngress({ httpPort: webPort, sshTarget: `http://127.0.0.1:${backendAddress.port}` });
+  const ingress = createProtocolIngress({ httpPort: webPort, ...(direct ? {httpServer: staticHttp} : {}), sshTarget: `http://127.0.0.1:${backendAddress.port}` });
   const publicAddress = await ingress.listen({ port: 0 });
   const clients = [];
   const ssh = async (key, username = 'fixture') => {
@@ -64,6 +64,11 @@ test('same public port keeps Web HTTP/WS separate from authenticated SSH native 
   };
   try {
     assert.equal((await get(publicAddress.port, '/')).body, 'web:undefined');
+    const observedPort = await new Promise((resolve, reject) => {
+      const req = request({hostname:'127.0.0.1',port:publicAddress.port,path:'/'}, res => { res.resume();res.once('end',()=>resolve(Number(res.headers['x-observed-local-port']))); });
+      req.once('error',reject);req.end();
+    });
+    assert.equal(observedPort, direct ? publicAddress.port : webPort);
     const publicWs = new WebSocket(`ws://127.0.0.1:${publicAddress.port}/apphost`);
     await once(publicWs, 'open');
     const echoed = once(publicWs, 'message'); publicWs.send('synthetic-frame');

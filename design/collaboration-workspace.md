@@ -30,15 +30,15 @@ OpenCraft 内存在两套完全独立的聊天产品：
 | 产品 | 权威数据 | 前端状态 | 呈现 |
 |---|---|---|---|
 | 下游产品 IM Chat | 第三方 IM 消息与会话；collaboration 保存资源映射和 IM MessageThread 引用 | IM connection、conversation、draft、unread、search、IM thread | Collaboration Workspace |
-| Codex 会话 ChatUI | AppServer / Agent Runtime 的 Thread、Turn、Item、Agent Activity 和 Tool 状态 | Workbench Thread lease、Timeline、Composer、panel resources | 现有 OpenCraft Conversation |
+| Agent 会话 ChatUI | AppServer / Agent Runtime 的 Thread、Turn、Item、Agent Activity 和 Tool 状态 | Workbench Thread lease、Timeline、Composer、panel resources | 现有 OpenCraft Conversation |
 
 硬性禁止：
 
-- 第三方 IM Message 不得转换为 AppServer Turn/Item 后塞进 Codex Timeline。
-- Codex Agent Activity、thinking、tool call 或 token stream 不得写入第三方 IM 历史。
-- IM draft/unread/selection 不得复用 Codex Draft、Thread lease 或 Composer queue。
-- IM MessageThread 与 Codex Thread 必须使用不同类型名、route kind、service 和持久 key。
-- Collaboration 插件不得 import Codex/AppServer conversation renderer；Codex Chat 插件也不得
+- 第三方 IM Message 不得转换为 AppServer Turn/Item 后塞进 Agent Timeline。
+- Agent Activity、thinking、tool call 或 token stream 不得写入第三方 IM 历史。
+- IM draft/unread/selection 不得复用 Agent Draft、Thread lease 或 Composer queue。
+- IM MessageThread 与 Agent Thread 必须使用不同类型名、route kind、service 和持久 key。
+- Collaboration 插件不得 import Agent/AppServer conversation renderer；Agent Chat 插件也不得
   import第三方 IM adapter。
 
 Agent 可以通过 `vela-computer` 从 IM 收到工作并把结果发回 IM；这是 Agent 侧协议桥接，
@@ -75,7 +75,7 @@ lightvela-collaboration
   └─ Computers + IM MessageThread
 
 lightvela-hermes
-  └─ Agent/AppServer adapter，仅服务 Codex 会话 ChatUI
+  └─ Agent/AppServer adapter，仅服务 Agent 会话 ChatUI
 
 vela-computer/
   └─ 下发到托管 Computer 的 Agent Chat Client，不是 OpenCraft 插件
@@ -120,8 +120,8 @@ browser-history push，因此需先增加窄的 `pushViewResource()` host port�
 | `CollaborationDirectoryService` | Server 列表、按 Server 的资源 cache 和 single-flight | 当前 route 选择、IM 消息 |
 | `ImConnectionService` | UserSig 签发/刷新、一个 Tencent SDK login、server scope generation | 当前会话、draft、页面 loading |
 | `ImDirectoryService` | Channel、私聊、Members、成员详情和 membership operation projection | IM SDK lifecycle、消息正文 |
-| `ImChatService` | 群聊/私聊统一 conversation 状态、消息、draft、未读、search、send/reconcile | Codex Thread/Turn/Activity |
-| `ImMessageThreadService` | root ref、reply ref cursor、IM hydration、thread unread/read | Codex Thread lease、主会话 message array |
+| `ImChatService` | 群聊/私聊统一 conversation 状态、消息、draft、未读、search、send/reconcile | Agent Thread/Turn/Activity |
+| `ImMessageThreadService` | root ref、reply ref cursor、IM hydration、thread unread/read | Agent Thread lease、主会话 message array |
 | `ComputerService` | Computer 产品身份、Server 归属、desired lifecycle、Agent 绑定和 CAS | 桌面服务内部任务细节、企业服务 Enrollment |
 | 桌面服务 adapter/projection | 下游产品 instance 的实际执行与 observed runtime state | Computer 产品身份和 Server 权限 |
 | Host terminal port | exact instance terminal session、panel tab 和资源生命周期 | Computer 页面状态、active Bot 切换 |
@@ -190,7 +190,7 @@ Computer 实现来源：
 - React Native、Unistyles、mobile primitive 和旧 WorkspaceChrome；
 - Zustand 单体 `app-store.ts`；
 - 旧 Human Auth、Computer Enrollment、registration script、the enterprise service terminal controller；
-- Codex Conversation/Activity renderer。
+- Agent Conversation/Activity renderer。
 
 ## 实施顺序
 
@@ -208,10 +208,10 @@ Computer 实现来源：
 
 ## 验收门禁
 
-- 静态 boundary：Collaboration 不得 import Codex/AppServer Chat renderer；Hermes 不得 import
+- 静态 boundary：Collaboration 不得 import Agent/AppServer Chat renderer；Hermes 不得 import
   Tencent IM adapter。
 - IM 群聊/私聊共用同一 Chat service/UI 测试；capability 差异有独立 fixtures。
-- IM MessageThread 与 Codex Thread 类型、storage key、route 和 snapshot 不可互换。
+- IM MessageThread 与 Agent Thread 类型、storage key、route 和 snapshot 不可互换。
 - resource URI round-trip、deep link、Back/Forward、刷新恢复通过。
 - Terminal 测试锁定 exact instance；断言不调用旧 enrollment 或 collaboration 企业服务 session API。
 - Computer UI 无外部加入、安装、setup code、credential 文案，也不包含购买/创建桌面服务实例。
