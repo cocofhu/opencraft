@@ -107,7 +107,8 @@ try {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (error: Error) => errors.push(error.message));
-    await page.goto(origin + (mobileLayout && process.env.OPENCRAFT_SIDEBAR_GROUPS_ONLY === '1' ? '?mobile-layout' : ''));
+    await page.goto(origin + (mobileLayout && process.env.OPENCRAFT_SIDEBAR_GROUPS_ONLY === '1' ? '?mobile-layout' : ''), { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean((window as any).fixture && document.querySelector('.sidebar-tasks')), null, { timeout: 60000 });
     await page.locator('.sidebar-tasks[aria-busy="true"]').waitFor({ state: "attached" });
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
     if (process.env.OPENCRAFT_SIDEBAR_GROUPS_ONLY === '1') {
@@ -160,10 +161,15 @@ try {
     await page.evaluate(() => {
       const f = (window as any).fixture;
       f.setThreads([f.row(0)]);
-      f.setCatalogs([{ hostId: "ssh:remote", label: "Remote", phase: "error" }]);
+      f.setCatalogs([{ hostId: "ssh:remote", label: "Remote Server with a deliberately long directory label", phase: "error" }]);
     });
     const retry = page.getByRole("button", { name: "Retry", exact: true });
     await retry.waitFor();
+    const retryBounds = await retry.boundingBox();
+    const sidebarBounds = await page.locator('.sidebar-panel').boundingBox();
+    assert.ok(retryBounds && sidebarBounds && retryBounds.x >= sidebarBounds.x
+      && retryBounds.x + retryBounds.width <= sidebarBounds.x + sidebarBounds.width + 1,
+      'Retry is fully inside the Sidebar before interaction or automatic scrolling');
     assert.equal(await page.locator(".sidebar-activity-item").count(), 1, "one failed server retains healthy rows");
     // Scheme C: directory is auxiliary text below the title, never a chip or title column.
     await page.evaluate(() => {
@@ -180,7 +186,7 @@ try {
       const project = item.querySelector<HTMLElement>('.sidebar-activity-item__project')!;
       const body = item.querySelector<HTMLElement>('.sidebar-activity-item__body')!;
       const style = getComputedStyle(project);
-      return { titleBottom: title.getBoundingClientRect().bottom, projectTop: project.getBoundingClientRect().top,
+      return { title: title.textContent, titleBottom: title.getBoundingClientRect().bottom, projectTop: project.getBoundingClientRect().top,
         projectRight: project.getBoundingClientRect().right, bodyRight: body.getBoundingClientRect().right,
         background: style.backgroundColor, directoryColor: style.color,
         titleColor: getComputedStyle(title).color, truncated: project.scrollWidth > project.clientWidth,
@@ -190,7 +196,7 @@ try {
     assert.ok(geometry.every(row => row.background === 'rgba(0, 0, 0, 0)'), 'directory has no chip surface, including selected row');
     assert.ok(geometry.every(row => row.directoryColor !== row.titleColor), 'directory uses auxiliary text color');
     assert.ok(geometry.every(row => row.projectRight <= row.bodyRight + 1), 'directory stays within title body');
-    assert.ok(geometry[0]!.truncated, 'long directory truncates without consuming title width');
+    assert.ok(geometry.find(row => row.title === 'A deliberately long conversation title that needs its full body width')!.truncated, 'long directory truncates without consuming title width');
     assert.ok(geometry.every(row => row.height >= 48), 'two-line rows preserve readable height');
     assert.equal(await page.locator('.sidebar-activity-item__state-label').filter({ hasText: 'Running' }).count(), 0, 'no redundant running text');
     if (process.env.OPENCRAFT_SSH_UI_ARTIFACT_DIR) await page.screenshot({ path: `${process.env.OPENCRAFT_SSH_UI_ARTIFACT_DIR}/project-secondary-${touch ? 'touch' : 'desktop'}-${theme}.png` });

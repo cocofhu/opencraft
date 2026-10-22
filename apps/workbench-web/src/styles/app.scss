@@ -1598,6 +1598,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 .sidebar-activity-group,
 .sidebar-activity-group__items {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .sidebar-activity-list {

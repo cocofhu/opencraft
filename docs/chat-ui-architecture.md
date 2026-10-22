@@ -2560,6 +2560,15 @@ scrolling repaints their language label and controls together with the code.
 Only the explicit sticky-header variant receives an elevated stacking level;
 source, wrap, copy behavior and surface geometry remain owned by the code frame.
 
+
+### Sidebar directory track bounds
+
+The directory and nested groups own a bounded single grid column. A long project
+name or saved-directory failure message cannot enlarge the track past the actual
+Sidebar viewport or clip its Retry button. Existing truncation and action slots
+remain responsible for content; this does not change Shell width, mobile drawer
+preferences, selection, grouping or refresh semantics.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and
