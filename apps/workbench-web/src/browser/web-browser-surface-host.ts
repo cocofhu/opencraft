@@ -25,6 +25,10 @@ export interface BrowserNewTabLabels { readonly title: string; readonly hint: st
 
 export interface BrowserSurfaceHost {
   readonly localMenu?: BrowserLocalMenuController;
+  controlState?(id: BrowserPageId): 'unavailable' | 'viewing' | 'human' | 'agent' | 'elsewhere';
+  onControlState?(listener: () => void): () => void;
+  takeControl?(id: BrowserPageId): void;
+  releaseControl?(id: BrowserPageId): void;
   keyboardState?(id: BrowserPageId): 'unavailable' | 'idle' | 'ready';
   onKeyboardState?(listener: () => void): () => void;
   showKeyboard?(id: BrowserPageId): void;

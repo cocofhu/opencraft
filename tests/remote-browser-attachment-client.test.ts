@@ -25,16 +25,18 @@ test('transferred viewer stops retries and implicit navigation; explicit reload 
   const errors: string[] = [], events = { onError: (value: string) => errors.push(value), onLoaded() {}, onNavigation() {} };
   const host: any = new RemoteBrowserSurfaceHost({ getItem: () => null, setItem() {} }, 'proof');
   const id = 'page-owned' as BrowserPageId;
-  const p: any = { lease: 'browser-12345678901234567890', connection: 0, closed: false, displaced: false,
+  const p: any = { control: {epoch:0,active:false,controller:false,kind:null}, controlGeneration:0, lease: 'browser-12345678901234567890', connection: 0, closed: false, displaced: false,
     viewportMeasured: false, pending: new Map(), retries: 0, events, visible: true,
     navigation: 0, url: 'https://example.test/live' };
   // Exercise real connection and navigation; media/DOM teardown is independent.
   host.resetTransport = (page: any) => { host.rejectPending(page); page.opened = false; };
+  host.humanCall = (page: any, method: string, input: unknown) => host.rawCall(page, method, input);
   host.keyboardChanged = host.applyViewport = host.queueViewport = host.run = () => {};
   host.pages.set(id, p);
   try {
     p.ready = host.connect(p); sockets[0].onopen?.();
-    assert.equal(sockets[0].sent[0].input.takeover, true);
+    assert.equal(sockets[0].sent[0].input.multiView, true);
+    assert.equal(sockets[0].sent[0].input.takeover, undefined);
     sockets[0].result(); await p.ready;
     sockets[0].close(4009);
     assert.equal(p.displaced, true); assert.equal(p.disconnected, true);
@@ -45,7 +47,7 @@ test('transferred viewer stops retries and implicit navigation; explicit reload 
     assert.match(errors.at(-1)!, /another client/);
     assert.equal(host.navigate(id, '', p.url, events, true), true);
     assert.equal(p.displaced, false); assert.equal(sockets.length, 2);
-    sockets[1].onopen?.(); assert.equal(sockets[1].sent[0].input.takeover, true);
+    sockets[1].onopen?.(); assert.equal(sockets[1].sent[0].input.multiView, true);
     sockets[1].result(); await p.ready; await Promise.resolve();
     assert.equal(sockets[1].sent[1].method, 'reload');
     sockets[0].onclose?.({ code: 4009 }); assert.equal(p.displaced, false); assert.equal(p.opened, true);
@@ -56,4 +58,26 @@ test('transferred viewer stops retries and implicit navigation; explicit reload 
       else delete (globalThis as any)[key];
     }
   }
+});
+
+test('control loss keeps transport alive, fences queued writes and rejects an obsolete grant', async () => {
+  const host: any = Object.create(RemoteBrowserSurfaceHost.prototype); host.controlListeners = new Set();
+  let resolve: (state: any) => void = () => {}, resets = 0, sends = 0;
+  const p: any = {control:{epoch:0,active:false,controller:false,kind:null},controlGeneration:0,connection:1,closed:false,acquiring:null,
+    resetInput(){resets++;},receiver:{blur(){},value:'',type:'text',inputMode:'none',setAttribute(){}},events:{onError(){}}};
+  host.queueViewport = host.keyboardChanged = () => {}; host.retireMenu = () => {};
+  host.rawCall = () => { sends++; return new Promise(r => { resolve = r; }); };
+  const first = host.acquireControl(p,'human');
+  assert.equal(host.acquireControl(p,'human'),first,'one acquisition for continuous gesture');
+  const granted={epoch:1,active:true,controller:true,kind:'human',token:'first-token'};
+  host.setControl(p,granted); resolve(granted); assert.equal(await first,'first-token');
+  host.setControl(p,{epoch:2,active:true,controller:false,kind:'human'});
+  assert.equal(resets,1); assert.equal(p.closed,false); assert.equal(p.connection,1);
+  await assert.rejects(host.call(p,'navigate',{url:'https://example.test/'},'first-token'),{code:'CONTROL_LOST'});
+  assert.equal(sends,1,'old write never enters the transport');
+  const late=host.acquireControl(p,'human'), finish=resolve;
+  host.setControl(p,{epoch:4,active:true,controller:false,kind:'human'});
+  finish({epoch:3,active:true,controller:true,kind:'human',token:'obsolete-token'});
+  await assert.rejects(late,{code:'CONTROL_LOST'});
+  assert.equal(p.control.epoch,4); assert.equal(p.control.controller,false);
 });

@@ -38,10 +38,11 @@ async function fixture() {
   async function connect(owner) {
     const ws = new WebSocket(`ws://127.0.0.1:${server.address().port}/${owner}`); await once(ws, 'open');
     const pending = new Map();
-    ws.on('message', bytes => { const m = JSON.parse(bytes); const p = pending.get(m.id); if (p) { pending.delete(m.id); m.error ? p.reject(Object.assign(new Error(m.error.message), { code: m.error.code })) : p.resolve(m.value); } });
+    const events = [], frames = [];
+    ws.on('message', (bytes, binary) => { if (binary) { frames.push(bytes); return; } const m = JSON.parse(bytes); events.push(m); const p = pending.get(m.id); if (p) { pending.delete(m.id); m.error ? p.reject(Object.assign(new Error(m.error.message), { code: m.error.code })) : p.resolve(m.value); } });
     ws.on('close', () => { for(const p of pending.values())p.reject(new Error('Connection closed')); pending.clear(); });
-    const call = (method, input) => new Promise((resolve, reject) => { const id = randomUUID(); pending.set(id, { resolve, reject }); ws.send(JSON.stringify({ id, method, input })); });
-    return { ws, call, async detach() { if(ws.readyState===WebSocket.CLOSED)return; ws.close(); await once(ws, 'close'); await new Promise(resolve => setImmediate(resolve)); } };
+    const call = (method, input, control) => new Promise((resolve, reject) => { const id = randomUUID(); pending.set(id, { resolve, reject }); ws.send(JSON.stringify({ id, method, input, control })); });
+    return { ws, call, events, frames, quiet(method, input, control) { ws.send(JSON.stringify({id:randomUUID(),method,input,control})); }, async detach() { if(ws.readyState===WebSocket.CLOSED)return; ws.close(); await once(ws, 'close'); await new Promise(resolve => setImmediate(resolve)); } };
   }
   return { directory, get service() { return service; }, connect,
     revoke() { revoked = true; },
@@ -58,7 +59,7 @@ test('detach keeps the same live page; restart restores URL/config while explici
     await first.call('navigate', { url: 'https://example.test/actual' });
     const record = [...f.service.pages.values()][0], memory = f.service.physical.get(record.id).memory;
     await first.detach();
-    assert.equal(record.socket, null); assert.equal(record.timer, undefined, 'no timer may evict a disconnected live tab');
+    assert.equal(record.controller, null); assert.equal(record.timer, undefined, 'no timer may evict a disconnected live tab');
     assert(f.service.commands.some(c => c.method === 'visible' && c.input.visible === false));
     const second = await f.connect('owner-a');
     const resumed = await second.call('open', { lease });
@@ -132,7 +133,7 @@ test('explicit viewer handoff keeps the live document and fences the displaced s
     const lease = randomUUID(), a = await f.connect('owner'), b = await f.connect('owner');
     const original = await a.call('open', { lease });
     await a.call('navigate', { url: 'https://example.test/unsaved-document' });
-    const record = [...f.service.pages.values()][0], oldSocket = record.socket;
+    const record = [...f.service.pages.values()][0], oldSocket = record.controller;
     // Keep the displaced transport open to exercise delayed close and stale
     // requests rather than relying on the local TCP close arriving promptly.
     const close = oldSocket.close.bind(oldSocket); let transfer;
@@ -142,11 +143,11 @@ test('explicit viewer handoff keeps the live document and fences the displaced s
     assert.equal(resumed.navigation.url, 'https://example.test/unsaved-document');
     assert.equal(transfer.code, 4009);
     const count = f.service.commands.length;
-    await assert.rejects(a.call('navigate', { url: 'https://example.test/stale' }), /transferred/);
-    await assert.rejects(a.call('close'), /transferred/);
+    await assert.rejects(a.call('navigate', { url: 'https://example.test/stale' }), /page not opened/);
+    await assert.rejects(a.call('close'), /page not opened/);
     assert.equal(f.service.commands.length, count, 'stale viewer cannot mutate or retire the winner');
-    const winner = record.socket; close(4009, 'Browser viewer transferred'); await once(a.ws, 'close');
-    assert.equal(record.socket, winner, 'late close cannot detach replacement');
+    const winner = record.controller; close(4009, 'Browser viewer transferred'); await once(a.ws, 'close');
+    assert.equal(record.controller, winner, 'late close cannot detach replacement');
     assert.equal(f.service.commands.filter(c => c.method === 'navigate').length, 1);
     assert.equal(f.service.commands.filter(c => c.method === 'close').length, 0);
     assert.equal(f.service.attachments.size, 0);
@@ -367,5 +368,59 @@ test('missing or malformed historical mappings never trigger a sweep of unwatche
     }
     assert.equal(f.service.physical.size, 1); assert.equal(f.service.pages.size, 1);
     await state.detach();
+  } finally { await f.close(); }
+});
+
+
+const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+test('modern viewers share one document/stream, keep viewport authority and aggregate visibility', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), a = await f.connect('owner'), b = await f.connect('owner');
+    const first = await a.call('open', { lease, multiView:true, initialUrl:'https://example.test/unsaved', viewport:{width:390,height:640} });
+    assert.equal(first.control.controller,false); assert.equal(first.initialized,true);
+    a.quiet('visible',{visible:true}); await settle();
+    const page = [...f.service.pages.values()][0];
+    const second = await b.call('open',{lease,multiView:true,initialUrl:'https://example.test/stale',viewport:{width:1200,height:800}});
+    assert.equal(second.memory,first.memory); assert.equal(second.width,390); assert.equal(second.navigation.url,'https://example.test/unsaved');
+    assert.equal(f.service.commands.filter(c=>c.method==='create').length,1);
+    assert.equal(f.service.commands.filter(c=>c.method==='navigate').length,1);
+    assert.equal(page.controller,null);
+    b.quiet('visible',{visible:true}); await settle();
+    f.service.receive({type:'frame',page:page.id,bytes:Buffer.from([1,2,3]).toString('base64')}); await settle();
+    assert.equal(a.frames.length,1); assert.equal(b.frames.length,1);
+    const state=await a.call('control',{action:'human',takeover:true}); assert(state.token);
+    await assert.rejects(b.call('viewport',{width:1200,height:800},state.token),{code:'CONTROL_LOST'});
+    const before=f.service.commands.filter(c=>c.method==='visible'&&!c.input.visible).length;
+    await a.detach(); await settle();
+    assert.equal(page.controller,null); assert.equal(f.service.viewers(page).size,1); assert.equal(page.painted,true);
+    assert.equal(f.service.commands.filter(c=>c.method==='visible'&&!c.input.visible).length,before);
+    f.service.receive({type:'frame',page:page.id,bytes:Buffer.from([0,4,5]).toString('base64')}); await settle(); assert.equal(b.frames.length,2);
+    await b.detach(); await settle(); assert.equal(page.painted,false); assert.equal(f.service.physical.size,1);
+  } finally { await f.close(); }
+});
+
+test('control generations fence writes, Agent never preempts a human, and only controller receives private events', async () => {
+  const f=await fixture();
+  try {
+    const lease=randomUUID(),a=await f.connect('owner'),b=await f.connect('owner');
+    await a.call('open',{lease,multiView:true}); await b.call('open',{lease,multiView:true});
+    const page=[...f.service.pages.values()][0],one=await a.call('control',{action:'human',takeover:true});
+    await assert.rejects(b.call('control',{action:'agent'}),{code:'CONTROL_BUSY'});
+    assert.equal(await b.call('automation',{method:'inspect'}),undefined); assert.equal(page.controlToken,one.token);
+    const two=await b.call('control',{action:'human',takeover:true}); assert(two.epoch>one.epoch); assert.notEqual(two.token,one.token);
+    await assert.rejects(a.call('navigate',{url:'https://example.test/stale'},one.token),{code:'CONTROL_LOST'});
+    await a.call('control',{action:'release',token:one.token}); assert.equal(page.controlToken,two.token,'late release cannot revoke new controller');
+    f.service.receive({type:'ime-state',page:page.id,editable:true,editor:'private-editor'}); await settle();
+    assert.equal(a.events.filter(e=>e.type==='ime-state').length,0); assert.equal(b.events.filter(e=>e.type==='ime-state').length,1);
+    assert(a.events.some(e=>e.type==='control'&&e.active&&!e.controller&&!e.token));
+    await b.call('control',{action:'release',token:two.token});
+    const agent=await a.call('control',{action:'agent'}); assert.equal(agent.kind,'agent');
+    await assert.rejects(b.call('control',{action:'agent'}),{code:'CONTROL_BUSY'});
+    await a.call('automation',{method:'fill',input:{value:'你好'}},agent.token);
+    await a.call('control',{action:'release',token:agent.token}); assert.equal(page.controller,null);
+    const old=await f.connect('owner'); await assert.rejects(old.call('open',{lease,takeover:true}),/reload OpenCraft/); await old.detach();
+    const peerClosed=once(b.ws,'close'); await a.call('close'); assert.equal((await peerClosed)[0],1000);
+    assert.equal(f.service.physical.size,0); assert.equal(f.service.pages.size,0);
   } finally { await f.close(); }
 });

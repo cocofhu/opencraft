@@ -1357,22 +1357,49 @@ and rejects the operation; no press is retried into another document. Resize
 clears local pointers without discarding the IME transaction. Native input is
 validated at the worker boundary; arbitrary CDP commands are never forwarded.
 
-Each owner-scoped remote tab has one active viewing/control socket. Updated
-viewers request `open.takeover: true`: the service serializes attachment
-bootstrap, detaches the previous socket and closes it with code 4009 before
-reattaching the same live native page. This preserves document state and avoids
-concurrent create/recovery cleanup racing with the replacement. A displaced
-socket cannot issue page commands, including close. The displaced client stops
-automatic reconnect and implicit navigation; explicit reload can take control
-again. Legacy opens without takeover still reject an occupied page, preventing
-older clients from automatically fighting the replacement. Different owners
-remain isolated even when their lease strings match. Explicit owner-scoped
-discard remains a tab lifecycle operation, independent of the viewing socket.
+Each owner-scoped remote tab supports up to 16 concurrent viewing sockets.
+Modern clients opt into `open.multiView`; opening/reconnecting only attaches a
+viewer and snapshots the existing native configuration. It cannot navigate an
+existing document, resize it or claim input. An initial URL is accepted only
+when creating a new logical tab. Bootstrap remains serialized per owner+lease.
+Different owners remain isolated even when their lease strings match.
+
+| Resource | Authority and lifetime |
+| --- | --- |
+| Tab, WebContents, partition, recovery checkpoint | Server; detach/park keeps the live document, explicit owner close/discard destroys the page and all viewing attachments |
+| Encoded H.264 output | One encoder per tab, fanout to visible viewers; paint while any viewer is visible, suspend when none are visible |
+| Socket, decoder, local geometry and keyboard candidate UI | Each viewer; a slow viewer disconnects independently |
+| Remote viewport, zoom, mouse, keys, touch and composition | Current control lease; observers scale the shared frame and cannot change remote geometry |
+| DOM result, focus, selection, native editor identity | Remote renderer; private IME/context-menu/new-window events go to the current controller |
+| Browser-use authority and read inspection | Existing actor/thread/tool authorization; a viewing attachment grants no additional rights |
+
+An actual human interaction or the toolbar Control action requests an explicit
+human lease. Merely joining, measuring layout, hovering, reconnecting or viewing
+never requests control. Human input may take control from another client or an
+Agent. Release, hide and disconnect relinquish human control; Agent writes
+request a transient agent lease and release it in finally, and fail retryably
+with CONTROL_BUSY while another controller owns the page. Read inspection and
+capture do not acquire control. Agent operations remain semantic preview-bridge
+operations with the existing sensitive-field and document-ref restrictions.
+
+Each grant has a monotonic epoch and a private random token. The service checks
+viewer membership, current authorization and token at admission. The ordered
+native input queue checks the token again at dispatch; queued old input cannot
+cross a completed handoff. Pressed keys/buttons, touches, context menus and IME
+transactions retire before the replacement grant. Clients drop input queued
+under an obsolete connection/control generation. Viewer dimensions do not
+reconfigure an existing tab; only a human controller submits its chosen viewport,
+after the active touch gesture finishes.
+
+Legacy viewers retain single-socket takeover only among legacy attachments;
+code 4009 still stops a displaced legacy client's retries. A legacy attachment
+cannot evict modern viewers and is asked to refresh. This is same-account
+multi-view support, not a cross-account sharing or collaborative-editing ACL.
 
 A remote tab outlives its display socket. Its renderer is authoritative for page
 content and editing; local presentation owns video decoding, client geometry
-and system input. Disconnect suspends video production and releases pressed
-keys, buttons and touch contacts without navigating or destroying the page.
+and system input. Disconnect suspends that viewer and releases its owned pressed
+keys, buttons and touch contacts; video production continues for other viewers without navigating or destroying the page.
 Input/control boundaries are ordered in the worker; moves are flushed before
 release and local compositions are discarded across a connection change.
 Continuous touch/drag movement keeps the active paint cadence. The worker

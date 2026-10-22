@@ -6,6 +6,7 @@ import type {
 import {
   browserUrlDisplayValue,
 } from "@opencraft/browser-core";
+import { BrowserControlButton } from './browser-control-button';
 import { BrowserKeyboardButton } from './browser-keyboard-button';
 import { BrowserDeviceToolbar, BrowserDeviceHandles } from "./browser-device-toolbar";
 import { useIntl } from "@opencraft/i18n/react";
@@ -174,6 +175,7 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
           onClick={()=>workbench.setViewportMode(tab.id,tab.viewportMode.type==="responsive"?FIT_VIEWPORT:{type:"responsive"})}>
           <MonitorSmartphone size={15}/>
         </button>
+        <BrowserControlButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
         <BrowserKeyboardButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
         <FloatingComposerToggle activeTabId={panelTab.id} />
         {pages.supportsSiteSettings && currentUrl ? <DropdownMenu.Root>

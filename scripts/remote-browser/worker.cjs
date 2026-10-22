@@ -265,8 +265,17 @@ async function command(message) {
   if (method === 'close') { closePage(id); return; }
   const p = pages.get(id); if (!p) throw new Error('Browser page closed');
   const wc = p.window.webContents;
+  if (message.control !== undefined && message.control !== p.controlToken)
+    throw Object.assign(new Error('Browser control changed'), { code: 'CONTROL_LOST', retryable: true });
   if (method === 'viewport') return resize(p, input);
   if (method !== 'close') await p.viewportQueue;
+  if (method === 'control') {
+    if (input.token !== null && (typeof input.token !== 'string' || !/^[a-zA-Z0-9-]{20,100}$/.test(input.token))) throw new Error('Invalid control token');
+    await resetInput(p); p.clipboard.retire(); p.controlToken = input.token; return;
+  }
+  if (message.control !== undefined && message.control !== p.controlToken)
+    throw Object.assign(new Error('Browser control changed'), { code: 'CONTROL_LOST', retryable: true });
+  if (method === 'observe') { p.ime.observe(); return; }
   if (method === 'snapshot') return configuration(p);
   if (method === 'copy') {
     if (input.context !== undefined && (typeof input.context !== 'string' || !/^[a-zA-Z0-9-]{20,100}$/.test(input.context))) throw new Error('Invalid copy context');

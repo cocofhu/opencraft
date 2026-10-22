@@ -80,3 +80,19 @@ test('complete touch snapshots coalesce only within the same set and preserve ev
   ['touchStart',[1],0],['touchMove',[1],80],['touchStart',[1,2],80],['touchMove',[2,1],150],['touchEnd',[2],150],['touchMove',[2],155],['touchEnd',[],undefined],
  ]);
 });
+
+
+test('handoff resets are ordered with writes and coalescing never crosses a control token', async () => {
+  let unblock; const gate=new Promise(r=>unblock=r),seen=[];
+  const dispatch=createControls(async m=>{seen.push(m);if(seen.length===1)await gate});
+  const ops=[dispatch({...input('mouseDown'),control:'first'})]; await tick();
+  ops.push(dispatch({...input('mouseMove',1),control:'first'}));
+  ops.push(dispatch({...input('mouseMove',2),control:'second'}));
+  ops.push(dispatch({page:'a',method:'control',input:{token:'second'}}));
+  ops.push(dispatch({page:'a',method:'automation',input:{method:'fill'},control:'second'}));
+  ops.push(dispatch({page:'a',method:'viewport',input:{width:390,height:640},control:'second'}));
+  unblock(); await Promise.all(ops);
+  assert.deepEqual(seen.map(m=>[m.method,m.control,m.input.x]),[
+    ['input','first',0],['input','first',1],['input','second',2],['control',undefined,undefined],['automation','second',undefined],['viewport','second',undefined],
+  ]);
+});

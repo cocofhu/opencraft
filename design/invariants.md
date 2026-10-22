@@ -1841,6 +1841,17 @@ owner.
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
 
+## Remote browser viewing and control
+
+Multiple authorized clients may view one remote tab without recreating it or
+claiming input. The remote toolbar offers a quiet Control/Release action beside
+the keyboard action, using the existing toolbar target and typography. The
+service control grant owns remote viewport and input; local view layout is only
+a projection. Losing control retires local composition, keyboard focus, menu and
+held contacts without resetting the video. Human gesture acquisition preserves
+local synchronous focus for system keyboards. Disconnect and park retain the
+tab; explicit logical close retires every viewer and the native page.
+
 ### Browser backing layout and aperture
 
 Browser layout consumes the current content slot, while the Shell aperture clips

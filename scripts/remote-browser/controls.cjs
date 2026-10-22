@@ -4,11 +4,11 @@
 // pointer positions may replace one another; gesture edges and editing never do.
 function createControls(command) {
   const tails = new Map(), moves = new Map();
-  const ordered = new Set(['input', 'text', 'ime', 'copy', 'viewport', 'visible', 'zoom', 'close']);
+  const ordered = new Set(['input', 'text', 'ime', 'copy', 'viewport', 'visible', 'zoom', 'close', 'control']);
   return message => {
     const page = message.page;
     const move = message.method === 'input' && ['mouseMove', 'touchMove'].includes(message.input?.type);
-    const signature = move ? JSON.stringify([message.input.type, message.input.button, message.input.modifiers, message.input.pointerType, Array.isArray(message.input.touchPoints) ? message.input.touchPoints.map(p => p?.id).sort((a, b) => a - b) : null]) : null;
+    const signature = move ? JSON.stringify([message.control, message.input.type, message.input.button, message.input.modifiers, message.input.pointerType, Array.isArray(message.input.touchPoints) ? message.input.touchPoints.map(p => p?.id).sort((a, b) => a - b) : null]) : null;
     const previous = moves.get(page);
     if (move && previous?.signature === signature) {
       previous.message = message;
@@ -16,7 +16,7 @@ function createControls(command) {
     }
     // Even unordered navigation is a coalescing boundary.
     moves.delete(page);
-    if (!ordered.has(message.method)) return command(message);
+    if (!ordered.has(message.method) && message.control === undefined) return command(message);
     const slot = { message, signature };
     const operation = (tails.get(page) ?? Promise.resolve()).then(() => {
       if (moves.get(page) === slot) moves.delete(page);
