@@ -461,3 +461,28 @@ test('native request pressure is a transient transport close; malformed binary t
     assert.equal((await badClose)[0],1008);
   } finally {release?.();await f.close();}
 });
+
+test('input acknowledgements are negotiated per viewer and follow native dispatch rather than arrival', async () => {
+  const f = await fixture(); let release;
+  try {
+    const a = await f.connect('owner'), b = await f.connect('owner');
+    const opened = await a.call('open', { lease: randomUUID(), multiView: true, inputAcknowledgements: true });
+    assert.equal(opened.inputAcknowledgements, true);
+    const grant = await a.call('control', { action: 'human', takeover: true });
+    const request = f.service.request.bind(f.service), gate = new Promise(resolve => { release = resolve; });
+    f.service.request = (id, method, ...args) => method === 'input' ? gate : request(id, method, ...args);
+    let acknowledged = false;
+    const input = a.call('input', { type: 'mouseWheel', deltaY: -10 }, grant.token).then(() => { acknowledged = true; });
+    await new Promise(resolve => setTimeout(resolve, 30)); assert.equal(acknowledged, false);
+    release(); await input; assert.equal(acknowledged, true);
+    await assert.rejects(a.call('input', { type: 'mouseMove' }, 'stale-token'), { code: 'CONTROL_LOST' });
+    const legacy = await b.call('open', { lease: randomUUID(), multiView: true });
+    assert.equal(legacy.inputAcknowledgements, false);
+    const legacyGrant = await b.call('control', { action: 'human', takeover: true });
+    const results = b.events.filter(x => x.type === 'result').length;
+    b.quiet('input', { type: 'mouseMove' }, legacyGrant.token);
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal(b.events.filter(x => x.type === 'result').length, results);
+    await a.detach(); await b.detach();
+  } finally { release?.(); await f.close(); }
+});

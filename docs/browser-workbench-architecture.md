@@ -1407,7 +1407,19 @@ coalesces only adjacent pointer positions that have not reached Chromium;
 all merged requests settle with that dispatch. Press/release/cancel, editing,
 viewport changes and modifier changes remain ordering boundaries. A dispatched
 native event is never replaced, and navigation/stop retain their independent
-control path. Idle paint throttling must not accumulate stale gesture input.
+control path. Idle paint throttling must not accumulate stale gesture input. Clients negotiate `inputAcknowledgements` at open; opted-in input receives its
+result only after native dispatch, while older viewers retain quiet input. The
+local ordered input queue keeps at most two input requests in flight. Unsent
+adjacent positions replace each other; wheel deltas add only at the same hit
+point, with the same modifiers and direction, without exceeding native bounds.
+Press/release/cancel, changed contacts, wheel reversals, editing/copy/capture and
+viewport operations remain ordered barriers. Pending grants use the same bounded
+queue rather than a separate wheel replay array. Cancellation, document/control
+replacement and detach retire unsent input; a late ACK cannot advance the new
+queue generation. This bounds transport/native work rather than increasing the
+server overload limit or replaying stale input. Line/page wheel units are
+normalized at the local presentation; the native phased CDP wheel path remains
+unchanged.
 This is still final-text input, not the complete native IME bridge described
 above. Multi-contact touch is an independent native input path.
 

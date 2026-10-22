@@ -107,3 +107,15 @@ test('retiring a renderer fences queued input and control from its replacement w
   release();await Promise.all([old,stale]);
   assert.deepEqual(seen.map(m=>m.input.token??m.input.type),['mouseDown','fresh']);
 });
+
+test('native wheel backlog adds distance only at the same hit point, direction, modifiers and control grant', async () => {
+  let release; const gate = new Promise(resolve => { release = resolve; }), seen = [];
+  const dispatch = createControls(async message => { seen.push(message); if (seen.length === 1) await gate; });
+  const wheel = (deltaY, x = 10, control = 'grant', modifiers = []) => ({ page: 'a', method: 'input', control, input: { type: 'mouseWheel', x, y: 20, deltaY, deltaX: 0, modifiers } });
+  const operations = [dispatch(input('mouseDown'))]; await tick();
+  for (let i = 0; i < 100; ++i) operations.push(dispatch(wheel(-2)));
+  operations.push(dispatch(wheel(3)), dispatch(wheel(4, 11)), dispatch(wheel(5, 11, 'replacement')), dispatch(wheel(6, 11, 'replacement', ['control'])));
+  operations.push(dispatch(input('mouseUp'))); release(); await Promise.all(operations);
+  assert.deepEqual(seen.map(m => m.input.type === 'mouseWheel' ? [m.input.deltaY, m.input.x, m.control, m.input.modifiers] : m.input.type),
+    ['mouseDown', [-200, 10, 'grant', []], [3, 10, 'grant', []], [4, 11, 'grant', []], [5, 11, 'replacement', []], [6, 11, 'replacement', ['control']], 'mouseUp']);
+});
