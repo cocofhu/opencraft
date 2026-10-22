@@ -93,7 +93,7 @@ export function ScheduleCreateDialog({ hosts, onClose, returnFocus, onCreated }:
           <SettingsNotice>{text("zone")}: {zone}{next && Number.isFinite(next) ? ` · ${intl.formatMessage(messages.next, { time: intl.formatDate(next, { dateStyle: "medium", timeStyle: "short", timeZone: zone }) })}` : ""}</SettingsNotice>
           <label>{text("prompt")}<textarea className="settings-control-input" required rows={4} maxLength={32000} value={prompt} onChange={event => setPrompt(event.target.value)} /></label>
           <SettingsNotice>{text("delivery")}</SettingsNotice>
-          <details><summary>{text("advanced")}</summary><div className="schedule-create__fields">
+          <details><summary className="ui-native-disclosure">{text("advanced")}</summary><div className="schedule-create__fields">
             {!options ? <SettingsNotice>{text(loadError ? "error" : "loading")}{loadError ? <SettingsButton type="button" onClick={() => setReload(value => value + 1)}>{text("retry")}</SettingsButton> : null}</SettingsNotice> : <>
               <label>{text("permissions")}<SettingsSelect value={permissions} onChange={event => setPermissions(event.target.value)}><option value="">{text("default")}</option>{options.permissions.map(profile => <option key={profile.id} value={profile.id} disabled={!profile.allowed}>{profile.openCraftLabel ?? profile.id}</option>)}</SettingsSelect></label>
               {options.permissions.find(p => p.id === permissions)?.openCraftMode === "full" ? <SettingsNotice>{text("fullHint")}</SettingsNotice> : null}
