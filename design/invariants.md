@@ -2024,3 +2024,14 @@ missing context or a pending human decision. Assessment changes never create a
 conversation, claim a research result or start decision-wait timing. Capability
 absence hides unsupported controls; saved rationale and disposition survive
 legacy edits and view changes. See docs/tasks-model.md.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
