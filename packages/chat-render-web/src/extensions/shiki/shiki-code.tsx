@@ -101,6 +101,7 @@ export function ShikiCodeRenderer({
   return (
     <CodeBlockSurface
       code={code}
+      readingKey={JSON.stringify([context.documentId, node.stableKey, "code"])}
       highlightedHtml={highlightedHtml}
       language={language}
       pending={enhancement.granted && highlighted?.code !== code}
