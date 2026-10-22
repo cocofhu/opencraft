@@ -4,6 +4,7 @@
 @use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/focus.web";
 @use "@opencraft/design-system/menu.web" as menu;
+@use "@opencraft/design-system/material.web" as material;
 @use "@opencraft/design-system/toolbar.web" as toolbar;
 @use "@opencraft/design-system/typography.web" as typography;
 @use "@opencraft/design-system/selection.web";
@@ -9594,56 +9595,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-.opencraft-composer-shortcut-trigger {
-  display: inline-flex;
-  height: var(--composer-control-size, 28px);
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: var(--typography-metadata-font);
-  white-space: nowrap;
-  cursor: default;
-
-  &:hover,
-  &[data-state="open"] {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-border-focus);
-    outline-offset: 2px;
-  }
-
-  letter-spacing: var(--typography-metadata-tracking)
-}
-
-.opencraft-composer-shortcut-menu {
-  width: min(260px, calc(100vw - 16px));
-
-  .opencraft-composer-selection-menu__item {
-    justify-content: flex-start;
-    gap: 12px;
-  }
-}
-
-.opencraft-composer-shortcut-menu__command {
-  flex: 0 0 auto;
-  color: var(--color-text);
-}
-
-.opencraft-composer-shortcut-menu__description {
-  color: var(--color-text-secondary);
-}
-
 .opencraft-voice-input-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -12283,8 +12234,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     clip-path: circle(50%); // Match pointer hit testing to the visible circle.
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
   }
-  .opencraft-composer-mode,
-  .opencraft-composer-shortcut-trigger {
+  .opencraft-composer-mode {
     border-radius: var(--radius-composer-newera-capsule);
     clip-path: inset(0 round var(--radius-composer-newera-capsule));
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
@@ -12304,7 +12254,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     border-top-color: transparent;
     --composer-seam-highlight: transparent;
   }
-  .opencraft-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"] {
+  .opencraft-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"][data-composer-editing="false"] {
     .opencraft-composer-shell {
       --newera-input-row: 1;
       display: grid;
@@ -12328,7 +12278,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .opencraft-composer-footer { display: contents; }
     .opencraft-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
     .opencraft-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .opencraft-composer-shortcut-trigger,
     .opencraft-composer-icon-button--context,
     .opencraft-composer-icon-button--attachment { display: none; }
     // Dictation replaces this same row. The inactive editor stays mounted and
@@ -12592,3 +12541,104 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   flex-direction: column;
   .opencraft-composer-intelligence-view { min-height: 0; max-height: none; flex: 1 1 auto; }
 }
+
+// Inherited model metadata has no pointer or menu interaction.
+.opencraft-composer-mode--inherited {
+  cursor: default;
+  pointer-events: none;
+  .opencraft-composer-mode__model-label { flex: 0 1 auto; }
+  padding-inline: 0;
+}
+
+.opencraft-composer-model-quick {
+  @include material.surface(menu);
+  z-index: 90;
+  box-sizing: border-box;
+  width: min(288px, calc(100vw - 24px));
+  padding: calc(var(--spacing) * 3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  outline: none;
+}
+.opencraft-composer-model-quick__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing);
+}
+.opencraft-composer-model-quick__action-slot { width: max(32px, var(--size-control-hit-min)); }
+.opencraft-composer-model-quick__labels { min-width: 0; }
+.opencraft-composer-model-quick__effort {
+  @include typography.role(control-compact, null);
+  color: var(--color-text-accent);
+  min-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opencraft-composer-model-quick__title {
+  @include typography.role(control-compact, secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing);
+  min-height: max(24px, var(--size-control-hit-min));
+  padding: 0 var(--spacing);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  > svg { flex: none; }
+}
+.opencraft-composer-model-quick__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(32px, var(--size-control-hit-min));
+  height: max(32px, var(--size-control-hit-min));
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  &[data-state="checked"] { color: var(--color-icon-accent); }
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  &[data-disabled] { opacity: var(--opacity-control-disabled); cursor: default; }
+}
+.opencraft-composer-mode__fast { flex: none; color: var(--color-icon-accent); }
+.opencraft-composer-selection-menu--model-select {
+  box-sizing: border-box;
+  z-index: 91;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(320px, var(--radix-dropdown-menu-content-available-height), calc(100dvh - 24px));
+  overflow-y: auto;
+  .opencraft-composer-intelligence-view { display: block; max-height: none; }
+  .opencraft-composer-intelligence-models { overflow: visible; max-height: none; }
+}
+
+.opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: none; }
+.opencraft-composer-footer[data-footer-density="minimal"] .opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: block; }
+
+// Empty idle touch drafts use a single row without a model entrance. Editor
+// focus opens the ordinary footer; content retains its own expansion policy.
+.opencraft-composer-collapsed-fast { display: none; color: var(--color-text-accent); }
+:root[data-ui-density="touch"][data-touch-newera="on"] .opencraft-composer-stack[data-composer-layout="auto-single-line"]:has(.opencraft-composer-footer[data-input-mode="standard"]) {
+  .opencraft-composer-input-row { flex: 0 1 auto; }
+  .opencraft-composer-editor { min-height: 1lh; text-align: start; }
+  // Add already owns attachments. Avoid a duplicate action consuming the
+  // model/depth budget after the idle row opens.
+  .opencraft-composer-icon-button--attachment { display: none; }
+  .opencraft-composer-footer[data-footer-density="tight"] {
+    .opencraft-composer-mode--depth .opencraft-composer-mode__model-label { max-width: 60px; }
+    .opencraft-composer-mode--depth .opencraft-composer-mode__effort-label {
+      display: block;
+      max-width: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  &[data-composer-empty="true"][data-composer-editing="false"] {
+    .opencraft-composer-collapsed-fast { display: inline-flex; align-items: center; }
+  }
+}
+
+.opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }

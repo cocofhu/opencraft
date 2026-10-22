@@ -80,7 +80,7 @@ import {
   type Context,
   type ReactNode,
 } from "react";
-import { composerCapabilitiesOptions, invalidateComposerCapabilities } from "./composer-capabilities-query";
+import { cachedComposerModelMetadata, composerCapabilitiesOptions, invalidateComposerCapabilities } from "./composer-capabilities-query";
 import { catalogCachedAt, managedCatalogDiscoveryPhase, mergeThreadCatalogPages, sidebarThreadCatalogQueryKey, threadCatalogPhase, type HostThreadCatalogState } from "./thread-catalog-query";
 
 import { subscribeHostCatalogReadiness } from "./host-catalog-readiness";
@@ -850,11 +850,13 @@ export function useProjectCatalog(): ProjectCatalogSnapshot {
 export interface ComposerCatalogSnapshot {
   readonly personalDefaultsPending: boolean;
   readonly models: readonly Model[];
+  readonly displayModels: readonly Model[];
   readonly permissionProfiles: readonly PermissionProfileSummary[];
   readonly isFetching: boolean;
   readonly modelError: Error | null;
   readonly permissionProfileError: Error | null;
   readonly newThreadDefaults: {
+    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
   } | null;
@@ -889,7 +891,7 @@ export function useComposerCatalog(
   const readAccountScope = useCallback(() => application.threadAttention.getScope() ?? "anonymous", [application.threadAttention]);
   const accountScope = useSyncExternalStore(application.threadAttention.subscribe, readAccountScope);
   const displayScope = useSyncExternalStore(application.displayContinuity.subscribe, application.displayContinuity.getScope);
-  const personalDefaults = useAccountModelDefaults(application.platformAccounts, snapshot.hostId, runtimeHostConfiguration);
+  const personalDefaults = useAccountModelDefaults(application.platformAccounts, snapshot.hostId, runtimeHostConfiguration && threadId === null);
   const rememberedSelection = !runtimeHostConfiguration ? undefined : personalDefaults.authoritative ? personalDefaults.selection : readModelSelection(preferenceSnapshot.values["chat.modelSelections"],
     runtimeHostConfiguration ? { displayScope, accountScope, hostId: snapshot.hostId } : null);
   const enabled = snapshot.phase === "ready";
@@ -908,7 +910,7 @@ export function useComposerCatalog(
   );
   const defaults = useQuery({
     queryKey: defaultsKey,
-    enabled,
+    enabled: enabled && threadId === null,
     retry: false,
     queryFn: async () => {
       try {
@@ -976,15 +978,17 @@ export function useComposerCatalog(
     [permissionProfiles.data],
   );
 
+  const currentModels = capabilities.data?.metadataReader === runtime.resources.composerCatalog ? capabilities.data.models : undefined;
   return {
     personalDefaultsPending: personalDefaults.isPending,
-    models: capabilities.data?.models ?? [],
+    models: currentModels ?? [],
+    displayModels: currentModels ?? cachedComposerModelMetadata(queryClient, snapshot.hostId, runtime.resources.composerCatalog),
     permissionProfiles: permissionProfileData,
     isFetching: capabilities.isFetching || permissionProfiles.isFetching || personalDefaults.isFetching,
     modelError: personalDefaults.error ? errorOrNull(personalDefaults.error) : capabilities.error ? new Error(`${capabilities.data ? "能力目录刷新失败，当前显示上次结果" : "能力目录加载失败"}：${errorOrNull(capabilities.error)!.message}`) : null,
     permissionProfileError: errorOrNull(permissionProfiles.error),
-    newThreadDefaults: rememberedSelection ?? (defaults.data?.supported === true
-      ? { model: defaults.data.model, effort: defaults.data.effort }
+    newThreadDefaults: rememberedSelection ? { ...rememberedSelection, serviceTier: defaults.data?.supported === true ? defaults.data.serviceTier : undefined } : (defaults.data?.supported === true
+      ? { model: defaults.data.model, effort: defaults.data.effort, serviceTier: defaults.data.serviceTier }
       : null),
     // Historical conversation edits belong only to their existing Composer.
     rememberModelDefaults: runtimeHostConfiguration && threadId === null
