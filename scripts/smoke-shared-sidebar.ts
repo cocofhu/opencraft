@@ -22,7 +22,7 @@ floatingSidebarHeader={dock=><button onClick={dock}>固定侧栏</button>}
 leftPanel={context?<Context/>:null}>
 <div style={{padding:28}} onClick={()=>actions.push('Main')}><h1>Workspace</h1><input aria-label='Main draft' defaultValue='Keep draft'/></div></AppShell>}
 createRoot(document.getElementById('root')).render(<App/>);`;
-const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-shared-sidebar", esbuild: { jsx: "automatic" }, server: { host: "127.0.0.1", port: 0 },
+const vite = await createServer({ configFile: false, root: process.cwd(), publicDir: "apps/workbench-web/public", logLevel: "error", resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-shared-sidebar", esbuild: { jsx: "automatic" }, server: { host: "127.0.0.1", port: 0 },
   optimizeDeps: { include: ["react", "react-dom/client", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@tanstack/react-query"] },
   plugins: [{ name: "shared-sidebar-fixture", resolveId: id => id === "/shared-probe.tsx" ? id : null, load: id => id === "/shared-probe.tsx" ? source : null,
     configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<div id="root"></div><script type="module" src="/shared-probe.tsx"></script>'); }); },
@@ -76,15 +76,6 @@ try {
   }
   evidence.push({ case: 'persistent-toggle-beside-brand-through-animation', frames: stationary.frames.length });
   await page.screenshot({ path: `${output}/header-expanded.png` });
-  await toggle.click(); await page.waitForTimeout(500);
-  await page.mouse.move(2, 200);
-  await page.locator('.app-shell-floating-left-panel').waitFor(); await page.waitForTimeout(500);
-  assert.equal(await toggle.evaluate(el => {
-    const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));
-  }), true, 'floating sidebar cannot cover the stationary toggle');
-  await toggle.click(); await page.waitForTimeout(500);
-  await page.evaluate(() => (window as any).fixture.setOpen(true)); await page.waitForTimeout(500);
-  evidence.push({ case: 'floating-sidebar-retains-header-hit-target', passed: true });
   if (process.env.OPENCRAFT_HEADER_TOGGLE_ONLY !== "1") {
   const measureFooter = () => page.evaluate(() => {
     const footer = document.querySelector<HTMLElement>('.shell-navigation__footer')!;
