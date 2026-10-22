@@ -11,6 +11,7 @@ import {
   resolveAgentActivityLayout,
   type AgentActivityContentUnit,
   type AgentActivityGroupContentUnit,
+  type AgentActivityStandaloneContentUnit,
   type AgentActivityHeaderSummary,
   type AgentActivityRenderUnit,
   type HookStats,
@@ -70,7 +71,7 @@ function AgentActivityGroup({
   collapsed,
   onCollapsedChange,
 }: {
-  group: AgentActivityGroupContentUnit;
+  group: AgentActivityGroupContentUnit | AgentActivityStandaloneContentUnit;
   onRetry?: () => void;
   collapsed: boolean | undefined;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -78,34 +79,36 @@ function AgentActivityGroup({
   const registry = useContext(ToolActivityPresenterContext);
   const detailLevel = useContext(ConversationDetailContext);
   const version = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
+  const standalone = group.type === "standalone";
   const header = useMemo(
-    () => deriveAgentActivityHeaderPresentation(group, registry, detailLevel),
+    () => group.type === "group" ? deriveAgentActivityHeaderPresentation(group, registry, detailLevel) : null,
     [group, registry, version, detailLevel],
   );
   const visibleBlocks = useMemo(
-    () => group.blocks.filter((block) => isVisibleAgentActivityRow(block, registry, detailLevel)),
-    [group.blocks, registry, version, detailLevel],
+    () => (group.type === "group" ? group.blocks : [group.block]).filter((block) => isVisibleAgentActivityRow(block, registry, detailLevel)),
+    [group, registry, version, detailLevel],
   );
   return (
     <div className="thread-agent-activity__group" data-conversation-row="activity" data-activity-group-id={group.id}>
       <AgentActivityGroupDisclosure
         canExpand={visibleBlocks.length > 0}
+        standalone={standalone}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
-        icon={header.state === "thinking" ? <ThinkingActivityIcon /> : header.icon === null ? undefined : activityIcon(header.icon)}
+        icon={header.state === "thinking" ? <ThinkingActivityIcon /> : header?.icon == null ? undefined : activityIcon(header.icon)}
         running={header.active}
         hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
-        shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
-        summary={<>
+        shouldAnimateInitialCollapse={group.type === "group" && group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
+        summary={header === null ? null : <>
           {header.state === "thinking" && header.summary.kind === "text"
             ? <ThinkingLabel summary={header.summary.text} />
             : <AgentActivitySummaryView summary={header.summary} />}
         </>}
-        summaryKey={header.summaryKey}
-        summaryTransition={header.state === "summary" ? "immediate" : "deferred"}
+        summaryKey={header?.summaryKey ?? group.id}
+        summaryTransition={header?.state === "summary" ? "immediate" : "deferred"}
       >
         {() => visibleBlocks.length > 0 ? (
-          <div className="thread-agent-activity__rows" data-scroll-owner="timeline">
+          <div className="thread-agent-activity__rows" data-scroll-owner="timeline" style={standalone ? { display: "contents" } : undefined}>
             {visibleBlocks.map((block) => <GenericBlock block={block} key={block.id} onRetry={onRetry} />)}
           </div>
         ) : null}
@@ -136,7 +139,7 @@ function AgentActivityContent({
           ref={contentUnit === followUnit ? followContentRef : undefined}
           key={contentUnit.id}
         >
-          {contentUnit.type === "group"
+          {contentUnit.type === "group" || (contentUnit.type === "standalone" && contentUnit.groupOrigin)
             ? <AgentActivityGroup group={contentUnit} onRetry={onRetry}
                 collapsed={innerCollapsedById[contentUnit.id]}
                 onCollapsedChange={collapsed => onInnerCollapsedChange(contentUnit.id, collapsed)} />

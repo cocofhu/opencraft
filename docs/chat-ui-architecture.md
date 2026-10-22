@@ -1535,7 +1535,12 @@ arbitration. Stable Turn/Item identity survives streaming, completion and
 history updates. A patch item changing multiple files retains its whole-group
 summary and disclosure when the Turn settles. Completion does not reveal a file
 list that the user collapsed; one-file patches retain the existing plain-row
-behavior. Reasoning and Bash/Read/tool groups have separate inner
+behavior. A completed single-item group may use a plain row, but keeps
+its group origin in the presentation plan. Web flattens only the group's
+header and layout wrappers while retaining the mounted item content. Completing
+or replaying that item preserves its explicit disclosure choice, log reading
+position and focused action; an unopened item remains collapsed.
+Reasoning and Bash/Read/tool groups have separate inner
 disclosures inside the same contiguous response work container. The newest
 current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.

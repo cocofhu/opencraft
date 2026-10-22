@@ -112,6 +112,8 @@ export interface AgentActivityStandaloneContentUnit {
     readonly type: "standalone";
     readonly id: string;
     readonly block: TimelineBlock;
+    /** Flatten the group's presentation without replacing its mounted content owner. */
+    readonly groupOrigin?: true;
 }
 
 export interface AgentActivityWorkStatusContentUnit {
@@ -280,7 +282,7 @@ export function createAgentActivityContentUnits(blocks: readonly TimelineBlock[]
     const onlyBlock = unit.blocks.length === 1 ? unit.blocks[0] : undefined;
     const groupedPatch = onlyBlock?.type === "patch" && onlyBlock.changes.length > 1;
     if (!inProgress && onlyBlock && !running(onlyBlock) && !groupedPatch) {
-      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock }] : [];
+      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock, groupOrigin: true }] : [];
     }
     return [{ ...unit, lifecycle: { isLatestVisibleUnit: latest, isActivitySliceClosed,
       isExploring: (() => { const block = unit.blocks[unit.blocks.length - 1]; return Boolean(block?.type === "command-execution" && running(block) && block.actions.some(action => action.type !== "unknown")); })(), inProgress } }];

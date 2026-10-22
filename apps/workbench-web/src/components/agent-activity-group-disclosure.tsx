@@ -31,7 +31,7 @@ export function reduceAgentActivityDisclosurePhase(
 export function AgentActivityGroupDisclosure({
   canExpand = true, children, defaultExpanded = false, collapsed, icon,
   onExpand, onCollapsedChange, shouldAnimateInitialCollapse = false,
-  summary, summaryKey, summaryTransition = "static", running = false, hasRunningRows = false,
+  summary, summaryKey, summaryTransition = "static", running = false, hasRunningRows = false, standalone = false,
 }: {
   canExpand?: boolean;
   children: ReactNode | (() => ReactNode);
@@ -46,6 +46,7 @@ export function AgentActivityGroupDisclosure({
   summaryTransition?: AgentActivitySummaryTransition;
   running?: boolean;
   hasRunningRows?: boolean;
+  standalone?: boolean;
 }) {
   const reduced = useReducedMotion();
   const labelId = useId();
@@ -61,6 +62,7 @@ export function AgentActivityGroupDisclosure({
   const reflow = useDisclosureReflow();
   const height = useDisclosureHeight(phase === "expanded" ? "auto" : 0);
   const open = phase === "opening" || phase === "expanded";
+  const bodyExpanded = standalone || open;
 
   useEffect(() => {
     if (!canExpand) { reflow.cancel(); setPhase("collapsed"); }
@@ -107,8 +109,9 @@ export function AgentActivityGroupDisclosure({
   return (
     <div className="thread-activity-item thread-agent-activity__group-disclosure"
       data-conversation-row="activity" data-body-variant="group"
+      style={standalone ? { display: "contents" } : undefined}
       data-disclosure-phase={phase} data-open={open || undefined}>
-      <OverlayDisclosureTrigger
+      {standalone ? null : <OverlayDisclosureTrigger
         className="thread-activity-item__header" contentClassName="thread-activity-item__header-content"
         buttonClassName="thread-activity-item__hit-target" interactive={canExpand}
         labelId={labelId} open={open} onToggle={toggle} reflowOwned>
@@ -116,18 +119,18 @@ export function AgentActivityGroupDisclosure({
           iconRunning={running && !(phase === "expanded" && hasRunningRows)} summaryId={labelId}
           summary={summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.key === summaryKey || summaryTransition === "immediate" ? summary : label.content}</span>} />
         {canExpand ? <ChevronRight size={13} className="thread-activity-item__chevron" aria-hidden="true" /> : null}
-      </OverlayDisclosureTrigger>
-      {phase !== "collapsed" ? (
+      </OverlayDisclosureTrigger>}
+      {standalone || phase !== "collapsed" ? (
         <motion.div className="thread-activity-item__body-clip" data-disclosure-phase={phase}
-          aria-hidden={phase !== "expanded"} inert={phase !== "expanded"} initial={false}
-          style={{ height, overflow: "hidden", pointerEvents: phase === "expanded" ? "auto" : "none" }}
-          animate={{ height: phase === "expanded" ? "auto" : 0, opacity: phase === "expanded" ? 1 : 0 }}
-          transition={{ duration: reduced ? 0 : 0.15, ease: [0.4, 0, 0.2, 1] }}
+          aria-hidden={!(standalone || phase === "expanded")} inert={!(standalone || phase === "expanded")} initial={false}
+          style={{ display: standalone ? "contents" : undefined, height, overflow: "hidden", pointerEvents: standalone || phase === "expanded" ? "auto" : "none" }}
+          animate={{ height: standalone || phase === "expanded" ? "auto" : 0, opacity: standalone || phase === "expanded" ? 1 : 0 }}
+          transition={{ duration: standalone || reduced ? 0 : 0.15, ease: [0.4, 0, 0.2, 1] }}
           onAnimationComplete={() => {
             setPhase(current => reduceAgentActivityDisclosurePhase(current, "animation-complete"));
             reflow.complete();
           }}>
-          <div className="thread-activity-item__body">{typeof children === "function" ? children() : children}</div>
+          <div className="thread-activity-item__body" style={standalone ? { display: "contents" } : undefined}>{typeof children === "function" ? children() : children}</div>
         </motion.div>
       ) : null}
     </div>

@@ -143,6 +143,19 @@ function Demo() {
         aggregatedOutput: Array.from({ length: reset ? 190 : 210 }, (_, index) => `Line ${index + 1} ${"output column ".repeat(8)}`).join("\n"),
       } }] }); return;
     }
+    if (action.startsWith("command-completion-")) {
+      const mode = action.slice("command-completion-".length);
+      const running = mode === "reset";
+      if (running) { restore = null; setGeneration(value => value + 1); }
+      const item = { type: "commandExecution", id: "completion-command", pluginId: null, scriptPath: null,
+        command: "printf 'ready\\n'", cwd: "/work", processId: null, source: "agent",
+        status: running ? "inProgress" : mode === "failed" ? "failed" : "completed", commandActions: [],
+        aggregatedOutput: Array.from({ length: 190 }, (_, index) => `line ${index + 1} ready`).join("\n"),
+        exitCode: running ? null : mode === "failed" ? 2 : 0, durationMs: running ? null : 1000,
+      } satisfies ThreadItem;
+      setTurn({ id: "turn", status: running ? "streaming" : mode === "interrupted" ? "interrupted" : mode === "failed" ? "failed" : "complete",
+        items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
