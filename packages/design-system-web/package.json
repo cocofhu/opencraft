@@ -9,7 +9,8 @@
     "./discrete-slider": "./src/discrete-slider.tsx",
     "./action-icons": "./src/action-icons.tsx",
     "./timeline-icons": "./src/timeline-icons.tsx",
-    "./native-controls.web": "./src/native-controls.web.scss"
+    "./native-controls.web": "./src/native-controls.web.scss",
+    "./task-link-icon": "./src/task-link-icon.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

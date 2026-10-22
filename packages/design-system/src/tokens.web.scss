@@ -92,6 +92,10 @@
   --height-toolbar: 46px;
   --height-shell-header-mobile: 56px;
   --spacing-shell-header-edge-touch: 2px;
+  --size-toolbar-dock-action: max(28px, var(--size-control-hit-min));
+  --gap-toolbar-dock: 4px;
+  --width-toolbar-dock-title-budget: 220px;
+  --count-toolbar-dock-maximum: 4;
   --size-shell-header-action-mobile: 44px;
   --size-shell-header-icon-mobile: 20px;
   --height-toolbar-sm: max(36px, var(--size-control-hit-min));

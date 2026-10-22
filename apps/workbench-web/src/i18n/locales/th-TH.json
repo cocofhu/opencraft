@@ -664,5 +664,18 @@
   "browser.keyboard": "แป้นพิมพ์",
   "browser.keyboard.hint": "เลือกช่องข้อความแล้วเปิดแป้นพิมพ์",
   "browser.menu.copy": "คัดลอก",
-  "browser.menu.copyLink": "คัดลอกที่อยู่ลิงก์"
+  "browser.menu.copyLink": "คัดลอกที่อยู่ลิงก์",
+  "toolbarDock.dragAction": "ลาก {action}",
+  "toolbarDock.drag": "ลากเพื่อจัดลำดับ",
+  "toolbarDock.remove": "นำออกจากแถบเครื่องมือ: {action}",
+  "toolbarDock.add": "เพิ่มไปยังแถบเครื่องมือ: {action}",
+  "toolbarDock.action": "ปุ่มแถบเครื่องมือที่ลากได้",
+  "toolbarDock.saveFailed": "บันทึกการตั้งค่าแถบเครื่องมือไม่ได้ โปรดลองอีกครั้ง",
+  "toolbarDock.customize": "ปรับแต่งแถบเครื่องมือ",
+  "toolbarDock.reset": "คืนค่าเริ่มต้น",
+  "toolbarDock.hint": "ลากเพื่อจัดลำดับหรือย้ายการทำงานระหว่างแถบเครื่องมือและเมนู เมื่อพื้นที่ไม่พอ การทำงานจะอยู่ในเมนู",
+  "toolbarDock.docked": "แถบเครื่องมือ",
+  "toolbarDock.overflow": "เมนูเพิ่มเติม",
+  "toolbarDock.emptyDock": "ลากการทำงานที่ใช้บ่อยมาที่นี่",
+  "toolbarDock.emptyMenu": "การทำงานทั้งหมดอยู่ในแถบเครื่องมือ"
 }

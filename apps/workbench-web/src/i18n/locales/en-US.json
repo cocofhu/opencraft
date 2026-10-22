@@ -418,7 +418,7 @@
   "tasks.relation.retry": "Retry",
   "tasks.relation.saveError": "Could not confirm the change. Review the current selection and retry.",
   "tasks.relation.search": "Search tasks",
-  "tasks.relation.title": "Task membership",
+  "tasks.relation.title": "Link tasks",
   "webUpdates.admin": "Deployment administrator",
   "webUpdates.adminHint": "Enter the admin-key from the website state directory to install updates or roll back.",
   "webUpdates.authorize": "Authorize management",
@@ -662,5 +662,18 @@
   "browser.keyboard": "Keyboard",
   "browser.keyboard.hint": "Select a text field, then open the keyboard",
   "browser.menu.copy": "Copy",
-  "browser.menu.copyLink": "Copy link address"
+  "browser.menu.copyLink": "Copy link address",
+  "toolbarDock.dragAction": "Drag {action}",
+  "toolbarDock.drag": "Drag to reorder",
+  "toolbarDock.remove": "Remove from toolbar: {action}",
+  "toolbarDock.add": "Add to toolbar: {action}",
+  "toolbarDock.action": "Draggable toolbar button",
+  "toolbarDock.saveFailed": "Could not save toolbar settings. Try again.",
+  "toolbarDock.customize": "Customize toolbar",
+  "toolbarDock.reset": "Restore defaults",
+  "toolbarDock.hint": "Drag to reorder or move actions between toolbar and menu. Actions fold into the menu when space is limited.",
+  "toolbarDock.docked": "Toolbar",
+  "toolbarDock.overflow": "More menu",
+  "toolbarDock.emptyDock": "Drag your frequent actions here",
+  "toolbarDock.emptyMenu": "All actions are in the toolbar"
 }

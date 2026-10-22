@@ -830,9 +830,18 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   > .application-brand { display: none; }
 }
 
+// Text actions keep the chrome hit height and theme while sizing to their label.
+.chrome-button.chrome-button--text {
+  --chrome-action-width: max-content;
+  padding-inline: calc(var(--spacing) * 2);
+  white-space: nowrap;
+  font: var(--typography-control-compact-font);
+  letter-spacing: var(--typography-control-compact-tracking);
+}
+
 .chrome-button {
   display: inline-grid;
-  width: 28px;
+  width: var(--chrome-action-width, 28px);
   height: 28px;
   flex: 0 0 auto;
   padding: 0;
@@ -1102,7 +1111,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     .app-shell-header__window-controls-rail,
     .app-shell-header__end-actions {
       .chrome-button {
-        width: var(--size-shell-header-action-mobile);
+        width: var(--chrome-action-width, var(--size-shell-header-action-mobile));
         height: var(--size-shell-header-action-mobile);
 
         > svg {
@@ -12401,7 +12410,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .app-shell-header__window-controls-rail[data-navigation-brand] { width: max-content; }
     .chrome-button {
       @include mobile-glass.surface($floating: true);
-      width: var(--size-shell-header-action-mobile);
+      width: var(--chrome-action-width, var(--size-shell-header-action-mobile));
       height: var(--size-shell-header-action-mobile);
       border-radius: var(--radius-full);
     }
@@ -12622,3 +12631,5 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }
+
+.conversation-toolbar { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }

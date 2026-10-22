@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type RefCallback,
   type ReactNode,
 } from "react";
@@ -21,6 +22,8 @@ import type {
 } from "../window-chrome";
 import { useAppShellLayoutMotion } from "./app-shell";
 import { useShellPresentation } from "./shell-presentation";
+import { ToolbarDockCapacityContext } from "./toolbar-dock-state";
+import { toolbarDockCapacity } from "./toolbar-dock-model";
 
 export interface AppShellNavigationControlsProps {
   readonly brand?: ReactNode;
@@ -192,6 +195,8 @@ export interface AppShellHeaderProps {
   readonly headerAction?: ReactNode;
   /** Number of chrome-button slots to reserve during panel animation. */
   readonly headerActionCount?: number;
+  /** Inert sizing projection for route actions with intrinsic text width. */
+  readonly headerActionSizing?: ReactNode;
   readonly title: string | null;
   readonly project: string | null;
   readonly titleContent?: ReactNode;
@@ -222,6 +227,7 @@ export function AppShellHeader({
   navigationBrand,
   headerAction,
   headerActionCount = 1,
+  headerActionSizing,
   conversationHeader = false,
   title,
   project,
@@ -258,6 +264,30 @@ export function AppShellHeader({
     (width) => `${Math.max(0, width)}px`,
   );
   const endActionsMeasureRef = useRef<HTMLDivElement | null>(null);
+  const contextRef = useRef<HTMLDivElement | null>(null);
+  const [dockCapacity, setDockCapacity] = useState(0);
+  useLayoutEffect(() => {
+    const context = contextRef.current;
+    const measure = endActionsMeasureRef.current;
+    if (!context || !measure) return;
+    const update = () => {
+      const style = getComputedStyle(context);
+      const sizeProbe = context.querySelector<HTMLElement>(".toolbar-dock__capacity-probe");
+      const size = sizeProbe?.getBoundingClientRect().width ?? 28;
+      const gap = parseFloat(style.getPropertyValue("--gap-toolbar-dock")) || 0;
+      const reserve = parseFloat(style.getPropertyValue("--width-toolbar-dock-title-budget")) || 220;
+      const maximum = parseFloat(style.getPropertyValue("--count-toolbar-dock-maximum")) || 4;
+      const available = context.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      setDockCapacity(presentation?.mobileSidebar ? 0 : toolbarDockCapacity(available, reserve, size + gap, showRightPanelAction ? 2 : 1, maximum));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(context);
+    observer.observe(measure);
+    const probe = context.querySelector(".toolbar-dock__capacity-probe");
+    if (probe) observer.observe(probe);
+    return () => observer.disconnect();
+  }, [presentation?.mobileSidebar, showRightPanelAction]);
 
   useLayoutEffect(() => {
     const endActionsMeasure = endActionsMeasureRef.current;
@@ -296,7 +326,9 @@ export function AppShellHeader({
         actions={navigationActions}
       />
 
-      <div className="app-shell-header__context">
+      <div ref={contextRef} className="app-shell-header__context">
+        <ToolbarDockCapacityContext.Provider value={dockCapacity}>
+        <span className="toolbar-dock__capacity-probe" aria-hidden="true" />
         <div
           ref={endActionsMeasureRef}
           aria-hidden="true"
@@ -304,7 +336,7 @@ export function AppShellHeader({
         >
           {showRightPanelAction || headerAction ? (
             <div className="app-shell-header__end-actions">
-              {headerAction ? Array.from({ length: headerActionCount }, (_, index) => <span key={index} className="chrome-button" />) : null}
+              {headerAction ? headerActionSizing ?? Array.from({ length: headerActionCount }, (_, index) => <span key={index} className="chrome-button" />) : null}
               {showRightPanelAction ? <span className="chrome-button app-shell-header__right-panel-toggle">
                 <RightPanelToggleIcon panelOpen={rightPanelOpen} />
               </span> : null}
@@ -361,6 +393,7 @@ export function AppShellHeader({
             ) : null}
           </div>
         </motion.div>
+        </ToolbarDockCapacityContext.Provider>
       </div>
     </header>
   );
