@@ -24,8 +24,13 @@ try {
     page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}`);
     const show = async (name: string) => {
+      const previousRequest = await page.locator("[data-pending-request-id]").getAttribute("data-pending-request-id");
       await page.evaluate(name => { (window as any).mcpActions = []; (window as any).showMcpCase(name); }, name);
       await page.locator(`main[data-scenario="${name}"]`).waitFor();
+      await page.waitForFunction(previous => {
+        const current = document.querySelector("[data-pending-request-id]")?.getAttribute("data-pending-request-id");
+        return current != null && current !== previous;
+      }, previousRequest);
     };
     const actions = () => page.evaluate(() => (window as any).mcpActions);
     await page.locator(".thread-elicitation").waitFor();
