@@ -2482,3 +2482,11 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+Composer auxiliary menus retain the native editor focus lease on touch. While
+Escape reports isComposing or compatibility keyCode 229, the input method owns
+it: both the existing editor capture listener and Radix onEscapeKeyDown leave
+the menu open. After composition, ordinary Escape retains native dismissal and
+focus behavior. The original picker-focus smoke covers model, permissions and
+Add menus with native composition and Chromium keyboard input, while preserving
+its original selection, scrolling, geometry, outside-focus and unmount checks.

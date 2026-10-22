@@ -1,5 +1,28 @@
 import assert from "node:assert/strict";
 import { createServer } from "vite";
+async function assertComposingMenuEscape(page:any, editor:any, trigger:any, menu:any) {
+ await editor.fill('菜单组词草稿');await trigger.tap();await menu.waitFor();
+ assert(await editor.evaluate(el=>el===document.activeElement));
+ await editor.evaluate(el=>{window.compositionEditor=el;window.menuImeKeys=[];window.menuImeEvents=[];el.addEventListener('keydown',event=>{if(event.key==='Escape')window.menuImeKeys.push({composing:event.isComposing,keyCode:event.keyCode});});for(const type of ['compositionstart','compositionend'])el.addEventListener(type,()=>window.menuImeEvents.push(type));});
+ const cdp=await page.context().newCDPSession(page);
+ try {
+  await cdp.send('Input.imeSetComposition',{text:'候选',selectionStart:2,selectionEnd:2});
+  const composing=await editor.innerText();assert.equal(composing,'菜单组词草稿候选');
+  await page.keyboard.press('Escape');
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await menu.getAttribute('data-state'),'open','composing Escape retains the auxiliary menu');
+  assert.equal(await editor.innerText(),composing);assert(await editor.evaluate(el=>el===window.compositionEditor&&el===document.activeElement));
+  assert(await page.evaluate(()=>window.menuImeKeys.some(e=>e.composing)));
+  await cdp.send('Input.insertText',{text:'已确认'});assert.equal(await editor.innerText(),'菜单组词草稿已确认');
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:229,nativeVirtualKeyCode:229});
+  await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:229,nativeVirtualKeyCode:229});
+  assert.equal(await menu.getAttribute('data-state'),'open','compatibility IME keyCode229 retains the menu');
+  assert(await page.evaluate(()=>window.menuImeKeys.some(e=>!e.composing&&e.keyCode===229)));
+  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  assert(await page.evaluate(()=>window.menuImeEvents.includes('compositionstart')&&window.menuImeEvents.includes('compositionend')&&window.menuImeKeys.some(e=>!e.composing&&e.keyCode===27)));
+  assert.equal(await editor.innerText(),'菜单组词草稿已确认');assert(await editor.evaluate(el=>el===window.compositionEditor&&el===document.activeElement));
+ } finally {await cdp.detach();}
+}
 const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"error",esbuild:{jsx:"automatic"},resolve:{dedupe:["react","react-dom"]},server:{host:"127.0.0.1",port:0},plugins:[{name:"entry-defaults",configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith("/?"))return next();res.setHeader("content-type","text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/touch-newera.tsx"></script>')})}}]});
 const playwright=await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE??"playwright");
 const {chromium}=playwright.default??playwright;
@@ -56,6 +79,7 @@ try {
   await model.tap();await menu.waitFor();assert(await menu.evaluate(el=>el.contains(document.activeElement)));
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
   console.log('core passed');
+  for(const trigger of [model,permissions,add])await assertComposingMenuEscape(page,editor,trigger,menu);
   // Outside text entry may take focus and must not be stolen by delayed cleanup.
   await editor.click();await model.tap();await menu.waitFor();
   await page.getByLabel('Outside input').tap();await menu.waitFor({state:'hidden'});
@@ -79,5 +103,5 @@ try {
   assert(await page.locator(selector).evaluate(el=>el===document.activeElement));
  }
  assert.equal(await editor.innerText(),'桌面草稿');await context.close();
- console.log('PASS: touch Newera on/off × light/dark; model/permissions selection, switching, no blur, native selection/draft, stable layout, typing, keyboard/AT entry and Escape');
+ console.log('PASS: touch Newera on/off × light/dark; model/permissions selection, switching, no blur, native selection/draft, stable layout, typing, keyboard/AT entry, native composing/compatibility Escape ownership and ordinary Escape');
 }finally{await browser.close();await vite.close()}

@@ -29,7 +29,7 @@ export function useInputAuxiliaryMenuFocus(options: {
     const editor = options.getEditor();
     if (!editor) return;
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (!preserve.current || !editorHasFocus(editor) || event.isComposing) return;
+      if (!preserve.current || !editorHasFocus(editor) || event.isComposing || event.keyCode === 229) return;
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         const items = content.current?.querySelectorAll<HTMLElement>(':is([role^="menuitem"], [role="slider"]):not([aria-disabled="true"])');
         const target = event.key === "ArrowUp" ? items?.[items.length - 1] : items?.[0];
@@ -68,6 +68,10 @@ export function useInputAuxiliaryMenuFocus(options: {
       onKeyDown(_event: KeyboardEvent<HTMLButtonElement>) { preserve.current = false; },
     },
     contentProps: {
+      onEscapeKeyDown(event: globalThis.KeyboardEvent) {
+        // An active input method owns Escape before Radix document dismissal.
+        if (event.isComposing || event.keyCode === 229) event.preventDefault();
+      },
       ref(node: HTMLDivElement | null) { content.current = node; },
       onOpenAutoFocus(event: Event) {
         const editor = latest.current.getEditor();
