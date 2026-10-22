@@ -41,6 +41,18 @@ module loader or a product ID switch. Product parsers, dictionaries and artwork
 stay downstream. `smoke-product-render-extensions.ts` exercises the real
 Application and documents, default isolation and startup/disposal failures.
 
+## Message timestamp presentation
+
+Web/Electron user and assistant action rows share `MessageTimestamp`. It formats
+the authoritative `sentAtMs` using the application Intl locale and the viewer's
+local time zone: today shows hours/minutes, the preceding six calendar days add
+the weekday, and other days add month/day. Calendar-day comparison survives DST.
+Both roles use an unpadded numeric hour and a two-digit minute; the locale owns
+the hour cycle. A full localized date/time with zone is available in the title,
+while `datetime` preserves the original instant. Known local zone names remain explicit so the shared Intl cache follows local-zone changes. When a runtime reports `Etc/Unknown`, leave the zone unspecified: native default local formatting still works, but feeding that unknown name back as an explicit zone fails. Missing or invalid values render
+no clock. Existing always-visible timestamps, action disclosure and alignment
+remain independent; this view never derives or persists a replacement time.
+
 ## User message sender display
 
 Web/Electron show each user message's verified employee `loginName` above its

@@ -1,4 +1,5 @@
 import { ForkTurnButton } from "./conversation/fork-turn-button";
+import { MessageTimestamp } from "./conversation/message-timestamp";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -522,7 +523,7 @@ function Frame({
           {onFork === undefined ? null : <ForkTurnButton fork={onFork} />}
           {onRetry === undefined ? null : <button onClick={onRetry} type="button" title={intl.formatMessage({ id: "common.retry", defaultMessage: "Try again" })}><RotateCcw size={13} /></button>}
           {visibleFrame.hookStats == null ? null : <HookStatsButton detailLevel={threadDetailLevel} stats={visibleFrame.hookStats} />}
-          {actions?.sentAtMs == null ? null : <time data-assistant-message-sent-time dateTime={new Date(actions.sentAtMs).toISOString()} title={new Date(actions.sentAtMs).toLocaleString()}>{new Date(actions.sentAtMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
+          <MessageTimestamp assistant sentAtMs={actions?.sentAtMs} />
         </div>
       ) : null}
     </div>

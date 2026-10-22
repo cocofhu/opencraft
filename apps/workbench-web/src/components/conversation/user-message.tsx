@@ -26,6 +26,7 @@ import {
 } from "react";
 
 import { useConversationMediaSource } from "./conversation-media-source";
+import { MessageTimestamp } from "./message-timestamp";
 import { ConversationDocumentContext } from "./document-context";
 import { ModalSurface } from "../modal/modal-surface";
 import { deriveUserMessageWebLayout } from "./user-message-layout";
@@ -319,21 +320,6 @@ function UserMessageAttachmentRows({ block }: { readonly block: UserMessageTimel
   );
 }
 
-function formatUserMessageTimestamp(sentAtMs: number, nowMs = Date.now()): string {
-  const sent = new Date(sentAtMs);
-  const now = new Date(nowMs);
-  const sentDay = new Date(sent.getFullYear(), sent.getMonth(), sent.getDate());
-  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayOffset = Math.round((sentDay.getTime() - nowDay.getTime()) / 86_400_000);
-  const options: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
-  if (dayOffset < 0 && dayOffset > -7) options.weekday = "long";
-  else if (dayOffset !== 0) {
-    options.month = "short";
-    options.day = "numeric";
-  }
-  return new Intl.DateTimeFormat(undefined, options).format(sent);
-}
-
 function UserMessageStatusRow({ block, hookStatsAccessory }: {
   readonly block: UserMessageTimelineBlock;
   readonly hookStatsAccessory?: ReactNode;
@@ -388,7 +374,7 @@ export function UserMessageBlock({ block, hookStatsAccessory }: {
           <div className="thread-user-message__accessories">
             <UserMessageStatusRow block={block} hookStatsAccessory={hookStatsAccessory} />
             {layout.hasText ? <div className="thread-user-message__actions">
-              {block.sentAtMs === null ? null : <time dateTime={new Date(block.sentAtMs).toISOString()}>{formatUserMessageTimestamp(block.sentAtMs)}</time>}
+              <MessageTimestamp sentAtMs={block.sentAtMs} />
               <button aria-label={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : intl.formatMessage({ id: "chat.message.copy", defaultMessage: "Copy message" })} disabled={copied} onClick={copy} title={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : intl.formatMessage({ id: "chat.message.copy", defaultMessage: "Copy message" })} type="button">{copied ? <Check aria-hidden="true" size={13} /> : <Copy aria-hidden="true" size={13} />}</button>
             </div> : null}
           </div>
