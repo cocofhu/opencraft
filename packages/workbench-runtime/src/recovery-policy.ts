@@ -44,35 +44,21 @@ export class ConversationRecoveryOwner {
     this.stage(stage);
   }
   connectionFailed(error: unknown) { this.observe("failed", undefined, { error }); }
-  private attempt = 0;
-  private connectionTimer: unknown = null;
-  private stableTimer: unknown = null;
-  private stableTicket = 0;
-  private connectionTicket = 0;
   private generation = 0;
   private work = new Map<object, Work>();
   private timers = new Map<object, unknown>();
   private active = new Set<object>();
   private disposed = false;
   private connected = true;
-  private lastHintAt = Number.NEGATIVE_INFINITY;
   private stages = 0;
   private episode: { id: string; start: number; requests: number; bytes: number; projectionMs: number; extraConversations: Set<object> } | null = null;
   constructor(private readonly input: {
-    hostId: string; clock: RecoveryClock; reconnect(): Promise<unknown>;
-    delaysMs?: readonly number[]; stableMs?: number; concurrency?: number;
+    hostId: string; clock: RecoveryClock;
+    delaysMs?: readonly number[]; concurrency?: number;
     changed?(): void;
     log?(event: Readonly<Record<string, string | number>>): void;
   }) {}
-  get reconnectAttempt() { return this.attempt; }
   get observing() { return this.episode !== null; }
-  get waiting() { return this.connectionTimer !== null; }
-  /** Foreground/online bursts may advance one attempt, without resetting backoff. */
-  admitRecoveryHint() {
-    if (this.disposed || this.now() - this.lastHintAt < 5_000) return false;
-    this.lastHintAt = this.now();
-    return true;
-  }
   private now() { return this.input.clock.now?.() ?? Date.now(); }
   begin(reason: string) {
     if (["transport-unavailable", "waiting", "connecting", "manual-block"].includes(reason)) this.connected = false;
@@ -105,46 +91,19 @@ export class ConversationRecoveryOwner {
     this.episode = null;
   }
   projection(duration: number) { if (this.episode) this.episode.projectionMs += duration; }
-  cancelConnection() {
-    this.connectionTicket++;
-    if (this.connectionTimer !== null) this.input.clock.clearTimeout(this.connectionTimer);
-    this.connectionTimer = null;
-  }
-  unstable() {
-    this.stableTicket++;
-    if (this.stableTimer !== null) this.input.clock.clearTimeout(this.stableTimer);
-    this.stableTimer = null;
-  }
-  ready(stillReady: () => boolean, stable = true) {
+  /** Observation only: ConnectionLifecycleOwner owns admission and timers. */
+  hostReady() {
     this.connected = true;
     this.connectionProgress = undefined;
     this.notify();
-    this.unstable();
     this.stage("host-ready");
-    if (!stable) return;
-    const ticket = this.stableTicket;
-    this.stableTimer = this.input.clock.setTimeout(() => {
-      if (ticket !== this.stableTicket || this.disposed) return;
-      this.stableTimer = null;
-      if (stillReady()) this.attempt = 0;
-    }, this.input.stableMs ?? 60_000);
   }
-  schedule(manual: boolean, enabled = true) {
-    if (this.disposed || !enabled) return;
-    if (manual) { this.begin("manual-block"); this.cancelConnection(); return; }
-    if (this.waiting) return;
+  connectionBackoff(attempt: number, delayMs: number) {
     this.begin("waiting");
-    const schedule = this.input.delaysMs ?? delays;
-    const delayMs = schedule[Math.min(this.attempt++, schedule.length - 1)] ?? 60_000;
-    this.stage("backoff", { attempt: this.attempt, delayMs });
+    this.stage("backoff", { attempt, delayMs });
     this.observe("backoff", undefined, { retryAt: this.now() + delayMs });
-    const ticket = ++this.connectionTicket;
-    this.connectionTimer = this.input.clock.setTimeout(() => {
-      if (ticket !== this.connectionTicket || this.disposed) return;
-      this.connectionTimer = null;
-      void this.input.reconnect().catch(() => undefined);
-    }, delayMs);
   }
+  connectionBlocked() { this.begin("manual-block"); }
   invalidate() {
     this.generation++;
     for (const timer of this.timers.values()) this.input.clock.clearTimeout(timer);
@@ -240,7 +199,7 @@ export class ConversationRecoveryOwner {
       });
     }
   }
-  dispose() { this.disposed = true; this.cancelConnection(); this.unstable(); this.invalidate(); }
+  dispose() { this.disposed = true; this.invalidate(); }
 }
 
 /**

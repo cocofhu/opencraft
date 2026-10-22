@@ -27,7 +27,7 @@ const TEXT_DELTA_METHODS = new Set([
 export interface ThreadResumeCoordinatorConfig {
   client: AppServerClient;
   hostKind?: AppServerHostKind;
-  historyModeHint?: "legacy" | "paginated" | "message-window" | null;
+  historyModeHint?: "legacy" | "paginated" | "message-window" | null | (() => "legacy" | "paginated" | "message-window" | null);
   useTailHydration?: boolean;
   supportsPaginatedHistory?: boolean;
   pageSize?: number;
@@ -102,7 +102,8 @@ export class ThreadResumeCoordinatorService extends Service {
   private readonly hostKind: AppServerHostKind;
   private readonly useTailHydration: boolean;
   private readonly supportsPaginatedHistory: boolean;
-  private readonly historyModeHint: "legacy" | "paginated" | "message-window" | null;
+  private readonly readHistoryMode: () => "legacy" | "paginated" | "message-window" | null;
+  private get historyModeHint() { return this.readHistoryMode(); }
   private readonly pageSize: number;
   private readonly requestTimeoutMs: number;
   private readonly drainTailHistory: boolean;
@@ -122,7 +123,8 @@ export class ThreadResumeCoordinatorService extends Service {
     this.hostKind = config.hostKind ?? (config.client.hostId === "durable" ? "durable" : "local");
     this.useTailHydration = config.useTailHydration ?? true;
     this.supportsPaginatedHistory = config.supportsPaginatedHistory ?? true;
-    this.historyModeHint = config.historyModeHint ?? null;
+    const hint = config.historyModeHint;
+    this.readHistoryMode = typeof hint === "function" ? hint : () => hint ?? null;
     this.pageSize = config.pageSize ?? 5;
     this.requestTimeoutMs = config.requestTimeoutMs ?? 30_000;
     this.drainTailHistory = config.drainTailHistory ?? false;

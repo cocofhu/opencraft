@@ -27,6 +27,9 @@ export interface AppHostServerPort {
 }
 
 export interface AppHostServerOptions {
+  /** Bounds callers waiting on a physical barrier; never releases that barrier. */
+  readonly lifecycleTimeoutMs?: number;
+  readonly lifecycleClock?: { setTimeout(callback: () => void, delay: number): unknown; clearTimeout(handle: unknown): void };
   readonly logicalClientRouting?: boolean;
   /** A process-owned Host outlives every Renderer claim and closes with this server. */
   readonly physicalHostLifetime?: "last-claim" | "server";
@@ -81,7 +84,21 @@ export class AppHostServer {
   private closed = false;
   private closeOperation: Promise<void> | null = null;
 
-  constructor(private readonly options: AppHostServerOptions) {}
+  constructor(private readonly options: AppHostServerOptions) {
+    if (!Number.isFinite(options.lifecycleTimeoutMs ?? 20_000) || (options.lifecycleTimeoutMs ?? 20_000) <= 0)
+      throw new RangeError("Host lifecycle timeout must be positive and finite");
+  }
+
+  private waitForLifecycle<T>(operation: Promise<T>, stage: "START" | "CLEANUP" | "RESET"): Promise<T> {
+    const clock = this.options.lifecycleClock ?? { setTimeout, clearTimeout: (handle: unknown) => clearTimeout(handle as ReturnType<typeof setTimeout>) };
+    return new Promise((resolve, reject) => {
+      const timer = clock.setTimeout(() => reject(Object.assign(new Error("The server did not finish connecting. Retry after it recovers."), {
+        code: `APP_HOST_${stage}_TIMEOUT`, retryable: false,
+      })), this.options.lifecycleTimeoutMs ?? 20_000);
+      // Timing out this observer cannot authorize a second physical generation.
+      void operation.then(resolve, reject).finally(() => clock.clearTimeout(timer));
+    });
+  }
 
   accept(port: AppHostServerPort, connectionId: string, submissionContext: TransportSubmissionContext = { sender: null }): AppHostServerConnection {
     if (this.closed) throw new Error("App Host Server is closed");
@@ -119,7 +136,7 @@ export class AppHostServer {
 
   hostState(hostId: string): string {
     const slot = this.slots.get(hostId);
-    return slot?.resetOperation ? "closing" : slot?.phase === "starting" ? "connecting" : slot?.record?.transport.status.state ?? slot?.lastState ?? "idle";
+    return slot?.resetOperation || slot?.phase === "closing" ? "closing" : slot?.phase === "starting" ? "connecting" : slot?.record?.transport.status.state ?? slot?.lastState ?? "idle";
   }
 
   /** Trusted explicit connection intent; never grants a Client lease or starts remote work. */
@@ -127,7 +144,7 @@ export class AppHostServer {
     if (this.options.physicalHostLifetime !== "server") throw new Error("Service connection requires a server-owned Host lifetime");
     if (this.closed) throw new Error("App Host Server is closed");
     const slot = this.slotFor(hostId);
-    while (slot.resetOperation) await slot.resetOperation;
+    while (slot.resetOperation) await this.waitForLifecycle(slot.resetOperation, "RESET");
     if (this.closed) throw new Error("App Host Server is closed");
     slot.serviceAdmissions++;
     try { await this.ensureSlotOpen(slot, assertAdmission); }
@@ -226,7 +243,7 @@ export class AppHostServer {
   ): Promise<HostRecord> {
     if (this.closed || connection.isClosed) throw new Error("App Host connection is closed");
     const slot = this.slotFor(hostId);
-    while (slot.resetOperation) await slot.resetOperation;
+    while (slot.resetOperation) await this.waitForLifecycle(slot.resetOperation, "RESET");
     if (this.closed || connection.isClosed) throw new Error("App Host connection is closed");
     const key = this.claimKey(connection, leaseId);
     let claim = slot.claims.get(key);
@@ -264,15 +281,15 @@ export class AppHostServer {
         return slot.record;
       }
       if (slot.phase === "closing") {
-        await slot.closeOperation;
+        await this.waitForLifecycle(slot.closeOperation!, "CLEANUP");
         continue;
       }
-      if (slot.phase === "starting") return slot.startOperation!;
+      if (slot.phase === "starting") return this.waitForLifecycle(slot.startOperation!, "START");
       if (slot.phase === "open") {
-        await this.stopSlot(slot, true);
+        await this.waitForLifecycle(this.stopSlot(slot, true), "CLEANUP");
         continue;
       }
-      return this.startSlot(slot);
+      return this.waitForLifecycle(this.startSlot(slot), "START");
     }
   }
 
@@ -390,12 +407,18 @@ export class AppHostServer {
     if (slot === undefined || claim === undefined || claim.generation !== generation) {
       throw new Error(`Host lease ${leaseId} does not own ${hostId}`);
     }
-    if (this.options.logicalClientRouting && slot.record) {
-      await slot.record.transport.send(stampLogicalClientFrame(JSON.stringify({ jsonrpc: "2.0", method: "runtime/client/disconnect" }), key));
-    }
+    const record = slot.record;
     slot.claims.delete(key);
     connection.forgetLease(hostId, leaseId, generation);
-    if (slot.claims.size === 0) await this.stopSlot(slot, false);
+    try {
+      if (this.options.logicalClientRouting && record) {
+        await record.transport.send(stampLogicalClientFrame(JSON.stringify({ jsonrpc: "2.0", method: "runtime/client/disconnect" }), key));
+      }
+    } finally {
+      // A late notification cannot remove a successor claim. stopSlot rechecks
+      // all remaining claims and preserves service-owned physical lifetimes.
+      if (slot.claims.size === 0) await this.stopSlot(slot, false);
+    }
   }
 
   private publish(hostId: string, generation: number, message: AppHostToRendererMessage): void {
@@ -475,6 +498,14 @@ export class AppHostServerConnection {
         && "requestId" in message && typeof message.requestId === "string"
         && message.requestId.length > 0 && message.requestId.length <= 4096) {
         this.post({ type: "response", requestId: message.requestId, ok: true, result: null });
+        return;
+      }
+      // Admission is owned by the slot, not by the previous RPC's I/O queue.
+      // Otherwise a hung close/send can prevent even the admission deadline
+      // from starting. Writable frame ordering remains on the per-host queue.
+      if (this.ready && !this.closed && typeof message === "object" && message !== null
+        && "type" in message && message.type === "host/connect") {
+        void this.receive(message);
         return;
       }
       // hello establishes connection authority synchronously. Thereafter only

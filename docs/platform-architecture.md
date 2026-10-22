@@ -2756,9 +2756,16 @@ cancellation releases its pending acknowledgement without cancelling or replayin
 remote execution. AppServer initialization rejects results from a revoked transport.
 
 Workbench Host readiness ends at lease acquisition plus AppServer initialize.
-`workbench-runtime/recovery-policy.ts` owns connection backoff, foreground
-admission, coalescing and conversation recovery scheduling. It is one Host-scoped
-owner, not another data authority. Explicit visible leases recover first; explicit
+`workbench-runtime/connection-lifecycle.ts` is the single connection owner for
+cold start, reconnect and implicit Thread acquisition. It registers attempts and
+promises before notifying observers, bounds each attempt, and owns retry tickets,
+foreground admission and stability timers. Revocation synchronously invalidates
+child sources before publishing connection loss. Readiness commits require the
+current client, initialized protocol, open transport, connection revision and
+assembled local services. A late initializer cannot cancel a successor retry.
+`workbench-runtime/recovery-policy.ts` retains observation and demand-prioritized
+conversation recovery; it has no connection timer or writable readiness authority.
+Both owners remain scoped to the existing Runtime connection domain. Explicit visible leases recover first; explicit
 open leases, running work and unresolved interactions recover in the background
 with concurrency one and at most three transient retries. Cache residency and DOM
 subscription counts alone do not create recovery demand. A reserved foreground
@@ -2778,6 +2785,20 @@ query keys are retained across connections. This coordination is independent of
 menu mounting; late cancelled reads cannot overwrite recovered catalog data.
 Execution requests keep their existing admission and reconciliation policies and
 are not replayed by connection or cache recovery.
+
+Replica source operations register their generation before the first preparation
+await. Disconnect settles synchronization callers immediately; late preparation,
+pages, mutations and live-event failures cannot adopt or change a successor source.
+Storage writes and clears use one queue across source generations for the same
+client/cache key. Accepted external writes may finish after revocation, but cannot
+overtake a newer write, and publication rechecks source ownership after storage.
+The V3 ThreadView projection remains volatile. Negotiated history and queue
+capabilities are read from the current initialized client, not a cold-start copy.
+Logical AppHost claim removal precedes remote disconnect notification; notification
+failure cannot retain local authorization or close a peer's service-owned Host.
+The raw and logical-client Core adapters share a socket owner that revokes before
+close and checks its identity after health and socket-open waits. RPC encoding,
+synchronous send throws and asynchronous send failures settle the same receipt.
 
 The app-like iPhone Web surface requests a fixed viewport scale for embedded
 browsers and keeps focused editable text at a 16px minimum on coarse-pointer
@@ -3183,6 +3204,49 @@ An older Host without the `opencraft/capacity-retry` capability is supported by
 the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
+
+### Connection conformance and external waits
+
+An independent observable specification replays deterministic event traces through
+ConnectionLifecycleOwner, Runtime/RPC and Runtime/RPC/AppHost. Compare phase,
+error presence and timer ownership after every event, including suspended clocks,
+late completions and retired timer callbacks. A seed and event prefix reproduce a
+failure. This bounded refinement check does not prove all implementation traces.
+
+Revoked service assembly stops waiting for external acquisition or dial. Failed
+bundles detach shared fields and registry claims before async cleanup; each late
+acquired resource disposes itself without touching successor fields. Transport
+factories must provide independent generations. This does not declare an
+uncancelable external operation physically complete.
+
+ReplicaClient storage is a disposable paint cache, separate from source authority.
+A configurable five-second storage deadline switches that client instance to
+source data without further cache writes and exposes cacheError. Accepted writes
+retain their physical serial lane; timeout does not cancel them. A late cache
+completion cannot publish or reenable writes. clear still rejects when completion
+cannot be established. Source protocol and authority-storage errors remain errors;
+this policy never skips an authority transaction or replays a mutation.
+
+Physical AppHost startup, close and reset barriers remain serialized. Their callers
+have a twenty-second admission deadline: expiration returns a classified manual
+failure instead of an endless reconnect, without releasing the physical barrier
+or starting a competing generation. After the dependency actually settles, an
+explicit retry can be admitted normally. This is bounded failure, not a claim
+that an unavailable external process has recovered.
+
+Connection admission bypasses the per-host frame I/O queue and enters the slot
+owner directly, so a hung prior close/send cannot prevent its deadline from
+starting. Frame sends retain their ordered queue and revalidate lease identity.
+The default twenty-second slot budget precedes the bridge's thirty-second wait
+and Runtime's sixty-second attempt budget.
+
+`smoke:connection-process-recovery` exercises the complete built/installed Web UI
+with a separate synthetic physical Host process. Three actual child-process
+restarts while Chromium is frozen must recover after resume, retain the real
+Composer draft, and reconnect on page reload without starting a Thread or Turn.
+Set OPENCRAFT_LIFECYCLE_WEB_ROOT to that artifact's web directory. This checks
+real process/network/browser composition with synthetic protocol data; it does
+not claim live-user, real-model or physical-mobile acceptance.
 
 The Electron Main and Preload bundled together use `opencraft:get-window-fullscreen`, `opencraft:window-fullscreen-changed` and `opencraft:set-window-appearance` for internal window projection. The renderer methods, payloads, admission checks and window lifecycle are unchanged; these channel names do not alter persisted identities or the AppHost transport.
 

@@ -359,6 +359,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
         priority: options.priority,
         queuedAtMs,
       });
+      if (this.pending.get(id) !== pending) return;
       pending.startedAtMs = this.clock.now();
       this.emitRequestLifecycle({
         type: "started",
@@ -372,15 +373,18 @@ export class JsonRpcAppServerClient implements AppServerClient {
         timeoutMs,
       });
 
-      void this.transport.send(encodeJsonRpcMessage(request), pending.controller.signal).catch((error: unknown) => {
-        this.rejectPending(
-          id,
-          new AppServerClientError("TRANSPORT_ERROR", `Failed to send AppServer request ${method}`, {
-            cause: error,
-          }),
-          "failed",
-        );
-      });
+      if (this.pending.get(id) !== pending) return;
+      const fail = (error: unknown) => {
+        if (this.pending.get(id) !== pending) return;
+        this.rejectPending(id, new AppServerClientError("TRANSPORT_ERROR", `Failed to send AppServer request ${method}`, {
+          cause: error,
+        }), "failed");
+      };
+      try {
+        const frame = encodeJsonRpcMessage(request);
+        if (this.pending.get(id) !== pending) return;
+        void Promise.resolve(this.transport.send(frame, pending.controller.signal)).catch(fail);
+      } catch (error) { fail(error); }
     });
   }
 

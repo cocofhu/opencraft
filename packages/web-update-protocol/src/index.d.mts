@@ -20,7 +20,7 @@ export interface WebUpdateStatus {
   readonly checkErrorCode: 'authentication' | 'network' | 'unavailable' | 'registry' | null;
   readonly canRollback: boolean;
   readonly updateAvailable: boolean;
-  readonly execution: { readonly enabled: true; readonly profile?: 'daemon' | 'headless'; readonly version: string | null; readonly buildId: string | null; readonly ready: boolean } | null;
+  readonly execution: { readonly enabled: true; readonly profile?: 'daemon' | 'headless'; readonly version: string | null; readonly buildId: string | null; readonly ready: boolean; readonly observation?: { readonly reason: 'ready' | 'pointer-unavailable' | 'health-invalid' | 'dependency-unavailable' | 'health-http-error' | 'release-mismatch' | 'health-timeout' | 'health-unreachable'; readonly sampledAt: string; readonly durationMs: number } } | null;
   readonly packageName: string;
   readonly channel: string;
   readonly job: WebUpdateJob | null;
