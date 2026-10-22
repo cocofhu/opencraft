@@ -603,8 +603,8 @@ states; optional isolated Electron execution requires an explicit executable.
 
 ### Theme surfaces and native appearance
 
-`ZenCode` (`vela.core.zencode`) is an optional built-in Web/Electron palette
-inspired by ZCode's layered grays: opaque chrome, light gray/white surfaces in
+`Graphite` (`opencraft.core.graphite`) is an optional built-in Web/Electron palette
+with layered grays: opaque chrome, light gray/white surfaces in
 light mode and charcoal layers in dark mode. It does not change default theme,
 typography or control density. Settings preview cards project each theme's
 actual resolved-mode tokens rather than maintaining ID-specific color copies.

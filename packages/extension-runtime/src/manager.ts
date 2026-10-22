@@ -214,7 +214,7 @@ export class ExtensionManager {
         return;
       }
 
-      // Obsidian-style asymmetric transaction: disabled intent survives unload failure.
+      // Persist disabled intent before unloading so it survives an unload failure.
       await this.installations.put(Object.freeze({ ...installation, enabled: false, updatedAt: this.now() }));
       try {
         await this.retire(extensionId);

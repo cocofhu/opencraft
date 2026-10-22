@@ -48,7 +48,7 @@ window.proof={getAppearanceThemeSnapshot,setAppearanceThemeId,setThemePreference
     try {
       await server.listen();const url=`http://127.0.0.1:${(server.httpServer!.address() as {port:number}).port}`;
       const legacyIds=['codex','web','frost','lavender','mist','zencode'];
-      const canonicalIds=['neutral','canvas','frost','lavender','mist','zencode'];
+      const canonicalIds=['neutral','canvas','frost','lavender','mist','graphite'];
       for (const [index,legacy] of legacyIds.entries()) {
         const page=await browser.newPage();
         const oldId=`vela.core.${legacy}`;const canonical=`opencraft.core.${canonicalIds[index]}`;

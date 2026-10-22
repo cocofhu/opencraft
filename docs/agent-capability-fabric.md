@@ -569,8 +569,8 @@ interface CapabilityScopeKey {
 }
 ```
 
-可信内建 Provider 可以借鉴 Harness：同一个 scoped context 同时决定 registration visibility
-和 lifetime。但对隔离 Provider，外部等价物是 `CapabilityLease`，不是 Cordis Context。
+可信内建 Provider 由同一个 scoped context 管理 registration visibility 和 lifetime。
+隔离 Provider 通过 `CapabilityLease` 表达这一作用域，不暴露内部 Cordis Context。
 
 Cordis 不负责：
 

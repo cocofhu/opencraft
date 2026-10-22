@@ -7,7 +7,7 @@ let browser: any;
 try {
  await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
  const quick = process.argv.includes("--quick");
- for (const width of [390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
+ for (const width of [390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "graphite"]) for (const mode of ["light", "dark"]) {
   const page = await browser.newPage({ viewport: { width, height: 700 }, hasTouch: width === 390 });
   const errors: string[] = []; page.on("pageerror", (e: Error) => { errors.push(e.message); console.error(e.message); });
   page.on("console", m => { if(m.type() === "error") console.error(m.text()); });

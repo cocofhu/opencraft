@@ -16,7 +16,7 @@ Engine Adapter 投影到各自协议。产品层、Connector 层和 Composer 不
 
 ## 当前实现与适用边界
 
-| 实现 | 已验证做法 | 能借鉴什么 | 不能直接照搬什么 |
+| 实现 | 当前行为 | 保留边界 | 待补能力 |
 |---|---|---|---|
 | OpenCraft 当前 | 会话先选择连接，再 `discover()` 所有工具，为每个完整 schema 生成 handle，一次 JSON 返回；总文本超过 262144 字符则整批失败 | 已有 scope、授权、approval、stale-handle 和 provider 生命周期可保留 | 全量 list 不是可扩展发现协议；MCP 的 cursor 只用于 Host 拉取，到了模型边界已经被彻底展开 |
 
