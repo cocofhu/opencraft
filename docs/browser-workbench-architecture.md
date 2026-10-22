@@ -1602,3 +1602,23 @@ under the existing policy. This does not infer closure from absence of a viewer,
 from a missing/malformed historical mapping or from a resource limit. Old orphan
 records without a known close intent are not swept. A client killed before any
 close signal reaches the server still has no durable offline close guarantee.
+
+### Remote frame presentation during viewport resize
+
+The layout owner fits and centers fixed-device previews in visualBounds. The
+remote adapter then projects each received frame at that rectangle's width,
+anchored at the top left, and clips overflow at the live slot. It must not
+contain-fit the old frame again against a newly shortened slot: during software
+keyboard animation the native viewport and H.264 epoch arrive later, and this
+second fit would temporarily shrink the entire page and add horizontal gutters.
+Canvas uses its received intrinsic aspect ratio; MSE video uses the same epoch's
+explicit aspect ratio, including before metadata arrives. Both remain undistorted.
+A growing slot can expose unpainted space until its new frame arrives; it never
+stretches old pixels vertically or predicts remote layout. Real viewport changes
+continue through the existing bounded resize queue without a reveal delay.
+
+Mouse/touch positions, contact radii, local menus and IME caret positioning use
+the same width-derived frame projection. The invisible keyboard receiver is
+clamped to the visible container. Native page zoom remains remote authority;
+this is frame presentation, not an additional page-scale or DPR transformation.
+Fixed-device preview padding and outer centering remain layout-owned.

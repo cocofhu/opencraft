@@ -190,7 +190,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     Object.assign(receiver.style, { position: 'absolute', left: '0', top: '0', width: '1px', height: '1px',
       opacity: '0', padding: '0', border: '0', pointerEvents: 'none', resize: 'none' });
     canvas.setAttribute('aria-label', 'Browser page'); canvas.dataset.browserPageId = id;
-    Object.assign(canvas.style, { width: '100%', height: '100%', objectFit: 'contain', outline: 'none', touchAction: 'none' });
+    // The outer layout already fits fixed-device previews. Keep received frames
+    // at that width while a height resize waits for the remote encoder; contain
+    // inside the new shorter slot would briefly shrink the entire document.
+    Object.assign(canvas.style, { display: 'block', width: '100%', height: 'auto', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
     const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editor: null, keyboard: null, keyboardIntent: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
       nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
@@ -270,11 +273,11 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           this.updateKeyboard(p);
           this.keyboardChanged();
           if (!p.editable) { p.ime?.retire(); this.resetKeyboard(p, false); }
-          const b = message.caret, r = p.canvas.getBoundingClientRect();
+          const b = message.caret, r = p.canvas.getBoundingClientRect(), bounds = p.container.getBoundingClientRect();
           if (b && Number.isFinite(b.x) && Number.isFinite(b.y) && Number.isFinite(b.height)) {
-            const scale = Math.min(r.width / p.width, r.height / p.height);
-            p.receiver.style.left = `${Math.max(0, Math.min(r.width - 1, (r.width - p.width * scale) / 2 + b.x * scale))}px`;
-            p.receiver.style.top = `${Math.max(0, Math.min(r.height - 1, (r.height - p.height * scale) / 2 + (b.y + b.height) * scale))}px`;
+            const scale = r.width / p.width;
+            p.receiver.style.left = `${Math.max(0, Math.min(bounds.width - 1, b.x * scale))}px`;
+            p.receiver.style.top = `${Math.max(0, Math.min(bounds.height - 1, (b.y + b.height) * scale))}px`;
           }
         }
         else if (message.type === 'context-menu') this.showMenu(p, message);
@@ -317,11 +320,11 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     if (!copy && !link) return;
     const connection = p.connection, interaction = p.interaction;
     const current = () => this.acceptsInput(p) && p.connection === connection && p.interaction === interaction;
-    const r = p.canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
+    const r = p.canvas.getBoundingClientRect(), scale = r.width / p.width;
     this.menuOwner = p;
     this.localMenu.open({ copy, link: link !== undefined,
-      x: r.left + (r.width - p.width * scale) / 2 + menu.x * scale,
-      y: r.top + (r.height - p.height * scale) / 2 + menu.y * scale,
+      x: r.left + menu.x * scale,
+      y: r.top + menu.y * scale,
       current, run: action => action === 'copy' ? this.call(p, 'copy', { context }) : Promise.resolve({ text: link! }),
       focus: () => { if (current()) p.receiver.focus({ preventScroll: true }); }, error: message => p.events.onError(message) });
   }
@@ -355,7 +358,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     if (typeof VideoDecoder === 'undefined' || typeof EncodedVideoChunk === 'undefined') {
       if (!p.media) {
         const video = document.createElement('video');
-        Object.assign(video.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' });
+        Object.assign(video.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: 'auto', aspectRatio: `${p.width} / ${p.height}`, pointerEvents: 'none' });
         p.canvas.style.position = 'relative'; p.container.prepend(video); p.video = video;
         p.media = new H264MediaSource(video, p.width, p.height, () => { this.resetDecoder(p); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
       }
@@ -384,15 +387,15 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const canvas = p.canvas, receiver = p.receiver, cleanup: (() => void)[] = [];
     const listen = (name: string, handler: (event: any) => void, options?: AddEventListenerOptions) => { canvas.addEventListener(name, handler, options); cleanup.push(() => canvas.removeEventListener(name, handler, options)); };
     const modifiers = (event: MouseEvent | KeyboardEvent) => [event.shiftKey && 'shift', event.ctrlKey && 'control', event.altKey && 'alt', event.metaKey && 'meta'].filter(Boolean);
-    const point = (event: MouseEvent) => { const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
-      return { x: Math.round((event.clientX - r.left - (r.width - p.width * scale) / 2) / scale), y: Math.round((event.clientY - r.top - (r.height - p.height * scale) / 2) / scale) }; };
+    const point = (event: MouseEvent) => { const r = canvas.getBoundingClientRect(), scale = r.width / p.width;
+      return { x: Math.round((event.clientX - r.left) / scale), y: Math.round((event.clientY - r.top) / scale) }; };
     const send = (input: unknown) => { if (!p.closed && !this.inputFailed && !p.blocked && p.visible && p.container.style.pointerEvents !== 'none' && p.opened) void this.call(p, 'input', input).catch(() => {}); };
     let move: PointerEvent | null = null, raf = 0, touchMoved = false;
     const captured = new Set<number>();
     const contacts = new Map<number, { id: number; x: number; y: number; radiusX: number; radiusY: number; force: number }>();
     let touchModifiers: unknown[] = [];
     const contact = (event: PointerEvent, id = contacts.get(event.pointerId)!.id) => {
-      const r = canvas.getBoundingClientRect(), scale = Math.min(r.width / p.width, r.height / p.height);
+      const r = canvas.getBoundingClientRect(), scale = r.width / p.width;
       return { id, ...point(event), radiusX: Math.min(1000, (event.width || 2) / scale / 2),
         radiusY: Math.min(1000, (event.height || 2) / scale / 2), force: event.pressure };
     };
