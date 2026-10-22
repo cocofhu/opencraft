@@ -1,3 +1,4 @@
+import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -294,6 +295,12 @@ export function App({
   const composerController = useRootComposerController();
   const defaultFollowUpAction = useDefaultFollowUpAction();
   const hostCatalog = useAppServerHosts();
+  const selectSearchedThread = useCallback((hostId: string, id: string, target?: ConversationSearchTarget) => {
+    setConversationSearchTarget(null);
+    void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
+      if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
+    }).catch(error => console.error("Failed to activate searched Thread", error));
+  }, [hostCatalog]);
   const attentionScope = hostCatalog.threadAttention.getScope();
   const conversationViewIdentity = useConversationViewIdentity();
   const extensionPlatform = (
@@ -489,7 +496,7 @@ export function App({
   const conversationSurfaceVisible = conversationRouteOpen
     || (managementSettingsOpen && !standaloneManagementOpen);
   const shellSidebarOpen = presentation.contextSidebar ? sidebarOpen : false;
-  const openSettingsFromConversation = useCallback(() => {
+  const openSettingsFromConversation = useCallback((slug?: string) => {
     const focusedElement = document.activeElement;
     if (
       focusedElement instanceof HTMLElement &&
@@ -497,7 +504,7 @@ export function App({
     ) {
       focusedElement.blur();
     }
-    workbenchNavigation.openSettings();
+    workbenchNavigation.openSettings(slug);
   }, [workbenchNavigation]);
   const extensionViewHost = useMemo<PlatformViewHost>(() => ({
     authentication: hostCatalog.authenticationFlows,
@@ -638,6 +645,17 @@ export function App({
       label: intl.formatMessage({ id: "panel.openFiles", defaultMessage: "Open files" }),
       creationLabel: intl.formatMessage({ id: "panel.files", defaultMessage: "Files" }),
     } : action);
+  const panelToolbarContext: PanelToolbarActionContext = {
+    ownerId: panelOwnerId, resourceOwnerId: conversationResourceOwnerId, hostId: snapshot.hostId,
+    cwd: snapshot.conversation?.execution.cwd ?? catalog.protocolThreads.find(thread => thread.id === activeThreadId)?.cwd
+      ?? draft?.target.execution.workspace.cwd ?? activeHost.workspaceBrowseRoots[0] ?? null,
+  };
+  const sideChatAction = panelToolbarActions.find(action => action.id === "sidechat.new");
+  const threadShortcutCommands = activeThreadLease !== null && sideChatAction
+    && (sideChatAction.isAvailable?.(panelToolbarContext) ?? true)
+    ? [{ name: SIDE_CHAT_COMPOSER_COMMAND.name, description: sideChatAction.label },
+      ...(hostShortcutCommands ?? []).filter(command => command.name !== SIDE_CHAT_COMPOSER_COMMAND.name)]
+    : hostShortcutCommands;
   const presentedPanelRenderers = presentation.filePreviewOnly
     ? panelRenderers.filter(renderer => renderer.kind === "browser" || renderer.kind === "resource" || renderer.kind === "cloud-desktop")
       .map(renderer => renderer.kind === "resource" ? { ...renderer, Component: WorkspaceResourcePreviewPanel } : renderer)
@@ -848,6 +866,13 @@ export function App({
       intent: SubmitIntent,
       context: { readonly followUpAction: ComposerFollowUpAction | null },
     ): boolean | Promise<boolean> => {
+      const sideChatSnapshot = activeThreadLease?.getSnapshot() ?? null;
+      const sideChatCommand = runSideChatComposerCommand(intent, {
+        key: sideChatSnapshot?.key ?? null,
+        authoritative: snapshot.phase === "ready" && sideChatSnapshot?.authoritative === true,
+        action: sideChatAction, context: panelToolbarContext,
+      });
+      if (sideChatCommand !== null) return sideChatCommand;
       // Host connectivity gates command admission, never Draft editability.
       // Re-check at the semantic boundary as the status can change between a
       // rendered enabled button and its click handler.
@@ -953,6 +978,8 @@ export function App({
     },
     [
       conversationScopes,
+      sideChatAction,
+      panelToolbarContext,
       hostCatalog,
       queryClient,
       activeThreadLease,
@@ -1205,6 +1232,7 @@ export function App({
   const composerSelectionCatalog = useMemo<ComposerSelectionCatalog>(
     () => ({
       models: projectComposerModelChoices(composerCatalog.models),
+      displayModels: projectComposerModelChoices(composerCatalog.displayModels),
       permissionProfiles: composerCatalog.permissionProfiles.map((rawProfile) => {
         const profile = rawProfile as OpenCraftPermissionProfile;
         return {
@@ -1252,6 +1280,7 @@ export function App({
       composerCatalog.rememberModelDefaults,
       composerCatalog.retryModels,
       composerCatalog.models,
+      composerCatalog.displayModels,
       composerCatalog.permissionProfileError,
       composerCatalog.permissionProfiles,
       supportsPermissionModes,
@@ -1542,11 +1571,6 @@ export function App({
   const panelHost = embedded?.panelHost;
   const hostPanelActive = useSyncExternalStore(panelHost?.presentation?.subscribe ?? (() => () => {}),
     panelHost?.presentation?.getSnapshot ?? (() => false), () => false);
-  const panelToolbarContext: PanelToolbarActionContext = {
-    ownerId: panelOwnerId, resourceOwnerId: conversationResourceOwnerId, hostId: snapshot.hostId,
-    cwd: snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd
-      ?? draft?.target.execution.workspace.cwd ?? activeHost.workspaceBrowseRoots[0] ?? null,
-  };
   // The installed adapter owns availability and rechecks authority on launch.
   const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
   const composerDesktopEntry = presentation.composerDesktopEntry === true && conversationRouteOpen && cloudDesktopAction
@@ -1812,6 +1836,7 @@ export function App({
           navigation={!presentation.shellNavigation ? undefined : {
             layout: "unified",
             settingsActive: routeSettingsOpen,
+            updatesActive: routeSettingsOpen && workbenchNavigationSnapshot.applicationRoute.kind === 'settings' && workbenchNavigationSnapshot.applicationRoute.slug === 'updates',
             actions: [
               { id: "shell.home", title: intl.formatMessage({ id: "navigation.home", defaultMessage: "Home" }), icon: "home", active: conversationRouteOpen,
                 onInvoke: workbenchNavigation.openChat },
@@ -1827,7 +1852,8 @@ export function App({
               onRefresh: extensionProjection.account.provider.refresh,
               onSignOut: extensionProjection.account.provider.signOut,
             },
-            onOpenSettings: openSettingsFromConversation,
+            onOpenSettings: () => openSettingsFromConversation(),
+            onOpenUpdates: () => openSettingsFromConversation('updates'),
           }}
           layoutScope={`${managementSettingsOpen ? "conversation" : workbenchNavigationSnapshot.applicationRoute.kind}:${panelOwnerId}`}
           mainContentLayout={conversationSurfaceVisible ? "thread-edge-scroll" : "default"}
@@ -2158,7 +2184,7 @@ export function App({
                           {typeof composerAddMenuContent === "function" ? composerAddMenuContent(closeMenu) : composerAddMenuContent}
                           {goalMenuItem(closeMenu)}
                         </>}
-                        shortcutCommands={hostShortcutCommands}
+                        shortcutCommands={threadShortcutCommands}
                         entryActions={composerDesktopEntry}
                         endActions={composerEndActions}
                         modelSelectionPolicy={modelSelectionPolicy}
@@ -2172,6 +2198,7 @@ export function App({
                         effectiveSelections={{
                           model: snapshot.conversation?.execution.model,
                           effort: snapshot.conversation?.execution.effort,
+                          serviceTier: snapshot.conversation?.execution.serviceTier,
                           permissionProfile:
                             snapshot.conversation?.execution.permissionProfile,
                         }}
@@ -2229,12 +2256,7 @@ export function App({
         <ConversationSearch enabled={presentation.shellNavigation} open={conversationSearchOpen} onOpenChange={setConversationSearchOpen}
           sources={multiHostCatalog.searchSources}
           threads={multiHostCatalog.threads} loading={multiHostCatalog.discovery === "loading" || multiHostCatalog.catalogs.some(catalog => catalog.phase === "loading")}
-          onSelectThread={(hostId, id, target) => {
-            setConversationSearchTarget(null);
-            void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
-              if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
-            }).catch(error => console.error("Failed to activate searched Thread", error));
-          }} />
+          onSelectThread={selectSearchedThread} />
         </AppShell>
       </AppShellRouteRegionsProvider>
         <ModalHost requests={modalRequests} />
