@@ -406,40 +406,77 @@ The board heading includes a Morning overview action. It opens a read-only, whol
 
 Among non-terminal tasks, existing research assessments populate needs-decision and needs-context groups with recorded rationales and a direct task-detail action; ready-for-research and unassessed items remain in a collapsed pool. A research assessment never implies a stage output, active AI execution or a decision-ready handoff. Waiting times remain explicitly unavailable until a real handoff contract is implemented. Unsupported capability, initial loading, errors and retained background snapshots follow the existing task controller; this view performs no task mutation or scheduling and adds no storage.
 
-### Morning research queue and explicit handoffs
+### AI collaboration board and compatibility
 
-The read-only AI follow-up view, alongside Board and List on the Tasks home, excludes context requests and unassessed tasks.
-`proactive` backlog/todo items form the research queue; in-progress items form the
-active research group. Review items with an explicit AI research handoff also
-remain visible after triage changes to `needs_decision`. A triage-only decision is
-not evidence of completed AI research.
+AI follow-up remains a peer of Board/List. It now displays **all active tasks** in
+Todo, Working, Needs you, In review and Ready to merge. Deleted, archived, done
+and canceled rows are excluded. Morning remains separate for future risks and
+key exploration; this change adds no business metrics or risk workflow.
 
-To hand over actual research, append a progress report with a stable event ID,
-then move the task to `in_review` using the current revision. The existing progress
-text contract carries this versioned envelope (entire text, no surrounding prose):
+Existing task rows, six workflow statuses, research dispositions, links and
+immutable migrations are unchanged. Backlog/todo maps to Todo; in_progress to
+Working with execution explicitly unverified; in_review without a verified
+human request maps to In review with review method unverified. Business status
+alone never asserts an AI run, automatic review, passed checks or merge readiness.
+Done is not Ready to merge. No drag or simulation controls change execution facts.
+
+The original `AI_RESEARCH_HANDOFF_V1\n` envelope with exactly output, decision and
+nextStep remains readable. The later server time of its first valid report in
+the current review cycle and review entry remains the waiting origin. Leaving
+review, deleting or restoring ends that cycle. Ordinary messages never reset it.
+Old research triage alone cannot create a human request or a timer.
+
+For explicitly recorded collaboration facts, existing progress append accepts:
 
 ```text
-AI_RESEARCH_HANDOFF_V1
-{"output":"Completed output and accessible evidence location","decision":"Specific question/options and recommendation","nextStep":"Next action after the decision"}
+AI_FOLLOW_UP_V1
+{"lane":"needs","phase":"方案","summary":"范围对比材料已就绪","artifact":"范围方案 v2 · 关联会话内","decision":"先完成个人闭环还是团队协作？推荐个人闭环。","roundId":"scope-round-2","judgeId":"member-id"}
 ```
 
-All three nonempty fields are required and the whole report must fit the existing
-4096-character progress limit. Only publish after the referenced material is
-ready and accessible to the reviewer. Ordinary progress text remains unchanged.
-The AI follow-up card displays the decision question; full output and next steps remain in the original progress and linked conversation. No separate storage, schema migration, schedule or write from the follow-up view is introduced.
+Allowed lanes are todo / working / needs / review / ready. Required nonempty
+strings are summary and artifact. Phase is optional. Needs additionally requires
+a nonempty decision and roundId; judgeId is an optional explicit member ID or
+null for unclaimed. Never infer the judge from the task Owner. Other fields,
+client timestamps, malformed JSON and reports over the existing 4096-character
+limit are not treated as facts. The material reference is descriptive text; it
+never creates a URL or bypasses the existing conversation resolver.
 
-Waiting starts at the later server timestamp of the first valid report in the
-current round and entry into review. Ordinary updates and repeated handoffs never
-reset it. Leaving review closes the round; returning requires a fresh handoff.
-Delete/restore also closes the round. Only a wait strictly greater than 72 hours
-is highlighted, longest first; queued/running time never contributes. The open
-view reevaluates elapsed time every minute. An old review card without a valid
-report has no clock. History failures or incomplete bounded pagination are shown
-as unknown, with retry; they are never converted into inferred timestamps or
-complete zero totals. Historical timestamps are not backfilled from task age.
+Writers first move to the appropriate business status (todo/backlog for todo,
+in_progress for working, in_review for needs/review/ready), then append a fact
+using a stable event ID. A workflow status change closes the structured cycle.
+Only compatible facts determine a lane. Repeating a needs report for the same
+roundId or changing its judge preserves the first server timestamp; entering a
+new round uses a new roundId and starts a new clock. Ordinary progress is ignored
+by the projection. To end a wait, record the valid response and move to todo for
+work not yet started; publish working only after actual execution starts. Review
+and ready must describe observed checks/readiness, never an inferred result.
+This is a durable report convention, not an executor, CI integration or approval
+API. Ready does not imply merged, deployed or completed. Non-code tasks need no
+invented PR. Existing progress text, CAS mutations and backend actor provenance
+remain authoritative; the view does not create another writable state store.
 
-### AI follow-up cards and separate Morning scope
+The board reads bounded current-cycle history, reuses unchanged rows, limits
+concurrent reads to four and fences stale results. Failed or incomplete history
+has no inferred human clock, with a scoped retry. There is no new storage,
+migration, scheduling or write from browsing. The board does not introduce a
+formal overdue cutoff: orange identifies human waiting. The old strict 72-hour
+helper remains for legacy consumers, but no overdue group survives this layout.
 
-AI follow-up is a peer of Board/List in the Tasks home view switch. It leads with review/overdue/research/queue counts and contains no business metric cards. Morning remains a separate entry reserved for risk and key exploration disclosure; no risk rules or exploration workflow are implemented in this change. Its existing business metrics remain explicitly unconnected placeholders. Its independent Owner selector filters all task groups and their summary counts by the task assignee ID; all owners and unassigned are explicit choices. Member names are presentation only; a retained assignee absent from the member directory remains selectable by its recorded ID. An owner whose last item disappears remains selected with truthful empty groups. Ordinary board filters remain independent. The view owner retains the selected Owner across view switches and route remounts within the same task activation, keyed by task authority and verified account scope; switching accounts cannot inherit another account’s selection.
+Cards show title, a two-line decision when applicable, recorded material,
+current state/time, Owner and a clear detail action. Full content and editing use
+the existing task workspace/activity; conversation actions independently open the
+exact Server/Thread through the original resolver, using the accessible menu for
+multiple links. Missing links/navigation stay explicit. Current judge and task
+Owner are separate, and avatars use existing profile identity resolution.
 
-Cards contain only title, decision question, waiting time, Owner and a labeled conversation destination. Decision text wraps in full; research output, rationale, next step, extra status badges and summary disclosures are omitted. Queued/running items have no decision requested or human-wait clock. Missing/failed handoffs never infer readiness or elapsed time. Desktop cards use two columns and narrow containers one. A single association opens its exact server/thread through the existing Host navigation owner; multiple associations offer a keyboard/touch-accessible menu. Missing links or unavailable navigation are explicit, with no dead button or task-editor fallback. Navigation performs no approval, mutation or research execution.
+Owner filtering supports all, a stored member ID and unassigned. All/Needs me/My
+work and material/title search apply to every lane and count. Needs me matches
+only an explicit judge and the established current member, never a guessed login.
+Selections persist across Board/List/conversation remounts in the same activation,
+scoped to task authority and verified account. Ordinary board filters stay
+independent. Needs you sorts by oldest current round; other lanes use stable task
+order/ID. Five columns reflow to three/two/one by actual Tasks container capacity.
+Narrow layouts may hide the redundant Owner text label, never the shared select wrapper or its accessible control.
+Typography, colors, focus, touch targets, shared controls and Radix behavior come
+from the existing design owners. No synthetic prototype task or simulate button
+is shipped.

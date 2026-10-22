@@ -1,57 +1,59 @@
 @use "@opencraft/design-system/typography.web" as type;
+@use "@opencraft/design-system/controls.web" as controls;
 
 .tasks-ai-follow-up {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding-bottom: calc(var(--spacing) * 5);
-  @include type.role(body);
-  &__intro { margin-bottom: calc(var(--spacing) * 4); }
-  &__intro > p { margin: 0 0 calc(var(--spacing) * 2); }
-  &__brief span, &__empty {
-    @include type.role(metadata);
-    color: var(--color-text-secondary);
-  }
-  h3, h4 { @include type.role(sidebar-section); margin: 0; }
-  &__brief { display: flex; gap: calc(var(--spacing) * 3); margin-bottom: calc(var(--spacing) * 6); padding: calc(var(--spacing) * 5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-xl); background: var(--color-background-elevated-secondary); }
-  &__brief > svg { flex-shrink: 0; color: var(--color-text-secondary); }
-  &__brief > div { min-width: 0; }
-  &__brief p { margin: 0 0 calc(var(--spacing) * 2); }
-  &__counts { display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 4) calc(var(--spacing) * 8); margin-block: calc(var(--spacing) * 4); }
-  &__counts > span { display: flex; flex-direction: column; gap: var(--spacing); }
-  &__counts strong { @include type.role(settings-title); color: var(--color-text); }
-  &__counts .tasks-ai-follow-up__count--warning, &__count--warning strong { color: var(--color-text-warning); }
-  &__groups { display: flex; flex-direction: column; gap: calc(var(--spacing) * 6); }
-  &__group-heading { display: flex; align-items: center; gap: calc(var(--spacing) * 2); margin-bottom: calc(var(--spacing) * 3); }
-  &__group-heading > span { @include type.role(metadata); color: var(--color-text-secondary); }
-  &__group > ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: calc(var(--spacing) * 4); list-style: none; margin: 0; padding: 0; }
-  &__empty { margin: 0; padding-block: calc(var(--spacing) * 2); }
-  &__item { min-width: 0; padding: calc(var(--spacing) * 5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-xl); background: var(--color-background-elevated-primary); }
-  &__item--overdue { border-inline-start: var(--spacing) solid var(--color-text-warning); }
-  &__filters { display: flex; flex-wrap: wrap; margin-bottom: calc(var(--spacing) * 4); }
-  &__filters label { display: flex; align-items: center; gap: calc(var(--spacing) * 3); min-width: 0; max-width: 100%; }
-  &__filters select { min-width: 0; max-width: 100%; }
-  &__unlinked { @include type.role(metadata); color: var(--color-text-secondary); }
-  &__wait { margin-block: calc(var(--spacing) * 3) 0; @include type.role(metadata); display: inline-flex; align-items: center; gap: var(--spacing); color: var(--color-text-secondary); }
-  &__wait svg { flex-shrink: 0; }
-  &__item--overdue &__wait { color: var(--color-text-warning); }
-  &__item h4 { @include type.role(panel-title); overflow-wrap: anywhere; }
-  &__handoff { display: grid; gap: calc(var(--spacing) * 4); margin: calc(var(--spacing) * 4) 0 0; }
-  &__handoff dt { @include type.role(metadata); color: var(--color-text-secondary); margin-bottom: calc(var(--spacing) * 2); }
-  &__handoff dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-  &__decision { padding: calc(var(--spacing) * 3); border-radius: var(--radius-md); background: var(--color-background-elevated-secondary); }
-  &__item-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 3); border-top: 1px solid var(--color-border-subtle); padding-top: calc(var(--spacing) * 3); margin-top: calc(var(--spacing) * 3); }
-  &__item-footer > div { min-width: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 2); @include type.role(metadata); }
-  &__item-footer > div > span:first-child { color: var(--color-text-secondary); }
-
+  flex: 1; min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain;
+  padding-bottom: calc(var(--spacing) * 5); @include type.role(body);
+  &__intro { margin: 0 0 calc(var(--spacing) * 4); color: var(--color-text-secondary); }
+  &__toolbar, &__filters { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--spacing) * 3); }
+  &__toolbar { justify-content: space-between; }
+  &__filters { min-width: 0; }
+  &__filters input { width: calc(var(--spacing) * 56); min-width: 0; max-width: 100%; }
+  &__filters label { display: flex; flex-direction: row; align-items: center; gap: calc(var(--spacing) * 2); min-width: 0; }
+  &__filters label > span { @include type.role(metadata); color: var(--color-text-secondary); }
+  &__filters select { max-width: calc(var(--spacing) * 45); min-width: 0; }
+  &__summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: calc(var(--spacing) * 2); margin-top: calc(var(--spacing) * 4); @include type.role(metadata); color: var(--color-text-secondary); }
+  &__feedback { min-height: calc(var(--spacing) * 9); display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing); @include type.role(metadata); color: var(--color-text-secondary); }
+  &__board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: start; gap: calc(var(--spacing) * 3); }
+  &__column { min-width: 0; min-height: calc(var(--spacing) * 100); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-background-elevated-secondary); padding: calc(var(--spacing) * 2); --follow-up-accent: var(--color-text-secondary); }
+  &__column--working { --follow-up-accent: var(--color-badge-blue-foreground); }
+  &__column--needs { --follow-up-accent: var(--color-text-warning); border-top: 2px solid var(--follow-up-accent); }
+  &__column--review { --follow-up-accent: var(--color-badge-orange-foreground); }
+  &__column--ready { --follow-up-accent: var(--color-status-success); }
+  &__column header { padding: calc(var(--spacing) * 2) var(--spacing) calc(var(--spacing) * 4); }
+  &__column header > div { display: flex; align-items: center; gap: calc(var(--spacing) * 2); }
+  &__column h3 { @include type.role(sidebar-section); margin: 0; }
+  &__count { margin-inline-start: auto; @include type.role(metadata); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+  &__dot { width: calc(var(--spacing) * 1.5); height: calc(var(--spacing) * 1.5); border-radius: var(--radius-full); background: var(--follow-up-accent); flex-shrink: 0; }
+  &__column header p { @include type.role(metadata); color: var(--color-text-secondary); margin: calc(var(--spacing) * 2) 0 0; }
+  &__column ul { display: flex; flex-direction: column; gap: calc(var(--spacing) * 3); list-style: none; padding: 0; margin: 0; }
+  &__empty { @include type.role(metadata); color: var(--color-text-secondary); padding: calc(var(--spacing) * 4) var(--spacing); margin: 0; }
+  &__item { min-width: 0; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-background-elevated-primary-opaque); overflow: hidden; }
+  &__open { @include controls.navigation-control; display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--spacing) * 3); width: 100%; padding: calc(var(--spacing) * 3); border-radius: var(--radius-md); text-align: start; }
+  &__open h4 { @include type.role(settings-label); color: var(--color-text); margin: 0; overflow-wrap: anywhere; }
+  &__decision { @include type.role(body); margin: 0; color: var(--color-text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  &__artifact { @include type.role(metadata); margin: 0; color: var(--color-text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  &__state { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: calc(var(--spacing) * 2); border-top: 1px solid var(--color-border-subtle); padding-top: calc(var(--spacing) * 3); @include type.role(metadata); color: var(--color-text-secondary); }
+  &__state > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  &__state > span:last-child { display: inline-flex; align-items: center; gap: var(--spacing); white-space: nowrap; }
+  &__wait { color: var(--color-text-warning); font-variant-numeric: tabular-nums; }
+  &__unknown, &__judge, &__unlinked { @include type.role(metadata); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+  &__cta { display: flex; align-items: center; justify-content: flex-end; gap: var(--spacing); @include type.role(control-small); color: var(--color-text-accent); }
+  &__item footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 2); padding: 0 calc(var(--spacing) * 3) calc(var(--spacing) * 2); }
+  &__owner { display: inline-flex; align-items: center; gap: var(--spacing); min-width: 0; max-width: 100%; @include type.role(metadata); color: var(--color-text-secondary); }
+  &__owner > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__owner .tasks-avatar { width: calc(var(--spacing) * 5); height: calc(var(--spacing) * 5); flex-shrink: 0; }
+  &__footnote { @include type.role(metadata); color: var(--color-text-secondary); margin: calc(var(--spacing) * 5) 0 0; }
 }
-@container tasks (max-width: 960px) {
-  .tasks-ai-follow-up__group > ul { grid-template-columns: minmax(0, 1fr); }
-}
-@container tasks (max-width: 420px) {
-  .tasks-ai-follow-up__brief, .tasks-ai-follow-up__item { padding: calc(var(--spacing) * 3); }
-  .tasks-ai-follow-up__brief > svg { display: none; }
-  .tasks-ai-follow-up__counts { gap: calc(var(--spacing) * 3); }
+@container tasks (max-width: 1200px) { .tasks-ai-follow-up__board { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container tasks (max-width: 850px) { .tasks-ai-follow-up__board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container tasks (max-width: 580px) {
+  .tasks-ai-follow-up__board { grid-template-columns: minmax(0, 1fr); }
+  .tasks-ai-follow-up__column { min-height: 0; }
+  .tasks-ai-follow-up__toolbar { align-items: stretch; }
+  .tasks-ai-follow-up__filters { width: 100%; }
+  .tasks-ai-follow-up__filters input { flex: 1; width: 0; min-width: calc(var(--spacing) * 25); }
+  .tasks-ai-follow-up__filters label { flex: 1; }
+  .tasks-ai-follow-up__filters label > span:first-child { display: none; }
+  .tasks-ai-follow-up__filters select { width: 100%; max-width: 100%; }
 }
