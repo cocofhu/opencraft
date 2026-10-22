@@ -831,7 +831,21 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     clip-path: inset(calc(-1 * var(--height-toolbar)) 0 100% 0);
     pointer-events: none;
   }
-  .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-surface-elevation, none); }
+  &::after {
+    // Recessed depth starts below the toolbar. Paint outside the clipped main
+    // surface, using the same live Shell boundary as its title slot.
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: var(--height-toolbar);
+    left: var(--app-shell-header-left-slot-width, 0px);
+    right: 0;
+    bottom: 0;
+    box-shadow: var(--opencraft-unified-content-elevation, none);
+    clip-path: inset(0 -100% -100% -100%);
+    pointer-events: none;
+  }
+  .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-frame-elevation, var(--opencraft-unified-surface-elevation, none)); }
   .main-content-frame {
     background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
   }

@@ -1981,3 +1981,5 @@ Longing suppresses the conversation frame top-divider paint through the same rec
 Longing pane and titlebar depth uses the shared diffuse prominent elevation without its hairline outline. Keep the original blur layers, geometry and existing separator suppression; other themes retain their own elevation policy.
 
 Recessed Longing chrome paints its translucent blue once at the browser Shell root, shared by titlebar and Sidecar. Header and Sidecar do not re-composite it into rectangular tiles; the shared root highlight stays continuous. Keep native window ownership, pane geometry, toolbar apertures and mounted drafts.
+
+Longing unified pane depth begins below the toolbar. Its paint-only Shell projection follows the existing live left slot, clips shadow above the toolbar and does not intercept input; the main surface no longer casts a vertical stripe through the titlebar. Preserve the reading plane upper lip, body diffuse depth, continuous blue chrome and mounted content.

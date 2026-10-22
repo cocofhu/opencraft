@@ -653,6 +653,8 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-base-surface": definition.surface,
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
     "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-frame-elevation": definition.shellMaterial?.recessedHeaderBackground ? "none" : definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? definition.shellMaterial?.unifiedSurfaceElevation ?? "none" : "none",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
     // Recessed chrome has one paint owner. Repainting the same translucent
     // blue over Sidecar makes a darker brand tile even with identical tokens.
