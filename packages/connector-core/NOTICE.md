@@ -1,8 +1,4 @@
-# Reference attribution
-
-Service identities and setup recipes in `src/catalog.ts` are adapted from Octop
-commit `ae65fe4e26854d2eaf751cee89341ec5d71569f0`, `infra/connectors/catalog.py`.
-No Octop runtime, Python harness, Ant Design component or credential store is included.
+# Third-party notices
 
 MIT License
 

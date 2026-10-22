@@ -73,6 +73,9 @@ try {
     await target.waitFor({ timeout: 30_000 });
     await target.click();
     await page.getByRole("menuitem").filter({ hasText: "Remote UI fixture" }).waitFor();
+    const machines = page.locator(".new-thread-host-menu").getByRole("menuitem");
+    assert.doesNotMatch(await machines.first().innerText(), /Remote UI fixture/u,
+      "deployment-owned machine must precede SSH before identity is available");
     await page.locator(".new-thread-host-menu").getByRole("menuitem").filter({ hasText: "Remote UI fixture" }).click();
     await page.waitForFunction(() => document.querySelector('[aria-label="Work in"]')?.textContent?.includes("Remote UI fixture") && document.querySelector('[aria-label="Work in"] .workbench-connection-status')?.getAttribute("data-phase") === "ready", undefined, { timeout: 30_000 });
     const editor = page.locator(".opencraft-composer-editor");

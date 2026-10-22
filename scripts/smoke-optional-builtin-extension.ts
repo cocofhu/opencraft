@@ -12,7 +12,7 @@ import {initializeAppearanceTheme} from '/apps/workbench-web/src/appearance-them
 import '/apps/workbench-web/src/styles/app.scss';
 import {createSmokeClientProduct,OPTIONAL_EXTENSION_ID,PRODUCT_EXTENSION_ID} from '/tests/fixtures/client-product.ts';
 initializeAppearanceTheme();
-const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',clientProduct:createSmokeClientProduct([], !new URLSearchParams(location.search).has("removed"))});
+const application=await createWebWorkbenchApplication({hostProfileMode:'configured',navigationMode:'memory',clientProduct:createSmokeClientProduct([], !new URLSearchParams(location.search).has("removed"), true)});
 const supervisor=application.supervisor;
 createIntlTestRoot(document.getElementById('app')).render(<WorkbenchRoot application={application}/>);
 createIntlTestRoot(document.getElementById('library')).render(<ExtensionLibrary manager={supervisor.extensionManager} supervisor={supervisor.extensions}/>);

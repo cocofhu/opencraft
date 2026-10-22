@@ -74,36 +74,58 @@ function addIntralineSegments(lines: readonly UnifiedDiffLine[]): readonly Unifi
 export function parseUnifiedDiff(diff: string): readonly UnifiedDiffLine[] {
   let oldLine: number | null = null;
   let newLine: number | null = null;
+  let oldRemaining = 0;
+  let newRemaining = 0;
+  let inHunk = false;
+  const consume = (old: boolean, next: boolean) => {
+    if (!inHunk) return;
+    if (old) { oldRemaining -= 1; oldLine! += 1; }
+    if (next) { newRemaining -= 1; newLine! += 1; }
+    if (oldRemaining <= 0 && newRemaining <= 0) {
+      inHunk = false;
+      oldLine = newLine = null;
+    }
+  };
   const lines = diff.replace(/\r\n?/gu, "\n").split("\n");
   const parsed = lines.map((text, index): UnifiedDiffLine => {
-    const hunk = /^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/u.exec(text);
+    if (text.startsWith("diff ")) {
+      inHunk = false;
+      oldLine = newLine = null;
+    }
+    const hunk = /^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/u.exec(text);
     if (hunk !== null) {
       oldLine = Number(hunk[1]);
-      newLine = Number(hunk[2]);
+      newLine = Number(hunk[3]);
+      oldRemaining = hunk[2] === undefined ? 1 : Number(hunk[2]);
+      newRemaining = hunk[4] === undefined ? 1 : Number(hunk[4]);
+      inHunk = oldRemaining > 0 || newRemaining > 0;
+      if (!inHunk) oldLine = newLine = null;
       return { key: String(index) + ":hunk", kind: "hunk", text, content: text, oldLine: null, newLine: null, oldSegments: null, newSegments: null };
     }
     if (text.startsWith("\\ No newline at end of file")) {
       return { key: String(index) + ":no-newline", kind: "no-newline", text, content: text, oldLine: null, newLine: null, oldSegments: null, newSegments: null };
     }
-    const isAddition = text.startsWith("+") && !text.startsWith("+++");
-    const isDeletion = text.startsWith("-") && !text.startsWith("---");
-    const isMeta = oldLine === null || newLine === null || text.startsWith("diff ") || text.startsWith("index ") || text.startsWith("---") || text.startsWith("+++") || text.startsWith("new file ") || text.startsWith("deleted file ") || text.startsWith("rename ");
-    if (isMeta && !isAddition && !isDeletion) {
+    // A prefix belongs to code while a hunk is open, even +++/---. File
+    // headers and binary/rename/mode metadata outside a hunk own no line numbers.
+    const isAddition = text.startsWith("+") && (inHunk || !text.startsWith("+++"));
+    const isDeletion = text.startsWith("-") && (inHunk || !text.startsWith("---"));
+    const isContext = inHunk && text.startsWith(" ");
+    const isMeta = !isContext && !isAddition && !isDeletion;
+    if (isMeta) {
       return { key: String(index) + ":meta", kind: "meta", text, content: text, oldLine: null, newLine: null, oldSegments: null, newSegments: null };
     }
     if (isAddition) {
       const line = { key: String(index) + ":addition", kind: "addition" as const, text, content: text.slice(1), oldLine: null, newLine, oldSegments: null, newSegments: null };
-      if (newLine !== null) newLine += 1;
+      consume(false, true);
       return line;
     }
     if (isDeletion) {
       const line = { key: String(index) + ":deletion", kind: "deletion" as const, text, content: text.slice(1), oldLine, newLine: null, oldSegments: null, newSegments: null };
-      if (oldLine !== null) oldLine += 1;
+      consume(true, false);
       return line;
     }
     const line = { key: String(index) + ":context", kind: "context" as const, text, content: text.startsWith(" ") ? text.slice(1) : text, oldLine, newLine, oldSegments: null, newSegments: null };
-    if (oldLine !== null) oldLine += 1;
-    if (newLine !== null) newLine += 1;
+    consume(true, true);
     return line;
   });
   return addIntralineSegments(parsed);

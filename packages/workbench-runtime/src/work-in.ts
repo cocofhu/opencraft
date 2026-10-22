@@ -22,7 +22,11 @@ export function groupWorkInMachines(profiles: readonly HostConnectionProfile[], 
     if (group) group.hosts.push(host);
     else groups.set(id, { id, identity, hosts: [host], resource, cloud: resource !== null });
   }
-  return [...groups.values()];
+  // Deployment-owned engines lead discovered/user-configured channels. Stable
+  // ordering within each tier does not depend on names or connection readiness.
+  const priority = (machine: WorkInMachine) => machine.cloud ? 2
+    : machine.hosts.some(host => host.hostKind === "local" || host.hostKind === "durable") ? 0 : 1;
+  return [...groups.values()].sort((a, b) => priority(a) - priority(b));
 }
 
 export function workInMachineName(machine: WorkInMachine, platform: "web" | "electron" | "expo", labels: { thisMac: string; thisComputer: string; unknown: string }, displayNames: Readonly<Record<string, string>> = {}): string {

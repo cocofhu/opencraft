@@ -1,4 +1,3 @@
-// Extracted verbatim from ref/hypernode/policy/src/services/dsh-engine-adapter.js.
 export function createImplementation(Date, addSpanEvent, endSpan) {
 function streamedAgentStartItem(item) { return { ...item, text: "" }; }
 function itemStarted(record, item, startedAtMs = Date.now()) {
