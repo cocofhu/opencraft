@@ -124,3 +124,17 @@ test("prototype-like field names stay own data properties without prototype muta
   assert.equal(content.__proto__, "safe");
   assert.equal(Object.getPrototypeOf(content), Object.prototype);
 });
+
+
+test("short multiline approval parameters retain four-line disclosure", () => {
+  for (const value of ["a\nb\nc\nd", "a\r\nb\r\nc\r\nd", "x".repeat(120)]) {
+    assert.equal(display(value).isExpandable, false);
+  }
+  for (const value of ["a\nb\nc\nd\ne", "a\nb\nc\nd\n", "a\r\nb\r\nc\r\nd\r\ne",
+    Array.from({ length: 35 }, (_, index) => String(index + 1)).join("\n")]) {
+    assert.ok(value.length < 120);
+    assert.deepEqual(display(value), { expandedText: value, previewText: value, kind: "text", isExpandable: true });
+  }
+  assert.equal(display("x".repeat(121)).isExpandable, true);
+  for (const value of [null, true, 35]) assert.equal(display(value).isExpandable, false);
+});

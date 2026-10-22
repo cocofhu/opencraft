@@ -145,7 +145,7 @@ export function normalizeMcpElicitationMetadata(
 export function presentMcpElicitationDisplayValue(value: unknown): McpElicitationDisplayValue {
   if (value === null || ["string", "boolean", "number"].includes(typeof value)) {
     const expandedText = String(value);
-    return { expandedText, previewText: expandedText, kind: "text", isExpandable: expandedText.length > 120 };
+    return { expandedText, previewText: expandedText, kind: "text", isExpandable: expandedText.length > 120 || typeof value === "string" && value.split("\n").length > 4 };
   }
   let expandedText: string, compact: string;
   try {

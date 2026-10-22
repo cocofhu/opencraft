@@ -2586,6 +2586,15 @@ Filtering, pagination and task-flow regrouping only change row presentation and
 retain valid modal drafts/focus; cached refresh rows remain authoritative inputs
 until the directory actually replaces them. Action state stays above row owners.
 
+### MCP approval multiline parameters
+
+Approval string values become expandable above 120 characters or four newline-separated
+lines. The initial text preview stays at four lines; Expand reveals the original value
+and Collapse restores the compact view without submitting an approval. The shared
+chat-core presentation helper owns this policy. Short multiline text must not stretch
+the approval card merely because its character count remains below the threshold.
+The existing elicitation tests, fixture and smoke exercise this boundary.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and
