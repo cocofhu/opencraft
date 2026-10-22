@@ -14,15 +14,15 @@ import {
 
 export function activityIcon(icon: ToolActivityIcon): ReactNode {
   if (icon === "none") return null;
-  if (icon === "terminal") return <TerminalActivityIcon aria-hidden="true" data-codex-activity-icon="terminal" />;
-  if (icon === "patch") return <PatchActivityIcon aria-hidden="true" data-codex-activity-icon="patch" />;
-  if (icon === "search") return <SearchActivityIcon aria-hidden="true" data-codex-activity-icon="search" />;
-  if (icon === "read") return <ReadActivityIcon aria-hidden="true" data-codex-activity-icon="read" />;
-  if (icon === "files") return <FilesActivityIcon aria-hidden="true" data-codex-activity-icon="files" />;
-  if (icon === "stop") return <StopActivityIcon aria-hidden="true" data-codex-activity-icon="stop" />;
+  if (icon === "terminal") return <TerminalActivityIcon aria-hidden="true" data-opencraft-activity-icon="terminal" />;
+  if (icon === "patch") return <PatchActivityIcon aria-hidden="true" data-opencraft-activity-icon="patch" />;
+  if (icon === "search") return <SearchActivityIcon aria-hidden="true" data-opencraft-activity-icon="search" />;
+  if (icon === "read") return <ReadActivityIcon aria-hidden="true" data-opencraft-activity-icon="read" />;
+  if (icon === "files") return <FilesActivityIcon aria-hidden="true" data-opencraft-activity-icon="files" />;
+  if (icon === "stop") return <StopActivityIcon aria-hidden="true" data-opencraft-activity-icon="stop" />;
   if (icon === "image") return <ImageIcon />;
   if (icon === "agent") return <Bot />;
-  if (icon === "browser") return <GlobeActivityIcon aria-hidden="true" data-codex-activity-icon="browser" />;
+  if (icon === "browser") return <GlobeActivityIcon aria-hidden="true" data-opencraft-activity-icon="browser" />;
   if (icon === "computer") return <Monitor />;
   return <Wrench />;
 }

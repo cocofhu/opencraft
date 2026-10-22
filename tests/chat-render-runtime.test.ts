@@ -189,7 +189,7 @@ test("resource policies reject restricted external resources and can be overridd
   await runtime.dispose();
 });
 
-test("Codex chat URLs distinguish navigation, workspace files, external links and unsafe schemes", () => {
+test("Chat URLs distinguish navigation, workspace files, external links and unsafe schemes", () => {
   const context = { cwd: "/vela", externalResourcePolicy: "allow" as const };
   assert.deepEqual(resolveStandardChatResource("src/main.ts", context), {
     allowed: true,
@@ -474,7 +474,7 @@ test("code surface owns default and preview geometry", () => {
   );
 });
 
-test("Shiki uses Codex syntax palettes instead of GitHub themes", () => {
+test("Shiki uses the shared OpenCraft syntax palettes", () => {
   assert.deepEqual(OPENCRAFT_LIGHT_SYNTAX, {
     foreground: "#0d0d0d",
     comment: "#666666",
@@ -546,7 +546,7 @@ graph TD
   );
 });
 
-test("code-header stickiness is an explicit surface capability with Codex scroll coordinates", () => {
+test("code-header stickiness is an explicit surface capability with timeline scroll coordinates", () => {
   assert.match(
     webDocumentSource,
     /stickyCodeHeaders:\s*props\.stickyCodeHeaders \?\? false/u,
@@ -598,7 +598,7 @@ test("clipboard writes use the modern path and fall back when insecure contexts 
   );
 });
 
-test("clipboard payloads preserve Codex plain-text and HTML MIME channels", async () => {
+test("clipboard payloads preserve plain-text and HTML MIME channels", async () => {
   assert.equal(typeof writeToClipboard, "function");
   const clipboardSource = readFileSync(
     new URL("../packages/chat-render-web/src/clipboard.ts", import.meta.url),
@@ -608,7 +608,7 @@ test("clipboard payloads preserve Codex plain-text and HTML MIME channels", asyn
   assert.match(clipboardSource, /data\["text\/plain"\]/u);
 });
 
-test("the Markdown root owns Codex capture-phase semantic copy", () => {
+test("the Markdown root owns capture-phase semantic copy", () => {
   assert.match(
     webDocumentSource,
     /addEventListener\("copy", listener, \{ capture: true \}\)/u,

@@ -42,7 +42,7 @@ export async function inspectRelease(root) {
   return { releaseRoot: resolve(root), version: manifest.version, buildId: metadata.buildId };
 }
 export function createNpmReleaseSource({ registry = DEFAULT_REGISTRY, channel = 'latest', userconfig, packageName = PACKAGE_NAME } = {}) {
-  if (![PACKAGE_NAME, RESOURCE_PACKAGE, PUBLIC_RESOURCE_PACKAGE].includes(packageName)) throw new Error('Unexpected npm package name');
+  if (![PACKAGE_NAME, PUBLIC_PACKAGE_NAME, RESOURCE_PACKAGE, PUBLIC_RESOURCE_PACKAGE].includes(packageName)) throw new Error('Unexpected npm package name');
   const registryUrl = new URL(registry);
   if (!['https:', 'http:'].includes(registryUrl.protocol) || registryUrl.username || registryUrl.password) throw new Error('Invalid npm registry');
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(channel)) throw new Error('Invalid update channel');
