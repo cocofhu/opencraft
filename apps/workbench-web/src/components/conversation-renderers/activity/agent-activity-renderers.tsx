@@ -1,6 +1,7 @@
 import { HookIcon } from "@opencraft/design-system-web/action-icons";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import { ThinkingLabel } from "../../thinking-label";
+import { CadencedShimmer } from "./activity-disclosure";
 import {
   deriveAgentActivityHeaderPresentation,
   formatHookEventName,
@@ -97,7 +98,7 @@ function AgentActivityGroup({
         hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
         shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
         summary={header.state === "thinking" && header.summary.kind === "text"
-          ? <ThinkingLabel summary={header.summary.text} />
+          ? <CadencedShimmer active={header.active}><ThinkingLabel summary={header.summary.text} /></CadencedShimmer>
           : <AgentActivitySummaryView summary={header.summary} />}
         summaryKey={header.summaryKey}
         summaryTransition={header.state === "summary" ? "immediate" : "deferred"}
