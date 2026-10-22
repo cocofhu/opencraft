@@ -101,7 +101,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
 export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const doc = useContext(ConversationDocumentContext);
   const element = useRef<HTMLElement>(null);
-  const widgetState = useRef<unknown>(null);
+  const localWidgetState = useRef<unknown>(null);
   const [visible, setVisible] = useState(false);
   const [foreground, setForeground] = useState(document.visibilityState !== "hidden");
   const [paused, setPaused] = useState(false);
@@ -110,6 +110,8 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const intl = useIntl();
   const identity = useMemo<McpAppIdentity>(() => ({ server: block.server ?? "", uri: block.appResourceUri ?? "", callId: block.callId,
     name: block.appName ?? block.name }), [block.server, block.appResourceUri, block.callId, block.appName, block.name]);
+  const widgetState = useMemo(() => doc.mcpApps?.widgetState?.(block.id, identity) ?? localWidgetState,
+    [doc.mcpApps, block.id, identity]);
   useEffect(() => {
     const observer = new IntersectionObserver(entries => setVisible(entries.some(entry => entry.isIntersecting)), { rootMargin: "160px" });
     if (element.current) observer.observe(element.current);

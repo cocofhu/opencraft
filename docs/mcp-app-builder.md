@@ -124,6 +124,12 @@ budget. Deletion uses an in-frame confirmation dialog, compatible with the
 opaque sandbox. The management UI and generated HTML have no external script/resource grants.
 The current client host retains foreground/viewport lazy loading and background
 frame disposal. No new polling or subscriptions run while Apps are closed.
+Explicit widget data stays in Application memory across virtualized row disposal
+and connection-lease replacement, scoped to the Host, Thread, source block, server,
+resource URI and call ID. The App must restore its controls from that bounded JSON;
+arbitrary DOM and unsaved inputs are not captured. Active authority is checked
+again by the original owner and bridge. Data recovery neither executes an operation
+nor grants access, and an Application reload ends this view checkpoint.
 The builder UI is an explicit management resource, not a startup page.
 
 ## Visual authoring in the conversation

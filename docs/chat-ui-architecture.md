@@ -2364,6 +2364,19 @@ through a connection gap. A different request, turn or parameter definition star
 a fresh review. The permission menu, permission choices and execution state are
 not checkpointed; recovery never grants permission or sends a response.
 
+### MCP App widget state continuity
+
+MCP App widget data explicitly saved through `setWidgetState` lives in Application
+memory, separate from an iframe or virtualized Turn row. The active App owner
+selects the state by Host, Thread, source block, server, resource URI and call ID;
+replacing the connection lease preserves that data but never restores its authority.
+The bridge retains its existing 32 KiB JSON limit and lease/disposal checks.
+Resource access is reacquired normally. Offscreen/background frames still dispose;
+ordinary DOM, focus, model context and pending operations are not checkpointed.
+The App restores its own controls from the saved data; an Application reload ends
+the checkpoint. Display-name changes do not change the App identity.
+
+
 ### MCP approval keyboard ownership
 
 MCP tool approvals preserve the focused control's native Enter action: Deny

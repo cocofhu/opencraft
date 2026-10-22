@@ -2,6 +2,7 @@ import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
+import type { McpAppWidgetStateStore } from "./mcp-apps/contract";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut, shortcutLabel } from "./workbench-shortcuts";
 import { WorkbenchShortcutHelp } from "./components/workbench-shortcut-help";
 import { WorkbenchPresentationActivityProvider } from "./components/workbench-presentation-activity";
@@ -578,6 +579,7 @@ export function App({
   }, [extensionProjection.activeView, extensionViewOpen, workbenchNavigation]);
   const activeConversationRestoreKey = conversationViewIdentity.viewId;
   const [interactionDraftStore] = useState(() => new InteractionDraftStore());
+  const [mcpAppWidgetStates] = useState<McpAppWidgetStateStore>(() => new Map());
   useEffect(() => () => {
     pendingLatestTurnPlacementRef.current = null;
     conversationScrollApiRef.current?.releaseLatestTurnSubmitPlacementCapture();
@@ -971,6 +973,7 @@ export function App({
     };
     const owner: ReturnType<typeof createMcpAppOwner> = createMcpAppOwner({
       key: `${snapshot.hostId}:${activeThreadId}:${generation}`, threadId: activeThreadId, assertCurrent,
+      widgetStateStore: { scope: JSON.stringify([snapshot.hostId, activeThreadId]), entries: mcpAppWidgetStates },
       request: (method, params) => runtime.resources.protocol.request(method, params),
       openLink: url => { window.open(url, "_blank", "noopener,noreferrer"); },
       sendMessage: async text => {
@@ -986,7 +989,7 @@ export function App({
       },
     });
     return owner;
-  }, [activeThreadId, activeThreadLease, showingDisplayCache, mcpAppsAuthoritative, snapshot.phase, snapshot.hostId, runtime, composerController]);
+  }, [activeThreadId, activeThreadLease, showingDisplayCache, mcpAppsAuthoritative, snapshot.phase, snapshot.hostId, runtime, composerController, mcpAppWidgetStates]);
   mcpAppOwnerRef.current = mcpAppOwner;
   const answerAsyncQuestion = useCallback(async (question: AsyncQuestion, answer: string) => {
     if (snapshot.phase !== "ready" || activeThreadLease === null) throw new Error("Reconnect to answer this question");
