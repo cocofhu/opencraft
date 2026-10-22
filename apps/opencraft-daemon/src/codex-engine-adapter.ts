@@ -17,7 +17,6 @@ import { CodexMessageAttachments } from "./codex-message-attachments.js";
 import { CodexThreadPins } from "./codex-thread-pins.js";
 import { CodexCoreBridge } from "./codex-core-bridge.js";
 import { CodexNativeCoreTransport } from "./codex-native-core-transport.js";
-import { CodexBotBridge, CodexBotError, CODEX_BOT_CAPABILITY } from "./codex-bot-bridge.mjs";
 import { TasksService, TasksFault } from "@opencraft/plugin-tasks/server";
 import { CODEX_NATIVE_SHARED_METHODS, discoverNativeCodexGoalCapability, projectSharedNativeCodexInitialize } from "./codex-native-surface.js";
 import { projectCodexAttachmentNotification, projectCodexAttachmentResult } from "./codex-message-attachment-projection.js";
@@ -121,7 +120,6 @@ interface LocalCodexEngineOptions extends SharedCodexRoutingOptions {
   readonly coreAuthToken?: string;
   /** Headless owns downstream overlays while the independent core owns only native/accounts. */
   readonly coreHostOverlays?: boolean;
-  readonly botConversations?: boolean;
   /** Opt in before migrating a legacy embedded writer to independently owned core storage. */
   readonly writerOwnership?: boolean;
   readonly executable: string;
@@ -246,8 +244,6 @@ export class CodexEngineAdapter implements DuplexTransport {
   private readonly coreBridge: CodexCoreBridge | null;
   private readonly nativeCore: CodexNativeCoreTransport | null;
   private releaseOverlays: (() => void) | null = null;
-  private botBridge: CodexBotBridge | null = null;
-  private readonly botNativeRequests = new Map<string, { clientId: string; resolve(value: unknown): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>();
   private releaseWriter: (() => void) | null = null;
   private physicalInitializePending = false;
   private physicalInitialized = false;
@@ -395,7 +391,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     }
     // A separate kernel-held guard scopes only Host overlays. It never claims
     // the core's account/native writer or opens its account stores.
-    if (this.nativeCore || this.options.botConversations) this.releaseOverlays = await acquireCodexWriter(join(dataRoot, "host-overlays-owner"));
+    if (this.nativeCore) this.releaseOverlays = await acquireCodexWriter(join(dataRoot, "host-overlays-owner"));
     const runtimeRoot = join(dataRoot, "runtime");
     await mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
     this.hostState = new CodexHostStateDatabase(dataRoot);
@@ -415,20 +411,11 @@ export class CodexEngineAdapter implements DuplexTransport {
     });
     this.messageAttachments = new CodexMessageAttachments(dataRoot);
     this.installThreadMetadata();
-    if (this.options.botConversations) this.botBridge = new CodexBotBridge(this.hostState.database, {
-      request: (owner, method, params, context) => this.requestForBot(owner, method, params, context),
-      hasNativeSubscription: threadId => this.nativeSubscribedThreads.has(threadId),
-      attach: (owner, threadId) => { const clientId = this.botOwnerClient(owner); this.subscribeThread(threadId, clientId); this.claimInteractionOwner(threadId, clientId); },
-      reply: (owner, id, result) => this.send(JSON.stringify({ id, result, [LOGICAL_CLIENT_FIELD]: this.botOwnerClient(owner) })),
-      activeTurn: threadId => this.activeTurns.get(threadId) ?? null,
-      emit: (event, owner) => { try { this.emit(event as unknown as RpcRecord, this.botOwnerClient(owner)); } catch { /* retired client */ } },
-    });
     if (this.nativeCore) {
       const transport = this.nativeCore;
       this.remoteDisposers.push(transport.subscribeMessage(this.receivePhysicalLine), transport.subscribeStatus(status => {
         if (["closing", "closed"].includes(this.statusValue.state)) return;
         if (status.state === "failed" || status.state === "closed") {
-          this.rejectBotRequests(new Error("Core connection was interrupted"));
           this.rejectInternalRequests(new Error("Core connection was interrupted"));
         }
         this.publishStatus(status);
@@ -642,19 +629,6 @@ export class CodexEngineAdapter implements DuplexTransport {
         }
         return;
       }
-      if (message.method.startsWith("bot/") && this.botBridge) {
-        try {
-          if (message.method === "bot/message/send") this.validateSubmissionContext(context);
-          const result = await this.botBridge.request(`${clientId}\0${requestClientEpoch}`, message.method, message.params, context);
-          if (this.initializedClients.has(clientId) && this.clientEpoch(clientId) === requestClientEpoch) this.emit({ id, result }, clientId);
-        } catch (error) {
-          if (this.initializedClients.has(clientId) && this.clientEpoch(clientId) === requestClientEpoch) this.emit({ id, error: {
-            code: -32000, message: error instanceof CodexBotError ? error.message : "聊天操作未完成，请重新打开核对。",
-            data: { code: error instanceof CodexBotError ? error.domainCode : "BOT_RESULT_UNKNOWN", retryable: false },
-          } }, clientId);
-        }
-        return;
-      }
       if (["attachment/stage", "attachment/remove", "attachment/uploadChunk", "attachment/uploadCancel"].includes(message.method)) {
         if (!this.initializedClients.has(clientId)) {
           this.emit({ id, error: { code: -32600, message: "Client is not initialized" } }, clientId);
@@ -805,8 +779,6 @@ export class CodexEngineAdapter implements DuplexTransport {
     this.closeOperation = (async () => {
       this.durableCatalog?.close(); this.durableCatalog = null;
       await this.schedules?.close(); this.schedules = null;
-      this.rejectBotRequests(new Error("Codex AppServer closed"));
-      this.botBridge?.dispose(); this.botBridge = null;
       for (const dispose of this.remoteDisposers.splice(0)) dispose();
       await this.nativeCore?.close();
       this.rejectInternalRequests(new Error("Codex AppServer closed"));
@@ -961,12 +933,6 @@ export class CodexEngineAdapter implements DuplexTransport {
           ? withCodexHostCapabilities(message.result, this.attachmentStaging.capability, this.desktopService?.capability())
           : projectSharedNativeCodexInitialize(message.result);
       }
-      if (this.botBridge) {
-        const value = record(this.initializeResult), capabilities = record(value.capabilities);
-        this.initializeResult = { ...value, capabilities: { ...capabilities, extensions: {
-          ...record(capabilities.extensions), "vela/bot-conversations": CODEX_BOT_CAPABILITY,
-        } } };
-      }
       if (this.threadMetadata) {
         const value = record(this.initializeResult), capabilities = record(value.capabilities), extensions = record(capabilities.extensions);
         const access = record(extensions[OPENCRAFT_METHOD_ACCESS_EXTENSION]);
@@ -1103,7 +1069,6 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     const threadId = string(record(message.params).threadId) || string(record(record(message.params).thread).id);
     this.durableCatalog?.observe(string(message.method), message.params);
-    this.botBridge?.observe(message);
     if (message.method === "thread/archived" || message.method === "thread/deleted") this.schedules?.suspend(threadId);
     if (message.method === "turn/started" && threadId) {
       const turnId = string(record(record(message.params).turn).id);
@@ -1356,8 +1321,6 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private disconnectClient(clientId: string): void {
-    this.botBridge?.disconnect(`${clientId}\0${this.clientEpoch(clientId)}`);
-    this.rejectBotRequests(new Error("Client was disconnected"), clientId);
     this.desktopService?.revoke(this.desktopOwnerKey(clientId, this.clientEpoch(clientId)));
     this.clientEpochs.delete(clientId);
     this.initializedClients.delete(clientId);
@@ -2120,19 +2083,11 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private emit(message: RpcRecord, clientId?: string): void {
-    const botRequest = this.botNativeRequests.get(String(message.id));
-    if (botRequest && botRequest.clientId === clientId && message.method === undefined) {
-      this.botNativeRequests.delete(String(message.id)); clearTimeout(botRequest.timer);
-      if ("error" in message) botRequest.reject(this.rpcError(record(message.error))); else botRequest.resolve(message.result);
-      return;
-    }
-    if (clientId && typeof message.method === "string" && message.id !== undefined) this.botBridge?.observeInteraction(`${clientId}\0${this.clientEpoch(clientId)}`, message);
     const frame = JSON.stringify(clientId ? { ...message, [LOGICAL_CLIENT_FIELD]: clientId } : message);
     for (const listener of this.listeners) listener(frame);
   }
 
   private readonly fail = (error: Error): void => {
-    this.rejectBotRequests(error);
     this.revokeDesktopOwners();
     this.rejectInternalRequests(error);
     for (const timer of this.goalContinuationTimers.values()) clearTimeout(timer);
@@ -2140,30 +2095,6 @@ export class CodexEngineAdapter implements DuplexTransport {
     this.clearAllCapacityRetries();
     this.publishStatus({ state: "failed", reason: error.message, failure: { code: "codex-appserver-exited", recovery: "automatic" } });
   };
-
-  private botOwnerClient(owner: string): string {
-    const boundary = owner.lastIndexOf("\0"), clientId = owner.slice(0, boundary), epoch = owner.slice(boundary + 1);
-    if (!clientId || !this.initializedClients.has(clientId) || String(this.clientEpoch(clientId)) !== epoch) throw new Error("Chat client generation was retired");
-    return clientId;
-  }
-  private requestForBot(owner: string, method: string, params: RpcRecord, context: TransportSubmissionContext = { sender: null }): Promise<unknown> {
-    let clientId: string;
-    try { clientId = this.botOwnerClient(owner); } catch (error) { return Promise.reject(error); }
-    const id = `bot-native:${randomUUID()}`;
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.botNativeRequests.delete(id); reject(new Error("Codex result is unconfirmed")); }, 30000); timer.unref();
-      this.botNativeRequests.set(id, { clientId, resolve, reject, timer });
-      void this.sendWithContext(JSON.stringify({ id, method, params, [LOGICAL_CLIENT_FIELD]: clientId }), context).catch(error => {
-        if (!this.botNativeRequests.delete(id)) return; clearTimeout(timer); reject(error);
-      });
-    });
-  }
-  private rejectBotRequests(error: Error, clientId?: string): void {
-    for (const [id, request] of this.botNativeRequests) {
-      if (clientId !== undefined && request.clientId !== clientId) continue;
-      this.botNativeRequests.delete(id); clearTimeout(request.timer); request.reject(error);
-    }
-  }
 
   private publishStatus(status: TransportStatus): void {
     this.statusValue = status;

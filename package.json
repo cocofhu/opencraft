@@ -207,7 +207,7 @@
     "smoke:server-self-upgrade": "OPENCRAFT_SERVER_SMOKE_SYSTEMD=1 OPENCRAFT_SERVER_SMOKE_SELF_UPGRADE=1 tsx scripts/smoke-server-updates.ts",
     "smoke:server-updates:systemd": "OPENCRAFT_SERVER_SMOKE_SYSTEMD=1 tsx scripts/smoke-server-updates.ts",
     "smoke:server-updates": "tsx scripts/smoke-server-updates.ts",
-    "test:codex-core": "tsx --test tests/codex-core.test.ts tests/codex-bot-bridge.test.ts",
+    "test:codex-core": "tsx --test tests/codex-core.test.ts tests/codex-host-state-database.test.ts",
     "test:sqlite-node": "tsx --test tests/sqlite-node.test.ts",
     "test:typography": "tsx --test tests/typography-system.test.ts tests/ui-typography-harness.test.ts tests/conversation-activity-visual.test.ts",
     "smoke:typography": "tsx scripts/smoke-typography.ts",

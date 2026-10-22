@@ -183,12 +183,12 @@ IndexedDB 使用原生升级事务，不运行 SQL runner；广播仅通知已�
 
 历史设计与实施记录见 [任务计划](../design/sqlite-lifecycle/task_plan.md)、[进展](../design/sqlite-lifecycle/progress.md)。本分支尚未推送或发布，源码与 smoke 证据不代表线上部署已升级。
 
-### 受管 Headless 的 Codex Bot 共库 owner
+### 受管 Headless 的历史 Codex Bot 数据保留
 
 CodexHostStateDatabase 的已发布 v1 保持原文，v2 追加 rooms/commands/message slots；
-其业务 adapter 借用同一连接。已知旧结构在 owner 内有界转换并保留映射/receipt/消息 ID，
+旧 Bot bridge 已删除，历史表不再由 Bot adapter 使用。已知旧结构仍在 owner 内有界转换并保留映射/receipt/消息 ID，
 未知仍拒绝；回退接受性须用实际旧 reader 在隔离副本验证。来源与边界见
-[受管 Headless](managed-headless.md#codex-bot-来源与迁移)。
+[受管 Headless](managed-headless.md#codex-原生会话与保留数据)。
 
 
 受管站点首次受管迁移的SSH历史恢复：旧单体只接受v1账本，而正式owner已发布的v2仅维护

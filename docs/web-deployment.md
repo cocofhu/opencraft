@@ -240,7 +240,7 @@ Host overlay；需要保留这些能力时，先完成相应 adapter 接入，�
 结构拒绝，也不能移开后用空库替代。发现目标 preview 来自未提交或后续补丁时，将
 它与指定构建来源分别记录；未经确认不能把该 preview 当作已接收源码构建输入。
 
-完整保留下游 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
+完整保留下游 overlay 的受管 Headless 边界、历史数据保留和 writer 回归见
 [受管 Headless 与独立 core](managed-headless.md)。纯 core bridge 不能替代该模式。
 # Optional ordinary relay
 

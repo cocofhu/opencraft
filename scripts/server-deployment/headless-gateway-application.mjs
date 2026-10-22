@@ -44,7 +44,7 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
     dshExecutable: required('OPENCRAFT_DSH_EXECUTABLE'),
     dshCapabilityPlugin: join(releaseRoot, 'execution/dsh-capability-plugin.mjs'),
     codexExecutable: required('OPENCRAFT_CODEX_EXECUTABLE'),
-    codexCoreEndpoint: endpoint, codexCoreAuthToken: token, botConversations: true,
+    codexCoreEndpoint: endpoint, codexCoreAuthToken: token,
     getExecutionHealth: async () => {
       let dsh;
       if (dshAttachment) {
