@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import type { ApprovalTimelineBlock } from "@opencraft/chat-core";
 import { ConversationPendingInteractionPanel } from "../../apps/workbench-web/src/components/conversation-renderers/interaction/interaction-renderers";
 import { createIntlTestRoot } from "./intl-root";
