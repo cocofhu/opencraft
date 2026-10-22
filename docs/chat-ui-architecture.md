@@ -2533,6 +2533,13 @@ same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
 
+
+
+Ordinary Web code captions stay in the surface's normal stacking order so touch
+scrolling repaints their language label and controls together with the code.
+Only the explicit sticky-header variant receives an elevated stacking level;
+source, wrap, copy behavior and surface geometry remain owned by the code frame.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and
