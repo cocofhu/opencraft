@@ -303,6 +303,7 @@ export function HostlessWorkbench({
       <AppShell
         navigation={{
           settingsActive: routeSettingsOpen,
+          updatesActive: routeSettingsOpen && applicationRoute.kind === 'settings' && applicationRoute.slug === 'updates',
           actions: [
             { id: "shell.chat", title: intl.formatMessage({ id: "navigation.chat", defaultMessage: "Chat" }), icon: "chat", active: applicationRoute.kind === "conversation", onInvoke: closeApplicationRoute },
             ...extensionProjection.primaryActions, ...extensionProjection.footerActions,
@@ -315,6 +316,7 @@ export function HostlessWorkbench({
             onSignOut: extensionProjection.account.provider.signOut,
           },
           onOpenSettings: () => openSettings(),
+          onOpenUpdates: () => openSettings('updates'),
         }}
         layoutScope="hostless"
         mainContentLayout={

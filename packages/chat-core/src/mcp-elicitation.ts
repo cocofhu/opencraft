@@ -108,7 +108,17 @@ export function normalizeMcpElicitationMetadata(
     }
     return { ...common, interactionKind: connectorAuth === null ? "url-action" : "connector-auth", toolApproval, toolSuggestion, connectorAuth };
   }
-  if (source.codex_approval_kind === "mcp_tool_call") {
+  const emptyRequestedFields = Object.keys(data(data(context.requestedSchema).properties)).length === 0;
+  const browserOriginApproval = (context.serverName === "browser" || context.serverName === "browser-use")
+    && emptyRequestedFields && persist.length > 0 && (text(source.origin)?.trim().length ?? 0) > 0;
+  if (source.codex_approval_kind === "tool_suggestion"
+    && (source.suggest_type === "install" || source.suggest_type === "enable")
+    && (source.tool_type === "connector" || source.tool_type === "plugin")
+    && text(source.suggest_reason) !== null && text(source.tool_id) !== null && text(source.tool_name) !== null) {
+    toolSuggestion = { suggestType: source.suggest_type, toolType: source.tool_type, suggestReason: source.suggest_reason as string,
+      toolId: source.tool_id as string, toolName: source.tool_name as string, installUrl: text(source.install_url),
+      remotePluginId: text(source.remote_plugin_id), persistAlways: source.persist === "always" };
+  } else if (source.codex_approval_kind === "mcp_tool_call" || browserOriginApproval) {
     const toolParamsDisplay: NonNullable<McpElicitationMetadata["toolApproval"]>["toolParamsDisplay"][number][] = [];
     for (const candidate of Array.isArray(source.tool_params_display) ? source.tool_params_display : []) {
       const row = data(candidate), name = text(row.name);
@@ -116,16 +126,9 @@ export function normalizeMcpElicitationMetadata(
     }
     toolApproval = { connectorId: text(source.connector_id) ?? context.serverName ?? "mcp", connectorName: text(source.connector_name),
       toolName: text(source.tool_name), toolTitle: text(source.tool_title), toolParams: data(source.tool_params), toolParamsDisplay };
-  } else if (source.codex_approval_kind === "tool_suggestion"
-    && (source.suggest_type === "install" || source.suggest_type === "enable")
-    && (source.tool_type === "connector" || source.tool_type === "plugin")
-    && text(source.suggest_reason) !== null && text(source.tool_id) !== null && text(source.tool_name) !== null) {
-    toolSuggestion = { suggestType: source.suggest_type, toolType: source.tool_type, suggestReason: source.suggest_reason as string,
-      toolId: source.tool_id as string, toolName: source.tool_name as string, installUrl: text(source.install_url),
-      remotePluginId: text(source.remote_plugin_id), persistAlways: source.persist === "always" };
   }
   if (toolSuggestion === null && context.serverName === "computer-use" && persist.includes("always")
-    && Object.keys(data(data(context.requestedSchema).properties)).length === 0) {
+    && emptyRequestedFields) {
     const message = context.message ?? "", prefix = "Allow Codex to use ";
     if (message.startsWith(prefix) && message.endsWith("?") && message.length > prefix.length + 1
       && !/[\r\n\u2028\u2029]/u.test(message)) {
@@ -154,8 +157,11 @@ export function presentMcpElicitationDisplayValue(value: unknown): McpElicitatio
 }
 
 function choices(schema: Data): McpElicitationOption[] {
-  if (Array.isArray(schema.oneOf) && schema.oneOf.length > 0) {
-    return schema.oneOf.flatMap(candidate => {
+  const itemAlternatives = data(schema.items).anyOf;
+  const titledChoices = Array.isArray(schema.oneOf) && schema.oneOf.length > 0 ? schema.oneOf
+    : Array.isArray(itemAlternatives) && itemAlternatives.length > 0 ? itemAlternatives : null;
+  if (titledChoices !== null) {
+    return titledChoices.flatMap(candidate => {
       const row = data(candidate), value = text(row.const);
       return value === null ? [] : [{ value, label: text(row.title) ?? value }];
     });

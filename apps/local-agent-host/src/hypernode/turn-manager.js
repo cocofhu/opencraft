@@ -1,4 +1,3 @@
-// Generated from ref/hypernode/policy/src/services/turn-manager.ts; source methods preserved.
 export function createImplementation(Service, uuidV7, Date) {
 function createTurn() {
     return {

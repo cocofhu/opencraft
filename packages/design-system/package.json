@@ -12,6 +12,7 @@
     "./theme-options": "./src/theme-options.ts",
     "./theme-engine": "./src/theme-engine.ts",
     "./typography": "./src/typography/typography.shared.ts",
+    "./count-font.web": "./assets/rounded-count/font.css",
     "./typography.web": "./src/typography.web.scss",
     "./tokens": "./src/tokens.shared.ts",
     "./tokens.native": "./src/tokens.native.ts",
