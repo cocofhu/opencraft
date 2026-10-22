@@ -76,17 +76,18 @@ try {
   assert.ok(trace.find((e:any)=>e.stage==='settled'&&e.requests>=2&&e.responseBytes>0));
   const unchangedReads=calls.length-before;
   // Hold the real RPC boundary to inspect in-progress UI before a failure.
+  const resumeRequestsBefore=resumeRequests;
   holdNextResume=true;
   await page.evaluate(()=>{void (window as any).recovery.revalidate();});
-  await page.getByText('Restoring conversation history',{exact:true}).waitFor();
   const notice=page.locator('.conversation-recovery-notice');
-  await notice.locator('summary').click();
-  await page.waitForFunction(()=>document.querySelector('.conversation-recovery-details pre')?.textContent?.includes('attemptsStarted: 1'));
-  await page.waitForFunction(()=>/elapsedMs: [1-9]\d{3,}/.test(document.querySelector(".conversation-recovery-details pre")?.textContent??""));
-  const pendingBefore=resumeRequests;
-  await notice.getByRole('button',{name:'Copy details'}).click();
-  assert.equal(resumeRequests,pendingBefore,'opening/copying diagnostics never starts a read');
-  assert.ok(await notice.locator('details').evaluate((node:any)=>node.open));
+  await notice.waitFor();
+  await page.waitForTimeout(1100);
+  const assertSimpleLoading = async () => {
+    assert.equal(await notice.locator('details, pre, button').count(),0,'loading has no diagnostic disclosure or copy action');
+    assert.doesNotMatch(await notice.innerText(),/Technical details|Attempts started|elapsed|Retry in|TIMEOUT|Last failure/);
+  };
+  await assertSimpleLoading();
+  assert.equal(resumeRequests,resumeRequestsBefore+1,'passive loading starts only the requested read');
   assert.equal(await page.evaluate(()=>document.querySelector('[data-turn-key="dsh-turn-s-9"]')===(window as any).originalRow),true);
   const bounds=await notice.boundingBox();assert.ok(bounds && bounds.x>=0 && bounds.x+bounds.width<=width);
   await page.screenshot({path:`${output}/progress-${width}-${theme}.png`});
@@ -96,9 +97,10 @@ try {
   const resumedBefore = resumeRequests;
   const timeoutStart = Date.now();
   dropNextResume = true;
-  const observedRetry=page.getByText('Last failure: TIMEOUT',{exact:true}).waitFor();
+  const observedRetry=page.waitForFunction(()=>(window as any).recovery.progressTrace.some((rows:any[])=>rows.some(row=>row?.lastFailure?.code==='TIMEOUT')));
   await page.evaluate(()=>{void (window as any).recovery.revalidate();});
   try { await observedRetry; } catch(error) { console.error(JSON.stringify(await page.evaluate(()=>(window as any).recovery.progressTrace))); throw error; }
+  await assertSimpleLoading();
   await page.waitForSelector('[data-authoritative="true"]');
   const timeoutRecoveryMs = Date.now()-timeoutStart;
   assert.equal(resumeRequests-resumedBefore,2,'one timed-out history request retries without a page reload');
