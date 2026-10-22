@@ -715,7 +715,11 @@ try {
   await page.keyboard.press("Escape");
   const membership = page.getByRole("dialog", { name: "Link tasks", exact: true });
   const openMembership = async () => {
-    await linkTasks.click();
+    if (await linkTasks.isVisible()) await linkTasks.click();
+    else {
+      await actions.click();
+      await page.getByRole("menuitem", { name: "Link tasks", exact: true }).click();
+    }
     await membership.getByRole("switch", { name: flowTask.title, exact: true }).waitFor();
   };
   await openMembership();
@@ -766,10 +770,12 @@ try {
   await page.keyboard.press('Escape');
   assert.equal(await linkTasks.evaluate((element: HTMLElement) => element === document.activeElement), true, 'Dialog restores focus to the task-link button');
   await page.setViewportSize({ width: 390, height: 720 });
+  await linkTasks.waitFor({ state: "hidden" });
   await openMembership();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await membership.screenshot({ path: process.env.OPENCRAFT_TASKS_MEMBERSHIP_SCREENSHOT ?? '/tmp/opencraft-tasks-membership-mobile.png' });
   await membership.getByRole('button', { name: 'Done', exact: true }).click();
+  assert.equal(await actions.evaluate((element: HTMLElement) => element === document.activeElement), true, 'Mobile picker restores focus to overflow');
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goBack();
   await page.reload();

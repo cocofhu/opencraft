@@ -1841,9 +1841,18 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
 
 ## Conversation task linking entrance
 
-Existing conversations with Tasks authority expose a labeled Link tasks action
-immediately before the overflow menu. Both routes use the original task picker
-and confirmed conversation identity; dismissing it restores focus to its own
-trigger. Shell measures the inert label projection at its intrinsic width, so
-the title never reserves only an icon slot for a text action, including touch
-and floating Newera chrome. No Tasks authority means no task-link entrance.
+Existing conversations with Tasks authority expose a rounded, outlined secondary
+Link tasks action immediately before overflow on desktop. Mobile Shell presents
+the same action inside overflow instead; both use the original picker and fixed
+conversation identity. Dismissal returns focus to the available initiating action,
+including after a layout change. Shell's inert sizing and lazy fallback follow
+the same mobile presentation, without reserving a hidden label slot. No Tasks
+authority means no task-link entrance.
+
+### Personal ToolbarDock
+
+Conversation actions have stable IDs and a single Feature-owned handler, availability, label and pending state. ToolbarDock projects personal ordering into icon-only dock actions and overflow; it does not own task relations or conversation mutations. Default task linking uses the shared task-list glyph with an interlocking link mark, with the localized link-task label retained for hover and accessibility, and is exposed when space permits. Shell owns capacity from independent context width, retained title budget, mandatory controls and shared density tokens; its inert sizing twin uses identical action availability, preference and capacity. Phone/mobile sidebar presentation always overflows; wide touch tablets may dock. Resizing never remounts a task dialog or discards search/draft.
+
+Personal intent uses validated UiPreferencesRuntime storage keyed by account scope and dock identity. Empty means intentionally empty, absent means defaults. Unknown/unavailable action IDs remain stored; temporary overflow does not rewrite preference. Customization supports cross-zone dragging, keyboard sorting, add/remove, explicit save/cancel/reset and visible persistence failure. Drag gestures do not execute actions. Dialog focus returns to the connected invoking icon or visible overflow after capacity change. Icons have localized accessible labels/tooltips; neutral theme tokens and touch hit targets are shared.
+
+Customization drag keeps the source slot in layout and paints a noninteractive, unscaled DragOverlay in the presentation root outside modal transforms/clipping. The active source never uses another list's sortable transform. Pointer hit testing first selects a zone, then its rows; nonempty parent zones do not compete with their children. Keyboard targets rows or empty zones. Draft membership changes only on drop, cancellation leaves it unchanged, and release has no source-return animation.

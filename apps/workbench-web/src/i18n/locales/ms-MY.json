@@ -625,5 +625,18 @@
   "composer.model.retry": "Cuba lagi",
   "composer.model.configure": "Tambah lagi model",
   "composer.model.fallbackShort": "Sandaran",
-  "composer.model.empty": "Tiada model tersedia. Semak tetapan model."
+  "composer.model.empty": "Tiada model tersedia. Semak tetapan model.",
+  "toolbarDock.dragAction": "Seret {action}",
+  "toolbarDock.drag": "Seret untuk menyusun semula",
+  "toolbarDock.remove": "Keluarkan daripada bar alat: {action}",
+  "toolbarDock.add": "Tambah ke bar alat: {action}",
+  "toolbarDock.action": "Butang bar alat boleh seret",
+  "toolbarDock.saveFailed": "Tetapan bar alat tidak dapat disimpan. Cuba lagi.",
+  "toolbarDock.customize": "Sesuaikan bar alat",
+  "toolbarDock.reset": "Pulihkan lalai",
+  "toolbarDock.hint": "Seret untuk menyusun semula atau memindahkan tindakan antara bar alat dan menu. Tindakan dilipat ke dalam menu apabila ruang terhad.",
+  "toolbarDock.docked": "Bar alat",
+  "toolbarDock.overflow": "Menu lagi",
+  "toolbarDock.emptyDock": "Seret tindakan kerap anda ke sini",
+  "toolbarDock.emptyMenu": "Semua tindakan ada dalam bar alat"
 }

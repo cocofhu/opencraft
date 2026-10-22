@@ -1,3 +1,5 @@
+import { ConversationToolbarSizing } from "./components/toolbar-dock-state";
+import { conversationToolbarActionIds } from "./components/toolbar-dock-model";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -1650,12 +1652,40 @@ export function App({
     }) : null;
   useConversationHistoryRefresh(activeThreadLease,
     conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
-  const conversationActionSizing = <>
-    {hostCatalog.tasks ? <span className="chrome-button chrome-button--text">
-      {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
-    </span> : null}
-    <span className="chrome-button" />
-  </>;
+  const headerThreadId = activeThreadId ?? "";
+  const conversationToolbarProps: import("./components/conversation-task-menu").ConversationTaskMenuProps = {
+    port: hostCatalog.tasks ?? undefined,
+    schedules: schedulesAvailable ? { request: (method, params) => hostCatalog.agentRuntimes.request(snapshot.hostId, method, params) } : undefined,
+    scope: displayScope,
+    serverId: legacyDirectServerProjectionFromHost({ hostId: activeHost.hostId, hostKind: activeHost.kind, label: activeHost.label }).serverOrigin.serverId,
+    threadId: headerThreadId,
+    title: activeThread?.title ?? pageTitle ?? "",
+    pinned: activeThread?.pinned,
+    project: activeThread?.project,
+    workspaceDirectory: snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd ?? undefined,
+    onRename: hostCatalog.threadManagement.capabilities(snapshot.hostId).rename
+              ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: headerThreadId }, title) : undefined,
+    onSetPinned: hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
+              ? async pinned => {
+                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, headerThreadId, pinned); }
+                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
+              } : undefined,
+    onArchive: hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
+              ? () => archiveThread({
+                archive: () => hostCatalog.threadManagement.archive(snapshot.hostId, headerThreadId),
+                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
+              }) : undefined,
+    onFork: hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
+              ? () => forkAndOpenThread({
+                routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+                fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, headerThreadId),
+                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
+                openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+              }) : undefined,
+    verifyConversation: async () => { await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", { threadId: headerThreadId, includeTurns: false }); },
+    onOpenTasks: () => workbenchNavigation.openExtensionView("opencraft.tasks.board"),
+  };
+  const conversationActionSizing = <ConversationToolbarSizing scope={displayScope} actionIds={conversationToolbarActionIds(conversationToolbarProps)} />;
   const header = (
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
@@ -1666,36 +1696,7 @@ export function App({
         <Suspense fallback={conversationActionSizing}>
           <ConversationTaskMenu
             key={JSON.stringify([displayScope, snapshot.hostId, activeThreadId])}
-            port={hostCatalog.tasks ?? undefined}
-            schedules={schedulesAvailable ? { request: (method, params) => hostCatalog.agentRuntimes.request(snapshot.hostId, method, params) } : undefined}
-            scope={displayScope}
-            serverId={legacyDirectServerProjectionFromHost({ hostId: activeHost.hostId, hostKind: activeHost.kind, label: activeHost.label }).serverOrigin.serverId}
-            threadId={activeThreadId}
-            title={activeThread?.title ?? pageTitle ?? ""}
-            pinned={activeThread?.pinned}
-            project={activeThread?.project}
-            workspaceDirectory={snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd ?? undefined}
-            onRename={hostCatalog.threadManagement.capabilities(snapshot.hostId).rename
-              ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
-            onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
-              ? async pinned => {
-                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, activeThreadId, pinned); }
-                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
-              } : undefined}
-            onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
-              ? () => archiveThread({
-                archive: () => hostCatalog.threadManagement.archive(snapshot.hostId, activeThreadId),
-                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
-              }) : undefined}
-            onFork={hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
-              ? () => forkAndOpenThread({
-                routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
-                fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId),
-                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
-                openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
-              }) : undefined}
-            verifyConversation={async () => { await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", { threadId: activeThreadId, includeTurns: false }); }}
-            onOpenTasks={() => workbenchNavigation.openExtensionView("opencraft.tasks.board")}
+            {...conversationToolbarProps}
           />
         </Suspense>
       ) : null}

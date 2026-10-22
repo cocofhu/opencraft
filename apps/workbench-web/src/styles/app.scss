@@ -12522,3 +12522,5 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   flex-direction: column;
   .opencraft-composer-intelligence-view { min-height: 0; max-height: none; flex: 1 1 auto; }
 }
+
+.conversation-toolbar { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }
