@@ -828,16 +828,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   }
 }
 
-// Labeled header secondary actions share the control material and corner role.
-.chrome-button.chrome-button--outlined {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
-  background: var(--color-background-button-secondary);
-  color: var(--color-text-button-secondary);
-}
-
-// Match the actual mobile Shell decision for both inert measurement and lazy fallback.
-
 .app-shell-header__context {
   --header-context-gap: 12px;
   display: flex;

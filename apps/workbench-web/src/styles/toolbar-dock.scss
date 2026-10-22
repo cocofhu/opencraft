@@ -1,3 +1,4 @@
+.toolbar-dock__capacity-probe { position: absolute; width: var(--size-toolbar-dock-action); height: 0; visibility: hidden; pointer-events: none; }
 .toolbar-dock { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }
 .toolbar-dock__item { display: flex; align-items: center; }
 .toolbar-dock .toolbar-dock__action {

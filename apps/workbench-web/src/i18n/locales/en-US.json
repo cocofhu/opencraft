@@ -623,5 +623,18 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "toolbarDock.dragAction": "Drag {action}",
+  "toolbarDock.drag": "Drag to reorder",
+  "toolbarDock.remove": "Remove from toolbar: {action}",
+  "toolbarDock.add": "Add to toolbar: {action}",
+  "toolbarDock.action": "Draggable toolbar button",
+  "toolbarDock.saveFailed": "Could not save toolbar settings. Try again.",
+  "toolbarDock.customize": "Customize toolbar",
+  "toolbarDock.reset": "Restore defaults",
+  "toolbarDock.hint": "Drag to reorder or move actions between toolbar and menu. Actions fold into the menu when space is limited.",
+  "toolbarDock.docked": "Toolbar",
+  "toolbarDock.overflow": "More menu",
+  "toolbarDock.emptyDock": "Drag your frequent actions here",
+  "toolbarDock.emptyMenu": "All actions are in the toolbar"
 }

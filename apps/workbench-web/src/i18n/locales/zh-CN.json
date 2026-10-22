@@ -647,5 +647,18 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "toolbarDock.dragAction": "拖动{action}",
+  "toolbarDock.drag": "拖动排序",
+  "toolbarDock.remove": "移出工具栏：{action}",
+  "toolbarDock.add": "加入工具栏：{action}",
+  "toolbarDock.action": "可拖动的工具栏按钮",
+  "toolbarDock.saveFailed": "工具栏设置保存失败，请重试。",
+  "toolbarDock.customize": "自定义工具栏",
+  "toolbarDock.reset": "恢复默认",
+  "toolbarDock.hint": "拖动调整顺序，在工具栏和更多菜单之间移动。空间不足时自动收进更多菜单。",
+  "toolbarDock.docked": "工具栏",
+  "toolbarDock.overflow": "更多菜单",
+  "toolbarDock.emptyDock": "拖到这里添加常用操作",
+  "toolbarDock.emptyMenu": "所有操作已加入工具栏"
 }

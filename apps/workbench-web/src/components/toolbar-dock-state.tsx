@@ -1,3 +1,4 @@
+import "../styles/toolbar-dock.scss";
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { useUiPreferencesRuntime } from "../runtime/ui-preferences-runtime";
 import { projectToolbarDock, toolbarDockKey } from "./toolbar-dock-model";

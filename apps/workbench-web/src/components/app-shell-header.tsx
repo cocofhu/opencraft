@@ -277,7 +277,7 @@ export function AppShellHeader({
     if (!context || !measure) return;
     const update = () => {
       const style = getComputedStyle(context);
-      const sizeProbe = measure.querySelector<HTMLElement>(".chrome-button");
+      const sizeProbe = context.querySelector<HTMLElement>(".toolbar-dock__capacity-probe");
       const size = sizeProbe?.getBoundingClientRect().width ?? 28;
       const gap = parseFloat(style.getPropertyValue("--gap-toolbar-dock")) || 0;
       const reserve = parseFloat(style.getPropertyValue("--width-toolbar-dock-title-budget")) || 220;
@@ -289,6 +289,8 @@ export function AppShellHeader({
     const observer = new ResizeObserver(update);
     observer.observe(context);
     observer.observe(measure);
+    const probe = context.querySelector(".toolbar-dock__capacity-probe");
+    if (probe) observer.observe(probe);
     return () => observer.disconnect();
   }, [presentation?.mobileSidebar, showRightPanelAction]);
 
@@ -330,6 +332,7 @@ export function AppShellHeader({
 
       <div ref={contextRef} className="app-shell-header__context">
         <ToolbarDockCapacityContext.Provider value={dockCapacity}>
+        <span className="toolbar-dock__capacity-probe" aria-hidden="true" />
         <div
           ref={endActionsMeasureRef}
           aria-hidden="true"
