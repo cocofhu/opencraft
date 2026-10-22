@@ -112,3 +112,12 @@ frame has a continuous rounded corner and a centered prompt. Static model,
 terminal, book and edit controls consume the same base artwork without overlays.
 The retained sidebar/split/gear artwork, collaboration numeral font, existing rail
 metrics, theme colors and reading hierarchy stay unchanged.
+
+
+All process row variants compose `ActivityRowContent`: disclosure headers,
+noninteractive summaries, group headers and navigable agent tool rows. It owns
+both the glyph rail and the single summary sweep from required `running` input.
+Group headers may override glyph motion for handoff while text continues to use
+current running state outside deferred summary snapshots. Callers provide raw
+summary content; they never wrap another process shimmer. `CadencedShimmer` stays
+a leaf primitive for independent plan/approval/loading consumers.

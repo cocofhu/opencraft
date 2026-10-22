@@ -1873,7 +1873,8 @@ rows. Summary-only exploration keeps header motion when its body has no active r
 Completion, interruption, failure and reduced motion leave static artwork. All live
 process summaries also use the shared cadenced text sweep, alongside the glyph detail.
 Disclosure rows, summary-only rows, active group summaries and agent tool rows
-share this contract. Settled summaries have no sweep, and reduced motion suppresses
+compose ActivityRowContent, the single glyph/summary paint owner. Running state
+stays outside deferred summary snapshots; callers never nest process sweeps. Settled summaries have no sweep, and reduced motion suppresses
 it through the shared stylesheet. Text/rail geometry, disclosure
 interaction and user drafts remain owned by the existing Conversation and Shell. Static controls share
 the base artwork without activity overlays.

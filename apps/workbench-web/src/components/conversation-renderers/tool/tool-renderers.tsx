@@ -16,9 +16,10 @@ import { useDisclosureHeight } from "../../use-disclosure-height";
 import { ConversationDocumentContext, browserReadableImageSource } from "../../conversation/document-context";
 import { useConversationMediaSource } from "../../conversation/conversation-media-source";
 import { ModalSurface } from "../../modal";
-import { ActivityIcon, activityIcon } from "../activity/activity-icon";
+import { ActivityRowContent } from "../activity/activity-row-content";
+import { activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
-import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "../activity/activity-disclosure";
+import { ActivityDisclosure, useActivityOpen } from "../activity/activity-disclosure";
 import {
   SubagentNavigationContext, ToolCallContentRendererContext, ToolCallIconRendererContext,
   useToolActivityPresentation,
@@ -152,8 +153,8 @@ function ThreadTool({ block }: { block: Tool }) {
       </div>
     </ActivityDisclosure>;
   }
-  const summary = <><ActivityIcon>{activityIcon(presentation.icon)}</ActivityIcon>
-    <CadencedShimmer className="thread-activity-item__summary" active={presentation.state === "running"}>{presentation.summary}</CadencedShimmer></>;
+  const summary = <ActivityRowContent icon={activityIcon(presentation.icon)} summary={presentation.summary}
+    running={presentation.state === "running"} />;
   return target !== null ? <button type="button" className="thread-codex-app-tool-row thread-activity-item__header is-interactive" aria-label="Open chat"
     disabled={navigation.open === null} onClick={() => navigation.open?.(target.threadId, target.displayName)}>{summary}</button>
     : <div className="thread-codex-app-tool-row thread-activity-item__header">{summary}</div>;
