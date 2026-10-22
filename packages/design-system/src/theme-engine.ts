@@ -144,6 +144,50 @@ export const frostThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinit
   },
 };
 
+/** Cool blue glass, with a soft edge between navigation and the reading surface. */
+export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
+  light: {
+    accent: "#2279d5",
+    contrast: 45,
+    fonts: { code: null, ui: null },
+    ink: "#182c43",
+    opaqueWindows: false,
+    surface: "#f5f9ff",
+    surfaces: { window: "#e8f2ff", panel: "#f8fbff", input: "#f0f6ff" },
+    shellMaterial: {
+      mainSurfaceElevation: "-1px 0 0 rgb(82 126 175 / 10%), -5px 0 22px rgb(64 115 176 / 9%), 0 2px 8px rgb(23 55 90 / 4%)",
+      sidebarBackground: "rgb(207 228 255 / 42%)",
+      sidebarFilter: "blur(28px) saturate(140%)",
+      windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(255 255 255 / 60%), transparent 65%)",
+      windowMaterial: "#e8f2ff",
+    },
+    semanticColors: {
+      diffAdded: "#1b8053", diffRemoved: "#c23e50", skill: "#7760c5",
+      warning: "#946019", error: "#b63145", success: "#23764f",
+    },
+  },
+  dark: {
+    accent: "#77b9ff",
+    contrast: 57,
+    fonts: { code: null, ui: null },
+    ink: "#edf5ff",
+    opaqueWindows: false,
+    surface: "#132238",
+    surfaces: { window: "#0c192c", panel: "#192c45", input: "#1e334f" },
+    shellMaterial: {
+      mainSurfaceElevation: "-1px 0 0 rgb(159 199 247 / 10%), -5px 0 24px rgb(0 8 23 / 25%), 0 2px 8px rgb(0 8 23 / 16%)",
+      sidebarBackground: "rgb(27 56 91 / 42%)",
+      sidebarFilter: "blur(28px) saturate(140%)",
+      windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(93 164 255 / 10%), transparent 65%)",
+      windowMaterial: "#0c192c",
+    },
+    semanticColors: {
+      diffAdded: "#65c99b", diffRemoved: "#ff8996", skill: "#c4afff",
+      warning: "#eec080", error: "#ff9eac", success: "#8bdcb5",
+    },
+  },
+};
+
 /**
  * A restrained lavender language projected through the shared
  * Workbench theme contract. The palette changes color and material only;

@@ -5,7 +5,7 @@ import {
 } from "@opencraft/design-system/theme";
 import {
   buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, frostThemePalette,
-  lavenderThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
+  lavenderThemePalette, longingThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
   type OpenCraftThemeDefinition, type ThemeCssProperties,
 } from "@opencraft/design-system/theme-engine";
 import type { ExtensionContributionSnapshot, ExtensionContributionStore } from "@opencraft/extension-runtime";
@@ -17,6 +17,7 @@ export const coreThemeId = builtinThemeIds.neutral;
 export const canvasThemeId = builtinThemeIds.canvas;
 export const frostThemeId = builtinThemeIds.frost;
 export const lavenderThemeId = builtinThemeIds.lavender;
+export const longingThemeId = builtinThemeIds.longing;
 export const mistThemeId = builtinThemeIds.mist;
 export const zenCodeThemeId = builtinThemeIds.zencode;
 
@@ -46,6 +47,7 @@ const builtins: readonly CatalogEntry[] = [
   builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", opencraftNeutralThemePalette),
   builtin(canvasThemeId, "Canvas", "A quiet, web-native canvas.", opencraftCanvasThemePalette),
   builtin(frostThemeId, "Frost", "A cool translucent Sidebar with a lighter fixed material.", frostThemePalette),
+  builtin(longingThemeId, "Longing", "Blue glass with translucent navigation and soft surface transitions.", longingThemePalette),
   builtin(lavenderThemeId, "Lavender", "A soft lavender workspace with a quiet UI palette.", lavenderThemePalette),
   builtin(zenCodeThemeId, "ZenCode", "Quiet grayscale layers, crisp controls, and an opaque workspace.", zenCodeThemePalette),
   builtin(mistThemeId, "Mist", "Close neutral surfaces with a quiet, unified canvas.", mistThemePalette),

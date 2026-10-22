@@ -42,6 +42,12 @@ filter fallbacks and explicit extension popover surfaces remain readable.
 See the workbench language and `scripts/smoke-frosted-materials.ts` for real
 consumer, backdrop and fallback verification. Native appearance is unchanged.
 
+Longing is an optional built-in blue glass palette in both light and dark modes.
+Its theme definition owns the translucent Sidebar, cool surfaces and diffuse
+navigation-to-content edge shadow. Settings previews and the mounted Shell
+consume the same palette; selecting it preserves drafts, layout and focus.
+Shared material fallbacks retain their existing accessibility ownership.
+
 
 ## Floating sidebar presentation boundary
 
