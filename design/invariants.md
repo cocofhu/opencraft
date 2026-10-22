@@ -2105,3 +2105,5 @@ copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
 presentation without changing the canonical source or replacing the surface.
 
 - Activity disclosure has one keyed content list for persistent surfaces: a transcript or MCP App appears once, keeps its chronological expanded position, and a visible App retains the same iframe and input across detail toggles. A realtime handoff starts a fresh response feedback scope, so earlier running work cannot suppress its Thinking placeholder.
+
+- Generated-image pending feedback stays visible against the conversation canvas in light, dark and custom themes. Its skeleton derives from the current foreground rather than a raised surface that can equal the canvas; reduced motion keeps the same visible footprint without pulsing. The media owner retains its existing progress semantics and lifecycle.
