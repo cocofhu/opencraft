@@ -654,8 +654,15 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
     "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
+    // Recessed chrome has one paint owner. Repainting the same translucent
+    // blue over Sidecar makes a darker brand tile even with identical tokens.
+    "--opencraft-shell-material-paint": definition.shellMaterial?.recessedHeaderBackground
+      ? `linear-gradient(${definition.shellMaterial.recessedHeaderBackground}, ${definition.shellMaterial.recessedHeaderBackground}), ${shell.windowHighlight}`
+      : shell.windowHighlight,
+    "--opencraft-sidecar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--opencraft-sidebar-material-background)",
+    "--opencraft-sidecar-filter": definition.shellMaterial?.recessedHeaderBackground ? "none" : "var(--opencraft-sidebar-material-filter)",
     "--opencraft-header-surface-paint": definition.shellMaterial?.recessedHeaderBackground
-      ? `linear-gradient(${definition.shellMaterial?.recessedHeaderBackground}, ${definition.shellMaterial?.recessedHeaderBackground})`
+      ? "none"
       : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
     "--opencraft-header-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
     "--opencraft-thread-edge-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-strong)",

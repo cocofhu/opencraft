@@ -352,7 +352,7 @@ button {
   overscroll-behavior: none;
   // Browser fallback for Electron's transparent/vibrant window material.
   background-color: var(--opencraft-window-material);
-  background-image: var(--opencraft-window-highlight);
+  background-image: var(--opencraft-shell-material-paint, var(--opencraft-window-highlight));
 
   &:has(.app-shell-left-panel__resize[data-resizing="true"]) {
     cursor: col-resize;

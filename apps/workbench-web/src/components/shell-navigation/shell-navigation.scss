@@ -284,9 +284,9 @@
   height: 100%;
   // One material plane spans both rails and their footer. Painting each child
   // separately creates a white footer patch and exposes the window's gray base.
-  background: var(--opencraft-sidebar-material-background);
-  backdrop-filter: var(--opencraft-sidebar-material-filter);
-  -webkit-backdrop-filter: var(--opencraft-sidebar-material-filter);
+  background: var(--opencraft-sidecar-background, var(--opencraft-sidebar-material-background));
+  backdrop-filter: var(--opencraft-sidecar-filter, var(--opencraft-sidebar-material-filter));
+  -webkit-backdrop-filter: var(--opencraft-sidecar-filter, var(--opencraft-sidebar-material-filter));
   .shell-navigation__dock, .app-shell-left-panel {
     background: transparent;
     backdrop-filter: none;
