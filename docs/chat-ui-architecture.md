@@ -68,6 +68,10 @@ identity (including null) wins, and restored/unrelated entries never inherit the
 current employee. Web resolves the enterprise identity contribution into generic name/avatar URL
 values; Composer owns only layout/fallback, not enterprise identity URLs or account policy. Queue
 editing/reordering never relabels its submitter; these values are display-only.
+Queue refresh keeps the current projection until a complete, current read succeeds.
+A queue-change notification received during a read invalidates that response;
+the coalesced follow-up read replaces it without publishing a stale empty list.
+A fresh empty response still removes consumed or deleted entries.
 
 ## Streaming projection and document reuse
 
@@ -268,6 +272,21 @@ returns its own payload. The conversation runtime selects only the target turn,
 settles all response attempts before interrupt, carries the original provenance
 and releases its transient interrupt state on failure. The helper does not grant
 permissions or own pending-request removal.
+
+### MCP elicitation presentation
+
+The shared elicitation normalizer owns field options and metadata routing for
+the existing interaction views. Array fields retain titled string constants
+from `items.anyOf`, including their order and defaults; explicit field `oneOf`
+choices take precedence. Required selections must remain selectable before the
+existing typed form response is submitted.
+
+An empty-field request from `browser` or `browser-use` with a nonblank metadata
+`origin` and offered persistence scopes uses the tool-approval view. Its existing
+actions submit once, session or always responses only as offered by the request.
+Valid tool suggestions and URL requests retain their own routing. Presentation
+classification does not grant permissions; the Host remains the authority for
+the request and its response.
 
 The shared compiler's application link scanner returns raw label/destination and
 UTF-16 offsets. It uses the existing non-nested destination grammar: the label's
@@ -498,6 +517,20 @@ Diff sections are indexed once per completed resource revision, not reparsed
 for every filename. These are Web adapter details; Native preserves its own
 touch surfaces while sharing the Turn resource and Review intent.
 
+The shared summary consumes actual Git paths: unquoted spaces and C-quoted
+UTF-8 bytes resolve to repository file identity, including extended rename/copy
+metadata without removing a real `a/` or `b/` directory. Binary and mode-only
+sections remain zero-count files. Inside a hunk, lines beginning `+++` or `---`
+are changed code; only pre-hunk file headers are metadata. Repeated paths retain
+first-observed order and aggregate counts. Review indexes the same decoded paths;
+the original unified diff remains unchanged. The shared review-line parser
+tracks the declared old/new hunk ranges. Within a hunk, `+++` and `---` remain
+changed code with source line numbers and intraline highlights. Completing a
+hunk or starting another file ends that numbering scope; file metadata and
+patch separators never acquire source line numbers or become collapsible
+unchanged code. Partial add/delete observations remain readable without
+invented line numbers.
+
 The aggregate is a **Turn-owned resource**, not an ordered transcript Item.
 `chat-runtime` passes `unifiedDiff` separately from source Items; `chat-core`
 projects it as `changeSummary` metadata and the assistant presentation plan's
@@ -510,6 +543,12 @@ not a second read authority. A resource-only recovered Turn may have an empty
 carrier Frame, never a fabricated message. Inline resource surfaces count toward
 the virtualizer's top-level geometry; Composer-routed live resources count toward
 footer geometry instead. Neither becomes a latest activity follow anchor.
+
+The Turn resource is read from Frame metadata independently of assistant Items.
+A Turn with only user or interaction Frames still materializes an empty assistant
+resource surface when it has a change summary. Completed, failed and interrupted
+Turns retain their Review entry even when no assistant message was returned;
+clearing the canonical resource removes it without inventing transcript content.
 
 Old `turnDiff` Items are lowered at the shared projection boundary and excluded
 from transcript/work-status derivation. An explicitly supplied Turn value,
@@ -633,6 +672,24 @@ apply the Web user-message paragraph rhythm without adding a trailing gap.
 It also carries the next document node: Web and Native use one Han-text test
 to tighten adjacent root paragraphs, while first/last heading and divider
 margins follow the same document-edge rules.
+Web image previews share `ZoomableImage` across user attachments, Markdown,
+generated images and workspace image resources. The preview owns a transient
+0.2–5× transform: two pointers zoom and freely rotate around their midpoint;
+one pointer pans against bounds derived from the rotated image and the actual
+preview viewport. Shrinking below the fitted size remains available. Lightbox viewports fill the
+available screen independently of the fitted image dimensions; zoomed pixels
+must be visible outside the initial image rectangle. Embedded workspace resources
+retain their panel viewport. Only the image viewport claims touch
+gestures, leaving modal close, gallery navigation and focus with their existing
+owners. Source changes, reopening and viewport resizing restore the fitted view.
+No page zoom, navigation or media reload is required for manipulation.
+The preview's whole modal input layer, including empty screen space, excludes
+background Shell gestures. Global capture listeners must resolve native dialog
+semantics, the composed path and the presentation root before admitting input;
+image-only propagation handling cannot establish modality. Opening the preview
+revokes an already-held background gesture; dismissal allows fresh gestures.
+
+
 Native Markdown images retain their intrinsic ratio within the current
 container and use a document-scoped native preview for adjacent images in
 source order. Its modal exists only while previewing; no browser page or
@@ -678,6 +735,13 @@ consume the same conversation-media decision and Host loader. A Host file path
 is never rewritten to a phone-local `file://` URI; direct HTTP(S) and image
 data remain direct sources. Native preview opens the resolved image source in
 the conversation's gallery when no product-specific preview owner is supplied.
+
+MCP tool-result thumbnails retain their intrinsic aspect ratio inside the
+current details width and a 192px height budget. Those constraints and
+`object-fit` belong to the rendered image, rather than an outer wrapper that
+could let intrinsic pixels overlap later result parts. Small images are not
+upscaled. Collapsing and reopening uses the same media policy and bounded
+geometry; the Host loader and resource permissions remain unchanged.
 
 Web and Native derive file citation labels/targets and workspace mention
 targets from one renderer-neutral model. Native presents workspace mentions
@@ -1404,7 +1468,10 @@ every response or treating `reasoning.available` liveness as that content.
 
 `chat-core` owns selection, chronological slots and single live Thinking
 arbitration. Stable Turn/Item identity survives streaming, completion and
-history updates. Reasoning and Bash/Read/tool groups have separate inner
+history updates. A patch item changing multiple files retains its whole-group
+summary and disclosure when the Turn settles. Completion does not reveal a file
+list that the user collapsed; one-file patches retain the existing plain-row
+behavior. Reasoning and Bash/Read/tool groups have separate inner
 disclosures inside the same contiguous response work container. The newest
 current-response reasoning may own live feedback; later tools, answers,
 questions or inputs retire that feedback without deleting readable content.
@@ -1617,6 +1684,15 @@ height to change before sampling the heading. Detaching the viewport releases it
 while the former DOM is still connected. Actual disclosure unmount separately
 verifies hook cancellation. These adapter lifetime checks complement the real
 mouse/touch animation path; they do not claim Native or Electron acceptance.
+
+### Subagent detail continuity
+
+Grouped collaboration rows retain each agent’s latest matching operation and
+instruction. Their display names, status and messages still come from the shared
+core aggregate; a later operation for another agent cannot replace that detail.
+Older instructions for the same agent are not repeated. A single-operation group
+retains the standalone input, reasoning effort and agent path. Disclosure changes
+only presentation and does not start, message or approve a subagent.
 
 ### Established
 
@@ -2072,6 +2148,12 @@ The shared shell paints ordinary/Newera glass in a pointer-transparent backgroun
 pseudo-element. Backdrop filters must not wrap the ProseMirror editing subtree;
 layout, keyboard viewport projection and the browser's native selection remain
 separate owners. Material variables consume theme tokens and opaque fallbacks.
+Within the sticky conversation footer, desktop paints a rectangular safe-area
+gutter with a straight upper edge below the shell. It does not fill the lower
+rounded-corner cutouts. Touch paints no gutter cover, leaving the same Composer
+floating above the transcript. Density changes affect only decorative paint;
+shell radius, glass, shadow, scroll ownership and editor/menu subtrees remain
+independent. There is no exterior contour sibling.
 Scroll/viewport regressions verify selection and adjacent-character geometry without
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.
@@ -2290,9 +2372,12 @@ snapshot carries connection progress; each resident Thread carries only its own
 history progress. UI never substitutes background Thread work for the current
 conversation. Timestamps, actual starts, the scheduler's retry deadline and a
 bounded machine-code failure are local metadata, with at most twelve stage events.
-A visible recovery notice and cold-history surface expose elapsed time and a
-collapsed copyable report before failure as well as during automatic retries.
-The presentation clock pauses in background tabs and never schedules work.
+Loading and automatic retry surfaces show only their concise loading, syncing
+or reconnecting status. Elapsed time, attempts, retry deadlines, machine failure
+codes and the technical disclosure/copy action remain out of the loading DOM.
+Terminal failures retain their actionable retry/update instruction and collapsed
+copyable diagnostic report. The presentation clock is mounted only with failure
+details, pauses in background tabs and never schedules work.
 Authoritative recovery removes the notice; invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
@@ -2341,3 +2426,40 @@ parsing each nested suffix.
 Streaming input containing object braces follows the existing full-parser
 fallback: a later closing delimiter can promote previously separate Markdown
 blocks into one JSON surface, so those prefixes cannot be frozen early.
+
+### Initial user echoes and explicit steering acknowledgements
+
+User-message normalization may associate the initial params input with an echo
+following only allowlisted setup events (approval review, compaction, fork,
+model/reroute/personality, remote task and worktree initialization). The first
+other Item is an ownership boundary, even if a later message matches. Reuse
+retains server sender, attachments and source identity while params own ordinary
+composer content. Without params input, worktree initialization does not close
+the leading historical user segment. Steering echoes may match an explicit
+server message ID even when Host-enriched text differs and client ID is absent;
+only earlier eligible local rows receive acknowledgements. A stored server ID
+survives a history gap, and declined/backward rows remain separate.
+
+The dictation waveform consumes the live `prefers-reduced-motion` media query.
+Reduced motion paints a static minimum-height signal and suppresses sample-driven
+repaints, while bounded sample collection and recording controls continue. A
+preference change redraws once, and disposal releases the listener with the
+subscription, observer and pending frame.
+
+
+User-message acknowledgement preserves the saved params `clientId` alias when
+`clientUserMessageId` is absent, and saved steering may use `content` when `input`
+is absent. Host-staged display spans accept both `text_elements`/`textElements`
+and `byte_range`/`byteRange`, as the typed message projector does. An enriched
+server echo must remain one message with its original attachment card and
+source anchors; accepting saved field spellings does not relax the exact UTF-8
+span or legacy locator checks.
+
+
+The shared user-input readers accept a single typed content part as well as an
+array, matching the message projector and saved history input contract. Text
+comparison and image counts must not collapse a typed object to an empty input;
+unrelated local steering and server messages retain separate identities. The
+same single-part form participates in exact Host display-span recognition and
+realtime delegation parsing, so voice envelopes remain typed transcripts rather
+than literal user markup. Unsupported part kinds remain ignored.

@@ -9,6 +9,7 @@ OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench
 - 项目维护方法与验收路由：[OpenCraft 维护总纲 Skill](../.agents/skills/opencraft-maintenance/SKILL.md)；不替代下列正式架构文档。
 - 仓库历史与下游消费契约：`opencraft/UPSTREAM_HISTORY.md`。
 - 平台与插件架构：`opencraft/docs/platform-architecture.md`、`opencraft/docs/plugin-architecture.md`。
+- 运行观测平台：[定位、服务与数据/CLI/Skill 规格 V1](observability-platform.md)、[功能与非功能验收矩阵](observability-acceptance.md)；当前为待实现规格，最终以真实部署验收为准。
 - 主体与协作设计纲领：[原生主体、Hub、Channel 与授权](architecture/actor-collaboration.md)；人类与 Agent/Bot/Session 具备原生主体性，权限独立授予；属于目标设计，不代表多租户已实现。
 - 存量会话的 Skills 目录刷新：[实现边界与验收标准](session-capability-refresh.md)；正文版本更新与 Hermes 自动热刷新已取消，Connector 按下列独立文档推进。
 - 平台级 Connector：[机制、已实现链路与剩余范围](platform-connectors.md)；独立于 Hermes 设置页原型，不复用它的页面状态。

@@ -4,7 +4,7 @@ import type {
   ApprovalTimelineBlock,
   QuestionTimelineBlock,
   OptionPickerTimelineBlock,
-  SetupCodexStepTimelineBlock,
+  SetupStepTimelineBlock,
   SetupContextPickerTimelineBlock,
   McpElicitationTimelineBlock,
   TimelineFrame,
@@ -13,7 +13,7 @@ import type {
 } from "./timeline";
 
 export type AttachedInteractionTimelineBlock = ApprovalTimelineBlock | QuestionTimelineBlock | OptionPickerTimelineBlock
-  | SetupCodexStepTimelineBlock | SetupContextPickerTimelineBlock | McpElicitationTimelineBlock;
+  | SetupStepTimelineBlock | SetupContextPickerTimelineBlock | McpElicitationTimelineBlock;
 
 /**
  * Composer-owned requests are projected into the timeline for durable identity

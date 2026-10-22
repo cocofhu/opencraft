@@ -62,6 +62,8 @@ Headless 的 Model Services 在现有添加提供商表单中选择用途，复�
 
 ## Personal defaults on shared servers
 
+Only explicit choices on the new-conversation page immediately update personal model/effort/speed defaults; sending a message is not required. Editing a historical conversation changes only its own selection. It does not write personal defaults or change what subsequent new conversations inherit.
+
 Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
 
 ## 会话选择与产品目录

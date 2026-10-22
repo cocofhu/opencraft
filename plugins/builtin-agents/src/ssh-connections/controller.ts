@@ -37,6 +37,13 @@ export class SshConnectionsController {
   /** Process-local authorization incarnation; never a credential or a lease. */
   getAuthorizationEpoch = () => this.authEpoch;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
+  /** Socket recovery must not depend on a visible page's discovery timer. */
+  async prepareConnection(): Promise<void> {
+    await this.refresh();
+    if (this.closed || !this.snapshot.authenticated) {
+      throw new Error(this.snapshot.accessMode === "shared" ? messages.sessionExpired : messages.locked);
+    }
+  }
   startDiscovery(lifecycle: SshDiscoveryLifecycle): Promise<void> {
     if (this.closed || this.stopDiscovery) return this.refreshOperation ?? Promise.resolve();
     let stopped = false;

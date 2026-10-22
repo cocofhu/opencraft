@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { createLocalReleaseSource } from './local-release.mjs';
 import semver from 'semver';
 import { createHeadlessBackendProxy, isHeadlessBackendPath } from './headless-backend.mjs';
+import { loadLocalMachineAccess } from '../local-machine-access.mjs';
 import { acquireDeploymentLock } from './lock.mjs';
 import { WEB_UPDATE_PATH } from '../../packages/web-update-protocol/src/index.mjs';
 import { createNpmReleaseSource, inspectRelease, unpackRelease, PACKAGE_NAME, isNewerVersion } from './releases.mjs';
@@ -81,11 +82,13 @@ function lease(worker) {
 }
 
 export async function createManagedWebServer({ initialRelease, stateDirectory, registry, channel, userconfig, publicOrigin,
-  appServerTarget = null, codexServerTarget = null, headlessBackendTarget = null, relayIngressTarget = null, relayInternalPort = null, hyperNodeUser = '', execution = null, stateWriter = atomicJson, source = createNpmReleaseSource({ registry, channel, userconfig }) }) {
+  appServerTarget = null, codexServerTarget = null, headlessBackendTarget = null, relayIngressTarget = null, relayInternalPort = null, localAccessFile = null, hyperNodeUser = '', execution = null, stateWriter = atomicJson, source = createNpmReleaseSource({ registry, channel, userconfig }) }) {
   const headlessBackend = createHeadlessBackendProxy(headlessBackendTarget);
   const relayIngress = createHeadlessBackendProxy(relayIngressTarget);
   if (relayIngress && (!headlessBackend || !Number.isInteger(relayInternalPort) || relayInternalPort < 0 || relayInternalPort > 65535)) throw new Error('Relay ingress requires a protected Headless backend and loopback internal port');
   if (!relayIngress && relayInternalPort !== null) throw new Error('Relay internal port requires relay ingress');
+  const localAccess = await loadLocalMachineAccess(localAccessFile);
+  if (localAccess && !headlessBackend) throw new Error('Local machine access requires a protected Headless backend');
   const directory = resolve(stateDirectory);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const releaseLock = await acquireDeploymentLock(directory);
@@ -303,13 +306,14 @@ export async function createManagedWebServer({ initialRelease, stateDirectory, r
       }
       // Preserve deployment authority and metadata probes at the managed entry.
       // All business routes, including login/tunnel endpoints, go through the relay.
-      if (relayIngress && !internal && !['/version.json', '/health', '/__opencraft_health'].includes(pathname)) {
+      const local = !internal && localAccess?.forward(request);
+      if (relayIngress && !internal && !local && !['/version.json', '/health', '/__opencraft_health'].includes(pathname)) {
         relayIngress.http(request, response, () => {}); return;
       }
       const worker = active;
       if (headlessBackend && isHeadlessBackendPath(pathname)) { headlessBackend.http(request, response, lease(worker)); return; }
       if (headlessBackend && pathname !== '/version.json'
-        && ((relayIngress && internal) || (request.method === 'GET' && request.headers.accept?.includes('text/html')))
+        && (local || (relayIngress && internal) || (request.method === 'GET' && request.headers.accept?.includes('text/html')))
         && !await headlessBackend.admitDocument(request, response)) return;
       if (!worker.alive) { json(response, 503, { error: 'Web worker unavailable; restart the website service' }); return; }
       const release = lease(worker);
@@ -327,7 +331,15 @@ export async function createManagedWebServer({ initialRelease, stateDirectory, r
       let pathname;
       try { pathname = new URL(request.url || '/', 'http://localhost').pathname; }
       catch { socket.destroy(); return; }
-      if (relayIngress && !internal) { relayIngress.upgrade(request, socket, head, () => {}, tunnels); return; }
+      const local = !internal && localAccess?.forward(request);
+      // The wire upgrade proxy forwards rawHeaders, so carry only the proof produced here.
+      if (!internal && localAccess) {
+        const raw = [];
+        for (let i = 0; i < request.rawHeaders.length; i += 2) if (request.rawHeaders[i].toLowerCase() !== 'x-opencraft-local-machine-proof') raw.push(request.rawHeaders[i], request.rawHeaders[i + 1]);
+        if (local) raw.push('x-opencraft-local-machine-proof', request.headers['x-opencraft-local-machine-proof']);
+        request.rawHeaders = raw;
+      }
+      if (relayIngress && !internal && !local) { relayIngress.upgrade(request, socket, head, () => {}, tunnels); return; }
       if (!closed && headlessBackend && isHeadlessBackendPath(pathname, true)) {
         headlessBackend.upgrade(request, socket, head, lease(active), tunnels); return;
       }
