@@ -1565,7 +1565,9 @@ explicit `1000 / Browser tab closed` reason, authorization `1008`, legacy transf
 remains visible rather than being overwritten by a generic close message.
 Late retry timers belong to their connection generation. Recovery opens only the
 same lease, never navigates, replays input or acquires control; an authoritative
-non-loading snapshot clears the old disconnection display, including blank tabs.
+non-loading snapshot emits loaded; the shared page runtime clears its previous
+error on that successful acknowledgement, including blank tabs whose navigation
+does not create a history entry. A later failure remains visible.
 
 A failed open or terminally disconnected transport does not make the tab's
 ready promise reusable. Explicit reload or replacement navigation establishes
