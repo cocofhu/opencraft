@@ -33,7 +33,7 @@ function App(){
  const unit={type:'agent-activity',id:'fixture-work',blocks:[],collapsedItemCount:1,status:'complete',segmentEnd:'final-answer',contentUnits,inlineSubagentActivity:null,partitions:{workedForItem:item,collapsibleUnits:contentUnits,expandedUnits:contentUnits,persistentUnits:[],preToggleUnits:[]},hasFinalAssistantStarted:true,hasRenderableAgentItems:true,isTurnCancelled:false,forceExpanded:false,disableCollapse:false,preventAutoCollapse:false,phase:'before-final-answer',workedDurationMs:342000};
  const turn=<div data-turn-key="one" style={{flex:'none'}}>
     <div style={{height:700.35}}/>
-    <div id="disclosure"><React.StrictMode>{shown?(kind==='group'?<AgentActivityGroupDisclosure summary="Read files and ran commands" summaryKey="fixture"><div style={{height}}/></AgentActivityGroupDisclosure>:kind==='worked'?<AgentActivity persistedCollapsed={!open} onCollapsedChange={collapsed=>setOpen(!collapsed)} unit={unit} innerCollapsedById={{}} onInnerCollapsedChange={()=>{}}/>:<ActivityDisclosure icon={null} summary={kind==='read'?'Read file':'Bash command'} running={false} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed={kind==='bash'}><div style={{height}}/></ActivityDisclosure>):null}</React.StrictMode></div>
+    <div id="disclosure"><React.StrictMode>{shown?(kind==='group'?<AgentActivityGroupDisclosure summary="Read files and ran commands" summaryKey="fixture"><div style={{height}}><button data-group-action>Tool action</button></div></AgentActivityGroupDisclosure>:kind==='worked'?<AgentActivity persistedCollapsed={!open} onCollapsedChange={collapsed=>setOpen(!collapsed)} unit={unit} innerCollapsedById={{}} onInnerCollapsedChange={()=>{}}/>:<ActivityDisclosure icon={null} summary={kind==='read'?'Read file':'Bash command'} running={false} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed={kind==='bash'}><div style={{height}}/></ActivityDisclosure>):null}</React.StrictMode></div>
     <div id="after" style={{height:1000}}/>
    </div>;
  return <DisclosureReflowContext.Provider value={acquire}>
@@ -45,7 +45,7 @@ function App(){
   </div>
  </DisclosureReflowContext.Provider>;
 }
-document.documentElement.style.setProperty('--codex-chat-line-height','24px');
+document.documentElement.style.setProperty('--opencraft-chat-line-height','24px');
 createIntlTestRoot(document.getElementById('root')).render(<App/>);
 `;
 const vite = await createServer({
@@ -123,6 +123,13 @@ try {
           sample();
         });
         await activate();
+        if (kind === "group" && height === 80 && !opening && reducedMotion === "no-preference") {
+          await heading.focus();
+          await page.keyboard.press("Tab");
+          assert.equal(await page.locator("[data-group-action]").evaluate(element => document.activeElement === element), false,
+            "closing tool content must leave the Tab order immediately");
+          assert.equal(await page.evaluate(() => !!document.activeElement?.closest('[aria-hidden="true"]')), false);
+        }
         await page.waitForTimeout(750);
         const observation = await page.evaluate(() => ({
           samples: (window as any).samples as number[],
@@ -138,6 +145,13 @@ try {
         assert.equal(observation.samples.at(-1), 0);
         evidence.push({ kind, height, reducedMotion, touch, opening, maxDrift, peakToPeak,
           finalDrift: observation.samples.at(-1) });
+        if (kind === "group" && height === 80 && opening) {
+          await heading.focus();
+          await page.keyboard.press("Tab");
+          assert.equal(await page.locator("[data-group-action]").evaluate(element => document.activeElement === element), true,
+            "expanded tool content must retain keyboard access");
+          await heading.focus();
+        }
       }
       // Reverse both opening and closing before their normal completion.
       await activate(); await page.waitForTimeout(70);

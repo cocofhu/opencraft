@@ -52,7 +52,7 @@ try {
     await goalRow.locator(".is-goal").waitFor();
     await page.evaluate(theme => {
       (window as any).fixture.setThemePreference(theme === "lavender" ? "light" : theme);
-      if (theme === "lavender") (window as any).fixture.setAppearanceThemeId("vela.core.lavender");
+      if (theme === "lavender") (window as any).fixture.setAppearanceThemeId("opencraft.core.lavender");
     }, theme);
     await row("目标轮次间隙").locator(".is-goal").waitFor();
     assert.equal(await row("目标等待处理").locator(".is-review").count(), 1);

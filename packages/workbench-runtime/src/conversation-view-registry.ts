@@ -191,8 +191,8 @@ export function createConversationViewRegistry(
         touchedAt: ++logicalClock,
       };
       // Conversation Scope owns the conversation's explicitly chosen Composer
-      // selections (Codex keeps them on the conversation state, not on any
-      // route-local Composer). Seed a fresh Composer draft from the Scope and
+      // selections, independently of any route-local Composer. Seed a fresh
+      // Composer draft from the Scope and
       // mirror later draft changes back so View recreation cannot lose them.
       const storedSelections = config.scopeLeases.readSelections(scopeId);
       if (storedSelections !== null) {

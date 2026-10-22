@@ -66,16 +66,9 @@ function nodeText(node: ChatDocumentNode): string {
   return "children" in node ? node.children.map(nodeText).join("") : "";
 }
 
-/**
- * Mirrors Codex's syntax-class key: semantic token shape + first meaningful
- * word, with occurrence counted only among siblings of the same class.
- * Source offsets are deliberately excluded because a prefix insertion moves
- * every later token without changing its identity.
- */
 function semanticClass(node: ChatDocumentNode): string {
   switch (node.kind) {
     case "code-fence":
-      // Codex keys a fence by its delimiter, not by a still-streaming language.
       return "code-fence:fence";
     case "link":
       return `link:${node.href}:${firstWord(nodeText(node))}`;
@@ -107,7 +100,6 @@ function compatibleGrowingClass(left: ChatDocumentNode, right: ChatDocumentNode)
 }
 
 function segmentWords(text: string): readonly string[] {
-  // Codex deliberately bypasses Intl.Segmenter for ASCII. Consecutive
   // alphanumerics form a segment and punctuation/whitespace belongs to the
   // segment immediately before it. This keeps a growing `word, ` on one key
   // instead of making punctuation briefly mount as a separate fading span.

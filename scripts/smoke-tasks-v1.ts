@@ -26,7 +26,7 @@ try {
   await rpc("opencraft/tasks/create", { ...content, id: "growth", title: "Growth baseline", kind: "growth", status: "todo" });
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.setDefaultTimeout(15000);
-  await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system"));
+  await page.addInitScript(() => localStorage.setItem("opencraft.appearance-theme", "system"));
   page.on("pageerror", (error: Error) => errors.push(error.message));
   await page.goto(server.url + "/views/opencraft.tasks.board");
   await page.locator('[data-task-id="harness"]').waitFor();

@@ -6,11 +6,6 @@ export function resizeObserverBlockSize(entry: ResizeObserverEntry): number {
   return Number.isFinite(height) ? Math.max(0, height) : 0;
 }
 
-/**
- * Observe border-box height, matching Codex's footer measurement contract.
- * The synchronous first sample is retained because ResizeObserver delivery is
- * asynchronous and scroll padding must exist in the first painted layout.
- */
 export function observeBorderBoxHeight(
   element: HTMLElement,
   onHeight: (heightPx: number) => void,

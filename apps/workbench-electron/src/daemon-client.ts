@@ -35,7 +35,6 @@ export interface OpenCraftDaemonClientOptions {
   readonly codexExecutable: string;
   readonly codexDataDirectory: string;
   readonly nativeCodexHomeDirectory: string;
-  /** Explicit server opt-in; desktop defaults to an embedded Codex engine. */
   readonly codexCoreEndpoint?: string;
   readonly executable: string;
   /** Deployment display name for the daemon machine; desktop keeps the OS name. */

@@ -262,7 +262,6 @@ function hookStatsEntryLabel(kind: HookStats["entries"][number]["kind"]): string
   }
 }
 
-/** Codex keeps hook lifecycle details in a rich hover/focus tooltip. */
 export type { ConversationDetailLevel } from "@opencraft/chat-core";
 
 function HookStatsSummary({ stats }: { readonly stats: HookStats }) {

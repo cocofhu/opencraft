@@ -15,4 +15,4 @@
 最终产物strict deep codesign及native helper strict校验通过；smoke:dictation-interaction、smoke:native-speech均退出0。应用实际Dark/Light截图已检查（不是模拟system偏好）。文档/正式设计映射/diff检查通过，33项context-audit测试通过；最终catalog已无本Task新增命中，历史schema/英文/budget/hex扫描仍存在。
 证据：/tmp/opencraft-dictation-{desktop-final,probe-desktop-final,focused,gate-final,context-final}.log；/tmp/opencraft-dictation-{dark,light}.png。手势释放修复后26聚焦通过，最终gate收尾。
 交接：最终完整npm gate退出0，26聚焦、签名helper/bundle、无录音原生probe与合成实机UI/本地正文请求验收通过。根context最终26测试4项历史失败（本Task格式已修正且无新增命中），33项audit测试通过；未扩大清理历史。
-新预览已启动最终产物并回Chat，未录音/未复制认证/未提交推送，旧预览未覆盖或终止。真实语音与端侧识别本轮未复验；不声称与恢复源码/官方发行100%类体或像素相同。
+新预览已启动最终产物并回Chat，未录音/未复制认证/未提交推送，旧预览未覆盖或终止。真实语音与端侧识别本轮未复验。

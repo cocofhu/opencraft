@@ -122,3 +122,13 @@ test("server confirmation before a lost RPC ACK continues draining the next inpu
   assert.deepEqual(f.sent.map(i => i.commandId), ["one", "two"]);
   assert.equal(box.project().length, 0); box.dispose();
 });
+
+test("browser queue preserves Fast and explicit Standard across reload", () => {
+  const storage = memoryStorage();
+  for (const serviceTier of ["fast", null]) {
+    const first = createBrowserConversationOutbox({ storage, scope: () => "account" }).forProfile(1);
+    first.write(key, [{ intent: { ...intent("speed"), selections: { serviceTier } }, state: "waiting" }]);
+    const restored = createBrowserConversationOutbox({ storage, scope: () => "account" }).forProfile(1).read(key);
+    assert.equal(restored[0]?.intent.selections.serviceTier, serviceTier);
+  }
+});

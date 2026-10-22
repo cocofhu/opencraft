@@ -130,7 +130,6 @@ export const WebChatDocument = memo(function WebChatDocument(props: WebChatDocum
 
 export type WebUserMessageDocumentProps = Omit<WebChatDocumentProps, "dialect" | "streaming">;
 
-/** Codex UserFormattedText: Composer Markdown dialect, never Agent streaming. */
 export function WebUserMessageDocument(props: WebUserMessageDocumentProps) {
   return <WebChatDocument {...props} dialect="user-message" streaming={false} />;
 }

@@ -3,7 +3,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { composerDocumentToPlainText, type ComposerAttachment, type ComposerController } from "@opencraft/composer-core";
 import {
@@ -89,7 +89,7 @@ function TaskEditor() {
 const locale = new LocaleRuntime([]);
 await locale.update({ ideLocale: "en-US" });
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 createRoot(document.getElementById("root")!).render(<IntlRuntimeProvider runtime={locale}><TaskEditor /></IntlRuntimeProvider>);
 Object.assign(window, { __taskDraftFixture: {
   snapshot, select,

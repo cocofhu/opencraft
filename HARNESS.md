@@ -60,9 +60,9 @@ The Harness must not:
 - expose credentials, live session contents, or private filesystem data in
   committed fixtures and artifacts.
 
-## Adopted lessons from Paseo
+## Engineering principles
 
-OpenCraft adopts the following engineering principles demonstrated by Paseo:
+OpenCraft uses the following engineering principles:
 
 - tests prove user-visible or API-visible behavior rather than implementation
   structure;
@@ -79,9 +79,7 @@ OpenCraft adopts the following engineering principles demonstrated by Paseo:
   runtimes;
 - failure artifacts are retained automatically.
 
-OpenCraft deliberately does not copy Paseo's current fragmentation across ad-hoc
-Playwright helpers, shell scripts, YAML flows, performance helpers, and large
-untyped standalone harness programs. OpenCraft standardizes the scenario contract,
+OpenCraft standardizes the scenario contract,
 capability model, trace envelope, artifact manifest, and lifecycle audit while
 retaining platform-native runners.
 
@@ -581,9 +579,9 @@ consume that output, but the CLI must not depend on the browser UI.
 
 ## Differential oracles
 
-A behavior-differential program may act as an Oracle adapter. The existing
-fixed-source Codex VM comparison remains external to production packages and
-must pin every reference input by SHA-256 before execution.
+A behavior-differential program may act as an optional Oracle adapter outside
+production packages. Such an adapter must pin every comparison input by SHA-256
+before execution.
 
 An Oracle can approve deterministic functions and state-machine transitions. It
 cannot approve browser physics, rendering, focus, or compositor behavior unless

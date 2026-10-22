@@ -10,7 +10,7 @@ import {
 import { useTurnHistoryBackfill } from "@opencraft/timeline-react";
 import {
   buildTurnLayout,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   computeTurnRange,
   createTurnMeasurementTransaction,
   createTurnViewportState,
@@ -194,7 +194,7 @@ export const NativeVirtualizedConversationTurns = forwardRef<
         normalizeInitialScrollDistance(initialDistanceFromBottomPx),
         getBottomPaddingPx(),
       ),
-      CODEX_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
+      OPENCRAFT_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
       initialRestoreState,
     ),
   );
@@ -686,7 +686,7 @@ export const NativeVirtualizedConversationTurns = forwardRef<
     if (targetDistance !== null) {
       targetRange = computeTurnRange(
         layout, targetDistance, viewport.viewportHeightPx,
-        CODEX_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
+        OPENCRAFT_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
       );
     }
   }
