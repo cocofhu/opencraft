@@ -435,7 +435,7 @@ export class RemoteBrowserService {
             if (this.retiredLeases.has(key)) throw new Error('Browser tab is closed');
             if (ws.readyState !== WebSocket.OPEN) return;
             page = existing ?? { id: createHash('sha256').update(key).digest('hex'), key, ownerId, controller: null, live: false, viewport: message.input?.viewport, zoom: 100, url: null };
-            this.viewers(page).set(ws, { visible: !modern || message.input.visible === true, modern, authorize, ready: false }); this.pages.set(key, page);
+            this.viewers(page).set(ws, { visible: !modern || message.input.visible === true, modern, inputAcknowledgements: message.input.inputAcknowledgements === true, authorize, ready: false }); this.pages.set(key, page);
             let config;
             const resumed = page.live, recoveryUrl = page.url, recoveryZoom = page.zoom;
             page.recovering = !resumed && !!existing;
@@ -468,7 +468,7 @@ export class RemoteBrowserService {
               if (ws.readyState !== WebSocket.OPEN) { this.detach(page, ws); return; }
               if (!modern) await this.control(page, ws, { action: 'human', takeover: true }, authorize);
               this.controlChanged(page);
-              reply(message.id, { ...config, resumed, restored: !!existing && !resumed, multiView: true, initialized: modern && !existing, control: this.controlState(page, ws) });
+              reply(message.id, { ...config, inputAcknowledgements: message.input.inputAcknowledgements === true, resumed, restored: !!existing && !resumed, multiView: true, initialized: modern && !existing, control: this.controlState(page, ws) });
               const attached = this.viewers(page).get(ws); if (attached) { attached.ready = true; if (attached.visible) this.keyframe(page); }
             } catch (error) {
               page.recovering = false;
@@ -506,7 +506,7 @@ export class RemoteBrowserService {
           if (page !== target || !this.viewers(target).has(ws) || this.pages.get(target.key) !== target || ws.readyState !== WebSocket.OPEN) return;
           if (message.method === 'zoom') { target.zoom = Number(message.input.percent); await this.persist(); }
           if (['navigate', 'viewport'].includes(message.method)) await this.persist();
-          if (!quietMethods.has(message.method)) reply(message.id, value);
+          if (!quietMethods.has(message.method) || message.method === 'input' && viewer.inputAcknowledgements) reply(message.id, value);
         } catch (error) { opening = false;
           if (message?.id) reply(message.id, null, error); else ws.close(1008, 'Invalid browser request'); }
         finally { releaseAttachment?.(); pending--; }
