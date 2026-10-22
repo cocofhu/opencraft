@@ -2,7 +2,7 @@ import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/a
 import React, { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { motion, useReducedMotion } from "motion/react";
-import { ActivityIcon } from "./conversation-renderers/activity/activity-icon";
+import { ActivityRowContent } from "./conversation-renderers/activity/activity-row-content";
 import { OverlayDisclosureTrigger } from "./overlay-disclosure-trigger";
 import { useDisclosureHeight } from "./use-disclosure-height";
 import { useDisclosureReflow } from "./use-disclosure-reflow";
@@ -31,7 +31,7 @@ export function reduceAgentActivityDisclosurePhase(
 export function AgentActivityGroupDisclosure({
   canExpand = true, children, defaultExpanded = false, collapsed, icon,
   onExpand, onCollapsedChange, shouldAnimateInitialCollapse = false,
-  summary, summaryKey, summaryTransition = "static",
+  summary, summaryKey, summaryTransition = "static", running = false, hasRunningRows = false,
 }: {
   canExpand?: boolean;
   children: ReactNode | (() => ReactNode);
@@ -44,6 +44,8 @@ export function AgentActivityGroupDisclosure({
   summary: ReactNode;
   summaryKey: string;
   summaryTransition?: AgentActivitySummaryTransition;
+  running?: boolean;
+  hasRunningRows?: boolean;
 }) {
   const reduced = useReducedMotion();
   const labelId = useId();
@@ -112,10 +114,9 @@ export function AgentActivityGroupDisclosure({
         className="thread-activity-item__header" contentClassName="thread-activity-item__header-content"
         buttonClassName="thread-activity-item__hit-target" interactive={canExpand}
         labelId={labelId} open={open} onToggle={toggle} reflowOwned>
-        {icon != null ? <ActivityIcon>{icon}</ActivityIcon> : null}
-        <span className="thread-activity-item__summary" id={labelId}>
-          {summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.key === summaryKey || summaryTransition === "immediate" ? summary : label.content}</span>}
-        </span>
+        <ActivityRowContent icon={icon} running={running}
+          iconRunning={running && !(phase === "expanded" && hasRunningRows)} summaryId={labelId}
+          summary={summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.key === summaryKey || summaryTransition === "immediate" ? summary : label.content}</span>} />
         {canExpand ? <ChevronRight size={13} className="thread-activity-item__chevron" aria-hidden="true" /> : null}
       </OverlayDisclosureTrigger>
       {phase !== "collapsed" ? (

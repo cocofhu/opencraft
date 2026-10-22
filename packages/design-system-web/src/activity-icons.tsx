@@ -1,5 +1,5 @@
 import React from "react";
-import { BrainArtwork } from "./icon-glyph";
+import { BookArtwork, BrainArtwork, PencilArtwork, TerminalArtwork } from "./icon-glyph";
 import { DiffFileIcon as FileDiff, SquareIcon as Square } from "./interface-icons";
 import type { SVGProps } from "react";
 
@@ -23,13 +23,13 @@ export function StopActivityIcon(props: IconProps) {
 
 export function ThinkingActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="thinking" {...props}>
-    <BrainArtwork detailClassName="activity-glyph__pulse" />
+    <BrainArtwork detailClassName="activity-glyph__flow" />
   </ActivityGlyph>;
 }
 
 export function TerminalActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="terminal" {...props}>
-    <rect x="4" y="4" width="16" height="16" rx="3"/><path d="m7.5 9.5 2.5 2.5-2.5 2.5"/><path className="activity-glyph__cursor" d="M13.5 14.5H17"/>
+    <TerminalArtwork cursorClassName="activity-glyph__cursor" />
   </ActivityGlyph>;
 }
 
@@ -41,7 +41,7 @@ export function SearchActivityIcon(props: IconProps) {
 
 export function ReadActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="read" data-rtl-flip="" {...props}>
-    <path d="M12 6c-2.5-1.4-5.5-1.6-8.5-.7V18c3-.9 6-.7 8.5.7m0-12.7c2.5-1.4 5.5-1.6 8.5-.7V18c-3-.9-6-.7-8.5.7V6Z"/><path className="activity-glyph__pulse" d="M6.5 9h2.5m6 0h2.5"/>
+    <BookArtwork detailClassName="activity-glyph__flow" />
   </ActivityGlyph>;
 }
 
@@ -53,7 +53,7 @@ export function FilesActivityIcon(props: IconProps) {
 
 export function PatchActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="patch" {...props}>
-    <path d="m5.5 14.5 9.8-9.8a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8l-9.8 9.8L4 20l1.5-5.5ZM14 6l4 4"/><path d="M14 20h6"/>
+    <PencilArtwork detailClassName="activity-glyph__ink" />
   </ActivityGlyph>;
 }
 

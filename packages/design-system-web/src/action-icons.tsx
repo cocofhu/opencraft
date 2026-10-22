@@ -1,6 +1,6 @@
 import React from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
-import { ActionGlyph, BrainArtwork, RoundedPage, type ActionIconProps } from "./icon-glyph";
+import { ActionGlyph, BrainArtwork, PencilArtwork, TerminalArtwork, RoundedPage, type ActionIconProps } from "./icon-glyph";
 export type { ActionIconProps } from "./icon-glyph";
 export * from "./interface-icons";
 export * from "./activity-icons";
@@ -82,7 +82,7 @@ export function SearchIcon(props: ActionIconProps) {
 }
 
 export function TerminalIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="terminal"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" /><path d="m7.5 9.5 2.5 2.5-2.5 2.5m6 0H17" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="terminal"><TerminalArtwork /></ActionGlyph>;
 }
 
 export function ModelIcon(props: ActionIconProps) {
@@ -94,7 +94,7 @@ export function CopyIcon(props: ActionIconProps) {
 }
 
 export function EditIcon(props: ActionIconProps) {
-  return <ActionGlyph {...props} kind="edit"><path d="m5.5 14.5 9.8-9.8a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8l-9.8 9.8L4 20l1.5-5.5ZM14 6l4 4" /></ActionGlyph>;
+  return <ActionGlyph {...props} kind="edit"><PencilArtwork /></ActionGlyph>;
 }
 
 export function ComposeIcon(props: ActionIconProps) {

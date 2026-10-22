@@ -1369,8 +1369,14 @@ The Web reasoning disclosure uses the shared thinking activity SVG in the center
 15px and effective strokes to 1.2 CSS pixels across thinking, read, terminal and
 supplemental interface icons. Source padding may require different canvas sizes;
 copy, slot geometry and alignment stay shared. Both live and settled content use
-the same metrics; only the live glyph's internal pulse/cursor may animate, with
-reduced-motion disabling that decoration. See the activity icon design contract.
+the same metrics. The live glyph's internal pulse/cursor remains animated, and
+all live process labels use the existing cadenced text sweep: reasoning, commands,
+read/search/edit, tools, compaction and active group summaries. All process row variants compose ActivityRowContent, which owns the rail and
+one summary sweep. Disclosure and summary adapters supply required running state
+and raw content. Deferred group content never captures animation state; only the
+glyph can hand motion to expanded running rows. CadencedShimmer is a separate
+leaf for independent plan/approval/loading consumers.
+Completion, failure or interruption removes the sweep; reduced motion disables both decorations. See the activity icon design contract.
 
 Engine-returned reasoning is a chronological Item-owned inner disclosure within
 the response's work container, not the body of a tool group's live “Thinking” header. Codex, DSH and Hermes
