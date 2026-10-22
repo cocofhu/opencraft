@@ -27,6 +27,8 @@ import {
 import type { ConversationNavigationSource } from "@opencraft/chat-navigation";
 import {
   WebChatDocument,
+  ChatReadingPositionContext,
+  type ChatReadingPosition,
   resolveStandardChatResource,
 } from "@opencraft/chat-render-web";
 import {
@@ -90,10 +92,12 @@ import {
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
 import { AsyncQuestionCard } from "./conversation/async-question-card";
-import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
+import { DiffReadingPositionContext, UnifiedDiffPreview, type DiffReadingPosition } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
+  ActivityDisclosureStateContext,
   CadencedShimmer,
+  type ActivityDisclosureState,
   useActivityOpen,
 } from "./conversation-renderers/activity/activity-disclosure";
 import {
@@ -170,7 +174,8 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useActivityOpen(presentation.state === "running");
+  const restoreKey = `patch:${JSON.stringify([block.id, change.path, change.movePath])}`;
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false, restoreKey);
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -202,7 +207,7 @@ function FileChangeActivity({
         ? <><b className="is-added">+{change.additions ?? 0}</b><i className="is-deleted">−{change.deletions ?? 0}</i></>
         : null}
     >
-      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} /> : null}
+      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} restoreKey={restoreKey} /> : null}
     </ActivityDisclosure>
   );
 }
@@ -619,6 +624,9 @@ function Turn({
 
 export interface ConversationRestoreSnapshot {
   readonly agentActivityCollapsedById?: Readonly<Record<string, boolean>>;
+  readonly chatReadingPositions?: Readonly<Record<string, ChatReadingPosition>>;
+  readonly activityDisclosures?: Readonly<Record<string, ActivityDisclosureState>>;
+  readonly diffReadingPositions?: Readonly<Record<string, DiffReadingPosition>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -746,6 +754,9 @@ export function Conversation({
   );
   const activityCollapsedByIdRef = useRef(activityCollapsedById);
   activityCollapsedByIdRef.current = activityCollapsedById;
+  const [chatReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.chatReadingPositions ?? {})));
+  const [activityDisclosures] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.activityDisclosures ?? {})));
+  const [diffReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.diffReadingPositions ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
@@ -917,6 +928,9 @@ export function Conversation({
       : null;
     restoreCallbackRef.current?.({
       agentActivityCollapsedById: activityCollapsedByIdRef.current,
+      chatReadingPositions: Object.fromEntries(chatReadingPositions),
+      activityDisclosures: Object.fromEntries(activityDisclosures),
+      diffReadingPositions: Object.fromEntries(diffReadingPositions),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -924,7 +938,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [cancelPendingTargetPosition, scrollController, viewportOwner]);
+  }, [activityDisclosures, cancelPendingTargetPosition, chatReadingPositions, diffReadingPositions, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -980,6 +994,9 @@ export function Conversation({
     </div>
   );
   return (
+    <ChatReadingPositionContext.Provider value={chatReadingPositions}>
+    <ActivityDisclosureStateContext.Provider value={activityDisclosures}>
+    <DiffReadingPositionContext.Provider value={diffReadingPositions}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1073,5 +1090,8 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </DiffReadingPositionContext.Provider>
+    </ActivityDisclosureStateContext.Provider>
+    </ChatReadingPositionContext.Provider>
   );
 }

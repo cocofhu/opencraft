@@ -2126,7 +2126,10 @@ Web/Electron Conversation owns a narrow entry-motion context. Initial display,
 Host/Thread changes and paint/sync recovery (including the first authoritative
 live snapshot) establish a baseline, rather than a new work event. AgentActivity's
 outer content and WorkStatusDivider consume that gate for their initial motion;
-restored content is visible at its final geometry on the first DOM commit. Once
+restored content is visible at its final geometry on the first DOM commit. Open tool details also consume that gate: the unmeasured height of a restored
+open body is natural `auto`, then the existing observer supplies its pixel height.
+Measurement is not a transition from zero. This also keeps the first painted frame
+stable under reduced motion. Once
 that baseline has committed, live insertion and user disclosure opening retain
 existing transitions. This does not delay content, change elapsed-time authority,
 add a cache or require backend protocol changes. A settled collapsed work header
@@ -2748,3 +2751,84 @@ crossing code surfaces. Language captions, controls and hidden duplicates stay
 out of quotes; raw source whitespace and Unicode remain intact. Explicit full
 source metadata keeps its existing authority. The shared copy owner supplies
 this rule to copy and Add to chat, without changing native selection or drafts.
+
+
+### Live tool disclosure state
+
+Generic dynamic tools use the shared activity disclosure state: a running tool
+whose presentation declares an expandable body starts open, a user collapse survives progress updates, and settled
+details have their own initially collapsed choice. A historical completed tool
+therefore starts collapsed without an expand-then-collapse frame. MCP details
+retain a separate initially collapsed choice. Attached approval reviews alone do not
+activate the running choice; review-only tools retain their settled/manual memory.
+Presentation still owns whether
+a tool has a body; an unknown compact dynamic tool does not expose its payload.
+`smoke-thread-tool-activity.ts` exercises native Items through the original
+projector and complete Conversation, including completed/failed settlement,
+manual reopening, historical restore and MCP/compact controls.
+
+### Tool detail choices in a retained View
+
+File-change diffs and tool disclosures keep their explicit choices in the owning
+Conversation View snapshot, keyed by tool block or patch block and file identity.
+The shared disclosure hook retains separate running-collapsed and settled-expanded
+choices; restoration does not change either phase's defaults. MCP details continue
+to start collapsed. A new View starts with the existing defaults, while returning
+to a retained View restores its choice before paint. Only presentation booleans
+are checkpointed; output, permission, execution and App document state remain with
+their existing owners. Updated output is rendered from the current timeline.
+
+### Live Turn resource entry motion
+
+The Composer Turn change summary consumes the owning Conversation entry-motion
+context. A recovered authoritative baseline or retained View return paints the
+resource fully visible and stationary from its first frame. Genuinely new live
+resources retain their entry animation, and count updates keep the same node.
+Reduced-motion preferences remain effective. This changes presentation only;
+Turn identity, diff content, review actions and execution authority are unchanged.
+
+### Turn file-list choices in a retained View
+
+The completed Turn resource's expanded file-list choice belongs to its owning
+Conversation View and is keyed by the stable Turn resource ID. Returning to that
+View keeps explicitly expanded or collapsed files. Current resource updates,
+including a temporary list of at most three files, do not erase that choice.
+Other Turns and new Views start with the original three-file default. This
+reuses the existing View presentation checkpoint; no file/diff content,
+execution, permission or transient hover state is persisted. The resource stays
+separate from transcript Items, Activity boundaries and Thinking ownership.
+
+### Diff reader position in a retained View
+
+The file-change reader checkpoints its horizontal and vertical DOM scroll
+coordinates under its existing patch/file View identity. Restore before paint;
+ordinary output growth leaves manual reading stationary. Layout teardown reads
+the live element before refs detach, including when its native scroll event is
+still queued. Different files and new Views start at their original reading
+origin. Unkeyed consumers retain local behavior. The snapshot contains only
+coordinates, without diff text, execution state or permission.
+
+### Reading expanded file diffs in a retained View
+
+The file-change consumer also keys its nested diff preview to the same patch and
+file identity. Explicitly shown unchanged contexts and the long-diff expansion
+are presentation choices in that View snapshot. Restore them before paint, keep
+different files and fresh Views isolated, and continue rendering current diff
+text through the existing parser. Consumers without a restore key keep their
+existing local defaults; no raw diff, approval or execution state is stored.
+
+### Code and table reading positions in a retained View
+
+Conversation checkpoints local code/table scroll coordinates in its existing
+View snapshot. The shared Web renderer owns capture and before-paint restore,
+keyed by document and stable node identity. Layout cleanup reads the attached
+element even when a native scroll event is still queued. Zero positions use
+the original default and do not occupy snapshot entries. Other Conversations,
+new Views and unscoped documents retain their own defaults.
+
+A fixed-size source fingerprint and length allow a restored block to consume
+its previous position only for the same source or an appended source. Replaced
+content cannot inherit a stale position; the checkpoint contains no code or
+table text. Streaming/highlighting and theme updates retain the existing DOM
+without replaying a saved scroll on every update. This adds no focus writes,
+selection replacement, global persistence, execution or permission state.

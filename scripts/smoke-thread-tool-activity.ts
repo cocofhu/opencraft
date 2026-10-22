@@ -20,10 +20,69 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let inspectedPage: Awaited<ReturnType<NonNullable<typeof browser>["newPage"]>> | undefined;
 const results = [];
+const restoreOnly = process.argv.includes("--restore-only");
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (restoreOnly || !process.argv.some(value => value.endsWith("-only"))) {
+    const restores = [];
+    for (const width of [390, 1200]) for (const theme of ["light", "dark"]) for (const reducedMotion of ["no-preference", "reduce"] as const) {
+      const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion });
+      inspectedPage = page;
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.addInitScript("window.__name=value=>value");
+      await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=live&single=1&restore=1&theme=${theme}`);
+      const group = page.locator(".thread-agent-activity__group-disclosure > .thread-activity-item__header button");
+      if (width === 390) await group.tap(); else await group.click();
+      await page.waitForFunction(() => document.querySelector(".thread-agent-activity__group-disclosure")?.getAttribute("data-disclosure-phase") === "expanded");
+      await page.waitForTimeout(350);
+      await page.evaluate(() => (window as any).setMounted(false));
+      await page.waitForFunction(() => !document.querySelector(".thread-agent-activity__group"));
+      const snapshot = await page.evaluate(() => (window as any).capturedRestore);
+      assert(snapshot && Object.values(snapshot.agentActivityCollapsedById).includes(false));
+      const frames = await page.evaluate(async () => {
+        const frames: { at: number; height: number; natural: number; opacity: number; outerHidden: boolean }[] = [];
+        let start: number | null = null;
+        const done = new Promise<typeof frames>(resolve => {
+          function frame(now: number) {
+            const row = document.querySelector<HTMLElement>(".thread-activity-item[data-status='running']");
+            const clip = row?.querySelector<HTMLElement>(":scope > .thread-activity-item__body-clip");
+            const body = clip?.querySelector<HTMLElement>(":scope > .thread-activity-item__body");
+            if (clip && body) {
+              start ??= now;
+              frames.push({ at: now - start, height: clip.getBoundingClientRect().height, natural: body.scrollHeight,
+                opacity: Number(getComputedStyle(clip).opacity), outerHidden: clip.closest("[inert], [aria-hidden='true']") !== null });
+            }
+            if (start === null || now - start < 450) requestAnimationFrame(frame); else resolve(frames);
+          }
+          requestAnimationFrame(frame);
+        });
+        (window as any).setMounted(true);
+        return await done;
+      });
+      assert(frames.length && frames.every(frame => !frame.outerHidden && frame.natural > 0));
+      const violations = frames.filter(frame => Math.abs(frame.height - frame.natural) > 1 || frame.opacity !== 1);
+      restores.push({ width, theme, reducedMotion, snapshot, frames, violations, errors });
+      const tool = page.locator(".thread-activity-item[data-status='running'] > .thread-activity-item__header button");
+      if (width === 390) await tool.tap(); else await tool.click();
+      await page.waitForFunction(() => !document.querySelector(".thread-activity-item[data-status='running']")?.hasAttribute("data-open"));
+      await page.waitForTimeout(350);
+      if (width === 390) await tool.tap(); else await tool.click();
+      await page.waitForFunction(() => Number.parseFloat((document.querySelector(".thread-activity-item[data-status='running'] > .thread-activity-item__body-clip") as HTMLElement).style.height) > 0);
+      await page.waitForTimeout(350);
+      await page.screenshot({ path: join(output, `restore-${width}-${theme}-${reducedMotion}.png`) });
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+    await writeFile(join(output, "restoration-frames.json"), JSON.stringify(restores, null, 2));
+    console.log(JSON.stringify(restores.map(({ width, theme, reducedMotion, violations }) => ({ width, theme, reducedMotion, violations: violations.length }))));
+    assert.equal(restores.reduce((count, item) => count + item.violations.length, 0), 0, "restored open tool bodies have final geometry on the first painted frame");
+    results.push({ restoredToolGeometry: true, scenes: restores.length });
+  }
+
+  if (!restoreOnly) {
+  if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -116,6 +175,69 @@ try {
     console.log(JSON.stringify({ width, theme, toolImages: true, passed: true }));
     await page.close();
   }
+  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
+        port: number;
+    }).port}/?theme=${theme}&scenario=live`;
+    await page.goto(url);
+    await page.locator('[data-phase="running"]').waitFor();
+    const activate = (n: ReturnType<typeof page.locator>) => width === 390 ? n.tap() : n.click();
+    const reveal = async () => { for (let i = 0; i < 20; i++) {
+        const closed = page.locator('.thread-agent-activity__group > .thread-agent-activity__group-disclosure > .thread-activity-item__header > button[aria-expanded="false"]');
+        if (!await closed.count())
+            break;
+        await activate(closed.first());
+    } };
+    await reveal();
+    const liveRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__detail', { hasText: '/workspace/live.txt' }) }).first();
+    await liveRow.waitFor();
+    const live = liveRow.locator(':scope > .thread-activity-item__header button[aria-expanded]');
+    await live.waitFor();
+    const settledRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__detail', { hasText: '/workspace/settled.txt' }) }).first();
+    const mcpRow = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-activity-item__summary', { hasText: 'Mcp probe' }) }).first();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'running');
+    const features: Record<string, boolean> = { liveInitiallyOpen: await live.getAttribute('aria-expanded') === 'true', liveBodyInitiallyVisible: await page.getByText('LIVE_WRITE_BODY', { exact: false }).first().isVisible(), mcpInitiallyClosed: await mcpRow.locator(':scope > .thread-activity-item__header button[aria-expanded]').getAttribute('aria-expanded') === 'false', settledInitiallyClosed: await settledRow.locator(':scope > .thread-activity-item__header button[aria-expanded]').getAttribute('aria-expanded') === 'false', compactPayloadSuppressed: !await page.getByText('COMPACT_PAYLOAD_CONTROL', { exact: false }).count() };
+    await page.screenshot({ path: join(output, `live-${width}-${theme}-initial.png`) });
+    if (await live.getAttribute('aria-expanded') === 'true')
+        await activate(live);
+    await page.evaluate(() => (window as any).setPhase('progress'));
+    await page.locator('[data-phase="progress"]').waitFor();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.content === 'UPDATED_WRITE_BODY');
+    features.manualCollapseRetained = await live.getAttribute('aria-expanded') === 'false';
+    await activate(live);
+    await page.getByText('UPDATED_WRITE_BODY', { exact: false }).first().waitFor();
+    await page.evaluate(() => (window as any).setPhase('completed'));
+    await page.locator('[data-phase="completed"]').waitFor();
+    const settledLive = liveRow.getByRole('button', { name: 'Wrote', exact: true });
+    await settledLive.waitFor();
+    features.settlementReturnsCollapsed = await settledLive.getAttribute('aria-expanded') === 'false';
+    if (await settledLive.getAttribute('aria-expanded') === 'false')
+        await activate(settledLive);
+    features.settledManuallyReachable = await page.getByText('LIVE_WRITE_BODY', { exact: false }).first().isVisible();
+    await page.goto(url + '&initial=completed&history=1');
+    await page.locator('[data-phase="completed"]').waitFor();
+    await reveal();
+    features.historicalSettledCollapsed = await liveRow.getByRole('button', { name: 'Wrote', exact: true }).getAttribute('aria-expanded') === 'false';
+    await page.goto(url);
+    await page.locator('[data-phase="running"]').waitFor();
+    await reveal();
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'running');
+    await page.evaluate(() => (window as any).setPhase('failed'));
+    await page.waitForFunction(() => (window as any).observed['live-write']?.status === 'failed');
+    features.failedSettlementCollapsed = await live.getAttribute('aria-expanded') === 'false';
+    assert.ok(Object.values(features).every(Boolean), JSON.stringify(features));
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    results.push({ width, theme, liveTools: features });
+    await page.close();
+}
+  }
+
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

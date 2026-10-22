@@ -102,6 +102,227 @@ try {
       continue;
     }
     await update("reset");
+    if (process.argv.includes("--turn-entry-only")) {
+      await page.evaluate(() => {
+        const w = window as any; w.turnEntryFrames = []; w.turnEntryLabel = "baseline";
+        const sample = () => {
+          const row = document.querySelector<HTMLElement>(".thread-turn-diff-live");
+          if (row) { const css = getComputedStyle(row); w.turnEntryFrames.push({ label: w.turnEntryLabel, opacity: Number(css.opacity), transform: css.transform }); }
+        };
+        const frame = () => { sample(); requestAnimationFrame(frame); };
+        new MutationObserver(sample).observe(document.body, { subtree: true, childList: true }); requestAnimationFrame(frame);
+      });
+      const observe = async (label: string, action: string) => {
+        await page.evaluate(label => { (window as any).turnEntryLabel = label; }, label);
+        await update(action); await page.waitForTimeout(220);
+        return page.evaluate(label => (window as any).turnEntryFrames.filter((f: any) => f.label === label), label);
+      };
+      const staticEntry = (frames: any[], label: string) => {
+        assert.ok(frames.length > 0, label);
+        assert.ok(frames.every(f => f.opacity === 1 && (f.transform === "none" || f.transform === "matrix(1, 0, 0, 1, 0, 0)")), `${label}: recovered resources must be visible and stationary from their first frame: ${JSON.stringify(frames)}`);
+      };
+      staticEntry(await observe("baseline", "turn-entry-baseline"), "baseline");
+      const row = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("return", "restore"), "return");
+      assert.equal(await row!.evaluate(element => element.isConnected), false);
+      await observe("empty", "turn-entry-empty"); assert.equal(await page.locator('.thread-turn-diff-live').count(), 0);
+      const fresh = await observe("fresh", "turn-entry-appear");
+      if (touch) staticEntry(fresh, "reduced motion fresh entry");
+      else assert.ok(fresh.some((f: any) => f.opacity < 1), "genuinely new live resources keep their entry motion");
+      const live = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("update", "turn-entry-update"), "update");
+      assert.equal(await live!.evaluate(element => element.isConnected), true);
+      await activate(page.locator('.thread-turn-diff-live')); assert.equal(await page.evaluate(() => (window as any).reviewedLiveChanges), true);
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), []);
+      await writeFile(join(output, `turn-entry-${touch ? 'touch' : 'mouse'}-${theme}.json`), JSON.stringify(await page.evaluate(() => (window as any).turnEntryFrames)));
+      results.push({ touch, theme, baselineStatic: true, returnedStatic: true, freshEntryPreserved: true, updatedNodePreserved: true, reviewWorks: true });
+      await page.close(); continue;
+    }
+    if (process.argv.includes("--turn-files-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle(); await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll); await page.locator('.thread-scroll').waitFor();
+      };
+      await update("turn-files-reset");
+      const row = page.locator('.thread-turn-diff');
+      const more = row.locator('.thread-turn-diff__more');
+      const files = row.locator('.thread-turn-diff__files > button:not(.thread-turn-diff__more)');
+      assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 5);
+      const original = await row.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await files.count(), 5, "the retained View keeps the explicitly expanded Turn file list");
+      assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      const restored = await row.elementHandle(); await update("turn-files-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.equal(await files.count(), 6); assert.ok((await row.innerText()).includes('updated-file-6.ts'));
+      await update("turn-files-shrink"); assert.equal(await files.count(), 2); assert.equal(await more.count(), 0);
+      await update("turn-files-regrow"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await update("turn-files-other"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await update("turn-files-return"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await more.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `turn-files-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await activate(more); await restoreView(); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 6);
+      await update("turn-files-reset"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), [], "Turn file-list restore must not cause ResizeObserver feedback");
+      results.push({ touch, theme, turnFilesRestored: true, refreshedFiles: true, transientShrink: true, separateTurns: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--turn-files-only")) { await page.close(); continue; }
+    }
+    if (process.argv.includes("--diff-position-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async (action = "restore") => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update(action);
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-position-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const reader = first.locator('.thread-unified-diff');
+      const position = (target = reader) => target.evaluate((element: HTMLElement) => ({ top: element.scrollTop, left: element.scrollLeft }));
+      await unfoldGroup(); await toggleRow(first);
+      await reader.evaluate((element: HTMLElement) => { element.scrollTop = 180; element.scrollLeft = 90; });
+      assert.deepEqual(await position(), { top: 180, left: 90 });
+      const original = await reader.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "the retained View restores both diff reader coordinates");
+      const restored = await reader.elementHandle(); await update("diff-position-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "fresh output keeps manual reading stationary");
+      assert.ok((await first.innerText()).includes('updated-position-219'));
+      await toggleRow(second); assert.deepEqual(await position(second.locator('.thread-unified-diff')), { top: 0, left: 0 });
+      await restoreView("diff-position-pending-restore");
+      assert.equal(await page.evaluate(() => (window as any).pendingDiffScrollEvents), 0,
+        "unmount before the browser delivers the queued scroll event");
+      assert.deepEqual(await position(), { top: 260, left: 140 }, "teardown captures the actual DOM position without waiting for scroll events");
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-position-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await toggleRow(first); await restoreView(); assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first); assert.deepEqual(await position(), { top: 260, left: 140 });
+      await update("diff-position-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.deepEqual(await position(), { top: 0, left: 0 }, "a new View starts at the original reading origin");
+      assert.deepEqual(errors, []);
+      const resizeFeedback = await page.evaluate(() => (window as any).resizeFeedback);
+      if (resizeFeedback.length > 0) console.log(JSON.stringify({ touch, theme, diffPositionResizeFeedback: resizeFeedback }));
+      assert.deepEqual(resizeFeedback, [], "diff reading restoration must not cause ResizeObserver feedback");
+      results.push({ touch, theme, diffPositionRestored: true, refreshedDiff: true, separateFiles: true, pendingNativeScroll: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-position-only")) { await page.close(); continue; }
+    }
+    if (process.argv.includes("--diff-reading-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-reading-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const context = first.locator('.thread-unified-diff__collapsed');
+      const more = first.locator('.thread-unified-diff__show-all');
+      await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1); assert.equal(await more.count(), 1);
+      await activate(context); await activate(more);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      const original = await first.elementHandle();
+      await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await first.getAttribute('data-open'), 'true');
+      assert.equal(await context.count(), 0, "the retained View keeps explicitly shown unchanged lines");
+      assert.equal(await more.count(), 0, "the retained View keeps the explicitly shown long diff");
+      const restored = await first.elementHandle();
+      await update("diff-reading-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.ok((await first.innerText()).includes('updated-after-450'), "current diff output stays authoritative");
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await toggleRow(second);
+      assert.equal(await second.locator('.thread-unified-diff__collapsed').count(), 1, "different files keep independent context choices");
+      assert.equal(await second.locator('.thread-unified-diff__show-all').count(), 1);
+      await toggleRow(first); await restoreView();
+      assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-reading-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await update("diff-reading-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1, "a new View retains the original context default");
+      assert.equal(await more.count(), 1, "a new View retains the original long-diff limit");
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, diffReadingRestored: true, refreshedDiff: true, separateFiles: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-reading-only")) { await page.close(); continue; }
+    }
+    if (process.argv.includes("--detail-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      for (const kind of ["patch", "mcp", "dynamic"]) {
+        await update(`detail-view-${kind}-reset`);
+        const row = page.locator('.thread-activity-item[data-status="completed"]').filter({
+          has: page.locator('.thread-activity-item__body'),
+        }).last();
+        const unfoldGroup = async () => {
+          for (let index = 0; index < 8 && !await row.isVisible(); index++) {
+            const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+            assert.ok(await group.count());
+            await activate(group);
+          }
+        };
+        const toggleRow = async () => {
+          const trigger = row.locator(':scope > .thread-activity-item__header > button');
+          if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+          else await trigger.click({ position: { x: 8, y: 8 } });
+        };
+        await unfoldGroup();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "a fresh settled detail starts collapsed");
+        await toggleRow();
+        assert.equal(await row.getAttribute('data-open'), 'true');
+        const first = await row.elementHandle();
+        await restoreView();
+        assert.equal(await first!.evaluate(element => element.isConnected), false);
+        assert.equal(await row.getAttribute('data-open'), 'true', "explicit expansion survives restoration of the same View");
+        const restored = await row.elementHandle();
+        await update(`detail-view-${kind}-append`);
+        assert.equal(await restored!.evaluate(element => element.isConnected), true);
+        assert.equal(await row.getAttribute('data-open'), 'true');
+        assert.ok((await row.innerText()).includes('Updated detail result'), "restoration does not cache stale tool output");
+        await page.screenshot({ path: join(output, `detail-view-${kind}-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+        await toggleRow();
+        await restoreView();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "explicit collapse survives the same View");
+        await update(`detail-view-${kind}-reset`);
+        await unfoldGroup();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "new Views do not inherit the old View choice");
+      }
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, detailViewRestored: true, refreshedOutput: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--detail-view-only")) { await page.close(); continue; }
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -434,7 +655,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") || process.argv.includes("--turn-entry-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

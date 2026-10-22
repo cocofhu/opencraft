@@ -7,9 +7,11 @@ import { motion, useReducedMotion } from "motion/react";
 import { useContext, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement } from "react";
 import { ChangeResourceIcon } from "../activity-glyphs";
 import { UnifiedDiffPreview } from "../conversation-renderers/unified-diff-preview";
+import { useActivityOpen } from "../conversation-renderers/activity/activity-disclosure";
 import { Button } from "../ui/button";
 import { useDisclosureReflow } from "../use-disclosure-reflow";
 import { ConversationDocumentContext, type ConversationDocumentContextValue } from "./document-context";
+import { ConversationEntryMotionContext } from "./entry-motion";
 import { indexReviewFileDiffs } from "./turn-diff-review";
 
 const COLLAPSED_FILE_COUNT = 3;
@@ -89,11 +91,12 @@ function DiffHover({ children, diff, path, additions, deletions }: {
 export function TurnDiffBlock({ block }: { readonly block: TurnDiffTimelineBlock }) {
   const intl = useIntl();
   const document = useContext(ConversationDocumentContext);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useActivityOpen(false, false, `turn-files:${block.id}`);
   const [livePreviewOpen, setLivePreviewOpen] = useState(false);
   const liveListRef = useRef<HTMLDivElement>(null);
   const reflow = useDisclosureReflow();
   const reducedMotion = useReducedMotion();
+  const allowEntryMotion = useContext(ConversationEntryMotionContext);
   useLayoutEffect(() => reflow.complete(), [expanded, reflow.complete]);
   const inProgress = block.status === "pending" || block.status === "running";
   const files = expanded ? block.files : block.files.slice(0, COLLAPSED_FILE_COUNT);
@@ -109,7 +112,7 @@ export function TurnDiffBlock({ block }: { readonly block: TurnDiffTimelineBlock
   };
   if (block.files.length === 0) return null;
   if (inProgress) return <Tooltip.Provider><Tooltip.Root open={livePreviewOpen} onOpenChange={setLivePreviewOpen}>
-    <Tooltip.Trigger asChild><motion.button animate={{ opacity: 1, y: 0 }} initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+    <Tooltip.Trigger asChild><motion.button animate={{ opacity: 1, y: 0 }} initial={reducedMotion || !allowEntryMotion ? false : { opacity: 0, y: 4 }}
       transition={{ duration: reducedMotion ? 0 : 0.15, ease: "easeOut" }} className="thread-turn-diff-live" disabled={!canReview}
       aria-keyshortcuts="ArrowDown"
       onKeyDown={(event) => {

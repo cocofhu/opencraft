@@ -2,11 +2,13 @@ import { FileCode2, MessageSquare, Globe2 } from "lucide-react";
 import { ActivitySummaryRow } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-summary-row";
 import { activityIcon } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-icon";
 import React, { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline,
   type TimelineSourceItem, type TimelineSourceTurn } from "@opencraft/chat-core";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
+import { ComposerTurnChangeSummary } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
 import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
@@ -57,6 +59,7 @@ function longEmptyResponse(engine: string, withClock: boolean): TimelineSourceTu
 }
 
 function Demo() {
+  const [turnEntry, setTurnEntry] = useState(false);
   const [engine, setEngine] = useState("codex");
   const [generation, setGeneration] = useState(0);
   const [mounted, setMounted] = useState(true);
@@ -64,6 +67,72 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("turn-entry-")) {
+      const mode = action.slice("turn-entry-".length);
+      setTurnEntry(true);
+      if (mode === "baseline" || mode === "empty") { restore = null; setGeneration(value => value + 1); }
+      const diff = mode === "empty" ? null : `diff --git a/live.ts b/live.ts\n--- a/live.ts\n+++ b/live.ts\n@@ -1 +1,${mode === "update" ? 2 : 1} @@\n-before\n+after\n${mode === "update" ? "+added\n" : ""}`;
+      setTurn({ id: "turn", status: "streaming", unifiedDiff: diff, items: [reasoning(engine)] }); return;
+    }
+    if (action.startsWith("turn-files-")) {
+      const mode = action.slice("turn-files-".length);
+      if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
+      const count = mode === "shrink" ? 2 : ["append", "regrow", "return"].includes(mode) ? 6 : 5;
+      const diff = Array.from({ length: count }, (_, index) => {
+        const path = index === 5 ? "updated-file-6.ts" : `file-${index + 1}.ts`;
+        return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n-before\n+after-${index + 1}\n`;
+      }).join("");
+      setTurn({ id: mode === "other" ? "other-turn" : "turn", status: "complete", unifiedDiff: diff,
+        items: [{ id: "files-answer", type: "agentMessage", payload: { text: "File list result", phase: "final_answer", completed: true } }] }); return;
+    }
+    if (action.startsWith("diff-position-")) {
+      if (action === "diff-position-pending-restore") {
+        const reader = document.querySelector<HTMLElement>(".thread-unified-diff")!;
+        let delivered = 0;
+        reader.addEventListener("scroll", () => { delivered += 1; }, { once: true });
+        reader.scrollTop = 260; reader.scrollLeft = 140;
+        flushSync(() => setMounted(false));
+        probe.pendingDiffScrollEvents = delivered;
+        return;
+      }
+      const reset = action === "diff-position-reset";
+      if (reset) { restore = null; setGeneration(value => value + 1); }
+      const count = reset ? 200 : 220;
+      const diff = `@@ -0,0 +1,${count} @@\n` + Array.from({ length: count }, (_, index) =>
+        `+${reset ? "original" : "updated"}-position-${index} ${"long diff column ".repeat(12)}`).join("\n") + "\n";
+      const item: ThreadItem = { id: "position-patch", type: "fileChange", status: "completed",
+        changes: ["a", "b"].map(name => ({ path: `/work/${name}.ts`, kind: { type: "update", move_path: null }, diff })) };
+      setTurn({ id: "turn", status: "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
+    if (action.startsWith("diff-reading-")) {
+      const reset = action === "diff-reading-reset";
+      if (reset) { restore = null; setGeneration(value => value + 1); }
+      const diff = "@@ -1,31 +1,481 @@\n" + Array.from({ length: 30 }, (_, index) => ` context-${index}`).join("\n")
+        + "\n-before\n" + Array.from({ length: 451 }, (_, index) => `+${reset ? "original" : "updated"}-after-${index}`).join("\n") + "\n";
+      const item: ThreadItem = { id: "reading-patch", type: "fileChange", status: "completed",
+        changes: ["a", "b"].map(name => ({ path: `/work/${name}.ts`, kind: { type: "update", move_path: null }, diff })) };
+      setTurn({ id: "turn", status: "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
+    if (action.startsWith("detail-view-")) {
+      const [, , kind, mode] = action.split("-");
+      const running = mode === "running" || mode === "progress";
+      if (mode === "reset" || mode === "running") { restore = null; setGeneration(value => value + 1); }
+      const output = mode === "append" ? "Updated detail result" : "Original detail result";
+      const item: ThreadItem = kind === "patch" ? {
+        id: "view-patch", type: "fileChange", status: running ? "inProgress" : "completed",
+        changes: [{ path: "/work/view-example.ts", kind: { type: "update", move_path: null },
+          diff: `@@ -1 +1 @@\n-before\n+${output}\n` }],
+      } : kind === "mcp" ? {
+        id: "view-mcp", type: "mcpToolCall", server: "detail-fixture", tool: "inspect",
+        status: running ? "inProgress" : "completed", arguments: {}, appContext: null,
+        result: { content: [{ type: "text", text: output }] }, error: null, durationMs: null,
+      } : {
+        id: "view-dynamic", type: "dynamicToolCall", namespace: "deepseek-harness", tool: "write",
+        status: running ? "inProgress" : "completed", arguments: { path: "/work/view-example.ts", content: output },
+        contentItems: [{ type: "inputText", text: output }], success: running ? null : true, durationMs: null,
+      };
+      setTurn({ id: "turn", status: running ? "streaming" : "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
@@ -176,11 +245,12 @@ function Demo() {
   return <div data-revision={revision} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
       {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" initialRestoreSnapshot={restore}
-        documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work",
+        documentContext={{ composerChangeSummaryTurnId: turnEntry ? turn.id : undefined, theme, conversationId: "thread", hostId: engine, cwd: "/work",
           onOpenResource: (target, decision) => probe.openedReasoningResources.push({ target, kind: decision.kind }) }}
         onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })}
         onRestoreSnapshotChange={value => { restore = value; }}
-        footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
+        footer={<>{turnEntry ? <ComposerTurnChangeSummary timeline={timeline} turnId={turn.id}
+          documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work", onReviewTurnDiff: () => { probe.reviewedLiveChanges = true; } }} /> : null}<div style={{ height: 48 }}>Composer fixture</div></>} /> : null}
     </TimelineBlockRendererProvider>
     {turn.items[0]?.id === "metrics-command" ? <div data-activity-metrics-gallery>
       {(["terminal", "patch", "wrench", "search", "read", "files", "stop", "agent", "image", "browser", "computer"] as const).map(kind =>

@@ -102,6 +102,7 @@ export function ShikiCodeRenderer({
   return (
     <CodeBlockSurface
       code={code}
+      readingKey={JSON.stringify([context.documentId, node.stableKey, "code"])}
       highlightedHtml={highlightedHtml}
       language={language}
       open={!complete}
