@@ -11,8 +11,8 @@ try{
   // tsx/esbuild annotates nested function names; supply its inert helper only
   // in this isolated test renderer before installing the frame sampler.
   await page.evaluate("globalThis.__name = value => value");
-  await page.locator(".codex-composer-editor").first().waitFor({timeout:30000});
-  const editor=page.locator(".codex-composer-editor").first();
+  await page.locator(".opencraft-composer-editor").first().waitFor({timeout:30000});
+  const editor=page.locator(".opencraft-composer-editor").first();
   await editor.fill("Draft remains intact while the tool panel changes.");
   const show=page.getByRole("button",{name:"Show task details",exact:true});
   if(await show.isVisible())await show.click();
@@ -29,7 +29,7 @@ try{
           workspace=document.querySelector(".main-content-body")!,aside=document.querySelector(".app-shell-right-panel");
         host.__paneSamples.push({time,viewport:viewport.getBoundingClientRect().width,frame:frame.getBoundingClientRect().width,
           workspace:workspace.getBoundingClientRect().width,panel:aside?.getBoundingClientRect().width??0,full:viewport.getAttribute("data-app-shell-right-panel-full-width"),
-          queryContainer:getComputedStyle(frame).containerName,composers:document.querySelectorAll(".codex-composer-editor").length});
+          queryContainer:getComputedStyle(frame).containerName,composers:document.querySelectorAll(".opencraft-composer-editor").length});
         if(host.__paneRecording)requestAnimationFrame(sample);
       };requestAnimationFrame(sample);
     });
@@ -89,7 +89,7 @@ try{
   await page.emulateMedia({reducedMotion:"reduce"});
   // Motion reads the media preference during initialization.
   await page.reload();
-  await page.locator(".codex-composer-editor").first().waitFor();
+  await page.locator(".opencraft-composer-editor").first().waitFor();
   await page.evaluate("globalThis.__name = value => value");
   if(await show.isVisible())await show.click();
   await page.getByRole("button",{name:"New browser tab",exact:true}).filter({visible:true}).first().click();

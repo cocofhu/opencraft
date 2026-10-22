@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import {
   buildTurnLayout,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   createTurnViewportState,
   createTurnWindowSlice,
   updateTurnViewportState,
@@ -79,13 +79,13 @@ export interface TimelineWindowSlice<TEntry extends VirtualizedTimelineEntry> {
 export const TIMELINE_VIRTUALIZER_CONFIG: Readonly<TimelineVirtualizerConfig> =
   Object.freeze({
     estimatedEntryHeightPx:
-      CODEX_TURN_VIRTUALIZER_CONFIG.estimatedTurnHeightPx,
-    gapPx: CODEX_TURN_VIRTUALIZER_CONFIG.gapPx,
-    overscanEntryCount: CODEX_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
+      OPENCRAFT_TURN_VIRTUALIZER_CONFIG.estimatedTurnHeightPx,
+    gapPx: OPENCRAFT_TURN_VIRTUALIZER_CONFIG.gapPx,
+    overscanEntryCount: OPENCRAFT_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
     fallbackViewportHeightPx:
-      CODEX_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
+      OPENCRAFT_TURN_VIRTUALIZER_CONFIG.fallbackViewportHeightPx,
     topAlignmentInsetPx:
-      CODEX_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
+      OPENCRAFT_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
   });
 
 const nativeLayouts = new WeakMap<TimelineLayout, TurnLayout>();

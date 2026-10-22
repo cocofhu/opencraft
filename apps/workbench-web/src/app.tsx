@@ -1,3 +1,4 @@
+import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
 import { Monitor } from "lucide-react";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
@@ -36,9 +37,9 @@ import {
 } from "@opencraft/composer-appserver";
 import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
 import {
-  CodexComposer,
+  OpenCraftComposer,
   type ComposerSelectionCatalog,
-} from "@opencraft/codex-composer";
+} from "@opencraft/composer-editor";
 import { asHostId, asTurnId, deriveAsyncQuestionStates, findPendingInteraction, parseAsyncQuestionReply, renderAsyncQuestionReply, type AsyncQuestion, type TimelineSnapshot, type TurnDiffTimelineBlock } from "@opencraft/chat-core";
 import type { ChatResourceDecision, ChatResourceOpenIntent } from "@opencraft/chat-render-web";
 import type { PlatformViewHost } from "@opencraft/extension-react";
@@ -154,6 +155,7 @@ import {
   useRootComposerController,
   useThreadCatalog,
   useMultiHostThreadCatalog,
+  useThreadPinWriter,
 } from "./runtime/appserver-runtime-context";
 import {
   setAppearanceThemeId,
@@ -293,6 +295,12 @@ export function App({
   const composerController = useRootComposerController();
   const defaultFollowUpAction = useDefaultFollowUpAction();
   const hostCatalog = useAppServerHosts();
+  const selectSearchedThread = useCallback((hostId: string, id: string, target?: ConversationSearchTarget) => {
+    setConversationSearchTarget(null);
+    void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
+      if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
+    }).catch(error => console.error("Failed to activate searched Thread", error));
+  }, [hostCatalog]);
   const attentionScope = hostCatalog.threadAttention.getScope();
   const conversationViewIdentity = useConversationViewIdentity();
   const extensionPlatform = (
@@ -381,24 +389,31 @@ export function App({
     },
     [runtime, snapshot.hostId, hostCatalog.agentRuntimes],
   );
-  const catalog = useThreadCatalog();
-  const multiHostCatalog = useMultiHostThreadCatalog();
+  const rawCatalog = useThreadCatalog();
+  const rawMultiHostCatalog = useMultiHostThreadCatalog();
+  const threadPinWriter = useThreadPinWriter();
+  const pinRevision = useSyncExternalStore(threadPinWriter.subscribe, threadPinWriter.getSnapshot, threadPinWriter.getSnapshot);
+  const catalog = { ...rawCatalog, threads: useMemo(() => rawCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: snapshot.hostId, threadId: thread.id }, thread)),
+  [rawCatalog.threads, threadPinWriter, pinRevision, snapshot.hostId, snapshot.connectionGeneration, snapshot.phase]) };
+  const multiHostCatalog = { ...rawMultiHostCatalog, threads: useMemo(() => rawMultiHostCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: thread.connectionHostId, threadId: thread.id }, thread)),
+  [rawMultiHostCatalog.threads, threadPinWriter, pinRevision]) };
   const projectCatalog = useProjectCatalog();
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
   const { sidebarOpen, setSidebarOpen } = useResponsiveSidebarDock();
   const { width: sidebarWidth, commit: commitSidebarWidth } = usePersistedSidebarWidth(presentation.shellNavigation);
-  // Codex projects the single persisted sidebar-width signal into a root
   // layout token. Top-level routes consume the token instead of inventing
   // route-local widths, so switching routes cannot move the content boundary.
   useLayoutEffect(() => {
     if (!presentation.contextSidebar) return;
     document.documentElement.style.setProperty(
-      "--codex-sidebar-preferred-width",
+      "--opencraft-sidebar-preferred-width",
       `${sidebarWidth}px`,
     );
     return () => {
       document.documentElement.style.removeProperty(
-        "--codex-sidebar-preferred-width",
+        "--opencraft-sidebar-preferred-width",
       );
     };
   }, [presentation.contextSidebar, sidebarWidth]);
@@ -624,12 +639,23 @@ export function App({
       label: intl.formatMessage({ id: "panel.newBrowser", defaultMessage: "New browser tab" }),
       creationLabel: intl.formatMessage({ id: "panel.browser", defaultMessage: "Browser" }),
     } : action.id === "opencraft.cloud-desktop.open" ? { ...action,
-      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
-      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" }),
+      label: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
+      creationLabel: intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" }),
     } : action.id === "workspace.files.open" ? { ...action,
       label: intl.formatMessage({ id: "panel.openFiles", defaultMessage: "Open files" }),
       creationLabel: intl.formatMessage({ id: "panel.files", defaultMessage: "Files" }),
     } : action);
+  const panelToolbarContext: PanelToolbarActionContext = {
+    ownerId: panelOwnerId, resourceOwnerId: conversationResourceOwnerId, hostId: snapshot.hostId,
+    cwd: snapshot.conversation?.execution.cwd ?? catalog.protocolThreads.find(thread => thread.id === activeThreadId)?.cwd
+      ?? draft?.target.execution.workspace.cwd ?? activeHost.workspaceBrowseRoots[0] ?? null,
+  };
+  const sideChatAction = panelToolbarActions.find(action => action.id === "sidechat.new");
+  const threadShortcutCommands = activeThreadLease !== null && sideChatAction
+    && (sideChatAction.isAvailable?.(panelToolbarContext) ?? true)
+    ? [{ name: SIDE_CHAT_COMPOSER_COMMAND.name, description: sideChatAction.label },
+      ...(hostShortcutCommands ?? []).filter(command => command.name !== SIDE_CHAT_COMPOSER_COMMAND.name)]
+    : hostShortcutCommands;
   const presentedPanelRenderers = presentation.filePreviewOnly
     ? panelRenderers.filter(renderer => renderer.kind === "browser" || renderer.kind === "resource" || renderer.kind === "cloud-desktop")
       .map(renderer => renderer.kind === "resource" ? { ...renderer, Component: WorkspaceResourcePreviewPanel } : renderer)
@@ -655,7 +681,6 @@ export function App({
       });
       return;
     }
-    // Codex keeps the AppShell control plane alive independently from route
     // content and permits an empty RightPanel outlet. A concrete tab is only
     // created by a real capability action.
     dispatchPanel({
@@ -841,6 +866,13 @@ export function App({
       intent: SubmitIntent,
       context: { readonly followUpAction: ComposerFollowUpAction | null },
     ): boolean | Promise<boolean> => {
+      const sideChatSnapshot = activeThreadLease?.getSnapshot() ?? null;
+      const sideChatCommand = runSideChatComposerCommand(intent, {
+        key: sideChatSnapshot?.key ?? null,
+        authoritative: snapshot.phase === "ready" && sideChatSnapshot?.authoritative === true,
+        action: sideChatAction, context: panelToolbarContext,
+      });
+      if (sideChatCommand !== null) return sideChatCommand;
       // Host connectivity gates command admission, never Draft editability.
       // Re-check at the semantic boundary as the status can change between a
       // rendered enabled button and its click handler.
@@ -946,6 +978,8 @@ export function App({
     },
     [
       conversationScopes,
+      sideChatAction,
+      panelToolbarContext,
       hostCatalog,
       queryClient,
       activeThreadLease,
@@ -1147,7 +1181,6 @@ export function App({
         if (conversationRouteOpen && matches("composer")) { event.preventDefault(); composerController.focus(); return; }
         if (presentation.shellNavigation && matches("help")) { event.preventDefault(); setShortcutHelpOpen(true); return; }
       }
-      // Match Codex's global type-to-compose behavior. Printable keys only
       // transfer to Composer when no editable surface, menu or dialog owns
       // the event; browser shortcuts and IME composition remain untouched.
       if (shouldTypeToCompose(event)) {
@@ -1199,6 +1232,7 @@ export function App({
   const composerSelectionCatalog = useMemo<ComposerSelectionCatalog>(
     () => ({
       models: projectComposerModelChoices(composerCatalog.models),
+      displayModels: projectComposerModelChoices(composerCatalog.displayModels),
       permissionProfiles: composerCatalog.permissionProfiles.map((rawProfile) => {
         const profile = rawProfile as OpenCraftPermissionProfile;
         return {
@@ -1246,6 +1280,7 @@ export function App({
       composerCatalog.rememberModelDefaults,
       composerCatalog.retryModels,
       composerCatalog.models,
+      composerCatalog.displayModels,
       composerCatalog.permissionProfileError,
       composerCatalog.permissionProfiles,
       supportsPermissionModes,
@@ -1350,11 +1385,10 @@ export function App({
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(embedded.hostId, threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }); }
+        await threadPinWriter.set({ hostId: embedded.hostId, threadId }, pinned);
       },
     });
-  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, navigateToHome, queryClient, sendMessage, snapshot.phase]);
+  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, threadPinWriter, navigateToHome, queryClient, sendMessage, snapshot.phase]);
   const workspaceSelectionEpoch = useRef(0);
   useLayoutEffect(() => {
     workspaceSelectionEpoch.current++;
@@ -1537,16 +1571,11 @@ export function App({
   const panelHost = embedded?.panelHost;
   const hostPanelActive = useSyncExternalStore(panelHost?.presentation?.subscribe ?? (() => () => {}),
     panelHost?.presentation?.getSnapshot ?? (() => false), () => false);
-  const panelToolbarContext: PanelToolbarActionContext = {
-    ownerId: panelOwnerId, resourceOwnerId: conversationResourceOwnerId, hostId: snapshot.hostId,
-    cwd: snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd
-      ?? draft?.target.execution.workspace.cwd ?? activeHost.workspaceBrowseRoots[0] ?? null,
-  };
   // The installed adapter owns availability and rechecks authority on launch.
   const cloudDesktopAction = panelToolbarActions.find(action => action.id === "opencraft.cloud-desktop.open");
   const composerDesktopEntry = presentation.composerDesktopEntry === true && conversationRouteOpen && cloudDesktopAction
     && (cloudDesktopAction.isAvailable?.(panelToolbarContext) ?? true) ? (
-    <button type="button" className="codex-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
+    <button type="button" className="opencraft-composer-shortcut-trigger" data-testid="composer-cloud-desktop-entry"
       onClick={() => {
         try {
           void Promise.resolve(cloudDesktopAction.run(panelToolbarContext)).catch(() => {
@@ -1563,7 +1592,7 @@ export function App({
     open: panelState.right.open, fullWidth: panelState.rightPanelFullWidth,
     activeTabId: panelState.right.activeTabId,
     tabs: panelState.right.tabs.map(tab => ({ id: tab.id,
-      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Desktop" })
+      title: tab.kind === "cloud-desktop" ? intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" })
         : tab.kind === "browser" && tab.title === "New tab"
         ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title.slice(0, 512),
       kind: tab.kind, closable: tab.closable, preview: tab.preview })),
@@ -1654,7 +1683,7 @@ export function App({
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
-      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
       headerActionCount={conversationMenuAvailable ? 1 : 0}
       headerAction={conversationMenuAvailable ? (
         <Suspense fallback={<span className="chrome-button" />}>
@@ -1673,8 +1702,7 @@ export function App({
               ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
             onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
               ? async pinned => {
-                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, activeThreadId, pinned); }
-                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
+                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
               } : undefined}
             onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
               ? () => archiveThread({
@@ -1753,8 +1781,7 @@ export function App({
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
       onSetPinned: async (target, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(target.hostId, target.threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }); }
+        await threadPinWriter.set(target, pinned);
       },
       onRename: (target, title) => threadTitleWriter.rename(target, title),
       onFork: target => forkAndOpenThread({
@@ -1854,7 +1881,7 @@ export function App({
           header={embedded !== undefined && draft !== null && draft.submission === null && !presentation.rightPanel ? null : header}
           floatingSidebarHeader={(onDock) => !presentation.contextSidebar ? null : (
             <AppShellNavigationControls
-              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
               hostRole="transient"
               sidebarOpen={false}
               canGoBack={canGoBack}
@@ -2037,6 +2064,14 @@ export function App({
                     onOpenResource: openChatResource,
                     onReviewTurnDiff: openTurnDiffReview,
                     composerChangeSummaryTurnId: snapshot.conversation?.activeTurn?.turnId ?? null,
+                    onForkTurn: !showingDisplayCache && snapshot.conversation?.authoritative === true
+                      && activeThreadId !== null && hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
+                      ? turnId => forkAndOpenThread({
+                          routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+                          fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId, turnId),
+                          refreshThreads: refreshConversationCatalog,
+                          openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+                        }) : undefined,
                     theme: appearanceTheme.resolvedTheme,
                   }}
                   timeline={visibleTimeline}
@@ -2104,7 +2139,7 @@ export function App({
                         goals={runtime.resources.goals}
                         portalContainer={portalContainer}
                       >{(goalMenuItem, _goalBusy, goalContent) => (
-                      <CodexComposer
+                      <OpenCraftComposer
                         attachedContent={goalContent}
                         floatingContent={composerChangeSummary}
                         controller={composerController}
@@ -2147,7 +2182,7 @@ export function App({
                           {typeof composerAddMenuContent === "function" ? composerAddMenuContent(closeMenu) : composerAddMenuContent}
                           {goalMenuItem(closeMenu)}
                         </>}
-                        shortcutCommands={hostShortcutCommands}
+                        shortcutCommands={threadShortcutCommands}
                         entryActions={composerDesktopEntry}
                         endActions={composerEndActions}
                         modelSelectionPolicy={modelSelectionPolicy}
@@ -2161,6 +2196,7 @@ export function App({
                         effectiveSelections={{
                           model: snapshot.conversation?.execution.model,
                           effort: snapshot.conversation?.execution.effort,
+                          serviceTier: snapshot.conversation?.execution.serviceTier,
                           permissionProfile:
                             snapshot.conversation?.execution.permissionProfile,
                         }}
@@ -2169,7 +2205,7 @@ export function App({
                       />
                       )}</ThreadGoalSurface>
                     ) : (
-                      <div className="codex-composer-stack">
+                      <div className="opencraft-composer-stack">
                         {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}
@@ -2218,12 +2254,7 @@ export function App({
         <ConversationSearch enabled={presentation.shellNavigation} open={conversationSearchOpen} onOpenChange={setConversationSearchOpen}
           sources={multiHostCatalog.searchSources}
           threads={multiHostCatalog.threads} loading={multiHostCatalog.discovery === "loading" || multiHostCatalog.catalogs.some(catalog => catalog.phase === "loading")}
-          onSelectThread={(hostId, id, target) => {
-            setConversationSearchTarget(null);
-            void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
-              if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
-            }).catch(error => console.error("Failed to activate searched Thread", error));
-          }} />
+          onSelectThread={selectSearchedThread} />
         </AppShell>
       </AppShellRouteRegionsProvider>
         <ModalHost requests={modalRequests} />

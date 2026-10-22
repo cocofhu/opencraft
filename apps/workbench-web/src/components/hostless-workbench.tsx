@@ -103,12 +103,12 @@ export function HostlessWorkbench({
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
-      "--codex-sidebar-preferred-width",
+      "--opencraft-sidebar-preferred-width",
       `${sidebarWidth}px`,
     );
     return () => {
       document.documentElement.style.removeProperty(
-        "--codex-sidebar-preferred-width",
+        "--opencraft-sidebar-preferred-width",
       );
     };
   }, [sidebarWidth]);

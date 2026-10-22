@@ -12,15 +12,15 @@ import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import {ModalSurface} from '/apps/workbench-web/src/components/modal/modal-surface.tsx';
-import {buildCodexThemeCssProperties,codexThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 import '/apps/workbench-web/src/components/modal/modal.scss';
 import '/apps/workbench-web/src/styles/context-menu.scss';
 import '/frost-probe.scss';
 function App(){const [open,setOpen]=useState(false),[presentation,setPresentation]=useState('dialog'),[appearance,setAppearance]=useState('default');
 window.fixture={theme:(mode,custom)=>{document.documentElement.dataset.theme=mode;
-const base=codexThemePalette[mode], definition=custom?{...base,surfaces:{popover:mode==='light'?'#f4e8df':'#25292c'}}:base;
-for(const [key,value]of Object.entries(buildCodexThemeCssProperties(mode,definition)))document.documentElement.style.setProperty(key,value);
+const base=opencraftNeutralThemePalette[mode], definition=custom?{...base,surfaces:{popover:mode==='light'?'#f4e8df':'#25292c'}}:base;
+for(const [key,value]of Object.entries(buildOpenCraftThemeCssProperties(mode,definition)))document.documentElement.style.setProperty(key,value);
 },show:(kind='dialog',look='default')=>{setPresentation(kind);setAppearance(look);setOpen(true)}};
 return <main><div className="scene"><span>CONVERSATION · 128,420</span></div><button id="open" onClick={()=>setOpen(true)}>Open panel</button>
 <Menu.Root><Menu.Trigger id="menu">More</Menu.Trigger><Menu.Portal><Menu.Content className="workbench-context-menu" aria-label="Session actions"><Menu.Item className="workbench-context-menu__item">Session usage</Menu.Item><Menu.Item className="workbench-context-menu__item">Close</Menu.Item></Menu.Content></Menu.Portal></Menu.Root>

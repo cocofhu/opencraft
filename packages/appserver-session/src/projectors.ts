@@ -215,43 +215,31 @@ function hookCompletedAt(run: ProjectedHookRun["run"]): unknown {
   return run.completedAt ?? null;
 }
 
-/** Source-equivalent reconstruction of Codex's hook-run `upsertItem`. */
+/** Apply one observed execution update while retaining its presentation identity. */
 function upsertHookRun(
   current: readonly ProjectedHookRun[],
   incoming: ProjectedHookRun["run"],
 ): readonly ProjectedHookRun[] {
-  const next = [...current];
-  let index = -1;
-  for (let candidateIndex = next.length - 1; candidateIndex >= 0; candidateIndex -= 1) {
-    const candidate = next[candidateIndex];
-    if (candidate?.run.id === incoming.id && candidate.run.status === "running") {
-      index = candidateIndex;
-      break;
+  let executionCount = 0;
+  let activePosition = -1;
+  let completedPosition = -1;
+  current.forEach((entry, position) => {
+    if (entry.run.id !== incoming.id) return;
+    executionCount++;
+    if (entry.run.status === "running") activePosition = position;
+    if (incoming.completedAt != null && entry.run.completedAt === incoming.completedAt) {
+      completedPosition = position;
     }
-  }
-  if (index < 0 && hookCompletedAt(incoming) !== null) {
-    for (let candidateIndex = next.length - 1; candidateIndex >= 0; candidateIndex -= 1) {
-      const candidate = next[candidateIndex];
-      if (
-        candidate?.run.id === incoming.id
-        && hookCompletedAt(candidate.run) === hookCompletedAt(incoming)
-      ) {
-        index = candidateIndex;
-        break;
-      }
-    }
-  }
-  if (index >= 0) {
-    const existingId = next[index]?.id ?? incoming.id;
-    next[index] = { id: existingId, run: incoming };
-    return next;
-  }
-  const reusedCount = next.filter((candidate) => candidate.run.id === incoming.id).length;
-  next.push({
-    id: reusedCount === 0 ? incoming.id : `${incoming.id}:${String(reusedCount)}`,
-    run: incoming,
   });
-  return next;
+  const position = activePosition >= 0 ? activePosition : completedPosition;
+  const updated = current.slice();
+  if (position >= 0) {
+    updated[position] = { id: current[position]!.id, run: incoming };
+  } else {
+    const id = executionCount === 0 ? incoming.id : incoming.id + ":" + executionCount;
+    updated.push({ id, run: incoming });
+  }
+  return updated;
 }
 
 function projectHookNotification(view: ThreadView, notification: AppServerNotification): ThreadView | null {

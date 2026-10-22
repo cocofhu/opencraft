@@ -47,7 +47,7 @@ try {
   const errors: string[] = [];
   for (const touch of [false, true]) {
     const context = await browser.newContext({ viewport: touch ? { width: 390, height: 844 } : { width: 1280, height: 900 }, isMobile: touch, hasTouch: touch, locale: "en-US", colorScheme });
-    await context.addInitScript((preference: string) => localStorage.setItem("vela.appearance-theme", preference), colorScheme);
+    await context.addInitScript((preference: string) => localStorage.setItem("opencraft.appearance-theme", preference), colorScheme);
     await context.route("**/*", (route: any) => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
     const page = await context.newPage(); activePage = page;
     const showSidebar = async () => {

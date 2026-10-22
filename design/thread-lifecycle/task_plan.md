@@ -1,7 +1,7 @@
 # 会话生命周期严格实现
 
 ## 目标
-遵循 ref/codex 的身份、上下文、订阅和持久化语义，实现本机 Fork/Side Chat、unsubscribe、命名与归档。
+维护身份、上下文、订阅和持久化语义，实现本机 Fork/Side Chat、unsubscribe、命名与归档。
 
 ## 阶段
 1. 原生接口核对、红测与设计契约 — 完成。

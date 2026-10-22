@@ -1,4 +1,4 @@
-/** Extends Codex 26.908.40834 Wba with a readable main-pane minimum.
+/** Projects shell panes with a readable main-pane minimum.
  * One projection for tool occupancy, chat aperture and text layout.
  * Maximization shrinks the aperture, never the ordinary chat layout. Below the
  * main reserve, the chat keeps a viewport-sized floor and slides out to the left.

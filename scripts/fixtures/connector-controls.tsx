@@ -5,7 +5,7 @@ import { WebSocketTransport } from "@opencraft/appserver-transport-websocket";
 import { asHostId, createConversationKey } from "@opencraft/chat-core";
 import { AuthenticationService, ConnectorApprovalQueue, ConnectorManager, ConnectorRuntime, asConversationScopeId, createConversationBindingStore } from "@opencraft/workbench-runtime";
 import { createComposerController } from "@opencraft/composer-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { openConnectorConfigurationStore } from "../../apps/workbench-web/src/runtime/connector-configuration-store";
 import { useConnectorPresentation } from "../../apps/workbench-web/src/components/connectors/connector-panel";
 import { ConnectorNativeServices } from "../../apps/workbench-web/src/components/connectors/connector-native-services";
@@ -53,7 +53,7 @@ function App() {
     <h1>隔离连接器验收</h1><p>只连接本地模拟 Host 和授权服务，不使用真实账号。</p>
     <ConnectorNativeServices hostId={hostId} manager={manager} />
     <div style={{ width: "min(720px, calc(100vw - 32px))", marginTop: 48 }}>
-      <CodexComposer
+      <OpenCraftComposer
         controller={composer}
         isStreaming={false}
         addMenuContent={presentation.addMenuContent}

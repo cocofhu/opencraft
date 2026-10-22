@@ -6,6 +6,7 @@ import { encodeJsonRpcMessage, isJsonRpcRequest, parseJsonRpcMessage } from "@op
 import { TurnCompletionObserver } from "@opencraft/workbench-runtime";
 import { UiPreferencesRuntime } from "@opencraft/ui-preferences";
 import { ChatSettings } from "../../apps/workbench-web/src/components/chat-settings";
+import { AsyncNoticesProvider } from "../../apps/workbench-web/src/components/async-notices";
 import { UiPreferencesProvider } from "../../apps/workbench-web/src/runtime/ui-preferences-runtime";
 import { IndexedDbUiPreferenceStore } from "../../apps/workbench-web/src/runtime/indexeddb-ui-preference-store";
 import { BrowserTurnNotifications } from "../../apps/workbench-web/src/runtime/browser-turn-notifications";
@@ -45,9 +46,11 @@ function Probe() {
   toggleSettings = () => setSettings(value => !value);
   return <UiPreferencesProvider runtime={preferences}>
     <WorkbenchIntlProvider controller={locale} target={document.documentElement}>
+      <AsyncNoticesProvider>
       <TurnNotificationsProvider source={source} notifications={notifications} openConversation={async location => { opened.push(location); return true; }}>
         <main style={{ padding: 32 }}>{settings ? <ChatSettings /> : <div data-conversation>对话内容</div>}</main>
       </TurnNotificationsProvider>
+      </AsyncNoticesProvider>
     </WorkbenchIntlProvider>
   </UiPreferencesProvider>;
 }

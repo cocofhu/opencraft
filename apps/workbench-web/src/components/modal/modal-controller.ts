@@ -16,11 +16,6 @@ export interface ModalStackEntry extends ModalRequest {
 
 export type OptionalModalRequest = ModalRequest | null | false | undefined;
 
-/**
- * Resolves declarative presentation requests into the platform-owned window
- * stack. Re-presenting the same id moves that window to the front, matching the
- * component-identity upsert used by Codex's ModalController.
- */
 export function resolveModalStack(
   requests: readonly OptionalModalRequest[],
 ): readonly ModalStackEntry[] {

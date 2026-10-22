@@ -8,7 +8,7 @@ export type EventCallback = (...arguments_: never[]) => unknown;
  *
  * Observer and transport consumers keep their subscriptions when the callback
  * changes. The implementation is supplied by the MIT-licensed public library;
- * source/version and distribution notices are recorded in PROVENANCE.md.
+ * copyright and permission notices are retained in NOTICE.json.
  */
 export function useStableEvent<TCallback extends EventCallback>(
   callback: TCallback,

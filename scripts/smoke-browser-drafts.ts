@@ -19,7 +19,7 @@ try {
   const roomOrigin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const editorText = async (editor: import("playwright").Locator) => editor.evaluate(node => {
     const copy = node.cloneNode(true) as HTMLElement;
-    copy.querySelectorAll(".codex-composer-placeholder").forEach(item => item.remove());
+    copy.querySelectorAll(".opencraft-composer-placeholder").forEach(item => item.remove());
     return copy.textContent ?? "";
   });
   for (const width of [1280, 390]) {
@@ -32,7 +32,7 @@ try {
     assert.equal(await editor.innerText(), `Bot local draft ${width}`);
     assert.equal(await page.evaluate(() => (window as any).__draftFixture.service.sends), 0, "refresh cannot send");
     await page.evaluate(() => (window as any).__draftFixture.navigate("b"));
-    await page.waitForFunction(() => document.querySelector('.bot-chat-composer-dock .codex-composer-placeholder') !== null);
+    await page.waitForFunction(() => document.querySelector('.bot-chat-composer-dock .opencraft-composer-placeholder') !== null);
     await editor.fill("other room");
     await page.evaluate(() => (window as any).__draftFixture.navigate("a"));
     await page.waitForFunction(text => document.querySelector('.bot-chat-composer-dock [role="textbox"]')?.textContent === text, `Bot local draft ${width}`);

@@ -52,7 +52,7 @@ try {
     for (const toggle of await page.locator('.thread-agent-activity__group').getByRole('button').all()) {
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
     }
-    await page.locator('[data-codex-activity-icon="read"]').first().waitFor();
+    await page.locator('[data-opencraft-activity-icon="read"]').first().waitFor();
     await page.evaluate(() => document.fonts.ready);
     const measure = () => page.locator('.thread-activity-item__icon > svg').evaluateAll(elements => elements.map(svg => {
       const icon = svg as SVGSVGElement, rail = icon.parentElement!;
@@ -60,7 +60,7 @@ try {
       const label = header.querySelector('.thread-activity-item__summary')!;
       const style = getComputedStyle(label), box = icon.getBBox(), rect = icon.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const scale = rect.width / icon.viewBox.baseVal.width;
-      return { glyph: icon.getAttribute('data-codex-activity-icon') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
+      return { glyph: icon.getAttribute('data-opencraft-activity-icon') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
         paths: icon.innerHTML, fontSize: parseFloat(style.fontSize), family: style.fontFamily, weight: style.fontWeight,
         lineHeight: parseFloat(style.lineHeight), width: rect.width, visibleWidth: box.width * scale,
         stroke: parseFloat(getComputedStyle(icon).strokeWidth) * scale,
@@ -101,7 +101,7 @@ try {
     }
     // Essential reading preferences must change returned text only. Process
     // labels, including compaction and shimmer, retain their semantic scale.
-    await page.evaluate(() => document.documentElement.style.setProperty('--codex-chat-font-size', '20px'));
+    await page.evaluate(() => document.documentElement.style.setProperty('--opencraft-chat-font-size', '20px'));
     const enlarged = await measure();
     assert.deepEqual(enlarged, normal, "reading preference cannot change summary metrics or glyph identity");
     assert.deepEqual(await page.locator('.thread-subagent-activity__status').evaluateAll(nodes => nodes.map(node => {

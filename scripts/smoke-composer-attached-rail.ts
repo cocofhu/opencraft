@@ -7,7 +7,7 @@ let browser: any;
 try {
  await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
  const quick = process.argv.includes("--quick");
- for (const width of [390, 1280]) for (const palette of quick ? ["codex"] : ["codex", "vela", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
+ for (const width of [390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
   const page = await browser.newPage({ viewport: { width, height: 700 }, hasTouch: width === 390 });
   const errors: string[] = []; page.on("pageerror", (e: Error) => { errors.push(e.message); console.error(e.message); });
   page.on("console", m => { if(m.type() === "error") console.error(m.text()); });
@@ -15,20 +15,20 @@ try {
   await page.addInitScript("window.__name=value=>value");
   await page.goto(`${vite.resolvedUrls!.local[0]}?palette=${palette}&mode=${mode}`);
   await page.evaluate(width=>{document.documentElement.dataset.uiDensity=width===390?'touch':'compact'},width);
-  await page.locator('.codex-composer-queue-item').waitFor(); await page.waitForTimeout(250);
+  await page.locator('.opencraft-composer-queue-item').waitFor(); await page.waitForTimeout(250);
   await page.evaluate(() => (window as any).setRailCount(8));
-  const tray = page.locator('.codex-composer-queue-tray');
-  await page.locator('.codex-composer-queue-item').last().scrollIntoViewIfNeeded();
+  const tray = page.locator('.opencraft-composer-queue-tray');
+  await page.locator('.opencraft-composer-queue-item').last().scrollIntoViewIfNeeded();
   assert(await tray.evaluate((node:HTMLElement) => node.scrollTop > 0 && node.clientHeight < node.scrollHeight));
   await page.evaluate(() => (window as any).setRailCount(1));
-  const editor = page.locator(".codex-composer-editor");
+  const editor = page.locator(".opencraft-composer-editor");
   await editor.fill("Keep this draft");
   const originalEditor = await editor.elementHandle();
   for (const state of ["both", "summary", "queue", "empty"]) {
    await page.evaluate((state: string) => (window as any).setRailState(state), state); await page.waitForTimeout(30);
    const geometry = await page.evaluate(() => {
-    const rail = document.querySelector<HTMLElement>('.codex-composer-attached-rail')!;
-    const shell = document.querySelector<HTMLElement>('.codex-composer-shell')!;
+    const rail = document.querySelector<HTMLElement>('.opencraft-composer-attached-rail')!;
+    const shell = document.querySelector<HTMLElement>('.opencraft-composer-shell')!;
     const summary = document.querySelector<HTMLElement>('.thread-live-changes');
     const r = rail.getBoundingClientRect(), e = shell.getBoundingClientRect(), p = summary?.getBoundingClientRect();
     const css = summary && getComputedStyle(summary);
@@ -42,7 +42,7 @@ try {
    const hasQueue = state === 'both' || state === 'queue';
    const hasSummary = state === 'both' || state === 'summary';
    assert.equal(geometry.railVisible,hasQueue,JSON.stringify(geometry));
-   if(hasQueue){ assert.equal(geometry.overlap,16); assert.deepEqual(geometry.railChildren,['codex-composer-queue-tray']); }
+   if(hasQueue){ assert.equal(geometry.overlap,16); assert.deepEqual(geometry.railChildren,['opencraft-composer-queue-tray']); }
    else assert.equal(geometry.railHeight,0);
    assert.equal(!!geometry.pill,hasSummary);
    if(geometry.pill){

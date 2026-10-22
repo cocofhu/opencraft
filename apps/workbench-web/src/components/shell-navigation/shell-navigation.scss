@@ -93,7 +93,7 @@
   position: relative;
   overflow: visible;
   padding-top: var(--height-toolbar);
-  background: var(--codex-sidebar-material-background);
+  background: var(--opencraft-sidebar-material-background);
   border-right: 0;
   box-sizing: border-box;
   min-width: 0;
@@ -124,7 +124,7 @@
   > section:last-child:not(:first-child) { margin-top: auto; }
   .shell-navigation__heading {
     color: var(--color-text-tertiary);
-    strong { font-size: var(--codex-sidebar-meta-font-size); font-weight: var(--typography-primary-action-weight); }
+    strong { font-size: var(--opencraft-sidebar-meta-font-size); font-weight: var(--typography-primary-action-weight); }
   }
   &[data-shell-navigation-motion="geometry"] {
     gap: var(--shell-navigation-content-gap);
@@ -235,7 +235,7 @@
   &[data-surface="account"] { width: 100%; padding-inline: var(--padding-control-inline); }
   .sidebar-account__avatar { width: 20px; height: 20px; flex: 0 0 20px; font: var(--typography-label-font); border: 0; letter-spacing: var(--typography-label-tracking); }
 }
-.shell-navigation__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--codex-sidebar-font-size); }
+.shell-navigation__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--opencraft-sidebar-font-size); }
 .shell-sign-in-menu {
   @include menu.surface;
   z-index: var(--layer-shell-navigation);
@@ -248,7 +248,7 @@
   display: grid;
   flex: 1;
   gap: calc(var(--spacing) / 2);
-  small { font-size: var(--codex-sidebar-meta-font-size); color: var(--color-text-secondary); }
+  small { font-size: var(--opencraft-sidebar-meta-font-size); color: var(--color-text-secondary); }
 }
 .shell-sign-in-menu__status { padding: var(--gap-control-group); color: var(--color-text-secondary); }
 .shell-navigation__peek {
@@ -284,9 +284,9 @@
   height: 100%;
   // One material plane spans both rails and their footer. Painting each child
   // separately creates a white footer patch and exposes the window's gray base.
-  background: var(--codex-sidebar-material-background);
-  backdrop-filter: var(--codex-sidebar-material-filter);
-  -webkit-backdrop-filter: var(--codex-sidebar-material-filter);
+  background: var(--opencraft-sidebar-material-background);
+  backdrop-filter: var(--opencraft-sidebar-material-filter);
+  -webkit-backdrop-filter: var(--opencraft-sidebar-material-filter);
   .shell-navigation__dock, .app-shell-left-panel {
     background: transparent;
     backdrop-filter: none;
@@ -370,23 +370,6 @@
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
   pointer-events: none;
-}
-
-// The expanded Shell owns one collapse entrance in its navigation rail. The
-// persistent Header supplies only the closed-state entrance, using the same button.
-.shell-sidebar__toggle {
-  display: flex; justify-content: center; flex: 0 0 auto; padding: 0 0 4px;
-  > button {
-    @include controls.application-navigation-control;
-    width: var(--size-application-navigation-hit-min);
-    height: var(--size-application-navigation-hit-min);
-    justify-content: center; padding: 0;
-    > svg { width: var(--size-application-navigation-icon); height: var(--size-application-navigation-icon); }
-  }
-}
-.shell-sidebar__column[data-navigation-layout="mobile"] .shell-sidebar__toggle {
-  justify-content: flex-end; padding: 0 8px 4px;
-  > button { min-width: 44px; min-height: 44px; }
 }
 
 .shell-sidebar__header {

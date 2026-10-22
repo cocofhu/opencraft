@@ -24,10 +24,10 @@ try {
   const editor = page.locator(".ProseMirror"), mic = page.locator(".opencraft-voice-input-action");
   await load(); await editor.click(); await page.keyboard.press("Meta+a"); await mic.click();
   await page.getByRole("button", { name: "停止并写入文字", exact: true }).click();
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   assert.equal(await editor.textContent(), "Original text voice result");
   await load(); await mic.click(); await call("replace"); await call("lateFinal");
-  assert.equal(await editor.textContent(), "Replacement"); assert.equal(await page.locator(".codex-composer-voice-footer").count(), 0);
+  assert.equal(await editor.textContent(), "Replacement"); assert.equal(await page.locator(".opencraft-composer-voice-footer").count(), 0);
   for (const operation of ["resetViewState", "reentrantWrite"]) {
     await load(); await mic.click(); await call(operation);
     await page.getByRole("button", { name: "识别完成后发送", exact: true }).click();
@@ -37,5 +37,5 @@ try {
     await call("lateFinal"); assert.deepEqual(await page.evaluate(() => (window as any).__ownershipFixture.sent), []);
   }
   assert.deepEqual(errors, []);
-  console.log("PASS actual CodexComposer/Core/Voice components: selected text preserved and appended; replacement/late final, missing editor reservation and reentrant write reject without sending; only ASR boundary simulated");
+  console.log("PASS actual OpenCraftComposer/Core/Voice components: selected text preserved and appended; replacement/late final, missing editor reservation and reentrant write reject without sending; only ASR boundary simulated");
 } finally { await browser?.close(); await new Promise<void>(resolve => server.close(() => resolve())); }

@@ -17,7 +17,7 @@ import {
 } from "@opencraft/bot-conversation";
 import { createConversationKey, encodeConversationKey } from "@opencraft/chat-core";
 import { WebChatDocument, WebUserMessageDocument } from "@opencraft/chat-render-web";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createClientId, createComposerController, type ComposerDraftStorage } from "@opencraft/composer-core";
 import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
 import {
@@ -726,7 +726,7 @@ export function createBotChatView(
         file: File,
         pending: Parameters<
           NonNullable<
-            React.ComponentProps<typeof CodexComposer>["onResolveAttachment"]
+            React.ComponentProps<typeof OpenCraftComposer>["onResolveAttachment"]
           >
         >[1],
       ) => {
@@ -929,7 +929,7 @@ export function createBotChatView(
           <div className="bot-chat-composer-dock">
             <div className="bot-chat-rail bot-chat-composer-rail">
               {snapshot.descriptor.readOnly === true ? <p className="bot-chat-stage__status" role="status">This historical group is read-only because a member no longer exists.</p> : null}
-              <CodexComposer
+              <OpenCraftComposer
                 controller={composer}
                 disabled={snapshot.descriptor.readOnly === true}
                 isStreaming={isStreaming}

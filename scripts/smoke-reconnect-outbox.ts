@@ -68,7 +68,7 @@ try {
     await page.waitForFunction(() => (window as any).fixture?.snapshot().authoritative || (window as any).fixture?.snapshot().error);
     assert.equal(await page.evaluate(() => (window as any).fixture.snapshot().error?.message ?? null), null);
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
-    const editor = page.locator(".codex-composer-editor"); const send = page.locator("[data-composer-primary-action]");
+    const editor = page.locator(".opencraft-composer-editor"); const send = page.locator("[data-composer-primary-action]");
     online = false; for (const ws of sockets.clients) ws.close(1012, "server restarting");
     await page.waitForSelector('[data-authoritative="false"]');
     const before = calls.filter(call => call.method === "thread/queue/add").length;
@@ -77,10 +77,10 @@ try {
       await page.waitForFunction(() => (window as any).fixture.draft().lifecycle.phase === "editing");
       assert.equal(await editor.textContent(), "");
     }
-    assert.equal(await page.locator(".codex-composer-queue-item").count(), 3);
-    const cancelled = page.locator(".codex-composer-queue-item").filter({ hasText: "cancel this" });
+    assert.equal(await page.locator(".opencraft-composer-queue-item").count(), 3);
+    const cancelled = page.locator(".opencraft-composer-queue-item").filter({ hasText: "cancel this" });
     await cancelled.getByRole("button", { name: "Delete queued message", exact: true }).click();
-    assert.equal(await page.locator(".codex-composer-queue-item").count(), 2);
+    assert.equal(await page.locator(".opencraft-composer-queue-item").count(), 2);
     assert.equal(calls.filter(call => call.method === "thread/queue/add").length, before);
     assert.equal(await page.getByRole("button", { name: "Resume", exact: true }).count(), 0);
     await page.screenshot({ path: `${output}/${width}-${theme}-waiting.png` });
@@ -106,7 +106,7 @@ try {
   const page = await browser.newPage(); await page.addInitScript("window.__name = value => value"); await page.goto(origin);
   await page.waitForSelector('[data-authoritative="true"]'); online = false;
   for (const ws of sockets.clients) ws.close(1012, "restart"); await page.waitForSelector('[data-authoritative="false"]');
-  await page.locator(".codex-composer-editor").fill("lost ack message"); await page.locator("[data-composer-primary-action]").click();
+  await page.locator(".opencraft-composer-editor").fill("lost ack message"); await page.locator("[data-composer-primary-action]").click();
   const before = calls.filter(call => call.method === "thread/queue/add").length;
   holdAck = true; online = true;
   await page.waitForFunction(() => (window as any).fixture.snapshot().queuedSubmissions.some((row: any) => row.local && row.state === "unknown"));

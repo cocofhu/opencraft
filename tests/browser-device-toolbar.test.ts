@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { computeDragResizeDimensions } from "../apps/workbench-web/src/browser/codex/viewport-resize.js";
+import { computeDragResizeDimensions } from "../apps/workbench-web/src/browser/opencraft/viewport-resize.js";
 import { computeBrowserViewportLayout } from "@opencraft/browser-core";
 import { readFileSync } from "node:fs";
 

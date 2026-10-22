@@ -5,7 +5,6 @@ export type TurnScrollBehavior = "instant" | "smooth";
 export type TurnScrollOrigin = "system" | "user";
 
 export interface TurnViewportMetrics {
-  /** Canonical scroll coordinate shared by Codex Web and Native: zero means at the latest Turn. */
   readonly distanceFromBottomPx: number;
   readonly viewportHeightPx: number;
   readonly scrollHeightPx: number;
@@ -20,11 +19,6 @@ export interface PlatformTurnViewportMetrics {
   readonly topOffsetPx: number;
 }
 
-/**
- * Converts the native platform scroll coordinate into the single Codex
- * coordinate used by the virtualizer. Web and React Native must both call
- * this function instead of maintaining their own sign convention.
- */
 export function normalizeTurnViewportMetrics({
   contentHeightPx,
   viewportHeightPx,
@@ -43,7 +37,7 @@ export function normalizeTurnViewportMetrics({
   };
 }
 
-/** Codex Desktop's flex-column-reverse DOM exposes distance as -scrollTop. */
+/** A flex-column-reverse viewport exposes distance as -scrollTop. */
 export function normalizeInvertedWebViewportMetrics({
   contentHeightPx,
   viewportHeightPx,

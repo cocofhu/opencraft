@@ -1,9 +1,7 @@
 export const RIGHT_PANEL_MINIMUM_WIDTH = 320;
-// Codex deliberately separates the visible minimum from the magnetic close
-// shelf. app-shell-right-panel-06052 compares against
-// scalePanelDimension(320), whose recovered AppShell scale is 0.5. Width
-// normalization still clamps to 320, so the pointer can travel through the
-// 320–160px corridor without moving panel chrome before visibility flips.
+// The collapse shelf is half the minimum width. Width normalization still
+// clamps to 320, so the pointer can travel through the 320–160px corridor
+// without moving panel chrome before visibility flips.
 const RIGHT_PANEL_MAGNETIC_SHELF_SCALE = 0.5;
 export const RIGHT_PANEL_COLLAPSE_SHELF =
   RIGHT_PANEL_MINIMUM_WIDTH * RIGHT_PANEL_MAGNETIC_SHELF_SCALE;
@@ -102,7 +100,6 @@ export type PanelAction =
       readonly region: PanelRegionId;
       readonly open: boolean;
       readonly reason?: "manual" | "resize";
-      /** Codex may reveal the side-panel outlet before a concrete tab exists. */
       readonly allowEmpty?: boolean;
     }
   | {

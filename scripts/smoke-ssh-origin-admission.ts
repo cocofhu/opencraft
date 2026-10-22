@@ -78,6 +78,30 @@ try {
   assert.deepEqual(result, { authenticated: true, error: null, stable: true });
   assert.equal(await socketResult(), 'admitted');
   assert.equal(grants, 2); assert.ok(originFreeStatus >= 3); assert.equal(rejected, 1); assert.equal(accepted, 1);
+  // Keep the same page, controller, transport and draft across a backend restart.
+  await page.evaluate(async () => {
+    const { SshConnectionsController, connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const controller = new SshConnectionsController(undefined, location.origin);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', beforeConnect: () => controller.prepareConnection(), reportFailure: () => {} });
+    const transport = client.createTransport('ssh:fixture');
+    document.body.innerHTML = '<textarea>retained draft</textarea>';
+    const draft = document.querySelector('textarea');
+    (window as any).recoveryFixture = { controller, client, transport, draft };
+    await transport.connect();
+  });
+  management.close();
+  management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
+  for (const ws of sockets.clients) ws.terminate();
+  await page.waitForFunction(() => (window as any).recoveryFixture.transport.status.state === 'failed');
+  const recovered = await page.evaluate(async () => {
+    const { controller, client, transport, draft } = (window as any).recoveryFixture;
+    await transport.connect();
+    const result = { state: transport.status.state, authenticated: controller.getSnapshot().authenticated,
+      sameDraft: document.querySelector('textarea') === draft && draft.value === 'retained draft' };
+    await transport.close(); client.close(); controller.dispose(); return result;
+  });
+  assert.deepEqual(recovered, { state: 'open', authenticated: true, sameDraft: true });
+  assert.equal(grants, 3); assert.equal(rejected, 1); assert.equal(accepted, 3);
   // Dispose one pending logical channel while its peer uses the same real socket.
   await page.evaluate(async () => {
     const { connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
@@ -102,7 +126,7 @@ try {
   await page.evaluate(async () => {
     const { client, peer } = (window as any).lateGrantFixture; await peer.close(); client.close();
   });
-  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, lateGrantReleased: true, peerUnaffected: true, grants, originFreeStatus }));
+  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, lateGrantReleased: true, peerUnaffected: true, grants, originFreeStatus }));
   await context.close();
 } finally {
   await browser.close(); sockets.close(); plain.closeAllConnections(); secure.closeAllConnections();

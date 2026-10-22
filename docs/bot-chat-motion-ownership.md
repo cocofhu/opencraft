@@ -1,11 +1,6 @@
 # Bot Chat motion ownership
 
-This note fixes the ownership boundaries for the Bot-native conversation surface. It uses the current Grok Bot 0.39.0 renderer as the motion authority and the older reconstructed tree only as a readable historical aid:
-
-- Grok Bot 0.39.0 defines the current 39-state vocabulary, 18 shape families, effect mapping, eye topology, pointer following, stage registry, spring clock, group presence, and transcript gating.
-- Grok Bot 0.18 reconstructed source remains useful for readable component boundaries, but is not used to override current behavior.
-
-The 0.18 repository is an unofficial reconstruction, so readable names are useful evidence but not release-source authority. Timing and lifecycle decisions are taken from the current renderer where the two differ.
+This note defines the ownership boundaries for the Bot-native conversation surface: its 39-state vocabulary, 18 shape families, effect mapping, eye topology, pointer following, Stage registry, spring clock, group presence and transcript gating. The current implementation and invariants below define the runtime contract.
 
 ## Ownership
 
@@ -47,14 +42,6 @@ The 0.18 repository is an unofficial reconstruction, so readable names are usefu
 23. Marks own `ResizeObserver` and `IntersectionObserver` measurement. Pointer input may refresh position on pointer events, but no actor animation frame may read layout.
 24. Material is participant identity. A static, theme-aware base/highlight/shadow definition may be projected by the renderer; activity state cannot replace it or introduce animated glass, blur, or large gradient paint.
 25. A Presence activity target may project an idle participant through a short renderer-only `waking -> listening` handoff. It never creates a protocol phase. Notification and celebration poses are bounded one-shot reactions that settle to idle; celebration requires an explicit presentation action or completion projection, and ordinary reply completion does not fabricate it.
-
-## Reference map
-
-- 0.18 Avatar boundary and static behavior: `/data/grok/grok-bot-0.18-reconstructed/frontend/src/recovered/features/conversation/workspace/agent-avatar.tsx`
-- 0.18 readable SVG character engine: `/data/grok/grok-bot-0.18-reconstructed/frontend/src/recovered/features/onboarding/signed-in/character.tsx`
-- Current 0.39.0 state/effect/shape engine: `/data/grok/wakaru-standard/chunk_mIe.js`
-- Current Stage engine registry, claims, and static/live dispatch: `/data/grok/wakaru-standard/entry.js`
-- Current activity lifecycle: `/data/grok/wakaru-standard/entry.js` near `hmt = 1200`, `Gmt = 140`, `Umt`, and `Hmt`
 
 ## Current implementation
 
