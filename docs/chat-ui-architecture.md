@@ -2352,6 +2352,17 @@ to a retained View restores its choice before paint. Only presentation booleans
 are checkpointed; output, permission, execution and App document state remain with
 their existing owners. Updated output is rendered from the current timeline.
 
+### Turn file-list choices in a retained View
+
+The completed Turn resource's expanded file-list choice belongs to its owning
+Conversation View and is keyed by the stable Turn resource ID. Returning to that
+View keeps explicitly expanded or collapsed files. Current resource updates,
+including a temporary list of at most three files, do not erase that choice.
+Other Turns and new Views start with the original three-file default. This
+reuses the existing View presentation checkpoint; no file/diff content,
+execution, permission or transient hover state is persisted. The resource stays
+separate from transcript Items, Activity boundaries and Thinking ownership.
+
 ### Diff reader position in a retained View
 
 The file-change reader checkpoints its horizontal and vertical DOM scroll

@@ -64,6 +64,17 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("turn-files-")) {
+      const mode = action.slice("turn-files-".length);
+      if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
+      const count = mode === "shrink" ? 2 : ["append", "regrow", "return"].includes(mode) ? 6 : 5;
+      const diff = Array.from({ length: count }, (_, index) => {
+        const path = index === 5 ? "updated-file-6.ts" : `file-${index + 1}.ts`;
+        return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n-before\n+after-${index + 1}\n`;
+      }).join("");
+      setTurn({ id: mode === "other" ? "other-turn" : "turn", status: "complete", unifiedDiff: diff,
+        items: [{ id: "files-answer", type: "agentMessage", payload: { text: "File list result", phase: "final_answer", completed: true } }] }); return;
+    }
     if (action.startsWith("diff-position-")) {
       if (action === "diff-position-pending-restore") {
         const reader = document.querySelector<HTMLElement>(".thread-unified-diff")!;

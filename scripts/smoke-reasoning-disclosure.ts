@@ -59,6 +59,37 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--turn-files-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle(); await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll); await page.locator('.thread-scroll').waitFor();
+      };
+      await update("turn-files-reset");
+      const row = page.locator('.thread-turn-diff');
+      const more = row.locator('.thread-turn-diff__more');
+      const files = row.locator('.thread-turn-diff__files > button:not(.thread-turn-diff__more)');
+      assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 5);
+      const original = await row.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await files.count(), 5, "the retained View keeps the explicitly expanded Turn file list");
+      assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      const restored = await row.elementHandle(); await update("turn-files-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.equal(await files.count(), 6); assert.ok((await row.innerText()).includes('updated-file-6.ts'));
+      await update("turn-files-shrink"); assert.equal(await files.count(), 2); assert.equal(await more.count(), 0);
+      await update("turn-files-regrow"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await update("turn-files-other"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await update("turn-files-return"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await more.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `turn-files-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await activate(more); await restoreView(); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 6);
+      await update("turn-files-reset"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), [], "Turn file-list restore must not cause ResizeObserver feedback");
+      results.push({ touch, theme, turnFilesRestored: true, refreshedFiles: true, transientShrink: true, separateTurns: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--turn-files-only")) { await page.close(); continue; }
+    }
     if (process.argv.includes("--diff-position-only") || !process.argv.some(value => value.endsWith("-only"))) {
       const restoreView = async (action = "restore") => {
         const scroll = await page.locator('.thread-scroll').elementHandle();
@@ -545,7 +576,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

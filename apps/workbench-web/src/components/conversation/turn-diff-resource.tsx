@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useContext, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement } from "react";
 import { ChangeResourceIcon } from "../activity-glyphs";
 import { UnifiedDiffPreview } from "../conversation-renderers/unified-diff-preview";
+import { useActivityOpen } from "../conversation-renderers/activity/activity-disclosure";
 import { Button } from "../ui/button";
 import { useDisclosureReflow } from "../use-disclosure-reflow";
 import { ConversationDocumentContext, type ConversationDocumentContextValue } from "./document-context";
@@ -89,7 +90,7 @@ function DiffHover({ children, diff, path, additions, deletions }: {
 export function TurnDiffBlock({ block }: { readonly block: TurnDiffTimelineBlock }) {
   const intl = useIntl();
   const document = useContext(ConversationDocumentContext);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useActivityOpen(false, false, `turn-files:${block.id}`);
   const [livePreviewOpen, setLivePreviewOpen] = useState(false);
   const liveListRef = useRef<HTMLDivElement>(null);
   const reflow = useDisclosureReflow();
