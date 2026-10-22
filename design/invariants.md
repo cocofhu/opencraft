@@ -2257,3 +2257,16 @@ stays outside deferred summary snapshots; callers never nest process sweeps. Set
 it through the shared stylesheet. Text/rail geometry, disclosure
 interaction and user drafts remain owned by the existing Conversation and Shell. Static controls share
 the base artwork without activity overlays.
+
+
+### Personal speed defaults and conversation selections
+
+- Fast uses the same account/Host default record as model and reasoning, including
+  server CAS and scope fences. Standalone clients without account authority use
+  the existing scoped installation preference; embedded policies remain unchanged.
+- Missing legacy tier inherits Host policy, while null means explicit standard.
+  Model/effort/speed actions snapshot the resolved combination in the draft and
+  persist the default. Existing Threads use execution settings; later default
+  changes cannot alter their speed or any explicitly chosen draft selection.
+- The immutable submission carries the resolved tier, including null, through
+  thread creation, turns and durable queues. Availability remains catalog-owned.

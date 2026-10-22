@@ -1381,7 +1381,12 @@ checkbox at the header's left projects only a declared Fast serviceTier,
 and the Composer label shows a lightning icon while enabled. Turning it off
 explicitly clears the previous tier with null; Fast uses the server's declared ID.
 Models without Fast hide the checkbox, and model switches clear incompatible
-tiers. Embedded session-only policy retains its model-only
+tiers. Explicit model, effort and speed changes snapshot the resolved combination
+in the draft and remember it through the personal model-default authority.
+New conversations consume that account/Host default; existing conversations
+consume their Thread execution settings. Changing a personal default does not
+rewrite an existing Thread or an explicitly selected draft. Standard is explicit
+null, including on submission, so Host defaults cannot re-enable Fast. Embedded session-only policy retains its model-only
 picker and Host-owned reasoning policy.
 
 The shared DiscreteSlider owns the capsule geometry, tick marks and themed

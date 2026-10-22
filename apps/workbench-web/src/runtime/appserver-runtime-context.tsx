@@ -856,13 +856,14 @@ export interface ComposerCatalogSnapshot {
   readonly modelError: Error | null;
   readonly permissionProfileError: Error | null;
   readonly newThreadDefaults: {
-    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
+    readonly serviceTier?: string | null;
   } | null;
   readonly rememberModelDefaults: ((defaults: {
     readonly model: string;
     readonly effort: string | null;
+    readonly serviceTier?: string | null;
   }, hostId?: string) => void) | undefined;
   readonly onModelMenuOpen: () => void;
   readonly retryModels: () => void;
@@ -930,6 +931,7 @@ export function useComposerCatalog(
   const rememberModelDefaults = useCallback((next: {
     readonly model: string;
     readonly effort: string | null;
+    readonly serviceTier?: string | null;
   }, hostId: string = snapshot.hostId) => {
     if (!runtimeHostConfiguration || threadId !== null
       || readAccountScope() !== accountScope
@@ -987,7 +989,7 @@ export function useComposerCatalog(
     isFetching: capabilities.isFetching || permissionProfiles.isFetching || personalDefaults.isFetching,
     modelError: personalDefaults.error ? errorOrNull(personalDefaults.error) : capabilities.error ? new Error(`${capabilities.data ? "能力目录刷新失败，当前显示上次结果" : "能力目录加载失败"}：${errorOrNull(capabilities.error)!.message}`) : null,
     permissionProfileError: errorOrNull(permissionProfiles.error),
-    newThreadDefaults: rememberedSelection ? { ...rememberedSelection, serviceTier: defaults.data?.supported === true ? defaults.data.serviceTier : undefined } : (defaults.data?.supported === true
+    newThreadDefaults: rememberedSelection ? { ...rememberedSelection, serviceTier: rememberedSelection.serviceTier !== undefined ? rememberedSelection.serviceTier : defaults.data?.supported === true ? defaults.data.serviceTier : undefined } : (defaults.data?.supported === true
       ? { model: defaults.data.model, effort: defaults.data.effort, serviceTier: defaults.data.serviceTier }
       : null),
     // Historical conversation edits belong only to their existing Composer.

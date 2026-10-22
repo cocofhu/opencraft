@@ -64,7 +64,7 @@ Headless 的 Model Services 在现有添加提供商表单中选择用途，复�
 
 Only explicit choices on the new-conversation page immediately update personal model/effort/speed defaults; sending a message is not required. Editing a historical conversation changes only its own selection. It does not write personal defaults or change what subsequent new conversations inherit.
 
-Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
+Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort/service tier per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
 
 ## 会话模型的首帧展示
 
@@ -125,3 +125,15 @@ Managed Pi default reads/writes use the shared document and CAS. A null product
 default remains null; the multi-engine Host also preserves this value rather than
 marking its first catalog entry as default. Explicit
 conversation and account choices keep their original owners.
+
+
+The service tier shares this account authority and CAS record. A missing tier in a
+legacy record inherits the Host default; explicit null means standard and must
+survive reads, writes, reload and submission. Selecting model, effort or speed
+pins the resolved model/effort/tier in that draft, and remembers the same personal
+default for later conversations. Thread execution settings remain authoritative
+for existing conversations; refreshing personal defaults never rewrites them.
+Models without the selected tier resolve to standard through the Composer owner.
+
+If neither personal nor Host data resolves a tier, submission leaves the wire
+field absent. An unknown legacy/default choice must not be converted to standard.

@@ -6,7 +6,7 @@ export interface UiPreferenceValues {
   readonly "interface.touchFriendly": "auto" | "on" | "off";
   readonly "voice.inputProvider": "auto" | "system" | "hunyuan";
   readonly "locale.override": string;
-  readonly "chat.modelSelections": Readonly<Record<string, { readonly model: string; readonly effort: string | null }>>;
+  readonly "chat.modelSelections": Readonly<Record<string, { readonly model: string; readonly effort: string | null; readonly serviceTier?: string | null }>>;
   readonly "chat.defaultFollowUpAction": "steer" | "queue";
   readonly "chat.turnNotifications": boolean;
   readonly "chat.touchNewera": boolean;
@@ -46,12 +46,13 @@ export const uiPreferenceDefinitions = Object.freeze({
     key: "chat.modelSelections", scope: "installation", defaultValue: {},
     parse: (value: unknown): UiPreferenceValues["chat.modelSelections"] | null => {
       if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
-      const entries: [string, { model: string; effort: string | null }][] = [];
+      const entries: [string, { model: string; effort: string | null; serviceTier?: string | null }][] = [];
       for (const [scope, selection] of Object.entries(value)) {
         if (!selection || typeof selection !== "object" || Array.isArray(selection)
           || typeof selection.model !== "string" || selection.model.length === 0
-          || (selection.effort !== null && typeof selection.effort !== "string")) return null;
-        entries.push([scope, { model: selection.model, effort: selection.effort }]);
+          || (selection.effort !== null && typeof selection.effort !== "string")
+          || !(selection.serviceTier === undefined || selection.serviceTier === null || typeof selection.serviceTier === "string" && selection.serviceTier.trim().length > 0 && selection.serviceTier.length <= 128)) return null;
+        entries.push([scope, { model: selection.model, effort: selection.effort, ...(selection.serviceTier === undefined ? {} : { serviceTier: selection.serviceTier }) }]);
       }
       return Object.fromEntries(entries);
     },

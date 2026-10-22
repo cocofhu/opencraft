@@ -167,6 +167,7 @@ export interface ComposerSelectionCatalog {
   readonly onRememberModelDefaults?: (defaults: {
     readonly model: string;
     readonly effort: string | null;
+    readonly serviceTier?: string | null;
   }) => void;
   readonly retryModels?: () => void;
 }
@@ -1922,32 +1923,45 @@ export const OpenCraftComposer = forwardRef<
       ),
       supportsCurrentEffort ? selectedEffortValue : undefined,
     );
+    const serviceTier = model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier ?? null : null;
     controller.dispatch({
       type: "set-selections",
       patch: {
         model: model.value,
         effort,
-        ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined
-          ? { serviceTier: model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier : null } : {}),
+        ...(modelSelectionPolicy === "user" ? { serviceTier } : {}),
       },
     });
     selectionCatalog?.onRememberModelDefaults?.({
       model: model.value,
       effort: effort ?? null,
+      serviceTier,
     });
   };
 
   const selectEffort = (effort: ComposerReasoningEffortOption) => {
     controller.dispatch({
       type: "set-selections",
-      patch: { effort: effort.value },
+      patch: { effort: effort.value, ...(modelSelectionPolicy === "user" && selectedModel !== null
+        ? { model: selectedModel.value, serviceTier: selectedServiceTier } : {}) },
     });
     if (selectedModel !== null) {
       selectionCatalog?.onRememberModelDefaults?.({
         model: selectedModel.value,
         effort: effort.value,
+        serviceTier: selectedServiceTier,
       });
     }
+  };
+
+  const selectServiceTier = (serviceTier: string | null) => {
+    if (selectedModel === null) return;
+    controller.dispatch({ type: "set-selections", patch: {
+      model: selectedModel.value, effort: selectedEffortValue ?? undefined, serviceTier,
+    } });
+    selectionCatalog?.onRememberModelDefaults?.({
+      model: selectedModel.value, effort: selectedEffortValue, serviceTier,
+    });
   };
 
   const selectPermission = (permissionProfile: string | null) => {
@@ -2383,7 +2397,7 @@ export const OpenCraftComposer = forwardRef<
                 portalContainer={portalContainer} focus={intelligenceFocus}
                 efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
                 serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier} displayFast={displayFast}
-                onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
+                onServiceTierChange={selectServiceTier}
                 effort={existingConversation ? displayEffortValue ?? null : selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);

@@ -188,13 +188,13 @@ test("model memory isolates account, display and target Host through production 
   const anonymous = { ...scope, accountScope: "anonymous" };
   const targetHost = { ...scope, hostId: "local-codex" };
   const otherDisplay = { ...scope, displayScope: "other-product" };
-  const choice = { model: "provider-a/model", effort: "high" };
+  const choice = { model: "provider-a/model", effort: "high", serviceTier: "priority" };
   await rememberModelSelection(first, scope, choice);
   const read = (runtime: UiPreferencesRuntime, key: typeof scope | null) => readModelSelection(runtime.get("chat.modelSelections"), key);
   for (const key of [otherAccount, anonymous, targetHost, otherDisplay, null]) assert.equal(read(first, key), undefined);
   await rememberModelSelection(first, targetHost, { model: "codex-model", effort: "low" });
   assert.deepEqual(read(first, scope), choice, "cross-Agent write does not overwrite current Host");
-  await rememberModelSelection(first, otherAccount, { model: "provider-b/model", effort: null });
+  await rememberModelSelection(first, otherAccount, { model: "provider-b/model", effort: null, serviceTier: null });
   await rememberModelSelection(first, anonymous, { model: "anonymous-model", effort: null });
   await rememberModelSelection(first, null, { model: "embedded-model", effort: null });
   assert.equal(Object.keys(first.get("chat.modelSelections")).length, 4, "embedded presentation does not persist a choice");
@@ -202,11 +202,14 @@ test("model memory isolates account, display and target Host through production 
   const restored = await UiPreferencesRuntime.open({ installation: store });
   assert.deepEqual(read(restored, scope), choice);
   assert.deepEqual(read(restored, targetHost), { model: "codex-model", effort: "low" });
-  assert.deepEqual(read(restored, otherAccount), { model: "provider-b/model", effort: null });
+  assert.deepEqual(read(restored, otherAccount), { model: "provider-b/model", effort: null, serviceTier: null });
   assert.deepEqual(read(restored, anonymous), { model: "anonymous-model", effort: null });
   assert.equal(read(restored, otherDisplay), undefined);
   assert.equal(read(restored, null), undefined);
   await assert.rejects(restored.set("chat.modelSelections", { bad: { model: "", effort: null } }));
+  for (const serviceTier of [true, 1, "", " ", "x".repeat(129)]) {
+    await assert.rejects(restored.set("chat.modelSelections", { bad: { model: "valid", effort: null, serviceTier } } as never));
+  }
   assert.deepEqual(read(restored, scope), choice, "invalid input preserves the last valid selection");
   await restored.close();
 });
