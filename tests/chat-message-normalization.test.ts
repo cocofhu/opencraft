@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline } from "../packages/chat-core/src/index";
 import { codexUserMessageCompareKey, normalizeCodexTurnUserMessages } from "../packages/chat-core/src/turn-user-message-normalization";
 import type { TimelineSourceItem, TimelineSourceTurn } from "../packages/chat-core/src/projection";
 
@@ -196,4 +197,55 @@ test("explicit steering acknowledgement survives enriched text and history gaps"
   assert.equal(payload(result.items[0]).serverUserMessageId, "server");
   assert.equal(normalize({ items: [echo, local] }).items.length, 2);
   assert.equal(normalize({ items: [steer("declined", text("original"), { status: "declined", serverUserMessageId: "server" }), echo] }).items.length, 2);
+});
+
+
+function projectedMessages(turn: Partial<TimelineSourceTurn>) {
+  const snapshot = projectTimeline({
+    key: createConversationKey("fixture", "saved-message"), revision: 1, phase: "live", authoritative: true,
+    turns: [{ id: "turn", status: "complete", items: [], ...turn }],
+  }, createDefaultTimelineProjectorRegistry());
+  return { snapshot, messages: snapshot.frames.flatMap(frame => frame.blocks).filter(block => block.type === "user-message") };
+}
+
+test("saved params clientId acknowledges Host-enriched input under one display identity", () => {
+  const { snapshot, messages } = projectedMessages({
+    params: { input: text("Inspect the file"), clientId: "saved-client" },
+    items: [{ id: "setup", type: "worktreeInit", payload: {} }, user("server", staged("opencraft:staged-file:v1"), { clientId: "saved-client" })],
+  });
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.messageKind, "user");
+  assert.equal(messages[0]?.clientId, "saved-client");
+  assert.deepEqual(messages[0]?.sourceItemIds, ["server"]);
+  assert.equal(messages[0]?.attachments[0]?.type, "file");
+  assert.equal(snapshot.anchorFrameIds.get("message:saved-client"), snapshot.anchorFrameIds.get("item:server"));
+  const preferred = normalize({ params: { input: text("request"), clientUserMessageId: "current", clientId: "stale" }, items: [user("server", text("enriched"), { clientId: "current" })] });
+  assert.equal(payload(preferred.items[0]).clientId, "current");
+  assert.equal(preferred.items[0]?.id, "server");
+});
+
+test("acknowledged staged files retain all supported span field spellings", () => {
+  for (const field of ["text_elements", "textElements"]) for (const range of ["byte_range", "byteRange"]) for (const placeholder of ["opencraft:staged-file:v1", ""]) {
+    const content = [{ type: "text", text: locator, [field]: [{ placeholder, [range]: { start: 0, end: new TextEncoder().encode(locator).length } }] }, { type: "mention", name: fileName, path: filePath }];
+    for (const local of [false, true]) {
+      const { messages } = projectedMessages(local ? {
+        items: [steer("local", text("local"), { clientUserMessageId: "c", status: "accepted" }), user("server", content, { clientId: "c" })],
+      } : { params: { input: text("local"), clientUserMessageId: "c" }, items: [user("server", content, { clientId: "c" })] });
+      assert.equal(messages.length, 1);
+      assert.equal(messages[0]?.attachments[0]?.type, "file", `${field}/${range}/${placeholder}/${local}`);
+      assert.equal(messages[0]?.attachments[0]?.type === "file" ? messages[0].attachments[0].name : null, fileName);
+      assert.equal(messages[0]?.message.includes(locator), false, "the model-visible locator must remain hidden");
+    }
+  }
+});
+
+test("saved content-only steering retains text and absorbs its server echo", () => {
+  const { messages } = projectedMessages({ items: [
+    { id: "local", type: "steeringUserMessage", payload: { content: text("Saved steer"), status: "accepted" } },
+    user("server", text("Saved steer")),
+  ] });
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.message, "Saved steer");
+  assert.equal(messages[0]?.messageKind, "steering");
+  assert.deepEqual(messages[0]?.sourceItemIds, ["local", "server"]);
 });
