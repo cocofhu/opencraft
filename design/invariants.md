@@ -1820,6 +1820,8 @@ requested extension ID and falls back to an available built-in, restoring the
 selection when its contribution returns. The presentation policy's built-in default
 (or first visible built-in) owns fallback; unrelated missing IDs do not switch to a
 newly loaded extension default. An all-hidden policy retains Neutral for safety.
+The visible product default leads the theme choices; other built-ins retain their
+order, followed by extensions in registration order. Saved selection does not reorder choices.
 
 Shared compiler/palettes are unchanged dependency ports. Theme projection owns its
 CSS properties, mode/classes and native appearance payload; document initialization
