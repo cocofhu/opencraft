@@ -2072,6 +2072,12 @@ The shared shell paints ordinary/Newera glass in a pointer-transparent backgroun
 pseudo-element. Backdrop filters must not wrap the ProseMirror editing subtree;
 layout, keyboard viewport projection and the browser's native selection remain
 separate owners. Material variables consume theme tokens and opaque fallbacks.
+Within the sticky conversation footer, desktop paints a rectangular safe-area
+gutter with a straight upper edge below the shell. It does not fill the lower
+rounded-corner cutouts. Touch paints no gutter cover, leaving the same Composer
+floating above the transcript. Density changes affect only decorative paint;
+shell radius, glass, shadow, scroll ownership and editor/menu subtrees remain
+independent. There is no exterior contour sibling.
 Scroll/viewport regressions verify selection and adjacent-character geometry without
 writing a second caret or resetting focus. Chromium checks do not establish iOS
 native caret painting correctness; device-only failures require device verification.

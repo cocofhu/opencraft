@@ -1252,9 +1252,14 @@ Desktop Web keeps the editor opaque while touch editors use glass; queue/goal
 rails use their own theme glass on both, independent of the Newera switch. The
 separate live file pill uses an opaque theme elevated surface.
 The footer must not put an opaque gradient between rails and scrolling content.
-The safe-area gutter below the Composer uses the main surface color so timeline
-rows never remain visible beneath the input; this cover does not extend behind
-the translucent Composer or its attached surfaces.
+Desktop covers only the rectangular safe-area gutter below the Composer: its
+upper edge is straight and does not follow the shell's rounded corner cutouts.
+Touch keeps the Composer floating; transcript paint remains visible around the
+shell and below it in the safe area. Neither mode paints an exterior contour.
+The shell's own radius, glass, shadow and attached surfaces remain unchanged.
+`scripts/smoke-composer-bottom-corners.ts` compares actual exterior and gutter
+pixels while changing transcript paint, including a live density switch that
+preserves the same editor, draft and focus.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices
 win; reset/invalid-record fallback use that entry default. Explicitly choosing the
