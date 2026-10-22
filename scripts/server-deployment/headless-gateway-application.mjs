@@ -3,7 +3,7 @@ import { resolve, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startHeadlessServer, parseHeadlessArguments } from '../headless-application.mjs';
 import { coreHealth } from './execution.mjs';
-import { attachDshHost } from './dsh-host-client.mjs';
+import { attachDshHost, readDshHostIdentity } from './dsh-host-client.mjs';
 
 function required(name) {
   const value = process.env[name];
@@ -30,12 +30,11 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
   const token = (await readFile(tokenPath, 'utf8')).trim();
   const endpoint = required('OPENCRAFT_CODEX_CORE_ENDPOINT');
   const health = () => coreHealth(endpoint, tokenPath).catch(() => ({ state: 'unavailable' }));
-  let dshAttachment;
+  const dshDescriptor = process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR;
   const app = await startServer({ ...options, root: releaseRoot, webRoot: join(releaseRoot, 'web'),
-    ...(process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR ? {
+    ...(dshDescriptor ? {
       startAgentHost: async agentOptions => {
-        dshAttachment = await attachDshHost(process.env.OPENCRAFT_DSH_HOST_DESCRIPTOR, agentOptions.dataDirectory, agentOptions.machineIdentity.machineId);
-        return dshAttachment;
+        return attachDshHost(dshDescriptor, agentOptions.dataDirectory, agentOptions.machineIdentity.machineId);
       },
     } : {}),
     // Admission continues to consume the configured public host; bind only on loopback.
@@ -47,8 +46,8 @@ export async function runHeadlessGateway({ parseArguments = parseHeadlessArgumen
     codexCoreEndpoint: endpoint, codexCoreAuthToken: token,
     getExecutionHealth: async () => {
       let dsh;
-      if (dshAttachment) {
-        dsh = await dshAttachment.getIdentity();
+      if (dshDescriptor) {
+        dsh = await readDshHostIdentity(dshDescriptor);
       }
       return { ok: true, profile: 'headless', version: manifest.version,
         buildId: manifest.opencraftWeb.buildId, core: await health(), ...(dsh ? { dsh } : {}) };
