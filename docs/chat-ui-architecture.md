@@ -108,6 +108,11 @@ command clocks stop in hidden documents or parked conversation surfaces and
 calibrate from wall time when shown. Native working shimmer stops on AppState
 background and reduced motion. None of these switches cancels remote execution,
 changes queue/draft ownership, or removes visible running feedback.
+Goal elapsed-time sampling retains its one-second cadence, but only publishes a
+presentation update when a displayed duration can change: seconds during the
+first minute, then whole minutes. Server accounting or Thread identity changes
+replace the sampled baseline immediately. This avoids rerendering the Composer
+for unchanged elapsed labels without changing execution accounting or Goal motion.
 
 The compiler caches immutable prefix AST nodes using Marked's actual top-level
 token boundaries, then parses the remaining tail. It retains the last block
