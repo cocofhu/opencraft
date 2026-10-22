@@ -50,7 +50,7 @@ createAppServerWorkbenchRuntime(hostId)
 ## Ownership rules
 
 - `@opencraft/appserver-protocol` owns wire envelopes, method types, notifications,
-  and the recovered tail-hydration extension. It imports no Cordis or renderer.
+  and the tail-hydration extension. It imports no Cordis or renderer.
 - `@opencraft/appserver-client` owns request IDs, pending promises, timeouts,
   cancellation, server-initiated requests, lifecycle events and a low-level
   registry utility. In the product workbench, the enclosing `HostRuntime` owns
@@ -74,7 +74,7 @@ createAppServerWorkbenchRuntime(hostId)
 - `@opencraft/appserver-replica-storage-node` persists Authority and Client state
   with atomic replace. Old cached state is never authoritative before sync.
 
-This matches the recovered Desktop separation: Electron/host code owns the
+This retains the Host/client separation: Electron/host code owns the
 physical link, while the renderer owns a `hostId`-scoped request client and
 manager. OpenCraft permits direct WebSocket in browser/Expo as an additional
 physical adapter; that does not change the semantic boundary.
@@ -86,36 +86,22 @@ validation. Its pure execution-list upsert prioritizes the latest active run of
 the same protocol ID, then a matching non-null completion timestamp, otherwise
 appending a count-suffixed presentation ID. It replaces the matched wrapper with
 the complete incoming run while retaining unrelated entry identities. This does
-not own hook execution, retry, notification order or transport authority. See the
-[bounded implementation record](provenance/hook-upsert-replacement.md).
+not own hook execution, retry, notification order or transport authority.
 
-## Recovered-source consultation ledger
+## Client ownership and protocol boundaries
 
-The initial model was checked against r1116. The ownership review was rechecked
-against the current fixed point at
-`reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact`. The newer
-source preserves the same ownership and adds a clearly recovered bounded
-request recorder. Recovered code is a behavioral reference, not a runtime
-dependency:
+- Typed pending map, bounded load, lifecycle events, timeout/abort cleanup
+- Priority is carried now; scheduling can be inserted without changing the public request contract
+- Lab exposes a bounded request journal and never reads the client's private pending map
+- Each OpenCraft HostRuntime owns one logical client lane
+- The application registry indexes HostRuntime/Manager objects, not a second copy of client ownership
+- Host identity is fixed at creation; generation/status drives downstream Resume and compatibility read-model hydration
+- An optional TransportBroker may multiplex physical frames without merging logical clients
+- Method handlers return JSON-RPC success/error responses to AppServer
 
-| Recovered evidence | OpenCraft decision |
-| --- | --- |
-| `service/app-server-request-client-module-03167.js` keeps pending requests and isolated lifecycle listeners | typed pending map, bounded load, lifecycle events, timeout/abort cleanup |
-| same module queues by priority and abandons timed-out host work | priority is carried now; scheduling can be inserted without changing the public request contract |
-| `shared/request-lifecycle-recorder-03188.js` retains 100 entries and params/result/error previews | Lab exposes a bounded request journal and never reads the client's private pending map |
-| `conversations/interrupted-command-ids-subscription-selector-04990.js` creates one request client per `hostId` in application scope | each OpenCraft HostRuntime owns one logical client lane |
-| `service/app-server-manager-registry-06127.js` registers complete managers by `hostId` | the application registry indexes HostRuntime/Manager objects, not a second copy of client ownership |
-| `conversations/app-server-manager-class-04231.js` rejects manager/client host mismatch and invalidates threads after reconnect | host identity is fixed at creation; generation/status drives downstream Resume and compatibility read-model hydration |
-| `service/app-server-request-client-module-03167.js` sends every request through the shared dispatcher with `hostId` | an optional TransportBroker may multiplex physical frames without merging logical clients |
-| the manager handles server-initiated approval and input requests | method handlers return JSON-RPC success/error responses to AppServer |
-
-Protocol truth is not inferred from r1116. The current HyperNode upstream
-schema at `/data/hypernode/protocol/upstream/codex_app_server_protocol.schemas.json`
-and the live server on port 9988 remain authoritative. The observed schema
-projection hash is `ee3de81404505a36f900838926b1c72000345764dbe38ca3b070f2f4b72125a7`.
-Desktop-only recovery fields (`excludeTurns`, `initialTurnsPage`,
-`turnsBackwardsCursor`, `itemsBackwardsCursor`, `runtimeWorkspaceRoots`) are a
-documented extension over that upstream schema.
+Desktop-only fields (`excludeTurns`, `initialTurnsPage`, `turnsBackwardsCursor`,
+`itemsBackwardsCursor`, `runtimeWorkspaceRoots`) are documented protocol
+extensions. The generated protocol and the connected server remain authoritative.
 
 ## Current protocol surface
 
@@ -125,7 +111,7 @@ V4 `replica/sync` and `replica/mutate` envelopes. Other AppServer methods can al
 `requestRaw`; generating their declarations from the pinned schema does not
 require a client, transport, or Resume rewrite.
 
-`thread/resume` supports the recovered three-path history policy:
+`thread/resume` supports the three-path history policy:
 
 1. ordinary resume can include turns in the response;
 2. tail hydration can request an `initialTurnsPage`;

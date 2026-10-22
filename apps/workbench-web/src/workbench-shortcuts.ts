@@ -1,4 +1,4 @@
-/** Web/Electron command bindings. Referenced interaction: BB ref 62fe3bc. */
+/** Web/Electron command bindings. */
 export const workbenchShortcuts = {
   newChat: [{ key: "o", shift: true }],
   search: [{ key: "k" }],

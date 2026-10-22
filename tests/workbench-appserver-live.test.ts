@@ -74,7 +74,7 @@ test("real 9988 Workbench composes Resume, Replica and Conversation Runtime acro
       : initialCatalog.data[0]?.id;
     assert.ok(threadId, "The selected HyperNode user must expose at least one active Thread");
     const thread = await runtime.acquireThread(threadId);
-    // Acquisition exposes Codex-style painted state immediately; the live
+    // Acquisition exposes cached display state immediately; the live
     // gate waits only where it specifically asserts authoritative Resume.
     await waitForAuthoritative(thread);
     const first = runtime.getSnapshot();

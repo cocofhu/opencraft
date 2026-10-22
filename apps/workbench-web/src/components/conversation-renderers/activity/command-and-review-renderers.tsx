@@ -1,7 +1,7 @@
 import {
   formatAutomaticApprovalReviewSummary,
   formatAutomaticApprovalReviewTitle,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatCommandActivitySummary,
   isAutomaticApprovalReviewWarning,
   presentReasoning,
@@ -27,10 +27,10 @@ import { ConversationDocumentContext } from "../../conversation/document-context
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
 import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
-import { ActivityDisclosure, CadencedShimmer, useCodexActivityOpen } from "./activity-disclosure";
+import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "./activity-disclosure";
 import { activityIcon } from "./activity-icon";
 
-/** Complete independent implementation; requirements and exposure are in docs/provenance. */
+
 export function ReasoningBlock({ block, presentation, active = block.streaming, collapsed, onCollapsedChange }: {
   readonly block: Extract<TimelineBlock, { type: "reasoning" }>;
   readonly presentation?: ReasoningContentPresentation;
@@ -94,7 +94,7 @@ export function AutomaticApprovalReviewList({ reviews }: { readonly reviews: rea
 export function AutomaticApprovalReviewBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "automatic-approval-review" }> }) {
   const review = block.review;
   const running = review.status === "inProgress";
-  const [open, setOpen] = useCodexActivityOpen(running);
+  const [open, setOpen] = useActivityOpen(running);
   return <ActivityDisclosure icon={<AutomaticApprovalReviewIcon />} summary={summarizeAutomaticApprovalReviewAction(review.action)}
     running={running} status={running ? "running" : review.status === "denied" ? "failed" : review.status === "aborted" ? "interrupted" : "completed"}
     open={open} onOpenChange={setOpen}>
@@ -200,7 +200,7 @@ export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: 
   const semanticAction = block.actions.length === 1 && block.actions[0]?.type !== "unknown";
   const isTerminal = !semanticAction;
   const label = isTerminal ? formatCommandActivitySummary(block, presentation.state, { expanded: open,
-    elapsedLabel: elapsed === null ? null : formatCodexToolDuration(elapsed, intl.locale) }) : skill?.summary ?? presentation.summary;
+    elapsedLabel: elapsed === null ? null : formatToolDuration(elapsed, intl.locale) }) : skill?.summary ?? presentation.summary;
   if (skill?.visible === false) return <></>;
   return <ActivityDisclosure icon={activityIcon(presentation.icon)} summary={label} detail={detail}
     running={running} status={presentation.state} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed

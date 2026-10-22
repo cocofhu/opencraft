@@ -34,7 +34,6 @@ export interface CodeBlockSurfaceProps {
   readonly policy?: CodeSurfacePolicy;
   /** Owned by the enhancement controller; never used to mutate geometry. */
   readonly rootRef?: Ref<HTMLElement>;
-  /** Explicit host capability; Codex gates this for ordinary ChatUI. */
   readonly stickyHeader?: boolean;
   readonly title?: ReactNode;
 }

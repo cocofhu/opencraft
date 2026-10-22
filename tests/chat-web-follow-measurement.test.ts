@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { WebConversationViewportOwner } from "@opencraft/timeline-host-web";
 
-test("r3562 viewport observer owns only the scrollport, initializes once, coalesces and cancels frames", () => {
+test("viewport observer owns only the scrollport, initializes once, coalesces and cancels frames", () => {
   const originalObserver = globalThis.ResizeObserver;
   const originalWindow = globalThis.window;
   let callback: ResizeObserverCallback;
@@ -50,7 +50,7 @@ test("r3562 viewport observer owns only the scrollport, initializes once, coales
   }
 });
 
-test("r3562 observer commits rows before follow targets; stale registrations and disposed owners cannot publish", () => {
+test("observer commits rows before follow targets; stale registrations and disposed owners cannot publish", () => {
   const originalObserver = globalThis.ResizeObserver;
   const originalNode = globalThis.Node;
   let callback: ResizeObserverCallback;

@@ -10,13 +10,13 @@ try {
   const page=await context.newPage();const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");
   await page.goto(`${vite.resolvedUrls!.local[0]}?entry=${entry}&mode=${mode}`);
-  const editor=page.locator('.codex-composer-editor');await editor.waitFor();
+  const editor=page.locator('.opencraft-composer-editor');await editor.waitFor();
   await page.waitForFunction(()=>typeof(window as any).setTouch==="function");
   await page.evaluate(touch=>(window as any).setTouch(touch),touch);
   const toggle=page.getByRole('switch',{name:'触控端 Newera 体验'});
   const on=entry==="standalone";
   assert.equal(await toggle.getAttribute('aria-checked'),String(on));
-  assert.equal(await page.locator('.codex-composer-shell').evaluate(node=>getComputedStyle(node).borderRadius),touch&&on?'28px':'16px');
+  assert.equal(await page.locator('.opencraft-composer-shell').evaluate(node=>getComputedStyle(node).borderRadius),touch&&on?'28px':'16px');
   if(touch){
    await toggle.click();await page.waitForFunction(()=>!document.querySelector('[role="switch"]')?.hasAttribute("disabled"));
    await page.reload();await editor.waitFor();

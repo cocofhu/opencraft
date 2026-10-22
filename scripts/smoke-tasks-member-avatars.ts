@@ -27,7 +27,7 @@ try {
     const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 600, hasTouch: width < 600 });
     try {
       const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", error => errors.push(error.message));
-      await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system")); await page.emulateMedia({ colorScheme: theme });
+      await page.addInitScript(() => localStorage.setItem("opencraft.appearance-theme", "system")); await page.emulateMedia({ colorScheme: theme });
       // External identity service and image network are the only browser substitutes.
       await page.route("**/__opencraft_enterprise_identity/session", route => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ available: true, identity: null }) }));
       const photos: string[] = [];

@@ -1,6 +1,4 @@
-/** Presentation intent only. Replacement scope and historical evidence:
- * docs/provenance/floating-composer-replacement.md.
- */
+
 export type OverlayPhase = "entering" | "visible" | "exiting" | "hidden";
 export type CollapseReason = "manual" | "auto-collapse";
 export type BrowserReadiness = "ready" | "loading" | "unavailable";

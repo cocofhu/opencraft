@@ -52,7 +52,6 @@ export function writeTextToClipboard(text: string): Promise<void> {
   });
 }
 
-/** Writes the same MIME pair as Codex while retaining the insecure-preview fallback. */
 export async function writeToClipboard(
   data: ClipboardPayload,
   target?: Element | null,

@@ -1,8 +1,8 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { MessageSquare, Search } from "lucide-react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { SidebarThread } from "./sidebar";
-import { useShellPresentation } from "./shell-presentation";
+import { useDismissSidebarAfterSelection } from "./shell-presentation";
 import { ModalSurface } from "./modal/modal-surface";
 import "./conversation-search.scss";
 
@@ -20,6 +20,25 @@ function SearchSnippet({ text, term }: { text: string; term: string }) {
     {text.slice(0, start)}<mark>{text.slice(start, start + term.length)}</mark>{text.slice(start + term.length)}
   </>}</span>;
 }
+
+const ConversationSearchResult = memo(function ConversationSearchResult({ thread, index, listId, selected, selecting, select, onActivate }: {
+  thread: ConversationSearchRow;
+  index: number;
+  listId: string;
+  selected: boolean;
+  selecting: boolean;
+  select(thread: ConversationSearchRow): Promise<void>;
+  onActivate(thread: ConversationSearchRow): void;
+}) {
+  return <button type="button" role="option" tabIndex={-1} id={`${listId}-${index}`}
+    aria-selected={selected} disabled={thread.interactionAvailable === false}
+    onMouseMove={() => onActivate(thread)} onClick={() => { if (!selecting) void select(thread); }}>
+    <span className="conversation-search__result-icon" aria-hidden="true"><MessageSquare size={20} /></span>
+    <span className="conversation-search__text"><span className="conversation-search__title">{thread.title}</span>
+      {thread.snippet ? <SearchSnippet text={thread.snippet} term={thread.searchTerm ?? ""} /> : null}</span>
+    <span className="conversation-search__server">{thread.serverOrigin.label}</span>
+  </button>;
+});
 
 export function ConversationSearch({ enabled, open, onOpenChange, threads, loading, sources = NO_SOURCES, onSelectThread }: {
   enabled: boolean;
@@ -44,8 +63,9 @@ export function ConversationSearch({ enabled, open, onOpenChange, threads, loadi
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, [enabled, onOpenChange]);
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   return enabled && open ? <ConversationSearchDialog threads={threads} loading={loading} sources={sources}
-    onClose={() => onOpenChange(false)} onSelectThread={onSelectThread} /> : null;
+    onClose={close} onSelectThread={onSelectThread} /> : null;
 }
 
 function ConversationSearchDialog({ threads, loading, sources, onClose, onSelectThread }: {
@@ -56,7 +76,7 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
   onSelectThread(hostId: string, threadId: string, target?: ConversationSearchTarget): void;
 }) {
   const intl = useIntl();
-  const shell = useShellPresentation();
+  const dismissSidebarAfterSelection = useDismissSidebarAfterSelection();
   const label = intl.formatMessage({ id: "sidebar.search", defaultMessage: "Search conversations" });
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -67,17 +87,22 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
   const list = useRef<HTMLDivElement>(null);
   const normalized = query.trim().toLocaleLowerCase(intl.locale);
   const content = useConversationContentSearch(query.trim(), sources);
-  const results = mergeConversationSearchResults(threads.filter(thread => thread.title.toLocaleLowerCase(intl.locale).includes(normalized)),
-    content.rows.flatMap(row => row.matches));
+  // Active-result changes reuse the projection and unaffected option content.
+  const results = useMemo(() => mergeConversationSearchResults(threads.filter(thread => thread.title.toLocaleLowerCase(intl.locale).includes(normalized)),
+    content.rows.flatMap(row => row.matches)), [threads, normalized, intl.locale, content.rows]);
   const busy = loading || content.pending;
-  const selectable = results.filter(thread => thread.interactionAvailable !== false);
+  const selectable = useMemo(() => results.filter(thread => thread.interactionAvailable !== false), [results]);
   const selected = selectable[Math.min(active, Math.max(0, selectable.length - 1))];
   const selectedIndex = selected ? results.indexOf(selected) : -1;
   useEffect(() => {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
   }, [selected?.connectionHostId, selected?.id]);
   useEffect(() => () => selection.current?.abort(), [query, sources]);
-  const select = async (thread: ConversationSearchRow) => {
+  const activate = useCallback((thread: ConversationSearchRow) => {
+    const next = selectable.indexOf(thread);
+    if (next >= 0) setActive(next);
+  }, [selectable]);
+  const select = useCallback(async (thread: ConversationSearchRow) => {
     selection.current?.abort();
     const abort = new AbortController(); selection.current = abort;
     setSelectionError(false);
@@ -98,14 +123,14 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
       }
       if (abort.signal.aborted) return;
       onSelectThread(thread.connectionHostId, thread.id, target);
-      shell?.dismissSidebarAfterSelection();
+      dismissSidebarAfterSelection?.();
       onClose();
     } catch {
       if (!abort.signal.aborted) setSelectionError(true);
     } finally {
       if (selection.current === abort) setSelecting(false);
     }
-  };
+  }, [sources, onSelectThread, dismissSidebarAfterSelection, onClose]);
   return <ModalSurface label={label} appearance="utility" size="wide" className="conversation-search" onDismiss={onClose}>
     <div className="conversation-search__input">
       <Search size={18} aria-hidden="true" />
@@ -125,16 +150,9 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
     <h2 className="conversation-search__heading">{normalized ? label : intl.formatMessage({ id: "sidebar.flow.recent", defaultMessage: "Recent" })}</h2>
     <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and Codex messages" })}</div>
     <div className="conversation-search__results" ref={list} role="listbox" id={listId} aria-label={label} aria-busy={busy || selecting}>
-      {results.map((thread, index) => <button type="button" role="option" tabIndex={-1}
-        key={JSON.stringify([thread.connectionHostId, thread.id])} id={`${listId}-${index}`}
-        aria-selected={index === selectedIndex} disabled={thread.interactionAvailable === false}
-        onMouseMove={() => { const next = selectable.indexOf(thread); if (next >= 0) setActive(next); }}
-        onClick={() => { if (!selecting) void select(thread); }}>
-        <span className="conversation-search__result-icon" aria-hidden="true"><MessageSquare size={20} /></span>
-        <span className="conversation-search__text"><span className="conversation-search__title">{thread.title}</span>
-          {thread.snippet ? <SearchSnippet text={thread.snippet} term={thread.searchTerm ?? ""} /> : null}</span>
-        <span className="conversation-search__server">{thread.serverOrigin.label}</span>
-      </button>)}
+      {results.map((thread, index) => <ConversationSearchResult key={JSON.stringify([thread.connectionHostId, thread.id])}
+        thread={thread} index={index} listId={listId} selected={index === selectedIndex}
+        selecting={selecting} select={select} onActivate={activate} />)}
     </div>
     {normalized && content.rows.length ? <div className="conversation-search__sources">
       {content.rows.map(row => <div key={row.source.key}>

@@ -9,7 +9,7 @@ import type {
   VirtualizedTurnViewportState,
 } from "./types";
 
-export const CODEX_TURN_VIRTUALIZER_CONFIG: Readonly<TurnVirtualizerConfig> = Object.freeze({
+export const OPENCRAFT_TURN_VIRTUALIZER_CONFIG: Readonly<TurnVirtualizerConfig> = Object.freeze({
   estimatedTurnHeightPx: 280,
   gapPx: 12,
   overscanTurnCount: 2,
@@ -28,7 +28,7 @@ function positiveHeight(value: number | undefined, fallback: number): number {
 export function buildTurnLayout(
   entries: readonly VirtualizedTurnEntry[],
   measuredHeightsByKey: Readonly<Record<string, number>> = {},
-  config: Readonly<TurnVirtualizerConfig> = CODEX_TURN_VIRTUALIZER_CONFIG,
+  config: Readonly<TurnVirtualizerConfig> = OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
 ): TurnLayout {
   const heightsPx: number[] = [];
   const topOffsetsPx: number[] = [];
@@ -132,7 +132,7 @@ export function computeTurnRange(
   layout: TurnLayout,
   distanceFromBottomPx: number,
   viewportHeightPx: number,
-  overscanTurnCount = CODEX_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
+  overscanTurnCount = OPENCRAFT_TURN_VIRTUALIZER_CONFIG.overscanTurnCount,
 ): TurnRange {
   if (layout.turnKeys.length === 0) return { startIndex: 0, endIndex: 0 };
   const viewportStart = Math.min(finiteNonNegative(distanceFromBottomPx), layout.totalHeightPx);
@@ -201,7 +201,7 @@ export function distanceFromBottomToCenterTurn(
 
 export function distanceFromBottomToTopTurn({
   layout,
-  topAlignmentInsetPx = CODEX_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
+  topAlignmentInsetPx = OPENCRAFT_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
   turnKey,
   viewportHeightPx,
 }: {
@@ -226,7 +226,7 @@ export function distanceFromBottomToTargetWithinTurn({
   layout,
   targetHeightPx,
   targetTopOffsetWithinTurnPx,
-  topAlignmentInsetPx = CODEX_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
+  topAlignmentInsetPx = OPENCRAFT_TURN_VIRTUALIZER_CONFIG.topAlignmentInsetPx,
   turnKey,
   viewportHeightPx,
 }: {
@@ -291,7 +291,7 @@ export function createTurnViewportState(
   distanceFromBottomPx: number,
   viewportHeightPx: number,
   restoreState: VirtualizedTurnRestoreState | null = null,
-  config: Readonly<TurnVirtualizerConfig> = CODEX_TURN_VIRTUALIZER_CONFIG,
+  config: Readonly<TurnVirtualizerConfig> = OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
 ): VirtualizedTurnViewportState {
   const distance = Math.min(finiteNonNegative(distanceFromBottomPx), layout.totalHeightPx);
   const height = finiteNonNegative(viewportHeightPx, config.fallbackViewportHeightPx)
@@ -322,7 +322,7 @@ export function updateTurnViewportState(
   layout: TurnLayout,
   distanceFromBottomPx: number,
   viewportHeightPx: number,
-  config: Readonly<TurnVirtualizerConfig> = CODEX_TURN_VIRTUALIZER_CONFIG,
+  config: Readonly<TurnVirtualizerConfig> = OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
 ): VirtualizedTurnViewportState {
   const distance = Math.min(finiteNonNegative(distanceFromBottomPx), layout.totalHeightPx);
   const height = finiteNonNegative(viewportHeightPx, config.fallbackViewportHeightPx)
@@ -388,7 +388,7 @@ export function createTurnWindowSlice<TEntry extends VirtualizedTurnEntry>(
   entries: readonly TEntry[],
   layout: TurnLayout,
   range: TurnRange,
-  gapPx = CODEX_TURN_VIRTUALIZER_CONFIG.gapPx,
+  gapPx = OPENCRAFT_TURN_VIRTUALIZER_CONFIG.gapPx,
 ): TurnWindowSlice<TEntry> {
   return {
     entries: entries.slice(range.startIndex, range.endIndex),

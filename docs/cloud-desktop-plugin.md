@@ -104,18 +104,16 @@ action or a current target, no Composer desktop entry is rendered. Embedded prod
 select their allowed panel actions at the product composition; file preview mode
 retains the desktop renderer and its existing lifetime and input authority.
 
-The panel follows the rich `CloudAeonComputerPanel` composition in the original
-Codex 26.930.31428 / build 12913 renderer, not its separate simple
-`CloudDesktopPanel` toolbar. The shared Design System `desktop-view.web` primitive
-owns an aspect-fit media card, rounded clipping/shadow, a floating ownership
-island and a confirmed-control perimeter/visor. This is source-referenced
-presentation, not an official Mac pixel-comparison or a remote OS theme change.
+The shared Design System `desktop-view.web` primitive owns an aspect-fit media
+card, rounded clipping/shadow, a floating ownership island and a confirmed-control
+perimeter/visor. This presentation has not been verified by an official Mac
+pixel-comparison and does not change the remote OS theme.
 Desktop control appearance is independent from the application accent: its
-current default is the reference purple submit pair (#8952ee light, #7849d1
+current default is the purple submit pair (#8952ee light, #7849d1
 dark, white foreground). The shared primitive owns the paired defaults; trace,
 wash, visor and translucent release action consume the same local variables.
 There is no assistant appearance authority wired to this local desktop yet, so
-this is a product default, not a claim that every Codex desktop is purple.
+this is a product default.
 Application theme/skill colors and remote Linux wallpaper remain unchanged.
 The adapter reports optional `mediaAspectRatio` from decoded backing dimensions;
 the controller projects the current connection's geometry. Missing geometry uses
@@ -546,18 +544,37 @@ gesture also focuses it without granting input. Toolbar-to-media focus movement
 stays inside the owner. Blur, cancellation and target/connection retirement abort
 clipboard intentions along with input.
 
-The Paste action, focused Ctrl/Meta+V and native paste gesture share one
-controller-owned clipboard transaction. Local text is read only on an explicit
+Control is requested only by clicking/tapping the desktop or activating Take control.
+Mouse hover never requests control. A managed media surface commits a primary
+mouse/pen click or single-finger H5 tap on release because noVNC can suppress its
+native compatibility click. Movement, cancellation, additional fingers and leaving
+before release retire that activation; a later compatibility click cannot repeat it.
+Toolbar buttons retain native click/keyboard activation. Reopening/reconnecting
+restores observation only, and late grants cannot pull focus back after leaving.
+The tab, overflow menu and drag label share the localized Cloud computer title.
+
+The Paste action and native Ctrl/Meta+V gesture share one controller-owned
+clipboard transaction. The shortcut suppresses the decoder's raw V while
+preserving the browser default paste event, then consumes its clipboardData;
+it does not request asynchronous clipboard-read permission on keydown. Local text is read only on an explicit
 gesture while this exact control lease is valid. Pending reads coalesce, time out
 after 5 seconds and are fenced across revocation/reconnection; text is limited to
-16,384 UTF-16 units. The decoder's `clipboardready` means basic ClientCutText or
-extended Provide has been sent on the ordered stream, NOT remote application
-acceptance. Only then does the media adapter emit paste keys. Provide waits are
+16,384 UTF-16 units. Notify/basic text is queued before the paste keys on the same stream. Extended
+peers may request Provide only after the application receives Ctrl+V; waiting for
+Provide before sending keys deadlocks such peers. `clipboardready` confirms basic
+ClientCutText or extended Provide has been sent, not remote application acceptance.
+The transaction waits for that completion after emitting the shortcut. Provide waits are
 bounded at 5 seconds; timeout/revoke clears retained local clipboard data and
 cannot emit late keys. Legacy Latin-1 clipboard rejects unsupported characters
 instead of silently corrupting text; extended clipboard transports UTF-8.
-No unsolicited peer-to-local OS clipboard writes or background reads are added.
-Remote copy-to-local remains unverified. Browser IME verification below is not an
+Ctrl/Cmd+C arms one bounded remote-copy transaction for the current grant. The
+decoder still delivers Ctrl+C; Cmd+C is translated to the remote Control shortcut.
+Only its peer clipboard response can satisfy the browser write. Where supported,
+the browser write starts synchronously with a promised text Blob to preserve the
+user gesture. Updates without a copy intention, oversized responses and responses
+after leave/revocation never write local clipboard data. No background reads or
+unsolicited peer-to-local writes are added. Native input-only providers retain
+their explicit lack of clipboard transport. Browser IME verification below is not an
 iPhone system-keyboard acceptance claim.
 
 ### Pointer, viewing gestures and mobile text input
@@ -581,8 +598,8 @@ generations or the complete current patch, not arbitrary subsets.
   cannot misclassify fast scrolling as pinch. Cancellation drops the sample;
   normal release may consume its final sample, under the same valid grant.
 - Wheel and touch translation share bounded delta accumulation, reversal/idle
-  reset and at most one step per axis per 100ms. RFB encodes discrete steps,
-  not Codex pixel deltas; scrolling speed is not claimed identical. Trackpad
+  reset and at most one step per axis per 100ms. RFB encodes discrete steps rather than pixel deltas; wheel and touch input
+  use the same bounded accumulation policy. Trackpad
   Ctrl-wheel adjusts local viewing only.
 - Zoom is 1–4x anchored under the gesture, with bounded pan. Coordinates use
   actual transformed canvas bounds and framebuffer dimensions. Bars cannot start
@@ -838,9 +855,9 @@ Source boundaries: `sandbox/internal/ingressproxy/router.go`,
 [WebRTC configuration](https://w3c.github.io/webrtc-pc/#rtcconfiguration-dictionary)
 and [TURN transport](https://www.rfc-editor.org/rfc/rfc8656.html#section-3.1).
 
-Reference: read-only Codex 26.930.31428 desktop tab/viewer analysis. Adopted
-per-Conversation tabs, remote/view lifetime split and observe/control split;
-did not copy private signaling endpoints or UID, or assume robust reconnection.
+The viewer uses per-Conversation tabs, separate remote/view lifetimes and
+separate observe/control permissions. Signaling and user identity remain with
+the provider; robust reconnection is not assumed.
 
 ### Explicit takeover from read-only viewing
 

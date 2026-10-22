@@ -52,7 +52,7 @@ function legacyRole(role: TypographyRoleName, platform: TypographyPlatform) {
   return metrics;
 }
 
-export const codexTypographyTokens = Object.freeze({
+export const opencraftTypographyTokens = Object.freeze({
   family: {
     ui: registry.families.ui.native,
     content: registry.families.content.native,

@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline,
   type TimelineSourceItem, type TimelineSourceTurn } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
@@ -19,13 +19,14 @@ await ctx.plugin(BuiltinTimelineRendererPlugin);
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
 const probe = window as any;
 let restore: ConversationRestoreSnapshot | null = null;
 const text = "First returned line\nCurrent returned line";
 const markdown = "# **Checking the result**\n\nRead *carefully* and `a_b`.\n\n- First step\n- Second step\n\n```js\nconst a_b = 42;\n```\n\n[The file](file:///work/a.ts) [Unsafe](javascript:alert(1))\n\n<script>window.__unsafeReasoning = true</script>\n\n**Current check**";
 probe.openedReasoningResources = [];
+probe.openedSubagents = [];
 
 function reasoning(engine: string, content = text, completed = false): TimelineSourceItem {
   return { id: "reason", type: "reasoning", payload: {
@@ -76,6 +77,20 @@ function Demo() {
     if (action === "long-empty" || action === "long-empty-clock") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
       setTurn(longEmptyResponse(selectedEngine, action === "long-empty-clock")); return;
+    }
+    if (action === "subagent-details" || action === "subagent-single" || action === "subagent-wait") {
+      restore = null; setGeneration(value => value + 1);
+      const agent = (id: string, name: string, tool: string, prompt: string): TimelineSourceItem => ({
+        id, type: "collabAgentToolCall", payload: { tool, prompt, status: "completed",
+          receiverThreadIds: [name], reasoningEffort: "high", agentPath: "/work/agents/" + name,
+          agentsStates: { [name]: { status: "completed", displayName: name, message: name + " finished" } } },
+      });
+      setTurn({ id: "turn", status: "streaming", items: action === "subagent-single"
+        ? [agent("single", "Typography", "spawnAgent", "Inspect typography")]
+        : action === "subagent-wait" ? [agent("wait", "Typography", "wait", "Wait for the audit")]
+        : [agent("old", "Typography", "spawnAgent", "Superseded typography task"),
+          agent("new", "Typography", "sendInput", "Inspect current typography"),
+          agent("other", "Icons", "spawnAgent", "Inspect icons")] }); return;
     }
     if (action === "activity-metrics") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
@@ -163,6 +178,7 @@ function Demo() {
       {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" initialRestoreSnapshot={restore}
         documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work",
           onOpenResource: (target, decision) => probe.openedReasoningResources.push({ target, kind: decision.kind }) }}
+        onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })}
         onRestoreSnapshotChange={value => { restore = value; }}
         footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>

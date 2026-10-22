@@ -39,7 +39,7 @@ const WEEKDAY_LABELS: Readonly<Record<string, string>> = {
   SU: "Sunday",
 };
 
-/** Compact fallback for the same RRULE slot occupied by Codex's locale formatter. */
+/** Compact fallback for the localized RRULE summary slot. */
 export function formatAutomationSchedule(rrule: string | null): string | null {
   if (rrule === null || rrule.trim().length === 0) return null;
   const fields = new Map(rrule.split(";").map((part) => {

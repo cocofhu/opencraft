@@ -1,5 +1,5 @@
 import { createIntlTestRoot as createRoot } from "./intl-root";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createComposerController, legacyContentBlocksToComposer, composerDocumentToPlainText } from "@opencraft/composer-core";
 import { createConversationKey } from "@opencraft/chat-core";
 import { createVoiceInputExtension } from "../../plugins/voice-input/src/extension";
@@ -29,7 +29,7 @@ const mutations = { insertText: (text: string) => controller.insertText(text), f
 };
 createRoot(document.getElementById("root")!).render(<>
   <div style={{ maxWidth: 760, margin: "24px auto" }}><Settings /></div>
-  <CodexComposer controller={controller} onSubmit={intent => { sent.push(composerDocumentToPlainText(intent.document)); return false; }}
+  <OpenCraftComposer controller={controller} onSubmit={intent => { sent.push(composerDocumentToPlainText(intent.document)); return false; }}
     selectionCatalog={{ agents: [], models: [{ id: "fixture", value: "fixture", label: "Fixture", isDefault: true, description: null, efforts: [], defaultEffort: null, inputModalities: ["text"] }], permissionProfiles: [] }}
     endActions={<Voice mutations={mutations} disabled={false} platform="web" />} />
 </>);

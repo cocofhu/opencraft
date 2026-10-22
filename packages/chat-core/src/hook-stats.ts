@@ -1,4 +1,4 @@
-/** Replacement method and history: docs/provenance/hook-statistics-replacement.md. */
+
 export type HookRunStatus = "running" | "completed" | "failed" | "blocked" | "stopped";
 export type HookOutputEntryKind = "warning" | "stop" | "feedback" | "context" | "error";
 export type HookStatsEntryKind = "stop" | "feedback" | "error";

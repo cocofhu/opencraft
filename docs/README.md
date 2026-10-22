@@ -9,6 +9,7 @@ OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench
 - 项目维护方法与验收路由：[OpenCraft 维护总纲 Skill](../.agents/skills/opencraft-maintenance/SKILL.md)；不替代下列正式架构文档。
 - 仓库历史与下游消费契约：`opencraft/UPSTREAM_HISTORY.md`。
 - 平台与插件架构：`opencraft/docs/platform-architecture.md`、`opencraft/docs/plugin-architecture.md`。
+- 运行观测平台：[定位、服务与数据/CLI/Skill 规格 V1](observability-platform.md)、[功能与非功能验收矩阵](observability-acceptance.md)；当前为待实现规格，最终以真实部署验收为准。
 - 主体与协作设计纲领：[原生主体、Hub、Channel 与授权](architecture/actor-collaboration.md)；人类与 Agent/Bot/Session 具备原生主体性，权限独立授予；属于目标设计，不代表多租户已实现。
 - 存量会话的 Skills 目录刷新：[实现边界与验收标准](session-capability-refresh.md)；正文版本更新与 Hermes 自动热刷新已取消，Connector 按下列独立文档推进。
 - 平台级 Connector：[机制、已实现链路与剩余范围](platform-connectors.md)；独立于 Hermes 设置页原型，不复用它的页面状态。
@@ -23,7 +24,7 @@ OpenCraft 是多端 Agent Workbench 核心，包含 Chat Runtime、Web Workbench
 
 - GitHub 是目标核心上游，下游产品持有私有装配并消费固定版本；状态见 [迁移状态](upstream-transition.md)，不建立两套可写核心。
 - `opencraft/` 保持独立 npm workspace 和锁文件，`frontend/` 保持独立 pnpm workspace 和锁文件。
-- AppServer 事件游标、投影状态和 durable history 的生命周期必须一致；Hermes 转译遵循 Hermes Desktop 语义，Chat Runtime 遵循 Codex 的 Turn、queue、steer、工具活动和滚动所有权。
+- AppServer 事件游标、投影状态和 durable history 的生命周期必须一致；Hermes 转译遵循 Hermes Desktop 语义，Chat Runtime 按共享契约维护 Turn、queue、steer、工具活动和滚动所有权。
 - Web、Expo 与 Electron 共享领域模型和设计 token，但平台能力通过显式 adapter/port 接入，不能用平台条件分支破坏核心状态机。
 - 下游产品工作区中的机械生成过渡兼容层由该产品持有，源码所有权在其前端服务；生成目录禁止手改。
 
@@ -45,4 +46,4 @@ npm run gate
 只改局部包时可以先跑相邻类型检查和聚焦测试，但跨包、共享前端、协议、构建矩阵或平台入口变更必须完成全门禁。发布需要单独、明确授权，构建通过不代表已经发布。
 # 任务工作区设计
 
-Codex 工作区复刻的所有权、呈现策略、不变量及验证账本见 [design/](../design/README.md)。
+OpenCraft 工作区的所有权、呈现策略、不变量及验证账本见 [design/](../design/README.md)。

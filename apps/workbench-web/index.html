@@ -9,7 +9,7 @@
     <title>OpenCraft</title>
     <script>
       // Web Crypto exposes getRandomValues on HTTP origins, but randomUUID only
-      // in secure contexts. The authenticated IP preview uses HTTP like BB.
+      // in secure contexts. The authenticated IP preview can use HTTP.
       if (typeof crypto.randomUUID !== "function" && typeof crypto.getRandomValues === "function") {
         crypto.randomUUID = () => {
           const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -190,10 +190,10 @@
           }
         }, 15000);
 
-        const storageKey = "vela.appearance-theme";
+        const storageKey = "opencraft.appearance-theme";
         let preference = "light";
         try {
-          const stored = localStorage.getItem(storageKey);
+          const stored = localStorage.getItem(storageKey) ?? localStorage.getItem("vela.appearance-theme");
           if (stored === "light" || stored === "dark" || stored === "system") preference = stored;
         } catch {}
         const theme = preference === "system"

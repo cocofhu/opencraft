@@ -34,7 +34,7 @@ try {
     page.on("pageerror", error => { errors.push(error.message); console.error(error.message); });
     await page.goto(server.resolvedUrls!.local[0]!);
     const panel = page.locator(".cloud-desktop-panel"), pad = page.getByRole("group", { name: "Trackpad", exact: true });
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     await editor.waitFor({ state: "attached" }); await page.waitForTimeout(250);
     if (!(await panel.isVisible())) await page.locator("button.app-shell-header__right-panel-toggle").click();
     await panel.waitFor(); await editor.fill("Keep this draft");
@@ -42,7 +42,7 @@ try {
     await page.locator('.cloud-desktop-panel[data-control="controlling"]').waitFor();
     await pad.waitFor();
     await page.waitForTimeout(250);
-    await page.evaluate(() => { (window as any).keptCanvas = document.querySelector(".cloud-desktop-panel canvas"); (window as any).keptEditor = document.querySelector(".codex-composer-editor"); });
+    await page.evaluate(() => { (window as any).keptCanvas = document.querySelector(".cloud-desktop-panel canvas"); (window as any).keptEditor = document.querySelector(".opencraft-composer-editor"); });
     const geometry = () => page.evaluate(() => {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
       const p = rect(".ui-desktop-trackpad__surface"), t = rect(".cloud-desktop-panel__toolbar"), m = rect(".ui-desktop-view__frame");
@@ -53,7 +53,7 @@ try {
         rootBottom: rect(".app-shell-root").bottom,
         hits: ys.flatMap(y => xs.map(x => Boolean(document.elementFromPoint(p.x + p.width * x, p.y + p.height * y)?.closest(".ui-desktop-trackpad__surface")))),
         sameCanvas: document.querySelector(".cloud-desktop-panel canvas") === (window as any).keptCanvas,
-        sameEditor: document.querySelector(".codex-composer-editor") === (window as any).keptEditor,
+        sameEditor: document.querySelector(".opencraft-composer-editor") === (window as any).keptEditor,
         connections: (window as any).fixture.connections,
         reserve: getComputedStyle(document.querySelector(".main-content-body")!).getPropertyValue("--right-panel-composer-overlay-reserve") };
     });

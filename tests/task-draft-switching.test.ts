@@ -20,7 +20,7 @@ import {
   createWorkbenchCoordinator,
   createWorkbenchThreadLocation,
 } from "@opencraft/workbench-runtime";
-import { attachmentPreviewSession } from "../packages/codex-composer/src/attachment-preview-session";
+import { attachmentPreviewSession } from "../packages/composer-editor/src/attachment-preview-session";
 import { createWorkbenchNavigationTransaction } from "../apps/workbench-web/src/runtime/workbench-navigation-transaction";
 import { createWorkbenchEntryResolver } from "../apps/workbench-web/src/runtime/workbench-location-restoration";
 

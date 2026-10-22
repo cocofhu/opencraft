@@ -31,7 +31,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 1680, height: 950 }, colorScheme: theme });
     const page = await context.newPage(); page.setDefaultTimeout(10000);
     page.on("pageerror", e => errors.push(e.message));
-    await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system"));
+    await page.addInitScript(() => localStorage.setItem("opencraft.appearance-theme", "system"));
     await page.goto(server.url + "/views/opencraft.tasks.board");
     const card = page.locator('.tasks-card[data-task-id="item-0"]'); await card.waitFor();
     const before = JSON.stringify(snapshot());

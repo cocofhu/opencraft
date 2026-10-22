@@ -431,3 +431,31 @@ test("expired claim saturation renews the shared browser socket and lets its pee
     await Promise.all(closes);
   } finally { client.close(); if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow); else Reflect.deleteProperty(globalThis, "window"); }
 });
+
+
+test("private recovery awaits admission and never opens a socket after cancellation", async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { href: "https://example.test" } } });
+  try {
+    for (const stop of ["abort", "dispose", "deny"] as const) {
+      let release!: () => void, reads = 0, sockets = 0;
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      const client = connectWebSocketAppHost(() => { sockets++; return new FakeSocket() as unknown as WebSocket; }, {
+        path: "/ssh-apphost", reportFailure: () => undefined,
+        beforeConnect: async () => { reads++; await gate; if (stop === "deny") throw new Error("locked"); },
+      });
+      const transport = client.createTransport("ssh:fixture"), abort = new AbortController();
+      const pending = transport.connect(abort.signal);
+      const rejected = assert.rejects(pending);
+      assert.equal(transport.connect(abort.signal), pending);
+      assert.equal(sockets, 0); assert.equal(reads, 1);
+      if (stop === "abort") abort.abort();
+      if (stop === "dispose") await transport.close();
+      release(); await rejected;
+      assert.equal(sockets, 0);
+      client.close();
+    }
+  } finally {
+    if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow); else delete (globalThis as { window?: unknown }).window;
+  }
+});

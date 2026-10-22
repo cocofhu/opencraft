@@ -1,14 +1,13 @@
 import {
-  codexColorTokens,
-  codexGeometryTokens,
-  codexTypographyTokens,
+  opencraftColorTokens,
+  opencraftGeometryTokens,
+  opencraftTypographyTokens,
   frame,
   radii,
   spacing,
 } from "./tokens.shared";
 import { nativeTypographyTokens } from "./typography/typography.shared";
 
-// Codex owns semantic color roles; iPad owns density, material and navigation
 // geometry. Keeping these layers separate prevents the native app from
 // becoming a scaled desktop renderer while preserving one visual vocabulary.
 export const ipadMetrics = {
@@ -107,9 +106,9 @@ const ipadShadow = {
 
 export const nativeThemes = {
   light: {
-    color: codexColorTokens.light,
-    geometry: codexGeometryTokens,
-    typography: codexTypographyTokens,
+    color: opencraftColorTokens.light,
+    geometry: opencraftGeometryTokens,
+    typography: opencraftTypographyTokens,
     shadow: ipadShadow.light,
     material: ipadMaterial.light,
     metrics: ipadMetrics,
@@ -125,9 +124,9 @@ export const nativeThemes = {
     },
   },
   dark: {
-    color: codexColorTokens.dark,
-    geometry: codexGeometryTokens,
-    typography: codexTypographyTokens,
+    color: opencraftColorTokens.dark,
+    geometry: opencraftGeometryTokens,
+    typography: opencraftTypographyTokens,
     shadow: ipadShadow.dark,
     material: ipadMaterial.dark,
     metrics: ipadMetrics,

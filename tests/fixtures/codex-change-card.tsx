@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { createTurnChangeSummary } from "@opencraft/chat-core";
-import { buildCodexThemeCssProperties, frostThemePalette } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties, frostThemePalette } from "@opencraft/design-system/theme-engine";
 import { ConversationDocumentContext } from "../../apps/workbench-web/src/components/conversation/document-context";
 import { TurnDiffBlock } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
 import { createIntlTestRoot } from "./intl-root";
@@ -10,7 +10,7 @@ const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "dark" || params.get("theme") === "frost" ? "dark" : "light";
 const locale = params.get("locale") === "zh-CN" ? "zh-CN" : "en-US";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme, params.get("theme") === "frost" ? frostThemePalette[theme] : undefined))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme, params.get("theme") === "frost" ? frostThemePalette[theme] : undefined))) document.documentElement.style.setProperty(key, value);
 if (params.get("touch")) document.documentElement.dataset.touchInteraction = "true";
 
 function file(path: string, added: number, removed: number) {

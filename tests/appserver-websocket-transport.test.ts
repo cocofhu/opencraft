@@ -140,6 +140,44 @@ test("an already-aborted connect does not allocate a socket", async () => {
   assert.equal(fixture.sockets.length, 0);
 });
 
+test("abort during connecting notification revokes the attempt before allocating a socket", async () => {
+  const fixture = transportFixture(); const controller = new AbortController();
+  fixture.transport.subscribeStatus(status => { if (status.state === "connecting") controller.abort(); });
+  const connecting = fixture.transport.connect(controller.signal);
+  if (fixture.sockets[0]) fixture.sockets[0].emitOpen();
+  try {
+    await assert.rejects(connecting, { name: "AbortError" });
+    assert.equal(fixture.sockets.length, 0);
+    assert.notEqual(fixture.transport.status.state, "open");
+  } finally { await fixture.transport.close(); }
+});
+
+test("close during connecting notification cannot be followed by a revived attempt", async () => {
+  const fixture = transportFixture(); let closing: Promise<void> | undefined;
+  fixture.transport.subscribeStatus(status => { if (status.state === "connecting") closing = fixture.transport.close(); });
+  const connecting = fixture.transport.connect();
+  if (fixture.sockets[0]) fixture.sockets[0].emitOpen();
+  try {
+    await closing; await assert.rejects(connecting, /closed before opening/);
+    assert.equal(fixture.sockets.length, 0); assert.equal(fixture.transport.status.state, "closed");
+  } finally { await fixture.transport.close(); }
+});
+
+test("old close finalization cannot erase a retry started by a status observer", async () => {
+  const fixture = transportFixture(); let retry: Promise<void> | undefined;
+  const original = fixture.transport.connect();
+  const rejected = assert.rejects(original, /old attempt/);
+  let once = false;
+  fixture.transport.subscribeStatus(status => {
+    if (status.state === "closed" && !once) { once = true; retry = fixture.transport.connect(); }
+  });
+  fixture.sockets[0]!.emitClose(1006, "old attempt"); await rejected;
+  assert.equal(fixture.sockets.length, 2);
+  assert.equal(fixture.transport.connect(), retry, "the retry retains its coalescing slot");
+  fixture.sockets[1]!.emitOpen(); await retry;
+  await fixture.transport.close();
+});
+
 test("a socket factory failure transitions the transport out of connecting", async () => {
   const transport = new WebSocketTransport({
     url: "not-a-websocket-url",

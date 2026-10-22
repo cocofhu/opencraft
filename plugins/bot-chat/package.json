@@ -14,7 +14,7 @@
     "@opencraft/bot-conversation": "0.1.0",
     "@opencraft/chat-core": "0.1.0",
     "@opencraft/chat-render-web": "0.1.0",
-    "@opencraft/codex-composer": "0.1.0",
+    "@opencraft/composer-editor": "0.1.0",
     "@opencraft/composer-core": "0.1.0",
     "@opencraft/design-system": "0.1.0",
     "@opencraft/extension-react": "0.1.0",

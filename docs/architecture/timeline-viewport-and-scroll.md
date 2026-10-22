@@ -3,8 +3,7 @@
 ## Direction
 
 OpenCraft treats conversation scrolling as a cross-platform domain, not as a DOM
-component detail. Codex Desktop remains the behavioral reference, while Web,
-Electron and Expo provide replaceable host adapters.
+component detail. Web, Electron and Expo provide replaceable host adapters.
 
 ```text
 AppServer timeline data
@@ -45,12 +44,12 @@ timeline-host-web     Expo/RN adapter
 - `VisualViewport` is translated into a layout/visual viewport snapshot and a
   software-keyboard inset. Pinch zoom is never classified as a keyboard.
 - `ResizeObserverEntry.borderBoxSize` supplies footer measurements.
-- Animated disclosure reflow pins the interacted element for the recovered
-  250ms Codex transaction.
+- Animated disclosure reflow pins the interacted element for the shared
+  250ms transaction.
 - The document root is locked while the nested timeline receives a
   host-specific `auto | contain | none` overscroll policy.
 - Composer is always viewport-stable. Electron implements that semantic with
-  the recovered in-scroll sticky footer; rubber-band browsers use a sibling
+  the in-scroll sticky footer; rubber-band browsers use a sibling
   overlay plus a measured in-flow spacer because Safari drags sticky descendants
   with the elastic scroll surface.
 
@@ -88,12 +87,12 @@ guess them from protocol items.
   overlay measures classic gutters and reserves a symmetric visual rail for
   zero-width macOS/iOS overlay indicators; neither its occlusion gradient nor
   Composer may paint over that rail. Scrollbar visibility remains an operating-
-  system preference, matching Codex instead of a global CSS skin.
+  system preference rather than a global CSS skin.
 - Footer occlusion covers the complete transcript content band, including the
   space exposed by Composer's rounded corners. The browser overlay uses a
   stronger opaque stop because, unlike the Electron sticky footer, it does not
   participate in the scroll surface's paint order.
-- Footer height plus the recovered 16px gap is reflected in scroll padding;
+- Footer height plus the 16px gap is reflected in scroll padding;
   footer focus temporarily makes that padding zero.
 - A footer resize compensates only while away from the bottom, and never during
   scroll animation or an explicit latest-Turn placement transaction.

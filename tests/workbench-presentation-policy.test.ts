@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseWorkbenchPresentation, resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
+import { builtinThemeIds, normalizeBuiltinThemeId, parseWorkbenchPresentation, resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
 import { applyWorkbenchProductPresentation } from "../apps/workbench-web/src/workbench-product";
 
 test("presentation input is validated and detached from the product's mutable declaration", () => {
@@ -28,4 +28,22 @@ test("root presentation follows explicit options and resets obsolete classic ove
   assert.equal(properties.has("--size-product-navigation-icon"), false);
   assert.equal(properties.get("--size-icon-navigation"), "14px");
   assert.equal(properties.get("--space-settings-navigation-inline"), "0px");
+});
+
+
+test("built-in compatibility aliases preserve policy constraints without renaming extensions", () => {
+  const aliases = ["codex", "web", "frost", "lavender", "mist", "zencode"];
+  for (const [index, canonical] of Object.values(builtinThemeIds).entries()) {
+    const legacy = `vela.core.${aliases[index]}`;
+    assert.equal(normalizeBuiltinThemeId(legacy), canonical);
+    assert.equal(resolveWorkbenchPresentation({defaultThemeId:legacy}).defaultThemeId, canonical);
+    assert.deepEqual(resolveWorkbenchPresentation({hiddenBuiltinThemeIds:[legacy,canonical]}).hiddenBuiltinThemeIds,[canonical]);
+    for (const [selected, hidden] of [[legacy,canonical],[canonical,legacy]]) {
+      assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
+    }
+  }
+  for (const extension of ["vela.extension.paper", "vendor.core.web", "vela.core.custom"]) {
+    assert.equal(normalizeBuiltinThemeId(extension), extension);
+    assert.equal(resolveWorkbenchPresentation({defaultThemeId:extension}).defaultThemeId, extension);
+  }
 });
