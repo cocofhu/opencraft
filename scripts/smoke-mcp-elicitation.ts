@@ -43,6 +43,15 @@ try {
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);
     assert.deepEqual(await actions(), [{ type: "accept-elicitation", content: { name: "Demo", count: 3, enabled: true, environment: "prod", tags: ["safe"] } }]);
+    await show("multi");
+    assert.equal(await page.getByRole("checkbox").count(), 2);
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    assert.equal(await page.getByRole("alert").innerText(), "Select at least one option");
+    assert.deepEqual(await actions(), []);
+    await page.getByRole("checkbox", { name: "Fast mode", exact: true }).check();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", content: { tags: ["fast"] } }]);
     await show("tool");
     const approval = page.locator(".thread-mcp-tool-approval");
     assert.equal(await approval.getAttribute("data-risk-level"), "high");
@@ -61,6 +70,21 @@ try {
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);
     assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist: "always" }]);
     await show("tool");
+    await approval.getByRole("button", { name: "Deny", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "decline" }]);
+    for (const [name, persist] of [["Allow this conversation", "session"], ["Always allow", "always"]] as const) {
+      await show("browser");
+      await approval.locator("summary").click();
+      await approval.getByRole("menuitem", { name, exact: true }).click();
+      await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+      assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist }]);
+    }
+    await show("browser");
+    await approval.getByRole("button", { name: "Allow once", exact: false }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation" }]);
+    await show("browser");
     await approval.getByRole("button", { name: "Deny", exact: true }).click();
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);
     assert.deepEqual(await actions(), [{ type: "decline" }]);
@@ -88,5 +112,5 @@ try {
     await page.close();
   }
   assert.deepEqual(errors, []);
-  console.log("PASS: real MCP interaction panel at 390/1200px; validation, typed form submit, risk, JSON expansion, persistence, deny, setup handoffs, connector auth and generic URL actions");
+  console.log("PASS: real MCP interaction panel at 390/1200px; validation, typed and required anyOf form submit, browser-origin once/session/always/deny, risk, JSON expansion, persistence, setup handoffs, connector auth and generic URL actions");
 } finally { await browser?.close(); await vite.close(); }

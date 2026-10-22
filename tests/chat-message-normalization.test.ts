@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline } from "../packages/chat-core/src/index";
 import { codexUserMessageCompareKey, normalizeCodexTurnUserMessages } from "../packages/chat-core/src/turn-user-message-normalization";
 import type { TimelineSourceItem, TimelineSourceTurn } from "../packages/chat-core/src/projection";
 
@@ -19,7 +20,7 @@ test("empty string params own a message; nullish and empty array input do not", 
   for (const input of [null, undefined, []]) assert.equal(normalize({ params: { input } }).items.length, 0);
 });
 
-test("canonical matching uses the first Item only and retains server identity", () => {
+test("canonical matching retains server identity and stops at the first visible Item", () => {
   const params = { input: text("request"), clientUserMessageId: "client" };
   const matched = normalize({ params, items: [user("server", text("echo"), { clientId: "client", extra: "retained" })] });
   assert.equal(matched.items[0]?.id, "server");
@@ -145,4 +146,141 @@ test("canonical saved identities take precedence over stale aliases", () => {
   assert.equal(data.__opencraftSourceItemId, "canonical-id");
   assert.equal(data.__opencraftSteeringStatus, "accepted");
   assert.equal(Object.keys(data).some(key => key.startsWith("__vela")), false);
+});
+
+
+test("worktree initialization does not hide an initial historical user message", () => {
+  const result = normalize({ items: [
+    { id: "init", type: "worktreeInit", payload: {} }, user("history", text("historical question")),
+    { id: "answer", type: "agentMessage", payload: { text: "answer" } }, user("later", text("unidentified echo")),
+  ] });
+  assert.deepEqual(result.items.map(item => item.id), ["init", "history", "answer"]);
+  assert.equal(payload(result.items[1]).__opencraftMessageKind, "user");
+  assert.deepEqual(result.nonVisualItemIds, ["later"]);
+});
+
+test("initial echoes retain sender and files through allowed setup events only", () => {
+  const params = { input: text("question"), clientUserMessageId: "client" };
+  const attachments = [{ id: "report", name: "report.md", path: "/host/report.md" }];
+  const sender = { kind: "employee", loginName: "Alice" };
+  const setup = ["automaticApprovalReview", "contextCompaction", "forkedFromConversation", "modelChanged",
+    "modelRerouted", "personalityChanged", "remoteTaskCreated", "worktreeInit"];
+  const prefix = setup.map(type => ({ id: type, type, payload: {} }));
+  const echo = user("server", text("enriched question"), { clientId: "client", sender, attachments });
+  const result = normalize({ params, items: [...prefix, echo] });
+  assert.equal(result.items[0]?.id, "server");
+  assert.deepEqual(payload(result.items[0]).sender, sender);
+  assert.deepEqual(payload(result.items[0]).attachments, attachments);
+  assert.deepEqual(payload(result.items[0]).content, params.input);
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["server"]);
+  assert.deepEqual(result.items.slice(1), prefix);
+  for (const type of ["agentMessage", "commandExecution", "hookPrompt", "unknownEvent"]) {
+    const blocked = normalize({ params, items: [{ id: "boundary", type, payload: {} }, echo] });
+    assert.equal(blocked.items[0]?.id, "turn:composer-user-message");
+    assert.equal(payload(blocked.items[0]).sender, null);
+  }
+  const sameText = normalize({ params: { input: text("question") }, items: [prefix[7]!, user("text-match", text("question"), { sender })] });
+  assert.equal(sameText.items[0]?.id, "text-match");
+});
+
+test("explicit steering acknowledgement survives enriched text and history gaps", () => {
+  const local = steer("local", text("original followup"), { status: "accepted", serverUserMessageId: "server" });
+  const echo = user("server", text("Host-enriched followup"), { sender: "Alice", attachments: [{ id: "file" }] });
+  const gap = normalize({ items: [local] });
+  assert.equal(payload(gap.items[0]).serverUserMessageId, "server");
+  const result = normalize({ items: [local, echo] });
+  assert.equal(result.items.length, 1);
+  assert.deepEqual(payload(result.items[0]).input, text("original followup"));
+  assert.equal(payload(result.items[0]).sender, "Alice");
+  assert.deepEqual(payload(result.items[0]).attachments, [{ id: "file" }]);
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["local", "server"]);
+  assert.equal(payload(result.items[0]).serverUserMessageId, "server");
+  assert.equal(normalize({ items: [echo, local] }).items.length, 2);
+  assert.equal(normalize({ items: [steer("declined", text("original"), { status: "declined", serverUserMessageId: "server" }), echo] }).items.length, 2);
+});
+
+
+function projectedMessages(turn: Partial<TimelineSourceTurn>) {
+  const snapshot = projectTimeline({
+    key: createConversationKey("fixture", "saved-message"), revision: 1, phase: "live", authoritative: true,
+    turns: [{ id: "turn", status: "complete", items: [], ...turn }],
+  }, createDefaultTimelineProjectorRegistry());
+  return { snapshot, messages: snapshot.frames.flatMap(frame => frame.blocks).filter(block => block.type === "user-message") };
+}
+
+test("saved params clientId acknowledges Host-enriched input under one display identity", () => {
+  const { snapshot, messages } = projectedMessages({
+    params: { input: text("Inspect the file"), clientId: "saved-client" },
+    items: [{ id: "setup", type: "worktreeInit", payload: {} }, user("server", staged("opencraft:staged-file:v1"), { clientId: "saved-client" })],
+  });
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.messageKind, "user");
+  assert.equal(messages[0]?.clientId, "saved-client");
+  assert.deepEqual(messages[0]?.sourceItemIds, ["server"]);
+  assert.equal(messages[0]?.attachments[0]?.type, "file");
+  assert.equal(snapshot.anchorFrameIds.get("message:saved-client"), snapshot.anchorFrameIds.get("item:server"));
+  const preferred = normalize({ params: { input: text("request"), clientUserMessageId: "current", clientId: "stale" }, items: [user("server", text("enriched"), { clientId: "current" })] });
+  assert.equal(payload(preferred.items[0]).clientId, "current");
+  assert.equal(preferred.items[0]?.id, "server");
+});
+
+test("acknowledged staged files retain all supported span field spellings", () => {
+  for (const field of ["text_elements", "textElements"]) for (const range of ["byte_range", "byteRange"]) for (const placeholder of ["opencraft:staged-file:v1", ""]) {
+    const content = [{ type: "text", text: locator, [field]: [{ placeholder, [range]: { start: 0, end: new TextEncoder().encode(locator).length } }] }, { type: "mention", name: fileName, path: filePath }];
+    for (const local of [false, true]) {
+      const { messages } = projectedMessages(local ? {
+        items: [steer("local", text("local"), { clientUserMessageId: "c", status: "accepted" }), user("server", content, { clientId: "c" })],
+      } : { params: { input: text("local"), clientUserMessageId: "c" }, items: [user("server", content, { clientId: "c" })] });
+      assert.equal(messages.length, 1);
+      assert.equal(messages[0]?.attachments[0]?.type, "file", `${field}/${range}/${placeholder}/${local}`);
+      assert.equal(messages[0]?.attachments[0]?.type === "file" ? messages[0].attachments[0].name : null, fileName);
+      assert.equal(messages[0]?.message.includes(locator), false, "the model-visible locator must remain hidden");
+    }
+  }
+});
+
+test("saved content-only steering retains text and absorbs its server echo", () => {
+  const { messages } = projectedMessages({ items: [
+    { id: "local", type: "steeringUserMessage", payload: { content: text("Saved steer"), status: "accepted" } },
+    user("server", text("Saved steer")),
+  ] });
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.message, "Saved steer");
+  assert.equal(messages[0]?.messageKind, "steering");
+  assert.deepEqual(messages[0]?.sourceItemIds, ["local", "server"]);
+});
+
+
+test("singleton typed input compares exactly like a one-part array", () => {
+  for (const part of [
+    { type: "text", text: "Keep the draft" }, { type: "text", text: "" },
+    { type: "image", url: "https://example.test/image.png" }, { type: "localImage", path: "/synthetic/image.png" },
+    { type: "mention", name: "context", path: "/synthetic/context" }, { type: "input_text", text: "ignored" },
+  ]) assert.deepEqual(codexUserMessageCompareKey(part), codexUserMessageCompareKey([part]));
+  assert.notDeepEqual(codexUserMessageCompareKey({ type: "text", text: "one" }), codexUserMessageCompareKey({ type: "text", text: "two" }));
+  assert.notDeepEqual(codexUserMessageCompareKey({ type: "localImage", path: "/synthetic/image.png" }), codexUserMessageCompareKey({ type: "text", text: "" }));
+});
+
+test("unrelated singleton steering and user messages keep both visible bodies", () => {
+  const part = (value: string) => ({ type: "text", text: value });
+  for (const input of [part("Keep the draft"), [part("Keep the draft")]]) for (const content of [part("Delete the draft"), [part("Delete the draft")]]) {
+    const { messages } = projectedMessages({ items: [steer("local", input, { status: "accepted" }), user("server", content)] });
+    assert.deepEqual(messages.map(message => message.message), ["Keep the draft", "Delete the draft"]);
+    assert.deepEqual(messages.map(message => message.sourceItemIds), [["local"], ["server"]]);
+  }
+  const matching = projectedMessages({ items: [steer("local", part("Keep the draft"), { status: "accepted" }), user("server", part("Keep the draft"))] });
+  assert.equal(matching.messages.length, 1);
+  assert.deepEqual(matching.messages[0]?.sourceItemIds, ["local", "server"]);
+});
+
+test("a singleton image must not borrow the identity of an unrelated text echo", () => {
+  const result = normalize({ params: { input: { type: "localImage", path: "/synthetic/image.png" } }, items: [user("server", { type: "text", text: "separate message" })] });
+  assert.equal(result.items[0]?.id, "turn:composer-user-message");
+  assert.deepEqual(payload(result.items[0]).__opencraftSourceItemIds, ["turn:composer-user-message"]);
+});
+
+test("singleton Host display spans retain the acknowledged content", () => {
+  const content = { type: "text", text: locator, textElements: [{ placeholder: "opencraft:staged-file:v1", byteRange: { start: 0, end: new TextEncoder().encode(locator).length } }] };
+  const result = normalize({ params: { input: { type: "text", text: "request" }, clientUserMessageId: "c" }, items: [user("server", content, { clientId: "c" })] });
+  assert.deepEqual(payload(result.items[0]).content, content);
 });
