@@ -641,7 +641,11 @@ try {
       assert.equal(await reviews.nth(index).getAttribute("data-warning"), "true");
       await activate(reviewed[index]!);
       await activate(reviewed[index]!);
-      await activate(reviews.nth(index).locator(":scope > button"));
+      const reasonToggle = reviews.nth(index).locator(":scope > button");
+      assert.equal(await reasonToggle.getAttribute("aria-expanded"), "true", "Reopening the tool retains its explicit review reason choice");
+      await activate(reasonToggle);
+      assert.equal(await reasonToggle.getAttribute("aria-expanded"), "false", "The retained reason can still be collapsed manually");
+      await activate(reasonToggle);
       assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), `REVIEW_REASON_${index}: add permission context.`);
     }
     const plain = page.locator(".thread-activity-item[data-status] > .thread-activity-item__header").filter({ hasText: "Plain · Running" });
