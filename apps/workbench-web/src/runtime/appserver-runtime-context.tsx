@@ -707,7 +707,7 @@ export function useMultiHostThreadCatalog(): {
         ...projectAppServerThread(thread),
         schedule: scheduleQueries[index]?.data?.schedules.find(plan => plan.threadId === thread.id),
         goalActive: goalSources.some(source => source.goals === application.registry.peekRuntime(host.hostId)?.resources.goals
-          && source.isCurrent() && source.goals.capability()?.read
+          && source.isCurrent() && source.goals.capability(thread.id)?.read
           && sidebarGoalActive(source.goals.getSnapshot(thread.id).goal)),
         unread: application.threadAttention.unread(host.hostId, thread.id),
         connectionHostId: host.hostId,

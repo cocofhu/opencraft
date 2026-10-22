@@ -24,6 +24,10 @@ export function observeSidebarThreadGoals(source: SidebarGoalSource, notify: () 
     try {
       for (const id of ids) {
         if (reader.running >= 3 || disposed || !source.isCurrent()) break;
+        // A multi-engine Host can support Goals while this Thread does not.
+        // refresh then returns without leaving idle; scheduling it again from
+        // finally would otherwise starve the event loop with resolved promises.
+        if (!source.goals.capability(id)?.read) continue;
         // Failures wait for a connection reset; never form a retry loop.
         if (source.goals.getSnapshot(id).phase !== "idle") continue;
         reader.running++;
@@ -43,7 +47,7 @@ export function observeSidebarThreadGoals(source: SidebarGoalSource, notify: () 
 /** Only mode changes repaint the list; usage counters are not row activity. */
 export function sidebarGoalSignature(sources: readonly SidebarGoalSource[]): string {
   return sources.map(source => source.isCurrent() && source.goals.capability()?.read
-    ? source.threadIds.map(id => sidebarGoalActive(source.goals.getSnapshot(id).goal) ? "1" : "0").join("")
+    ? source.threadIds.map(id => source.goals.capability(id)?.read && sidebarGoalActive(source.goals.getSnapshot(id).goal) ? "1" : "0").join("")
     : "").join("|");
 }
 
