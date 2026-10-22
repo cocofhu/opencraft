@@ -138,6 +138,11 @@ Host residency publication compares actual ownership/connection changes and
 coalesces lifecycle updates in one microtask. Catalog hooks subscribe to Host
 state; active conversation consumers retain their own text subscription.
 
+Command detail output distinguishes waiting from a settled empty result: while a
+command runs, empty or whitespace-only output remains blank. After settlement it
+shows the existing no-output or missing-result message. Returned logs, their ANSI
+presentation, copied values and the command's status footer retain their owners.
+
 Presentation activity is separate from execution ownership. Goal and foreground
 command clocks stop in hidden documents or parked conversation surfaces and
 calibrate from wall time when shown. Native working shimmer stops on AppState

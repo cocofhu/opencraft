@@ -25,12 +25,19 @@ try {
   const activityScales = [];
   const subagentDetails = [];
   const commandElapsed = [];
+  const commandOutputStates = [];
   for (const touch of [false, true]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width: touch ? 390 : 1024, height: 900 }, hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
       isMobile: touch, reducedMotion: touch ? "reduce" : "no-preference" });
     const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.addInitScript("window.__name=value=>value");
+    if (process.argv.includes("--command-output-only")) await page.addInitScript(() => {
+      (window as any).commandClipboard = [];
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+        writeText: async (value: string) => { (window as any).commandClipboard.push(value); },
+      } });
+    });
     await page.addInitScript(() => {
       const NativeObserver = window.ResizeObserver;
       const deliveries: unknown[] = [];
@@ -512,6 +519,41 @@ try {
       commandElapsed.push({ theme, touch, first, parked, resumed });
       assert.deepEqual(errors, []); await page.close(); continue;
     }
+    if (process.argv.includes("--command-output-only")) {
+      await update("command-output-reset");
+      const observations = [];
+      for (const [mode, expected] of [
+        ["running-empty", ""], ["running-spaces", ""], ["running-output", "red\nready"],
+        ["complete-empty", "No output"], ["complete-spaces", "No output"],
+        ["failed", "No output"], ["missing", "Execution result unavailable"],
+      ]) {
+        await update("command-output-" + mode);
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const groups = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+          if (await groups.count()) { await activate(groups.first()); continue; }
+          const calls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+          if (await calls.count()) { await activate(calls.first()); continue; }
+          break;
+        }
+        const output = page.locator('.thread-shell-output__output pre');
+        await output.waitFor();
+        assert.equal((await output.innerText()).trim(), expected, mode);
+        const footer = (await page.locator('.thread-shell-output__footer').allTextContents()).join(' ').trim();
+        if (mode.startsWith("running")) assert.equal(footer, "");
+        else assert.match(footer, mode === "missing" ? /Result unknown/u : mode === "failed" ? /Exit code 2/u : /Success/u);
+        if (mode === "running-output") {
+          await activate(page.locator('.thread-shell-output__command button'));
+          await activate(page.locator('.thread-shell-output__output button'));
+          assert.deepEqual(await page.evaluate(() => (window as any).commandClipboard),
+            ["printf 'ready\\n'", "\u001b[31mred\u001b[0m\nready"]);
+        }
+        observations.push({ mode, expected, footer });
+      }
+      assert.deepEqual(errors, []);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-output.png`) });
+      commandOutputStates.push({ theme, touch, observations });
+      await page.close(); continue;
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -878,7 +920,8 @@ try {
   }
   await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
   await writeFile(join(output, 'command-elapsed.json'), JSON.stringify(commandElapsed, null, 2));
+  await writeFile(join(output, 'command-output-states.json'), JSON.stringify(commandOutputStates, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, subagentDetails, localizedLabels: process.argv.includes("--subagents-only") ? [] : process.argv.includes("--subagents-only") ? [] : process.argv.includes("--command-completion-only") ? [] : process.argv.includes("--commands-only") ? [] : localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, subagentDetails, commandOutputStates, localizedLabels: ["--subagents-only", "--command-completion-only", "--commands-only", "--command-output-only"].some(flag => process.argv.includes(flag)) ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }
