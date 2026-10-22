@@ -129,7 +129,7 @@ test('latest component response stays bounded across 10000 clients; probe/cache/
 });
 
 
-for (const capability of ['normal', 'no-randomUUID', 'no-crypto']) {
+for (const capability of ['normal', 'no-randomUUID', 'no-crypto', 'named-server']) {
   test(`client observation remains usable with ${capability}`, async () => {
     const moduleUrl = new URL('../apps/workbench-web/src/runtime/observability.ts', import.meta.url).href;
     const contractUrl = new URL('../packages/observability-contract/index.mjs', import.meta.url).href;
@@ -137,7 +137,8 @@ for (const capability of ['normal', 'no-randomUUID', 'no-crypto']) {
       import assert from 'node:assert/strict';
       if (${JSON.stringify(capability)} === 'no-randomUUID') Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined });
       if (${JSON.stringify(capability)} === 'no-crypto') Object.defineProperty(globalThis, 'crypto', { configurable: true, value: undefined });
-      const document = Object.assign(new EventTarget(), { visibilityState: 'visible', querySelector: () => null });
+      const base = ${JSON.stringify(capability)} === 'named-server' ? '/servers/remote' : '';
+      const document = Object.assign(new EventTarget(), { visibilityState: 'visible', querySelector: () => null, getElementById: () => base ? {textContent: JSON.stringify({id:'remote',name:'Remote',basePath:base,selectorPath:'/servers'})} : null });
       const window = new EventTarget();
       Object.assign(globalThis, { document, window, PerformanceObserver: class { static supportedEntryTypes = []; } });
       Object.defineProperty(globalThis, 'performance', { configurable: true, value: {
@@ -145,10 +146,11 @@ for (const capability of ['normal', 'no-randomUUID', 'no-crypto']) {
         getEntriesByType: () => [{ startTime: 0, type: 'navigate' }],
       } });
       const batches = [];
-      let capabilityReads = 0;
+      let capabilityReads = 0, openCommand, opened;
+      window.open = url => { opened = url; };
       globalThis.fetch = async (url, options) => {
-        if (url.endsWith('/capabilities')) { capabilityReads++; return { ok: true, json: async () => ({ telemetry: true, available: false }) }; }
-        assert.equal(url, '/__opencraft_observe/events');
+        if (url.endsWith('/capabilities')) { assert.equal(url, base + '/__opencraft_observe/capabilities'); capabilityReads++; return { ok: true, json: async () => ({ telemetry: true, available: true }) }; }
+        assert.equal(url, base + '/__opencraft_observe/events');
         batches.push(JSON.parse(options.body).events);
         return { ok: true };
       };
@@ -157,7 +159,8 @@ for (const capability of ['normal', 'no-randomUUID', 'no-crypto']) {
       observation.observeEvent({ kind: 'producer' });
       assert.equal(capabilityReads, 0); assert.deepEqual(batches, []);
       const controller = new AbortController();
-      await observation.createObservabilityExtension().activate({ signal: controller.signal });
+      await observation.createObservabilityExtension().activate({ signal: controller.signal, commands: { register: (_definition, run) => {openCommand = run;} }, navigation: { register() {} } });
+      openCommand(); assert.equal(opened, base + '/__opencraft_observe/grafana/d/opencraft-overview');
       const finish = observation.beginObservedOperation('thread_open'); finish('ok'); finish('failed');
       let lifecycle, unsubscribed = false;
       const client = { connectionGeneration: 2, subscribeRequestLifecycle(callback) { lifecycle = callback; return () => { unsubscribed = true; }; } };
@@ -243,4 +246,11 @@ test('nodeObserver supports processResources:false and resolves thread.id fallba
     server.close();
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('operator Grafana paths accept server scope and reject traversal or URL input',async()=>{
+  const {observationGrafanaBasePath}=await import('../packages/observability-contract/node.mjs');
+  assert.equal(observationGrafanaBasePath(),'/__opencraft_observe/grafana');
+  assert.equal(observationGrafanaBasePath('/servers/example/__opencraft_observe/grafana'),'/servers/example/__opencraft_observe/grafana');
+  for(const path of ['https://elsewhere.invalid/__opencraft_observe/grafana','//elsewhere.invalid/__opencraft_observe/grafana','/servers/../__opencraft_observe/grafana','/servers/%2e%2e/__opencraft_observe/grafana','/__opencraft_observe/grafana?x=1'])assert.throws(()=>observationGrafanaBasePath(path));
 });

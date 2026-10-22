@@ -167,3 +167,13 @@ test('unprefixed entry document bookmarks retain their instance and gain selecti
   assert.equal((await f.get(path,{cookie:unadmitted,accept:'text/html'})).status,403);
   assert.equal((await f.get(path,{cookie,accept:'text/html',origin:'http://evil.test'})).status,403);
 });
+
+test('already-scoped dashboard HTML keeps its base and resource paths exactly once',()=>{
+  const context={id:'example',name:'Example',base:'/servers/example'};
+  const html=scopedHtml('<html><head><base href="/servers/example/__opencraft_observe/grafana/"><script src="/servers/example/__opencraft_observe/grafana/public/app.js"></script><link href="/plain.css"><script src="//cdn.invalid/app.js"></script></head></html>',context);
+  assert(html.includes('<base href="/servers/example/__opencraft_observe/grafana/">'));
+  assert(html.includes('src="/servers/example/__opencraft_observe/grafana/public/app.js"'));
+  assert(html.includes('href="/servers/example/plain.css"'));
+  assert(html.includes('src="//cdn.invalid/app.js"'));
+  assert(!html.includes('/servers/example/servers/example'));
+});

@@ -34,3 +34,21 @@ test('host identity wins over forged Grafana headers/cookies; member cannot use 
     role=null;assert.equal((await fetch(origin+'/__opencraft_observe/api/capabilities')).status,401);
   }finally{ingress.close();server.closeAllConnections();await new Promise(r=>server.close(r));await service.close();await rm(directory,{recursive:true,force:true});}
 });
+
+test('named-server Grafana path maps HTML/assets/queries and retains authority',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'opencraft-ingress-scope-'));
+  const socket=join(directory,'grafana.sock'),seen=[];
+  const grafana=createServer((req,res)=>{seen.push({path:req.url,user:req.headers['x-webauth-user'],role:req.headers['x-webauth-role']});res.writeHead(200,{'content-type':'application/json'});res.end('{"ok":true}');});
+  await new Promise(resolve=>grafana.listen(socket,resolve));
+  const config=join(directory,'ingress.json');await writeFile(config,JSON.stringify({socketPath:join(directory,'observe.sock'),grafanaSocket:socket,pseudonymKey:'1'.repeat(64),grafanaBasePath:'/servers/example/__opencraft_observe/grafana'}),{mode:0o600});
+  let role='admin';const access={authenticate:()=>({provider:'fixture',subject:'operator'}),role:()=>role,trustedOrigin:()=>origin};
+  const ingress=await createObservabilityIngress(config,{access});
+  const server=createServer((req,res)=>void ingress.handle(req,res));await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin=`http://127.0.0.1:${server.address().port}`;
+  try{
+    for(const path of ['/d/overview','/public/app.js','/api/ds/query?ds=one']){
+      const method=path.includes('/api/')?'POST':'GET';const r=await fetch(origin+'/__opencraft_observe/grafana'+path,{method,headers:{origin}});assert.equal(r.status,200);
+      assert.equal(seen.at(-1).path,'/servers/example/__opencraft_observe/grafana'+path);assert.equal(seen.at(-1).role,'Viewer');assert(seen.at(-1).user);
+    }
+    role='member';assert.equal((await fetch(origin+'/__opencraft_observe/grafana/d/overview')).status,403);assert.equal(seen.length,3);
+  }finally{ingress.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));grafana.closeAllConnections();await new Promise(resolve=>grafana.close(resolve));await rm(directory,{recursive:true,force:true});}
+});

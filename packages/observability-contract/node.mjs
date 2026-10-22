@@ -2,6 +2,13 @@ import { request } from 'node:http';
 import { randomUUID, createHash } from 'node:crypto';
 import { createEventQueue } from './queue.mjs';
 import { limits, fault } from './index.mjs';
+/** An operator-owned Grafana path; browser input never selects this upstream. */
+export function observationGrafanaBasePath(value = '/__opencraft_observe/grafana') {
+  if (typeof value !== 'string' || value.length > 512
+    || !/^(?:\/[A-Za-z0-9._~-]+)*\/__opencraft_observe\/grafana$/u.test(value)
+    || new URL(value, 'http://localhost').pathname !== value) throw Error('Invalid observation Grafana base path');
+  return value;
+}
 export function socketRequest(socketPath,path,body,method=body===undefined?'GET':'POST') {
   return new Promise((resolve,reject)=>{
     const encoded=body===undefined?undefined:JSON.stringify(body);
