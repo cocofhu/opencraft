@@ -247,9 +247,9 @@ test("macOS desktop uses a snapshot-safe focus-driven native surface", () => {
     desktopMain,
     /return \(\) => \{[\s\S]{0,900}?window\.webContents/u,
   );
-  assert.match(desktopMain, /ipcMain\.on\("vela:set-window-appearance"/u);
+  assert.match(desktopMain, /ipcMain\.on\("opencraft:set-window-appearance"/u);
   assert.match(desktopPreload, /setWindowAppearance/u);
-  assert.match(desktopMain, /ipcMain\.on\("vela:get-window-fullscreen"/u);
+  assert.match(desktopMain, /ipcMain\.on\("opencraft:get-window-fullscreen"/u);
   assert.match(desktopMain, /window\.on\("enter-full-screen", publishEnteredFullscreen\)/u);
   assert.match(desktopMain, /window\.on\("leave-full-screen", publishLeftFullscreen\)/u);
   assert.match(desktopPreload, /getWindowFullscreen/u);

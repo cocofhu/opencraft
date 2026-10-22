@@ -3151,3 +3151,5 @@ An older Host without the `opencraft/capacity-retry` capability is supported by
 the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
+
+The Electron Main and Preload bundled together use `opencraft:get-window-fullscreen`, `opencraft:window-fullscreen-changed` and `opencraft:set-window-appearance` for internal window projection. The renderer methods, payloads, admission checks and window lifecycle are unchanged; these channel names do not alter persisted identities or the AppHost transport.
