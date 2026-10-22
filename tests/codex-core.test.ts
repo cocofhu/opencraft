@@ -31,7 +31,7 @@ async function fixture(configure?: (options: CodexCoreOptions) => Promise<CodexC
     const engine = new CodexEngineAdapter({ ...options, coreEndpoint: core.endpoint, coreAuthToken: token,
       // Remote mode must not touch any local account store or spawn a child.
       dataDirectory: overlays ? options.dataDirectory : join(root, "forbidden"),
-      coreHostOverlays: overlays, botConversations: overlays, logDiagnostic: () => undefined,
+      coreHostOverlays: overlays, logDiagnostic: () => undefined,
       spawnAppServer: () => { throw new Error("Remote mode spawned a writer"); } });
     adapters.push(engine);
     const frames: any[] = [];
@@ -197,17 +197,15 @@ test("core shutdown retains writer ownership until an aborted proxy refresh pers
   } finally { finishRefresh(); abort.abort(); await inference; await f.close(); }
 });
 
-test("Headless core mode retains overlay stores, Bot, sender and unique owner across reconnect without stopping core", async () => {
+test("Headless core mode retains overlay stores, sender and unique owner across reconnect without stopping core", async () => {
   const f = await fixture();
   try {
     const before = await f.control.health();
     const a = await f.adapter(true);
     const initialized = await a.rpc("a", "initialize");
-    assert.equal(initialized.capabilities.extensions["vela/bot-conversations"].features.messageStreaming, true);
+    assert.equal(initialized.capabilities.extensions["vela/bot-conversations"], undefined);
     assert.ok(a.engine.storageOutcomes.some(row => row.name === "codex-host-state" && row.outcome.appliedVersion === 5));
     assert.ok(!a.engine.storageOutcomes.some(row => row.name === "account-pool"), "core is the sole account owner");
-    assert.ok((await a.rpc("a", "bot/list")).data.some((row: any) => row.botId === "opencraft.codex"));
-    const created = await a.rpc("a", "bot/conversation/create", { topology: "direct", participantIds: ["bot:opencraft.codex"], clientRequestId: "receipt", cwd: "/synthetic" });
     const { thread } = await a.rpc("a", "thread/start", { cwd: "/synthetic" });
     const sendId = "verified-send";
     await a.engine.sendWithContext(JSON.stringify({ id: sendId, method: "turn/start", params: {
@@ -218,45 +216,9 @@ test("Headless core mode retains overlay stores, Bot, sender and unique owner ac
     const { DatabaseSync } = await import("node:sqlite");
     const read = new DatabaseSync(join(f.options.dataDirectory, "codex-host-queue.sqlite"), { readOnly: true });
     assert.match(String(read.prepare("SELECT sender_json FROM message_senders WHERE client_message_id='verified-message'").get()?.sender_json), /fixture/); read.close();
-    const botId = "verified-bot-send";
-    await a.engine.sendWithContext(JSON.stringify({ id: botId, method: "bot/message/send", params: {
-      conversationId: created.conversation.conversationId, clientMessageId: "verified-bot-message", content: [{ type: "text", text: "synthetic Bot" }],
-    }, [LOGICAL_CLIENT_FIELD]: "a" }), { sender: { kind: "employee", loginName: "fixture-bot" }, validUntil: Date.now() + 60000 });
-    assert.ok(a.frames.find(row => row.id === botId)?.result);
-    const attribution = new DatabaseSync(join(f.options.dataDirectory, "codex-host-queue.sqlite"), { readOnly: true });
-    assert.match(String(attribution.prepare("SELECT sender_json FROM message_senders WHERE client_message_id='verified-bot-message'").get()?.sender_json), /fixture-bot/); attribution.close();
-    await a.rpc("a", "fixture/holdNextRead", { delay: 100 });
-    await a.engine.sendWithContext(JSON.stringify({ id: "expiring-bot", method: "bot/message/send", params: {
-      conversationId: created.conversation.conversationId, clientMessageId: "expired-bot-message", content: [{ type: "text", text: "must not submit" }],
-    }, [LOGICAL_CLIENT_FIELD]: "a" }), { sender: { kind: "employee", loginName: "expired" }, validUntil: Date.now() + 40 });
-    assert.ok(a.frames.find(row => row.id === "expiring-bot")?.error);
-    const expired = new DatabaseSync(join(f.options.dataDirectory, "codex-host-queue.sqlite"), { readOnly: true });
-    assert.equal(expired.prepare("SELECT sender_json FROM message_senders WHERE client_message_id='expired-bot-message'").get(), undefined); expired.close();
-    const queued = await a.rpc("a", "thread/queue/add", { threadId: created.conversation.conversationId,
-      clientUserMessageId: "blocker", input: [{ type: "text", text: "queued" }] });
-    await delay(50); await a.rpc("a", "fixture/holdNextRead", { delay: 150 });
-    const blocking = a.rpc("a", "thread/queue/start", { threadId: created.conversation.conversationId, queuedSubmissionId: queued.queuedSubmission.id })
-      .then(() => false, error => /not idle/.test(error.message));
-    for (let n = 0; n < 200 && (await a.rpc("a", "fixture/readPending")).count === 0; n++) await delay(1);
-    assert.equal((await a.rpc("a", "fixture/readPending")).count, 1);
-    await a.engine.sendWithContext(JSON.stringify({ id: "expiring-thread-wait", method: "bot/message/send", params: {
-      conversationId: created.conversation.conversationId, clientMessageId: "expired-thread-message", content: [{ type: "text", text: "must not submit after serialization" }],
-    }, [LOGICAL_CLIENT_FIELD]: "a" }), { sender: { kind: "employee", loginName: "expired-thread" }, validUntil: Date.now() + 40 });
-    assert.ok(a.frames.find(row => row.id === "expiring-thread-wait")?.error);
-    assert.equal(await blocking, true);
-    const afterWait = new DatabaseSync(join(f.options.dataDirectory, "codex-host-queue.sqlite"), { readOnly: true });
-    assert.equal(afterWait.prepare("SELECT sender_json FROM message_senders WHERE client_message_id='expired-thread-message'").get(), undefined); afterWait.close();
-    assert.equal((await a.rpc("a", "thread/read", { threadId: created.conversation.conversationId, includeTurns: true })).thread.turns.length, 1);
     await assert.rejects(f.adapter(true), /owned|locked/);
     await a.engine.close(); assert.deepEqual(await f.control.health(), before);
     const b = await f.adapter(true); await b.rpc("b", "initialize");
-    const replay = await b.rpc("b", "bot/conversation/create", { topology: "direct", participantIds: ["bot:opencraft.codex"], clientRequestId: "receipt", cwd: "/synthetic" });
-    assert.equal(replay.replayed, true); assert.equal(replay.conversation.conversationId, created.conversation.conversationId);
-    // Bot read must restore the new physical socket's native subscription to an already active thread.
-    await b.rpc("b", "bot/conversation/read", { conversationId: created.conversation.conversationId });
-    assert.equal((await b.rpc("b", "fixture/subscribers", { threadId: created.conversation.conversationId })).count, 1);
-    await b.rpc("b", "fixture/complete", { threadId: created.conversation.conversationId });
-    assert.ok(b.frames.some(row => row.method === "bot/execution/updated" && row.params?.execution?.status === "completed"));
     const resumed = await b.rpc("b", "thread/resume", { threadId: thread.id }); assert.equal(resumed.thread.turns[0].status, "inProgress");
     await b.rpc("b", "fixture/complete", { threadId: thread.id });
     const completed = await b.rpc("b", "thread/read", { threadId: thread.id, includeTurns: true }); assert.equal(completed.thread.turns[0].status, "completed");
@@ -333,7 +295,7 @@ test("managed Headless initializes its queue owner without a browser and drains 
     await writeFile(join(webRoot, "version.json"), JSON.stringify({ schemaVersion: 1, buildId: "headless-test", headlessServer: true, headlessHostId: "opencraft-server" }));
     const { startHeadlessServer } = await import("../scripts/headless-server.mjs");
     headless = await startHeadlessServer({ dataDirectory: join(f.root, "headless"), webRoot, port: 0,
-      codexCoreEndpoint: f.core.endpoint, codexCoreAuthToken: token, botConversations: true,
+      codexCoreEndpoint: f.core.endpoint, codexCoreAuthToken: token,
       codexExecutable: "/external-core-only", runtimeDirectory: f.root,
       startAgentHost: async () => ({ websocketUrl: "ws://127.0.0.1:1/rpc", close: async () => {} }),
     });

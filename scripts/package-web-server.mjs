@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 import { optimizeWebImages } from './optimize-web-images.mjs';
 import { packageWebResources, copyPdfLicenses } from './package-web-resources.mjs';
 import { mkdir, readFile, writeFile, cp, rm, chmod } from 'node:fs/promises';
@@ -83,6 +84,7 @@ export async function packageWebServer({ version, webRoot = join(repositoryRoot,
         ...(format === 'esm' ? { banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" } } : {}) });
     }
     if (executionProfile === 'headless') {
+      await packageBrowserRuntime(join(packageRoot, 'runtime/browser'));
       await copySshRuntime(join(packageRoot, 'execution/native/node_modules'));
       const appRuntime = { ...await copyMcpAppRuntime(join(packageRoot, 'node_modules')), ...await copyPiRuntime(join(packageRoot, 'node_modules')) };
       manifest.dependencies = { ...manifest.dependencies, ...appRuntime };

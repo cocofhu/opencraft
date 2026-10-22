@@ -90,7 +90,7 @@ test("technical details distinguish history errors and never copy remote text or
   } finally { runtime.dispose(); }
 });
 
-test("in-progress cold and retained recovery expose safe readable progress and copy details", async () => {
+test("loading hides technical observations while failures retain diagnostic details", async () => {
  const {createConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText}=await import("../apps/workbench-web/src/runtime/conversation-recovery-diagnostic");
  const diagnostic={...createConversationRecoveryDiagnostic({stage:"history",error:null,runtime:"ready",transport:{state:"open"}}),code:"PENDING",progress:{
   recoveryId:"local-episode",startedAt:1000,stage:"backoff" as const,stageStartedAt:2000,attempt:2,retryAt:5000,
@@ -101,9 +101,24 @@ test("in-progress cold and retained recovery expose safe readable progress and c
  assert.match(text,/lastFailureCode: TIMEOUT/);assert.match(text,/attemptsStarted: 2/);
  const runtime=new LocaleRuntime([]);
  try {
-  for(const child of [createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic})]){
+  for(const child of [
+   createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),
+   createElement(ConversationRecoveryNotice,{failed:false,reconnecting:false,diagnostic}),
+   createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),
+   createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic}),
+   createElement(ConversationRecoveryEmptyState,{failed:true,diagnostic}),
+  ]){
    const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
-   assert.match(html,/Waiting to retry/);assert.match(html,/Attempts started: 2/);assert.match(html,/Last failure: TIMEOUT/);
+   assert.match(html,/role="(?:status|alert)"/);
+   assert.doesNotMatch(html,/Technical details|Copy details|Attempts started|elapsed|Retry in|TIMEOUT|local-episode|<details|<pre/);
+  }
+  const terminalDiagnostic={...diagnostic,progress:{...diagnostic.progress,stage:"failed" as const}};
+  for(const child of [
+   createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic:terminalDiagnostic,onRetry(){}}),
+   createElement(ConversationRecoveryEmptyState,{failed:true,diagnostic:terminalDiagnostic,onRetry(){}}),
+  ]){
+   const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
+   assert.match(html,/Try again/);
    assert.match(html,/Technical details/);assert.match(html,/Copy details/);
    assert.doesNotMatch(html,/<details[^>]*open/);
   }

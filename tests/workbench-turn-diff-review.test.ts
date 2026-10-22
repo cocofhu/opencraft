@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import gitCases from "./fixtures/turn-diff-git-cases.json";
 
 import { indexReviewFileDiffs, reviewDiffForFile } from "../apps/workbench-web/src/components/conversation/turn-diff-review";
 
@@ -56,5 +57,15 @@ test("changed-file basenames yield within their own slot rather than overpaintin
   const basenameRules = pathRules.match(/> b \{([^}]+)\}/u)?.[1] ?? "";
   for (const rule of ["flex: 0 0 auto", "max-width: 100%", "overflow: hidden", "text-overflow: ellipsis", "white-space: nowrap"]) {
     assert.ok(basenameRules.includes(rule), `basename requires ${rule}`);
+  }
+});
+
+test("real Git paths select only the corresponding file for review", () => {
+  const combined = gitCases.map(entry => entry.diff).join("");
+  const index = indexReviewFileDiffs(combined);
+  for (const entry of gitCases) {
+    const path = entry.expected.files[0]!.path;
+    assert.equal(index.get(path)?.trimEnd(), entry.diff.trimEnd(), path);
+    assert.equal(reviewDiffForFile(combined, path).trimEnd(), entry.diff.trimEnd(), path);
   }
 });
