@@ -56,6 +56,7 @@ try {
  for(const {width,theme} of [390,1100].flatMap(width=>["light","dark"].map(theme=>({width,theme})))) {
   events.length=0;for(let i=0;i<10;i++)addTurn(i);
   const page=await browser.newPage({viewport:{width,height:850},hasTouch:width===390,isMobile:width===390});
+  const consoleDetails:string[]=[],copiedDetails:string[]=[];page.on("console",message=>{if(message.type()==="log"&&message.text().startsWith("[conversation-recovery] details"))consoleDetails.push(message.text());if(message.type()==="log"&&message.text().startsWith("[conversation-recovery] copied details"))copiedDetails.push(message.text());});
   const errors:string[]=[];page.on("pageerror",(e:Error)=>errors.push(e.message));await page.addInitScript("window.__name=value=>value");
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?theme=${theme}`);
   await page.waitForSelector('[data-authoritative="true"]');
@@ -87,6 +88,8 @@ try {
     assert.doesNotMatch(await notice.innerText(),/Technical details|Attempts started|elapsed|Retry in|TIMEOUT|Last failure/);
   };
   await assertSimpleLoading();
+  assert.ok(consoleDetails.some(text=>text.includes('stage: history')&&text.includes('currentStage: history')&&text.includes('recoveryId:')),'complete details are available in console during concise loading');
+  const detailCount=consoleDetails.length;await page.waitForTimeout(100);assert.equal(consoleDetails.length,detailCount,'no elapsed-time console timer');
   assert.equal(resumeRequests,resumeRequestsBefore+1,'passive loading starts only the requested read');
   assert.equal(await page.evaluate(()=>document.querySelector('[data-turn-key="dsh-turn-s-9"]')===(window as any).originalRow),true);
   const bounds=await notice.boundingBox();assert.ok(bounds && bounds.x>=0 && bounds.x+bounds.width<=width);
@@ -119,7 +122,17 @@ try {
   assert.equal(await page.getByRole('textbox',{name:'Unsent draft'}).inputValue(),'Preserve my unsent words');
   await page.evaluate(()=>(window as any).recovery.loadOlder());
   await page.screenshot({path:`${output}/gap-${width}-${theme}.png`});
-  assert.deepEqual(errors,[]);results.push({width,theme,unchangedReads,gapReads:2,timeoutRecoveryMs,timeoutReads:2,retainedDOM:true,draftPreserved:true,trace});
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{(window as any).copiedRecoveryDetails=text;}}});
+    (window as any).recovery.showErrorDiagnostic();
+  });
+  const copyFixture=page.locator('#copy-diagnostic-fixture');await copyFixture.locator('summary').click();
+  const expectedClipboard=await copyFixture.locator('pre').innerText();await copyFixture.getByRole('button',{name:'Copy details'}).click();
+  await page.waitForFunction(()=>(window as any).copiedRecoveryDetails!==undefined);
+  assert.equal(await page.evaluate(()=>(window as any).copiedRecoveryDetails),expectedClipboard);
+  assert.equal(copiedDetails.at(-1),'[conversation-recovery] copied details\n'+expectedClipboard);
+  assert.match(expectedClipboard,/attemptId: 11111111-1111-4111-8111-111111111111/);
+  assert.deepEqual(errors,[]);results.push({width,theme,unchangedReads,gapReads:2,timeoutRecoveryMs,timeoutReads:2,retainedDOM:true,draftPreserved:true,consoleDiagnosticVerified:true,clipboardMatchesConsole:true,trace});
   await page.close();
  }
  await writeFile(`${output}/results.json`,JSON.stringify({results,diagnostics},null,2));console.log(JSON.stringify(results));

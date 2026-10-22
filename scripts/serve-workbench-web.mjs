@@ -10,6 +10,7 @@ import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import WebSocket, { WebSocketServer } from "ws";
+import { trackSocketHeartbeat } from "./websocket-heartbeat.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const contentTypes = new Map([
@@ -210,15 +211,17 @@ const appHostFailureKinds = new Set(["socket-error", "socket-close", "handshake-
 const appHostPhases = new Set(["connecting", "socket-open", "ready"]);
 const appHostDiagnosticKeys = new Set(["attemptId", "failure", "phase", "readyState", "ageMs", "closeCode"]);
 
-const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
-const recoveryStages = new Set(["transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "host-ready", "resources", "revalidate", "provider-history", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
+const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "attemptId", "eventAtMs", "method", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
+const recoveryStages = new Set(["transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "initializing", "host-ready", "resources", "revalidate", "provider-history", "history-started", "history-backoff", "request-slow", "request-failed", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
 function validRecoveryDiagnostic(report) {
   return report && report.kind === "recovery" && Object.keys(report).every(key => recoveryDiagnosticKeys.has(key))
     && typeof report.recoveryId === "string" && /^recovery-[a-z0-9]{1,20}-[0-9]{1,12}$/.test(report.recoveryId)
     && recoveryStages.has(report.stage)
+    && (report.attemptId === undefined || (typeof report.attemptId === "string" && appHostAttemptPattern.test(report.attemptId)))
+    && (report.method === undefined || ["initialize", "thread/resume", "thread/read", "thread/turns/list", "thread/items/list"].includes(report.method))
     && Number.isFinite(report.elapsedMs) && report.elapsedMs >= 0
     && (report.demand === undefined || ["visible", "open", "cache"].includes(report.demand))
-    && Object.entries(report).every(([key, value]) => ["kind", "recoveryId", "stage", "demand"].includes(key)
+    && Object.entries(report).every(([key, value]) => ["kind", "recoveryId", "stage", "attemptId", "method", "demand"].includes(key)
       || (Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER));
 }
 
@@ -623,29 +626,19 @@ export async function createWorkbenchWebServer({
   const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 48 * 1024 * 1024 });
   const desktopWebSockets = new WebSocketServer({ noServer: true, maxPayload: 1 << 20 });
   const activeAppHostSockets = new Set();
-  const liveWebSockets = new WeakSet();
-  const appHostSocketDiagnostics = new WeakMap();
+  const socketHeartbeats = new WeakMap();
   const privateSockets = new Map();
   const revokePrivateSockets = () => {
     for (const [client, request] of privateSockets) if (!sshManagement?.authorized(request)) client.close(1008, "Connection access expired");
   };
   const unsubscribeRevocation = sshManagement?.onRevocation(revokePrivateSockets);
   const trackWebSocket = (client, logDiagnostic) => {
-    liveWebSockets.add(client);
-    client.on("pong", () => liveWebSockets.add(client));
-    if (logDiagnostic) appHostSocketDiagnostics.set(client, logDiagnostic);
+    socketHeartbeats.set(client, trackSocketHeartbeat(client, { intervalMs: webSocketHeartbeatIntervalMs, diagnostic: logDiagnostic }));
   };
   const heartbeat = webSocketHeartbeatIntervalMs > 0 ? setInterval(() => {
     revokePrivateSockets();
     for (const client of [...websocketServer.clients, ...desktopWebSockets.clients, ...(remoteBrowserService?.sockets ?? [])]) {
-      if (!liveWebSockets.has(client)) {
-        appHostSocketDiagnostics.get(client)?.("heartbeat-timeout");
-        client.terminate();
-        continue;
-      }
-      liveWebSockets.delete(client);
-      try { client.ping(); }
-      catch { client.terminate(); }
+      socketHeartbeats.get(client)?.();
     }
   }, webSocketHeartbeatIntervalMs) : null;
   heartbeat?.unref();

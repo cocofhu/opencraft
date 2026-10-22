@@ -596,7 +596,7 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   });
   assert.equal(accepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-failure"), { serverProtocolVersion: 2, event: "client-failure", ...valid });
-  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "settled", elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
+  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "history-started", attemptId: attempts[1], eventAtMs: 1792411504000, elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
   const recoveryAccepted = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(recovery),
   });
