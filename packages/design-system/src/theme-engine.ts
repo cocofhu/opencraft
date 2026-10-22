@@ -24,7 +24,6 @@ export interface OpenCraftThemeDefinition {
     unifiedSurfaceElevation?: string;
     sidebarContextBackground?: string;
     sidebarHeadingBackground?: string;
-    sidebarHeadingFilter?: string;
     contentCornerRadius?: string;
     recessedHeaderBackground?: string;
     mainSurfaceElevation: string;
@@ -164,7 +163,6 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
       sidebarHeadingBackground: "transparent",
-      sidebarHeadingFilter: "blur(28px)",
       contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
@@ -190,7 +188,6 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
       sidebarHeadingBackground: "transparent",
-      sidebarHeadingFilter: "blur(28px)",
       contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
@@ -669,7 +666,6 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-panel-divider-top": definition.shellMaterial?.recessedHeaderBackground ? "var(--height-toolbar)" : "0px",
     "--opencraft-panel-divider-clip": definition.shellMaterial?.recessedHeaderBackground ? "inset(0 -100% -100% -100%)" : "none",
     "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "var(--color-surface)",
-    "--opencraft-sidebar-heading-filter": definition.shellMaterial?.sidebarHeadingFilter ?? "none",
     "--opencraft-content-corner-radius": definition.shellMaterial?.contentCornerRadius ?? "0px",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
     // Recessed chrome has one paint owner. Repainting the same translucent
