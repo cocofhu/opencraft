@@ -1716,6 +1716,25 @@ authenticates the Host, strips inbound credentials, selects the account, and
 injects the upstream bearer token plus ChatGPT account identity at the final
 HTTP boundary. Forks may inherit their parent's affinity within the same Host;
 identical provider Thread IDs on different Hosts never share a binding.
+Native startup establishes ephemeral `chatgptAuthTokens` auth using a locally
+issued broker JWT with no upstream identity, plan or OAuth credentials. This
+retains the native image-generation surface, which API-key mode hides. The
+account pool remains the only upstream credential owner. Both the native provider
+and ChatGPT metadata base URL point at loopback; the broker JWT is never sent to
+an external backend. No shared auth file is copied into native runtime state.
+Initialization waits for native auth before releasing logical clients.
+
+The loopback bridge preserves request bytes, including native compressed Responses
+bodies, without a UTF-8 round trip. The proxy also allows POST `/v1/images/generations` and `/v1/images/edits`.
+Native image turn IDs resolve through a bounded, Host-scoped map populated by
+Responses turn metadata to the same thread affinity. Unknown or cross-Host turns
+are rejected. Native image requests run once and retain their backend status and
+image failure metadata; their separate image quota cannot exhaust text quota or
+trigger cross-account replay. The native engine owns image saving and events;
+Renderer consumes its existing image-generation presentation. The native
+`image_generation` feature remains the enablement authority rather than a second
+application-only switch.
+
 The synthetic provider's `/v1/responses` and `/v1/models` paths are translated
 to ChatGPT Codex's `/responses` and `/models` paths, preserving query parameters
 and Codex-owned request metadata. The Codex child generates its own persistent
