@@ -17,3 +17,7 @@ owners; do not prebuild a general design framework or load every topic for every
 Before editing: identify the semantic role, its current owner, affected consumers
 and platform exceptions. After editing: validate the owner and one real consumer.
 A screenshot, token reference, or passing lint alone does not prove semantic fit.
+
+IM settings consume shared section rhythm, semantic empty-state typography and
+utility modal/SettingsPanel surfaces. Compact stacked forms use
+settings-panel-form; reserved validation belongs below its associated input.

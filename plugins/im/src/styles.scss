@@ -4,8 +4,10 @@
   width: 100%;
   box-sizing: border-box;
   overflow-wrap: anywhere;
-  max-width: 960px;
-  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-token-settings-sections);
+  .im-heading { display: grid; justify-items: start; gap: calc(var(--spacing) * 2); }
   .im-hint {
     @include typography.role(metadata, secondary);
   }
@@ -49,7 +51,7 @@
     display: flex;
     gap: 22px;
     border-bottom: 1px solid var(--color-border-subtle);
-    margin: 20px 0 24px;
+    margin: 0;
     overflow-x: auto;
     button {
       min-height: 42px;
@@ -164,40 +166,17 @@
   }
   .im-empty {
     text-align: center;
-    padding: 45px 18px;
+    padding: calc(var(--spacing) * 8) calc(var(--spacing) * 4);
     display: grid;
-    gap: 12px;
+    gap: calc(var(--spacing) * 2);
     @include typography.role(body, secondary);
+    h3 { margin: 0; @include typography.role(empty-title); }
+    p { margin: 0; max-width: 40ch; justify-self: center; }
   }
-}
-.im-dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: #0007;
-  z-index: var(--layer-modal, 1000);
+  > .im-hint { margin: 0; }
+  .settings-control-section__heading { flex-wrap: wrap; align-items: center; }
 }
 .im-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: calc(var(--layer-modal, 1000) + 1);
-  width: min(560px, calc(100vw - 32px));
-  max-height: calc(100dvh - 32px);
-  overflow: auto;
-  padding: 24px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  background: var(--color-background-elevated-primary-opaque);
-  color: var(--color-text);
-  @include typography.role(body);
-  h2 {
-    @include typography.role(panel-title);
-    margin: 0 0 7px;
-  }
-  .im-hint {
-    @include typography.role(metadata, secondary);
-  }
   .im-reference {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -208,7 +187,8 @@
     user-select: all;
   }
   .im-validation {
-    min-height: 18px;
+    min-height: var(--typography-metadata-line-height);
+    @include typography.role(metadata, danger);
     display: block;
     color: var(--color-text-danger);
   }
@@ -219,9 +199,6 @@
   }
   .im-settings .im-presets {
     grid-template-columns: 1fr;
-  }
-  .im-dialog {
-    padding: 20px;
   }
   .im-settings .im-actions {
     width: 100%;

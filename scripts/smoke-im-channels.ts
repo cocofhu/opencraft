@@ -46,6 +46,7 @@ const service = await ImChannelService.open([], {
     },
   }),
 });
+function seedChannel() {
 service.store.saveChannel(
   {
     id: "fixture-channel",
@@ -59,6 +60,7 @@ service.store.saveChannel(
   null,
 );
 service.store.route("fixture-channel", 1, sourceRoute, true);
+}
 const source = `
 import React from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
@@ -132,6 +134,50 @@ try {
   await page.addInitScript("window.__name = target => target;");
   await page.goto(server.resolvedUrls!.local[0]);
   await page.waitForSelector('body[data-ready="true"]', { timeout: 60000 });
+  for (const theme of ["light", "dark"]) for (const width of [320, 390, 1160]) {
+    const touch = width < 600;
+    const sample = await browser.newPage({ viewport: {width, height: 760}, hasTouch: touch });
+    await sample.addInitScript("window.__name = target => target;");
+    sample.on("pageerror", (e: Error) => errors.push(e.message));
+    await sample.goto(server.resolvedUrls!.local[0]);
+    await sample.waitForSelector('body[data-ready="true"]', {timeout: 60000});
+    await sample.evaluate((t: string) => (window as any).proof.theme(t), theme);
+    const toggle = sample.locator('[data-chrome-action-id="sidebar-toggle"]:visible').first();
+    if (touch && await toggle.getAttribute("aria-expanded") === "true") await toggle.press("Enter");
+    await sample.waitForTimeout(400);
+    const empty = sample.locator(".im-empty");
+    await empty.waitFor();
+    assert.ok(await empty.evaluate((el: Element) => {
+      const title=el.querySelector('h3')!, copy=el.querySelector('p')!;
+      return getComputedStyle(title).marginTop==='0px' && getComputedStyle(copy).marginBottom==='0px';
+    }), 'empty state resets browser heading and paragraph margins');
+    await sample.screenshot({path: join(evidence, `${theme}-${width}-empty.png`)});
+    const add = sample.getByRole('button', {name:'添加渠道', exact:true});
+    if(touch) await add.tap(); else await add.click();
+    const dialog=sample.getByRole('dialog'); await dialog.waitFor();
+    const bounds=await dialog.boundingBox();
+    assert.ok(bounds && bounds.x>=0 && bounds.x+bounds.width<=width+1 && bounds.y>=0 && bounds.y+bounds.height<=761, 'shared dialog stays within viewport');
+    assert.ok(await dialog.evaluate((el: Element) => {
+      const label=el.querySelector('label[for="new-name"]')!, input=el.querySelector('#new-name')!;
+      const distance=input.getBoundingClientRect().top-label.getBoundingClientRect().bottom;
+      return distance >= 0 && distance <= 12 && !!el.querySelector('.settings-panel');
+    }), 'shared utility form places the input directly below its label');
+    const name=sample.getByLabel('渠道名称',{exact:true}); const before=(await name.boundingBox())!.y;
+    await sample.getByRole('button',{name:'保存并连接',exact:true}).click();
+    assert.equal((await name.boundingBox())!.y, before, 'reserved validation keeps field position stable');
+    await name.fill('界面验收');
+    await sample.getByLabel('平台',{exact:true}).selectOption('slack');
+    assert.equal(await name.inputValue(),'界面验收');
+    await sample.screenshot({path:join(evidence,`${theme}-${width}-slack.png`)});
+    await sample.getByLabel('平台',{exact:true}).selectOption('wecom');
+    await sample.screenshot({path:join(evidence,`${theme}-${width}-add.png`)});
+    await sample.keyboard.press('Escape'); await dialog.waitFor({state:'hidden'});
+    assert.equal(await add.evaluate((el:Element)=>el===document.activeElement),true,'Escape restores opener focus');
+    await sample.close();
+  }
+  seedChannel();
+  await page.reload();
+  await page.getByRole('button', { name: '管理', exact: true }).waitFor();
   await page.getByRole("button", { name: "管理", exact: true }).click();
   await page.getByRole("button", { name: "运行预览", exact: true }).click();
   await page.getByText("预览结果", { exact: true }).waitFor();

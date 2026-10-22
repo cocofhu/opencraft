@@ -7,6 +7,7 @@ import {
   SettingsGroup,
   SettingsListItem,
   SettingsPageHeader,
+  SettingsPanel,
   SettingsRow,
   SettingsSection,
   SettingsSelect,
@@ -81,6 +82,7 @@ function Status({ value }: { value: string }) {
 
 export function createImView(controller: ImController) {
   return function ImChannels(props: ExtensionSettingsViewProps) {
+    const modalOpener = useRef<HTMLElement | null>(null);
     const [document, setDocument] = useState<ImDocument | null>(null),
       [loadError, setLoadError] = useState<string | null>(null),
       [selected, setSelected] = useState<string | null>(null),
@@ -375,6 +377,7 @@ export function createImView(controller: ImController) {
     );
     return (
       <div className="im-settings" data-render-version={renderVersion}>
+        <div className="im-heading">
         {current ? (
           <Button variant="quiet" onClick={() => setSelected(null)}>
             ‹ IM 渠道
@@ -390,6 +393,7 @@ export function createImView(controller: ImController) {
             )
           }
         />
+        </div>
         {!document ? (
           <SettingsNotice>
             {loadError ? `暂时无法读取渠道。${loadError}` : "正在加载渠道…"}
@@ -401,7 +405,7 @@ export function createImView(controller: ImController) {
               title="我的渠道"
               action={
                 <SettingsActions>
-                  <Button onClick={() => setModal("join")}>关联已有渠道</Button>
+                  <Button variant="quiet" onClick={() => setModal("join")}>关联已有渠道</Button>
                   <Button
                     variant="primary"
                     onClick={() => {
@@ -1041,9 +1045,13 @@ export function createImView(controller: ImController) {
           }}
         >
           <Dialog.Portal>
-            <Dialog.Overlay className="im-dialog-overlay" />
-            <Dialog.Content className="im-dialog">
-              <Dialog.Title>{dialogTitle}</Dialog.Title>
+            <Dialog.Overlay className="modal-surface__scrim" data-appearance="utility" />
+            <Dialog.Content className="modal-surface im-dialog" data-appearance="utility" data-size="default"
+              onOpenAutoFocus={() => { modalOpener.current = window.document.activeElement instanceof HTMLElement ? window.document.activeElement : null; }}
+              onCloseAutoFocus={(event) => { if (modalOpener.current?.isConnected) { event.preventDefault(); modalOpener.current.focus({ preventScroll: true }); } }}
+            >
+              <SettingsPanel title={<Dialog.Title asChild><span>{dialogTitle}</span></Dialog.Title>}>
+              <div className="settings-panel-form">
               <Dialog.Description className="im-hint">
                 {modal === "add"
                   ? "选择平台，凭据保存于当前服务。"
@@ -1269,20 +1277,7 @@ export function createImView(controller: ImController) {
                       }
                       htmlFor={"new-" + key}
                       layout="stacked"
-                      description={
-                        <span
-                          className="im-validation"
-                          role={
-                            invalid && !form[key as keyof typeof form].trim()
-                              ? "alert"
-                              : undefined
-                          }
-                        >
-                          {invalid && !form[key as keyof typeof form].trim()
-                            ? "请填写此字段。"
-                            : "\u00a0"}
-                        </span>
-                      }
+
                     >
                       <Input
                         id={"new-" + key}
@@ -1290,6 +1285,7 @@ export function createImView(controller: ImController) {
                           ["name", "botId"].includes(key) ? "text" : "password"
                         }
                         autoComplete="off"
+                        aria-describedby={"new-" + key + "-error"}
                         value={form[key as keyof typeof form]}
                         aria-invalid={
                           (invalid && !form[key as keyof typeof form].trim()) ||
@@ -1299,6 +1295,13 @@ export function createImView(controller: ImController) {
                           setForm((v) => ({ ...v, [key]: e.target.value }))
                         }
                       />
+                      <span
+                        id={"new-" + key + "-error"}
+                        className="im-validation"
+                        role={invalid && !form[key as keyof typeof form].trim() ? "alert" : undefined}
+                      >
+                        {invalid && !form[key as keyof typeof form].trim() ? "请填写此字段。" : "\u00a0"}
+                      </span>
                     </SettingsRow>
                   ))}
                   {createProvider === "slack" ? (
@@ -1309,7 +1312,7 @@ export function createImView(controller: ImController) {
                   ) : null}
                   <SettingsActions>
                     <Dialog.Close asChild>
-                      <Button disabled={pending !== null}>取消</Button>
+                      <Button type="button" disabled={pending !== null}>取消</Button>
                     </Dialog.Close>
                     <Button
                       type="submit"
@@ -1462,6 +1465,8 @@ export function createImView(controller: ImController) {
                   </SettingsActions>
                 </>
               ) : null}
+              </div>
+              </SettingsPanel>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
