@@ -3161,3 +3161,8 @@ from object identity. Provisional display suppresses history actions; command
 permission still requires the existing live runtime, authority and lease checks.
 Avatar media loading remains separate from message identity and display selection.
 This refactor retains the existing cache schema and storage keys.
+
+
+### Website tool call details
+
+Browser WebMCP child calls retain separate Tool and Result JSON previews. The Tool preview identifies the tool, website, read-only hint and parsed input; list operations use the Listed website tools summary. Parse complete JSON for reading, preserve truncated or invalid text exactly, and label truncated input/results. An absent result adds no Result section. Reuse the shared code preview and its scroll budget, keep each document identity scoped to the parent call, and preserve data when details are closed and reopened.

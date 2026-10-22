@@ -39,9 +39,9 @@ export function JsonPreview({ value }: { value: unknown }) {
   return value == null ? <></> : <pre>{json(value)}</pre>;
 }
 
-function JsonSurface({ value, documentId, showActions = false }: { value: unknown; documentId: string; showActions?: boolean }) {
+function JsonSurface({ value, documentId, showActions = false, title = "JSON" }: { value: unknown; documentId: string; showActions?: boolean; title?: string }) {
   const { theme } = useContext(ConversationDocumentContext);
-  return <LazyHighlightedCodeSurface code={json(value)} language="json" title="JSON"
+  return <LazyHighlightedCodeSurface code={json(value)} language="json" title={title}
     documentId={documentId} theme={theme} showActions={showActions} />;
 }
 
@@ -87,16 +87,34 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
   </div> : null}</section>;
 }
 
-function WebToolCall({ call }: { call: WebMcpToolSurfaceCall }) {
+function websiteToolValue(value: string | null, truncated: boolean): unknown {
+  if (value === null || truncated) return value;
+  try { return JSON.parse(value) as unknown; } catch { return value; }
+}
+
+function WebToolCall({ call, documentId }: { call: WebMcpToolSurfaceCall; documentId: string }) {
   const [open, setOpen] = useState(false);
-  return <ActivityDisclosure icon={<Globe2 />} summary={call.title ?? call.name} open={open}
-    onOpenChange={setOpen} running={false} bodyVariant="grouped" unmountBodyWhenCollapsed>
-    <div className="thread-tool-details">
-      {call.description ? <p>{call.description}</p> : null}
-      {call.sourceHostname ? <p>{call.sourceHostname}</p> : null}
-      {call.readOnlyHint !== null ? <p>{call.readOnlyHint ? "Read only" : "May modify data"}</p> : null}
-      {call.inputJson !== null ? <section data-role="input"><pre>{call.inputJson}</pre>{call.inputTruncated ? <small>Input truncated</small> : null}</section> : null}
-      {call.outputJson !== null ? <section data-role="output"><pre>{call.outputJson}</pre>{call.outputTruncated ? <small>Output truncated</small> : null}</section> : null}
+  const words = call.name.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").replace(/[_-]+/gu, " ").trim();
+  const summary = call.kind === "listTools" ? "Listed website tools"
+    : call.title ?? (words ? words[0]!.toLocaleUpperCase() + words.slice(1) : call.name);
+  const input = call.kind === "invokeTool" ? websiteToolValue(call.inputJson, call.inputTruncated) : null;
+  const details = {
+    name: call.name,
+    ...(call.title === null ? {} : { title: call.title }),
+    ...(call.description === null ? {} : { description: call.description }),
+    ...(call.sourceHostname === null ? {} : { website: call.sourceHostname }),
+    ...(call.readOnlyHint === null ? {} : { readOnlyHint: call.readOnlyHint }),
+    ...(input === null ? {} : { input }),
+    ...(call.inputTruncated ? { inputTruncated: true } : {}),
+  };
+  const output = websiteToolValue(call.outputJson, call.outputTruncated);
+  return <ActivityDisclosure icon={<Globe2 />} summary={summary} open={open}
+    onOpenChange={setOpen} running={false} unmountBodyWhenCollapsed>
+    <div className="thread-webmcp-details">
+      <JsonSurface value={details} documentId={documentId + ":tool"}
+        title={call.inputTruncated ? "Tool (input truncated)" : "Tool"} />
+      {output === null ? null : <JsonSurface value={output} documentId={documentId + ":result"}
+        title={call.outputTruncated ? "Result (truncated)" : "Result"} />}
     </div>
   </ActivityDisclosure>;
 }
@@ -190,7 +208,8 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
     {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
-    {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call} />)}
+    {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}
+      documentId={block.id + ":webmcp:" + index} />)}
   </>;
 }
 
