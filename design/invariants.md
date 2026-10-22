@@ -2178,6 +2178,23 @@ accessories retain intrinsic width. Default trailing and metadata layouts remain
 unchanged. The real Sidebar consumer checks title-only geometry, narrow columns,
 keyboard focus, menus and independent badge popovers in both input modes/themes.
 
+## Single-line title badge placement (2026-10-21)
+Thread badge contributions may select `title` for a single-line row. Shell suppresses
+visible project/status metadata, keeps it in the navigation tooltip and retains
+activity indicators, scheduling and the independent menu hit lane. Badge and title
+are sibling controls, vertically centered; the title shrinks with ellipsis while
+accessories retain intrinsic width. Default trailing and metadata layouts remain
+unchanged. The real Sidebar consumer checks title-only geometry, narrow columns,
+keyboard focus, menus and independent badge popovers in both input modes/themes.
+
+## Compact title-accessory conversation rows
+
+Single-line conversation rows with title badges use the shared sidebar title-row
+height token: 36px with pointer input, at least the 44px shared touch target when
+touch interaction is active. Keep participant artwork, count circles, independent
+action lanes and section/list gaps at their existing sizes; compact density must
+not change metadata rows or other navigation owners.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
