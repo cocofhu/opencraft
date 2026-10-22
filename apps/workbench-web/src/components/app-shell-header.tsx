@@ -1,4 +1,3 @@
-import { useTouchLayout } from "../runtime/use-touch-layout";
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,9 +40,8 @@ export interface AppShellNavigationControlsProps {
 }
 
 /**
- * Leading window controls for non-unified Shell and the unified collapsed
- * entrance. Expanded unified navigation owns the shared toggle in its sidebar;
- * routes must never synthesize an independent copy of the control.
+ * Unified navigation keeps its shared toggle beside the brand in the persistent
+ * header in every sidebar state. Routes never supply another copy of the control.
  */
 export function AppShellNavigationControls({
   brand,
@@ -59,7 +57,6 @@ export function AppShellNavigationControls({
   actions,
 }: AppShellNavigationControlsProps) {
   const intl = useIntl();
-  const touchLayout = useTouchLayout();
   const presentation = useShellPresentation();
   const sidebarOpen = hostRole === "persistent" && presentation ? presentation.sidebarOpen : requestedSidebarOpen;
   const onToggleSidebar = hostRole === "persistent" && presentation ? presentation.toggleSidebar : requestedToggleSidebar;
@@ -68,13 +65,13 @@ export function AppShellNavigationControls({
   const sidebarDocked = sidebarOpen && !presentation?.sidebarFloating;
   const presentedActions = useMemo<readonly HeaderNavigationAction[]>(() => {
     if (presentation?.sidebarControlsInSidebar) {
-      return actions.filter(action => action !== "sidebar-toggle" || (hostRole === "persistent" && (touchLayout || !sidebarOpen)));
+      return actions.filter(action => action !== "sidebar-toggle" || hostRole === "persistent");
     }
     if (hostRole !== "persistent" || sidebarDocked) return actions;
     return actions.flatMap(action => action === "sidebar-toggle"
       ? [action, "new-task" as const]
       : [action]);
-  }, [actions, hostRole, sidebarDocked, sidebarOpen, presentation?.sidebarControlsInSidebar, touchLayout]);
+  }, [actions, hostRole, sidebarDocked, presentation?.sidebarControlsInSidebar]);
   const { headerLeftFitWidth } = useAppShellLayoutMotion();
   const visibleBrand = brand;
   const hasNavigationContent = Boolean(visibleBrand) || presentedActions.length > 0;
@@ -88,7 +85,7 @@ export function AppShellNavigationControls({
 
   const controls = {
     "sidebar-toggle": (
-      <SidebarToggleButton key="sidebar-toggle" className={conversationHeader ? "chrome-button no-drag app-shell-conversation-sidebar-toggle" : undefined} stationary={touchLayout && hostRole === "persistent" && presentation?.sidebarControlsInSidebar && !presentation.mobileSidebar} open={sidebarOpen} hostRole={hostRole} onToggle={toggleSidebar} />
+      <SidebarToggleButton key="sidebar-toggle" className={conversationHeader ? "chrome-button no-drag app-shell-conversation-sidebar-toggle" : undefined} stationary={hostRole === "persistent" && presentation?.sidebarControlsInSidebar && !presentation.mobileSidebar} open={sidebarOpen} hostRole={hostRole} onToggle={toggleSidebar} />
     ),
     "new-task": (
       <button

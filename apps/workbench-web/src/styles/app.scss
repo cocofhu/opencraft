@@ -796,8 +796,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 
 // Brand and collapse control form one stable header across application routes.
 .app-shell-header__window-controls-rail[data-navigation-brand] {
-  width: min(var(--app-shell-brand-header-width), calc(100vw - 2 * var(--height-toolbar)));
-  > .application-brand { flex: 1 0 auto; padding-inline: 6px; }
+  width: max-content;
+  > .application-brand { flex: 0 0 auto; padding-inline: 6px; }
 }
 // Desktop browser branding consumes the same rail center as navigation glyphs.
 // Mobile has labeled drawers; native desktop keeps its host-owned safe inset.
@@ -12213,7 +12213,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   > img { width: 100%; height: 100%; object-fit: cover; }
 }
 
-// Touch chrome owns one stationary sidebar action above the drawer, below dialogs.
+// Unified chrome owns one stationary sidebar action above the drawer, below dialogs.
 // Its measured placeholder reserves the same header slot in every visibility state.
 .app-shell-touch-sidebar-toggle {
   position: fixed;
@@ -12222,10 +12222,12 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   > .chrome-button {
     width: 100%;
     height: 100%;
-    > svg { width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile); }
   }
 }
 :root[data-ui-density="touch"] {
+  .app-shell-touch-sidebar-toggle > .chrome-button > svg {
+    width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile);
+  }
   .app-shell-root.has-mobile-sidebar-gestures .app-shell-header {
     // The rails own edge clearance, including safe areas, without a second inset.
     padding-inline: 0;
@@ -12240,7 +12242,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   .app-shell-header [data-app-shell-window-action="sidebar-toggle"] .chrome-button {
     width: var(--size-shell-header-action-mobile); height: var(--size-shell-header-action-mobile);
   }
-  .shell-sidebar__toggle { display: none; }
   .app-shell-floating-overlay-root:not([data-mobile-sidebar]) .shell-sidebar__header {
     padding-inline-start: calc(max(var(--spacing-token-safe-header-left), var(--spacing-shell-header-edge-touch)) + var(--size-shell-header-action-mobile) + 4px);
     > [data-app-shell-sidebar-trigger] { display: none; }

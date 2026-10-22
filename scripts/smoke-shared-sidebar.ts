@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
-const output = "/tmp/opencraft-shared-sidebar";
+const output = process.env.OPENCRAFT_SHARED_SIDEBAR_OUTPUT ?? "/tmp/opencraft-shared-sidebar";
 const source = `
 import React,{useEffect,useState}from'react';import{createIntlTestRoot as createRoot}from'/tests/fixtures/intl-root.tsx';
 import{frame}from'@opencraft/design-system/tokens';
 import{AppShell}from'/apps/workbench-web/src/components/app-shell.tsx';
 import{AppShellHeader}from'/apps/workbench-web/src/components/app-shell-header.tsx';
+import{ApplicationBrand}from'/apps/workbench-web/src/components/application-brand.tsx';
 import{initializeAppearanceTheme,setThemePreference}from'/apps/workbench-web/src/appearance-theme.ts';
 import'/apps/workbench-web/src/styles/app.scss';
 initializeAppearanceTheme();let mounts=0;const actions=[];
@@ -16,7 +17,7 @@ function App(){const[open,setOpen]=useState(true);const[width,setWidth]=useState
 window.fixture={setOpen,setContext,setWidth,setAccountName,width,setThemePreference,mounts:()=>mounts,actions};
 return <AppShell navigation={{layout:'unified',actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>actions.push('Chat')}],settingsActive:false,onOpenSettings:()=>actions.push('Settings'),account:{snapshot:{phase:accountName?'authenticated':'anonymous',name:accountName,avatarUrl:null},onOpen:()=>actions.push('Sign in'),onRefresh:async()=>{},onSignOut:async()=>{}}}}
 layoutScope='test' mainContentLayout='default' sidebarOpen={open} sidebarWidth={width} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={v=>v!==null&&setWidth(v)} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
-header={<AppShellHeader title={null} project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={false} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
+header={<AppShellHeader navigationBrand={<ApplicationBrand/>} title={null} project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={false} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
 floatingSidebarHeader={dock=><button onClick={dock}>固定侧栏</button>}
 leftPanel={context?<Context/>:null}>
 <div style={{padding:28}} onClick={()=>actions.push('Main')}><h1>Workspace</h1><input aria-label='Main draft' defaultValue='Keep draft'/></div></AppShell>}
@@ -34,9 +35,57 @@ try {
   const page = await browser.newPage({ viewport: { width: 1300, height: 760 }, reducedMotion: process.env.OPENCRAFT_REDUCED_MOTION === "1" ? "reduce" : "no-preference" }); page.setDefaultTimeout(8000);
   await page.addInitScript("window.__name=value=>value;localStorage.setItem('opencraft.shell-navigation.v2',JSON.stringify({applications:true,account:false,railDetent:'expanded'}))");
   page.on("pageerror", (error: Error) => errors.push(error.message));
-  await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
+  await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`, {timeout:90000});
   await page.waitForLoadState('networkidle');
   await page.getByRole("button", { name: "Chat", exact: true }).waitFor();
+  // The same header action must remain beside the brand throughout motion.
+  const toggle = page.locator('[data-chrome-action-id="sidebar-toggle"]:visible');
+  await toggle.waitFor();
+  await page.evaluate(() => {
+    const button = document.querySelector('[data-chrome-action-id="sidebar-toggle"]')!;
+    const brand = document.querySelector('.app-shell-header__window-controls .application-brand')!;
+    (window as any).toggleIdentity = button;
+    (window as any).toggleStart = button.getBoundingClientRect().toJSON();
+    (window as any).toggleFrames = [];
+    (window as any).recordToggle = true;
+    const sample = () => {
+      const box = button.getBoundingClientRect();
+      const label = brand.getBoundingClientRect();
+      (window as any).toggleFrames.push({ same: button === (window as any).toggleIdentity && button.isConnected,
+        x: box.x, y: box.y, gap: box.left - label.right, hit: button.contains(document.elementFromPoint(box.x+box.width/2, box.y+box.height/2)),
+        count: [...document.querySelectorAll('[data-chrome-action-id="sidebar-toggle"]')].filter(el => el.getBoundingClientRect().width > 0).length });
+      if ((window as any).recordToggle) requestAnimationFrame(sample);
+    };
+    sample();
+  });
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await toggle.click(); await page.waitForTimeout(500);
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+    await toggle.focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
+  }
+  const stationary = await page.evaluate(() => {
+    (window as any).recordToggle = false;
+    return { start: (window as any).toggleStart, frames: (window as any).toggleFrames };
+  });
+  assert.ok(stationary.frames.length > 5);
+  for (const frame of stationary.frames) {
+    assert.equal(frame.same, true); assert.equal(frame.count, 1); assert.equal(frame.hit, true);
+    assert.ok(Math.abs(frame.x-stationary.start.x)<1 && Math.abs(frame.y-stationary.start.y)<1, JSON.stringify(frame));
+    assert.ok(frame.gap>=0 && frame.gap<20, 'toggle immediately follows the brand');
+  }
+  evidence.push({ case: 'persistent-toggle-beside-brand-through-animation', frames: stationary.frames.length });
+  await page.screenshot({ path: `${output}/header-expanded.png` });
+  await toggle.click(); await page.waitForTimeout(500);
+  await page.mouse.move(2, 200);
+  await page.locator('.app-shell-floating-left-panel').waitFor(); await page.waitForTimeout(500);
+  assert.equal(await toggle.evaluate(el => {
+    const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));
+  }), true, 'floating sidebar cannot cover the stationary toggle');
+  await toggle.click(); await page.waitForTimeout(500);
+  await page.evaluate(() => (window as any).fixture.setOpen(true)); await page.waitForTimeout(500);
+  evidence.push({ case: 'floating-sidebar-retains-header-hit-target', passed: true });
+  if (process.env.OPENCRAFT_HEADER_TOGGLE_ONLY !== "1") {
   const measureFooter = () => page.evaluate(() => {
     const footer = document.querySelector<HTMLElement>('.shell-navigation__footer')!;
     const track = footer.closest('.shell-sidebar__rail-footer')!.getBoundingClientRect();
@@ -236,5 +285,6 @@ try {
   assert.equal(await page.getByRole('separator',{name:'Resize applications',exact:true}).count(),0);
   assert.equal(await page.locator('.shell-sidebar__navigation').evaluate(e=>e.getBoundingClientRect().width),48);
   evidence.push({case:'unified-rail-has-no-independent-resizer',passed:true});
+  }
   assert.deepEqual(errors, []); console.log(JSON.stringify(evidence));
 } finally { await writeFile(`${output}/report.json`, JSON.stringify({ evidence, errors }, null, 2)); await browser?.close(); await vite.close(); }
