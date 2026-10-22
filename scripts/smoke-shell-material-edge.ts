@@ -283,6 +283,11 @@ try {
   await page.locator('.has-unified-sidebar .shell-sidebar__context').waitFor();
   for (const name of ['longing','opencraftCanvas']) for (const mode of ['light','dark']) {
     await page.evaluate(([name,mode]) => (window as any).fixture.theme(name,mode),[name,mode]);
+    // Theme changes animate color; sample the final paint after those transitions.
+    await page.locator('.shell-sidebar__context').evaluate(async el => {
+      getComputedStyle(el).backgroundColor;
+      await Promise.all(el.getAnimations().map(animation => animation.finished));
+    });
     const actual=await page.evaluate(() => ({shadow:getComputedStyle(document.querySelector('.main-content-surface')!).boxShadow,context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor}));
     if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
     else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
