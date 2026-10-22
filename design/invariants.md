@@ -2018,3 +2018,14 @@ Sidebar search may reuse unchanged row presentation. Parent props, grouping and 
 ## Sidebar directory grid bounds
 
 Directory grids and their groups use a bounded single column. Long unbroken project names or feedback must shrink inside the Sidebar rather than increase an automatic grid track's minimum. The existing saved/error message truncates within its slot and leaves the Retry action completely visible before interaction; activating it must not require automatic horizontal scrolling. Nested and grouped rows retain their existing owners and order.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
