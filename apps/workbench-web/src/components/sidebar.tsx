@@ -312,7 +312,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   }, [folded, groupedSections, matchingById, pinnedLimit, recentLimit, taskFlow]);
   useLayoutEffect(() => {
     const current = menus.getSnapshot();
-    if (current && !visibleMenuTargets.has(JSON.stringify([current.hostId, current.threadId]))) menus.close();
+    if (current && current.kind !== "filters" && !visibleMenuTargets.has(JSON.stringify([current.hostId, current.threadId]))) menus.close();
   }, [menus, visibleMenuTargets]);
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
