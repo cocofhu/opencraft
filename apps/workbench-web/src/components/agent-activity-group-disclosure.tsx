@@ -31,7 +31,7 @@ export function reduceAgentActivityDisclosurePhase(
 export function AgentActivityGroupDisclosure({
   canExpand = true, children, defaultExpanded = false, collapsed, icon,
   onExpand, onCollapsedChange, shouldAnimateInitialCollapse = false,
-  summary, summaryKey, summaryTransition = "static",
+  summary, summaryKey, summaryTransition = "static", running = false,
 }: {
   canExpand?: boolean;
   children: ReactNode | (() => ReactNode);
@@ -44,6 +44,7 @@ export function AgentActivityGroupDisclosure({
   summary: ReactNode;
   summaryKey: string;
   summaryTransition?: AgentActivitySummaryTransition;
+  running?: boolean;
 }) {
   const reduced = useReducedMotion();
   const labelId = useId();
@@ -112,7 +113,7 @@ export function AgentActivityGroupDisclosure({
         className="thread-activity-item__header" contentClassName="thread-activity-item__header-content"
         buttonClassName="thread-activity-item__hit-target" interactive={canExpand}
         labelId={labelId} open={open} onToggle={toggle} reflowOwned>
-        {icon != null ? <ActivityIcon>{icon}</ActivityIcon> : null}
+        {icon != null ? <ActivityIcon running={running && phase !== "expanded"}>{icon}</ActivityIcon> : null}
         <span className="thread-activity-item__summary" id={labelId}>
           {summaryTransition === "static" ? summary : <span className="thread-agent-activity__deferred-summary">{label.key === summaryKey || summaryTransition === "immediate" ? summary : label.content}</span>}
         </span>

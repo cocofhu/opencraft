@@ -1863,3 +1863,13 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
   prompt supplies recognition at rail size; no second underline or miniature
   page/brain ornament. Artwork changes preserve process/disclosure identity,
   running/reduced-motion semantics, rail metrics and protected layout/gear/font.
+
+### Activity detail motion
+
+Chat process motion follows actual row running state. The shared SVG base stays
+intact while a loop/page/nib detail or command cursor moves. Collapsed groups
+animate their shared header glyph; expanded groups hand motion to visible rows.
+Completion, interruption, failure and reduced motion leave static artwork. Process
+summary copy does not shimmer; text/rail geometry, disclosure interaction and user
+drafts remain owned by the existing Conversation and Shell. Static controls share
+the base artwork without activity overlays.

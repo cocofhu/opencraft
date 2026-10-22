@@ -32,9 +32,7 @@ import {
 import { AgentActivityGroupDisclosure } from "../../agent-activity-group-disclosure";
 import { useLatestTurnFollowContentRef } from "../../latest-turn-follow-content";
 import { activityIcon } from "./activity-icon";
-import {
-  CadencedShimmer,
-} from "./activity-disclosure";
+import { ThinkingActivityIcon } from "../../activity-glyphs";
 import { SubagentActivityGroup } from "../tool/tool-renderers";
 import { ToolActivityPresenterContext, ConversationDetailContext } from "../render-contexts";
 import { ActivityDisclosureHeader, WorkStatusDivider } from "./work-status";
@@ -92,11 +90,12 @@ function AgentActivityGroup({
         canExpand={visibleBlocks.length > 0}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
-        icon={header.icon === null ? undefined : activityIcon(header.icon)}
+        icon={header.state === "thinking" ? <ThinkingActivityIcon /> : header.icon === null ? undefined : activityIcon(header.icon)}
+        running={header.active}
         shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
-        summary={<CadencedShimmer active={header.active}>{header.state === "thinking" && header.summary.kind === "text"
+        summary={header.state === "thinking" && header.summary.kind === "text"
           ? <ThinkingLabel summary={header.summary.text} />
-          : <AgentActivitySummaryView summary={header.summary} />}</CadencedShimmer>}
+          : <AgentActivitySummaryView summary={header.summary} />}
         summaryKey={header.summaryKey}
         summaryTransition={header.state === "summary" ? "immediate" : "deferred"}
       >

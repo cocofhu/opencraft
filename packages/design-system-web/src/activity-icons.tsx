@@ -23,7 +23,7 @@ export function StopActivityIcon(props: IconProps) {
 
 export function ThinkingActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="thinking" {...props}>
-    <BrainArtwork detailClassName="activity-glyph__pulse" />
+    <BrainArtwork detailClassName="activity-glyph__flow" />
   </ActivityGlyph>;
 }
 
@@ -41,7 +41,7 @@ export function SearchActivityIcon(props: IconProps) {
 
 export function ReadActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="read" data-rtl-flip="" {...props}>
-    <BookArtwork detailClassName="activity-glyph__pulse" />
+    <BookArtwork detailClassName="activity-glyph__flow" />
   </ActivityGlyph>;
 }
 
@@ -53,7 +53,7 @@ export function FilesActivityIcon(props: IconProps) {
 
 export function PatchActivityIcon(props: IconProps) {
   return <ActivityGlyph glyph="patch" {...props}>
-    <PencilArtwork />
+    <PencilArtwork detailClassName="activity-glyph__ink" />
   </ActivityGlyph>;
 }
 
