@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useIntl } from "@opencraft/i18n/react";
 import { NavigationIcon } from "./navigation-action";
 import { AccountSignInMenu } from "./account-sign-in-menu";
-import { useManagedWebUpdateNotice } from "../web-updates-settings";
+import { hasManagedWebUpdates, currentPlatform, useManagedWebUpdateNotice } from "../web-updates-settings";
 import {
   motion,
   useTransform,
@@ -233,41 +233,19 @@ export function ShellNavigationFooter({ config, controller, visible = true, mobi
   }, [visible, mobile, config.layout, state.peek, dispatch]);
   const anonymousAccount = isAnonymousShellAccount(config.account);
   const intl = useIntl();
-  const notice = useManagedWebUpdateNotice();
-  const updateTitle = notice.updateAvailable
-    ? intl.formatMessage(
-        { id: "webUpdates.noticeAvailable", defaultMessage: "Update available (v{version}), click to download" },
-        { version: notice.latestVersion ?? "" },
-      )
-    : intl.formatMessage({ id: "webUpdates.noticeRefresh", defaultMessage: "New version ready, click to refresh" });
-  const updateActionText = notice.updateAvailable
-    ? intl.formatMessage(
-        { id: "webUpdates.noticeAction", defaultMessage: "Download update v{version}" },
-        { version: notice.latestVersion ?? "" },
-      )
-    : intl.formatMessage({ id: "webUpdates.noticeRefreshAction", defaultMessage: "Refresh update" });
   const accountLabel = shellAccountEntranceLabel(config.account, intl);
   const unified = config.layout === "unified";
   const availableSurfaces = unified && mobile ? [] : surfaces.filter((surface) => surface === "applications" ? !unified : accountLabel !== null);
+  // Only the managed website exposes a release feed. Mount the update
+  // entrance, and with it the query runtime it reads, only there; other
+  // shells must stay runnable without a query provider.
+  const managedUpdateEntrance = unified && currentPlatform() === "web" && hasManagedWebUpdates()
+    ? <ShellManagedUpdateEntrance selected={config.updatesActive} onInvoke={onInvoke}
+      onOpenUpdates={config.onOpenUpdates} onOpenSettings={config.onOpenSettings} />
+    : null;
   return <div ref={root} className={`shell-navigation__footer${unified ? " shell-navigation__footer--unified" : ""}`} aria-label="Application entrances">
     {unified ? <>
-      {notice.visible ? <button type="button"
-        className="shell-navigation__entrance shell-navigation__entrance--update"
-        data-surface="updates"
-        data-update-version={notice.latestVersion ?? undefined}
-        aria-label={updateTitle}
-        title={updateTitle}
-        aria-current={config.updatesActive ? "page" : undefined}
-        onClick={() => {
-          if (config.onOpenUpdates) onInvoke(config.onOpenUpdates);
-          else onInvoke(config.onOpenSettings);
-        }}>
-        <span className="shell-navigation__icon-wrapper">
-          <NavigationIcon name={notice.updateAvailable ? "updates" : "refresh"} selected={config.updatesActive} />
-          <span className="shell-navigation__update-dot" aria-hidden="true" />
-        </span>
-        <span className="shell-navigation__name">{updateActionText}</span>
-      </button> : null}
+      {managedUpdateEntrance}
       <button type="button" className="shell-navigation__entrance" data-surface="settings"
         aria-label={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
         title={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
@@ -325,4 +303,45 @@ export function ShellNavigationFooter({ config, controller, visible = true, mobi
       </Dialog.Portal>
     </Dialog.Root>})}
   </div>;
+}
+
+/** Self-contained managed website update entrance: the only subtree that asks
+ * the release feed, so it alone needs the query runtime and the site's update
+ * metadata. Other shells never mount it and never build the notice. */
+function ShellManagedUpdateEntrance({ selected, onInvoke = action => action(), onOpenUpdates, onOpenSettings }: {
+  selected?: boolean; onInvoke?: (action: () => void) => void;
+  onOpenUpdates?: () => void; onOpenSettings: () => void;
+}) {
+  const intl = useIntl();
+  const notice = useManagedWebUpdateNotice();
+  if (!notice.visible) return null;
+  const updateTitle = notice.updateAvailable
+    ? intl.formatMessage(
+        { id: "webUpdates.noticeAvailable", defaultMessage: "Update available (v{version}), click to download" },
+        { version: notice.latestVersion ?? "" },
+      )
+    : intl.formatMessage({ id: "webUpdates.noticeRefresh", defaultMessage: "New version ready, click to refresh" });
+  const updateActionText = notice.updateAvailable
+    ? intl.formatMessage(
+        { id: "webUpdates.noticeAction", defaultMessage: "Download update v{version}" },
+        { version: notice.latestVersion ?? "" },
+      )
+    : intl.formatMessage({ id: "webUpdates.noticeRefreshAction", defaultMessage: "Refresh update" });
+  return <button type="button"
+    className="shell-navigation__entrance shell-navigation__entrance--update"
+    data-surface="updates"
+    data-update-version={notice.latestVersion ?? undefined}
+    aria-label={updateTitle}
+    title={updateTitle}
+    aria-current={selected ? "page" : undefined}
+    onClick={() => {
+      if (onOpenUpdates) onInvoke(onOpenUpdates);
+      else onInvoke(onOpenSettings);
+    }}>
+    <span className="shell-navigation__icon-wrapper">
+      <NavigationIcon name={notice.updateAvailable ? "updates" : "refresh"} selected={selected} />
+      <span className="shell-navigation__update-dot" aria-hidden="true" />
+    </span>
+    <span className="shell-navigation__name">{updateActionText}</span>
+  </button>;
 }
