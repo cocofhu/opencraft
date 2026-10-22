@@ -561,8 +561,11 @@ function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type:
   useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
+      // Buttons and disclosure controls own their native Enter activation.
+      if (event.key === "Enter" && target instanceof HTMLElement && target.closest("button, a, summary, [role='menuitem']") !== null) return;
       if (event.key === "Enter") {
         event.preventDefault();
         void submission.submit({ type: "accept-elicitation" });

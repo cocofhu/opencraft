@@ -87,6 +87,56 @@ try {
     await approval.getByRole("button", { name: "Deny", exact: true }).click();
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);
     assert.deepEqual(await actions(), [{ type: "decline" }]);
+    // Native keyboard activation must preserve the focused control's intent.
+    for (const [name, action] of [
+      ["Deny", { type: "decline" }],
+      ["Allow once", { type: "accept-elicitation" }],
+      ["Allow this conversation", { type: "accept-elicitation", persist: "session" }],
+      ["Always allow", { type: "accept-elicitation", persist: "always" }],
+    ] as const) {
+      await show("tool");
+      if (name === "Allow this conversation" || name === "Always allow") await approval.locator("summary").click();
+      const control = name === "Allow once" ? approval.locator("button.is-primary")
+        : name === "Deny" ? approval.getByRole("button", { name, exact: true })
+        : approval.getByRole("menuitem", { name, exact: true });
+      await control.focus();
+      assert.equal(await control.evaluate((element: HTMLElement) => document.activeElement === element), true);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+      assert.deepEqual(await actions(), [action]);
+    }
+    await show("tool");
+    const summary = approval.locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.querySelector(".thread-mcp-tool-approval details")?.hasAttribute("open"));
+    assert.deepEqual(await actions(), []);
+    const expand = approval.getByRole("button", { name: "Expand payload", exact: true });
+    await expand.focus(); await page.keyboard.press("Enter");
+    await approval.locator('[data-expanded="true"]').waitFor();
+    assert.deepEqual(await actions(), []);
+    const more = approval.getByRole("button", { name: "Show 1 more items", exact: true });
+    await more.focus(); await page.keyboard.press("Enter");
+    assert.equal(await approval.locator("dt").count(), 5);
+    assert.deepEqual(await actions(), []);
+    await show("tool");
+    const cancelled = await page.evaluate(() => {
+      (document.activeElement as HTMLElement)?.blur();
+      const consume = (event: KeyboardEvent) => event.preventDefault();
+      document.addEventListener("keydown", consume, { once: true });
+      const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+      document.body.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    assert.equal(cancelled, true); assert.deepEqual(await actions(), []);
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation" }]);
+    await show("tool");
+    await approval.getByRole("button", { name: "Deny", exact: true }).focus();
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "decline" }]);
     await show("suggestion");
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: /Install/ }).click();

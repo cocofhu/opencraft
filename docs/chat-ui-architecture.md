@@ -2358,3 +2358,11 @@ that Application. They neither keep an obsolete request actionable nor authorize
 or replay a response; the active Host request remains the response authority.
 The temporarily removed DOM and its focus are not persisted across a connection
 gap. Setup/onboarding pickers keep their existing local state contract.
+
+### MCP approval keyboard ownership
+
+MCP tool approvals preserve the focused control's native Enter action: Deny
+declines, scoped permission menu entries retain their chosen scope, and parameter
+disclosures only expand or collapse. The card's window shortcut ignores already
+consumed events and editable fields. Unfocused Enter still allows once and Escape
+still declines; keyboard focus never silently changes the selected permission.
