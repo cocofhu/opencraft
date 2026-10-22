@@ -1078,6 +1078,11 @@ arbitrates at most one live Thinking owner from the current response suffix;
 closed earlier segments cannot inherit a later response's running state.
 Only one segment presents the Turn's work interval/total-duration fallback,
 and response-copy actions exclude questions and earlier inputs' answers.
+After assigning that clock, a work segment with no content units, inline
+subagents or assigned duration does not occupy a presentation slot. Hidden
+observations before an earlier response or asynchronous question cannot reserve
+an empty layout gap. Source observations and boundary identities remain intact;
+a clock-only segment, including a provided terminal duration, remains visible.
 Tests cover async-final questions, multiple answers and follow-ups, in-place
 streaming, phase/completion changes, disclosure, history prepend and refresh.
 
@@ -2348,3 +2353,5 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+运行中的普通命令在 `STEPS_COMMANDS` 的 Activity 标题保留具体原命令；分类器返回一个或多个 `unknown` action 仍属于普通命令，不能因 action 列表非空而退回泛化标题。空白命令回退 `Running command`，`STEPS_PROSE` 保持简洁标题；read/search/list 继续消费各自语义呈现，shell 包装、执行事实与复制内容不在标题层改写。
