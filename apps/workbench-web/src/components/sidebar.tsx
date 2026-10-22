@@ -169,6 +169,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const [pinnedLimit, setPinnedLimit] = useState(PINNED_PAGE_SIZE);
   const [recentLimit, setRecentLimit] = useState(RECENT_PAGE_SIZE);
   const [menus] = useState(() => new SidebarThreadMenuStore());
+  const [filterOpen, setFilterOpen] = useState(false);
   const actionOwner = useThreadActionOwner(threadActions ?? noThreadActions);
   const rowIdPrefix = useId();
   const text = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
@@ -219,10 +220,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const allServersLabel = text("sidebar.allServers", "All servers");
   const dismissAfter = (action: () => void) => { menus.close(); action(); dismiss?.(); };
   const writeServerFilter = (serverId: string) => {
+    setFilterOpen(false);
     const name = serverOptions.find(([id]) => id === serverId)?.[1] ?? "";
     void preferences.set("sidebar.serverFilter", { serverId, label: name });
   };
-  const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind} />;
+  const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind}
+    onSelect={kind === "dropdown" ? () => setFilterOpen(false) : undefined} />;
   const renderThread = (thread: SidebarThread, attention = false) => {
     const pending = pendingHostId === thread.connectionHostId && pendingThreadId === thread.id;
     const active = activeHostId === thread.connectionHostId && activeThreadId === thread.id;
@@ -233,7 +236,10 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const disabled = thread.interactionAvailable === false;
     const capabilities = threadCapabilities?.(thread.connectionHostId)
       ?? { rename: !!threadActions, archive: !!threadActions, fork: !!threadActions, delete: !!threadActions, pin: !!threadActions?.onSetPinned };
-    const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
+    const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => {
+      if (open) setFilterOpen(false);
+      menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
+    };
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
       store={menus} contribution={threadBadge} hostId={thread.connectionHostId} threadId={thread.id}
       portalContainer={presentationRoot} onOpenChange={open => changeOverlay("badge", open)}
@@ -276,6 +282,28 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     </section>;
   };
   const groupedSections = grouping.mode && threadListGrouping ? threadListGrouping.project(matchingReferences) : null;
+  // Row menus, the badge and the list display menu are one exclusive overlay
+  // owner; an owner whose row is no longer visible or no longer accepts
+  // interaction must not keep the menu open.
+  const visibleMenuTargets = useMemo(() => {
+    const targets = new Set<string>();
+    const addThread = (thread: SidebarThread | undefined) => {
+      if (thread && thread.interactionAvailable !== false) targets.add(JSON.stringify([thread.connectionHostId, thread.id]));
+    };
+    if (groupedSections) for (const group of groupedSections) {
+      if (group.collapsed) continue;
+      for (const ref of group.threads) addThread(matchingById.get(JSON.stringify([ref.hostId, ref.threadId])));
+    } else {
+      if (!(folded.attention ?? false)) for (const row of taskFlow.attention) addThread(row);
+      if (!(folded.pinned ?? false)) for (const row of taskFlow.pinned.slice(0, pinnedLimit)) addThread(row);
+      if (!(folded.recent ?? false)) for (const row of taskFlow.recent.slice(0, recentLimit)) addThread(row);
+    }
+    return targets;
+  }, [folded, groupedSections, matchingById, pinnedLimit, recentLimit, taskFlow]);
+  useLayoutEffect(() => {
+    const current = menus.getSnapshot();
+    if (current && !visibleMenuTargets.has(JSON.stringify([current.hostId, current.threadId]))) menus.close();
+  }, [menus, visibleMenuTargets]);
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
   const retryLabel = text("sidebar.catalog.retry", "Retry");
@@ -296,7 +324,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         <SidebarBots items={bots} creation={botCreation} />
         <section className="sidebar-tasks" aria-label="Tasks" aria-busy={busyCatalog}>
           <div className="sidebar-list-toolbar"><span>{text("sidebar.conversations", "Conversations")}</span>
-            <DropdownMenu.Root>
+            <DropdownMenu.Root open={filterOpen} onOpenChange={open => { if (open) menus.close(); setFilterOpen(open); }}>
               <DropdownMenu.Trigger asChild><button type="button" className="sidebar-list-mode-trigger"
                 aria-label={filtersLabel} title={[filtersLabel, ...(grouping.filter?.enabled ? [label(grouping.filter.label)] : []), serverFilter.serverId ? serverFilter.label : allServersLabel].join(" · ")}
                 data-filter-active={serverFilter.serverId !== "" || grouping.filter?.enabled || undefined}><ListFilter size={16} /></button></DropdownMenu.Trigger>
