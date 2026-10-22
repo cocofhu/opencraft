@@ -96,7 +96,7 @@ test("full-history searches outlive the metadata deadline through the actual run
   const runtime = createAppServerWorkbenchRuntime({ hostId: "search", transport, autoReconnect: false, requestTimeoutMs: 20 });
   try {
     await runtime.connect();
-    const source = createCodexContentSearchSource({ key: "search", hostId: "search", label: "Search", available: true, supported: true,
+    const source = createAppServerContentSearchSource({ key: "search", hostId: "search", label: "Search", available: true, supported: true,
       assertCurrent() {}, protocol: runtime.resources.protocol, project() { throw new Error("No matches expected"); } });
     const signal = new AbortController().signal;
     assert.deepEqual(await source.search("中继", null, signal), { matches: [], nextCursor: null });

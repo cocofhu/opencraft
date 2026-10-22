@@ -23,7 +23,7 @@ const { outputFiles } = await build({
       "../appearance-theme": `export const useAppearanceTheme=()=>({resolvedTheme:'light'});`,
       "../runtime/appserver-media-loader": `export const createAppServerMediaSourceLoader=()=>()=>{};`,
       "@opencraft/i18n/react": `export const useIntl=()=>({formatMessage:m=>m.defaultMessage});`,
-      "@opencraft/chat-render-web": `export const WebChatDocument=()=>null;`,
+      "@opencraft/chat-render-web": `export const WebChatDocument=()=>null; export const ZoomableImage=()=>null;`,
       "./workspace-pdf-preview": `export const WorkspacePdfPreview=()=>null;`,
       "./workspace-code-editor": `export const WorkspaceCodeEditor=()=>{throw new Error("editor unavailable")};`,
       "./workspace-file-icon": `export const WorkspaceFileIcon=()=>null;`,

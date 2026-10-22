@@ -208,10 +208,12 @@ test("accepted promotion keeps its original Scope/View and resets the submitted 
     const composer = session.views.get(before.routeScopeId)!.composer;
     composer.dispatch({ type: "set-document", document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "original input" }] }] } });
     const submission = composer.createSubmitIntent();
+    composer.dispatch({ type: "set-lifecycle", phase: "submitting" });
     session.scopes.beginSubmit(draft.id, submission);
     const receipt = { commandId: submission.commandId, clientMessageId: submission.clientMessageId,
       hostId: "local", threadId: "accepted", turnId: null, acceptedAt: Date.now(), replayed: false };
     session.scopes.acceptSubmission(draft.id, receipt);
+    assert.equal(composer.settleSubmission(composer.getSnapshot().draft.id, submission, { status: "accepted" }), true);
     session.scopes.beginPromotion(draft.id);
     assert.deepEqual(await session.navigation.promoteDraft(draft.id, receipt), createWorkbenchThreadLocation("local", "accepted"));
     assert.equal(session.navigation.getSnapshot().routeScopeId, before.routeScopeId);

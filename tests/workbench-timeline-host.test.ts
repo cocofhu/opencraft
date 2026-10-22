@@ -157,7 +157,8 @@ test("Settings navigation enters through a semantic route adapter", () => {
   const callbacks = settingsCallbacks(workbenchApp);
   assert.ok(callbacks.length >= 2, "Settings entrypoints must remain covered");
   for (const callback of callbacks) {
-    assert.ok(ts.isIdentifier(callback) && callback.text === "openSettingsFromConversation",
+    const target = ts.isArrowFunction(callback) && ts.isCallExpression(callback.body) ? callback.body.expression : callback;
+    assert.ok(ts.isIdentifier(target) && target.text === "openSettingsFromConversation",
       `Settings callback bypasses the semantic adapter: ${callback.getText()}`);
   }
 });
@@ -432,7 +433,8 @@ test("application Settings owns route slots while target management owns a modal
   assert.match(modalSurfaceSource, /<Dialog\.Overlay/u);
   assert.match(modalSurfaceSource, /<Dialog\.Content/u);
   assert.match(modalSurfaceSource, /className="modal-surface__scrim"/u);
-  assert.doesNotMatch(modalSurfaceSource, /createPortal|addEventListener|setAttribute\("inert"\)|onEscapeKeyDown|event\.key/u);
+  assert.doesNotMatch(modalSurfaceSource, /createPortal|addEventListener|setAttribute\("inert"\)/u);
+  assert.match(modalSurfaceSource, /onEscapeKeyDown[\s\S]*?event\.isComposing \|\| event\.keyCode === 229/u);
   assert.doesNotMatch(managementSettingsContentSource, /ModalSurface|Dialog\./u);
   assert.match(modalHostSource, /resolveModalStack\(requests\)/u);
   assert.match(modalHostSource, /<ModalSurface/u);
@@ -874,7 +876,7 @@ test("Composer submission preserves View-owned focus across primary action swaps
   );
   assert.equal(
     composerSource.match(
-      /onPointerDown=\{\(event\) => \{\s*if \(event\.button === 0\) event\.preventDefault\(\);\s*\}\}/gu,
+      /onMouseDown=\{\(event\) => \{[\s\S]{0,150}?if \(event\.button === 0\) event\.preventDefault\(\);\s*\}\}/gu,
     )?.length,
     2,
     "Send and Stop must not take pointer focus from the current EditorView",
@@ -1110,7 +1112,7 @@ test("a full-width right panel exclusively owns the center toolbar", () => {
     workbenchStyles,
     /\.main-content-viewport\[data-app-shell-right-panel-full-width="true"\]\s*\{\s*overflow:\s*hidden;/u,
   );
-  assert.match(appShellSource,/className="main-content-frame"\s*style=\{\{ width: mainFrameWidth \}\}/u);
+  assert.match(appShellSource,/className="main-content-frame"\s*(?:data-app-shell-content-plane="main"\s*)?style=\{\{ width: mainFrameWidth \}\}/u);
   assert.match(workbenchStyles,/\.main-content-frame\s*\{[^}]*min-width:\s*100%;[^}]*container:\s*app-shell-main-content/u);
 });
 
@@ -1334,7 +1336,7 @@ test("browser portal commits one dual-coordinate viewport transaction", () => {
   );
   assert.match(
     browserPanelSource,
-    /requestAnimationFrame\([\s\S]*?presentation\.measure\(\)/u,
+    /const measure = \(\) => presentation\.measure\(\);[\s\S]*?frame\.postRender\(measure\)/u,
   );
   assert.match(
     browserSurfaceHostSource,

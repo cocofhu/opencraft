@@ -272,7 +272,7 @@ test("window chrome projection settles without rewriting observed identity", () 
   });
   const root = { dataset };
   applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
-  assert.deepEqual(writes, ["opencraftWindowType", "codexOs"]);
+  assert.deepEqual(writes, ["opencraftWindowType", "opencraftPlatform"]);
   writes.length = 0;
   // MutationObserver callbacks and repeated resize events must reach a fixed point.
   for (let index = 0; index < 20; index += 1) {
@@ -283,5 +283,5 @@ test("window chrome projection settles without rewriting observed identity", () 
   assert.deepEqual(writes, ["opencraftWindowType"]);
   writes.length = 0;
   applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "win32" });
-  assert.deepEqual(writes, ["codexOs"]);
+  assert.deepEqual(writes, ["opencraftPlatform"]);
 });
