@@ -2599,3 +2599,13 @@ content/card actions stay directly reachable with `controls.touch-input`,
 including after touch on hybrid hardware, independently of UI density.
 Separate HTML documents own their binding; embedded media pointer tracking is
 not a hover disclosure and retains its existing input owner.
+
+### Retained-history recovery presentation
+
+With readable history, automatic connection/history recovery and intermediate failures
+render no floating notice or spinner. Only terminal/blocked failure or required client
+update presents an action row in normal flow above the Composer, with collapsed
+copyable technical details. Existing recovery owners, cold-state presentation,
+authority, outbox and command replay remain unchanged. The Application keeps its
+Composer and transcript mounted. `tests/conversation-recovery.test.tsx` checks
+quiet automatic retry and actionable failures.

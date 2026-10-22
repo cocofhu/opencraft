@@ -3186,3 +3186,13 @@ a generic compact tool an input/output surface, invent an empty result, or chang
 the tool's initially collapsed state. Review identity and state remain owned by
 the runtime and chat-core; Web only combines the existing disclosure and review
 list. Tools without reviews retain their presenter's expansion policy.
+
+### Retained-history recovery presentation
+
+With readable history, automatic connection/history recovery and intermediate failures
+render no floating notice or spinner. Only terminal/blocked failure or required client
+update presents an action row in normal flow above the Composer, with collapsed
+copyable technical details. Existing recovery owners, cold-state presentation,
+authority, outbox and command replay remain unchanged. The Application keeps its
+Composer and transcript mounted. `tests/conversation-recovery.test.tsx` checks
+quiet automatic retry and actionable failures.

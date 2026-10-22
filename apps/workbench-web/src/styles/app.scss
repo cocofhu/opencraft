@@ -238,14 +238,6 @@ body {
   [role="status"] { margin-inline-start: 8px; }
 }
 
-.conversation-recovery-notice__dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: currentColor;
-}
-
 @keyframes conversation-recovery-appear {
   to { opacity: 1; }
 }

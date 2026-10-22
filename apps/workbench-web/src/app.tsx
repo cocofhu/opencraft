@@ -2158,7 +2158,7 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
-                    {recoveryPresentation === "warm-error" ? <ConversationRecoveryNotice
+                    {draft === null && recoveryPresentation === "warm-error" ? <ConversationRecoveryNotice
                       failed requiresUpdate={recoveryRequiresUpdate} diagnostic={recoveryDiagnostic}
                       onRetry={retryConversationRecovery}
                     /> : null}
