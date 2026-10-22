@@ -282,6 +282,7 @@ export async function createWorkbenchWebServer({
       }
       try {
         if (await serveFile(request, response, requestedPath, url.pathname, deploymentConfig)) return;
+        if (extname(url.pathname) === "" && await serveFile(request, response, join(requestedPath, "index.html"), url.pathname, deploymentConfig)) return;
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }

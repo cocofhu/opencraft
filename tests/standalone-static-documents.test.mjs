@@ -4,15 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createWorkbenchWebServer } from "../scripts/serve-workbench-web.mjs";
+import { createWorkbenchWebServer as createManagedWebServer } from "../scripts/workbench-web-server.mjs";
 
-test("directory documents precede SPA fallback with HTML, HEAD and revalidation", async t => {
+for (const [name, createServer] of [["direct", createWorkbenchWebServer], ["managed", createManagedWebServer]]) {
+test(`${name}: directory documents precede SPA fallback with HTML, HEAD and revalidation`, async t => {
   const root = await mkdtemp(join(tmpdir(), "standalone-doc-"));
   let server;
   t.after(async () => { await server?.close(); await rm(root, { recursive: true, force: true }); });
   await mkdir(join(root, "probe"));
   await writeFile(join(root, "index.html"), "<!doctype html><title>Workbench</title>");
   await writeFile(join(root, "probe/index.html"), "<!doctype html><title>Independent probe</title>");
-  server = await createWorkbenchWebServer({ root, appServerTarget: null });
+  server = await createServer({ root, appServerTarget: null });
   const address = await server.listen({ host: "127.0.0.1", port: 0 });
   const origin = `http://127.0.0.1:${address.port}`;
   for (const pathname of ["/probe", "/probe/", "/probe/index.html", "/probe?mode=native"]) {
@@ -30,6 +32,7 @@ test("directory documents precede SPA fallback with HTML, HEAD and revalidation"
   assert.equal((await fetch(origin + "/probe/missing.js")).status, 404);
   assert.equal((await fetch(origin + "/probe", { method: "POST" })).status, 405);
 });
+}
 
 test("directory documents preserve admission and cannot shadow reserved API paths", async t => {
   const root = await mkdtemp(join(tmpdir(), "protected-doc-"));
