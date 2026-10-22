@@ -40,10 +40,6 @@ interface Page {
 }
 const STORAGE_KEY = "opencraft.browser-storage.v1";
 
-/** Codex ownership model on standard Electron webview (no Owl adoption API).
- * Pages live in an application root, independently from React panel mounts.
- * A persisted logical page ID owns its storage partition; placement never does.
- */
 export class ElectronBrowserSurfaceHost implements BrowserSurfaceHost {
   trackPointerNearBottom(id: BrowserPageId, height: number, listener: (near: boolean) => void) {
     const page = this.pages.get(id);

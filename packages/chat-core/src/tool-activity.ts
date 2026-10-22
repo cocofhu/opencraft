@@ -10,7 +10,7 @@ import type {
 import { deriveSubagentActivityPresentation, subagentInlineStatusLabel } from "./subagent-activity";
 import { isCodexAppThreadTool, threadHandoffToolResult } from "./codex-app-tools";
 import { parseSkillPath } from "./skill-path";
-import { formatCodexDuration } from "./format-duration";
+import { formatDuration } from "./format-duration";
 
 export type ToolActivityState = "running" | "completed" | "failed" | "interrupted";
 export type ToolActivityGrouping = "groupable" | "standalone";
@@ -129,7 +129,7 @@ export class ToolActivityPresenterRegistry {
 
   /**
    * Returns the first presenter that owns the call, including an intentional
-   * null presentation. Codex uses this distinction for registered tools whose
+   * null presentation. This distinction applies to registered tools whose
    * arguments fail the tool-specific schema: the call stays in the protocol
    * record but does not fall through to a generic UI row.
    */
@@ -506,7 +506,7 @@ function contentParts(value: unknown, role: ToolCallContentRole): readonly ToolC
   }
   // A plain object is structured JSON (arguments and structuredContent use
   // this path). An object that declares an unsupported MCP content type is a
-  // protocol content block Codex exposes verbatim as unknown content.
+  // protocol content block exposed verbatim as unknown content.
   return [{ kind: type === null ? "json" : "unknown", role, value }];
 }
 
@@ -531,7 +531,7 @@ export function extractToolCallContentParts(block: ToolCallTimelineBlock): reado
         return null;
       }
     })();
-    // Codex treats every non-nullish structured result as present, including
+    // Treat every non-nullish structured result as present, including
     // empty containers and scalar false/zero values.
     const hasStructuredContent = output.structuredContent !== null && output.structuredContent !== undefined;
     const singleTextMatchesStructured = singleTextJson !== null && hasStructuredContent && (() => {
@@ -589,7 +589,7 @@ function commandActionPresentation(
         : state === "failed" ? "Couldn’t read"
         : state === "interrupted" ? "Stopped reading"
         : "Read",
-      // Codex displays the parsed read label/name while retaining `path` only
+      // Display the parsed read label/name while retaining `path` only
       // as the navigation target.
       detail: skill?.isSkillDefinitionFile === true
         ? `${skill.skillName} skill`
@@ -622,9 +622,9 @@ function commandActionPresentation(
   return null;
 }
 
-/** Exact duration shape used by Codex command Activity (`1m 0s`, null below 1s). */
-export function formatCodexToolDuration(durationMs: number, locale = "en"): string | null {
-  return formatCodexDuration(durationMs, { locale });
+/** Command Activity duration format (`1m 0s`, null below 1s). */
+export function formatToolDuration(durationMs: number, locale = "en"): string | null {
+  return formatDuration(durationMs, { locale });
 }
 
 function isCurrentDateCommand(command: string): boolean {
@@ -642,7 +642,7 @@ export interface CommandActivitySummaryOptions {
 }
 
 /**
- * Codex command labels depend on disclosure and owning-Turn state, not just the
+ * Command labels depend on disclosure and owning-Turn state, not just the
  * Item status. Keep this renderer-neutral so Web and Native cannot drift.
  */
 export function formatCommandActivitySummary(
@@ -886,7 +886,7 @@ function dshHarnessToolDetail(block: ToolCallTimelineBlock): string | null {
 }
 
 /** DSH tools are projected under `deepseek-harness`; unlike generic dynamic
- * calls they carry real arguments/contentItems and should render like Codex
+ * calls they carry real arguments/contentItems and share the presentation of
  * native tools instead of a bare, unexpandable name. */
 function createDshHarnessPresenter(): ToolActivityPresenter {
   return {
@@ -909,7 +909,7 @@ function createDshHarnessPresenter(): ToolActivityPresenter {
   };
 }
 
-/** Codex reserves these dynamic calls for non-Activity presentation. */
+/** Reserve these dynamic calls for non-Activity presentation. */
 function createHiddenSystemDynamicToolPresenter(): ToolActivityPresenter {
   return {
     name: "hidden-system-dynamic-tools",
@@ -959,7 +959,7 @@ export function isToolActivityPresentationSuppressed(
   return claim.claimed && claim.presentation === null;
 }
 
-/** Mirrors Codex's failure predicate instead of treating every completed call as successful. */
+/** A completed call is successful only when its result is not a failure. */
 export function isToolCallFailed(block: ActivityBlock): boolean {
   if (block.status === "failed") return true;
   if (block.type === "command-execution") return block.exitCode !== null && block.exitCode !== 0;
@@ -1070,7 +1070,7 @@ export function presentToolActivity(
         : block.server === "node_repl" ? "terminal"
         : "wrench",
       summary: formatMcpToolActivityLabel(block, state),
-      // Codex keeps the collapsed MCP row tool-only. Protocol errors belong
+      // Keep the collapsed MCP row tool-only. Protocol errors belong
       // to the expanded danger surface and the Raw result envelope.
       detail: null,
       // Source disclosure is present for every settled MCP item and as soon as
@@ -1105,8 +1105,8 @@ export function presentToolActivity(
     return {
       state,
       grouping: "groupable",
-      // The source renderer gives every generic codex_app dynamic call the
-      // Codex/agent mark, even when it has no specialized presenter.
+      // Generic codex_app dynamic calls use the agent mark even without a
+      // specialized presenter.
       icon: block.namespace === "codex_app" ? "agent" : "none",
       summary: formatDynamicToolActivityLabel(block, state),
       detail: null,
@@ -1130,7 +1130,7 @@ export function presentToolActivity(
   };
 }
 
-/** Codex deduplicates repeated projected updates by item id before counting and timing calls. */
+/** Deduplicate repeated projected updates by item id before counting and timing calls. */
 export function aggregateToolCallStatistics(blocks: readonly TimelineBlock[]): ToolCallStatistics {
   const unique = new Map<string, ActivityBlock | ImageTimelineBlock>();
   for (const block of blocks) {

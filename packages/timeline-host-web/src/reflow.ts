@@ -1,4 +1,4 @@
-const CODEX_REFLOW_PRESERVATION_MS = 250;
+const OPENCRAFT_REFLOW_PRESERVATION_MS = 250;
 
 export interface TimelineReflowPreservationOptions {
   readonly durationMs?: number;
@@ -117,7 +117,7 @@ export function preserveTimelineElementPositionOnReflow(
   const lease = beginTimelineElementReflow(element, scrollElement, options);
   const timeout = window.setTimeout(
     lease.complete,
-    Math.max(0, options.durationMs ?? CODEX_REFLOW_PRESERVATION_MS),
+    Math.max(0, options.durationMs ?? OPENCRAFT_REFLOW_PRESERVATION_MS),
   );
   return () => {
     window.clearTimeout(timeout);

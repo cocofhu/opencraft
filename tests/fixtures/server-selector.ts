@@ -9,6 +9,7 @@ import { gzipSync } from 'node:zlib';
 import WebSocket from 'ws';
 import { AssertionProvider, AssertionSigner, ASSERTION_HEADER } from '../../packages/identity-core/src/node';
 import { MembershipStore, InstanceAccess } from '../../packages/access-control/src';
+import type { EntryOriginResolver } from '../../apps/relay-server/src/authentication';
 import { createRelayServer } from '../../apps/relay-server/src/server';
 import { selectionIdentity, type ServerPaths } from '../../apps/relay-server/src/selection';
 import { connectRelay } from '../../plugins/relay-connect/src/server';
@@ -28,7 +29,7 @@ export async function virtualFetch(url:string, init:{headers?:Record<string,stri
     });req.on('error',reject);req.end(init.body);
   });
 }
-export async function selectorFixture(options:{appServerTarget?:string;webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string;sshPublicAccess?:boolean;serverPaths?:ServerPaths}={}) {
+export async function selectorFixture(options:{entryOrigin?:EntryOriginResolver;appServerTarget?:string;webRoot?:string;appHost?:()=>unknown;defaultUsers?:readonly string[];legacyDefaultUsers?:readonly string[];entryName?:string;sshPublicAccess?:boolean;serverPaths?:ServerPaths}={}) {
   const directory=await mkdtemp(join(tmpdir(),'server-selector-')),cleanup:(()=>unknown)[]=[];
   cleanup.push(()=>rm(directory,{recursive:true,force:true}));
   const pair=generateKeyPairSync('ed25519'),privateKey=pair.privateKey.export({format:'pem',type:'pkcs8'}).toString(),publicKey=pair.publicKey.export({format:'pem',type:'spki'}).toString();
@@ -69,7 +70,7 @@ export async function selectorFixture(options:{appServerTarget?:string;webRoot?:
     target.listen(0,'127.0.0.1');await once(target,'listening');cleanup.push(()=>new Promise<void>(r=>{target.close(()=>r());target.closeAllConnections();}));
     const route={...scope,name:id==='join'?(options.entryName??'Server'):'Lighthouse',credential:randomBytes(32).toString('base64url'),signer:new AssertionSigner(scope,privateKey),identityProvider:provider};routes.push(route);targets.push((target.address() as any).port);
   }
-  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,serverPaths:options.serverPaths,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
+  const relay=createRelayServer(routes,{authentication:{origin,provider},serverSelection:true,entryOrigin:options.entryOrigin,serverPaths:options.serverPaths,selectionDefaults:new Map([...(options.defaultUsers??[]).map(name=>[selectionIdentity(principals[name]!), 'join'] as const),...(options.legacyDefaultUsers??[]).map(name=>[selectionIdentity({provider:'enterprise-identity',subject:'login:'+name}), 'join'] as const)])});relay.server.listen(port,'127.0.0.1');await once(relay.server,'listening');cleanup.push(()=>relay.close());
   for(let i=0;i<routes.length;i++)clients.push(connectRelay({relay:base,credential:routes[i]!.credential,targetPort:targets[i],allowLoopbackInsecure:true}));cleanup.push(()=>clients.forEach(c=>c.close()));
   await waitFor(()=>routes.every(r=>relay.connected(r.instanceId)));
   const get=(path:string,headers:Record<string,string>={},method='GET',body?:Buffer)=>virtualFetch(base+path,{headers:{host,...headers},method,body});

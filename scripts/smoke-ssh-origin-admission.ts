@@ -12,9 +12,9 @@ import { WebSocketServer } from 'ws';
 import { SshManagement } from '../apps/opencraft-daemon/src/ssh-management.js';
 // Entirely isolated state and TLS fixture, with no live SSH/model execution.
 const directory = await mkdtemp(join(tmpdir(), 'opencraft-origin-smoke-'));
-const management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
+let management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
 let originFreeStatus = 0, grants = 0, accepted = 0, rejected = 0;
-const bundled = await build({ stdin: { contents: 'export { SshConnectionsController } from "./plugins/builtin-agents/src/ssh-connections/controller.ts";', resolveDir: resolve('.') }, bundle: true, format: 'esm', platform: 'browser', write: false });
+const bundled = await build({ stdin: { contents: 'export { SshConnectionsController } from "./plugins/builtin-agents/src/ssh-connections/controller.ts"; export { connectWebSocketAppHost } from "./apps/workbench-web/src/runtime/websocket-app-host.ts";', resolveDir: resolve('.') }, bundle: true, format: 'esm', platform: 'browser', write: false });
 const handler = async (req: any, res: any) => {
   if (req.url === '/controller.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundled.outputFiles[0]!.text); return; }
   if (req.url === '/__opencraft_ssh/session') {
@@ -29,7 +29,15 @@ const plain = httpServer(handler), secure = httpsServer({ key: await readFile(jo
 const sockets = new WebSocketServer({ noServer: true });
 secure.on('upgrade', (req, socket, head) => {
   if (!management.sameOrigin(req, true) || !management.authorized(req)) { rejected++; socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n'); return; }
-  accepted++; sockets.handleUpgrade(req, socket, head, ws => ws.send('admitted'));
+  accepted++; sockets.handleUpgrade(req, socket, head, ws => {
+    if (req.url?.startsWith('/raw')) { ws.send('admitted'); return; }
+    ws.on('message', raw => {
+      const message = JSON.parse(String(raw));
+      if (message.type === 'hello') ws.send(JSON.stringify({ type: 'ready', protocolVersion: 2, services: ['appserver'] }));
+      if (message.type === 'host/disconnect') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
+      if (message.type === 'host/connect') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
+    });
+  });
 });
 plain.listen(0, '127.0.0.1'); secure.listen(0, '127.0.0.1');
 await Promise.all([once(plain, 'listening'), once(secure, 'listening')]);
@@ -38,6 +46,7 @@ const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] }
 try {
   const context = await browser.newContext({ ignoreHTTPSErrors: true }); // ephemeral fixture certificate only
   const page = await context.newPage();
+  await page.addInitScript('globalThis.__name = (fn) => fn');
   await page.goto(plainOrigin);
   assert.equal(await page.evaluate(async () => (await fetch('/__opencraft_ssh/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status), 200);
   const httpGrant = (await context.cookies()).find(cookie => cookie.name === 'opencraft_ssh_session_http')!;
@@ -46,7 +55,7 @@ try {
   const before = await page.evaluate(async () => (await fetch('/__opencraft_ssh/session')).json());
   assert.equal(before.authenticatedOrigin, plainOrigin);
   const socketResult = () => page.evaluate(() => new Promise<string>(resolve => {
-    const ws = new WebSocket(`${location.origin.replace('https:', 'wss:')}/ssh-apphost`);
+    const ws = new WebSocket(`${location.origin.replace('https:', 'wss:')}/raw`);
     ws.onmessage = () => { resolve('admitted'); ws.close(); }; ws.onerror = () => resolve('rejected');
   }));
   assert.equal(await socketResult(), 'rejected');
@@ -60,7 +69,31 @@ try {
   assert.deepEqual(result, { authenticated: true, error: null, stable: true });
   assert.equal(await socketResult(), 'admitted');
   assert.equal(grants, 2); assert.ok(originFreeStatus >= 3); assert.equal(rejected, 1); assert.equal(accepted, 1);
-  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, grants, originFreeStatus }));
+  // Keep the same page, controller, transport and draft across a backend restart.
+  await page.evaluate(async () => {
+    const { SshConnectionsController, connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const controller = new SshConnectionsController(undefined, location.origin);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', beforeConnect: () => controller.prepareConnection(), reportFailure: () => {} });
+    const transport = client.createTransport('ssh:fixture');
+    document.body.innerHTML = '<textarea>retained draft</textarea>';
+    const draft = document.querySelector('textarea');
+    (window as any).recoveryFixture = { controller, client, transport, draft };
+    await transport.connect();
+  });
+  management.close();
+  management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
+  for (const ws of sockets.clients) ws.terminate();
+  await page.waitForFunction(() => (window as any).recoveryFixture.transport.status.state === 'failed');
+  const recovered = await page.evaluate(async () => {
+    const { controller, client, transport, draft } = (window as any).recoveryFixture;
+    await transport.connect();
+    const result = { state: transport.status.state, authenticated: controller.getSnapshot().authenticated,
+      sameDraft: document.querySelector('textarea') === draft && draft.value === 'retained draft' };
+    await transport.close(); client.close(); controller.dispose(); return result;
+  });
+  assert.deepEqual(recovered, { state: 'open', authenticated: true, sameDraft: true });
+  assert.equal(grants, 3); assert.equal(rejected, 1); assert.equal(accepted, 3);
+  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, grants, originFreeStatus }));
   await context.close();
 } finally {
   await browser.close(); sockets.close(); plain.closeAllConnections(); secure.closeAllConnections();

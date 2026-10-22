@@ -133,17 +133,18 @@ export function resolveWindowChrome(input: WindowChromeInput): WindowChromeSnaps
   return { kind, platform, safeArea: { left: 0, right: 0 } };
 }
 
-/**
- * Codex places renderer-host identity on the document root. Keeping the
- * attribute above <body> is important: the window viewport contract is a host
- * concern, while the AppShell copy is only useful for component-local styles.
- */
 export function applyWindowChromeDocumentAttributes(
   root: WindowChromeDocumentRoot,
   snapshot: Pick<WindowChromeSnapshot, "kind" | "platform">,
 ): void {
-  root.dataset.opencraftWindowType = snapshot.kind;
-  root.dataset.codexOs = snapshot.platform;
+  // This projection runs from a MutationObserver as well as resize events.
+  // Rewriting an unchanged observed attribute would schedule itself forever.
+  if (root.dataset.opencraftWindowType !== snapshot.kind) {
+    root.dataset.opencraftWindowType = snapshot.kind;
+  }
+  if (root.dataset.codexOs !== snapshot.platform) {
+    root.dataset.codexOs = snapshot.platform;
+  }
 }
 
 export function getWindowChromePolicy(

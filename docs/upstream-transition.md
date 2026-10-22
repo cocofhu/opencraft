@@ -60,12 +60,11 @@ original ShadowRoot stylesheet assembly and resource URL. Public shared styles
 no longer reserve that product artwork space or reference its image.
 
 
-Optional source-parity diagnostics no longer select a maintainer's absolute
-filesystem path or assume a parent reference checkout. Their local snapshots are
-explicit inputs, and browser evidence uses system temporary directories. Default
-builds and the public gate remain independent of those snapshots; this portability
-change does not replace reference code or resolve provenance records. See
-[developer inputs](build-matrix.md#optional-developer-references-and-browser-evidence).
+The work-status diagnostic exercises current production components without a
+separate source snapshot. Browser evidence uses system temporary directories.
+External execution-runtime checks and connector catalog exports still require
+explicit local inputs. See
+[developer inputs](build-matrix.md#developer-diagnostics-and-browser-evidence).
 
 Host-specific Composer shortcut declarations and standalone action adapters belong
 to the trusted connection provider. Core matching, presentation and resident

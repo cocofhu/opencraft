@@ -17,6 +17,7 @@ import {
   type ChatDocumentDialect,
 } from "./preprocess";
 import { findStableMarkdownPrefix } from "./streaming/code-boundary";
+import { jsonBlockTokenizer } from "./json-block";
 
 type MarkdownToken = Record<string, unknown>;
 
@@ -295,6 +296,18 @@ function mapBlockTokens(
     switch (type) {
       case "space":
         break;
+      case "bareJson": {
+        const prefix = string(token.prefix);
+        if (prefix.trim()) nodes.push({
+          ...emptyBase("paragraph", range(start, prefix)),
+          children: mapInlineTokens(tokens(token.tokens), prefix.trimEnd(), start),
+        });
+        nodes.push({
+          ...emptyBase("code-fence", range(start + prefix.length, string(token.text))),
+          language: "json", code: string(token.text), meta: null,
+        });
+        break;
+      }
       case "paragraph":
       case "text": {
         const directive = parseDirective(raw, sourceRange);
@@ -394,7 +407,6 @@ function mapBlockTokens(
         });
         break;
       case "html":
-        // Codex always treats an isolated HTML break as layout, while all
         // other raw HTML remains inert text unless a typed surface owns it.
         if (/^\s*<br\s*\/?>\s*$/iu.test(raw)) {
           nodes.push(emptyBase("line-break", sourceRange));
@@ -618,14 +630,14 @@ const assistantMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, jsonBlockTokenizer],
 });
 
 const userMessageMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer, jsonBlockTokenizer],
 });
 
 function lex(markdown: string, dialect: ChatDocumentDialect): readonly MarkdownToken[] {
@@ -670,9 +682,10 @@ export class ChatDocumentCompiler {
     const preprocessed = preprocessChatMarkdown(dialectSource, { streaming: options.streaming });
     const openFenceStart = preprocessed.openFence?.start ?? null;
     // Reference definitions can reinterpret earlier blocks; unresolved shortcuts
-    // also matter. Conservative bracket fallback includes images/inline links.
+    // also matter. Braces can turn earlier Markdown blocks into one JSON block
+    // when a later closing delimiter arrives; do not freeze those prefixes.
     // Marked normalizes CRLF internally, so raw offsets cannot be reused here.
-    if (options.streaming !== true || /[\[\r]/u.test(preprocessed.markdown)
+    if (options.streaming !== true || /[\[{\r]/u.test(preprocessed.markdown)
       || preprocessed.markdown.includes("$$")) {
       const parsed: ParsedChatDocument = {
         source,

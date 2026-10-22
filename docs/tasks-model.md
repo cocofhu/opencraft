@@ -2,7 +2,7 @@
 
 状态：首版源码已实现，2026-10-11；运行产物与验证状态见下游产品工作区的实现记录（不在本仓库）。
 
-用户确认采用 BB Tasks 的抽象：任务是独立业务记录，看板是任务视图。用户进一步要求旧卡片不迁移、不纳入新模型，不增加迁移、兼容或其他无必要实现代码。
+用户确认：任务是独立业务记录，看板是任务视图。用户进一步要求旧卡片不迁移、不纳入新模型，不增加迁移、兼容或其他无必要实现代码。
 
 ## 核心关系
 
@@ -135,7 +135,6 @@ Tasks 保持业务记录和会话关系。Delegate、执行重试、并发、定
 
 ## 参考与依据
 
-BB `plugins/tasks` 固定提交 `62fe3bc46bd1d935b71482b62a1e0887ffb83487` 的任务/多线程关联和独立运行状态；本模型保留其领域边界，收敛首版表与功能。
 
 OpenCraft 当前入口：`packages/workbench-runtime/src/client-hub-server.ts` 的 ServerOrigin；`packages/workbench-runtime/src/appserver-runtime.ts` 的会话执行接口；`plugins/tasks` 实现本模型，旧卡片不参与新模型。
 

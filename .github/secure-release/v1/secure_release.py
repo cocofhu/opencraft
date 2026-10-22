@@ -5,7 +5,7 @@ Definition:
   Validate immutable Git release identity, extract committed changelog notes,
   create/verify a canonical SHA-256 manifest, and package/publish/smoke one npm
   package. CI copies this file into the target repository; it never loads a
-  Codex skill at runtime.
+  agent skill at runtime.
 
 Parameters:
   Run ``secure_release.py <command> --help`` for command-specific parameters.

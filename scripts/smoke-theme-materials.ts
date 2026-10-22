@@ -18,8 +18,8 @@ import {initializeAppearanceTheme,connectAppearanceThemeContributions,setThemePr
 import '/apps/workbench-web/src/styles/app.scss';
 const supervisor=new ExtensionSupervisor({platform:'electron'});initializeAppearanceTheme();connectAppearanceThemeContributions(supervisor.contributions);
 const palette=(dark)=>({accent:'#5599dd',contrast:45,ink:dark?'#eeeeee':'#171717',surface:dark?'#161616':'#f8f8f8',surfaces:{window:dark?'#181818':'#ededed',sidebar:dark?'#161616':'#f0f0f0',panel:dark?'#202020':'#ffffff',input:dark?'#2b2b2b':'#fafafa',popover:dark?'#363636':'#ffffff'},material:{window:'opaque',elevation:'flat'},semanticColors:{diffAdded:'#118844',diffRemoved:'#dd3344',skill:'#775599'}});
-const definition={manifest:{manifestVersion:1,id:'vela.material-test',name:'Material test',version:'1.0.0',apiVersion:1,trust:'trusted',platforms:['electron'],activationEvents:['onStartupFinished']},activate(api){api.themes.register({id:'vela.material-test.studio',label:'Studio test',palettes:{light:palette(false),dark:palette(true)}})}};
-window.themeHarness={install:()=>supervisor.activate(definition),remove:()=>supervisor.deactivate('vela.material-test'),select:()=>setAppearanceThemeId('vela.material-test.studio'),core:()=>setAppearanceThemeId(coreThemeId),mode:setThemePreference,snapshot:getAppearanceThemeSnapshot};
+const definition={manifest:{manifestVersion:1,id:'opencraft.material-test',name:'Material test',version:'1.0.0',apiVersion:1,trust:'trusted',platforms:['electron'],activationEvents:['onStartupFinished']},activate(api){api.themes.register({id:'opencraft.material-test.studio',label:'Studio test',palettes:{light:palette(false),dark:palette(true)}})}};
+window.themeHarness={install:()=>supervisor.activate(definition),remove:()=>supervisor.deactivate('opencraft.material-test'),select:()=>setAppearanceThemeId('opencraft.material-test.studio'),core:()=>setAppearanceThemeId(coreThemeId),mode:setThemePreference,snapshot:getAppearanceThemeSnapshot};
 const managerSnapshot={extensions:[],installationLoadErrors:[]};const empty=[];
 const manager={subscribe:()=>()=>{},getSnapshot:()=>managerSnapshot};const renderers={subscribe:()=>()=>{},getSnapshot:()=>empty};
 function App(){const [settings,setSettings]=useState(false);const appearance=useAppearanceTheme();window.themeHarness.showSettings=()=>setSettings(true);
@@ -41,7 +41,7 @@ try {
   await build({entryPoints:["apps/workbench-electron/src/window-appearance.ts"],bundle:true,platform:"node",format:"cjs",outfile:join(output,"appearance.cjs")});
   const url=`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`;
   const entry=join(output,"main.cjs");
-  await writeFile(entry,`const {app,BrowserWindow,ipcMain,nativeTheme}=require('electron');const {isWindowAppearanceMessage,applyNativeWindowAppearance}=require('./appearance.cjs');app.setPath('userData',${JSON.stringify(join(output,"profile"))});let current={themeSource:'light',resolvedTheme:'light'};globalThis.probe={rejected:0,calls:[]};app.whenReady().then(()=>{const w=new BrowserWindow({width:1000,height:720,show:false,webPreferences:{preload:${JSON.stringify(join(output,"preload.cjs"))},contextIsolation:true,nodeIntegration:false}});globalThis.probe.window=w;const vibrancy=w.setVibrancy.bind(w);w.setVibrancy=value=>{globalThis.probe.calls.push(value);vibrancy(value)};const refresh=()=>{nativeTheme.themeSource=current.themeSource;applyNativeWindowAppearance(w,current,process.platform);globalThis.probe.appearance=current};ipcMain.on('vela:set-window-appearance',(event,payload)=>{if(event.sender!==w.webContents||!isWindowAppearanceMessage(payload)){globalThis.probe.rejected++;return;}current=payload;refresh()});w.on('focus',refresh);w.on('blur',refresh);w.loadURL(${JSON.stringify(url)});});app.on('window-all-closed',()=>app.quit());`);
+  await writeFile(entry,`const {app,BrowserWindow,ipcMain,nativeTheme}=require('electron');const {isWindowAppearanceMessage,applyNativeWindowAppearance}=require('./appearance.cjs');app.setPath('userData',${JSON.stringify(join(output,"profile"))});let current={themeSource:'light',resolvedTheme:'light'};globalThis.probe={rejected:0,calls:[]};app.whenReady().then(()=>{const w=new BrowserWindow({width:1000,height:720,show:false,webPreferences:{preload:${JSON.stringify(join(output,"preload.cjs"))},contextIsolation:true,nodeIntegration:false}});globalThis.probe.window=w;const vibrancy=w.setVibrancy.bind(w);w.setVibrancy=value=>{globalThis.probe.calls.push(value);vibrancy(value)};const refresh=()=>{nativeTheme.themeSource=current.themeSource;applyNativeWindowAppearance(w,current,process.platform);globalThis.probe.appearance=current};ipcMain.on('opencraft:set-window-appearance',(event,payload)=>{if(event.sender!==w.webContents||!isWindowAppearanceMessage(payload)){globalThis.probe.rejected++;return;}current=payload;refresh()});w.on('focus',refresh);w.on('blur',refresh);w.loadURL(${JSON.stringify(url)});});app.on('window-all-closed',()=>app.quit());`);
   desktop=await _electron.launch({executablePath:resolve(executablePath),args:[entry],env:Object.fromEntries(Object.entries(process.env).filter(([key])=>key!=="ELECTRON_RUN_AS_NODE"))});
   const page=await desktop.firstWindow();page.on("pageerror",(e:Error)=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");await page.goto(url);await page.locator('#name').waitFor();
@@ -76,8 +76,8 @@ try {
   });
   state=await desktop.evaluate(()=>{const p=(globalThis as any).probe;return{focused:p.window.isFocused(),vibrancy:p.calls.at(-1)}});assert.equal(state.focused,false);assert.equal(state.vibrancy,null);
   await page.evaluate(()=>(window as any).themeHarness.select());await page.evaluate(()=>(window as any).themeHarness.remove());
-  const fallback=await page.evaluate(()=>(window as any).themeHarness.snapshot());assert.equal(fallback.requestedThemeId,'vela.material-test.studio');assert.equal(fallback.themeId,'vela.core.codex');
-  await page.evaluate(()=>(window as any).themeHarness.install());assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'vela.material-test.studio');
+  const fallback=await page.evaluate(()=>(window as any).themeHarness.snapshot());assert.equal(fallback.requestedThemeId,'opencraft.material-test.studio');assert.equal(fallback.themeId,'opencraft.core.neutral');
+  await page.evaluate(()=>(window as any).themeHarness.install());assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'opencraft.material-test.studio');
   await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>(window as any).themeHarness.mode('system'));
   assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).resolvedTheme,'dark');
   await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>(window as any).themeHarness.snapshot().resolvedTheme==='light');
@@ -87,13 +87,13 @@ try {
     await page.evaluate(()=>(window as any).themeHarness.remove());
     await page.evaluate(()=>(window as any).themeHarness.showSettings());
     const zen=page.getByRole('radio',{name:/ZenCode/});
-    await zen.click();await page.waitForFunction(()=>document.documentElement.dataset.themeId==='vela.core.zencode');
+    await zen.click();await page.waitForFunction(()=>document.documentElement.dataset.themeId==='opencraft.core.zencode');
     for(const mode of ['Light','Dark']){
       await page.getByRole('radiogroup',{name:'Appearance mode'}).getByText(mode,{exact:true}).click();
       await page.waitForFunction(mode=>(window as any).themeHarness.snapshot().resolvedTheme===mode,mode.toLowerCase());
       await page.waitForTimeout(200);
       assert.equal(await zen.getAttribute('aria-checked'),'true');
-      const swatch=await page.locator('[data-theme-preview="vela.core.zencode"] span:first-child').evaluate(e=>getComputedStyle(e).backgroundColor);
+      const swatch=await page.locator('[data-theme-preview="opencraft.core.zencode"] span:first-child').evaluate(e=>getComputedStyle(e).backgroundColor);
       assert.equal(swatch,mode==='Dark'?'rgb(22, 22, 22)':'rgb(240, 240, 240)');
       const native=await desktop.evaluate(()=>{const p=(globalThis as any).probe;return{background:p.window.getBackgroundColor(),vibrancy:p.calls.at(-1)}});
       assert.equal(native.vibrancy,null);assert.equal(native.background.toLowerCase(),mode==='Dark'?'#161616':'#f8f8f8');
@@ -101,7 +101,7 @@ try {
       evidence.push({preset:'ZenCode',mode,swatch,native});
     }
     await page.reload();await page.locator('#name').waitFor();
-    assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'vela.core.zencode');
+    assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'opencraft.core.zencode');
     await page.evaluate(()=>(window as any).themeHarness.showSettings());
     await page.getByRole('radiogroup',{name:'Appearance mode'}).getByText('System',{exact:true}).click();
     await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>(window as any).themeHarness.snapshot().resolvedTheme==='light');

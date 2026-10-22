@@ -78,7 +78,6 @@ function lastUnescapedIndex(text: string, delimiter: string): number {
   return -1;
 }
 
-/** Codex ignores inline backticks that belong to complete or open fenced blocks. */
 function hasOddInlineBackticks(text: string): boolean {
   let count = 0;
   for (let cursor = 0; cursor < text.length;) {
@@ -179,7 +178,7 @@ function closeOddDelimiter(text: string, delimiter: "**" | "*"): string {
 }
 
 /**
- * Streaming normalization follows Codex r1381's parser-stability contract:
+ * Streaming normalization preserves parser stability:
  * incomplete syntax is hidden or temporarily closed without changing the
  * canonical source stored by the session. Math normalization remains OpenCraft's
  * typed extension and is deliberately excluded from fenced source.

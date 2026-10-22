@@ -1,5 +1,8 @@
+import { RemoteBrowserStorage } from '../browser/remote-browser-storage';
+import { supportsH264MediaSource } from '../browser/h264-media-source';
+import { RemoteBrowserSurfaceHost } from '../browser/remote-browser-surface-host';
 import type { ConversationPresentationProvider } from "./conversation-presentation";
-import { serverStorageKey, serverUrl } from "./server-context";
+import { serverFetch, serverStorageKey, serverUrl } from "./server-context";
 import { createWebWorkbenchApplicationSupervisor } from "./web-workbench-supervisor";
 import { createApplicationDisposer } from "./application-disposal";
 import { Context, type Plugin } from "@deepseek-ai/cordis";
@@ -103,11 +106,16 @@ export async function createWebWorkbenchApplication(
   // before IndexedDB, Cordis and extension activation so authentication does
   // not depend on the latency or success of the rest of application startup.
   const desktop = (globalThis as typeof globalThis & { opencraftDesktop?: { kind?: string } }).opencraftDesktop?.kind === "electron";
-  const browserStorage = options.browserMetadataStorage ?? (desktop ? await createDesktopBrowserStorage() : null);
   await options.clientProduct?.bootstrap?.({
     platform: desktop ? "electron" : "web",
     hostProfileMode: options.hostProfileMode,
   });
+  const remoteBrowser = !desktop && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === 'true'
+    && (typeof VideoDecoder !== 'undefined' || supportsH264MediaSource())
+    && await serverFetch('/__opencraft_browser/capabilities', { signal: AbortSignal.timeout(2000) })
+      .then(response => response.ok ? response.json() : null).then(value => value?.available === true).catch(() => false);
+  const remoteStorage = remoteBrowser && !options.browserMetadataStorage ? await RemoteBrowserStorage.create() : null;
+  const browserStorage = options.browserMetadataStorage ?? remoteStorage ?? (desktop ? await createDesktopBrowserStorage() : null);
   // Desktop account restoration is independent of local Host startup. The
   // local Host and its environment configuration must remain usable meanwhile.
   const cordis = new Context();
@@ -135,10 +143,12 @@ export async function createWebWorkbenchApplication(
     const runtime = await supervisor.registry.ensureConnected(hostId);
     return runtime.resources.host.fetchLoopback(targetUrl, init);
   });
-  const browserSurfaces = desktop ? new ElectronBrowserSurfaceHost(browserStorage!) : new WebIframeSurfaceHost();
+  const browserSurfaces = desktop ? new ElectronBrowserSurfaceHost(browserStorage!)
+    : remoteBrowser ? new RemoteBrowserSurfaceHost(browserStorage ?? undefined, remoteStorage ? 'opencraft.remote-browser-storage.v1' : undefined) : new WebIframeSurfaceHost();
+  const releaseStorageErrors = remoteStorage?.onError(error => { if (browserSurfaces instanceof RemoteBrowserSurfaceHost) browserSurfaces.fail(error); });
   const browserPages = new WebBrowserPageRuntime(
     browserSurfaces,
-    hostProxy,
+    remoteBrowser ? null : hostProxy,
     (ownerId) => conversationBindings.resolve(
       ownerId as Parameters<typeof conversationBindings.resolve>[0],
     )?.hostId ?? null,
@@ -153,7 +163,7 @@ export async function createWebWorkbenchApplication(
   } catch (error) {
     browserPresentations.dispose();
     browserPages.dispose();
-    browserSurfaces.dispose();
+    browserSurfaces.dispose(); releaseStorageErrors?.(); remoteStorage?.dispose();
     conversationBindings.dispose();
     await panelRuntime.dispose().catch(() => undefined);
     throw error;
@@ -224,7 +234,7 @@ export async function createWebWorkbenchApplication(
       }
       resolveTerminalRuntime = (hostId) => activeSupervisor.registry.getRuntime(hostId);
       await panelRuntime.install(SideChatService, { resolveHost: (hostId: string) => activeSupervisor.registry.ensureConnected(hostId) });
-      await panelRuntime.install(createSideChatPanelPlugin(panelRuntime.context.sideChats, conversationBindings));
+      await panelRuntime.install(createSideChatPanelPlugin(panelRuntime.context.sideChats, conversationBindings, hostId => activeSupervisor.registry.getRuntime(hostId)));
       const desktopKind = (
         globalThis as typeof globalThis & { readonly opencraftDesktop?: { readonly kind?: string } }
       ).opencraftDesktop?.kind;
@@ -258,7 +268,7 @@ export async function createWebWorkbenchApplication(
     hostProxy.dispose();
     browserPresentations.dispose();
     browserPages.dispose();
-    browserSurfaces.dispose();
+    browserSurfaces.dispose(); releaseStorageErrors?.(); remoteStorage?.dispose();
     conversationBindings.dispose();
     await terminalSessions?.dispose().catch(() => undefined);
     await panelRuntime.dispose().catch(() => undefined);
@@ -291,6 +301,7 @@ export async function createWebWorkbenchApplication(
       () => browserPresentations.dispose(),
       () => browserPages.dispose(),
       () => browserSurfaces.dispose(),
+      async () => { releaseStorageErrors?.(); try { await remoteStorage?.flush(); } finally { remoteStorage?.dispose(); } },
       () => supervisor.dispose(),
     ], "Failed to dispose Web Workbench application"),
   };

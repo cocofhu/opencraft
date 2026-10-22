@@ -1,8 +1,8 @@
 # OpenCraft 跨平台浏览器工作台实施设计
 
-> 状态：Web iframe 与标准 Electron webview 已接入并通过桌面主链路验收；Playwright/Expo Adapter Proposed
+> 状态：Web iframe、Electron webview 与 Linux Server H.264 Surface；各平台验收分别记录，Playwright/Expo Adapter Proposed
 > 目标平台：Vite Web、Electron Desktop、Expo iOS/iPadOS、Expo Web  
-> 架构修订：R6（Codex 生命周期、多 Host 与 AI Capability 边界复审）  
+> 架构修订：R6（浏览器生命周期、多 Host 与 AI Capability 边界复审）
 > 当前已实现 `browser-core`、Web iframe Runtime、应用级 Presentation Root、右侧多
 > Tab 投影、显式关闭、会话恢复、聊天外链接入，以及 OpenVibe 形状的 typed Preview Bridge。
 > Authority/Backing owner、Electron
@@ -10,7 +10,7 @@
 
 ## 1. 结论
 
-Shell 几何（2026-09-14，Codex 26.908.40834 Wba/Xba/Vba）：Viewport 用 flex
+Shell 几何：Viewport 用 flex
 表达可见范围并裁切，Frame 独立消费 F=max(0,W-min(R,A))，且 min-width:100%；
 聊天容器查询归 Frame，而不是动画 aperture。显隐和全宽是两个 MotionValue，
 同一个 Shell 事务 owner 停止旧写入者并提交新目标，模式切换先消除半关闭状态，
@@ -18,13 +18,12 @@ scope/reduced-motion 使用端点。退出期间保存同 scope 的布局描述�
 resize 不冻结内容。原生 guest 上方的临时 resize 捕获层只在拖动事务存续期间存在，
 松手/取消/失焦结束，避免 guest 吞掉主页面 pointermove。
 
-2026-09-14 源实现迁移为历史起点；2026-10-20 的有界替换后，ApplicationSupervisor
+ApplicationSupervisor
 创建的 BrowserPresentationCoordinator 经原薄 adapter 实例化独立 Host registry 与
 PagePresentationTransition。管理器仍拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
 独立 body root、标准 guest、导航及持久化端口。面板仅申领挂载并提交几何，park/unmount 不销毁页面，
 显式 close 才销毁。逻辑 Page、持久化 browserStorageId、rendererInstanceId、
-host generation 与 mount generation 分离。存储分区采用标准 Electron partition；
-不实现 Codex 的 Owl WebContents adoption。
+host generation 与 mount generation 分离。存储分区采用标准 Electron partition。
 
 原生导航事件是桌面 URL、title、Back/Forward 的真源。主进程校验 guest URL/partition，
 强制 sandbox/contextIsolation、禁用 Node/任意 preload 与嵌套 webview。
@@ -86,6 +85,17 @@ OpenCraft 也不采用“整个 Renderer 只能有一个 Cordis Context”的全
 > 每个物理资源只有一个生命周期所有者；一个 `ApplicationSupervisor` 显式拥有多个
 > 生命周期域，每个域可以使用自己的 Cordis Context/Fiber。
 
+### 原生远程编辑运行时
+
+自有 Electron 源码定义与补丁由 [vendor/electron](../vendor/electron/README.md)
+持有。首个补丁恢复 OSR 的 Chromium 文本状态管线，并提供只读原生选区、组合范围和
+光标几何查询；它不是原子快照，不包含输入授权或跨文档唯一编辑身份，当前发行包
+尚未消费此 fork。缺失的几何保持不可用，不由 DOM 或控件边缘推测。
+
+后续输入桥接保持远端原生编辑器为正文唯一写入者，本地系统输入法拥有候选会话。
+严格目标绑定、焦点/文档代次、迟到提交/取消、原生客户端上下文、触摸及 DevTools
+共存需要独立运行验证；不能用源码重放成功替代真实编辑体验或权限验证。
+
 ## 2. 第一性原理
 
 ### 2.1 身份必须描述不随投影改变的事实
@@ -131,7 +141,7 @@ destroy 是五个不同事件。任何 Adapter 都不得通过组件卸载暗中
 
 ### 2.4 跨平台共享行为，不共享桌面布局
 
-`right | bottom`、320px、磁力压缩、full-width 和 Codex header slot 都是 Vite/Electron
+`right | bottom`、320px、磁力压缩、full-width 和 Workbench header slot 都是 Vite/Electron
 布局策略。Expo Native 共享 Resource/Session/Command 契约，但使用 split view、stack、
 sheet、safe area 和 native gesture。
 
@@ -142,54 +152,6 @@ sheet、safe area 和 native gesture。
 未来平台设计十几个空包。
 
 ## 3. 参考实现约束
-
-### 3.1 Codex 桌面实现提供的证据
-
-恢复源码显示，参考桌面实现将工作台标签、浏览器标签和物理 WebView 分开：
-
-- `shared/parse-tab-host-view-id-from-window-id-01015.js`：Panel 投影分别保留
-  `tabId` 与 `browserTabId`；
-- `browser/compute-browser-panel-initial-state-09586.js`：从 conversation browser
-  状态生成面板投影；
-- `browser/get-or-create-browser-sidebar-webview-root-05632.js`：应用级 fixed
-  WebView Root 不跟随 Panel 子树卸载；
-- `browser/browser-sidebar-webview-manager-05645.js`：管理 storage mode、mount
-  generation、renderer instance 与 conversation transfer；
-- 同一 manager 的 `browserUseTabKeys`、`webviews`、`tabCaptureActiveKeys` 和
-  `mountStates.claimKeys` 证明 agent 使用、Backing 存活、capture 与 UI mount 是相互独立
-  的生命周期事实；`getConversationBrowserTabIds()` 会合并 agent 与 WebView 两条来源；
-- `_virtual/safe-url-parse.js`：React 子树只 claim/release mount generation；最后一个
-  mount claim 释放后才允许 detach，并不等价于 close tab；
-- `_virtual/plan-browser-tab-activation.js`：逻辑 Browser tab 可以迁移所有权；
-- `_virtual/navigate-to-chat-home.js`：持久化 `browserTabId`、`browserStorageId`、布局与
-  `restoreUrl`，但不持久化 renderer/host/mount generation、adoption lease 或
-  WebContentsId；
-- `conversations/interrupted-command-ids-subscription-selector-04990.js`、
-  `service/app-server-manager-registry-06127.js` 和
-  `service/app-server-request-client-module-03167.js`：应用域按 `hostId` 创建一个逻辑
-  request client，Manager 校验 client/Host 一致性，Registry 索引 Manager；所有请求再
-  经一条携带 `hostId` 的 Host bridge 复用物理通道；
-- `browser/iframe-orchestrator-08353.js`：Assistant Visualization 使用独立沙箱协议。
-
-参考源码根目录：
-
-```text
-reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact
-```
-
-### 3.2 WorkBuddy 提供的证据
-
-WorkBuddy 的 `BrowserPreview -> LocalWebview | CloudIFrame` 证明平台 Adapter、Host
-Bridge、稳定尺寸后导航和 iframe 保活有价值，但单个 `currentUrl` Context 不是多标签
-Browser Domain。
-
-参考源码根目录：
-
-```text
-/data/wbwell/output/workbuddy-monorepo-v8-source
-```
-
-采用其 Bridge/Adapter 经验，不复制单 Preview 状态模型。
 
 ## 4. 产品级身份
 
@@ -253,12 +215,12 @@ Session ID 如果不能满足全局唯一性，只作为 `BrowserAuthorityBindin
 
 Authority 身份分四层，不能再用一个含糊的 `authorityId` 同时表示配置、连接和物理实例：
 
-| OpenCraft 字段 | 稳定范围 | Codex 中对应证据 | 是否进入普通 checkpoint |
+| OpenCraft 字段 | 稳定范围 | 边界职责 | 是否进入普通 checkpoint |
 | --- | --- | --- | --- |
 | `profileId` | 用户配置/路由选择稳定，如 `local-electron` 或某 Remote 集群 | Host kind、远端配置与路由 policy | 是 |
-| `runtimeId` | 一次 Authority 进程或连接 incarnation | Host connection/host generation 的 fencing 思路 | 否 |
+| `runtimeId` | 一次 Authority 进程或连接 incarnation | 连接代次隔离迟到结果 | 否 |
 | `engineInstanceId` | 一个实际浏览器 Backing | 私有 WebView/WebContents 映射或远端 instance ref | 否；`browserStorageId` 对应的是下文 opaque restore ref |
-| `generation` | 当前 Session 绑定序列，rebind 时单调增加 | host generation / reconnect generation 的 fencing 思路 | 否 |
+| `generation` | 当前 Session 绑定序列，rebind 时单调增加 | 重绑代次隔离迟到结果 | 否 |
 
 `hostId` 仍只表示 AppServer 执行/工作区上下文；它可以参与 Authority 路由，但不是
 Browser Authority identity。`BrowserRestoreHandleRef` 是稳定且不透明的恢复能力引用，
@@ -345,8 +307,7 @@ Session Controller 维护 owner set 与 presentation claim set，但二者含义
 - `terminateAuthority()`：在 capability 允许时显式结束远端/独立 Authority instance；
 - Backing destroy：Controller 在 fencing 校验后执行的物理清理结果，不是 UI action。
 
-Codex 的 `adoptionLease` 只用于一次 Electron WebContents handoff，不应泛化为上述 owner
-模型的通用计数器。
+一次 Electron WebContents handoff 的租约不应泛化为上述 owner 模型的通用计数器。
 
 ## 6. 状态所有权
 
@@ -1200,8 +1161,7 @@ Supervisor、多个有清晰所有权的 Runtime scope，以及可被两种以�
 
 ## 23. R6 复审结论
 
-本轮对照 Codex r2030 与 OpenCraft 当前实现后，以下问题已经定案，不再作为实现阶段的开放
-二选一：
+以下所有权与生命周期规则已经定案，不再作为实现阶段的开放二选一：
 
 1. View 只是 presentation claim；Session、Authority 与 Backing 生命周期不能由 React
    mount 数量推导。
@@ -1263,12 +1223,9 @@ navigation initiated inside an inaccessible cross-origin guest.
 
 ### Viewport drag geometry replacement (2026-10-20)
 
-The small `viewport-resize.js` pure helper now uses independently authored axis
-geometry after frozen requirements and observed contracts; its former explicit
-source-body attribution is retained in the provenance baseline. This supersedes
-only the earlier statement that drag calculation itself directly uses the
-reference implementation. Device preset facts, source manager, toolbar and
-transition ownership are unchanged and are not cleared by this replacement.
+The `viewport-resize.js` pure helper owns axis geometry. Device preset facts,
+source manager, toolbar and transition ownership remain with their current
+owners.
 Horizontal handles resize around a fixed center, bottom handles alter height,
 and the captured scale maps pointer movement into bounded viewport dimensions.
 Pointer capture, cancellation, keyboard and persistence remain in their current
@@ -1287,6 +1244,16 @@ old callbacks cannot reclaim a newer reference or generation. Surface moves reti
 the previous presentation claim. Automation input/focus locks remain on the Host.
 
 
+
+### Replaced host registration completion (2026-10-21)
+
+When a selected host is replaced before it has registered or painted, the
+transition retires that host's current presentation reference before showing its
+replacement. A later registration may finish preparing the retained backing but
+must keep its old presentation parked. The selected tab, visible page and input
+recipient must agree; logical pages and drafts remain alive until explicitly
+closed. Current owner, reference and generation fences also apply to this early
+replacement path.
 
 ### Browser Host registry contract (2026-10-20)
 
@@ -1310,3 +1277,35 @@ toolbar and manager consume the same six declared exports. Numeric helpers
 round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
+
+## Linux Server 远程网页 Surface（2026-10-21）
+
+Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性启动独立进程；不渲染工作台 UI、不公开 CDP。支持 H.264 的客户端使用 RemoteBrowserSurfaceHost（安全上下文优先 WebCodecs，HTTP/其他客户端使用原生 MSE），现有 Tab、Page、Presentation manager、BrowserDynamicToolHost 与线程归属检查保持；普通 Web iframe 与桌面原生 guest 继续使用原适配。渲染地点固定为所连 Server，不因 Thread 的执行 Host 或 SSH Host 改变。远程网页直接访问该 Server 的网络；不把 SSH loopback 代理 URL 交给另一个执行地点。
+
+远程网页跟随 Presentation 的 `viewportSize`（CSS 宽高）；responsive 模式使用内容区实时尺寸，设备尺寸预设使用其逻辑视口，不取客户端 devicePixelRatio，远端默认 DPR=1。尚无 View 时回退1280×720。`open.input.viewport` 和同连接 `viewport` 请求传宽高，尺寸归一为偶数、最小64、最长边4096，并以H.264 level 4的8192个16×16宏块（约2百万像素）限制软件渲染资源；超限按比例收缩。worker返回并先发布实际 `viewport` 配置，再输出该代关键帧；调整同一WebContents内容尺寸，不导航或重建DOM。客户端100ms合并尺寸、至多一个请求进行中及一个最新待处理，拖动期间持续更新；编码器按新尺寸重建、旧代结果失效，WebCodecs/MSE及输入坐标使用已生效尺寸。设备预设由共享BrowserViewportMode派生deviceProfile并随同几何传递；手机/平板使用worker内部私有Chromium仿真同步一致的移动UA/Client Hints（含iOS profile）、viewport meta语义、screen方向及触屏，DPR固定1。移动/触控profile将有界鼠标按下/移动/抬起串行转为Chromium真实touch序列，指针取消/捕获丢失与设备切换撤销未完成手势。桌面预设/关闭设备栏恢复桌面UA、metrics和鼠标；自定义调宽与旋转保留所选profile，同尺寸profile变更也必须应用。能力声明deviceEmulation=full仅表示该Chromium仿真链路，iOS标签不表示Safari/WebKit内核。首次直接以移动profile建立Page时先初始化本地about:blank renderer，再应用设备身份，之后才允许目标导航；设备切换不刷新、不重建DOM；按UA生成的服务端正文在后续导航或用户刷新时应用。worker串行化设备重配，并在导航/输入前等待已提交的设备变更，客户端不暴露任意CDP/UA/JS。软件 H.264 text hint、实时编码、Annex B；30fps 是活动上限，1.2秒后10fps，再2.8秒后2fps。静态去重不编码；非交互小更新固定150ms合并；仅一帧编码中和一帧最新待处理。全服务共享一个可信编码 renderer，各页面编码器在隐藏时释放。队列丢弃发生在编码前；编码后的预测帧保序，慢客户端断开后请求新关键帧，显示端只留最新解码帧。WebCodecs 无周期性关键帧；MSE 按缓冲回收水位请求关键帧，只在实际编码媒体积累时触发，静态不产生额外帧。鼠标形状同步，位置使用客户端系统光标。
+
+同源 WebSocket 复用 admission、actor身份、到期和撤权；每个连接只持有 actor+随机持久化 storage lease 的页面。服务器生成物理分区 ID；Page、storage ID 与瞬时连接分离。View park 只停视频；显式 close 释放页面，保留 Cookie 分区。观看连接断开或 Application dispose 仅取消活动输入并停流，远端 Tab 不因断线计时销毁；每 owner 最多16页、全服务最多64页，不静默淘汰驻留页面。重新挂接存活 WebContents 时同步原生 URL/title/导航状态，禁止初始客户端导航覆盖原 DOM/JS。Tab、分区恢复身份、Scope/Thread 关联与工具栏元数据由同源认证的 Server 持有，客户端同步投影启动时加载，写入按 owner 版本比较拒绝旧客户端覆盖，并以同一 mutation ID 处理丢失确认；既有本地元数据只在远端全空时晋升，原本地记录保留且不作为权限凭据。恢复文件在私有目录以600权限原子替换，损坏拒绝读取而不清空。服务端进程退出保留 URL、有效尺寸/设备语义、zoom 及原隔离登录分区，下一次挂接重新加载；这与运行中重连有明确 resumed/restored 区别，不声称恢复任意 DOM/JS/表单/内存历史。明确 close/discard 删除恢复记录并释放页面，Cookie 分区仍遵循原保留策略。所有操作继续按当前 owner 校验，元数据同步不授予页面操作权限。预览桥在目标文档内运行，只暴露已有类型化操作，敏感字段拒绝及 revision/ref 校验复用原实现，语义输入不声称 trustedInput。远程手动坐标输入作用于同一目标 WebContents。
+
+站点权限默认拒绝、下载默认阻止、popup 转为当前 scope 的受管标签。远程站点权限设置、下载管理、音频、跨后端运行中状态迁移、原生设备模拟尚未提供。登录态保留在服务端隔离分区，不发送到客户端。
+
+
+### Remote tab state and viewer lifecycle
+
+A remote tab outlives its display socket. Its renderer is authoritative for page
+content and editing; local presentation owns video decoding, client geometry
+and system input. Disconnect suspends video production and releases pressed
+keys, buttons and touch contacts without navigating or destroying the page.
+Input/control boundaries are ordered in the worker; moves are flushed before
+release and local compositions are discarded across a connection change.
+This is still final-text input, not the complete native IME bridge described
+above. Touch remains the existing single-contact emulation path.
+
+Durable metadata uses the existing authenticated WebSocket admission. Browser
+records and conversation aliases are scoped to the gateway owner; their IDs
+never grant access. Concurrent stale metadata writes fail with STATE_CONFLICT
+and require synchronization rather than silently replacing another client's
+tabs. Ordinary client cleanup detaches; explicit tab close deletes its remote
+recovery record. A worker restart recreates the tab from the saved URL and
+configuration using its persistent partition. In-memory selection, scroll,
+forms, navigation history and JavaScript heap are preserved only while that
+WebContents remains alive.
