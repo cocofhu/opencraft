@@ -27,7 +27,7 @@ import type { ReactNode } from "react";
 import { SidebarBots, SidebarEntityDndCoordinator } from "./sidebar-bots";
 import { ThreadActionModals, threadActionKey, useThreadActionOwner, type ThreadActionCallbacks, type ThreadActionCapabilities } from "./thread-management";
 import { SidebarThreadMenuStore, type OpenSidebarThreadMenu, type SidebarThreadMenuKind } from "./sidebar-thread-menu-state";
-import { SidebarThreadRowMenu, SidebarThreadBadge, SidebarFiltersMenu } from "./sidebar-thread-menu";
+import { SidebarThreadRowMenu, SidebarThreadBadge, SidebarFiltersMenu, SidebarListContextMenu } from "./sidebar-thread-menu";
 import { sidebarActivityDateHeadings, groupThreadsByTaskFlow, sidebarActivityMetadata } from "../sidebar-activity";
 import { NavigationIcon as SidebarContributionIcon, type NavigationAction as SidebarActionItem } from "./shell-navigation/navigation-action";
 import { useSidebarEndPull } from "./use-sidebar-end-pull";
@@ -301,7 +301,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   // render only the affected row and never rebuild the catalog or grouping.
   useLayoutEffect(() => {
     const current = menus.getSnapshot();
-    if (!current || current.kind === "filters") return;
+    if (!current || !("hostId" in current)) return;
     const key = JSON.stringify([current.hostId, current.threadId]);
     const target = matchingById.get(key);
     const visible = target && target.interactionAvailable !== false && (groupedSections
@@ -330,7 +330,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         {managementNavigation}
         {catalogs.map(catalog => <ExtensionCatalog key={catalog.id} catalog={catalog} />)}
         <SidebarBots items={bots} creation={botCreation} />
-        <section className="sidebar-tasks" aria-label="Tasks" aria-busy={busyCatalog}>
+        <SidebarListContextMenu store={menus}>
+        <ContextMenu.Trigger asChild onClickCapture={event => {
+          if (menus.getListContextOpen() && "pointerType" in event.nativeEvent && event.nativeEvent.pointerType === "touch") {
+            event.preventDefault(); event.stopPropagation();
+          }
+        }}><section className="sidebar-tasks" aria-label="Tasks" aria-busy={busyCatalog}>
           <div className="sidebar-list-toolbar"><span>{text("sidebar.conversations", "Conversations")}</span>
             <SidebarFiltersMenu store={menus}>
               <DropdownMenu.Trigger asChild><button type="button" className="sidebar-list-mode-trigger"
@@ -372,7 +377,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
             {catalogErrors.map(catalog => retryFeedback(catalog.hostId, intl.formatMessage({ id: "sidebar.catalog.error", defaultMessage: "Couldn't load {server} conversations" }, { server: catalog.label }), onRetryThreadCatalog ? () => onRetryThreadCatalog(catalog.hostId) : undefined))}
             {threadCatalogDiscovery === "error" ? retryFeedback("discovery", text("sidebar.catalog.discoveryError", "Couldn't load remote connections"), onRetryThreadCatalogDiscovery) : null}
           </div>
-        </section>
+        </section></ContextMenu.Trigger>
+        <ContextMenu.Portal container={presentationRoot}><ContextMenu.Content className="workbench-context-menu"
+          onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
+          {modeItems("context")}
+        </ContextMenu.Content></ContextMenu.Portal>
+        </SidebarListContextMenu>
       </div>
       {showFooter ? <div className="sidebar-panel__footer">
         {footerActions.map(navigationAction)}

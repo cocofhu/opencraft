@@ -1,3 +1,4 @@
+import type { PointerEventHandler } from "react";
 import { useAsyncNotices } from "./async-notices";
 import { useIntl } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
@@ -113,7 +114,7 @@ export function ThreadActionModals({ owner }: { owner: ThreadActionOwner }) {
   ><section className="thread-delete-confirmation"><h2>{intl.formatMessage({ id: "sidebar.thread.deleteQuestion", defaultMessage: "Delete “{title}”?" }, { title: modal.target.title })}</h2><p>{intl.formatMessage({ id: "sidebar.thread.deleteDescription", defaultMessage: "This conversation will be permanently removed and cannot be recovered." })}</p></section></ConfirmationModalSurface>;
 }
 
-export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled = false, children, contextMenuExtra, openMenuKind, onOpenMenuChange, onCloseAutoFocus, owner }: {
+export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled = false, children, contextMenuExtra, openMenuKind, onOpenMenuChange, onCloseAutoFocus, onPointerDown, owner }: {
   activityLabelId?: string;
   target: ThreadActionTarget; capabilities: ThreadActionCapabilities; children: ReactNode;
   disabled?: boolean;
@@ -121,6 +122,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   openMenuKind: SidebarThreadMenuKind | null;
   onOpenMenuChange: (kind: SidebarThreadMenuKind, open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  onPointerDown?: PointerEventHandler<HTMLElement>;
   owner: ThreadActionOwner;
 }) {
   const portalContainer = useWorkbenchPresentationRoot();
@@ -150,7 +152,13 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
     <div className="sidebar-activity-row" data-has-menu={hasMenu ? "true" : "false"}>
       {/* Keep the dropdown outside this trigger: portal pointer events still bubble through the React tree. */}
       <ContextMenu.Root open={!disabled && hasMenu && openMenuKind === "context"} onOpenChange={open => onOpenMenuChange("context", open)}>
-        <ContextMenu.Trigger asChild disabled={disabled || !hasMenu}>
+        <ContextMenu.Trigger asChild disabled={disabled || !hasMenu} onPointerDown={onPointerDown}
+          onClickCapture={event => {
+            // Touch release retains its original target even after a context menu opens.
+            if (openMenuKind === "context" && "pointerType" in event.nativeEvent && event.nativeEvent.pointerType === "touch") {
+              event.preventDefault(); event.stopPropagation();
+            }
+          }}>
           <div className="sidebar-activity-row__target">{children}</div>
         </ContextMenu.Trigger>
         <ContextMenu.Portal container={portalContainer}><ContextMenu.Content className="workbench-context-menu" onCloseAutoFocus={onMenuCloseAutoFocus}>

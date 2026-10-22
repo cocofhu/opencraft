@@ -246,4 +246,25 @@ test("list filters and thread overlays share one owner without notifying unrelat
   off();
   store.setFiltersOpen(true);
   assert.equal(counts.filters, 4);
+  let contextNotifications = 0;
+  const offContext = store.subscribeListContext(() => contextNotifications++);
+  store.setListContextOpen(true);
+  assert.equal(store.getFiltersOpen(), false);
+  assert.equal(store.getListContextOpen(), true);
+  store.update(row, false); // A stale row close cannot dismiss the list context.
+  assert.equal(store.getListContextOpen(), true);
+  store.setFiltersOpen(true);
+  store.setListContextOpen(false); // Nor can a stale context close dismiss Filters.
+  assert.equal(store.getFiltersOpen(), true);
+  store.setListContextOpen(true);
+  store.update(row, true);
+  store.setListContextOpen(false);
+  assert.equal(store.getKind(row), 'context');
+  assert.equal(store.getListContextOpen(), false);
+  assert.equal(contextNotifications, 4);
+  assert.equal(counts.unrelated, 0);
+  offContext();
+  store.setListContextOpen(true);
+  store.close();
+  assert.equal(contextNotifications, 4, 'released list subscriptions stay silent');
 });
