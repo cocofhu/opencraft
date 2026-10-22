@@ -2366,3 +2366,16 @@ declines, scoped permission menu entries retain their chosen scope, and paramete
 disclosures only expand or collapse. The card's window shortcut ignores already
 consumed events and editable fields. Unfocused Enter still allows once and Escape
 still declines; keyboard focus never silently changes the selected permission.
+
+### Setup interaction drafts
+
+Supported setup role/task/context requests use the same pending-input checkpoint
+as questions and forms. Keep unsubmitted role choices, the first-task choice or
+freeform text, and the context search and Browse state through a browser connection
+gap. A different request, turn or setup definition starts fresh. Explicit successful
+responses release their own checkpoint; inputs never cause an automatic response.
+
+The context catalog, connected-source selection, authentication, installation and
+in-flight connection status keep their existing owner. A search checkpoint grants
+no source access. Dynamic-tool compatibility support does not imply that a product
+registers these tools by default; validate the actual tool registration separately.

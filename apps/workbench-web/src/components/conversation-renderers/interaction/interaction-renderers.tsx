@@ -445,8 +445,7 @@ function SetupCodexStepBlock({ block }: { block: Extract<TimelineBlock, { type: 
 
 function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selectedRoles, setSelectedRoles] = useState<readonly string[]>([]);
-  useEffect(() => setSelectedRoles([]), [block.requestId]);
+  const [selectedRoles, setSelectedRoles] = useInteractionDraftState<readonly string[]>("setupRoles", []);
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-role",
     action,
@@ -468,9 +467,8 @@ function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type:
 
 function SetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [other, setOther] = useState("");
-  useEffect(() => { setSelected(null); setOther(""); }, [block.requestId]);
+  const [selected, setSelected] = useInteractionDraftState<string | null>("setupTask", null);
+  const [other, setOther] = useInteractionDraftState("setupTaskOther", "");
   const answer = selected ?? other.trim();
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-task",
@@ -492,12 +490,12 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   const submission = useInteractionSubmission(block.requestId);
   const catalog = useContext(SetupCodexContextCatalog);
   const [selected, setSelected] = useState<readonly string[]>(() => catalog.sources.filter((source) => source.connected).map((source) => source.id));
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useInteractionDraftState("setupContextSearch", "");
+  const [browseOpen, setBrowseOpen] = useInteractionDraftState("setupContextBrowseOpen", false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     setSelected(catalog.sources.filter((source) => source.connected).map((source) => source.id));
-    setSearch("");
     setConnecting(null);
     setError(null);
   }, [block.requestId, catalog.sources]);
@@ -531,7 +529,7 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   return <section className="thread-interaction-card thread-setup-context" data-interaction-kind="setup-context" data-state={block.state}>
     <header><strong>Where can we pull context from?</strong><button aria-label="Dismiss" className="thread-option-picker__dismiss" disabled={submission.disabled} onClick={() => reply("dismiss")} type="button"><X size={12} /></button></header>
     <div className="thread-setup-context__sources">{sourceRows(catalog.sources.slice(0, 3))}</div>
-    <details className="thread-setup-context__browse"><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
+    <details className="thread-setup-context__browse" onToggle={(event) => setBrowseOpen(event.currentTarget.open)} open={browseOpen}><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
     {error ? <small className="thread-interaction-card__error" role="alert">{error}</small> : null}
     <footer><button className="is-ghost" disabled={submission.disabled} onClick={() => reply("skip")} type="button">Skip</button><button className="is-primary" disabled={submission.disabled || catalog.loading} onClick={() => reply("continue")} type="button"><span>Continue</span><kbd>↵</kbd></button></footer>
   </section>;
