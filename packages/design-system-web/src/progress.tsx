@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { progressIndicatorGeometry } from "@opencraft/design-system/progress";
+import { LoadingRingIcon } from "./action-icons";
 
 /** Decorative progress. The consuming feedback owns its accessible status.
  * Animation uses the document timeline so separately mounted indicators stay
@@ -29,10 +30,6 @@ export function ProgressIndicator({ className }: { readonly className?: string }
         else animation.startTime = 0;
       }
     }}>
-    <svg width={geometry.size} height={geometry.size} viewBox={geometry.viewBox} fill="none" focusable="false">
-      <circle cx={geometry.center} cy={geometry.center} r={geometry.radius}
-        stroke="currentColor" strokeWidth={geometry.strokeWidth} opacity={geometry.trackOpacity} />
-      <path d={geometry.foregroundPath} stroke="currentColor" strokeWidth={geometry.strokeWidth} />
-    </svg>
+    <LoadingRingIcon size={geometry.size} />
   </span>;
 }

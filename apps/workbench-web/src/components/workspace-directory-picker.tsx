@@ -1,5 +1,6 @@
+import { ChevronLeftIcon as ChevronLeft, FolderIcon as Folder, FolderOpenIcon as FolderOpen } from "@opencraft/design-system-web/action-icons";
 import type { FsReadDirectoryEntry } from "@opencraft/appserver-protocol/generated/v2";
-import { ChevronLeft, Folder, FolderOpen } from "lucide-react";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ModalSurface } from "./modal";
 import { Button } from "./ui/button";

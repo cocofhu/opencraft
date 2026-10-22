@@ -1,5 +1,6 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut } from "../workbench-shortcuts";
-import { Search } from "lucide-react";
+
 import { NavigationIcon } from "./shell-navigation/navigation-action";
 import { focusChromeAction } from "../chrome-actions/use-chrome-action-focus";
 import { SidebarToggleButton } from "../chrome-actions/sidebar-toggle-button";

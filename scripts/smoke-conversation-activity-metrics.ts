@@ -52,7 +52,7 @@ try {
     for (const toggle of await page.locator('.thread-agent-activity__group').getByRole('button').all()) {
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
     }
-    await page.locator('[data-codex-activity-icon="read"]').first().waitFor();
+    await page.locator('[data-opencraft-activity-icon="read"]').first().waitFor();
     await page.evaluate(() => document.fonts.ready);
     const measure = () => page.locator('.thread-activity-item__icon > svg').evaluateAll(elements => elements.map(svg => {
       const icon = svg as SVGSVGElement, rail = icon.parentElement!;
@@ -60,7 +60,7 @@ try {
       const label = header.querySelector('.thread-activity-item__summary')!;
       const style = getComputedStyle(label), box = icon.getBBox(), rect = icon.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const scale = rect.width / icon.viewBox.baseVal.width;
-      return { glyph: icon.getAttribute('data-codex-activity-icon') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
+      return { glyph: icon.getAttribute('data-opencraft-activity-icon') ?? icon.getAttribute('data-action-glyph') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
         paths: icon.innerHTML, fontSize: parseFloat(style.fontSize), family: style.fontFamily, weight: style.fontWeight,
         lineHeight: parseFloat(style.lineHeight), width: rect.width, visibleWidth: box.width * scale,
         stroke: parseFloat(getComputedStyle(icon).strokeWidth) * scale,
@@ -85,7 +85,7 @@ try {
     }
     const normal = await measure();
     const kinds = new Set(normal.map(row => row.glyph));
-    for (const glyph of ["terminal", "read", "lucide-brain", "lucide-image", "lucide-list-checks"]) assert.ok(kinds.has(glyph), glyph);
+    for (const glyph of ["terminal", "read", "thinking", "image", "checklist"]) assert.ok(kinds.has(glyph), glyph);
     assert.ok(kinds.size >= 14, "include every tool glyph and supplemental file/interaction/web consumer");
     await writeFile(join(output, `${width}-${dpr}-${theme}-all-glyphs.json`), JSON.stringify(normal));
     for (const row of normal) {
@@ -97,7 +97,7 @@ try {
         `${row.glyph}: painted silhouette balances process copy (${row.visibleWidth}/${row.fontSize})`);
       assert.ok(row.centerX < .1 && row.centerY < .1, `${row.glyph}: centered rail`);
       assert.ok(Math.abs(row.textGap - normal[0].textGap) < .1, `${row.glyph}: shared label gap`);
-      if (row.glyph?.startsWith("lucide-")) assert.ok(Math.abs(row.stroke - 1.2) < .01);
+      if (row.glyph && !["terminal", "read", "thinking", "files", "patch", "browser", "agent", "search"].includes(row.glyph)) assert.ok(Math.abs(row.stroke - 1.2) < .01);
     }
     // Essential reading preferences must change returned text only. Process
     // labels, including compaction and shimmer, retain their semantic scale.

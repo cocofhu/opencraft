@@ -1,4 +1,4 @@
-import { CircleAlert } from "lucide-react";
+import { AlertIcon as CircleAlert } from "@opencraft/design-system-web/action-icons";
 
 
 /** Controlled copy for durable Bot failures. Never render provider stderr. */

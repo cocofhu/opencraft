@@ -1,3 +1,4 @@
+import { HookIcon } from "@opencraft/design-system-web/action-icons";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import { ThinkingLabel } from "../../thinking-label";
 import {
@@ -244,15 +245,7 @@ function AgentActivity({
   );
 }
 
-function HookLifecycleIcon(): ReactNode {
-  return (
-    <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 18 18" width="18">
-      <circle cx="8.99805" cy="4.875" r="1.875" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 6.75V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V9.75L13.5 11.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-      <path d="M9 6.75V12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12V9.75L4.5 11.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-    </svg>
-  );
-}
+function HookLifecycleIcon(): ReactNode { return <HookIcon size={18} />; }
 
 function hookStatsEntryLabel(kind: HookStats["entries"][number]["kind"]): string {
   switch (kind) {

@@ -4,8 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
+    "./native-controls": "./src/native-controls.tsx",
     "./progress": "./src/progress.tsx",
-    "./discrete-slider": "./src/discrete-slider.tsx"
+    "./discrete-slider": "./src/discrete-slider.tsx",
+    "./action-icons": "./src/action-icons.tsx",
+    "./timeline-icons": "./src/timeline-icons.tsx",
+    "./native-controls.web": "./src/native-controls.web.scss"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -14,7 +18,9 @@
     "@opencraft/design-system": "0.1.0",
     "@radix-ui/react-slider": "^1.6.1",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "lucide-react": "^1.35.0",
+    "motion": "^12.38.0"
   },
   "devDependencies": {
     "@types/react": "~19.3.0"

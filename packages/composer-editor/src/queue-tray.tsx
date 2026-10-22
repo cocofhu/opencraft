@@ -1,3 +1,4 @@
+import { EditIcon as Pencil, DeleteIcon as Trash2, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { AvatarImage } from "@opencraft/extension-react";
 import { useIntl } from "@opencraft/i18n/react";
 import {
@@ -20,16 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import React, { useState } from "react";
-import {
-  CircleAlert,
-  CornerDownRight,
-  GripVertical,
-  Pencil,
-  Play,
-  Trash2,
-  User,
-  X,
-} from "lucide-react";
+import { AlertIcon as CircleAlert, TurnRightIcon as CornerDownRight, GripIcon as GripVertical, PlayIcon as Play, PersonIcon as User } from "@opencraft/design-system-web/action-icons";
 
 /** Display-only author resolved by the host; the Composer owns no directory policy. */
 export interface ComposerQueueSender {

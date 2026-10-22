@@ -1,5 +1,6 @@
+import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/action-icons";
 import { ActivityIcon } from "./activity-icon";
-import { ChevronRight } from "lucide-react";
+
 import { motion, useReducedMotion } from "motion/react";
 import { workingShimmerMotion } from "@opencraft/design-system/tokens";
 import { OverlayDisclosureTrigger } from "../../overlay-disclosure-trigger";

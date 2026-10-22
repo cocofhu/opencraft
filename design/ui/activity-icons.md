@@ -3,7 +3,7 @@
 This topic owns process-summary rendering in the conversation detail page:
 commands, read/search/edit tools, reasoning, image views, grouped tools and
 active/completed context compaction, collaboration process headers/status and
-Codex App thread-tool process rows. It preserves the existing glyph designs.
+Codex App thread-tool process rows. Its process glyphs use complete, quiet contours, rounded joins and restrained detail.
 It does not apply one font or one glyph shape to prose, identity logos, cards,
 controls or returned documents.
 
@@ -26,17 +26,16 @@ controls or returned documents.
 
 The rail is centered in a 20px slot. Existing glyphs have different source
 viewBoxes/padding, so calibrated canvases produce roughly 15px visible geometry
-rather than identical outer boxes. Brain and other Lucide effective strokes
-(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled Codex
-contours retain their paths: no added strokes, filters, transforms or rendering
-hacks. Preserve normal vector antialiasing, caps/joins and theme color. Active,
+rather than identical outer boxes. Process and shared interface effective strokes
+(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. External identity artwork retains its original paths and aspect ratio; no added
+strokes, filters or rendering hacks. Preserve normal vector antialiasing, caps/joins and theme color. Active,
 completed, folded and expanded states do not choose independent metrics.
 
 ## Presentation choice
 
 OpenCraft uses its existing body role, independently of reading preference, with
 roughly15px visible glyphs alongside14px regular text. Do not shrink process copy
-to metadata merely to balance icons; glyph artwork and optical calibration remain unchanged.
+to metadata merely to balance icons; the shared rail calibrates each glyph without feature-local overrides.
 
 ## Enforcement and acceptance
 
@@ -76,3 +75,19 @@ representative of these production consumers. The static contract requires share
 header/rail use in both collaboration renderers and Codex App thread-tool rows.
 Screenshots wait for expanded prose geometry to settle; a computed-font assertion
 alone cannot catch an image taken before ResizeObserver/disclosure layout settles.
+
+## Process artwork and motion
+
+`packages/design-system-web/src/activity-icons.tsx` owns the thinking, command, search, read, files, edit,
+browser and agent SVGs. The brain remains recognizable with fewer internal
+folds; command/search/file frames share the complete rounded contours of static controls. Supplemental
+interface icons now use the same SVG package and receive optical calibration
+from the rail stylesheet. External identities keep their own artwork. The
+Workbench activity-glyphs entry is a compatibility re-export. Static navigation
+and model controls never inherit the process pulse or cursor.
+
+`ActivityIcon` receives the owning row's `running` state. Only a running glyph's
+internal detail breathes or its command cursor blinks. Completion restores a
+fully visible static glyph, independent of surrounding active work. Motion uses
+opacity only, retains rail/text geometry and is disabled by reduced-motion
+preferences. Historical records and static collaboration headers stay still.

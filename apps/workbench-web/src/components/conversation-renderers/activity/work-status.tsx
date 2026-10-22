@@ -1,3 +1,4 @@
+import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/action-icons";
 import {
   formatWorkDuration,
   type WorkStatusItem,
@@ -5,7 +6,7 @@ import {
 import { useWorkStatusLabel } from "@opencraft/timeline-render-react";
 import { useIntl } from "@opencraft/i18n/react";
 import { defineMessages } from "@opencraft/i18n";
-import { ChevronRight } from "lucide-react";
+
 import { motion, useReducedMotion } from "motion/react";
 import { useContext, useId } from "react";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";

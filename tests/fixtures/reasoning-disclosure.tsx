@@ -1,4 +1,4 @@
-import { FileCode2, MessageSquare, Globe2 } from "lucide-react";
+import { CodeFileIcon as FileCode2, MessageIcon as MessageSquare, GlobeIcon as Globe2 } from "@opencraft/design-system-web/action-icons";
 import { ActivitySummaryRow } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-summary-row";
 import { activityIcon } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-icon";
 import React, { useEffect, useState } from "react";

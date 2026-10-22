@@ -1,6 +1,6 @@
 import { extractMarkdownElement } from "@opencraft/chat-render-web";
 import * as Popover from "@radix-ui/react-popover";
-import { MessageSquarePlus } from "lucide-react";
+import { NewMessageIcon as MessageSquarePlus } from "@opencraft/design-system-web/action-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "@opencraft/i18n/react";
 import "./selection-menu.scss";

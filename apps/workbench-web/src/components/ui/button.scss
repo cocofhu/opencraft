@@ -106,9 +106,6 @@
   position: absolute;
   width: 14px;
   height: 14px;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
   animation: ui-button-spin 680ms linear infinite;
   @media (prefers-reduced-motion: reduce) { animation: none; }
 }

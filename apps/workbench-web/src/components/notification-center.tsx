@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { Bell, CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-react";
+import { BellIcon as Bell, AlertIcon as CircleAlert, CheckedCircleIcon as CircleCheck, InfoIcon as Info, WarningIcon as TriangleAlert } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import { useAsyncNotices, useNoticeHistory } from "./async-notices";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";

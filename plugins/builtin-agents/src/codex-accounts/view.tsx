@@ -1,21 +1,8 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, MoreIcon as MoreHorizontal, AddIcon as Plus, RefreshIcon as RefreshCw, DeleteIcon as Trash2, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import {
-  ArrowDown,
-  ArrowUp,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  MoreHorizontal,
-  Plus,
-  RefreshCw,
-  Trash2,
-  UserRound,
-  X,
-} from "lucide-react";
+import { ArrowDownIcon as ArrowDown, ArrowUpIcon as ArrowUp, DownloadIcon as Download, ExternalLinkIcon as ExternalLink, PersonIcon as UserRound } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import {
   SettingsButton,

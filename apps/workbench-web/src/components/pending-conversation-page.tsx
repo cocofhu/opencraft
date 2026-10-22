@@ -1,7 +1,8 @@
+import { LoadingRingIcon as LoaderCircle } from "@opencraft/design-system-web/action-icons";
 import type { SubmitIntent } from "@opencraft/composer-core";
 import { submittedMessageDisplay } from "@opencraft/workbench-runtime";
 import type { NewThreadDraftSnapshot } from "@opencraft/workbench-runtime";
-import { LoaderCircle } from "lucide-react";
+
 
 import { UserMessageBlock } from "./conversation/user-message";
 import { ConversationDocumentContext, type ConversationDocumentContextValue } from "./conversation/document-context";

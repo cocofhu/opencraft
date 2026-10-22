@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { toast, Toaster } from "sonner";
+import { AlertIcon, CheckedCircleIcon, CloseIcon, InfoIcon, WarningIcon } from "@opencraft/design-system-web/action-icons";
+import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import "sonner/dist/styles.css";
 import { useIntl } from "@opencraft/i18n/react";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
@@ -15,6 +17,15 @@ const HistoryContext = createContext<{
   markRead(): void;
   clear(): void;
 } | null>(null);
+
+const noticeIcons = {
+  success: <CheckedCircleIcon size={20} />,
+  info: <InfoIcon size={20} />,
+  warning: <WarningIcon size={20} />,
+  error: <AlertIcon size={20} />,
+  loading: <ProgressIndicator />,
+  close: <CloseIcon size={14} />,
+};
 
 /** One notification owner per full/embedded Workbench, outside feature layout. */
 export function AsyncNoticesProvider({ children }: { readonly children: ReactNode }) {
@@ -67,6 +78,7 @@ export function AsyncNoticesProvider({ children }: { readonly children: ReactNod
   return <Context.Provider value={api}>
     <HistoryContext.Provider value={history}>{children}</HistoryContext.Provider>
     {createPortal(<Toaster id={id} className="workbench-notices" position="top-right"
+      icons={noticeIcons}
       duration={5000} visibleToasts={3} closeButton
       offset={{ top: "calc(var(--height-toolbar, 48px) + env(safe-area-inset-top, 0px) + 8px)", right: "12px" }}
       mobileOffset={{ top: "calc(var(--height-toolbar, 48px) + env(safe-area-inset-top, 0px) + 8px)", right: "12px", left: "12px" }}
