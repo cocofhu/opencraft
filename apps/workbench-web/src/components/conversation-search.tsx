@@ -149,16 +149,9 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
     <h2 className="conversation-search__heading">{normalized ? label : intl.formatMessage({ id: "sidebar.flow.recent", defaultMessage: "Recent" })}</h2>
     <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and Codex messages" })}</div>
     <div className="conversation-search__results" ref={list} role="listbox" id={listId} aria-label={label} aria-busy={busy || selecting}>
-      {results.map((thread, index) => <button type="button" role="option" tabIndex={-1}
-        key={JSON.stringify([thread.connectionHostId, thread.id])} id={`${listId}-${index}`}
-        aria-selected={index === selectedIndex} disabled={thread.interactionAvailable === false}
-        onMouseMove={() => { const next = selectable.indexOf(thread); if (next >= 0) setActive(next); }}
-        onClick={() => { if (!selecting) void select(thread); }}>
-        <span className="conversation-search__result-icon" aria-hidden="true"><MessageSquare size={20} /></span>
-        <span className="conversation-search__text"><span className="conversation-search__title">{thread.title}</span>
-          {thread.snippet ? <SearchSnippet text={thread.snippet} term={thread.searchTerm ?? ""} /> : null}</span>
-        <span className="conversation-search__server">{thread.serverOrigin.label}</span>
-      </button>)}
+      {results.map((thread, index) => <ConversationSearchResult key={JSON.stringify([thread.connectionHostId, thread.id])}
+        thread={thread} index={index} listId={listId} selected={index === selectedIndex}
+        selecting={selecting} select={select} onActivate={activate} />)}
     </div>
     {normalized && content.rows.length ? <div className="conversation-search__sources">
       {content.rows.map(row => <div key={row.source.key}>
