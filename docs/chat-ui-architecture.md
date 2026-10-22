@@ -568,7 +568,7 @@ Skill autocomplete treats a bare `$` as catalog browsing, not an empty file
 search. The Composer, runtime catalog and Skill search share this policy;
 `@` remains query-gated. Skills are scoped to the current Host/root set,
 enabled-only and deduplicated by authoritative path. Empty queries retain
-source order; typed queries match canonical name, display label and path.
+source order; typed queries match canonical name, display label and path. Query words and boundary patterns are prepared once per search, while normalized candidate fields are reused across its words; this does not add a cross-request cache or change fuzzy scores, tie ordering, limits or canonical identity.
 Discovery errors are rejected before query caching rather than stored as a
 successful empty catalog. A Host returning no metadata is not supplemented
 with renderer-local or fabricated Skills.

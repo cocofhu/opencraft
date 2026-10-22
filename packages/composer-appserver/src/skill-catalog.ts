@@ -57,23 +57,24 @@ function subsequencePenalty(value: string, query: string): number | null {
   return (first < 0 ? 0 : first) + Math.max(0, last - first - query.length + 1);
 }
 
-function searchScore(value: string, rawQuery: string): number | null {
-  const candidate = value.normalize("NFKC").replace(/\\/gu, "/").toLocaleLowerCase();
-  const query = rawQuery.normalize("NFKC").replace(/\\/gu, "/").toLocaleLowerCase();
+function normalizeSearchText(value: string): string {
+  return value.normalize("NFKC").replace(/\\/gu, "/").toLocaleLowerCase();
+}
+type SearchWord = { readonly text: string; readonly boundary: RegExp };
+function searchScore(candidate: string, word: SearchWord): number | null {
+  const query = word.text;
   if (candidate === query) return 0;
   if (candidate.startsWith(query)) return 10 + candidate.length - query.length;
-  const word = candidate.search(new RegExp(`(?:^|[\\s:_-])${escapeRegExp(query)}`, "u"));
-  if (word >= 0) return 100 + word;
+  const boundary = candidate.search(word.boundary);
+  if (boundary >= 0) return 100 + boundary;
   const substring = candidate.indexOf(query);
   if (substring >= 0) return 200 + substring;
   const penalty = subsequencePenalty(candidate, query);
   return penalty === null ? null : 300 + penalty;
 }
-
-/** Match every query word against the same candidate identity fields. */
-function skillScore(fields: readonly string[], query: string): number {
-  const words = query.split(/\s+/u).filter(Boolean);
-  return words.reduce((total, word) => total + Math.min(...fields.map(field=>searchScore(field,word) ?? Number.POSITIVE_INFINITY)),0);
+function skillScore(fields: readonly string[], words: readonly SearchWord[]): number {
+  const candidates = fields.map(normalizeSearchText);
+  return words.reduce((total, word) => total + Math.min(...candidates.map(field => searchScore(field, word) ?? Number.POSITIVE_INFINITY)), 0);
 }
 
 function escapeRegExp(value: string): string {
@@ -94,10 +95,15 @@ export function searchAppServerSkills(
   if (limit <= 0) return [];
   assertSkillDiscoveryAvailable(response);
   const skills = enabledSkills(response);
+  // Query preparation belongs to this search, not every candidate field.
+  const words = query.split(/\s+/u).filter(Boolean).map(raw => {
+    const text = normalizeSearchText(raw);
+    return { text, boundary: new RegExp(`(?:^|[\\s:_-])${escapeRegExp(text)}`, "u") };
+  });
   return skills
     .map((skill, index) => {
       const label = displayName(skill);
-      const score = query.length === 0 ? 0 : skillScore([skill.name, label, skill.path], query);
+      const score = query.length === 0 ? 0 : skillScore([skill.name, label, skill.path], words);
       return { skill, index, label, score };
     })
     .filter((entry) => Number.isFinite(entry.score))
