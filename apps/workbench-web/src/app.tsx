@@ -1,3 +1,6 @@
+import { useConversationDisplay } from "./runtime/use-conversation-display";
+import { displayTimingCounts } from "./runtime/display-timing-diagnostics";
+import { reportDisplayEvent } from "./runtime/recovery-diagnostics";
 import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
 import { copyConversationReference } from "./runtime/conversation-reference-actions";
 import { useAsyncNotices } from "./components/async-notices";
@@ -718,43 +721,33 @@ export function App({
   // The committed View has a display identity before network lease acquisition.
   // This local binding never grants execution or authoritative history access.
   const displayKey = useConversationViewDisplayKey();
+  const { selection: display, scope: displayScope, hasSubmission } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
   const displayHostId = displayKey?.hostId ?? null;
   const displayThreadId = displayKey?.threadId ?? null;
-  const displayScope = useSyncExternalStore(
-    hostCatalog.displayContinuity.subscribe,
-    hostCatalog.displayContinuity.getScope,
-    hostCatalog.displayContinuity.getScope,
-  );
-  const [cachedTimeline, setCachedTimeline] = useState<{ scope: string; timeline: TimelineSnapshot } | null>(null);
+  const visibleTimeline = display.timeline;
+  const showingDisplayCache = display.source !== "history" && display.source !== "empty";
+  const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
+  const displaySignature = JSON.stringify(displayCounts);
   useEffect(() => {
-    let current = true;
-    setCachedTimeline(null);
-    if (displayHostId !== null && displayThreadId !== null) {
-      void hostCatalog.displayContinuity.load(displayHostId, displayThreadId).then(value => {
-        if (current) setCachedTimeline(value === null ? null : { scope: displayScope, timeline: value });
-      });
-    }
-    return () => { current = false; };
-  }, [displayHostId, displayThreadId, displayScope, hostCatalog.displayContinuity]);
-  useEffect(() => {
-    if (timeline?.authoritative) void hostCatalog.displayContinuity.observe(timeline).catch(() => undefined);
-  }, [hostCatalog.displayContinuity, timeline]);
-  const firstSubmissionTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peekSubmission(displayKey.hostId, displayKey.threadId);
-  const memoryTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peek(displayKey.hostId, displayKey.threadId);
-  const visibleTimeline = (timeline?.frames.length ?? 0) > 0
-    ? timeline
-    : firstSubmissionTimeline !== null ? firstSubmissionTimeline
-    : timeline?.authoritative
-    ? timeline
-    : memoryTimeline !== null ? memoryTimeline
-    : cachedTimeline?.scope === displayScope
-      && cachedTimeline.timeline.key.hostId === displayHostId
-      && cachedTimeline.timeline.key.threadId === displayThreadId
-      ? cachedTimeline.timeline
-      : timeline;
-  const showingDisplayCache = visibleTimeline !== null && visibleTimeline !== timeline;
+    if (!displayCounts.messages) return;
+    const frame = requestAnimationFrame(() => {
+      const times = [...document.querySelectorAll(".thread-user-message time, [data-assistant-message-sent-time]")];
+      const visibleTimes = times.filter(element => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return false;
+        for (let node: Element | null = element; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+        }
+        return true;
+      }).length;
+      reportDisplayEvent("display-paint", { ...displayCounts, renderedTimes: times.length, visibleTimes });
+    });
+    return () => cancelAnimationFrame(frame);
+    // The signature reports coverage transitions, not every streaming delta.
+  }, [displaySignature, displayScope, displayHostId, displayThreadId]);
+
+
   const [turnDiffReview, setTurnDiffReview] = useState<{
     readonly block: TurnDiffTimelineBlock;
     readonly path: string | null;

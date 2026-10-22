@@ -179,7 +179,12 @@ function AgentActivity({
   const open = !layout.isCollapsed;
   const inlineSubagentActivity = unit.inlineSubagentActivity;
   const reflow = useDisclosureReflow();
-  const hasAnimatedContent = layout.visibleUnits.length > 0 || inlineSubagentActivity !== null;
+  const staticWork = unit.contentUnits.find(content => content.type === "worked-for");
+  const staticHeader = !layout.showToggle && inlineSubagentActivity === null
+    && unit.contentUnits.every(content => content.type === "worked-for")
+    && (staticWork?.type !== "worked-for" || staticWork.item.status !== "working")
+    && (unit.workedDurationMs !== null || (staticWork?.type === "worked-for" && staticWork.item.status !== "working"));
+  const hasAnimatedContent = !staticHeader && (layout.visibleUnits.length > 0 || inlineSubagentActivity !== null);
   const visibleContent = open ? layout.visibleUnits : layout.persistentUnits;
   // One keyed list keeps persistent Apps mounted while restoring chronological
   // expanded content. Separate persistent/expanded trees duplicate the surface.
@@ -204,6 +209,10 @@ function AgentActivity({
       data-collapsed={layout.isCollapsed || undefined}
       data-force-expanded={unit.forceExpanded || undefined}
     >
+      {staticHeader ? <ActivityDisclosureHeader
+        item={staticWork?.type === "worked-for" ? staticWork.item : null}
+        durationMs={unit.workedDurationMs} count={0} open={false}
+      /> : null}
       {layout.preToggleUnits.length > 0 ? (
         <div className="thread-agent-activity__pre-toggle">
           {renderContent(layout.preToggleUnits)}

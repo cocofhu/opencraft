@@ -628,6 +628,21 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
     { ...viewport, shellTop: null }, { ...viewport, scale: 0 }, { ...viewport, shellTop: 1e9 }]) {
     assert.equal((await postViewport(invalid)).status, 400, "Viewport diagnostics accept bounded geometry only");
   }
+  for (const stage of ["display-load", "display-save", "display-paint"]) {
+    const display = { ...recovery, stage, displayVersion: 1, messages: 2, timestamps: 2,
+      workClocks: 1, authoritative: 0, cacheHit: 1, storageFailure: 0,
+      renderedTimes: 2, visibleTimes: 2, touch: 1, viewportWidth: 390 };
+    const acceptedDisplay = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(display),
+    });
+    assert.equal(acceptedDisplay.status, 202, stage);
+    for (const privateField of [{ threadId: "private" }, { cacheKey: "private" }, { timestamps: "private" }]) {
+      const rejectedDisplay = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...display, ...privateField }),
+      });
+      assert.equal(rejectedDisplay.status, 400, "Display diagnostics contain only allowed numeric counts");
+    }
+  }
   for (const invalid of [{ ...recovery, params: "private-thread-content" }, { ...recovery, requests: -1 }, { ...recovery, stage: "private-thread-content" }]) {
     const rejected = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(invalid),

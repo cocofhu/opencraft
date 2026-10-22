@@ -14,6 +14,7 @@ export type { ClientPersistenceScope, ClientPersistenceScopeSnapshot } from "./c
 export * from "./conversation-draft-owner-registry";
 export * from "./conversation-return-probe";
 export * from "./conversation-display-continuity";
+export * from "./conversation-display-selection";
 export * from "./conversation-scope-registry";
 export * from "./host-runtime-registry";
 export * from "./host-connections";

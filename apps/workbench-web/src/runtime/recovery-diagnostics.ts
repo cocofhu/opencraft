@@ -4,7 +4,7 @@ import { serverFetch } from "./server-context";
 const pending = new Map<string, Record<string, string | number>>();
 let sending = false;
 let listening = false;
-const fields = new Set(["recoveryId", "stage", "attemptId", "eventAtMs", "method", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
+const fields = new Set(["recoveryId", "stage", "attemptId", "eventAtMs", "method", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents", "displayVersion", "messages", "timestamps", "workClocks", "authoritative", "cacheHit", "storageFailure", "renderedTimes", "visibleTimes", "touch", "viewportWidth"]);
 async function flush() {
   if (sending || typeof fetch !== "function") return;
   sending = true;
@@ -33,4 +33,21 @@ export function reportRecoveryEvent(event: Readonly<Record<string, string | numb
     listening = true; window.addEventListener("online", () => { void flush(); });
   }
   void flush();
+}
+
+// One bounded, anonymous episode per page. Never include storage keys, account,
+// Host/Thread identities, text, timestamp values, user agent or error messages.
+const displayStartedAt = Date.now();
+const displayEpisode = `recovery-${displayStartedAt.toString(36)}-0`;
+let displayReports = 0;
+const lastDisplayFields = new Map<string, string>();
+export function reportDisplayEvent(stage: "display-load" | "display-save" | "display-paint", fields: Readonly<Record<string, number>>) {
+  const signature = JSON.stringify(fields);
+  if (lastDisplayFields.get(stage) === signature || displayReports >= 64) return;
+  lastDisplayFields.set(stage, signature);
+  displayReports++;
+  reportRecoveryEvent({ recoveryId: displayEpisode, stage, displayVersion: 1,
+    elapsedMs: Math.max(0, Date.now() - displayStartedAt), eventAtMs: Date.now(),
+    touch: Number(typeof navigator !== "undefined" && navigator.maxTouchPoints > 0),
+    viewportWidth: typeof window === "undefined" ? 0 : window.innerWidth, ...fields });
 }

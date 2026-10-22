@@ -4589,8 +4589,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 2px;
     margin-inline: 4px;
-    opacity: 0;
-    transition: opacity 120ms ease;
+    // Dates remain readable before hover, focus or the first touch.
+    opacity: 1;
 
     time {
       padding-inline: 4px;
@@ -4601,6 +4601,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
 
     button {
+      opacity: 0;
+      transition: opacity 120ms ease;
       display: inline-flex;
       width: 24px;
       height: 24px;
@@ -4628,8 +4630,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
   }
 
-  &:hover &__actions,
-  &:focus-within &__actions {
+  &:hover &__actions button,
+  &:focus-within &__actions button {
     opacity: 1;
   }
 
@@ -6409,6 +6411,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   transition: opacity 100ms ease;
   align-items: center;
 
+  &:has(time) {
+    opacity: 1;
+    > :not(time) { opacity: 0; transition: opacity 100ms ease; }
+  }
+
   time { margin-inline-start: 6px; color: var(--color-text-tertiary); font: var(--typography-metadata-font); letter-spacing: var(--typography-metadata-tracking); }
 
   button {
@@ -6428,6 +6435,16 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
   }
 }
+
+// Timestamp visibility is independent of action disclosure.
+.thread-frame--assistant:hover > .thread-message-actions:has(time) > :not(time),
+.thread-frame--assistant:focus-within > .thread-message-actions:has(time) > :not(time) {
+  opacity: 1;
+}
+@media (any-pointer: coarse), (hover: none) {
+  .thread-message-actions:has(time) > :not(time) { opacity: 1; }
+}
+:root[data-touch-interaction] .thread-message-actions:has(time) > :not(time) { opacity: 1; }
 
 // Touch input keeps the action row in a Worked-for frame visible before the
 // first tap. A hover-driven reveal during that tap correlated with lost clicks.
@@ -11814,7 +11831,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 @media (hover: none) {
-  .thread-user-message__actions {
+  .thread-user-message__actions button {
     opacity: 1;
   }
 }

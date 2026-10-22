@@ -470,6 +470,8 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
   partitionOptions: AgentActivityPartitionOptions = {}, reasoningPresenter = presentReasoning): AssistantTurnPresentationPlan {
   const slots: AssistantRenderUnit[] = [];
   const work = frame.status === "interrupted" && frame.interruptedByThisClient && frame.durationMs !== null ? { type: "worked-for" as const, status: "stopped" as const, startedAtMs: 0, completedAtMs: frame.durationMs } : frame.workStatus;
+  const hasStaticDuration = !live(frame.status) && frame.displayDurationMs != null
+    && Number.isFinite(frame.displayDurationMs) && frame.displayDurationMs >= 0;
   const latestPlan = [...frame.blocks].reverse().find(block => block.type === "plan");
   let changeSummary = frame.changeSummary ?? null;
   let pending: TimelineBlock[] = [];
@@ -477,7 +479,9 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
   let phase: AgentActivityPhase = "before-final-answer";
   let finalSegmentId: string | null = null;
   const flush = (segmentEnd: AgentActivitySegmentEnd) => {
-    if (!pending.length) return;
+    // A paint-only history can retain the completed clock without tool bodies.
+    if (!pending.length && !((work || hasStaticDuration) && segmentEnd === "final-answer"
+      && !slots.some(slot => slot.type === "agent-activity"))) return;
     finalSegmentId = activityId;
     const subagents = pending.filter((block): block is SubagentTimelineBlock => block.type === "subagent");
     const blocks = pending.filter(block => block.type !== "subagent");
@@ -489,12 +493,12 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
     const inlineSubagentActivity: SubagentActivityRenderUnit | null = subagents.length
       ? { type: "subagent-activity", id: `${activityId}:subagents`, blocks: subagents } : null;
     const visible = contentUnits.length > 0 || subagents.length > 0;
-    if (!visible && !work) return;
+    if (!visible && !work && !hasStaticDuration) return;
     slots.push({ type: "agent-activity", id: activityId, blocks, contentUnits, inlineSubagentActivity,
       partitions: partitionAgentActivityContentUnits(contentUnits, partitionOptions),
       collapsedItemCount: countAgentActivityContentItems(partitionAgentActivityContentUnits(contentUnits, partitionOptions).collapsibleUnits) + (subagents.length ? 1 : 0), phase, status,
       workedDurationMs: null, hasFinalAssistantStarted: segmentEnd === "final-answer", segmentEnd,
-      hasRenderableAgentItems: visible || Boolean(work), isTurnCancelled: frame.status === "interrupted", forceExpanded: false,
+      hasRenderableAgentItems: visible || Boolean(work) || hasStaticDuration, isTurnCancelled: frame.status === "interrupted", forceExpanded: false,
       disableCollapse: phase === "after-final-answer" && (segmentEnd === "open" || segmentEnd === "turn-terminal"), preventAutoCollapse: live(status) && (blocks.some(b => running(b) || (b.type === "reasoning" && b.streaming) || (b.type === "compaction" && !b.completed)) || subagents.some(running)),
       summary: { commandCount: blocks.filter(b => b.type === "command-execution").length,
         patchCount: blocks.filter(b => b.type === "patch").length, reasoningCount: blocks.filter(b => b.type === "reasoning").length,
@@ -521,7 +525,7 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
     const owner = slots[clockIndex] as AgentActivityRenderUnit;
     const workUnit: AgentActivityWorkStatusContentUnit | null = work ? { type: "worked-for", id: `${frame.turnId}:worked-for`, item: work } : null;
     const contentUnits = workUnit ? work?.status === "working" ? [workUnit, ...owner.contentUnits] : [...owner.contentUnits, workUnit] : owner.contentUnits;
-    slots[clockIndex] = { ...owner, workedDurationMs: frame.durationMs, contentUnits,
+    slots[clockIndex] = { ...owner, workedDurationMs: frame.displayDurationMs ?? frame.durationMs, contentUnits,
       partitions: partitionAgentActivityContentUnits(contentUnits, partitionOptions) };
   }
   // Only the assigned clock owner can keep an otherwise empty work segment.
@@ -552,7 +556,7 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
   const latestObservation = [...blocks].reverse().find(block => block.type !== "todo");
   let assistantFrame: AssistantTimelineFrame | null = remaining.length || active || changeSummary !== null ? {
     type: "assistant", id: `${turn.turnId}:assistant-surface`, turnId: turn.turnId, status: turn.status,
-    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
+    durationMs: seed?.durationMs ?? null, displayDurationMs: seed?.displayDurationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
     interruptedByThisClient: seed?.interruptedByThisClient ?? false, hookStats: seed?.hookStats ?? null,
     anchors: assistants.flatMap(frame => frame.anchors), blocks,
   } : null;

@@ -72,6 +72,12 @@ failed images retain a same-size person icon. Attachment-only messages use
 the same label. Unknown or absent senders leave no label. The label consumes
 the individual message snapshot, never the current footer account or Turn author,
 and is excluded from copied message text and native model input.
+The scoped paint-only history cache retains this validated per-message sender
+with the message body. A partial preview may inherit an absent sender only for
+the exact same message; an explicit sender and authoritative corrections win.
+The existing avatar contribution resolves its stable photo URL; the same-size
+fallback keeps geometry while the image loads. No cached sender authenticates
+the viewer or grants interaction authority.
 
 ## Queued-message sender display
 
@@ -350,7 +356,7 @@ Conversation Scope 是会话身份，View 是具体窗口或页面的呈现与�
 
 `recovery-policy.ts` 中的 `ConversationReturnProbe` 统一短暂离开、较长前台恢复和断网恢复的触发条件。iOS 把 AppState/Expo Network 事件交给它，Web/Electron 把 visibility/online 事件交给它；真正的追平仍调用当前 Thread lease 的 `retryRestore()`。追平不创建新会话，不重置可读历史。已经显示的内容是否权威，仍由 Replica/Session 决定。
 
-手机、iPad、折叠屏和桌面共享上述身份及状态转换。屏幕宽度、安全区、键盘和指针决定各自布局，不决定另一套业务流程。V3 ThreadView 的 revision/epoch 属于连接代次，不能把它写进持久 Replica 检查点。`ConversationDisplayContinuity` 只从权威时间线保存有界、已完成的用户消息与回答文本；冷启动重建 `painted / authoritative: false` 的只读 Timeline 供两端原有渲染器展示，当前 Host 恢复后整体替换。工具、审批、附件、交互以及 Replica 游标不进入展示缓存，不能从该缓存授权发送或其他操作。缓存按账号、Bot/Host 和 Thread 分区，并在退出登录时清除。
+手机、iPad、折叠屏和桌面共享上述身份及状态转换。屏幕宽度、安全区、键盘和指针决定各自布局，不决定另一套业务流程。V3 ThreadView 的 revision/epoch 属于连接代次，不能把它写进持久 Replica 检查点。`ConversationDisplayContinuity` 只从权威时间线保存有界的用户消息与回答文本，包括进行中已收到的文字、过程说明及推理摘要；冷启动重建 `painted / authoritative: false` 的只读 Timeline 供两端原有渲染器展示，当前 Host 恢复后整体替换。工具、审批、附件、交互以及 Replica 游标不进入展示缓存，不能从该缓存授权发送或其他操作。缓存按账号、Bot/Host 和 Thread 分区，并在退出登录时清除。
 
 会话定位共享 Turn 身份、最小时间线 revision 和对齐意图。Web 与 Native 都先挂载目标 Turn，等平台实测高度进入虚拟布局后才滚动；用户接管或 View 卸载会取消等待。两端用户消息使用共享 `getTimelineUserMessageTargetKey` 的 Item 锚点；Web 注册 DOM，Native 注册当前挂载行的局部布局。投影确定目标不存在时返回 unavailable；目标存在但尚未测量时继续等待，不能用经过几帧或整条 Turn 的估计位置冒充精确命中。Native 行高度是否已测量与项内锚点是否已注册是独立事实。
 
@@ -1128,7 +1134,21 @@ no tool output or interaction is truncated to improve timing.
 
 ConversationDisplayContinuity keeps at most 64 already-projected text displays
 in its existing account/Host/Thread scope. `peek` exposes a synchronous paint-only
-snapshot, including before an asynchronous persistence write finishes. Web and
+snapshot, including before an asynchronous persistence write finishes.
+The current Turn's received input, partial answer, commentary and returned
+reasoning text are retained as static paint-only blocks. Partial answers retain
+their incomplete marker and commentary stays in Agent Activity; no streaming
+animation, active clock, tool output or interaction is replayed. Slow storage
+coalesces pending observations to the latest snapshot while memory updates
+synchronously. A fresh authoritative baseline replaces the snapshot as usual.
+User and assistant message timestamps and terminal work clocks/durations are retained
+with the text. Web timestamps remain visible independently of hover/focus action
+disclosure, including before the first touch, so a reload paints the date and worked-for label together with its
+message while the Host reconnects. Live work clocks are never restored from this
+cache. Legacy text-only entries remain readable with unknown clocks until the
+next authoritative observation refreshes them. Timing-only changes update the
+projection even when message text is unchanged. A retained terminal work clock
+can render without cached tool bodies; it does not restore expandable tools. Web and
 Native consult it during render before starting disk restoration. The same
 seven-day age and 24-message/text limits apply; disk loads keep the original
 expiry time, authoritative empty history removes a display, and a delayed disk
@@ -1144,6 +1164,11 @@ and no visible history; it must not hide a valid account-scoped display behind
 Host initialization. Persisted display restoration after a page reload follows
 the same rule as the transient first-submission handoff. Canonical history still
 replaces the display, and command admission still waits on the existing baseline.
+A non-authoritative history preview retains missing static timestamps from the
+account-scoped display only for the exact Host, Thread, Turn and block identity.
+Its newer text and supplied clocks win; active frames never inherit terminal
+work labels. The authoritative baseline can correct or remove all cached clocks.
+This handoff remains paint-only and does not enable history or execution actions.
 `scripts/smoke-session-cold-open.ts` exercises the built Application with held
 initialization, canonical replacement and a separate uncached browser profile.
 
@@ -3081,3 +3106,58 @@ feedback takes precedence, so `isRecovering` suppresses execution breathing with
 changing either lifecycle. Idle/settled, reduced motion, reduced transparency and
 forced colors retain the ordinary static material. No timer, remount or execution
 state is added; every existing Composer consumer shares the same projection.
+
+
+The bounded display snapshot reserves half of its 24 message slots for recent
+user messages, final replies and text with known clocks, then fills the remaining
+slots from the latest activity. It retains source order. Long active reasoning
+must not evict the question, dated replies or already completed work clocks;
+activity remains static and never restarts a running clock.
+
+An authoritative worked/stopped interval with an observed end is static even if
+its final reply is still arriving and the Turn remains active. Preserve that
+interval with the reply. Never persist a working interval or infer an end from
+the active Turn's aggregate duration.
+
+
+A provisional history window can regroup or omit cached messages. After exact
+message metadata is merged, a preview that still loses a known cached date,
+completed interval or static duration keeps the previous display until authority.
+A compatible preview can update its text immediately; authoritative history can
+always replace the display and correct or remove clocks. This selection is
+account/Host/Thread scoped and never grants execution authority.
+
+A completed history may provide only aggregate duration, without observed work
+start/end clocks. The shared presenter retains a previously visible aggregate label through
+paint-only displayDurationMs when tool/reasoning bodies were omitted. Hidden
+activity cannot acquire a label on reload merely because Turn duration exists. Web and Expo render a
+static label and the same full-width rule/header geometry as completed history,
+without inventing a work interval or an empty disclosure. The static header has
+no disclosure button or chevron; authoritative work bodies restore that action.
+An active Turn's aggregate duration is still not persisted.
+
+
+### Display selection and provenance
+
+`ConversationDisplayContinuity` owns the bounded, account-scoped storage projection
+and transient first-submission handoff. It accepts authoritative observations only;
+stored data is validated at this boundary. It does not select what a View renders.
+
+`selectConversationDisplay` in workbench-runtime is the single pure display selector.
+It fences all candidates by the committed View's Host/Thread key and returns a
+Timeline with explicit history, preview, cache or submission provenance, or empty.
+Nonempty authoritative history wins. A first-submission echo survives an empty
+baseline until canonical user content retires it; otherwise authoritative empty
+history clears stale cache. A partial preview inherits missing metadata only for
+an exact Turn/frame-kind/block-kind/message identity, retaining cache if it still
+omits known visible metadata. Explicit sender removal and authoritative correction
+win. Active clocks never become completed intervals through this merge.
+
+The Web `useConversationDisplay` adapter owns subscriptions, cancellable cache reads
+and authoritative observation effects. Its loaded value is a scoped I/O receipt;
+synchronous continuity memory takes precedence. The App consumes the selector's
+Timeline and provenance instead of duplicating source precedence or inferring it
+from object identity. Provisional display suppresses history actions; command
+permission still requires the existing live runtime, authority and lease checks.
+Avatar media loading remains separate from message identity and display selection.
+This refactor retains the existing cache schema and storage keys.
