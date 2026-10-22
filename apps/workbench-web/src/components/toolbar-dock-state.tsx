@@ -16,7 +16,7 @@ export function useToolbarDock(scope: string, dock: string, actionIds: readonly 
     projection: projectToolbarDock(actionIds.map(id => ({ id })), order, capacity),
     save: (ids: readonly string[]) => preferences.set("shell.toolbarDocks", {
       ...preferences.getSnapshot().values["shell.toolbarDocks"], [key]: [...ids],
-    }),
+    }, { optimistic: false }),
   };
 }
 

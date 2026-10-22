@@ -56,6 +56,6 @@ test("personal choices survive reopening and isolate scope; persistence failure 
   assert.deepEqual(reopened.getSnapshot().values["shell.toolbarDocks"][a], ["rename", "missing", "link-tasks"]);
   assert.deepEqual(reopened.getSnapshot().values["shell.toolbarDocks"][b], []);
   fail = true;
-  await assert.rejects(reopened.set("shell.toolbarDocks", {}), /unavailable/);
+  await assert.rejects(reopened.set("shell.toolbarDocks", {}, { optimistic: false }), /unavailable/);
   assert.deepEqual(reopened.getSnapshot().values["shell.toolbarDocks"][a], ["rename", "missing", "link-tasks"]);
 });

@@ -275,14 +275,16 @@ export class UiPreferencesRuntime {
     return this.#snapshot.storedRevisions[key] ?? 0;
   }
 
-  set<Key extends UiPreferenceKey>(key: Key, value: UiPreferenceValue<Key>): Promise<void> {
+  set<Key extends UiPreferenceKey>(key: Key, value: UiPreferenceValue<Key>, options: { readonly optimistic?: boolean } = {}): Promise<void> {
     this.#ensureOpen();
     const parsed = definitionFor(key).parse(value);
     if (parsed === null) return Promise.reject(new TypeError(`Invalid UI preference value for ${key}`));
     if (this.storedRevision(key) > 0 && Object.is(this.#snapshot.values[key], parsed) && !this.#tails.has(key)) return Promise.resolve();
-    this.#publishValue(key, parsed);
+    if (options.optimistic !== false) this.#publishValue(key, parsed);
     const previous = this.#tails.get(key) ?? Promise.resolve();
-    const tail = previous.catch(() => undefined).then(() => this.#persist(key, parsed)).finally(() => {
+    const tail = previous.catch(() => undefined).then(() => this.#persist(key, parsed)).then(() => {
+      if (options.optimistic === false && this.#tails.get(key) === tail) this.#publishValue(key, parsed);
+    }).finally(() => {
       if (this.#tails.get(key) === tail) this.#tails.delete(key);
     });
     this.#tails.set(key, tail);
