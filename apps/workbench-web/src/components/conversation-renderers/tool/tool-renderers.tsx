@@ -8,7 +8,7 @@ import {
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
 import { ZoomableImage, LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
-import { AgentIcon as Bot, CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
+import { AgentIcon as CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
@@ -17,6 +17,7 @@ import { ConversationDocumentContext, browserReadableImageSource } from "../../c
 import { useConversationMediaSource } from "../../conversation/conversation-media-source";
 import { ModalSurface } from "../../modal";
 import { ActivityRowContent } from "../activity/activity-row-content";
+import { AgentActivityIcon } from "../../activity-glyphs";
 import { ActivityIcon, activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
 import { ActivityDisclosure, useActivityOpen } from "../activity/activity-disclosure";
@@ -154,7 +155,7 @@ function ThreadTool({ block }: { block: Tool }) {
       </div>
     </ActivityDisclosure>;
   }
-  const summary = <ActivityRowContent icon={activityIcon(presentation.icon)} summary={presentation.summary}
+  const summary = <ActivityRowContent icon running={presentation.state === "running"}={activityIcon(presentation.icon)} summary={presentation.summary}
     running={presentation.state === "running"} />;
   return target !== null ? <button type="button" className="thread-codex-app-tool-row thread-activity-item__header is-interactive" aria-label="Open chat"
     disabled={navigation.open === null} onClick={() => navigation.open?.(target.threadId, target.displayName)}>{summary}</button>
@@ -353,7 +354,7 @@ export function SubagentBlock({ block }: { block: AgentBlock }) {
   return <Agents blocks={[block]} grouped={false} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
-      <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
+      <ActivityIcon><AgentActivityIcon /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
     </button>} />;
 }
 
@@ -361,6 +362,6 @@ export function SubagentActivityGroup({ unit }: { readonly unit: SubagentActivit
   return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped={unit.blocks.length > 1} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
-      <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
+      <ActivityIcon><AgentActivityIcon /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
     </button>} /> : <></>;
 }

@@ -26,6 +26,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
 import { CommandViewStateContext } from "../../conversation/command-view-state";
+import { ThinkingActivityIcon } from "../../activity-glyphs";
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
 import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
@@ -48,7 +49,7 @@ export function ReasoningBlock({ block, presentation, active = block.streaming, 
   if (selected === null) return <></>;
   return <div className="thread-reasoning" data-conversation-row="activity" data-reasoning-id={block.id} data-reasoning-active={active}>
     <ActivityDisclosure
-      icon={<Brain />}
+      icon={<ThinkingActivityIcon />}
       summary={active ? <ThinkingLabel /> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
       detail={selected.header}
       running={active}

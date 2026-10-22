@@ -3,7 +3,7 @@
 This topic owns process-summary rendering in the conversation detail page:
 commands, read/search/edit tools, reasoning, image views, grouped tools and
 active/completed context compaction, collaboration process headers/status and
-Codex App thread-tool process rows. Its process glyphs use complete, quiet contours, rounded joins and restrained detail.
+Codex App thread-tool process rows. Its process glyphs use complete, quiet contours, rounded joins and restraineds use open contours, rounded joins and restrained detail.
 It does not apply one font or one glyph shape to prose, identity logos, cards,
 controls or returned documents.
 
@@ -121,3 +121,17 @@ Group headers may override glyph motion for handoff while text continues to use
 current running state outside deferred summary snapshots. Callers provide raw
 summary content; they never wrap another process shimmer. `CadencedShimmer` stays
 a leaf primitive for independent plan/approval/loading consumers.
+
+## Process artwork and motion
+
+`activity-glyphs.tsx` owns the thinking, command, search, read, files, edit,
+browser and agent SVGs. The brain remains recognizable with fewer internal
+folds; command/search/file contours use deliberate openings. Supplemental
+icons and external identities keep their own artwork. This set changes only
+process rows, not navigation, model/provider branding or resource identities.
+
+`ActivityIcon` receives the owning row's `running` state. Only a running glyph's
+internal detail breathes or its command cursor blinks. Completion restores a
+fully visible static glyph, independent of surrounding active work. Motion uses
+opacity only, retains rail/text geometry and is disabled by reduced-motion
+preferences. Historical records and static collaboration headers stay still.

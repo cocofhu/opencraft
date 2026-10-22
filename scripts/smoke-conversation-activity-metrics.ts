@@ -60,7 +60,7 @@ try {
       const label = header.querySelector('.thread-activity-item__summary')!;
       const style = getComputedStyle(label), box = icon.getBBox(), rect = icon.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const scale = rect.width / icon.viewBox.baseVal.width;
-      return { glyph: icon.getAttribute('data-opencraft-activity-icon') ?? icon.getAttribute('data-action-glyph') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
+      return { glyph: icon.getAttribute('data-activity-glyph') ?? icon.getAttribute('data-opencraft-activity-icon') ?? icon.getAttribute('data-action-glyph') ?? Array.from(icon.classList).find(c => c.startsWith('lucide-')),
         paths: icon.innerHTML, fontSize: parseFloat(style.fontSize), family: style.fontFamily, weight: style.fontWeight,
         lineHeight: parseFloat(style.lineHeight), width: rect.width, visibleWidth: box.width * scale,
         stroke: parseFloat(getComputedStyle(icon).strokeWidth) * scale,
