@@ -1646,3 +1646,19 @@ uses the same handoff; closing a page releases media and callback ownership.
 This avoids the decoder-reset white interval, not legitimate white webpage
 content or the new area exposed when a viewport grows. The held picture can be
 stale until the remote page paints again; no local layout prediction is applied.
+
+### Browser process transport failure isolation
+
+The Gateway owns the worker process and its pipe/IPC generation. A worker exit
+or stdin/stdout/stderr error retires that generation once, rejects its pending
+requests and disconnects its page sockets so ordinary recovery can recreate the
+worker. The persisted tab catalog is retained. Bootstrap pipe failure also
+rejects startup immediately; a late failure from an old startup cannot clear a
+new startup. Late process messages or errors cannot mutate a replacement.
+
+Node Writable write callbacks do not consume a separate stream error event.
+Listeners therefore remain for the transport lifetime, including after ready
+and shutdown. This contains browser failures within their resource owner; it
+does not establish the cause of a native Electron abort or promise DOM recovery
+after that abort. Diagnostics expose only owned event enums and counters, never
+visited URLs, page text or arbitrary Chromium stderr.

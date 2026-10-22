@@ -189,32 +189,50 @@ export class RemoteBrowserService {
           '-p', 'Environment=HOME=/var/lib/' + state,
           '/usr/bin/env', '/opt/opencraft-browser/electron/electron', ...flags, '/opt/opencraft-browser/worker.cjs'],
           { env, stdio: ['pipe', 'pipe', 'pipe'] });
-        createInterface({ input: child.stdout }).on('line', line => { try { child.emit('message', JSON.parse(line)); } catch {} });
       } else {
         child = this.spawnImpl(this.executable, [...flags, ...(this.allowNoSandbox ? ['--no-sandbox'] : []), join(this.directory, 'worker.cjs')],
           { env, stdio: ['ignore', 'ignore', 'pipe', 'ipc'], serialization: 'json' });
       }
       this.child = child;
-      // Do not log visited URLs, page content, cookies or arbitrary Chromium stderr.
-      child.stderr?.resume();
-      child.on('message', message => this.receive(message));
-      child.on('exit', () => {
+      let failStartup;
+      const retire = event => {
         if (this.child !== child) return;
         this.child = null; this.starting = null;
+        if (!this.closed) this.diagnose(event);
+        failStartup?.(new Error('Browser process exited during startup'));
         for (const request of this.requests.values()) { clearTimeout(request.timer); request.reject(new Error('Browser process exited')); }
         this.requests.clear();
         for (const p of this.pages.values()) { p.live = false; p.socket?.close(1011, 'Browser process exited; reconnecting'); }
-      });
+        // Retire this transport only. EOF/disconnect asks a still-running owned
+        // worker to quit; its late messages/errors cannot touch the replacement.
+        child.stdin?.destroy();
+        if (!isolated && child.connected) child.disconnect();
+      };
+      child.on('error', () => retire('process_error'));
+      child.on('exit', () => retire('process_exited'));
+      // A write callback does not consume Writable's separate error event.
+      // Keep handlers after bootstrap/close so late EPIPE cannot kill Gateway.
+      for (const stream of [child.stdin, child.stdout, child.stderr]) stream?.on('error', () => retire('transport_error'));
+      child.on('message', message => { if (this.child === child) this.receive(message); });
+      if (isolated) {
+        const lines = createInterface({ input: child.stdout });
+        lines.on('error', () => retire('transport_error'));
+        lines.on('line', line => { if (this.child !== child) return; try { child.emit('message', JSON.parse(line)); } catch {} });
+      }
+      // Do not log visited URLs, page content, cookies or arbitrary Chromium stderr.
+      child.stderr?.resume();
       await new Promise((resolve, reject) => {
         let settled = false;
         const finish = error => { if (settled) return; settled = true; clearTimeout(timer); child.off('message', ready); error ? reject(error) : resolve(); };
+        failStartup = finish;
         const ready = message => { if (message.type === 'ready') finish(); };
         const timer = setTimeout(() => { child.kill(); finish(new Error('Browser startup timed out')); }, 15000);
         child.on('message', ready); child.once('error', () => finish(new Error('Browser process could not start')));
         child.once('exit', () => finish(new Error('Browser process exited during startup')));
       });
     })();
-    try { return await this.starting; } catch (error) { this.starting = null; throw error; }
+    const attempt = this.starting;
+    try { return await attempt; } catch (error) { if (this.starting === attempt) this.starting = null; throw error; }
   }
   receive(message) {
     if (message.type === 'result') {
@@ -248,8 +266,10 @@ export class RemoteBrowserService {
       const timer = setTimeout(() => { this.requests.delete(id); this.diagnose('request_timeout', method); reject(new Error(`Browser operation timed out (${method})`)); }, 20000);
       timer.unref(); this.requests.set(id, { resolve, reject, timer });
       const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(new Error('Browser disconnected')); } };
-      if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input }) + '\n', failed);
-      else this.child.send({ id, page, method, input }, failed);
+      try {
+        if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input }) + '\n', failed);
+        else this.child.send({ id, page, method, input }, failed);
+      } catch (error) { failed(error); }
     });
   }
   upgrade(request, socket, head, { ownerId, authorize = () => {}, track = () => {} }) {
