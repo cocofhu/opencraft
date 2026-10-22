@@ -170,8 +170,8 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useActivityOpen(presentation.state === "running", false,
-    `patch:${JSON.stringify([block.id, change.path, change.movePath])}`);
+  const restoreKey = `patch:${JSON.stringify([block.id, change.path, change.movePath])}`;
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false, restoreKey);
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -203,7 +203,7 @@ function FileChangeActivity({
         ? <><b className="is-added">+{change.additions ?? 0}</b><i className="is-deleted">−{change.deletions ?? 0}</i></>
         : null}
     >
-      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} /> : null}
+      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} restoreKey={restoreKey} /> : null}
     </ActivityDisclosure>
   );
 }

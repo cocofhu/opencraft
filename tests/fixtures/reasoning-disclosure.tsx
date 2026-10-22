@@ -63,6 +63,15 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("diff-reading-")) {
+      const reset = action === "diff-reading-reset";
+      if (reset) { restore = null; setGeneration(value => value + 1); }
+      const diff = "@@ -1,31 +1,481 @@\n" + Array.from({ length: 30 }, (_, index) => ` context-${index}`).join("\n")
+        + "\n-before\n" + Array.from({ length: 451 }, (_, index) => `+${reset ? "original" : "updated"}-after-${index}`).join("\n") + "\n";
+      const item: ThreadItem = { id: "reading-patch", type: "fileChange", status: "completed",
+        changes: ["a", "b"].map(name => ({ path: `/work/${name}.ts`, kind: { type: "update", move_path: null }, diff })) };
+      setTurn({ id: "turn", status: "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action.startsWith("detail-view-")) {
       const [, , kind, mode] = action.split("-");
       const running = mode === "running" || mode === "progress";

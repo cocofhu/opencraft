@@ -6,7 +6,8 @@ import {
   type UnifiedDiffSegment,
 } from "@opencraft/chat-core";
 import { MoreHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
+import { ActivityDisclosureStateContext, useActivityOpen } from "./activity/activity-disclosure";
 
 function DiffSegments({ segments, text }: { readonly segments: readonly UnifiedDiffSegment[] | null; readonly text: string }) {
   if (segments === null || segments.length === 0) return <>{text || " "}</>;
@@ -39,11 +40,16 @@ function DiffLine({ line }: { readonly line: UnifiedDiffLine }) {
   );
 }
 
-export function UnifiedDiffPreview({ diff }: { readonly diff: string }) {
+export function UnifiedDiffPreview({ diff, restoreKey }: { readonly diff: string; readonly restoreKey?: string }) {
   const lines = useMemo(() => parseUnifiedDiff(diff), [diff]);
   const collapsedRows = useMemo(() => collapseUnifiedDiffContext(lines), [lines]);
-  const [expandedContexts, setExpandedContexts] = useState<ReadonlySet<string>>(() => new Set());
-  const [showAll, setShowAll] = useState(false);
+  const choices = useContext(ActivityDisclosureStateContext);
+  const contextKey = (key: string) => `diff:${JSON.stringify([restoreKey, key])}`;
+  const [expandedContexts, setExpandedContexts] = useState<ReadonlySet<string>>(() => new Set(
+    collapsedRows.filter(row => row.kind === "collapsed" && restoreKey !== undefined
+      && choices?.get(contextKey(row.key))?.settledExpanded).map(row => row.key),
+  ));
+  const [showAll, setShowAll] = useActivityOpen(false, false, restoreKey === undefined ? undefined : contextKey("all"));
   const rows = useMemo<readonly UnifiedDiffRenderRow[]>(() => collapsedRows.flatMap((row): readonly UnifiedDiffRenderRow[] => (
     row.kind === "collapsed" && expandedContexts.has(row.key) ? row.lines : [row]
   )), [collapsedRows, expandedContexts]);
@@ -56,7 +62,10 @@ export function UnifiedDiffPreview({ diff }: { readonly diff: string }) {
           className="thread-unified-diff__collapsed"
           data-timeline-preserve-on-reflow="true"
           key={row.key}
-          onClick={() => setExpandedContexts((current) => new Set([...current, row.key]))}
+          onClick={() => {
+            if (restoreKey !== undefined) choices?.set(contextKey(row.key), { runningCollapsed: false, settledExpanded: true });
+            setExpandedContexts((current) => new Set([...current, row.key]));
+          }}
           type="button"
         >
           <MoreHorizontal size={13} />

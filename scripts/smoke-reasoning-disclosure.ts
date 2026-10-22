@@ -59,6 +59,60 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--diff-reading-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-reading-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const context = first.locator('.thread-unified-diff__collapsed');
+      const more = first.locator('.thread-unified-diff__show-all');
+      await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1); assert.equal(await more.count(), 1);
+      await activate(context); await activate(more);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      const original = await first.elementHandle();
+      await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await first.getAttribute('data-open'), 'true');
+      assert.equal(await context.count(), 0, "the retained View keeps explicitly shown unchanged lines");
+      assert.equal(await more.count(), 0, "the retained View keeps the explicitly shown long diff");
+      const restored = await first.elementHandle();
+      await update("diff-reading-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.ok((await first.innerText()).includes('updated-after-450'), "current diff output stays authoritative");
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await toggleRow(second);
+      assert.equal(await second.locator('.thread-unified-diff__collapsed').count(), 1, "different files keep independent context choices");
+      assert.equal(await second.locator('.thread-unified-diff__show-all').count(), 1);
+      await toggleRow(first); await restoreView();
+      assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-reading-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await update("diff-reading-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1, "a new View retains the original context default");
+      assert.equal(await more.count(), 1, "a new View retains the original long-diff limit");
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, diffReadingRestored: true, refreshedDiff: true, separateFiles: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-reading-only")) { await page.close(); continue; }
+    }
     if (process.argv.includes("--detail-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
       const restoreView = async () => {
         const scroll = await page.locator('.thread-scroll').elementHandle();
@@ -440,7 +494,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

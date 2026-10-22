@@ -2351,3 +2351,12 @@ to start collapsed. A new View starts with the existing defaults, while returnin
 to a retained View restores its choice before paint. Only presentation booleans
 are checkpointed; output, permission, execution and App document state remain with
 their existing owners. Updated output is rendered from the current timeline.
+
+### Reading expanded file diffs in a retained View
+
+The file-change consumer also keys its nested diff preview to the same patch and
+file identity. Explicitly shown unchanged contexts and the long-diff expansion
+are presentation choices in that View snapshot. Restore them before paint, keep
+different files and fresh Views isolated, and continue rendering current diff
+text through the existing parser. Consumers without a restore key keep their
+existing local defaults; no raw diff, approval or execution state is stored.
