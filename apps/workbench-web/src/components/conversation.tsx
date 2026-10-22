@@ -62,7 +62,6 @@ import {
   type MotionValue,
 } from "motion/react";
 import {
-  lazy, Suspense,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,

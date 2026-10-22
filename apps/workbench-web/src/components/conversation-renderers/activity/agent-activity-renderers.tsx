@@ -95,8 +95,8 @@ function AgentActivityGroup({
         standalone={standalone}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
-        icon={header.state === "thinking" ? <ThinkingActivityIcon /> : header?.icon == null ? undefined : activityIcon(header.icon)}
-        running={header.active}
+        icon={header?.state === "thinking" ? <ThinkingActivityIcon /> : header?.icon == null ? undefined : activityIcon(header.icon)}
+        running={header?.active ?? false}
         hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
         shouldAnimateInitialCollapse={group.type === "group" && group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
         summary={header === null ? null : <>

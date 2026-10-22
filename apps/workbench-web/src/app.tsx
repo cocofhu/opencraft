@@ -1745,7 +1745,7 @@ export function App({
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
-      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
       headerActionSizing={conversationActionSizing}
       headerAction={conversationMenuAvailable ? (
         <Suspense fallback={conversationActionSizing}>

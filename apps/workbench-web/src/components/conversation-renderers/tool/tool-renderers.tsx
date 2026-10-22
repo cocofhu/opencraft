@@ -8,7 +8,7 @@ import {
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
 import { ZoomableImage, LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
-import { AgentIcon as CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
+import { CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
@@ -176,7 +176,7 @@ function ThreadTool({ block }: { block: Tool }) {
       </div>
     </ActivityDisclosure>;
   }
-  const summary = <ActivityRowContent icon running={presentation.state === "running"}={activityIcon(presentation.icon)} summary={presentation.summary}
+  const summary = <ActivityRowContent icon={activityIcon(presentation.icon)} summary={presentation.summary}
     running={presentation.state === "running"} />;
   return target !== null ? <button type="button" className="thread-codex-app-tool-row thread-activity-item__header is-interactive" aria-label="Open chat"
     disabled={navigation.open === null} onClick={() => navigation.open?.(target.threadId, target.displayName)}>{summary}</button>

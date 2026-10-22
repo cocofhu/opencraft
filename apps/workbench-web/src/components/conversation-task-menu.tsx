@@ -4,7 +4,7 @@ import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
 import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
-import { ArchiveIcon as Archive, ClockIcon as Clock, ForkIcon as GitFork, InfoIcon as Info, TasksIcon as ListTodo, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
+import { MessageIcon as MessageSquare, ArchiveIcon as Archive, ClockIcon as Clock, ForkIcon as GitFork, InfoIcon as Info, TasksIcon as ListTodo, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -178,6 +178,7 @@ export function ConversationTaskMenu(props: Props) {
     fork.isPending ? <LoaderCircle size={16} aria-hidden="true" /> : <GitFork size={16} aria-hidden="true" />, () => fork.mutate(), false, fork.isPending);
   if (props.onArchive) add("archive", intl.formatMessage({ id: "sidebar.thread.archive", defaultMessage: "Archive" }), <Archive size={16} aria-hidden="true" />,
     () => archive.mutate({ key: `archive:${props.scope}:${props.serverId}:${props.threadId}`, title: props.title ?? "", execute: props.onArchive! }));
+  if (props.im) add("im-sources", "聊天来源", <MessageSquare size={16} aria-hidden="true" />, () => setImOpen(true), true);
   if (props.schedules) add("schedules", intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" }), <Clock size={16} aria-hidden="true" />, () => setSchedulesOpen(true), true);
   if (props.project || props.workspaceDirectory) add("information", intl.formatMessage({ id: "chat.details.title", defaultMessage: "Conversation info" }), <Info size={16} aria-hidden="true" />, () => setDetailsOpen(true), true);
   const returnFocus = () => actionTrigger.current?.isConnected ? actionTrigger.current : trigger.current;
@@ -189,7 +190,7 @@ export function ConversationTaskMenu(props: Props) {
     {renameOpen ? <ConversationRenameDialog value={name} pending={rename.isPending}
       onChange={setName} onSubmit={title => rename.mutate(title)} onDismiss={() => setRenameOpen(false)}
       returnFocus={returnFocus} /> : null}
-    {imOpen && props.im ? <ModalSurface label="聊天来源" closeLabel="关闭聊天来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={() => trigger.current}>
+    {imOpen && props.im ? <ModalSurface label="聊天来源" closeLabel="关闭聊天来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={returnFocus}>
       <SettingsPanel title="聊天来源">
         <Suspense fallback={null}><ImSources fetcher={props.im.fetcher} hostId={props.serverId} threadId={props.threadId}
           onOpenSettings={() => { setImOpen(false); props.im!.openSettings(); }} reportError={message => notices.error({key:"im-sources",message})} /></Suspense>

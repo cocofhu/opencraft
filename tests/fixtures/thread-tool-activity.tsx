@@ -226,7 +226,7 @@ function LiveToolsDemo() {
             status: block.status, content: (block.input as { content?: string } | null)?.content,
           };
           return hostScenario && block.callId === "compact" ? <span data-live-host-icon>H</span> : undefined;
-        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }
@@ -273,7 +273,7 @@ function HandoffToolsDemo() {
             phase, canExpand: presentation.canExpand, state: presentation.state,
           };
           return undefined;
-        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
     </TimelineBlockRendererProvider>
   </div>;
 }

@@ -10,7 +10,7 @@ export function ActivitySummaryRow({ icon, summary, running = false }: {
 }) {
   return (
     <div className="thread-activity-item__header thread-activity-item__header-content">
-      <ActivityRowContent icon running={running}={icon} summary={summary} running={running} />
+      <ActivityRowContent icon={icon} summary={summary} running={running} />
     </div>
   );
 }
