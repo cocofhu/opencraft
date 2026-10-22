@@ -2390,3 +2390,19 @@ are presentation choices in that View snapshot. Restore them before paint, keep
 different files and fresh Views isolated, and continue rendering current diff
 text through the existing parser. Consumers without a restore key keep their
 existing local defaults; no raw diff, approval or execution state is stored.
+
+### Code and table reading positions in a retained View
+
+Conversation checkpoints local code/table scroll coordinates in its existing
+View snapshot. The shared Web renderer owns capture and before-paint restore,
+keyed by document and stable node identity. Layout cleanup reads the attached
+element even when a native scroll event is still queued. Zero positions use
+the original default and do not occupy snapshot entries. Other Conversations,
+new Views and unscoped documents retain their own defaults.
+
+A fixed-size source fingerprint and length allow a restored block to consume
+its previous position only for the same source or an appended source. Replaced
+content cannot inherit a stale position; the checkpoint contains no code or
+table text. Streaming/highlighting and theme updates retain the existing DOM
+without replaying a saved scroll on every update. This adds no focus writes,
+selection replacement, global persistence, execution or permission state.

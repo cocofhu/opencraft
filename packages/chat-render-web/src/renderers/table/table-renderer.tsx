@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type R
 
 import { writeToClipboard } from "../../clipboard";
 import { usePreviewFocusOrigin } from "../../preview-focus-origin";
+import { useChatReadingPosition } from "../../reading-position";
 import "./table.scss";
 
 type TableNode = Extract<ChatDocumentNode, { kind: "table" }>;
@@ -66,6 +67,10 @@ export function TableRenderer({ context, node, renderNodes }: ChatNodeRendererPr
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewFocus = usePreviewFocusOrigin();
+  const readingPosition = useChatReadingPosition(
+    node.kind === "table" ? JSON.stringify([context.documentId, node.stableKey, "table"]) : undefined,
+    node.kind === "table" ? node.markdownSource : "",
+  );
   if (node.kind !== "table") return null;
 
   const copy = async (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -81,7 +86,7 @@ export function TableRenderer({ context, node, renderNodes }: ChatNodeRendererPr
 
   return (
     <div className="chat-table-container" data-markdown-table="true" data-wide-block={context.allowWideBlocks || undefined}>
-      <div aria-label="Table" className={`chat-table-scroller${context.allowWideBlocks ? " horizontal-scroll-fade-mask" : ""}`} role="region" tabIndex={0}>
+      <div aria-label="Table" className={`chat-table-scroller${context.allowWideBlocks ? " horizontal-scroll-fade-mask" : ""}`} role="region" tabIndex={0} {...readingPosition}>
         <div className="chat-table-wrapper"><TableContents node={node} renderNodes={renderNodes} /></div>
       </div>
       <div className="chat-table-actions" data-markdown-copy="exclude">
