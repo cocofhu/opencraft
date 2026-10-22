@@ -758,6 +758,8 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 | BRW-08 | browser-use 与 UI 挂载独立；操作互斥且 finally 释放；隐藏页仍可渲染/截图，无面板激活副作用 | browser-background.test.ts＋原生后台读取/截图/关闭回归 |
 | BRW-09 | 恢复未完成不是用户关闭；close 与清除站点数据分离，重启不因 localhost 端口变化丢失归属 | desktop metadata＋native restart smoke |
 | BRW-10 | 设备工具栏只投影父层 viewport mode/zoom；聚焦数字草稿独立，范围内编辑即时提交、失焦规范化，预设/旋转不夺取 Page 或持久化所有权 | 独立 toolbar/input；136 静态、64 Web 检查点及两组258边界；手柄/布局保持原owner |
+| BRW-11 | 远端帧按外层 visualBounds 宽度等比投影并从顶部裁切；软键盘改变高度时不得把旧帧再次 contain 缩成小整页；触点、菜单和光标共用此投影，固定设备外层居中不变 | RemoteBrowserSurfaceHost；真实 Canvas/MSE H.264 高度变化中间帧负控与命中验证 |
+| BRW-12 | 同一远端页的尺寸/解码切换保留最后可读帧，首个完整新帧就绪才原子交接；晚到旧代次与未就绪视频不得覆盖，保帧不冻结远端真实布局或增加空闲刷新 | Canvas 同任务 resize/draw、MSE 首帧 fence；延迟首帧/连续切换/恢复负控与取消测试 |
 
 历史迁移验收：66 项聚焦测试、完整门禁，以及当时最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；非标准 WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接单独验证，不沿用旧原生验收证明 registry 与 toolbar 的后续实现。
 
@@ -2107,3 +2109,26 @@ presentation without changing the canonical source or replacing the surface.
 - Activity disclosure has one keyed content list for persistent surfaces: a transcript or MCP App appears once, keeps its chronological expanded position, and a visible App retains the same iframe and input across detail toggles. A realtime handoff starts a fresh response feedback scope, so earlier running work cannot suppress its Thinking placeholder.
 
 - Generated-image pending feedback stays visible against the conversation canvas in light, dark and custom themes. Its skeleton derives from the current foreground rather than a raised surface that can equal the canvas; reduced motion keeps the same visible footprint without pulsing. The media owner retains its existing progress semantics and lifecycle.
+
+## Remote browser viewing and control
+
+Multiple authorized clients may view one remote tab without recreating it or
+claiming input. The remote toolbar offers a quiet Control/Release action beside
+the keyboard action, using the existing toolbar target and typography. The
+service control grant owns remote viewport and input; local view layout is only
+a projection. Losing control retires local composition, keyboard focus, menu and
+held contacts without resetting the video. Human gesture acquisition preserves
+local synchronous focus for system keyboards. Disconnect and park retain the
+tab; explicit logical close retires every viewer and the native page.
+
+### Browser backing layout and aperture
+
+Browser layout consumes the current content slot, while the Shell aperture clips
+painting and hit testing. Visibility motion must not resize the page or encoder.
+Local iframe, Electron guest and remote canvas use the same measured clip,
+without changing input coordinates or physical-page identity. Ordinary divider
+and window resizing remain live; parking preserves the normal viewport.
+
+- Tool maximization/visibility animates the aperture independently of the content layout endpoint. Retain the last layout mode while closed; a new visible intent picks the endpoint immediately. Normal handle/window resizing remains live. Chrome borders follow the content mode so visibility alone cannot resize embedded pages.
+
+- Portaled browser surfaces follow Shell foreground translation after Motion DOM writes, including the terminal frame; unchanged viewport size must not suppress position updates.

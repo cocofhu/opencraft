@@ -1,3 +1,4 @@
+import { browserPresentationClipPath } from "./browser-presentation-geometry";
 import {
   type BrowserAutomation,
   type BrowserPageId,
@@ -10,6 +11,7 @@ import {
   type PreviewBridgeChildMessage,
 } from "@opencraft/browser-preview-bridge";
 import type { PresentationHostPort } from "./opencraft-presentation-host";
+import type { BrowserLocalMenuController } from './browser-local-menu';
 
 export interface BrowserSurfaceEvents {
   onNewWindow?(url: string, background: boolean): void;
@@ -22,6 +24,14 @@ export interface BrowserSurfaceEvents {
 export interface BrowserNewTabLabels { readonly title: string; readonly hint: string }
 
 export interface BrowserSurfaceHost {
+  readonly localMenu?: BrowserLocalMenuController;
+  controlState?(id: BrowserPageId): 'unavailable' | 'viewing' | 'human' | 'agent' | 'elsewhere';
+  onControlState?(listener: () => void): () => void;
+  takeControl?(id: BrowserPageId): void;
+  releaseControl?(id: BrowserPageId): void;
+  keyboardState?(id: BrowserPageId): 'unavailable' | 'idle' | 'ready';
+  onKeyboardState?(listener: () => void): () => void;
+  showKeyboard?(id: BrowserPageId): void;
   setNewTabLabels?(labels: BrowserNewTabLabels): void;
   trackPointerNearBottom?(pageId: BrowserPageId, height: number, listener: (near: boolean) => void): () => void;
   setZoom?(pageId: BrowserPageId, percent: number): void;
@@ -238,6 +248,7 @@ export class WebIframeSurfaceHost implements BrowserSurfaceHost {
     container.style.top = `${visualBounds.y - (origin?.top ?? 0)}px`;
     container.style.width = `${visualBounds.width}px`;
     container.style.height = `${visualBounds.height}px`;
+    container.style.clipPath = browserPresentationClipPath(layout);
     iframe.style.left = "0px";
     iframe.style.top = "0px";
     iframe.style.width = `${viewportSize.width}px`;

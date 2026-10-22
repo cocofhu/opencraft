@@ -659,5 +659,14 @@
   "composer.model.speed": "速度",
   "composer.model.standardSpeed": "标准",
   "composer.model.done": "完成",
-  "composer.resetEffort": "恢复模型默认思考深度"
+  "composer.resetEffort": "恢复模型默认思考深度",
+  "browser.control.release": "释放",
+  "browser.control.take": "接管",
+  "browser.control.releaseHint": "释放输入控制，允许其他客户端或 Agent 操作",
+  "browser.control.takeoverHint": "其他客户端或 Agent 正在控制此页面，点击接管",
+  "browser.control.viewingHint": "正在观看共享页面，点击取得输入控制",
+  "browser.keyboard": "键盘",
+  "browser.keyboard.hint": "先点网页文本框，再打开键盘",
+  "browser.menu.copy": "复制",
+  "browser.menu.copyLink": "复制链接地址"
 }

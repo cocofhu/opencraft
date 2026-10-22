@@ -75,6 +75,12 @@ contextBridge.exposeInMainWorld("opencraftDesktop", composeDesktopBridge({
     read: () => ipcRenderer.invoke("opencraft:browser-state-read"),
     write: (key: string, value: string) => ipcRenderer.invoke("opencraft:browser-state-write", key, value),
   }),
+  remoteBrowserMenu: Object.freeze({
+    show: (id: string, x: number, y: number, items: readonly { id: string; label: string; enabled: boolean }[]) =>
+      ipcRenderer.invoke('opencraft:remote-browser-menu-show', id, x, y, items),
+    cancel: (id: string) => { void ipcRenderer.invoke('opencraft:remote-browser-menu-cancel', id).catch(() => {}); },
+    writeClipboard: (data: { text?: string; html?: string }) => ipcRenderer.invoke('opencraft:remote-browser-clipboard-write', data),
+  }),
   browser: Object.freeze({
     trackPointer: (guestId: number, trackingId: string, enabled: boolean) => ipcRenderer.invoke("opencraft:browser-track-pointer", guestId, trackingId, enabled),
     onPointer: (listener: (event: { guestId: number; trackingId: string; x: number; y: number; leave: boolean }) => void) => {

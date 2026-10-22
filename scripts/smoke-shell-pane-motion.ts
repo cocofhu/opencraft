@@ -28,7 +28,9 @@ try{
         const viewport=document.querySelector(".main-content-viewport")!,frame=document.querySelector(".main-content-frame")!,
           workspace=document.querySelector(".main-content-body")!,aside=document.querySelector(".app-shell-right-panel");
         host.__paneSamples.push({time,viewport:viewport.getBoundingClientRect().width,frame:frame.getBoundingClientRect().width,
-          workspace:workspace.getBoundingClientRect().width,panel:aside?.getBoundingClientRect().width??0,full:viewport.getAttribute("data-app-shell-right-panel-full-width"),
+          workspace:workspace.getBoundingClientRect().width,panel:aside?.getBoundingClientRect().width??0,
+          toolContent:document.querySelector(".app-shell-right-panel__surface")?.getBoundingClientRect().width??0,
+          full:viewport.getAttribute("data-app-shell-right-panel-full-width"),
           queryContainer:getComputedStyle(frame).containerName,composers:document.querySelectorAll(".opencraft-composer-editor").length});
         if(host.__paneRecording)requestAnimationFrame(sample);
       };requestAnimationFrame(sample);
@@ -41,6 +43,8 @@ try{
       assert.ok(sample.frame>=sample.viewport-2,name+" frame covers its aperture");
       assert.equal(sample.queryContainer,"app-shell-main-content");
       assert.equal(sample.composers,1);
+      if(sample.full==="true")assert.ok(Math.abs(sample.toolContent-sample.workspace)<2,
+        `${name}: maximized tool layout must use its destination width during the aperture transition: ${JSON.stringify(sample)}`);
       if(name==="reduced-motion")assert.ok(sample.viewport<=2||Math.abs(sample.viewport-initial)<=2,"reduced motion uses endpoint geometry");
     }
     await writeFile(join(root,name+".json"),JSON.stringify(samples,null,2));

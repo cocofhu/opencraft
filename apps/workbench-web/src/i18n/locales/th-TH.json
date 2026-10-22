@@ -637,5 +637,14 @@
   "composer.model.speed": "ความเร็ว",
   "composer.model.standardSpeed": "มาตรฐาน",
   "composer.model.done": "เสร็จสิ้น",
-  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล"
+  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล",
+  "browser.control.release": "ปล่อย",
+  "browser.control.take": "ควบคุม",
+  "browser.control.releaseHint": "ปล่อยการควบคุมการป้อนข้อมูลเพื่อให้ไคลเอนต์อื่นหรือ Agent ทำงานได้",
+  "browser.control.takeoverHint": "ไคลเอนต์อื่นหรือ Agent กำลังควบคุมหน้านี้ รับการควบคุม",
+  "browser.control.viewingHint": "กำลังดูหน้าที่แชร์ รับการควบคุมการป้อนข้อมูล",
+  "browser.keyboard": "แป้นพิมพ์",
+  "browser.keyboard.hint": "เลือกช่องข้อความแล้วเปิดแป้นพิมพ์",
+  "browser.menu.copy": "คัดลอก",
+  "browser.menu.copyLink": "คัดลอกที่อยู่ลิงก์"
 }

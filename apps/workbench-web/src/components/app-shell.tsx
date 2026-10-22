@@ -439,6 +439,12 @@ export function AppShell({
     ),
   );
   const rightPanelWidth = useTransform(paneGeometry, geometry => geometry.contentWidth);
+  // Maximization moves the aperture, not the tool's layout viewport. Retain
+  // that mode while hidden; the next visible intent chooses its own endpoint.
+  const rightPanelContentFullWidth = useRef(rightPanelFullWidth);
+  if (rightPanelOpen) rightPanelContentFullWidth.current = rightPanelFullWidth;
+  const rightPanelContentWidth = rightPanelContentFullWidth.current
+    ? mainContentWidth : regularRightPanelWidth;
   const mainFrameWidth = useTransform(paneGeometry, geometry => geometry.frameWidth);
   // This is the width owned by surrounding chrome, not the physical aside.
   // Full-width mode replaces the main viewport and therefore reserves no
@@ -617,6 +623,11 @@ export function AppShell({
   const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
   const reducedMotion = useReducedMotion();
   const mobilePageWash = useTransform(mobileGesture.progress, value => reducedMotion ? 0 : 0.65 * Math.max(0, Math.min(1, value)));
+  // The physical browser surface is portaled outside the moving row. Publish
+  // position changes too: ResizeObserver cannot see an ancestor translation.
+  useLayoutEffect(() => mobilePageX.on("change", () => {
+    rightPanelLayoutTick.set(rightPanelLayoutTick.get() + 1);
+  }), [mobilePageX, rightPanelLayoutTick]);
   const mobilePageBlocked = mobileSidebarEnabled && (drawerRequested || floatingIntent.requested || mobileGesture.dragging);
   const sidebarPresentation = resolveSidebarPresentation({
     docked: sidebarOpen,
@@ -981,6 +992,8 @@ export function AppShell({
                 mainContentWidth={mainContentWidth}
                 open={rightPanelOpen}
                 rightPanelWidth={rightPanelWidth}
+                contentWidth={rightPanelContentWidth}
+                contentFullWidth={rightPanelContentFullWidth.current}
                 rightPanelWidthRatio={rightPanelWidthRatio}
                 rightPanelLayoutTick={rightPanelLayoutTick}
                 shellHeight={shellHeight}

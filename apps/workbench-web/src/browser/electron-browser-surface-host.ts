@@ -1,3 +1,4 @@
+import { browserPresentationClipPath } from "./browser-presentation-geometry";
 import type { BrowserPageId, BrowserUrl, BrowserViewportLayout } from "@opencraft/browser-core";
 import type { BrowserSurfaceEvents, BrowserSurfaceHost } from "./web-browser-surface-host";
 import { createElectronBrowserAutomation } from "./electron-browser-automation";
@@ -220,7 +221,7 @@ export class ElectronBrowserSurfaceHost implements BrowserSurfaceHost {
     p.layout = layout;
     p.phase = phase;
     const { visualBounds: b, viewportSize: viewport, scale } = layout;
-    Object.assign(p.container.style, { left: `${b.x}px`, top: `${b.y}px`, width: `${b.width}px`, height: `${b.height}px` });
+    Object.assign(p.container.style, { left: `${b.x}px`, top: `${b.y}px`, width: `${b.width}px`, height: `${b.height}px`, clipPath: browserPresentationClipPath(layout) });
     Object.assign(p.guest.style, { width: `${viewport.width}px`, height: `${viewport.height}px`,
       transform: scale === 1 ? "" : `scale(${scale})`, transformOrigin: "top left" });
     const visible = phase === "visible";

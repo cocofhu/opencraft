@@ -637,5 +637,14 @@
   "composer.model.speed": "Kelajuan",
   "composer.model.standardSpeed": "Standard",
   "composer.model.done": "Selesai",
-  "composer.resetEffort": "Tetapkan semula penaakulan kepada lalai model"
+  "composer.resetEffort": "Tetapkan semula penaakulan kepada lalai model",
+  "browser.control.release": "Lepaskan",
+  "browser.control.take": "Kawal",
+  "browser.control.releaseHint": "Lepaskan kawalan input supaya klien lain atau Ejen boleh beroperasi",
+  "browser.control.takeoverHint": "Klien lain atau Ejen sedang mengawal halaman ini. Ambil kawalan",
+  "browser.control.viewingHint": "Melihat halaman dikongsi. Ambil kawalan input",
+  "browser.keyboard": "Papan kekunci",
+  "browser.keyboard.hint": "Pilih medan teks, kemudian buka papan kekunci",
+  "browser.menu.copy": "Salin",
+  "browser.menu.copyLink": "Salin alamat pautan"
 }

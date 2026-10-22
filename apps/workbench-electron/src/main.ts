@@ -20,6 +20,7 @@ import { DesktopLifecycle } from "./desktop-lifecycle.js";
 import { createDesktopTray } from "./desktop-tray.js";
 import { createDesktopLocaleRuntime, requireDesktopLocale } from "./desktop-locale.js";
 import { installBrowserGuests } from "./browser-guests.js";
+import { installRemoteBrowserMenu } from './remote-browser-menu.js';
 import { createFilePrivateStorage } from "./private-storage.js";
 import { BrowserPermissionPolicy } from "./browser-permissions.js";
 import { ProjectFolderPicker } from "./project-folder-picker.js";
@@ -106,6 +107,9 @@ function trustedLoginCaller(event: Electron.IpcMainInvokeEvent): boolean {
   return event.sender === mainWebContents && event.senderFrame === mainWebContents?.mainFrame
     && rendererOrigin !== null && event.senderFrame?.url.startsWith(`${rendererOrigin}/`) === true;
 }
+
+const cancelRemoteBrowserMenu = installRemoteBrowserMenu(ipcMain, trustedLoginCaller, () => mainWindow);
+app.on('browser-window-blur', () => cancelRemoteBrowserMenu());
 
 function initializeDesktopProfile(paths: DesktopDirectoryPlan): void {
   desktopPaths = paths;

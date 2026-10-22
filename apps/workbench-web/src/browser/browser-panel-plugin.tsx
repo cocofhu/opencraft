@@ -1,3 +1,4 @@
+import { cancelFrame, frame } from "motion/react";
 import type {
   BrowserPageId,
   BrowserTabId,
@@ -5,6 +6,8 @@ import type {
 import {
   browserUrlDisplayValue,
 } from "@opencraft/browser-core";
+import { BrowserControlButton } from './browser-control-button';
+import { BrowserKeyboardButton } from './browser-keyboard-button';
 import { BrowserDeviceToolbar, BrowserDeviceHandles } from "./browser-device-toolbar";
 import { useIntl } from "@opencraft/i18n/react";
 import type { Context } from "@deepseek-ai/cordis";
@@ -35,6 +38,7 @@ import { FloatingComposerToggle } from "../components/thread-composer-presentati
 import {
   useBrowserPresentationCoordinator,
   useBrowserTab,
+  useOptionalBrowserRuntime,
   useBrowserWorkbench,
   useWebBrowserPage,
   useWebBrowserPageRuntime,
@@ -63,6 +67,7 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
   const tab = useBrowserTab(tabId);
   const pageId = tab?.pageId ?? ("missing-browser-page" as BrowserPageId);
   const page = useWebBrowserPage(pageId);
+  const browserRuntime = useOptionalBrowserRuntime();
   const slotRef = useRef<HTMLDivElement | null>(null);
   const presentationRef = useRef<BrowserPresentationHandle | null>(null);
   const [zoom,setZoom]=useState(100);
@@ -86,18 +91,14 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
       viewportMode: tab.viewportMode,
     });
     presentationRef.current = presentation;
-    let frameId: number | null = null;
-    const scheduleMeasure = () => {
-      if (frameId !== null) return;
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        presentation.measure();
-      });
-    };
+    // Read after Motion commits ancestor transforms and pane dimensions.
+    // A separate browser RAF can run before Motion's final DOM write.
+    const measure = () => presentation.measure();
+    const scheduleMeasure = () => { frame.postRender(measure); };
     const unsubscribeLayout = rightPanelLayoutTick.on("change", scheduleMeasure);
     scheduleMeasure();
     return () => {
-      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      cancelFrame(measure);
       unsubscribeLayout();
       if (presentationRef.current === presentation) presentationRef.current = null;
       presentation.dispose();
@@ -174,6 +175,8 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
           onClick={()=>workbench.setViewportMode(tab.id,tab.viewportMode.type==="responsive"?FIT_VIEWPORT:{type:"responsive"})}>
           <MonitorSmartphone size={15}/>
         </button>
+        <BrowserControlButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
+        <BrowserKeyboardButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
         <FloatingComposerToggle activeTabId={panelTab.id} />
         {pages.supportsSiteSettings && currentUrl ? <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild><button type="button" className="browser-toolbar-button" aria-label={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })} title={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })}><Globe2 size={13} /></button></DropdownMenu.Trigger>
