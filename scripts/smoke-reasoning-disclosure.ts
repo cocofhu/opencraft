@@ -365,7 +365,7 @@ try {
       .thread-activity-item__header, .thread-activity-item__header * { transition: none !important; }
       .thread-activity-item__icon { width:16px; }
       .thread-activity-item__icon > svg { width:16px; height:16px; }
-      .thread-activity-item__icon > .ui-action-glyph { stroke-width:2; }
+      .thread-activity-item__icon > .ui-action-glyph { width:16px; height:16px; stroke-width:2; }
       .thread-activity-item__icon > [data-activity-glyph="thinking"] { width:14px; height:14px; stroke-width:1.8; }
       .thread-activity-item__icon > [data-codex-activity-icon="read"] { width:15px; height:15px; }
     ` });
