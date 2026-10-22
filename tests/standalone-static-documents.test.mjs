@@ -12,7 +12,7 @@ test(`${name}: directory documents precede SPA fallback with HTML, HEAD and reva
   let server;
   t.after(async () => { await server?.close(); await rm(root, { recursive: true, force: true }); });
   await mkdir(join(root, "probe"));
-  await writeFile(join(root, "index.html"), "<!doctype html><title>Workbench</title>");
+  await writeFile(join(root, "index.html"), "<!doctype html><html><head><title>Workbench</title></head><body></body></html>");
   await writeFile(join(root, "probe/index.html"), "<!doctype html><title>Independent probe</title>");
   server = await createServer({ root, appServerTarget: null });
   const address = await server.listen({ host: "127.0.0.1", port: 0 });
