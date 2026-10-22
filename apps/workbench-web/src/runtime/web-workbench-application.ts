@@ -95,8 +95,8 @@ export interface CreateWebWorkbenchApplicationOptions extends Omit<WebWorkbenchS
   readonly conversationPresentation?: ConversationPresentationProvider;
   readonly browserMetadataStorage?: BrowserMetadataStorage;
   readonly browserNavigationPolicy?: BrowserNavigationPolicy;
-  /** Product override; otherwise use the capability-gated local Host adapter. */
-  readonly cloudDesktop?: CloudDesktopPluginAdapter;
+  /** Product override; null disables desktop panels and actions, undefined uses the local Host adapter. */
+  readonly cloudDesktop?: CloudDesktopPluginAdapter | null;
 }
 
 export async function createWebWorkbenchApplication(
@@ -227,7 +227,7 @@ export async function createWebWorkbenchApplication(
     releaseSupervisor = () => supervisor.dispose();
     if (supervisor.mode === "active") {
       const activeSupervisor = supervisor;
-      if (!options.cloudDesktop) {
+      if (options.cloudDesktop === undefined) {
         hostDesktop = new HostDesktopBackend({ bindings: conversationBindings, registry: activeSupervisor.registry,
           origin: window.location.origin, openSocket: endpoint => { const url = new URL(endpoint); url.pathname = serverUrl(url.pathname); return new WebSocket(url); } });
         await panelRuntime.install(createCloudDesktopWorkbenchPanelPlugin({ backend: hostDesktop, surfaces: hostDesktop.surfaces }));

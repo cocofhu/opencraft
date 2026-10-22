@@ -19,6 +19,11 @@ the entry. Explicit trusted-internal deployments can share read-only viewing
 with everyone who can access that deployment; enabling control additionally
 trusts those users to request exclusive input on that same machine.
 
+Trusted renderer composition can set `cloudDesktop: null` to omit the desktop
+plugin entirely, including restored panels, Composer shortcuts and menu actions.
+An omitted option retains capability-gated Host discovery; an adapter selects the
+product backend. Product policy is independent of Host authorization.
+
 ## Ownership
 
 | Object | Authority / lifetime | Teardown |

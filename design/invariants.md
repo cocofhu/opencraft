@@ -2137,6 +2137,13 @@ and thread model. Missing/hidden contributions retain the default project line.
 Default `trailing` placement and menu/popover exclusivity are unchanged. Products
 own the content and select placement; Shell owns geometry across input modes.
 
+### Cloud desktop product composition
+
+Trusted renderer composition owns desktop availability: `cloudDesktop: null` installs
+no desktop panel, toolbar action or Composer shortcut, even for a capable Host.
+An omitted option keeps Host capability discovery and an adapter keeps its explicit
+backend. This policy never mutates desktop state or grants input authority.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
