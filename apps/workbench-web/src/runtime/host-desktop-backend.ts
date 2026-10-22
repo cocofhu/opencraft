@@ -5,6 +5,7 @@ import { asConversationScopeId, type ConversationBindingStore, type HostRuntimeR
 import { desktopTargetKey, type DesktopAttachment, type DesktopBackend, type DesktopTarget } from "@opencraft/plugin-cloud-desktop/contract";
 import { createRfbDesktopAdapter, type RfbDesktopAdapter } from "@opencraft/plugin-cloud-desktop/rfb";
 import { createDesktopWireSession } from "@opencraft/plugin-cloud-desktop/session-wire";
+import { combineAbortSignals } from "@opencraft/appserver-client/transport";
 
 const unavailable = () => new Error("Desktop is unavailable");
 type Registry = Pick<HostRuntimeRegistry<AppServerWorkbenchRuntime>, "subscribe" | "getSnapshot" | "peekRuntime">;
@@ -109,6 +110,7 @@ export class HostDesktopBackend implements DesktopBackend {
         || credential.resourceId !== target.environmentId || !/^[a-f0-9]{64}$/.test(credential.incarnation)
         || credential.expiresAt <= Date.now() || credential.expiresAt > Date.now() + 600_000) throw unavailable();
       const lifetime = new AbortController();
+      let linked: ReturnType<typeof combineAbortSignals> | null = null;
       let released = false, connected = false, ticket = credential.ticket;
       let timer = setTimeout(() => attachment.release(), credential.expiresAt - Date.now());
       const attachment: DesktopAttachment = {
@@ -116,11 +118,14 @@ export class HostDesktopBackend implements DesktopBackend {
         connect: async openSignal => {
           if (released || connected || !current()) throw unavailable();
           connected = true;
-          const linked = AbortSignal.any([openSignal, lifetime.signal]); linked.throwIfAborted();
+          // The attachment owns the combined signal for the whole wire-session
+          // lifetime, not just media.connect(); release disposes it.
+          linked = combineAbortSignals([openSignal, lifetime.signal]);
+          linked.signal.throwIfAborted();
           const endpoint = `${this.options.origin.replace(/^http:/, "ws:").replace(/^https:/, "wss:")}/desktop/connect`;
-          const session = createDesktopWireSession({ attachmentId: credential.attachmentId, signal: linked,
+          const session = createDesktopWireSession({ attachmentId: credential.attachmentId, signal: linked.signal,
             ...(authority.renewable ? { renewal: { expiresAt: credential.expiresAt, confirmed: (expiresAt: number) => {
-              if (released || linked.aborted || !current()) { attachment.release(); return; }
+              if (released || !linked || linked.signal.aborted || !current()) { attachment.release(); return; }
               clearTimeout(timer); timer = setTimeout(() => attachment.release(), expiresAt - Date.now());
             } } } : {}),
             openSocket: () => {
@@ -133,12 +138,13 @@ export class HostDesktopBackend implements DesktopBackend {
               send({ event: "desktop/attach", version: 1, attachmentId: credential.attachmentId, ticket: scoped });
             },
           });
-          try { return await this.media.connect(session, linked); }
+          try { return await this.media.connect(session, linked.signal); }
           catch { attachment.release(); throw unavailable(); }
         },
         release: () => {
           if (released) return;
           released = true; ticket = ""; clearTimeout(timer); lifetime.abort();
+          linked?.dispose(); linked = null;
           this.attachments.delete(attachment); releaseRemote();
           signal.removeEventListener("abort", attachment.release);
         },

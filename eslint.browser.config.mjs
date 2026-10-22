@@ -25,7 +25,7 @@ export default [
       })), {
         // compat/compat does not resolve this AbortSignal static for the baseline.
         object: "AbortSignal", property: "any",
-        message: "AbortSignal.any requires Safari 17.4. Keep one AbortController as the cancellation and timeout owner, and pass its signal; use an explicit timer for the deadline.",
+        message: "AbortSignal.any requires Safari 17.4. Keep one AbortController with an explicit timer for a single owner, or combineAbortSignals from @opencraft/appserver-client/transport and dispose it at the owning lifecycle boundary.",
       }],
     },
   },

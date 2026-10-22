@@ -64,6 +64,38 @@ function connectionAbort(signal?: AbortSignal, message = "Connection cancelled")
   const error = new Error(message); error.name = "AbortError"; return error;
 }
 
+/**
+ * Combine existing cancellation owners without AbortSignal.any. The returned
+ * signal aborts with the first observed reason; dispose detaches every input
+ * listener and never aborts either side. Callers own the returned lifetime and
+ * must dispose it when the operation or resource it protects is released.
+ */
+export function combineAbortSignals(signals: readonly AbortSignal[]): {
+  readonly signal: AbortSignal; dispose(): void;
+} {
+  const controller = new AbortController();
+  const attached: Array<{ readonly signal: AbortSignal; readonly listener: () => void }> = [];
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    for (const { signal, listener } of attached) signal.removeEventListener("abort", listener);
+    attached.length = 0;
+  };
+  const cancel = (source: AbortSignal) => {
+    if (disposed || controller.signal.aborted) return;
+    controller.abort(source.reason);
+    dispose();
+  };
+  for (const source of signals) {
+    if (source.aborted) { cancel(source); break; }
+    const listener = () => cancel(source);
+    source.addEventListener("abort", listener, { once: true });
+    attached.push({ signal: source, listener });
+  }
+  return { signal: controller.signal, dispose };
+}
+
 /** A cheap provider registration; physical protocol code is acquired on connect.
  * Each instance has one connection attempt and terminal close. An import cannot
  * be cancelled, but a retired attempt can never attach its resulting transport.

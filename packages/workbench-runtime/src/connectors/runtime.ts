@@ -1,6 +1,7 @@
 import type { ConnectorAuthorizationPort, ConnectorCapabilityIdentity, ConnectorCapabilityView, ConnectorContribution, ConnectorDiscoveredTool, ConnectorProvider, ConnectorResource, ConnectorScope, ConnectorSkillResource, ConnectorSnapshot, ConnectorTool, ConnectorToolResource } from "./contract";
 import { cancellable, ConnectorError, objectInput } from "./lifetime";
 import type { ConnectorApprovalPort } from "./approvals";
+import { combineAbortSignals } from "@opencraft/appserver-client/transport";
 
 interface Registration { readonly owner: string; readonly provider: ConnectorProvider }
 interface ToolSet { readonly contributionId: string; readonly resource: ConnectorToolResource; readonly tools: readonly ConnectorTool[] }
@@ -130,8 +131,11 @@ export class ConnectorRuntime {
     for (const connection of this.connections.values()) {
       if (!selected.has(connection.snapshot.connectionId) || connection.snapshot.hostId !== scope.hostId || !this.usable(connection)) continue;
       for (const set of connection.toolSets) {
-        const accessSignal = AbortSignal.any([signal, connection.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
-        const allowed = await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: accessSignal })), accessSignal);
+        const access = combineAbortSignals([signal, connection.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
+        let allowed = false;
+        try {
+          allowed = await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: access.signal })), access.signal);
+        } finally { access.dispose(); }
         if (!allowed) {
           if (this.usable(connection)) await this.retire(connection, "refresh-required");
           throw new ConnectorError("unavailable");
@@ -166,8 +170,12 @@ export class ConnectorRuntime {
     const set = connection.toolSets.find(candidate => candidate.contributionId === identity.contributionId);
     const tool = set?.tools.find(candidate => candidate.name === identity.toolName);
     if (!set || !tool || schemaDigest(tool) !== identity.schemaDigest || (!tool.readOnly && !this.options.approvals)) throw new ConnectorError("stale-handle");
-    const accessSignal = AbortSignal.any([signal, connection.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
-    if (!await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: accessSignal })), accessSignal)) {
+    const access = combineAbortSignals([signal, connection.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
+    let allowed = false;
+    try {
+      allowed = await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: access.signal })), access.signal);
+    } finally { access.dispose(); }
+    if (!allowed) {
       if (this.usable(connection)) await this.retire(connection, "refresh-required");
       throw new ConnectorError("unavailable");
     }
@@ -189,8 +197,11 @@ export class ConnectorRuntime {
     for (const c of this.connections.values()) {
       if (!selected.has(c.snapshot.connectionId) || c.snapshot.hostId !== scope.hostId || !this.usable(c)) continue;
       for (const set of c.toolSets) {
-        const accessSignal = AbortSignal.any([signal, c.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
-        const allowed = await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: accessSignal })), accessSignal);
+        const access = combineAbortSignals([signal, c.abort.signal, AbortSignal.timeout(this.timeoutMs)]);
+        let allowed = false;
+        try {
+          allowed = await cancellable(Promise.resolve().then(() => set.resource.checkAccess({ ...scope, signal: access.signal })), access.signal);
+        } finally { access.dispose(); }
         if (!allowed) { if (this.usable(c)) await this.retire(c, "refresh-required"); break; }
         if (!this.usable(c) || this.selections.get(scopeKey(scope)) !== selected) continue;
         for (const tool of set.tools) {
@@ -208,12 +219,12 @@ export class ConnectorRuntime {
     const h = this.handles.get(handle);
     if (!h || scopeKey(h.scope) !== scopeKey(scope) || !this.selected(h) || !this.usable(h.connection)) throw new ConnectorError("stale-handle");
     const args = objectInput(input), abort = new AbortController();
-    const combined = AbortSignal.any([signal, abort.signal, h.connection.abort.signal]);
+    const combined = combineAbortSignals([signal, abort.signal, h.connection.abort.signal]);
     const timer = setTimeout(() => abort.abort(), this.options.invocationTimeoutMs ?? (this.options.approvals ? 120000 : this.timeoutMs));
     this.activeCalls.set(abort, h);
     try {
-      if (combined.aborted) throw new ConnectorError("cancelled");
-      if (!await cancellable(Promise.resolve().then(() => h.set.resource.checkAccess({ ...scope, signal: combined })), combined)) {
+      if (combined.signal.aborted) throw new ConnectorError("cancelled");
+      if (!await cancellable(Promise.resolve().then(() => h.set.resource.checkAccess({ ...scope, signal: combined.signal })), combined.signal)) {
         await this.retire(h.connection, "refresh-required");
         throw new ConnectorError("unavailable");
       }
@@ -222,22 +233,22 @@ export class ConnectorRuntime {
         const approvals = this.options.approvals;
         if (!approvals || !await cancellable(approvals.request({ ...scope, connectionId: h.connection.snapshot.connectionId,
           connectorId: h.connection.snapshot.connectorId, connectorTitle: h.connection.registration.provider.title,
-          tool: h.tool.name, description: h.tool.description, arguments: args }, combined), combined)) throw new ConnectorError("approval-denied");
-        if (!this.usable(h.connection) || !this.selected(h) || combined.aborted) throw new ConnectorError("stale-handle");
-        if (!await cancellable(Promise.resolve().then(() => h.set.resource.checkAccess({ ...scope, signal: combined })), combined)) {
+          tool: h.tool.name, description: h.tool.description, arguments: args }, combined.signal), combined.signal)) throw new ConnectorError("approval-denied");
+        if (!this.usable(h.connection) || !this.selected(h) || combined.signal.aborted) throw new ConnectorError("stale-handle");
+        if (!await cancellable(Promise.resolve().then(() => h.set.resource.checkAccess({ ...scope, signal: combined.signal })), combined.signal)) {
           await this.retire(h.connection, "refresh-required");
           throw new ConnectorError("unavailable");
         }
       }
-      if (combined.aborted) throw new ConnectorError("cancelled");
+      if (combined.signal.aborted) throw new ConnectorError("cancelled");
       const value = await cancellable(Promise.resolve().then(() => {
-        if (combined.aborted) throw new ConnectorError("cancelled");
+        if (combined.signal.aborted) throw new ConnectorError("cancelled");
         if (!this.usable(h.connection) || !this.selected(h)) throw new ConnectorError("stale-handle");
-        return h.set.resource.call(h.tool.name, args, { ...scope, signal: combined });
-      }), combined);
+        return h.set.resource.call(h.tool.name, args, { ...scope, signal: combined.signal });
+      }), combined.signal);
       if (!this.usable(h.connection) || !this.selected(h)) throw new ConnectorError("stale-handle");
       return value;
-    } finally { clearTimeout(timer); this.activeCalls.delete(abort); }
+    } finally { clearTimeout(timer); this.activeCalls.delete(abort); combined.dispose(); }
   }
   async dispose(): Promise<void> {
     this.disposed = true; this.unsubscribeAuth();

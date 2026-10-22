@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DeferredDuplexTransport, type DuplexTransport, type TransportStatus } from "@opencraft/appserver-client/transport";
+import { combineAbortSignals, DeferredDuplexTransport, type DuplexTransport, type TransportStatus } from "@opencraft/appserver-client/transport";
 const deferred = <T>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; };
 function fixture() {
   const messages = new Set<(frame: string) => void>();
@@ -63,4 +63,37 @@ test("provider failure classification survives lazy acquisition", async () => {
   const real = fixture(); real.transport.connect = async () => { (real.transport as { status: TransportStatus }).status = { state: "failed", failure: { code: "auth", recovery: "manual" } }; throw Error("sign in"); };
   const transport = new DeferredDuplexTransport(async () => real.transport);
   await assert.rejects(transport.connect(), /sign in/); assert.deepEqual(transport.status.failure, { code: "auth", recovery: "manual" }); assert.equal(real.closed, 1);
+});
+
+test("combined signals work without native AbortSignal.any and keep the first cancellation reason", async t => {
+  const native = Object.getOwnPropertyDescriptor(AbortSignal, "any");
+  if (native) Object.defineProperty(AbortSignal, "any", { ...native, value: undefined });
+  t.after(() => { if (native) Object.defineProperty(AbortSignal, "any", native); });
+  const first = new AbortController(), second = new AbortController();
+  const combined = combineAbortSignals([first.signal, second.signal]);
+  assert.equal(combined.signal.aborted, false);
+  second.abort("second");
+  first.abort("first");
+  assert.equal(combined.signal.aborted, true);
+  assert.equal(combined.signal.reason, "second");
+  combined.dispose(); combined.dispose();
+  assert.equal(combined.signal.reason, "second");
+});
+test("pre-cancelled inputs keep the first array reason and dispose is passive", () => {
+  const cancelled = new AbortController(); cancelled.abort("first");
+  const later = new AbortController(); later.abort("later");
+  const combined = combineAbortSignals([later.signal, cancelled.signal]);
+  assert.equal(combined.signal.aborted, true);
+  assert.equal(combined.signal.reason, "later");
+  const passive = combineAbortSignals([new AbortController().signal]);
+  passive.dispose(); passive.dispose();
+  assert.equal(passive.signal.aborted, false);
+});
+test("dispose detaches from its inputs without aborting either side", () => {
+  const source = new AbortController();
+  const combined = combineAbortSignals([source.signal]);
+  combined.dispose(); combined.dispose();
+  source.abort("after-dispose");
+  assert.equal(combined.signal.aborted, false);
+  assert.equal(source.signal.reason, "after-dispose");
 });

@@ -197,6 +197,28 @@ test("RFB releases late grants after close and does not allow parallel grant req
   assert.equal(f.client().viewOnly, true);
 });
 
+test("cancelled RFB control request releases its late grant", async () => {
+  const f = fixture(); const pending = deferred<DesktopControlLease>();
+  f.session.control!.request = () => pending.promise;
+  const connection = await f.adapter.connect(f.session, new AbortController().signal);
+  f.adapter.surfaces.mount(element, connection); ready(f);
+  const abort = new AbortController(); const request = connection.requestControl(abort.signal);
+  abort.abort(); pending.resolve(f.lease);
+  await assert.rejects(request);
+  assert.equal(f.calls.filter(call => call === "lease:release").length, 1, "a late grant after request cancellation is released");
+});
+
+test("caller request cancellation does not revoke an admitted RFB lease", async () => {
+  const f = fixture();
+  const connection = await f.adapter.connect(f.session, new AbortController().signal);
+  f.adapter.surfaces.mount(element, connection); ready(f);
+  const caller = new AbortController();
+  const lease = await connection.requestControl(caller.signal);
+  caller.abort();
+  assert.equal(lease.isValid(), true, "the caller request signal is not the admitted lease lifetime");
+  lease.release();
+});
+
 for (const event of ["disconnect", "securityfailure", "credentialsrequired", "serververification"]) {
   test(`RFB ${event} retires only its viewer and fences later ready events`, async () => {
     const f = fixture(); const abort = new AbortController();

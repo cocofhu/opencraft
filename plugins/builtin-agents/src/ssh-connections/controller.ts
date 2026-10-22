@@ -1,4 +1,5 @@
 import { parseSshConnectionViews, parseSshCodexServerDescriptors, parseSshManagementSessionView, type SshManagementAccessMode, type SshCodexServerDescriptor, type SshConnectionView, type SshConnectionEdit } from "@opencraft/app-host-protocol";
+import { combineAbortSignals } from "@opencraft/appserver-client/transport";
 
 export type SshConnectionSnapshot = {
   available: boolean | null; authenticated: boolean; items: readonly SshConnectionView[];
@@ -79,17 +80,23 @@ export class SshConnectionsController {
     if (epoch !== this.epoch || this.closed) return;
     this.publish({ ...this.snapshot, refreshing: true });
     try {
-      const response = await this.fetcher("/__opencraft_ssh/session", { credentials: "same-origin", cache: "no-store", signal: AbortSignal.any([abort.signal, AbortSignal.timeout(5000)]) });
-      if (response.status === 404) {
-        if (epoch === this.epoch && !this.closed) {
-          if (this.snapshot.authenticated) ++this.authEpoch;
-          this.readFailures = 0;
-          this.publish({ available: false, authenticated: false, items: [], legacyServers: [], refreshing: false, error: null, accessMode: null });
+      // The session read owns a five-second budget; keep it active through
+      // the response body parse and release it before later request budgets.
+      const sessionSignal = combineAbortSignals([abort.signal, AbortSignal.timeout(5000)]);
+      let session: ReturnType<typeof parseSshManagementSessionView>;
+      try {
+        const response = await this.fetcher("/__opencraft_ssh/session", { credentials: "same-origin", cache: "no-store", signal: sessionSignal.signal });
+        if (response.status === 404) {
+          if (epoch === this.epoch && !this.closed) {
+            if (this.snapshot.authenticated) ++this.authEpoch;
+            this.readFailures = 0;
+            this.publish({ available: false, authenticated: false, items: [], legacyServers: [], refreshing: false, error: null, accessMode: null });
+          }
+          return;
         }
-        return;
-      }
-      if (!response.ok) throw new Error("bad-session");
-      let session = parseSshManagementSessionView(await response.json());
+        if (!response.ok) throw new Error("bad-session");
+        session = parseSshManagementSessionView(await response.json());
+      } finally { sessionSignal.dispose(); }
       if (epoch !== this.epoch || this.closed) return;
       if (this.admissionOrigin && session.authenticatedOrigin && session.authenticatedOrigin !== this.admissionOrigin) {
         session = { ...session, authenticated: false };
@@ -167,10 +174,11 @@ export class SshConnectionsController {
     if (this.closed) throw new Error("连接页面已关闭。");
     const authEpoch = this.authEpoch;
     const abort = new AbortController(); this.operations.add(abort);
+    const combined = combineAbortSignals([abort.signal, ...(signal ? [signal] : []), AbortSignal.timeout(12000)]);
     try {
       const response = await this.fetcher(`/__opencraft_ssh/${path}`, { method, credentials: "same-origin", cache: "no-store",
         headers: { "content-type": "application/json" }, ...(method === "GET" ? {} : { body: JSON.stringify(data ?? {}) }),
-        signal: AbortSignal.any([abort.signal, ...(signal ? [signal] : []), AbortSignal.timeout(12000)]) });
+        signal: combined.signal });
       const result: unknown = await response.json();
       if (!response.ok) {
         if (response.status === 401 && authEpoch === this.authEpoch) { ++this.authEpoch; this.invalidateReads(); this.publish({ ...this.snapshot, authenticated: false, items: [], legacyServers: [], refreshing: false, error: null }); }
@@ -182,7 +190,7 @@ export class SshConnectionsController {
       if (error instanceof Error && Object.values(messages).includes(error.message)) throw error;
       // Mutations are not replayed: a lost acknowledgement is not rejection.
       throw new Error(method === "GET" ? "无法刷新连接。" : "结果尚未确认，请刷新列表核对后再操作。");
-    } finally { this.operations.delete(abort); }
+    } finally { combined.dispose(); this.operations.delete(abort); }
   }
   private publish(value: SshConnectionSnapshot) { if (this.closed) return; this.snapshot = value; for (const listener of this.listeners) listener(); }
 }
