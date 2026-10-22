@@ -11,7 +11,7 @@ import {createComposerController} from '@opencraft/composer-core';
 import {createConversationKey} from '@opencraft/chat-core';
 import {Button} from '/apps/workbench-web/src/components/ui/button.tsx';
 import {SettingsButton} from '@opencraft/extension-react';
-import * as Menu from '@radix-ui/react-dropdown-menu';
+import * as Menu from '@opencraft/design-system-web/dropdown-menu';
 import * as Dialog from '@radix-ui/react-dialog';
 import {bindTouchInteractionMode} from '/apps/workbench-web/src/runtime/pointer-modality.ts';
 import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';

@@ -2441,3 +2441,18 @@ Conversation actions have stable IDs and a single Feature-owned handler, availab
 Personal intent uses validated UiPreferencesRuntime storage keyed by account scope and dock identity. Empty means intentionally empty, absent means defaults. Unknown/unavailable action IDs remain stored; temporary overflow does not rewrite preference. Customization supports cross-zone dragging, keyboard sorting, add/remove, explicit save/cancel/reset and visible persistence failure. Drag gestures do not execute actions. Dialog focus returns to the connected invoking icon or visible overflow after capacity change. Icons have localized accessible labels/tooltips; neutral theme tokens and touch hit targets are shared.
 
 Customization drag keeps the source slot in layout and paints a noninteractive, unscaled DragOverlay in the presentation root outside modal transforms/clipping. The active source never uses another list's sortable transform. Pointer hit testing first selects a zone, then its rows; nonempty parent zones do not compete with their children. Keyboard targets rows or empty zones. Draft membership changes only on drop, cancellation leaves it unchanged, and release has no source-return animation.
+
+- Sidebar More menus open on a completed touch tap, after the browser has retained
+  the gesture as a click. Touch down alone never opens them; movement beyond
+  10 CSS pixels, ancestor scrolling, cancellation, another pointer, release
+  outside the hit area or a hold beyond 500ms invalidates that tap. These guards
+  never prevent native scrolling. Row long-press/right-click and Radix keyboard,
+  focus, dismissal and the single Sidebar menu owner remain unchanged.
+
+
+Web dropdown consumers use design-system-web/dropdown-menu. Direct touch/pen
+opens only after a valid completed tap; movement, ancestor scrolling, cancel,
+multiple pointers, release outside or holding invalidates it. Native pan remains
+available. Radix owns mouse, keyboard, nested menus, focus and dismissal. Composer
+model, permission and Add controls preserve the editor focus and selection on
+touch; opening one retires the other picker without a delayed activation.

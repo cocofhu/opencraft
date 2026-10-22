@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import React, { useEffect, useState } from "react";
 import { createConversationKey } from "@opencraft/chat-core";
 import { createComposerController, composerDocumentToPlainText } from "@opencraft/composer-core";

@@ -1,6 +1,6 @@
 import { MoreIcon as Ellipsis, AddIcon as Plus, RefreshIcon as RefreshCw, SettingsGearIcon as Settings, DeleteIcon as Trash2, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import * as Dialog from "@radix-ui/react-dialog";
-import * as Menu from "@radix-ui/react-dropdown-menu";
+import * as Menu from "@opencraft/design-system-web/dropdown-menu";
 import { GlobeIcon as Globe2, LogoutIcon as LogOut } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SettingsActions, SettingsButton, SettingsGroup, SettingsIconButton, SettingsListItem, SettingsNotice, SettingsPageHeader, SettingsRow, SettingsSection, SettingsSwitch, SettingsTextInput } from "@opencraft/extension-react";

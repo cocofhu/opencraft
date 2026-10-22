@@ -18,6 +18,18 @@ function collectFiles(directory) {
 
 const violations = [];
 
+// Web menu consumers share direct-touch activation rather than reopening the
+// same accidental-scroll bug at each feature trigger. Radix lives at the adapter.
+for (const directory of ["apps/workbench-web/src", "packages/composer-editor/src", "plugins/tasks/src", "plugins/builtin-agents/src"]) {
+  checkFiles("shared dropdown activation", directory, [{
+    pattern: /["']@radix-ui\/react-dropdown-menu["']/m,
+    message: "must consume design-system-web/dropdown-menu so direct touch completes before opening",
+  }]);
+}
+
+
+
+
 // Shared workbench code consumes SpeechServicePort/AudioCapturePort. Product
 // bridge globals, authenticated routes and fixed product model policy belong
 // to downstream adapters rather than the public embedded host.

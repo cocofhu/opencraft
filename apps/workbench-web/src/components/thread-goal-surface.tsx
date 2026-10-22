@@ -2,7 +2,7 @@ import { CheckIcon as Check, ChevronDownIcon as ChevronDown, MoreIcon as MoreHor
 import { threadGoalNeedsResume } from "@opencraft/appserver-protocol";
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import { PausedCircleIcon as CirclePause, PlayIcon as Play, TargetIcon as Target } from "@opencraft/design-system-web/action-icons";
 import type { ThreadGoalResource, ThreadGoalSnapshot } from "@opencraft/workbench-runtime";

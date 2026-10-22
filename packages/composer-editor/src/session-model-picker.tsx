@@ -1,5 +1,5 @@
 import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, EditIcon as Pencil } from "@opencraft/design-system-web/action-icons";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 import { Fragment, useLayoutEffect, useRef, useState } from "react";

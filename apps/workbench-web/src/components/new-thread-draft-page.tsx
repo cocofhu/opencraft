@@ -1,7 +1,7 @@
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, FolderIcon as Folder, LoadingRingIcon as LoaderCircle, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { useObservedReadiness } from '../runtime/observability-react';
 import { ThreadGoalSurface } from "./thread-goal-surface";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { ThreadComposerPresentation } from "./thread-composer-presentation";
 import {

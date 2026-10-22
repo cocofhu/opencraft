@@ -1,5 +1,5 @@
 import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { useIntl } from "@opencraft/i18n/react";
 import { ArrowUpRightIcon as ArrowUpRight } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useState } from "react";

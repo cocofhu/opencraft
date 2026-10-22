@@ -23,7 +23,7 @@ async function assertComposingMenuEscape(page:any, editor:any, trigger:any, menu
   assert.equal(await editor.innerText(),'菜单组词草稿已确认');assert(await editor.evaluate(el=>el===window.compositionEditor&&el===document.activeElement));
  } finally {await cdp.detach();}
 }
-const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"error",esbuild:{jsx:"automatic"},resolve:{dedupe:["react","react-dom"]},server:{host:"127.0.0.1",port:0},plugins:[{name:"entry-defaults",configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith("/?"))return next();res.setHeader("content-type","text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/touch-newera.tsx"></script>')})}}]});
+const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"error",cacheDir:"node_modules/.vite-composer-picker-focus",esbuild:{jsx:"automatic"},resolve:{dedupe:["react","react-dom"]},server:{host:"127.0.0.1",port:0},plugins:[{name:"entry-defaults",configureServer(server){server.middlewares.use((req,res,next)=>{if(!req.url?.startsWith("/?"))return next();res.setHeader("content-type","text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/touch-newera.tsx"></script>')})}}]});
 const playwright=await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE??"playwright");
 const {chromium}=playwright.default??playwright;
 await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
@@ -33,7 +33,7 @@ try {
   const context=await browser.newContext({viewport:{width:390,height:700},hasTouch:true,isMobile:true});
   const page=await context.newPage();const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");
-  await page.goto(`${vite.resolvedUrls!.local[0]}?pickerFocus=1&mode=${mode}`);
+  await page.goto(`${vite.resolvedUrls!.local[0]}?pickerFocus=1&addMenu=1&mode=${mode}`);
   await page.waitForFunction(()=>typeof(window as any).setTouch==="function");
   await page.evaluate(async newera=>{await(window as any).setTouch(true);await(window as any).setNewera(newera)},newera);
   const editor=page.locator('.opencraft-composer-editor'),model=page.locator('.opencraft-composer-mode--intelligence'),permissions=page.locator('.opencraft-composer-mode--permissions');
@@ -45,6 +45,16 @@ try {
    assert.equal(await page.evaluate(()=>(window as any).blurs),0,'no editor blur during auxiliary touch selection');
    assert.equal(await page.evaluate(()=>getSelection()?.anchorOffset),2,'native selection retained');
   };
+  const touchSession=await context.newCDPSession(page);
+  const add=page.locator('.opencraft-composer-footer__attachment .opencraft-composer-icon-button[aria-haspopup="menu"]');
+  for(const trigger of [model,permissions,add]){
+   const b=(await trigger.boundingBox())!;const p={x:b.x+b.width/2,y:b.y+b.height/2,id:1};
+   await touchSession.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[p]});await page.waitForTimeout(120);
+   assert.equal(await menu.count(),0,'touch down alone cannot open a picker');await assertEditing();
+   await touchSession.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.equal(await menu.count(),0);
+   await trigger.tap();await menu.waitFor();await assertEditing();
+   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});await assertEditing();
+  }
   await model.tap();await menu.waitFor();await assertEditing();
   if(await page.locator('.opencraft-composer-model-quick__title').count())await page.locator('.opencraft-composer-model-quick__title').tap();
   await page.getByRole('menuitem',{name:'Beta',exact:false}).tap();await assertEditing();
@@ -73,11 +83,13 @@ try {
   await model.tap();await menu.waitFor();await page.keyboard.press('ArrowDown');
   assert(await menu.evaluate(el=>el.contains(document.activeElement)));
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('.opencraft-composer-mode--intelligence'));
   assert(await model.evaluate(el=>el===document.activeElement),'keyboard escape returns to trigger');
   // Keyboard/AT opens without an editor lease; no focus interception.
   await permissions.focus();await page.keyboard.press('Enter');await menu.waitFor();
   assert(await menu.evaluate(el=>el.contains(document.activeElement)));
   await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('.opencraft-composer-mode--permissions'));
   assert(await permissions.evaluate(el=>el===document.activeElement));
   // A touch opening from a non-editing state remains an ordinary menu.
   await model.tap();await menu.waitFor();assert(await menu.evaluate(el=>el.contains(document.activeElement)));
@@ -104,6 +116,7 @@ try {
   await editor.click();await page.locator(selector).click();await menu.waitFor();
   assert(await menu.evaluate(el=>el.contains(document.activeElement)),'mouse uses normal Radix focus');
   await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
+  await page.waitForFunction(selector=>document.activeElement===document.querySelector(selector),selector);
   assert(await page.locator(selector).evaluate(el=>el===document.activeElement));
  }
  assert.equal(await editor.innerText(),'桌面草稿');await context.close();

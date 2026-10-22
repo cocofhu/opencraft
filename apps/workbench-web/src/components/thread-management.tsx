@@ -3,7 +3,7 @@ import { LoadingRingIcon as LoaderCircle, MoreIcon as MoreHorizontal, EditIcon a
 import { useAsyncNotices } from "./async-notices";
 import { useIntl } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { ArchiveIcon as Archive, ForkIcon as GitFork, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";

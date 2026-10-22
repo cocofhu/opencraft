@@ -3,7 +3,7 @@ import { TaskLinkIcon } from "@opencraft/design-system-web/task-link-icon";
 import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { ArchiveIcon as Archive, ClockIcon as Clock, ForkIcon as GitFork, InfoIcon as Info, TasksIcon as ListTodo, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

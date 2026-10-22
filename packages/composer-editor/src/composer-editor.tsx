@@ -36,7 +36,7 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, composerDocumentToPlainText } from "@opencraft/composer-core";
 import { ArrowUpIcon as ArrowUp, AtSignIcon as AtSign, AlertIcon as CircleAlert, CodeFileIcon as FileCode2, TextFileIcon as FileText, ImageIcon as Image, SparklesIcon as Sparkles } from "@opencraft/design-system-web/action-icons";
 import {
@@ -896,6 +896,7 @@ export const OpenCraftComposer = forwardRef<
   } | null>(null);
   const [openPicker, setOpenPicker] = useState<SelectionPicker | null>(null);
   const changePicker = (picker: SelectionPicker) => (open: boolean) => {
+    if (open) setAddMenuOpen(false);
     if (open && picker === "intelligence") selectionCatalog?.onModelMenuOpen?.();
     setOpenPicker(current => open ? picker : current === picker ? null : current);
   };
@@ -925,6 +926,11 @@ export const OpenCraftComposer = forwardRef<
   };
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const afterAddMenuClose = useRef<(() => void) | null>(null);
+  const changeAddMenu = (open: boolean) => {
+    if (open) { afterAddMenuClose.current = null; setOpenPicker(null); }
+    setAddMenuOpen(open);
+  };
+  const addFocus = useInputAuxiliaryMenuFocus({ open: addMenuOpen, onOpenChange: changeAddMenu, getEditor: () => editorViewRef.current?.dom ?? null });
   const [editingQueuedSubmissionId, setEditingQueuedSubmissionId] = useState<
     string | null
   >(null);
@@ -2314,12 +2320,10 @@ export const OpenCraftComposer = forwardRef<
                 <Plus size={20} />
               </button>
             ) : (
-              <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={(open) => {
-                if (open) afterAddMenuClose.current = null;
-                setAddMenuOpen(open);
-              }}>
+              <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={changeAddMenu}>
                 <DropdownMenu.Trigger asChild>
                   <button
+                    {...addFocus.triggerProps}
                     className="opencraft-composer-icon-button"
                     type="button"
                     aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
@@ -2329,12 +2333,14 @@ export const OpenCraftComposer = forwardRef<
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
                   <DropdownMenu.Content
+                    {...addFocus.contentProps}
                     className="opencraft-composer-selection-menu opencraft-composer-add-menu"
                     align="start"
                     sideOffset={6}
                     collisionPadding={6}
                     onCloseAutoFocus={(event) => {
                       afterMenuCloseFocus();
+                      addFocus.contentProps.onCloseAutoFocus(event);
                       const afterClose = afterAddMenuClose.current;
                       afterAddMenuClose.current = null;
                       if (afterClose !== null) {
