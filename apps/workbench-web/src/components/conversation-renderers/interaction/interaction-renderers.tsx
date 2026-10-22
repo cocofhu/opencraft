@@ -15,10 +15,10 @@ import {
 } from "@opencraft/chat-core";
 import { WebChatDocument, resolveStandardChatResource } from "@opencraft/chat-render-web";
 import {
-  codexSetupContextSourceExamples,
-  codexSetupRoleOptions,
-  codexSetupTaskOptions,
-  type SetupCodexContextSource,
+  setupContextSourceExamples,
+  setupRoleOptions,
+  setupTaskOptions,
+  type SetupContextSource,
 } from "@opencraft/workbench-runtime";
 import {
   AlertCircle,
@@ -55,10 +55,10 @@ import {
 } from "../activity/activity-disclosure";
 import {
   ConversationInteractionContext,
-  SetupCodexContextCatalog,
+  SetupContextCatalog,
   type ConversationInteractionAction,
   type ConversationInteractionContextValue,
-  type SetupCodexContextCatalogValue,
+  type SetupContextCatalogValue,
 } from "../render-contexts";
 
 function elicitationDraftText(value: McpElicitationDraftValue | undefined): string {
@@ -418,7 +418,7 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
   );
 }
 
-function SetupCodexStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
+function SetupStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   if (block.step === "context") return <SetupContextPickerBlock block={block} />;
   return block.step === "role" ? <SetupRolePickerBlock block={block} /> : <SetupTaskPickerBlock block={block} />;
 }
@@ -435,7 +435,7 @@ function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type:
   return <section className="thread-interaction-card thread-option-picker thread-setup-picker" data-interaction-kind="setup-role" data-state={block.state}>
     <header><strong>What type of work do you do?</strong><button aria-label="Dismiss" className="thread-option-picker__dismiss" disabled={submission.disabled} onClick={() => reply("dismiss")} type="button"><X size={12} /></button></header>
     <div className="thread-option-picker__choices thread-setup-picker__roles">
-      {codexSetupRoleOptions.map((option) => {
+      {setupRoleOptions.map((option) => {
         const selected = selectedRoles.includes(option.id);
         return <button aria-checked={selected} className={selected ? "is-selected" : undefined} disabled={submission.disabled} key={option.id} onClick={() => setSelectedRoles((current) => current.includes(option.id) ? current.filter((id) => id !== option.id) : [...current, option.id])} role="checkbox" type="button">{option.label}</button>;
       })}
@@ -460,7 +460,7 @@ function SetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, { type:
   return <section className="thread-interaction-card thread-setup-task" data-interaction-kind="setup-task" data-state={block.state}>
     <header><div><small>First task</small><strong>What's something we can knock off your list today?</strong></div><button aria-label="Dismiss" className="thread-option-picker__dismiss" disabled={submission.disabled} onClick={() => reply("dismiss")} type="button"><X size={12} /></button></header>
     <div className="thread-setup-task__options">
-      {codexSetupTaskOptions.map((option) => <button aria-checked={selected === option.label} className={selected === option.label ? "is-selected" : undefined} disabled={submission.disabled} key={option.id} onClick={() => { setSelected(option.label); setOther(""); }} role="radio" type="button"><span><b>{option.label}</b><small>{option.description}</small></span><Check aria-hidden="true" size={14} /></button>)}
+      {setupTaskOptions.map((option) => <button aria-checked={selected === option.label} className={selected === option.label ? "is-selected" : undefined} disabled={submission.disabled} key={option.id} onClick={() => { setSelected(option.label); setOther(""); }} role="radio" type="button"><span><b>{option.label}</b><small>{option.description}</small></span><Check aria-hidden="true" size={14} /></button>)}
     </div>
     <input aria-label="Something else" disabled={submission.disabled} onChange={(event) => { setOther(event.currentTarget.value); setSelected(null); }} placeholder="Something else" value={other} />
     <footer><button className="is-ghost" disabled={submission.disabled} onClick={() => reply("skip")} type="button">Skip</button><button className="is-primary" disabled={submission.disabled || answer.length === 0} onClick={() => reply("submit")} type="button">Continue<kbd>↵</kbd></button></footer>
@@ -470,7 +470,7 @@ function SetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, { type:
 
 function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" | "setup-context-picker" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const catalog = useContext(SetupCodexContextCatalog);
+  const catalog = useContext(SetupContextCatalog);
   const [selected, setSelected] = useState<readonly string[]>(() => catalog.sources.filter((source) => source.connected).map((source) => source.id));
   const [search, setSearch] = useState("");
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -487,7 +487,7 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
     action,
     selectedSources: action === "continue" ? selected : [],
   });
-  const choose = async (source: SetupCodexContextSource) => {
+  const choose = async (source: SetupContextSource) => {
     if (source.connected || selected.includes(source.id)) {
       setSelected((current) => current.includes(source.id) ? current.filter((id) => id !== source.id) : [...current, source.id]);
       return;
@@ -504,7 +504,7 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
       setConnecting(null);
     }
   };
-  const sourceRows = (sources: readonly SetupCodexContextSource[]) => sources.map((source) => {
+  const sourceRows = (sources: readonly SetupContextSource[]) => sources.map((source) => {
     const isSelected = selected.includes(source.id);
     return <button className={isSelected ? "is-selected" : undefined} disabled={submission.disabled || connecting === source.id || !source.connected && (!source.available || catalog.connect === null)} key={source.id} onClick={() => void choose(source)} type="button"><span className="thread-setup-context__logo" aria-hidden="true">{source.label.slice(0, 1)}</span><span><b>{source.label}</b><small>{source.description}</small></span><em>{connecting === source.id ? "Connecting…" : isSelected || source.connected ? "Connected" : "Connect"}</em>{isSelected ? <Check aria-hidden="true" size={14} /> : null}</button>;
   });
@@ -753,22 +753,22 @@ function ElicitationBlock({ block }: { block: Extract<TimelineBlock, { type: "el
 export interface ConversationPendingInteractionPanelProps {
   readonly block: AttachedInteractionTimelineBlock | null;
   readonly onRespondInteraction?: (requestId: string, action: ConversationInteractionAction) => Promise<void>;
-  readonly setupContextSources?: readonly SetupCodexContextSource[];
+  readonly setupContextSources?: readonly SetupContextSource[];
   readonly setupContextLoading?: boolean;
-  readonly onConnectSetupContextSource?: (source: SetupCodexContextSource) => Promise<void>;
+  readonly onConnectSetupContextSource?: (source: SetupContextSource) => Promise<void>;
 }
 
 export function ConversationPendingInteractionPanel({
   block,
   onRespondInteraction,
-  setupContextSources = codexSetupContextSourceExamples,
+  setupContextSources = setupContextSourceExamples,
   setupContextLoading = false,
   onConnectSetupContextSource,
 }: ConversationPendingInteractionPanelProps) {
   const interactionContext = useMemo<ConversationInteractionContextValue>(() => ({
     respond: onRespondInteraction ?? null,
   }), [onRespondInteraction]);
-  const setupCatalog = useMemo<SetupCodexContextCatalogValue>(() => ({
+  const setupCatalog = useMemo<SetupContextCatalogValue>(() => ({
     sources: setupContextSources,
     loading: setupContextLoading,
     connect: onConnectSetupContextSource ?? null,
@@ -776,7 +776,7 @@ export function ConversationPendingInteractionPanel({
   if (block === null) return null;
   return (
     <ConversationInteractionContext.Provider value={interactionContext}>
-      <SetupCodexContextCatalog.Provider value={setupCatalog}>
+      <SetupContextCatalog.Provider value={setupCatalog}>
       <motion.div
         animate={{ opacity: 1, y: 0 }}
         className="thread-pending-request-panel"
@@ -791,12 +791,12 @@ export function ConversationPendingInteractionPanel({
             : block.type === "option-picker"
               ? <OptionPickerBlock block={block} />
               : block.type === "setup-codex-step"
-                ? <SetupCodexStepBlock block={block} />
+                ? <SetupStepBlock block={block} />
                 : block.type === "setup-context-picker"
                   ? <SetupContextPickerBlock block={block} />
                   : <ElicitationBlock block={block} />}
       </motion.div>
-      </SetupCodexContextCatalog.Provider>
+      </SetupContextCatalog.Provider>
     </ConversationInteractionContext.Provider>
   );
 }

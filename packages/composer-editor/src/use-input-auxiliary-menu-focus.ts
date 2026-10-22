@@ -14,6 +14,8 @@ export function useInputAuxiliaryMenuFocus(options: {
   open: boolean;
   onOpenChange(open: boolean): void;
   getEditor(): HTMLElement | null;
+  /** Lets the containing presentation check focus after Radix close cleanup. */
+  onCloseFocusSettling?(): void;
 }) {
   const latest = useRef(options);
   latest.current = options;
@@ -90,6 +92,7 @@ export function useInputAuxiliaryMenuFocus(options: {
         if (preserve.current) event.preventDefault();
       },
       onCloseAutoFocus(event: Event) {
+        latest.current.onCloseFocusSettling?.();
         if (preserve.current || !mounted.current) event.preventDefault();
         preserve.current = false;
       },

@@ -19,6 +19,7 @@ function AudioSignal({ levels }: { levels: ComposerAudioLevels }) {
     let cursor = 0;
     let frame: number | null = null;
     let disposed = false;
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const paint = () => {
       frame = null;
@@ -35,7 +36,7 @@ function AudioSignal({ levels }: { levels: ComposerAudioLevels }) {
       const count = Math.floor(bounds.width / 5);
       for (let age = 0; age < count; age += 1) {
         const x = bounds.width - 2 - age * 5;
-        const sample = age < sampleCapacity
+        const sample = !motionPreference.matches && age < sampleCapacity
           ? samples[(cursor - age - 1 + sampleCapacity) % sampleCapacity]!
           : 0;
         const barHeight = Math.max(2, sample * (bounds.height - 4));
@@ -54,14 +55,16 @@ function AudioSignal({ levels }: { levels: ComposerAudioLevels }) {
       if (disposed || !Number.isFinite(sample) || sample < 0 || sample > 1) return;
       samples[cursor] = sample;
       cursor = (cursor + 1) % sampleCapacity;
-      schedule();
+      if (!motionPreference.matches) schedule();
     });
+    motionPreference.addEventListener("change", schedule);
     const observer = new ResizeObserver(schedule);
     observer.observe(canvas);
     schedule();
     return () => {
       disposed = true;
       releaseSamples();
+      motionPreference.removeEventListener("change", schedule);
       observer.disconnect();
       if (frame !== null) cancelAnimationFrame(frame);
     };

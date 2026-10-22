@@ -128,6 +128,13 @@ The builder UI is an explicit management resource, not a startup page.
 
 ## Visual authoring in the conversation
 
+The [OpenCraft design entry](../design.md) routes repository agents to the existing
+design language and token owners. Choose Settings composition for configuration
+rows, Chat for input/result reading, or Sidebar for compact grouped choices. Adapt
+the pattern to the inline frame and retain the App's own domain state. Builder
+`help` includes this selection rule without requiring repository access. Token
+references do not make those variables available inside an isolated App.
+
 Generated Apps are tools embedded in an existing conversation, whose host already
 provides a border, rounded frame, title and open/close action. Prefer a compact
 content-first composition. A fruit picker needs two clear choices, quantity and
@@ -154,18 +161,20 @@ is a starting point, not a second platform token registry:
   color-scheme: light;
   --surface: #ffffff; --text: #242424; --muted: #636363;
   --border: #d6d6d6; --accent: #245d42; --selected: #edf5ef;
+  --focus: #555555;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --surface: #202020; --text: #eeeeee; --muted: #b5b5b5;
   --border: #555555; --accent: #9ed8b6; --selected: #283b30;
+  --focus: #b5b5b5;
 }
 * { box-sizing: border-box; }
 body { margin: 0; padding: 16px; background: var(--surface);
   color: var(--text); font: 14px/1.5 system-ui, "PingFang SC",
   "Microsoft YaHei", sans-serif; }
 button, input, select, textarea { font: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 ```
 
 Read the actual host theme initially and on changes; do not remount the form or

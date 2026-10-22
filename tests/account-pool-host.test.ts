@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
 import { createServer, type Server } from "node:http";
 import { mkdtemp, readdir, rm, stat, readFile, writeFile, rename, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -318,6 +319,65 @@ test("Codex launch exposes only the virtual provider route and Host token", () =
   assert.ok(launch.args.includes('model_provider="opencraft-account-pool"'));
   assert.ok(launch.args.some(value => value.includes("http://127.0.0.1:43123/v1")));
   assert.doesNotMatch(JSON.stringify(launch.args), /host-scoped-token|account-a|access-a/);
+});
+
+test("native external auth uses only an ephemeral local broker credential", () => {
+  const launch = createCodexAccountPoolLaunch({ baseUrl: "http://127.0.0.1:43123", hostToken: "local-host-secret" });
+  assert.equal(launch.auth.type, "chatgptAuthTokens");
+  assert.equal(launch.auth.chatgptAccountId, "opencraft-account-pool");
+  const [header, body, signature] = launch.auth.accessToken.split(".");
+  assert.deepEqual(JSON.parse(Buffer.from(header!, "base64url").toString()), { alg: "HS256", typ: "JWT" });
+  assert.deepEqual(JSON.parse(Buffer.from(body!, "base64url").toString()), {
+    iss: "opencraft-account-pool", aud: "http://127.0.0.1:43123/v1", sub: "local-codex",
+  });
+  assert.ok(signature);
+  assert.doesNotMatch(JSON.stringify(launch.auth), /local-host-secret|refresh_token|chatgpt_plan_type/);
+  assert.ok(launch.args.includes('chatgpt_base_url="http://127.0.0.1:43123"'));
+});
+
+test("native image routes retain Host/thread affinity and independent image quota without replay", async () => {
+  const root = await mkdtemp(join(tmpdir(), "oc-image-pool-"));
+  const pool = new AccountPoolStore({ databasePath: join(root, "pool.sqlite"), secretsDirectory: join(root, "secrets") });
+  try {
+    for (const id of ["a", "b"]) pool.addAccount({ id, provider: "codex", label: id, upstreamAccountId: id, priority: 1, enabled: true },
+      { accessToken: `oauth-${id}`, refreshToken: null, idToken: null, expiresAt: null });
+    const hostA = pool.issueHostToken("host-a"), hostB = pool.issueHostToken("host-b");
+    const calls: { path: string; account: string | null }[] = [];
+    let imageStatus = 200;
+    const proxy = new CodexAccountPoolProxy({ store: pool, upstreamBaseUrl: "https://codex.example.test/backend-api/codex", fetch: async (url, init) => {
+      const path = new URL(String(url)).pathname;
+      calls.push({ path, account: new Headers(init?.headers).get("authorization") });
+      return Response.json(path.includes("/images/") ? { image: true } : {}, { status: path.includes("/images/") ? imageStatus : 200 });
+    } });
+    const response = (host: string, threadId: string, turnId: string) => proxy.handle(new Request("http://localhost/v1/responses", {
+      method: "POST", headers: { "x-opencraft-account-pool-token": host,
+        "x-codex-turn-metadata": JSON.stringify({ thread_id: threadId, turn_id: turnId }) }, body: "{}" }));
+    const image = (host: string, turnId: string, operation = "generations") => proxy.handle(new Request(`http://localhost/v1/images/${operation}`, {
+      method: "POST", headers: { "x-opencraft-account-pool-token": host, "x-codex-image-turn-id": turnId }, body: '{"model":"gpt-image-2"}' }));
+    assert.equal((await image(hostA, "unknown")).status, 409);
+    assert.equal((await image("invalid", "turn-a")).status, 401);
+    await response(hostA, "thread-a", "turn-a");
+    await response(hostA, "thread-b", "turn-b");
+    assert.equal((await image(hostB, "turn-a")).status, 409);
+    assert.equal((await image(hostA, "turn-a")).status, 200);
+    assert.equal((await image(hostA, "turn-b", "edits")).status, 200);
+    assert.equal(calls[0]!.account, calls[2]!.account);
+    assert.equal(calls[1]!.account, calls[3]!.account);
+    assert.notEqual(calls[0]!.account, calls[1]!.account);
+    assert.equal(calls[2]!.path, "/backend-api/codex/images/generations");
+    assert.equal(calls[3]!.path, "/backend-api/codex/images/edits");
+    for (const status of [429, 401, 503]) {
+      imageStatus = status;
+      const before = calls.length;
+      assert.equal((await image(hostA, "turn-a")).status, status);
+      assert.equal(calls.length, before + 1);
+      assert.equal(calls.at(-1)!.account, calls[0]!.account);
+    }
+    // An image quota failure must leave text inference on its original account.
+    await response(hostA, "thread-a", "turn-next");
+    assert.equal(calls.at(-1)!.account, calls[0]!.account);
+    assert.equal((await proxy.handle(new Request("http://localhost/v1/images/delete", { method: "POST" }))).status, 404);
+  } finally { pool.close(); await rm(root, { recursive: true, force: true }); }
 });
 
 test("Codex proxy authenticates the Host and injects only the selected account credentials", async () => {
@@ -1397,4 +1457,27 @@ test("subscription exhaustion can use verified extra credits and persists across
     assert.equal((await proxy.handle(request())).status, 429);
     assert.equal(calls, 3, "do not retry a rejected exhausted account");
   } finally { pool.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+
+test("loopback bridge preserves compressed native request bytes and encoding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "oc-image-binary-"));
+  const pool = new AccountPoolStore({ databasePath: join(root, "pool.sqlite"), secretsDirectory: join(root, "secrets") });
+  let server: Awaited<ReturnType<typeof startCodexAccountPoolServer>> | undefined;
+  try {
+    pool.addAccount({ id: "a", provider: "codex", label: "A", upstreamAccountId: "a", priority: 1, enabled: true },
+      { accessToken: "upstream-only", refreshToken: null, idToken: null, expiresAt: null });
+    const body = gzipSync(Buffer.from('{"model":"test","input":[]}'));
+    const proxy = new CodexAccountPoolProxy({ store: pool, upstreamBaseUrl: "https://codex.example.test", fetch: async (_url, init) => {
+      assert.equal(new Headers(init?.headers).get("content-encoding"), "gzip");
+      assert.deepEqual(Buffer.from(init?.body as Uint8Array), body);
+      return Response.json({ preserved: true });
+    } });
+    server = await startCodexAccountPoolServer({ proxy });
+    const response = await fetch(`${server.url}/v1/responses`, { method: "POST", headers: {
+      "content-encoding": "gzip", "x-opencraft-account-pool-token": pool.issueHostToken("test"), "thread-id": "binary-thread",
+    }, body });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { preserved: true });
+  } finally { await server?.close(); pool.close(); await rm(root, { recursive: true, force: true }); }
 });

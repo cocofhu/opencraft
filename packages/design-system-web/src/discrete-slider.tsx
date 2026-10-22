@@ -1,11 +1,13 @@
 import * as Slider from "@radix-ui/react-slider";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export interface DiscreteSliderOption { readonly value: string; readonly label: string }
 
 /** A single ordered choice. Radix owns capture, snapping, keys and ARIA;
  * preview is local and the consumer receives only completed choices. */
-export function DiscreteSlider({ options, value, label, unsetLabel, disabled = false, onValueChange, preservePointerFocus }: {
+export function DiscreteSlider({ options, value, label, unsetLabel, disabled = false, onValueChange, preservePointerFocus, appearance = "default", renderValue }: {
+  readonly renderValue?: (value: string) => ReactNode;
+  readonly appearance?: "default" | "capsule";
   readonly options: readonly DiscreteSliderOption[];
   readonly value: string | null;
   readonly label: string;
@@ -27,9 +29,9 @@ export function DiscreteSlider({ options, value, label, unsetLabel, disabled = f
     heldFocus.current = false;
   };
   if (!options.length) return null;
-  return <div className="ui-discrete-slider" data-unset={selected < 0 && preview === null || undefined}>
-    <div className="ui-discrete-slider__value" aria-hidden="true">{current}</div>
-    <Slider.Root className="ui-discrete-slider__control" min={0} max={Math.max(1, options.length - 1)} step={1}
+  return <div className="ui-discrete-slider" data-appearance={appearance} data-unset={selected < 0 && preview === null || undefined}>
+    <div className="ui-discrete-slider__value" >{renderValue ? renderValue(current ?? unsetLabel) : <span aria-hidden="true">{current}</span>}</div>
+    <div className="ui-discrete-slider__surface"><Slider.Root className="ui-discrete-slider__control" min={0} max={Math.max(1, options.length - 1)} step={1}
       value={[index]} disabled={disabled || options.length === 1}
       onPointerDownCapture={() => {
         // A non-focusable span makes Radix's pointer-origin focus a no-op.
@@ -68,7 +70,7 @@ export function DiscreteSlider({ options, value, label, unsetLabel, disabled = f
       </Slider.Track>
       <Slider.Thumb ref={thumb} className="ui-discrete-slider__thumb" role="slider" aria-label={label}
         aria-disabled={disabled || options.length === 1} aria-valuemax={options.length - 1} aria-valuetext={current} />
-    </Slider.Root>
+    </Slider.Root></div>
     <div className="ui-discrete-slider__limits" aria-hidden="true"><span>{options[0].label}</span><span>{options.length > 1 ? options.at(-1)!.label : null}</span></div>
   </div>;
 }

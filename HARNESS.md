@@ -60,9 +60,9 @@ The Harness must not:
 - expose credentials, live session contents, or private filesystem data in
   committed fixtures and artifacts.
 
-## Adopted lessons from Paseo
+## Engineering principles
 
-OpenCraft adopts the following engineering principles demonstrated by Paseo:
+OpenCraft uses the following engineering principles:
 
 - tests prove user-visible or API-visible behavior rather than implementation
   structure;
@@ -79,9 +79,7 @@ OpenCraft adopts the following engineering principles demonstrated by Paseo:
   runtimes;
 - failure artifacts are retained automatically.
 
-OpenCraft deliberately does not copy Paseo's current fragmentation across ad-hoc
-Playwright helpers, shell scripts, YAML flows, performance helpers, and large
-untyped standalone harness programs. OpenCraft standardizes the scenario contract,
+OpenCraft standardizes the scenario contract,
 capability model, trace envelope, artifact manifest, and lifecycle audit while
 retaining platform-native runners.
 
