@@ -1848,4 +1848,3 @@ conversation identity. Dismissal returns focus to the available initiating actio
 including after a layout change. Shell's inert sizing and lazy fallback follow
 the same mobile presentation, without reserving a hidden label slot. No Tasks
 authority means no task-link entrance.
-
