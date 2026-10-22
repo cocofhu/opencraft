@@ -250,7 +250,9 @@ surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
 Host providers may declare localized Composer shortcuts as ordinary prompts or
-standalone actions. Selecting either only inserts editable text; explicit send is
+standalone actions. Commands are discovered by typing `/` in the editor; declaring
+shortcuts must not add a command-library button or a separate toolbar menu.
+Selecting a suggestion only inserts editable text; explicit send is
 required. The core matches only a single paragraph with no attachments/context
 and no arguments. Ordinary prompts and unmatched input retain normal submission,
 including queue admission. The optional resident `composerCommands` port binds an
@@ -2409,6 +2411,7 @@ taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
 
+Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
 
 ### Initial user echoes and explicit steering acknowledgements
 
