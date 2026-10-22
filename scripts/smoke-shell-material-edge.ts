@@ -288,7 +288,7 @@ try {
       getComputedStyle(el).backgroundColor;
       await Promise.all(el.getAnimations().map(animation => animation.finished));
     });
-    await page.locator('.main-content-frame').evaluate(el=>el.setAttribute('data-app-shell-thread-edge-divider','true'));
+    await page.locator('.main-content-frame').evaluate(async el=>{el.setAttribute('data-app-shell-thread-edge-divider','true');getComputedStyle(el).borderTopColor;await Promise.all(el.getAnimations().map(animation=>animation.finished));});
     const frameDivider=await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderTopColor);
     const actual=await page.evaluate(() => ({shadow:getComputedStyle(document.querySelector('.main-content-surface')!).boxShadow,context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor}));
     const header=await page.evaluate(() => {const el=document.querySelector('.app-shell-header')!,edge=document.querySelector('.app-shell-header__content-edge')!,main=document.querySelector('.main-content-surface')!;return {paint:getComputedStyle(el).backgroundImage,divider:getComputedStyle(el,'::after').backgroundColor,shadow:getComputedStyle(edge).boxShadow,left:edge.getBoundingClientRect().left,mainLeft:main.getBoundingClientRect().left,pointer:getComputedStyle(edge).pointerEvents};});
