@@ -440,3 +440,14 @@ owner. Disconnect revokes its tool lease; reconnect may reattach the same live
 owner. Explicit unsubscribe disposes it and removes its identity. Server restart
 loses these conversations. The normal persistent Pi owner and recovery path remain
 disk-backed. Full access validation applies equally to both kinds.
+
+### Trusted native transport composition
+
+Headless composition may supply `decorateCodexNativeTransport`, applied only to
+the independent Core native transport when Headless owns Host overlays. This
+in-process boundary runs after Host execution/input admission and retains the
+original account control client. It must preserve native request correlation,
+notifications, connection ownership and caller tool/permission semantics. It is
+not configured through renderer RPCs and never owns the Core process. Product
+provider catalogs and protocol adaptation belong to product composition, not the
+shared Codex adapter or global native configuration.

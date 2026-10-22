@@ -403,6 +403,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
           coreEndpoint: options.codexCoreEndpoint,
           coreAuthToken: options.codexCoreAuthToken,
           coreHostOverlays: options.codexCoreEndpoint !== undefined,
+          decorateNativeTransport: composition.decorateCodexNativeTransport,
           nativeCodexHomeDirectory: join(dataDirectory, "native-codex"),
           desktop,
         })), mcpApps);
