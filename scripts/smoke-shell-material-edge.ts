@@ -303,6 +303,8 @@ try {
     if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
     else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
     if(name==='longing') {
+      const retainedDraft=await page.getByLabel('Main draft').inputValue();
+      const retainedNode=await page.getByLabel('Main draft').elementHandle();
       assert.equal(await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
       assert.equal(await page.locator('.app-shell-content-depth').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
       const sampleDepth = () => page.evaluate(async () => {
@@ -341,7 +343,8 @@ try {
       await page.emulateMedia({reducedMotion:'reduce'});
       await page.evaluate(()=>(window as any).fixture.setOpen(false)); assertDepth(await sampleDepth());
       await page.evaluate(()=>(window as any).fixture.setOpen(true)); assertDepth(await sampleDepth());
-      assert.equal(await page.getByLabel('Main draft').inputValue(),'这份草稿不会被材质变更重建');
+      assert.equal(await page.getByLabel('Main draft').inputValue(),retainedDraft);
+      assert.equal(await page.getByLabel('Main draft').evaluate((el,old)=>el===old,retainedNode),true);
       evidence.push({name,mode,liveDepthHeldDrag:true,collapse,reverse,reducedDepth:true});
     }
     await page.screenshot({path:join(output,`unified-${name}-${mode}.png`)});
