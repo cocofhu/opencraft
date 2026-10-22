@@ -603,7 +603,7 @@ test("Thread acquisition stays empty until its single authoritative Resume promo
     await runtime.connect();
     const lease = await runtime.acquireThread("thread-painted-first");
     assert.equal(lease.getSnapshot().authoritative, false);
-    assert.equal(lease.getSnapshot().phase, "syncing");
+    assert.equal(lease.getSnapshot().phase, "empty");
     assert.equal(lease.getSnapshot().timeline.frames.length, 0);
     assert.equal(runtime.getThreadResidency("thread-painted-first")?.hydrating, true);
     let visibleTimelinePromotions = 0;

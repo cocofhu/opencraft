@@ -95,10 +95,18 @@ test("bounded replay joins actual admission IDs and settles only after a durable
   };
   await writeFile(options.path,admitted("start-A")+usage("one",100)+admitted("steer-B")+usage("two",200)+JSON.stringify({type:"event_msg",payload:{type:"task_complete",turn_id:"turn"}})+"\n");
   const replay={...options,maxFacts:2,onAdmission:(fact:{turnId:string;inputId:string})=>{ledger.recordAdmission({threadId:"thread",turnId:fact.turnId},fact.inputId);},onTerminal:(turnId:string)=>ledger.recordNativeTerminal({threadId:"thread",turnId})};
-  const first=await replayRolloutUsage(replay);
+  let first=await replayRolloutUsage(replay);
+  for(let batch=0;ledger.readTurn(key)?.observedTokens===null && first.more;batch++){
+    assert.ok(batch<10,"bounded replay must reach the first usage fact");
+    first=await replayRolloutUsage({...replay,cursor:first.cursor});
+  }
   assert.equal(first.more,true);assert.equal(ledger.readTurn(key)?.observedTokens,"100");
   assert.equal(ledger.nativeSettlement(key).usageComplete,false);
-  const second=await replayRolloutUsage({...replay,cursor:first.cursor});
+  let second=await replayRolloutUsage({...replay,cursor:first.cursor});
+  for(let batch=0;ledger.readTurn(key)?.observedTokens!=="200" && second.more;batch++){
+    assert.ok(batch<10,"bounded replay must reach the second usage fact");
+    second=await replayRolloutUsage({...replay,cursor:second.cursor});
+  }
   assert.equal(second.more,true);
   assert.deepEqual(ledger.readAllocations(key).map(row=>row.tokens),["100","100"]);
   await replayRolloutUsage({...replay,cursor:second.cursor});

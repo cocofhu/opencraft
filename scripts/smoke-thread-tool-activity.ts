@@ -31,7 +31,7 @@ try {
       const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion });
       inspectedPage = page;
       const errors: string[] = [];
-      page.on("pageerror", error => errors.push(error.message));
+      page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
       await page.addInitScript("window.__name=value=>value");
       await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=live&single=1&restore=1&theme=${theme}`);
       const group = page.locator(".thread-agent-activity__group-disclosure > .thread-activity-item__header button");
@@ -87,7 +87,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}`);
     const nativeSummary = page.locator(".thread-codex-app-tool-row .thread-activity-item__summary");
@@ -135,7 +135,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=images`);
     await page.locator("[data-phase]").waitFor();
@@ -180,7 +180,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
         port: number;
@@ -243,7 +243,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     const url = `http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-live`;
     const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
@@ -353,7 +353,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390,
       isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
-    const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+    const errors: string[] = []; page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-content`);
     await page.locator('[data-host-mode="content"]').waitFor();
@@ -407,7 +407,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=webmcp`);
     await page.locator("[data-phase]").waitFor();
@@ -470,7 +470,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=reviews`);
     await page.locator('[data-phase="inProgress"]').waitFor();
@@ -515,7 +515,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript(() => {
       (window as any).__name = (value: unknown) => value;
       Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
@@ -568,7 +568,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=inputs`);
     await page.locator('[data-phase="inProgress"]').waitFor();

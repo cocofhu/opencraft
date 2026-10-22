@@ -197,7 +197,7 @@ export async function replayRolloutUsage(options: {
   readonly onCommitCursor?: (cursor: number) => void;
   readonly signal?: AbortSignal;
   readonly onSourceTurn?: (key: {threadId:string;turnId:string}) => boolean;
-  readonly onOversizedLine?: ((mayContainFact: boolean, bytes: number) => void) | ((info: { cursor: number; skipTo: number; oversizedFact: boolean }) => void);
+  readonly onOversizedLine?: (mayContainFact: boolean, bytes: number) => void;
   readonly identity?: RolloutTurnIdentity;
 }): Promise<RolloutUsageResult> {
   options.signal?.throwIfAborted();
@@ -297,10 +297,7 @@ export async function replayRolloutUsage(options: {
       // than an unbounded buffer or silently skipping possible count evidence.
       if (start === 0 && bytesRead === maxBytes) {
         if (skipTo === null) throw new OversizedRolloutLineError("Usage rollout line exceeds replay batch");
-        if (options.onOversizedLine) {
-          try { (options.onOversizedLine as any)(oversizedFact, skipTo - cursor); } catch {}
-          try { (options.onOversizedLine as any)({ cursor, skipTo, oversizedFact }); } catch {}
-        }
+        options.onOversizedLine?.(oversizedFact, skipTo - cursor);
         if (oversizedFact) missing++;
         return finish({ cursor: skipTo, observed, changed, missing, skipped: 1, oversizedFact, more: skipTo < stat.size });
       }

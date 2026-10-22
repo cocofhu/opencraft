@@ -1,4 +1,3 @@
-import "./async-question-card.scss";
 import type { AsyncQuestion } from "@opencraft/chat-core";
 import { useIntl } from "@opencraft/i18n/react";
 import { ArrowRight, Check, ChevronDown, CircleHelp } from "lucide-react";

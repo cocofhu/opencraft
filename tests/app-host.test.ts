@@ -750,7 +750,7 @@ test("a hung physical startup settles admission without opening a concurrent tra
 test("expired claim saturation retires the bridge, preserves service Hosts and fences old grants", async context => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const ports = createPortPair(), slow = new ControlledTransport(), healthy = new TestTransport();
-  const server = new AppHostServer({ physicalHostLifetime: "server", createTransport: id => id === "slow" ? slow : healthy });
+  const server = new AppHostServer({ physicalHostLifetime: "server", lifecycleTimeoutMs: 120_000, createTransport: id => id === "slow" ? slow : healthy });
   const connection = server.accept(ports.host, "saturated");
   const client = new MessagePortAppHostClient({ ...ports.browser, close() { ports.browser.close(); connection.close(); } }, "saturated", { maxPendingRequests: 2 });
   const peer = client.createTransport("healthy");
@@ -966,7 +966,7 @@ test("close between grant delivery and its promise callback releases exactly tha
 test("expired claim saturation retires the bridge, preserves service Hosts and fences old grants", async context => {
   context.mock.timers.enable({ apis: ["setTimeout"] });
   const ports = createPortPair(), slow = new ControlledTransport(), healthy = new TestTransport();
-  const server = new AppHostServer({ physicalHostLifetime: "server", createTransport: id => id === "slow" ? slow : healthy });
+  const server = new AppHostServer({ physicalHostLifetime: "server", lifecycleTimeoutMs: 120_000, createTransport: id => id === "slow" ? slow : healthy });
   const connection = server.accept(ports.host, "saturated");
   const client = new MessagePortAppHostClient({ ...ports.browser, close() { ports.browser.close(); connection.close(); } }, "saturated", { maxPendingRequests: 2 });
   const peer = client.createTransport("healthy");

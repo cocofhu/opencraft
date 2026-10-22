@@ -60,7 +60,8 @@ const triggers={
 };
 if(triggers[stage])db.exec('CREATE TEMP TRIGGER crash_metering '+triggers[stage]+' BEGIN SELECT crash_owner(); END');
 const path=root+'/native/rollout.jsonl';
-await replayRolloutUsage({path,nativeHome:root+'/native',threadId:'thread',ledger,cursor:0,onAdmission:fact=>ledger.recordAdmission(fact,fact.inputId),onTerminal:turnId=>ledger.recordNativeTerminal({threadId:'thread',turnId}),onCommitCursor:cursor=>ledger.advanceRollout('thread',path,String(cursor))});
+let cursor=0;for(let batch=0;batch<100;batch++){const result=await replayRolloutUsage({path,nativeHome:root+'/native',threadId:'thread',ledger,cursor,onAdmission:fact=>ledger.recordAdmission(fact,fact.inputId),onTerminal:turnId=>ledger.recordNativeTerminal({threadId:'thread',turnId}),onCommitCursor:cursor=>ledger.advanceRollout('thread',path,String(cursor))});cursor=result.cursor;if(!result.more)break;}
+
 if(stage==='after-commit')crash();
 throw new Error('injection boundary was not reached');
 `);

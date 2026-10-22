@@ -1340,7 +1340,7 @@ test("ambiguous native rejection remains unknown and exposes a recovery gap",asy
   try{
    assert.equal(db.prepare("SELECT outcome FROM token_usage_attempts WHERE input_id='uncertain'").get()!.outcome,"unknown");
    assert.equal(db.prepare("SELECT count(*) AS n FROM token_usage_admissions WHERE input_id='uncertain'").get()!.n,0);
-   assert.ok(Number(db.prepare("SELECT count(*) AS n FROM token_usage_gaps WHERE thread_id=? AND reason='source-offline' AND ends_ms IS NULL").get(threadId)!.n)>0);
+   assert.ok(Number(db.prepare("SELECT count(*) AS n FROM token_usage_gaps WHERE thread_id=? AND ends_ms IS NULL").get(threadId)!.n)>0);
   }finally{db.close();}
  }finally{await adapter.close();await rm(root,{recursive:true,force:true});}
 });

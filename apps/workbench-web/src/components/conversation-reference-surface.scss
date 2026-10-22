@@ -1,4 +1,4 @@
-@use "@opencraft/design-system/typography.web" as typography;
+@use "@opencraft/design-system/typography-mixins.web" as typography;
 .conversation-reference-surface {
   display: flex; flex-direction: column; gap: 16px; padding:20px; width:min(680px,calc(100vw - 36px)); box-sizing:border-box;
   .conversation-reference-surface__heading, .conversation-reference-surface__actions { display:flex; align-items:center; gap:12px; justify-content:space-between; }
