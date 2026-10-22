@@ -1,5 +1,6 @@
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
+import { CommandViewStateContext, type CommandViewState } from "./conversation/command-view-state";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
 import { useIntl } from "@opencraft/i18n/react";
 import { ThinkingLabel } from "./thinking-label";
@@ -611,6 +612,7 @@ function Turn({
 
 export interface ConversationRestoreSnapshot {
   readonly agentActivityCollapsedById?: Readonly<Record<string, boolean>>;
+  readonly commandViews?: Readonly<Record<string, CommandViewState>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -739,6 +741,7 @@ export function Conversation({
   );
   const activityCollapsedByIdRef = useRef(activityCollapsedById);
   activityCollapsedByIdRef.current = activityCollapsedById;
+  const [commandViews] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.commandViews ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
@@ -910,6 +913,7 @@ export function Conversation({
       : null;
     restoreCallbackRef.current?.({
       agentActivityCollapsedById: activityCollapsedByIdRef.current,
+      commandViews: Object.fromEntries(commandViews),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -917,7 +921,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [cancelPendingTargetPosition, scrollController, viewportOwner]);
+  }, [cancelPendingTargetPosition, commandViews, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -973,6 +977,7 @@ export function Conversation({
     </div>
   );
   return (
+    <CommandViewStateContext.Provider value={commandViews}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1066,5 +1071,6 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </CommandViewStateContext.Provider>
   );
 }

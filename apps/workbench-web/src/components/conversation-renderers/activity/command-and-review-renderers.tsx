@@ -24,6 +24,7 @@ import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
+import { CommandViewStateContext } from "../../conversation/command-view-state";
 import { ThinkingLabel } from "../../thinking-label";
 import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
 import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
@@ -155,13 +156,35 @@ function TerminalCopyButton({ value, label }: { readonly value: string; readonly
 
 function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlock, { type: "command-execution" }>; readonly running: boolean }) {
   const intl = useIntl();
+  const views = useContext(CommandViewStateContext);
   const output = normalizeTerminalOutput(block.output ?? "");
   const outputViewport = useRef<HTMLPreElement>(null);
-  const followOutput = useRef(true);
+  const followOutput = useRef(views?.get(block.id)?.followOutput ?? true);
+  const restoredReading = useRef(false);
+  const rememberReading = (viewport: HTMLPreElement) => {
+    if (views) views.set(block.id, { open: views.get(block.id)?.open ?? true, scrollTop: viewport.scrollTop,
+      scrollLeft: viewport.scrollLeft, followOutput: followOutput.current });
+  };
   useLayoutEffect(() => {
     const viewport = outputViewport.current;
-    if (viewport && followOutput.current) viewport.scrollTop = viewport.scrollHeight;
+    if (!viewport) return;
+    if (!restoredReading.current) {
+      const saved = views?.get(block.id);
+      viewport.scrollLeft = saved?.scrollLeft ?? 0;
+      if (!followOutput.current) viewport.scrollTop = saved?.scrollTop ?? 0;
+      restoredReading.current = true;
+    }
+    if (followOutput.current) viewport.scrollTop = viewport.scrollHeight;
+    rememberReading(viewport);
   }, [output]);
+  useLayoutEffect(() => () => {
+    // A route change can unmount before the browser dispatches its queued
+    // scroll event. Save the live reading position before refs are detached.
+    const viewport = outputViewport.current;
+    if (!viewport) return;
+    followOutput.current = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 2;
+    rememberReading(viewport);
+  }, [views, block.id]);
   return <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
     <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
       <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
@@ -169,6 +192,7 @@ function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlo
     <div className="thread-shell-output__output"><pre ref={outputViewport} onScroll={event => {
       const viewport = event.currentTarget;
       followOutput.current = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 2;
+      rememberReading(viewport);
     }}><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
       {output ? <TerminalCopyButton value={output} label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} /> : null}
     </div>
@@ -195,7 +219,14 @@ export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: 
   const detailLevel = useContext(ConversationDetailContext);
   const document = useContext(ConversationDocumentContext);
   const intl = useIntl();
-  const [open, setOpen] = useState(false);
+  const views = useContext(CommandViewStateContext);
+  const [open, setLocalOpen] = useState(() => views?.get(block.id)?.open ?? false);
+  const setOpen = (next: boolean) => {
+    // An explicit reopen starts at the latest output, as before. A remount
+    // restores the reader's saved position and follow intent instead.
+    views?.set(block.id, { open: next, scrollTop: 0, scrollLeft: 0, followOutput: true });
+    setLocalOpen(next);
+  };
   const running = presentation.state === "running";
   const elapsed = useCommandElapsed(block, running);
   const skill = skillReadPresentation(block, detailLevel);
