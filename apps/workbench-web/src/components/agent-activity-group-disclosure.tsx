@@ -119,8 +119,8 @@ export function AgentActivityGroupDisclosure({
       </OverlayDisclosureTrigger>
       {phase !== "collapsed" ? (
         <motion.div className="thread-activity-item__body-clip" data-disclosure-phase={phase}
-          aria-hidden={!open} initial={false}
-          style={{ height, overflow: "hidden", pointerEvents: open ? "auto" : "none" }}
+          aria-hidden={phase !== "expanded"} inert={phase !== "expanded"} initial={false}
+          style={{ height, overflow: "hidden", pointerEvents: phase === "expanded" ? "auto" : "none" }}
           animate={{ height: phase === "expanded" ? "auto" : 0, opacity: phase === "expanded" ? 1 : 0 }}
           transition={{ duration: reduced ? 0 : 0.15, ease: [0.4, 0, 0.2, 1] }}
           onAnimationComplete={() => {

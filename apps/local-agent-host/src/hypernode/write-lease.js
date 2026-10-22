@@ -1,4 +1,3 @@
-// Source copy: ref/hypernode/policy/src/services/thread-write-lease.js
 const DEFAULT_EDIT_TTL_MS = 20_000;
 const DEFAULT_DISCONNECT_TTL_MS = 20_000;
 const ACTIVITY_CONTINUITY_MS = 15 * 60_000;

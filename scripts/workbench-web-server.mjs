@@ -311,6 +311,7 @@ export async function createWorkbenchWebServer({
   });
 
   const websocketServer = new WebSocketServer({ noServer: true });
+  const headlessTunnels = new Set();
   server.on("upgrade", (request, socket, head) => {
     let pathname;
     try {
@@ -318,6 +319,9 @@ export async function createWorkbenchWebServer({
     } catch {
       socket.destroy();
       return;
+    }
+    if (headlessBackend && isHeadlessBackendPath(pathname, true)) {
+      headlessBackend.upgrade(request, socket, head, () => {}, headlessTunnels); return;
     }
     if (pathname !== "/appserver" && pathname !== "/codex-appserver") {
       socket.destroy();
@@ -350,6 +354,7 @@ export async function createWorkbenchWebServer({
       });
     },
     close() {
+      for (const socket of headlessTunnels) socket.destroy();
       for (const client of websocketServer.clients) client.terminate();
       websocketServer.close();
       return new Promise((resolvePromise, reject) => {

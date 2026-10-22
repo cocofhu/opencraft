@@ -22,7 +22,8 @@ export interface ClientProductExtensionContext {
 
 /** Borrowed capabilities; the application releases consumers before this owner. */
 export interface ClientProductSession {
-  readonly persistenceScope: ClientPersistenceScope;
+  /** Omit to use the application's account-scoped local persistence owner. */
+  readonly persistenceScope?: ClientPersistenceScope;
   /** Product eligibility and copy; Host capabilities still gate every operation. */
   readonly botManagement?: ClientBotManagementPolicy;
   extensions(context: ClientProductExtensionContext): readonly TrustedExtensionDefinition[];
