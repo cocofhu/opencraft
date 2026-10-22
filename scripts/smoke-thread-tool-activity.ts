@@ -20,10 +20,11 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let inspectedPage: Awaited<ReturnType<NonNullable<typeof browser>["newPage"]>> | undefined;
 const results = [];
+const handoffOnly = process.argv.includes("--handoff-live-only");
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--host-content-only") && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -71,7 +72,7 @@ try {
     console.log(JSON.stringify({ width, theme, passed: true }));
     await page.close();
   }
-  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -132,7 +133,7 @@ try {
     results.push({ width, theme, liveTools: features });
     await page.close();
 }
-  if (!process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!handoffOnly && !process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
@@ -185,6 +186,115 @@ try {
     assert.deepEqual(errors, []);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     results.push({ width, theme, hostLiveDisclosure: true, settledMemory: true, explicitSuppression: true, historicalRestore: true });
+    await page.close();
+  }
+  if (!process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only"))
+    for (const width of [390, 1100])
+      for (const theme of ["light", "dark"]) {
+        const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+        inspectedPage = page;
+        const errors: string[] = [];
+        page.on("pageerror", e => errors.push(e.message));
+        await page.addInitScript("window.__name=value=>value");
+        const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
+          port: number;
+        }).port}/?theme=${theme}&scenario=handoff-live`;
+        await page.goto(url);
+        await page.locator('[data-phase="queued"]').waitFor();
+        const activate = (n: ReturnType<typeof page.locator>) => width === 390 ? n.tap() : n.click();
+        const row = page.locator('.thread-activity-item[data-status]').filter({ has: page.locator('.thread-handoff-steps') }).last();
+        await row.waitFor();
+        const trigger = row.locator(':scope > .thread-activity-item__header button[aria-expanded]');
+        await trigger.waitFor();
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'queued');
+        assert.equal(await page.evaluate(() => (window as any).presentations['handoff-live'].state), 'running');
+        const features: Record<string, boolean> = { queuedInitiallyOpen: await trigger.getAttribute('aria-expanded') === 'true', queuedStepsInitiallyVisible: await row.locator(':scope > .thread-activity-item__body-clip').getAttribute('aria-hidden') === 'false' };
+        await page.screenshot({ path: join(output, `handoff-live-${width}-${theme}-initial.png`) });
+        if (await trigger.getAttribute('aria-expanded') === 'true')
+          await activate(trigger);
+        await page.evaluate(() => (window as any).setPhase('running'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'running');
+        features.manualCollapseSurvivesProgress = await trigger.getAttribute('aria-expanded') === 'false';
+        await activate(trigger);
+        features.manualReopenShowsSteps = await page.getByText('Prepare host transfer', { exact: true }).isVisible();
+        await page.evaluate(() => (window as any).setPhase('success'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'completed');
+        features.settlementStartsCollapsed = await trigger.getAttribute('aria-expanded') === 'false';
+        if (await trigger.getAttribute('aria-expanded') === 'false')
+          await activate(trigger);
+        await page.evaluate(() => (window as any).setPhase('error'));
+        await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'failed');
+        features.settledManualChoiceSurvivesFailure = await trigger.getAttribute('aria-expanded') === 'true';
+        await page.evaluate(() => (window as any).setPhase('empty'));
+        await page.locator('[data-phase="empty"]').waitFor();
+        features.emptyHandoffSummaryOnly = await page.locator('.thread-handoff-steps').count() === 0 && await page.locator('.thread-codex-app-tool-row button[aria-expanded]').count() === 0;
+        for (const phase of ['success', 'transport-failed']) {
+          await page.goto(url + '&initial=' + phase + '&history=1');
+          await page.locator('[data-phase="' + phase + '"]').waitFor();
+          await trigger.waitFor();
+          features['historical-' + phase + '-collapsed'] = await trigger.getAttribute('aria-expanded') === 'false';
+          features['historical-' + phase + '-state'] = await row.getAttribute('data-status') === (phase === 'success' ? 'completed' : 'failed');
+        }
+        assert.deepEqual(errors, []);
+        for (const [feature, present] of Object.entries(features))
+          assert.equal(present, true, feature);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+        results.push({ width, theme, handoffLiveDisclosure: true, ...features });
+        await page.close();
+      }
+
+  if (!handoffOnly && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390,
+      isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-content`);
+    await page.locator('[data-host-mode="content"]').waitFor();
+    const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
+    for (const mode of ["content", "null", "false", "fallback", "absent"]) {
+      await page.evaluate(mode => (window as any).changeHostContentMode(mode), mode);
+      await page.locator(`[data-host-mode="${mode}"][data-phase="inProgress"]`).waitFor();
+
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const closed = page.locator('.thread-agent-activity__group button[aria-expanded="false"], .thread-activity-item__hit-target[aria-expanded="false"]');
+        if (await closed.count() === 0) break; await activate(closed.first());
+      }
+      if (mode !== "absent") await page.waitForFunction(mode => ['create', 'read', 'handoff', 'empty']
+        .every(id => (window as any).hostRenderedModes[id] === mode), mode);
+      const bodies = page.locator('[data-host-body]');
+      const builtins = page.locator('.thread-created-thread-card,.thread-codex-app-tool-row,.thread-handoff-steps');
+      if (mode === "content") {
+        assert.equal(await bodies.count(), 4, 'the hidden status poll does not create a fifth custom body');
+        assert.equal(await builtins.count(), 0, 'the Host claim owns the tool body');
+        const input = bodies.first().getByRole('textbox');
+        await input.fill('Keep this draft through tool failure');
+        await input.evaluate(node => { (window as any).hostInputNode = node; });
+        await activate(bodies.first().getByRole('button'));
+        assert.deepEqual(await page.evaluate(() => (window as any).hostActions), ['create']);
+        await page.evaluate(() => (window as any).changeThreadToolPhase('failed'));
+        await page.locator('[data-phase="failed"]').waitFor();
+        assert.equal(await input.inputValue(), 'Keep this draft through tool failure');
+        assert.ok(await input.evaluate(node => node === (window as any).hostInputNode));
+      } else if (mode === "null" || mode === "false") {
+        assert.equal(await bodies.count(), 0); assert.equal(await builtins.count(), 0);
+      } else {
+        assert.equal(await page.locator('.thread-created-thread-card').count(), 1);
+        assert.equal(await page.locator('.thread-handoff-step').count(), 3);
+        assert.equal(await page.locator('.thread-handoff-steps').evaluateAll(nodes =>
+          nodes.filter(node => node.childElementCount === 0).length), 0);
+        assert.equal(await page.getByRole('button', { name: 'Transfer · Queued', exact: true }).count(), 0,
+          'an operation without reported steps has no empty disclosure');
+        await activate(page.getByRole('button', { name: 'Open chat', exact: true }).filter({ hasText: 'Read thread' }));
+        await activate(page.locator('.thread-created-thread-card'));
+        assert.deepEqual(await page.evaluate(() => (window as any).openedThreads.slice(-2)), ['read-ai', 'created-ai']);
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: join(output, `host-content-${width}-${theme}.png`) });
+    results.push({ width, theme, hostContentPriority: true, explicitSuppression: true,
+      inputIdentityRetained: true, semanticFallback: true, emptyHandoffSummary: true });
     await page.close();
   }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));

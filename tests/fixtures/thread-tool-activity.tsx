@@ -1,5 +1,5 @@
-import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import React, { useState } from "react";
+import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline, type TimelineSourceItem } from "@opencraft/chat-core";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
@@ -16,8 +16,11 @@ const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "da
 document.documentElement.dataset.theme = theme;
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
-const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[] };
+const hostContentScenario = new URLSearchParams(location.search).get("scenario") === "host-content";
+const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
+probe.hostActions = [];
+probe.hostRenderedModes = {};
 function tool(id: string, name: string, arguments_: unknown, status = "completed", output?: unknown): TimelineSourceItem {
   return { id, type: "dynamicToolCall", payload: {
     namespace: "codex_app", tool: name, arguments: arguments_, status, success: status !== "failed",
@@ -25,10 +28,31 @@ function tool(id: string, name: string, arguments_: unknown, status = "completed
   } };
 }
 
+function hostToolItems(failed: boolean): TimelineSourceItem[] {
+  type Dynamic = Extract<ThreadItem, { type: "dynamicToolCall" }>;
+  const native = (id: string, tool: string, args: Dynamic["arguments"], output: unknown, fail = failed): Dynamic => ({
+    id, type: "dynamicToolCall", namespace: "codex_app", tool, arguments: args,
+    status: fail ? "failed" : "completed", success: !fail, durationMs: 12,
+    contentItems: [{ type: "inputText", text: JSON.stringify(output) }],
+  });
+  return [
+    native("create", "create_thread", { target: { type: "project" } }, { threadId: "created-ai" }),
+    native("read", "read_thread", { threadId: "read-ai" }, { threadId: "read-ai" }),
+    native("handoff", "handoff_thread", { threadId: "source-ai" }, { status: "warning", threadTitle: "Review", steps: [
+      { id: "prepare-host-transfer", status: "done" }, { id: "transfer-host-artifacts", status: "failed" },
+      { id: "create-new-worktree", status: "pending" },
+    ] }),
+    native("empty", "handoff_thread", { threadId: "queued-ai" }, { status: "queued", steps: [] }),
+    native("poll", "get_handoff_status", { operationId: "waiting-ai" }, { status: "queued", steps: [] }, false),
+  ].map(({ id, type, ...payload }) => ({ id, type, payload }));
+}
+
 function Demo() {
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
-  const items: TimelineSourceItem[] = [
+  const [hostMode, setHostMode] = useState("content");
+  probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
+  const items: TimelineSourceItem[] = hostContentScenario ? hostToolItems(phase === "failed") : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
@@ -47,11 +71,17 @@ function Demo() {
     { id: "custom", type: "dynamicToolCall", payload: { namespace: "custom", tool: "inspect_workspace", status: phase, success: phase !== "failed" } },
   ];
   const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
-    authoritative: true, phase: "live", turns: [{ id: "turn", status: phase === "inProgress" ? "streaming" : "complete", items }] }, registry);
-  return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
+    authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" ? "streaming" : "complete", items }] }, registry);
+  return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
         onOpenSubagent={id => probe.openedThreads.push(id)}
+        renderToolCallContent={hostContentScenario && hostMode !== "absent" ? block => { probe.hostRenderedModes[block.callId ?? block.id] = hostMode; return hostMode === "fallback" ? undefined
+          : hostMode === "null" ? null : hostMode === "false" ? false
+          : <section data-host-body={block.callId}>
+              <label>Host note {block.callId}<input aria-label={"Host note " + block.callId} defaultValue="" /></label>
+              <button type="button" onClick={() => probe.hostActions.push(block.callId ?? block.id)}>Host action {block.callId}</button>
+            </section>; } : undefined}
         footer={<div style={{ height: 48 }}>Composer fixture</div>} />
     </TimelineBlockRendererProvider>
   </div>;
@@ -117,4 +147,51 @@ function LiveToolsDemo() {
   </div>;
 }
 
-createIntlTestRoot(document.getElementById("root")!).render(["live", "host-live"].includes(new URLSearchParams(location.search).get("scenario") ?? "") ? <LiveToolsDemo /> : <Demo />);
+const handoffParams = new URLSearchParams(location.search);
+const handoffProbe = window as unknown as {
+  setPhase: (phase: string) => void;
+  presentations: Record<string, { phase: string; canExpand: boolean; state: string }>;
+};
+handoffProbe.presentations = {};
+function HandoffToolsDemo() {
+  const [phase, setPhase] = useState(handoffParams.get("initial") ?? "queued");
+  handoffProbe.setPhase = setPhase;
+  const live = phase === "queued" || phase === "running";
+  const status = phase === "transport-failed" ? "failed" : "completed";
+  const item: Extract<ThreadItem, { type: "dynamicToolCall" }> = {
+    type: "dynamicToolCall", id: "handoff-live", namespace: "codex_app", tool: "handoff_thread",
+    arguments: { threadId: "source-al", destinationHostId: "target-al" },
+    status, success: status === "completed", durationMs: 23,
+    contentItems: [{ type: "inputText", text: JSON.stringify({
+      operationId: "transfer-al",
+      status: phase === "empty" ? "queued" : phase === "transport-failed" ? "running" : phase,
+      threadTitle: "AL transfer", destinationHostDisplayName: "Synthetic target",
+      steps: phase === "empty" ? [] : [
+        { id: "prepare-host-transfer", status: live ? "running" : "done" },
+        { id: "transfer-host-artifacts", status: live ? "pending" : phase === "error" ? "failed" : "done" },
+      ],
+    }) }],
+  };
+  const { id, type, ...payload } = item;
+  const items: TimelineSourceItem[] = [{ id, type, payload }];
+  const history = handoffParams.has("history");
+  const timeline = projectTimeline({
+    key: createConversationKey("fixture", "handoff-live-al"),
+    revision: ["queued", "running", "success", "error", "empty", "transport-failed"].indexOf(phase),
+    authoritative: true, phase: history ? "painted" : "live",
+    turns: [{ id: "turn", status: history ? "complete" : "streaming", items }],
+  }, registry);
+  return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
+    <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
+      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        renderToolCallIcon={(block, presentation) => {
+          handoffProbe.presentations[block.callId ?? block.id] = {
+            phase, canExpand: presentation.canExpand, state: presentation.state,
+          };
+          return undefined;
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+    </TimelineBlockRendererProvider>
+  </div>;
+}
+
+createIntlTestRoot(document.getElementById("root")!).render(handoffParams.get("scenario") === "handoff-live" ? <HandoffToolsDemo /> : ["live", "host-live"].includes(new URLSearchParams(location.search).get("scenario") ?? "") ? <LiveToolsDemo /> : <Demo />);
