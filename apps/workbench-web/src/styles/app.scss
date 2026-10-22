@@ -6482,15 +6482,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   opacity: 1;
   pointer-events: auto;
 }
-@include controls.hover-capable {
-  .thread-frame--assistant:hover > .thread-message-actions { opacity: 1; }
-  .thread-user-message:hover .thread-user-message__actions time,
-  .thread-frame--assistant:hover > .thread-message-actions time {
-    opacity: 1;
-    pointer-events: auto;
-  }
+.thread-user-message:hover .thread-user-message__actions time,
+.thread-frame--assistant:hover > .thread-message-actions time {
+  @include controls.hover-capable { opacity: 1; pointer-events: auto; }
 }
-
+.thread-frame--assistant:hover > .thread-message-actions {
+  @include controls.hover-capable { opacity: 1; }
+}
 
 .thread-message-actions {
   display: flex;
