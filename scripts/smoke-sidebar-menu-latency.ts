@@ -148,6 +148,43 @@ try {
     evidence.push({ rows, cpuRate: 4, samples, interactionRegression: true });
     await page.close();
   }
+  for (const touch of [false, true]) for (const theme of ['light', 'dark']) {
+    const context = await browser.newContext({viewport:{width:390,height:800},hasTouch:touch,isMobile:touch});
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on('pageerror', (error: Error) => errors.push(error.message));
+    await page.addInitScript('window.__name=v=>v');
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?rows=3`);
+    await page.locator('.sidebar-activity-item').nth(2).waitFor();
+    await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
+    // Row availability gates new badge opens as well as existing owners.
+    const people = page.getByRole('button', { name: 'People t0', exact: true });
+    const participants = page.getByText('Participants t0', { exact: true });
+    const setUnavailable = () => page.evaluate(() => {
+      const f = (window as any).fixture;
+      f.setRows(f.initial.map((row: any, i: number) => i === 0 ? { ...row, interactionAvailable: false } : row));
+    });
+    await setUnavailable();
+    await page.waitForFunction(() => (document.querySelector('.sidebar-activity-item') as HTMLButtonElement)?.disabled);
+    if (touch) await people.tap(); else await people.click();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await participants.count(), 0, 'an unavailable row cannot acquire the badge menu owner');
+    await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial));
+    if (touch) await people.tap(); else await people.click();
+    await participants.waitFor();
+    await setUnavailable();
+    await participants.waitFor({ state: 'hidden' });
+    await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await participants.count(), 0, 'availability recovery cannot resurrect the badge menu');
+    if (touch) await people.tap(); else await people.click();
+    await participants.waitFor();
+    await page.keyboard.press('Escape');
+    await participants.waitFor({state:'hidden'});
+    assert.deepEqual(errors, []);
+    evidence.push({availability:true,touch,theme,explicitReopen:true});
+    await context.close();
+  }
   console.log(JSON.stringify({ passed: true, output, evidence }));
 } finally {
   await writeFile(`${output}/result.json`, JSON.stringify(evidence, null, 2));

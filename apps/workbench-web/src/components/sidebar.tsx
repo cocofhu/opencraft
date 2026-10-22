@@ -244,6 +244,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const capabilities = threadCapabilities?.(thread.connectionHostId)
       ?? { rename: !!threadActions, archive: !!threadActions, fork: !!threadActions, delete: !!threadActions, pin: !!threadActions?.onSetPinned };
     const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => {
+      if (open && disabled) return;
       menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
     };
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
