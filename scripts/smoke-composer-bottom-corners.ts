@@ -17,12 +17,12 @@ try {
   const page = await browser.newPage({ viewport: { width, height: 800 }, hasTouch: width < 768 });
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await page.addInitScript("window.__name=value=>value");
-  await page.goto(`${server.resolvedUrls!.local[0]}?palette=codex&mode=${mode}&pickerFocus&corners`);
-  const editor = page.locator(".codex-composer-editor"); await editor.waitFor();
+  await page.goto(`${server.resolvedUrls!.local[0]}?palette=opencraftNeutral&mode=${mode}&pickerFocus&corners`);
+  const editor = page.locator(".opencraft-composer-editor"); await editor.waitFor();
   await page.evaluate(({ width, newera }) => { (window as any).setTouch(width < 768); (window as any).setNewera(newera); }, { width, newera });
   await editor.fill("保留草稿与焦点"); await page.waitForTimeout(180);
   await editor.evaluate(node => { (window as any).keptEditor = node; });
-  const initial = await page.locator(".codex-composer-stack").boundingBox();
+  const initial = await page.locator(".opencraft-composer-stack").boundingBox();
   // The shell floats over transcript paint at its lower corner cutouts.
   // Only desktop clips the gutter, with a straight horizontal edge.
   await page.locator(".thread-scroll-footer").evaluate(node => {
@@ -30,7 +30,7 @@ try {
    marker.setAttribute("aria-hidden", "true"); marker.style.cssText = "position:absolute;inset:0;z-index:0;pointer-events:none;background:#ff00ff";
    node.prepend(marker);
   });
-  const shell = page.locator(".codex-composer-shell"); const bounds = (await shell.boundingBox())!;
+  const shell = page.locator(".opencraft-composer-shell"); const bounds = (await shell.boundingBox())!;
   for (const side of ["left", "right"] as const) {
    const clip = { x: Math.round(side === "left" ? bounds.x + 1 : bounds.x + bounds.width - 5), y: Math.round(bounds.y + bounds.height - 5), width: 3, height: 3 };
    const before = await page.screenshot({ clip });
@@ -56,13 +56,13 @@ try {
   }
   await page.evaluate(touch => (window as any).setTouch(touch), width < 768);
   await page.waitForTimeout(60);
-  assert.deepEqual(await page.locator(".codex-composer-stack").boundingBox(), initial, "exterior material adds no height");
+  assert.deepEqual(await page.locator(".opencraft-composer-stack").boundingBox(), initial, "exterior material adds no height");
   await page.locator("#corner-activity-probe").evaluate(node => node.remove());
   await editor.click();
   assert(await editor.evaluate(node => node === (window as any).keptEditor && node.contains(document.activeElement)), "same editor retains focus");
   assert.equal(await editor.innerText(), "保留草稿与焦点");
-  await page.locator(".codex-composer-mode--intelligence").focus(); await page.keyboard.press("Enter");
-  await page.locator(".codex-composer-selection-menu--intelligence[data-state=open]").waitFor(); await page.keyboard.press("Escape");
+  await page.locator(".opencraft-composer-mode--intelligence").focus(); await page.keyboard.press("Enter");
+  await page.locator(".opencraft-composer-model-quick[data-state=open]").waitFor(); await page.keyboard.press("Escape");
   await page.evaluate(() => (window as any).setQueue(true)); await page.waitForTimeout(60);
   assert.equal(await shell.evaluate(node => getComputedStyle(node).overflow), "visible", "menus are not clipped");
   if (width === 390 || width === 1280) await page.screenshot({ path: `${output}/${width}-${mode}-${newera}.png` });

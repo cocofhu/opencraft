@@ -13,12 +13,12 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 await vite.listen();
 const browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
 const evidence: unknown[] = [];
-const cases = before ? [{ width: 390, touch: true, newera: true, mode: "light", palette: "codex", reduce: false }] : [
-  ...[320, 390, 430].flatMap(width => ["light", "dark"].map(mode => ({ width, touch: true, newera: true, mode, palette: "codex", reduce: false }))),
+const cases = before ? [{ width: 390, touch: true, newera: true, mode: "light", palette: "opencraftNeutral", reduce: false }] : [
+  ...[320, 390, 430].flatMap(width => ["light", "dark"].map(mode => ({ width, touch: true, newera: true, mode, palette: "opencraftNeutral", reduce: false }))),
   ...["light", "dark"].flatMap(mode => [
-    { width: 1280, touch: false, newera: true, mode, palette: "codex", reduce: false },
-    { width: 390, touch: true, newera: false, mode, palette: "codex", reduce: false },
-    { width: 390, touch: true, newera: true, mode, palette: "codex", reduce: true },
+    { width: 1280, touch: false, newera: true, mode, palette: "opencraftNeutral", reduce: false },
+    { width: 390, touch: true, newera: false, mode, palette: "opencraftNeutral", reduce: false },
+    { width: 390, touch: true, newera: true, mode, palette: "opencraftNeutral", reduce: true },
     { width: 390, touch: true, newera: true, mode, palette: "lavender", reduce: false },
   ]),
 ];

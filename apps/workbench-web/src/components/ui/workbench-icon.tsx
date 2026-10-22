@@ -2,8 +2,8 @@ import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";
 import {
   Blocks, Brain, Palette, MessageSquare, Activity, Archive, ArrowLeft, ArrowRight, AudioLines, Bot, BrainCircuit,
-  CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, FileCode2, Folder,
-  GitBranch, Globe2, Keyboard, HardDrive, House, LayoutGrid, ListTodo, MessageCircle,
+  CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, Download, FileCode2, Folder,
+  GitBranch, Globe2, Keyboard, HardDrive, House, LayoutGrid, ListTodo, MessageCircle, RefreshCw,
   MessagesSquare, Mic, Monitor, PanelLeft, PanelLeftClose, Plug,
   Plus, Search, Server, Settings, SlidersHorizontal, Sparkles, SunMoon,
   SquarePen, TerminalSquare, UserRound, UserRoundCog, UsersRound,
@@ -20,8 +20,8 @@ export const workbenchIconRegistry = {
   file: FileCode2, folder: Folder, "hard-drive": HardDrive,
   keyboard: Keyboard, home: House, grid: LayoutGrid, "message-circle": MessageCircle, microphone: Mic,
   monitor: Monitor, "panel-left": PanelLeft, "panel-left-close": PanelLeftClose,
-  plug: Plug, plus: Plus, search: Search, server: Server, settings: Settings,
-  sliders: SlidersHorizontal, sparkles: Sparkles, start: SquarePen,
+  plug: Plug, plus: Plus, refresh: RefreshCw, search: Search, server: Server, settings: Settings,
+  sliders: SlidersHorizontal, sparkles: Sparkles, start: SquarePen, updates: Download, download: Download,
   tasks: ListTodo, terminal: TerminalSquare, user: UserRound,
   "user-round": UserRound, "user-round-cog": UserRoundCog, users: UsersRound,
 } satisfies Record<string, LucideIcon>;

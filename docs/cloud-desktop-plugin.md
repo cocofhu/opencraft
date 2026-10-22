@@ -598,8 +598,8 @@ generations or the complete current patch, not arbitrary subsets.
   cannot misclassify fast scrolling as pinch. Cancellation drops the sample;
   normal release may consume its final sample, under the same valid grant.
 - Wheel and touch translation share bounded delta accumulation, reversal/idle
-  reset and at most one step per axis per 100ms. RFB encodes discrete steps,
-  not Codex pixel deltas; scrolling speed is not claimed identical. Trackpad
+  reset and at most one step per axis per 100ms. RFB encodes discrete steps rather than pixel deltas; wheel and touch input
+  use the same bounded accumulation policy. Trackpad
   Ctrl-wheel adjusts local viewing only.
 - Zoom is 1–4x anchored under the gesture, with bounded pan. Coordinates use
   actual transformed canvas bounds and framebuffer dimensions. Bars cannot start

@@ -1,5 +1,15 @@
 # OpenCraft platform architecture
 
+While a `turn/start` or `thread/resume` request is pending, an authoritative
+`item/started` notification for `contextCompaction` on the same thread grants
+context preparation up to a three-minute absolute request deadline (or the
+caller's longer existing deadline). Duplicate starts cannot renew that deadline.
+Completion of that exact compaction turn restores the ordinary response wait,
+bounded by the same absolute deadline. Other threads and short reads retain their
+normal deadlines; timeout-disabled requests remain disabled. Abort, connection
+loss and close still reject the exact pending request. The Host owns preparation
+and must stop before its deadline; the client never retries or replays the input.
+
 The proposed cross-cutting observation plane is specified in
 [Observability V1](observability-platform.md), with a separate
 [functional and nonfunctional acceptance matrix](observability-acceptance.md).
@@ -678,8 +688,8 @@ old record; both before and after a synchronous write the same ownership must
 hold. The View acknowledges only an applied transaction whose physical document
 matches the expected result. Missing reservation, rejected dispatch or reentrant
 replacement yields `false`/`commit-rejected`; recognition text being nonempty is
-not sufficient to authorize sending. This boolean port is an OpenCraft adaptation,
-not a claimed Codex original interface.
+not sufficient to authorize sending. This boolean port acknowledges only an
+applied OpenCraft document transaction.
 Composer owns the original Footer geometry and controls: its standard action
 children remain mounted but inert/aria-hidden while an in-place dictation Footer
 owns the region. Editors are not remounted to switch modes. The voice extension
@@ -702,7 +712,7 @@ is dispatched by the dictation keyboard owner; Enter on a control remains native
 button activation. Send availability while capturing does not depend on publishing
 provisional draft content. Cancel, error or owner loss
 resolve completion negatively, so late results cannot authorize a send. Repeated
-stop requests share one completion. Escape cancels; a Codex-style 150ms hold
+stop requests share one completion. Escape cancels; a 150ms hold
 separates release-to-insert from the synthesized click. The gesture owns its
 pointer-ID release/cancel listener independently of the trigger's inert state;
 blur releases a held gesture, while cancellation/unmount removes its ownership.
@@ -1147,8 +1157,8 @@ This coverage does not claim that every contributed page body is translated.
 The initial OpenCraft catalogs cover English and Simplified Chinese for the
 migrated shell/settings/chat/browser controls. Other feature-local hardcoded
 copy and vendored Hermes dictionaries have not been claimed as migrated, nor
-are Codex's product-specific 64 translation catalogs represented as OpenCraft
-translations. Their messages belong to different products. Catalog registration
+are other products' translation catalogs represented as OpenCraft
+translations. Catalog registration
 uses literal dynamic imports so only the selected translation chunk loads.
 
 `npm run check:i18n` checks source ID/default consistency and ICU parameter parity;
@@ -1348,7 +1358,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `appserver-replica-storage-node` | atomic JSON persistence for servers and Lab | Node filesystem |
 | `appserver-replica-storage-web` | transactional client cache | IndexedDB |
 | `appserver-replica-storage-expo` | transactional native client cache | Expo SQLite |
-| `appserver-session` | Codex Desktop Resume/View hydration and V3 compatibility reader adapter | none |
+| `appserver-session` | AppServer Resume/View hydration and V3 compatibility reader adapter | none |
 | `appserver-transport-websocket` | browser, React Native and direct daemon WebSocket | WebSocket only |
 | `appserver-transport-memory` | deterministic in-process AppServer | none |
 | `appserver-transport-replay` | frame recording and deterministic replay | none |
@@ -1361,7 +1371,7 @@ protocol adaptations are tracked there rather than implied by a successful build
 | `chat-runtime` | Replica-derived Timeline snapshots and command/history ports | none |
 | `composer-core` | portable document, target-scoped draft, SubmitIntent and controller | none |
 | `composer-appserver` | lossless document compiler and native Codex command port | none |
-| `timeline-virtualizer` | Codex Turn window, restore, anchors, follow and spacer policy | none |
+| `timeline-virtualizer` | Turn window, restore, anchors, follow and spacer policy | none |
 | `workbench-runtime` | HostRuntime registry; per-Host client ownership, Thread catalog and Replica/Session orchestration | none |
 | `workbench-resources` (proposed) | renderer-neutral resource identity, durable route and presentation contracts | none |
 | `extension-contract` (proposed) | versioned manifest, identity, optional access declarations, contributions and RPC | none |
@@ -1541,7 +1551,7 @@ Trusted build composition selects an explicit, immutable presentation policy
 (`WorkbenchWebBuildFeatures.presentation`), independently of product identity.
 The build validates and serializes icon style, default theme ID and hidden builtin
 theme IDs; the renderer reads it synchronously before its first appearance snapshot.
-Public defaults use the standard icon adapter and Codex theme. A custom identity
+Public defaults use the standard icon adapter and OpenCraft Neutral theme. A custom identity
 alone never changes artwork, palette defaults or the catalog. Existing async client
 product entries keep their account/engine lifecycle and need no additional export.
 Saved theme intent and existing storage/theme IDs retain their previous authority;
@@ -2009,7 +2019,7 @@ not a second source of product policy.
   data result; `AnnouncementCenter` owns request/extension lifetime, while the
   renderer supplies the themed content recipe through the existing modal Host.
   Campaign eligibility, impression persistence and automatic scheduling stay
-  in a separate orchestration layer, matching Codex's announcement model.
+  in a separate orchestration layer.
   Renderer-owned static assets must be resolved to an absolute HTTP(S) or blob
   URL before entering that descriptor. Relative Vite asset strings are a Web
   adapter concern and must not weaken the renderer-neutral validation contract.
@@ -2018,7 +2028,7 @@ not a second source of product policy.
   thin platform adapters; neither platform may introduce another virtualizer
   as window authority.
 
-Trying to share the Codex DOM frame through React Native Web would weaken the
+Trying to share the Web DOM frame through React Native Web would weaken the
 desktop result. Trying to embed the DOM composer in native would create a
 WebView boundary and break native input behavior. The reusable unit is the
 typed feature contract, not the rendered element tree.
@@ -2489,7 +2499,7 @@ over either fixed region.
 
 `workbenchWindowMetrics` is the shared native/renderer window-size authority.
 The primary desktop window may shrink to 480px, matching the main content
-reserve and the current Codex primary-window contract. At that width the Shell
+reserve. At that width the Shell
 uses its immersive fallback: application navigation, context and right tools
 are temporarily hidden without changing their saved open/Pin/width intent.
 Electron Main must consume this metric rather than maintaining a larger
@@ -2596,7 +2606,7 @@ establish native parity.
 Expo Web is a first-class output of `apps/workbench-expo`, not a compatibility
 mode hidden inside the Vite app. It is appropriate for mobile-width browsers,
 PWA distribution, and validating universal routes. The Vite app remains the
-desktop browser/Electron target where precise Codex layout and mature chunk
+desktop browser/Electron target where precise desktop layout and mature chunk
 control matter.
 
 Production routing can send desktop browsers to the Vite deployment and mobile
@@ -2749,6 +2759,10 @@ open leases, running work and unresolved interactions recover in the background
 with concurrency one and at most three transient retries. Cache residency and DOM
 subscription counts alone do not create recovery demand. A reserved foreground
 slot permits a newly visible conversation to start while hidden work is pending.
+Making one lease visible schedules or promotes only that binding's existing
+recovery task. It does not revalidate peer Threads or restore Host terminals and
+file watches. Connection recovery still restores all demanded bindings; explicit
+Thread retry retains forced same-connection revalidation.
 Semantic Thread failure stays local. Same-connection revalidation forces a real
 Resume instead of reusing its previously resumed fast path. A stable 60-second
 connection is still required to reset connection retry escalation; cancelled
@@ -3022,8 +3036,8 @@ localized unknown label.
 ### Host-owned automatic Codex conversation titles
 
 The shared local or SSH Codex product adapter observes newly created durable Threads and starts
-one background title attempt after their first accepted text input. Like Codex
-App, it uses the existing initialized AppServer connection for a private
+one background title attempt after their first accepted text input. It uses the existing initialized AppServer connection for a
+private
 ephemeral Thread, a structured `turn/start` result, then `thread/name/set` on the
 original Thread. Actual `model/list` availability selects Luna, then mini; it
 never changes the conversation model or creates a second credential owner.

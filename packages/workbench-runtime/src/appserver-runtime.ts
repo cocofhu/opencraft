@@ -283,6 +283,7 @@ export interface AppServerThreadResourcePort {
 export interface AppServerComposerCatalogResourcePort {
   listModels(params?: Partial<ModelListParams>): Promise<ModelListResponse>;
   readNewThreadDefaults(cwd?: string | null): Promise<{
+    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
   }>;
@@ -324,6 +325,7 @@ export interface AppServerProtocolResourcePort {
   request<TMethod extends AppServerMethod>(
     method: TMethod,
     params: AppServerMethodParams<TMethod>,
+    options?: import("@opencraft/appserver-protocol").AppServerRequestOptions,
   ): Promise<AppServerMethodResult<TMethod>>;
 }
 
@@ -1570,9 +1572,9 @@ export function createAppServerWorkbenchRuntime(
   const runtime: AppServerWorkbenchRuntime = {
     resources: {
       protocol: {
-        request(method, params) {
+        request(method, params, options) {
           assertMethodAccess(method);
-          return requireClient().request(method, params);
+          return requireClient().request(method, params, options);
         },
       },
       goals,
@@ -1861,6 +1863,7 @@ export function createAppServerWorkbenchRuntime(
             ...(cwd === null ? {} : { cwd }),
           });
           return {
+            serviceTier: typeof response.config.service_tier === "string" ? response.config.service_tier : null,
             model: typeof response.config.model === "string"
               ? response.config.model
               : null,
@@ -2049,7 +2052,13 @@ export function createAppServerWorkbenchRuntime(
         setRecoveryVisibility(next: boolean) {
           if (released || visible === next) return;
           visible = next; binding.visibleCount += next ? 1 : -1;
-          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) restoreResources();
+          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) {
+            // Promote this binding's pending recovery without revalidating peer
+            // Threads or restoring Host resources on ordinary navigation.
+            void recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
+              run: () => hydrateBinding(binding, false), retryable: retryableHistoryFailure,
+            }).catch(() => undefined);
+          }
         },
         getSnapshot: binding.runtime.getSnapshot,
         retryRestore() {

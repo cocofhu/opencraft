@@ -982,7 +982,7 @@ test("user messages preserve Codex's authored-message width invariant", () => {
   assert.doesNotMatch(workbenchStyles, /--thread-user-message-inline-gutter/u);
 });
 
-test("the transcript and Composer consume Codex's shared toolbar inset", () => {
+test("the transcript and Composer consume the shared toolbar inset", () => {
   assert.match(
     workbenchStyles,
     /\.thread-layout-width\s*\{[\s\S]{0,240}?padding-inline:\s*var\(--padding-toolbar\)/u,
@@ -990,7 +990,7 @@ test("the transcript and Composer consume Codex's shared toolbar inset", () => {
   assert.doesNotMatch(workbenchStyles, /--thread-toolbar-inline-padding/u);
 });
 
-test("workbench preserves Codex's native themed scrollbar contract", () => {
+test("workbench preserves the native themed scrollbar contract", () => {
   assert.match(
     workbenchStyles,
     /\*\s*\{[\s\S]*?scrollbar-color:\s*var\(--scrollbar-thumb\)\s+transparent;[\s\S]*?scrollbar-width:\s*thin;[\s\S]*?\}/u,
