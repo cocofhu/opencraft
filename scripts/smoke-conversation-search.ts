@@ -22,6 +22,8 @@ const branding = ${JSON.stringify(fixtureBranding)};
 import{createWebTimelineViewportPort}from'@opencraft/timeline-host-web';
 import{AppShell}from'/apps/workbench-web/src/components/app-shell.tsx';
 import{ModalSurface}from'/apps/workbench-web/src/components/modal/modal-surface.tsx';
+import{QueryClient,QueryClientProvider}from'@tanstack/react-query';
+const queryClient=new QueryClient();
 import{readHostThreadCatalog}from'/apps/workbench-web/src/runtime/host-thread-catalog.ts';
 import{initializeAppearanceTheme,setThemePreference}from'/apps/workbench-web/src/appearance-theme.ts';
 import'/apps/workbench-web/src/styles/app.scss';
@@ -40,8 +42,35 @@ leftPanel={<Sidebar searchInDialog threads={threads} activeHostId='a' activeThre
 <textarea aria-label='Composer draft' defaultValue='Keep this draft'/><button onClick={()=>setOther(true)}>Other modal</button>
 <ConversationSearch enabled open={open} onOpenChange={setOpen} threads={threads} loading={false} onSelectThread={(host,id)=>selected.push([host,id])}/></AppShell>
 {other?<ModalSurface label='Another dialog' onDismiss={()=>setOther(false)}><input aria-label='Other input'/></ModalSurface>:null}</>}
-window.viewportPort=createWebTimelineViewportPort(window,document,{kind:'browser',platform:'linux'});window.selected=selected;window.catalogReads=catalogReads;createRoot(document.getElementById('root')).render(<App/>);`;
+window.viewportPort=createWebTimelineViewportPort(window,document,{kind:'browser',platform:'linux'});window.selected=selected;window.catalogReads=catalogReads;createRoot(document.getElementById('root')).render(<QueryClientProvider client={queryClient}><App/></QueryClientProvider>);`;
 const vite = await createServer({configFile:false,root:process.cwd(),publicDir:"apps/workbench-web/public",logLevel:"error",resolve:{dedupe:["react","react-dom"]},cacheDir:"node_modules/.vite-conversation-search",esbuild:{jsx:"automatic",target:"esnext"},server:{host:"127.0.0.1",port:0},optimizeDeps:{include:["react","react-dom/client","@radix-ui/react-dialog","@radix-ui/react-dropdown-menu","@radix-ui/react-tooltip"]},plugins:[pluginBranding(process.env.OPENCRAFT_SMOKE_BRANDING_WORKSPACE ?? process.cwd(), []),{name:"search-fixture",resolveId:id=>id==="/search-probe.tsx"?id:null,load:id=>id==="/search-probe.tsx"?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url!=="/")return next();res.setHeader("content-type","text/html");res.end('<meta name="viewport" content="width=device-width, initial-scale=1"><div id="root"></div><script type="module" src="/search-probe.tsx"></script>');});}}]});
+// Send native Chromium composition and keyboard input through the real modal boundary.
+async function assertComposingEscape(page:any, input:any, dialog:any, reopen:()=>Promise<void>) {
+  await input.fill('保留搜索');
+  await input.evaluate(el=>{
+    window.imeInput=el;window.imeEvents=[];
+    el.addEventListener('compositionstart',()=>window.imeEvents.push({type:'start'}),{once:true});
+    el.addEventListener('compositionend',()=>window.imeEvents.push({type:'end'}),{once:true});
+    el.addEventListener('keydown',event=>{if(event.key==='Escape')window.imeEvents.push({type:'escape',composing:event.isComposing});});
+  });
+  const cdp=await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Input.imeSetComposition',{text:'候选',selectionStart:2,selectionEnd:2});
+    const query=await input.inputValue();assert.equal(query,'保留搜索候选');
+    await page.keyboard.press('Escape');
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    assert.equal(await dialog.isVisible(),true,'composing Escape retains the dialog');
+    assert.equal(await input.inputValue(),query);
+    assert.equal(await input.evaluate(el=>el===window.imeInput&&document.activeElement===el),true);
+    assert.equal(await page.evaluate(()=>window.imeEvents.some(e=>e.type==='start')&&window.imeEvents.some(e=>e.type==='escape'&&e.composing)),true);
+    await cdp.send('Input.insertText',{text:'已确认'});
+    assert.equal(await page.evaluate(()=>window.imeEvents.some(e=>e.type==='end')),true);
+    await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(()=>window.imeEvents.some(e=>e.type==='escape'&&!e.composing)),true);
+    assert.equal(await page.getByLabel('Composer draft').inputValue(),'Keep this draft');
+    await reopen();await input.waitFor();assert.equal(await input.inputValue(),'');
+  } finally {await cdp.detach();}
+}
 let browser:any;
 try {
   await mkdir(output,{recursive:true});await vite.listen();browser=await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE});
@@ -55,6 +84,7 @@ try {
     assert.equal(await page.locator('.sidebar-list-search').count(),0);
     await trigger.click();const dialog=page.getByRole('dialog',{name:'Search conversations',exact:true});await dialog.waitFor();
     const input=dialog.getByRole('combobox');assert.equal(await input.evaluate(el=>document.activeElement===el),true);
+    await assertComposingEscape(page,input,dialog,async()=>{await trigger.click();});
     await input.fill('search');assert.equal(await dialog.getByRole('option').count(),3);
     assert.equal(await dialog.getByRole('option',{name:'Search unavailable Alpha server'}).isDisabled(),true);
     await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await dialog.waitFor({state:'hidden'});
@@ -96,7 +126,7 @@ try {
       Object.defineProperty(window,'visualViewport',{value:window.fixtureViewport,configurable:true});
     },theme);
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
-    const stationary=page.locator('[data-sidebar-toggle-stationary]');await stationary.waitFor();await stationary.click();
+    const persistentToggle=page.locator('[data-app-shell-sidebar-trigger][data-chrome-action-host-role="persistent"]');await persistentToggle.waitFor();await persistentToggle.click();
     const header=page.locator('[data-mobile-sidebar] .shell-sidebar__header');await header.waitFor();
     const mobileSearch=header.locator('[data-action-id="shell.search.header"]');await mobileSearch.waitFor();
     assert.equal(await header.locator('.application-brand__mark').evaluateAll(els=>els.some(el=>el.getBoundingClientRect().width>0)),false);
@@ -108,6 +138,7 @@ try {
     await page.screenshot({path:output+'/drawer-'+theme+'.png'});
     await mobileSearch.click();const dialog=page.getByRole('dialog',{name:'Search conversations',exact:true});const input=dialog.getByRole('combobox');await input.waitFor();
     assert.equal(await input.evaluate(el=>document.activeElement===el),true);
+    await assertComposingEscape(page,input,dialog,async()=>{await mobileSearch.click();});
     await input.fill('search');await page.waitForFunction(()=>document.querySelectorAll('.conversation-search [role="option"]').length===3);
     for(const geometry of [{height:480,offsetTop:0},{height:380,offsetTop:100},{height:844,offsetTop:0}]) {
       await page.evaluate(geometry=>{Object.assign(window.fixtureViewport,geometry);window.fixtureViewport.dispatchEvent(new Event('resize'));},geometry);
@@ -124,10 +155,10 @@ try {
     const last=await dialog.getByRole('option').last().boundingBox();const field=await input.boundingBox();assert.ok(last&&field&&last.y+last.height<field.y,'last result clears the floating input');
     await dialog.locator('.modal-surface__close').click();await dialog.waitFor({state:'hidden'});
     assert.equal(await scroll.evaluate(el=>el.scrollTop),scrollBefore);assert.equal(await mobileSearch.evaluate(el=>document.activeElement===el),true);
-    await stationary.click();await header.waitFor({state:'hidden'});await stationary.click();await header.waitFor();
+    await persistentToggle.click();await header.waitFor({state:'hidden'});await persistentToggle.click();await header.waitFor();
     await mobileSearch.click();await dialog.getByRole('combobox').fill('Search beta');await dialog.getByRole('option',{name:'Search beta Beta server'}).click();await dialog.waitFor({state:'hidden'});
     await page.locator('[data-mobile-sidebar] .shell-sidebar__header').waitFor({state:'hidden'});
     assert.deepEqual(await page.evaluate(()=>window.selected),[['b','same']]);assert.equal(await page.getByLabel('Composer draft').inputValue(),'Keep this draft');await page.close();
   }
-  assert.deepEqual(errors,[]);await writeFile(output+'/report.json',JSON.stringify({ok:true,platforms:['macOS Cmd+K','Windows Ctrl+K'],checks:['real AppShell rail and Sidebar input removal','focus and draft restoration','duplicate IDs across Hosts','disabled rows skipped by keyboard','Enter selection','empty results','other-modal ownership','collapsed sidebar','desktop outside dismissal','responsive query/input identity','mobile full-page search and floating header','keyboard resize/pan/close through real viewport port','mobile scroll/focus restoration and collapse/reopen','forced-colors and reduced-transparency opaque fallback','last result clears floating input','light/dark/mobile']},null,2));console.log('Conversation search browser checks passed');
+  assert.deepEqual(errors,[]);await writeFile(output+'/report.json',JSON.stringify({ok:true,platforms:['macOS Cmd+K','Windows Ctrl+K'],checks:['native composing Escape retains query/input/focus, ordinary Escape closes','real AppShell rail and Sidebar input removal','focus and draft restoration','duplicate IDs across Hosts','disabled rows skipped by keyboard','Enter selection','empty results','other-modal ownership','collapsed sidebar','desktop outside dismissal','responsive query/input identity','mobile full-page search and floating header','keyboard resize/pan/close through real viewport port','mobile scroll/focus restoration and collapse/reopen','forced-colors and reduced-transparency opaque fallback','last result clears floating input','light/dark/mobile']},null,2));console.log('Conversation search browser checks passed');
 }finally{await browser?.close();await vite.close();}

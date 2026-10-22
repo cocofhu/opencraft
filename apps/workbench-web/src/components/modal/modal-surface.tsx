@@ -77,6 +77,10 @@ export function ModalSurface({
           data-size={size}
           data-stack-index={stackIndex}
           style={layerStyle}
+          onEscapeKeyDown={(event) => {
+            // The input method owns Escape until its composition has ended.
+            if (event.isComposing || event.keyCode === 229) event.preventDefault();
+          }}
           onPointerDownOutside={(event) => {
             if (!dismissOnOutsidePress) {
               event.preventDefault();
