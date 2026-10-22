@@ -1,5 +1,15 @@
 # OpenCraft platform architecture
 
+While a `turn/start` or `thread/resume` request is pending, an authoritative
+`item/started` notification for `contextCompaction` on the same thread grants
+context preparation up to a three-minute absolute request deadline (or the
+caller's longer existing deadline). Duplicate starts cannot renew that deadline.
+Completion of that exact compaction turn restores the ordinary response wait,
+bounded by the same absolute deadline. Other threads and short reads retain their
+normal deadlines; timeout-disabled requests remain disabled. Abort, connection
+loss and close still reject the exact pending request. The Host owns preparation
+and must stop before its deadline; the client never retries or replays the input.
+
 The proposed cross-cutting observation plane is specified in
 [Observability V1](observability-platform.md), with a separate
 [functional and nonfunctional acceptance matrix](observability-acceptance.md).
