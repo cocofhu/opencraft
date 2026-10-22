@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createViewportDiagnostics, observeViewportDiagnostics } from "../apps/workbench-web/src/runtime/viewport-diagnostics";
+import { createViewportDiagnostics } from "../apps/workbench-web/src/runtime/viewport-diagnostics";
 
 function fixture(t: test.TestContext) {
   let now = 0;
@@ -80,38 +80,6 @@ test("diagnostics use the focused Composer and preserve independent touch coordi
   assert.equal(result.touchPageClientY, 294);
   assert.equal(result.touchSequence, 1);
   assert.doesNotMatch(JSON.stringify(result), /clientY|screenY|pageY|text|route|account|userAgent/);
-});
-
-test("observation samples layout-only changes and releases all native listeners and frames", t => {
-  let now = 0, id = 0, reports = 0;
-  const frames = new Map<number, FrameRequestCallback>();
-  const documentObject = Object.assign(new EventTarget(), { visibilityState: "visible" });
-  const visual = new EventTarget();
-  const windowObject = {
-    visualViewport: visual,
-    requestAnimationFrame(fn: FrameRequestCallback) { frames.set(++id, fn); return id; },
-    cancelAnimationFrame(key: number) { frames.delete(key); },
-  };
-  for (const [key, value] of Object.entries({ document: documentObject, window: windowObject })) {
-    const previous = Object.getOwnPropertyDescriptor(globalThis, key);
-    Object.defineProperty(globalThis, key, { value, configurable: true });
-    t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else Reflect.deleteProperty(globalThis, key); });
-  }
-  t.mock.method(performance, "now", () => now);
-  const advance = (at: number) => { now = at; const work = [...frames.values()]; frames.clear(); work.forEach(fn => fn(at)); };
-  const observation = observeViewportDiagnostics(() => reports++);
-  assert.equal(reports, 1);
-  advance(16); advance(32);
-  assert.equal(reports, 3, "Layout readback is observed without any port publication");
-  documentObject.dispatchEvent(new Event("scroll"));
-  assert.equal(reports, 4, "Internal focus reveal scroll is observed in capture phase");
-  advance(1100); assert.equal(frames.size, 0, "Observation is bounded");
-  visual.dispatchEvent(new Event("resize")); assert.equal(frames.size, 1);
-  observation.dispose(); assert.equal(frames.size, 0);
-  const before = reports;
-  for (const event of ["focusin", "focusout", "touchstart", "scroll", "visibilitychange"]) documentObject.dispatchEvent(new Event(event));
-  visual.dispatchEvent(new Event("scroll")); visual.dispatchEvent(new Event("resize"));
-  assert.equal(reports, before, "Disposed observers cannot survive a route/host lifecycle");
 });
 
 test("a sub-budget frame excursion survives recovery before the next transmission", t => {

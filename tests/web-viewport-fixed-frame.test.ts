@@ -3,7 +3,7 @@ import test from "node:test";
 import { JSDOM } from "jsdom";
 import { createWebTimelineViewportPort } from "../packages/timeline-host-web/src/viewport";
 
-function fixture() {
+function fixture(onGeometryObserved?: (event?: Event) => void) {
   const dom = new JSDOM("<input value='preserve draft'>", { pretendToBeVisual: true });
   const win = dom.window;
   const oldHTMLElement = globalThis.HTMLElement;
@@ -31,7 +31,7 @@ function fixture() {
   win.performance.now = () => now;
   win.requestAnimationFrame = fn => { frames.set(++id, fn); return id; };
   win.cancelAnimationFrame = key => { frames.delete(key); };
-  const port = createWebTimelineViewportPort(win as unknown as Window, win.document, { kind: "browser", platform: "linux" });
+  const port = createWebTimelineViewportPort(win as unknown as Window, win.document, { kind: "browser", platform: "linux", onGeometryObserved });
   const input = win.document.querySelector("input")!;
   const css = (axis: "top" | "left") => Number.parseFloat(win.document.documentElement.style.getPropertyValue(`--timeline-available-viewport-${axis}`));
   return { win, visual, native, port, input, frames, css,
@@ -166,5 +166,59 @@ test("keyboard pan reported as pageTop=scrollY=offsetTop keeps the frame above t
     f.native.left = -30; f.visual.pageLeft = 30; f.visual.offsetLeft = 30;
     f.scroll(294, 30); f.visual.dispatchEvent(new f.win.Event("scroll"));
     assert.equal(f.css("left") + f.native.left, 0);
+  } finally { f.close(); }
+});
+
+
+test("one viewport frame owner samples unchanged geometry and nested scroll evidence", () => {
+  const observed: (string | undefined)[] = [];
+  const f = fixture(event => observed.push(event?.type));
+  try {
+    f.frame(20);
+    const revision = f.port.getSnapshot().revision;
+    f.frame(40);
+    assert.equal(f.port.getSnapshot().revision, revision);
+    assert.equal(observed.length, 2, "Evidence must not depend on snapshot publication");
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    assert.equal(observed.at(-1), "touchstart", "A viewport event cannot erase the contact observation");
+    f.input.dispatchEvent(new f.win.Event("scroll", { bubbles: false }));
+    assert.equal(f.frames.size, 1, "Nested scroll shares the existing pending frame");
+    f.frame(60);
+    assert.equal(observed.at(-1), "scroll", "Capture-phase observation includes local focus-reveal scroll");
+    f.frame(900);
+    f.native.top = -294;
+    f.frame(950);
+    assert.equal(f.css("top"), 294, "Early stable frames cannot end the late-native compatibility grace");
+    f.frame(1100);
+    assert.equal(f.frames.size, 0, "Observation does not renew its own deadline");
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    assert.equal(f.frames.size, 1);
+    f.port.dispose();
+    assert.equal(f.frames.size, 0);
+    const count = observed.length;
+    f.input.dispatchEvent(new f.win.Event("scroll", { bubbles: false }));
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(1200);
+    assert.equal(observed.length, count, "Disposal releases both observation and projection");
+  } finally { f.close(); }
+});
+
+test("hidden hosts cancel the shared observation window and resume from actual geometry", () => {
+  let observations = 0;
+  const f = fixture(() => observations++);
+  try {
+    f.frame(20);
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "hidden" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    assert.equal(f.frames.size, 0);
+    f.native.top = -294;
+    f.visual.dispatchEvent(new f.win.Event("scroll"));
+    assert.equal(observations, 1);
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "visible" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    f.frame(40);
+    assert.equal(f.css("top"), 294);
+    assert.equal(observations, 2);
   } finally { f.close(); }
 });

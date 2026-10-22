@@ -96,36 +96,3 @@ export function createViewportDiagnostics() {
     shellMinTop = Infinity; shellMaxTop = -Infinity;
   };
 }
-
-/** Read-only, bounded observation independent of viewport snapshot publication. */
-export function observeViewportDiagnostics(report: (event?: Event) => void) {
-  let frame: number | undefined;
-  let until = 0;
-  let disposed = false;
-  const tick = (now: number) => {
-    frame = undefined;
-    if (disposed || document.visibilityState !== "visible") return;
-    report();
-    if (now < until) frame = window.requestAnimationFrame(tick);
-  };
-  const notify = (event?: Event) => {
-    if (disposed) return;
-    report(event);
-    if (document.visibilityState !== "visible") return;
-    until = performance.now() + 1_000;
-    if (frame === undefined) frame = window.requestAnimationFrame(tick);
-  };
-  const documentEvents = ["focusin", "focusout", "touchstart", "scroll", "visibilitychange"];
-  const visual = window.visualViewport;
-  for (const type of documentEvents) document.addEventListener(type, notify, { passive: true, capture: true });
-  visual?.addEventListener("resize", notify, { passive: true });
-  visual?.addEventListener("scroll", notify, { passive: true });
-  notify();
-  return { notify, dispose() {
-    disposed = true;
-    if (frame !== undefined) window.cancelAnimationFrame(frame);
-    for (const type of documentEvents) document.removeEventListener(type, notify, true);
-    visual?.removeEventListener("resize", notify);
-    visual?.removeEventListener("scroll", notify);
-  } };
-}

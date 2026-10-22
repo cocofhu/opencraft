@@ -12137,15 +12137,27 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .sidebar-thread-group-avatar { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; overflow: hidden; border-radius: 50%; color: var(--color-text-secondary); background: var(--color-background-control); img { width: 100%; height: 100%; object-fit: cover; } }
 .sidebar-activity-group__items[hidden] { display: none; }
 
-// iOS keeps vh at the layout viewport while the keyboard reduces VisualViewport.
-// Budget the composer against the same visible surface as Shell. The editor and
-// queue may scroll; the action footer must remain outside that scroll budget.
+// One outer capacity; intrinsic content yields before persistent actions.
+// Routes may supply a smaller local budget. Native viewport adaptation belongs
+// to Shell, never to individual editor/queue/attachment percentages.
 @media (max-width: 767px) and (any-pointer: coarse) {
   html[data-timeline-tracks-visual-viewport="true"] {
     .opencraft-composer-stack {
+      --composer-platform-block-size: max(120px, calc(var(--timeline-available-viewport-height) - var(--height-toolbar) - 24px));
       display: flex;
       flex-direction: column;
-      max-height: min(var(--composer-available-block-size, var(--timeline-available-viewport-height)), max(120px, calc(var(--timeline-available-viewport-height) - var(--height-toolbar) - 24px)));
+      max-height: min(var(--composer-available-block-size, var(--composer-platform-block-size)), var(--composer-platform-block-size));
+    }
+    .opencraft-composer-attached-rail {
+      display: flex;
+      flex-direction: column;
+      flex: 0 1 auto;
+      min-height: 0;
+      &:empty { display: none; }
+      > * { min-height: 0; flex: 0 1 auto; overflow-y: auto; }
+    }
+    .opencraft-composer-queue-tray {
+      max-height: calc(var(--height-composer-queue-row) * 3 + 34px);
     }
     .opencraft-composer-shell {
       display: flex;
@@ -12153,23 +12165,26 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       min-height: 0;
       flex: 1 1 auto;
     }
-    .opencraft-composer-input-row {
+    .opencraft-composer-chrome-header,
+    .opencraft-composer-error,
+    .opencraft-composer-footer { flex: 0 0 auto; }
+    .opencraft-composer-input-row,
+    .opencraft-composer-editor-mount {
+      display: flex;
+      flex-direction: column;
       min-height: 0;
       flex: 1 1 auto;
-      overflow-y: auto;
-      overscroll-behavior: contain;
+      overflow: clip;
     }
     .opencraft-composer-editor {
-      max-height: min(232px, calc(var(--timeline-available-viewport-height) * .3));
+      min-height: 1lh;
+      max-height: 232px;
+      flex: 0 1 auto;
     }
-    .opencraft-composer-attached-rail { flex: 0 0 auto; }
-    .opencraft-composer-queue-tray {
-      flex: 0 0 auto;
-      max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-available-viewport-height) * .25));
-    }
-    .opencraft-composer-footer { flex: 0 0 auto; }
     .opencraft-composer-attachments {
-      max-height: min(120px, calc(var(--timeline-available-viewport-height) * .2));
+      min-height: 0;
+      max-height: 120px;
+      flex: 0 1 auto;
       overflow-y: auto;
     }
   }

@@ -181,7 +181,11 @@ Existing and new conversation routes share this viewport owner.
 
 Composer capacity is local to its route's size container, minus that route's own
 block insets. The shared stack intersects this capacity with its platform budget;
-header/route chrome cannot be counted as input space. Heading gaps shrink as
+header/route chrome cannot be counted as input space. This is the only viewport
+height cap. Queue, attachments and the editor consume intrinsic content caps and
+shrink within it, without independent percentages of the browser viewport. Header,
+error actions and the footer remain outside content shrinkage; the native editor
+and previews retain their own scrolling, while the input wrappers only clip. Heading gaps shrink as
 space, not structural padding with an irreducible minimum. Long draft/attachment
 content yields to the action footer without changing editor or draft identity.
 
@@ -219,8 +223,16 @@ painting; synthetic passing results do not establish device acceptance.
 
 Keyboard diagnostics observe focused-Composer geometry, its local scrollport and
 actual send hit target, rather than the first potentially parked submit button.
-Capture-phase focus/touch/scroll and native viewport events open a bounded
-read-only animation-frame observation window independent of port publication.
+The Web viewport port owns the event listeners and the single bounded animation
+frame window. Its optional read-only observation callback runs after every mobile
+geometry commit, including frames without snapshot publication. Diagnostics own
+neither listeners nor a frame loop; subscribing evidence never renews the window.
+Captured contact events survive a resize before the next observation. Nested
+scroll invalidates this same owner. Hiding or disposing it cancels all sampling.
+The one-second grace is an explicit late-native compatibility bound, not inferred
+keyboard state: early unchanged frames cannot prove that native motion ended.
+Retire or shorten it only with host evidence covering late basis changes after
+stable frames, opening/closing, restoration and absent final events.
 Brief editor/Shell position extrema survive the eight-per-second traffic budget;
 touch screen/client and page/client differences remain separate numeric
 observations. Reports contain no content or route, never drive layout, and all

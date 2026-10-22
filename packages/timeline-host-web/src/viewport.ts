@@ -17,6 +17,8 @@ interface WebTimelineViewportRoot {
 export interface WebTimelineViewportOptions {
   readonly kind: Exclude<TimelineRenderHostKind, "native">;
   readonly platform: "darwin" | "win32" | "linux";
+  /** Read-only evidence after each mobile geometry commit, including unchanged frames. */
+  readonly onGeometryObserved?: (event?: Event) => void;
 }
 
 export function resolveWebTimelinePlatform({
@@ -172,8 +174,11 @@ export function createWebTimelineViewportPort(
   let disposed = false;
   // Native keyboard/browser chrome transitions can finish after their last
   // viewport event. Reconcile briefly, without a permanent polling owner.
+  // A compatibility grace period, not a keyboard-open state or completion signal.
+  // End only at the deadline: identical early frames do not prove native pan ended.
   const settleDurationMs = policy.tracksVisualViewport ? 1_000 : 0;
   let settleUntil = 0;
+  let observationEvent: Event | undefined;
 
   const read = (): TimelineViewportSnapshot => {
     const visualViewport = windowObject.visualViewport;
@@ -217,6 +222,12 @@ export function createWebTimelineViewportPort(
   };
   let snapshot = read();
   let fixedFrameOffset = commitDocumentState(snapshot);
+  const observe = () => {
+    if (!policy.tracksVisualViewport) return;
+    const event = observationEvent;
+    observationEvent = undefined;
+    options.onGeometryObserved?.(event);
+  };
 
   const scheduleFrame = () => {
     if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
@@ -242,25 +253,32 @@ export function createWebTimelineViewportPort(
       fixedFrameOffset = nextFixedFrameOffset;
       for (const listener of listeners) listener();
     }
+    // Evidence follows the committed frame even if no raw snapshot changed.
+    // Observers cannot extend the grace period or own another animation loop.
+    observe();
   };
   const publish = (now: number) => {
     frame = null;
     reconcile();
     if (now < settleUntil) scheduleFrame();
   };
-  const schedule = () => {
+  const schedule = (event?: Event) => {
     if (disposed) return;
     if (documentObject.visibilityState === "hidden") {
       if (frame !== null) windowObject.cancelAnimationFrame(frame);
       frame = null;
       settleUntil = 0;
+      observationEvent = undefined;
       return;
     }
+    // Keep contact coordinates until the next committed observation. A later
+    // resize in the same task must not replace the pending contact event.
+    if (event?.type === "touchstart" || observationEvent?.type !== "touchstart") observationEvent = event;
     settleUntil = windowObject.performance.now() + settleDurationMs;
     scheduleFrame();
   };
-  const onViewportChange = () => {
-    schedule();
+  const onViewportChange = (event: Event) => {
+    schedule(event);
     // Native viewport events may be delivered after this frame's rAF phase.
     // Finish their shared geometry commit before returning to browser painting.
     // Focus and touch only invalidate; they do not yet describe new geometry.
@@ -281,6 +299,8 @@ export function createWebTimelineViewportPort(
     // Observation only: a missed terminal event must not survive the next
     // interaction, including descendants that stop bubbling. Input stays native.
     documentObject.addEventListener("touchstart", schedule, { passive: true, capture: true });
+    // Nested native focus-reveal scrolling is evidence from this same owner.
+    documentObject.addEventListener("scroll", schedule, { passive: true, capture: true });
     schedule();
   }
 
@@ -307,7 +327,9 @@ export function createWebTimelineViewportPort(
         windowObject.removeEventListener("orientationchange", schedule);
         documentObject.removeEventListener("visibilitychange", schedule);
         documentObject.removeEventListener("touchstart", schedule, true);
+        documentObject.removeEventListener("scroll", schedule, true);
       }
+      observationEvent = undefined;
       listeners.clear();
       fixedReference?.remove();
     },

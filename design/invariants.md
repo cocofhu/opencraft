@@ -960,6 +960,16 @@ continues consuming a minimum after the heading collapses. No height breakpoint 
 negative margins and auto rows while the keyboard animates. A continuous change
 of available height must produce continuous input placement while controls remain
 reachable, including both sides of the former 540px threshold.
+The outer mobile Composer stack owns one available-height budget. Its queue,
+attachment preview and editor use intrinsic content caps and yield inside that
+budget, never independent percentages of the viewport. Header, error actions and
+the footer retain their intrinsic size. Input wrappers clip; editor content owns
+native text scrolling. Diagnostics consume the Web port's post-commit observation
+callback, including unchanged frames, without separate listeners or animation
+frames. Observation cannot prolong reconciliation. The one-second grace remains
+an explicit compatibility limit; stable early frames do not prove native motion
+has completed. Removing it requires late-update and missing-final-event evidence
+from affected hosts, separate from controlled browser trajectories.
 Native geometry events start a bounded one-second reconciliation window on mobile
 browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
 This covers a native transition finishing after its last event. Page restoration,

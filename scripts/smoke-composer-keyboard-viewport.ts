@@ -110,6 +110,28 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
   trajectory.push(sample);
  }
  evidence.push({theme,newera,trajectory});
+ // A route's fixed local capacity is authoritative even if the browser grows.
+ // Its editor viewport must fit the input row, rather than scrolling behind a
+ // second clipped text viewport with a separately calculated height.
+ await page.locator('.opencraft-composer-stack').evaluate(e=>(e as HTMLElement).style.setProperty('--composer-available-block-size','300px'));
+ const localBudget=[];
+ for(const height of [844,688]){
+  await page.evaluate(h=>(window as any).setViewport(h,0),height);
+  await page.waitForTimeout(100);
+  const measured=await editor.evaluate(e=>{
+   const text=e.getBoundingClientRect(),row=e.closest('.opencraft-composer-input-row')!.getBoundingClientRect();
+   const stack=e.closest('.opencraft-composer-stack')!.getBoundingClientRect();
+   const send=e.closest('.opencraft-composer-shell')!.querySelector('.opencraft-composer-submit')!.getBoundingClientRect();
+   return {editorHeight:text.height,editorBottom:text.bottom,rowBottom:row.bottom,stackHeight:stack.height,sendBottom:send.bottom,stackBottom:stack.bottom};
+  });
+  assert(measured.stackHeight<=301&&measured.sendBottom<=measured.stackBottom+1,JSON.stringify(measured));
+  assert(measured.editorBottom<=measured.rowBottom+1,'the native editor owns the visible text scrollport: '+JSON.stringify(measured));
+  localBudget.push(measured);
+ }
+ assert(Math.abs(localBudget[0].editorHeight-localBudget[1].editorHeight)<=1,'same route capacity cannot allocate different editor space from window percentages: '+JSON.stringify(localBudget));
+ evidence.push({theme,newera,localBudget});
+ await page.locator('.opencraft-composer-stack').evaluate(e=>(e as HTMLElement).style.removeProperty('--composer-available-block-size'));
+
  // A terminal focus event can precede the native viewport's final geometry.
  // Missing resize/scroll must not strand the Shell and Composer above blank space.
  await page.waitForTimeout(1_100);
