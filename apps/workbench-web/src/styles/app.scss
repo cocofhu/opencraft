@@ -10451,7 +10451,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .right-panel-divider {
   position: absolute;
   z-index: 42;
-  inset-block: 0;
+  inset-block: var(--opencraft-panel-divider-top, 0px) 0;
+  clip-path: var(--opencraft-panel-divider-clip, none);
   left: 0;
   width: 1px;
   pointer-events: none;
@@ -10462,7 +10463,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
 }
 
 .app-shell-right-panel__surface {
@@ -10472,8 +10473,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   width: var(--app-shell-right-panel-target-width);
   min-width: var(--app-shell-right-panel-target-width);
   overflow: hidden;
-  border-left: 1px solid var(--color-border-subtle);
-  background: var(--color-background-surface);
+  border-left: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   contain: layout paint;
 }
 
@@ -10525,7 +10526,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   overflow: hidden;
 }
 
@@ -10540,8 +10541,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   justify-content: space-between;
   gap: 4px;
   padding: 0 0 0 8px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-background-elevated-secondary);
+  border-bottom: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-toolbar-background, var(--color-background-elevated-secondary));
 }
 
 .right-panel-tab-strip {
@@ -10756,6 +10757,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .right-panel-view {
+  // The body keeps its surface; only its soft upper lip enters the chrome.
+  box-shadow: var(--opencraft-header-content-elevation, none);
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden auto;

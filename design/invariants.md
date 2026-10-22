@@ -1983,3 +1983,5 @@ Longing pane and titlebar depth uses the shared diffuse prominent elevation with
 Recessed Longing chrome paints its translucent blue once at the browser Shell root, shared by titlebar and Sidecar. Header and Sidecar do not re-composite it into rectangular tiles; the shared root highlight stays continuous. Keep native window ownership, pane geometry, toolbar apertures and mounted drafts.
 
 Longing unified pane depth begins below the toolbar. Its paint-only Shell projection follows the existing live left slot, clips shadow above the toolbar and does not intercept input; the main surface no longer casts a vertical stripe through the titlebar. Preserve the reading plane upper lip, body diffuse depth, continuous blue chrome and mounted content.
+
+Longing right-panel chrome consumes the same single Shell-root blue as the titlebar. Chassis layers and toolbar are transparent, divider colors are transparent without changing border geometry, and the vertical divider shadow starts below the toolbar. Panel body keeps its opaque reading surface and diffuse upper lip; tabs, resident tools, apertures, resize and controls retain their existing owners.
