@@ -1569,6 +1569,24 @@ non-loading snapshot emits loaded; the shared page runtime clears its previous
 error on that successful acknowledgement, including blank tabs whose navigation
 does not create a history entry. A later failure remains visible.
 
+Native per-page renderer termination is a different boundary from a viewer
+transport outage. The worker destroys that dead WebContents and retires its
+ordered command epoch before emitting `renderer-gone`. The gateway invalidates
+that page's native requests and input grant, closes its viewers with retryable
+`1011`, and retains the logical lease, saved URL and device/zoom configuration.
+Reattachment recreates only that renderer and restores its saved navigation;
+other live Tabs and the Electron worker stay intact. Lost renderer memory and
+unsaved edits cannot be restored, and control/input are never replayed. Queued
+commands from the dead epoch cannot reach the replacement, including old
+control grants. Explicit logical close still takes precedence over recovery.
+
+A gateway request backlog uses temporary `1013`, not policy `1008`. Its cap
+continues to bound outstanding work; malformed binary requests and expired
+admission still stop recovery. Terminal banners distinguish rejected requests,
+expired authorization and explicit close instead of hiding them behind a generic
+disconnection message. Diagnostics contain owned reason enums and exit codes,
+never page content, URLs or raw native stderr.
+
 A failed open or terminally disconnected transport does not make the tab's
 ready promise reusable. Explicit reload or replacement navigation establishes
 a new connection generation using the same persisted storage lease and current

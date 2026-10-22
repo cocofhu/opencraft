@@ -424,3 +424,40 @@ test('control generations fence writes, Agent never preempts a human, and only c
     assert.equal(f.service.physical.size,0); assert.equal(f.service.pages.size,0);
   } finally { await f.close(); }
 });
+
+test('native renderer loss retires only that physical page and all its viewers recover the saved Tab', async () => {
+  const f = await fixture();
+  try {
+    const lease = randomUUID(), a = await f.connect('owner'), b = await f.connect('owner'), other = await f.connect('owner');
+    await a.call('open', {lease, multiView:true, visible:true, initialUrl:'https://example.test/kept'});
+    await b.call('open', {lease, multiView:true, visible:true});
+    await other.call('open', {lease:randomUUID(),multiView:true,visible:true});
+    const p=[...f.service.pages.values()].find(p=>p.url==='https://example.test/kept'), old=f.service.physical.get(p.id).memory;
+    const closes=[once(a.ws,'close',{signal:AbortSignal.timeout(1500)}),once(b.ws,'close',{signal:AbortSignal.timeout(1500)})];
+    const rejected=new Promise((resolve,reject)=>f.service.requests.set('dead-request',{page:p.id,timer:setTimeout(()=>reject(Error('request was not retired')),1500),reject:resolve}));
+    f.service.physical.delete(p.id); // the worker destroys the crashed WebContents before this event
+    f.service.receive({type:'renderer-gone',page:p.id,reason:'crashed',exitCode:139});
+    assert.equal((await rejected).code,'BROWSER_UNAVAILABLE');
+    assert.deepEqual((await Promise.all(closes)).map(x=>x[0]),[1011,1011]);
+    assert.equal(other.ws.readyState,WebSocket.OPEN);assert.equal(p.live,false);assert.equal(p.controller,null);
+    const next=await f.connect('owner'), recovered=await next.call('open',{lease,multiView:true,visible:true,initialUrl:'https://example.test/stale'});
+    assert.equal(recovered.restored,true);assert.equal(recovered.resumed,false);assert.equal(recovered.navigation.url,'https://example.test/kept');
+    assert.notEqual(recovered.memory,old);assert.equal(recovered.control.active,false);
+    await next.call('close');await next.detach();await other.detach();
+  } finally {await f.close();}
+});
+
+test('native request pressure is a transient transport close; malformed binary traffic remains terminal', async () => {
+  const f=await fixture();let release;
+  try {
+    const a=await f.connect('owner');await a.call('open',{lease:randomUUID()});
+    const request=f.service.request.bind(f.service), gate=new Promise(r=>release=r);
+    f.service.request=(id,method,...args)=>method==='input'?gate:request(id,method,...args);
+    const closed=once(a.ws,'close',{signal:AbortSignal.timeout(2000)});
+    for(let x=0;x<140;x++)a.quiet('input',{type:'mouseMove',x,y:1});
+    const [code,reason]=await closed;assert.equal(code,1013);assert.equal(reason.toString(),'Browser input backlog; reconnecting');
+    assert.equal(f.service.pages.size,1,'backpressure cannot discard the logical Tab');release();
+    const malformed=await f.connect('owner');const badClose=once(malformed.ws,'close');malformed.ws.send(Buffer.from([0]));
+    assert.equal((await badClose)[0],1008);
+  } finally {release?.();await f.close();}
+});

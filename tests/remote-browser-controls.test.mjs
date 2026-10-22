@@ -96,3 +96,14 @@ test('handoff resets are ordered with writes and coalescing never crosses a cont
     ['input','first',0],['input','first',1],['input','second',2],['control',undefined,undefined],['automation','second',undefined],['viewport','second',undefined],
   ]);
 });
+
+test('retiring a renderer fences queued input and control from its replacement without waiting for dead work', async () => {
+  let release;const seen=[],gate=new Promise(r=>release=r);
+  const dispatch=createControls(async m=>{seen.push(m);if(seen.length===1)await gate;return m.method});
+  const old=dispatch(input('mouseDown'));await tick();
+  const stale=assert.rejects(dispatch({page:'a',method:'control',input:{token:'stale'}}),{code:'BROWSER_UNAVAILABLE'});
+  dispatch.retire('a');
+  assert.equal(await dispatch({page:'a',method:'control',input:{token:'fresh'}}),'control');
+  release();await Promise.all([old,stale]);
+  assert.deepEqual(seen.map(m=>m.input.token??m.input.type),['mouseDown','fresh']);
+});

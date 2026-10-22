@@ -13,6 +13,7 @@ app.commandLine.appendSwitch('opencraft-remote-clipboard');
 // Keep per-contact release semantics stable on our pinned Chromium runtime.
 app.commandLine.appendSwitch('disable-features', 'SyntheticPointerActions');
 const ipc = typeof process.send === 'function';
+let dispatch;
 // CSS pixels, independent of the viewer's devicePixelRatio. Bound software
 // surfaces to H.264 level 4's 8192 macroblocks, including portrait windows.
 function viewport(input = {}) {
@@ -170,6 +171,7 @@ async function resetInput(p) {
 function closePage(id) {
   const p = pages.get(id); if (!p) return;
   pages.delete(id); p.closed = true;
+  dispatch?.retire(id);
   p.clipboard?.dispose(); p.ime?.dispose();
   p.focusDispose?.();
   clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer);
@@ -199,13 +201,19 @@ async function createPage(id, input) {
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
   for (const event of ['will-navigate', 'will-redirect']) wc.on(event, (e, url) => { try { validUrl(url); } catch { e.preventDefault(); } });
-  wc.on('did-start-navigation', (_e, _url, inPlace, mainFrame) => { if (mainFrame && !inPlace) { p.document = randomUUID(); p.bridgeInstalled = null; p.domReady = false; send({ type: 'input-reset', page: id }); void p.touch.reset().catch(() => {}); } });
-  for (const event of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated']) wc.on(event, () => { state(p); if (p.visible) activity(p); });
+  wc.on('did-start-navigation', (_e, _url, inPlace, mainFrame) => { if (!p.closed && mainFrame && !inPlace) { p.document = randomUUID(); p.bridgeInstalled = null; p.domReady = false; send({ type: 'input-reset', page: id }); void p.touch.reset().catch(() => {}); } });
+  for (const event of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated']) wc.on(event, () => { if (!p.closed) { state(p); if (p.visible) activity(p); } });
   wc.on('dom-ready', () => { p.domReady = true; });
-  wc.on('render-process-gone', () => send({ type: 'error', page: id, message: 'Browser renderer exited; reload this tab' }));
-  wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
+  wc.on('render-process-gone', (_event, details) => {
+    if (p.closed) return;
+    // Destroy the dead WebContents and its queued control stream before the
+    // owner permits recreation. Other Tabs and their live DOM remain intact.
+    closePage(id);
+    send({ type: 'renderer-gone', page: id, reason: details.reason, exitCode: details.exitCode });
+  });
+  wc.on('did-fail-load', (_e, code, _description, _url, mainFrame) => { if (!p.closed && mainFrame && code !== -3) send({ type: 'error', page: id, message: 'Browser navigation failed' }); });
   wc.on('paint', (_event, _dirty, image) => {
-    if (p.reconfiguring || image.getSize().width !== p.width || image.getSize().height !== p.height) return;
+    if (p.closed || p.reconfiguring || image.getSize().width !== p.width || image.getSize().height !== p.height) return;
     p.latest = image;
     p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p);
   });
@@ -226,7 +234,7 @@ async function createPage(id, input) {
     });
     if (profile !== 'desktop') await resize(p, {...input, width, height});
     return configuration(p);
-  } catch (error) { closePage(id); throw error; }
+  } catch (error) { if (pages.get(id) === p) closePage(id); throw error; }
 }
 async function automation(p, method, input) {
   if (!['readContext', 'inspect', 'click', 'fill', 'press', 'scroll', 'wait'].includes(method)) throw new Error('Unsupported browser operation');
@@ -360,7 +368,7 @@ app.whenReady().then(async () => {
   encoderWindow = new BrowserWindow({ show: false, width: 1, height: 1,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
   await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
-  const dispatch = createControls(command);
+  dispatch = createControls(command);
   const receive = message => {
     const operation = dispatch(message);
     void operation.then(value => send({ type: 'result', id: message.id, value }), error => send({ type: 'result', id: message.id, error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } })); };

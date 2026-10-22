@@ -320,8 +320,19 @@ export class RemoteBrowserService {
       this.requests.delete(message.id); clearTimeout(request.timer);
       message.error ? request.reject(Object.assign(new Error(message.error.message), message.error)) : request.resolve(message.value); return;
     }
-    if (message.type === 'error' && message.message === 'Browser renderer exited; reload this tab') this.diagnose('renderer_exited');
     const p = [...this.pages.values()].find(page => page.id === message.page);
+    if (message.type === 'renderer-gone' && p) {
+      this.diagnose('renderer_exited', undefined, message);
+      p.live = false; p.painted = false; p.controller = null; p.controlToken = null; p.controlKind = null;
+      p.controlEpoch = (p.controlEpoch ?? 0) + 1;
+      clearTimeout(p.keyTimer); p.keyTimer = null;
+      for (const [id, request] of this.requests) if (request.page === p.id) {
+        this.requests.delete(id); clearTimeout(request.timer); request.reject(unavailable('Browser renderer exited; reconnecting'));
+      }
+      for (const ws of this.viewers(p).keys()) ws.close(1011, 'Browser renderer exited; reconnecting');
+      return;
+    }
+    if (message.type === 'error' && message.message === 'Browser renderer exited; reload this tab') this.diagnose('renderer_exited');
     if (p && !p.recovering && message.type === 'navigation' && !message.state.isLoading) { p.url = checkpointUrl(message.state.url); this.checkpoint(); }
     if (p && message.type === 'viewport') { p.viewport = { width: message.width, height: message.height, deviceProfile: message.deviceProfile }; this.checkpoint(); }
     if (!p) return;
@@ -336,13 +347,15 @@ export class RemoteBrowserService {
     }
   }
 
-  diagnose(event, method) {
+  diagnose(event, method, detail) {
     if (this.diagnosticCount >= 20) return;
     this.diagnosticCount++;
     // Only owned enums and process counters: never request input, actor/page
     // identifiers, URLs, arbitrary native stderr or exception messages.
     console.warn('[opencraft-browser]', JSON.stringify({ event,
       ...(method === 'create' || methods.has(method) ? { method } : {}),
+      ...(['clean-exit','abnormal-exit','killed','crashed','oom','launch-failed','integrity-failure'].includes(detail?.reason) ? { reason: detail.reason } : {}),
+      ...(Number.isInteger(detail?.exitCode) && Math.abs(detail.exitCode) < 2147483648 ? { exitCode: detail.exitCode } : {}),
       pendingRequests: this.requests.size }));
   }
   request(page, method, input, control) {
@@ -350,7 +363,7 @@ export class RemoteBrowserService {
     const id = randomUUID();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.requests.delete(id); this.diagnose('request_timeout', method); reject(unavailable(`Browser operation timed out (${method})`)); }, 20000);
-      timer.unref(); this.requests.set(id, { resolve, reject, timer });
+      timer.unref(); this.requests.set(id, { page, resolve, reject, timer });
       const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(unavailable('Browser disconnected')); } };
       try {
         if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input, control }) + '\n', failed);
@@ -366,7 +379,8 @@ export class RemoteBrowserService {
         ...(error ? { error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } } : {}) })); };
       ws.on('error', () => ws.terminate());
       ws.on('message', async (bytes, binary) => {
-        if (binary || pending >= 128) { ws.close(1008, 'Invalid browser request'); return; }
+        if (binary) { this.diagnose('invalid_request'); ws.close(1008, 'Invalid browser request'); return; }
+        if (pending >= 128) { this.diagnose('input_backlog'); ws.close(1013, 'Browser input backlog; reconnecting'); return; }
         let message;
         pending++;
         let releaseAttachment;

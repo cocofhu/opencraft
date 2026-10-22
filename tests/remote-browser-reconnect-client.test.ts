@@ -33,7 +33,7 @@ test('transient failures keep recovering past five attempts without navigation o
     connect();
     // A deployment/network outage can outlast the old five-attempt budget.
     for(let i=0;i<7;i++){
-      assert.equal(sockets.length,i+1);sockets[i].close(1006);await flush();
+      assert.equal(sockets.length,i+1);sockets[i].close(i===2?1013:1006);await flush();
       t.mock.timers.tick(5000);await flush();
     }
     assert.equal(sockets.length,8,'recovery remains active beyond five failures');
@@ -49,8 +49,9 @@ test('transient failures keep recovering past five attempts without navigation o
     assert.equal(errors.at(-1),'Browser page limit reached','keep the actionable cause instead of overwriting it');
     connect();sockets[10].close(1000,'Browser tab closed');await flush();t.mock.timers.tick(60000);await flush();
     assert.equal(sockets.length,11,'explicit close cannot resurrect a remote Tab');
-    connect();sockets[11].close(1008);await flush();t.mock.timers.tick(60000);await flush();
+    connect();sockets[11].close(1008,'Browser admission expired');await flush();t.mock.timers.tick(60000);await flush();
     assert.equal(sockets.length,12,'authorization failure cannot retry around admission');
+    assert.equal(errors.at(-1),'Browser authorization expired; reload OpenCraft');
     connect();const generation=p.connection;sockets[12].close(1006);await flush();
     ++p.connection;p.opened=true;t.mock.timers.tick(60000);await flush();
     assert.equal(sockets.length,13,'a retired generation cannot reconnect later');assert.equal(p.connection,generation+1);

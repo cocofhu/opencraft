@@ -357,7 +357,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         // cleanly is not itself a Tab close. Retain compatibility with the
         // existing server's explicit 1000 close reason.
         if (terminalError || event.code === 1008 || event.code === 1000 && event.reason === 'Browser tab closed') {
-          p.events.onError(terminalError?.message || 'Browser disconnected; reload this tab'); return;
+          p.events.onError(terminalError?.message || (event.code === 1008
+            ? event.reason === 'Invalid browser request' ? 'Browser request rejected; reload this tab'
+              : 'Browser authorization expired; reload OpenCraft'
+            : 'Browser tab closed')); return;
         }
         p.events.onError('Browser disconnected; reconnecting');
         p.reconnect = setTimeout(() => {
