@@ -920,11 +920,8 @@ pageTop, document scroll and focus. Pinch magnification does not reflow layout.
 The Web adapter measures a zero-inset fixed reference outside the Shell. The
 reference never consumes application viewport CSS or participates in input. Its
 client rectangle supplies the native fixed coordinate basis, separately from the
-reported visual offset. The visible origin in layout coordinates is `VisualViewport.offsetTop/Left`;
-CSS placement is that origin minus the independent fixed reference origin.
-`pageTop - scrollY` is not a substitute: on-device keyboard pan has reported
-pageTop=scrollY=offsetTop=294 while the physical visible window still starts at
-layout y=294. A zero client top in that state is not a zero screen top.
+reported visual offset. The visible client origin is visual page position minus
+window scroll; CSS placement is that origin minus the fixed reference origin.
 This is a coordinate conversion, not an additive page-scroll correction or
 feedback from the already-positioned Shell. Native reference changes invalidate
 the shared projection even when raw VisualViewport values remain unchanged.
@@ -1899,12 +1896,10 @@ owner.
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
 
 
-Keyboard acceptance distinguishes DOM readback from the physical visible window.
-For a visual window beginning at layout offset V, a fixed reference readback B,
-and an application CSS inset C, screen position is C + B - V (before scale).
-The shared origin therefore uses C = V - B. Native document scroll/page position
-remain independent diagnostic observations and cannot cancel V. Controlled
-keyboard tests must crop to the independently supplied visible window and reject
-an input card pinned at its top while the intended bottom anchor is below it;
-asserting Shell.clientTop == pageTop - scrollY repeats the implementation's old
-error. Device acceptance remains separate from synthetic viewport tests.
+Keyboard acceptance must not manufacture a visible window by cropping at the
+raw visual offset. Physical WKWebView capture has displayed Shell.clientTop=294
+at screen y=294 while pageTop=scrollY=offsetTop=294 and visualHeight=394.
+For that observed client frame, the Shell begins at zero and the send action
+must fit within [0, 394]. An extra offset subtraction conceals double native-pan
+compensation. Controlled browser geometry remains distinct from physical UIKit
+painting; synthetic passing results do not establish device acceptance.

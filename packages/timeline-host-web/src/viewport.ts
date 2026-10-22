@@ -195,15 +195,15 @@ export function createWebTimelineViewportPort(
     if (!fixedReference) return { topPx: 0, leftPx: 0 };
     const visual = windowObject.visualViewport;
     const reference = fixedReference?.getBoundingClientRect();
-    // VisualViewport offsets locate the visible origin in the layout viewport.
-    // pageTop - scrollY is not interchangeable in WKWebView: keyboard pan can
-    // advance both by the same amount while offsetTop remains nonzero. Treating
-    // that difference as zero aligns DOM readback but leaves the Shell above the
-    // physical visible window. Convert the visual origin into the independently
-    // measured fixed plane exactly once; document scroll is not a second origin.
+    // Convert the visible page origin into client coordinates before comparing
+    // it with the independent fixed reference. WKWebView can report offsetTop,
+    // pageTop and scrollY all as 294: adding offsetTop then compensates native
+    // movement twice and puts the Shell 294px below the visible client origin.
     return {
-      topPx: (visual?.offsetTop ?? 0) - (reference?.top ?? 0),
-      leftPx: (visual?.offsetLeft ?? 0) - (reference?.left ?? 0),
+      topPx: (visual?.pageTop ?? windowObject.scrollY + (visual?.offsetTop ?? 0))
+        - windowObject.scrollY - (reference?.top ?? 0),
+      leftPx: (visual?.pageLeft ?? windowObject.scrollX + (visual?.offsetLeft ?? 0))
+        - windowObject.scrollX - (reference?.left ?? 0),
     };
   };
   const commitDocumentState = (next: TimelineViewportSnapshot) => {
