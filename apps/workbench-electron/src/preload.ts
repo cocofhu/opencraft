@@ -93,7 +93,7 @@ contextBridge.exposeInMainWorld("opencraftDesktop", composeDesktopBridge({
   platform: process.platform,
   versions: Object.freeze({ electron: process.versions.electron }),
   getWindowFullscreen(): boolean {
-    return ipcRenderer.sendSync("vela:get-window-fullscreen") === true;
+    return ipcRenderer.sendSync("opencraft:get-window-fullscreen") === true;
   },
   getWindowFocused(): boolean { return ipcRenderer.sendSync("opencraft:window-focused") === true; },
   onWindowFullscreenChanged(listener: (isFullScreen: boolean) => void) {
@@ -101,10 +101,10 @@ contextBridge.exposeInMainWorld("opencraftDesktop", composeDesktopBridge({
       _event: Electron.IpcRendererEvent,
       payload: { readonly isFullScreen: boolean },
     ) => listener(payload.isFullScreen);
-    ipcRenderer.on("vela:window-fullscreen-changed", receive);
-    return () => ipcRenderer.off("vela:window-fullscreen-changed", receive);
+    ipcRenderer.on("opencraft:window-fullscreen-changed", receive);
+    return () => ipcRenderer.off("opencraft:window-fullscreen-changed", receive);
   },
   setWindowAppearance(appearance: import("@opencraft/design-system/theme-options").ThemeWindowAppearance): void {
-    ipcRenderer.send("vela:set-window-appearance", appearance);
+    ipcRenderer.send("opencraft:set-window-appearance", appearance);
   },
 }, createDesktopPreload(ipcRenderer)));

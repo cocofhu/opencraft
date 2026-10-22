@@ -62,7 +62,8 @@ export interface ComposerSelections {
   /** `null` explicitly returns to the AppServer-resolved permissions default. */
   readonly permissionProfile?: string | null;
   readonly cwd?: string;
-  readonly serviceTier?: string;
+  /** null explicitly restores the server's standard tier. */
+  readonly serviceTier?: string | null;
   readonly personality?: string;
 }
 

@@ -24,6 +24,7 @@ export interface WorkbenchComposerModelChoice {
   readonly contextWindow: number | null;
   readonly maxTokens: number | null;
   readonly source: "builtin" | "custom" | null;
+  readonly serviceTiers?: readonly { readonly id: string; readonly name: string; readonly description: string }[];
   readonly defaultEffort: string | null;
   readonly efforts: readonly WorkbenchReasoningEffortChoice[];
 }
@@ -71,6 +72,7 @@ export function projectComposerModelChoices(
       contextWindow: model.contextWindow ?? null,
       maxTokens: model.maxTokens ?? null,
       source: model.source ?? null,
+      serviceTiers: (model.serviceTiers?.length ? model.serviceTiers : (model.additionalSpeedTiers ?? []).map(id => ({ id, name: humanizeCatalogValue(id), description: "" }))).map(tier => Object.freeze({ ...tier })),
       defaultEffort: reasoningCapability(model.supportedReasoningEfforts.map(e=>e.reasoningEffort),model.defaultReasoningEffort).defaultEffort,
       efforts: model.supportedReasoningEfforts.map((effort) => Object.freeze({
         value: effort.reasoningEffort,

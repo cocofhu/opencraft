@@ -361,6 +361,10 @@
   "settings.connection.reconnecting": "กำลังเชื่อมต่อใหม่",
   "settings.connection.connecting": "กำลังเชื่อมต่อ",
   "webUpdates.title": "การอัปเดตเว็บไซต์",
+  "webUpdates.noticeAvailable": "มีอัปเดตใหม่ (v{version}) คลิกเพื่อดาวน์โหลด",
+  "webUpdates.noticeRefresh": "เวอร์ชันใหม่พร้อมแล้ว คลิกเพื่อรีเฟรช",
+  "webUpdates.noticeAction": "ดาวน์โหลดอัปเดต v{version}",
+  "webUpdates.noticeRefreshAction": "รีเฟรชอัปเดต",
   "webUpdates.error.authentication": "การยืนยันตัวตน npm ล้มเหลว กำหนดค่าข้อมูลรับรอง npm สำหรับผู้ใช้ที่ปรับใช้เว็บไซต์",
   "webUpdates.error.network": "ไม่สามารถเข้าถึงรีจิสทรี npm ได้ ตรวจสอบเครือข่ายเซิร์ฟเวอร์แล้วลองอีกครั้ง",
   "webUpdates.error.unavailable": "บริการเว็บไซต์ไม่สามารถใช้ npm ได้ ตรวจสอบการกำหนดค่า PATH ของบริการ",
@@ -461,6 +465,7 @@
   "sidebar.thread.deleteDescription": "การสนทนานี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
   "sidebar.thread.deleteQuestion": "ลบ “{title}” หรือไม่?",
   "sidebar.thread.deleteTitle": "ลบการสนทนา",
+  "conversation.forkFromTurn": "สร้างสาขาจากจุดนี้",
   "sidebar.thread.fork": "สร้างสาขา",
   "sidebar.thread.forking": "กำลังสร้างสาขาสำหรับ {title}",
   "sidebar.thread.name": "ชื่อการสนทนา",
@@ -627,5 +632,10 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "composer.model.configureTitle": "กำหนดค่า",
+  "composer.model.speed": "ความเร็ว",
+  "composer.model.standardSpeed": "มาตรฐาน",
+  "composer.model.done": "เสร็จสิ้น",
+  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล"
 }

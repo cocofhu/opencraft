@@ -137,3 +137,32 @@ These commits illustrate the failure mode, not contributor intent. Existing toke
 ownership was useful; enforcement coverage and role guidance were incomplete.
 
 Shared control Sass imports the stylesheet-free `typography-mixins.web.scss` owner. The public `typography.web.scss` entry forwards the same mixins and continues to emit semantic `.ui-text` utilities for the global shell. Incidental control imports must not emit additional copies of those utilities into startup CSS. Existing five metric-owner exceptions follow the extracted implementation; their declarations and scope are unchanged.
+
+## Rounded numeric badges
+
+`countBadge` is a specialist numeric role: the existing metadata scale, bold
+weight, and the `count` family. Web/Electron bundle the original **OpenCraft
+Rounded Count** WOFF2 (0–9, plus, grouping punctuation); letters and unsupported
+localized numerals fall through to the existing UI stack. Native maps the same
+role to system bold without introducing a remote font dependency. Use the shared
+tertiary text tone for passive collaborator totals. This does not change ordinary
+UI weight policy, labels, names, body text or title typography.
+
+The editable centerlines, pinned build-only tooling and deterministic generator
+are in `packages/design-system/assets/rounded-count/`. Run `python generate.py`
+there after installing `requirements.txt` in an isolated environment; `--check`
+compares the WOFF2 byte-for-byte. Normal application builds consume the checked-in
+font and need no Python. The face is original project artwork under Apache-2.0;
+it is not a renamed or transformed third-party font. All digits have equal
+advances and open counters. Badge owners retain exact-count formatting,
+accessible labels, hit areas and responsive fitting; the font does not own counts.
+Verify a real consumer with the font loaded, long counts, font failure fallback,
+light/dark surfaces and touch input. Do not apply the numeric family to names.
+
+The typography generator emits two adapters: `_generated.web.scss` owns global
+CSS variables and forwards the role names; `_roles.web.scss` contains only the
+Sass role-name list. The mixin entry imports the latter so isolated component
+styles do not silently re-emit every global font variable. The application loads
+the global typography/tokens entry once. `generate:typography --check` checks both
+files, and the real Sass regression checks that a local numeric role emits no
+`:root` while global typography still supplies the required variables.
