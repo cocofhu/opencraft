@@ -27,6 +27,7 @@ try {
     const transcripts = page.locator(".thread-realtime-transcript");
     await transcripts.nth(1).waitFor();
     assert.equal(await transcripts.count(), 2);
+    assert.doesNotMatch(await page.locator("main").innerText(), /<realtime_delegation>|<TrAnScRiPt_DeLtA>|<InPuT>/);
     assert.equal(await transcripts.nth(0).getAttribute("data-handoff-id"), null);
     assert.equal(await transcripts.nth(1).getAttribute("data-handoff-id"), "next");
     assert.deepEqual(await transcripts.nth(0).locator("p > span").allTextContents(), ["Assistant", "You"]);

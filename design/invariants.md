@@ -2020,6 +2020,16 @@ lookup names the parent Thread, preserving mixed-engine Host boundaries. The chi
 holds native model context in memory only; parent tasks and queues never execute
 in the child. Closing releases the child without changing parent history or drafts.
 
+
+### Legacy realtime envelope presentation
+
+The exact lowercase outer realtime envelope still marks protocol data. Inner
+input, source and transcript tags retain case-insensitive matching and the first
+complete pair. Role markers consume at most one optional separator whitespace;
+repeated bare CR or Unicode line separators cannot be swallowed into an assistant
+entry. Preserve decoded text, ordinary multiline continuation, input deduplication
+and handoff identity in the shared parser; Web and Native consume its typed block.
+
 Generated images reserve their existing gallery placeholder while generation or Host media resolution is pending. Terminal items with no image and no pending load do not retain a progress indicator.
 
 ### Side chat slash command

@@ -2474,6 +2474,16 @@ taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
 
+
+### Legacy realtime envelope presentation
+
+The exact lowercase outer realtime envelope still marks protocol data. Inner
+input, source and transcript tags retain case-insensitive matching and the first
+complete pair. Role markers consume at most one optional separator whitespace;
+repeated bare CR or Unicode line separators cannot be swallowed into an assistant
+entry. Preserve decoded text, ordinary multiline continuation, input deduplication
+and handoff identity in the shared parser; Web and Native consume its typed block.
+
 Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
 
 ### Pasted multiline JSON
