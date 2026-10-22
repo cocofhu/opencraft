@@ -3666,7 +3666,7 @@ test("late command completions retain execution start order and failed output", 
     { id: "after", type: "commandExecution", payload: { command: "after", status: "completed", startedAtMs: 45 } },
   ];
   const original = [...items];
-  const snapshot = projectTimeline(source([{ id: "timed", status: "complete", items }]), createDefaultTimelineProjectorRegistry());
+  const snapshot = projectTimeline(source([{ id: "timed", status: "complete", preserveServerUserMessages: true, items }]), createDefaultTimelineProjectorRegistry());
   const blocks = snapshot.frames.flatMap(frame => frame.blocks);
   assert.deepEqual(blocks.flatMap(block => block.sourceItemIds), ["before", "late", "answer", "steer", "after"]);
   const failed = blocks.find(block => block.type === "command-execution" && block.command === "check");
