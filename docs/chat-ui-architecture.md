@@ -2413,6 +2413,24 @@ their existing owners.
 
 Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
 
+### Pasted multiline JSON
+
+The shared document compiler recognizes complete multiline JSON objects, arrays
+and a single named object/array member before Markdown indentation splits them.
+Plain introductory and trailing prose remain separate reading content. The JSON
+uses the existing code surface with the `json` language; its text and canonical
+source remain unchanged. Recognition validates structure without repairing or
+reserializing it. Explicit fenced code retains its declared language, while
+inline, invalid and incomplete JSON keep ordinary Markdown semantics.
+
+Program statement prefixes and call/statement suffixes are excluded from bare
+JSON recognition. Failed outer candidates are scanned once, without repeatedly
+parsing each nested suffix.
+
+Streaming input containing object braces follows the existing full-parser
+fallback: a later closing delimiter can promote previously separate Markdown
+blocks into one JSON surface, so those prefixes cannot be frozen early.
+
 ### Conversation content search deadlines
 
 Native `thread/search` and `thread/searchOccurrences` may scan full raw history.
