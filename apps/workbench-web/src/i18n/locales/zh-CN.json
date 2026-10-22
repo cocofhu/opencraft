@@ -772,5 +772,20 @@
   "schedules.catalog.activeHint": "服务器 Agent 将按计划自动执行此任务。",
   "schedules.catalog.reviewHint": "请在「管理任务」中检查上次执行结果，再决定是否继续。",
   "schedules.catalog.completedHint": "此任务已结束，可打开会话查看执行结果。",
-  "schedules.catalog.viewNamed": "查看会话：{title}"
+  "schedules.catalog.viewNamed": "查看会话：{title}",
+  "chat.question.pending": "需要你确认",
+  "chat.question.other": "自定义回答",
+  "chat.question.answer": "你的回答",
+  "chat.question.placeholder": "输入你的回答…",
+  "chat.question.hint": "选择后发送",
+  "chat.question.send": "发送回答",
+  "chat.question.view": "查看问题",
+  "chat.question.answered": "已回答",
+  "chat.question.dismissed": "已被后续消息替代",
+  "chat.question.unconfirmed": "尚未确认送达",
+  "chat.question.sending": "正在发送…",
+  "chat.question.queued": "回答已加入队列",
+  "chat.question.offline": "连接后即可回答",
+  "chat.question.failure": "回答未发送，选择已保留，请重试。",
+  "chat.question.retry": "选择已保留，请重试"
 }

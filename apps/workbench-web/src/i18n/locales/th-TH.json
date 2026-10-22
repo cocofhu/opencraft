@@ -749,5 +749,20 @@
   "schedules.catalog.activeHint": "เอเจนต์ของเซิร์ฟเวอร์จะดำเนินงานนี้อัตโนมัติตามกำหนด",
   "schedules.catalog.reviewHint": "ตรวจสอบผลการทำงานครั้งก่อนใน จัดการงาน ก่อนตัดสินใจทำต่อ",
   "schedules.catalog.completedHint": "งานนี้สิ้นสุดแล้ว เปิดการสนทนาเพื่อดูผลลัพธ์",
-  "schedules.catalog.viewNamed": "ดูการสนทนา: {title}"
+  "schedules.catalog.viewNamed": "ดูการสนทนา: {title}",
+  "chat.question.pending": "ต้องการคำตอบจากคุณ",
+  "chat.question.other": "คำตอบอื่น",
+  "chat.question.answer": "คำตอบของคุณ",
+  "chat.question.placeholder": "พิมพ์คำตอบของคุณ…",
+  "chat.question.hint": "เลือกแล้วส่ง",
+  "chat.question.send": "ส่งคำตอบ",
+  "chat.question.view": "ดูคำถาม",
+  "chat.question.answered": "ตอบแล้ว",
+  "chat.question.dismissed": "มีข้อความใหม่มาแทนที่แล้ว",
+  "chat.question.unconfirmed": "ยังไม่ยืนยันการส่ง",
+  "chat.question.sending": "กำลังส่งคำตอบ…",
+  "chat.question.queued": "คำตอบอยู่ในคิวแล้ว",
+  "chat.question.offline": "เชื่อมต่อเพื่อตอบ",
+  "chat.question.failure": "ส่งคำตอบไม่สำเร็จ บันทึกตัวเลือกแล้ว โปรดลองอีกครั้ง",
+  "chat.question.retry": "บันทึกตัวเลือกแล้ว ลองอีกครั้ง"
 }

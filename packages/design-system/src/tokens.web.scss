@@ -61,6 +61,10 @@
   --gap-sidebar-entrances: var(--gap-control-group);
   --padding-sidebar-entrances: calc(var(--spacing) * 3);
   --radius-control: 7px;
+  --height-choice-row: calc(var(--spacing) * 9);
+  --radius-choice-control: var(--radius-md);
+  --color-background-choice-selected: color-mix(in srgb, var(--color-text-accent) 7%, var(--color-background-panel));
+  --color-border-choice-selected: color-mix(in srgb, var(--color-text-accent) 38%, var(--color-border-subtle));
   --opacity-control-disabled: 0.5;
   --opacity-control-compact-disabled: 0.4;
   --duration-progress-cycle: 2s;

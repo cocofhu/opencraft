@@ -749,5 +749,20 @@
   "schedules.catalog.activeHint": "Ejen pelayan anda akan menjalankan tugas ini secara automatik mengikut jadual.",
   "schedules.catalog.reviewHint": "Semak hasil pelaksanaan sebelumnya dalam Urus tugas sebelum memutuskan untuk meneruskan.",
   "schedules.catalog.completedHint": "Tugas ini telah tamat. Buka perbualannya untuk melihat hasil.",
-  "schedules.catalog.viewNamed": "Lihat perbualan: {title}"
+  "schedules.catalog.viewNamed": "Lihat perbualan: {title}",
+  "chat.question.pending": "Perlukan input anda",
+  "chat.question.other": "Jawapan tersuai",
+  "chat.question.answer": "Jawapan anda",
+  "chat.question.placeholder": "Taip jawapan anda…",
+  "chat.question.hint": "Pilih, kemudian hantar",
+  "chat.question.send": "Hantar jawapan",
+  "chat.question.view": "Lihat soalan",
+  "chat.question.answered": "Dijawab",
+  "chat.question.dismissed": "Diganti oleh mesej kemudian",
+  "chat.question.unconfirmed": "Penghantaran belum disahkan",
+  "chat.question.sending": "Menghantar jawapan…",
+  "chat.question.queued": "Jawapan dalam baris gilir susulan",
+  "chat.question.offline": "Sambung untuk menjawab",
+  "chat.question.failure": "Jawapan tidak dihantar. Pilihan anda disimpan; sila cuba lagi.",
+  "chat.question.retry": "Pilihan disimpan. Cuba lagi."
 }

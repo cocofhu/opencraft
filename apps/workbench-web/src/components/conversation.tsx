@@ -13,7 +13,7 @@ import {
   createTimelineTurnPresentationPlan,
   activeTimelineTurnTodo,
   ReasoningPresentationCache,
-  deriveAsyncQuestionStates,
+  deriveAsyncQuestionPresentation,
   groupTimelineFramesByTurn,
   presentAutomationUpdate,
   type AssistantTurnPresentationPlan,
@@ -66,6 +66,8 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
+  Suspense,
+  lazy,
   useCallback,
   useContext,
   useEffect,
@@ -89,7 +91,7 @@ import {
 } from "./conversation/document-context";
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
-const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card").then(module => ({ default: module.AsyncQuestionCard })));
+const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card-view"));
 import { DiffReadingPositionContext, UnifiedDiffPreview, type DiffReadingPosition } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
@@ -281,6 +283,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}>
       <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}><AsyncQuestionCard
         question={question}
         title={<WebChatDocument
@@ -295,6 +298,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
           theme={documentContext.theme}
         />}
       /></Suspense>
+      </Suspense>
     ))}
   </>;
 }
@@ -761,7 +765,7 @@ export function Conversation({
   );
   const asyncQuestionDraftsRef = useRef(asyncQuestionDrafts);
   asyncQuestionDraftsRef.current = asyncQuestionDrafts;
-  const asyncQuestionStates = useMemo(() => deriveAsyncQuestionStates(timeline ?? { frames: [] }), [timeline]);
+  const asyncQuestionPresentation = useMemo(() => deriveAsyncQuestionPresentation(timeline ?? { frames: [] }), [timeline]);
   const [asyncQuestionSubmitting, setAsyncQuestionSubmitting] = useState<ReadonlySet<string>>(() => new Set());
   const asyncQuestionSubmittingRef = useRef(new Set<string>());
   const [asyncQuestionErrors, setAsyncQuestionErrors] = useState<Readonly<Record<string, string>>>({});
@@ -791,14 +795,15 @@ export function Conversation({
   }, [onAnswerAsyncQuestion]);
   const asyncQuestionQueuedIds = useMemo(() => new Set(queuedAsyncQuestionIds), [queuedAsyncQuestionIds]);
   const asyncQuestionContext = useMemo<AsyncQuestionContextValue>(() => ({
-    states: asyncQuestionStates,
+    states: asyncQuestionPresentation.states,
+    answers: asyncQuestionPresentation.answers,
     queuedIds: asyncQuestionQueuedIds,
     drafts: asyncQuestionDrafts,
     submittingIds: asyncQuestionSubmitting,
     errors: asyncQuestionErrors,
     answer: onAnswerAsyncQuestion === undefined ? null : answerAsyncQuestion,
     updateDraft: updateAsyncQuestionDraft,
-  }), [asyncQuestionStates, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
+  }), [asyncQuestionPresentation, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
   const handleActivityCollapsedChange = useCallback((id: string, collapsed: boolean) => {
     setActivityCollapsedById((current) => current[id] === collapsed
       ? current

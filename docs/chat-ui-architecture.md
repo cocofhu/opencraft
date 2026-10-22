@@ -3214,3 +3214,23 @@ without reclassifying it as a protocol failure. Dynamic tools retain success and
 complete contentItems. Invocation identity falls back from server to namespace. The
 existing JSON preview and copy action consume the same complete value; none of these
 display fields can change execution, permissions or the compact-tool policy.
+
+### Asynchronous question cards
+
+A pending asynchronous question uses one bounded reading surface, regular Chat
+copy, shared single-choice rows and the existing primary Button. The complete
+question stays intact; the renderer does not guess a shorter title. Choice state
+uses a quiet theme-owned selection surface, independently of neutral keyboard
+focus. Coarse input retains 44px targets. Controls and feedback use the current
+locale. Sending, queued, disconnected and unconfirmed delivery remain distinct;
+selection and draft survive them, and only the existing answer port submits.
+
+Confirmed answers collapse to a read-only result with the actual accepted reply
+and an accessible disclosure for the original question. The ordered Chat
+projection supplies both state and reply, including another client's accepted
+answer; a local draft or resolved send promise cannot fabricate acknowledgement.
+A superseded question has no invented answer. Failure retains the draft and uses
+the Workbench notification owner with a stable footer hint, rather than adding a
+layout-changing diagnostic block.
+
+Question card presentation and its stylesheet are loaded together when a timeline contains a question. The pending fallback keeps the original question readable; theme and draft state stay with their existing owners, and the card is not part of the required startup CSS graph.

@@ -748,5 +748,20 @@
   "schedules.catalog.activeHint": "Your server’s agent will run this task automatically as scheduled.",
   "schedules.catalog.reviewHint": "Check the previous run’s result in Manage task before deciding whether to continue.",
   "schedules.catalog.completedHint": "This task has ended. Open its conversation to see the results.",
-  "schedules.catalog.viewNamed": "View conversation: {title}"
+  "schedules.catalog.viewNamed": "View conversation: {title}",
+  "chat.question.pending": "Your input needed",
+  "chat.question.other": "Custom answer",
+  "chat.question.answer": "Your answer",
+  "chat.question.placeholder": "Type your answer…",
+  "chat.question.hint": "Select, then send",
+  "chat.question.send": "Send answer",
+  "chat.question.view": "View question",
+  "chat.question.answered": "Answered",
+  "chat.question.dismissed": "Superseded by a later message",
+  "chat.question.unconfirmed": "Delivery unconfirmed",
+  "chat.question.sending": "Sending answer…",
+  "chat.question.queued": "Answer in follow-up queue",
+  "chat.question.offline": "Connect to answer",
+  "chat.question.failure": "Answer not sent. Your selection is saved; please retry.",
+  "chat.question.retry": "Selection saved. Try again."
 }

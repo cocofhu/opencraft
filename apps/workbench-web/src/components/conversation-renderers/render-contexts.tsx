@@ -37,6 +37,7 @@ export interface AsyncQuestionDraft {
 
 export interface AsyncQuestionContextValue {
   readonly states: ReadonlyMap<string, AsyncQuestionState>;
+  readonly answers: ReadonlyMap<string, string>;
   readonly queuedIds: ReadonlySet<string>;
   readonly drafts: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly submittingIds: ReadonlySet<string>;
@@ -46,7 +47,7 @@ export interface AsyncQuestionContextValue {
 }
 
 export const AsyncQuestionContext = createContext<AsyncQuestionContextValue>({
-  states: new Map(), queuedIds: new Set(), drafts: {}, submittingIds: new Set(), errors: {},
+  states: new Map(), answers: new Map(), queuedIds: new Set(), drafts: {}, submittingIds: new Set(), errors: {},
   answer: null, updateDraft: () => undefined,
 });
 export const ConversationDetailContext = createContext<ConversationDetailLevel>("STEPS_COMMANDS");
