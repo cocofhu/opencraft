@@ -54,7 +54,11 @@ export function nativeLiveAcceptedInputFact(method:string, value:unknown):Native
  * Inherited fork records retain their original thread. Model menus are not
  * evidence of the actual response model; missing identities remain null.
  */
-export function nativeUsageFact(value: unknown, expectedThreadId: string): NativeUsageFact | null {
+export function nativeUsageFact(
+  value: unknown,
+  expectedThreadId: string,
+  identity?: { readonly provider?: string | null; readonly model?: string | null },
+): NativeUsageFact | null {
   const row = object(value);
   if (row.type !== "token_usage_record") return null;
   const payload = object(row.payload);
@@ -68,7 +72,7 @@ export function nativeUsageFact(value: unknown, expectedThreadId: string): Nativ
     try { turnCounts = nativeCounts(payload.turn_token_usage); } catch { /* valid response survives an unavailable report */ }
     return { kind: "source", turnCounts, source: {
       threadId: expectedThreadId, turnId, lineage: `native-session:${sessionId}`, sourceId: responseId,
-      kind: "response", version: 0, provider: null, model: null,
+      kind: "response", version: 0, provider: identity?.provider ?? null, model: identity?.model ?? null,
       counts: { ...normalized, totalTokens: normalized.totalTokens! },
     } };
   } catch { return { kind: "missing", reason: "invalid-usage-record" }; }

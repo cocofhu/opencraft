@@ -43,7 +43,7 @@ export interface UsageSubmission {
   readonly sourceKind: UsageSourceKind;
   readonly submittedAt: number;
 }
-export type UsageGapReason = "storage-write" | "queue-full" | "source-offline" | "source-replaced" | "invalid-source" | "unreplayable";
+export type UsageGapReason = "storage-write" | "queue-full" | "source-offline" | "source-replaced" | "invalid-source" | "unreplayable" | "oversized-line";
 export interface UsageRollout { readonly threadId: string; readonly path: string; readonly cursor: string; readonly lastSuccessAt: number | null; readonly errorKind: string | null }
 
 export function normalizeUsageCounts(value: UsageSource["counts"]): UsageCounts {
@@ -419,6 +419,15 @@ export class CodexTokenUsageLedger {
       this.statement("INSERT OR IGNORE INTO token_usage_rollouts VALUES(?,?,?,'0',NULL,NULL)").run(this.serverId, threadId, path);
     });
   }
+  repairRolloutPath(threadId: string, expectedPath: string, path: string): void {
+    requiredId(threadId);
+    if (typeof expectedPath !== "string" || !expectedPath || typeof path !== "string" || !path) throw new TypeError("Invalid rollout path");
+    this.write(() => {
+      const result = this.statement("UPDATE token_usage_rollouts SET path=? WHERE server_id=? AND thread_id=? AND path=?")
+        .run(path, this.serverId, threadId, expectedPath);
+      if (result.changes !== 1) throw new Error("Stale rollout path");
+    });
+  }
   rollout(threadId: string): UsageRollout | null {
     const row = this.statement("SELECT * FROM token_usage_rollouts WHERE server_id=? AND thread_id=?").get(this.serverId, requiredId(threadId));
     return row ? { threadId, path: String(row.path), cursor: String(row.cursor), lastSuccessAt: row.last_success_ms as number | null, errorKind: row.error_kind as string | null } : null;
@@ -445,7 +454,7 @@ export class CodexTokenUsageLedger {
   }
   noteGap(gap: { readonly id: string; readonly reason: UsageGapReason; readonly threadId?: string; readonly turnId?: string }): void {
     requiredId(gap.id);
-    if (!["storage-write","queue-full","source-offline","source-replaced","invalid-source","unreplayable"].includes(gap.reason)) throw new TypeError("Unknown usage gap category");
+    if (!["storage-write","queue-full","source-offline","source-replaced","invalid-source","unreplayable","oversized-line"].includes(gap.reason)) throw new TypeError("Unknown usage gap category");
     this.write(() => {
       const inserted=this.statement("INSERT OR IGNORE INTO token_usage_gaps VALUES(?,?,?,?,?,?,NULL)")
         .run(this.serverId, gap.id, gap.threadId ?? null, gap.turnId ?? null, gap.reason, timestamp(this.now()));
@@ -469,13 +478,33 @@ export class CodexTokenUsageLedger {
    * after a Host restart. Invalid/replaced source evidence needs separate proof. */
   resolveReplayGaps(threadId:string): void {
     this.write(()=>{
-      const result=this.statement("UPDATE token_usage_gaps SET ends_ms=? WHERE server_id=? AND thread_id=? AND ends_ms IS NULL AND reason IN ('storage-write','queue-full','source-offline','unreplayable')").run(timestamp(this.now()),this.serverId,requiredId(threadId));
+      const result=this.statement("UPDATE token_usage_gaps SET ends_ms=? WHERE server_id=? AND thread_id=? AND ends_ms IS NULL AND reason IN ('storage-write','queue-full','source-offline','unreplayable','source-replaced')").run(timestamp(this.now()),this.serverId,requiredId(threadId));
       if(result.changes)this.bump();
     });
   }
   gaps(): {id: string; threadId: string | null; turnId: string | null; reason: string; startsAt: number; endsAt: number | null}[] {
     return this.statement("SELECT * FROM token_usage_gaps WHERE server_id=? ORDER BY starts_ms,gap_key").all(this.serverId)
       .map(row => ({id:String(row.gap_key),threadId:row.thread_id as string|null,turnId:row.turn_id as string|null,reason:String(row.reason),startsAt:Number(row.starts_ms),endsAt:row.ends_ms as number|null}));
+  }
+  openGapThreads(limit = 256): { threadId: string; id: string }[] {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1024) throw new TypeError("Invalid gap page");
+    return this.statement(`SELECT thread_id,gap_key FROM token_usage_gaps
+      WHERE server_id=? AND ends_ms IS NULL AND thread_id IS NOT NULL
+      ORDER BY starts_ms LIMIT ?`).all(this.serverId, limit)
+      .map(row => ({ threadId: String(row.thread_id), id: String(row.gap_key) }));
+  }
+  correctTurnIdentities(key: UsageTurnKey, provider: string | null, model: string | null): boolean {
+    const ids = this.key(key);
+    return this.write(() => {
+      const updated = this.statement(
+        "UPDATE token_usage_sources SET provider=?, model=? WHERE server_id=? AND thread_id=? AND turn_id=? AND provider IS NULL AND model IS NULL"
+      ).run(provider, model, ...ids);
+      if (updated.changes > 0) {
+        this.rebuild(ids);
+        return true;
+      }
+      return false;
+    });
   }
   /** Called only for native durable terminal markers, independently of UI state. */
   recordNativeTerminal(key: UsageTurnKey): void {
