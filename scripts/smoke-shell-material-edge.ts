@@ -21,12 +21,12 @@ function Context(){useEffect(()=>{mounts++},[]);return <div style={{display:'fle
 <input aria-label='Sidebar draft' defaultValue='侧栏内容保持不变' style={{margin:16}}/>
 <button aria-label='Edge action' onClick={()=>clicks++} style={{marginTop:20,padding:12,textAlign:'right',background:'transparent',border:0}}>边缘操作</button>
 </div>}
-function App(){const [open,setOpen]=useState(true),[context,setContext]=useState(true),[width,setWidth]=useState(320),
+function App(){const [open,setOpen]=useState(true),[context,setContext]=useState(true),[width,setWidth]=useState(320),[unified,setUnified]=useState(false),
 [chrome,setChrome]=useState({kind:'browser',platform:'linux',safeArea:{left:0,right:0}});
-window.fixture={setOpen,setContext,setWidth,setChrome,width,mounts:()=>mounts,clicks:()=>clicks,
+window.fixture={setOpen,setContext,setWidth,setChrome,setUnified,width,mounts:()=>mounts,clicks:()=>clicks,
 theme:(name,mode)=>{document.documentElement.dataset.theme=mode;Object.entries(buildOpenCraftThemeCssProperties(mode,palettes[name][mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))}};
 return <AppShell layoutScope='material-edge' mainContentLayout='default' sidebarOpen={open} sidebarWidth={width}
-navigation={{actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>{}}],settingsActive:false,onOpenSettings:()=>{},account:{snapshot:{phase:'anonymous',name:null,avatarUrl:null},onOpen:()=>{},onRefresh:async()=>{},onSignOut:async()=>{}}}}
+navigation={{layout:unified?'unified':undefined,actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>{}}],settingsActive:false,onOpenSettings:()=>{},account:{snapshot:{phase:'anonymous',name:null,avatarUrl:null},onOpen:()=>{},onRefresh:async()=>{},onSignOut:async()=>{}}}}
 windowChrome={chrome}
 onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={setWidth}
 rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
@@ -278,6 +278,17 @@ try {
   assert.equal(reduced.open,0);
   assert.equal(reduced.closed,52,JSON.stringify(reduced));
   assert.ok(reduced.frames.every((width:number)=>width===0 || width===52),'reduced motion skips interpolation');
+  await page.setViewportSize({width:1180,height:720});
+  await page.evaluate(() => { const f=(window as any).fixture; f.setUnified(true); f.setContext(true); f.setOpen(true); });
+  await page.locator('.has-unified-sidebar .shell-sidebar__context').waitFor();
+  for (const name of ['longing','opencraftCanvas']) for (const mode of ['light','dark']) {
+    await page.evaluate(([name,mode]) => (window as any).fixture.theme(name,mode),[name,mode]);
+    const actual=await page.evaluate(() => ({shadow:getComputedStyle(document.querySelector('.main-content-surface')!).boxShadow,context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor}));
+    if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
+    else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
+    await page.screenshot({path:join(output,`unified-${name}-${mode}.png`)});
+    evidence.push({name,mode,presentation:'unified',...actual});
+  }
   assert.deepEqual(errors, []);
   evidence.push({ edgeHitTest: true, heldResize: true, contextExit, reversal, reduced, forcedColors: forced, hiddenZeroWidth: true, floatingStyle, draftIdentity: true, navigationOnlyNoHardDivider: true });
   console.log(JSON.stringify({ output, url, evidence, errors }));

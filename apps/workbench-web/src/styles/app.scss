@@ -814,7 +814,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
       linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
   &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
-  .main-content-surface { background: transparent; box-shadow: none; }
+  .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-surface-elevation, none); }
   .main-content-frame {
     background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
   }

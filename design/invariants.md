@@ -47,6 +47,9 @@ Its theme definition owns the translucent Sidebar, cool surfaces and diffuse
 navigation-to-content edge shadow. Settings previews and the mounted Shell
 consume the same palette; selecting it preserves drafts, layout and focus.
 Shared material fallbacks retain their existing accessibility ownership.
+The unified Shell also consumes the theme's optional unified surface elevation
+and context background; it must not replace Longing's glass edge with a flat
+surface. Other themes retain their flat unified shell and opaque context.
 
 
 ## Floating sidebar presentation boundary

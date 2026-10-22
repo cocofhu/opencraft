@@ -21,6 +21,8 @@ export interface OpenCraftThemeDefinition {
    * web canvas without component-level selectors.
    */
   shellMaterial?: {
+    unifiedSurfaceElevation?: string;
+    sidebarContextBackground?: string;
     mainSurfaceElevation: string;
     sidebarBackground: string;
     sidebarFilter: string;
@@ -155,6 +157,8 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     surface: "#f5f9ff",
     surfaces: { window: "#e8f2ff", panel: "#f8fbff", input: "#f0f6ff" },
     shellMaterial: {
+      unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
+      sidebarContextBackground: "transparent",
       mainSurfaceElevation: "-1px 0 0 rgb(82 126 175 / 10%), -5px 0 22px rgb(64 115 176 / 9%), 0 2px 8px rgb(23 55 90 / 4%)",
       sidebarBackground: "rgb(207 228 255 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
@@ -175,6 +179,8 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     surface: "#132238",
     surfaces: { window: "#0c192c", panel: "#192c45", input: "#1e334f" },
     shellMaterial: {
+      unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
+      sidebarContextBackground: "transparent",
       mainSurfaceElevation: "-1px 0 0 rgb(159 199 247 / 10%), -5px 0 24px rgb(0 8 23 / 25%), 0 2px 8px rgb(0 8 23 / 16%)",
       sidebarBackground: "rgb(27 56 91 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
@@ -643,6 +649,8 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-base-ink": definition.ink,
     "--opencraft-base-surface": definition.surface,
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
+    "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
     "--opencraft-sidebar-material-background": shell.sidebarBackground,
     "--opencraft-sidebar-material-filter": shell.sidebarFilter,
     "--opencraft-window-highlight": shell.windowHighlight,

@@ -42,7 +42,7 @@
 }
 .shell-sidebar__context.sidecar-content-slot {
   grid-column: 2; grid-row: 1 / 3; min-height: 0; min-width: 0; overflow: hidden;
-  background: var(--color-surface); border-start-start-radius: 0;
+  background: var(--opencraft-sidebar-context-background, var(--color-surface)); border-start-start-radius: 0;
 }
 .shell-sidebar__rail-footer.sidecar-content-slot {
   grid-column: 1; grid-row: 2; height: auto;
