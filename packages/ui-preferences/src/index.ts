@@ -10,6 +10,7 @@ export interface UiPreferenceValues {
   readonly "chat.defaultFollowUpAction": "steer" | "queue";
   readonly "chat.turnNotifications": boolean;
   readonly "chat.touchNewera": boolean;
+  readonly "shell.toolbarDocks": Readonly<Record<string, readonly string[]>>;
   readonly "shell.applicationsPinned": boolean;
   readonly "shell.accountPinned": boolean;
   readonly "shell.navigationDetent": ShellNavigationDetent;
@@ -39,6 +40,20 @@ const widthValue = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
 export const uiPreferenceDefinitions = Object.freeze({
+  "shell.toolbarDocks": {
+    key: "shell.toolbarDocks", scope: "installation", defaultValue: {},
+    parse: (value: unknown): UiPreferenceValues["shell.toolbarDocks"] | null => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const entries = Object.entries(value);
+      if (entries.length > 256) return null;
+      for (const [key, ids] of entries) {
+        if (!key || key.length > 2048 || !Array.isArray(ids) || ids.length > 32
+          || ids.some(id => typeof id !== "string" || !/^[a-z][a-z0-9-]{0,63}$/.test(id))
+          || new Set(ids).size !== ids.length) return null;
+      }
+      return Object.fromEntries(entries.map(([key, ids]) => [key, [...ids]]));
+    },
+  },
   "sidebar.conversationOverview": {
     key: "sidebar.conversationOverview", scope: "installation", defaultValue: false, parse: booleanValue,
   },

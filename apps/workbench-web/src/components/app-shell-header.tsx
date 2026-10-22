@@ -10,6 +10,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type RefCallback,
   type ReactNode,
 } from "react";
@@ -25,6 +26,8 @@ import type {
 } from "../window-chrome";
 import { useAppShellLayoutMotion } from "./app-shell";
 import { useShellPresentation } from "./shell-presentation";
+import { ToolbarDockCapacityContext } from "./toolbar-dock-state";
+import { toolbarDockCapacity } from "./toolbar-dock-model";
 
 export interface AppShellNavigationControlsProps {
   readonly brand?: ReactNode;
@@ -266,6 +269,28 @@ export function AppShellHeader({
     (width) => `${Math.max(0, width)}px`,
   );
   const endActionsMeasureRef = useRef<HTMLDivElement | null>(null);
+  const contextRef = useRef<HTMLDivElement | null>(null);
+  const [dockCapacity, setDockCapacity] = useState(0);
+  useLayoutEffect(() => {
+    const context = contextRef.current;
+    const measure = endActionsMeasureRef.current;
+    if (!context || !measure) return;
+    const update = () => {
+      const style = getComputedStyle(context);
+      const sizeProbe = measure.querySelector<HTMLElement>(".chrome-button");
+      const size = sizeProbe?.getBoundingClientRect().width ?? 28;
+      const gap = parseFloat(style.getPropertyValue("--gap-toolbar-dock")) || 0;
+      const reserve = parseFloat(style.getPropertyValue("--width-toolbar-dock-title-budget")) || 220;
+      const maximum = parseFloat(style.getPropertyValue("--count-toolbar-dock-maximum")) || 4;
+      const available = context.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      setDockCapacity(presentation?.mobileSidebar ? 0 : toolbarDockCapacity(available, reserve, size + gap, showRightPanelAction ? 2 : 1, maximum));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(context);
+    observer.observe(measure);
+    return () => observer.disconnect();
+  }, [presentation?.mobileSidebar, showRightPanelAction]);
 
   useLayoutEffect(() => {
     const endActionsMeasure = endActionsMeasureRef.current;
@@ -303,7 +328,8 @@ export function AppShellHeader({
         actions={navigationActions}
       />
 
-      <div className="app-shell-header__context">
+      <div ref={contextRef} className="app-shell-header__context">
+        <ToolbarDockCapacityContext.Provider value={dockCapacity}>
         <div
           ref={endActionsMeasureRef}
           aria-hidden="true"
@@ -368,6 +394,7 @@ export function AppShellHeader({
             ) : null}
           </div>
         </motion.div>
+        </ToolbarDockCapacityContext.Provider>
       </div>
     </header>
   );

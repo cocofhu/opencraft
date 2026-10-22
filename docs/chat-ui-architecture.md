@@ -2378,3 +2378,7 @@ declines, scoped permission menu entries retain their chosen scope, and paramete
 disclosures only expand or collapse. The card's window shortcut ignores already
 consumed events and editable fields. Unfocused Enter still allows once and Escape
 still declines; keyboard focus never silently changes the selected permission.
+
+### Personal header ToolbarDock
+
+Feature action descriptors own stable identity, label, availability and the one business handler. Shell measures available context space and reserves title/mandatory controls before selecting capacity, including tablet touch density; phone presentation always uses overflow. ToolbarDock owns icon projection, overflow and personal drag customization, using UiPreferencesRuntime scoped to account and dock identity. The inert header twin uses the same projection; available-space changes do not erase personal intent or remount business dialogs. Failed persistence is reported. Dialog return focus falls back to visible overflow if the invoking icon has folded away.
