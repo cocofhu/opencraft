@@ -11,6 +11,7 @@ import {
   type McpElicitationDraft,
   type McpElicitationDraftValue,
   type TimelineBlock,
+  type UserInputQuestion,
   type UserInputQuestionDraft,
 } from "@opencraft/chat-core";
 import { WebChatDocument, resolveStandardChatResource } from "@opencraft/chat-render-web";
@@ -169,34 +170,36 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
 function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "question" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const reduceMotion = useReducedMotion();
+  const questionsJson = JSON.stringify(block.questions);
+  const questions = useMemo<readonly UserInputQuestion[]>(() => JSON.parse(questionsJson), [questionsJson]);
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [drafts, setDrafts] = useState<readonly UserInputQuestionDraft[]>(() => createUserInputQuestionDrafts(block.questions));
+  const [drafts, setDrafts] = useState<readonly UserInputQuestionDraft[]>(() => createUserInputQuestionDrafts(questions));
   const cardRef = useRef<HTMLElement>(null);
   useEffect(() => {
     setQuestionIndex(0);
-    setDrafts(createUserInputQuestionDrafts(block.questions));
+    setDrafts(createUserInputQuestionDrafts(questions));
     cardRef.current?.focus();
-  }, [block.questions, block.requestId]);
+  }, [questions, block.requestId]);
 
-  const question = block.questions[questionIndex] ?? block.questions[0];
+  const question = questions[questionIndex] ?? questions[0];
   const draft = drafts[questionIndex];
-  const isLastQuestion = questionIndex >= block.questions.length - 1;
+  const isLastQuestion = questionIndex >= questions.length - 1;
   const submitDrafts = useCallback((nextDrafts: readonly UserInputQuestionDraft[]) => {
-    const answers = aggregateUserInputQuestionAnswers(block.questions, nextDrafts);
+    const answers = aggregateUserInputQuestionAnswers(questions, nextDrafts);
     if (block.method === "mcpServer/elicitation/request") {
       void submission.submit({ type: "answer", values: Object.values(answers).flat() });
       return;
     }
     void submission.submit({ type: "answer-questions", answers });
-  }, [block.method, block.questions, submission]);
+  }, [block.method, questions, submission]);
   const completeCurrentQuestion = useCallback((nextDrafts: readonly UserInputQuestionDraft[]) => {
     if (!isLastQuestion) {
-      setQuestionIndex((current) => Math.min(current + 1, block.questions.length - 1));
+      setQuestionIndex((current) => Math.min(current + 1, questions.length - 1));
       requestAnimationFrame(() => cardRef.current?.focus());
       return;
     }
     submitDrafts(nextDrafts);
-  }, [block.questions.length, isLastQuestion, submitDrafts]);
+  }, [questions.length, isLastQuestion, submitDrafts]);
   const updateDraft = useCallback((nextDraft: UserInputQuestionDraft): readonly UserInputQuestionDraft[] => {
     const nextDrafts = [...drafts];
     nextDrafts[questionIndex] = nextDraft;
@@ -224,9 +227,9 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       }
       return;
     }
-    if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && block.questions.length > 1) {
+    if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && questions.length > 1) {
       event.preventDefault();
-      setQuestionIndex((current) => Math.max(0, Math.min(block.questions.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
+      setQuestionIndex((current) => Math.max(0, Math.min(questions.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
       return;
     }
     if (event.key >= "1" && event.key <= "9") {
@@ -250,7 +253,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       event.preventDefault();
       submitCurrent();
     }
-  }, [block.questions.length, draft?.selectedOptionId, question, selectOption, submission, submitCurrent]);
+  }, [questions.length, draft?.selectedOptionId, question, selectOption, submission, submitCurrent]);
   const pending = block.state === "pending";
   if (question === undefined) return null;
   return (
@@ -276,11 +279,11 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
             <div className="thread-interaction-card__copy">
               <strong>{question.header ?? question.prompt}</strong>
             </div>
-            {block.questions.length > 1 ? (
-              <div className="thread-request-input__pagination" aria-label={`Question ${questionIndex + 1} of ${block.questions.length}`}>
+            {questions.length > 1 ? (
+              <div className="thread-request-input__pagination" aria-label={`Question ${questionIndex + 1} of ${questions.length}`}>
                 <button aria-label="Previous question" disabled={questionIndex === 0 || submission.disabled} onClick={() => setQuestionIndex((current) => Math.max(0, current - 1))} type="button"><ChevronLeft size={13} /></button>
-                <span>{questionIndex + 1} of {block.questions.length}</span>
-                <button aria-label="Next question" disabled={isLastQuestion || submission.disabled} onClick={() => setQuestionIndex((current) => Math.min(block.questions.length - 1, current + 1))} type="button"><ChevronRight size={13} /></button>
+                <span>{questionIndex + 1} of {questions.length}</span>
+                <button aria-label="Next question" disabled={isLastQuestion || submission.disabled} onClick={() => setQuestionIndex((current) => Math.min(questions.length - 1, current + 1))} type="button"><ChevronRight size={13} /></button>
               </div>
             ) : null}
           </header>

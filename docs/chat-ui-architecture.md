@@ -2322,3 +2322,13 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+### Blocking question input continuity
+
+A pending question's request ID and question definitions own its page and drafts.
+Equivalent definitions reconstructed during a Replica refresh preserve the current
+page, selected options, freeform text, input DOM, focus and selection. A Thread
+metadata update, such as renaming the conversation, does not create a new question.
+A different request ID or changed question definitions reset the input state.
+The question panel stabilizes its typed JSON definitions before initializing its
+local input state; array allocation is not a user-visible reset signal.
