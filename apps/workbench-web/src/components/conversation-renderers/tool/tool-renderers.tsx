@@ -17,7 +17,7 @@ import { ConversationDocumentContext, browserReadableImageSource } from "../../c
 import { useConversationMediaSource } from "../../conversation/conversation-media-source";
 import { ModalSurface } from "../../modal";
 import { ActivityRowContent } from "../activity/activity-row-content";
-import { activityIcon } from "../activity/activity-icon";
+import { ActivityIcon, activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
 import { ActivityDisclosure, useActivityOpen } from "../activity/activity-disclosure";
 import {
