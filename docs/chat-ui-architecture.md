@@ -2330,7 +2330,8 @@ their existing owners.
 ### Live tool disclosure state
 
 Generic dynamic tools use the shared activity disclosure state: a running tool
-whose presentation declares an expandable body starts open, a user collapse survives progress updates, and settled
+whose presentation declares an expandable body or whose Host supplies a visible
+body starts open, a user collapse survives progress updates, and settled
 details have their own initially collapsed choice. A historical completed tool
 therefore starts collapsed without an expand-then-collapse frame. MCP details
 retain a separate initially collapsed choice. Attached approval reviews alone do not
@@ -2355,3 +2356,22 @@ choice independently and fresh Views retain collapsed defaults. Output,
 permission, execution and App document state remain with
 
 their existing owners. Updated output is rendered from the current timeline.
+
+
+Thread handoff rows with reported steps use that same running/settled choice.
+The operation's queued/running status determines presentation even when its RPC
+has completed. User collapse survives progress, settlement starts with its own
+choice, and completed history starts collapsed. Empty step lists remain summary
+rows. Transport failure takes precedence over earlier running progress; the View
+does not invent progress or issue a handoff command.
+
+### Host-owned tool details
+
+The optional Conversation tool-content renderer claims the body whenever it
+returns a value other than `undefined`. Claimed content, including explicit
+`null` or `false` suppression, takes precedence over built-in thread-tool cards.
+The renderer is called once per tool render; its body is not duplicated with
+the default content. Default thread creation/navigation stays semantic when
+the Host returns `undefined` or does not provide the port. Handoff disclosures
+exist only for reported progress steps; an empty step list leaves a summary row.
+These choices own presentation and cannot create a Thread or execute a tool.
