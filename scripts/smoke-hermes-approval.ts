@@ -5,6 +5,7 @@ const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "play
 const { chromium } = playwright.default ?? playwright;
 const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
   esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] },
+  optimizeDeps: { entries: ["tests/fixtures/hermes-approval.tsx"], include: ["react", "react-dom/client", "react/jsx-runtime", "react-intl", "@radix-ui/react-dropdown-menu"] },
   cacheDir: "node_modules/.vite-hermes-approval-smoke", server: { host: "127.0.0.1", port: 0 },
   plugins: [{ name: "hermes-approval-smoke", configureServer(server) {
     server.middlewares.use((request, response, next) => {
