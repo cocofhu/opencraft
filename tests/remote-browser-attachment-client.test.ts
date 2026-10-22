@@ -81,3 +81,15 @@ test('control loss keeps transport alive, fences queued writes and rejects an ob
   await assert.rejects(late,{code:'CONTROL_LOST'});
   assert.equal(p.control.epoch,4); assert.equal(p.control.controller,false);
 });
+
+
+test('attaching a modern blank tab cannot replay stale client URL or acquire input', async () => {
+  const host: any = Object.create(RemoteBrowserSurfaceHost.prototype);
+  const id='blank-tab', calls: unknown[]=[];
+  const events={onError(error: string){throw Error(error);},onLoaded(){}};
+  const p: any={closed:false,displaced:false,url:undefined,disconnected:false,navigation:0,ready:Promise.resolve(),restored:false,serverInitialNavigation:true};
+  host.pages=new Map();host.hostIdentities=new Set([id]);host.ensure=()=>p;host.humanCall=(...input:unknown[])=>calls.push(input);
+  assert.equal(host.navigate(id,'','https://example.test/stale-metadata',events),true);
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(calls.length,0,'existing blank state belongs to server; initial metadata cannot navigate or claim control');
+});
