@@ -9,6 +9,7 @@ import { createConversationKey, createDefaultTimelineProjectorRegistry, projectT
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
+import { ComposerTurnChangeSummary } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
 import { createIntlTestRoot } from "./intl-root";
@@ -60,6 +61,7 @@ function Demo() {
   const [engine, setEngine] = useState("codex");
   const [generation, setGeneration] = useState(0);
   const [mounted, setMounted] = useState(true);
+  const [turnEntry, setTurnEntry] = useState(false);
   const [revision, setRevision] = useState(0);
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
@@ -68,6 +70,13 @@ function Demo() {
       const mode = action.slice("turn-files-".length);
       if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
       const count = mode === "shrink" ? 2 : ["append", "regrow", "return"].includes(mode) ? 6 : 5;
+    if (action.startsWith("turn-entry-")) {
+      const mode = action.slice("turn-entry-".length);
+      setTurnEntry(true);
+      if (mode === "baseline" || mode === "empty") { restore = null; setGeneration(value => value + 1); }
+      const diff = mode === "empty" ? null : `diff --git a/live.ts b/live.ts\n--- a/live.ts\n+++ b/live.ts\n@@ -1 +1,${mode === "update" ? 2 : 1} @@\n-before\n+after\n${mode === "update" ? "+added\n" : ""}`;
+      setTurn({ id: "turn", status: "streaming", unifiedDiff: diff, items: [reasoning(engine)] }); return;
+    }
       const diff = Array.from({ length: count }, (_, index) => {
         const path = index === 5 ? "updated-file-6.ts" : `file-${index + 1}.ts`;
         return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n-before\n+after-${index + 1}\n`;
@@ -221,10 +230,11 @@ function Demo() {
   return <div data-revision={revision} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
       {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" initialRestoreSnapshot={restore}
-        documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work",
+        documentContext={{ composerChangeSummaryTurnId: turnEntry ? turn.id : undefined, theme, conversationId: "thread", hostId: engine, cwd: "/work",
           onOpenResource: (target, decision) => probe.openedReasoningResources.push({ target, kind: decision.kind }) }}
         onRestoreSnapshotChange={value => { restore = value; }}
-        footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
+        footer={<>{turnEntry ? <ComposerTurnChangeSummary timeline={timeline} turnId={turn.id}
+          documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work", onReviewTurnDiff: () => { probe.reviewedLiveChanges = true; } }} /> : null}<div style={{ height: 48 }}>Composer fixture</div></>} /> : null}
     </TimelineBlockRendererProvider>
     {turn.items[0]?.id === "metrics-command" ? <div data-activity-metrics-gallery>
       {(["terminal", "patch", "wrench", "search", "read", "files", "stop", "agent", "image", "browser", "computer"] as const).map(kind =>

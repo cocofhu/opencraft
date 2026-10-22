@@ -59,6 +59,42 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--turn-entry-only")) {
+      await page.evaluate(() => {
+        const w = window as any; w.turnEntryFrames = []; w.turnEntryLabel = "baseline";
+        const sample = () => {
+          const row = document.querySelector<HTMLElement>(".thread-turn-diff-live");
+          if (row) { const css = getComputedStyle(row); w.turnEntryFrames.push({ label: w.turnEntryLabel, opacity: Number(css.opacity), transform: css.transform }); }
+        };
+        const frame = () => { sample(); requestAnimationFrame(frame); };
+        new MutationObserver(sample).observe(document.body, { subtree: true, childList: true }); requestAnimationFrame(frame);
+      });
+      const observe = async (label: string, action: string) => {
+        await page.evaluate(label => { (window as any).turnEntryLabel = label; }, label);
+        await update(action); await page.waitForTimeout(220);
+        return page.evaluate(label => (window as any).turnEntryFrames.filter((f: any) => f.label === label), label);
+      };
+      const staticEntry = (frames: any[], label: string) => {
+        assert.ok(frames.length > 0, label);
+        assert.ok(frames.every(f => f.opacity === 1 && (f.transform === "none" || f.transform === "matrix(1, 0, 0, 1, 0, 0)")), `${label}: recovered resources must be visible and stationary from their first frame: ${JSON.stringify(frames)}`);
+      };
+      staticEntry(await observe("baseline", "turn-entry-baseline"), "baseline");
+      const row = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("return", "restore"), "return");
+      assert.equal(await row!.evaluate(element => element.isConnected), false);
+      await observe("empty", "turn-entry-empty"); assert.equal(await page.locator('.thread-turn-diff-live').count(), 0);
+      const fresh = await observe("fresh", "turn-entry-appear");
+      if (touch) staticEntry(fresh, "reduced motion fresh entry");
+      else assert.ok(fresh.some((f: any) => f.opacity < 1), "genuinely new live resources keep their entry motion");
+      const live = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("update", "turn-entry-update"), "update");
+      assert.equal(await live!.evaluate(element => element.isConnected), true);
+      await activate(page.locator('.thread-turn-diff-live')); assert.equal(await page.evaluate(() => (window as any).reviewedLiveChanges), true);
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), []);
+      await writeFile(join(output, `turn-entry-${touch ? 'touch' : 'mouse'}-${theme}.json`), JSON.stringify(await page.evaluate(() => (window as any).turnEntryFrames)));
+      results.push({ touch, theme, baselineStatic: true, returnedStatic: true, freshEntryPreserved: true, updatedNodePreserved: true, reviewWorks: true });
+      await page.close(); continue;
+    }
     if (process.argv.includes("--turn-files-only") || !process.argv.some(value => value.endsWith("-only"))) {
       const restoreView = async () => {
         const scroll = await page.locator('.thread-scroll').elementHandle(); await update("restore");
@@ -576,7 +612,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") || process.argv.includes("--turn-entry-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

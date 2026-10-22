@@ -2352,6 +2352,15 @@ to a retained View restores its choice before paint. Only presentation booleans
 are checkpointed; output, permission, execution and App document state remain with
 their existing owners. Updated output is rendered from the current timeline.
 
+### Live Turn resource entry motion
+
+The Composer Turn change summary consumes the owning Conversation entry-motion
+context. A recovered authoritative baseline or retained View return paints the
+resource fully visible and stationary from its first frame. Genuinely new live
+resources retain their entry animation, and count updates keep the same node.
+Reduced-motion preferences remain effective. This changes presentation only;
+Turn identity, diff content, review actions and execution authority are unchanged.
+
 ### Turn file-list choices in a retained View
 
 The completed Turn resource's expanded file-list choice belongs to its owning
