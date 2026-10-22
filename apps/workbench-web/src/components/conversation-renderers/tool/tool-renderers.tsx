@@ -207,7 +207,7 @@ export function ImageViewToolBlock({ block }: { readonly block: Tool }) {
   const paths = block.imagePaths ?? [];
   const summary = (running ? "Viewing " : "Viewed ") + (paths.length > 1 ? paths.length + " images" : "an image");
   return <ActivityDisclosure icon={<ImageIcon />} summary={summary} open={open} onOpenChange={setOpen}
-    running={false} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
+    running={running} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
     {paths.length > 0 ? <div className="thread-image-view"><div className="thread-image-view__strip">{paths.map((path, index) =>
       <InspectedImage key={path + ":" + index} path={path} index={index} id={block.id + ":" + index} />)}</div></div> : undefined}
   </ActivityDisclosure>;
