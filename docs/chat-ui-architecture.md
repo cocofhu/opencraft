@@ -2379,14 +2379,17 @@ disclosures only expand or collapse. The card's window shortcut ignores already
 consumed events and editable fields. Unfocused Enter still allows once and Escape
 still declines; keyboard focus never silently changes the selected permission.
 
-## Composer execution material feedback
+## Composer connection warning material
 
-The shared Composer projects its existing `isStreaming` state to a paint-only
-`data-breathing` shell attribute. Only its existing material pseudo-element
-changes opacity from 1 to 0.92 and back over 5.6 seconds with ease-in-out timing.
-Editable text, caret, actions, outline, shadow and layout stay fixed. Recovery
-feedback takes precedence, so `isRecovering` suppresses execution breathing without
-changing either lifecycle. Idle/settled, reduced motion, reduced transparency and
-forced colors retain the ordinary static material. No timer, remount or execution
-state is added; every existing Composer consumer shares the same projection.
-
+The shared Composer projects the host's read-only `isUnstable` state to its
+`data-warning` shell attribute. Workbench derives it from the existing active
+conversation recovery presentation, including pending and terminal failure,
+never from normal AI execution. Ready conversations and new drafts stay neutral.
+Only the existing material pseudo-element receives a static low-saturation red
+tint and faint inset rim using the semantic danger token. Background opacity is
+constant: no breathing, blinking or scaling. Text, caret, controls and geometry
+stay unchanged. Recovery scan and existing diagnostic/retry controls retain their
+own lifecycle and meaning; the tint does not change admission or replay execution.
+Forced colors use a system-color outline instead of relying on red. Existing
+reduced-transparency material fallback remains in force. No timer, remount or new
+mutable connection state is introduced.

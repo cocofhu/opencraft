@@ -744,6 +744,8 @@ export interface OpenCraftComposerProps {
   isStreaming: boolean;
   /** Read-only projection of current conversation recovery, independent of execution. */
   isRecovering?: boolean;
+  /** Read-only connection/recovery warning; independent of normal AI execution. */
+  isUnstable?: boolean;
   disabled?: boolean;
   /** Embedded surfaces keep menu focus, styling and stacking in their owner. */
   portalContainer?: HTMLElement | null;
@@ -817,6 +819,7 @@ export const OpenCraftComposer = forwardRef<
     mentionSuggestionsEnabled = true,
     isStreaming,
     isRecovering = false,
+    isUnstable = false,
     disabled = false,
     portalContainer,
     submissionDisabled = false,
@@ -2025,7 +2028,7 @@ export const OpenCraftComposer = forwardRef<
         />
         {attachedContent}
       </ComposerAttachedRail>
-      <div className="opencraft-composer-shell" data-breathing={isStreaming && !isRecovering ? "true" : undefined}>
+      <div className="opencraft-composer-shell" data-warning={isUnstable ? "true" : undefined}>
         <ComposerRecoveryScan active={isRecovering} />
         {chromeHeader === undefined ? null : (
           <div className="opencraft-composer-chrome-header">{chromeHeader}</div>

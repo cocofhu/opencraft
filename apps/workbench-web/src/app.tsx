@@ -2107,6 +2107,7 @@ export function App({
                           ? ["queue"]
                           : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
+                        isUnstable={activeThreadId !== null && recoveryPresentation !== "none"}
                         isRecovering={activeThreadId !== null
                           && conversationRecoveryIsPending(recoveryPresentation, recoveryDiagnostic, recoveryRequiresUpdate)}
                         isStreaming={isStreaming}
