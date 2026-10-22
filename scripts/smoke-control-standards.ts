@@ -10,7 +10,7 @@ const source = `
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Button} from '/apps/workbench-web/src/components/ui/button.tsx';
-import {SettingsButton,SettingsTextInput,SettingsSelect,SettingsRow,SettingsGroup,SettingsPageHeader} from '@opencraft/extension-react';
+import {SettingsButton,SettingsTextInput,SettingsSelect,SettingsRow,SettingsGroup,SettingsPageHeader,SettingsPanel} from '@opencraft/extension-react';
 import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,opencraftCanvasThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 function App(){const [pending,setPending]=useState(false);window.fixture={setPending,theme:(mode,family)=>{
@@ -32,7 +32,9 @@ return <main style={{padding:24,display:'grid',gap:20,background:'var(--color-ba
 <SettingsRow label="选择错误 Invalid selection" htmlFor="invalid-select"><SettingsSelect id="invalid-select" aria-invalid="true" aria-describedby="error"><option>Invalid option</option></SettingsSelect></SettingsRow>
 </SettingsGroup><p id="error" style={{margin:0,color:'var(--color-text-danger)'}}>请检查配置 / Check configuration</p>
 <div style={{display:'flex',gap:12}}><SettingsButton id="settings">检查 Check</SettingsButton><SettingsButton variant="primary">保存 Save</SettingsButton><SettingsButton disabled>禁用 Disabled</SettingsButton></div>
-</main>}
+<SettingsPanel title="Account" actions={<SettingsButton>Refresh</SettingsButton>}>
+<SettingsGroup><SettingsRow label="Identity">Synthetic account</SettingsRow></SettingsGroup>
+</SettingsPanel></main>}
 createRoot(document.getElementById('root')).render(<App/>);`;
 
 const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
@@ -67,6 +69,15 @@ try {
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.goto(url);
   await page.locator("#standard").waitFor();
+  // A direct utility panel must not depend on visiting the lazy Settings route.
+  const utility = await page.locator('.settings-panel').evaluate((element: HTMLElement) => ({
+    display: getComputedStyle(element).display,
+    headerHeight: element.querySelector('.settings-panel__header')!.getBoundingClientRect().height,
+    padding: getComputedStyle(element.querySelector('.settings-panel__body')!).paddingLeft,
+  }));
+  assert.equal(utility.display, 'flex');
+  assert.ok(utility.headerHeight >= 52);
+  assert.equal(utility.padding, '24px');
   for (const family of ["opencraftNeutral","opencraftCanvas","custom"]) for (const mode of ["light","dark"]) {
     await page.evaluate(({mode,family}: any) => (window as any).fixture.theme(mode,family),{mode,family});
     // Theme projections and native control repaint may span a frame. Do not
