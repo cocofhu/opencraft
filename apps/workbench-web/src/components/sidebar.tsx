@@ -278,11 +278,11 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const visible = limit === undefined ? rows : rows.slice(0, limit);
     const dates = key === "recent" ? sidebarActivityDateHeadings(visible, Date.now(), intl.locale) : new Map<SidebarThread, string>();
     return <section key={key} className="sidebar-activity-group" aria-label={title} data-collapsed={collapsed}>
-      <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!collapsed}
+      <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!collapsed} aria-controls={`${rowIdPrefix}-flow-${key}`}
         onClick={() => setFolded(current => ({ ...current, [key]: !collapsed }))}>
         <span className="sidebar-thread-group-label">{title}</span><ChevronDown size={12} className={collapsed ? "is-collapsed" : undefined} />
       </button></h3>
-      <div className="sidebar-activity-group__items" hidden={collapsed}>
+      <div className="sidebar-activity-group__items" id={`${rowIdPrefix}-flow-${key}`} hidden={collapsed}>
         {visible.map(thread => <div key={identity(thread)}>
           {dates.has(thread) ? <h4 className="sidebar-activity-group__heading">{dates.get(thread)}</h4> : null}
           {renderThread(thread, key === "attention")}
@@ -356,11 +356,11 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
           <div className="sidebar-activity-list">
             {grouping.notice ? <div className="sidebar-activity-empty">{label(grouping.notice)}</div> : null}
             {groupedSections ? groupedSections.map(group => <section key={group.id} className="sidebar-activity-group" aria-label={label(group.label)} data-collapsed={group.collapsed}>
-              <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!group.collapsed} onClick={() => threadListGrouping?.toggleGroup(group.id)}>
-                {group.avatarUrl ? <span className="sidebar-thread-group-avatar"><AvatarImage src={group.avatarUrl} fallback={<UserRound size={14} />} /></span> : null}
+              <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!group.collapsed} aria-controls={`${rowIdPrefix}-group-${encodeURIComponent(group.id)}`} onClick={() => threadListGrouping?.toggleGroup(group.id)}>
+                <span className="sidebar-thread-group-avatar" aria-hidden="true"><AvatarImage src={group.avatarUrl} fallback={<UserRound size={14} />} /></span>
                 <span className="sidebar-thread-group-label">{label(group.label)}</span><ChevronDown size={12} className={group.collapsed ? "is-collapsed" : undefined} />
               </button></h3>
-              <div className="sidebar-activity-group__items" hidden={group.collapsed}>
+              <div className="sidebar-activity-group__items" id={`${rowIdPrefix}-group-${encodeURIComponent(group.id)}`} hidden={group.collapsed}>
                 {!group.collapsed && group.threads.map(ref => { const thread = matchingById.get(JSON.stringify([ref.hostId, ref.threadId])); return thread ? renderThread(thread) : null; })}
               </div>
             </section>) : <>

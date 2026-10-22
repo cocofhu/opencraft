@@ -2449,3 +2449,12 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+### Conversation group heading continuity
+
+Creator-group headings retain the existing avatar slot and generic person fallback
+when their contribution has no photo. Loading, unknown or unavailable creator
+metadata therefore preserves label alignment with known creators. Ordinary task
+flow headings retain their text-only layout. Both disclosure presentations bind
+aria-controls to their own stable list element and keep aria-expanded and hidden
+in step with the existing collapse owner; metadata updates do not replace rows.

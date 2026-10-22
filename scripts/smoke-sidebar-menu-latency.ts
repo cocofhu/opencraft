@@ -20,13 +20,14 @@ const count=Number(new URL(location.href).searchParams.get('rows')||200);
 const initial=Array.from({length:count},(_,i)=>({id:'t'+i,title:'Conversation '+i,project:'workspace',status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'local',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'local',hostKind:'local',label:'Local'})}));
 let snapshot={revision:0,mode:'creator',modes:[{id:'creator',label:'By creator'}],hideRowBadge:false,notice:null};
 const listeners=new Set();const publish=patch=>{snapshot={...snapshot,...patch,revision:snapshot.revision+1};for(const listener of listeners)listener()};
-const grouping={id:'probe',getSnapshot:()=>snapshot,subscribe:listener=>{listeners.add(listener);return()=>listeners.delete(listener)},watch:()=>()=>{},project:refs=>{window.projections++;return[{id:'all',label:'All conversations',avatarUrl:null,collapsed:false,threads:refs}]},setMode:mode=>publish({mode}),toggleGroup:()=>{}};
+let groupAvatar=null,groupCollapsed=false;
+const grouping={id:'probe',getSnapshot:()=>snapshot,subscribe:listener=>{listeners.add(listener);return()=>listeners.delete(listener)},watch:()=>()=>{},project:refs=>{window.projections++;return[{id:'all',label:'All conversations',avatarUrl:groupAvatar,collapsed:groupCollapsed,threads:refs}]},setMode:mode=>publish({mode}),toggleGroup:()=>{groupCollapsed=!groupCollapsed;publish({})}};
 // Synthetic badge content; the controlled plugin contract and Radix popover are real.
 const badge={id:'probe',Component:({threadId,open,onOpenChange,onCloseAutoFocus,portalContainer})=><Popover.Root open={open} onOpenChange={onOpenChange}><Popover.Trigger asChild><button aria-label={'People '+threadId}>People</button></Popover.Trigger><Popover.Portal container={portalContainer}><Popover.Content onCloseAutoFocus={onCloseAutoFocus}>Participants {threadId}</Popover.Content></Popover.Portal></Popover.Root>};
 window.rowsProcessed=0;window.projections=0;window.actions=[];
 const actions={onRename:async()=>{},onFork:async()=>{},onArchive:async()=>window.actions.push('archive'),onDelete:async()=>{},onSetPinned:async()=>window.actions.push('pin')};
 const capabilities=()=>({pin:true,rename:true,fork:true,archive:true,delete:true});
-function App(){const[rows,setRows]=useState(initial);const[active,setActive]=useState('t0');window.fixture={setRows,setActive,initial,setThemePreference,setMode:grouping.setMode};return <div style={{width:320,height:800,display:'flex'}}><Sidebar threads={rows} activeHostId='local' activeThreadId={active} sidebarLayout={layout} threadActions={actions} threadBadge={badge} threadListGrouping={grouping} threadCapabilities={capabilities} pendingTitle={()=>{window.rowsProcessed++;return undefined}} onSelectThread={(_,id)=>setActive(id)} onNewTask={()=>{}} onOpenSettings={()=>{}} showFooter={false}/></div>}
+function App(){const[rows,setRows]=useState(initial);const[active,setActive]=useState('t0');window.fixture={setRows,setActive,initial,setThemePreference,setMode:grouping.setMode,setGroupAvatar:value=>{groupAvatar=value;publish({})}};return <div style={{width:320,height:800,display:'flex'}}><Sidebar threads={rows} activeHostId='local' activeThreadId={active} sidebarLayout={layout} threadActions={actions} threadBadge={badge} threadListGrouping={grouping} threadCapabilities={capabilities} pendingTitle={()=>{window.rowsProcessed++;return undefined}} onSelectThread={(_,id)=>setActive(id)} onNewTask={()=>{}} onOpenSettings={()=>{}} showFooter={false}/></div>}
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
 
 const vite = await createServer({
@@ -157,6 +158,42 @@ try {
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?rows=3`);
     await page.locator('.sidebar-activity-item').nth(2).waitFor();
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
+    // Creator metadata must not change the group heading's reserved avatar geometry.
+    const heading = page.locator('.sidebar-thread-group-toggle').first();
+    const groupOffset = () => heading.evaluate(element => {
+      const label = element.querySelector('.sidebar-thread-group-label')!.getBoundingClientRect();
+      return label.left - element.getBoundingClientRect().left;
+    });
+    assert.equal(await heading.locator('.sidebar-thread-group-avatar').count(), 1, 'null creator photos keep the fallback slot');
+    const fallbackOffset = await groupOffset();
+    await page.evaluate(() => {
+      (window as any).groupRow = document.querySelector('.sidebar-activity-item');
+      (window as any).fixture.setGroupAvatar('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="10" fill="gray"/></svg>');
+    });
+    await heading.locator('img').waitFor();
+    assert.ok(Math.abs(await groupOffset() - fallbackOffset) < 0.5, 'creator photo arrival cannot move the group label');
+    assert.equal(await page.evaluate(() => (window as any).groupRow === document.querySelector('.sidebar-activity-item')), true);
+    const checkDisclosure = async () => {
+      const button = page.locator('.sidebar-thread-group-toggle').first();
+      const targetId = await button.getAttribute('aria-controls');
+      assert.ok(targetId, 'group disclosure identifies its controlled list');
+      const target = page.locator('.sidebar-activity-group__items').first();
+      assert.equal(await target.getAttribute('id'), targetId);
+      await button.focus(); await button.press('Enter');
+      assert.equal(await button.getAttribute('aria-expanded'), 'false');
+      assert.equal(await target.getAttribute('hidden'), '');
+      await button.press('Enter');
+      assert.equal(await button.getAttribute('aria-expanded'), 'true');
+      assert.equal(await target.getAttribute('hidden'), null);
+      assert.equal(await button.getAttribute('aria-controls'), targetId, 'expansion retains the original target identity');
+    };
+    await checkDisclosure();
+    await page.evaluate(() => (window as any).fixture.setMode(null));
+    await page.getByRole('button', { name: 'Recent', exact: true }).waitFor();
+    await checkDisclosure();
+    await page.evaluate(() => (window as any).fixture.setMode('creator'));
+    await page.getByRole('button', { name: 'All conversations', exact: true }).waitFor();
+    evidence.push({groupHeading:true,touch,theme,fallbackOffset,stablePhotoOffset:true,keyboardDisclosures:true});
     // Row availability gates new badge opens as well as existing owners.
     const people = page.getByRole('button', { name: 'People t0', exact: true });
     const participants = page.getByText('Participants t0', { exact: true });
