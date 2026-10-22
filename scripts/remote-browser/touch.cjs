@@ -2,6 +2,22 @@
 
 const MAX_TOUCH_POINTS = 10;
 const types = new Set(['touchStart', 'touchMove', 'touchEnd', 'touchCancel']);
+// Electron's OSR wheel path adds phases to a copy, then forwards the original
+// unphased event on our pinned runtime. Chromium DCHECKs and aborts the process.
+// The private CDP injector supplies begin/end phases and routes through native
+// hit testing (including OOPIFs). It takes CSS positions and web delta signs.
+function createWidgetWheelDispatcher(debuggerPort, getZoomFactor) {
+  return async event => {
+    const metrics = await debuggerPort.sendCommand('Page.getLayoutMetrics');
+    const scale = metrics.cssVisualViewport?.scale * getZoomFactor();
+    if (!Number.isFinite(scale) || scale <= 0) throw new Error('Invalid native wheel scale');
+    const modifiers = (event.modifiers ?? []).reduce((bits, modifier) => bits | ({ alt: 1, control: 2, meta: 4, shift: 8 }[modifier] ?? 0), 0);
+    return debuggerPort.sendCommand('Input.dispatchMouseEvent', {
+      type: 'mouseWheel', x: (event.x ?? 0) / scale, y: (event.y ?? 0) / scale,
+      deltaX: -(event.deltaX ?? 0), deltaY: -(event.deltaY ?? 0), modifiers,
+    });
+  };
+}
 // Viewer coordinates already identify positions in the rendered widget. CDP
 // applies browser zoom and pinch scale to its CSS coordinates on injection.
 // Read native metrics at dispatch, including while a gesture changes scale;
@@ -110,4 +126,4 @@ function createTouchInput(dispatch) {
     }),
   };
 }
-module.exports = { createTouchInput, createWidgetTouchDispatcher, MAX_TOUCH_POINTS };
+module.exports = { createTouchInput, createWidgetTouchDispatcher, createWidgetWheelDispatcher, MAX_TOUCH_POINTS };

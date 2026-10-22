@@ -8,7 +8,7 @@ const { installClipboard } = require('./clipboard.cjs');
 const { installIme } = require('./ime.cjs');
 const { initializeNativeFocus } = require('./focus.cjs');
 const { createControls } = require('./controls.cjs');
-const { createTouchInput, createWidgetTouchDispatcher, MAX_TOUCH_POINTS } = require('./touch.cjs');
+const { createTouchInput, createWidgetTouchDispatcher, createWidgetWheelDispatcher, MAX_TOUCH_POINTS } = require('./touch.cjs');
 app.commandLine.appendSwitch('opencraft-remote-clipboard');
 // Keep per-contact release semantics stable on our pinned Chromium runtime.
 app.commandLine.appendSwitch('disable-features', 'SyntheticPointerActions');
@@ -194,6 +194,7 @@ async function createPage(id, input) {
   pages.set(id, p);
   const wc = window.webContents;
   p.touch = createTouchInput(createWidgetTouchDispatcher(wc.debugger, () => wc.getZoomFactor()));
+  p.wheel = createWidgetWheelDispatcher(wc.debugger, () => wc.getZoomFactor());
   p.clipboard = installClipboard(p, send); p.ime = installIme(p, send);
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });
@@ -330,6 +331,7 @@ async function command(message) {
     if (event.type === 'mouseDown' && event.button) p.pressedButtons.add(event.button);
     if (event.type === 'mouseUp') p.pressedButtons.delete(event.button);
     if (event.x !== undefined && event.y !== undefined) p.pointer = { x: event.x, y: event.y };
+    if (event.type === 'mouseWheel') return p.wheel(event);
     wc.sendInputEvent(event); return;
   }
   if (method === 'automation') { activity(p); return automation(p, input.method, input.input); }

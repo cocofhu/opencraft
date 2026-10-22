@@ -1668,3 +1668,15 @@ visited URLs, page text or arbitrary Chromium stderr.
 Wire touch IDs are arbitrary validated identities, not Chromium pointer slots. The widget CDP adapter allocates at most ten stable slots, commits allocation/release only after native ACK, preserves held fingers across partial release/reorder, and clears slots after cancellation even when cancellation fails. Browser-provided pointer IDs never reach VelocityTracker directly.
 
 The Gateway consumes the browser stderr pipe with a bounded private in-memory parser. It retains only the most recent fatal code location, up to 24 argument-free stack symbols and counters, associated with the retired process and its exit code/signal. `lastBrowserFailure` is process-owner memory, not a client endpoint: no raw stderr/messages, console forwarding, file/checkpoint writes or page socket disclosure. Replacement workers cannot be retired by old pipe events. This evidence does not establish a cause for an unobserved native abort.
+
+### Offscreen wheel injection
+
+Remote wheel input uses the worker's private Chromium `Input.dispatchMouseEvent`
+wheel injector. The pinned Electron OSR `sendInputEvent(mouseWheel)` path mutates
+a phase-bearing copy but forwards the original event, violating Chromium's
+wheel queue invariant and aborting the whole browser process. The CDP injector
+provides native begin/end phases and frame hit testing. Viewer widget positions
+are converted using current pinch scale and browser zoom; wheel deltas retain
+their physical magnitude and convert from Electron to web direction. Native
+modifier semantics, sandboxing, page leases and memory-only stderr remain intact.
+No public debugger endpoint or arbitrary input command surface is added.
