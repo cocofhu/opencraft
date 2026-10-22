@@ -2474,3 +2474,5 @@ The list context entrance retains the original modal Radix behavior: a touch
 release after long press cannot activate the underlying group disclosure.
 Outside controls resume after dismissal; explicit menu handoffs keep the
 existing single owner and scoped close callbacks.
+
+The nearest sidebar row context trigger owns its pointer gesture, so the enclosing list trigger cannot arm a competing long press. When a touch context menu is open, its trigger consumes the release click before it reaches a disclosure or conversation selection. Ordinary taps, keyboard activation and existing desktop menu modality remain unchanged. Native held/released row and heading gestures are covered by the complete sidebar menu regression.

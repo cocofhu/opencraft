@@ -14,7 +14,11 @@ function useRowMenu(store: SidebarThreadMenuStore, { hostId, threadId }: Target)
 
 export function SidebarThreadRowMenu({ store, ...props }: Omit<ComponentProps<typeof ThreadRowMenu>, "openMenuKind"> & { store: SidebarThreadMenuStore }) {
   const kind = useRowMenu(store, props.target);
-  return <ThreadRowMenu {...props} openMenuKind={kind === "badge" ? null : kind} />;
+  return <ThreadRowMenu {...props} openMenuKind={kind === "badge" ? null : kind} onPointerDown={event => {
+    props.onPointerDown?.(event);
+    // The nearest row trigger owns the native long press, rather than the list trigger.
+    event.stopPropagation();
+  }} />;
 }
 
 export function SidebarThreadBadge({ store, contribution, ...props }: Omit<ThreadBadgeProps, "open"> & { store: SidebarThreadMenuStore; contribution: ThreadBadgeContribution }) {

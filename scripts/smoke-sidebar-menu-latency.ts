@@ -182,9 +182,21 @@ try {
     await page.getByRole('menuitemradio', {name:'All servers',exact:true}).waitFor();
     assert.equal(await page.getByRole('menu').count(), 1, 'filters open after the modal list context closes');
     await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({state:'hidden'});
-    await page.locator('.sidebar-activity-item').first().click({button:'right'});
+    const rowContextTarget = page.locator('.sidebar-activity-item').nth(1);
+    const selectedBeforeRowContext = await page.locator('.sidebar-activity-item.is-selected').allTextContents();
+    if (touch) {
+      const box = await rowContextTarget.boundingBox(); assert.ok(box);
+      const cdp = await context.newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', {type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2,radiusX:1,radiusY:1,force:1,id:1}]});
+      await page.waitForTimeout(850);
+      assert.equal(await page.getByRole('menuitem', {name:'Rename',exact:true}).count(), 1, 'held row touch belongs to the row');
+      await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd',touchPoints:[]});
+      await cdp.detach();
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    } else await rowContextTarget.click({button:'right'});
     await page.getByRole('menuitem', {name:'Rename',exact:true}).waitFor();
-    assert.equal(await page.getByRole('menu').count(), 1, 'nested row context retains the row owner');
+    assert.equal(await page.getByRole('menu').count(), 1, 'nested row context retains the row owner after release');
+    assert.deepEqual(await page.locator('.sidebar-activity-item.is-selected').allTextContents(), selectedBeforeRowContext, 'long press cannot select its underlying conversation');
     await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({state:'hidden'});
     await page.getByRole('button', {name:'People t0',exact:true}).click();
     await page.getByText('Participants t0', {exact:true}).waitFor();
@@ -203,7 +215,7 @@ try {
       assert.equal(await page.getByRole('menu').count(), 1);
       await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({state:'hidden'});
     }
-    evidence.push({listContext:true,touch,theme,nativeOpen:true,noDisclosureClick:true,isolatedOpen:true,exclusiveOwners:true,modeSelection:true});
+    evidence.push({listContext:true,touch,theme,nativeOpen:true,noDisclosureClick:true,nativeRowRelease:true,isolatedOpen:true,exclusiveOwners:true,modeSelection:true});
     // Creator metadata must not change the group heading's reserved avatar geometry.
     const heading = page.locator('.sidebar-thread-group-toggle').first();
     const groupOffset = () => heading.evaluate(element => {
