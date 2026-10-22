@@ -791,6 +791,13 @@ could let intrinsic pixels overlap later result parts. Small images are not
 upscaled. Collapsing and reopening uses the same media policy and bounded
 geometry; the Host loader and resource permissions remain unchanged.
 
+Expandable non-MCP tool details, including the DSH presenter, preserve the
+original arguments alongside returned content and errors. Input, Output and
+Error labels mark role changes between adjacent parts. Those inputs remain
+visible while a result is pending, after settlement and after reopening.
+MCP details continue to show returned content with arguments in the Raw view;
+generic dynamic calls still need a registered presenter to gain a details body.
+
 Web and Native derive file citation labels/targets and workspace mention
 targets from one renderer-neutral model. Native presents workspace mentions
 as inline code and file citations with a separate citation tone; it makes

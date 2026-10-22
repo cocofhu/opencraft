@@ -564,6 +564,50 @@ try {
     console.log(JSON.stringify({ width, theme, rawOutput: true, passed: true }));
     await page.close();
   }
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=inputs`);
+    await page.locator('[data-phase="inProgress"]').waitFor();
+    const collapsed = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await collapsed.count() > 0; index++) await collapsed.first().click();
+    const calls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await calls.count() > 0; index++) await calls.first().click();
+    const details = page.locator('.thread-tool-details[data-kind="dynamic"]');
+    const checkInputs = async () => {
+      await page.waitForFunction(() => ["DSH_WRITE_BODY", "DSH_OLD_TEXT", "DSH_NEW_TEXT"].every(text => document.body.textContent?.includes(text)));
+      assert.equal(await details.count(), 3);
+      assert.deepEqual(await details.locator('section[data-role="input"] > span').allTextContents(), ["Input", "Input", "Input"]);
+      const text = await details.allTextContents();
+      assert.match(text[0]!, /DSH_WRITE_BODY/);
+      assert.match(text[1]!, /DSH_OLD_TEXT[\s\S]*DSH_NEW_TEXT/);
+      assert.match(text[2]!, /"offset": 120[\s\S]*"limit": 60/);
+      assert.equal(await details.locator(".thread-tool-details__empty").count(), 0);
+      const mcp = page.locator('.thread-tool-details[data-kind="mcp"]');
+      assert.equal(await mcp.locator('section[data-role="input"]').count(), 0);
+      assert.equal((await mcp.textContent())?.includes("MCP_ARGUMENT_STAYS_IN_RAW"), false);
+      assert.match(await mcp.textContent() ?? "", /MCP returned content/);
+    };
+    await checkInputs();
+    assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output"]);
+    await page.evaluate(() => (window as any).changeThreadToolPhase("completed"));
+    await page.locator('[data-phase="completed"]').waitFor();
+    await checkInputs();
+    assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output", "Output"]);
+    const toggle = (await details.first().evaluateHandle(element => element.closest(".thread-activity-item")!.querySelector<HTMLButtonElement>(":scope > .thread-activity-item__header button[aria-expanded]")!)).asElement()!;
+    await toggle.click();
+    await toggle.click();
+    await checkInputs();
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: join(output, `inputs-${width}-${theme}.png`) });
+    results.push({ width, theme, dshArgumentsVisible: true, roleLabels: true, settlementAndReopen: true, mcpArgumentsRemainRaw: true });
+    console.log(JSON.stringify({ width, theme, toolInputs: true, passed: true }));
+    await page.close();
+  }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));
 } catch (error) {

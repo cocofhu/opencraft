@@ -63,6 +63,7 @@ const rawItems: TimelineSourceItem[] = [
 {id:'dynamic-failed',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'read',status:'failed',success:false,arguments:{path:'/workspace/missing.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_FAILURE_CONTENT'}],durationMs:42}},
 {id:'dynamic-success',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'write',status:'completed',success:true,arguments:{path:'/workspace/success.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_SUCCESS_CONTENT'}],durationMs:50}},
 ];
+const inputScenario = new URLSearchParams(location.search).get("scenario") === "inputs";
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
 probe.hostActions = [];
@@ -114,7 +115,19 @@ function Demo() {
       },
     })),
     { id: "unreviewed", type: "mcpToolCall", payload: { server: "audit", tool: "plain", status: "inProgress" } },
-  ] : rawScenario ? rawItems : [
+  ] : rawScenario ? rawItems : inputScenario ? [
+    { id: "dsh-write", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "write", status: phase,
+      arguments: { path: "/workspace/input-probe.txt", content: "DSH_WRITE_BODY\nsecond line" },
+      contentItems: phase === "inProgress" ? null : [{ type: "inputText", text: "Write completed" }], success: phase === "inProgress" ? null : true } },
+    { id: "dsh-edit", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "edit", status: "completed",
+      arguments: { path: "/workspace/input-probe.txt", old_string: "DSH_OLD_TEXT", new_string: "DSH_NEW_TEXT" },
+      contentItems: [{ type: "inputText", text: "Replacement completed" }], success: true } },
+    { id: "dsh-read", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "read", status: "failed",
+      arguments: { path: "/workspace/input-probe.txt", offset: 120, limit: 60 },
+      contentItems: [{ type: "inputText", text: "Read failed" }], success: false } },
+    { id: "mcp-input", type: "mcpToolCall", payload: { server: "input-probe", tool: "inspect_input", status: "completed",
+      arguments: { value: "MCP_ARGUMENT_STAYS_IN_RAW" }, result: { content: [{ type: "text", text: "MCP returned content" }] } } },
+  ] : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),

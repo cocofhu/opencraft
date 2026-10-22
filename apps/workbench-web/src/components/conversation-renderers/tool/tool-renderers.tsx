@@ -62,7 +62,7 @@ function ToolImage({ source, alt, id }: { source: string; alt: string; id: strin
     : <img className="thread-tool-details__image" src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
 }
 
-function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
+function ContentPart({ part, id, showRole }: { part: ToolCallContentPart; id: string; showRole: boolean }) {
   let body;
   switch (part.kind) {
     case "text":
@@ -80,7 +80,7 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
       {part.content !== null ? <div><b>Content</b><pre className="thread-tool-details__embedded-content">{part.content}</pre></div> : null}
     </div>; break;
   }
-  return <section data-role={part.role}>{body}{part.annotations ? <div className="thread-tool-details__annotations">
+  return <section data-role={part.role}>{showRole ? <span>{part.role === "input" ? "Input" : part.role === "output" ? "Output" : "Error"}</span> : null}{body}{part.annotations ? <div className="thread-tool-details__annotations">
     {part.annotations.audience.length > 0 ? <span>Audience: {part.annotations.audience.join(", ")}</span> : null}
     {part.annotations.priority !== null ? <span>Priority: {part.annotations.priority}</span> : null}
     {part.annotations.lastModified !== null ? <span>Last modified: {part.annotations.lastModified}</span> : null}
@@ -194,10 +194,11 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const icon = customIcon?.(block, presentation);
   if (block.kind === "image-view") return <ImageViewToolBlock block={block} />;
   if (isCodexAppThreadTool(block) && content === undefined) return <ThreadTool block={block} />;
-  const parts = extractToolCallContentParts(block).filter(part => part.role !== "input");
+  const parts = extractToolCallContentParts(block).filter(part => block.kind !== "mcp" || part.role !== "input");
   const hasCoreBody = presentation.canExpand;
   const coreBody = hasCoreBody ? <div className="thread-tool-details" data-kind={block.kind}>
-    {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index} />)
+    {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index}
+      showRole={block.kind !== "mcp" && (index === 0 || parts[index - 1]?.role !== part.role)} />)
       : <p className="thread-tool-details__empty">Tool returned no content</p>}
     <RawToolOutput block={block} />
   </div> : undefined;
