@@ -1,3 +1,4 @@
+import { PatchActivityIcon } from "./activity-glyphs";
 import { ResetIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
@@ -186,7 +187,7 @@ function FileChangeActivity({
           {change.movePath === null ? change.path : `${change.path} → ${change.movePath}`}
         </button>
       )}
-      icon={<FileCode2 />}
+      icon={presentation.state === "running" ? <PatchActivityIcon /> : <FileCode2 />}
       onOpenChange={setOpen}
       open={open}
       running={presentation.state === "running"}
@@ -207,7 +208,7 @@ function PatchBlock({ block }: { block: Extract<TimelineBlock, { type: "patch" }
     return (
       <>
         <div className="thread-activity-item thread-activity-item--static" data-status={presentation.state}>
-          <ActivitySummaryRow icon={<FileCode2 />} summary={presentation.summary} />
+          <ActivitySummaryRow running={presentation.state === "running"} icon={presentation.state === "running" ? <PatchActivityIcon /> : <FileCode2 />} summary={presentation.summary} />
         </div>
         <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} />
       </>

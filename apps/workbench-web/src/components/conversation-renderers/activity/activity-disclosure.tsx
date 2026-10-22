@@ -1,8 +1,8 @@
 import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/action-icons";
-import { ActivityIcon } from "./activity-icon";
+import { ActivityRowContent } from "./activity-row-content";
+export { CadencedShimmer } from "./cadenced-shimmer";
 
 import { motion, useReducedMotion } from "motion/react";
-import { workingShimmerMotion } from "@opencraft/design-system/tokens";
 import { OverlayDisclosureTrigger } from "../../overlay-disclosure-trigger";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
 import { useDisclosureHeight } from "../../use-disclosure-height";
@@ -12,7 +12,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 
@@ -28,34 +27,6 @@ export function useActivityOpen(
     else setSettledExpanded(next);
   }, [running]);
   return [open, setOpen];
-}
-
-/** Readable base text plus a 1s sweep every 1.5s. */
-export function CadencedShimmer({
-  active,
-  children,
-  className,
-  id,
-}: {
-  readonly active: boolean;
-  readonly children: ReactNode;
-  readonly className?: string;
-  readonly id?: string;
-}) {
-  const classes = [className, active ? "is-shimmering" : null].filter(Boolean).join(" ");
-  return (
-    <span
-      className={classes || undefined}
-      id={id}
-      style={active ? {
-        "--working-shimmer-cycle-duration": `${workingShimmerMotion.cycleMs}ms`,
-        "--working-shimmer-first-delay": `${workingShimmerMotion.firstSweepDelayMs}ms`,
-      } as CSSProperties : undefined}
-    >
-      {children}
-      {active ? <span aria-hidden="true" className="is-shimmering__sweep"><span className="is-shimmering__highlight">{children}</span></span> : null}
-    </span>
-  );
 }
 
 export interface ActivityDisclosureProps {
@@ -129,8 +100,7 @@ export function ActivityDisclosure({
         }}
         open={open}
       >
-          {icon == null ? null : <ActivityIcon>{icon}</ActivityIcon>}
-          <CadencedShimmer active={running} className="thread-activity-item__summary" id={summaryId}>{summary}</CadencedShimmer>
+          <ActivityRowContent icon={icon} summary={summary} running={running} summaryId={summaryId} />
           {detail ? <span className="thread-activity-item__detail">{detail}</span> : null}
           {trailing ? <span className="thread-activity-item__trailing">{trailing}</span> : null}
           {accessory ? <span className="thread-activity-item__accessory">{accessory}</span> : null}

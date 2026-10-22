@@ -1863,3 +1863,18 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
   prompt supplies recognition at rail size; no second underline or miniature
   page/brain ornament. Artwork changes preserve process/disclosure identity,
   running/reduced-motion semantics, rail metrics and protected layout/gear/font.
+
+### Activity detail motion
+
+Chat process motion follows actual row running state. The shared SVG base stays
+intact while a loop/page/nib detail or command cursor moves. Collapsed groups
+animate their shared header glyph; expanded groups hand motion to visible running
+rows. Summary-only exploration keeps header motion when its body has no active row.
+Completion, interruption, failure and reduced motion leave static artwork. All live
+process summaries also use the shared cadenced text sweep, alongside the glyph detail.
+Disclosure rows, summary-only rows, active group summaries and agent tool rows
+compose ActivityRowContent, the single glyph/summary paint owner. Running state
+stays outside deferred summary snapshots; callers never nest process sweeps. Settled summaries have no sweep, and reduced motion suppresses
+it through the shared stylesheet. Text/rail geometry, disclosure
+interaction and user drafts remain owned by the existing Conversation and Shell. Static controls share
+the base artwork without activity overlays.
