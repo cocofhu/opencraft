@@ -261,8 +261,7 @@ credential check in the same Environment runs before either native build, so
 missing Secrets fail without consuming macOS build time. Configure the Environment
 to allow only the `main` branch and `v*` tags.
 
-The standalone core must not resolve downstream-parent `file:` dependencies. The the downstream product
-snapshots of `lightvela-agent-core`, `vela-chat-client-core` and Collaboration now
+The standalone core must not resolve downstream-parent `file:` dependencies. The downstream snapshots of `lightvela-agent-core`, `vela-chat-client-core` and Collaboration now
 belong to downstream `products/<product>/packages`, with their generator and checks in
 that product. Run its `sync:shared-packages` when a corresponding `shared/`
 authority changes, then `check:shared-packages`; the product owns these aliases
@@ -298,7 +297,7 @@ artifact and separately compiled Electron host.
 
 The explicit macOS preview command is a local QA contract, not a distribution
 artifact. It writes below `release/preview`, uses product name `OpenCraft
-Preview`, Bundle ID `ai.lightvela.vela.preview`, and the independent
+Preview`, Bundle ID `dev.opencraft.workbench.preview`, and the independent
 `OpenCraft Preview` application-state profile. It disables certificate discovery,
 prunes foreign-platform `node-pty` prebuilds from both packaged runtime trees,
 and applies one consistent ad-hoc hardened-runtime signature and entitlements
@@ -651,7 +650,7 @@ directory, relative to the core workspace or absolute. Default core builds selec
 none. The adapter preserves original filenames/bytes and rejects missing roots,
 symlinks and core/generated-output collisions. Vite development and preview serve
 the same URLs; native `copyPublicDir: false` builds continue to omit these files.
-The downstream the downstream product runner owns `build:web`, `build:web:release` and
+The downstream product runner owns `build:web`, `build:web:release` and
 `build:embedded:release`, choosing its existing entries and `products/<product>/public`.
 Private product build aliases run downstream. The managed site's fixed
 source packaging selects the same product assets when the selected revision owns
@@ -661,10 +660,10 @@ This neither deploys the downstream product nor resolves the artwork's distribut
 ### Expo product selection
 
 Default Expo Web/iOS bundle commands build the public RN Workbench with its
-configured direct Host, not a the downstream product account-gated Router. Downstream the downstream product uses
+configured direct Host. An account-gated downstream Router is selected through
 `products/<product>/run-expo.cjs`; product-owned APK/IPA and agents-next aliases explicitly delegate
 to it so Metro, Gradle and Xcode inherit the same local product entry/config.
-Only the downstream product iOS product requires frontend-generated Bot HTML. Both products
+Only the downstream iOS product requires frontend-generated Bot HTML. Both products
 retain locally packaged generic math/Mermaid renderers. This selection does not
 claim signed builds, physical plugin extraction or device verification.
 
