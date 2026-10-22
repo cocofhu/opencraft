@@ -108,6 +108,50 @@ try {
   await htmlFrame.getByRole("heading", { name: "Visual report" }).waitFor();
   await page.screenshot({ path: process.env.OPENCRAFT_HTML_SCREENSHOT ?? "/tmp/opencraft-html-preview.png" });
   await open("small.pdf"); await page.getByRole("button", { name: "Close", exact: true }).click(); await page.waitForTimeout(500); assert.equal(await page.locator(".workspace-pdf-preview__page canvas").count(), 0);
+  // Keep real user input pending while the existing filesystem session starts.
+  const searches = () => page.evaluate(() => (window as unknown as { fixtureSearches(): { queries: string[]; stops: number }[] }).fixtureSearches());
+  const releaseSearch = (index: number) => page.evaluate(i => (window as unknown as { releaseFixtureSearch(i: number): void }).releaseFixtureSearch(i), index);
+  const browse = async () => {
+    await page.getByRole("button", { name: "Browse workspace", exact: true }).click();
+    await page.getByRole("button", { name: "Show file tree", exact: true }).click();
+    return page.getByRole("textbox", { name: "Search workspace files", exact: true });
+  };
+  const pendingDebounce = async () => {
+    const start = await page.evaluate(() => performance.now());
+    await page.waitForFunction(start => performance.now() - start > 150 && document.querySelector(".workspace-file-search .is-spinning"), start);
+  };
+  const searchInput = await browse();
+  await searchInput.fill("obsolete");
+  await searchInput.fill("latest");
+  await pendingDebounce();
+  assert.deepEqual((await searches())[0]!.queries, []);
+  await searchInput.evaluate(node => { (window as unknown as { searchInput: Element }).searchInput = node; });
+  await releaseSearch(0);
+  await page.getByRole("button", { name: /report\.html/u }).waitFor();
+  assert.deepEqual((await searches())[0]!.queries, ["latest"], "startup sends the latest pending query once");
+  assert.equal(await searchInput.inputValue(), "latest");
+  assert.equal(await searchInput.evaluate(node => node === (window as unknown as { searchInput: Element }).searchInput && node === document.activeElement), true);
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  assert.equal((await searches())[0]!.stops, 1);
+  const abandoned = await browse();
+  await abandoned.fill("abandoned");
+  await pendingDebounce();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await releaseSearch(1);
+  await page.waitForFunction(() => (window as unknown as { fixtureSearches(): { stops: number }[] }).fixtureSearches()[1]?.stops === 1);
+  assert.deepEqual((await searches())[1]!.queries, [], "a late closed session is stopped without sending a stale query");
+  const cleared = await browse();
+  await cleared.fill("cleared");
+  await pendingDebounce();
+  await cleared.fill("");
+  await releaseSearch(2);
+  await page.getByText("No matching files", { exact: true }).waitFor({ state: "hidden" });
+  assert.equal(await page.locator(".workspace-file-search .is-spinning").count(), 0);
+  assert.deepEqual((await searches())[2]!.queries, [], "clearing before readiness cancels the pending query");
+  await cleared.fill("ordinary");
+  await page.getByRole("button", { name: /report\.html/u }).waitFor();
+  assert.deepEqual((await searches())[2]!.queries, ["ordinary"], "ready sessions retain the original query debounce");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ status: "passed", builtFixture: Boolean(fixtureBuild), pdfBytes: pdf.length, inkPixels: pixels, mediaEntry: true, zoom: true, pagination: true, download: true, phone: true, invalidFile: true, audio: true, video: true, unknownFile: true, htmlPreview: true, unmount: true }));
+  console.log(JSON.stringify({ status: "passed", builtFixture: Boolean(fixtureBuild), pdfBytes: pdf.length, inkPixels: pixels, mediaEntry: true, zoom: true, pagination: true, download: true, phone: true, invalidFile: true, audio: true, video: true, unknownFile: true, htmlPreview: true, unmount: true, searchStartupLatestQuery: true, searchLateClose: true, searchClearedQuery: true }));
 } finally { await browser?.close(); await vite.close(); }

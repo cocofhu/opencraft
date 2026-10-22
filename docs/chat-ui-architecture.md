@@ -2534,3 +2534,10 @@ existing response owner. The original question-extensions smoke covers native
 composition, both compatibility keys, unchanged input identity/focus/draft and
 ordinary actions on desktop/touch in both themes, retaining its full plan,
 multi-question, request replacement, option and setup checks.
+
+Workspace file search owns its filesystem session in the panel startup effect.
+Session readiness reruns the existing query debounce with the latest input;
+queries typed or cleared before startup completes are never replayed from the
+startup closure. Retired sessions stop even when their startup resolves late.
+The original workspace media smoke retains its preview assertions and covers
+latest pending input, cleared input and closure during pending startup.
