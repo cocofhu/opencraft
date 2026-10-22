@@ -2350,3 +2350,13 @@ height token: 36px with pointer input, at least the 44px shared touch target whe
 touch interaction is active. Keep participant artwork, count circles, independent
 action lanes and section/list gaps at their existing sizes; compact density must
 not change metadata rows or other navigation owners.
+
+### Composer warning material
+
+An active conversation's existing recovery or connection failure may project a
+static faint red material and rim to the shared Composer. Normal streaming, idle
+and new drafts stay neutral. No Composer opacity breathing, blinking or scaling.
+Draft text, caret, controls and geometry remain stable. The material is paint-only:
+recovery diagnostics, scan, retry and submission ownership remain independent.
+Forced colors retain a system outline and the existing textual recovery notice;
+reduced-motion users receive the same static warning.

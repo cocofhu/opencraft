@@ -1,4 +1,5 @@
 @use "../../../../packages/chat-render-web/src/zoomable-image";
+@use "../../../../packages/composer-editor/src/recovery-scan";
 @use "@opencraft/design-system/icons.web" as icons;
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
@@ -154,38 +155,10 @@ body {
   }
 }
 
-.conversation-recovery-cold-stage {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-  padding-top: var(--thread-content-top-inset);
-}
-
 .conversation-recovery-empty-error {
   width: 100%;
   box-sizing: border-box;
   padding: 28px var(--padding-toolbar);
-}
-
-.conversation-recovery-loading {
-  display: grid;
-  flex: 1 0 auto;
-  width: 100%;
-  place-items: center;
-  pointer-events: none;
-  opacity: 0;
-  animation: conversation-recovery-appear 1ms 200ms forwards;
-}
-
-.conversation-recovery-loading__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .conversation-recovery-empty-error {
@@ -221,35 +194,18 @@ body {
 }
 
 .conversation-recovery-notice {
-  position: absolute;
-  z-index: 4;
-  top: calc(var(--thread-content-top-inset) + 8px);
-  left: 50%;
   display: flex;
   flex-wrap: wrap;
-  width: max-content;
-  max-width: calc(100% - 32px);
-  min-height: 32px;
-  box-sizing: border-box;
   align-items: center;
+  min-width: 0;
   gap: 8px;
-  padding: 4px 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  background: var(--color-background-elevated-primary-opaque);
+  padding-block: 4px;
+  margin-bottom: 8px;
+  background: var(--color-background-surface);
   color: var(--color-text-secondary);
   font: var(--typography-metadata-font);
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
-  transform: translateX(-50%);
   letter-spacing: var(--typography-metadata-tracking);
-}
-
-.conversation-recovery-notice--syncing:not(:has(.conversation-recovery-progress)) {
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  overflow-wrap: anywhere;
 }
 
 .conversation-recovery-progress {
@@ -265,22 +221,7 @@ body {
 }
 .conversation-recovery-progress__time,
 .conversation-recovery-progress__failure { color: var(--color-text-secondary); }
-.conversation-recovery-loading--observable {
-  pointer-events: auto;
-  align-content: center;
-  gap: 12px;
-  padding: 24px var(--padding-toolbar);
-  box-sizing: border-box;
-  .conversation-recovery-progress { width: min(100%, 420px); }
-}
-.conversation-recovery-loading--observable button {
-  min-height: 44px;
-  color: var(--color-text);
-  background: var(--color-background-elevated-primary-opaque);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  padding: 4px 10px;
-}
+
 .conversation-recovery-details {
   flex-basis: 100%;
   min-width: 0;
@@ -8863,6 +8804,29 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: var(--composer-surface-background);
     -webkit-backdrop-filter: var(--composer-surface-filter);
     backdrop-filter: var(--composer-surface-filter);
+  }
+}
+
+// Connection warning stays in the material; editable content never fades or pulses.
+.opencraft-composer-shell[data-warning="true"]::before {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-text-danger) 2.5%, transparent),
+      color-mix(in srgb, var(--color-text-danger) 6.5%, transparent)
+    ),
+    var(--composer-surface-background);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-text-danger) 17%, transparent),
+    0 6px 24px color-mix(in srgb, var(--color-text-danger) 4%, transparent);
+}
+
+@media (forced-colors: active) {
+  .opencraft-composer-shell[data-warning="true"]::before {
+    background: Canvas;
+    box-shadow: none;
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
   }
 }
 

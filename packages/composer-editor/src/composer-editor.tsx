@@ -3,6 +3,7 @@ import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as Chevr
 import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
 import { SessionModelPicker, groupComposerModels } from "./session-model-picker";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
+import { ComposerRecoveryScan } from "./recovery-scan";
 import { ComposerAttachedRail } from "./attached-rail";
 // AppServer state remains externally owned.
 import { baseKeymap, newlineInCode, splitBlock } from "prosemirror-commands";
@@ -723,6 +724,10 @@ export interface OpenCraftComposerProps {
   /** Whether this surface can resolve `@` references through its Host. */
   mentionSuggestionsEnabled?: boolean;
   isStreaming: boolean;
+  /** Read-only projection of current conversation recovery, independent of execution. */
+  isRecovering?: boolean;
+  /** Read-only connection/recovery warning; independent of normal AI execution. */
+  isUnstable?: boolean;
   disabled?: boolean;
   /** Embedded surfaces keep menu focus, styling and stacking in their owner. */
   portalContainer?: HTMLElement | null;
@@ -797,6 +802,8 @@ export const OpenCraftComposer = forwardRef<
     catalog,
     mentionSuggestionsEnabled = true,
     isStreaming,
+    isRecovering = false,
+    isUnstable = false,
     disabled = false,
     portalContainer,
     submissionDisabled = false,
@@ -2092,7 +2099,8 @@ export const OpenCraftComposer = forwardRef<
         />
         {attachedContent}
       </ComposerAttachedRail>
-      <div className="opencraft-composer-shell">
+      <div className="opencraft-composer-shell" data-warning={isUnstable ? "true" : undefined}>
+        <ComposerRecoveryScan active={isRecovering} />
         {chromeHeader === undefined ? null : (
           <div className="opencraft-composer-chrome-header">{chromeHeader}</div>
         )}
