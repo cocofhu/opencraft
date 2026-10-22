@@ -3166,3 +3166,14 @@ This refactor retains the existing cache schema and storage keys.
 ### Website tool call details
 
 Browser WebMCP child calls retain separate Tool and Result JSON previews. The Tool preview identifies the tool, website, read-only hint and parsed input; list operations use the Listed website tools summary. Parse complete JSON for reading, preserve truncated or invalid text exactly, and label truncated input/results. An absent result adds no Result section. Reuse the shared code preview and its scroll budget, keep each document identity scoped to the parent call, and preserve data when details are closed and reopened.
+
+
+### Approval reviews on tools without results
+
+An attached automatic approval review owns an expandable body even when the
+tool presenter has no content surface. While a tool is awaiting a decision, users
+can open its review progress and subsequent denial rationale. This does not grant
+a generic compact tool an input/output surface, invent an empty result, or change
+the tool's initially collapsed state. Review identity and state remain owned by
+the runtime and chat-core; Web only combines the existing disclosure and review
+list. Tools without reviews retain their presenter's expansion policy.

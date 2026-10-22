@@ -53,6 +53,7 @@ const webMcpItems: TimelineSourceItem[] = [{ id: "webmcp-browser", type: "mcpToo
     { kind: "invokeTool", name: "empty_response", title: "Empty response", inputJson: "false", outputJson: null },
   ] } } },
 } }];
+const reviewScenario = new URLSearchParams(location.search).get("scenario") === "reviews";
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
 probe.hostActions = [];
@@ -88,7 +89,23 @@ function Demo() {
   probe.changeThreadToolPhase = setPhase;
   const [hostMode, setHostMode] = useState("content");
   probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
-  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : [
+  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : reviewScenario ? [
+    ...["mcpToolCall", "dynamicToolCall"].map((type, index) => ({
+      id: `reviewed-${index}`, type, payload: {
+        server: "audit", namespace: "audit", tool: index === 0 ? "reviewed" : "inspect",
+        status: phase === "completed" ? "failed" : "inProgress",
+        automaticApprovalReviews: [{
+          reviewId: `review-${index}`, startedAtMs: 100,
+          completedAtMs: phase === "inProgress" ? null : 200,
+          status: phase === "inProgress" ? "inProgress" : "denied",
+          riskLevel: "high", userAuthorization: "low", decisionSource: "agent",
+          rationale: phase === "inProgress" ? null : `REVIEW_REASON_${index}: add permission context.`,
+          action: { type: "mcpToolCall", server: "audit", toolName: "reviewed" },
+        }],
+      },
+    })),
+    { id: "unreviewed", type: "mcpToolCall", payload: { server: "audit", tool: "plain", status: "inProgress" } },
+  ] : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
@@ -106,8 +123,8 @@ function Demo() {
       arguments: { direction: "down", app: "Notes" } } },
     { id: "custom", type: "dynamicToolCall", payload: { namespace: "custom", tool: "inspect_workspace", status: phase, success: phase !== "failed" } },
   ];
-  const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
-    authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" ? "streaming" : "complete", items }] }, registry);
+  const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: reviewScenario ? (phase === "inProgress" ? 0 : phase === "denied" ? 1 : 2) : ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
+    authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" || (reviewScenario && phase === "denied") ? "streaming" : "complete", items }] }, registry);
   return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
       <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"

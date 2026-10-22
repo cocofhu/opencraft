@@ -199,13 +199,14 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     <RawToolOutput block={block} />
   </div> : undefined;
   const body = content === undefined ? coreBody : content;
+  const hasBody = hasCoreBody || content !== undefined || block.automaticApprovalReviews.length > 0;
   return <><ActivityDisclosure icon={icon === undefined ? activityIcon(presentation.icon) : icon}
     summary={presentation.summary} detail={presentation.detail} open={open} onOpenChange={setOpen}
     running={presentation.state === "running"} status={presentation.state}
-    bodyVariant={hasCoreBody || hasCustomBody ? "grouped" : "default"}
+    bodyVariant={content !== null && (hasBody || content !== undefined) ? "grouped" : "default"}
     accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : undefined}
     unmountBodyWhenCollapsed>
-    {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
+    {hasBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
     {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}
