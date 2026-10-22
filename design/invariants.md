@@ -530,6 +530,12 @@ uses real reasoning, inspected/generated/sent-image renderers and CDP touch to
 check held following, no activation on swipe, original tap actions, cancellation
 and native input exclusions in light/dark and normal/reduced motion.
 Mobile uses a page stack: the sidebar stays anchored behind the foreground page.
+The moving page paints an opaque theme surface across its entire rectangle,
+including the gaps around floating conversation chrome; rear sidebar content
+must not show through it. Drawer settling has no bounce and the foreground
+translation stays within the closed/open bounds, including cancellation,
+interruption and the final frames before presence releases. The root remains
+transparent so the uncovered part of the stationary drawer remains visible.
 One progress translates the foreground and brings the rear layer from 90% scale /
 45% opacity to its full size and clarity, with a left-center origin. A stationary, pointer-transparent theme veil fades
 from 65% to zero with that same progress, stronger toward the foreground edge.

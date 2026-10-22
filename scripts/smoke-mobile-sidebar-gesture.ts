@@ -57,10 +57,10 @@ const navigationRouter=createApplicationNavigation(null,{mode:'memory'});
 const contributionSnapshot={settingsPages:[]};
 const contributions={subscribe:()=>()=>{},getSnapshot:()=>contributionSnapshot};
 function Context({showNewChat=true}){const[selected,setSelected]=useState('thread-0');window.selectFixtureThread=setSelected;useEffect(()=>{mounts++},[]);return <Sidebar showStart={false} showFooter={false} showNewChat={showNewChat} threads={threads} activeHostId='fixture' activeThreadId={selected} sidebarLayout={layout} onNewTask={()=>actions.push('New chat')} onOpenSettings={()=>{}} onSelectThread={(_host,id)=>actions.push(id)}/>}
-function App(){const preferences=useUiPreferencesRuntime();useEffect(()=>bindInteractionDensity(document,preferences),[preferences]);const route=useSyncExternalStore(navigationRouter.subscribe,navigationRouter.getSnapshot).applicationRoute;const[open,setOpen]=useState(false),[modal,setModal]=useState(false),[showNewChat,setShowNewChat]=useState(true);window.fixture={setDensity:value=>preferences.set('interface.touchFriendly',value),sidebarOpen:()=>open,setOpen,setModal,setShowNewChat,setThemePreference,returnToChat:()=>navigationRouter.openChat(),route:()=>navigationRouter.getSnapshot().applicationRoute,mounts:()=>mounts,actions};
+function App(){const preferences=useUiPreferencesRuntime();useEffect(()=>bindInteractionDensity(document,preferences),[preferences]);const route=useSyncExternalStore(navigationRouter.subscribe,navigationRouter.getSnapshot).applicationRoute;const[open,setOpen]=useState(false),[modal,setModal]=useState(false),[showNewChat,setShowNewChat]=useState(true),[conversationHeader,setConversationHeader]=useState(false);window.fixture={setDensity:value=>preferences.set('interface.touchFriendly',value),sidebarOpen:()=>open,setOpen,setModal,setShowNewChat,setConversationHeader,setThemePreference,returnToChat:()=>navigationRouter.openChat(),route:()=>navigationRouter.getSnapshot().applicationRoute,mounts:()=>mounts,actions};
 const navigation={layout:'unified',account:{snapshot:{phase:'authenticated',name:'Synthetic employee',avatarUrl:null},onOpen:()=>actions.push('Account'),onRefresh:async()=>{}},settingsActive:route.kind==='settings',onOpenSettings:()=>{actions.push('Settings');navigationRouter.openSettings();},actions:[...(stationaryProbe?[{id:'shell.search',title:'Search conversations',icon:'search',onInvoke:()=>setModal(true)}]:[]),{id:'shell.home',title:'Home',icon:'home',onInvoke:()=>actions.push('Home')},{id:'opencraft.tasks.navigation',title:'Tasks',icon:'columns',onInvoke:()=>actions.push('Tasks')},{id:'example.workspace.navigation',title:'Collaboration',icon:'messages',onInvoke:()=>actions.push('Collaboration')},{id:'skills',title:'Skills, extensions and cloud tools',icon:'sparkles',onInvoke:()=>actions.push('Skills')}]};
-return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description>${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div style={{height:200,overflow:'auto'}}><WebChatDocument documentId="modal-arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/></div>` : ""}</Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout='default' sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
-header={<AppShellHeader navigationBrand={stationaryProbe ? brand : undefined} title='Workspace' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={stationaryProbe} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
+return <><Dialog.Root open={modal} onOpenChange={setModal}><Dialog.Portal container={presentationRoot}><Dialog.Overlay style={{position:'fixed',inset:0,zIndex:100}}/><Dialog.Content style={{position:'fixed',inset:40,zIndex:101,background:'white'}}><Dialog.Title>Gesture exclusion probe</Dialog.Title><Dialog.Description>Touches stay in the dialog.</Dialog.Description>${process.env.OPENCRAFT_GESTURE_ARBITRATION_ONLY === "1" ? `<div style={{height:200,overflow:'auto'}}><WebChatDocument documentId="modal-arbitration" allowWideBlocks={false} source={${JSON.stringify(arbitrationMarkdown)}}/></div>` : ""}</Dialog.Content></Dialog.Portal></Dialog.Root><AppShell navigation={navigation} layoutScope={route.kind} mainContentLayout={conversationHeader?'thread-edge-scroll':'default'} sidebarOpen={open} sidebarWidth={335} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={()=>{}} rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
+header={<AppShellHeader conversationHeader={conversationHeader} navigationBrand={stationaryProbe ? brand : undefined} title='Workspace' project={null} sidebarOpen={open} rightPanelOpen={false} rightPanelFullWidth={false} showRightPanelAction={stationaryProbe} onToggleSidebar={()=>setOpen(!open)} onToggleRightPanel={()=>{}} onHome={()=>{}} canGoBack={false} canGoForward={false} onBack={()=>{}} onForward={()=>{}} navigationActions={['sidebar-toggle']}/>}
 floatingSidebarHeader={()=> stationaryProbe ? <AppShellNavigationControls brand={brand} hostRole='transient' sidebarOpen={false} canGoBack={false} canGoForward={false} onToggleSidebar={()=>{}} onHome={()=>{}} onBack={()=>{}} onForward={()=>{}} actions={['sidebar-toggle']}/> : <div style={{height:'100%',display:'flex',alignItems:'center',padding:12}}>Conversations</div>}
 leftPanel={route.kind==='settings'?<SettingsNavigation section={route.slug} presentation='sidebar' extensionContributions={contributions} profiles={[]} machines={[]} activeHostId='' onBack={()=>navigationRouter.openChat()} onSectionChange={slug=>{actions.push('Settings:'+slug);navigationRouter.openSettings(slug);}}/>:<Context showNewChat={showNewChat}/>}>
 <div style={{height:'100%',width:'100%',overflowY:'auto'}} data-main-scroll>
@@ -542,6 +542,37 @@ try {
         const frame = () => { sample(); requestAnimationFrame(frame); };
         requestAnimationFrame(frame);
       });
+      await page.evaluate(() => {
+        (window as any).pageTranslationViolations = [];
+        const sample = () => {
+          const panel = document.querySelector<HTMLElement>('.app-shell-floating-left-panel');
+          const row = document.querySelector<HTMLElement>('.app-shell-row');
+          if (panel && row) {
+            const x = new DOMMatrixReadOnly(getComputedStyle(row).transform).m41;
+            if (x < -0.01 || x > panel.clientWidth + 0.01)
+              (window as any).pageTranslationViolations.push({x, maximum: panel.clientWidth});
+          }
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      const assertForegroundOccludesRear = async () => {
+        const front = await row.boundingBox(); assert.ok(front);
+        const left = Math.ceil(front.x) + 24;
+        const width = (page.viewportSize()!.width - 2) - left;
+        assert.ok(width > 0, 'foreground retains a measurable dismiss strip');
+        const crop = {left, top: 12, width, height: page.viewportSize()!.height - 24};
+        const visible = await sharp(await page.screenshot()).extract(crop).ensureAlpha().raw().toBuffer();
+        const previous = await panel.evaluate((e: HTMLElement) => { const value = e.style.visibility; e.style.visibility = 'hidden'; return value; });
+        let hidden: Buffer;
+        try { hidden = await sharp(await page.screenshot()).extract(crop).ensureAlpha().raw().toBuffer(); }
+        finally { await panel.evaluate((e: HTMLElement, value: string) => { e.style.visibility = value; }, previous); }
+        let changed = 0;
+        for (let pixel = 0; pixel < visible.length; pixel += 4)
+          if ([0,1,2,3].some(channel => Math.abs(visible[pixel+channel] - hidden[pixel+channel]) > 1)) changed++;
+        assert.equal(changed, 0, 'covered foreground pixels must not depend on rear sidebar text');
+        return {coveredPixels: visible.length / 4, changed};
+      };
       const readStack=()=>page.evaluate(()=>{
         const panel=document.querySelector<HTMLElement>('.app-shell-floating-left-panel')!;
         const drawer=panel.getBoundingClientRect();
@@ -614,9 +645,22 @@ try {
         await page.locator('.app-shell-mobile-page-dismiss').tap({position:{x:20,y:200}});await page.waitForTimeout(650);await closed();
         assertEdges(await edgePixels(),closedEdges);
         assert.equal(await page.getByLabel('Draft',{exact:true}).inputValue(),'Keep this draft');
-        evidence.push({theme,reducedMotion,width,material,stack,held:[a,b],sameEntrance:true,escape:true,gestureReopen:true});
+        // Exercise the real floating conversation header, whose gaps are
+        // transparent, with the same page/drawer owners as the generic route.
+        await page.evaluate(() => (window as any).fixture.setConversationHeader(true));
+        await entrance.tap(); await page.waitForTimeout(650); await opened();
+        await touch('touchStart', width - 70, 400);
+        await touch('touchMove', width - 170, 400); await page.waitForTimeout(60);
+        const foregroundOcclusion = await assertForegroundOccludesRear();
+        await page.screenshot({path:`${output}/${theme}-${reducedMotion}-${width}-foreground-occlusion.png`});
+        await touch('touchCancel'); await page.waitForTimeout(650); await opened();
+        await page.locator('.app-shell-mobile-page-dismiss').tap({position:{x:20,y:200}});
+        await page.waitForTimeout(650); await closed();
+        await page.evaluate(() => (window as any).fixture.setConversationHeader(false));
+        evidence.push({theme,reducedMotion,width,material,stack,held:[a,b],sameEntrance:true,escape:true,gestureReopen:true,foregroundOcclusion});
       }
       assert.deepEqual(await page.evaluate(() => (window as any).unsafeSidebarPaint), [], 'sidebar content and backing never paint above the returned page during exit presence');
+      assert.deepEqual(await page.evaluate(() => (window as any).pageTranslationViolations), [], 'mobile page never bounces outside its closed/open bounds');
       await page.setViewportSize({width:1280,height:844});await page.waitForTimeout(300);
       const desktop=page.locator('.app-shell-touch-sidebar-toggle button');await desktop.waitFor();
       await desktop.tap();await page.waitForTimeout(650);assert.equal(await row.evaluate((e:HTMLElement)=>getComputedStyle(e).transform),'none','desktop does not translate');

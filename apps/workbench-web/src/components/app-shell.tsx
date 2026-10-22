@@ -621,7 +621,8 @@ export function AppShell({
   });
   // One progress drives foreground travel and stationary sidebar depth; translating the row leaves the root's
   // viewport coordinates (and gesture acquisition) unchanged.
-  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
+  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) =>
+    Math.max(0, Math.min(1, Number(progress))) * Number(width));
   const reducedMotion = useReducedMotion();
   const mobilePageWash = useTransform(mobileGesture.progress, value => reducedMotion ? 0 : 0.65 * Math.max(0, Math.min(1, value)));
   // The physical browser surface is portaled outside the moving row. Publish
