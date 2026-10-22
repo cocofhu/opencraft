@@ -1841,9 +1841,11 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
 
 ## Conversation task linking entrance
 
-Existing conversations with Tasks authority expose a labeled Link tasks action
-immediately before the overflow menu. Both routes use the original task picker
-and confirmed conversation identity; dismissing it restores focus to its own
-trigger. Shell measures the inert label projection at its intrinsic width, so
-the title never reserves only an icon slot for a text action, including touch
-and floating Newera chrome. No Tasks authority means no task-link entrance.
+Existing conversations with Tasks authority expose a rounded, outlined secondary
+Link tasks action immediately before overflow on desktop. Mobile Shell presents
+the same action inside overflow instead; both use the original picker and fixed
+conversation identity. Dismissal returns focus to the available initiating action,
+including after a layout change. Shell's inert sizing and lazy fallback follow
+the same mobile presentation, without reserving a hidden label slot. No Tasks
+authority means no task-link entrance.
+

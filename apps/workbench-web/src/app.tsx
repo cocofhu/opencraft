@@ -1651,7 +1651,7 @@ export function App({
   useConversationHistoryRefresh(activeThreadLease,
     conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
   const conversationActionSizing = <>
-    {hostCatalog.tasks ? <span className="chrome-button chrome-button--text">
+    {hostCatalog.tasks ? <span className="chrome-button chrome-button--text chrome-button--outlined conversation-task-link">
       {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
     </span> : null}
     <span className="chrome-button" />

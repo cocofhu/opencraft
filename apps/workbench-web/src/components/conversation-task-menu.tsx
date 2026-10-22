@@ -2,7 +2,7 @@ import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Archive, Clock, GitFork, Info, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
+import { Link2, Archive, Clock, GitFork, Info, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -13,6 +13,7 @@ import {
 } from "@opencraft/extension-react";
 import { ModalSurface } from "./modal";
 import { ConversationRenameDialog } from "./conversation-rename-dialog";
+import { useShellPresentation } from "./shell-presentation";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 import "../styles/context-menu.scss";
 
@@ -123,6 +124,7 @@ function TaskPicker(props: TaskProps & { onClose(): void; returnFocus(): HTMLEle
 /** The application supplies the confirmed conversation identity and fixed Tasks authority. */
 export function ConversationTaskMenu(props: Props) {
   const intl = useIntl();
+  const mobile = useShellPresentation()?.mobileSidebar === true;
   const portalContainer = useWorkbenchPresentationRoot();
   const notices = useAsyncNotices();
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -163,7 +165,7 @@ export function ConversationTaskMenu(props: Props) {
   const busy = pin.isPending || archive.isPending || fork.isPending;
   const label = intl.formatMessage({ id: "tasks.relation.actions", defaultMessage: "Conversation actions" });
   return <>
-    {props.port ? <button ref={taskTrigger} type="button" className="chrome-button chrome-button--text"
+    {props.port && !mobile ? <button ref={taskTrigger} type="button" className="chrome-button chrome-button--text chrome-button--outlined conversation-task-link"
       disabled={busy} aria-haspopup="dialog" aria-expanded={pickerOpen} onClick={() => setPickerOpen(true)}>
       {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
     </button> : null}
@@ -178,6 +180,9 @@ export function ConversationTaskMenu(props: Props) {
           onCloseAutoFocus={event => {
             if (modalHandoff.current) { event.preventDefault(); modalHandoff.current = false; }
           }}>
+          {props.port && mobile ? <DropdownMenu.Item disabled={busy} onSelect={() => {
+            modalHandoff.current = true; setPickerOpen(true);
+          }}><Link2 size={16} aria-hidden="true" />{intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}</DropdownMenu.Item> : null}
           {props.onRename ? <DropdownMenu.Item disabled={busy} onSelect={() => {
             modalHandoff.current = true; rename.reset(); setName(props.title ?? ""); setRenameOpen(true);
           }}><Pencil size={16} aria-hidden="true" />{intl.formatMessage({ id: "common.rename", defaultMessage: "Rename" })}</DropdownMenu.Item> : null}
@@ -211,6 +216,6 @@ export function ConversationTaskMenu(props: Props) {
     {detailsOpen ? <Suspense fallback={null}><ConversationInformationDialog project={props.project} workspaceDirectory={props.workspaceDirectory}
       onDismiss={() => setDetailsOpen(false)} returnFocus={() => trigger.current} /></Suspense> : null}
     {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={() => trigger.current} /> : null}
-    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={() => taskTrigger.current} /> : null}
+    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={() => taskTrigger.current ?? trigger.current} /> : null}
   </>;
 }
