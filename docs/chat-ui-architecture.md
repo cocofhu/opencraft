@@ -732,6 +732,12 @@ document identity as well as the resolved target. A context switch cannot
 reuse the previous image's loading result or keep its gallery open while the
 new Host media request settles. This applies to Markdown images, user
 attachments, generated images and tool image results.
+The Workbench conversation-media hook reuses its serialized presentation key
+within the mounted component while the source, resolved decision, Host,
+conversation, cwd and document identity remain unchanged. Scroll rerenders do
+not repeatedly serialize long inline image addresses. This is a local derived
+value, not a resource cache; request cancellation, stale-result fencing,
+release and measurement ownership remain with the existing media effect.
 User-message image attachments, generated images and image-view tool results
 consume the same conversation-media decision and Host loader. A Host file path
 is never rewritten to a phone-local `file://` URI; direct HTTP(S) and image
