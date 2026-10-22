@@ -2764,6 +2764,13 @@ close even when no platform close event arrives. Delayed close cleanup and
 asynchronous decode failures are fenced to their original socket; neither can
 close or fail a successor connection.
 
+Closing one logical channel cancels its own ready/claim wait without
+closing the shared client or cancelling service-owned startup. A grant already
+in flight is released against its original lease and generation; its completion
+cannot overwrite that channel's terminal closed status. Deterministic coverage
+exercises close before ready, during shared startup and between grant delivery
+and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
+also checks late release while a peer remains open on the same real socket.
 Business envelopes serialize per Host, allowing another Host on the same
 socket and connection probes to progress during a slow activation. Local send
 cancellation releases its pending acknowledgement without cancelling or replaying

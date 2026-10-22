@@ -28,6 +28,8 @@ const handler = async (req: any, res: any) => {
 execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost', '-days', '1', '-keyout', join(directory, 'key'), '-out', join(directory, 'cert')], { stdio: 'ignore' });
 const plain = httpServer(handler), secure = httpsServer({ key: await readFile(join(directory, 'key')), cert: await readFile(join(directory, 'cert')) }, handler);
 const sockets = new WebSocketServer({ noServer: true });
+let heldClaim: { leaseId: string; grant(): void } | null = null;
+const releasedClaims = new Set<string>();
 secure.on('upgrade', (req, socket, head) => {
   if (!management.sameOrigin(req, true) || !management.authorized(req)) { rejected++; socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n'); return; }
   accepted++; sockets.handleUpgrade(req, socket, head, ws => {
@@ -35,11 +37,16 @@ secure.on('upgrade', (req, socket, head) => {
     ws.on('message', raw => {
       const message = JSON.parse(String(raw));
       if (message.type === 'hello') ws.send(JSON.stringify({ type: 'ready', protocolVersion: 2, services: ['appserver'] }));
-      if (message.type === 'host/connect') {
-        if (message.hostId === 'ssh:saturated' && !saturationReady) return;
-        ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
+      if (message.type === 'host/send') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
+      if (message.type === 'host/disconnect') {
+        releasedClaims.add(message.leaseId);
+        ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
       }
-      if (message.type === 'host/disconnect' || message.type === 'host/send') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
+      if (message.type === 'host/connect') {
+        const grant = () => ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
+        if (message.hostId === 'ssh:held') heldClaim = { leaseId: message.leaseId, grant };
+        else if (message.hostId !== 'ssh:saturated' || saturationReady) grant();
+      }
     });
   });
 });
@@ -130,7 +137,31 @@ try {
     await Promise.all([slow.close(), peer.close()]); client.close(); return result;
   });
   assert.deepEqual(saturationRecovered, { slow: 'open', peer: 'open', sharedAttempt: true, sameDraft: true });
-  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, saturationRecovered, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, grants, originFreeStatus }));
+  // Dispose one pending logical channel while its peer uses the same real socket.
+  await page.evaluate(async () => {
+    const { connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', reportFailure: () => {} });
+    const retired = client.createTransport('ssh:held'), peer = client.createTransport('ssh:peer');
+    const retiring = retired.connect().then(() => 'opened', () => 'rejected');
+    (window as any).lateGrantFixture = { client, retired, peer, retiring };
+    await peer.connect();
+  });
+  assert.ok(heldClaim);
+  await page.evaluate(async () => { await (window as any).lateGrantFixture.retired.close(); });
+  const claim = heldClaim as { leaseId: string; grant(): void };
+  claim.grant();
+  const closed = await page.evaluate(async () => {
+    const { retired, peer, retiring } = (window as any).lateGrantFixture;
+    return { retired: retired.status.state, peer: peer.status.state, result: await retiring };
+  });
+  assert.deepEqual(closed, { retired: 'closed', peer: 'open', result: 'rejected' });
+  const deadline = Date.now() + 5000;
+  while (!releasedClaims.has(claim.leaseId) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.ok(releasedClaims.has(claim.leaseId), 'late grant must release the retired channel claim');
+  await page.evaluate(async () => {
+    const { client, peer } = (window as any).lateGrantFixture; await peer.close(); client.close();
+  });
+  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, saturationRecovered, lateGrantReleased: true, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, grants, originFreeStatus }));
   await context.close();
 } finally {
   await browser.close(); sockets.close(); plain.closeAllConnections(); secure.closeAllConnections();
