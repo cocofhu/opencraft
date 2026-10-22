@@ -13,6 +13,7 @@ import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workb
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
 import { createIntlTestRoot } from "./intl-root";
+import type { ThreadItem } from "../../packages/appserver-protocol/src/generated/v2/ThreadItem";
 import "../../apps/workbench-web/src/styles/app.scss";
 
 const ctx = new Context();
@@ -183,6 +184,17 @@ function Demo() {
         { id: "metrics-compaction-active", type: "contextCompaction", payload: { completed: false } },
       ] }); return;
     }
+    if (action.startsWith("subagent-lifecycle-")) {
+      const kind = action.slice("subagent-lifecycle-".length);
+      if (kind !== "started" && kind !== "interacted" && kind !== "interrupted" && kind !== "completed") return;
+      const native: Extract<ThreadItem, { type: "subAgentActivity" }> = {
+        id: "lifecycle-notice", type: "subAgentActivity", kind,
+        agentThreadId: "lifecycle-child", agentPath: "/root/Compiler-Reviewer",
+      };
+      const { id, type, ...payload } = native;
+      restore = null; setGeneration(value => value + 1);
+      setTurn({ id: "turn", status: "streaming", items: [{ id, type, payload }] }); return;
+    }
     if (action === "activity-scale") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
       setTurn({ id: "turn", status: "streaming", items: [
@@ -257,6 +269,7 @@ function Demo() {
           onOpenResource: (target, decision) => probe.openedReasoningResources.push({ target, kind: decision.kind }) }}
         onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })}
         onRestoreSnapshotChange={value => { restore = value; }}
+        onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })}
         footer={<>{turnEntry ? <ComposerTurnChangeSummary timeline={timeline} turnId={turn.id}
           documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work", onReviewTurnDiff: () => { probe.reviewedLiveChanges = true; } }} /> : null}<div style={{ height: 48 }}>Composer fixture</div></>} /> : null}
     </TimelineBlockRendererProvider>

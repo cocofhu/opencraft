@@ -379,6 +379,36 @@ try {
       results.push({ touch, theme, commandViewRestored: true, readingPosition: true, followIntent: true, freshViewIsolated: true });
       if (process.argv.includes("--command-view-only")) { await page.close(); continue; }
     }
+    for (const [kind, label] of [
+      ["started", "Compiler Reviewer started working"],
+      ["interacted", "Compiler Reviewer updated"],
+      ["interrupted", "Compiler Reviewer interrupted"],
+      ["completed", null],
+    ] as const) {
+      await update("subagent-lifecycle-" + kind);
+      const inline = page.locator('.thread-subagent-inline');
+      if (label === null) {
+        assert.equal(await inline.count(), 0, 'completed notices retain their existing aggregate presentation');
+      } else {
+        await inline.waitFor();
+        assert.equal(await inline.locator('span:not(.thread-subagent-avatar)').last().innerText(), label);
+        assert.equal(await page.locator('.thread-subagent-activity__status').count(), 0);
+      }
+      const before = await page.evaluate(() => (window as any).openedSubagents.length);
+      // Tap the label, not just the avatar/name chip: the whole notice navigates.
+      await activate(label === null ? page.getByRole('button', { name: 'Open Compiler Reviewer subagent', exact: true })
+        : inline.locator('span:not(.thread-subagent-avatar)').last());
+      assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
+      assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+        [{ threadId: 'lifecycle-child', displayName: 'Compiler Reviewer' }]);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      results.push({ scene: "subagent-lifecycle-" + kind, theme, touch, content: label });
+    }
+    if (process.argv.includes("--subagents-only")) {
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
+
+    await update("reset");
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);

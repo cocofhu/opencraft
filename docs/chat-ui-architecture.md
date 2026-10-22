@@ -2993,3 +2993,13 @@ mutable connection state is introduced.
 Feature action descriptors own stable identity, label, availability and the one business handler. Shell measures available context space and reserves title/mandatory controls before selecting capacity, including tablet touch density; phone presentation always uses overflow. ToolbarDock owns icon projection, overflow and personal drag customization, using UiPreferencesRuntime scoped to account and dock identity. The inert header twin uses the same projection; available-space changes do not erase personal intent or remount business dialogs. Failed persistence is reported. Dialog return focus falls back to visible overflow if the invoking icon has folded away.
 
 Customization drag keeps the source slot in layout and paints a noninteractive, unscaled DragOverlay in the presentation root outside modal transforms/clipping. The active source never uses another list's sortable transform. Pointer hit testing first selects a zone, then its rows; nonempty parent zones do not compete with their children. Keyboard targets rows or empty zones. Draft membership changes only on drop, cancellation leaves it unchanged, and release has no source-return animation.
+
+
+### Subagent lifecycle notices
+
+A single native lifecycle notice without a collaboration tool uses the shared
+core inline status label and agent identity. Accepting a `started` notification
+does not mean that the child finished: started, interacted and interrupted remain
+visible as such. The whole inline button opens the child through the existing
+navigation context and is disabled without that capability. Collaboration tool
+groups and completed-notice projection keep their existing presentation.

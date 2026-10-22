@@ -3,7 +3,7 @@ import {
   codexAppThreadNavigationTarget, createdThreadToolResult,
   deriveSubagentActivityGroupPresentation, deriveSubagentActivityPresentation,
   extractToolCallContentParts, formatThreadHandoffStepLabel, isCodexAppThreadTool,
-  threadHandoffToolResult, visibleThreadHandoffSteps,
+  threadHandoffToolResult, visibleThreadHandoffSteps, subagentInlineStatusLabel,
   type SubagentActivityRenderUnit, type TimelineBlock, type ToolCallContentPart,
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
@@ -292,6 +292,16 @@ function Agents({ blocks, grouped, renderToggle }: {
   const [open, setOpen] = useActivityOpen(running);
   const reflow = useDisclosureReflow();
   const height = useDisclosureHeight("auto");
+  if (!grouped && blocks[0]!.tool === null && blocks[0]!.activityKind !== null && presentation.agents.length === 1) {
+    const agent = presentation.agents[0]!;
+    const canOpen = navigation.open !== null && agent.threadId.length > 0;
+    return <button type="button" className="thread-subagent-inline" data-status={agent.displayStatus}
+      disabled={!canOpen} aria-label={canOpen ? "Open " + agent.displayName + " subagent" : undefined}
+      onClick={() => navigation.open?.(agent.threadId, agent.displayName)}>
+      <Avatar agent={agent} /><span>{subagentInlineStatusLabel(agent)}</span>
+    </button>;
+  }
+
   return <section className="thread-subagent-activity" data-status={blocks.at(-1)?.status} data-open={open || undefined}>
     <div className="thread-subagent-activity__header">
       {renderToggle({ label: presentation.actionLabel, open, disabled: !presentation.expandable, onClick: event => {
