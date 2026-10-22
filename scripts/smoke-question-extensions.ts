@@ -86,7 +86,7 @@ try {
     await role.click(); await replaySetup();
     assert.equal(await role.getAttribute("aria-checked"), "true");
     assert.deepEqual(await page.evaluate(() => (window as any).answers), []);
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: /^Continue(?:\s*↵)?$/ }).click();
     await page.waitForFunction(() => (window as any).answers.length === 1);
     assert.deepEqual(await page.evaluate(() => (window as any).answers[0]), { type: "submit-setup-role", action: "submit", selectedRoles: ["engineering"] });
     await showSetup("role");
@@ -96,7 +96,7 @@ try {
     await taskInput.fill("中文任务草稿"); await replaySetup();
     assert.equal(await taskInput.inputValue(), "中文任务草稿");
     assert.deepEqual(await page.evaluate(() => (window as any).answers), []);
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: /^Continue(?:\s*↵)?$/ }).click();
     await page.waitForFunction(() => (window as any).answers.length === 1);
     assert.deepEqual(await page.evaluate(() => (window as any).answers[0]), { type: "submit-setup-task", action: "submit", answers: { first_task: ["中文任务草稿"] } });
     await showSetup("task");
@@ -116,7 +116,7 @@ try {
     assert.equal(await search.inputValue(), "slack");
     assert.deepEqual(await page.evaluate(() => (window as any).answers), []);
     await page.screenshot({ path: join(output, `${width}-setup-context-restored.png`) });
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: /^Continue(?:\s*↵)?$/ }).click();
     await page.waitForFunction(() => (window as any).answers.length === 1);
     assert.deepEqual(await page.evaluate(() => (window as any).answers[0]), { type: "submit-setup-context", action: "continue", selectedSources: [] });
     await showSetup("context");
