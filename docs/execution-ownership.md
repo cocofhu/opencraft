@@ -451,3 +451,16 @@ notifications, connection ownership and caller tool/permission semantics. It is
 not configured through renderer RPCs and never owns the Core process. Product
 provider catalogs and protocol adaptation belong to product composition, not the
 shared Codex adapter or global native configuration.
+
+### Application schedule catalog
+
+The Scheduled tasks workbench entry projects the same admitted Host summaries
+used by conversation markers. It lists current active/paused plans and unresolved
+acceptance, independently of conversation pagination and personal list filters.
+Each row retains its Host identity, even if conversation metadata has not loaded.
+It can navigate through the application Router or open the existing conversation
+schedule editor; creation remains in the conversation menu. Summary reads contain
+no prompts or execution history and never acquire conversation execution ownership.
+Unsupported, offline, loading, failed and genuinely empty Host catalogs are distinct;
+same-scope cached plans survive transient disconnects. Editor requests fence the
+captured Host/profile/authorization scope, with backend revision checks unchanged.

@@ -9,6 +9,20 @@ guide is a target contract, not a claim that existing pages have been migrated.
 The target sidebar and draft target picker use the existing workbench palette,
 typography and surfaces, not a separate the downstream product theme.
 
+## Scheduled task catalog
+
+The scheduled task document uses the shared SettingsContent width, inset and
+scroll surface. Tool routes do not override document geometry; master-detail and
+edge-to-edge pages retain their explicit layout contracts. Server groups use
+quiet heading/state lines and separated task rows. The task title opens its
+conversation; an independent quiet action opens the existing schedule manager.
+One page refresh covers discovery and all eligible groups, with stable pending
+feedback. Cold loading, empty and disconnected groups are distinct. Cached rows
+remain through refresh and failure; errors use the shared notification owner,
+without inserting a card above the list. Connection state is shown beside the
+group identity and cached provenance is available on that state label. Creation
+remains in the conversation menu; the catalog does not own scheduling or writes.
+
 ## Ownership
 
 - Activity chronology groups tasks. Stable Server identity remains per-task

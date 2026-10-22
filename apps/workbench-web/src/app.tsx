@@ -1,4 +1,5 @@
 import { executionEngineExtension } from "@opencraft/appserver-client";
+import { ScheduledTaskCatalogContext } from "./runtime/scheduled-task-catalog-context";
 import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
 import { MonitorIcon as Monitor } from "@opencraft/design-system-web/action-icons";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
@@ -1845,6 +1846,9 @@ export function App({
 
   return (
     <IdentityAvatarContext.Provider value={identityAvatar}>
+    <ScheduledTaskCatalogContext.Provider value={{ ...multiHostCatalog,
+      openConversation: (hostId, threadId) => hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, threadId)),
+    }}>
       <InternalDeveloperModeGate />
       <AppShellRouteRegionsProvider
         controller={routeHeader.controller}
@@ -2297,6 +2301,7 @@ export function App({
           onCancel={() => setWorkspacePickerOpen(false)}
           onChoose={chooseWorkspaceDirectory}
         />
+    </ScheduledTaskCatalogContext.Provider>
     </IdentityAvatarContext.Provider>
   );
 }

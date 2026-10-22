@@ -1,5 +1,6 @@
 import { ThreadPinWriter } from "./thread-pin-writer";
-import type { ConversationScheduleSummary } from "@opencraft/appserver-protocol";
+import type { HostScheduleCatalog } from "./scheduled-task-catalog-context";
+import type { ConversationScheduleSummary, ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createCodexContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
 import { createConversationOverviewSource, type ConversationOverviewSource } from "../features/conversation-overview/source";
@@ -568,6 +569,7 @@ export interface MultiHostWorkbenchThread extends WorkbenchThread {
  * merging happens only after host provenance has been attached.
  */
 export function useMultiHostThreadCatalog(): {
+  readonly scheduleCatalogs: readonly HostScheduleCatalog[];
   readonly threads: readonly MultiHostWorkbenchThread[];
   readonly searchSources: readonly ConversationSearchSource[];
   readonly overviewSources: readonly ConversationOverviewSource[];
@@ -790,6 +792,31 @@ export function useMultiHostThreadCatalog(): {
     })),
     [hosts, querySignature]);
   return {
+    scheduleCatalogs: hosts.map((host, index): HostScheduleCatalog => {
+      const query = scheduleQueries[index]!;
+      const runtime = application.registry.peekRuntime(host.hostId);
+      const capability = runtime?.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { summary?: unknown } | undefined;
+      const readable = admitted[index] && phases[index] === "ready";
+      const profile = application.profiles.find(value => value.hostId === host.hostId)!;
+      const epoch = application.managedHostCatalog?.getAuthorizationEpoch();
+      const port: ConversationSchedulesRequestPort | null = readable && runtime?.resources.host.canRequest?.("opencraft/schedules/read") === true ? {
+        request: async (method, params) => {
+          const current = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === host.hostId);
+          if (!runtime || application.registry.peekRuntime(host.hostId) !== runtime || current?.revision !== profile.revision
+            || (host.kind === "remote-ssh" && epoch !== application.managedHostCatalog?.getAuthorizationEpoch())
+            || !canReadHostThreadCatalog(current, runtime.getSnapshot().phase, application.managedHostCatalog?.getSnapshot() ?? null)
+            || runtime.getSnapshot().phase !== "ready" || runtime.resources.host.canRequest?.(method) !== true) throw new Error("Schedule catalog scope changed");
+          return runtime.resources.protocol.request(method, params);
+        },
+      } : null;
+      return {
+        hostId: host.hostId, hostLabel: host.label, scope: JSON.stringify(scheduleKeys[index]),
+        schedules: displayable[index] ? query.data?.schedules ?? [] : [],
+        phase: !readable ? "offline" : capability?.summary !== true || runtime?.resources.host.canRequest?.("opencraft/schedules/list") !== true ? "unsupported" : query.isError ? "error" : query.isPending ? "loading" : "ready",
+        cached: displayable[index] && query.data !== undefined, port,
+        retry: async () => { if (readable && capability?.summary === true && runtime?.resources.host.canRequest?.("opencraft/schedules/list") === true) await query.refetch(); },
+      };
+    }),
     threads,
     searchSources,
     overviewSources,

@@ -2293,3 +2293,11 @@ the base artwork without activity overlays.
   changes cannot alter their speed or any explicitly chosen draft selection.
 - The immutable submission carries the resolved tier, including null, through
   thread creation, turns and durable queues. Availability remains catalog-owned.
+
+## Scheduled task workbench entry
+
+Scheduled tasks use the existing workbench tool-page declaration, Router and
+shared settings controls. The application catalog projects Host summaries rather
+than filtering the currently paginated conversation rows. Opening a task uses its
+Host/thread identity; management reuses the existing per-conversation editor.
+The catalog owns neither execution timers nor a separate draft or mutation model.

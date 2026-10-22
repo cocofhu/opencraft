@@ -489,6 +489,10 @@ export function createWorkbenchWebConfig(
             { name: "workbench-entry", test: /\/src\/workbench-(?:entry\.ts|root\.tsx)(?:\?.*)?$/, includeDependenciesRecursively: false },
             { name: "workbench-shell", test: /\/apps\/workbench-web\/src\/app\.tsx$/, includeDependenciesRecursively: false },
             { name: "embedded-styles", test: /\.(?:scss|css)\?inline$/, includeDependenciesRecursively: false },
+            // Notices and rename dialogs share generated typography. Keep their
+            // styles together when another lazy management page shares a Modal,
+            // so the common typography sheet is emitted once at startup.
+            { name: "workbench-feedback-styles", test: /\/components\/(?:async-notices|conversation-rename-dialog)\.scss$/, includeDependenciesRecursively: false },
             { name: "workbench-context", test: /\/runtime\/(?:appserver-runtime-context\.tsx|workbench-application-services\.ts)$/, includeDependenciesRecursively: false },
             { name: "vendor", test: /\/node_modules\//, entriesAware: true, includeDependenciesRecursively: false },
             // Keep the demand-loaded math renderer out of small shared protocol

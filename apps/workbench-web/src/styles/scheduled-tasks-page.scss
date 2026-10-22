@@ -1,0 +1,75 @@
+@use "@opencraft/design-system/typography.web" as typography;
+@use "@opencraft/design-system/controls.web" as controls;
+
+.scheduled-tasks-page {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 8);
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--spacing) * 4);
+    > :first-child { flex: 1; min-width: 0; }
+    > button { flex-shrink: 0; }
+    .settings-control-page-header p { @include typography.role(body, secondary); text-wrap: pretty; }
+  }
+  &__groups { display: grid; gap: calc(var(--spacing) * 8); }
+  &__group { min-width: 0; }
+  &__group-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--spacing) calc(var(--spacing) * 3);
+    padding-bottom: calc(var(--spacing) * 3);
+    border-bottom: .5px solid var(--color-border-subtle);
+    h3 { @include typography.role(settings-section-title); min-width: 0; margin: 0; }
+  }
+  &__host-state, &__empty { @include typography.role(metadata, secondary); }
+  &__host-state { margin-left: auto; }
+  &__host-state[data-phase="offline"] { color: var(--color-text-tertiary); }
+  &__host-state[data-phase="error"] { color: var(--color-text-warning); }
+  &__list { list-style: none; padding: 0; margin: 0; }
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+    padding-block: calc(var(--spacing) * 3);
+    + li { border-top: .5px solid var(--color-border-subtle); }
+    > button { flex-shrink: 0; }
+  }
+  &__copy { flex: 1; min-width: 0; }
+  &__destination {
+    @include controls.quiet-control;
+    @include controls.density-target;
+    @include typography.role(body);
+    display: block;
+    width: 100%;
+    padding: var(--spacing) 0;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  &__title {
+    @include typography.role(body);
+    display: flex;
+    align-items: center;
+    min-height: var(--size-control-hit-min);
+    padding-block: var(--spacing);
+  }
+  &__metadata {
+    @include typography.role(metadata, secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing) calc(var(--spacing) * 3);
+  }
+  &__task-state[data-state="active"] { color: var(--color-text-accent); }
+  &__task-state[data-state="review"] { color: var(--color-text-warning); }
+  &__empty { margin: 0; padding-block: calc(var(--spacing) * 4); }
+  &__refresh-pending { animation: workbench-spin 1s linear infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scheduled-tasks-page__refresh-pending { animation: none; }
+}
