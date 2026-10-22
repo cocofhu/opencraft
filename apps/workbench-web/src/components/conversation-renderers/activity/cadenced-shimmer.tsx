@@ -28,4 +28,3 @@ export function CadencedShimmer({
     </span>
   );
 }
-
