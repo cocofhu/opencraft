@@ -1977,3 +1977,5 @@ interrupting capture, controls or bounded sample collection; changing preference
 and unmounting retain a single paint/listener owner.
 
 Longing suppresses the conversation frame top-divider paint through the same recessed-material policy as the titlebar. Keep the frame border geometry so the theme switch preserves content position; other themes retain their strong divider color.
+
+Message footer sending clocks are hidden at rest on desktop and touch. Existing message hover/focus reveals user and assistant clocks while retaining their slots and time metadata. Touch action controls remain available; elapsed work duration is a separate status.

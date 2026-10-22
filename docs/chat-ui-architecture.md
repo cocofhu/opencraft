@@ -2445,3 +2445,5 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+Message footer sending clocks are hidden at rest on desktop and touch. Existing message hover/focus reveals user and assistant clocks while retaining their slots and time metadata. Touch action controls remain available; elapsed work duration is a separate status.
