@@ -2318,3 +2318,14 @@ Its DOM/style namespace is `opencraft-composer`. The naming migration changes
 no draft, selection, queue, submission or lifecycle ownership. Runtime consumers
 and existing smoke selectors move together; Codex AppServer wire identifiers
 remain external integration contracts.
+
+### Command log reading continuity
+
+Command disclosure and log reading state belong to the existing Conversation
+View. Its restore snapshot retains explicit open/collapsed choice, both log
+scroll axes and the reader's follow-output intent, keyed by source block identity.
+Virtual row remounts and returns to that same View restore the state before paint.
+New output follows only when the reader was already following; manual reading
+keeps its position. Explicitly reopening starts at latest output. A fresh View
+starts with the normal collapsed command default. These memory-only numbers and
+choices contain no output, execution state, permission or automatic action.
