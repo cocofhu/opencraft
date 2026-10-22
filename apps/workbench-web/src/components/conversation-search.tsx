@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "
 import { MessageSquare, Search } from "lucide-react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { SidebarThread } from "./sidebar";
-import { useShellPresentation } from "./shell-presentation";
+import { useDismissSidebarAfterSelection } from "./shell-presentation";
 import { ModalSurface } from "./modal/modal-surface";
 import "./conversation-search.scss";
 
@@ -63,8 +63,9 @@ export function ConversationSearch({ enabled, open, onOpenChange, threads, loadi
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, [enabled, onOpenChange]);
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   return enabled && open ? <ConversationSearchDialog threads={threads} loading={loading} sources={sources}
-    onClose={() => onOpenChange(false)} onSelectThread={onSelectThread} /> : null;
+    onClose={close} onSelectThread={onSelectThread} /> : null;
 }
 
 function ConversationSearchDialog({ threads, loading, sources, onClose, onSelectThread }: {
@@ -75,7 +76,7 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
   onSelectThread(hostId: string, threadId: string, target?: ConversationSearchTarget): void;
 }) {
   const intl = useIntl();
-  const shell = useShellPresentation();
+  const dismissSidebarAfterSelection = useDismissSidebarAfterSelection();
   const label = intl.formatMessage({ id: "sidebar.search", defaultMessage: "Search conversations" });
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -122,14 +123,14 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
       }
       if (abort.signal.aborted) return;
       onSelectThread(thread.connectionHostId, thread.id, target);
-      shell?.dismissSidebarAfterSelection();
+      dismissSidebarAfterSelection?.();
       onClose();
     } catch {
       if (!abort.signal.aborted) setSelectionError(true);
     } finally {
       if (selection.current === abort) setSelecting(false);
     }
-  }, [sources, onSelectThread, shell, onClose]);
+  }, [sources, onSelectThread, dismissSidebarAfterSelection, onClose]);
   return <ModalSurface label={label} appearance="utility" size="wide" className="conversation-search" onDismiss={onClose}>
     <div className="conversation-search__input">
       <Search size={18} aria-hidden="true" />
