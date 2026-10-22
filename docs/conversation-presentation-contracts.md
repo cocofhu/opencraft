@@ -79,3 +79,5 @@ Expo/RN 不再把这些事实重新压成通用 JSON 卡片。它和 Web 共同�
 - 用真实 patch 录制数据复核 diff 路径点击、移动/删除文件和超长 diff 截断；双行号、hunk、词内高亮与上下文折叠已经恢复。
 - 用真实多 Agent 录制数据覆盖 create → message → wait → close 的连续活动聚合与子线程导航；当前协议投影、既有文案、chip/详情视觉已经恢复。
 -
+
+- Generic dynamic tool disclosure consumes the shared live/settled activity memory: live details start open, user collapse survives progress, and completion/failure selects the settled choice (initially collapsed). MCP keeps independent default-collapsed state; history restoration does not borrow the running choice. Core presentation still decides whether there is an expandable body. See [live tool disclosure](chat-ui-architecture.md#live-tool-disclosure-state).

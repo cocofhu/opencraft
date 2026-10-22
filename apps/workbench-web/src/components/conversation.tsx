@@ -92,7 +92,9 @@ import { AsyncQuestionCard } from "./conversation/async-question-card";
 import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
+  ActivityDisclosureStateContext,
   CadencedShimmer,
+  type ActivityDisclosureState,
   useActivityOpen,
 } from "./conversation-renderers/activity/activity-disclosure";
 import {
@@ -169,7 +171,8 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useActivityOpen(presentation.state === "running");
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false,
+    `patch:${JSON.stringify([block.id, change.path, change.movePath])}`);
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -618,6 +621,7 @@ function Turn({
 
 export interface ConversationRestoreSnapshot {
   readonly agentActivityCollapsedById?: Readonly<Record<string, boolean>>;
+  readonly activityDisclosures?: Readonly<Record<string, ActivityDisclosureState>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -745,6 +749,7 @@ export function Conversation({
   );
   const activityCollapsedByIdRef = useRef(activityCollapsedById);
   activityCollapsedByIdRef.current = activityCollapsedById;
+  const [activityDisclosures] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.activityDisclosures ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
@@ -916,6 +921,7 @@ export function Conversation({
       : null;
     restoreCallbackRef.current?.({
       agentActivityCollapsedById: activityCollapsedByIdRef.current,
+      activityDisclosures: Object.fromEntries(activityDisclosures),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -923,7 +929,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [cancelPendingTargetPosition, scrollController, viewportOwner]);
+  }, [activityDisclosures, cancelPendingTargetPosition, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -979,6 +985,7 @@ export function Conversation({
     </div>
   );
   return (
+    <ActivityDisclosureStateContext.Provider value={activityDisclosures}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1072,5 +1079,6 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </ActivityDisclosureStateContext.Provider>
   );
 }

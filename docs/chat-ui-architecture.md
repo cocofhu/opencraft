@@ -2101,7 +2101,10 @@ Web/Electron Conversation owns a narrow entry-motion context. Initial display,
 Host/Thread changes and paint/sync recovery (including the first authoritative
 live snapshot) establish a baseline, rather than a new work event. AgentActivity's
 outer content and WorkStatusDivider consume that gate for their initial motion;
-restored content is visible at its final geometry on the first DOM commit. Once
+restored content is visible at its final geometry on the first DOM commit. Open tool details also consume that gate: the unmeasured height of a restored
+open body is natural `auto`, then the existing observer supplies its pixel height.
+Measurement is not a transition from zero. This also keeps the first painted frame
+stable under reduced motion. Once
 that baseline has committed, live insertion and user disclosure opening retain
 existing transitions. This does not delay content, change elapsed-time authority,
 add a cache or require backend protocol changes. A settled collapsed work header
@@ -2423,6 +2426,59 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Live tool disclosure state
+
+Generic dynamic tools use the shared activity disclosure state: a running tool
+whose presentation declares an expandable body or whose Host supplies a visible
+body starts open, a user collapse survives progress updates, and settled
+details have their own initially collapsed choice. A historical completed tool
+therefore starts collapsed without an expand-then-collapse frame. MCP details
+retain a separate initially collapsed choice. Attached approval reviews alone do not
+activate the running choice; review-only tools retain their settled/manual memory.
+Presentation still owns whether
+a tool has a body; an unknown compact dynamic tool does not expose its payload.
+`smoke-thread-tool-activity.ts` exercises native Items through the original
+projector and complete Conversation, including completed/failed settlement,
+manual reopening, historical restore and MCP/compact controls.
+
+### Tool detail choices in a retained View
+
+File-change diffs and tool disclosures keep their explicit choices in the owning
+Conversation View snapshot, keyed by tool block or patch block and file identity.
+The shared disclosure hook retains separate running-collapsed and settled-expanded
+choices; restoration does not change either phase's defaults. MCP details continue
+to start collapsed. A new View starts with the existing defaults, while returning
+to a retained View restores its choice before paint. Only presentation booleans
+are checkpointed. Website tool subcalls use the same View store, keyed by their
+source block, ordered subcall slot and tool name; each restores its own explicit
+choice independently and fresh Views retain collapsed defaults. Thread handoff
+step disclosures checkpoint their separate running and settled choices under
+the handoff block identity. Returning to the same View restores those choices;
+a fresh View keeps the running-open and settled-collapsed defaults. Output,
+permission, execution and App document state remain with
+
+their existing owners. Updated output is rendered from the current timeline.
+
+
+Thread handoff rows with reported steps use that same running/settled choice.
+The operation's queued/running status determines presentation even when its RPC
+has completed. User collapse survives progress, settlement starts with its own
+choice, and completed history starts collapsed. Empty step lists remain summary
+rows. Transport failure takes precedence over earlier running progress; the View
+does not invent progress or issue a handoff command.
+
+### Host-owned tool details
+
+The optional Conversation tool-content renderer claims the body whenever it
+returns a value other than `undefined`. Claimed content, including explicit
+`null` or `false` suppression, takes precedence over built-in thread-tool cards.
+The renderer is called once per tool render; its body is not duplicated with
+the default content. Default thread creation/navigation stays semantic when
+the Host returns `undefined` or does not provide the port. Handoff disclosures
+exist only for reported progress steps; an empty step list leaves a summary row.
+These choices own presentation and cannot create a Thread or execute a tool.
 
 Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
 
