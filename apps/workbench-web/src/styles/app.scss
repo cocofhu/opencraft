@@ -12386,27 +12386,18 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 @media (any-hover: hover) and (any-pointer: fine) {
-  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:hover, :focus-visible, [data-state="open"])) {
+  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:hover) {
     .sidebar-activity-item__trailing { opacity: 0; }
     .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
   }
 }
-// Touch retains a discoverable action beside the single activity renderer,
-// both within the same existing 44px hit target rather than another column.
-@mixin sidebar-activity-touch-menu {
-  .sidebar-activity-row[data-has-menu="true"]:has(.sidebar-activity-item__status[role="img"]) {
-    .sidebar-activity-item__trailing { opacity: 1; padding-inline-end: calc(var(--size-icon-navigation) + var(--spacing)); }
-    .sidebar-activity-item__menu-trigger:not([data-forking]) {
-      padding-inline-start: calc(var(--size-icon-navigation) + var(--spacing));
-      > .sidebar-activity-item__menu-dots { display: block; }
-    }
-    &:has(.sidebar-activity-item__menu-trigger[data-forking]) {
-      .sidebar-activity-item__trailing { opacity: 0; }
-    }
-  }
+// Touch uses the same single-glyph lane. Its transparent 44px action target
+// remains operable over activity paint; opening actions (or keyboard focus)
+// replaces that paint with dots rather than displaying both glyphs together.
+.sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:focus-visible, [data-state="open"])) {
+  .sidebar-activity-item__trailing { opacity: 0; }
+  .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
 }
-:root[data-touch-interaction] { @include sidebar-activity-touch-menu; }
-@media (hover: none), (any-pointer: coarse) { @include sidebar-activity-touch-menu; }
 .sidebar-activity-row:has(.sidebar-activity-item__menu-trigger[data-forking]) {
   .sidebar-activity-item__trailing { opacity: 0; }
 }
