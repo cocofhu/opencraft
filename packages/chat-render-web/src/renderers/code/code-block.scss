@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
+
 .chat-code-block {
   position: relative;
   contain: inline-size;
@@ -15,7 +17,8 @@
 
   figcaption {
     position: relative;
-    z-index: 2;
+    // Ordinary captions repaint with the surface during touch scrolling.
+    // Only the explicit sticky variant below needs a separate stacking level.
     display: flex;
     align-items: center;
     padding: 4px 8px;
@@ -53,11 +56,16 @@
 
   .chat-code-block__actions {
     opacity: 0;
+    @include controls.touch-input { opacity: 1; }
   }
 
-  &:hover .chat-code-block__actions,
   &:focus-within .chat-code-block__actions {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover .chat-code-block__actions {
+      opacity: 1;
+    }
   }
 }
 
@@ -91,54 +99,16 @@
   color: inherit;
   cursor: var(--cursor-interaction, default);
 
-  &:hover {
-    background: var(--color-background-primary-ghost-hover, var(--alpha-06));
-    color: var(--color-text, var(--text-primary));
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-primary-ghost-hover, var(--alpha-06));
+      color: var(--color-text, var(--text-primary));
+    }
   }
   &:focus-visible {
     outline: 2px solid var(--color-ring, var(--focus-ring));
     outline-offset: -2px;
   }
-}
-
-.chat-code-action--wrap > span {
-  font: var(--typography-code-font);
-  transform: translateY(-1px);
-}
-.chat-code-action__copy,
-.chat-code-action__check {
-  position: relative;
-  width: 13px;
-  height: 13px;
-}
-.chat-code-action__copy::before,
-.chat-code-action__copy::after {
-  position: absolute;
-  width: 7px;
-  height: 8px;
-  border: 1.2px solid currentColor;
-  border-radius: 2px;
-  content: "";
-}
-.chat-code-action__copy::before {
-  top: 1px;
-  left: 4px;
-}
-.chat-code-action__copy::after {
-  top: 4px;
-  left: 1px;
-  background: var(--color-background-secondary-soft-alpha, var(--surface-code));
-}
-.chat-code-action__check::before {
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  width: 5px;
-  height: 8px;
-  border: solid currentColor;
-  border-width: 0 1.5px 1.5px 0;
-  content: "";
-  transform: rotate(45deg);
 }
 
 .chat-code-block__scroller {

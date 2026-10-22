@@ -1,3 +1,5 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
+import { fileRequest } from "./host-resources.js";
 import { ConversationSchedules, ScheduleFault } from "@opencraft/host-schedules";
 import { CONVERSATION_SCHEDULES_EXTENSION } from "@opencraft/appserver-protocol";
 import { dshScheduleExecutionPort } from "./dsh-schedules.js";
@@ -95,36 +97,6 @@ function sendClient(socket: WebSocket, clientId: string, packet: Record<string, 
   send(socket, { ...packet, [LOGICAL_CLIENT_FIELD]: clientId || undefined });
 }
 
-async function fileRequest(method: string, params: unknown): Promise<unknown> {
-  const value = typeof params === "object" && params !== null ? params as Record<string, unknown> : {};
-  const path = resolve(String(value.path ?? homedir()));
-  if (method === "fs/readDirectory") {
-    const entries = await readdir(path, { withFileTypes: true });
-    return {
-      entries: entries.map((entry) => ({
-        fileName: entry.name,
-        isDirectory: entry.isDirectory(),
-        isFile: entry.isFile(),
-      })),
-    };
-  }
-  if (method === "fs/getMetadata") {
-    const [metadata, pathMetadata] = await Promise.all([stat(path), lstat(path)]);
-    return {
-      isDirectory: metadata.isDirectory(),
-      isFile: metadata.isFile(),
-      isSymlink: pathMetadata.isSymbolicLink(),
-      createdAtMs: Number.isFinite(metadata.birthtimeMs) ? metadata.birthtimeMs : 0,
-      modifiedAtMs: Number.isFinite(metadata.mtimeMs) ? metadata.mtimeMs : 0,
-    };
-  }
-  if (method === "fs/readFile") return { dataBase64: (await readFile(path)).toString("base64") };
-  if (method === "fs/writeFile") {
-    await writeFile(path, Buffer.from(String(value.dataBase64 ?? ""), "base64"));
-    return {};
-  }
-  throw new Error(`Unsupported filesystem method ${method}`);
-}
 
 export async function startLocalAgentHost(options: {
   readonly host?: string;
@@ -152,6 +124,7 @@ export async function startLocalAgentHost(options: {
   readonly taskServerId?: string;
   readonly taskConversationCatalog?: (serverId: string, search: string, limit: number, cursor?: string | null) => Promise<unknown>;
 } = {}) {
+  nodeObserver("dsh");
   const storage = options.storage ?? openLocalAgentStorage({ dataDirectory: options.dataDirectory });
   const cleanup: (() => void | Promise<void>)[] = [() => storage.close()];
   let stopAccepting: (() => Promise<void>) | undefined;
@@ -705,7 +678,7 @@ export async function startLocalAgentHost(options: {
               extensions: {
                 ...initialized.capabilities?.extensions,
                 [OPENCRAFT_ATTACHMENT_STAGING_EXTENSION]: attachmentStaging.capability,
-                [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true },
+                [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true, calendar: true },
               },
             },
           };

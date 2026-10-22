@@ -35,6 +35,7 @@ test("Workbench exposes Fork and Side Chat only for explicitly declared lifecycl
     { declared: undefined, fork: false, sideChat: false },
     { declared: { version: 2, fork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: false, sideChat: false },
     { declared: { version: 1, fork: true }, fork: true, sideChat: false },
+    { declared: { version: 1, fork: false, ephemeralFork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: false, sideChat: true },
     { declared: { version: 1, fork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: true, sideChat: true },
   ];
   for (const item of cases) {
@@ -296,7 +297,7 @@ test("Draft workspace discovery stays behind typed Project and filesystem resour
 });
 
 
-test("Host filesystem resources expose Codex read, metadata, write and watch semantics", async () => {
+test("Host filesystem resources expose read, metadata, write and watch semantics", async () => {
   const harness = createHarness();
   const runtime = createAppServerWorkbenchRuntime({
     hostId: "dsh",
@@ -602,7 +603,7 @@ test("Thread acquisition stays empty until its single authoritative Resume promo
     await runtime.connect();
     const lease = await runtime.acquireThread("thread-painted-first");
     assert.equal(lease.getSnapshot().authoritative, false);
-    assert.equal(lease.getSnapshot().phase, "syncing");
+    assert.equal(lease.getSnapshot().phase, "empty");
     assert.equal(lease.getSnapshot().timeline.frames.length, 0);
     assert.equal(runtime.getThreadResidency("thread-painted-first")?.hydrating, true);
     let visibleTimelinePromotions = 0;

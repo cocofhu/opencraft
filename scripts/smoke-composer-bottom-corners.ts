@@ -13,18 +13,18 @@ await server.listen();
 const browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
 const results: unknown[] = [];
 try {
- for (const width of [320, 390, 1280]) for (const mode of ["light", "dark"]) for (const newera of [false, true]) {
+ for (const width of [1280, 320, 390]) for (const mode of ["light", "dark"]) for (const newera of [false, true]) {
   const page = await browser.newPage({ viewport: { width, height: 800 }, hasTouch: width < 768 });
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await page.addInitScript("window.__name=value=>value");
-  await page.goto(`${server.resolvedUrls!.local[0]}?palette=opencraftNeutral&mode=${mode}&pickerFocus&corners`);
+  await page.goto(`${server.resolvedUrls!.local[0]}?palette=neutral&mode=${mode}&pickerFocus&corners`);
   const editor = page.locator(".opencraft-composer-editor"); await editor.waitFor();
   await page.evaluate(({ width, newera }) => { (window as any).setTouch(width < 768); (window as any).setNewera(newera); }, { width, newera });
   await editor.fill("保留草稿与焦点"); await page.waitForTimeout(180);
   await editor.evaluate(node => { (window as any).keptEditor = node; });
   const initial = await page.locator(".opencraft-composer-stack").boundingBox();
-  // The shell floats over transcript paint at its lower corner cutouts.
-  // Only desktop clips the gutter, with a straight horizontal edge.
+  // Desktop cuts off transcript before the lower rounded corners.
+  // Touch keeps the lower corners and safe-area gutter floating.
   await page.locator(".thread-scroll-footer").evaluate(node => {
    const marker = document.createElement("div"); marker.id = "corner-activity-probe";
    marker.setAttribute("aria-hidden", "true"); marker.style.cssText = "position:absolute;inset:0;z-index:0;pointer-events:none;background:#ff00ff";
@@ -36,7 +36,7 @@ try {
    const before = await page.screenshot({ clip });
    await page.locator("#corner-activity-probe").evaluate(node => { (node as HTMLElement).style.background = "#00ff00"; });
    const after = await page.screenshot({ clip });
-   assert(!before.equals(after), `${width}/${mode}/${newera}/${side}: exterior contour must not follow shell radius`);
+   assert.equal(before.equals(after), width >= 768, `${width}/${mode}/${newera}/${side}: desktop hides transcript outside lower corners; touch floats`);
    await page.locator("#corner-activity-probe").evaluate(node => { (node as HTMLElement).style.background = "#ff00ff"; });
   }
   // Change input density on the SAME editor; width must not choose the paint.
@@ -44,7 +44,22 @@ try {
   for (const touch of [false, true]) {
    await page.evaluate(touch => (window as any).setTouch(touch), touch);
    await page.waitForTimeout(60);
-   const footer = (await page.locator(".thread-scroll-footer").boundingBox())!;
+   const footerNode = page.locator(".thread-scroll-footer");
+   const footer = (await footerNode.boundingBox())!;
+   if (!touch) {
+    const shellBounds = (await shell.boundingBox())!;
+    const radius = await shell.evaluate(node => parseFloat(getComputedStyle(node).borderBottomLeftRadius));
+    const coverHeight = await footerNode.evaluate(node => parseFloat(getComputedStyle(node, "::after").height));
+    const cutoff = footer.y + footer.height - coverHeight;
+    assert(cutoff <= shellBounds.y + shellBounds.height - radius + 1, "desktop cutoff starts before the lower corner arc");
+    for (const x of [footer.x + 2, footer.x + footer.width / 2, footer.x + footer.width - 5]) {
+     const clip = { x: Math.round(x), y: Math.ceil(cutoff + 2), width: 3, height: 3 };
+     const before = await page.screenshot({ clip });
+     await page.locator("#corner-activity-probe").evaluate(node => { (node as HTMLElement).style.background = "#00ff00"; });
+     assert(before.equals(await page.screenshot({ clip })), "desktop cutoff is opaque across the full footer width");
+     await page.locator("#corner-activity-probe").evaluate(node => { (node as HTMLElement).style.background = "#ff00ff"; });
+    }
+   }
    const gutter = { x: Math.round(footer.x + footer.width / 2), y: Math.floor(footer.y + footer.height - 5), width: 3, height: 3 };
    const before = await page.screenshot({ clip: gutter });
    await page.locator("#corner-activity-probe").evaluate(node => { (node as HTMLElement).style.background = "#00ff00"; });
@@ -61,8 +76,9 @@ try {
   await editor.click();
   assert(await editor.evaluate(node => node === (window as any).keptEditor && node.contains(document.activeElement)), "same editor retains focus");
   assert.equal(await editor.innerText(), "保留草稿与焦点");
-  await page.locator(".opencraft-composer-mode--intelligence").focus(); await page.keyboard.press("Enter");
-  await page.locator(".opencraft-composer-model-quick[data-state=open]").waitFor(); await page.keyboard.press("Escape");
+  const modelTrigger = page.locator(".opencraft-composer-mode--intelligence");
+  await modelTrigger.focus(); await modelTrigger.press("Enter");
+  await page.locator(".opencraft-composer-model-quick[data-state=open], .opencraft-composer-selection-menu--intelligence[data-state=open]").waitFor(); await page.keyboard.press("Escape");
   await page.evaluate(() => (window as any).setQueue(true)); await page.waitForTimeout(60);
   assert.equal(await shell.evaluate(node => getComputedStyle(node).overflow), "visible", "menus are not clipped");
   if (width === 390 || width === 1280) await page.screenshot({ path: `${output}/${width}-${mode}-${newera}.png` });

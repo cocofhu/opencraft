@@ -1,9 +1,10 @@
+import { CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import type {
   ModalDescriptor,
   ModalDismissReason,
 } from "@opencraft/design-system/modal";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useWorkbenchPresentationRoot } from "../workbench-presentation-root";
 
@@ -77,6 +78,10 @@ export function ModalSurface({
           data-size={size}
           data-stack-index={stackIndex}
           style={layerStyle}
+          onEscapeKeyDown={(event) => {
+            // The input method owns Escape until its composition has ended.
+            if (event.isComposing || event.keyCode === 229) event.preventDefault();
+          }}
           onPointerDownOutside={(event) => {
             if (!dismissOnOutsidePress) {
               event.preventDefault();

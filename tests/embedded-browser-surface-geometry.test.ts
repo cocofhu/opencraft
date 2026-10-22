@@ -32,3 +32,24 @@ test("iframe placement subtracts the embedded root offset while retaining viewpo
   assert.equal(container.style.left, "1000px", "standalone keeps window coordinates");
   assert.equal(iframe.tabIndex, 0);
 });
+
+
+test("reveal clips pixels without shrinking a fixed-device backing or changing embedded coordinates", () => {
+  const host = new WebIframeSurfaceHost();
+  host.setRoot({ getBoundingClientRect: () => ({ left: 320, top: 48 }), prepend() {} } as unknown as HTMLElement);
+  const iframe = { style: {} as Record<string, string>, dataset: {}, tabIndex: 0, setAttribute() {} };
+  const container = { style: {} as Record<string, string>, dataset: {} };
+  (host as any).surfaces.set("page", { container, iframe });
+  const layout = { visualBounds: { x: 500, y: 100, width: 200, height: 400 },
+    stageBounds: { x: 520, y: 130, width: 100, height: 320 }, viewportSize: { width: 400, height: 800 }, scale: 0.5 };
+  host.commit("page" as any, layout, "visible");
+  assert.equal(container.style.clipPath, "inset(30px 80px 50px 20px)");
+  assert.equal(container.style.left, "180px");
+  assert.equal(container.style.width, "200px");
+  assert.equal(iframe.style.width, "400px");
+  host.commit("page" as any, { ...layout, stageBounds: layout.visualBounds }, "visible");
+  assert.equal(container.style.clipPath, "inset(0px 0px 0px 0px)", "reveal clears the prior clip");
+  host.commit("page" as any, { ...layout, stageBounds: { x: 900, y: 100, width: 0, height: 400 } }, "staged");
+  assert.equal(container.style.clipPath, "inset(0px 0px 0px 200px)", "offscreen backing has no painted/hittable width");
+  assert.equal(iframe.style.width, "400px");
+});

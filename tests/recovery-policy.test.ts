@@ -3,27 +3,17 @@ import test from "node:test";
 import { ConversationRecoveryOwner, type RecoveryDemand } from "../packages/workbench-runtime/src/recovery-policy";
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 function fixture() {
- let now = 0, seq = 0, connects = 0;
+ let now = 0, seq = 0;
  const timers = new Map<number, { at: number; run(): void }>();
  const events: Record<string, string | number>[] = [];
  const owner = new ConversationRecoveryOwner({hostId:"test", clock: {
   now: () => now,
   setTimeout(run, delay) { const id = ++seq; timers.set(id, {at:now+delay,run}); return id; },
   clearTimeout(id) { timers.delete(id as number); },
- }, reconnect:async()=>{connects++;}, log:event=>events.push({...event})});
+ }, log:event=>events.push({...event})});
  const advance = async (ms: number) => { now+=ms; for(const [id,t] of [...timers]) if(t.at<=now){timers.delete(id);t.run();} await tick(); };
- return {owner,events,advance,timers,get connects(){return connects;}};
+ return {owner,events,advance,timers,};
 }
-test("one outage keeps correlation/backoff through retries and manual failure cancels pending work", async () => {
- const f=fixture();
- f.owner.begin("transport-unavailable"); f.owner.schedule(false); f.owner.schedule(false);
- assert.equal(f.timers.size,1); await f.advance(500); assert.equal(f.connects,1);
- f.owner.schedule(false); assert.equal(f.events.filter(e=>e.stage==='backoff').at(-1)?.delayMs,1000);
- f.owner.schedule(true); await f.advance(1000); assert.equal(f.connects,1);
- assert.equal(new Set(f.events.map(e=>e.recoveryId)).size,1);
- f.owner.ready(()=>true); await f.advance(60_000); assert.equal(f.owner.reconnectAttempt,0);
- f.owner.dispose();
-});
 test("visible recovers first, background is bounded, caches stay lazy and promotions start without waiting", async () => {
  const f=fixture(), started:string[]=[], releases=new Map<string,()=>void>();
  const work=(name:string,demand:RecoveryDemand)=>({key:{},demand:()=>demand,retryable:()=>false,
@@ -44,21 +34,6 @@ test("failed visible recovery settles and permits hidden recovery; duplicate tri
  const first=f.owner.recover(task); assert.equal(f.owner.recover(task),first); await first;
  let hidden=false; await f.owner.recover({key:{},demand:()=>"open",retryable:()=>false,run:async()=>{hidden=true;}});
  assert.equal(runs,1);assert.equal(hidden,true);f.owner.dispose();
-});
-
-test("foreground hints can advance a long backoff once per burst without resetting escalation", async () => {
- const f=fixture();
- for(let i=0;i<7;i++){f.owner.schedule(false);await f.advance(60_000);}
- f.owner.schedule(false);
- assert.equal(f.events.filter(e=>e.stage==='backoff').at(-1)?.delayMs,60_000);
- assert.equal(f.owner.admitRecoveryHint(),true);
- f.owner.cancelConnection();
- assert.equal(f.owner.waiting,false);
- assert.equal(f.owner.admitRecoveryHint(),false);
- f.owner.schedule(false);
- assert.equal(f.events.filter(e=>e.stage==='backoff').at(-1)?.delayMs,60_000);
- await f.advance(5_000);assert.equal(f.owner.admitRecoveryHint(),true);
- f.owner.dispose();assert.equal(f.owner.admitRecoveryHint(),false);
 });
 
 test("explicit retry wakes delayed history, applies the new policy and shares the active read", async () => {
@@ -106,14 +81,13 @@ test("observable progress distinguishes connection backoff and per-conversation 
  f.owner.connectionStage("initializing");
  assert.equal(f.owner.getProgress()?.stageStartedAt,123);
  f.owner.connectionFailed({code:"TIMEOUT",message:"secret",data:{token:"secret"}});
- f.owner.schedule(false);
+ f.owner.connectionBackoff(1,500);
  assert.equal(f.owner.getProgress()?.recoveryId,id);
  assert.equal(f.owner.getProgress()?.retryAt,623);
  assert.equal(f.owner.getProgress()?.lastFailure?.code,"TIMEOUT");
- assert.equal(f.connects,0);
  for(let i=0;i<100;i++)f.owner.getProgress();
- assert.equal(f.connects,0);assert.equal(f.timers.size,1);
- f.owner.cancelConnection();f.owner.ready(()=>true,false);
+ assert.equal(f.timers.size,0);
+ f.owner.hostReady();
  assert.equal(f.owner.getProgress(),undefined);
  const key={},other={};let reads=0,release!:()=>void;
  const done=f.owner.recover({key,demand:()=>"visible",retryable:()=>true,run:async()=>{
@@ -138,11 +112,11 @@ test("observable progress distinguishes connection backoff and per-conversation 
 
 test("diagnostic history is bounded, manual stop has no retry deadline and invalidation fences late work",async()=>{
  const f=fixture();
- for(let i=0;i<20;i++){f.owner.begin("connecting");f.owner.connectionFailed({code:"private text"});f.owner.schedule(false);f.owner.cancelConnection();}
+ for(let i=0;i<20;i++){f.owner.begin("connecting");f.owner.connectionFailed({code:"private text"});f.owner.connectionBackoff(1,500);}
  assert.equal(f.owner.getProgress()?.events.length,12);
  assert.equal(f.owner.getProgress()?.attempt,20);
  assert.equal(f.owner.getProgress()?.lastFailure?.code,"UNCLASSIFIED");
- f.owner.schedule(true);
+ f.owner.connectionBlocked();
  assert.equal(f.owner.getProgress()?.stage,"blocked");assert.equal(f.owner.getProgress()?.retryAt,undefined);
  const key={};let reject!:(error:unknown)=>void;
  const done=f.owner.recover({key,demand:()=>"visible",retryable:()=>true,run:()=>new Promise<void>((_,fail)=>{reject=fail;})});

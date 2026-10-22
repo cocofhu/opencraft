@@ -1,6 +1,7 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { ChevronRightIcon as ChevronRight, LoadingRingIcon as LoaderCircle, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
-import { ChevronRight, ExternalLink, LoaderCircle, Plug, Search } from "lucide-react";
+import { ExternalLinkIcon as ExternalLink, PlugIcon as Plug } from "@opencraft/design-system-web/action-icons";
 import { useMemo, useRef, useState } from "react";
 
 import { SettingsTextInput } from "@opencraft/extension-react";

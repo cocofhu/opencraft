@@ -1,7 +1,8 @@
+import { ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, ChevronUpIcon as ChevronUp, MoreIcon as Ellipsis, LoadingRingIcon as LoaderCircle, AddIcon as Plus, RefreshIcon as RefreshCw, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import * as Popover from "@radix-ui/react-popover";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { ChevronDown, ChevronRight, ChevronUp, Ellipsis, Eye, EyeOff, LoaderCircle, Plus, RefreshCw, Search } from "lucide-react";
+import { EyeIcon as Eye, EyeOffIcon as EyeOff } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { SettingsButton, SettingsIconButton, SettingsNotice, SettingsSelect, SettingsSwitch, SettingsTextInput, type ExtensionSettingsViewProps } from "@opencraft/extension-react";
 import type { RuntimeProviderView, RuntimeModelView } from "@opencraft/appserver-protocol";
@@ -211,7 +212,7 @@ function ProviderDetail({ controller, provider }: { controller: ModelServicesCon
         </SettingsSelect><SettingsButton disabled={!editable || !testModel || !!baseUrlIssue || draft.dirty} onClick={() => { void controller.test(provider, testModel); }}>检查</SettingsButton></div>
       </div> : null}
       {provider.configuration?.apis.includes("openai-responses") ? <details className="model-services__advanced">
-        <summary>高级设置{draft.config.api === "openai-responses" ? <span>协议：Responses API</span> : null}</summary>
+        <summary className="ui-native-disclosure">高级设置{draft.config.api === "openai-responses" ? <span>协议：Responses API</span> : null}</summary>
         <div className="model-services__row"><div><label>Responses API</label><p>使用 Responses API 发送请求</p></div><div className="model-services__row-end"><SettingsSwitch label="Responses API" checked={draft.config.api === "openai-responses"} disabled={!editable} onCheckedChange={value => change({ api: value ? "openai-responses" : "openai-completions" })} /></div></div>
       </details> : null}
       <div className="model-services__connection-actions"><SettingsButton disabled={controller.busy} onClick={() => { controller.discard(provider); void controller.inspectCredential(provider); }}>取消</SettingsButton><SettingsButton variant="primary" disabled={!editable || !!baseUrlIssue} onClick={() => { void controller.save(provider).then(() => { if (!controller.error && !controller.draft(provider).dirty) { controller.draft(provider).connectionExpanded = false; controller.notify(); } }); }}>保存并收起</SettingsButton></div>
@@ -225,7 +226,7 @@ function ProviderDetail({ controller, provider }: { controller: ModelServicesCon
         {provider.configuration?.modelDeclarations ? <CreatePopover label="添加模型" disabled={!editable || draft.dirty} onCreate={async name => { await controller.addModel(provider, { id: name }); if (controller.error) throw new Error(controller.error); }} /> : null}
       </div></div>
       {rows(true)}
-      {filtered.some(model => model.enabled === false) ? <details><summary>未启用模型</summary>{rows(false)}</details> : null}
+      {filtered.some(model => model.enabled === false) ? <details><summary className="ui-native-disclosure">未启用模型</summary>{rows(false)}</details> : null}
       {!filtered.length ? <p className="model-services__muted">{models.size ? "没有匹配的模型" : "暂无模型"}</p> : null}
     </section>
     {controller.error ? <SettingsNotice tone="error">{controller.error}</SettingsNotice> : null}
@@ -249,7 +250,7 @@ export function createModelServicesView(controller: ModelServicesController) {
         <div className="model-services__search"><Search size={16} aria-hidden="true" /><SettingsTextInput aria-label="搜索提供商" placeholder="搜索提供商" value={controller.query} onChange={event => { controller.query = event.target.value; controller.notify(); }} />
           <CreatePopover label="添加提供商" allowSpeech={!!snapshot.providers?.creation?.speech} disabled={controller.busy || !snapshot.providers?.creation} onCreate={async (name, type) => { await controller.create(name, type); if (controller.error) throw new Error(controller.error); }} />
         </div>
-        {([ ["已启用", (p: RuntimeProviderView) => p.enabled], ["自定义", (p: RuntimeProviderView) => !p.enabled && p.declared], ["未启用", (p: RuntimeProviderView) => !p.enabled && !p.declared] ] as const).map(([title, filter]) => <details open={title !== "未启用" || !!controller.query || !!(selected && filter(selected))} key={title} hidden={!visible.some(filter)}><summary>{title}</summary>{visible.filter(filter).map(providerRow)}</details>)}
+        {([ ["已启用", (p: RuntimeProviderView) => p.enabled], ["自定义", (p: RuntimeProviderView) => !p.enabled && p.declared], ["未启用", (p: RuntimeProviderView) => !p.enabled && !p.declared] ] as const).map(([title, filter]) => <details open={title !== "未启用" || !!controller.query || !!(selected && filter(selected))} key={title} hidden={!visible.some(filter)}><summary className="ui-native-disclosure">{title}</summary>{visible.filter(filter).map(providerRow)}</details>)}
       </aside>
       <div className="model-services__main"><div className="model-services__mobile-select"><SettingsSelect aria-label="选择提供商" value={selected?.provider ?? ""} onChange={event => pick(event.target.value || null)}><option value="">全部提供商</option>{providers.map(provider => <option key={provider.provider} value={provider.provider}>{provider.displayName}</option>)}</SettingsSelect><CreatePopover label="添加提供商" allowSpeech={!!snapshot.providers?.creation?.speech} disabled={controller.busy || !snapshot.providers?.creation} onCreate={async (name, type) => { await controller.create(name, type); if (controller.error) throw new Error(controller.error); }} /></div>
         {snapshot.providers?.application?.state === "failed" ? <SettingsNotice tone="error">{snapshot.providers.application.error}<SettingsButton disabled={controller.busy} onClick={() => { void controller.run(()=>controller.service.reapply()); }}>重试应用</SettingsButton></SettingsNotice> : null}

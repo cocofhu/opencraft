@@ -8,6 +8,7 @@ import {
   ConversationRecoveryNotice,
   ConversationRecoveryEmptyState,
   conversationRecoveryPresentation,
+  conversationRecoveryIsPending,
 } from "../apps/workbench-web/src/components/conversation-recovery";
 
 test("recovery presentation retains painted history across syncing and failure", () => {
@@ -18,7 +19,7 @@ test("recovery presentation retains painted history across syncing and failure",
   assert.equal(conversationRecoveryPresentation({ authoritative: true, hasVisibleHistory: true, failed: false }), "none");
 });
 
-test("cold loading and background sync use passive rings; failures keep an actionable retry", () => {
+test("cold loading delegates to the Composer; retained history has no notice until manual recovery is needed", () => {
   const runtime = new LocaleRuntime([]);
   const render = (child: ReactElement) => renderToStaticMarkup(createElement(IntlRuntimeProvider, { runtime, children: child }));
   const notice = render(createElement(ConversationRecoveryNotice, { failed: false, reconnecting: true }));
@@ -26,19 +27,11 @@ test("cold loading and background sync use passive rings; failures keep an actio
   const error = render(createElement(ConversationRecoveryNotice, { failed: true, reconnecting: true, onRetry() {} }));
   const loading = render(createElement(ConversationRecoveryEmptyState, { failed: false }));
   const coldError = render(createElement(ConversationRecoveryEmptyState, { failed: true, onRetry() {} }));
-  assert.match(notice, /conversation-recovery-notice/);
-  assert.doesNotMatch(notice, /workbench-loading-spinner|conversation-hydration-stage/);
-  assert.match(syncing, /Syncing/);
-  assert.match(syncing, /workbench-loading-spinner/);
-  assert.match(syncing, /conversation-recovery-loading__label/);
-  assert.doesNotMatch(syncing, /conversation-recovery-notice__dot/);
+  assert.equal(notice, "");
+  assert.equal(syncing, "");
   assert.match(error, /role="alert"/);
   assert.match(error, /<button/);
-  assert.match(loading, /role="status"/);
-  assert.match(loading, /conversation-recovery-loading__label/);
-  assert.match(loading, /<svg[^>]*aria-hidden="true"[^>]*focusable="false"/);
-  assert.match(loading, /<circle[^>]*opacity="0.3"/);
-  assert.doesNotMatch(loading, /<button|tabindex|skeleton__line/);
+  assert.equal(loading, "");
   assert.match(coldError, /role="alert"/);
   assert.match(coldError, /<button/);
   assert.doesNotMatch(coldError, /workbench-loading-spinner/);
@@ -82,7 +75,7 @@ test("technical details distinguish history errors and never copy remote text or
       createElement(ConversationRecoveryNotice, { failed: true, reconnecting: false, diagnostic }),
     ]) {
       const markup = renderToStaticMarkup(createElement(IntlRuntimeProvider, { runtime, children: component }));
-      assert.match(markup, /<details[^>]*><summary>Technical details/);
+      assert.match(markup, /<details[^>]*><summary[^>]*>Technical details/);
       assert.match(markup, /History restore failed/);
       assert.match(markup, /Copy details/);
       assert.doesNotMatch(markup, /<details[^>]*open|secret|stale/);
@@ -109,7 +102,9 @@ test("loading hides technical observations while failures retain diagnostic deta
    createElement(ConversationRecoveryEmptyState,{failed:true,diagnostic}),
   ]){
    const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
-   assert.match(html,/role="(?:status|alert)"/);
+   if (child.type === ConversationRecoveryNotice) assert.equal(html, "", "automatic retry remains silent even after an intermediate failure");
+   else if (child.props.failed) assert.match(html,/role="alert"/);
+   else assert.equal(html, "");
    assert.doesNotMatch(html,/Technical details|Copy details|Attempts started|elapsed|Retry in|TIMEOUT|local-episode|<details|<pre/);
   }
   const terminalDiagnostic={...diagnostic,progress:{...diagnostic.progress,stage:"failed" as const}};
@@ -123,4 +118,43 @@ test("loading hides technical observations while failures retain diagnostic deta
    assert.doesNotMatch(html,/<details[^>]*open/);
   }
  }finally{runtime.dispose();}
+});
+
+test('console prints the full allowlisted clipboard snapshot with physical correlation', async context => {
+ const {logConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText,createConversationRecoveryDiagnostic}=await import('../apps/workbench-web/src/runtime/conversation-recovery-diagnostic');
+ const values:unknown[][]=[];context.mock.method(console,'log',(...args:unknown[])=>{values.push(args);});
+ const diagnostic=createConversationRecoveryDiagnostic({stage:'history',runtime:'ready',error:{code:'TIMEOUT',message:'secret-body'},transport:{state:'open',attemptId:'11111111-1111-4111-8111-111111111111',reason:'secret-url'}});
+ const expected=conversationRecoveryDiagnosticText(diagnostic,1234);
+ assert.equal(logConversationRecoveryDiagnostic(diagnostic,1234),expected);
+ assert.deepEqual(values,[['[conversation-recovery] details\n'+expected]]);
+ assert.match(expected,/attemptId: 11111111-1111-4111-8111-111111111111/);assert.doesNotMatch(expected,/secret/);
+});
+
+
+
+
+test("Composer recovery scan follows current recovery, including automatic retries, but stops on terminal errors", async () => {
+  const { createConversationRecoveryDiagnostic } = await import("../apps/workbench-web/src/runtime/conversation-recovery-diagnostic");
+  const diagnostic = createConversationRecoveryDiagnostic({ stage: "history", error: null, runtime: "ready", transport: {state: "open"} });
+  assert.equal(conversationRecoveryIsPending("none"), false);
+  assert.equal(conversationRecoveryIsPending("cold-loading"), true);
+  assert.equal(conversationRecoveryIsPending("warm-loading"), true);
+  assert.equal(conversationRecoveryIsPending("warm-error"), false);
+  for (const stage of ["connecting", "initializing", "queued", "history", "backoff", "blocked", "failed"] as const) {
+    const observation = { ...diagnostic, progress: { recoveryId: "test", startedAt: 0, stage, stageStartedAt: 0, attempt: 1, events: [] } };
+    assert.equal(conversationRecoveryIsPending("warm-error", observation), stage !== "blocked" && stage !== "failed");
+    assert.equal(conversationRecoveryIsPending("cold-loading", observation), stage !== "blocked" && stage !== "failed");
+    assert.equal(conversationRecoveryIsPending("warm-error", observation, true), false);
+  }
+});
+
+
+test('console prints the full allowlisted clipboard snapshot with physical correlation', async context => {
+ const {logConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText,createConversationRecoveryDiagnostic}=await import('../apps/workbench-web/src/runtime/conversation-recovery-diagnostic');
+ const values:unknown[][]=[];context.mock.method(console,'log',(...args:unknown[])=>{values.push(args);});
+ const diagnostic=createConversationRecoveryDiagnostic({stage:'history',runtime:'ready',error:{code:'TIMEOUT',message:'secret-body'},transport:{state:'open',attemptId:'11111111-1111-4111-8111-111111111111',reason:'secret-url'}});
+ const expected=conversationRecoveryDiagnosticText(diagnostic,1234);
+ assert.equal(logConversationRecoveryDiagnostic(diagnostic,1234),expected);
+ assert.deepEqual(values,[['[conversation-recovery] details\n'+expected]]);
+ assert.match(expected,/attemptId: 11111111-1111-4111-8111-111111111111/);assert.doesNotMatch(expected,/secret/);
 });

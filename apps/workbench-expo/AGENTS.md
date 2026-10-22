@@ -1,5 +1,7 @@
 # Expo 手机端 Agent 入口
 
+公开实验入口 `OPENCRAFT_EXPO_WORKBENCH=web` 复用完整 Web 触控工作台；Expo 只拥有原生容器能力，不能复制会话、草稿、导航或面板状态。当前默认仍为 RN；实验入口与下游产品选择互斥。改动先读 [打包 Web 工作台](../../docs/mobile-workbench-container.md)，区分浏览器/打包与双端硬件验收，不能在能力未对齐时切换默认或删除回退。
+
 先遵循仓库根 `AGENTS.md` 和 `opencraft/AGENTS.md`。本文件只把手机任务路由到当前设计，不复制完整实现。
 
 公开默认入口装配既有 RN Workbench/Composer 与直连 Host。下述下游产品登录、Bot、Router 和发行身份规则属于显式下游产品，由下游产品 `products/<product>/run-expo.cjs` 选择；不能让公开构建隐式要求其账号或 Bot 生成物。通用入口的能力与本地产品选择见 [Expo README](README.md#public-and-downstream-product-entries)，私有源码与生成工具已由下游持有。

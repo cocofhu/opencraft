@@ -3,6 +3,7 @@ import { selectAssetEncoding } from "./web-asset-encoding.mjs";
 
 import { createReadStream } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
+import { resourceRecoveryHtml, resourceRecoveryPath } from "./web-resource-recovery.mjs";
 import { createServer } from "node:http";
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -176,7 +177,7 @@ async function serveFile(request, response, path, pathname, deploymentConfig) {
   if (!metadata.isFile()) return false;
   response.statusCode = 200;
   const html = pathname === "/" || pathname === "/index.html"
-    ? injectWebsiteDeploymentConfig(await readFile(path, "utf8"), deploymentConfig) : null;
+    ? resourceRecoveryHtml(injectWebsiteDeploymentConfig(await readFile(path, "utf8"), deploymentConfig), request.url || "/") : null;
   response.setHeader("content-length", html === null ? metadata.size : Buffer.byteLength(html));
   response.setHeader("content-type", contentTypes.get(extname(path).toLowerCase()) || "application/octet-stream");
   response.setHeader("x-content-type-options", "nosniff");
@@ -275,21 +276,23 @@ export async function createWorkbenchWebServer({
         return;
       }
 
-      const requestedPath = resolveRequestPath(staticRoot, url.pathname);
+      const resourcePath = resourceRecoveryPath(url.pathname);
+      const requestedPath = resolveRequestPath(staticRoot, resourcePath);
       if (requestedPath == null) {
         sendJson(response, 400, { ok: false, error: "Invalid path" });
         return;
       }
       try {
-        if (await serveFile(request, response, requestedPath, url.pathname, deploymentConfig)) return;
+        if (await serveFile(request, response, requestedPath, resourcePath, deploymentConfig)) return;
+        if (extname(url.pathname) === "" && await serveFile(request, response, join(requestedPath, "index.html"), url.pathname, deploymentConfig)) return;
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }
 
       if (optionalResources) {
         try {
-          const optional = await optionalResources.resolveFile(url.pathname);
-          if (optional && await serveFile(request, response, optional, url.pathname, deploymentConfig)) return;
+          const optional = await optionalResources.resolveFile(resourcePath);
+          if (optional && await serveFile(request, response, optional, resourcePath, deploymentConfig)) return;
         } catch { sendJson(response, 503, { ok: false, error: "Optional resources are unavailable; retry later" }); return; }
       }
 

@@ -9,6 +9,20 @@ guide is a target contract, not a claim that existing pages have been migrated.
 The target sidebar and draft target picker use the existing workbench palette,
 typography and surfaces, not a separate the downstream product theme.
 
+## Scheduled task catalog
+
+The scheduled task document uses the shared SettingsContent width, inset and
+scroll surface. Tool routes do not override document geometry; master-detail and
+edge-to-edge pages retain their explicit layout contracts. Server groups use
+quiet heading/state lines and separated task rows. The task title opens its
+conversation; an independent quiet action opens the existing schedule manager.
+One page refresh covers discovery and all eligible groups, with stable pending
+feedback. Cold loading, empty and disconnected groups are distinct. Cached rows
+remain through refresh and failure; errors use the shared notification owner,
+without inserting a card above the list. Connection state is shown beside the
+group identity and cached provenance is available on that state label. Creation
+remains in the conversation menu; the catalog does not own scheduling or writes.
+
 ## Ownership
 
 - Activity chronology groups tasks. Stable Server identity remains per-task
@@ -132,6 +146,18 @@ Primary Sidebar routes also share one leading icon slot and text axis. A route
 group may retain its own accessible navigation landmark without rendering a
 visual heading; section separation comes from the Shell spacing tokens rather
 than stacked feature margins.
+
+All Web surfaces consume `controls.hover-capable`, including Composer, content
+toolbars and plugins. It combines fine-hover capability with the document's
+current input, and supports both nested rules and complete root selectors.
+Split hover from keyboard focus, open and selected branches before applying the
+gate; do not gate the complete state list. `controls.touch-input` keeps essential
+copy, edit and card actions available on coarse devices and after hybrid touch.
+Neither helper changes the saved touch-density preference. Hover convergence must retain the startup resource budgets. Hover entry handlers
+must distinguish mouse pointers; touch and pen activate through explicit actions.
+Separate HTML documents bind their own input signal. `npm run check:hover`
+enforces these rules for first-party styles and hover entry handlers; product
+source roots can be passed as extra directory arguments.
 
 The persistent desktop titlebar rail has one disclosure rule: while the
 Sidebar is open, Start is the single new-task affordance; while it is hidden, a
@@ -398,13 +424,28 @@ loaded board. Background refresh, failure and view re-entry retain the last
 successful snapshot, mounted cards, scroll and drafts. No artificial delay,
 placeholder records, storage migration or additional persistent cache is needed.
 
-Conversation row actions share the same Lucide SVG icons in right-click and More
-menus: Pin/PinOff, Pencil, GitFork, Archive and Trash2 at 16px, inheriting the
+Conversation row actions share the same semantic SVG icons in right-click and More
+menus: pin/unpin, edit, fork, archive and delete at 16px, inheriting the
 menu text color and existing icon spacing. Display-mode and filter rows retain
 their reserved check-indicator column; action icons do not replace selection state.
 
 
 ### Contributed navigation icons
+
+Common action artwork is owned by `design-system-web/action-icons`, including
+close/add/check, edit/delete/copy, menu chevrons and more, loading and distinct
+reset/refresh/rotate/replay controls. Static model/search/terminal/folder glyphs
+consume the same family through the Workbench semantic registry. Supplemental
+library icons and identity artwork remain available. The Shell and navigation
+adapters retain their existing role sizes, selected fill/stroke, hit areas and
+fallback behavior; sidebar/split-toggle artwork is explicitly preserved.
+See [action artwork](../design/ui/composer-icons.md) for this shared owner and
+its reduced-motion and busy-state boundaries. The optional async-question card
+loads its component and stylesheet together on first use, within a boundary
+around that card. Question state remains above the boundary, and unrelated
+conversation content and draft/editor owners remain mounted. Its styles do not
+occupy the startup CSS budget of conversations without a question.
+
 
 Extensions declare semantic icon names for navigation and settings pages. The Web
 adapter resolves every registered name in both standard and classic presentation;
@@ -449,3 +490,14 @@ remain separate from material. A material update does not implement a usage
 backend, historical trace or session dashboard.
 
 Release material checks must exercise the minified CSS through the same real consumers. Keep prefixed backdrop-filter before the standard declaration so CSS optimization preserves both browser contracts.
+
+
+## Utility panel style lifetime
+
+Shared `SettingsPanel` geometry loads with the common Modal stylesheet, before
+any account or other contributed utility window can open. The lazy Settings
+route must not be the only importer: a fresh Workbench document can open these
+windows directly. The panel retains its header spacing, content insets and
+container-driven row layout without requiring a previous Settings visit.
+Feature-specific Settings styles remain lazy; account providers supply content
+and actions while Modal/Radix retains window, dismissal and focus ownership.

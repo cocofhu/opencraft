@@ -10,41 +10,77 @@ const expoRoot = resolve(import.meta.dirname, "../apps/workbench-expo");
 const require = createRequire(import.meta.url);
 const configureExpo = require(join(expoRoot, "app.config.js"));
 
-const withProfile = (android, ios, run) => {
-  const beforeAndroid = process.env.OPENCRAFT_ANDROID_RELEASE;
-  const beforeIos = process.env.OPENCRAFT_IOS_RELEASE;
+const publicNotice = require("../packages/react-runtime/NOTICE.json");
+
+const withBuildInputs = ({ android = false, ios = false, config }, run) => {
+  const inputs = {
+    OPENCRAFT_ANDROID_RELEASE: android ? "1" : undefined,
+    OPENCRAFT_IOS_RELEASE: ios ? "1" : undefined,
+    OPENCRAFT_EXPO_PRODUCT_CONFIG: config,
+  };
+  const saved = Object.fromEntries(Object.keys(inputs).map(key => [key, process.env[key]]));
   try {
-    if (android) process.env.OPENCRAFT_ANDROID_RELEASE = "1";
-    else delete process.env.OPENCRAFT_ANDROID_RELEASE;
-    if (ios) process.env.OPENCRAFT_IOS_RELEASE = "1";
-    else delete process.env.OPENCRAFT_IOS_RELEASE;
+    for (const [key, value] of Object.entries(inputs)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     return run();
   } finally {
-    if (beforeAndroid === undefined) delete process.env.OPENCRAFT_ANDROID_RELEASE;
-    else process.env.OPENCRAFT_ANDROID_RELEASE = beforeAndroid;
-    if (beforeIos === undefined) delete process.env.OPENCRAFT_IOS_RELEASE;
-    else process.env.OPENCRAFT_IOS_RELEASE = beforeIos;
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 };
 
-test("mobile package identities are opt-in and platform-specific", () => {
-  const base = {
-    name: "OpenCraft",
-    android: { package: "dev.opencraft.workbench", versionCode: 1 },
-    ios: { bundleIdentifier: "dev.opencraft.workbench", supportsTablet: true },
-  };
-  assert.equal(withProfile(false, false, () => configureExpo({ config: base })), base);
+const standaloneConfig = () => ({
+  name: "OpenCraft",
+  android: { package: "dev.opencraft.workbench", versionCode: 1 },
+  ios: { bundleIdentifier: "dev.opencraft.workbench", supportsTablet: true },
+  extra: { fixture: "preserved", openSourceNotices: [{ name: "Fixture dependency", license: "MIT" }] },
+});
 
-  const android = withProfile(true, false, () => configureExpo({ config: base }));
-  assert.equal(android.name, "OpenCraft");
-  assert.equal(android.android.package, "app.opencraft.workbench");
-  assert.equal(android.ios.bundleIdentifier, "dev.opencraft.workbench");
-  assert.equal(base.android.package, "dev.opencraft.workbench");
+const assertNotices = (actual, base) => {
+  assert.deepEqual(actual.extra.openSourceNotices, [...base.extra.openSourceNotices, publicNotice]);
+  assert.equal(actual.extra.fixture, "preserved");
+};
 
-  const ios = withProfile(false, true, () => configureExpo({ config: base }));
-  assert.equal(ios.name, "OpenCraft");
-  assert.equal(ios.ios.bundleIdentifier, "ai.lightvela.vela");
-  assert.equal(ios.android.package, "dev.opencraft.workbench");
+test("standalone mobile identities ignore product release flags and retain license notices", () => {
+  const base = standaloneConfig();
+  const original = structuredClone(base);
+  for (const android of [false, true]) {
+    for (const ios of [false, true]) {
+      const result = withBuildInputs({ android, ios }, () => configureExpo({ config: base }));
+      assert.equal(result.name, "OpenCraft");
+      assert.deepEqual(result.android, original.android);
+      assert.deepEqual(result.ios, original.ios);
+      assertNotices(result, original);
+      assert.deepEqual(base, original, "building must not mutate the input manifest");
+    }
+  }
+});
+
+test("explicit product config owns mobile identities while public notices remain in the manifest", () => {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "opencraft-product-config-"));
+  try {
+    const config = join(fixtureRoot, "product.cjs");
+    writeFileSync(config, `module.exports = ({config, fixtureEdition}) => ({
+      ...config, name: 'Fixture product',
+      android: {...config.android, package: 'org.example.product.' + fixtureEdition},
+      ios: {...config.ios, bundleIdentifier: 'org.example.product.' + fixtureEdition},
+    });\n`);
+    const base = standaloneConfig();
+    const original = structuredClone(base);
+    const result = withBuildInputs({ config }, () => configureExpo({ config: base, fixtureEdition: "test" }));
+    assert.equal(result.name, "Fixture product");
+    assert.deepEqual(result.android, { ...original.android, package: "org.example.product.test" });
+    assert.deepEqual(result.ios, { ...original.ios, bundleIdentifier: "org.example.product.test" });
+    assertNotices(result, original);
+    assert.deepEqual(base, original);
+    for (const invalid of ["https://example.test/product.cjs", join(fixtureRoot, "missing.cjs")]) {
+      assert.throws(() => withBuildInputs({ config: invalid }, () => configureExpo({ config: base })));
+    }
+  } finally { rmSync(fixtureRoot, { recursive: true, force: true }); }
 });
 
 test("release signing only replaces the generated Gradle release identity", () => {

@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from "@opencraft/design-system-web/action-icons";
 import type {
   ButtonHTMLAttributes,
   HTMLAttributes,
@@ -170,9 +171,7 @@ export const SettingsSelect = forwardRef<HTMLSelectElement, SelectHTMLAttributes
     return (
       <span className="settings-control-select-shell">
         <select {...props} ref={ref} className={classes("settings-control-select", className)} />
-        <svg aria-hidden="true" viewBox="0 0 16 16">
-          <path d="m4.25 6.25 3.75 3.5 3.75-3.5" />
-        </svg>
+        <ChevronDownIcon size={16} />
       </span>
     );
   },
@@ -311,12 +310,15 @@ export function SettingsActions({ align = "end", className, children, ...props }
 
 export interface SettingsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: "primary" | "secondary" | "danger" | "ghost" | "quiet";
+  /** Visible progress and duplicate-click prevention; the caller owns the operation. */
+  readonly loading?: boolean;
 }
 
 
-export function SettingsButton({ variant = "secondary", className, children, ...props }: SettingsButtonProps) {
+export function SettingsButton({ variant = "secondary", className, children, loading = false, disabled, ...props }: SettingsButtonProps) {
   return (
-    <button {...props} className={classes("settings-control-button", `settings-control-button--${variant}`, className)}>
+    <button {...props} disabled={disabled || loading} aria-busy={loading || props["aria-busy"]} className={classes("settings-control-button", `settings-control-button--${variant}`, className)}>
+      {loading ? <span className="settings-control-button__spinner" aria-hidden="true" /> : null}
       {children}
     </button>
   );

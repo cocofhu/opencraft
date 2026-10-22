@@ -22,7 +22,7 @@ import {
 import { JsonFileReplicaStorage } from "@opencraft/appserver-replica-storage-node";
 import { IndexedDbReplicaClientStorage } from "@opencraft/appserver-replica-storage-web";
 import {
-  createCodexThreadReplicaSource,
+  createThreadViewReplicaSource,
   createEmptyThreadView,
   type ThreadView,
 } from "@opencraft/appserver-session";
@@ -38,6 +38,58 @@ import {
 import { indexedDB } from "fake-indexeddb";
 
 const SCOPE = "threads:local";
+
+function controlled<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; });
+  return { promise, resolve };
+}
+function ownedSource(epoch: string, subscribed: string[]): ReplicaSource {
+  return { scope: SCOPE,
+    subscribe: () => { subscribed.push(epoch); return () => {}; },
+    sync: async () => ({ kind: "snapshot", scope: SCOPE, epoch,
+      bounds: { nextSeq: 1, journalStartSeq: 1 }, entities: [{ entityId: "row", value: epoch }] }),
+  };
+}
+
+test("disconnect revokes synchronization before delayed or already-complete cache preparation", async () => {
+  for (const prepared of [false, true]) {
+    const load = controlled<null>(), subscribed: string[] = [];
+    const replica = client({ loadClient: () => load.promise, commitClient: async () => {}, clearClient: async () => {} });
+    if (prepared) { load.resolve(null); await replica.prepare(); }
+    const pending = replica.synchronize(ownedSource("old", subscribed));
+    const canceled = assert.rejects(pending, /superseded/);
+    await Promise.resolve(); // Enter prepare before revoking this source generation.
+    replica.disconnect(); await canceled; load.resolve(null);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(subscribed, []);
+    assert.equal(replica.getSnapshot().authoritative, false);
+    replica.dispose();
+  }
+});
+
+test("old persistence cannot overtake or publish into a successor source", async () => {
+  const entered = controlled<void>(), release = controlled<void>(), subscribed: string[] = [];
+  const writes: string[] = []; let diskEpoch = "";
+  const replica = client({ loadClient: async () => null, clearClient: async () => {},
+    commitClient: async state => {
+      writes.push(state.epoch);
+      if (state.epoch === "old") { entered.resolve(); await release.promise; }
+      diskEpoch = state.epoch;
+    },
+  });
+  const old = replica.synchronize(ownedSource("old", subscribed));
+  const canceled = assert.rejects(old, /superseded/);
+  await entered.promise; replica.disconnect(); await canceled;
+  const next = replica.synchronize(ownedSource("new", subscribed));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(writes, ["old"], "new write waits for accepted old I/O instead of racing it");
+  release.resolve(); await next;
+  assert.equal(replica.getSnapshot().epoch, "new");
+  assert.equal(replica.getSnapshot().authoritative, true);
+  assert.equal(diskEpoch, "new"); assert.deepEqual(writes, ["old", "new"]);
+  replica.dispose();
+});
 
 function value(name: string, revision = 1): ReplicaJsonValue {
   return { name, revision };
@@ -725,7 +777,7 @@ test("V4 Replica sync, mutate and live entry cross the AppServer JSON-RPC bounda
   }
 });
 
-test("Codex V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
+test("AppServer V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
   const threadId = "thread-codex";
   let current: ThreadView = {
     ...createEmptyThreadView("local", threadId),
@@ -735,7 +787,7 @@ test("Codex V3 adapter emits adjacent View revisions and snapshots every continu
     resumeError: new Error("serialized failure"),
   };
   const listeners = new Set<() => void>();
-  const source = createCodexThreadReplicaSource({
+  const source = createThreadViewReplicaSource({
     get: (candidate) => candidate === threadId ? current : null,
     subscribeThread: (_candidate, listener) => {
       listeners.add(listener);
@@ -795,12 +847,38 @@ test("a binding reuses immutable projections across connection-local sources wit
   };
   const store = { get: () => view, subscribeThread: () => () => undefined };
   const cache = new WeakMap<object, ReplicaJsonValue>();
-  const first = await createCodexThreadReplicaSource(store, "local", "stable", cache).sync(null);
+  const first = await createThreadViewReplicaSource(store, "local", "stable", cache).sync(null);
   assert.equal(first.kind, "snapshot");
   view = { ...view, revision: 2, connectionGeneration: 2 };
-  const second = await createCodexThreadReplicaSource(store, "local", "stable", cache).sync(null);
+  const second = await createThreadViewReplicaSource(store, "local", "stable", cache).sync(null);
   assert.equal(second.kind, "snapshot");
   if (first.kind !== "snapshot" || second.kind !== "snapshot") throw Error("Expected snapshots");
   assert.notEqual(first.epoch, second.epoch);
   assert.equal((first.entities[0]!.value as any).turns, (second.entities[0]!.value as any).turns);
+});
+
+
+for (const hang of ["load", "commit"] as const) test(`hung cache ${hang} is bypassed without granting stale authority or racing accepted writes`, async () => {
+  const entered = controlled<void>(), release = controlled<void>(), timers = new Set<() => void>();
+  const subscribed: string[] = [], writes: string[] = [];
+  const replica = new ReplicaClient({scope:SCOPE,storageKey:`timeout-${hang}`,storageTimeoutMs:50,
+    storageClock:{setTimeout(callback){timers.add(callback);return callback;},clearTimeout(handle){timers.delete(handle as () => void);}},
+    storage:{loadClient:async()=>{if(hang==='load'){entered.resolve();await release.promise;}return null;},
+      commitClient:async state=>{writes.push(state.epoch);if(hang==='commit'){entered.resolve();await release.promise;}},clearClient:async()=>{}},
+  });
+  try {
+    const old = replica.synchronize(ownedSource('old',subscribed));const canceled=assert.rejects(old,/superseded/);
+    await entered.promise;replica.disconnect();await canceled;
+    const next=replica.synchronize(ownedSource('new',subscribed));
+    assert.equal(replica.getSnapshot().authoritative,false);
+    for(const timer of [...timers])timer();
+    await next;
+    assert.equal(replica.getSnapshot().epoch,'new');assert.equal(replica.getSnapshot().authoritative,true);
+    assert.match(replica.getSnapshot().cacheError?.message??'',/cache timed out/);
+    assert.deepEqual(writes,hang==='commit'?['old']:[],'cache bypass never overlaps an accepted old write');
+    release.resolve();await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(replica.getSnapshot().epoch,'new');assert.equal(replica.getSnapshot().authoritative,true);
+    assert.deepEqual(writes,hang==='commit'?['old']:[],'late cache completion cannot reenable persistence');
+    await assert.rejects(replica.clear(),/Failed to clear/,'clear must not pretend a timed-out write was canceled');
+  } finally {release.resolve();replica.dispose();}
 });

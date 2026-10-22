@@ -30,17 +30,17 @@ test("Downstream navigation retains its existing silhouette and detailed selecte
     assert.match(render(name, false, "lightvela-web"), /fill="none"/);
     assert.match(render(name, true, "lightvela-web"), /fill="currentColor"/);
   }
-  for (const name of ["bot", "database", "hard-drive", "server", "settings"]) {
+  for (const name of ["bot", "database", "hard-drive", "server"]) {
     assert.match(render(name, true, "lightvela-web"), /fill="none"/);
     assert.match(render(name, true, "lightvela-web"), /stroke-width="2.5"/);
   }
-  assert.match(render("message-circle"), /lucide-message-circle/);
+  assert.match(render("message-circle"), /data-action-glyph="chat"/);
 });
 
 test("core navigation uses the downstream outline role without boldening selected glyphs", () => {
   for (const name of ["chat", "start", "columns", "server", "settings"]) {
     for (const selected of [false, true]) {
-      assert.match(render(name, selected), /stroke-width="1.8"/);
+      assert.match(render(name, selected), name === "settings" ? /stroke-width="1.5"/ : /stroke-width="2"/);
       assert.match(render(name, selected), /fill="none"/);
     }
     const shape = (svg: string) => svg.slice(svg.indexOf(">") + 1, svg.lastIndexOf("<"));

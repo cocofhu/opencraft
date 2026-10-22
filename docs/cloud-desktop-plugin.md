@@ -19,6 +19,11 @@ the entry. Explicit trusted-internal deployments can share read-only viewing
 with everyone who can access that deployment; enabling control additionally
 trusts those users to request exclusive input on that same machine.
 
+Trusted renderer composition can set `cloudDesktop: null` to omit the desktop
+plugin entirely, including restored panels, Composer shortcuts and menu actions.
+An omitted option retains capability-gated Host discovery; an adapter selects the
+product backend. Product policy is independent of Host authorization.
+
 ## Ownership
 
 | Object | Authority / lifetime | Teardown |
@@ -187,8 +192,8 @@ from accessibility. Only the confirmed visor has the 241px minimum. Auxiliary
 input actions remain capability-driven. Narrow and wide shoulder masks use distinct
 asymmetric reference curves. Card shadows crossfade fixed pseudo layers over 240ms
 rather than interpolating shadow geometry; the wide card retains one shadow across
-ownership changes. Paired theme accent/foreground tokens drive color, not a the downstream product or
-assistant identity or hardcoded global purple. Watching does not falsely assert
+ownership changes. Paired theme accent/foreground tokens drive color independently of product or
+assistant identity, without hardcoded global purple. Watching does not falsely assert
 an agent owns control. Clicking observing media uses the same single-use,
 lifecycle-fenced Take activation as the button. Window/panel blur and logical
 closure preserve the existing immediate revocation semantics. Shell continues

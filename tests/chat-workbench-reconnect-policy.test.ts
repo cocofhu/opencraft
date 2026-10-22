@@ -160,6 +160,8 @@ test("Workbench reconnect replaces a transport generation closed by failed initi
 
   try {
     await assert.rejects(runtime.connect(), /first generation failed/u);
+    // Logical failure settles before physical transport cleanup.
+    await new Promise<void>(resolve => setImmediate(resolve));
     assert.equal(generations[0]!.closed, true);
     await runtime.reconnect();
     assert.equal(created, 2);
@@ -195,6 +197,8 @@ test("Workbench automatic reconnect backs off to a one-minute ceiling", async ()
       const next = scheduled.shift()!;
       assert.equal(next.delay, expectedDelay);
       next.callback();
+      // A pending attempt owns a deadline before its failure schedules the retry.
+      await new Promise<void>(resolve => setImmediate(resolve));
       for (let attempt = 0; attempt < 10 && scheduled.length === 0; attempt += 1) {
         await new Promise<void>(resolve => setImmediate(resolve));
       }
@@ -224,6 +228,7 @@ test("Workbench stops automatic retry after failed initialization closes a fixed
 
   try {
     await assert.rejects(runtime.connect(), /first generation failed/u);
+    await new Promise<void>(resolve => setImmediate(resolve));
     assert.equal(timers.length, 0);
   } finally {
     await runtime.dispose();

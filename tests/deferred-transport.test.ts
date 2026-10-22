@@ -65,6 +65,19 @@ test("provider failure classification survives lazy acquisition", async () => {
   await assert.rejects(transport.connect(), /sign in/); assert.deepEqual(transport.status.failure, { code: "auth", recovery: "manual" }); assert.equal(real.closed, 1);
 });
 
+test("connecting reentry shares acquisition and closes every allocated delegate", async () => {
+  const delegates: ReturnType<typeof fixture>[] = [];
+  const transport = new DeferredDuplexTransport(async () => { const delegate = fixture(); delegates.push(delegate); return delegate.transport; });
+  let second: Promise<void> | undefined; let entered = false;
+  transport.subscribeStatus(status => { if (status.state === "connecting" && !entered) { entered = true; second = transport.connect(); } });
+  try {
+    const first = transport.connect();
+    assert.equal(second, first);
+    await first; await second;
+    assert.equal(delegates.length, 1);
+  } finally { await transport.close(); }
+  assert.deepEqual(delegates.map(delegate => delegate.closed), [1]);
+});
 test("combined signals work without native AbortSignal.any and keep the first cancellation reason", async t => {
   const native = Object.getOwnPropertyDescriptor(AbortSignal, "any");
   if (native) Object.defineProperty(AbortSignal, "any", { ...native, value: undefined });

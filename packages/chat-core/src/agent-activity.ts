@@ -112,6 +112,8 @@ export interface AgentActivityStandaloneContentUnit {
     readonly type: "standalone";
     readonly id: string;
     readonly block: TimelineBlock;
+    /** Flatten the group's presentation without replacing its mounted content owner. */
+    readonly groupOrigin?: true;
 }
 
 export interface AgentActivityWorkStatusContentUnit {
@@ -280,7 +282,7 @@ export function createAgentActivityContentUnits(blocks: readonly TimelineBlock[]
     const onlyBlock = unit.blocks.length === 1 ? unit.blocks[0] : undefined;
     const groupedPatch = onlyBlock?.type === "patch" && onlyBlock.changes.length > 1;
     if (!inProgress && onlyBlock && !running(onlyBlock) && !groupedPatch) {
-      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock }] : [];
+      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock, groupOrigin: true }] : [];
     }
     return [{ ...unit, lifecycle: { isLatestVisibleUnit: latest, isActivitySliceClosed,
       isExploring: (() => { const block = unit.blocks[unit.blocks.length - 1]; return Boolean(block?.type === "command-execution" && running(block) && block.actions.some(action => action.type !== "unknown")); })(), inProgress } }];
@@ -390,7 +392,9 @@ export function deriveAgentActivityHeaderPresentation(unit: Pick<AgentActivityGr
       const presentation = presentToolActivity(activeBlock, registry);
       const skill = activeBlock.type === "command-execution" ? skillReadPresentation(activeBlock, detailLevel) : null;
       let text = skill ? `${running(activeBlock) ? "Reading" : skill.summary} ${skill.detail}` : `${presentation.summary}${presentation.detail ? ` ${presentation.detail}` : ""}`;
-      if (activeBlock.type === "command-execution" && !activeBlock.actions.length && detailLevel === "STEPS_COMMANDS") text = `Running ${activeBlock.command}`;
+      if (activeBlock.type === "command-execution"
+        && !activeBlock.actions.some(action => action.type === "read" || action.type === "search" || action.type === "list-files")
+        && detailLevel === "STEPS_COMMANDS") text = `Running ${activeBlock.command.trim() || "command"}`;
       return { state: "active", summaryKey: `active:${activeBlock.id}`, icon: presentation.icon, summary: { kind: "text", text }, active: true };
     }
     return { state: "thinking", summaryKey: "thinking", icon: null, summary: { kind: "text", text: "Thinking" }, active: true };
@@ -404,7 +408,7 @@ export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFra
   const blocks = frame.blocks.filter(block => !(block.type === "automatic-approval-review" && block.review.status === "approved"));
   // Generated media owns its pending feedback within the current response.
   // Earlier images must not suppress work after a new answer or input.
-  const responseBoundary = lastIndex(blocks, block => block.type === "user-message"
+  const responseBoundary = lastIndex(blocks, block => block.type === "user-message" || block.type === "realtime-transcript"
     || (block.type === "text" && (isAssistantAnswerContent(block)
       || block.delivery === "async" || (block.asyncQuestions?.length ?? 0) > 0)));
   if (blocks.slice(responseBoundary + 1).some(block => block.type === "image"
@@ -414,7 +418,7 @@ export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFra
   if (block.type === "reasoning") return true;
   if (block.type === "text" && block.phase !== "commentary") return !(block.text.trim() || block.completed);
   if (block.type === "plan" && !block.completed) return false;
-  if (block.type === "user-message") return true;
+  if (block.type === "user-message" || block.type === "realtime-transcript") return true;
   if (block.type === "todo") {
     const predecessor = [...blocks.slice(0, -1)].reverse().find(b => b.type !== "todo");
     if (predecessor?.type === "reasoning") return true;
@@ -447,7 +451,9 @@ export function resolveAgentActivityDisclosure({ forceExpanded = false, hasFinal
 }
 
 export function shouldAllowAgentActivityCollapse(unit: AgentActivityRenderUnit): boolean {
-  return unit.collapsedItemCount > 0 && !unit.disableCollapse && !unit.forceExpanded && !(unit.blocks.length > 0 && unit.blocks.every(block => block.type === "compaction")) && resolveAgentActivityDisclosure(unit).shouldAllowCollapse;
+  const onlyContent = unit.partitions.collapsibleUnits.length === 1 ? unit.partitions.collapsibleUnits[0] : null;
+  const compactionOnly = unit.inlineSubagentActivity === null && onlyContent?.type === "standalone" && onlyContent.block.type === "compaction";
+  return unit.collapsedItemCount > 0 && !unit.disableCollapse && !unit.forceExpanded && !compactionOnly && resolveAgentActivityDisclosure(unit).shouldAllowCollapse;
 }
 
 export function resolveAgentActivityLayout(unit: AgentActivityRenderUnit, persistedCollapsed?: boolean): AgentActivityLayout {
@@ -455,7 +461,7 @@ export function resolveAgentActivityLayout(unit: AgentActivityRenderUnit, persis
   const collapsed = showToggle && resolveAgentActivityDisclosure({ ...unit, persistedCollapsed }).isCollapsed;
   return { showToggle, workedForItem: showToggle ? unit.partitions.workedForItem : null, isCollapsed: collapsed,
     preToggleUnits: showToggle ? unit.partitions.preToggleUnits : [],
-    persistentUnits: showToggle ? unit.partitions.persistentUnits : [],
+    persistentUnits: showToggle && collapsed ? unit.partitions.persistentUnits : [],
     visibleUnits: showToggle ? (collapsed ? unit.partitions.collapsibleUnits : unit.partitions.expandedUnits) : unit.contentUnits,
     collapsedItemCount: showToggle ? unit.collapsedItemCount : countAgentActivityContentItems(unit.contentUnits) + (unit.inlineSubagentActivity ? 1 : 0), showInlineSubagentActivity: Boolean(unit.inlineSubagentActivity) && !collapsed };
 }
@@ -464,6 +470,8 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
   partitionOptions: AgentActivityPartitionOptions = {}, reasoningPresenter = presentReasoning): AssistantTurnPresentationPlan {
   const slots: AssistantRenderUnit[] = [];
   const work = frame.status === "interrupted" && frame.interruptedByThisClient && frame.durationMs !== null ? { type: "worked-for" as const, status: "stopped" as const, startedAtMs: 0, completedAtMs: frame.durationMs } : frame.workStatus;
+  const hasStaticDuration = !live(frame.status) && frame.displayDurationMs != null
+    && Number.isFinite(frame.displayDurationMs) && frame.displayDurationMs >= 0;
   const latestPlan = [...frame.blocks].reverse().find(block => block.type === "plan");
   let changeSummary = frame.changeSummary ?? null;
   let pending: TimelineBlock[] = [];
@@ -471,7 +479,9 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
   let phase: AgentActivityPhase = "before-final-answer";
   let finalSegmentId: string | null = null;
   const flush = (segmentEnd: AgentActivitySegmentEnd) => {
-    if (!pending.length) return;
+    // A paint-only history can retain the completed clock without tool bodies.
+    if (!pending.length && !((work || hasStaticDuration) && segmentEnd === "final-answer"
+      && !slots.some(slot => slot.type === "agent-activity"))) return;
     finalSegmentId = activityId;
     const subagents = pending.filter((block): block is SubagentTimelineBlock => block.type === "subagent");
     const blocks = pending.filter(block => block.type !== "subagent");
@@ -483,12 +493,12 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
     const inlineSubagentActivity: SubagentActivityRenderUnit | null = subagents.length
       ? { type: "subagent-activity", id: `${activityId}:subagents`, blocks: subagents } : null;
     const visible = contentUnits.length > 0 || subagents.length > 0;
-    if (!visible && !work) return;
+    if (!visible && !work && !hasStaticDuration) return;
     slots.push({ type: "agent-activity", id: activityId, blocks, contentUnits, inlineSubagentActivity,
       partitions: partitionAgentActivityContentUnits(contentUnits, partitionOptions),
       collapsedItemCount: countAgentActivityContentItems(partitionAgentActivityContentUnits(contentUnits, partitionOptions).collapsibleUnits) + (subagents.length ? 1 : 0), phase, status,
       workedDurationMs: null, hasFinalAssistantStarted: segmentEnd === "final-answer", segmentEnd,
-      hasRenderableAgentItems: visible || Boolean(work), isTurnCancelled: frame.status === "interrupted", forceExpanded: false,
+      hasRenderableAgentItems: visible || Boolean(work) || hasStaticDuration, isTurnCancelled: frame.status === "interrupted", forceExpanded: false,
       disableCollapse: phase === "after-final-answer" && (segmentEnd === "open" || segmentEnd === "turn-terminal"), preventAutoCollapse: live(status) && (blocks.some(b => running(b) || (b.type === "reasoning" && b.streaming) || (b.type === "compaction" && !b.completed)) || subagents.some(running)),
       summary: { commandCount: blocks.filter(b => b.type === "command-execution").length,
         patchCount: blocks.filter(b => b.type === "patch").length, reasoningCount: blocks.filter(b => b.type === "reasoning").length,
@@ -515,10 +525,14 @@ export function createAssistantTurnPresentationPlan(frame: AssistantTimelineFram
     const owner = slots[clockIndex] as AgentActivityRenderUnit;
     const workUnit: AgentActivityWorkStatusContentUnit | null = work ? { type: "worked-for", id: `${frame.turnId}:worked-for`, item: work } : null;
     const contentUnits = workUnit ? work?.status === "working" ? [workUnit, ...owner.contentUnits] : [...owner.contentUnits, workUnit] : owner.contentUnits;
-    slots[clockIndex] = { ...owner, workedDurationMs: frame.durationMs, contentUnits,
+    slots[clockIndex] = { ...owner, workedDurationMs: frame.displayDurationMs ?? frame.durationMs, contentUnits,
       partitions: partitionAgentActivityContentUnits(contentUnits, partitionOptions) };
   }
-  return { slots, changeSummary };
+  // Only the assigned clock owner can keep an otherwise empty work segment.
+  // Earlier hidden observations must not reserve a timeline layout slot.
+  return { slots: slots.filter(slot => slot.type !== "agent-activity"
+    || slot.contentUnits.length > 0 || slot.inlineSubagentActivity !== null
+    || slot.workedDurationMs !== null), changeSummary };
 }
 
 export function activeTimelineTurnTodo(turn: TimelineTurnView, isMostRecentTurn: boolean): TodoTimelineBlock | null {
@@ -542,7 +556,7 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
   const latestObservation = [...blocks].reverse().find(block => block.type !== "todo");
   let assistantFrame: AssistantTimelineFrame | null = remaining.length || active || changeSummary !== null ? {
     type: "assistant", id: `${turn.turnId}:assistant-surface`, turnId: turn.turnId, status: turn.status,
-    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
+    durationMs: seed?.durationMs ?? null, displayDurationMs: seed?.displayDurationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
     interruptedByThisClient: seed?.interruptedByThisClient ?? false, hookStats: seed?.hookStats ?? null,
     anchors: assistants.flatMap(frame => frame.anchors), blocks,
   } : null;
@@ -561,7 +575,7 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
       thinkingOwner = { type: "activity", activityId: last.id, groupId: innerOwner.id };
     }
     const pendingInteraction = blocks.some(block => "state" in block && block.state === "pending");
-    const lastBoundary = lastIndex(blocks, block => block.type === "user-message");
+    const lastBoundary = lastIndex(blocks, block => block.type === "user-message" || block.type === "realtime-transcript");
     const currentFrame = { ...assistantFrame, blocks: blocks.slice(lastBoundary + 1) };
     const planning = currentFrame.blocks.some(block => block.type === "plan" && !block.completed);
     if (active && thinkingOwner.type === "none" && !pendingInteraction

@@ -1,6 +1,8 @@
+import { executionEngineExtension } from "@opencraft/appserver-client";
 import type { HostComposerCommandPort } from "./host-composer-commands";
 import { MCP_APPS_NAMESPACE } from "@opencraft/appserver-protocol/mcp-apps";
 import type { ConversationOutboxStorage } from "@opencraft/chat-runtime";
+import { ConnectionLifecycleOwner, type ConnectionAttempt } from "./connection-lifecycle";
 import { ConversationRecoveryOwner, type RecoveryDemand } from "./recovery-policy";
 import {
   AppServerClientError,
@@ -84,9 +86,9 @@ import {
   type ReplicaClientStorage,
 } from "@opencraft/appserver-replica";
 import {
-  codexThreadReplicaScope,
-  createCodexV3ConversationNavigationSource,
-  createCodexThreadReplicaSource,
+  threadViewReplicaScope,
+  createV3ConversationNavigationSource,
+  createThreadViewReplicaSource,
   createCordisThreadSessionRuntime,
   createThreadViewReplicaProjectionBarrier,
   reconcileHydratedTurn,
@@ -266,14 +268,14 @@ export interface StartThreadOptions {
 }
 
 export interface AppServerThreadResourcePort {
-  capabilities?(): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean };
+  capabilities?(threadId?: string): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean; reference?: boolean };
   setPinned?(threadId: string, pinned: boolean): Promise<void>;
   rename?(threadId: string, name: string): Promise<void>;
   delete?(threadId: string): Promise<void>;
   archive?(threadId: string): Promise<void>;
   unarchive?(threadId: string): Promise<ProtocolThread>;
   injectItems?(threadId: string, items: ThreadInjectItemsParams["items"]): Promise<void>;
-  supportsSideChat?(): boolean;
+  supportsSideChat?(threadId?: string): boolean;
   list(params?: Partial<ThreadListParams>): Promise<ThreadListResponse>;
   start(options: StartThreadOptions): Promise<ProtocolThread>;
   fork?(params: ThreadForkParams): Promise<ProtocolThread>;
@@ -531,13 +533,14 @@ export function createAppServerWorkbenchRuntime(
   let disposed = false;
   let lifecycleGeneration = 0;
   let disposeOperation: Promise<void> | null = null;
-  let startOperation: Promise<void> | null = null;
-  let reconnectOperation: Promise<void> | null = null;
   let initializeServicesOperation: Promise<void> | null = null;
   let connectionRevision = 0;
+  let connectionObservation: { client: AppServerClient; revision: number } | null = null;
   const recovery = new ConversationRecoveryOwner({ hostId, clock,
-    reconnect: () => runtime.reconnect(), delaysMs: config.reconnectDelaysMs,
-    stableMs: config.reconnectStableMs, log: config.onRecoveryEvent, changed: () => publish(),
+    delaysMs: config.reconnectDelaysMs,
+    log: config.onRecoveryEvent ? event => config.onRecoveryEvent!({
+      ...event, generation: client?.connectionGeneration ?? 0, eventAtMs: clock.now?.() ?? Date.now(), ...((currentTransport?.status as {attemptId?:string}|undefined)?.attemptId ? {attemptId:(currentTransport!.status as {attemptId?:string}).attemptId} : {}),
+    }) : undefined, changed: () => publish(),
   });
   let automaticReconnectBlock: TransportStatus | null = null;
   // Presentation only: initialization cleanup must not erase the failed attempt ID.
@@ -577,7 +580,7 @@ export function createAppServerWorkbenchRuntime(
   let removeSkillsNotificationListener: (() => void) | null = null;
   let removeGoalNotificationListener: (() => void) | null = null;
   const goals = new ThreadGoalResource({
-    capability: () => parseThreadGoalCapability(client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_GOAL_EXTENSION]),
+    capability: threadId => parseThreadGoalCapability(executionEngineExtension(client?.initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_THREAD_GOAL_EXTENSION)),
     get: (threadId) => requireClient().request("thread/goal/get", { threadId }),
     set: (threadId, change) => requireClient().request("thread/goal/set", { threadId, ...change }),
     clear: (threadId) => requireClient().request("thread/goal/clear", { threadId }),
@@ -640,13 +643,24 @@ export function createAppServerWorkbenchRuntime(
     );
   };
 
+  const transportSnapshot = (): TransportStatus => {
+    const status = automaticReconnectBlock ?? client?.status ?? currentTransport?.status
+      ?? initializationFailureStatus ?? { state: "idle" };
+    // Admission revokes the previous attempt's diagnostics synchronously,
+    // even while that attempt still owns its physical cleanup. A failure in
+    // the current attempt is published only after the owner leaves attempting.
+    if (error === null && (phase === "connecting" || phase === "reconnecting")
+      && (status.state === "closed" || status.state === "failed")) return { state: "connecting" };
+    return status;
+  };
+
   const derive = (): AppServerWorkbenchSnapshot => ({
     revision,
     phase,
     hostId,
     connectionGeneration: client?.connectionGeneration ?? 0,
     // Manual failure belongs to the Host attempt, not the disposed transport.
-    transport: automaticReconnectBlock ?? client?.status ?? currentTransport?.status ?? initializationFailureStatus ?? { state: "idle" },
+    transport: transportSnapshot(),
     recovery: recovery.getProgress(),
     residentThreads: [...bindings.values()]
       .filter((binding) => !binding.disposed)
@@ -667,6 +681,7 @@ export function createAppServerWorkbenchRuntime(
     if (next.recovery === snapshot.recovery && next.phase === snapshot.phase && next.error === snapshot.error
       && next.connectionGeneration === snapshot.connectionGeneration
       && next.transport.state === snapshot.transport.state
+      && next.transport.attemptId === snapshot.transport.attemptId
       && next.transport.reason === snapshot.transport.reason
       && next.transport.failure === snapshot.transport.failure && sameResidency) return;
     revision += 1;
@@ -674,17 +689,51 @@ export function createAppServerWorkbenchRuntime(
     for (const listener of listeners) listener();
   };
 
-  const clearReconnectTimer = () => recovery.cancelConnection();
-  const clearReconnectStability = () => recovery.unstable();
-  const markReconnectReady = () => {
-    recovery.ready(() => !disposed && phase === "ready" && currentTransport?.status.state === "open", config.autoReconnect !== false);
-  };
-  const requiresManualRecovery = () => automaticReconnectBlock?.failure?.recovery === "manual"
-    || currentTransport?.status.failure?.recovery === "manual";
-  const scheduleReconnect = (status?: TransportStatus) => {
-    if (disposed) return;
-    recovery.schedule((automaticReconnectBlock ?? status ?? currentTransport?.status)?.failure?.recovery === "manual", config.autoReconnect !== false);
-  };
+  type ConnectionBinding = { client: AppServerClient; transport: DuplexTransport; generation: number; revision: number };
+  const connection = new ConnectionLifecycleOwner<ConnectionBinding>({
+    clock, autoReconnect: config.autoReconnect, delaysMs: config.reconnectDelaysMs,
+    stableMs: config.reconnectStableMs, timeoutMs: Math.max(60_000, (config.requestTimeoutMs ?? 30_000) + 15_000),
+    async run(attempt: ConnectionAttempt) {
+      // Assembly settles on revocation. Retired bundles clean only their own
+      // resources in the background; they cannot hold a successor's admission.
+      if (initializeServicesOperation !== null) await initializeServicesOperation.catch(() => undefined);
+      attempt.assertCurrent();
+      automaticReconnectBlock = null;
+      initializationFailureStatus = null;
+      await initializeServices(attempt);
+      attempt.assertCurrent();
+      return connectPhysicalHost(lifecycleGeneration, attempt);
+    },
+    valid: binding => !disposed && binding.client === client && binding.transport === currentTransport
+      && binding.revision === connectionRevision && binding.generation === client.connectionGeneration
+      && client.initializeResult !== null && currentTransport.status.state === "open",
+    manual: () => (automaticReconnectBlock ?? currentTransport?.status)?.failure?.recovery === "manual",
+    invalidate() {
+      connectionRevision += 1;
+      connectionObservation = null;
+      // Clear all authority before recovery observers can reenter the Runtime.
+      for (const binding of bindings.values()) binding.replica.disconnect();
+      recovery.invalidate();
+    },
+    changed() {
+      const state = connection.snapshot;
+      phase = state.phase === "attempting" ? state.recovering ? "reconnecting" : "connecting"
+        : state.phase === "usable" ? "ready"
+        : state.phase === "backoff" ? "reconnecting"
+        : state.phase === "blocked" ? "error" : state.phase;
+      error = state.error;
+      if (state.phase === "attempting") {
+        connectionObservation = null;
+        recovery.begin("connecting");
+      }
+      else if (state.phase === "usable") recovery.hostReady();
+      else if (state.phase === "blocked") { recovery.connectionFailed(state.error); recovery.connectionBlocked(); }
+      else if (state.phase === "backoff") recovery.connectionFailed(state.error);
+      publish();
+    },
+    backoff: (attempt, delayMs) => recovery.connectionBackoff(attempt, delayMs),
+    usable: () => { if (bindings.size > 0) restoreResources(); },
+  });
 
   const requireClient = (): AppServerClient => {
     if (client === null) throw new Error("AppServer Workbench has not started");
@@ -927,7 +976,7 @@ export function createAppServerWorkbenchRuntime(
       throw new Error("AppServer command port is unavailable");
     const currentCommandPort = commandPort;
     const replica = new ReplicaClient<ReplicaJsonValue>({
-      scope: codexThreadReplicaScope(hostId, threadId),
+      scope: threadViewReplicaScope(hostId, threadId),
       storageKey: storageKey(hostId, threadId),
       storage: volatileThreadViewReplicaStorage,
       pageSize: config.pageSize ?? 100,
@@ -956,7 +1005,12 @@ export function createAppServerWorkbenchRuntime(
       };
       const baselineGatedCommands: ConversationCommandPort = {
         ...currentCommandPort,
-        submit: (intent, options) => afterAuthoritativeBaseline(() => currentCommandPort.submit(intent, options), true),
+        submit: (intent, options) => afterAuthoritativeBaseline(() => {
+          const followUp = executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up");
+          const dispatched = intent.target.type === "enqueue-follow-up" && followUp?.queue === false
+            ? { ...intent, target: { type: "existing-thread" as const, key: intent.target.key } } : intent;
+          return currentCommandPort.submit(dispatched, options);
+        }, true),
         interrupt: (key, turnId, provenance) => afterAuthoritativeBaseline(
           () => currentCommandPort.interrupt(key, turnId, provenance),
         ),
@@ -980,7 +1034,8 @@ export function createAppServerWorkbenchRuntime(
       };
       conversation = createReplicaConversationRuntime({
         outbox: config.outbox,
-        canDispatchOutbox: () => phase === "ready" && !requiresManualRecovery() && currentTransport?.status.state === "open",
+        canDispatchOutbox: () => phase === "ready" && connection.snapshot.phase === "usable" && currentTransport?.status.state === "open"
+          && (executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue !== false || !conversation?.getSnapshot().activeTurn),
         canAutoContinueCapacity: () => currentClient.initializeResult?.capabilities?.extensions?.["opencraft/capacity-retry"] === undefined,
         getSubmissionSender: config.getSubmissionSender,
         key: createConversationKey(hostId, threadId),
@@ -995,7 +1050,7 @@ export function createAppServerWorkbenchRuntime(
       const projectionBarrier =
         createThreadViewReplicaProjectionBarrier(replica);
       navigation = new ConversationNavigationController(
-        createCodexV3ConversationNavigationSource({
+        createV3ConversationNavigationSource({
           threadId,
           port: {
             getView: () => currentSession.views.get(threadId),
@@ -1087,7 +1142,7 @@ export function createAppServerWorkbenchRuntime(
         }
       });
       const refreshQueue = (): Promise<void> => {
-        if (!canRequest("thread/queue/list")) return Promise.resolve();
+        if (!canRequest("thread/queue/list") || executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue === false) return Promise.resolve();
         if (binding.queueRefreshOperation !== null) {
           binding.queueRefreshRequested = true;
           return binding.queueRefreshOperation;
@@ -1190,12 +1245,14 @@ export function createAppServerWorkbenchRuntime(
     const revision = connectionRevision;
     binding.hydrationConnectionRevision = revision;
     const current = () => !disposed && !binding.disposed && revision === connectionRevision;
-    binding.phase = force ? "reconnecting" : "hydrating";
-    binding.replica.reportSyncStarted();
-    touchBinding(binding);
-    publish();
     const operation = Promise.resolve()
       .then(async () => {
+        if (!current()) throw new AppServerClientError("ABORTED", "Thread recovery was superseded");
+        binding.phase = force ? "reconnecting" : "hydrating";
+        binding.replica.reportSyncStarted();
+        touchBinding(binding);
+        publish();
+        if (!current()) throw new AppServerClientError("ABORTED", "Thread recovery was superseded");
         const currentSession = requireSession();
         if (force) binding.replica.disconnect();
         const stopPreview = currentSession.views.subscribeThread(binding.threadId, () => {
@@ -1216,7 +1273,7 @@ export function createAppServerWorkbenchRuntime(
           // history behind a slow connector/tool registration request.
           void recovery.span("capability-ready", () => ensureBindingCapabilities(binding)).catch(() => undefined);
         } finally { stopPreview(); }
-        const source = createCodexThreadReplicaSource(
+        const source = createThreadViewReplicaSource(
           currentSession.views,
           hostId,
           binding.threadId,
@@ -1253,13 +1310,23 @@ export function createAppServerWorkbenchRuntime(
 
   const connectPhysicalHost = async (
     generation = lifecycleGeneration,
-  ): Promise<void> => {
+    attempt?: ConnectionAttempt,
+  ): Promise<ConnectionBinding> => {
     ensureLifecycle(generation);
+    attempt?.assertCurrent();
     const currentClient = requireClient();
+    const transport = currentTransport;
+    const revision = connectionRevision;
+    connectionObservation = { client: currentClient, revision };
     if (currentClient.initializeResult === null) recovery.connectionStage(currentTransport?.status.state === "open" ? "initializing" : "connecting");
-    await currentClient.connect(config.initialize ?? defaultInitialize);
+    await currentClient.connect(config.initialize ?? defaultInitialize, attempt?.signal);
     ensureLifecycle(generation);
-    clearReconnectTimer();
+    attempt?.assertCurrent();
+    if (currentClient !== client || transport === null || transport !== currentTransport
+      || revision !== connectionRevision || transport.status.state !== "open" || currentClient.initializeResult === null) {
+      throw new AppServerClientError("NOT_CONNECTED", "Host disconnected during initialization");
+    }
+    return { client: currentClient, transport, generation: currentClient.connectionGeneration, revision };
   };
 
   const recoveryDemand = (binding: ConversationBinding): RecoveryDemand => {
@@ -1308,7 +1375,22 @@ export function createAppServerWorkbenchRuntime(
     ));
   };
 
-  const initializeServices = (): Promise<void> => {
+  // Cancellation stops waiting, not the external operation. A late resource
+  // is disposed by its own continuation and never assigned to Runtime fields.
+  const duringAttempt = <T>(operation: Promise<T>, attempt: ConnectionAttempt,
+    disposeLate: (value: T) => Promise<unknown>): Promise<T> => new Promise((resolve, reject) => {
+    let revoked = false;
+    const abort = () => { revoked = true; reject(attempt.signal.reason ?? new Error("Connection attempt revoked")); };
+    attempt.signal.addEventListener("abort", abort, { once: true });
+    if (attempt.signal.aborted) abort();
+    void operation.then(value => {
+      attempt.signal.removeEventListener("abort", abort);
+      if (revoked) { void disposeLate(value).catch(() => undefined); return; }
+      resolve(value);
+    }, cause => { attempt.signal.removeEventListener("abort", abort); reject(cause); });
+  });
+
+  const initializeServices = (attempt: ConnectionAttempt): Promise<void> => {
     if (disposed)
       return Promise.reject(new Error("AppServer Workbench is disposed"));
     if (client !== null && session !== null && commandPort !== null) {
@@ -1318,12 +1400,12 @@ export function createAppServerWorkbenchRuntime(
       return initializeServicesOperation;
     const generation = lifecycleGeneration;
     let attemptTransport: DuplexTransport | null = null;
-    const operation = (async () => {
-      ownedRegistry =
-        config.clientRegistry === undefined
-          ? await createCordisAppServerRegistry()
-          : null;
+    const operation = Promise.resolve().then(async () => {
+      const registry = config.clientRegistry === undefined
+        ? await duringAttempt(createCordisAppServerRegistry(), attempt, value => value.dispose()) : null;
+      ownedRegistry = registry;
       ensureLifecycle(generation);
+      attempt.assertCurrent();
       const clientRegistry = config.clientRegistry ?? ownedRegistry!.clients;
       attemptTransport = config.createTransport?.() ?? config.transport ?? null;
       if (attemptTransport === null) {
@@ -1370,8 +1452,13 @@ export function createAppServerWorkbenchRuntime(
       removeRecoveryMetrics = client.subscribeRequestLifecycle(event => {
         if (!recovery.observing) return;
         if (event.type === "started") recovery.requestStarted();
-        if (event.type !== "completed" && event.type !== "failed") return;
+        if (event.type !== "completed" && event.type !== "failed" && event.type !== "timed-out" && event.type !== "aborted") return;
         recovery.response(event.responseBytes ?? 0);
+        if (["initialize", "thread/resume", "thread/read", "thread/turns/list", "thread/items/list"].includes(event.method)
+          && (event.type !== "completed" || event.durationMs >= 1_000))
+          recovery.stage(event.type !== "completed" ? "request-failed" : "request-slow", {
+            method: event.method, durationMs: event.durationMs, responseBytes: event.responseBytes ?? 0,
+          });
         if (event.type !== "completed") return;
         if (event.method === "thread/resume") {
           const metrics = (event.result as { historyMetrics?: { nativeReads: number; nativeEvents: number; projectionMs: number } })?.historyMetrics;
@@ -1380,38 +1467,20 @@ export function createAppServerWorkbenchRuntime(
         }
       });
       removeClientHandlers = config.installClientHandlers?.(client) ?? null;
-      removeTransportListener = client.subscribeStatus((status) => {
-        if (!disposed && status.state === "open" && client?.initializeResult == null) recovery.connectionStage("initializing");
-        if (status.state !== "open") clearReconnectStability();
-        if (status.state === "open" || status.state === "connecting") {
-          automaticReconnectBlock = null;
-        }
-        if (
-          disposed ||
-          status.state === "open" ||
-          status.state === "connecting" ||
-          status.state === "closing"
-        )
-          return;
-        if (status.state === "closed" || status.state === "failed") {
-          connectionRevision += 1;
-          recovery.invalidate();
-          recovery.begin("transport-unavailable");
-          recovery.connectionFailed(status.failure);
-          if (status.failure?.recovery === "manual") automaticReconnectBlock = status;
-          console.log("[appserver-reconnect] transport-unavailable", { hostId, state: status.state });
-          phase = status.failure?.recovery === "manual" ? "error" : "reconnecting";
-          error = status.reason === undefined ? null : new Error(status.reason);
-          for (const binding of bindings.values()) binding.replica.disconnect();
-          publish();
-          scheduleReconnect(status);
-        }
+      const observedClient = client;
+      removeTransportListener = observedClient.subscribeStatus((status) => {
+        if (disposed || client !== observedClient || connectionObservation?.client !== observedClient
+          || connectionObservation.revision !== connectionRevision) return;
+        if (status.state === "open" && observedClient.initializeResult === null) recovery.connectionStage("initializing");
+        if (status.state !== "closed" && status.state !== "failed") return;
+        if (status.failure?.recovery === "manual") automaticReconnectBlock = status;
+        connection.lost(status.reason === undefined ? new Error("Host connection lost") : new Error(status.reason),
+          status.failure?.recovery === "manual");
       });
       removeRecoveryHintListener = currentTransport?.subscribeRecoveryHint?.(() => {
-        if (disposed || config.autoReconnect === false || automaticReconnectBlock?.failure?.recovery === "manual") return;
-        if (startOperation !== null || reconnectOperation !== null || !recovery.admitRecoveryHint()) return;
+        if (disposed || config.autoReconnect === false || !connection.admitRecoveryHint()) return;
         if (phase !== "ready") {
-          void runtime.reconnect().catch(() => undefined);
+          void connection.connect(true).catch(() => undefined);
         } else {
           for (const binding of bindings.values()) {
             if (binding.visibleCount === 0 || binding.runtime.getSnapshot().authoritative) continue;
@@ -1421,17 +1490,17 @@ export function createAppServerWorkbenchRuntime(
           }
         }
       }) ?? null;
-      await connectPhysicalHost(generation);
+      await duringAttempt(connectPhysicalHost(generation, attempt), attempt, async () => {});
       ensureLifecycle(generation);
       goals.reset();
-      const resumeHistoryCapability = client.initializeResult?.capabilities?.extensions?.[
-        OPENCRAFT_RESUME_HISTORY_EXTENSION
-      ] as { version?: unknown; mode?: unknown } | undefined;
-      const historyModeHint = resumeHistoryCapability?.version === 1
-        && ["legacy", "paginated", "message-window"].includes(String(resumeHistoryCapability.mode))
-        ? resumeHistoryCapability.mode as "legacy" | "paginated" | "message-window"
-        : null;
-      session = await createCordisThreadSessionRuntime({
+      const historyModeHint = () => {
+        const capability = client?.initializeResult?.capabilities?.extensions?.[
+          OPENCRAFT_RESUME_HISTORY_EXTENSION
+        ] as { version?: unknown; mode?: unknown } | undefined;
+        return capability?.version === 1 && ["legacy", "paginated", "message-window"].includes(String(capability.mode))
+          ? capability.mode as "legacy" | "paginated" | "message-window" : null;
+      };
+      session = await duringAttempt(createCordisThreadSessionRuntime({
         client,
         frameScheduler: config.frameScheduler,
         hostKind:
@@ -1440,8 +1509,9 @@ export function createAppServerWorkbenchRuntime(
         historyModeHint,
         useTailHydration: true,
         requestTimeoutMs: config.requestTimeoutMs ?? 30_000,
-      });
+      }), attempt, value => value.dispose());
       ensureLifecycle(generation);
+      attempt.assertCurrent();
       interactions = new AppServerInteractionBroker({
         hostId,
         client,
@@ -1454,12 +1524,10 @@ export function createAppServerWorkbenchRuntime(
         client,
         canRequest,
         interactions,
-        queueAtomicSteer: supportsAtomicQueuedSteer(
-          client.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION],
-        ),
-        queueUnconfirmedSteerDiscard: supportsUnconfirmedSteerDiscard(
-          client.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION],
-        ),
+        get queueAtomicSteer() { return supportsAtomicQueuedSteer(
+          client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION]); },
+        get queueUnconfirmedSteerDiscard() { return supportsUnconfirmedSteerDiscard(
+          client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION]); },
         compiler: { historyMode: "paginated" },
         modelSelectionPolicy: config.modelSelectionPolicy,
         resolveCompilerOptions: async (intent) => {
@@ -1507,7 +1575,7 @@ export function createAppServerWorkbenchRuntime(
         dynamicTools: declaredDynamicTools(),
         onInterrupt: (event) => console.info("[turn-interrupt] client request", event),
       });
-    })()
+    })
       .catch(async (cause) => {
         console.log("[appserver-runtime] service initialization failed", {
           hostId,
@@ -1518,12 +1586,12 @@ export function createAppServerWorkbenchRuntime(
           // Registry cleanup closes a fixed transport permanently. It has no
           // factory-backed successor, so an automatic retry would only spin
           // on the disposed object forever.
-          clearReconnectTimer();
           automaticReconnectBlock ??= {
             state: "closed",
             reason: "The fixed AppServer transport generation was closed after initialization failed",
             failure: { code: "fixed-transport-generation-closed", recovery: "manual" },
           };
+          connection.lost(cause, true);
         }
         if (attemptTransport?.status.failure?.diagnostic) initializationFailureStatus = attemptTransport.status;
         removeTransportListener?.();
@@ -1543,22 +1611,25 @@ export function createAppServerWorkbenchRuntime(
         interactions = null;
         fuzzyFileSearch?.dispose();
         fuzzyFileSearch = null;
-        await terminalController?.dispose().catch(() => undefined);
+        // Detach shared fields before any untrusted async cleanup. Each
+        // disposer captures its retired bundle and can never clear a successor.
+        const failedTerminal = terminalController, failedSession = session;
+        const failedRegistry = ownedRegistry, failedClient = client;
         terminalController = null;
-        await session?.dispose().catch(() => undefined);
         session = null;
-        const failedClient = client;
-        if (ownedRegistry !== null) {
-          await ownedRegistry.dispose().catch(() => undefined);
-        } else if (failedClient !== null) {
-          await config.clientRegistry?.remove(hostId).catch(() => undefined);
-        } else {
-          await attemptTransport?.close().catch(() => undefined);
-        }
-        if (currentTransport === attemptTransport) currentTransport = null;
         ownedRegistry = null;
         client = null;
         commandPort = null;
+        connectionObservation = null;
+        if (currentTransport === attemptTransport) currentTransport = null;
+        // remove() deletes the registry claim synchronously, before close awaits
+        // transport I/O. Start it before a successor can create the same host.
+        const closeClient = failedRegistry !== null ? failedRegistry.clients.remove(hostId)
+          : failedClient !== null ? config.clientRegistry!.remove(hostId)
+          : attemptTransport?.close();
+        void Promise.allSettled([
+          closeClient, failedTerminal?.dispose(), failedSession?.dispose(), failedRegistry?.dispose(),
+        ]);
         throw cause;
       })
       .finally(() => {
@@ -1618,19 +1689,21 @@ export function createAppServerWorkbenchRuntime(
         },
       },
       threads: {
-        capabilities() {
-          const capability = parseThreadLifecycleCapability(client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]);
-          return { fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
-            pin: client !== null && threadPins?.client === client && threadPins.generation === client.connectionGeneration && threadPins.resource.available() };
+        capabilities(threadId) {
+          const extension = (key: string) => executionEngineExtension(client?.initializeResult?.capabilities?.extensions, threadId, key);
+          const reference = extension("opencraft/collaboration") !== undefined;
+          const capability = parseThreadLifecycleCapability(extension(OPENCRAFT_THREAD_LIFECYCLE_EXTENSION));
+          return { reference, fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
+            pin: (extension(OPENCRAFT_THREAD_LIFECYCLE_EXTENSION)?.pin !== false) && client !== null && threadPins?.client === client && threadPins.generation === client.connectionGeneration && threadPins.resource.available() };
         },
         async setPinned(threadId, pinned) { await pinResource(requireClient()).set(threadId, pinned); },
         async rename(threadId, name) { await requireClient().request("thread/name/set", { threadId, name }); },
         async delete(threadId) { await requireClient().request("thread/delete", { threadId }); },
         async archive(threadId) { await requireClient().request("thread/archive", { threadId }); },
         async unarchive(threadId) { return (await requireClient().request("thread/unarchive", { threadId })).thread as ProtocolThread; },
-        supportsSideChat() {
-          const capability = parseThreadLifecycleCapability(requireClient().initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]);
-          return capability?.fork === true && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
+        supportsSideChat(threadId) {
+          const capability = parseThreadLifecycleCapability(executionEngineExtension(requireClient().initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_THREAD_LIFECYCLE_EXTENSION));
+          return (capability?.fork === true || capability?.ephemeralFork === true) && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
         },
         async injectItems(threadId, items) {
           await requireClient().request("thread/inject_items", { threadId, items: [...items] });
@@ -1668,7 +1741,10 @@ export function createAppServerWorkbenchRuntime(
           await currentClient.request("thread/unsubscribe", { threadId });
           if (disposed || generation !== lifecycleGeneration || client !== currentClient || currentClient.connectionGeneration !== connectionGeneration) return;
           const current = bindings.get(threadId);
-          if (current && (current !== binding || hasHardResidencyReason(current))) {
+          // Temporary ownership ends here even if its final projection has not
+          // settled yet. Only a new consumer can require reattachment.
+          const retained = current && (ephemeralThreadIds.has(threadId) ? current.retainCount > 0 : hasHardResidencyReason(current));
+          if (current && (current !== binding || retained)) {
             // The unsubscribe won on the wire; the new consumer must actually
             // reattach, not merely retain a stale local projection.
             requireSession().resume.markNeedsResume(threadId);
@@ -1942,95 +2018,11 @@ export function createAppServerWorkbenchRuntime(
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    connect() {
-      if (disposed)
-        return Promise.reject(new Error("AppServer Workbench is disposed"));
-      if (phase === "ready") return Promise.resolve();
-      if (phase === "reconnecting")
-        return reconnectOperation ?? runtime.reconnect();
-      if (startOperation !== null) return startOperation;
-      automaticReconnectBlock = null;
-      initializationFailureStatus = null;
-      phase = "connecting";
-      recovery.begin("connecting");
-      error = null;
-      publish();
-      const operation = (async () => {
-        try {
-          await initializeServices();
-          phase = "ready";
-          error = null;
-          markReconnectReady();
-          publish();
-        } catch (cause) {
-          recovery.connectionFailed(cause);
-          error = cause instanceof Error ? cause : new Error(String(cause));
-          phase = "error";
-          publish();
-          scheduleReconnect();
-          throw cause;
-        }
-      })().finally(() => {
-        if (startOperation === operation) startOperation = null;
-      });
-      startOperation = operation;
-      return operation;
-    },
-    reconnect() {
-      if (disposed)
-        return Promise.reject(new Error("AppServer Workbench is disposed"));
-      if (reconnectOperation !== null) return reconnectOperation;
-      clearReconnectTimer();
-      automaticReconnectBlock = null;
-      initializationFailureStatus = null;
-      const reconnectStartedAt = Date.now();
-      const attempt = recovery.reconnectAttempt || 1;
-      recovery.begin("connecting");
-      console.log("[appserver-reconnect] started", { hostId, attempt });
-      phase = "reconnecting";
-      error = null;
-      publish();
-      const generation = lifecycleGeneration;
-      const operation = (async () => {
-        try {
-          await initializeServices();
-          await connectPhysicalHost(generation);
-          ensureLifecycle(generation);
-          if (currentTransport?.status.state !== "open" || client?.initializeResult == null) {
-            throw new AppServerClientError("NOT_CONNECTED", "Host disconnected during initialization");
-          }
-          phase = "ready";
-          error = null;
-          clearReconnectTimer();
-          markReconnectReady();
-          console.log("[appserver-reconnect] succeeded", { hostId, attempt, elapsedMs: Date.now() - reconnectStartedAt });
-          publish();
-          restoreResources();
-        } catch (cause) {
-          recovery.connectionFailed(cause);
-          console.log("[appserver-reconnect] failed", {
-            hostId,
-            attempt,
-            errorType: cause instanceof Error ? cause.name : "Error",
-            message: cause instanceof Error ? cause.message : String(cause),
-            elapsedMs: Date.now() - reconnectStartedAt,
-          });
-          error = cause instanceof Error ? cause : new Error(String(cause));
-          phase = config.autoReconnect !== false && !requiresManualRecovery()
-            ? "reconnecting" : "error";
-          publish();
-          scheduleReconnect(currentTransport?.status);
-          throw cause;
-        }
-      })().finally(() => {
-        if (reconnectOperation === operation) reconnectOperation = null;
-      });
-      reconnectOperation = operation;
-      return operation;
-    },
+    connect() { return connection.connect(); },
+    reconnect() { return connection.connect(true); },
     async acquireThread(nextThreadId) {
       const threadId = requireThreadId(nextThreadId);
-      await initializeServices();
+      await runtime.connect();
       const binding = await createBinding(threadId);
       binding.retainCount += 1;
       touchBinding(binding);
@@ -2100,6 +2092,16 @@ export function createAppServerWorkbenchRuntime(
             // queue. Transport failure after adoption is a different boundary.
             if (!config.outbox || (phase === "ready" && binding.runtime.getSnapshot().authoritative && !binding.runtime.getSnapshot().queuedSubmissions.some(item => item.local))) assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
               : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+            // Online first inputs can own ready asset/context references while
+            // the new Thread is still hydrating. Keep that custody on this
+            // command; the offline text outbox cannot persist these handles.
+            if (phase === "ready" && !binding.runtime.getSnapshot().authoritative
+              && (intent.attachments.length > 0 || intent.context.length > 0)) {
+              assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
+                : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+              await hydrateBinding(binding, false);
+              if (released || binding.disposed) throw new Error(`Thread ${threadId} lease is released`);
+            }
             const receipt = await binding.runtime.submit(intent);
             if (receipt.turnId !== null)
               retainAcceptedTurn(binding, receipt.turnId);
@@ -2169,7 +2171,7 @@ export function createAppServerWorkbenchRuntime(
       if (intent.target.execution.hostId !== hostId) {
         throw new Error("This New chat Draft targets a different Host");
       }
-      await initializeServices();
+      await runtime.connect();
       if (commandPort === null)
         throw new Error("AppServer command port is unavailable");
       const durability = client?.initializeResult?.capabilities?.extensions?.[
@@ -2192,18 +2194,16 @@ export function createAppServerWorkbenchRuntime(
     },
     dispose() {
       if (disposeOperation !== null) return disposeOperation;
-      const operation = (async () => {
+      let resolve!: () => void, reject!: (cause: unknown) => void;
+      const operation = new Promise<void>((done, fail) => { resolve = done; reject = fail; });
+      disposeOperation = operation;
+      void (async () => {
         if (disposed) return;
-        clearReconnectTimer();
-        clearReconnectStability();
-        connectionRevision += 1;
+        connection.dispose();
         recovery.dispose();
         if (detachRetryTimer !== null) clock.clearTimeout(detachRetryTimer);
         detachRetryTimer = null;
         failedReadDetaches.clear();
-        phase = "disposed";
-        error = null;
-        publish();
         disposed = true;
         lifecycleGeneration += 1;
         removeTransportListener?.();
@@ -2223,8 +2223,6 @@ export function createAppServerWorkbenchRuntime(
         schedulesChangedListeners.clear();
 
         const pending = [
-          startOperation,
-          reconnectOperation,
           initializeServicesOperation,
           ...bindingOperations.values(),
           ...[...bindings.values()].map(
@@ -2255,8 +2253,7 @@ export function createAppServerWorkbenchRuntime(
         client = null;
         commandPort = null;
         listeners.clear();
-      })();
-      disposeOperation = operation;
+      })().then(resolve, reject);
       return operation;
     },
   };

@@ -1,5 +1,7 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, FolderIcon as Folder, LoadingRingIcon as LoaderCircle, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
+import { useObservedReadiness } from '../runtime/observability-react';
 import { ThreadGoalSurface } from "./thread-goal-surface";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { ThreadComposerPresentation } from "./thread-composer-presentation";
 import {
@@ -26,19 +28,7 @@ import { menuGeometry } from "@opencraft/design-system/tokens";
 import { useMachineConnectionPhase } from "../runtime/appserver-runtime-context";
 import { ConnectionStatus } from "./target-connection-status";
 import { machineResourcePhaseLabel } from "./machine-resource-presentation";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  FolderPlus,
-  GitBranch,
-  Cloud,
-  Laptop,
-  Server,
-  LoaderCircle,
-  Search,
-} from "lucide-react";
+import { NewFolderIcon as FolderPlus, BranchIcon as GitBranch, CloudIcon as Cloud, LaptopIcon as Laptop, ServerIcon as Server } from "@opencraft/design-system-web/action-icons";
 import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -486,6 +476,7 @@ export function NewThreadDraftPage({
 }: NewThreadDraftPageProps) {
   const intl = useIntl();
   const composerRef = useRef<OpenCraftComposerHandle>(null);
+  useObservedReadiness(draft.scopeId, connectionPhase === 'ready' && !personalDefaultsPending && !draftSubmissionOwnsNavigation(draft.phase));
   const portalContainer = useWorkbenchPresentationRoot();
 
   if (draft.submission !== null) {

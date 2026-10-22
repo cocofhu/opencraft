@@ -88,7 +88,7 @@ test("Electron retains daemon Host registration and explicit configuration owner
 });
 
 test("a server deployment contributes exactly one Codex page beside model services", async () => {
-  const { createHeadlessCodexExtension, createHeadlessModelServicesExtension } = await import("../plugins/builtin-agents/src/index");
+  const { createHeadlessServerExtension, createHeadlessModelServicesExtension } = await import("../plugins/builtin-agents/src/index");
   const supervisor = new ExtensionSupervisor({
     platform: "web",
     internalContributions: {
@@ -101,7 +101,7 @@ test("a server deployment contributes exactly one Codex page beside model servic
   try {
     await supervisor.activate(createBuiltinAgentsExtension({ platform: "web", requestHost, includeCodexAccounts: false }));
     await supervisor.activate(createHeadlessModelServicesExtension({ requestHost, hostId: "opencraft-server" }));
-    await supervisor.activate(createHeadlessCodexExtension({ requestHost, workspaceBrowseRoots: ["/"],
+    await supervisor.activate(createHeadlessServerExtension({ requestHost, workspaceBrowseRoots: ["/"],
       createTransport: () => { throw new Error("Registration must not connect"); } }));
     const pages = supervisor.contributions.getSnapshot().settingsPages.map(({ contribution }) => contribution);
     const accounts = pages.filter(page => page.titleMessage?.id === "settings.contributions.codexAccounts");

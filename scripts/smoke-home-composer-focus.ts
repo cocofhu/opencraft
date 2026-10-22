@@ -26,6 +26,12 @@ try {
   await editor.evaluate(el=>{(window as any).keptEditor=el;(el as HTMLElement).blur();});
   await page.waitForTimeout(100);
   const initial=(await shell.boundingBox())!;
+  const welcomeInset=await page.locator('#new-thread-heading').evaluate(el=>el.getBoundingClientRect().top-el.closest('.new-thread-draft-main')!.getBoundingClientRect().top);
+  const assertWelcomeAnchor=async()=>{
+    if(desktop)return;
+    const inset=await page.locator('#new-thread-heading').evaluate(el=>el.getBoundingClientRect().top-el.closest('.new-thread-draft-main')!.getBoundingClientRect().top);
+    assert(Math.abs(inset-welcomeInset)<=1,`${label}: welcome title recenters during input/keyboard changes ${JSON.stringify({welcomeInset,inset})}`);
+  };
   if(inline){
     assert(!(await page.locator('.opencraft-composer-mode--depth').isVisible()),'idle row hides model entrance');
     const geometry=await shell.evaluate(el=>{
@@ -46,6 +52,7 @@ try {
   await page.waitForTimeout(250);const focused=(await shell.boundingBox())!;
   const header=await page.locator(".app-shell-header").evaluate(el=>({background:getComputedStyle(el).backgroundImage,before:getComputedStyle(el,"::before").display}));
   if(before){assert(focused.height>initial.height+20);assert.notEqual(header.background,"none");await page.screenshot({path:`${output}/before.png`});evidence.push({test,initial,focused,header});await context.close();continue;}
+  await assertWelcomeAnchor();
   if(inline){
     assert(focused.height>initial.height,'entering editor expands before typing');
     assert(focused.height<=115,'expanded empty input cannot reserve blank lines');
@@ -107,6 +114,22 @@ try {
   };
   if(inline){const typed=(await editor.boundingBox())!;assert(typed.height<32,'short draft must not reserve a second text line');}
   await assertNativeSelection();const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
+  // Shrinking through a height boundary cannot change the input's layout mode.
+  // Keep content constant: this catches the former 541 -> 540 downward jump.
+  const continuousViewportEvidence=[];
+  if(!desktop){
+   let previous:null|{height:number;top:number}=null;
+   for(const height of [560,545,541,540,539,535,440,280,440,535,539,540,541,545,560,844]){
+    await page.evaluate(h=>(window as any).setViewport(h,0),height);await page.waitForTimeout(50);
+    const input=(await editor.boundingBox())!,send=(await page.locator('.opencraft-composer-submit').boundingBox())!;
+    assert(send.y>=0&&send.y+send.height<=height+1,`${label}: short viewport keeps Send inside ${JSON.stringify({height,send})}`);
+    if(previous&&Math.abs(previous.height-height)<=5)assert(Math.abs(input.y-previous.top)<=Math.abs(height-previous.height)+1,`${label}: input jumps across a one-pixel height change ${JSON.stringify({previous,height,input})}`);
+    assert(await editor.evaluate(el=>el===(window as any).keptEditor&&el===document.activeElement),'continuous resize preserves editor and focus');
+    assert.equal(await editor.innerText(),"保留当前草稿");
+    await assertWelcomeAnchor();
+    continuousViewportEvidence.push({height,input,send});previous={height,top:input.y};
+   }
+  }
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
@@ -120,6 +143,7 @@ try {
     await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
     assert(await editor.evaluate(el=>el===document.activeElement),'keyboard plus depth/Fast preserves native editing focus');
    }
+   await assertWelcomeAnchor();
    const send=page.locator(".opencraft-composer-submit");const visible=(await send.boundingBox())!;
    assert(visible.y>=top&&visible.y+visible.height<=top+height+1,`${label}: send clipped ${JSON.stringify({height,top,visible})}`);
    assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible,selection:await assertNativeSelection()});
@@ -167,7 +191,7 @@ try {
     emptyCaretEvidence.push(await assertEmptyCaretOrigin());
   }
   if(test.width===390&&!test.ordinary)await page.screenshot({path:`${output}/${label}.png`});assert.deepEqual(errors,[]);
-  evidence.push({test,initial,focused,content,header,viewportEvidence,emptyCaretEvidence});console.log("PASS",label);await context.close();
+  evidence.push({test,initial,focused,content,header,viewportEvidence,emptyCaretEvidence,continuousViewportEvidence});console.log("PASS",label);await context.close();
  }
  await writeFile(`${output}/${before?"before":"after"}.json`,JSON.stringify(evidence,null,2));
 }finally{await browser.close();await vite.close();}

@@ -89,8 +89,12 @@ export function displayAsyncQuestionReply(text: string): string | null {
 }
 
 /** Derived from ordered Timeline Items, including another Client's accepted reply. */
-export function deriveAsyncQuestionStates(timeline: Pick<TimelineSnapshot, "frames">): ReadonlyMap<string, AsyncQuestionState> {
+export function deriveAsyncQuestionPresentation(timeline: Pick<TimelineSnapshot, "frames">): {
+  readonly states: ReadonlyMap<string, AsyncQuestionState>;
+  readonly answers: ReadonlyMap<string, string>;
+} {
   const states = new Map<string, AsyncQuestionState>();
+  const answers = new Map<string, string>();
   for (const frame of timeline.frames) {
     for (const block of frame.blocks) {
       if (block.type === "text") {
@@ -106,11 +110,19 @@ export function deriveAsyncQuestionStates(timeline: Pick<TimelineSnapshot, "fram
       if (replies !== null) {
         const next = block.deliveryStatus === "sending" ? "sending"
           : block.deliveryStatus === "unknown" ? "unconfirmed" : "answered";
-        for (const reply of replies) if (states.has(reply.questionItemId)) states.set(reply.questionItemId, next);
+        for (const reply of replies) if (states.has(reply.questionItemId)) {
+          states.set(reply.questionItemId, next);
+          if (next === "answered") answers.set(reply.questionItemId, reply.answer);
+          else answers.delete(reply.questionItemId);
+        }
       } else if (block.deliveryStatus !== "sending" && block.deliveryStatus !== "unknown") {
         for (const [id, state] of states) if (state === "pending") states.set(id, "dismissed");
       }
     }
   }
-  return states;
+  return { states, answers };
+}
+
+export function deriveAsyncQuestionStates(timeline: Pick<TimelineSnapshot, "frames">): ReadonlyMap<string, AsyncQuestionState> {
+  return deriveAsyncQuestionPresentation(timeline).states;
 }

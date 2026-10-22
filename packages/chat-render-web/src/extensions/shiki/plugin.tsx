@@ -20,7 +20,6 @@ export const ShikiWebExtension = Object.assign(
         kinds: ["code-fence"],
         matches: (node) =>
           node.kind === "code-fence" &&
-          node.completeness === "complete" &&
           node.language !== "mermaid",
         component: Renderer,
       }),

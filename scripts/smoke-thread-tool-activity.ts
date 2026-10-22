@@ -20,8 +20,8 @@ const vite = await createServer({ configFile: false, root: process.cwd(), logLev
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let inspectedPage: Awaited<ReturnType<NonNullable<typeof browser>["newPage"]>> | undefined;
 const results = [];
-const handoffOnly = process.argv.includes("--handoff-live-only");
 const restoreOnly = process.argv.includes("--restore-only");
+const handoffOnly = process.argv.includes("--handoff-live-only");
 try {
   await vite.listen();
   browser = await chromium.launch({ executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
@@ -31,7 +31,7 @@ try {
       const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion });
       inspectedPage = page;
       const errors: string[] = [];
-      page.on("pageerror", error => errors.push(error.message));
+      page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
       await page.addInitScript("window.__name=value=>value");
       await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=live&single=1&restore=1&theme=${theme}`);
       const group = page.locator(".thread-agent-activity__group-disclosure > .thread-activity-item__header button");
@@ -163,13 +163,13 @@ try {
     await page.close();
   }
 
-  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!process.argv.some(value => value.endsWith("-only")) || process.argv.includes("--website-view-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.addInitScript("window.__name=value=>value");
-    await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=webmcp&restore=1&theme=${theme}`);
+    await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=webmcp-restore&restore=1&theme=${theme}`);
     const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
     const openGroups = async () => {
       const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
@@ -191,7 +191,9 @@ try {
     await remount();
     assert.equal(await first.getAttribute("aria-expanded"), "true");
     assert.equal(await second.getAttribute("aria-expanded"), "true");
-    await page.getByText('{"result":"WEBSITE_RESULT"}', { exact: true }).waitFor();
+    const restoredOutput = page.locator('.thread-webmcp-details .chat-code-block pre').filter({hasText:'WEBSITE_RESULT'});
+    await restoredOutput.waitFor();
+    assert.deepEqual(JSON.parse(await restoredOutput.innerText()), {result:'WEBSITE_RESULT'});
     await activate(first); await remount();
     assert.equal(await first.getAttribute("aria-expanded"), "false");
     assert.equal(await second.getAttribute("aria-expanded"), "true");
@@ -202,11 +204,11 @@ try {
     results.push({ width, theme, websiteViewChoices: true, independentCalls: true, freshViewCollapsed: true });
     await page.close();
   }
-  if (!handoffOnly && !process.argv.includes("--host-content-only") && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+  if (!process.argv.includes("--raw-only") && !handoffOnly && !process.argv.includes("--host-content-only") && !process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}`);
     const nativeSummary = page.locator(".thread-codex-app-tool-row .thread-activity-item__summary");
@@ -250,11 +252,56 @@ try {
     console.log(JSON.stringify({ width, theme, passed: true }));
     await page.close();
   }
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=images`);
+    await page.locator("[data-phase]").waitFor();
+    const collapsed = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await collapsed.count() > 0; index++) await collapsed.first().click();
+    const disclosure = page.getByRole("button", { name: "Inspect images · Completed", exact: true });
+    if (await disclosure.getAttribute("aria-expanded") !== "true") await disclosure.click();
+    const measureImages = async () => {
+      await page.waitForFunction(() => {
+        const images = [...document.querySelectorAll<HTMLImageElement>(".thread-tool-details img")];
+        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+      });
+      return page.locator(".thread-tool-details img").evaluateAll(images => images.map(element => {
+        const image = element as HTMLImageElement;
+        const rect = image.getBoundingClientRect();
+        const section = image.closest("section")!;
+        return { width: rect.width, height: rect.height, bottom: rect.bottom,
+          nextTop: section.nextElementSibling!.getBoundingClientRect().top,
+          availableWidth: image.closest(".thread-tool-details")!.getBoundingClientRect().width,
+          naturalRatio: image.naturalWidth / image.naturalHeight };
+      }));
+    };
+    const initial = await measureImages();
+    for (const image of initial) {
+      assert.ok(image.height <= 192.5, JSON.stringify(image));
+      assert.ok(image.width <= image.availableWidth + 0.5, JSON.stringify(image));
+      assert.ok(image.bottom <= image.nextTop + 0.5, "Tool image cannot cover the following result");
+      assert.ok(Math.abs(image.width / image.height - image.naturalRatio) < 0.01);
+    }
+    assert.equal(initial[2]!.width, 96, "Small images keep their natural size");
+    await disclosure.click();
+    await disclosure.click();
+    const reopened = await measureImages();
+    assert.deepEqual(reopened, initial, "Reopening preserves bounded preview geometry");
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: join(output, `images-${width}-${theme}.png`) });
+    results.push({ width, theme, boundedToolImages: true, followingContentClear: true, reopen: true });
+    console.log(JSON.stringify({ width, theme, toolImages: true, passed: true }));
+    await page.close();
+  }
   if (!handoffOnly && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     const url = `http://127.0.0.1:${(vite.httpServer!.address() as {
         port: number;
@@ -311,11 +358,13 @@ try {
     results.push({ width, theme, liveTools: features });
     await page.close();
 }
+  }
+
   if (!handoffOnly && !process.argv.includes("--live-only") && !process.argv.includes("--raw-only") && !process.argv.includes("--host-content-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     const url = `http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-live`;
     const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
@@ -448,7 +497,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390,
       isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
-    const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+    const errors: string[] = []; page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=host-content`);
     await page.locator('[data-host-mode="content"]').waitFor();
@@ -498,53 +547,218 @@ try {
       inputIdentityRetained: true, semanticFallback: true, emptyHandoffSummary: true });
     await page.close();
   }
-
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=webmcp`);
+    await page.locator("[data-phase]").waitFor();
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+    for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    const titles = ["Listed website tools", "Look up an item", "Partial query", "Plain response", "Empty response"];
+    for (const title of titles) {
+      const trigger = page.getByRole("button", { name: title, exact: true });
+      assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+      await activate(trigger);
+    }
+    const details = page.locator(".thread-webmcp-details");
+    assert.equal(await details.count(), 5);
+    assert.deepEqual(await details.locator(".chat-code-block__title").allTextContents(), [
+      "Tool", "Result", "Tool", "Result", "Tool (input truncated)", "Result (truncated)", "Tool", "Result", "Tool",
+    ]);
+    const sources = (index: number) => details.nth(index).locator(".chat-code-block pre").allTextContents();
+    const lookup = await sources(1);
+    const metadata = JSON.parse(lookup[0]!);
+    assert.deepEqual(metadata, { name: "lookup_item", title: "Look up an item", description: "Find an item in this website",
+      website: "catalog.example.test", readOnlyHint: true, input: { query: { id: "INPUT_42", region: "上海" }, options: { limit: 40 } } });
+    assert.ok(lookup[0]!.includes('"input": {\n'), "Nested input is formatted for reading");
+    assert.ok(lookup[1]!.includes('"items": [\n'));
+    const result = JSON.parse(lookup[1]!);
+    assert.equal(result.items.length, 40);
+    assert.equal(result.last, "LAST_RESULT");
+    const partial = await sources(2);
+    assert.equal(JSON.parse(partial[0]!).input, '{"query":"PARTIAL_INPUT');
+    assert.equal(JSON.parse(partial[0]!).inputTruncated, true);
+    assert.equal(JSON.parse(partial[0]!).readOnlyHint, false);
+    assert.equal(partial[1], '{"result":"PARTIAL_OUTPUT');
+    const plain = await sources(3);
+    assert.equal(JSON.parse(plain[0]!).input, "PLAIN_INPUT");
+    assert.equal(plain[1], "PLAIN_OUTPUT");
+    const empty = await sources(4);
+    assert.equal(empty.length, 1, "An absent result does not invent a result section");
+    assert.equal(JSON.parse(empty[0]!).input, false);
+    const scroller = details.nth(1).locator(".chat-code-block__scroller").nth(1);
+    const scrolling = await scroller.evaluate(element => {
+      element.scrollTop = element.scrollHeight;
+      return { top: element.scrollTop, client: element.clientHeight, total: element.scrollHeight,
+        maximum: Number.parseFloat(getComputedStyle(element).maxHeight) };
+    });
+    assert.ok(scrolling.top > 0 && scrolling.total > scrolling.client);
+    assert.ok(Number.isFinite(scrolling.maximum) && scrolling.client <= scrolling.maximum + 1, "Shared preview owns the local reading budget");
+    const trigger = page.getByRole("button", { name: "Look up an item", exact: true });
+    await activate(trigger);
+    await activate(trigger);
+    assert.deepEqual(await sources(1), lookup);
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await details.nth(1).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(output, `webmcp-${width}-${theme}.png`) });
+    results.push({ width, theme, websiteToolSections: true, structuredJson: true, truncatedAndPlainPreserved: true, sharedPreviewScroll: true, collapseAndReopen: true });
+    console.log(JSON.stringify({ width, theme, webMcpDetails: true, passed: true }));
+    await page.close();
+  }
   for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
     await page.addInitScript("window.__name=value=>value");
-    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=images`);
-    await page.locator("[data-phase]").waitFor();
-    const collapsed = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
-    for (let index = 0; index < 20 && await collapsed.count() > 0; index++) await collapsed.first().click();
-    const disclosure = page.getByRole("button", { name: "Inspect images · Completed", exact: true });
-    if (await disclosure.getAttribute("aria-expanded") !== "true") await disclosure.click();
-    const measureImages = async () => {
-      await page.waitForFunction(() => {
-        const images = [...document.querySelectorAll<HTMLImageElement>(".thread-tool-details img")];
-        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
-      });
-      return page.locator(".thread-tool-details img").evaluateAll(images => images.map(element => {
-        const image = element as HTMLImageElement;
-        const rect = image.getBoundingClientRect();
-        const section = image.closest("section")!;
-        return { width: rect.width, height: rect.height, bottom: rect.bottom,
-          nextTop: section.nextElementSibling!.getBoundingClientRect().top,
-          availableWidth: image.closest(".thread-tool-details")!.getBoundingClientRect().width,
-          naturalRatio: image.naturalWidth / image.naturalHeight };
-      }));
-    };
-    const initial = await measureImages();
-    for (const image of initial) {
-      assert.ok(image.height <= 192.5, JSON.stringify(image));
-      assert.ok(image.width <= image.availableWidth + 0.5, JSON.stringify(image));
-      assert.ok(image.bottom <= image.nextTop + 0.5, "Tool image cannot cover the following result");
-      assert.ok(Math.abs(image.width / image.height - image.naturalRatio) < 0.01);
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=reviews`);
+    await page.locator('[data-phase="inProgress"]').waitFor();
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+    for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    const reviewed = [page.getByRole("button", { name: "Reviewed · Running", exact: true }), page.getByRole("button", { name: "Inspect · Running", exact: true })];
+    for (const trigger of reviewed) {
+      assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Pending reviews preserve the tool's collapsed default");
+      await activate(trigger);
     }
-    assert.equal(initial[2]!.width, 96, "Small images keep their natural size");
-    await disclosure.click();
-    await disclosure.click();
-    const reopened = await measureImages();
-    assert.deepEqual(reopened, initial, "Reopening preserves bounded preview geometry");
+    const reviews = page.locator(".thread-auto-review");
+    assert.equal(await reviews.count(), 2);
+    for (let index = 0; index < 2; index++) {
+      await activate(reviews.nth(index).locator(":scope > button"));
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), "Reviewing this request.");
+    }
+    assert.equal(await page.locator(".thread-tool-details").count(), 0, "Review details do not grant a tool payload surface");
+    await page.evaluate(() => (window as any).changeThreadToolPhase("denied"));
+    await page.locator('[data-phase="denied"]').waitFor();
+    for (let index = 0; index < 2; index++) {
+      assert.equal(await reviewed[index]!.getAttribute("aria-expanded"), "true");
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), `REVIEW_REASON_${index}: add permission context.`);
+      assert.equal(await reviews.nth(index).getAttribute("data-warning"), "true");
+      await activate(reviewed[index]!);
+      await activate(reviewed[index]!);
+      const reasonToggle = reviews.nth(index).locator(":scope > button");
+      assert.equal(await reasonToggle.getAttribute("aria-expanded"), "true", "Reopening the tool retains its explicit review reason choice");
+      await activate(reasonToggle);
+      assert.equal(await reasonToggle.getAttribute("aria-expanded"), "false", "The retained reason can still be collapsed manually");
+      await activate(reasonToggle);
+      assert.equal(await reviews.nth(index).locator(":scope > p").textContent(), `REVIEW_REASON_${index}: add permission context.`);
+    }
+    const plain = page.locator(".thread-activity-item[data-status] > .thread-activity-item__header").filter({ hasText: "Plain · Running" });
+    assert.equal(await plain.count(), 1);
+    assert.equal(await plain.locator("button[aria-expanded]").count(), 0, "An unrelated pending tool stays compact");
+    assert.equal(await page.locator(".thread-tool-details").count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(errors, []);
-    await page.screenshot({ path: join(output, `images-${width}-${theme}.png`) });
-    results.push({ width, theme, boundedToolImages: true, followingContentClear: true, reopen: true });
-    console.log(JSON.stringify({ width, theme, toolImages: true, passed: true }));
+    await page.screenshot({ path: join(output, `reviews-${width}-${theme}.png`) });
+    results.push({ width, theme, pendingToolReviewsReachable: true, denialReasonUpdates: true, compactPayloadPreserved: true, collapseAndReopen: true });
+    console.log(JSON.stringify({ width, theme, toolReviews: true, passed: true }));
     await page.close();
   }
-
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
+    await page.addInitScript(() => {
+      (window as any).__name = (value: unknown) => value;
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+        writeText: async (text: string) => { (window as any).rawClipboard = text; },
+      } });
+    });
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=raw`);
+    await page.locator("[data-phase]").waitFor();
+    const activate = (target: ReturnType<typeof page.locator>) => width === 390 ? target.tap() : target.click();
+    for (let index = 0; index < 30; index++) {
+      const closed = page.locator('.thread-activity-item__hit-target[aria-expanded="false"]');
+      if (await closed.count() === 0) break;
+      await activate(closed.first());
+    }
+    const rawButtons = page.getByRole("button", { name: "Show raw tool call output", exact: true });
+    assert.equal(await rawButtons.count(), 6);
+    const values: any[] = [];
+    for (let index = 0; index < 6; index++) {
+      await activate(rawButtons.nth(index));
+      const dialog = page.getByRole("dialog");
+      await dialog.waitFor();
+      await page.evaluate(() => { (window as any).rawClipboard = ""; });
+      await activate(dialog.getByRole("button", { name: "Copy code", exact: true }));
+      await page.waitForFunction(() => (window as any).rawClipboard.length > 0);
+      values.push(JSON.parse(await page.evaluate(() => (window as any).rawClipboard)));
+      if (index === 0 || index === 4) await page.screenshot({ path: join(output, `raw-${index}-${width}-${theme}.png`) });
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+    }
+    assert.deepEqual(values[0], {
+      callId: "protocol-error", invocation: { server: "raw-probe", tool: "protocol_error", arguments: { path: "/workspace/report.txt" } }, durationMs: 120,
+      result: { type: "error", kind: "protocol", error: "PROTOCOL_FAILURE: connection closed before a result", rawError: { message: "PROTOCOL_FAILURE: connection closed before a result" } },
+    });
+    assert.equal(values[1].result, null, "A missing MCP envelope remains absent");
+    assert.deepEqual(values[2].result, { type: "success", content: [{ type: "text", text: "MCP_SUCCESS" }], structuredContent: { value: 42 }, raw: { content: [{ type: "text", text: "MCP_SUCCESS" }], structuredContent: { value: 42 } } });
+    assert.equal(values[3].result.type, "success", "A tool-reported error is a received MCP result, not a protocol failure");
+    assert.equal(values[3].result.raw.isError, true);
+    assert.equal(values[3].result.content[0].text, "REPORTED_ERROR: item absent");
+    for (const [index, success, text] of [[4, false, "DYNAMIC_FAILURE_CONTENT"], [5, true, "DYNAMIC_SUCCESS_CONTENT"]] as const) {
+      assert.equal(values[index].invocation.server, "deepseek-harness");
+      assert.deepEqual(values[index].result, { success, contentItems: [{ type: "inputText", text }] });
+    }
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    results.push({ width, theme, rawProtocolError: true, absentEnvelope: true, receivedMcpError: true, dynamicResultFacts: true, fullJsonCopy: true });
+    console.log(JSON.stringify({ width, theme, rawOutput: true, passed: true }));
+    await page.close();
+  }
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => { errors.push(error.message); console.error("fixture-pageerror", error.message); });
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=inputs`);
+    await page.locator('[data-phase="inProgress"]').waitFor();
+    const collapsed = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await collapsed.count() > 0; index++) await collapsed.first().click();
+    const calls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await calls.count() > 0; index++) await calls.first().click();
+    const details = page.locator('.thread-tool-details[data-kind="dynamic"]');
+    const checkInputs = async () => {
+      await page.waitForFunction(() => ["DSH_WRITE_BODY", "DSH_OLD_TEXT", "DSH_NEW_TEXT"].every(text => document.body.textContent?.includes(text)));
+      assert.equal(await details.count(), 3);
+      assert.deepEqual(await details.locator('section[data-role="input"] > span').allTextContents(), ["Input", "Input", "Input"]);
+      const text = await details.allTextContents();
+      assert.match(text[0]!, /DSH_WRITE_BODY/);
+      assert.match(text[1]!, /DSH_OLD_TEXT[\s\S]*DSH_NEW_TEXT/);
+      assert.match(text[2]!, /"offset": 120[\s\S]*"limit": 60/);
+      assert.equal(await details.locator(".thread-tool-details__empty").count(), 0);
+      const mcp = page.locator('.thread-tool-details[data-kind="mcp"]');
+      assert.equal(await mcp.locator('section[data-role="input"]').count(), 0);
+      assert.equal((await mcp.textContent())?.includes("MCP_ARGUMENT_STAYS_IN_RAW"), false);
+      assert.match(await mcp.textContent() ?? "", /MCP returned content/);
+    };
+    await checkInputs();
+    assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output"]);
+    await page.evaluate(() => (window as any).changeThreadToolPhase("completed"));
+    await page.locator('[data-phase="completed"]').waitFor();
+    // Running details open automatically; settlement restores the collapsed default.
+    // Reopen them explicitly before checking the preserved input and new output.
+    const settledCalls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await settledCalls.count() > 0; index++) await settledCalls.first().click();
+    await checkInputs();
+    assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output", "Output"]);
+    const toggle = (await details.first().evaluateHandle(element => element.closest(".thread-activity-item")!.querySelector<HTMLButtonElement>(":scope > .thread-activity-item__header button[aria-expanded]")!)).asElement()!;
+    await toggle.click();
+    await toggle.click();
+    await checkInputs();
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.screenshot({ path: join(output, `inputs-${width}-${theme}.png`) });
+    results.push({ width, theme, dshArgumentsVisible: true, roleLabels: true, settlementAndReopen: true, mcpArgumentsRemainRaw: true });
+    console.log(JSON.stringify({ width, theme, toolInputs: true, passed: true }));
+    await page.close();
   }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));

@@ -1,8 +1,21 @@
+import { useConversationDisplay } from "./runtime/use-conversation-display";
+import { displayTimingCounts } from "./runtime/display-timing-diagnostics";
+import { reportDisplayEvent } from "./runtime/recovery-diagnostics";
+import { serverFetch } from "./runtime/server-context";
+import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
+import { copyConversationReference } from "./runtime/conversation-reference-actions";
+import { useAsyncNotices } from "./components/async-notices";
+import { ConversationToolbarSizing } from "./components/toolbar-dock-state";
+import { conversationToolbarActionIds } from "./components/toolbar-dock-model";
+import { useObservedReadiness } from './runtime/observability-react';
+import { executionEngineExtension } from "@opencraft/appserver-client";
+import { ScheduledTaskCatalogContext } from "./runtime/scheduled-task-catalog-context";
 import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
-import { Monitor } from "lucide-react";
+import { MonitorIcon as Monitor } from "@opencraft/design-system-web/action-icons";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";
+import type { McpAppWidgetStateStore } from "./mcp-apps/contract";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut, shortcutLabel } from "./workbench-shortcuts";
 import { WorkbenchShortcutHelp } from "./components/workbench-shortcut-help";
 import { WorkbenchPresentationActivityProvider } from "./components/workbench-presentation-activity";
@@ -35,7 +48,7 @@ import {
   compileSubmitIntent,
   restoreQueuedInput,
 } from "@opencraft/composer-appserver";
-import { queuedSubmissionPresentation, queueSenderPresentation } from "./queued-submission-presentation";
+import { queuedSubmissionPresentation, queueSenderPresentation, visibleQueuedSubmissions } from "./queued-submission-presentation";
 import {
   OpenCraftComposer,
   type ComposerSelectionCatalog,
@@ -109,8 +122,10 @@ import {
   ConversationRecoveryNotice,
   ConversationRecoveryEmptyState,
   conversationRecoveryPresentation,
+  conversationRecoveryIsPending,
 } from "./components/conversation-recovery";
 import { ConversationPendingInteractionPanel } from "./components/conversation-renderers/interaction/interaction-renderers";
+import { InteractionDraftStore } from "./components/conversation-renderers/interaction/interaction-drafts";
 import { useConversationRecoveryDiagnostic } from "./runtime/conversation-recovery-diagnostic";
 import { RightPanel } from "./components/right-panel";
 import { ThreadComposerPresentation } from "./components/thread-composer-presentation";
@@ -269,6 +284,7 @@ export function App({
   readonly presentation?: WorkbenchPresentationPolicy;
 } = {}) {
   const intl = useIntl();
+  const notices = useAsyncNotices();
   const modelSelectionPolicy = embedded?.modelSelectionPolicy ?? (embedded ? "host-default" : "user");
   const internalDeveloperMode = useInternalDeveloperMode();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -322,10 +338,10 @@ export function App({
     hostCatalog.environmentDirectory.getSnapshot,
     hostCatalog.environmentDirectory.getSnapshot,
   );
-  const queueExtension = runtime.resources.host.getInitializeResult()
-    ?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION];
-  const permissionModesExtension = runtime.resources.host.getInitializeResult()
-    ?.capabilities?.extensions?.[OPENCRAFT_PERMISSION_MODES_EXTENSION];
+  const engineExtensions = runtime.resources.host.getInitializeResult()?.capabilities?.extensions;
+  const queueExtension = executionEngineExtension(engineExtensions, snapshot.activeThreadId, OPENCRAFT_THREAD_QUEUE_EXTENSION);
+  const followUpCapability = executionEngineExtension(engineExtensions, snapshot.activeThreadId, "opencraft/thread-follow-up") as { queue?: boolean; steer?: boolean } | undefined;
+  const permissionModesExtension = executionEngineExtension(engineExtensions, snapshot.activeThreadId, OPENCRAFT_PERMISSION_MODES_EXTENSION);
   const supportsPermissionModes = typeof permissionModesExtension === "object"
     && permissionModesExtension !== null
     && "version" in permissionModesExtension
@@ -469,6 +485,13 @@ export function App({
     workbenchNavigationSnapshot.applicationRoute.kind === "extension-view";
   const conversationRouteOpen =
     workbenchNavigationSnapshot.applicationRoute.kind === "conversation";
+  const pendingFirstSubmission = draft?.submission ?? null;
+  useEffect(() => {
+    if (pendingFirstSubmission === null || !conversationRouteOpen) return;
+    const frame = requestAnimationFrame(() => composerController.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [composerController, pendingFirstSubmission, conversationRouteOpen]);
+
   useEffect(() => {
     hostCatalog.setConversationPresentationActive?.(conversationRouteOpen && !conversationOverview.open);
     return () => hostCatalog.setConversationPresentationActive?.(false);
@@ -592,6 +615,10 @@ export function App({
     }
   }, [extensionProjection.activeView, extensionViewOpen, workbenchNavigation]);
   const activeConversationRestoreKey = conversationViewIdentity.viewId;
+  const [interactionDraftStore] = useState(() => new InteractionDraftStore());
+  const [mcpAppWidgetStates] = useState<McpAppWidgetStateStore>(() => new Map());
+  useObservedReadiness(draft === null ? activeConversationRestoreKey : null, snapshot.phase === 'ready' && activeThreadLease !== null
+    && snapshot.conversation?.authoritative === true && runtime.resources.host.canRequest?.('turn/start') === true);
   useEffect(() => () => {
     pendingLatestTurnPlacementRef.current = null;
     conversationScrollApiRef.current?.releaseLatestTurnSubmitPlacementCapture();
@@ -695,43 +722,33 @@ export function App({
   // The committed View has a display identity before network lease acquisition.
   // This local binding never grants execution or authoritative history access.
   const displayKey = useConversationViewDisplayKey();
+  const { selection: display, scope: displayScope, hasSubmission } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
   const displayHostId = displayKey?.hostId ?? null;
   const displayThreadId = displayKey?.threadId ?? null;
-  const displayScope = useSyncExternalStore(
-    hostCatalog.displayContinuity.subscribe,
-    hostCatalog.displayContinuity.getScope,
-    hostCatalog.displayContinuity.getScope,
-  );
-  const [cachedTimeline, setCachedTimeline] = useState<{ scope: string; timeline: TimelineSnapshot } | null>(null);
+  const visibleTimeline = display.timeline;
+  const showingDisplayCache = display.source !== "history" && display.source !== "empty";
+  const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
+  const displaySignature = JSON.stringify(displayCounts);
   useEffect(() => {
-    let current = true;
-    setCachedTimeline(null);
-    if (displayHostId !== null && displayThreadId !== null) {
-      void hostCatalog.displayContinuity.load(displayHostId, displayThreadId).then(value => {
-        if (current) setCachedTimeline(value === null ? null : { scope: displayScope, timeline: value });
-      });
-    }
-    return () => { current = false; };
-  }, [displayHostId, displayThreadId, displayScope, hostCatalog.displayContinuity]);
-  useEffect(() => {
-    if (timeline?.authoritative) void hostCatalog.displayContinuity.observe(timeline).catch(() => undefined);
-  }, [hostCatalog.displayContinuity, timeline]);
-  const firstSubmissionTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peekSubmission(displayKey.hostId, displayKey.threadId);
-  const memoryTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peek(displayKey.hostId, displayKey.threadId);
-  const visibleTimeline = (timeline?.frames.length ?? 0) > 0
-    ? timeline
-    : firstSubmissionTimeline !== null ? firstSubmissionTimeline
-    : timeline?.authoritative
-    ? timeline
-    : memoryTimeline !== null ? memoryTimeline
-    : cachedTimeline?.scope === displayScope
-      && cachedTimeline.timeline.key.hostId === displayHostId
-      && cachedTimeline.timeline.key.threadId === displayThreadId
-      ? cachedTimeline.timeline
-      : timeline;
-  const showingDisplayCache = visibleTimeline !== null && visibleTimeline !== timeline;
+    if (!displayCounts.messages) return;
+    const frame = requestAnimationFrame(() => {
+      const times = [...document.querySelectorAll(".thread-user-message time, [data-assistant-message-sent-time]")];
+      const visibleTimes = times.filter(element => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return false;
+        for (let node: Element | null = element; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+        }
+        return true;
+      }).length;
+      reportDisplayEvent("display-paint", { ...displayCounts, renderedTimes: times.length, visibleTimes });
+    });
+    return () => cancelAnimationFrame(frame);
+    // The signature reports coverage transitions, not every streaming delta.
+  }, [displaySignature, displayScope, displayHostId, displayThreadId]);
+
+
   const [turnDiffReview, setTurnDiffReview] = useState<{
     readonly block: TurnDiffTimelineBlock;
     readonly path: string | null;
@@ -801,6 +818,8 @@ export function App({
   const isStreaming =
     snapshot.conversation?.activeTurn !== null &&
     snapshot.conversation?.activeTurn !== undefined;
+  const stopOwnerRef = useRef(activeThreadLease);
+  stopOwnerRef.current = activeThreadLease;
   const cancelStream = useCallback((context: {
     readonly trigger: "pointer" | "keyboard";
     readonly isTrusted: boolean;
@@ -810,8 +829,12 @@ export function App({
     if (turnId !== undefined) void activeThreadLease?.interrupt(turnId, {
       source: "composer-stop",
       ...context,
+    }).catch(() => {
+      if (stopOwnerRef.current !== activeThreadLease || activeThreadLease?.getSnapshot().activeTurn?.turnId !== turnId) return;
+      notices.error({ key: `stop:${snapshot.hostId}:${activeThreadId}:${turnId}`,
+        message: intl.formatMessage({ id: "chat.stop.failed", defaultMessage: "Could not stop the response. Try again." }) });
     });
-  }, [activeThreadLease]);
+  }, [activeThreadLease, notices, intl, snapshot.hostId, activeThreadId]);
   const updateQueuedSubmission = useCallback(
     async (id: string, intent: SubmitIntent) => {
       if (activeThreadLease === null)
@@ -1005,6 +1028,7 @@ export function App({
     };
     const owner: ReturnType<typeof createMcpAppOwner> = createMcpAppOwner({
       key: `${snapshot.hostId}:${activeThreadId}:${generation}`, threadId: activeThreadId, assertCurrent,
+      widgetStateStore: { scope: JSON.stringify([snapshot.hostId, activeThreadId]), entries: mcpAppWidgetStates },
       request: (method, params) => runtime.resources.protocol.request(method, params),
       openLink: url => { window.open(url, "_blank", "noopener,noreferrer"); },
       sendMessage: async text => {
@@ -1020,7 +1044,7 @@ export function App({
       },
     });
     return owner;
-  }, [activeThreadId, activeThreadLease, showingDisplayCache, mcpAppsAuthoritative, snapshot.phase, snapshot.hostId, runtime, composerController]);
+  }, [activeThreadId, activeThreadLease, showingDisplayCache, mcpAppsAuthoritative, snapshot.phase, snapshot.hostId, runtime, composerController, mcpAppWidgetStates]);
   mcpAppOwnerRef.current = mcpAppOwner;
   const answerAsyncQuestion = useCallback(async (question: AsyncQuestion, answer: string) => {
     if (snapshot.phase !== "ready" || activeThreadLease === null) throw new Error("Reconnect to answer this question");
@@ -1262,8 +1286,11 @@ export function App({
         error: group.hostId === snapshot.hostId ? composerCatalog.modelError?.message : group.error,
         retry: group.hostId === snapshot.hostId ? composerCatalog.retryModels : group.retry,
         select: async (model) => {
-          await hostCatalog.selectHost(group.hostId, group.hostId === snapshot.hostId ? undefined : { model: model.value, effort: model.defaultEffort });
-          if (group.hostId !== snapshot.hostId) composerCatalog.rememberModelDefaults?.({ model: model.value, effort: model.defaultEffort }, group.hostId);
+          const currentTier = composerController.getSnapshot().draft.selections.serviceTier;
+          const requestedTier = currentTier !== undefined ? currentTier : composerCatalog.newThreadDefaults?.serviceTier;
+          const serviceTier = model.serviceTiers?.some(tier => tier.id === requestedTier) ? requestedTier ?? null : null;
+          await hostCatalog.selectHost(group.hostId, group.hostId === snapshot.hostId ? undefined : { model: model.value, effort: model.defaultEffort, serviceTier });
+          if (group.hostId !== snapshot.hostId) composerCatalog.rememberModelDefaults?.({ model: model.value, effort: model.defaultEffort, serviceTier }, group.hostId);
         },
         manage: hostCatalog.extensionContributions.getSnapshot().settingsPages.some(page => page.contribution.targetHostId === group.hostId && page.contribution.id === (group.hostId === "local" ? "vela.builtin-agents.model-services" : "vela.builtin-agents.codex-accounts"))
           ? () => hostCatalog.navigation.openSettings(group.hostId === "local" ? "vela.builtin-agents.model-services" : "vela.builtin-agents.codex-accounts") : undefined,
@@ -1278,6 +1305,8 @@ export function App({
       composerCatalog.modelError,
       composerCatalog.onModelMenuOpen,
       composerCatalog.rememberModelDefaults,
+      composerCatalog.newThreadDefaults,
+      composerController,
       composerCatalog.retryModels,
       composerCatalog.models,
       composerCatalog.displayModels,
@@ -1294,7 +1323,7 @@ export function App({
     write: (key, value) => writeCachedThreadName(queryClient, key, value),
     persist: async (key, value) => {
       await hostCatalog.threadManagement.rename(key.hostId, key.threadId, value);
-      await queryClient.invalidateQueries({ queryKey: ["appserver", key.hostId, "threads"] });
+      void queryClient.invalidateQueries({ queryKey: ["appserver", key.hostId, "threads"] }).catch(() => undefined);
     },
   }), [hostCatalog.threadManagement, queryClient]);
   const pendingTitleRevision = useSyncExternalStore(threadTitleWriter.subscribe, threadTitleWriter.getSnapshot, threadTitleWriter.getSnapshot);
@@ -1305,7 +1334,7 @@ export function App({
   const loadArchivedThreads = useCallback(async (hostId: string) => {
     return hostCatalog.threadManagement.listArchived(hostId);
   }, [hostCatalog.threadManagement]);
-  const archivedConversationsAvailable = hostCatalog.threadManagement.capabilities(snapshot.hostId).archive;
+  const archivedConversationsAvailable = hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive;
   const embeddedSessions = useMemo(() => {
     if (embedded === undefined) return [];
     return catalog.threads.map((thread): EmbeddedWorkbenchAppSession => {
@@ -1377,11 +1406,11 @@ export function App({
       },
       renameThread: async (threadId, title) => {
         await hostCatalog.threadManagement.rename(embedded.hostId, threadId, title);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }).catch(() => undefined);
       },
       deleteThread: async (threadId) => {
         await hostCatalog.threadManagement.delete(embedded.hostId, threadId);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }).catch(() => undefined);
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
@@ -1655,10 +1684,10 @@ export function App({
     if (embedded !== undefined) return;
     return () => { document.title = applicationName; };
   }, [embedded, applicationName]);
-  const scheduleCapability = runtime.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { version?: number } | undefined;
+  const scheduleCapability = executionEngineExtension(runtime.resources.host.getInitializeResult()?.capabilities?.extensions, activeThreadId, "opencraft/conversation-schedules") as { version?: number } | undefined;
   const schedulesAvailable = scheduleCapability?.version === 1 && runtime.resources.host.canRequest?.("opencraft/schedules/read") === true;
   const conversationMenuAvailable = conversationSurfaceVisible && draft === null && activeThreadId !== null
-        && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
+        && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
   const refreshConversationCatalog = useCallback(() => queryClient.invalidateQueries({
     queryKey: ["appserver", snapshot.hostId, "threads"],
   }), [queryClient, snapshot.hostId]);
@@ -1666,7 +1695,7 @@ export function App({
     ? conversationPresentation?.({
       hostId: snapshot.hostId, threadId: activeThreadId, extra: activeProtocolThread?.extra,
       ready: snapshot.phase === "ready", authoritative: snapshot.conversation?.authoritative === true,
-      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId).fork,
+      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork,
       readExtra: async () => (await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", {
         threadId: activeThreadId, includeTurns: false,
       })).thread.extra,
@@ -1679,49 +1708,57 @@ export function App({
     }) : null;
   useConversationHistoryRefresh(activeThreadLease,
     conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
+  const headerThreadId = activeThreadId ?? "";
+  const conversationToolbarProps: import("./components/conversation-task-menu").ConversationTaskMenuProps = {
+    port: hostCatalog.tasks ?? undefined,
+    schedules: schedulesAvailable ? { request: (method, params) => hostCatalog.agentRuntimes.request(snapshot.hostId, method, params) } : undefined,
+    scope: displayScope,
+    serverId: legacyDirectServerProjectionFromHost({ hostId: activeHost.hostId, hostKind: activeHost.kind, label: activeHost.label }).serverOrigin.serverId,
+    threadId: headerThreadId,
+    title: activeThread?.title ?? pageTitle ?? "",
+    pinned: activeThread?.pinned,
+    project: activeThread?.project,
+    workspaceDirectory: snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd ?? undefined,
+    onRename: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename
+              ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: headerThreadId }, title) : undefined,
+    onSetPinned: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).pin
+              ? async pinned => {
+                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: headerThreadId }, pinned);
+              } : undefined,
+    onArchive: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive
+              ? () => archiveThread({
+                archive: () => hostCatalog.threadManagement.archive(snapshot.hostId, headerThreadId),
+                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
+              }) : undefined,
+    onFork: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork
+              ? () => forkAndOpenThread({
+                routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+                fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, headerThreadId),
+                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
+                openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+              }) : undefined,
+    verifyConversation: async () => { await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", { threadId: headerThreadId, includeTurns: false }); },
+    onOpenTasks: () => workbenchNavigation.openExtensionView("opencraft.tasks.board"),
+  };
+  const conversationActionSizing = <ConversationToolbarSizing scope={displayScope} actionIds={conversationToolbarActionIds(conversationToolbarProps)} />;
   const header = (
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
       navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
-      headerActionCount={conversationMenuAvailable ? 1 : 0}
+      headerActionSizing={conversationActionSizing}
       headerAction={conversationMenuAvailable ? (
-        <Suspense fallback={<span className="chrome-button" />}>
+        <Suspense fallback={conversationActionSizing}>
           <ConversationTaskMenu
             key={JSON.stringify([displayScope, snapshot.hostId, activeThreadId])}
-            port={hostCatalog.tasks ?? undefined}
-            schedules={schedulesAvailable ? { request: (method, params) => hostCatalog.agentRuntimes.request(snapshot.hostId, method, params) } : undefined}
-            scope={displayScope}
-            serverId={legacyDirectServerProjectionFromHost({ hostId: activeHost.hostId, hostKind: activeHost.kind, label: activeHost.label }).serverOrigin.serverId}
-            threadId={activeThreadId}
-            title={activeThread?.title ?? pageTitle ?? ""}
-            pinned={activeThread?.pinned}
-            project={activeThread?.project}
-            workspaceDirectory={snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd ?? undefined}
-            onRename={hostCatalog.threadManagement.capabilities(snapshot.hostId).rename
-              ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
-            onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
-              ? async pinned => {
-                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
-              } : undefined}
-            onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
-              ? () => archiveThread({
-                archive: () => hostCatalog.threadManagement.archive(snapshot.hostId, activeThreadId),
-                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
-              }) : undefined}
-            onFork={hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
-              ? () => forkAndOpenThread({
-                routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
-                fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId),
-                refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
-                openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
-              }) : undefined}
-            verifyConversation={async () => { await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", { threadId: activeThreadId, includeTurns: false }); }}
-            onOpenTasks={() => workbenchNavigation.openExtensionView("opencraft.tasks.board")}
+            im={settingsContributionSnapshot.settingsPages.some(page => page.contribution.id === "opencraft.im.channels") ? {
+              fetcher: serverFetch, openSettings: () => workbenchNavigation.openSettings("opencraft.im.channels"),
+            } : undefined}
+            {...conversationToolbarProps}
           />
         </Suspense>
       ) : null}
-      titleContent={conversationSurfaceVisible && draft === null && activeThread !== undefined && hostCatalog.threadManagement.capabilities(snapshot.hostId).rename ? (
+      titleContent={conversationSurfaceVisible && draft === null && activeThread !== undefined && hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename ? (
         <EditableThreadTitle
           key={JSON.stringify([snapshot.hostId, activeThread.id])}
           title={activeThread.title}
@@ -1780,6 +1817,7 @@ export function App({
     onRetryThreadCatalog: hostId => { void multiHostCatalog.retry(hostId); },
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
+      onCopyReference: target => copyConversationReference(body=>hostCatalog.agentRuntimes.request(target.hostId,"opencraft/collaboration",body),window.location.href,target),
       onSetPinned: async (target, pinned) => {
         await threadPinWriter.set(target, pinned);
       },
@@ -1795,18 +1833,19 @@ export function App({
         refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }),
       }),
       onDelete: async target => {
+        const routeScopeId = workbenchNavigation.getSnapshot().routeScopeId;
         await hostCatalog.threadManagement.delete(target.hostId, target.threadId);
-        await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] });
+        void queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }).catch(() => undefined);
         // Deleting the thread the workbench currently shows would
         // leave the route pointing at a missing thread; go home.
-        if (snapshot.hostId === target.hostId && (draft === null ? activeThreadId ?? "" : "") === target.threadId) {
+        if (workbenchNavigation.getSnapshot().routeScopeId === routeScopeId && snapshot.hostId === target.hostId && (draft === null ? activeThreadId ?? "" : "") === target.threadId) {
           navigateToHome();
         }
       },
     },
   });
   const sidebarThreadCapabilities = useCallback(
-    (hostId: string) => hostCatalog.threadManagement.capabilities(hostId),
+    (hostId: string, threadId?: string) => hostCatalog.threadManagement.capabilities(hostId, threadId),
     // Catalog readiness changes when a Host gains/loses its initialized capabilities.
     [hostCatalog.threadManagement, multiHostCatalog.threads],
   );
@@ -1827,6 +1866,10 @@ export function App({
 
   return (
     <IdentityAvatarContext.Provider value={identityAvatar}>
+    <ScheduledTaskCatalogContext.Provider value={{ ...multiHostCatalog,
+      openConversation: (hostId, threadId) => hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, threadId)),
+    }}>
+    <ConversationReferenceSurface catalog={hostCatalog} hostId={snapshot.hostId}>
       <InternalDeveloperModeGate />
       <AppShellRouteRegionsProvider
         controller={routeHeader.controller}
@@ -1999,6 +2042,7 @@ export function App({
                 target: draft.target,
                 document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: objective }] }] },
                 attachments: [], context: [], selections: {
+                  ...(composerCatalog.newThreadDefaults?.serviceTier === undefined ? {} : { serviceTier: composerCatalog.newThreadDefaults.serviceTier }),
                   ...(composerCatalog.newThreadDefaults?.model ? { model: composerCatalog.newThreadDefaults.model, ...(composerCatalog.newThreadDefaults.effort === null ? {} : { effort: composerCatalog.newThreadDefaults.effort }) } : {}),
                   ...content.selections,
                 }, options: content.options,
@@ -2010,32 +2054,8 @@ export function App({
             shortcutCommands={hostShortcutCommands}
             onSubmit={sendMessage}
           />
-        ) : draft !== null ? (
-          <PendingConversationPage
-            conversation={draft}
-            documentContext={{
-              conversationId: null,
-              cwd: draft.target.execution.workspace.cwd,
-              hostId: draft.target.execution.hostId,
-              theme: appearanceTheme.resolvedTheme,
-              loadMediaSource,
-              onOpenResource: openChatResource,
-            }}
-            onRetry={(intent) => hostCatalog.submit(intent).then(() => undefined)}
-          />
         ) : (
           <div className="local-conversation-page">
-            {activeThreadLease === null && (visibleTimeline?.frames.length ?? 0) === 0 ? (
-                <div className="conversation-recovery-cold-stage">
-                  <ConversationRecoveryEmptyState
-                    failed={recoveryPresentation === "cold-error"}
-                    requiresUpdate={recoveryRequiresUpdate}
-                    diagnostic={recoveryDiagnostic}
-                    onRetry={retryColdActivation}
-                  />
-                </div>
-            ) : (
-              <>
                 <Conversation
                   scrollPolicy="natural"
                   onAddSelectionToChat={conversationRouteOpen && activeThreadId !== null ? (text) => {
@@ -2048,12 +2068,19 @@ export function App({
                     if (activeThreadId !== null) hostCatalog.threadAttention.acknowledge(
                       attentionScope, snapshot.hostId, activeThreadId, turnId);
                   }}
-                  emptyState={recoveryPresentation === "cold-loading" || recoveryPresentation === "cold-error"
+                  emptyState={draft !== null ? <PendingConversationPage
+                      embedded
+                      conversation={draft}
+                      documentContext={{ conversationId: null, cwd: draft.target.execution.workspace.cwd,
+                        hostId: draft.target.execution.hostId, theme: appearanceTheme.resolvedTheme,
+                        loadMediaSource, onOpenResource: openChatResource }}
+                      onRetry={(intent) => hostCatalog.submit(intent).then(() => undefined)}
+                    /> : recoveryPresentation === "cold-loading" || recoveryPresentation === "cold-error"
                     ? <ConversationRecoveryEmptyState
                         failed={recoveryPresentation === "cold-error"}
                         requiresUpdate={recoveryRequiresUpdate}
                         diagnostic={recoveryDiagnostic}
-                        onRetry={retryConversationRecovery}
+                        onRetry={activeThreadLease === null ? retryColdActivation : retryConversationRecovery}
                       />
                     : undefined}
                   key={activeConversationRestoreKey ?? "empty"}
@@ -2076,7 +2103,7 @@ export function App({
                         }) : undefined,
                     theme: appearanceTheme.resolvedTheme,
                   }}
-                  timeline={visibleTimeline}
+                  timeline={draft === null ? visibleTimeline : null}
                   consumePendingLatestTurnSubmitPlacement={consumeLatestTurnPlacement}
                   navigationSource={showingDisplayCache ? null : navigationSource}
                   searchTarget={conversationSearchTarget?.hostId === snapshot.hostId && conversationSearchTarget.threadId === snapshot.activeThreadId ? conversationSearchTarget : null}
@@ -2131,6 +2158,10 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
+                    {draft === null && recoveryPresentation === "warm-error" ? <ConversationRecoveryNotice
+                      failed requiresUpdate={recoveryRequiresUpdate} diagnostic={recoveryDiagnostic}
+                      onRetry={retryConversationRecovery}
+                    /> : null}
                     {conversationContribution?.beforeComposer}
                     {snapshot.conversation?.continuation.error ? (
                       <p role="alert">{snapshot.conversation.continuation.error.message}</p>
@@ -2146,16 +2177,21 @@ export function App({
                         floatingContent={composerChangeSummary}
                         controller={composerController}
                         defaultFollowUpAction={embedded ? "queue" : defaultFollowUpAction}
-                        availableFollowUpActions={snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
+                        availableFollowUpActions={followUpCapability?.queue === false && followUpCapability?.steer === false ? [] : snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
                           || snapshot.conversation.queuedSubmissions.some(item => item.local)
                           ? ["queue"]
-                          : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
+                          : (["steer", "queue"] as const).filter(action => followUpCapability?.[action] !== false && runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
-                        isStreaming={isStreaming}
+                        isUnstable={activeThreadId !== null && recoveryPresentation !== "none"}
+                        isRecovering={activeThreadId !== null
+                          && conversationRecoveryIsPending(recoveryPresentation, recoveryDiagnostic, recoveryRequiresUpdate)}
+                        isStreaming={draft === null && isStreaming}
+                        isStopping={snapshot.conversation?.activeTurn?.status === "interrupting"}
                         awaitSubmission
-                        submissionDisabled={activeThreadLease === null}
+                        submissionDisabled={draft !== null || activeThreadLease === null}
                         queuedSubmissions={[
-                          ...(snapshot.conversation?.queuedSubmissions ?? []).map((submission) =>
+                          ...visibleQueuedSubmissions(snapshot.conversation?.queuedSubmissions ?? [],
+                            visibleTimeline).map((submission) =>
                             queuedSubmissionPresentation(submission, queueReorderable, identityAvatar, intl)),
                           ...(queueUnconfirmedSteerDiscard ? snapshot.conversation?.unconfirmedSteers ?? [] : []).map((claim) => ({
                             id: claim.id,
@@ -2211,6 +2247,9 @@ export function App({
                         {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}
+                          draftStore={interactionDraftStore}
+                          draftScope={activeThreadId === null ? undefined : JSON.stringify([snapshot.hostId, activeThreadId, activeConversationRestoreKey])}
+                          requestTurnId={snapshot.conversation?.pendingInteractions.find(interaction => interaction.requestId === pendingInteraction?.requestId)?.turnId}
                           onRespondInteraction={respondToInteraction}
                         />
                       </div>
@@ -2220,17 +2259,6 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
-                  <ConversationRecoveryNotice
-                    failed={recoveryPresentation === "warm-error"}
-                    requiresUpdate={recoveryRequiresUpdate}
-                    diagnostic={recoveryDiagnostic}
-                    reconnecting={snapshot.phase === "reconnecting" || snapshot.conversation?.phase === "offline"}
-                    onRetry={retryConversationRecovery}
-                  />
-                ) : null}
-              </>
-            )}
           </div>
         )}
           </div>
@@ -2281,6 +2309,8 @@ export function App({
           onCancel={() => setWorkspacePickerOpen(false)}
           onChoose={chooseWorkspaceDirectory}
         />
+    </ConversationReferenceSurface>
+    </ScheduledTaskCatalogContext.Provider>
     </IdentityAvatarContext.Provider>
   );
 }

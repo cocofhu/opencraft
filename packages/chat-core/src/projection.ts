@@ -11,6 +11,7 @@ import type { HookStats } from "./hook-stats";
 import { normalizeCodexTurnUserMessages } from "./turn-user-message-normalization";
 import { deriveTurnWorkStatus } from "./work-status";
 import { createTurnChangeSummary } from "./turn-diff";
+import { normalizeCommandCompletionOrder } from "./command-completion-order";
 
 export type TimelineLane = "user" | "assistant" | "event" | "interaction";
 
@@ -247,7 +248,7 @@ function projectTurnFrames(
   registry: TimelineProjectorRegistry,
 ): readonly TimelineFrame[] {
   const frames: TimelineFrame[] = [];
-    const turn = normalizeCodexTurnUserMessages(sourceTurn);
+    const turn = normalizeCodexTurnUserMessages(normalizeCommandCompletionOrder(sourceTurn));
     const workStatus = deriveTurnWorkStatus(turn);
     // Compatibility Items are lowered once here, not allowed to participate
     // in transcript topology. An explicit Turn value (including null) wins.

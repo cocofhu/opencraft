@@ -1,5 +1,6 @@
+import { RefreshIcon } from "@opencraft/design-system-web/action-icons";
 import { AvatarImage, IdentityAvatarContext } from "@opencraft/extension-react";
-import { UserRound } from "lucide-react";
+import { PersonIcon as UserRound } from "@opencraft/design-system-web/action-icons";
 import type {
   ConversationNavigationAnchor,
   ConversationNavigationPreview,
@@ -500,9 +501,11 @@ export function UserMessageNavigationRail({
                 }}
                 onBlur={closeTooltip}
                 onFocus={(event) => {
+                  if (event.currentTarget.ownerDocument.documentElement.dataset.pointerFocus) return;
                   requestPreview(item, event.currentTarget);
                 }}
                 onPointerEnter={(event) => {
+                  if (event.pointerType !== "mouse") return;
                   requestPreview(item, event.currentTarget);
                 }}
                 type="button"
@@ -526,7 +529,7 @@ export function UserMessageNavigationRail({
             {tooltip.preview.sender ? <span className="conversation-navigation-tooltip__avatar" role="img" aria-label={tooltip.preview.sender.loginName} title={tooltip.preview.sender.loginName}>
               <AvatarImage src={avatars?.resolve(tooltip.preview.sender.kind, tooltip.preview.sender.loginName) ?? null} fallback={<UserRound size={12} />} />
             </span> : null}
-            {items.find((item) => item.id === tooltip.anchorId)?.isHeartbeat ? <span aria-hidden="true">↻</span> : null}
+            {items.find((item) => item.id === tooltip.anchorId)?.isHeartbeat ? <RefreshIcon size={12} /> : null}
             <span>{tooltip.preview.label || "(No content)"}</span>
           </div>
           {tooltip.preview.response.trim().length > 0 ? (

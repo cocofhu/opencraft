@@ -250,3 +250,20 @@ member bootstrap and preservation of updater/execution ownership are described i
 [ordinary relay deployment](relay-deployment.md). Enabling the stable launcher's
 new ingress settings requires restarting that launcher from the fixed aggregate
 artifact; a static-worker upgrade alone does not replace it.
+
+### Execution health observation
+
+Managed Headless health observes independent Core and DSH concurrently, each with
+a five-second dependency budget. A failed dependency returns HTTP 503 while
+retaining the gateway release identity and safe dependency states. The updater
+uses a 6.5-second observation budget, shares concurrent reads without caching old
+success, and rechecks the execution pointer after the response. Readiness requires
+healthy dependencies, the expected profile and exact release identity.
+
+The optional execution.observation records sampledAt, durationMs and a safe reason:
+ready, pointer-unavailable, health-invalid, dependency-unavailable, health-http-error,
+release-mismatch, health-timeout or health-unreachable. This distinguishes an
+unobserved identity from a running release whose dependencies are unavailable.
+Errors never include private endpoints, tokens or raw exception text. A fixed
+bootstrap must be upgraded through the local entry-maintenance contract for new
+updater observation logic to become active; updating Web assets alone is insufficient.

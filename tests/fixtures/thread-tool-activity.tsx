@@ -39,6 +39,31 @@ const imageItems: TimelineSourceItem[] = imageScenario ? [{
   },
 }] : [];
 const hostContentScenario = new URLSearchParams(location.search).get("scenario") === "host-content";
+const webMcpScenario = new URLSearchParams(location.search).get("scenario") === "webmcp";
+const webMcpItems: TimelineSourceItem[] = [{ id: "webmcp-browser", type: "mcpToolCall", payload: {
+  server: "node_repl", tool: "browser_click", status: "completed", arguments: {},
+  result: { content: [], _meta: { "codex/toolSurface": { kind: "browserUse", backend: "iab", webMcpCalls: [
+    { kind: "listTools", name: "webmcp_list_tools", sourceHostname: "catalog.example.test", outputJson: JSON.stringify([{ name: "lookup_item" }]) },
+    { kind: "invokeTool", name: "lookup_item", title: "Look up an item", description: "Find an item in this website", readOnlyHint: true, sourceHostname: "catalog.example.test",
+      inputJson: JSON.stringify({ query: { id: "INPUT_42", region: "上海" }, options: { limit: 40 } }),
+      outputJson: JSON.stringify({ items: Array.from({ length: 40 }, (_, id) => ({ id, title: "RESULT_" + id, available: true })), last: "LAST_RESULT" }) },
+    { kind: "invokeTool", name: "truncated_query", title: "Partial query", readOnlyHint: false, sourceHostname: "catalog.example.test",
+      inputJson: '{"query":"PARTIAL_INPUT', inputTruncated: true, outputJson: '{"result":"PARTIAL_OUTPUT', outputTruncated: true },
+    { kind: "invokeTool", name: "plain_response", title: "Plain response", inputJson: "PLAIN_INPUT", outputJson: "PLAIN_OUTPUT" },
+    { kind: "invokeTool", name: "empty_response", title: "Empty response", inputJson: "false", outputJson: null },
+  ] } } },
+} }];
+const reviewScenario = new URLSearchParams(location.search).get("scenario") === "reviews";
+const rawScenario = new URLSearchParams(location.search).get("scenario") === "raw";
+const rawItems: TimelineSourceItem[] = [
+{id:'protocol-error',type:'mcpToolCall',payload:{server:'raw-probe',tool:'protocol_error',status:'failed',arguments:{path:'/workspace/report.txt'},error:{message:'PROTOCOL_FAILURE: connection closed before a result'},durationMs:120}},
+{id:'pending',type:'mcpToolCall',payload:{server:'raw-probe',tool:'missing_result',status:'completed',arguments:{request:'PENDING_REQUEST'}}},
+{id:'mcp-success',type:'mcpToolCall',payload:{server:'raw-probe',tool:'complete_result',status:'completed',arguments:{query:'query'},result:{content:[{type:'text',text:'MCP_SUCCESS'}],structuredContent:{value:42}},durationMs:30}},
+{id:'mcp-tool-error',type:'mcpToolCall',payload:{server:'raw-probe',tool:'reported_error',status:'completed',arguments:{query:'absent'},result:{isError:true,content:[{type:'text',text:'REPORTED_ERROR: item absent'}]}}},
+{id:'dynamic-failed',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'read',status:'failed',success:false,arguments:{path:'/workspace/missing.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_FAILURE_CONTENT'}],durationMs:42}},
+{id:'dynamic-success',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'write',status:'completed',success:true,arguments:{path:'/workspace/success.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_SUCCESS_CONTENT'}],durationMs:50}},
+];
+const inputScenario = new URLSearchParams(location.search).get("scenario") === "inputs";
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
 probe.hostActions = [];
@@ -95,20 +120,48 @@ function Demo() {
   const [mounted, setMounted] = useState(true);
   const restore = useRef<ConversationRestoreSnapshot | null>(null);
   const restoreScenario = new URLSearchParams(location.search).get("restore") === "1";
-  const websiteScenario = new URLSearchParams(location.search).get("scenario") === "webmcp";
+  const websiteScenario = new URLSearchParams(location.search).get("scenario") === "webmcp-restore";
   Object.assign(probe, { setThreadToolMounted: setMounted, clearThreadToolRestore: () => { restore.current = null; } });
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
   const [hostMode, setHostMode] = useState("content");
   probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
-  const items: TimelineSourceItem[] = reviewViewScenario ? reviewViewItems(phase) : imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
+  const items: TimelineSourceItem[] = reviewViewScenario ? reviewViewItems(phase) : imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
     server: "node_repl", tool: "browser_click", status: "completed", arguments: {}, result: { content: [], _meta: { "codex/toolSurface": {
       kind: "browserUse", backend: "iab", webMcpCalls: [
         { kind: "invokeTool", name: "lookup_item", title: "Look up an item", inputJson: '{"id":42}', outputJson: '{"result":"WEBSITE_RESULT"}' },
         { kind: "invokeTool", name: "plain_response", title: "Plain response", outputJson: 'SECOND_RESULT' },
       ],
     } } },
-  } }] : [
+  } }] : reviewScenario ? [
+    ...["mcpToolCall", "dynamicToolCall"].map((type, index) => ({
+      id: `reviewed-${index}`, type, payload: {
+        server: "audit", namespace: "audit", tool: index === 0 ? "reviewed" : "inspect",
+        status: phase === "completed" ? "failed" : "inProgress",
+        automaticApprovalReviews: [{
+          reviewId: `review-${index}`, startedAtMs: 100,
+          completedAtMs: phase === "inProgress" ? null : 200,
+          status: phase === "inProgress" ? "inProgress" : "denied",
+          riskLevel: "high", userAuthorization: "low", decisionSource: "agent",
+          rationale: phase === "inProgress" ? null : `REVIEW_REASON_${index}: add permission context.`,
+          action: { type: "mcpToolCall", server: "audit", toolName: "reviewed" },
+        }],
+      },
+    })),
+    { id: "unreviewed", type: "mcpToolCall", payload: { server: "audit", tool: "plain", status: "inProgress" } },
+  ] : rawScenario ? rawItems : inputScenario ? [
+    { id: "dsh-write", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "write", status: phase,
+      arguments: { path: "/workspace/input-probe.txt", content: "DSH_WRITE_BODY\nsecond line" },
+      contentItems: phase === "inProgress" ? null : [{ type: "inputText", text: "Write completed" }], success: phase === "inProgress" ? null : true } },
+    { id: "dsh-edit", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "edit", status: "completed",
+      arguments: { path: "/workspace/input-probe.txt", old_string: "DSH_OLD_TEXT", new_string: "DSH_NEW_TEXT" },
+      contentItems: [{ type: "inputText", text: "Replacement completed" }], success: true } },
+    { id: "dsh-read", type: "dynamicToolCall", payload: { namespace: "deepseek-harness", tool: "read", status: "failed",
+      arguments: { path: "/workspace/input-probe.txt", offset: 120, limit: 60 },
+      contentItems: [{ type: "inputText", text: "Read failed" }], success: false } },
+    { id: "mcp-input", type: "mcpToolCall", payload: { server: "input-probe", tool: "inspect_input", status: "completed",
+      arguments: { value: "MCP_ARGUMENT_STAYS_IN_RAW" }, result: { content: [{ type: "text", text: "MCP returned content" }] } } },
+  ] : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
@@ -126,8 +179,8 @@ function Demo() {
       arguments: { direction: "down", app: "Notes" } } },
     { id: "custom", type: "dynamicToolCall", payload: { namespace: "custom", tool: "inspect_workspace", status: phase, success: phase !== "failed" } },
   ];
-  const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
-    authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" ? "streaming" : "complete", items }] }, registry);
+  const timeline = projectTimeline({ key: createConversationKey("fixture", "thread-tools"), revision: reviewScenario ? (phase === "inProgress" ? 0 : phase === "denied" ? 1 : 2) : ["inProgress", "completed", "failed", "interrupted"].indexOf(phase),
+    authoritative: true, phase: "live", turns: [{ id: "turn", status: hostContentScenario || phase === "inProgress" || (reviewScenario && phase === "denied") ? "streaming" : "complete", items }] }, registry);
   return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
       {mounted ? <Conversation key={hostContentScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
@@ -195,7 +248,7 @@ function LiveToolsDemo() {
   }, registry);
   return <div data-phase={phase} data-host-mode={hostMode} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      {mounted ? <Conversation key={hostScenario ? hostMode : undefined} timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
         initialRestoreSnapshot={restoreScenario ? restore.current : undefined}
         onRestoreSnapshotChange={restoreScenario ? snapshot => { restore.current = snapshot; liveProbe.capturedRestore = snapshot; } : undefined}
         renderToolCallContent={hostScenario && hostMode !== "absent" ? (block, presentation) => {

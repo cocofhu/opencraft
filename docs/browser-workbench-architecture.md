@@ -92,6 +92,13 @@ OpenCraft 也不采用“整个 Renderer 只能有一个 Cordis Context”的全
 光标几何查询；它不是原子快照，不包含输入授权或跨文档唯一编辑身份，当前发行包
 尚未消费此 fork。缺失的几何保持不可用，不由 DOM 或控件边缘推测。
 
+第二个补丁是测试用途的原生目标绑定实验：通过每 frame 的 Mojo 通道取得单次
+context token，在 renderer 内校验文档、焦点代次、组合代次和原生编辑快照，再调用
+Chromium 的组合/提交/取消。Blink 编辑路径中的 scoped guard 在网站同步事件回调后
+复核原始焦点和编辑根；取消还要求属于本轮创建的组合会话。不把已发生的网站脚本
+副作用描述为可回滚，不将 renderer 断连后的未知结果自动重试。详见 vendor README
+和 `probe-target-ime.cjs`；源码重放、原生编译与探针实测分别记录。
+
 后续输入桥接保持远端原生编辑器为正文唯一写入者，本地系统输入法拥有候选会话。
 严格目标绑定、焦点/文档代次、迟到提交/取消、原生客户端上下文、触摸及 DevTools
 共存需要独立运行验证；不能用源码重放成功替代真实编辑体验或权限验证。
@@ -1278,11 +1285,22 @@ round and bound width/height without owning capture, persistence or scale.
 Unused, undeclared recovery utilities/tokens are removed; device names and
 application dimensions are retained. This catalog is not a hardware specification.
 
+
 ## Linux Server 远程网页 Surface（2026-10-21）
 
 Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性启动独立进程；不渲染工作台 UI、不公开 CDP。支持 H.264 的客户端使用 RemoteBrowserSurfaceHost（安全上下文优先 WebCodecs，HTTP/其他客户端使用原生 MSE），现有 Tab、Page、Presentation manager、BrowserDynamicToolHost 与线程归属检查保持；普通 Web iframe 与桌面原生 guest 继续使用原适配。渲染地点固定为所连 Server，不因 Thread 的执行 Host 或 SSH Host 改变。远程网页直接访问该 Server 的网络；不把 SSH loopback 代理 URL 交给另一个执行地点。
 
-远程网页跟随 Presentation 的 `viewportSize`（CSS 宽高）；responsive 模式使用内容区实时尺寸，设备尺寸预设使用其逻辑视口，不取客户端 devicePixelRatio，远端默认 DPR=1。尚无 View 时回退1280×720。`open.input.viewport` 和同连接 `viewport` 请求传宽高，尺寸归一为偶数、最小64、最长边4096，并以H.264 level 4的8192个16×16宏块（约2百万像素）限制软件渲染资源；超限按比例收缩。worker返回并先发布实际 `viewport` 配置，再输出该代关键帧；调整同一WebContents内容尺寸，不导航或重建DOM。客户端100ms合并尺寸、至多一个请求进行中及一个最新待处理，拖动期间持续更新；编码器按新尺寸重建、旧代结果失效，WebCodecs/MSE及输入坐标使用已生效尺寸。设备预设由共享BrowserViewportMode派生deviceProfile并随同几何传递；手机/平板使用worker内部私有Chromium仿真同步一致的移动UA/Client Hints（含iOS profile）、viewport meta语义、screen方向及触屏，DPR固定1。移动/触控profile将有界鼠标按下/移动/抬起串行转为Chromium真实touch序列，指针取消/捕获丢失与设备切换撤销未完成手势。桌面预设/关闭设备栏恢复桌面UA、metrics和鼠标；自定义调宽与旋转保留所选profile，同尺寸profile变更也必须应用。能力声明deviceEmulation=full仅表示该Chromium仿真链路，iOS标签不表示Safari/WebKit内核。首次直接以移动profile建立Page时先初始化本地about:blank renderer，再应用设备身份，之后才允许目标导航；设备切换不刷新、不重建DOM；按UA生成的服务端正文在后续导航或用户刷新时应用。worker串行化设备重配，并在导航/输入前等待已提交的设备变更，客户端不暴露任意CDP/UA/JS。软件 H.264 text hint、实时编码、Annex B；30fps 是活动上限，1.2秒后10fps，再2.8秒后2fps。静态去重不编码；非交互小更新固定150ms合并；仅一帧编码中和一帧最新待处理。全服务共享一个可信编码 renderer，各页面编码器在隐藏时释放。队列丢弃发生在编码前；编码后的预测帧保序，慢客户端断开后请求新关键帧，显示端只留最新解码帧。WebCodecs 无周期性关键帧；MSE 按缓冲回收水位请求关键帧，只在实际编码媒体积累时触发，静态不产生额外帧。鼠标形状同步，位置使用客户端系统光标。
+Headless CPU rendering keeps hardware acceleration disabled and explicitly selects
+ANGLE SwiftShader for software WebGL. This lets pages obtain a real WebGL context
+on GPU-less servers, including mobile device detection that assumes the context
+exists. Chromium requires the explicit `--enable-unsafe-swiftshader` opt-in for
+this software backend; it increases the graphics implementation exposed to
+untrusted pages. The dynamic browser UID, Chromium sandbox, permission defaults,
+and lack of a public debugging port remain unchanged. WebGL workloads consume
+server CPU and memory; this does not promise hardware-level 3D performance or
+change DPR, device identity, H.264 encoding, or idle frame suppression.
+
+远程网页跟随 Presentation 的 `viewportSize`（CSS 宽高）；responsive 模式使用内容区实时尺寸，设备尺寸预设使用其逻辑视口，不取客户端 devicePixelRatio，远端默认 DPR=1。尚无 View 时回退1280×720。`open.input.viewport` 和同连接 `viewport` 请求传宽高，尺寸归一为偶数、最小64、最长边4096，并以H.264 level 4的8192个16×16宏块（约2百万像素）限制软件渲染资源；超限按比例收缩。worker返回并先发布实际 `viewport` 配置，再输出该代关键帧；调整同一WebContents内容尺寸，不导航或重建DOM。客户端100ms合并尺寸、至多一个请求进行中及一个最新待处理，拖动期间持续更新；编码器按新尺寸重建、旧代结果失效，WebCodecs/MSE及输入坐标使用已生效尺寸。设备预设由共享BrowserViewportMode派生deviceProfile并随同几何传递；手机/平板使用worker内部私有Chromium仿真同步一致的移动UA/Client Hints（含iOS profile）、viewport meta语义、screen方向及触屏，DPR固定1。移动/触控profile将有界鼠标按下/移动/抬起串行转为Chromium真实touch序列，指针取消/捕获丢失与设备切换撤销未完成手势。桌面预设恢复桌面UA、metrics和鼠标，关闭设备栏则恢复跟随客户端；自定义调宽与旋转保留所选profile，同尺寸profile变更也必须应用。能力声明deviceEmulation=full仅表示该Chromium仿真链路，iOS标签不表示Safari/WebKit内核。首次直接以移动profile建立Page时先初始化本地about:blank renderer，再应用设备身份，之后才允许目标导航；设备切换不刷新、不重建DOM；按UA生成的服务端正文在后续导航或用户刷新时应用。worker串行化设备重配，并在导航/输入前等待已提交的设备变更，客户端不暴露任意CDP/UA/JS。软件 H.264 text hint、实时编码、Annex B；30fps 是活动上限，1.2秒后10fps，再2.8秒后2fps。静态去重不编码；非交互小更新固定150ms合并；仅一帧编码中和一帧最新待处理。全服务共享一个可信编码 renderer，各页面编码器在隐藏时释放。队列丢弃发生在编码前；编码后的预测帧保序，慢客户端断开后请求新关键帧，显示端只留最新解码帧。WebCodecs 无周期性关键帧；MSE 按缓冲回收水位请求关键帧，只在实际编码媒体积累时触发，静态不产生额外帧。鼠标形状同步，位置使用客户端系统光标。
 
 同源 WebSocket 复用 admission、actor身份、到期和撤权；每个连接只持有 actor+随机持久化 storage lease 的页面。服务器生成物理分区 ID；Page、storage ID 与瞬时连接分离。View park 只停视频；显式 close 释放页面，保留 Cookie 分区。观看连接断开或 Application dispose 仅取消活动输入并停流，远端 Tab 不因断线计时销毁；每 owner 最多16页、全服务最多64页，不静默淘汰驻留页面。重新挂接存活 WebContents 时同步原生 URL/title/导航状态，禁止初始客户端导航覆盖原 DOM/JS。Tab、分区恢复身份、Scope/Thread 关联与工具栏元数据由同源认证的 Server 持有，客户端同步投影启动时加载，写入按 owner 版本比较拒绝旧客户端覆盖，并以同一 mutation ID 处理丢失确认；既有本地元数据只在远端全空时晋升，原本地记录保留且不作为权限凭据。恢复文件在私有目录以600权限原子替换，损坏拒绝读取而不清空。服务端进程退出保留 URL、有效尺寸/设备语义、zoom 及原隔离登录分区，下一次挂接重新加载；这与运行中重连有明确 resumed/restored 区别，不声称恢复任意 DOM/JS/表单/内存历史。明确 close/discard 删除恢复记录并释放页面，Cookie 分区仍遵循原保留策略。所有操作继续按当前 owner 校验，元数据同步不授予页面操作权限。预览桥在目标文档内运行，只暴露已有类型化操作，敏感字段拒绝及 revision/ref 校验复用原实现，语义输入不声称 trustedInput。远程手动坐标输入作用于同一目标 WebContents。
 
@@ -1291,14 +1309,127 @@ Headless 包内置同版本 Electron，Gateway 的 RemoteBrowserService 惰性�
 
 ### Remote tab state and viewer lifecycle
 
+Responsive remote tabs follow the viewing client's normalized device identity:
+iPhone, iPad (including desktop-style iPad UA), Android phone/tablet or a desktop
+with/without touch. This does not forward arbitrary UA strings, browser brands
+or physical DPR. The remote worker retains DPR=1 and uses the measured content
+aperture in CSS pixels. Explicit device/desktop presets remain authoritative;
+closing the device toolbar returns to following the client rather than forcing
+desktop mode. A new unmeasured tab receives the bounded default identity before
+its first navigation, while an existing tab keeps its stored configuration until
+presentation supplies a measured layout. Device changes preserve the live DOM;
+server-generated UA-dependent markup updates on later navigation/reload.
+
+Pointer input carries its actual device type. A hybrid desktop's mouse remains
+a mouse and its finger produces native touch; mobile presets still support
+mouse-driven touch emulation. Pending moves cannot coalesce across pointer types.
+A worker advertising `multiTouch` accepts complete active-contact snapshots with
+up to ten stable IDs, bounded geometry/radii/pressure and an explicit start,
+move, end or cancel phase. The viewer merges movement into one complete snapshot
+per animation frame, flushes it before contact changes and captures every finger.
+The ordered worker queue coalesces only adjacent moves with the same contact set;
+partial release and new contacts are never coalesced. Older workers/clients retain
+the single-contact mouse-emulation path.
+
+Viewer pointer IDs are opaque local capture identities, not native protocol IDs.
+Each active finger receives a free wire slot from 0 through 9; it retains that
+slot until release/cancellation, and a remaining finger never changes slots when
+another is lifted. This includes iOS WebKit's random unsigned 32-bit IDs, which
+can exceed the private Chromium protocol's signed integer range. Reset retires
+both identities together; the worker continues to reject invalid wire IDs.
+
+The private native adapter selects Chromium's per-contact DevTools dispatcher
+(`SyntheticPointerActions` disabled in this dedicated runtime). Start/end send
+only changed native contacts; releasing one finger never releases/represses its
+peers. This is verified on the pinned owned runtime, rather than relying on the
+protocol summary's different all-contact release wording. The target renderer
+receives trusted native touch and decides page scrolling, pinch zoom and custom
+multi-contact behavior. Target viewport meta/touch-action and OS-reserved gestures
+remain authoritative; there is no local CSS/video zoom substitute. Remote DPR
+stays one even when the target's visual viewport is pinched.
+
+Touch coordinates on the wire identify the rendered widget, after the viewer's
+object-fit inverse mapping. The private CDP touch injector instead accepts CSS
+coordinates and multiplies them by native page scale and browser zoom. The
+worker reads native layout metrics at each ordered dispatch and divides the
+widget coordinates by that scale exactly once, including mid-pinch and partial
+release. Scroll/visual viewport offsets are not added: Chromium owns that
+projection. Contact radii stay in widget units in this dispatcher. Empty release
+and cancellation need no geometry query. There is no DOM scale inference, stale
+viewer-scale cache, local predicted page zoom or public CDP command surface.
+
+Blur, capture loss, parking, hiding, viewport/device changes, navigation and
+transport detach cancel owned contacts. A late move/release or an added contact
+from a retired gesture cannot recreate it. Native failure cancels the owned set
+and rejects the operation; no press is retried into another document. Resize
+clears local pointers without discarding the IME transaction. Native input is
+validated at the worker boundary; arbitrary CDP commands are never forwarded.
+
+Each owner-scoped remote tab supports up to 16 concurrent viewing sockets.
+Modern clients opt into `open.multiView`; opening/reconnecting only attaches a
+viewer and snapshots the existing native configuration. It cannot navigate an
+existing document, resize it or claim input. An initial URL is accepted only
+when creating a new logical tab. Bootstrap remains serialized per owner+lease.
+Different owners remain isolated even when their lease strings match.
+
+| Resource | Authority and lifetime |
+| --- | --- |
+| Tab, WebContents, partition, recovery checkpoint | Server; detach/park keeps the live document, explicit owner close/discard destroys the page and all viewing attachments |
+| Encoded H.264 output | One encoder per tab, fanout to visible viewers; paint while any viewer is visible, suspend when none are visible |
+| Socket, decoder, local geometry and keyboard candidate UI | Each viewer; a slow viewer disconnects independently |
+| Remote viewport, zoom, mouse, keys, touch and composition | Current control lease; observers scale the shared frame and cannot change remote geometry |
+| DOM result, focus, selection, native editor identity | Remote renderer; private IME/context-menu/new-window events go to the current controller |
+| Browser-use authority and read inspection | Existing actor/thread/tool authorization; a viewing attachment grants no additional rights |
+
+An actual human interaction or the toolbar Control action requests an explicit
+human lease. Merely joining, measuring layout, hovering, reconnecting or viewing
+never requests control. Human input may take control from another client or an
+Agent. Release, hide and disconnect relinquish human control; Agent writes
+request a transient agent lease and release it in finally, and fail retryably
+with CONTROL_BUSY while another controller owns the page. Read inspection and
+capture do not acquire control. Agent operations remain semantic preview-bridge
+operations with the existing sensitive-field and document-ref restrictions.
+
+Each grant has a monotonic epoch and a private random token. The service checks
+viewer membership, current authorization and token at admission. The ordered
+native input queue checks the token again at dispatch; queued old input cannot
+cross a completed handoff. Pressed keys/buttons, touches, context menus and IME
+transactions retire before the replacement grant. Clients drop input queued
+under an obsolete connection/control generation. Viewer dimensions do not
+reconfigure an existing tab; only a human controller submits its chosen viewport,
+after the active touch gesture finishes.
+
+Legacy viewers retain single-socket takeover only among legacy attachments;
+code 4009 still stops a displaced legacy client's retries. A legacy attachment
+cannot evict modern viewers and is asked to refresh. This is same-account
+multi-view support, not a cross-account sharing or collaborative-editing ACL.
+
 A remote tab outlives its display socket. Its renderer is authoritative for page
 content and editing; local presentation owns video decoding, client geometry
-and system input. Disconnect suspends video production and releases pressed
-keys, buttons and touch contacts without navigating or destroying the page.
+and system input. Disconnect suspends that viewer and releases its owned pressed
+keys, buttons and touch contacts; video production continues for other viewers without navigating or destroying the page.
 Input/control boundaries are ordered in the worker; moves are flushed before
 release and local compositions are discarded across a connection change.
+Continuous touch/drag movement keeps the active paint cadence. The worker
+coalesces only adjacent pointer positions that have not reached Chromium;
+all merged requests settle with that dispatch. Press/release/cancel, editing,
+viewport changes and modifier changes remain ordering boundaries. A dispatched
+native event is never replaced, and navigation/stop retain their independent
+control path. Idle paint throttling must not accumulate stale gesture input. Clients negotiate `inputAcknowledgements` at open; opted-in input receives its
+result only after native dispatch, while older viewers retain quiet input. The
+local ordered input queue keeps at most two input requests in flight. Unsent
+adjacent positions replace each other; wheel deltas add only at the same hit
+point, with the same modifiers and direction, without exceeding native bounds.
+Press/release/cancel, changed contacts, wheel reversals, editing/copy/capture and
+viewport operations remain ordered barriers. Pending grants use the same bounded
+queue rather than a separate wheel replay array. Cancellation, document/control
+replacement and detach retire unsent input; a late ACK cannot advance the new
+queue generation. This bounds transport/native work rather than increasing the
+server overload limit or replaying stale input. Line/page wheel units are
+normalized at the local presentation; the native phased CDP wheel path remains
+unchanged.
 This is still final-text input, not the complete native IME bridge described
-above. Touch remains the existing single-contact emulation path.
+above. Multi-contact touch is an independent native input path.
 
 Durable metadata uses the existing authenticated WebSocket admission. Browser
 records and conversation aliases are scoped to the gateway owner; their IDs
@@ -1309,3 +1440,345 @@ recovery record. A worker restart recreates the tab from the saved URL and
 configuration using its persistent partition. In-memory selection, scroll,
 forms, navigation history and JavaScript heap are preserved only while that
 WebContents remains alive.
+
+### Local menus and remote selection boundary
+
+Remote selection and editing remain Chromium-owned. Context menus belong to
+the client presentation: an Electron client may use a native Menu, while a
+Web client renders its own local menu. A video surface does not supply the
+mobile OS text-selection menu. Menu availability comes from the remote native
+context, and commands must validate their page, document and target generation
+again when executed. Opening a local menu must not blur or reset the remote
+editor. Clipboard results must be scoped to the requesting browser session,
+then written to the client clipboard under its user-gesture contract; the
+server's global OS clipboard is not a remote clipboard transport.
+
+Each offscreen page initializes a local blank renderer and a private native
+page-focus context before remote navigation. Ozone headless OS-window focus and
+injected mouse clicks alone do not focus its renderer. Chromium's existing
+focus emulation lets independent page viewers retain their own native focused
+element; it does not refocus an old editor when Copy executes. Parking video
+does not toggle page focus or dispatch an extra editor blur. Cross-site iframe
+renderers have separate focus contexts. A private, recursive iframe-target
+attachment initializes each one before resuming its script; initialization
+failure or detach always resumes a waiting target and cannot leave it paused.
+
+The remote worker now exposes a narrowly typed copy-back operation and native
+context-menu notifications. A client right-click or keyboard-menu intent must
+still own the current presentation when the notification arrives. The local
+Electron Menu or Web Radix menu offers Copy and, for HTTP(S) links, Copy link
+address. Ctrl/Cmd+C uses the same copy-back operation. Opening a local menu
+preserves the remote focus and selection. Website-owned menus remain in the
+remote page when its context-menu event prevents the native menu.
+
+Copy requires the owned Electron fork's target-bound clipboard capability;
+stock runtimes advertise it as unavailable. The renderer issues a single-use
+native document/focus/selection token. Executing Copy validates that token,
+dispatches Chromium's real editor command, and captures the final ClipboardHost
+text/HTML writes on the same ordered Mojo pipe, including website copy handlers
+and existing policy callbacks. ClipboardHost does not flush these writes to the
+server OS clipboard. A moved target, navigation, unsupported format, nested copy
+or missing data rejects the result. Rejection after dispatch does not roll back
+website event-handler side effects. The initial result limit is 65,536 UTF-16
+code units across text and HTML; images/custom formats, cut and native paste
+transactions are outside this capability.
+
+Page/session permission checks and current presentation/connection generations
+fence the result again before a local user intent can write the client
+clipboard. Async Clipboard API clients create promised text/HTML items during
+the local gesture; plain-only results receive an equivalent inert HTML
+alternative. LAN HTTP uses the browser clipboard command and reports refusal.
+Retiring the view rejects pending data. A final check immediately before the
+desktop port call or promised Blob fulfillment also fences retirement between
+remote-result validation and the next Promise reaction. No protocol can revoke a clipboard
+write already accepted by the local OS/browser. Client clipboard permission and
+activation rules still apply.
+
+The fork source, worker, client menu and artifact-selection paths are connected.
+Source integration alone does not enable native copy: a complete owned binary
+must pass the native clipboard probe and be selected during packaging. Native
+runtime adoption and physical desktop/mobile validation must be recorded
+separately. This does not complete native IME or multitouch, and a video surface
+still cannot provide the mobile OS's native text-selection handles.
+
+### Remote surface keyboard activation
+
+The presentation canvas is not an editor. A real local input receives native
+composition events and stages only the current transaction; it never mirrors
+remote text. Native Chromium metadata identifies text, search, password, email,
+URL, telephone, number, textarea and contenteditable fields, their inputmode,
+enter-key hint and virtual-keyboard policy. Number staging uses text plus the
+native inputmode so local number validation cannot rewrite the remote edit.
+Sensitive fields (including Chromium's previously-password flags) use a local
+password input. Staging clears on commit, cancellation and field changes.
+
+Ordinary tab, canvas and menu focus use inputmode none and manual keyboard
+policy. A single small touch may promote the already-focused receiver only
+after a different native editor is confirmed, within the short-lived tap intent.
+Movement, multiple contacts, capture loss and blur disarm this intent. It never
+asynchronously focuses a local field or steals focus from the local address bar.
+The existing Keyboard action synchronously focuses the receiver in a local
+trusted gesture, using the remote keyboard traits. Explicit Keyboard can override
+inputmode none; automatic activation respects it and manual native policy.
+Updating inputmode on an already-focused receiver is a best-effort mobile
+WebView path; physical WeChat/iOS/Android popup behavior needs device validation.
+
+The worker emits an opaque editor observation id and bounded caret geometry,
+never field contents, native target identity or write capabilities. Begin binds
+the observed id to the exact native document/node and input type. Each operation
+uses a single-use native document/focus/selection capability; changed focus,
+type, document or native context cancels rather than retargets delayed input.
+Preedit, commit and cancellation follow Chromium's editor and website handlers.
+The client keeps the original editor id throughout a composition, coalesces
+preedit and queues terminal edits in order. Local blur, park, navigation,
+disconnect and disposal retire the transaction.
+
+Physical keyboard keydown/keyup/character events remain available on non-editable
+pages, including arrows, Tab, Escape and shortcuts. Enter forwards the native
+Return character as well as key edges so native form submission and textarea
+line breaks can run; a non-editable page keeps the manual local key receiver. Composition/Process/229
+keystrokes are excluded to avoid inserting both a key character and IME commit.
+Browser/OS-reserved shortcuts, layout-specific dead keys and Bluetooth keyboard
+behavior need platform validation; remote handlers can reject edits. Rejection
+after dispatch cannot undo website side effects. Stock runtimes without the
+native bridge advertise it unavailable.
+
+This text bridge does not implement remote surrounding-text reconversion,
+editor mirroring, mobile selection handles, native date/color/file/select pickers,
+password-manager/autofill/passkey origin delegation or arbitrary EditContext
+editors. Those are separate capabilities, not implied by password text entry.
+
+### Empty remote tab recovery
+
+The worker bootstrap `about:blank` is represented as a null recovery URL, including
+when reading older checkpoints. Reopening an empty tab never sends that sentinel
+through the external HTTP(S) navigation command. A restored empty document does
+not suppress the viewer's pending initial target URL; a resumed or restored
+nonempty remote page remains authoritative and is not navigated again. Explicit
+blank navigation still uses null, and external URL restrictions remain intact.
+
+
+### Navigation acceptance and loading
+
+Remote `navigate` acknowledges Chromium accepting a validated HTTP(S) target;
+it does not wait for all resources or the native loadURL Promise. Native
+navigation/loading/failure events remain authoritative. A stalled subresource
+must not prevent video attachment, stop, replacement navigation or reconnect.
+During process recovery, the saved remote URL remains authoritative before the
+first document commits; a viewer's stale initial target cannot replace it.
+The WebSocket handshake deadline ends at transport open. The separate open RPC
+allows bounded worker startup and creation; timeout messages identify the
+operation without exposing the target URL or page content.
+
+The private, typed automation bridge executes against the captured native main
+frame, without WebContents' global did-stop-loading gate. Native document
+generation checks still reject stale results. This permits browser inspection
+and interaction in a committed document while a subresource is stalled; no
+client JavaScript evaluator or CDP endpoint is exposed.
+
+Temporary network, deployment and worker transport outages keep retrying with
+exponential backoff capped at five seconds; they do not exhaust a five-attempt
+budget. Worker transport/startup failures and RPC deadlines carry retryable
+errors. Generic clean WebSocket closure is not a logical Tab retirement. The
+explicit `1000 / Browser tab closed` reason, authorization `1008`, legacy transfer
+`4009` and permanent open/admission errors stop retries. The permanent error
+remains visible rather than being overwritten by a generic close message.
+Late retry timers belong to their connection generation. Recovery opens only the
+same lease, never navigates, replays input or acquires control; an authoritative
+non-loading snapshot emits loaded; the shared page runtime clears its previous
+error on that successful acknowledgement, including blank tabs whose navigation
+does not create a history entry. A later failure remains visible.
+
+Native per-page renderer termination is a different boundary from a viewer
+transport outage. The worker destroys that dead WebContents and retires its
+ordered command epoch before emitting `renderer-gone`. The gateway invalidates
+that page's native requests and input grant, closes its viewers with retryable
+`1011`, and retains the logical lease, saved URL and device/zoom configuration.
+Reattachment recreates only that renderer and restores its saved navigation;
+other live Tabs and the Electron worker stay intact. Lost renderer memory and
+unsaved edits cannot be restored, and control/input are never replayed. Queued
+commands from the dead epoch cannot reach the replacement, including old
+control grants. Explicit logical close still takes precedence over recovery.
+
+A gateway request backlog uses temporary `1013`, not policy `1008`. Its cap
+continues to bound outstanding work; malformed binary requests and expired
+admission still stop recovery. Terminal banners distinguish rejected requests,
+expired authorization and explicit close instead of hiding them behind a generic
+disconnection message. Diagnostics contain owned reason enums and exit codes,
+never page content, URLs or raw native stderr.
+
+A failed open or terminally disconnected transport does not make the tab's
+ready promise reusable. Explicit reload or replacement navigation establishes
+a new connection generation using the same persisted storage lease and current
+server admission. It retires the old transport, pending RPCs, input and media
+before connecting; late old results/closures cannot clear the new connection.
+Healthy reload keeps its existing transport. Policy closure does not trigger
+automatic retries; an explicit retry still requires server authorization.
+Explicit navigation intent has its own sequence, so synchronizing the remote
+URL during reconnect cannot drop a newer user navigation or revive an older one.
+When reload recreates a physical page, its recovery navigation is already the
+reload operation. Do not immediately reload that new WebContents: before the
+first commit this would reload about:blank and cancel the intended navigation.
+Reloading a resumed live page still issues the native reload command.
+
+
+### Atomic native offscreen resize
+
+CPU offscreen rendering publishes viewport size and the matching LocalSurfaceId
+as one native visual-properties update. Screen-info notification during resize
+must not send the new dimensions with the previous surface ID: Chromium rejects
+that combination and terminates the renderer. The owned Electron view defers
+intermediate synchronization until root/delegated surfaces are ready, then uses
+the normal final synchronization and acknowledgement path. The same WebContents,
+DOM, focus, input selection and profile survive keyboard height changes, panel
+resizing and rotation; no page recreation or fixed viewport is used as a remedy.
+The native resize probe covers active CPU painting and preserved editor state;
+remote H264 and physical mobile input require their separate acceptance evidence.
+
+Remote browser timeout/renderer-exit diagnostics retain only a fixed event, a
+whitelisted command name and pending-request count, capped at twenty per service.
+They contain no URL, page/actor identity, input, arbitrary exception or native stderr.
+They identify a later timeout without making absence of events proof of health.
+
+### Accepted remote tab closure
+
+Explicit close/discard belongs to the server tab owner. Native destruction,
+quota release and durable catalog deletion complete independently of the
+viewer's socket lifetime; a disconnected reply cannot skip that work. Concurrent
+retirement shares one operation and blocks reattachment. Discard during native
+creation waits for creation before retiring the resulting page, rather than
+acknowledging while an orphan WebContents can still appear. Native close is
+idempotent so an uncertain acknowledgement can safely be retried. Cookie
+partitions retain the existing policy. Ordinary detach/park still preserves the
+live document. This fix does not introduce LRU or change tab limits.
+
+### Browser layout and visibility aperture (2026-10-22)
+
+The presentation slot supplies the live content layout viewport. The intersection
+with the Shell aperture and window supplies only stageBounds for painting and
+hit-test clipping. Responsive and fixed-device layout both use the slot before
+clipping. Remote H.264, local iframe and Electron guest adapters project that
+clip independently of backing dimensions. Hiding/revealing a panel therefore
+keeps the page at its content width; it does not send animated near-zero widths
+to the renderer or rebuild the encoder for visibility alone. Actual window or
+divider resize still changes the live slot and viewport during held drags.
+
+The reported keyboard recognition without automatic popup remains a separate
+activation limit: ime-state arrives asynchronously, and updateKeyboard only
+changes inputmode on an already focused receiver. It does not create a new
+trusted focus gesture. Manual Keyboard performs synchronous blur/policy/focus
+in the local event; first-touch automatic popup on physical WeChat is unverified
+and was reported unsuccessful. Do not equate editor recognition, focus, or an
+inputmode change with visible OS keyboard approval.
+
+### Shell mode transitions and browser layout
+
+The Shell tool surface uses the destination split/full-width layout, while its outer aside animates the visibility aperture. Closing retains the last content mode until a new visible intent selects a destination. Full-width interpolation is never sent as an intermediate browser viewport: H.264 frames can arrive after the container expands and otherwise produce centered gutters and repeated reflow. Ordinary split-handle and window resizing still update live content width; there is no viewport freeze or delayed reveal timer. Surface border treatment follows the retained content mode as well, so hiding cannot introduce a one-pixel viewport change.
+
+The Shell layout signal includes mobile foreground translation, not just pane dimensions. Portaled surfaces measure in Motion postRender after ancestor transforms commit; ResizeObserver alone does not observe positional changes. Cancel scheduled reads with the presentation lifecycle.
+
+### Durable close intent and acknowledgement
+
+A remote surface sends explicit closure over an independent discard connection,
+validates its matching successful result and retries lost/error replies while the
+application is alive. Disposing a presentation still detaches only. Removing an
+existing lease from the authenticated, revisioned storage mapping is a second
+explicit close signal; server metadata acceptance persists closing work before
+acknowledging, then retires native resources independently. Failed destruction
+is retried and pending work resumes after server restart. A persisted owner/lease
+fence also prevents an open waiting on process startup from creating a page after
+its discard already succeeded. Cookie partitions and ordinary parked tabs stay
+under the existing policy. This does not infer closure from absence of a viewer,
+from a missing/malformed historical mapping or from a resource limit. Old orphan
+records without a known close intent are not swept. A client killed before any
+close signal reaches the server still has no durable offline close guarantee.
+
+### Remote frame presentation during viewport resize
+
+The layout owner fits and centers fixed-device previews in visualBounds. The
+remote adapter then projects each received frame at that rectangle's width,
+anchored at the top left, and clips overflow at the live slot. It must not
+contain-fit the old frame again against a newly shortened slot: during software
+keyboard animation the native viewport and H.264 epoch arrive later, and this
+second fit would temporarily shrink the entire page and add horizontal gutters.
+Canvas uses its received intrinsic aspect ratio; MSE video uses the same epoch's
+explicit aspect ratio, including before metadata arrives. Both remain undistorted.
+A growing slot can expose unpainted space until its new frame arrives; it never
+stretches old pixels vertically or predicts remote layout. Real viewport changes
+continue through the existing bounded resize queue without a reveal delay.
+
+Mouse/touch positions, contact radii, local menus and IME caret positioning use
+the same width-derived frame projection. The invisible keyboard receiver is
+clamped to the visible container. Native page zoom remains remote authority;
+this is frame presentation, not an additional page-scale or DPR transformation.
+Fixed-device preview padding and outer centering remain layout-owned.
+
+### First-frame handoff within a remote page
+
+A viewport notification updates the native input/decoder dimensions, not the
+currently displayed bitmap. Canvas dimensions change only in the same render
+task that draws the first complete replacement frame. Reset cancels queued
+frames and retires their decoder identity; old callbacks cannot repaint a newer
+epoch. Real native resizing continues while the last readable picture is held.
+
+The MSE path copies its currently presented video into the existing canvas once
+before disposing the old media source. An incoming video stays transparent above
+the canvas until requestVideoFrameCallback confirms its first presented frame;
+then the current video identity is checked, the canvas cover is updated and the
+video is revealed. Older browsers use readable data, completed seek and one RAF
+as the fallback fence. Cancelling a replacement removes callbacks/listeners.
+An unready video never replaces the existing cover during a second reset.
+Temporary snapshot storage is released immediately; a failed video read leaves
+the earlier readable cover intact. There is no retained second decoder, permanent
+video-to-canvas copy loop, frame-rate increase or new idle polling. Recovery
+uses the same handoff; closing a page releases media and callback ownership.
+
+This avoids the decoder-reset white interval, not legitimate white webpage
+content or the new area exposed when a viewport grows. The held picture can be
+stale until the remote page paints again; no local layout prediction is applied.
+
+### Browser process transport failure isolation
+
+The Gateway owns the worker process and its pipe/IPC generation. A worker exit
+or stdin/stdout/stderr error retires that generation once, rejects its pending
+requests and disconnects its page sockets so ordinary recovery can recreate the
+worker. The persisted tab catalog is retained. Bootstrap pipe failure also
+rejects startup immediately; a late failure from an old startup cannot clear a
+new startup. Late process messages or errors cannot mutate a replacement.
+
+Node Writable write callbacks do not consume a separate stream error event.
+Listeners therefore remain for the transport lifetime, including after ready
+and shutdown. This contains browser failures within their resource owner; it
+does not establish the cause of a native Electron abort or promise DOM recovery
+after that abort. Diagnostics expose only owned event enums and counters, never
+visited URLs, page text or arbitrary Chromium stderr.
+
+### Native touch identities and private crash diagnostics
+
+Wire touch IDs are arbitrary validated identities, not Chromium pointer slots. The widget CDP adapter allocates at most ten stable slots, commits allocation/release only after native ACK, preserves held fingers across partial release/reorder, and clears slots after cancellation even when cancellation fails. Browser-provided pointer IDs never reach VelocityTracker directly.
+
+The Gateway consumes the browser stderr pipe with a bounded private in-memory parser. It retains only the most recent fatal code location, up to 24 argument-free stack symbols and counters, associated with the retired process and its exit code/signal. `lastBrowserFailure` is process-owner memory, not a client endpoint: no raw stderr/messages, console forwarding, file/checkpoint writes or page socket disclosure. Replacement workers cannot be retired by old pipe events. This evidence does not establish a cause for an unobserved native abort.
+
+### Offscreen wheel injection
+
+Remote wheel input uses the worker's private Chromium `Input.dispatchMouseEvent`
+wheel injector. The pinned Electron OSR `sendInputEvent(mouseWheel)` path mutates
+a phase-bearing copy but forwards the original event, violating Chromium's
+wheel queue invariant and aborting the whole browser process. The CDP injector
+provides native begin/end phases and frame hit testing. Viewer widget positions
+are converted using current pinch scale and browser zoom; wheel deltas retain
+their physical magnitude and convert from Electron to web direction. Native
+modifier semantics, sandboxing, page leases and memory-only stderr remain intact.
+No public debugger endpoint or arbitrary input command surface is added.
+
+Media epochs are opaque, non-reused identities across renderer recreation, resize and parking. Encoder callbacks belong to their exact encoder instance; a late output/error cannot emit into, clear or release a replacement encoder for the same logical Tab. Worker accepts packets and failures only for the current media epoch.
+
+### Browser toolbar input action artwork (2026-10-22)
+
+The input-control and keyboard actions use the shared hand-drawn SVG family in
+`design-system-web/action-icons` and the existing toolbar icon slots. Control uses
+a pointer to take control and a crossed pointer to release it; keyboard uses the
+shared keyboard artwork. Localized accessible names and hint titles remain on
+the buttons. Unavailable controls stay absent, keyboard readiness still determines
+disabled state, and actions still call the existing surface owner without changing
+lease, focus or keyboard policy.

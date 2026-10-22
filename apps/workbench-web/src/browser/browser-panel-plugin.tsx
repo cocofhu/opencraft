@@ -1,3 +1,5 @@
+import { cancelFrame, frame } from "motion/react";
+import { LoadingRingIcon as LoaderCircle, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import type {
   BrowserPageId,
   BrowserTabId,
@@ -5,23 +7,16 @@ import type {
 import {
   browserUrlDisplayValue,
 } from "@opencraft/browser-core";
+import { BrowserControlButton } from './browser-control-button';
+import { BrowserKeyboardButton } from './browser-keyboard-button';
 import { BrowserDeviceToolbar, BrowserDeviceHandles } from "./browser-device-toolbar";
 import { useIntl } from "@opencraft/i18n/react";
 import type { Context } from "@deepseek-ai/cordis";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import type { PanelToolbarActionContext } from "@opencraft/workbench-panels";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { usePanelPresentation } from "../components/panel-presentation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
-  Globe2,
-  LoaderCircle,
-  MonitorSmartphone,
-  RotateCw,
-  X,
-} from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, ExternalLinkIcon as ExternalLink, GlobeIcon as Globe2, DevicesIcon as MonitorSmartphone, RedoIcon as RotateCw } from "@opencraft/design-system-web/action-icons";
 import {
   useEffect,
   useLayoutEffect,
@@ -35,6 +30,7 @@ import { FloatingComposerToggle } from "../components/thread-composer-presentati
 import {
   useBrowserPresentationCoordinator,
   useBrowserTab,
+  useOptionalBrowserRuntime,
   useBrowserWorkbench,
   useWebBrowserPage,
   useWebBrowserPageRuntime,
@@ -63,6 +59,7 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
   const tab = useBrowserTab(tabId);
   const pageId = tab?.pageId ?? ("missing-browser-page" as BrowserPageId);
   const page = useWebBrowserPage(pageId);
+  const browserRuntime = useOptionalBrowserRuntime();
   const slotRef = useRef<HTMLDivElement | null>(null);
   const presentationRef = useRef<BrowserPresentationHandle | null>(null);
   const [zoom,setZoom]=useState(100);
@@ -86,18 +83,14 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
       viewportMode: tab.viewportMode,
     });
     presentationRef.current = presentation;
-    let frameId: number | null = null;
-    const scheduleMeasure = () => {
-      if (frameId !== null) return;
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        presentation.measure();
-      });
-    };
+    // Read after Motion commits ancestor transforms and pane dimensions.
+    // A separate browser RAF can run before Motion's final DOM write.
+    const measure = () => presentation.measure();
+    const scheduleMeasure = () => { frame.postRender(measure); };
     const unsubscribeLayout = rightPanelLayoutTick.on("change", scheduleMeasure);
     scheduleMeasure();
     return () => {
-      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      cancelFrame(measure);
       unsubscribeLayout();
       if (presentationRef.current === presentation) presentationRef.current = null;
       presentation.dispose();
@@ -174,6 +167,8 @@ function BrowserPanel({ tab: panelTab, presentationId }: PanelRendererProps) {
           onClick={()=>workbench.setViewportMode(tab.id,tab.viewportMode.type==="responsive"?FIT_VIEWPORT:{type:"responsive"})}>
           <MonitorSmartphone size={15}/>
         </button>
+        <BrowserControlButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
+        <BrowserKeyboardButton surfaces={browserRuntime?.surfaces} pageId={pageId} />
         <FloatingComposerToggle activeTabId={panelTab.id} />
         {pages.supportsSiteSettings && currentUrl ? <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild><button type="button" className="browser-toolbar-button" aria-label={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })} title={intl.formatMessage({ id: "browser.settings", defaultMessage: "Site settings" })}><Globe2 size={13} /></button></DropdownMenu.Trigger>

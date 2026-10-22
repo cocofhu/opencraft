@@ -26,9 +26,9 @@ try {
   await build({ stdin: { contents: `
     import {connectWebSocketAppHost} from './apps/workbench-web/src/runtime/websocket-app-host.ts';
     import {JsonRpcAppServerClient} from '@opencraft/appserver-client';
-    import {parseSshCodexServerDescriptors} from '@opencraft/app-host-protocol';
+    import {parseSshServerDescriptors} from '@opencraft/app-host-protocol';
     const hub=connectWebSocketAppHost();let client;
-    window.probe={async connect(){const catalog=parseSshCodexServerDescriptors(await (await fetch('/__opencraft_ssh_servers')).json());
+    window.probe={async connect(){const catalog=parseSshServerDescriptors(await (await fetch('/__opencraft_ssh_servers')).json());
       client=new JsonRpcAppServerClient({hostId:catalog[0].serverId,transport:hub.createTransport(catalog[0].serverId),createRequestId:()=>1});
       await client.connect({clientInfo:{name:'browser-smoke',version:'0.1'},capabilities:{experimentalApi:true}});
       const models=await client.request('model/list',{});const threads=await client.request('thread/list',{limit:1});

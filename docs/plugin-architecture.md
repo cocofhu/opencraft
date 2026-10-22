@@ -1,5 +1,10 @@
 # OpenCraft Extension Platform 与插件内核架构
 
+Headless 的 IM 与企业微信为两层可选服务端插件：IM 持有交换机绑定、来源策略和运行时
+回复上下文，企业微信依赖 IM 消息 contract 并持有协议连接；核心保留自然人、准入、会话
+和执行权威。私有配置显式装配，无配置不连接，不属于浏览器可安装扩展的信任范围。
+配置与恢复边界见 [IM switchboard](im-switchboard.md)。
+
 > 开发入口：[当前插件边界、API 与贡献路径](extension-development.md)。本文同时保留目标拓扑和迁移历史；目标设计不是已实现 API。当前类型以 `packages/extension-contract/src/index.ts` 为准，示例以 `examples/extensions/hello.mjs` 为准。
 
 GitHub上游迁移要求公开Application/Headless/Relay通过产品装配端口接入下游产品/企业身份，

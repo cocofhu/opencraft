@@ -425,6 +425,7 @@ export class WebBrowserPageRuntime {
           ...record.snapshot,
           revision: record.snapshot.revision + 1,
           title,
+          error: null,
           navigation: { ...record.snapshot.navigation, isLoading: false },
         };
         this.notify(record);

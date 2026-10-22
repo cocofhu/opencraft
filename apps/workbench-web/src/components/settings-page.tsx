@@ -1,18 +1,10 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import "../styles/settings-page.scss";
 import { useOptionalAsyncNotices } from "./async-notices";
 import { WorkbenchIcon } from "./ui/workbench-icon";
 import { useDismissSidebarAfterSelection } from "./shell-presentation";
 import { ConversationOverviewSetting } from "../features/conversation-overview/setting";
-import {
-  Archive,
-  ArrowLeft,
-  Blocks,
-  Bot,
-  Database,
-  FlaskConical,
-  Search,
-  Server,
-} from "lucide-react";
+import { ArchiveIcon as Archive, ArrowLeftIcon as ArrowLeft, ExtensionsIcon as Blocks, AgentIcon as Bot, DatabaseIcon as Database, LabIcon as FlaskConical, ServerIcon as Server } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import { defineMessages } from "@opencraft/i18n";
@@ -288,7 +280,7 @@ export function SettingsNavigation({
             <span><FormattedMessage id="settings.servers" defaultMessage="Servers" /></span>
           </button> : null}
           {currentPlatform() === "web" && hasManagedWebUpdates() ? <WebUpdatesNavigation selected={section === "updates"} onOpen={() => onSectionChange("updates")} /> : null}
-          {currentPlatform() === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === 'true' ? <button type="button" aria-current={section === 'hub-network' ? 'page' : undefined} onClick={() => onSectionChange('hub-network')}>
+          {currentPlatform() === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === 'true' ? <button type="button" aria-current={section === 'hub-network' ? 'page' : undefined} onClick={() => onSectionChange('hub-network')}>
             <Server size={16} /><span>{intl.formatMessage({ id: 'settings.hubNetwork', defaultMessage: 'Hub network' })}</span>
           </button> : null}
           {showArchivedConversations ? <button
@@ -472,7 +464,7 @@ export function SettingsContent({
               {section === "machines" ? <SettingsMachines machines={machines} platform={platform} onSectionChange={onSectionChange} />
               : selectedMachine !== null ? <SettingsMachine machine={selectedMachine} pages={extensionPages.filter(page => page.management === undefined)} platform={platform} onSectionChange={onSectionChange} />
               : section === "servers" && platform === "web" && browserServerContext() ? <ServerSelectionSettings />
-              : section === 'hub-network' && platform === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === 'true' ? <HubNetworkSettings />
+              : section === 'hub-network' && platform === 'web' && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === 'true' ? <HubNetworkSettings />
               : section.startsWith("execution-") ? null
               : missingConfigurationHost || section.startsWith("machine-") ? <><SettingsPageHeader title={intl.formatMessage({ id: "settings.machines.unavailable", defaultMessage: "Machine unavailable" })} /><SettingsButton onClick={() => onSectionChange("machines")}>{intl.formatMessage({ id: "settings.machines.title", defaultMessage: "Machines" })}</SettingsButton></>
               : selectedExtensionView !== null ? (

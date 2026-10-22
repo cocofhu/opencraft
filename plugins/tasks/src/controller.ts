@@ -11,6 +11,7 @@ export interface TasksViewState {
   readonly members: readonly TaskMember[];
   readonly properties: boolean;
   readonly planning: boolean;
+  readonly aiResearch: boolean;
   readonly supportedKinds: readonly string[];
   readonly activity: boolean;
   readonly progress: boolean;
@@ -28,6 +29,7 @@ export class TasksController {
     tasks: [],
     members: [],
     properties: false,
+    aiResearch: false,
     planning: false, supportedKinds: [], activity: false, progress: false,
     memberIdentity: false,
     archive: false,
@@ -60,7 +62,7 @@ export class TasksController {
       if (capability.version !== 1 || capability.storage !== "sqlite-rows")
         throw new Error("Unsupported Tasks storage");
       this.supported = true;
-      this.publish({ properties: capability.properties === true, memberIdentity: capability.memberIdentity === true, planning: capability.planning === true, supportedKinds: capability.supportedKinds ?? [], activity: capability.activity === true, progress: capability.progress === true });
+      this.publish({ aiResearch: capability.aiResearch === true, properties: capability.properties === true, memberIdentity: capability.memberIdentity === true, planning: capability.planning === true, supportedKinds: capability.supportedKinds ?? [], activity: capability.activity === true, progress: capability.progress === true });
       this.publish({ recycleBinRetentionMs: capability.recycleBinRetentionMs ?? null, archive: capability.archive === true });
       await this.refresh();
     } catch {

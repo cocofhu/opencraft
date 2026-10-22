@@ -180,7 +180,7 @@ test("closing the last tab preserves the outlet and its width for the launcher",
   assert.equal(state.right.tabs.length, 0);
 });
 
-test("Codex may reveal an empty right-panel outlet without inventing a tab", () => {
+test("Workbench may reveal an empty right-panel outlet without inventing a tab", () => {
   const initial = createConversationPanelState({ ownerId: "thread-empty-panel" });
   const opened = reduceConversationPanelState(initial, {
     type: "set-region-open",
@@ -202,7 +202,7 @@ test("Codex may reveal an empty right-panel outlet without inventing a tab", () 
   assert.equal(closed.right.open, false);
 });
 
-test("Codex right panel geometry retains content reserve and magnetic shelf", () => {
+test("Right panel geometry retains content reserve and magnetic shelf", () => {
   assert.deepEqual(getRightPanelWidthBounds(1_440), {
     minimum: 320,
     maximum: 1_088,

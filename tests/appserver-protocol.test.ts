@@ -33,6 +33,7 @@ test("Thread lifecycle capability requires a known version and explicit operatio
   assert.deepEqual(parseThreadLifecycleCapability({ version: 1, fork: true }), {
     version: 1,
     fork: true,
+    ephemeralFork: false,
     ephemeral: false,
     injectItems: false,
     unsubscribe: false,

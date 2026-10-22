@@ -1,33 +1,69 @@
+import { CheckIcon } from "@opencraft/design-system-web/action-icons";
 import type { ChatDocumentNode } from "@opencraft/chat-document";
 import { containsHanText, type ChatNodeRendererProps } from "@opencraft/chat-render-react";
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { Component, Fragment, type CSSProperties, type ReactNode } from "react";
+
+import { captureTextSelection, restoreTextSelection, type TextSelectionSnapshot } from "../text-selection";
 
 import "./prose.scss";
 
 type SegmentedTextNode = Extract<ChatDocumentNode, { kind: "text" | "color-swatch" }>;
 
-function SegmentedText({ node, props }: { readonly node: SegmentedTextNode; readonly props: ChatNodeRendererProps }) {
-  return <>{node.segments.map((segment, index) => (
-    <span
-      className={segment.entering && !props.context.fadeTimeline?.isSettled(segment.key, performance.now()) ? "chat-stream-fade-in" : undefined}
-      data-chat-stream-enter={segment.entering || undefined}
-      key={segment.key}
-      ref={segment.entering && props.context.fadeTimeline !== undefined ? (element) => {
-        if (element === null) return;
-        const delayMs = props.context.fadeTimeline?.delayFor(segment.key, performance.now()) ?? 0;
-        element.style.setProperty("--fade-delay", `${delayMs}ms`);
-      } : undefined}
-      style={segment.entering ? { "--fade-delay": `${props.context.fadeTimeline?.cachedDelayFor(segment.key, performance.now()) ?? Math.min(index * 16, 96)}ms` } as CSSProperties : undefined}
-      onAnimationEnd={(event) => {
-        if (event.target !== event.currentTarget) return;
-        props.context.fadeTimeline?.settle(segment.key);
-        props.context.requestMeasurement?.({
-          geometryChanged: false,
-          reason: "stream-animation",
-        });
-      }}
-    >{segment.text}</span>
-  ))}</>;
+interface SegmentedTextProps {
+  readonly node: SegmentedTextNode;
+  readonly props: ChatNodeRendererProps;
+}
+
+class SegmentedText extends Component<SegmentedTextProps, object, TextSelectionSnapshot | null> {
+  private first: HTMLSpanElement | null = null;
+  private last: HTMLSpanElement | null = null;
+
+  getSnapshotBeforeUpdate(previous: Readonly<SegmentedTextProps>): TextSelectionSnapshot | null {
+    const text = this.props.node.text;
+    if (text === previous.node.text || !text.startsWith(previous.node.text)) return null;
+    const { first, last } = this;
+    if (!first || !last) return null;
+    const selection = first.ownerDocument.getSelection();
+    for (const node of [selection?.anchorNode, selection?.focusNode]) {
+      const element = (node?.nodeType === 1 ? node as Element : node?.parentElement)?.closest<HTMLElement>("[data-chat-text-segment]");
+      // This text node renders a contiguous run of existing sibling spans.
+      if (element && element.parentNode === first.parentNode
+        && (element === first || first.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING)
+        && (element === last || last.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING)) {
+        return captureTextSelection(element);
+      }
+    }
+    return null;
+  }
+
+  componentDidUpdate(_previous: Readonly<SegmentedTextProps>, _state: object, snapshot: TextSelectionSnapshot | null) {
+    restoreTextSelection(snapshot);
+  }
+
+  render() {
+    const { node, props: { context } } = this.props;
+    return <>{node.segments.map((segment, index) => (
+      <span
+        key={segment.key}
+        className={segment.entering && !context.fadeTimeline?.isSettled(segment.key, performance.now()) ? "chat-stream-fade-in" : undefined}
+        data-chat-stream-enter={segment.entering || undefined}
+        data-chat-text-segment=""
+        ref={index === 0 || index === node.segments.length - 1 || (segment.entering && context.fadeTimeline !== undefined) ? element => {
+          if (index === 0) this.first = element;
+          if (index === node.segments.length - 1) this.last = element;
+          if (element === null || !segment.entering || context.fadeTimeline === undefined) return;
+          const delayMs = context.fadeTimeline.delayFor(segment.key, performance.now()) ?? 0;
+          element.style.setProperty("--fade-delay", `${delayMs}ms`);
+        } : undefined}
+        style={segment.entering ? { "--fade-delay": `${context.fadeTimeline?.cachedDelayFor(segment.key, performance.now()) ?? Math.min(index * 16, 96)}ms` } as CSSProperties : undefined}
+        onAnimationEnd={event => {
+          if (event.target !== event.currentTarget) return;
+          context.fadeTimeline?.settle(segment.key);
+          context.requestMeasurement?.({ geometryChanged: false, reason: "stream-animation" });
+        }}
+      >{segment.text}</span>
+    ))}</>;
+  }
 }
 
 function children(props: ChatNodeRendererProps): ReactNode {
@@ -56,9 +92,7 @@ function TaskCheckbox({ checked }: { readonly checked: boolean }) {
       role="checkbox"
     >
       {checked ? (
-        <svg aria-hidden="true" viewBox="0 0 12 12">
-          <path d="m2.2 6.1 2.2 2.2 5.4-5.4" />
-        </svg>
+        <CheckIcon size={10} />
       ) : null}
     </span>
   );

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Context } from "@deepseek-ai/cordis";
 
 import type { ChatDocumentNode } from "@opencraft/chat-document";
@@ -19,6 +21,7 @@ import {
   parseAnsiTerminalOutput,
 } from "../packages/chat-render-web/src/renderers/terminal/ansi-terminal-text";
 import { ChatEnhancementService } from "../packages/chat-render-web/src/services/chat-enhancement-service";
+import { CodeText } from "../packages/chat-render-web/src/renderers/code/code-text";
 import {
   codeBlockWrapPreference,
   codeLanguageLabel,
@@ -169,10 +172,11 @@ test("resource policies reject restricted external resources and can be overridd
   const removeHostRestriction = runtime.resources.register({
     name: "host-restricted-domain",
     priority: 100,
-    matches: target => target.startsWith("https://private.example"),
+    matches: target => URL.canParse(target) && new URL(target).origin === "https://private.example",
     resolve: () => ({ allowed: false, kind: "blocked", target: null, reason: "Host policy" }),
   });
   assert.equal(runtime.resources.resolve("https://private.example/path", context).allowed, false);
+  assert.equal(runtime.resources.resolve("https://private.example.other.test/path", context).allowed, true);
   removeHostRestriction();
   const remove = runtime.resources.register({
     name: "workspace-files",
@@ -269,6 +273,12 @@ test("code blocks share word-wrap preference and normalize language labels", () 
   assert.equal(publications, 1);
   assert.equal(codeLanguageLabel("tsx", false), "TypeScript");
   assert.equal(codeLanguageLabel("js", false), "JavaScript");
+  for (const [language, label] of [["arduino", "Arduino"], ["python-repl", "Python REPL"],
+    ["php-template", "PHP template"], ["patch", "Diff"]]) {
+    for (const input of [language, ` ${language.toUpperCase()} `]) {
+      for (const open of [false, true]) assert.equal(codeLanguageLabel(input, open), label);
+    }
+  }
   assert.equal(codeLanguageLabel(null, false), "Code");
   assert.equal(codeLanguageLabel(null, true), "");
   assert.deepEqual(resolveCodeSurfacePolicy({ code: "const x = 1", language: "ts" }), {
@@ -331,8 +341,12 @@ test("syntax highlighting preserves the permanent code-box geometry", () => {
   assert.equal(appendUnhighlightedCodeTail("old", "highlighted", "new"), "");
   assert.match(
     codeBlockSource,
-    /<pre>[\s\S]*<code[\s\S]*dangerouslySetInnerHTML/u,
+    /<pre>[\s\S]*<CodeText/u,
   );
+  assert.equal(renderToStaticMarkup(createElement(CodeText, { code: "const x < y", highlightedHtml: null })),
+    "<code>const x &lt; y</code>");
+  assert.equal(renderToStaticMarkup(createElement(CodeText, { code: "const x", highlightedHtml: '<span style="color:red">const</span> x' })),
+    '<code class="chat-code-highlight"><span style="color:red">const</span> x</code>');
   assert.doesNotMatch(codeBlockSource, /<div className="chat-code-highlight"/u);
 });
 
@@ -540,7 +554,7 @@ graph TD
   );
 });
 
-test("code-header stickiness is an explicit surface capability with timeline scroll coordinates", () => {
+test("code-header stickiness is an explicit surface capability with shared scroll coordinates", () => {
   assert.match(
     webDocumentSource,
     /stickyCodeHeaders:\s*props\.stickyCodeHeaders \?\? false/u,

@@ -262,7 +262,11 @@ export class JsonRpcAppServerClient implements AppServerClient {
     if (this.closed) throw new AppServerClientError("CLOSED", "AppServer client is closed");
     if (this.transport.status.state === "open" && this.initialized !== null) return this.initialized;
     if (this.initializePromise !== null) return this.initializePromise;
-    this.initializePromise = (async () => {
+    // Transport status observers may synchronously call connect again.
+    // Own the shared initialization before entering any transport code.
+    const operation = Promise.resolve().then(async () => {
+      if (this.closed) throw new AppServerClientError("CLOSED", "AppServer client is closed");
+      if (signal?.aborted) throw new AppServerClientError("ABORTED", "AppServer connection was aborted");
       await this.transport.connect(signal);
       const revision = this.transportRevision;
       const result = await this.request("initialize", params, { signal, priority: "user-blocking" });
@@ -272,11 +276,12 @@ export class JsonRpcAppServerClient implements AppServerClient {
       this.initialized = result;
       this.generation += 1;
       return result;
-    })();
+    });
+    this.initializePromise = operation;
     try {
-      return await this.initializePromise;
+      return await operation;
     } finally {
-      this.initializePromise = null;
+      if (this.initializePromise === operation) this.initializePromise = null;
     }
   }
 
@@ -359,6 +364,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
         priority: options.priority,
         queuedAtMs,
       });
+      if (this.pending.get(id) !== pending) return;
       pending.startedAtMs = this.clock.now();
       this.emitRequestLifecycle({
         type: "started",
@@ -371,16 +377,20 @@ export class JsonRpcAppServerClient implements AppServerClient {
         params,
         timeoutMs,
       });
+      if (this.pending.get(id) !== pending) return;
 
-      void this.transport.send(encodeJsonRpcMessage(request), pending.controller.signal).catch((error: unknown) => {
-        this.rejectPending(
-          id,
-          new AppServerClientError("TRANSPORT_ERROR", `Failed to send AppServer request ${method}`, {
-            cause: error,
-          }),
-          "failed",
-        );
-      });
+      if (this.pending.get(id) !== pending) return;
+      const fail = (error: unknown) => {
+        if (this.pending.get(id) !== pending) return;
+        this.rejectPending(id, new AppServerClientError("TRANSPORT_ERROR", `Failed to send AppServer request ${method}`, {
+          cause: error,
+        }), "failed");
+      };
+      try {
+        const frame = encodeJsonRpcMessage(request);
+        if (this.pending.get(id) !== pending) return;
+        void Promise.resolve(this.transport.send(frame, pending.controller.signal)).catch(fail);
+      } catch (error) { fail(error); }
     });
   }
 

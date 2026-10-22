@@ -10,6 +10,7 @@ import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import WebSocket, { WebSocketServer } from "ws";
+import { trackSocketHeartbeat } from "./websocket-heartbeat.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const contentTypes = new Map([
@@ -210,16 +211,30 @@ const appHostFailureKinds = new Set(["socket-error", "socket-close", "handshake-
 const appHostPhases = new Set(["connecting", "socket-open", "ready"]);
 const appHostDiagnosticKeys = new Set(["attemptId", "failure", "phase", "readyState", "ageMs", "closeCode"]);
 
-const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents"]);
-const recoveryStages = new Set(["transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "host-ready", "resources", "revalidate", "provider-history", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
+const recoveryDiagnosticKeys = new Set(["kind", "recoveryId", "stage", "attemptId", "eventAtMs", "method", "elapsedMs", "attempt", "delayMs", "demand", "durationMs", "requests", "responseBytes", "projectionMs", "extraConversations", "nativeReads", "nativeEvents", "displayVersion", "messages", "timestamps", "workClocks", "authoritative", "cacheHit", "storageFailure", "renderedTimes", "visibleTimes", "touch", "viewportWidth"]);
+const recoveryStages = new Set(["display-load", "display-save", "display-paint", "transport-unavailable", "manual-block", "waiting", "backoff", "connecting", "initializing", "host-ready", "resources", "revalidate", "provider-history", "history-started", "history-backoff", "request-slow", "request-failed", "history-authoritative", "history-failed", "history-authoritative-failed", "capability-ready", "capability-ready-failed", "replica-ready", "replica-ready-failed", "settled"]);
 function validRecoveryDiagnostic(report) {
   return report && report.kind === "recovery" && Object.keys(report).every(key => recoveryDiagnosticKeys.has(key))
     && typeof report.recoveryId === "string" && /^recovery-[a-z0-9]{1,20}-[0-9]{1,12}$/.test(report.recoveryId)
     && recoveryStages.has(report.stage)
+    && (report.attemptId === undefined || (typeof report.attemptId === "string" && appHostAttemptPattern.test(report.attemptId)))
+    && (report.method === undefined || ["initialize", "thread/resume", "thread/read", "thread/turns/list", "thread/items/list"].includes(report.method))
     && Number.isFinite(report.elapsedMs) && report.elapsedMs >= 0
     && (report.demand === undefined || ["visible", "open", "cache"].includes(report.demand))
-    && Object.entries(report).every(([key, value]) => ["kind", "recoveryId", "stage", "demand"].includes(key)
+    && Object.entries(report).every(([key, value]) => ["kind", "recoveryId", "stage", "attemptId", "method", "demand"].includes(key)
       || (Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER));
+}
+
+const viewportGeometryKeys = new Set(["layoutHeight", "layoutWidth", "visualHeight", "visualWidth", "visualTop", "visualLeft", "pageTop", "scrollY", "scale", "shellTop", "shellHeight", "editorTop", "sendBottom", "editing"]);
+const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight", "fixedTop", "fixedLeft", "editorBottom", "composerTop", "composerBottom", "draftScroll", "editorScroll", "sendTop", "sendHit", "touchSequence", "touchScreenClientY", "touchPageClientY", "editorMinTop", "editorMaxTop", "shellMinTop", "shellMaxTop", "observedSamples"]);
+function validViewportDiagnostic(report) {
+  return report?.kind === "viewport"
+    && typeof report.episode === "string" && /^viewport-[a-z0-9]{1,20}$/.test(report.episode)
+    && typeof report.sourceRevision === "string" && /^[a-f0-9]{40}$/.test(report.sourceRevision)
+    && [...viewportGeometryKeys].every(key => Number.isFinite(report[key]))
+    && Object.entries(report).every(([key, value]) => ["kind", "episode", "sourceRevision"].includes(key)
+      || ((viewportGeometryKeys.has(key) || viewportOptionalGeometryKeys.has(key)) && Number.isFinite(value) && Math.abs(value) <= 100_000))
+    && [0, 1].includes(report.editing) && report.scale > 0 && report.scale <= 20;
 }
 
 function validAppHostDiagnostic(report) {
@@ -353,6 +368,7 @@ export async function createWorkbenchWebServer({
   sshServerDescriptors = [],
   sshManagement = null,
   getStorageOutcomes,
+  getPluginHealth,
   getExecutionHealth,
   getHostReadiness,
   desktopService = null,
@@ -366,7 +382,9 @@ export async function createWorkbenchWebServer({
   actorService = null,
   actorCollaborationService = null,
   authService = null,
+  observability = null,
   mcpAppsService = null,
+  getImService = () => null,
   hubService = null,
   speechPublicAccess = process.env.OPENCRAFT_SPEECH_PUBLIC_ACCESS === "1",
   webSocketHeartbeatIntervalMs = 15_000,
@@ -387,12 +405,48 @@ export async function createWorkbenchWebServer({
       || (!!accessService?.trustedOrigin(request) && (request.headers.origin === accessService.trustedOrigin(request) || (!requireOrigin && request.headers.origin === undefined)));
   };
   const runtimeReports = [];
+  let lastImRejection = {key: "", at: 0};
+  const imRejectionCodes = new Set([
+    "authentication_required", "instance_access_denied", "actor_access_denied",
+    "actor_resource_interface_required", "human_authentication_required", "unsupported_host",
+    "im_unavailable", "same_origin_required", "channel_denied", "missing",
+    "too_large", "operation_failed", "invalid_input", "invalid_operation",
+    "revision_conflict", "channel_missing", "invalid_route", "invalid_route_result",
+    "invalid_preview", "invalid_credentials", "bot_already_configured",
+    "connection_failed", "identity_conflict", "invalid_delivery", "invalid_platform",
+  ]);
   const emitAppHostDiagnostic = diagnostic => {
     try { onAppHostDiagnostic({ serverProtocolVersion: APP_HOST_PROTOCOL_VERSION, ...diagnostic }); }
     catch { /* Observability must not affect the connection. */ }
   };
 
   const server = createServer(async (request, response) => {
+    // Capture bounded error codes only, including admission failures before the
+    // IM handler. Never retain request bodies, headers, identities or credentials.
+    if ((request.url ?? "").split("?")[0] === "/__opencraft_im") {
+      let code = "unknown";
+      const end = response.end;
+      response.end = function (...args) {
+        if (response.statusCode >= 400) {
+          try {
+            const body = args[0];
+            if ((typeof body === "string" || Buffer.isBuffer(body)) && Buffer.byteLength(body) <= 4096) {
+              const value = JSON.parse(String(body)).error;
+              if (typeof value === "string" && imRejectionCodes.has(value)) code = value;
+              else if (value === "Matching origin required") code = "matching_origin_required";
+            }
+          } catch { /* Diagnostics never alter a response. */ }
+        }
+        return end.apply(this, args);
+      };
+      response.once("finish", () => {
+        if (response.statusCode < 400) return;
+        const key = response.statusCode + ":" + code, at = Date.now();
+        if (lastImRejection.key === key && at - lastImRejection.at < 30000) return;
+        lastImRejection = {key, at};
+        console.warn("[opencraft im request rejected]", {status: response.statusCode, code});
+      });
+    }
     try {
       if (loopbackOnly && !sameOrigin(request, false)) {
         sendJson(response, 403, { ok: false, error: "Matching origin required" });
@@ -439,6 +493,15 @@ export async function createWorkbenchWebServer({
         if (identity) { const unwatch = accessService.watch(identity, () => response.destroy()); response.once('close', unwatch); }
         if (await accessService.handle(request, response)) return;
       }
+      if (url.pathname.startsWith("/__opencraft_observe/")) {
+        if (observability && await observability.handle(request, response)) return;
+        sendJson(response, url.pathname.endsWith("/capabilities") ? 200 : 503, url.pathname.endsWith("/capabilities") ? {available:false,telemetry:false} : {error:{code:"observation_unavailable",retryable:true}}); return;
+      }
+      if(url.pathname === '/__opencraft_im' || url.pathname.startsWith('/__opencraft_im/')) {
+        const service=getImService();
+        if(service && await service.handle(request,response,sameOrigin))return;
+        sendJson(response,503,{error:'im_unavailable'});return;
+      }
       if (hubService && await hubService.handle(request, response, () => {
         const identity = accessService?.authenticate(request);
         return identity && accessService.role(identity) === 'admin' ? JSON.stringify([identity.provider, identity.subject]) : null;
@@ -476,12 +539,12 @@ export async function createWorkbenchWebServer({
       if (url.pathname === "/health" && getExecutionHealth) {
         try {
           const health = await getExecutionHealth();
-          sendJson(response, 200, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
+          sendJson(response, health.ok === true ? 200 : 503, { ...health, storage: getStorageOutcomes?.() ?? [], ...(getPluginHealth ? {plugins:getPluginHealth()} : {}), ...(getHostReadiness ? { hosts: getHostReadiness() } : {}) });
         } catch { sendJson(response, 503, { ok: false }); }
         return;
       }
       if (url.pathname === "/__opencraft_health") {
-        sendJson(response, 200, { ok: true, appServerConfigured: normalizedTarget !== null, ...(getHostReadiness ? { hosts: getHostReadiness() } : {}), ...(getStorageOutcomes ? { storage: getStorageOutcomes() } : {}) });
+        sendJson(response, 200, { ok: true, appServerConfigured: normalizedTarget !== null, ...(getPluginHealth ? {plugins:getPluginHealth()} : {}), ...(getHostReadiness ? { hosts: getHostReadiness() } : {}), ...(getStorageOutcomes ? { storage: getStorageOutcomes() } : {}) });
         return;
       }
       if (url.pathname === "/__opencraft_ssh_servers") {
@@ -512,9 +575,14 @@ export async function createWorkbenchWebServer({
           return;
         }
         let report;
-        try { report = await readJsonBody(request, 1024); }
+        try { report = await readJsonBody(request, 2048); }
         catch {
           sendJson(response, 400, { ok: false, error: "Invalid App Host diagnostic" });
+          return;
+        }
+        if (validViewportDiagnostic(report)) {
+          emitAppHostDiagnostic({ event: "client-viewport", ...report });
+          sendJson(response, 202, { ok: true });
           return;
         }
         if (validRecoveryDiagnostic(report)) {
@@ -572,6 +640,9 @@ export async function createWorkbenchWebServer({
       }
       try {
         if (await serveFile(request, response, requestedPath, url.pathname)) return;
+        // Product-owned standalone documents can share the static origin without
+        // booting the Workbench SPA. Admission and reserved API routing stay above.
+        if (extname(url.pathname) === "" && await serveFile(request, response, join(requestedPath, "index.html"), url.pathname)) return;
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }
@@ -598,29 +669,19 @@ export async function createWorkbenchWebServer({
   const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 48 * 1024 * 1024 });
   const desktopWebSockets = new WebSocketServer({ noServer: true, maxPayload: 1 << 20 });
   const activeAppHostSockets = new Set();
-  const liveWebSockets = new WeakSet();
-  const appHostSocketDiagnostics = new WeakMap();
+  const socketHeartbeats = new WeakMap();
   const privateSockets = new Map();
   const revokePrivateSockets = () => {
     for (const [client, request] of privateSockets) if (!sshManagement?.authorized(request)) client.close(1008, "Connection access expired");
   };
   const unsubscribeRevocation = sshManagement?.onRevocation(revokePrivateSockets);
   const trackWebSocket = (client, logDiagnostic) => {
-    liveWebSockets.add(client);
-    client.on("pong", () => liveWebSockets.add(client));
-    if (logDiagnostic) appHostSocketDiagnostics.set(client, logDiagnostic);
+    socketHeartbeats.set(client, trackSocketHeartbeat(client, { intervalMs: webSocketHeartbeatIntervalMs, diagnostic: logDiagnostic }));
   };
   const heartbeat = webSocketHeartbeatIntervalMs > 0 ? setInterval(() => {
     revokePrivateSockets();
     for (const client of [...websocketServer.clients, ...desktopWebSockets.clients, ...(remoteBrowserService?.sockets ?? [])]) {
-      if (!liveWebSockets.has(client)) {
-        appHostSocketDiagnostics.get(client)?.("heartbeat-timeout");
-        client.terminate();
-        continue;
-      }
-      liveWebSockets.delete(client);
-      try { client.ping(); }
-      catch { client.terminate(); }
+      socketHeartbeats.get(client)?.();
     }
   }, webSocketHeartbeatIntervalMs) : null;
   heartbeat?.unref();
@@ -683,7 +744,11 @@ export async function createWorkbenchWebServer({
     };
     const actor = actorService?.authenticate(request);
     const ownerId = actor?.actorId ?? (principal ? JSON.stringify([principal.provider, principal.subject]) : submissionContext.sender ? `employee:${submissionContext.sender.loginName}` : "local-anonymous");
-    submissionContext = { ...submissionContext, resourceOwner: {id: ownerId, assertCurrent() {
+    submissionContext = { ...submissionContext, tokenUsageAuthority: () => {
+      if (socket.destroyed || !actorAllowed() || (submissionContext.validUntil !== undefined && submissionContext.validUntil <= Date.now())) return null;
+      const current = actorService?.usageAuthority(request);
+      return current && current.actorId === actor?.actorId ? current : null;
+    }, ...(actor ? {actorContext: actor} : {}), resourceOwner: {id: ownerId, assertCurrent() {
       if (socket.destroyed || !actorAllowed() || (actor && actorService.authenticate(request)?.actorId !== actor.actorId)
         || (submissionContext.validUntil !== undefined && submissionContext.validUntil <= Date.now())
         || (principal && !accessService.role(principal))) throw new Error("App resource authority revoked");

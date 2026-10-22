@@ -1,3 +1,4 @@
+import { HookIcon } from "@opencraft/design-system-web/action-icons";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import { ThinkingLabel } from "../../thinking-label";
 import {
@@ -5,9 +6,12 @@ import {
   formatHookEventName,
   formatHookSource,
   isVisibleAgentActivityRow,
+  isToolActivityBlock,
+  presentToolActivity,
   resolveAgentActivityLayout,
   type AgentActivityContentUnit,
   type AgentActivityGroupContentUnit,
+  type AgentActivityStandaloneContentUnit,
   type AgentActivityHeaderSummary,
   type AgentActivityRenderUnit,
   type HookStats,
@@ -31,9 +35,7 @@ import {
 import { AgentActivityGroupDisclosure } from "../../agent-activity-group-disclosure";
 import { useLatestTurnFollowContentRef } from "../../latest-turn-follow-content";
 import { activityIcon } from "./activity-icon";
-import {
-  CadencedShimmer,
-} from "./activity-disclosure";
+import { ThinkingActivityIcon } from "../../activity-glyphs";
 import { SubagentActivityGroup } from "../tool/tool-renderers";
 import { ToolActivityPresenterContext, ConversationDetailContext } from "../render-contexts";
 import { ActivityDisclosureHeader, WorkStatusDivider } from "./work-status";
@@ -69,7 +71,7 @@ function AgentActivityGroup({
   collapsed,
   onCollapsedChange,
 }: {
-  group: AgentActivityGroupContentUnit;
+  group: AgentActivityGroupContentUnit | AgentActivityStandaloneContentUnit;
   onRetry?: () => void;
   collapsed: boolean | undefined;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -77,30 +79,36 @@ function AgentActivityGroup({
   const registry = useContext(ToolActivityPresenterContext);
   const detailLevel = useContext(ConversationDetailContext);
   const version = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
+  const standalone = group.type === "standalone";
   const header = useMemo(
-    () => deriveAgentActivityHeaderPresentation(group, registry, detailLevel),
+    () => group.type === "group" ? deriveAgentActivityHeaderPresentation(group, registry, detailLevel) : null,
     [group, registry, version, detailLevel],
   );
   const visibleBlocks = useMemo(
-    () => group.blocks.filter((block) => isVisibleAgentActivityRow(block, registry, detailLevel)),
-    [group.blocks, registry, version, detailLevel],
+    () => (group.type === "group" ? group.blocks : [group.block]).filter((block) => isVisibleAgentActivityRow(block, registry, detailLevel)),
+    [group, registry, version, detailLevel],
   );
   return (
     <div className="thread-agent-activity__group" data-conversation-row="activity" data-activity-group-id={group.id}>
       <AgentActivityGroupDisclosure
         canExpand={visibleBlocks.length > 0}
+        standalone={standalone}
         collapsed={collapsed}
         onCollapsedChange={onCollapsedChange}
-        icon={header.icon === null ? undefined : activityIcon(header.icon)}
-        shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
-        summary={<CadencedShimmer active={header.active}>{header.state === "thinking" && header.summary.kind === "text"
-          ? <ThinkingLabel summary={header.summary.text} />
-          : <AgentActivitySummaryView summary={header.summary} />}</CadencedShimmer>}
-        summaryKey={header.summaryKey}
-        summaryTransition={header.state === "summary" ? "immediate" : "deferred"}
+        icon={header?.state === "thinking" ? <ThinkingActivityIcon /> : header?.icon == null ? undefined : activityIcon(header.icon)}
+        running={header?.active ?? false}
+        hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
+        shouldAnimateInitialCollapse={group.type === "group" && group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
+        summary={header === null ? null : <>
+          {header.state === "thinking" && header.summary.kind === "text"
+            ? <ThinkingLabel summary={header.summary.text} />
+            : <AgentActivitySummaryView summary={header.summary} />}
+        </>}
+        summaryKey={header?.summaryKey ?? group.id}
+        summaryTransition={header?.state === "summary" ? "immediate" : "deferred"}
       >
         {() => visibleBlocks.length > 0 ? (
-          <div className="thread-agent-activity__rows" data-scroll-owner="timeline">
+          <div className="thread-agent-activity__rows" data-scroll-owner="timeline" style={standalone ? { display: "contents" } : undefined}>
             {visibleBlocks.map((block) => <GenericBlock block={block} key={block.id} onRetry={onRetry} />)}
           </div>
         ) : null}
@@ -131,7 +139,7 @@ function AgentActivityContent({
           ref={contentUnit === followUnit ? followContentRef : undefined}
           key={contentUnit.id}
         >
-          {contentUnit.type === "group"
+          {contentUnit.type === "group" || (contentUnit.type === "standalone" && contentUnit.groupOrigin)
             ? <AgentActivityGroup group={contentUnit} onRetry={onRetry}
                 collapsed={innerCollapsedById[contentUnit.id]}
                 onCollapsedChange={collapsed => onInnerCollapsedChange(contentUnit.id, collapsed)} />
@@ -171,7 +179,17 @@ function AgentActivity({
   const open = !layout.isCollapsed;
   const inlineSubagentActivity = unit.inlineSubagentActivity;
   const reflow = useDisclosureReflow();
-  const hasAnimatedContent = layout.visibleUnits.length > 0 || inlineSubagentActivity !== null;
+  const staticWork = unit.contentUnits.find(content => content.type === "worked-for");
+  const staticHeader = !layout.showToggle && inlineSubagentActivity === null
+    && unit.contentUnits.every(content => content.type === "worked-for")
+    && (staticWork?.type !== "worked-for" || staticWork.item.status !== "working")
+    && (unit.workedDurationMs !== null || (staticWork?.type === "worked-for" && staticWork.item.status !== "working"));
+  const hasAnimatedContent = !staticHeader && (layout.visibleUnits.length > 0 || inlineSubagentActivity !== null);
+  const visibleContent = open ? layout.visibleUnits : layout.persistentUnits;
+  // One keyed list keeps persistent Apps mounted while restoring chronological
+  // expanded content. Separate persistent/expanded trees duplicate the surface.
+  const keepsPersistentContent = layout.showToggle && unit.partitions.persistentUnits.length > 0;
+  const hasContent = visibleContent.length > 0 || (open && inlineSubagentActivity !== null);
   const renderContent = (contentUnits: readonly AgentActivityContentUnit[]) => (
     <ConversationEntryMotionContext.Provider value={animateEntry}>
       <AgentActivityContent contentUnits={contentUnits} onRetry={onRetry}
@@ -179,10 +197,10 @@ function AgentActivity({
     </ConversationEntryMotionContext.Provider>
   );
   useLayoutEffect(() => {
-    // Closing removes this body synchronously; opening an empty body has no
-    // animation. Both still need the viewport's final layout settlement.
-    if (!open || !hasAnimatedContent) reflow.complete();
-  }, [hasAnimatedContent, open, reflow.complete]);
+    // A persistent surface keeps this keyed list mounted. When there is no
+    // outer entrance animation, settle after committing the visible rows.
+    if (!open || !hasAnimatedContent || keepsPersistentContent) reflow.complete();
+  }, [hasAnimatedContent, keepsPersistentContent, open, reflow.complete]);
   return (
     <section
       className="thread-agent-activity"
@@ -191,6 +209,10 @@ function AgentActivity({
       data-collapsed={layout.isCollapsed || undefined}
       data-force-expanded={unit.forceExpanded || undefined}
     >
+      {staticHeader ? <ActivityDisclosureHeader
+        item={staticWork?.type === "worked-for" ? staticWork.item : null}
+        durationMs={unit.workedDurationMs} count={0} open={false}
+      /> : null}
       {layout.preToggleUnits.length > 0 ? (
         <div className="thread-agent-activity__pre-toggle">
           {renderContent(layout.preToggleUnits)}
@@ -208,19 +230,13 @@ function AgentActivity({
           onCollapsedChange(open);
         }}
       /> : null}
-      {layout.persistentUnits.length > 0 ? (
-        <div className="thread-agent-activity__persistent-content">
-          {layout.showToggle ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
-          {renderContent(layout.persistentUnits)}
-        </div>
-      ) : null}
       {/* This disclosure only animates entry. A presence owner without an exit
           animation would defer removal past our collapsed layout completion. */}
-      {open && hasAnimatedContent ? (
+      {hasContent ? (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
             className="thread-agent-activity__outer-content"
-            initial={animateEntry ? { opacity: 0, y: prefersReducedMotion ? 0 : -8 } : false}
+            initial={animateEntry && !keepsPersistentContent ? { opacity: 0, y: prefersReducedMotion ? 0 : -8 } : false}
             key="content"
             onAnimationComplete={(definition) => {
               if (open && typeof definition === "object" && !Array.isArray(definition)
@@ -229,12 +245,12 @@ function AgentActivity({
             transition={{ duration: prefersReducedMotion ? 0.12 : 0.22, ease: [0.33, 1, 0.68, 1] }}
           >
             {layout.showToggle ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
-            {layout.visibleUnits.length > 0
-              ? renderContent(layout.visibleUnits)
+            {visibleContent.length > 0
+              ? renderContent(visibleContent)
               : null}
-            {inlineSubagentActivity === null ? null : (
+            {!open || inlineSubagentActivity === null ? null : (
               <>
-                {layout.visibleUnits.length > 0 ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
+                {visibleContent.length > 0 ? <div aria-hidden="true" className="thread-agent-activity__section-divider" /> : null}
                 <SubagentActivityGroup unit={inlineSubagentActivity} />
               </>
             )}
@@ -244,15 +260,7 @@ function AgentActivity({
   );
 }
 
-function HookLifecycleIcon(): ReactNode {
-  return (
-    <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 18 18" width="18">
-      <circle cx="8.99805" cy="4.875" r="1.875" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 6.75V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V9.75L13.5 11.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-      <path d="M9 6.75V12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12V9.75L4.5 11.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-    </svg>
-  );
-}
+function HookLifecycleIcon(): ReactNode { return <HookIcon size={18} />; }
 
 function hookStatsEntryLabel(kind: HookStats["entries"][number]["kind"]): string {
   switch (kind) {

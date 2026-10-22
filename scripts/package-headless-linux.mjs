@@ -11,7 +11,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { build } from "esbuild";
-import { copyMcpAppRuntime } from "./package-mcp-app-runtime.mjs";
+import { copyMcpAppRuntime, copyPiRuntime } from "./package-mcp-app-runtime.mjs";
 import { copySshRuntime } from "./package-ssh-runtime.mjs";
 import { assertHeadlessWebRelease } from "./headless-web-release.mjs";
 
@@ -34,7 +34,8 @@ export function headlessWebHostDefinitions() {
   }];
 }
 
-export function buildHeadlessBundle(output, { headlessEntry = join(repositoryRoot, "scripts/headless-server.mjs") } = {}) {
+export async function buildHeadlessBundle(output, { headlessEntry = join(repositoryRoot, "scripts/headless-server.mjs") } = {}) {
+  await build({entryPoints:[join(repositoryRoot,"apps/opencraft-daemon/src/token-usage-query-worker.ts")],outfile:join(dirname(output),"token-usage-query-worker.mjs"),bundle:true,platform:"node",format:"esm",target:"node26",logLevel:"warning"});
   return build({
     entryPoints: [resolve(headlessEntry)],
     // Product-local packages resolve first; this is a trusted build fallback.
@@ -44,7 +45,7 @@ export function buildHeadlessBundle(output, { headlessEntry = join(repositoryRoo
     platform: "node",
     format: "esm",
     target: "node26",
-    external: ["node-pty", "ssh2"],
+    external: ["node-pty", "ssh2", "@earendil-works/pi-*", "@earendil-works/chord"],
     banner: { js: "import { createRequire as createOpenCraftRequire } from 'node:module'; const require = createOpenCraftRequire(import.meta.url);" },
     outfile: output,
     logLevel: "warning",
@@ -69,6 +70,7 @@ function run(command, args, options = {}) {
 async function copyRuntimeModules(stageRoot) {
   await copySshRuntime(join(stageRoot, "node_modules"));
   await copyMcpAppRuntime(join(stageRoot, "node_modules"));
+  await copyPiRuntime(join(stageRoot, "node_modules"));
   const desktop = JSON.parse(await readFile(join(repositoryRoot, "apps/workbench-electron/package.json"), "utf8"));
   const sourceBase = join(repositoryRoot, "apps/workbench-electron");
   const modules = desktop.build.extraResources.filter((entry) =>

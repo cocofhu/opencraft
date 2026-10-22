@@ -15,7 +15,6 @@
   // Floating transcript control: +15% glyph scale with a 44px touch target.
   --size-transcript-float-touch: 44px;
   --size-transcript-float-icon-touch: 23px;
-  --width-transcript-float-icon-touch: 0.35px;
   --size-transcript-float-dot-touch: 4.6px;
   --radius-composer-newera: 28px;
   --radius-composer-newera-icon: 50%;
@@ -62,6 +61,10 @@
   --gap-sidebar-entrances: var(--gap-control-group);
   --padding-sidebar-entrances: calc(var(--spacing) * 3);
   --radius-control: 7px;
+  --height-choice-row: calc(var(--spacing) * 9);
+  --radius-choice-control: var(--radius-md);
+  --color-background-choice-selected: color-mix(in srgb, var(--color-text-accent) 7%, var(--color-background-panel));
+  --color-border-choice-selected: color-mix(in srgb, var(--color-text-accent) 38%, var(--color-border-subtle));
   --opacity-control-disabled: 0.5;
   --opacity-control-compact-disabled: 0.4;
   --duration-progress-cycle: 2s;
@@ -82,6 +85,7 @@
   --gap-navigation-groups: 24px;
   --height-sidebar-navigation-strip: 52px;
   --height-sidebar-activity-row: 52px;
+  --height-sidebar-activity-title-row: max(36px, var(--size-control-hit-min));
   --padding-sidebar-activity-row-inline: 10px;
   --gap-sidebar-activity-groups: 4px;
   --gap-sidebar-activity-expanded-groups: 12px;
@@ -92,6 +96,10 @@
   --height-toolbar: 46px;
   --height-shell-header-mobile: 56px;
   --spacing-shell-header-edge-touch: 2px;
+  --size-toolbar-dock-action: max(28px, var(--size-control-hit-min));
+  --gap-toolbar-dock: 4px;
+  --width-toolbar-dock-title-budget: 220px;
+  --count-toolbar-dock-maximum: 4;
   --size-shell-header-action-mobile: 44px;
   --size-shell-header-icon-mobile: 20px;
   --height-toolbar-sm: max(36px, var(--size-control-hit-min));
@@ -162,6 +170,8 @@
   --layer-floating-control: 250;
   --layer-tooltip: 260;
   --layer-toast: 300;
+  // Diffuse pane depth without the optional crisp outline.
+  --elevation-prominent-diffuse: 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
   --elevation-stroke: 0 0 0 0.5px var(--color-border-strong);
   --elevation-sidebar:
     var(--elevation-stroke),
@@ -256,7 +266,7 @@
   --shadow-hairline: 0 0 0 0.5px rgb(0 0 0 / 10%);
   --shadow-100: 0 1px 2px rgb(0 0 0 / 10%);
   --shadow-300: 0 8px 20px -6px rgb(0 0 0 / 18%);
-  --elevation-prominent: var(--shadow-hairline), 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
+  --elevation-prominent: var(--shadow-hairline), var(--elevation-prominent-diffuse);
 }
 
 :root[data-theme="dark"],
@@ -300,7 +310,7 @@
   --shadow-hairline: 0 0 0 0.5px rgb(255 255 255 / 12%);
   --shadow-100: 0 1px 2px rgb(0 0 0 / 22%);
   --shadow-300: 0 8px 16px -4px rgb(0 0 0 / 30%);
-  --elevation-prominent: var(--shadow-hairline), 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
+  --elevation-prominent: var(--shadow-hairline), var(--elevation-prominent-diffuse);
 }
 
 // Interaction density is independent of viewport, theme and current hover modality.

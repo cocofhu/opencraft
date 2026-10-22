@@ -10,7 +10,14 @@ import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 const params = new URLSearchParams(location.search);
 const mode = params.get("mode") === "dark" ? "dark" : "light";
-const palette = (themes as any)[`${params.get("palette") ?? "opencraftNeutral"}ThemePalette`];
+const palettes = {
+  neutral: themes.opencraftNeutralThemePalette, canvas: themes.opencraftCanvasThemePalette,
+  frost: themes.frostThemePalette, lavender: themes.lavenderThemePalette,
+  mist: themes.mistThemePalette, graphite: themes.graphiteThemePalette,
+};
+const paletteName = params.get("palette") ?? "neutral";
+const palette = palettes[paletteName as keyof typeof palettes];
+if (!palette) throw new Error(`Unknown fixture palette: ${paletteName}`);
 document.documentElement.dataset.theme = mode;
 for (const [key, value] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode, palette[mode]))) document.documentElement.style.setProperty(key, value);
 const controller = createComposerController({ type: "existing-thread", key: createConversationKey("local", "test") }, { now: () => 100, createId: () => "draft" });

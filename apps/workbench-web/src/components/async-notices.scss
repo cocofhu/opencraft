@@ -1,4 +1,4 @@
-@use "@opencraft/design-system/typography.web" as typography;
+@use "@opencraft/design-system/typography-mixins.web" as typography;
 
 .workbench-notices[data-sonner-toaster] {
   z-index: var(--layer-toast);
@@ -15,6 +15,9 @@
     padding: 14px 42px 14px 14px;
     overflow-wrap: anywhere;
     [data-description] { @include typography.role(metadata, secondary); }
+    [data-icon] { width: 20px; height: 20px; }
+    [data-icon] .ui-progress-indicator { width: 20px; height: 20px; }
+    [data-icon] .ui-progress-indicator > svg { width: 20px; height: 20px; }
     &[data-type="error"] [data-icon] { color: var(--color-status-error); }
     &[data-type="success"] [data-icon] { color: var(--color-status-success); }
     [data-close-button] {

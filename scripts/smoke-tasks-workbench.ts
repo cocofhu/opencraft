@@ -707,10 +707,19 @@ try {
   const actionsBox = await actions.boundingBox();
   const panelBox = await page.locator('.app-shell-header__end-slot .app-shell-header__right-panel-toggle').boundingBox();
   assert.ok(actionsBox && panelBox && actionsBox.x + actionsBox.width <= panelBox.x + 1, 'Conversation menu precedes the panel toggle');
-  const membership = page.getByRole("dialog", { name: "Task membership", exact: true });
+  const linkTasks = page.getByRole("button", { name: "Link tasks", exact: true });
+  const linkBox = await linkTasks.boundingBox();
+  assert.ok(linkBox && actionsBox && linkBox.x + linkBox.width <= actionsBox.x + 1, "Link tasks is directly left of conversation actions");
+  await actions.click();
+  assert.equal(await page.getByRole("menuitem", { name: "Link tasks", exact: true }).count(), 0);
+  await page.keyboard.press("Escape");
+  const membership = page.getByRole("dialog", { name: "Link tasks", exact: true });
   const openMembership = async () => {
-    await actions.click();
-    await page.getByRole("menuitem", { name: "Task membership", exact: true }).click();
+    if (await linkTasks.isVisible()) await linkTasks.click();
+    else {
+      await actions.click();
+      await page.getByRole("menuitem", { name: "Link tasks", exact: true }).click();
+    }
     await membership.getByRole("switch", { name: flowTask.title, exact: true }).waitFor();
   };
   await openMembership();
@@ -759,12 +768,14 @@ try {
   await membership.getByLabel('Search tasks', { exact: true }).fill('No such task in this independent fixture');
   await membership.getByText('No matching tasks.', { exact: true }).waitFor();
   await page.keyboard.press('Escape');
-  assert.equal(await actions.evaluate((element: HTMLElement) => element === document.activeElement), true, 'Dialog restores focus to the menu button');
+  assert.equal(await linkTasks.evaluate((element: HTMLElement) => element === document.activeElement), true, 'Dialog restores focus to the task-link button');
   await page.setViewportSize({ width: 390, height: 720 });
+  await linkTasks.waitFor({ state: "hidden" });
   await openMembership();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await membership.screenshot({ path: process.env.OPENCRAFT_TASKS_MEMBERSHIP_SCREENSHOT ?? '/tmp/opencraft-tasks-membership-mobile.png' });
   await membership.getByRole('button', { name: 'Done', exact: true }).click();
+  assert.equal(await actions.evaluate((element: HTMLElement) => element === document.activeElement), true, 'Mobile picker restores focus to overflow');
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goBack();
   await page.reload();

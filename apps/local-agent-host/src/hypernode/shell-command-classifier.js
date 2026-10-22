@@ -1,8 +1,6 @@
 // Command classification is pure; Cordis owns registration.
 class Service { constructor(ctx) { this.ctx = ctx; } }
 
-// Keep behavior changes test-driven against the vendored upstream corpus.
-
 const CONNECTORS = new Set(["&&", "||", "|", ";"]);
 const POWERSHELL_FLAGS = new Set(["-nologo", "-noprofile", "-command", "-c"]);
 
@@ -239,8 +237,8 @@ function simplifyCommands(input) {
 function simplifyOnce(commands) {
   if (commands.length <= 1) return null;
   // Treat a side-effect-free echo inside a compound command as presentation-only.
-  // The upstream parser already drops a leading echo; doing this positionally keeps
-  // later semantic Search/Read actions visible as well. Unsafe shell constructs
+  // Dropping echo by position also keeps later semantic Search/Read actions visible.
+  // Unsafe shell constructs
   // (including redirection and command substitution) never reach this simplifier.
   const echoIndex = commands.findIndex((entry) => (
     entry.type === "unknown" && tokenizeShellWords(entry.cmd)[0] === "echo"

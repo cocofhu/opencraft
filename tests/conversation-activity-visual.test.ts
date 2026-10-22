@@ -32,7 +32,7 @@ test("feature renderers cannot choose local glyph metrics or recreate the rail",
     'function CompactionBlock(){return <div><ListChecks size={12}/>Done</div>}',
     'function AggregatedSubagentActivity(){return <button><Bot size={14}/>Created</button>}',
     'function SubagentBlock(){return <button><Bot/>Created</button>}',
-    'function CodexAppThreadToolRow(){return <div><Bot/>Created</div>}',
+    'function ThreadTool(){return <div><Bot/>Created</div>}',
   ]) assert.ok(inspectActivityJsx(source).length > 0, source);
   assert.deepEqual(inspectActivityJsx('<ActivitySummaryRow icon={<ListChecks/>} summary="Done"/>'), []);
   assert.deepEqual(inspectActivityJsx('function CompactionBlock(){return <ActivitySummaryRow icon={<ListChecks/>} summary="Done"/>}'), []);
@@ -44,4 +44,14 @@ test("owned consumers and normal gates enforce the activity contract", () => {
   assert.match(pkg.scripts['check:typography'], /check-conversation-activity/);
   assert.match(pkg.scripts['test:typography'], /conversation-activity-visual/);
   assert.match(pkg.scripts['test:control-standards'], /conversation-activity-visual/);
+});
+
+
+test("process adapters cannot bypass their shared feedback owner", () => {
+  for (const name of ["ActivityDisclosure", "ActivitySummaryRow", "AgentActivityGroupDisclosure", "ThreadTool"]) {
+    const bypass = `function ${name}(){return <div className="thread-activity-item__header"><ActivityIcon><Brain/></ActivityIcon><CadencedShimmer active>Working</CadencedShimmer></div>}`;
+    assert.ok(inspectActivityJsx(bypass).length > 0, name);
+    const shared = `function ${name}(){return <div className="thread-activity-item__header"><ActivityRowContent icon={<Brain/>} summary="Working" running={true}/></div>}`;
+    assert.deepEqual(inspectActivityJsx(shared), [], name);
+  }
 });

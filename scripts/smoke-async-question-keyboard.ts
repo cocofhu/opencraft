@@ -32,7 +32,7 @@ try {
     await page.addInitScript("window.__name=value=>value");
     const open = async () => {
       await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}${theme === "dark" ? "&suggested" : ""}`);
-      if (theme === "dark") await page.getByText("Other", { exact: true }).click();
+      if (theme === "dark") await page.getByText("Custom answer", { exact: true }).click();
       await page.getByRole("textbox", { name: "Your answer" }).waitFor();
     };
     const input = page.getByRole("textbox", { name: "Your answer" });

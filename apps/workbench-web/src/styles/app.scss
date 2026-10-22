@@ -1,8 +1,10 @@
 @use "../../../../packages/chat-render-web/src/zoomable-image";
+@use "../../../../packages/composer-editor/src/recovery-scan";
 @use "@opencraft/design-system/icons.web" as icons;
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/focus.web";
+@use "@opencraft/design-system-web/native-controls.web";
 @use "@opencraft/design-system/menu.web" as menu;
 @use "@opencraft/design-system/material.web" as material;
 @use "@opencraft/design-system/toolbar.web" as toolbar;
@@ -153,38 +155,10 @@ body {
   }
 }
 
-.conversation-recovery-cold-stage {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-  padding-top: var(--thread-content-top-inset);
-}
-
 .conversation-recovery-empty-error {
   width: 100%;
   box-sizing: border-box;
   padding: 28px var(--padding-toolbar);
-}
-
-.conversation-recovery-loading {
-  display: grid;
-  flex: 1 0 auto;
-  width: 100%;
-  place-items: center;
-  pointer-events: none;
-  opacity: 0;
-  animation: conversation-recovery-appear 1ms 200ms forwards;
-}
-
-.conversation-recovery-loading__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .conversation-recovery-empty-error {
@@ -220,35 +194,18 @@ body {
 }
 
 .conversation-recovery-notice {
-  position: absolute;
-  z-index: 4;
-  top: calc(var(--thread-content-top-inset) + 8px);
-  left: 50%;
   display: flex;
   flex-wrap: wrap;
-  width: max-content;
-  max-width: calc(100% - 32px);
-  min-height: 32px;
-  box-sizing: border-box;
   align-items: center;
+  min-width: 0;
   gap: 8px;
-  padding: 4px 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  background: var(--color-background-elevated-primary-opaque);
+  padding-block: 4px;
+  margin-bottom: 8px;
+  background: var(--color-background-surface);
   color: var(--color-text-secondary);
   font: var(--typography-metadata-font);
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
-  transform: translateX(-50%);
   letter-spacing: var(--typography-metadata-tracking);
-}
-
-.conversation-recovery-notice--syncing:not(:has(.conversation-recovery-progress)) {
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  overflow-wrap: anywhere;
 }
 
 .conversation-recovery-progress {
@@ -264,22 +221,7 @@ body {
 }
 .conversation-recovery-progress__time,
 .conversation-recovery-progress__failure { color: var(--color-text-secondary); }
-.conversation-recovery-loading--observable {
-  pointer-events: auto;
-  align-content: center;
-  gap: 12px;
-  padding: 24px var(--padding-toolbar);
-  box-sizing: border-box;
-  .conversation-recovery-progress { width: min(100%, 420px); }
-}
-.conversation-recovery-loading--observable button {
-  min-height: 44px;
-  color: var(--color-text);
-  background: var(--color-background-elevated-primary-opaque);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  padding: 4px 10px;
-}
+
 .conversation-recovery-details {
   flex-basis: 100%;
   min-width: 0;
@@ -294,14 +236,6 @@ body {
   pre { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; user-select: text; }
   p { margin: 4px 0; }
   [role="status"] { margin-inline-start: 8px; }
-}
-
-.conversation-recovery-notice__dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: currentColor;
 }
 
 @keyframes conversation-recovery-appear {
@@ -353,7 +287,7 @@ button {
   overscroll-behavior: none;
   // Browser fallback for Electron's transparent/vibrant window material.
   background-color: var(--opencraft-window-material);
-  background-image: var(--opencraft-window-highlight);
+  background-image: var(--opencraft-shell-material-paint, var(--opencraft-window-highlight));
 
   &:has(.app-shell-left-panel__resize[data-resizing="true"]) {
     cursor: col-resize;
@@ -361,11 +295,15 @@ button {
   }
 }
 
-html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
-  top: var(--timeline-visual-viewport-offset-top, 0px);
-  left: var(--timeline-visual-viewport-offset-left, 0px);
-  width: var(--timeline-visual-viewport-width, 100%);
-  height: var(--timeline-visual-viewport-height, 100%);
+// The Web adapter converts the visible frame into the measured fixed basis.
+// Pan changes its origin, never its available capacity. Containment gives
+// fixed descendants the same frame without applying the origin twice.
+html[data-timeline-tracks-visual-viewport="true"] :is(.app-shell-root, .app-shell-floating-overlay-root) {
+  contain: layout;
+  top: var(--timeline-available-viewport-top, 0px);
+  left: var(--timeline-available-viewport-left, 0px);
+  width: var(--timeline-available-viewport-width, 100%);
+  height: var(--timeline-available-viewport-height, 100%);
 }
 
 .app-shell-row {
@@ -614,7 +552,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   margin-top: var(--app-shell-main-content-frame-top-offset);
 
   &[data-app-shell-thread-edge-divider="true"] {
-    border-top: 0.5px solid var(--color-border-strong);
+    border-top: 0.5px solid var(--opencraft-thread-edge-divider-color, var(--color-border-strong));
   }
 }
 
@@ -811,15 +749,55 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   &[data-opencraft-window-type="browser"] .app-shell-header {
     // Shell owns two painted regions; the live panel-toolbar aperture stays
     // transparent. One pane projection drives paint, resizing and animation.
-    background: linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
-      linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
+    background: var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
+      var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
   &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
-  .main-content-surface { background: transparent; box-shadow: none; }
+  &[data-opencraft-window-type="browser"] .app-shell-header::after {
+    background: var(--opencraft-header-divider-color, var(--color-border-subtle));
+    @media (forced-colors: active) { background: CanvasText; }
+  }
+  &[data-opencraft-window-type="browser"] .app-shell-header__content-edge {
+    // Project the reading plane's upper edge into the recessed titlebar.
+    // Existing live Shell geometry follows resize/collapse and panel apertures.
+    position: absolute;
+    z-index: -1;
+    top: 100%;
+    left: var(--app-shell-header-left-slot-width, 0px);
+    width: max(0px, calc(var(--app-shell-header-leading-paint-width, 100%) - var(--app-shell-header-left-slot-width, 0px)));
+    height: var(--height-toolbar);
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+    box-shadow: var(--opencraft-header-content-elevation, none);
+    clip-path: inset(calc(-1 * var(--height-toolbar)) 0 100% 0);
+    pointer-events: none;
+  }
+  .app-shell-content-depth {
+    // This paint-only sibling shares Sidecar's live layout MotionValue.
+    // Root's fallback left slot describes saved width, not current geometry.
+    position: absolute;
+    z-index: 1;
+    top: var(--height-toolbar);
+    right: 0;
+    bottom: 0;
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+    box-shadow: var(--opencraft-unified-content-elevation, none);
+    clip-path: inset(0 -100% -100% -100%);
+    pointer-events: none;
+  }
+  .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-frame-elevation, var(--opencraft-unified-surface-elevation, none)); }
+  // Content planes share the theme's shape, irrespective of the active tool.
+  // Each plane keeps its existing overflow owner; clipping and hit testing
+  // follow this rounded border while the tab/header chrome stays outside it.
+  [data-app-shell-content-plane] {
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+  }
   .main-content-frame {
-    background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
+    background: var(--color-surface);
+    overflow: clip;
   }
 }
+
+.app-shell-root:not(.has-unified-sidebar) .app-shell-content-depth { display: none; }
 
 // The slot and rail remain transparent to hit testing so their empty area is
 // native window chrome. Each concrete action exclusively reclaims its own hit
@@ -848,9 +826,18 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   > .application-brand { display: none; }
 }
 
+// Text actions keep the chrome hit height and theme while sizing to their label.
+.chrome-button.chrome-button--text {
+  --chrome-action-width: max-content;
+  padding-inline: calc(var(--spacing) * 2);
+  white-space: nowrap;
+  font: var(--typography-control-compact-font);
+  letter-spacing: var(--typography-control-compact-tracking);
+}
+
 .chrome-button {
   display: inline-grid;
-  width: 28px;
+  width: var(--chrome-action-width, 28px);
   height: 28px;
   flex: 0 0 auto;
   padding: 0;
@@ -869,9 +856,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   }
 
   @media (hover: hover) and (pointer: fine) {
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-icon-primary);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-icon-primary);
+      }
     }
   }
 
@@ -1120,7 +1109,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     .app-shell-header__window-controls-rail,
     .app-shell-header__end-actions {
       .chrome-button {
-        width: var(--size-shell-header-action-mobile);
+        width: var(--chrome-action-width, var(--size-shell-header-action-mobile));
         height: var(--size-shell-header-action-mobile);
 
         > svg {
@@ -1293,8 +1282,10 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     box-shadow: 0 0 0 0.5px var(--color-border-default);
     color: var(--color-text-button-secondary);
 
-    &:hover {
-      background: var(--color-background-button-secondary-hover);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-secondary-hover);
+      }
     }
   }
 
@@ -1302,8 +1293,10 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     background: var(--color-background-button-primary);
     color: var(--color-text-button-primary);
 
-    &:hover {
-      background: var(--color-background-button-primary-hover);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-primary-hover);
+      }
     }
   }
 
@@ -1361,8 +1354,10 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   svg {
     color: var(--color-icon-tertiary);
   }
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 }
 
@@ -1378,9 +1373,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   background: transparent;
   color: var(--color-icon-secondary);
 
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-icon-primary);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-icon-primary);
+    }
   }
 }
 
@@ -1408,8 +1405,10 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   font-weight: var(--typography-primary-action-weight);
   text-align: left;
 
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
   svg:first-child {
@@ -1547,8 +1546,10 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     font-size: var(--opencraft-sidebar-meta-font-size);
     font-weight: var(--typography-primary-action-weight);
 
-    &:hover {
-      background: var(--color-background-button-tertiary-hover);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+      }
     }
   }
 }
@@ -1557,6 +1558,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 .sidebar-activity-group,
 .sidebar-activity-group__items {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .sidebar-activity-list {
@@ -1655,7 +1658,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   pointer-events: none;
   transition: opacity 120ms ease-out;
 
-  &:hover { color: var(--color-text); }
+  @include controls.hover-capable { &:hover { color: var(--color-text); } }
   &:focus-visible {
     outline: var(--focus-outline);
     opacity: 1;
@@ -1783,15 +1786,16 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     @include icons.goal-motion;
   }
 
-  &.is-ready.is-unread,
+  &.is-ready.is-unread { background: var(--color-icon-accent); }
   &.is-review,
   &.is-error { background: var(--color-text-tertiary); }
   &.is-running,
   &.is-pending {
     width: 14px;
     height: 14px;
-    border: 1.5px solid var(--color-border-strong);
-    border-top-color: var(--color-icon-secondary);
+    display: grid;
+    place-items: center;
+    color: var(--color-icon-secondary);
     background: transparent;
     animation: sidebar-activity-spin 800ms linear infinite;
   }
@@ -1833,7 +1837,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: max(30px, var(--size-control-hit-min));
   border-radius: var(--radius-lg);
 
-  &:hover { color: var(--color-text); }
+  @include controls.hover-capable { &:hover { color: var(--color-text); } }
 }
 
 .sidebar-catalog-progress {
@@ -1867,7 +1871,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     flex-shrink: 0;
     padding: 4px 7px;
     border-radius: var(--radius-lg);
-    &:hover { color: var(--color-text); }
+    @include controls.hover-capable { &:hover { color: var(--color-text); } }
   }
 }
 
@@ -1928,9 +1932,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: 0;
 }
 
-// equal rows and the shared thread width are the important geometry
-// invariants: the hero resolves against the upper half while the Composer
-// remains on the same width rail used after Draft promotion.
+// Draft and promoted conversations share the same input width rail.
+// The route owns welcome content; the Composer owns its input geometry.
 .new-thread-draft-page {
   width: 100%;
   height: 100%;
@@ -1953,24 +1956,41 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .new-thread-draft-layout {
-  display: grid;
+  --draft-block-start: 24px;
+  --draft-block-end: 16px;
+  --draft-composer-gap: 6px;
+  // The route owns these insets; the shared Composer consumes its remaining
+  // containing-block capacity, not the entire browser/keyboard viewport.
+  --composer-available-block-size: calc(100cqh - var(--draft-block-start) - var(--draft-block-end) - var(--draft-composer-gap));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
   min-width: 0;
   min-height: 100%;
   flex: 1;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  padding-top: 24px;
+  padding-top: var(--draft-block-start);
 }
 
 .new-thread-draft-hero {
   display: flex;
+  flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 var(--padding-toolbar) 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: clip;
+  padding: 0 var(--padding-toolbar);
+
+  &::after {
+    content: "";
+    flex: 0 1 32px;
+    min-height: 0;
+  }
 
   h1 {
+    flex: 0 0 auto;
     width: min(100%, var(--thread-content-max-width));
     margin: 0;
     color: var(--color-text);
@@ -1992,6 +2012,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .pending-conversation-content {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -2084,9 +2106,13 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   color: var(--color-text);
   font: var(--typography-metadata-font);
 
-  &:hover,
   &[data-state="open"] {
     background: var(--color-background-button-tertiary-hover);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
   &:disabled {
@@ -2341,12 +2367,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: 0;
 }
 
-.workbench-tool-route .settings-page__content {
-  width: 100%;
-  margin: 0;
-  padding-bottom: 80px;
-}
-
 .hostless-workbench__main {
   width: 100%;
   height: 100%;
@@ -2418,15 +2438,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   }
 }
 
-.hostless-empty-view__spinner {
-  width: 15px;
-  height: 15px;
-  margin-top: 20px;
-  border: 1.5px solid var(--color-border-subtle);
-  border-top-color: var(--color-text-secondary);
-  border-radius: 50%;
-  animation: startup-shell-spin 700ms linear infinite;
-}
+
 
 .settings-page-loading {
   width: 100%;
@@ -2452,7 +2464,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   }
 
   button {
-    > svg.lucide { @include icons.navigation-icon; }
+    > svg:is(.lucide, .ui-action-glyph) { @include icons.navigation-icon; }
     display: flex;
     width: 100%;
     height: 38px;
@@ -2466,9 +2478,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     font: inherit;
     font: var(--typography-body-font);
     text-align: left;
-    &:hover {
-      background: color-mix(in srgb, var(--color-text) 5%, transparent);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+        color: var(--color-text);
+      }
     }
 
     &[aria-current="page"] {
@@ -2496,7 +2510,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   overflow: hidden auto;
   button {
     @include controls.navigation-control;
-    > svg.lucide { @include icons.navigation-leading-icon; }
+    > svg:is(.lucide, .ui-action-glyph) { @include icons.navigation-leading-icon; }
   }
 }
 
@@ -2842,7 +2856,7 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 .settings-page__compact-navigation { flex: 0 0 auto; padding: 10px 24px; border-bottom: 1px solid var(--color-border-subtle); }
 .settings-navigation-link { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 2px 0; border: 0; background: transparent; color: var(--color-text-secondary); font: inherit; font: var(--typography-control-compact-font); cursor: pointer; border-radius: 4px;
   > span { font: var(--typography-settings-title-font); letter-spacing: var(--typography-settings-title-tracking); }
-  &:hover { color: var(--color-text); }
+  @include controls.hover-capable { &:hover { color: var(--color-text); } }
   &:focus-visible { outline: 2px solid var(--color-text-secondary); outline-offset: 4px; }
   letter-spacing: var(--typography-control-compact-tracking)
 }
@@ -2996,9 +3010,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     box-shadow var(--transition-duration-basic) var(--ease-standard),
     background var(--transition-duration-basic) var(--ease-standard);
 
-  &:hover:not(:disabled):not(:has(:disabled)) {
-    border-color: var(--color-border-default);
-    background: color-mix(in srgb, var(--color-background-input, var(--color-surface-secondary)) 82%, var(--color-text) 4%);
+  @include controls.hover-capable {
+    &:hover:not(:disabled):not(:has(:disabled)) {
+      border-color: var(--color-border-default);
+      background: color-mix(in srgb, var(--color-background-input, var(--color-surface-secondary)) 82%, var(--color-text) 4%);
+    }
   }
 
   :root:not([data-touch-interaction]) &:focus-visible,
@@ -3043,7 +3059,6 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     stroke: currentColor;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 1.5;
     color: var(--color-text-secondary);
     pointer-events: none;
     transform: translateY(-50%);
@@ -3093,9 +3108,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
       background-color var(--transition-duration-basic) var(--ease-standard),
       color var(--transition-duration-basic) var(--ease-standard);
 
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-text);
+      }
     }
 
     &[aria-checked="true"] {
@@ -3142,9 +3159,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
       box-shadow var(--transition-duration-basic) var(--ease-standard),
       color var(--transition-duration-basic) var(--ease-standard);
 
-    &:hover:not(:disabled) {
-      background: transparent;
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: transparent;
+        color: var(--color-text);
+      }
     }
 
     &[aria-checked="true"] {
@@ -3248,9 +3267,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     border-color var(--transition-duration-basic) var(--ease-standard),
     box-shadow var(--transition-duration-basic) var(--ease-standard);
 
-  &:hover {
-    border-color: var(--color-border-default);
-    background: var(--color-background-primary-ghost-hover);
+  @include controls.hover-capable {
+    &:hover {
+      border-color: var(--color-border-default);
+      background: var(--color-background-primary-ghost-hover);
+    }
   }
 
   &[aria-checked="true"] {
@@ -3418,9 +3439,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
       background-color var(--transition-duration-basic) var(--ease-standard),
       color var(--transition-duration-basic) var(--ease-standard);
 
-    &:hover:not(:disabled) {
-      background: var(--color-background-primary-ghost-hover);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-primary-ghost-hover);
+        color: var(--color-text);
+      }
     }
 
     &:disabled {
@@ -3451,9 +3474,11 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
     background-color var(--transition-duration-basic) var(--ease-standard),
     color var(--transition-duration-basic) var(--ease-standard);
 
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-status-error, #b42318) 8%, transparent);
-    color: var(--color-status-error, #b42318);
+  @include controls.hover-capable {
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--color-status-error, #b42318) 8%, transparent);
+      color: var(--color-status-error, #b42318);
+    }
   }
 
   &:disabled {
@@ -3698,12 +3723,12 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   position: relative;
   z-index: 20;
   display: flex;
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  margin-top: -64px;
-  padding: 6px 0 16px;
+  padding: var(--draft-composer-gap) 0 var(--draft-block-end);
 }
 
 .new-thread-draft-composer-width {
@@ -3713,28 +3738,29 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   gap: 8px;
 }
 
+// Mobile input has the same bottom anchor before and after thread promotion.
+// The welcome region yields spare space. Its title has a stable block-start
+// inset instead of recentering after focus expansion or keyboard resize.
+// The existing desktop content group remains centered.
+@media (max-width: 767px) and (any-pointer: coarse) {
+  .new-thread-draft-layout {
+    justify-content: flex-start;
+  }
+  .new-thread-draft-hero {
+    flex: 1 1 0;
+    justify-content: flex-start;
+    // Margin remains inside the shrinkable, clipped welcome region. Padding
+    // here would impose a minimum that competes with the input on short screens.
+    h1 { margin-block-start: var(--height-toolbar); }
+    &::after { display: none; }
+  }
+}
+
 @container new-thread-main (width <= 620px) {
   .new-thread-context-trigger {
     max-width: 210px;
   }
 
-}
-
-@container new-thread-main (max-height: 540px) {
-  .new-thread-draft-layout {
-    // Keep the Composer at its measured content height as the keyboard shrinks
-    // this shared viewport; fixed row minima used to push Send below it.
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-
-  .new-thread-draft-hero {
-    padding-bottom: 28px;
-  }
-
-
-  .new-thread-draft-composer-zone {
-    margin-top: 0;
-  }
 }
 
 .thread-scroll-layout {
@@ -3982,56 +4008,66 @@ html[data-opencraft-window-type="electron"] .conversation-navigation-rail {
 }
 
 @media (hover: hover) {
-  .conversation-navigation-rail__list:not([data-scrubbing]):hover
-    .conversation-navigation-rail__item[aria-current="true"]:not(:hover):not(
-      :focus-visible
-    )
-    .conversation-navigation-rail__marker {
-    background-color: var(--color-text-tertiary);
-    opacity: 0.4;
+  @include controls.hover-capable {
+    .conversation-navigation-rail__list:not([data-scrubbing]):hover
+      .conversation-navigation-rail__item[aria-current="true"]:not(:hover):not(
+        :focus-visible
+      )
+      .conversation-navigation-rail__marker {
+      background-color: var(--color-text-tertiary);
+      opacity: 0.4;
+    }
   }
 
-  :is(
-      .conversation-navigation-rail__item:has(
-        + .conversation-navigation-rail__item:hover
-      ),
-      .conversation-navigation-rail__item:hover
-        + .conversation-navigation-rail__item
-    )
-    .conversation-navigation-rail__marker {
-    --marker-progress: 0.7;
+  @include controls.hover-capable {
+    :is(
+        .conversation-navigation-rail__item:has(
+          + .conversation-navigation-rail__item:hover
+        ),
+        .conversation-navigation-rail__item:hover
+          + .conversation-navigation-rail__item
+      )
+      .conversation-navigation-rail__marker {
+      --marker-progress: 0.7;
+    }
   }
 
-  :is(
-      .conversation-navigation-rail__item:has(
-        + * + .conversation-navigation-rail__item:hover
-      ),
-      .conversation-navigation-rail__item:hover
-        + *
-        + .conversation-navigation-rail__item
-    )
-    .conversation-navigation-rail__marker {
-    --marker-progress: 0.4;
+  @include controls.hover-capable {
+    :is(
+        .conversation-navigation-rail__item:has(
+          + * + .conversation-navigation-rail__item:hover
+        ),
+        .conversation-navigation-rail__item:hover
+          + *
+          + .conversation-navigation-rail__item
+      )
+      .conversation-navigation-rail__marker {
+      --marker-progress: 0.4;
+    }
   }
 
-  :is(
-      .conversation-navigation-rail__item:has(
-        + * + * + .conversation-navigation-rail__item:hover
-      ),
-      .conversation-navigation-rail__item:hover
-        + *
-        + *
-        + .conversation-navigation-rail__item
-    )
-    .conversation-navigation-rail__marker {
-    --marker-progress: 0.2;
+  @include controls.hover-capable {
+    :is(
+        .conversation-navigation-rail__item:has(
+          + * + * + .conversation-navigation-rail__item:hover
+        ),
+        .conversation-navigation-rail__item:hover
+          + *
+          + *
+          + .conversation-navigation-rail__item
+      )
+      .conversation-navigation-rail__marker {
+      --marker-progress: 0.2;
+    }
   }
 
-  .conversation-navigation-rail__item:hover
-    .conversation-navigation-rail__marker {
-    --marker-progress: 1;
-    background-color: var(--color-text);
-    opacity: 1;
+  @include controls.hover-capable {
+    .conversation-navigation-rail__item:hover
+      .conversation-navigation-rail__marker {
+      --marker-progress: 1;
+      background-color: var(--color-text);
+      opacity: 1;
+    }
   }
 }
 
@@ -4180,7 +4216,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 
-  // Desktop cuts off transcript paint at a straight horizontal gutter edge.
+  // Desktop cuts off transcript paint before the shell's lower corner arcs.
   // Touch keeps the Composer floating, including its surrounding safe area.
   &::after {
     content: "";
@@ -4188,7 +4224,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     z-index: 0;
     inset-inline: 0;
     bottom: 0;
-    height: max(16px, env(safe-area-inset-bottom, 0px));
+    height: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--radius-composer-shell));
     background: var(--color-surface);
     pointer-events: none;
   }
@@ -4460,8 +4496,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     cursor: pointer;
     font: inherit;
 
-    &:hover {
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        color: var(--color-text);
+      }
     }
     svg {
       transition: transform 160ms ease;
@@ -4559,12 +4597,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     &:not(:disabled) {
       cursor: pointer;
     }
-    &:not(:disabled):hover {
-      background: color-mix(
-        in srgb,
-        var(--color-text) 3%,
-        var(--color-background-primary)
-      );
+    @include controls.hover-capable {
+      &:not(:disabled):hover {
+        background: color-mix(
+          in srgb,
+          var(--color-text) 3%,
+          var(--color-background-primary)
+        );
+      }
     }
     &:disabled {
       opacity: 0.72;
@@ -4587,8 +4627,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 2px;
     margin-inline: 4px;
-    opacity: 0;
-    transition: opacity 120ms ease;
+    // Dates remain readable before hover, focus or the first touch.
+    opacity: 1;
 
     time {
       padding-inline: 4px;
@@ -4599,6 +4639,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
 
     button {
+      opacity: 0;
+      transition: opacity 120ms ease;
       display: inline-flex;
       width: 24px;
       height: 24px;
@@ -4611,11 +4653,17 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       color: var(--color-text-tertiary);
       cursor: pointer;
 
-      &:hover,
       &:focus-visible {
         background: var(--color-background-button-tertiary-hover);
         color: var(--color-text);
         outline: 0;
+      }
+      @include controls.hover-capable {
+        &:hover {
+          background: var(--color-background-button-tertiary-hover);
+          color: var(--color-text);
+          outline: 0;
+        }
       }
       &:focus-visible {
         box-shadow: 0 0 0 2px var(--color-ring, var(--focus-ring));
@@ -4626,9 +4674,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
   }
 
-  &:hover &__actions,
-  &:focus-within &__actions {
+  &:focus-within &__actions button {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover &__actions {
+      opacity: 1;
+    }
   }
 
   &__status-row {
@@ -4767,7 +4819,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     color: inherit;
   }
 
-  button:hover { background: rgb(255 255 255 / 18%); }
+  @include controls.hover-capable { button:hover { background: rgb(255 255 255 / 18%); } }
 }
 
 .thread-response {
@@ -4828,9 +4880,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     margin-top: 12px;
   }
 
-  &--assistant:hover > .thread-message-actions,
   &--assistant:focus-within > .thread-message-actions {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &--assistant:hover > .thread-message-actions {
+      opacity: 1;
+    }
   }
 }
 
@@ -4905,8 +4961,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       background 100ms ease,
       opacity 100ms ease;
 
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-secondary-hover);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-secondary-hover);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -4923,8 +4981,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: var(--color-background-button-primary);
     color: var(--color-text-on-accent, #fff);
 
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-primary-hover);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-primary-hover);
+      }
     }
   }
 
@@ -5130,9 +5190,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
         font: var(--typography-label-font);
       }
 
-      &:hover:not(:disabled) {
-        border-color: transparent;
-        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      @include controls.hover-capable {
+        &:hover:not(:disabled) {
+          border-color: transparent;
+          background: color-mix(in srgb, var(--color-text) 5%, transparent);
+        }
       }
 
       &[aria-pressed="true"] {
@@ -5158,8 +5220,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       background: color-mix(in srgb, var(--color-text) 3.5%, transparent);
       font-weight: var(--typography-body-weight);
 
-      &:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      @include controls.hover-capable {
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--color-text) 5%, transparent);
+        }
       }
     }
   }
@@ -5191,97 +5255,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 // server-request panel. The card remains reachable while Composer stays open.
-.thread-async-question {
-  max-width: min(100%, 620px);
-  margin-block: 12px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 15px;
-  background: var(--color-background-elevated-primary);
-  color: var(--color-text);
 
-  fieldset {
-    display: grid;
-    min-width: 0;
-    gap: 12px;
-    margin: 0;
-    padding: 14px;
-    border: 0;
-  }
-
-  &__title {
-    min-width: 0;
-    overflow-wrap: anywhere;
-
-    > .opencraft-chat-document {
-      font-family: var(--font-family-ui);
-      font-weight: var(--font-weight-semibold);
-      line-height: var(--typography-chat-line-height);
-    }
-  }
-
-  &__options {
-    display: grid;
-    gap: 7px;
-
-    label {
-      display: flex;
-      min-height: 44px;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 11px;
-      border: 1px solid var(--color-border-default);
-      border-radius: 10px;
-      background: var(--color-background-elevated-secondary);
-      cursor: pointer;
-
-      &:has(input:checked) { border-color: var(--color-border-strong); }
-      :root:not([data-touch-interaction]) &:has(input:focus-visible) { outline: 2px solid var(--color-border-strong); outline-offset: 2px; }
-      input { width: 17px; height: 17px; flex: 0 0 auto; accent-color: var(--color-background-button-primary); }
-      span { min-width: 0; overflow-wrap: anywhere; }
-    }
-  }
-
-  textarea {
-    width: 100%;
-    min-height: 74px;
-    resize: vertical;
-    padding: 10px 11px;
-    border: 1px solid var(--color-border-default);
-    border-radius: 10px;
-    background: var(--color-background-input, var(--color-background-elevated-secondary));
-    color: var(--color-text);
-    font: inherit;
-  }
-
-  &__footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-
-    [role="alert"] { color: var(--color-text-danger); font: var(--typography-metadata-font); letter-spacing: var(--typography-metadata-tracking); }
-  }
-
-  &__send {
-    min-height: 40px;
-    padding: 8px 14px;
-    border: 1px solid var(--color-background-button-primary);
-    border-radius: 9px;
-    background: var(--color-background-button-primary);
-    color: var(--color-text-button-primary);
-    cursor: pointer;
-
-    &:disabled { cursor: default; opacity: 0.5; }
-    &:focus-visible { outline: 2px solid var(--color-border-strong); outline-offset: 2px; }
-  }
-
-  &__status {
-    margin: 0;
-    color: var(--color-text-secondary);
-    font: var(--typography-metadata-font);
-    letter-spacing: var(--typography-metadata-tracking);
-  }
-}
 
 // Source-equivalent OptionPickerRequestPrompt geometry. It is a distinct
 // product dynamic tool, not the numbered request_user_input questionnaire.
@@ -5325,12 +5299,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent !important;
     color: var(--color-icon-secondary);
 
-    &:hover:not(:disabled) {
-      background: color-mix(
-        in srgb,
-        var(--color-text) 5%,
-        transparent
-      ) !important;
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: color-mix(
+          in srgb,
+          var(--color-text) 5%,
+          transparent
+        ) !important;
+      }
     }
   }
 
@@ -5354,8 +5330,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       outline: none;
     }
 
-    button:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--color-text) 5%, transparent);
+    @include controls.hover-capable {
+      button:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      }
     }
     button.is-selected {
       background: color-mix(in srgb, var(--color-text) 10%, transparent);
@@ -5519,9 +5497,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       > svg {
         opacity: 0;
       }
-      &:hover:not(:disabled),
       &.is-selected {
         background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      }
+      @include controls.hover-capable {
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--color-text) 5%, transparent);
+        }
       }
       &.is-selected > svg {
         opacity: 1;
@@ -5580,9 +5562,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       color: var(--color-text-tertiary);
       font-style: normal;
     }
-    &:hover:not(:disabled),
     &.is-selected {
       background: color-mix(in srgb, var(--color-text) 5%, transparent);
+    }
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      }
     }
     font: var(--typography-metadata-font);
     letter-spacing: var(--typography-metadata-tracking)
@@ -5804,8 +5790,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       background: transparent;
       text-align: left;
 
-      &:hover:not(:disabled) {
-        border-color: transparent;
+      @include controls.hover-capable {
+        &:hover:not(:disabled) {
+          border-color: transparent;
+        }
       }
     }
   }
@@ -5941,9 +5929,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     color: var(--color-text-tertiary);
     font: var(--typography-metadata-font);
 
-    &:hover:not(:disabled) {
-      background: transparent;
-      color: var(--color-text-secondary);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: transparent;
+        color: var(--color-text-secondary);
+      }
     }
   }
 
@@ -6087,8 +6077,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       color: var(--color-text-accent);
       text-decoration: none;
     }
-    a:hover {
-      text-decoration: underline;
+    @include controls.hover-capable {
+      a:hover {
+        text-decoration: underline;
+      }
     }
   }
 
@@ -6101,7 +6093,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     display: grid;
     gap: 5px;
 
-    > span {
+    > span:not(.ui-native-select) {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -6126,7 +6118,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
 
     > input,
-    > select,
+    > :where(.ui-native-select) > select,
     > button {
       width: 100%;
       min-height: 34px;
@@ -6172,8 +6164,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       border-radius: 8px;
       color: var(--color-text);
 
-      &:hover {
-        background: color-mix(in srgb, var(--color-text) 4%, transparent);
+      @include controls.hover-capable {
+        &:hover {
+          background: color-mix(in srgb, var(--color-text) 4%, transparent);
+        }
       }
     }
 
@@ -6252,8 +6246,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     font: var(--typography-control-compact-font);
     cursor: pointer;
 
-    &:hover {
-      background: var(--color-background-button-secondary-hover);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-secondary-hover);
+      }
     }
 
     &:active {
@@ -6379,8 +6375,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   width: 100%;
   height: 100%;
   border-radius: 16px;
-  background: var(--color-surface-secondary);
+  background: color-mix(in srgb, var(--color-text) 18%, transparent);
   animation: thread-generated-image-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread-generated-image-placeholder { animation: none; }
 }
 @keyframes thread-generated-image-pulse {
   50% {
@@ -6402,12 +6401,18 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     opacity var(--duration-fast) ease,
     background-color var(--duration-fast) ease;
 }
-.thread-generated-image-preview-wrap:hover .thread-generated-image-edit,
 .thread-generated-image-preview-wrap:focus-within .thread-generated-image-edit {
   opacity: 1;
 }
-.thread-generated-image-edit:hover {
-  background: rgba(0, 0, 0, 0.6);
+@include controls.hover-capable {
+  .thread-generated-image-preview-wrap:hover .thread-generated-image-edit {
+    opacity: 1;
+  }
+}
+@include controls.hover-capable {
+  .thread-generated-image-edit:hover {
+    background: rgba(0, 0, 0, 0.6);
+  }
 }
 .thread-generated-image-lightbox__toolbar {
   position: absolute;
@@ -6443,8 +6448,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     white-space: pre-wrap;
   }
 
-  &:hover .thread-message-actions {
-    opacity: 1;
+  @include controls.hover-capable {
+    &:hover .thread-message-actions {
+      opacity: 1;
+    }
   }
 }
 
@@ -6464,6 +6471,25 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 
+// Message clocks stay quiet by default, including touch. Keep their geometry
+// and authoritative datetime; the existing message hover/focus owns disclosure.
+.thread-user-message__actions time,
+.thread-message-actions time {
+  opacity: 0;
+  transition: opacity 100ms ease;
+  pointer-events: none;
+}
+.thread-user-message:focus-within .thread-user-message__actions time,
+.thread-frame--assistant:focus-within > .thread-message-actions time {
+  opacity: 1;
+  pointer-events: auto;
+}
+@include controls.hover-capable {
+  .thread-user-message:hover .thread-user-message__actions time,
+  .thread-frame--assistant:hover > .thread-message-actions time { opacity: 1; pointer-events: auto; }
+  .thread-frame--assistant:hover > .thread-message-actions { opacity: 1; }
+}
+
 .thread-message-actions {
   display: flex;
   height: 20px;
@@ -6472,6 +6498,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   opacity: 0;
   transition: opacity 100ms ease;
   align-items: center;
+
+  &:has(time) {
+    opacity: 1;
+    > :not(time) { opacity: 0; transition: opacity 100ms ease; }
+  }
 
   time { margin-inline-start: 6px; color: var(--color-text-tertiary); font: var(--typography-metadata-font); letter-spacing: var(--typography-metadata-tracking); }
 
@@ -6486,12 +6517,26 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent;
     color: var(--color-icon-tertiary);
 
-    &:hover {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-icon-primary);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-icon-primary);
+      }
     }
   }
 }
+
+// Timestamp visibility is independent of action disclosure.
+.thread-frame--assistant:focus-within > .thread-message-actions:has(time) > :not(time) {
+  opacity: 1;
+}
+@include controls.hover-capable {
+  .thread-frame--assistant:hover > .thread-message-actions:has(time) > :not(time) { opacity: 1; }
+}
+@media (any-pointer: coarse), (hover: none) {
+  .thread-message-actions:has(time) > :not(time) { opacity: 1; }
+}
+:root[data-touch-interaction] .thread-message-actions:has(time) > :not(time) { opacity: 1; }
 
 // Touch input keeps the action row in a Worked-for frame visible before the
 // first tap. A hover-driven reveal during that tap correlated with lost clicks.
@@ -6516,7 +6561,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   > header { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 8px 12px; gap: 8px; }
   > header > div { display: flex; gap: 4px; }
   button { border: 0; background: transparent; color: inherit; border-radius: 6px; padding: 6px; cursor: pointer; }
-  button:hover { background: var(--color-background-button-tertiary-hover); }
+  @include controls.hover-capable { button:hover { background: var(--color-background-button-tertiary-hover); } }
   &__body { position: relative; overflow: hidden; > .opencraft-chat-document { padding: 12px; } }
   &__expand { position: absolute; inset: auto 0 0; height: 160px; display: flex; align-items: end; justify-content: center; padding-bottom: 12px; pointer-events: none; background: linear-gradient(transparent, var(--color-surface));
     button { pointer-events: auto; background: var(--color-text); color: var(--color-surface); padding: 6px 12px; }
@@ -6545,7 +6590,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   pointer-events: auto;
   backdrop-filter: blur(8px);
   > button { display: inline-flex; max-width: 100%; align-items: center; gap: 7px; cursor: pointer; padding: 5px 11px; border: 0; background: none; color: inherit; font: inherit; font: var(--typography-control-compact-font); font-variant-numeric: tabular-nums; letter-spacing: var(--typography-control-compact-tracking); }
-  > button:hover { color: var(--color-text); }
+  @include controls.hover-capable { > button:hover { color: var(--color-text); } }
   svg { color: var(--color-accent-blue); flex-shrink: 0; }
   &__progress-glyph { animation: thread-todo-progress-spin 1s linear infinite; }
   &__empty { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent-blue); }
@@ -6571,11 +6616,17 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     height: 16px;
   }
 
-  &:hover .thread-hook-stats__tooltip,
   &:focus-within .thread-hook-stats__tooltip {
     visibility: visible;
     opacity: 1;
     transform: translateY(0);
+  }
+  @include controls.hover-capable {
+    &:hover .thread-hook-stats__tooltip {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -6593,10 +6644,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   outline: none;
   user-select: none;
 
-  &:focus-visible,
-  &:hover {
+  &:focus-visible {
     background: var(--color-background-button-tertiary-hover);
     color: var(--color-icon-primary);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-icon-primary);
+    }
   }
 }
 
@@ -6920,14 +6976,22 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   color: inherit;
   text-align: left;
 
-  &[data-interactive]:hover,
   &:focus-within {
     color: var(--color-text);
   }
+  @include controls.hover-capable {
+    &[data-interactive]:hover {
+      color: var(--color-text);
+    }
+  }
 
-  &:hover .thread-activity-item__chevron,
   &:focus-within .thread-activity-item__chevron {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover .thread-activity-item__chevron {
+      opacity: 1;
+    }
   }
 }
 
@@ -7016,10 +7080,12 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  &:hover {
-    color: var(--color-text);
-    text-decoration: underline dotted 0.5px;
-    text-underline-offset: 2px;
+  @include controls.hover-capable {
+    &:hover {
+      color: var(--color-text);
+      text-decoration: underline dotted 0.5px;
+      text-underline-offset: 2px;
+    }
   }
 }
 
@@ -7129,8 +7195,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       height: 100%;
       object-fit: cover;
     }
-    &:hover {
-      border-color: var(--color-border-strong);
+    @include controls.hover-capable {
+      &:hover {
+        border-color: var(--color-border-strong);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -7204,12 +7272,18 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       transform: rotate(90deg);
       opacity: 1;
     }
-    &:hover {
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        color: var(--color-text);
+      }
     }
-    &:hover > svg,
     &:focus-visible > svg {
       opacity: 1;
+    }
+    @include controls.hover-capable {
+      &:hover > svg {
+        opacity: 1;
+      }
     }
     &:focus-visible {
       border-radius: 3px;
@@ -7297,8 +7371,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       white-space: nowrap;
       cursor: pointer;
 
-      &[aria-current="page"],
-      &:hover { background: var(--color-background-primary-ghost-hover); color: var(--color-text); }
+      &[aria-current="page"] { background: var(--color-background-primary-ghost-hover); color: var(--color-text); }
+      @include controls.hover-capable {
+        &:hover { background: var(--color-background-primary-ghost-hover); color: var(--color-text); }
+      }
       &:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
     }
   }
@@ -7333,8 +7409,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  &:hover {
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:hover {
+      color: var(--color-text);
+    }
   }
   &:focus-visible {
     outline: 2px solid var(--color-focus-ring);
@@ -7389,8 +7467,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     padding: 12px var(--thread-resource-card-row-padding-x);
 
     @media (hover: hover) {
-      &:hover .thread-turn-diff__default-subtitle { visibility: hidden; }
-      &:hover .thread-turn-diff__hover-subtitle { visibility: visible; }
+      @include controls.hover-capable { &:hover .thread-turn-diff__default-subtitle { visibility: hidden; } }
+      @include controls.hover-capable { &:hover .thread-turn-diff__hover-subtitle { visibility: visible; } }
     }
     &:has(:focus-visible) .thread-turn-diff__default-subtitle { visibility: hidden; }
     &:has(:focus-visible) .thread-turn-diff__hover-subtitle { visibility: visible; }
@@ -7405,8 +7483,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent;
     cursor: pointer;
 
-    &:hover {
-      background: color-mix(in srgb, var(--color-text) 3%, transparent);
+    @include controls.hover-capable {
+      &:hover {
+        background: color-mix(in srgb, var(--color-text) 3%, transparent);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -7539,8 +7619,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
       &:disabled { cursor: default; }
 
-      &:hover {
-        background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      @include controls.hover-capable {
+        &:hover {
+          background: color-mix(in srgb, var(--color-text) 5%, transparent);
+        }
       }
       &:focus-visible {
         outline: 2px solid var(--color-focus-ring);
@@ -7639,7 +7721,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     font: var(--typography-control-compact-font);
     text-align: start;
     > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    &:hover { background: var(--color-background-primary-ghost-hover); }
+    @include controls.hover-capable { &:hover { background: var(--color-background-primary-ghost-hover); } }
   }
 }
 
@@ -7689,8 +7771,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     &:not(:disabled) {
       cursor: pointer;
     }
-    &:not(:disabled):hover {
-      background: color-mix(in srgb, var(--color-text) 3%, transparent);
+    @include controls.hover-capable {
+      &:not(:disabled):hover {
+        background: color-mix(in srgb, var(--color-text) 3%, transparent);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -7879,9 +7963,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     color: var(--color-text-tertiary);
     font: var(--typography-control-compact-font);
 
-    &:hover {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-text);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -7966,10 +8052,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       background 100ms ease,
       color 100ms ease;
 
-    &:hover,
     &:focus-visible {
       background: var(--color-background-button-tertiary-hover);
       color: var(--color-icon-primary);
+    }
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-icon-primary);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -7978,11 +8069,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
   }
 
-  &__command:hover &__copy,
-  &__output:hover &__copy,
   &__command:focus-within &__copy,
   &__output:focus-within &__copy {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &__command:hover &__copy,
+    &__output:hover &__copy {
+      opacity: 1;
+    }
   }
 
   &__footer {
@@ -8226,9 +8321,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       background 100ms ease,
       color 100ms ease;
 
-    &:hover {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-text);
+      }
     }
     &:focus-visible {
       outline: 2px solid var(--color-focus-ring);
@@ -8237,9 +8334,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     }
   }
 
-  &:hover &__raw,
   &:focus-within &__raw {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover &__raw {
+      opacity: 1;
+    }
   }
 
   &__resource-link {
@@ -8258,9 +8359,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   padding: 0;
 }
 
-.thread-activity-item:hover .thread-tool-details__raw,
 .thread-activity-item:focus-within .thread-tool-details__raw {
   opacity: 1;
+}
+@include controls.hover-capable {
+  .thread-activity-item:hover .thread-tool-details__raw {
+    opacity: 1;
+  }
 }
 
 .thread-created-thread-card {
@@ -8289,12 +8394,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   &:not(:disabled) {
     cursor: pointer;
   }
-  &:not(:disabled):hover {
-    background: color-mix(
-      in srgb,
-      var(--color-background-button-tertiary-hover) 55%,
-      var(--color-background-elevated-secondary)
-    );
+  @include controls.hover-capable {
+    &:not(:disabled):hover {
+      background: color-mix(
+        in srgb,
+        var(--color-background-button-tertiary-hover) 55%,
+        var(--color-background-elevated-secondary)
+      );
+    }
   }
   &:focus-visible {
     outline: 2px solid var(--color-focus-ring);
@@ -8358,11 +8465,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   &.is-interactive {
     cursor: pointer;
   }
-  &.is-interactive:hover {
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &.is-interactive:hover {
+      color: var(--color-text);
+    }
   }
-  &.is-interactive:hover .thread-activity-item__summary {
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &.is-interactive:hover .thread-activity-item__summary {
+      color: var(--color-text);
+    }
   }
   &:focus-visible {
     outline: 2px solid var(--color-focus-ring);
@@ -8577,10 +8688,12 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     white-space: nowrap;
     letter-spacing: var(--typography-label-tracking);
   }
-  &:not(:disabled):hover {
-    border-color: var(--color-border-default);
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:not(:disabled):hover {
+      border-color: var(--color-border-default);
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-text);
+    }
   }
   &:disabled {
     cursor: default;
@@ -8593,6 +8706,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
 .thread-subagent-chips {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
 
@@ -8601,6 +8715,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 
   &__more {
+    flex-shrink: 0;
+    white-space: nowrap;
     height: 24px;
     padding: 0 4px;
     border: 0;
@@ -8611,8 +8727,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
     text-underline-offset: 2px;
 
-    &:hover {
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover {
+        color: var(--color-text);
+      }
     }
     &:focus-visible {
       border-radius: 4px;
@@ -8635,8 +8753,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   font: var(--typography-control-compact-font);
   text-align: left;
 
-  &:not(:disabled):hover {
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:not(:disabled):hover {
+      color: var(--color-text);
+    }
   }
   &:disabled {
     cursor: default;
@@ -8654,6 +8774,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
   &__header {
     display: flex;
+    flex-wrap: wrap;
     min-width: 0;
     min-height: 32px;
     align-items: center;
@@ -8674,8 +8795,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     svg {
       color: var(--color-icon-tertiary);
     }
-    &:not(:disabled):hover {
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:not(:disabled):hover {
+        color: var(--color-text);
+      }
     }
     &:disabled {
       cursor: default;
@@ -8704,9 +8827,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       opacity 160ms ease;
   }
 
-  &:hover &__chevron,
   &[data-open] &__chevron {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover &__chevron {
+      opacity: 1;
+    }
   }
   &[data-open] &__chevron {
     transform: rotate(90deg);
@@ -8901,6 +9028,29 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
+// Connection warning stays in the material; editable content never fades or pulses.
+.opencraft-composer-shell[data-warning="true"]::before {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-text-danger) 2.5%, transparent),
+      color-mix(in srgb, var(--color-text-danger) 6.5%, transparent)
+    ),
+    var(--composer-surface-background);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-text-danger) 17%, transparent),
+    0 6px 24px color-mix(in srgb, var(--color-text-danger) 4%, transparent);
+}
+
+@media (forced-colors: active) {
+  :where(:root[data-ui-density="touch"]) .opencraft-composer-shell[data-warning="true"]::before {
+    background: Canvas;
+    box-shadow: none;
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+}
+
 :root[data-ui-density="touch"] .opencraft-composer-shell {
   --composer-surface-filter: blur(18px) saturate(145%);
   --composer-surface-background: linear-gradient(
@@ -9012,12 +9162,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   font: inherit;
   font-weight: var(--typography-primary-action-weight);
 
-  &:hover {
-    background: color-mix(
-      in srgb,
-      var(--color-background-primary-ghost-hover) 82%,
-      transparent
-    );
+  @include controls.hover-capable {
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--color-background-primary-ghost-hover) 82%,
+        transparent
+      );
+    }
   }
 }
 
@@ -9044,12 +9196,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background-color 120ms ease,
     box-shadow 120ms ease;
 
-  &:hover {
-    background: color-mix(
-      in srgb,
-      var(--color-background-primary-ghost-hover) 76%,
-      transparent
-    );
+  @include controls.hover-capable {
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--color-background-primary-ghost-hover) 76%,
+        transparent
+      );
+    }
   }
 
   &[data-state="failed"] {
@@ -9109,11 +9263,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 
   @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-tertiary-hover);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-tertiary-hover);
 
-      .opencraft-composer-queue-item__avatar { opacity: 0.16; }
-      .opencraft-composer-queue-item__grip { opacity: 1; }
+        .opencraft-composer-queue-item__avatar { opacity: 0.16; }
+        .opencraft-composer-queue-item__grip { opacity: 1; }
+      }
     }
   }
 
@@ -9230,9 +9386,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent;
     color: var(--color-icon-secondary);
 
-    &:hover:not(:disabled) {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-icon-primary);
+    @include controls.hover-capable {
+      &:hover:not(:disabled) {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-icon-primary);
+      }
     }
 
     &:disabled {
@@ -9324,8 +9482,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent;
     color: currentColor;
 
-    &:hover {
-      background: rgb(0 0 0 / 6%);
+    @include controls.hover-capable {
+      &:hover {
+        background: rgb(0 0 0 / 6%);
+      }
     }
   }
 
@@ -9600,9 +9760,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   background: transparent;
   color: var(--color-icon-secondary);
 
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-icon-primary);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-icon-primary);
+    }
   }
 }
 
@@ -9610,10 +9772,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   opacity: 0.5;
   cursor: not-allowed;
 
-  &:hover {
-    background: transparent;
-    color: var(--color-icon-secondary);
-  }
+  background: transparent;
+  color: var(--color-icon-secondary);
 }
 
 .opencraft-voice-input-action[data-voice-input-state="error"] {
@@ -9666,9 +9826,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     flex: 0 0 auto;
   }
 
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-text);
+    }
   }
   &--static {
     cursor: default;
@@ -9849,11 +10011,18 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   margin-left: auto;
 }
 
-.opencraft-composer-selection-menu__item:hover,
 .opencraft-composer-selection-menu__item[data-highlighted] {
   .opencraft-composer-selection-menu__leading,
   .opencraft-composer-selection-menu__trailing {
     opacity: 1;
+  }
+}
+@include controls.hover-capable {
+  .opencraft-composer-selection-menu__item:hover {
+    .opencraft-composer-selection-menu__leading,
+    .opencraft-composer-selection-menu__trailing {
+      opacity: 1;
+    }
   }
 }
 
@@ -10062,8 +10231,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     opacity: 0.28;
   }
 
-  &:not(:disabled):not(.is-stop):hover {
-    background: var(--color-background-button-primary-hover);
+  @include controls.hover-capable {
+    &:not(:disabled):not(.is-stop):hover {
+      background: var(--color-background-button-primary-hover);
+    }
   }
 
   &:not(:disabled):not(.is-stop):active {
@@ -10075,8 +10246,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     color: var(--color-icon-primary);
   }
 
-  &.is-stop:not(:disabled):hover {
-    background: var(--color-background-button-secondary-hover);
+  @include controls.hover-capable {
+    &.is-stop:not(:disabled):hover {
+      background: var(--color-background-button-secondary-hover);
+    }
   }
 
   &.is-stop:not(:disabled):active {
@@ -10241,8 +10414,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: transparent;
     color: var(--color-icon-tertiary);
 
-    &:hover {
-      background: var(--color-background-button-tertiary-hover);
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-button-tertiary-hover);
+      }
     }
   }
 }
@@ -10339,9 +10514,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   background: transparent;
   text-align: left;
 
-  &.is-selected,
-  &:hover {
+  &.is-selected {
     background: var(--color-background-button-secondary-hover);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-secondary-hover);
+    }
   }
 
   > span:first-child {
@@ -10382,7 +10561,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .right-panel-divider {
   position: absolute;
   z-index: 42;
-  inset-block: 0;
+  inset-block: var(--opencraft-panel-divider-top, 0px) 0;
+  clip-path: var(--opencraft-panel-divider-clip, none);
   left: 0;
   width: 1px;
   pointer-events: none;
@@ -10393,7 +10573,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
 }
 
 .app-shell-right-panel__surface {
@@ -10403,12 +10583,12 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   width: var(--app-shell-right-panel-target-width);
   min-width: var(--app-shell-right-panel-target-width);
   overflow: hidden;
-  border-left: 1px solid var(--color-border-subtle);
-  background: var(--color-background-surface);
+  border-left: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   contain: layout paint;
 }
 
-.app-shell-right-panel[data-full-width="true"] .app-shell-right-panel__surface {
+.app-shell-right-panel[data-content-full-width="true"] .app-shell-right-panel__surface {
   border-left: 0;
 }
 
@@ -10442,10 +10622,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     transition: opacity 140ms ease;
   }
 
-  &:hover > span,
   &:focus-visible > span,
   &[data-resizing="true"] > span {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover > span {
+      opacity: 1;
+    }
   }
 }
 
@@ -10456,7 +10640,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   overflow: hidden;
 }
 
@@ -10471,8 +10655,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   justify-content: space-between;
   gap: 4px;
   padding: 0 0 0 8px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-background-elevated-secondary);
+  border-bottom: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-toolbar-background, var(--color-background-elevated-secondary));
 }
 
 .right-panel-tab-strip {
@@ -10512,8 +10696,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background-color 100ms ease,
     color 100ms ease;
 
-  &:hover {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
   &[data-active="true"] {
     color: var(--color-text);
@@ -10526,10 +10712,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     font-style: italic;
   }
 
-  &:hover .right-panel-tab__close,
   &[data-active="true"] .right-panel-tab__close,
   .right-panel-tab__close:focus-visible {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover .right-panel-tab__close {
+      opacity: 1;
+    }
   }
 }
 
@@ -10610,8 +10800,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   opacity: 0;
   place-items: center;
 
-  &:hover {
-    background: color-mix(in srgb, var(--color-text) 9%, transparent);
+  @include controls.hover-capable {
+    &:hover {
+      background: color-mix(in srgb, var(--color-text) 9%, transparent);
+    }
   }
 }
 
@@ -10687,6 +10879,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .right-panel-view {
+  // The body keeps its surface; only its soft upper lip enters the chrome.
+  box-shadow: var(--opencraft-header-content-elevation, none);
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden auto;
@@ -10909,15 +11103,17 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   outline: none;
   appearance: textfield;
   &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { appearance: none; margin: 0; }
-  &:hover { background: var(--color-background-button-tertiary-hover); }
+  @include controls.hover-capable { &:hover { background: var(--color-background-button-tertiary-hover); } }
   &:focus { border-color: var(--color-text-secondary); background: var(--color-background-surface); }
 }
 .browser-device-toolbar select {
   height: 28px; min-width: 100px; max-width: 176px;
   border: 1px solid transparent; border-radius: 6px;
-  padding: 0 4px; background: transparent; color: var(--color-text-secondary);
+  appearance: none;
+  padding: 0 22px 0 4px; background: transparent; color: var(--color-text-secondary);
   font: inherit; font-weight: var(--typography-primary-action-weight); text-overflow: ellipsis; cursor: pointer;
-  &:hover, &:focus-visible { background: var(--color-background-button-tertiary-hover); }
+  &:focus-visible { background: var(--color-background-button-tertiary-hover); }
+  @include controls.hover-capable { &:hover { background: var(--color-background-button-tertiary-hover); } }
 }
 .browser-device-toolbar button {
   display: grid; place-items: center; width: 28px; height: 28px; flex: none;
@@ -10926,9 +11122,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   border: 0;
   border-radius: 6px; padding: 0;
   cursor: pointer;
-  &:hover, &:focus-visible { color: var(--color-text); background: var(--color-background-button-tertiary-hover); }
+  &:focus-visible { color: var(--color-text); background: var(--color-background-button-tertiary-hover); }
+  @include controls.hover-capable { &:hover { color: var(--color-text); background: var(--color-background-button-tertiary-hover); } }
 }
 .browser-device-toolbar .browser-device-toolbar__zoom { min-width: 58px; max-width: 74px; flex: none; }
+.browser-device-toolbar__select { position: relative; display: inline-flex; min-width: 0; flex: none;
+  > svg { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--color-text-secondary); }
+  &.browser-device-toolbar__zoom select { min-width: 0; width: 100%; }
+}
 .browser-device-toolbar__close { margin-inline-start: auto; }
 @container (max-width: 599px) {
   .browser-device-toolbar .browser-device-toolbar__zoom { display: none; }
@@ -10989,10 +11190,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   color: var(--color-text-secondary);
   place-items: center;
 
-  &:hover:not(:disabled),
   &:focus-visible {
     background: var(--color-background-button-tertiary-hover);
     color: var(--color-text);
+  }
+  @include controls.hover-capable {
+    &:hover:not(:disabled) {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-text);
+    }
   }
 
   &:disabled {
@@ -11014,10 +11220,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   border-radius: 7px;
   color: var(--color-text-secondary);
 
-  &:hover,
   &:focus-within {
     background: var(--color-background-button-tertiary-hover);
     color: var(--color-text);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-button-tertiary-hover);
+      color: var(--color-text);
+    }
   }
 
   > svg {
@@ -11175,8 +11386,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   cursor: pointer;
   -webkit-app-region: no-drag;
 
-  &:hover, &:focus-visible {
+  &:focus-visible {
     background: var(--color-background-elevated-secondary);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-elevated-secondary);
+    }
   }
 
   &:focus-visible {
@@ -11361,10 +11577,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   border: 0;
   background: transparent;
 
-  &:hover,
   &[data-selected="true"] {
     background: var(--color-background-primary-ghost-hover);
     color: var(--color-text);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-primary-ghost-hover);
+      color: var(--color-text);
+    }
   }
 }
 
@@ -11529,9 +11750,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     font: var(--typography-label-font);
     text-decoration: none;
 
-    &:hover:not(:disabled):not([aria-disabled="true"]) {
-      background: var(--color-background-button-tertiary-hover);
-      color: var(--color-text);
+    @include controls.hover-capable {
+      &:hover:not(:disabled):not([aria-disabled="true"]) {
+        background: var(--color-background-button-tertiary-hover);
+        color: var(--color-text);
+      }
     }
 
     &:disabled,
@@ -11700,7 +11923,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: var(--color-background-surface);
     color: var(--color-text);
     font: inherit;
-    &:hover { background: var(--color-background-button-tertiary-hover); }
+    @include controls.hover-capable { &:hover { background: var(--color-background-button-tertiary-hover); } }
   }
 }
 
@@ -11843,7 +12066,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 @media (hover: none) {
-  .thread-user-message__actions {
+  .thread-user-message__actions button {
     opacity: 1;
   }
 }
@@ -11902,6 +12125,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
   &[data-row-lines="two"] .sidebar-activity-item { min-height: max(48px, calc(var(--size-control-hit-min) + 12px)); }
 }
+// A title-only contribution shares the title track and retains the action hit lane.
+.sidebar-activity-item-container[data-badge-placement="title"] {
+  column-gap: var(--gap-control-group);
+  .sidebar-activity-item { min-height: var(--height-sidebar-activity-title-row); }
+}
 .sidebar-activity-item__project {
   @include typography.role(label, tertiary);
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -11910,6 +12138,31 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   grid-column: 2; grid-row: 1; z-index: 1;
   display: flex; align-items: center; justify-content: flex-end;
   &:empty { display: none; }
+}
+// Metadata contributions replace the project line without nesting interactive
+// controls inside the navigation button. Both siblings share the row tracks.
+.sidebar-activity-item-container[data-badge-placement="metadata"] {
+  grid-template-rows: auto auto;
+  row-gap: 1px;
+  .sidebar-activity-item {
+    grid-row: 1 / 3;
+    grid-template-rows: subgrid;
+    row-gap: 1px;
+    .sidebar-activity-item__body { display: contents; }
+    .sidebar-activity-item__title-line { grid-column: 1; grid-row: 1; }
+  }
+  .sidebar-activity-item__badge-slot {
+    grid-column: 1; grid-row: 2;
+    justify-self: start; justify-content: flex-start; gap: 4px;
+    margin-inline-start: var(--padding-sidebar-activity-row-inline);
+    margin-block-end: 6px;
+    min-width: 0; max-width: calc(100% - var(--padding-sidebar-activity-row-inline));
+    .sidebar-activity-item__state-label {
+      @include typography.role(metadata, tertiary);
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 0 1 auto;
+    }
+  }
 }
 .sidebar-activity-item__state-label { flex: 0 0 auto; }
 .sidebar-new-chat {
@@ -11981,6 +12234,9 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     position: relative;
     pointer-events: auto;
     overflow: clip;
+    // The moving page, including gaps around floating chrome, must occlude
+    // the stationary drawer throughout a swipe and its settling frames.
+    background: var(--color-surface);
     // MotionValues own direct manipulation. The global reduced-motion duration
     // must not create a CSS transition for every transform write.
     transition-property: none;
@@ -12095,6 +12351,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   background: transparent; cursor: pointer; text-align: start;
   > svg { flex: 0 0 auto; transform: rotate(0deg); }
   > svg.is-collapsed { transform: rotate(-90deg); }
+  // hover-policy: coupled-visibility — both hiding and revealing apply only to mouse presentation; other inputs keep the default visible arrow.
   @include controls.hover-capable {
     > svg { opacity: 0; }
     &:hover > svg, &:focus-visible > svg { opacity: 1; }
@@ -12106,15 +12363,27 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .sidebar-thread-group-avatar { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; overflow: hidden; border-radius: 50%; color: var(--color-text-secondary); background: var(--color-background-control); img { width: 100%; height: 100%; object-fit: cover; } }
 .sidebar-activity-group__items[hidden] { display: none; }
 
-// iOS keeps vh at the layout viewport while the keyboard reduces VisualViewport.
-// Budget the composer against the same visible surface as Shell. The editor and
-// queue may scroll; the action footer must remain outside that scroll budget.
+// One outer capacity; intrinsic content yields before persistent actions.
+// Routes may supply a smaller local budget. Native viewport adaptation belongs
+// to Shell, never to individual editor/queue/attachment percentages.
 @media (max-width: 767px) and (any-pointer: coarse) {
   html[data-timeline-tracks-visual-viewport="true"] {
     .opencraft-composer-stack {
+      --composer-platform-block-size: max(120px, calc(var(--timeline-available-viewport-height) - var(--height-toolbar) - 24px));
       display: flex;
       flex-direction: column;
-      max-height: max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px));
+      max-height: min(var(--composer-available-block-size, var(--composer-platform-block-size)), var(--composer-platform-block-size));
+    }
+    .opencraft-composer-attached-rail {
+      display: flex;
+      flex-direction: column;
+      flex: 0 1 auto;
+      min-height: 0;
+      &:empty { display: none; }
+      > * { min-height: 0; flex: 0 1 auto; overflow-y: auto; }
+    }
+    .opencraft-composer-queue-tray {
+      max-height: calc(var(--height-composer-queue-row) * 3 + 34px);
     }
     .opencraft-composer-shell {
       display: flex;
@@ -12122,23 +12391,26 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       min-height: 0;
       flex: 1 1 auto;
     }
-    .opencraft-composer-input-row {
+    .opencraft-composer-chrome-header,
+    .opencraft-composer-error,
+    .opencraft-composer-footer { flex: 0 0 auto; }
+    .opencraft-composer-input-row,
+    .opencraft-composer-editor-mount {
+      display: flex;
+      flex-direction: column;
       min-height: 0;
       flex: 1 1 auto;
-      overflow-y: auto;
-      overscroll-behavior: contain;
+      overflow: clip;
     }
     .opencraft-composer-editor {
-      max-height: min(232px, calc(var(--timeline-visual-viewport-height) * .3));
+      min-height: 1lh;
+      max-height: 232px;
+      flex: 0 1 auto;
     }
-    .opencraft-composer-attached-rail { flex: 0 0 auto; }
-    .opencraft-composer-queue-tray {
-      flex: 0 0 auto;
-      max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-visual-viewport-height) * .25));
-    }
-    .opencraft-composer-footer { flex: 0 0 auto; }
     .opencraft-composer-attachments {
-      max-height: min(120px, calc(var(--timeline-visual-viewport-height) * .2));
+      min-height: 0;
+      max-height: 120px;
+      flex: 0 1 auto;
       overflow-y: auto;
     }
   }
@@ -12228,7 +12500,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     width: var(--size-transcript-float-icon-touch);
     height: var(--size-transcript-float-icon-touch);
     stroke: currentColor;
-    stroke-width: var(--width-transcript-float-icon-touch);
     stroke-linejoin: round;
   }
   .thread-scroll-to-bottom-button__dot {
@@ -12392,7 +12663,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   &:has(.sidebar-activity-item__state-label) {
     --sidebar-secondary-line-height: var(--typography-metadata-line-height);
   }
-  .sidebar-activity-item__badge-slot,
+  .sidebar-activity-item__badge-slot:not([data-placement="metadata"]),
   .sidebar-activity-item__trailing { translate: 0 var(--sidebar-title-accessory-offset); }
   .sidebar-activity-item__menu-trigger {
     > svg { translate: 0 var(--sidebar-title-accessory-offset); }
@@ -12432,7 +12703,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .app-shell-header__window-controls-rail[data-navigation-brand] { width: max-content; }
     .chrome-button {
       @include mobile-glass.surface($floating: true);
-      width: var(--size-shell-header-action-mobile);
+      width: var(--chrome-action-width, var(--size-shell-header-action-mobile));
       height: var(--size-shell-header-action-mobile);
       border-radius: var(--radius-full);
     }
@@ -12653,3 +12924,28 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }
+
+.conversation-toolbar { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }
+
+// Shared operation controls expose visible progress as well as aria-busy.
+.settings-control-button__spinner {
+  display: inline-block;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ui-button-spin 680ms linear infinite;
+}
+.opencraft-composer-stop-spinner { animation: ui-button-spin 680ms linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .settings-control-button__spinner, .opencraft-composer-stop-spinner { animation: none; }
+}
+
+@include controls.touch-input {
+  .thread-user-message__actions button,
+  .thread-generated-image-edit,
+  .thread-shell-output__copy,
+  .thread-tool-details__raw { opacity: 1; }
+}

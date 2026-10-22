@@ -19,6 +19,7 @@ import { BrowserPresentationCoordinator } from "./browser-presentation-coordinat
 import { BrowserWorkbenchCoordinator } from "./browser-workbench-coordinator";
 import { WebBrowserPageRuntime } from "./web-browser-runtime";
 import type { BrowserSurfaceHost } from "./web-browser-surface-host";
+import { BrowserLocalMenu } from './browser-local-menu-view';
 
 interface BrowserRuntimeContextValue {
   readonly pages: WebBrowserPageRuntime;
@@ -102,5 +103,6 @@ export function BrowserPresentationRoot() {
     surfaces.setRoot(rootRef.current);
     return () => surfaces.setRoot(null);
   }, [surfaces]);
-  return <div ref={rootRef} className="web-browser-presentation-root" />;
+  return <><div ref={rootRef} className="web-browser-presentation-root" />
+    {surfaces.localMenu && <BrowserLocalMenu controller={surfaces.localMenu} />}</>;
 }

@@ -7,7 +7,7 @@ import { createServer } from "node:net";
 import test from "node:test";
 import { SshCodexTransport, buildCodexProxyCommand } from "../apps/opencraft-daemon/src/ssh-codex-transport.js";
 import { readSshCodexServerBindings } from "../apps/opencraft-daemon/src/ssh-codex-connections.js";
-import { parseSshCodexServerDescriptors } from "@opencraft/app-host-protocol";
+import { parseSshServerDescriptors } from "@opencraft/app-host-protocol";
 
 const fixture = new URL("./fixtures/fake-codex-ssh-proxy.mjs", import.meta.url).pathname;
 function synthetic(overrides: Record<string, any> = {}): SshCodexTransport {
@@ -89,7 +89,7 @@ test("private config rejects arbitrary shell, duplicate identity, public permiss
   try {
     await writeFile(path, JSON.stringify([entry]), { mode: 0o600 });
     const [binding] = await readSshCodexServerBindings(path);
-    assert.deepEqual(parseSshCodexServerDescriptors([binding.descriptor]), [binding.descriptor]);
+    assert.deepEqual(parseSshServerDescriptors([binding.descriptor]), [binding.descriptor]);
     assert.ok(!JSON.stringify(binding.descriptor).includes("known_hosts"));
     for (const value of [[{ ...entry, command: "arbitrary" }], [{ ...entry, password: "secret" }], [entry, entry], [{ ...entry, hostname: "-oProxyCommand=bad" }]]) {
       await writeFile(path, JSON.stringify(value)); await assert.rejects(readSshCodexServerBindings(path));

@@ -12,7 +12,7 @@ full gate.
 | JSON-RPC method or wire field | `packages/appserver-protocol` | protocol typecheck + AppServer tests |
 | request lifecycle or host registry | `packages/appserver-client` | AppServer client tests |
 | `epoch/nextSeq`, Journal, gap recovery, snapshot replacement | `packages/appserver-replica` | Replica tests |
-| Codex Resume/View projection | `packages/appserver-session` | Session tests + `replica-resume` Lab scenario |
+| AppServer Resume/View projection | `packages/appserver-session` | Session tests + `replica-resume` Lab scenario |
 | Node/Web/Expo persistence | matching `appserver-replica-storage-*` package | adapter test/typecheck |
 | daemon connection behavior | matching `appserver-transport-*` package | transport tests + Lab fault scenario |
 | shared commands and view state | `packages/workbench-runtime` | runtime tests + both renderer builds |
@@ -33,7 +33,7 @@ architecture document.
 - A cache may paint immediately but is non-authoritative until catch-up ends.
 - Duplicate entries are ignored, adjacent entries apply, and gaps synchronize.
 - Epoch change, compaction and rewind converge through atomic snapshot install.
-- Codex V3 remains a View adapter; do not label its local revisions as a
+- AppServer V3 remains a View adapter; do not label its local revisions as a
   server-sequenced V4 Journal.
 
 ## Proof ladder

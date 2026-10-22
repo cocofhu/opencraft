@@ -222,3 +222,37 @@ test('deployment observes Core identity independently of protocol compatibility'
     }
   } finally { if (core) await new Promise(done => core.close(done)); await rm(root, { recursive: true, force: true }); }
 });
+
+test('execution health retains identity, budgets dependent checks and fences pointer changes', {timeout:20_000}, async()=>{
+  const {observeExecutionHealth}=await import('../scripts/server-deployment/headless-gateway-application.mjs');
+  const root=await mkdtemp(join(tmpdir(),'execution-observation-'));let mode='slow',requests=0;
+  const release=join(root,'release'),next=join(root,'next'),link=join(root,'current');
+  await mkdir(release);await mkdir(next);
+  for(const path of [release,next])await writeFile(join(path,'package.json'),JSON.stringify({version:path===release?'1':'2',opencraftWeb:{buildId:path===release?'one':'two'}}));
+  await symlink(release,link);
+  const server=createServer(async(_request,response)=>{
+    requests++;
+    if(mode==='slow')await delay(1100); // Reproduces the former 1s outer/5s inner budget mismatch.
+    if(mode==='switch'){await rm(link);await symlink(next,link);}
+    if(mode==='hang')await delay(200);
+    if(mode==='invalid'){response.end('{');return;}
+    const health=await observeExecutionHealth({version:'1',buildId:'one',core:async()=>{if(mode==='core-failed')throw Error('synthetic private path');return {pid:11,codexPid:12};},
+      dsh:async()=>{if(mode==='dsh-failed')throw Error('synthetic private token');return {pid:21,enginePid:22};}});
+    response.writeHead(health.ok?200:503);response.end(JSON.stringify(health));
+  });
+  await new Promise(done=>server.listen(0,'127.0.0.1',done));
+  const settings={link,unit:'execution.service',coreUnit:'core.service',coreEndpoint:join(root,'core.sock'),tokenPath:join(root,'token'),
+    profile:'headless',healthUrl:`http://127.0.0.1:${server.address().port}/health`};
+  const execution=createExecutionDeployment(settings);
+  try{
+    const [a,b]=await Promise.all([execution.status(),execution.status()]);assert.deepEqual(a,b);assert.equal(requests,1);assert.equal(a.ready,true);assert.equal(a.observation.reason,'ready');
+    for(const failure of ['core-failed','dsh-failed']){mode=failure;const s=await execution.status();assert.equal(s.ready,false);assert.equal(s.version,'1');assert.equal(s.buildId,'one');assert.equal(s.observation.reason,'dependency-unavailable');assert.doesNotMatch(JSON.stringify(s),/private/);}
+    mode='invalid';assert.equal((await execution.status()).observation.reason,'health-invalid');
+    mode='switch';assert.equal((await execution.status()).observation.reason,'release-mismatch');
+    mode='hang';const impatient=createExecutionDeployment({...settings,statusTimeoutMs:30});assert.equal((await impatient.status()).observation.reason,'health-timeout');
+    mode='normal';const current=await execution.status();assert.equal(current.ready,false);assert.equal(current.observation.reason,'release-mismatch','healthy old process cannot authorize a new pointer');
+    let started=0,releaseDependency;const both=new Promise(resolve=>releaseDependency=resolve);
+    const observing=observeExecutionHealth({version:'1',buildId:'one',core:async()=>{started++;await both;return{};},dsh:async()=>{started++;await both;return{};}});
+    assert.equal(started,2,'dependency observations start concurrently');releaseDependency();assert.equal((await observing).ok,true);
+  }finally{server.closeAllConnections();await new Promise(done=>server.close(done));await rm(root,{recursive:true,force:true});}
+});

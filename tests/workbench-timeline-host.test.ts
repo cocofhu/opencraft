@@ -16,6 +16,7 @@ import {
   shouldAcceptWebConversationInvalidation,
   timelineReflowScrollAdjustment,
 } from "@opencraft/timeline-host-web";
+import { projectTimelineViewportLayout } from "@opencraft/timeline-virtualizer";
 import { ScrollToBottomButton } from "../apps/workbench-web/src/components/scroll-to-bottom-button";
 import {
   resolveAppShellMainContentChrome,
@@ -156,7 +157,8 @@ test("Settings navigation enters through a semantic route adapter", () => {
   const callbacks = settingsCallbacks(workbenchApp);
   assert.ok(callbacks.length >= 2, "Settings entrypoints must remain covered");
   for (const callback of callbacks) {
-    assert.ok(ts.isIdentifier(callback) && callback.text === "openSettingsFromConversation",
+    const target = ts.isArrowFunction(callback) && ts.isCallExpression(callback.body) ? callback.body.expression : callback;
+    assert.ok(ts.isIdentifier(target) && target.text === "openSettingsFromConversation",
       `Settings callback bypasses the semantic adapter: ${callback.getText()}`);
   }
 });
@@ -177,7 +179,7 @@ test("the first submit atomically hands presentation from Draft to Conversation 
   );
   assert.match(
     workbenchApp,
-    /draft !== null \? \([\s\S]{0,120}?<PendingConversationPage/u,
+    /emptyState=\{draft !== null \? <PendingConversationPage/u,
   );
   assert.doesNotMatch(newThreadDraftSource, /Starting task/u);
   assert.match(pendingConversationSource, /contains no Draft[\s\S]*Composer/u);
@@ -431,7 +433,8 @@ test("application Settings owns route slots while target management owns a modal
   assert.match(modalSurfaceSource, /<Dialog\.Overlay/u);
   assert.match(modalSurfaceSource, /<Dialog\.Content/u);
   assert.match(modalSurfaceSource, /className="modal-surface__scrim"/u);
-  assert.doesNotMatch(modalSurfaceSource, /createPortal|addEventListener|setAttribute\("inert"\)|onEscapeKeyDown|event\.key/u);
+  assert.doesNotMatch(modalSurfaceSource, /createPortal|addEventListener|setAttribute\("inert"\)/u);
+  assert.match(modalSurfaceSource, /onEscapeKeyDown[\s\S]*?event\.isComposing \|\| event\.keyCode === 229/u);
   assert.doesNotMatch(managementSettingsContentSource, /ModalSurface|Dialog\./u);
   assert.match(modalHostSource, /resolveModalStack\(requests\)/u);
   assert.match(modalHostSource, /<ModalSurface/u);
@@ -659,7 +662,7 @@ test("Native virtualizer publishes live Turn height while response policy owns c
   assert.match(webResponseSource, /OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
 });
 
-test("footer geometry and response placement have disjoint Codex owners", () => {
+test("footer geometry and response placement have disjoint owners", () => {
   assert.match(webViewportOwnerSource, /readonly attachFooterElement/u);
   assert.match(
     webViewportOwnerSource,
@@ -754,7 +757,7 @@ test("physical scroll distance and input classification have one platform transa
   );
 });
 
-test("Composer menus live in the root overlay plane with Codex viewport constraints", () => {
+test("Composer menus live in the root overlay plane with viewport constraints", () => {
   const menus = Array.from(composerSource.matchAll(/<DropdownMenu\.Root\b/gu)).length;
   assert.ok(menus >= 2, "Composer retains its selection menus");
   assert.equal(Array.from(composerSource.matchAll(/<DropdownMenu\.Portal container=\{portalContainer\}>/gu)).length, menus,
@@ -873,7 +876,7 @@ test("Composer submission preserves View-owned focus across primary action swaps
   );
   assert.equal(
     composerSource.match(
-      /onPointerDown=\{\(event\) => \{\s*if \(event\.button === 0\) event\.preventDefault\(\);\s*\}\}/gu,
+      /onMouseDown=\{\(event\) => \{[\s\S]{0,150}?if \(event\.button === 0\) event\.preventDefault\(\);\s*\}\}/gu,
     )?.length,
     2,
     "Send and Stop must not take pointer focus from the current EditorView",
@@ -974,7 +977,7 @@ test("a new-thread workspace is an optional execution override, not Composer own
   );
 });
 
-test("user messages preserve Codex's authored-message width invariant", () => {
+test("user messages preserve the authored-message width invariant", () => {
   assert.match(
     workbenchStyles,
     /&__bubble\s*\{\s*max-width:\s*77%/u,
@@ -1033,7 +1036,7 @@ test("Web owns one desktop topology and keeps responsive projection separate fro
   );
 });
 
-test("narrow desktop header keeps Codex's intrinsic action rail", () => {
+test("narrow desktop header keeps its intrinsic action rail", () => {
   assert.match(
     workbenchStyles,
     /\.app-shell-header__window-controls\s*\{[\s\S]*?width:\s*var\(--app-shell-header-left-slot-width\);[\s\S]*?min-width:\s*max-content;/u,
@@ -1109,7 +1112,7 @@ test("a full-width right panel exclusively owns the center toolbar", () => {
     workbenchStyles,
     /\.main-content-viewport\[data-app-shell-right-panel-full-width="true"\]\s*\{\s*overflow:\s*hidden;/u,
   );
-  assert.match(appShellSource,/className="main-content-frame"\s*style=\{\{ width: mainFrameWidth \}\}/u);
+  assert.match(appShellSource,/className="main-content-frame"\s*(?:data-app-shell-content-plane="main"\s*)?style=\{\{ width: mainFrameWidth \}\}/u);
   assert.match(workbenchStyles,/\.main-content-frame\s*\{[^}]*min-width:\s*100%;[^}]*container:\s*app-shell-main-content/u);
 });
 
@@ -1333,7 +1336,7 @@ test("browser portal commits one dual-coordinate viewport transaction", () => {
   );
   assert.match(
     browserPanelSource,
-    /requestAnimationFrame\([\s\S]*?presentation\.measure\(\)/u,
+    /const measure = \(\) => presentation\.measure\(\);[\s\S]*?frame\.postRender\(measure\)/u,
   );
   assert.match(
     browserSurfaceHostSource,
@@ -1395,6 +1398,16 @@ test("thread edge-scroll is one measured AppShell state", () => {
     }),
     { headerEdgeScroll: true, threadEdgeDivider: false },
   );
+
+  for (const eligible of [false, true]) {
+    assert.deepEqual(resolveAppShellMainContentChrome({
+      layout: "thread-edge-scroll", threadEdgeScrollEligible: eligible, recessedHeader: true,
+    }), { headerEdgeScroll: false, threadEdgeDivider: true },
+    "a recessed reading plane and its depth must share the header boundary at every width");
+  }
+  assert.deepEqual(resolveAppShellMainContentChrome({
+    layout: "default", threadEdgeScrollEligible: true, recessedHeader: true,
+  }), { headerEdgeScroll: false, threadEdgeDivider: false });
 
   const threshold = THREAD_EDGE_SCROLL_MINIMUM_WIDTH_REM * 16;
   assert.equal(
@@ -1594,7 +1607,7 @@ test("the conversation scrollport terminates browser boundary scrolling", () => 
   assert.doesNotMatch(workbenchStyles, /data-timeline-overscroll/u);
 });
 
-test("reflow pinning follows Codex window-zoom compensation", () => {
+test("reflow pinning follows window-zoom compensation", () => {
   assert.equal(timelineReflowScrollAdjustment(200, 260), 60);
   assert.equal(timelineReflowScrollAdjustment(200, 260, 1.5), 40);
 });
@@ -1619,7 +1632,7 @@ test("response spacer mutation stays private behind a read/subscribe API", () =>
   assert.doesNotMatch(webConversationSource, /responseApi\?\.spacerHeight/u);
 });
 
-test("the Web host explicitly selects Codex natural bottom-follow without a hidden policy default", () => {
+test("the Web host explicitly selects natural bottom-follow without a hidden policy default", () => {
   assert.match(workbenchApp, /scrollPolicy="natural"/u);
   assert.match(workbenchApp, /consumePendingLatestTurnSubmitPlacement=\{consumeLatestTurnPlacement\}/u);
   assert.match(webConversationSource, /readonly scrollPolicy: ConversationScrollPolicy/u);
@@ -1676,6 +1689,48 @@ function viewportPortFixture(mobile = true) {
   };
 }
 
+test("available layout is independent of native pan, focus and pinch magnification", () => {
+  const make = (offset: number, scale = 1, focused = true) => createWebTimelineViewportSnapshot({
+    editableFocused: focused, layoutWidthPx: 390, layoutHeightPx: 844, revision: 0,
+    visualWidthPx: 390 / scale, visualHeightPx: 440 / scale, visualOffsetTopPx: offset, scale,
+  });
+  for (const offset of [0, 180, 60, -30, 0]) {
+    assert.deepEqual(projectTimelineViewportLayout(make(offset)), {
+      availableViewport: { widthPx: 390, heightPx: 440 }, occludedBottomPx: 404,
+    });
+    assert.deepEqual(projectTimelineViewportLayout(make(offset, 1, false)), projectTimelineViewportLayout(make(offset)));
+  }
+  assert.deepEqual(projectTimelineViewportLayout(make(120, 2)), {
+    availableViewport: { widthPx: 390, heightPx: 844 }, occludedBottomPx: 0,
+  });
+});
+
+test("native focus pan maps the fixed frame origin without changing capacity", () => {
+  const f = viewportPortFixture();
+  try {
+    f.input.focus(); f.input.setSelectionRange(2, 2);
+    f.visual.height = 440; f.visual.offsetTop = 0;
+    f.visual.dispatchEvent(new f.win.Event("resize")); f.frame(20);
+    const style = f.win.document.documentElement.style;
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-height"), "440px");
+    f.visual.offsetTop = 180;
+    Object.defineProperty(f.win, "scrollY", { value: 60, configurable: true });
+    f.win.dispatchEvent(new f.win.Event("scroll")); f.frame(40);
+    assert.equal(f.port.getSnapshot().visualOffset.topPx, 180);
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-height"), "440px");
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-top"), "180px");
+    // CSS top is a layout coordinate; subtract the visual origin to test
+    // screen placement. Document scrolling is not another fixed-frame offset.
+    assert.equal(Number.parseFloat(style.getPropertyValue("--timeline-available-viewport-top")) - f.visual.offsetTop, 0);
+    assert.equal(style.getPropertyValue("--timeline-page-viewport-top"), "");
+    assert.equal(style.getPropertyValue("--timeline-visual-viewport-offset-top"), "");
+    const revision = f.port.getSnapshot().revision; f.frame(60);
+    assert.equal(f.port.getSnapshot().revision, revision);
+    assert.equal(f.win.document.activeElement, f.input); assert.equal(f.input.selectionStart, 2);
+    assert.equal(f.input.value, "keep draft");
+  } finally { f.close(); }
+});
+
 test("mobile viewport reconciles a native restoration after the last focus event", () => {
   const f = viewportPortFixture();
   try {
@@ -1693,7 +1748,7 @@ test("mobile viewport reconciles a native restoration after the last focus event
     f.visual.height = 844; // Native transition finishes without another event.
     f.frame(1_250);
     assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
-    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-visual-viewport-height"), "844px");
+    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-available-viewport-height"), "844px");
     assert.equal(f.input.value, "keep draft");
     assert.equal(f.input.selectionStart, 2);
   } finally { f.close(); }

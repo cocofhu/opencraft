@@ -49,13 +49,14 @@ test("Codex reset credits render authoritative totals, zero, and unknown for old
 test("Codex account row shares touch-safe hover and a reachable actions target", () => {
   const styles = readFileSync(new URL("../apps/workbench-web/src/styles/codex-accounts.scss", import.meta.url), "utf8");
   const settings = readFileSync(new URL("../apps/workbench-web/src/styles/settings-panel.scss", import.meta.url), "utf8");
+  const interaction = readFileSync(new URL("../packages/design-system/src/interaction-mixins.web.scss", import.meta.url), "utf8");
   const controls = readFileSync(new URL("../packages/design-system/src/controls.web.scss", import.meta.url), "utf8");
   const menu = readFileSync(new URL("../packages/design-system/src/menu.web.scss", import.meta.url), "utf8");
   assert.match(styles, /\.codex-account__row\s*\{[\s\S]*?@include controls\.hover-capable/u);
   assert.doesNotMatch(styles, /&:hover,\s*&:focus-within\s*\{\s*background/u);
   assert.match(styles, /:root\[data-touch-interaction\] \.settings-icon-button\.codex-account__menu-trigger\s*\{\s*opacity: 1;/u);
   assert.match(settings, /@media \(any-pointer: coarse\), \(hover: none\)[\s\S]*?\.settings-control-button\.settings-icon-button\s*\{ width: 44px; height: 44px; \}/u);
-  assert.match(controls, /@mixin hover-capable\s*\{\s*@media \(any-hover: hover\) and \(any-pointer: fine\)[\s\S]*?:root:not\(\[data-touch-interaction\]\) &/u);
+  assert.match(interaction, /@mixin hover-capable\s*\{\s*@media \(any-hover: hover\) and \(any-pointer: fine\)[\s\S]*?:root:not\(\[data-touch-interaction\]\) &/u);
   assert.match(menu, /@include controls\.hover-capable/u);
   assert.match(menu, /@include controls\.density-target\(0px, 28px\)/u);
   assert.match(controls, /min-height: max\(#\{\$height\}, var\(--size-control-hit-min\)\)/u);

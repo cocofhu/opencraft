@@ -254,6 +254,15 @@ execution across daylight-saving changes. The existing conversation menu is
 the only creation entry. Editing and background reads do not replace a form's
 captured revision or unsaved draft.
 
+The editor lists the Host's verified permission profiles and stores the selected
+profile on the plan. An omitted selection retains conversation defaults; legacy
+plans are never silently promoted to Full access. Each occurrence snapshots its
+selection before admission. Codex resolves it to an allowed native profile before
+claiming the durable queue row, including after restart; DSH passes it through
+its existing permission authority. Changing a plan does not change an admitted
+occurrence. The Host rejects unknown or disabled profile selections on save,
+and the engine remains authoritative at execution time.
+
 `ScheduleExecutionPort` separates scheduling from engine admission. An adapter
 validates the target, attempts non-interrupting submission using the occurrence
 ID, and independently inspects execution outcome. Codex reuses its durable
@@ -305,3 +314,174 @@ The marker has no effect on activity grouping, unread or execution state.
 ## 主体协作输入
 
 Headless 的主体协作服务将执行请求交给现有 CodexHostQueue，以稳定 clientUserMessageId 查询回执和恢复，不拥有第二个运行领取者。queue 与 steer 分别授权，steer 固定 expectedTurnId；Actor 代次、实例准入、目标 grant 和运行绑定在入队及领取前复核。协作提交不等于任务完成，结果不明先查询，绝不自动换成另一种执行模式。完整契约见[主体协作接口](actor-collaboration-api.md)。
+
+## Optional execution engines in one Host
+
+Headless can enable `--engines dsh,pi` (default engine DSH), or `--engines pi`
+without allocating DSH. `--default-engine pi` changes new-conversation defaults;
+restoring an existing conversation always uses its native engine. Engine identity
+is distinct from machine identity and model provider. The model menu groups the
+available models by engine in both standalone and embedded model pickers; a live thread receives only its own engine's catalog. Engine/provider headings remain visible inside each Agent group, so identical model names remain distinguishable.
+The `runtime/engines/list` endpoint describes the enabled engine registry.
+
+`plugins/pi-engine` embeds the pinned experimental `pi-durable` 1.3.0 SDK in the
+server execution owner. It does not start the legacy Pi CLI RPC process. The owner
+holds each session's SQLite database, writer lock, scheduler and model/tool environment.
+For providers without a server queue, the browser outbox holds follow-ups while
+the current Turn is active and preserves input identity across baseline recovery.
+Pi publishes native idle status when a Turn settles so waiting local follow-ups
+can be admitted after the current execution completes.
+Closing the owner suspends work; explicit stop aborts it. On startup the owner checks
+recovery hints against native durable records and resumes unfinished inputs. Native
+entries, submissions and committed partials are the history authority; the adjacent
+JSON index contains routing and display metadata only. Different engines do not
+resume or translate one another's ledgers.
+
+Pi uses deployment-local `pi/auth.json` and `pi/models.json` under the server data
+directory, in the coding-agent formats. These are distinct from DSH connection
+settings. Do not copy credentials into thread metadata. The integration accepts text, local file references, explicitly selected skill files,
+and base64/local images when the selected model accepts images, alongside native coding
+tools and client-declared platform tools. Audio and remote-image/file-ID inputs are rejected.
+Additional context preserves its source and application/untrusted classification inside
+the submitted user context; it is never promoted to system instructions. Original input
+blocks and client identity are atomically recorded in the native input entry, including
+queued admission, rather than in a parallel message store. Platform tool
+leases expire on client disconnect; they are not marked replay-safe, so recovery
+cannot repeat an external side effect on that assumption. Workspace AGENTS.md files
+are loaded by the coding-agent context loader. Workspace project IDs are retained as catalog metadata across restart; they do not enable project-specific runtime instructions or change the native cwd. The canonical Full access profile and equivalent never-approve/danger-full-access policy are accepted on creation, restore and turns; restricted/custom permission profiles are rejected before execution. Managed profile skills, schedules and alternative permission profiles are not yet
+implemented by this provider. Native tools run with the execution owner's filesystem
+and process permissions; this provider does not advertise a sandbox.
+
+Engine registration is trusted server composition, not installable client code or
+an authorization grant. Actor admission and Host access stay at the existing ingress.
+The current registry composes the local DSH/Pi endpoint; Codex's existing endpoint
+continues independently. Enabling this registry does not migrate Codex into it.
+
+### Backend connection loss and client recovery
+
+The multi-engine Host treats each frontend connection and its DSH backend as one
+connection incarnation. Losing the backend revokes the frontend incarnation,
+settles pending RPC and platform-tool leases, and closes the frontend with a
+retryable service-restart close. Late target resolution and backend frames cannot
+allocate or publish into a retired incarnation. The Host does not silently swap
+backend sockets: DSH Thread attachments belong to the old physical connection.
+
+The existing client connection owner reconnects and negotiates capabilities;
+Thread recovery then issues Resume, restores its history boundary and reattaches
+notifications before marking that Thread authoritative. Host readiness and Thread
+authority remain separate. Recovery does not replay accepted execution requests.
+When DSH is configured, its initialization failure rejects the Host handshake
+instead of substituting Pi capabilities. Pi-only composition never allocates DSH.
+
+This contract uses the current Host-wide connection unit: a DSH connection loss
+also expires Pi client/tool leases on that frontend and briefly reconnects its
+Pi conversations. It does not close either engine owner or restart its process.
+Independent recovery of engines would require an explicit engine-generation
+protocol; it is not implied by reconnecting an internal socket.
+
+### Pi durable field and projection contract
+
+Start, Resume and turn configuration share validation. Model and thinking, cwd and
+developer instructions belong to native AgentDoc; base instructions use a native
+conversation document rendered through a prompt section. A cwd change rebuilds its
+execution environment and workspace context at the next request. Only one workspace
+root equal to cwd is currently supported. Nonempty schema constraints, collaboration
+modes and other unimplemented semantic overrides fail explicitly; accepting a prompt
+request does not imply those options took effect. Legacy history remains negotiated.
+
+One projection consumes native entries, submissions, task timestamps, LiveDoc and
+UsageDoc for streaming and history. Generation task identity plus immutable assistant
+position identifies an in-flight response and its committed entry; entries without
+native task attribution use their entry identity. Original input spans survive reload.
+Tool namespaces and image output survive projection, and unsupported tool media fail
+instead of returning a success placeholder. Bash progress uses the retained native
+window; replacement/trim emits a full item update rather than a false appended delta.
+
+A live platform-tool owner cannot be replaced during execution. Disconnect revokes
+its lease and rejects pending calls; a successor may attach the same tool definitions
+after the old owner expires. Replies are checked against the captured lease, so a
+late reply cannot mutate the successor. Reattachment never replays an unsafe call.
+Storage/watch failure explicitly settles the visible turn as failed while retaining
+the native ledger and recovery hint for inspection on reopen.
+
+Project catalogs, filesystem browsing and upload staging are Host resources. The
+multi-engine endpoint serves the same deployment directories with or without DSH;
+enabling Pi does not create a separate project database. Provider catalogs filter
+project/cwd/provider/source first, then Host applies a common stable sort and pagination.
+Corrupt individual Pi indexes remain on disk and do not prevent loading other sessions.
+
+The Workbench may resend Full access together with its resolved native sandbox
+policy. Pi accepts that redundant equivalent representation, while validating every
+supplied permission field and rejecting any restricted or custom value.
+
+Online first submissions with ready attachments or context wait for the existing Thread hydration owner before entering Conversation admission. The command retains the original references and checks lease lifetime after hydration. The text-only offline outbox does not take custody of transient asset handles; offline refusal and uncertain-execution fencing remain unchanged.
+
+Native user-role model context is not itself user admission. Only input submissions, native UserEntry and the adapter input entry start Turns. CompactionEntry renders a stable contextCompaction item on the prior Turn without changing its execution duration; passive context writes cannot invent a user Turn.
+
+### Pi temporary Side Chat
+
+Pi declares `ephemeralFork` independently of persistent `fork`. The shared Side Chat
+service resolves that capability for the parent Thread, forks with `ephemeral: true`
+and `excludeTurns: true`, injects its boundary, then adopts the active child. The
+Engine Host admits that returned child identity without a disk Resume. Persistent
+Pi Fork and historical fork points remain unsupported.
+
+A temporary owner uses native MemoryStorage. Its passive reference entry contains
+the parent's committed native model context, including images, tool results and
+compaction effects, rather than rendered transcript text. It inherits the current
+model, thinking level, cwd, instructions and tool declarations; it never copies
+active tasks, inbox inputs or usage. Parent and child execution remain independent.
+Only new child input starts generation. User-text boundary injection is passive and
+rejects unsupported roles/media and active-child injection before committing.
+
+Temporary Threads have no index, SQLite database, writer lock or catalog row.
+Platform-tool changes update the native registry without replacing the memory
+owner. Disconnect revokes its tool lease; reconnect may reattach the same live
+owner. Explicit unsubscribe disposes it and removes its identity. Server restart
+loses these conversations. The normal persistent Pi owner and recovery path remain
+disk-backed. Full access validation applies equally to both kinds.
+
+### Trusted native transport composition
+
+Headless composition may supply `decorateCodexNativeTransport`, applied only to
+the independent Core native transport when Headless owns Host overlays. This
+in-process boundary runs after Host execution/input admission and retains the
+original account control client. It must preserve native request correlation,
+notifications, connection ownership and caller tool/permission semantics. It is
+not configured through renderer RPCs and never owns the Core process. Product
+provider catalogs and protocol adaptation belong to product composition, not the
+shared Codex adapter or global native configuration.
+
+### Application schedule catalog
+
+The Scheduled tasks workbench entry projects the same admitted Host summaries
+used by conversation markers. It lists current active/paused plans and unresolved
+acceptance, independently of conversation pagination and personal list filters.
+Each task card retains its Host identity, even if conversation metadata has not loaded.
+The catalog uses a responsive card grid with a task title, explicit task status,
+next execution time where applicable, and conversation/management actions.
+Paused tasks explain that automatic execution is suspended; Host connectivity
+remains a separate group-level state. Cards consume the existing content-free
+summary without per-task schedule reads or an additional execution owner.
+It can navigate through the application Router or open the existing conversation
+schedule editor. The catalog also creates schedules using an admitted Host’s
+thread/start and schedule/save operations; no first Turn is submitted at creation.
+Confirmed thread receipts are retained across name/save failures; ambiguous
+thread creation is never automatically replayed. Host scope is fenced before
+every request. Hosts advertising calendar support accept local daily/weekly/
+monthly rules, multiple times and optional effective windows. The Host computes
+future UTC occurrences using the saved IANA zone; nonexistent wall times and
+month days are skipped and ambiguous wall times run once. Fixed intervals retain
+their original phase and may filter weekdays. Skills are passed as explicit
+instructions to the native agent. Existing conversation editing preserves these
+advanced fields. Summary reads contain
+no prompts or execution history and never acquire conversation execution ownership.
+Unsupported, offline, loading, failed and genuinely empty Host catalogs are distinct;
+same-scope cached plans survive transient disconnects. An idle connection recipe
+without a negotiated schedule-summary capability or a same-scope successful
+summary is not rendered as a disconnected scheduling Server. Previously confirmed
+catalogs remain visible during disconnection; discovery does not connect idle
+Hosts merely to populate this page. Editor requests fence the
+captured Host/profile/authorization scope, with backend revision checks unchanged.
+
+The scheduled task catalog resolves names for durable conversations missing from `thread/list` through metadata-only `thread/read`, under the same Host admission and authorization fences. This does not start a Turn or create a second title authority; failed metadata reads retain the plan with its conversation ID. Reads are limited to four concurrent requests per Host.

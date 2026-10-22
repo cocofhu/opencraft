@@ -3,7 +3,6 @@ import { writeTextToClipboard } from "@opencraft/chat-render-web/clipboard";
 import { conversationRecoveryDiagnosticText, type ConversationRecoveryDiagnostic } from "../runtime/conversation-recovery-diagnostic";
 import { FormattedMessage } from "@opencraft/i18n/react";
 
-import { LoadingSpinner } from "./ui/loading-spinner";
 
 export type ConversationRecoveryPresentation = "none" | "cold-loading" | "cold-error" | "warm-loading" | "warm-error";
 
@@ -15,6 +14,19 @@ export function conversationRecoveryPresentation(input: {
 }): ConversationRecoveryPresentation {
   if (input.authoritative) return "none";
   return `${input.hasVisibleHistory ? "warm" : "cold"}-${input.failed ? "error" : "loading"}`;
+}
+
+/** Intermediate errors can still belong to an active automatic retry. */
+export function conversationRecoveryIsPending(
+  presentation: ConversationRecoveryPresentation,
+  diagnostic?: ConversationRecoveryDiagnostic,
+  requiresUpdate = false,
+): boolean {
+  if (presentation === "none" || requiresUpdate) return false;
+  const stage = diagnostic?.progress?.stage;
+  if (stage === "failed" || stage === "blocked") return false;
+  if (presentation.endsWith("-loading")) return true;
+  return stage !== undefined;
 }
 
 function ClientUpdateRequired() {
@@ -31,10 +43,11 @@ function RecoveryTechnicalDetails({ diagnostic, pending = false }: { readonly di
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const text = conversationRecoveryDiagnosticText(diagnostic);
   return <details className="conversation-recovery-details">
-    <summary><FormattedMessage id="chat.recovery.details" defaultMessage="Technical details" /></summary>
+    <summary className="ui-native-disclosure"><FormattedMessage id="chat.recovery.details" defaultMessage="Technical details" /></summary>
     {!pending ? <p><RecoveryFailureStage stage={diagnostic.stage} /></p> : null}
     <pre>{text}</pre>
     <button type="button" onClick={() => {
+      try { console.log("[conversation-recovery] copied details\n" + text); } catch { /* Logging cannot prevent copying. */ }
       void writeTextToClipboard(text).then(() => setCopyState("copied"), () => setCopyState("failed"));
     }}><FormattedMessage id="chat.recovery.copy" defaultMessage="Copy details" /></button>
     <span role="status">{copyState === "copied"
@@ -102,33 +115,25 @@ export function ConversationRecoveryEmptyState({ failed, requiresUpdate = false,
       {diagnostic ? <RecoveryFailureDetails key={diagnostic.progress ? diagnostic.viewKey : `${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
     </div>
   );
-  return (
-    <div className="conversation-recovery-loading" role="status">
-      <span className="conversation-recovery-loading__label"><FormattedMessage id="chat.restore.loading" defaultMessage="Loading conversation history…" /></span>
-      <LoadingSpinner />
-    </div>
-  );
+  return null;
 }
 
-export function ConversationRecoveryNotice({ failed, reconnecting, requiresUpdate = false, onRetry, diagnostic }: {
+export function ConversationRecoveryNotice({ failed, requiresUpdate = false, onRetry, diagnostic }: {
   readonly failed: boolean;
-  readonly reconnecting: boolean;
+  readonly reconnecting?: boolean;
   readonly diagnostic?: ConversationRecoveryDiagnostic;
   readonly requiresUpdate?: boolean;
   readonly onRetry?: () => void;
 }) {
-  const syncing = !failed && !reconnecting;
+  // An intermediate request error is not a stopped recovery episode.
+  // The existing owner keeps retrying without putting chrome over retained history.
+  const stage = diagnostic?.progress?.stage;
+  if (!failed || (!requiresUpdate && stage !== undefined && stage !== "failed" && stage !== "blocked")) return null;
   return (
-    <div className={`conversation-recovery-notice${syncing ? " conversation-recovery-notice--syncing" : ""}`} role={failed ? "alert" : "status"}>
-      {syncing ? <LoadingSpinner /> : <span className="conversation-recovery-notice__dot" aria-hidden="true" />}
-      <span className={syncing ? "conversation-recovery-loading__label" : undefined}>{failed
-        ? requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.reconnect.failed" defaultMessage="Could not reconnect" />
-        : reconnecting
-          ? <FormattedMessage id="chat.reconnect.pending" defaultMessage="Reconnecting…" />
-          : <FormattedMessage id="chat.sync.pending" defaultMessage="Syncing…" />}
-      </span>
-      {failed && !requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
-      {failed && diagnostic ? <RecoveryFailureDetails key={diagnostic.progress ? diagnostic.viewKey : `${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
+    <div className="conversation-recovery-notice" role="alert">
+      <span>{requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.reconnect.failed" defaultMessage="Could not reconnect" />}</span>
+      {!requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
+      {diagnostic ? <RecoveryFailureDetails key={diagnostic.progress ? diagnostic.viewKey : `${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
     </div>
   );
 }

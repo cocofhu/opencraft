@@ -1,10 +1,11 @@
 import type { ComposerContextReference, SubmitIntent } from "@opencraft/composer-core";
 import type { AppServerMethod, AppServerMethodParams, AppServerMethodResult } from "@opencraft/appserver-protocol";
-import { record, type McpAppPort } from "./contract";
+import { record, type McpAppPort, type McpAppWidgetStateStore } from "./contract";
 import { MCP_APP_RESOURCE_META } from "@opencraft/appserver-protocol/mcp-apps";
 
 interface OwnerOptions {
   readonly key: string;
+  readonly widgetStateStore?: { readonly scope: string; readonly entries: McpAppWidgetStateStore };
   readonly threadId: string;
   readonly assertCurrent: () => void;
   readonly request: <M extends AppServerMethod>(method: M, params: AppServerMethodParams<M>) => Promise<AppServerMethodResult<M>>;
@@ -14,12 +15,21 @@ interface OwnerOptions {
 /** Ephemeral view state, never a second conversation history or execution authority. */
 export function createMcpAppOwner(options: OwnerOptions): McpAppPort & { augment(intent: SubmitIntent): SubmitIntent } {
   const context = new Map<string, string>();
+  const widgetStates: McpAppWidgetStateStore = options.widgetStateStore?.entries ?? new Map();
   let catalogReadAt = 0;
   let catalog: Promise<Record<string, Record<string, unknown>>> | null = null;
   let historyHydration: Promise<unknown> | null = null;
   const assertCurrent = options.assertCurrent;
   return {
     key: options.key, assertCurrent,
+    widgetState(viewId, identity) {
+      assertCurrent();
+      const key = JSON.stringify([options.widgetStateStore?.scope ?? options.key, viewId,
+        identity.server, identity.uri, identity.callId]);
+      let state = widgetStates.get(key);
+      if (!state) { state = { current: null }; widgetStates.set(key, state); }
+      return state;
+    },
     async readResource(server, uri, callId) {
       assertCurrent();
       const read = () => options.request("mcpServer/resource/read", { threadId: options.threadId, server, uri, originCallId: callId });

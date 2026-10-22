@@ -1,5 +1,6 @@
+import { EditIcon as Pencil } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
-import { Pencil } from "lucide-react";
+
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useAsyncNotices } from "./async-notices";

@@ -134,3 +134,26 @@ ABI 不匹配、共享库或 spawn helper 不可用均中止打包。受管 exec
 保留当前运行版本，既不手工覆盖 native 文件，也不绕过受管更新事务。
 
 配置了独立 DSH Host 时，执行健康检查直接观察受保护描述文件所声明的 Host 进程，不依赖引擎客户端是否已懒连接；多引擎首次浏览前也必须报告同一 Host 身份。不可用仍报告失败，安装器仍核对升级前后的 Host/engine PID。
+
+## Independent static documents
+
+The admitted static host serves a directory's `index.html` before its SPA fallback.
+A packaged `tools/probe/index.html` can therefore be visited at `/tools/probe`,
+`/tools/probe/` or its explicit HTML path, without starting Workbench. Use absolute
+asset URLs when the extensionless and trailing-slash forms share a document.
+Ordinary document admission, reserved API paths, GET/HEAD and revalidation policy
+remain in force; this does not add a public-authentication exception. Product
+composition owns its document and build entry, not the generic gateway.
+
+
+## 保留本地数据的模块资源恢复
+
+受管 Web worker 在入口 HTML 声明 `opencraft-resource-recovery` 能力。
+浏览器报告网络型模块导入失败时，入口最多自动进行一次资源恢复；错误页的重新加载按钮也可显式重试。
+恢复保留原 origin、应用路径和既有 query，仅设置同名恢复 query token，worker 将入口与预加载资源指向
+`/assets/recovery-<token>/`。相对模块导入沿用此路径，worker 将其解析为原来的静态文件，
+因此整个模块依赖图使用新的浏览器缓存键，无须清理 Cookie、本地数据库、会话或配置。
+应用 `<base>` 和 API 地址不变，旧内容哈希路径继续可用；资源文件不复制、不改写。
+恢复仍失败时保留错误页，不自动无限刷新；普通代码执行错误和存储错误不触发此自动恢复。
+Vite preload 错误必须保留拒绝语义，不能因 `preventDefault` 将导入结果变为 `undefined`。
+未声明此能力的静态或开发服务器继续普通重载，不假定支持恢复资源路径。

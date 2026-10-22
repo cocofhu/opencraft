@@ -80,7 +80,7 @@ export function createWorkbenchWebConfig(
   process.env.VITE_INCLUDE_HYPERNODE_PLUGIN = includeHyperNodePlugin ? "true" : "false";
   process.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN = includeBuiltinAgentsPlugin ? "true" : "false";
   process.env.VITE_INCLUDE_HEADLESS_MODEL_SERVICES = includeHeadlessModelServices ? "true" : "false";
-  process.env.VITE_INCLUDE_HEADLESS_CODEX = includeHeadlessModelServices ? "true" : "false";
+  process.env.VITE_INCLUDE_HEADLESS_APPHOST = includeHeadlessModelServices ? "true" : "false";
   process.env.VITE_INCLUDE_TASKS_PLUGIN = !isEmbeddedWorkbenchBuild && (features.tasks ?? true) ? "true" : "false";
 
   interface WebReleaseMetadata {
@@ -250,6 +250,7 @@ export function createWorkbenchWebConfig(
               },
               injectTo: "head",
             },
+            {tag:"meta",attrs:{name:"opencraft-source-revision",content:metadata.sourceRevision??""},injectTo:"head"},
           ];
         },
       },
@@ -361,7 +362,7 @@ export function createWorkbenchWebConfig(
     // Both targets are served at their origin root. Root-relative assets also
     // survive direct loading/reloading /views/:id and /settings/:id routes.
     // The Electron static server maps that root to the relocatable signed bundle.
-    base: isEmbeddedWorkbenchBuild ? "/__opencraft/" : process.env.VITE_INCLUDE_HEADLESS_CODEX === "true" ? "./" : "/",
+    base: isEmbeddedWorkbenchBuild ? "/__opencraft/" : process.env.VITE_INCLUDE_HEADLESS_APPHOST === "true" ? "./" : "/",
     define: { "process.env.NODE_ENV": JSON.stringify(mode), "process.env.PROD": JSON.stringify(mode === "production") },
     plugins: [
       ...(!isElectronRenderer && !isEmbeddedWorkbenchBuild && (features.pluginBranding ?? true) ? [pluginBranding(workspaceRoot,
@@ -489,6 +490,10 @@ export function createWorkbenchWebConfig(
             { name: "workbench-entry", test: /\/src\/workbench-(?:entry\.ts|root\.tsx)(?:\?.*)?$/, includeDependenciesRecursively: false },
             { name: "workbench-shell", test: /\/apps\/workbench-web\/src\/app\.tsx$/, includeDependenciesRecursively: false },
             { name: "embedded-styles", test: /\.(?:scss|css)\?inline$/, includeDependenciesRecursively: false },
+            // Notices and rename dialogs share generated typography. Keep their
+            // styles together when another lazy management page shares a Modal,
+            // so the common typography sheet is emitted once at startup.
+            { name: "workbench-feedback-styles", test: /\/components\/(?:async-notices|conversation-rename-dialog)\.scss$/, includeDependenciesRecursively: false },
             { name: "workbench-context", test: /\/runtime\/(?:appserver-runtime-context\.tsx|workbench-application-services\.ts)$/, includeDependenciesRecursively: false },
             { name: "vendor", test: /\/node_modules\//, entriesAware: true, includeDependenciesRecursively: false },
             // Keep the demand-loaded math renderer out of small shared protocol

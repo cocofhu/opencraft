@@ -33,7 +33,7 @@ revision.
 
 ## Agent Console compatibility closure
 
-The downstream the downstream product product consumes a bounded closure of Agent Console source
+The downstream product consumes a bounded closure of Agent Console source
 generated from its own frontend service. The generated compatibility copy lives
 in the downstream product workspace and is owned there together with its
 generator, drift check and `UPSTREAM.json`. Generated files are never edited by

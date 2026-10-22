@@ -1,5 +1,6 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut } from "../workbench-shortcuts";
-import { Search } from "lucide-react";
+
 import { NavigationIcon } from "./shell-navigation/navigation-action";
 import { focusChromeAction } from "../chrome-actions/use-chrome-action-focus";
 // OpenCraft services/scope policy and Viewport/Frame ownership. Geometry does not reuse animation aperture width
@@ -26,6 +27,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { getAppearanceThemeShellMaterial, useAppearanceTheme } from "../appearance-theme";
 
 import {
   getHeaderStartMinimumWidth,
@@ -141,7 +143,7 @@ export function ApplicationShellRoot({
       className={["app-shell-root", className].filter(Boolean).join(" ")}
       data-selection="chrome"
       data-opencraft-window-type={windowChrome.kind}
-      data-codex-os={windowChrome.platform}
+      data-opencraft-platform={windowChrome.platform}
       data-sidebar-open={sidebarOpen}
       data-sidebar-mounted={sidebarMounted}
       data-sidebar-presentation={sidebarPresentation}
@@ -357,6 +359,9 @@ export function AppShell({
   const [rightPanelPresentationActive, setRightPanelPresentationActive] =
     useState(rightPanelOpen || rightPanelAnimation.get() > 0.001);
   const mainContentViewportRef = useRef<HTMLDivElement | null>(null);
+  const appearance = useAppearanceTheme();
+  const recessedHeader = windowChrome.kind === "browser"
+    && Boolean(getAppearanceThemeShellMaterial(appearance)?.recessedHeaderBackground);
   const [threadEdgeScrollEligible, setThreadEdgeScrollEligible] =
     useState(false);
   const {
@@ -365,6 +370,7 @@ export function AppShell({
   } = resolveAppShellMainContentChrome({
     layout: presentedMainContentLayout,
     threadEdgeScrollEligible,
+    recessedHeader,
   });
   const {
     animatedSize: animatedSidebarWidth,
@@ -434,6 +440,12 @@ export function AppShell({
     ),
   );
   const rightPanelWidth = useTransform(paneGeometry, geometry => geometry.contentWidth);
+  // Maximization moves the aperture, not the tool's layout viewport. Retain
+  // that mode while hidden; the next visible intent chooses its own endpoint.
+  const rightPanelContentFullWidth = useRef(rightPanelFullWidth);
+  if (rightPanelOpen) rightPanelContentFullWidth.current = rightPanelFullWidth;
+  const rightPanelContentWidth = rightPanelContentFullWidth.current
+    ? mainContentWidth : regularRightPanelWidth;
   const mainFrameWidth = useTransform(paneGeometry, geometry => geometry.frameWidth);
   // This is the width owned by surrounding chrome, not the physical aside.
   // Full-width mode replaces the main viewport and therefore reserves no
@@ -609,9 +621,15 @@ export function AppShell({
   });
   // One progress drives foreground travel and stationary sidebar depth; translating the row leaves the root's
   // viewport coordinates (and gesture acquisition) unchanged.
-  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
+  const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) =>
+    Math.max(0, Math.min(1, Number(progress))) * Number(width));
   const reducedMotion = useReducedMotion();
   const mobilePageWash = useTransform(mobileGesture.progress, value => reducedMotion ? 0 : 0.65 * Math.max(0, Math.min(1, value)));
+  // The physical browser surface is portaled outside the moving row. Publish
+  // position changes too: ResizeObserver cannot see an ancestor translation.
+  useLayoutEffect(() => mobilePageX.on("change", () => {
+    rightPanelLayoutTick.set(rightPanelLayoutTick.get() + 1);
+  }), [mobilePageX, rightPanelLayoutTick]);
   const mobilePageBlocked = mobileSidebarEnabled && (drawerRequested || floatingIntent.requested || mobileGesture.dragging);
   const sidebarPresentation = resolveSidebarPresentation({
     docked: sidebarOpen,
@@ -920,6 +938,13 @@ export function AppShell({
           ) : null}
           </Sidecar>
 
+          {/* Paint is a sibling of the clipped content surface. Consume the
+              same current width as Sidecar, not the saved CSS width at root. */}
+          <motion.div
+            className="app-shell-content-depth"
+            aria-hidden="true"
+            style={{ left: totalLeftWidth }}
+          />
           <main
             className="main-content-surface"
             data-app-shell-main-surface="default"
@@ -948,6 +973,7 @@ export function AppShell({
               >
                 <motion.div
                   className="main-content-frame"
+                  data-app-shell-content-plane="main"
                   style={{ width: mainFrameWidth }}
                   data-app-shell-thread-edge-divider={threadEdgeDivider}
                 >
@@ -968,6 +994,8 @@ export function AppShell({
                 mainContentWidth={mainContentWidth}
                 open={rightPanelOpen}
                 rightPanelWidth={rightPanelWidth}
+                contentWidth={rightPanelContentWidth}
+                contentFullWidth={rightPanelContentFullWidth.current}
                 rightPanelWidthRatio={rightPanelWidthRatio}
                 rightPanelLayoutTick={rightPanelLayoutTick}
                 shellHeight={shellHeight}

@@ -32,8 +32,8 @@ export function ConversationRenameDialog({ value, pending, onChange, onSubmit, o
         <SettingsButton type="button" disabled={pending} onClick={onDismiss}>
           {intl.formatMessage({ id: "common.cancel", defaultMessage: "Cancel" })}
         </SettingsButton>
-        <SettingsButton type="submit" variant="primary" disabled={pending || !value.trim()} aria-busy={pending || undefined}>
-          {intl.formatMessage({ id: "common.save", defaultMessage: "Save" })}
+        <SettingsButton type="submit" variant="primary" disabled={!value.trim()} loading={pending}>
+          {intl.formatMessage(pending ? { id: "sidebar.thread.saving", defaultMessage: "Saving…" } : { id: "common.save", defaultMessage: "Save" })}
         </SettingsButton>
       </div>
     </form>

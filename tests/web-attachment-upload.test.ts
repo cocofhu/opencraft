@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import WebSocket from "ws";
+import type { TransportStatus } from "@opencraft/appserver-client";
 
 import { LocalAttachmentStagingService } from "../apps/local-agent-host/src/attachments/local-attachment-staging.js";
 import { AppHostServer } from "../packages/app-host-server/src/index.js";
@@ -15,10 +16,13 @@ test("Web AppHost uploads binary files through the advertised 32 MiB staging lim
   await writeFile(join(root, "index.html"), "<!doctype html>");
   const staging = new LocalAttachmentStagingService(join(root, "attachments"));
   const listeners = new Set<(frame: string) => void>();
+  let status: TransportStatus = { state: "idle" };
+  const statuses = new Set<(value: TransportStatus) => void>();
+  const publish = (value: TransportStatus) => { status = value; for (const listener of statuses) listener(value); };
   const appHost = new AppHostServer({
     createTransport: () => ({
-      status: { state: "idle" as const },
-      async connect() {},
+      get status() { return status; },
+      async connect() { publish({ state: "open" }); },
       async send(frame: string) {
         const request = JSON.parse(frame);
         let reply;
@@ -32,8 +36,8 @@ test("Web AppHost uploads binary files through the advertised 32 MiB staging lim
         }));
       },
       subscribeMessage(listener: (frame: string) => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-      subscribeStatus() { return () => {}; },
-      async close() {},
+      subscribeStatus(listener: (value: TransportStatus) => void) { statuses.add(listener); return () => { statuses.delete(listener); }; },
+      async close() { publish({ state: "closed" }); },
     }),
   });
   const web = await createWorkbenchWebServer({ root, appHostServer: appHost, appServerTarget: null });

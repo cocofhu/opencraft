@@ -1,3 +1,4 @@
+import { executionEngineExtension } from "@opencraft/appserver-client";
 import { Context, Service } from "@deepseek-ai/cordis";
 import { AppServerRpcError, type AppServerClient } from "@opencraft/appserver-client";
 import { OPENCRAFT_RESUME_HISTORY_EXTENSION, buildResumeHistoryRequest, type AppServerThread, type ThreadResumeParams, type ThreadResumeResponse, type ThreadForkResponse } from "@opencraft/appserver-protocol";
@@ -26,7 +27,7 @@ const TEXT_DELTA_METHODS = new Set([
 export interface ThreadResumeCoordinatorConfig {
   client: AppServerClient;
   hostKind?: AppServerHostKind;
-  historyModeHint?: "legacy" | "paginated" | "message-window" | null;
+  historyModeHint?: "legacy" | "paginated" | "message-window" | null | (() => "legacy" | "paginated" | "message-window" | null);
   useTailHydration?: boolean;
   supportsPaginatedHistory?: boolean;
   pageSize?: number;
@@ -101,7 +102,8 @@ export class ThreadResumeCoordinatorService extends Service {
   private readonly hostKind: AppServerHostKind;
   private readonly useTailHydration: boolean;
   private readonly supportsPaginatedHistory: boolean;
-  private readonly historyModeHint: "legacy" | "paginated" | "message-window" | null;
+  private readonly readHistoryMode: () => "legacy" | "paginated" | "message-window" | null;
+  private get historyModeHint() { return this.readHistoryMode(); }
   private readonly pageSize: number;
   private readonly requestTimeoutMs: number;
   private readonly drainTailHistory: boolean;
@@ -121,7 +123,8 @@ export class ThreadResumeCoordinatorService extends Service {
     this.hostKind = config.hostKind ?? (config.client.hostId === "durable" ? "durable" : "local");
     this.useTailHydration = config.useTailHydration ?? true;
     this.supportsPaginatedHistory = config.supportsPaginatedHistory ?? true;
-    this.historyModeHint = config.historyModeHint ?? null;
+    const hint = config.historyModeHint;
+    this.readHistoryMode = typeof hint === "function" ? hint : () => hint ?? null;
     this.pageSize = config.pageSize ?? 5;
     this.requestTimeoutMs = config.requestTimeoutMs ?? 30_000;
     this.drainTailHistory = config.drainTailHistory ?? false;
@@ -362,19 +365,21 @@ export class ThreadResumeCoordinatorService extends Service {
         this.ctx.threadStreamOwnership.set(threadId, { role: "owner" });
       }
 
-      const historyMode = metadata?.historyMode ?? this.historyModeHint ?? initial.historyMode;
+      const engineHistory = executionEngineExtension(this.client.initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_RESUME_HISTORY_EXTENSION);
+      const historyMode = metadata?.historyMode ?? engineHistory?.mode ?? this.historyModeHint ?? initial.historyMode;
+      const isDurableHost = this.hostKind === "durable" && engineHistory?.mode !== "legacy";
       const supportsPaginatedHistory = this.useTailHydration
         && this.hostKind !== "durable"
         && historyMode === "paginated"
         && this.supportsPaginatedHistory;
-      const capability = this.client.initializeResult?.capabilities?.extensions?.[OPENCRAFT_RESUME_HISTORY_EXTENSION] as {
+      const capability = engineHistory as {
         version?: unknown; initialTurnsPage?: unknown; boundedRecovery?: unknown;
       } | undefined;
       const supportsMergedPage = capability?.version === 1 && capability.initialTurnsPage === true;
       const supportsBoundedRecovery = supportsMergedPage && capability?.boundedRecovery === true;
       const historyRequest = buildResumeHistoryRequest({
         useTailHydration: this.useTailHydration,
-        isDurableHost: this.hostKind === "durable",
+        isDurableHost,
         supportsPaginatedHistory,
         supportsInitialTurnsPage: supportsMergedPage,
       });
@@ -445,7 +450,7 @@ export class ThreadResumeCoordinatorService extends Service {
         response,
         metadata,
         useTailHydration: this.useTailHydration,
-        isDurableHost: this.hostKind === "durable",
+        isDurableHost,
         supportsPaginatedHistory,
         supportsInitialTurnsPage: historyRequest.initialTurnsPage !== undefined,
         pageSize: this.pageSize,

@@ -61,7 +61,7 @@ test("renderer host identity is installed above body for the viewport contract",
   });
 
   assert.equal(root.dataset.opencraftWindowType, "browser");
-  assert.equal(root.dataset.codexOs, "darwin");
+  assert.equal(root.dataset.opencraftPlatform, "darwin");
 });
 
 test("ordinary browsers do not inherit a macOS renderer safe area", () => {
@@ -272,7 +272,7 @@ test("window chrome projection settles without rewriting observed identity", () 
   });
   const root = { dataset };
   applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
-  assert.deepEqual(writes, ["opencraftWindowType", "codexOs"]);
+  assert.deepEqual(writes, ["opencraftWindowType", "opencraftPlatform"]);
   writes.length = 0;
   // MutationObserver callbacks and repeated resize events must reach a fixed point.
   for (let index = 0; index < 20; index += 1) {
@@ -283,5 +283,5 @@ test("window chrome projection settles without rewriting observed identity", () 
   assert.deepEqual(writes, ["opencraftWindowType"]);
   writes.length = 0;
   applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "win32" });
-  assert.deepEqual(writes, ["codexOs"]);
+  assert.deepEqual(writes, ["opencraftPlatform"]);
 });

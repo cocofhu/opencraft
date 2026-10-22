@@ -1,3 +1,5 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, SearchIcon as Search, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { NativeSelect } from "@opencraft/design-system-web/native-controls";
 import {
   aggregateUserInputQuestionAnswers,
   selectUserInputQuestionOption,
@@ -11,6 +13,7 @@ import {
   type McpElicitationDraft,
   type McpElicitationDraftValue,
   type TimelineBlock,
+  type UserInputQuestion,
   type UserInputQuestionDraft,
 } from "@opencraft/chat-core";
 import { WebChatDocument, resolveStandardChatResource } from "@opencraft/chat-render-web";
@@ -20,27 +23,19 @@ import {
   setupTaskOptions,
   type SetupContextSource,
 } from "@opencraft/workbench-runtime";
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Globe2,
-  MessageSquare,
-  Search,
-  Wrench,
-  X,
-} from "lucide-react";
+import { AlertIcon as AlertCircle, GlobeIcon as Globe2, MessageIcon as MessageSquare, ToolIcon as Wrench } from "@opencraft/design-system-web/action-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type Dispatch,
+  type SetStateAction,
   type ReactNode,
 } from "react";
 
@@ -60,6 +55,25 @@ import {
   type ConversationInteractionContextValue,
   type SetupContextCatalogValue,
 } from "../render-contexts";
+
+import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
+import { interactionDraftIdentity, type InteractionDraftStore } from "./interaction-drafts";
+
+function useInteractionDraftState<T>(key: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
+  const { drafts } = useContext(ConversationInteractionContext);
+  const [value, setValue] = useState<T>(() => drafts?.has(key)
+    ? drafts.get(key) as T
+    : typeof initial === "function" ? (initial as () => T)() : initial);
+  const current = useRef(value);
+  current.current = value;
+  const update = useCallback<Dispatch<SetStateAction<T>>>((action) => {
+    const next = typeof action === "function" ? (action as (value: T) => T)(current.current) : action;
+    current.current = next;
+    drafts?.set(key, next);
+    setValue(next);
+  }, [drafts, key]);
+  return [value, update];
+}
 
 function elicitationDraftText(value: McpElicitationDraftValue | undefined): string {
   return typeof value === "string" ? value : "";
@@ -99,6 +113,7 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
   useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
       // Focused controls own Enter. The shortcut must not turn a keyboard
@@ -169,34 +184,34 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
 function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "question" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const reduceMotion = useReducedMotion();
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [drafts, setDrafts] = useState<readonly UserInputQuestionDraft[]>(() => createUserInputQuestionDrafts(block.questions));
+  const questionsJson = JSON.stringify(block.questions);
+  const questions = useMemo<readonly UserInputQuestion[]>(() => JSON.parse(questionsJson), [questionsJson]);
+  const [questionIndex, setQuestionIndex] = useInteractionDraftState("questionIndex", 0);
+  const [drafts, setDrafts] = useInteractionDraftState<readonly UserInputQuestionDraft[]>("questions", () => createUserInputQuestionDrafts(questions));
   const cardRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    setQuestionIndex(0);
-    setDrafts(createUserInputQuestionDrafts(block.questions));
     cardRef.current?.focus();
-  }, [block.questions, block.requestId]);
+  }, [questions, block.requestId]);
 
-  const question = block.questions[questionIndex] ?? block.questions[0];
+  const question = questions[questionIndex] ?? questions[0];
   const draft = drafts[questionIndex];
-  const isLastQuestion = questionIndex >= block.questions.length - 1;
+  const isLastQuestion = questionIndex >= questions.length - 1;
   const submitDrafts = useCallback((nextDrafts: readonly UserInputQuestionDraft[]) => {
-    const answers = aggregateUserInputQuestionAnswers(block.questions, nextDrafts);
+    const answers = aggregateUserInputQuestionAnswers(questions, nextDrafts);
     if (block.method === "mcpServer/elicitation/request") {
       void submission.submit({ type: "answer", values: Object.values(answers).flat() });
       return;
     }
     void submission.submit({ type: "answer-questions", answers });
-  }, [block.method, block.questions, submission]);
+  }, [block.method, questions, submission]);
   const completeCurrentQuestion = useCallback((nextDrafts: readonly UserInputQuestionDraft[]) => {
     if (!isLastQuestion) {
-      setQuestionIndex((current) => Math.min(current + 1, block.questions.length - 1));
+      setQuestionIndex((current) => Math.min(current + 1, questions.length - 1));
       requestAnimationFrame(() => cardRef.current?.focus());
       return;
     }
     submitDrafts(nextDrafts);
-  }, [block.questions.length, isLastQuestion, submitDrafts]);
+  }, [questions.length, isLastQuestion, submitDrafts]);
   const updateDraft = useCallback((nextDraft: UserInputQuestionDraft): readonly UserInputQuestionDraft[] => {
     const nextDrafts = [...drafts];
     nextDrafts[questionIndex] = nextDraft;
@@ -210,7 +225,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
   }, [completeCurrentQuestion, draft, question, updateDraft]);
   const submitCurrent = useCallback(() => completeCurrentQuestion(drafts), [completeCurrentQuestion, drafts]);
   const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.defaultPrevented || question === undefined) return;
+    if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || question === undefined) return;
     const inputTarget = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -218,15 +233,15 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       return;
     }
     if (inputTarget) {
-      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         submitCurrent();
       }
       return;
     }
-    if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && block.questions.length > 1) {
+    if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && questions.length > 1) {
       event.preventDefault();
-      setQuestionIndex((current) => Math.max(0, Math.min(block.questions.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
+      setQuestionIndex((current) => Math.max(0, Math.min(questions.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
       return;
     }
     if (event.key >= "1" && event.key <= "9") {
@@ -246,11 +261,11 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       if (option !== undefined && !question.multiSelect) selectOption(option.id, false);
       return;
     }
-    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+    if (event.key === "Enter") {
       event.preventDefault();
       submitCurrent();
     }
-  }, [block.questions.length, draft?.selectedOptionId, question, selectOption, submission, submitCurrent]);
+  }, [questions.length, draft?.selectedOptionId, question, selectOption, submission, submitCurrent]);
   const pending = block.state === "pending";
   if (question === undefined) return null;
   return (
@@ -276,11 +291,11 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
             <div className="thread-interaction-card__copy">
               <strong>{question.header ?? question.prompt}</strong>
             </div>
-            {block.questions.length > 1 ? (
-              <div className="thread-request-input__pagination" aria-label={`Question ${questionIndex + 1} of ${block.questions.length}`}>
+            {questions.length > 1 ? (
+              <div className="thread-request-input__pagination" aria-label={`Question ${questionIndex + 1} of ${questions.length}`}>
                 <button aria-label="Previous question" disabled={questionIndex === 0 || submission.disabled} onClick={() => setQuestionIndex((current) => Math.max(0, current - 1))} type="button"><ChevronLeft size={13} /></button>
-                <span>{questionIndex + 1} of {block.questions.length}</span>
-                <button aria-label="Next question" disabled={isLastQuestion || submission.disabled} onClick={() => setQuestionIndex((current) => Math.min(block.questions.length - 1, current + 1))} type="button"><ChevronRight size={13} /></button>
+                <span>{questionIndex + 1} of {questions.length}</span>
+                <button aria-label="Next question" disabled={isLastQuestion || submission.disabled} onClick={() => setQuestionIndex((current) => Math.min(questions.length - 1, current + 1))} type="button"><ChevronRight size={13} /></button>
               </div>
             ) : null}
           </header>
@@ -337,15 +352,11 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
 
 function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "option-picker" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selectedOptions, setSelectedOptions] = useState<readonly string[]>([]);
-  const [freeformText, setFreeformText] = useState("");
+  const composingRef = useRef(false);
+  const [selectedOptions, setSelectedOptions] = useInteractionDraftState<readonly string[]>("options", []);
+  const [freeformText, setFreeformText] = useInteractionDraftState("freeform", "");
   const trimmedFreeform = freeformText.trim();
   const hasAnswer = selectedOptions.length > 0 || trimmedFreeform.length > 0;
-
-  useEffect(() => {
-    setSelectedOptions([]);
-    setFreeformText("");
-  }, [block.requestId]);
 
   const reply = useCallback((action: "submit" | "skip" | "dismiss") => {
     void submission.submit({
@@ -364,14 +375,15 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
 
   return (
     <section className="thread-interaction-card thread-option-picker" data-interaction-kind="option-picker" data-state={block.state} onKeyDown={(event) => {
+      if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
       if (event.key === "Escape") {
         event.preventDefault();
         reply("dismiss");
       }
     }}>
-      <form onSubmit={(event) => {
+      <form onCompositionStart={() => { composingRef.current = true; }} onCompositionEnd={() => { composingRef.current = false; }} onSubmit={(event) => {
         event.preventDefault();
-        if (hasAnswer) reply("submit");
+        if (!composingRef.current && hasAnswer) reply("submit");
       }}>
         <header>
           <strong>{block.question}</strong>
@@ -398,6 +410,12 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
             disabled={submission.disabled}
             onChange={(event) => setFreeformText(event.currentTarget.value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.keyCode === 229) {
+                // Prevent an implicit form submission after compositionend too.
+                if (event.key === "Enter") event.preventDefault();
+                return;
+              }
+              if (event.defaultPrevented || event.nativeEvent.isComposing) return;
               if (event.key === "Enter") {
                 event.preventDefault();
                 if (hasAnswer) reply("submit");
@@ -425,8 +443,7 @@ function SetupStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setu
 
 function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selectedRoles, setSelectedRoles] = useState<readonly string[]>([]);
-  useEffect(() => setSelectedRoles([]), [block.requestId]);
+  const [selectedRoles, setSelectedRoles] = useInteractionDraftState<readonly string[]>("setupRoles", []);
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-role",
     action,
@@ -448,9 +465,8 @@ function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type:
 
 function SetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [other, setOther] = useState("");
-  useEffect(() => { setSelected(null); setOther(""); }, [block.requestId]);
+  const [selected, setSelected] = useInteractionDraftState<string | null>("setupTask", null);
+  const [other, setOther] = useInteractionDraftState("setupTaskOther", "");
   const answer = selected ?? other.trim();
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-task",
@@ -472,12 +488,12 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   const submission = useInteractionSubmission(block.requestId);
   const catalog = useContext(SetupContextCatalog);
   const [selected, setSelected] = useState<readonly string[]>(() => catalog.sources.filter((source) => source.connected).map((source) => source.id));
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useInteractionDraftState("setupContextSearch", "");
+  const [browseOpen, setBrowseOpen] = useInteractionDraftState("setupContextBrowseOpen", false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     setSelected(catalog.sources.filter((source) => source.connected).map((source) => source.id));
-    setSearch("");
     setConnecting(null);
     setError(null);
   }, [block.requestId, catalog.sources]);
@@ -511,7 +527,7 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   return <section className="thread-interaction-card thread-setup-context" data-interaction-kind="setup-context" data-state={block.state}>
     <header><strong>Where can we pull context from?</strong><button aria-label="Dismiss" className="thread-option-picker__dismiss" disabled={submission.disabled} onClick={() => reply("dismiss")} type="button"><X size={12} /></button></header>
     <div className="thread-setup-context__sources">{sourceRows(catalog.sources.slice(0, 3))}</div>
-    <details className="thread-setup-context__browse"><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
+    <details className="thread-setup-context__browse" onToggle={(event) => setBrowseOpen(event.currentTarget.open)} open={browseOpen}><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
     {error ? <small className="thread-interaction-card__error" role="alert">{error}</small> : null}
     <footer><button className="is-ghost" disabled={submission.disabled} onClick={() => reply("skip")} type="button">Skip</button><button className="is-primary" disabled={submission.disabled || catalog.loading} onClick={() => reply("continue")} type="button"><span>Continue</span><kbd>↵</kbd></button></footer>
   </section>;
@@ -520,8 +536,8 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
 function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "elicitation" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const approval = block.toolApproval;
-  const [showAll, setShowAll] = useState(false);
-  const [expanded, setExpanded] = useState<Readonly<Record<string, boolean>>>({});
+  const [showAll, setShowAll] = useInteractionDraftState("reviewShowAll", false);
+  const [expanded, setExpanded] = useInteractionDraftState<Readonly<Record<string, boolean>>>("reviewExpanded", {});
   const pending = block.state === "pending";
   const connectorName = approval?.connectorName ?? block.serverName ?? "Connector";
   const toolName = approval?.toolTitle ?? approval?.toolName;
@@ -535,14 +551,13 @@ function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type:
     : Object.entries(approval?.toolParams ?? {}).map(([name, value]) => ({ name, displayName: name, value }));
   const visibleEntries = showAll ? entries : entries.slice(0, 4);
   useEffect(() => {
-    setShowAll(false);
-    setExpanded({});
-  }, [block.requestId]);
-  useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
+      // Buttons and disclosure controls own their native Enter activation.
+      if (event.key === "Enter" && target instanceof HTMLElement && target.closest("button, a, summary, [role='menuitem']") !== null) return;
       if (event.key === "Enter") {
         event.preventDefault();
         void submission.submit({ type: "accept-elicitation" });
@@ -681,12 +696,8 @@ function McpConnectorAuthBlock({ block }: { block: Extract<TimelineBlock, { type
 function McpFormElicitationBlock({ block }: { block: Extract<TimelineBlock, { type: "elicitation" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const fields = useMemo(() => normalizeMcpElicitationSchema(block.requestedSchema), [block.requestedSchema]);
-  const [draft, setDraft] = useState<McpElicitationDraft>(() => createMcpElicitationDraft(fields));
+  const [draft, setDraft] = useInteractionDraftState<McpElicitationDraft>("form", () => createMcpElicitationDraft(fields));
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
-  useEffect(() => {
-    setDraft(createMcpElicitationDraft(fields));
-    setErrors({});
-  }, [block.requestId, fields]);
   const update = (name: string, value: McpElicitationDraftValue) => {
     setDraft((current) => ({ ...current, [name]: value }));
     setErrors((current) => current[name] === undefined ? current : Object.fromEntries(Object.entries(current).filter(([key]) => key !== name)));
@@ -716,12 +727,13 @@ function McpFormElicitationBlock({ block }: { block: Extract<TimelineBlock, { ty
           <span><b>{field.title}</b>{field.required ? <i>Required</i> : null}</span>
           {field.description ? <small>{field.description}</small> : null}
           {field.kind === "boolean" ? <button aria-pressed={draft[field.name] === true} onClick={() => update(field.name, draft[field.name] !== true)} type="button"><span>{draft[field.name] === true ? "Enabled" : "Disabled"}</span><Check size={14} /></button>
-            : field.kind === "select" ? <select onChange={(event) => update(field.name, event.target.value)} value={elicitationDraftText(draft[field.name])}>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+            : field.kind === "select" ? <NativeSelect onChange={(event) => update(field.name, event.target.value)} value={elicitationDraftText(draft[field.name])}>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</NativeSelect>
             : field.kind === "multi-select" ? <div className="thread-elicitation__checks">{field.options.map((option) => {
                 const values = Array.isArray(draft[field.name]) ? draft[field.name] as readonly string[] : [];
                 return <label key={option.value}><input checked={values.includes(option.value)} onChange={() => update(field.name, values.includes(option.value) ? values.filter((value) => value !== option.value) : [...values, option.value])} type="checkbox" />{option.label}</label>;
               })}</div>
             : <input
+                className={field.kind === "number" ? "ui-native-number" : undefined}
                 max={field.maximum ?? undefined}
                 maxLength={field.maxLength ?? undefined}
                 min={field.minimum ?? undefined}
@@ -756,6 +768,9 @@ export interface ConversationPendingInteractionPanelProps {
   readonly setupContextSources?: readonly SetupContextSource[];
   readonly setupContextLoading?: boolean;
   readonly onConnectSetupContextSource?: (source: SetupContextSource) => Promise<void>;
+  readonly draftStore?: InteractionDraftStore;
+  readonly draftScope?: string;
+  readonly requestTurnId?: string | null;
 }
 
 export function ConversationPendingInteractionPanel({
@@ -764,10 +779,24 @@ export function ConversationPendingInteractionPanel({
   setupContextSources = setupContextSourceExamples,
   setupContextLoading = false,
   onConnectSetupContextSource,
+  draftStore,
+  draftScope,
+  requestTurnId,
 }: ConversationPendingInteractionPanelProps) {
+  const allowEntryMotion = useContext(ConversationEntryMotionContext);
+  const reduceMotion = useReducedMotion();
+  const identity = block === null ? null : JSON.stringify([requestTurnId, interactionDraftIdentity(block)]);
+  const entry = useMemo(() => identity === null || draftScope === undefined ? undefined : draftStore?.prepare(draftScope, identity), [draftScope, draftStore, identity]);
+  useLayoutEffect(() => {
+    if (entry !== undefined && draftScope !== undefined) draftStore?.retain(draftScope, entry);
+  }, [draftScope, draftStore, entry]);
   const interactionContext = useMemo<ConversationInteractionContextValue>(() => ({
-    respond: onRespondInteraction ?? null,
-  }), [onRespondInteraction]);
+    drafts: entry?.values,
+    respond: onRespondInteraction === undefined ? null : async (requestId, action) => {
+      await onRespondInteraction(requestId, action);
+      if (entry !== undefined && draftScope !== undefined) draftStore?.release(draftScope, entry);
+    },
+  }), [draftScope, draftStore, entry, onRespondInteraction]);
   const setupCatalog = useMemo<SetupContextCatalogValue>(() => ({
     sources: setupContextSources,
     loading: setupContextLoading,
@@ -778,11 +807,12 @@ export function ConversationPendingInteractionPanel({
     <ConversationInteractionContext.Provider value={interactionContext}>
       <SetupContextCatalog.Provider value={setupCatalog}>
       <motion.div
+        key={identity}
         animate={{ opacity: 1, y: 0 }}
         className="thread-pending-request-panel"
         data-pending-request-id={block.requestId}
-        initial={{ opacity: 0, y: 6 }}
-        transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+        initial={reduceMotion || !allowEntryMotion ? false : { opacity: 0, y: 6 }}
+        transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
       >
         {block.type === "approval"
           ? <ApprovalBlock block={block} />

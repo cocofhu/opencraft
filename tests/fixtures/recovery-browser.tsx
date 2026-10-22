@@ -6,7 +6,7 @@ import { createAppServerWorkbenchRuntime } from "@opencraft/workbench-runtime";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { ConversationRecoveryNotice } from "../../apps/workbench-web/src/components/conversation-recovery";
-import { createConversationRecoveryDiagnostic } from "../../apps/workbench-web/src/runtime/conversation-recovery-diagnostic";
+import { createConversationRecoveryDiagnostic, useConversationRecoveryDiagnostic } from "../../apps/workbench-web/src/runtime/conversation-recovery-diagnostic";
 import { Conversation } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { reportRecoveryEvent } from "../../apps/workbench-web/src/runtime/recovery-diagnostics";
@@ -31,7 +31,7 @@ function Demo() {
  const host = useSyncExternalStore(runtime.subscribe,runtime.getSnapshot,runtime.getSnapshot);
  const state = useSyncExternalStore(lease.subscribe,lease.getSnapshot,lease.getSnapshot);
  const progress=host.phase!=="ready"?host.recovery:host.residentThreads.find(row=>row.threadId==="s")?.recovery;
- const diagnostic={...createConversationRecoveryDiagnostic({stage:host.phase!=="ready"?"connection":"history",error:state.error,runtime:host.phase,transport:host.transport}),progress,viewKey:"fixture"};
+ const diagnostic=useConversationRecoveryDiagnostic({scope:"fixture",failed:state.error!==null,active:!state.authoritative,stage:host.phase!=="ready"?"connection":"history",error:state.error,runtime:host.phase,transport:host.transport,progress});
  return <div style={{width:"100vw",height:"100vh",position:"relative","--thread-content-top-inset":"0px"} as React.CSSProperties} data-authoritative={String(state.authoritative)}>
  <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
  <Conversation timeline={state.timeline} threadDetailLevel="STEPS_PROSE" scrollPolicy="response-placement"
@@ -41,3 +41,10 @@ function Demo() {
  </div>;
 }
 createRoot(document.getElementById("root")!).render(<Demo />);
+
+// Component boundary only: terminal diagnostic rendering does not invoke a Host.
+(window as any).recovery.showErrorDiagnostic = () => {
+ const target=document.createElement('div');target.id='copy-diagnostic-fixture';target.style.cssText='position:fixed;inset:20px;z-index:1000;background:var(--background,white);overflow:auto';document.body.append(target);
+ const diagnostic={...createConversationRecoveryDiagnostic({stage:'history',runtime:'ready',error:{code:'TIMEOUT'},transport:{state:'open',attemptId:'11111111-1111-4111-8111-111111111111'}}),viewKey:'copy-fixture'};
+ createRoot(target).render(<ConversationRecoveryNotice failed reconnecting={false} diagnostic={diagnostic} />);
+};

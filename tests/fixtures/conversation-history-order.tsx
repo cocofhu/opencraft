@@ -18,7 +18,7 @@ for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("ligh
 const registry = createDefaultTimelineProjectorRegistry();
 const makeTurn = (id: string): AppServerTurn => ({ id, status: "completed", itemsView: "full", items: [
   { id: `${id}:user`, type: "userMessage", clientId: `${id}:client`, content: [{ type: "text", text: `Prompt ${id}` }] },
-  { id: `${id}:reply`, type: "agentMessage", text: `Answer ${id}`, phase: "final_answer" },
+  { id: `${id}:reply`, type: "agentMessage", text: `Answer ${id}`, phase: "final_answer", startedAtMs: 300 },
 ] });
 const baseline = [makeTurn("older-unindexed"), makeTurn("a"), makeTurn("c"), {
   ...makeTurn("live"), status: "inProgress",
@@ -28,8 +28,9 @@ let revision = 0;
 
 function Demo() {
   const [state, setState] = useState({ rows, revision });
-  (window as any).historyOrder = (action: "hydrate" | "stream" | "snapshot" | "complete") => {
-    if (action === "hydrate") rows = reconcileHydratedTurn(rows, makeTurn("b"), ["a", "b", "c"]);
+  (window as any).historyOrder = (action: "hydrate" | "stream" | "snapshot" | "complete" | "late-complete") => {
+    if (action === "late-complete") rows = mergeTurns(rows, [{ id: "live", items: [{ id: "live:late", type: "commandExecution", command: "check-delayed-result", status: "failed", exitCode: 137, aggregatedOutput: "Delayed failure retained", startedAtMs: 100, completedAtMs: 400 }] }]);
+    else if (action === "hydrate") rows = reconcileHydratedTurn(rows, makeTurn("b"), ["a", "b", "c"]);
     else if (action === "snapshot") rows = reconcileHistoryTurns(rows, baseline, "older", { baselineTurns: baseline });
     else if (action === "complete") rows = mergeTurns(rows, [{ id: "live", status: "completed", items: [] }]);
     else {
@@ -46,6 +47,7 @@ function Demo() {
   }));
   const timeline = projectTimeline({ key: createConversationKey("fixture", "thread"), revision: state.revision,
     authoritative: true, phase: "live", turns }, registry);
+  (window as any).historyOrderBlocks = () => timeline.frames.filter(frame => frame.turnId === "live").flatMap(frame => frame.blocks);
   return <div data-test-revision={state.revision} style={{ width: "100vw", height: "100vh" }}>
     <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
       <Conversation scrollPolicy="response-placement" timeline={timeline} threadDetailLevel="STEPS_PROSE"

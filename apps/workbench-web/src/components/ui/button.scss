@@ -73,22 +73,30 @@
     color: var(--color-text-button-primary, #fff);
   }
 
-  &[data-variant="primary"]:hover:not(:disabled),
-  &[data-variant="hero"]:hover:not(:disabled) {
-    background: var(--color-background-button-primary-hover);
+  @include controls.hover-capable {
+    &[data-variant="primary"]:hover:not(:disabled),
+    &[data-variant="hero"]:hover:not(:disabled) {
+      background: var(--color-background-button-primary-hover);
+    }
   }
 
-  &[data-variant="secondary"]:hover:not(:disabled) {
-    background: var(--color-background-button-secondary-hover);
+  @include controls.hover-capable {
+    &[data-variant="secondary"]:hover:not(:disabled) {
+      background: var(--color-background-button-secondary-hover);
+    }
   }
 
-  &[data-variant="ghost"]:hover:not(:disabled),
-  &[data-variant="link"]:hover:not(:disabled) {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &[data-variant="ghost"]:hover:not(:disabled),
+    &[data-variant="link"]:hover:not(:disabled) {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
-  &[data-variant="outline"]:not([data-density="compact"]):hover:not(:disabled) {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &[data-variant="outline"]:not([data-density="compact"]):hover:not(:disabled) {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
   &:focus-visible {
@@ -102,13 +110,10 @@
   @media (prefers-reduced-motion: reduce) { transition: none; }
 }
 
-.ui-button__spinner {
+.ui-button__spinner, .settings-control-button__spinner {
   position: absolute;
   width: 14px;
   height: 14px;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
   animation: ui-button-spin 680ms linear infinite;
   @media (prefers-reduced-motion: reduce) { animation: none; }
 }
@@ -116,3 +121,5 @@
 @keyframes ui-button-spin {
   to { transform: rotate(1turn); }
 }
+
+.settings-control-button__spinner { position: static; flex: 0 0 14px; }

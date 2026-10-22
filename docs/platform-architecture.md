@@ -17,6 +17,11 @@ It observes existing owners and does not own execution, recovery or history.
 This is an implementation specification, not a claim that the optional stack,
 CLI or runtime Skill has already been deployed.
 
+Optional Headless [IM and WeCom server plugins](im-switchboard.md) share existing
+human authorization, Collaboration input receipts and the Host queue. IM owns
+durable `switchboard` bindings and runtime reply context; WeCom owns its protocol
+connection. Source keys are not grants; replies never follow a later binding.
+
 The Web/Electron renderer attaches `appserver-diagnostics` to normal runtime
 clients and startup identity probes. Console events correlate host, renderer
 client instance, connection generation, RPC ID, method and elapsed time for
@@ -345,6 +350,39 @@ attempt installs its promise and cancellation before publishing `connecting`;
 synchronous observers can revoke it before socket allocation. Only that attempt
 may clear its promise, and old close callbacks settle before publishing status
 that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
+
+An inbound JSON-RPC request owns a delivery receipt and a connection revision.
+Its live phases are handling and sending; physical delivery or a matching Host
+resolution succeeds the receipt, while connection loss/client disposal rejects
+it and aborts queued sends. Both terminal paths remove ownership immediately.
+Late handler success/failure cannot send through a successor connection or settle
+its receipt. `serverRequest/resolved` only addresses a live request with matching
+ID type/value and, when both are known, Thread identity. It leaves no permanent
+ID tombstone: a completed request or an earlier connection cannot suppress a
+new request after ID reuse. These delivery rules do not replay a mutation or
+terminate the underlying server execution.
+
+Connection attempts and inbound server requests have separate owners. A WebSocket
+attempt installs its promise and cancellation before publishing `connecting`;
+synchronous observers can revoke it before socket allocation. Only that attempt
+may clear its promise, and old close callbacks settle before publishing status
+that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
+Client initialization, deferred transport acquisition and logical Host connection
+also install their single owner before notifying synchronous observers. Reentrant
+connect calls join that operation. A delayed initializer rechecks close and abort
+before acquiring a transport. Outbound request observers can cancel before
+encoding or sending; the request must still own its pending entry after each
+notification, and a WebSocket checks cancellation before physical delivery.
+
+A Host grant is valid only while its physical transport is open. The server checks
+this after activation, before granting and immediately before acknowledging the
+claim. The channel retains terminal statuses seen before acknowledgement by their
+generation: a matching grant is rejected and released, preserving any manual
+failure classification. A different generation neither revokes that grant nor
+gives the channel authority. Termination of the shared bridge revokes every
+pending channel attempt, including a grant already delivered to its promise.
+A late acknowledgement cannot revive a lost Host;
+automatic recovery obtains a new claim through the existing retry policy.
 
 An inbound JSON-RPC request owns a delivery receipt and a connection revision.
 Its live phases are handling and sending; physical delivery or a matching Host
@@ -820,7 +858,7 @@ rolls back a rejected latest intent, and cannot project or write through a
 replaced connection, recipe or authorization epoch. This overlay is not durable
 pin authority; successful catalog refreshes and reloads still use native metadata.
 
-The the downstream product site renders its own Agent sidebar around the embedded Workbench.
+The downstream site renders its own Agent sidebar around the embedded Workbench.
 The embedded element passes each Thread's pinned state and the current Host's
 discovered pin capability to that sidebar, and forwards pin commands to the same
 Thread management resource. The site shows pinned rows outside its recent-page
@@ -879,7 +917,7 @@ durable Threads, immediate for ephemeral Threads); release and new native work
 serialize per Thread. This is live fan-out plus snapshot/replay during resume,
 not a durable event log or multi-tenant authorization boundary.
 
-The packaged Codex runtime is pinned to `0.157.0`: its loaded paginated-Thread
+The packaged Codex runtime is selected by `runtime/codex/package-lock.json`. Its loaded paginated-Thread
 resume path can attach a new Client with `excludeTurns` without materializing
 the full persisted history. OpenCraft still sends the physical `thread/resume`;
 skipping it would lose atomic subscription and interaction ownership. A
@@ -916,7 +954,7 @@ be declared failed after the generic 30 seconds. A transport loss still leaves
 the outcome unknown, so the UI warns against blind retry rather than claiming
 that the child was not created. Identical concurrent durable Fork intents
 share one pending AppServer request within the Host runtime.
-Temporary Side Chat requires explicit fork, ephemeral, inject-items and
+Temporary Side Chat requires explicit fork or ephemeralFork, plus ephemeral, inject-items and
 unsubscribe support. Codex
 Fork is only recoverable after the source's first Turn has been accepted;
 paginated ephemeral Fork uses `excludeTurns: true` and its returned child is
@@ -931,6 +969,10 @@ once the native list includes it; ephemeral children and filtered/archived
 queries are never overlaid. The projection is in-memory, so a browser reload
 before the child's first Turn retains direct-route recovery but not sidebar
 discovery of that blank child.
+`ephemeralFork` additionally declares temporary context forks without enabling
+persistent Fork actions. Side Chat requires `fork` or `ephemeralFork` together
+with ephemeral, injection and unsubscribe support, resolved for its parent Thread.
+
 
 The SDK fences late unsubscribe responses, retains newly acquired views and
 actually reattaches them. Naming uses per-Host/Thread acknowledgement queues and
@@ -1108,7 +1150,7 @@ locale override, an `IDE` / `SYSTEM` / `FIRST_AVAILABLE` source policy, canonica
 BCP-47 tags, regional catalog matching, lazy messages, and a cached FormatJS Intl
 instance. `FIRST_AVAILABLE` prefers a non-English IDE locale, then a non-English
 system locale. The standalone Web/Electron adapter selects `SYSTEM`; the embedded
-host supplies the equivalent of Codex's IDE locale. Product region is not an input.
+host supplies its locale through the `ideLocale` input. Product region is not an input.
 
 `packages/i18n` owns `LocaleRuntime` and its narrow `IntlPort`. Each application
 gets its own runtime/cache. Its snapshot carries the exact Intl object consumed
@@ -1551,7 +1593,7 @@ Trusted build composition selects an explicit, immutable presentation policy
 (`WorkbenchWebBuildFeatures.presentation`), independently of product identity.
 The build validates and serializes icon style, default theme ID and hidden builtin
 theme IDs; the renderer reads it synchronously before its first appearance snapshot.
-Public defaults use the standard icon adapter and OpenCraft Neutral theme. A custom identity
+Public defaults use the standard icon adapter and Neutral theme. A custom identity
 alone never changes artwork, palette defaults or the catalog. Existing async client
 product entries keep their account/engine lifecycle and need no additional export.
 Saved theme intent and existing storage/theme IDs retain their previous authority;
@@ -2499,7 +2541,7 @@ over either fixed region.
 
 `workbenchWindowMetrics` is the shared native/renderer window-size authority.
 The primary desktop window may shrink to 480px, matching the main content
-reserve. At that width the Shell
+reserve and the shared Workbench window contract. At that width the Shell
 uses its immersive fallback: application navigation, context and right tools
 are temporarily hidden without changing their saved open/Pin/width intent.
 Electron Main must consume this metric rather than maintaining a larger
@@ -2606,7 +2648,7 @@ establish native parity.
 Expo Web is a first-class output of `apps/workbench-expo`, not a compatibility
 mode hidden inside the Vite app. It is appropriate for mobile-width browsers,
 PWA distribution, and validating universal routes. The Vite app remains the
-desktop browser/Electron target where precise desktop layout and mature chunk
+desktop browser/Electron target where precise Workbench layout and mature chunk
 control matter.
 
 Production routing can send desktop browsers to the Vite deployment and mobile
@@ -2746,15 +2788,63 @@ attachments, never service-owned execution.
 
 AppHost ready and Host claim waits have finite control deadlines. Timed-out claim
 acknowledgements release their original lease; each subsequent attempt uses a new
-lease. Business envelopes serialize per Host, allowing another Host on the same
+lease.
+
+Expired claim records still count toward the shared request budget because
+late grants retain cleanup ownership. If they saturate that budget alongside
+pending requests, the client retires the bridge with retryable
+`APP_HOST_REQUEST_LIMIT`; its socket owner then replaces the connection and
+all affected Host attachments can recover. Detaching the bridge releases its
+claims without stopping service-owned execution. Ordinary in-flight backpressure
+without expired claims rejects only the excess request and keeps the bridge.
+The generic WebSocket transport settles unfinished connect callers on explicit
+close even when no platform close event arrives. Delayed close cleanup and
+asynchronous decode failures are fenced to their original socket; neither can
+close or fail a successor connection.
+
+Closing one logical channel cancels its own ready/claim wait without
+closing the shared client or cancelling service-owned startup. A grant already
+in flight is released against its original lease and generation; its completion
+cannot overwrite that channel's terminal closed status. Deterministic coverage
+exercises close before ready, during shared startup and between grant delivery
+and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
+also checks late release while a peer remains open on the same real socket.
+Closing one logical channel cancels its own ready/claim wait without
+closing the shared client or cancelling service-owned startup. A grant already
+in flight is released against its original lease and generation; its completion
+cannot overwrite that channel's terminal closed status. Deterministic coverage
+exercises close before ready, during shared startup and between grant delivery
+and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
+also checks late release while a peer remains open on the same real socket.
+
+Expired claim records still count toward the shared request budget because
+late grants retain cleanup ownership. If they saturate that budget alongside
+pending requests, the client retires the bridge with retryable
+`APP_HOST_REQUEST_LIMIT`; its socket owner then replaces the connection and
+all affected Host attachments can recover. Detaching the bridge releases its
+claims without stopping service-owned execution. Ordinary in-flight backpressure
+without expired claims rejects only the excess request and keeps the bridge.
+The generic WebSocket transport settles unfinished connect callers on explicit
+close even when no platform close event arrives. Delayed close cleanup and
+asynchronous decode failures are fenced to their original socket; neither can
+close or fail a successor connection.
+
+Business envelopes serialize per Host, allowing another Host on the same
 socket and connection probes to progress during a slow activation. Local send
 cancellation releases its pending acknowledgement without cancelling or replaying
 remote execution. AppServer initialization rejects results from a revoked transport.
 
 Workbench Host readiness ends at lease acquisition plus AppServer initialize.
-`workbench-runtime/recovery-policy.ts` owns connection backoff, foreground
-admission, coalescing and conversation recovery scheduling. It is one Host-scoped
-owner, not another data authority. Explicit visible leases recover first; explicit
+`workbench-runtime/connection-lifecycle.ts` is the single connection owner for
+cold start, reconnect and implicit Thread acquisition. It registers attempts and
+promises before notifying observers, bounds each attempt, and owns retry tickets,
+foreground admission and stability timers. Revocation synchronously invalidates
+child sources before publishing connection loss. Readiness commits require the
+current client, initialized protocol, open transport, connection revision and
+assembled local services. A late initializer cannot cancel a successor retry.
+`workbench-runtime/recovery-policy.ts` retains observation and demand-prioritized
+conversation recovery; it has no connection timer or writable readiness authority.
+Both owners remain scoped to the existing Runtime connection domain. Explicit visible leases recover first; explicit
 open leases, running work and unresolved interactions recover in the background
 with concurrency one and at most three transient retries. Cache residency and DOM
 subscription counts alone do not create recovery demand. A reserved foreground
@@ -2774,6 +2864,20 @@ query keys are retained across connections. This coordination is independent of
 menu mounting; late cancelled reads cannot overwrite recovered catalog data.
 Execution requests keep their existing admission and reconciliation policies and
 are not replayed by connection or cache recovery.
+
+Replica source operations register their generation before the first preparation
+await. Disconnect settles synchronization callers immediately; late preparation,
+pages, mutations and live-event failures cannot adopt or change a successor source.
+Storage writes and clears use one queue across source generations for the same
+client/cache key. Accepted external writes may finish after revocation, but cannot
+overtake a newer write, and publication rechecks source ownership after storage.
+The V3 ThreadView projection remains volatile. Negotiated history and queue
+capabilities are read from the current initialized client, not a cold-start copy.
+Logical AppHost claim removal precedes remote disconnect notification; notification
+failure cannot retain local authorization or close a peer's service-owned Host.
+The raw and logical-client Core adapters share a socket owner that revokes before
+close and checks its identity after health and socket-open waits. RPC encoding,
+synchronous send throws and asynchronous send failures settle the same receipt.
 
 The app-like iPhone Web surface requests a fixed viewport scale for embedded
 browsers and keeps focused editable text at a 16px minimum on coarse-pointer
@@ -3086,9 +3190,9 @@ episode is active.
 
 ### 单 Hub 主体协作
 
-Headless 将 `access-control/actor-collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/actor-codex-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
+Headless 将 `access-control/collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/conversation-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
 
-会话引用与跨会话投递的[目标架构](architecture/conversation-interoperability.md)将 Actor 和 Conversation 资源分开：统一 Collaboration 接纳与交接，目标 Host 继续拥有执行队列，引擎及渠道通过窄端口接入。该文档规定下一步迁移，不表示当前已支持任意会话引用、后台模型工具或跨引擎/跨 Server 投递。
+[会话引用、读取与投递](architecture/conversation-interoperability.md)将Actor和Conversation资源分开，统一Collaboration接纳与交接，目标Host继续拥有执行队列。Headless本地Codex已接通稳定引用、按需历史、原始输入委托的服务端工具；其他引擎与跨Server投递须有实际适配，不因协议类型而自动可用。
 
 ### Read-only Office resource previews
 
@@ -3180,4 +3284,126 @@ the active Conversation runtime using the same delay cap and empty continuation.
 When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
 
+### Connection conformance and external waits
+
+An independent observable specification replays deterministic event traces through
+ConnectionLifecycleOwner, Runtime/RPC and Runtime/RPC/AppHost. Compare phase,
+error presence and timer ownership after every event, including suspended clocks,
+late completions and retired timer callbacks. A seed and event prefix reproduce a
+failure. This bounded refinement check does not prove all implementation traces.
+
+Revoked service assembly stops waiting for external acquisition or dial. Failed
+bundles detach shared fields and registry claims before async cleanup; each late
+acquired resource disposes itself without touching successor fields. Transport
+factories must provide independent generations. This does not declare an
+uncancelable external operation physically complete.
+
+ReplicaClient storage is a disposable paint cache, separate from source authority.
+A configurable five-second storage deadline switches that client instance to
+source data without further cache writes and exposes cacheError. Accepted writes
+retain their physical serial lane; timeout does not cancel them. A late cache
+completion cannot publish or reenable writes. clear still rejects when completion
+cannot be established. Source protocol and authority-storage errors remain errors;
+this policy never skips an authority transaction or replays a mutation.
+
+Physical AppHost startup, close and reset barriers remain serialized. Their callers
+have a twenty-second admission deadline: expiration returns a classified manual
+failure instead of an endless reconnect, without releasing the physical barrier
+or starting a competing generation. After the dependency actually settles, an
+explicit retry can be admitted normally. This is bounded failure, not a claim
+that an unavailable external process has recovered.
+
+Connection admission bypasses the per-host frame I/O queue and enters the slot
+owner directly, so a hung prior close/send cannot prevent its deadline from
+starting. Frame sends retain their ordered queue and revalidate lease identity.
+The default twenty-second slot budget precedes the bridge's thirty-second wait
+and Runtime's sixty-second attempt budget.
+
+`smoke:connection-process-recovery` exercises the complete built/installed Web UI
+with a separate synthetic physical Host process. Three actual child-process
+restarts while Chromium is frozen must recover after resume, retain the real
+Composer draft, and reconnect on page reload without starting a Thread or Turn.
+Set OPENCRAFT_LIFECYCLE_WEB_ROOT to that artifact's web directory. This checks
+real process/network/browser composition with synthetic protocol data; it does
+not claim live-user, real-model or physical-mobile acceptance.
+
 The Electron Main and Preload bundled together use `opencraft:get-window-fullscreen`, `opencraft:window-fullscreen-changed` and `opencraft:set-window-appearance` for internal window projection. The renderer methods, payloads, admission checks and window lifecycle are unchanged; these channel names do not alter persisted identities or the AppHost transport.
+
+### Shell content-plane shape ownership (2026-10-22)
+
+The theme supplies `contentCornerRadius`; Shell projects it through the shared
+`data-app-shell-content-plane` role on both the main reading Frame and the
+RightPanel body. A conversation, browser, file viewer or empty launcher does not
+choose its own pane shape. The tab strip/header stays outside that content plane.
+Existing overflow on each plane clips child paint and pointer hit testing at the
+same rounded border, and the preview upper-lip shadow follows that border.
+
+A content plane is distinct from the animated reveal aperture and the tool's
+layout viewport. Its shape never changes the viewport dimensions, surface
+identity, scroll owner or control lease. Main/preview and regular/maximized modes
+consume the same theme token; themes without that capability keep zero radius.
+
+### Operation acknowledgement
+
+Thread action acknowledgement and catalog revalidation have separate lifetimes.
+Rename/delete UI settles after the native write; refreshing the complete catalog
+continues in the background and cannot reinterpret a confirmed write as failure.
+Deletion reports pending,
+acknowledged or failed states through the existing notification owner. Conversation
+menus are non-modal: the dialog they open owns the sole focus/pointer lock, which
+must be released on confirm, cancel and Escape without editing body styles.
+Turn interruption remains Thread-owned, coalesces pending requests for the same
+Turn, and projects `interrupting` into Composer progress. Failure restores the
+control and reports an error only for the still-matching visible owner.
+
+
+Conversation resources use the same core Collaboration message/idempotency/handoff authority as Actor channels. Stable references, bounded untrusted native-history context, explicit model delegation and the existing Host queue are documented in [conversation interoperability](architecture/conversation-interoperability.md). Renderer routes never supply execution identity.
+
+
+### Token usage collection controls and account presentation
+
+The optional Token usage Settings view consumes the trusted first-party Host
+query capability. Its collection control appears only when the current snapshot
+explicitly declares `canConfigure`; the Host requires the current instance
+administrator and accepts only a boolean `enabled` on its configure method.
+Collection and view lifecycles remain independent. Pausing retains acquired
+amounts and exposes incomplete coverage; re-enabling admits only new turns.
+Account scope changes remount the presentation before reusing any snapshot,
+and pending controls fence their late effects to the original generation. The
+Host remains the authorization authority; presentation scope never grants access.
+Number/date formatting follows the app locale, with Chinese and English copy
+using the existing Settings bilingual presentation convention.
+
+The usage view retains its current content height while a filter or drilldown query is pending. Returning from a conversation restores the summary cursor, scroll position and initiating row focus within the existing Settings viewport; it does not create another scroll owner. Account changes still remount and clear the previous principal’s snapshot.
+
+Each physical TokenUsageQuery owner retains its two immutable timezone/date formatters. Query filters and authority remain per request; no actor-keyed formatter or completed-response cache is introduced. This bounds repeated ICU allocation during long-lived read workloads.
+
+Usage snapshots may include summary.threads, the distinct conversation count over the complete authorized filter intersection, independently of the detail page. Older Hosts may omit the additive field. The view highlights settled tokens, keeps provisional/pending/system/unknown amounts separate, and presents model aggregates as readable numeric rows as well as filters.
+
+The Token usage view is a managed optional built-in (`opencraft.token-usage`) on Web/Electron. Its manifest is discovered without importing the dashboard; activation contributes the Settings page and deferred platform renderer through the existing supervisor. Disabling withdraws those contributions and preserves the Host ledger and collection configuration. Persisted installation intent is owned by ExtensionManager; no second lifecycle or metering state is introduced.
+
+The physical Token ledger reuses parameterized SQLite statements in a SQL-shape map bounded to 128 entries, avoiding per-event native statement allocation. The database owner still closes the connection; exact allocations, transaction boundaries and authorization are unchanged. No actor-keyed or completed-result cache is introduced.
+
+The read-only usage query owner also bounds native prepared statements to 128 SQL shapes and lends only its prepare port to team projections. Manual bulk iterators close before snapshot rollback on success and exceptions, allowing later reads to reuse that physical owner. This is statement reuse, not a completed-response or per-person cache.
+
+Token metering has its own managed `token-usage.sqlite` physical transaction owner
+and an atomic, read-only import from former shared Host tables. Sender/queue
+storage remains independent; no collector writes two ledgers. A metering lock or
+failed open cannot block native input admission, and unpersisted acquisition
+gaps mark returned coverage partial. Query workers have a 64MiB old-generation
+and 4MiB young-generation limit; scan failure rejects bounded reads and lazily
+restarts the worker. Source rebuilds select only the four fields they consume,
+reducing allocation without changing ordering or exact arithmetic. The limits
+and narrow row shape require measured resource/latency acceptance, not just
+successful compilation.
+
+
+#### Token usage people presentation
+
+The optional dashboard selects a person from the existing authorized, paginated people usage view. The Host decorates only authorized team people rows with current human Actor display names through its existing identity-directory port, then rechecks the original request authority before delivery. Names are presentation metadata, never a participant key, identity binding, allocation weight, or ledger column. The same signed paging/date/model intersection applies when browsing people; choosing a row returns to that person's allocated conversation totals, and clearing the filter restores the team view. Self queries do not resolve or expose other people's names. Missing directory entries remain explicitly unknown; no enterprise directory or statistics account system is introduced.
+
+
+Unchanged native metering metadata is idempotent at the persistence boundary: reconciliation compares stored execution/completeness evidence before rebuilding, and repeated rollout references or metadata cursors avoid writes. Effective participant completeness can remain false due to unresolved admissions without triggering polling rebuilds. Fact and admission mutations retain their own projection updates; changed terminal/response evidence continues through the normal reconciliation transaction. This does not alter source identity, equal allocation, database schema or query authorization.
+
+
+Dedicated metering store v2 adds a thread/date index so filtered thread/turn reads seek the selected thread before its date range. This changes query planning without changing allocation, snapshot revisions, query authorization or the former Host schema. The managed database migration and complete target validator own index creation; repeated opens do not recreate it. Thread/turn-filtered team reductions materialize their selected turn set before grouping, preventing grouped plans from bypassing the thread index; unfiltered projection reads retain their original path.

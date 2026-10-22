@@ -2,6 +2,8 @@ import { createWebTimelineViewportPort, resolveWebTimelinePlatform } from "@open
 import { resolveTimelineViewportPolicy, type TimelineViewportPolicy } from "@opencraft/timeline-virtualizer";
 import { useLayoutEffect, useMemo } from "react";
 
+import { createViewportDiagnostics } from "./runtime/viewport-diagnostics";
+
 import type { WindowChromeSnapshot } from "./window-chrome";
 
 /**
@@ -28,9 +30,10 @@ export function useTimelineViewportHost(windowChrome: WindowChromeSnapshot): Tim
     const port = createWebTimelineViewportPort(window, document, {
       kind: windowChrome.kind,
       platform: windowChrome.platform,
+      onGeometryObserved: policy.tracksVisualViewport ? createViewportDiagnostics() : undefined,
     });
     return () => port.dispose();
-  }, [windowChrome.kind, windowChrome.platform]);
+  }, [windowChrome.kind, windowChrome.platform, policy.tracksVisualViewport]);
 
   return policy;
 }

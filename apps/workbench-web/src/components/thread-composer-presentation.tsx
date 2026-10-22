@@ -1,3 +1,4 @@
+import { ChevronDownIcon as ChevronDown, AddIcon as Plus } from "@opencraft/design-system-web/action-icons";
 import {
   createContext,
   useCallback,
@@ -13,7 +14,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, MessageSquare, Plus } from "lucide-react";
+import { MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import {
   groupTimelineFramesByTurn,
   type TimelineSnapshot,
@@ -670,7 +671,8 @@ export function ThreadComposerPresentation({
                     aria-hidden={!view.peeked || undefined}
                     aria-label="Show chat input"
                     title="Show chat input"
-                    onPointerEnter={() => {
+                    onPointerEnter={(event) => {
+                      if (event.pointerType !== "mouse") return;
                       clearTimeout(handoffTimer.current);
                       setHandoff(false);
                       setOverHandle(true);

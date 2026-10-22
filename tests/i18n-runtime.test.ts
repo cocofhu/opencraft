@@ -13,7 +13,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-test("Codex source policy: explicit override, IDE, SYSTEM and non-English FIRST_AVAILABLE", () => {
+test("Locale source policy: explicit override, IDE, SYSTEM and non-English FIRST_AVAILABLE", () => {
   assert.equal(resolveRequestedLocale({ localeOverride: "pt_br", ideLocale: "ja-JP", systemLocale: "zh-CN" }), "pt-BR");
   assert.equal(resolveRequestedLocale({ ideLocale: "ja-JP", systemLocale: "zh-CN" }), "ja-JP");
   assert.equal(resolveRequestedLocale({ localeSource: "SYSTEM", ideLocale: "ja-JP", systemLocale: "zh-CN" }), "zh-CN");

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@deepseek-ai/cordis": "4.0.4",
-    "@opencraft/appserver-protocol": "0.1.0"
+    "@opencraft/appserver-protocol": "0.1.0",
+    "@opencraft/identity-core": "0.1.0"
   }
 }

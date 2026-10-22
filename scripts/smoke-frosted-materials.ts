@@ -10,7 +10,7 @@ const compiledCss = process.env.OPENCRAFT_MATERIAL_CSS ? await readFile(process.
 let source = `
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import * as Menu from '@radix-ui/react-dropdown-menu';
+import * as Menu from '@opencraft/design-system-web/dropdown-menu';
 import {ModalSurface} from '/apps/workbench-web/src/components/modal/modal-surface.tsx';
 import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';

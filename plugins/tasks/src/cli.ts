@@ -5,12 +5,12 @@ export async function tasksCli(args: string[]): Promise<void> {
   const command = args.shift() ?? "help";
   const help = `opencraft-tasks <command> [JSON]
 Commands:
-  list {search?,status?,kind?,assigneeId?,limit?:20,offset?:0}
+  list {search?,status?,kind?,aiResearch?,assigneeId?,limit?:20,offset?:0}
   read {id} | members {search?,limit?:20,offset?:0}
   conversations {serverId?,search?,cursor?,limit?:20}
   create {id,title,description?,kind?,acceptanceCriteria?,status?,projectServerId?,projectId?}
   update {id,expectedRevision,title,description,projectServerId,projectId,kind?,acceptanceCriteria?}
-  properties {id,expectedRevision,assigneeId?,priority?,dueDate?} (at least one)
+  properties {id,expectedRevision,assigneeId?,priority?,dueDate?,aiResearch?,aiResearchReason?} (at least one)
   member {id,name,expectedRevision:null|number,identity?:{kind,id}|null}
   move {id,expectedRevision,status,beforeId:null|id}
   link / unlink {id,expectedRevision,serverId,threadId}
@@ -21,6 +21,7 @@ Commands:
   progress {taskId,eventId,text} (stable eventId; 1..4096 chars)
   for-conversation {serverId,threadId,limit?:20,offset?:0}
 Kinds: unclassified,feature,improvement,bug,engineering,harness,research,documentation,operations,growth,task.
+AI research: unassessed,proactive,needs_context,needs_decision. A non-unassessed assessment requires aiResearchReason.
 Statuses: backlog,todo,in_progress,in_review,done,canceled.
 Priorities: none,low,normal,high,urgent. dueDate: YYYY-MM-DD or null.
 Stable member IDs are explicit handles/email/employee IDs, never inferred from names.
@@ -42,7 +43,7 @@ Pass JSON as one shell-quoted argument, or '-' to read stdin.`;
   const limit = p.limit ?? 20, offset = p.offset ?? 0;
   if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) throw new Error("Invalid page; limit must be 1..100");
   const queryFields: Record<string, readonly string[]> = {
-    list: ["search", "status", "kind", "assigneeId", "limit", "offset"],
+    list: ["search", "status", "kind", "aiResearch", "assigneeId", "limit", "offset"],
     members: ["search", "limit", "offset"],
     conversations: ["serverId", "search", "cursor", "limit"],
     "for-conversation": ["serverId", "threadId", "limit", "offset"],
@@ -51,6 +52,7 @@ Pass JSON as one shell-quoted argument, or '-' to read stdin.`;
   if (fields && Object.keys(p).some(key => !fields.includes(key))) throw new Error("Unknown query field; run help");
   if (fields && p.search !== undefined && (typeof p.search !== "string" || p.search.length > 200)) throw new Error("Search must be at most 200 characters");
   if (command === "list") {
+    if (p.aiResearch !== undefined && !["unassessed", "proactive", "needs_context", "needs_decision"].includes(p.aiResearch)) throw new Error("Invalid AI research disposition");
     if (p.status !== undefined && !["backlog", "todo", "in_progress", "in_review", "done", "canceled"].includes(p.status)) throw new Error("Invalid status; run help");
     if (p.assigneeId !== undefined && p.assigneeId !== null && (typeof p.assigneeId !== "string" || !p.assigneeId.trim() || p.assigneeId.length > 256)) throw new Error("Invalid member ID");
   }
@@ -70,9 +72,9 @@ Pass JSON as one shell-quoted argument, or '-' to read stdin.`;
   } else if (command === "archive") {
     result = { id: p.id, archived: true };
   } else if (result.tasks && command !== "archived") {
-    const rows = result.tasks.filter((t: { title: string; description: string; status: string; kind?: string; assigneeId?: string | null; conversations: {serverId:string;threadId:string}[] }) => command !== "list" || ((!p.search || `${t.title} ${t.description}`.toLocaleLowerCase().includes(p.search.toLocaleLowerCase())) && (!p.status || t.status === p.status) && (!p.kind || (t.kind ?? "unclassified") === p.kind) && (p.assigneeId === undefined || (t.assigneeId ?? null) === p.assigneeId)));
+    const rows = result.tasks.filter((t: { title: string; description: string; status: string; kind?: string; aiResearch?: string; assigneeId?: string | null; conversations: {serverId:string;threadId:string}[] }) => command !== "list" || ((!p.search || `${t.title} ${t.description}`.toLocaleLowerCase().includes(p.search.toLocaleLowerCase())) && (!p.status || t.status === p.status) && (!p.kind || (t.kind ?? "unclassified") === p.kind) && (!p.aiResearch || (t.aiResearch ?? "unassessed") === p.aiResearch) && (p.assigneeId === undefined || (t.assigneeId ?? null) === p.assigneeId)));
     const selected = command === "list" || command === "for-conversation" ? rows.slice(offset, offset + limit) : rows.filter((t: {id:string}) => t.id === p.id);
-    result = { tasks: selected.map((t: {id:string;title:string;status:string;kind?:string;latestProgress?:unknown;revision:number;assigneeId?:string|null;priority?:string;dueDate?:string|null;conversations:unknown[]}) => ({ id:t.id,title:t.title,status:t.status,kind:t.kind ?? "unclassified",latestProgress:t.latestProgress ?? null,revision:t.revision,assigneeId:t.assigneeId ?? null,priority:t.priority ?? "none",dueDate:t.dueDate ?? null,conversationCount:t.conversations.length })), ...(command === "list" || command === "for-conversation" ? { total:rows.length,nextOffset:offset+limit < rows.length ? offset+limit : null } : {}) };
+    result = { tasks: selected.map((t: {id:string;title:string;status:string;kind?:string;aiResearch?:string;latestProgress?:unknown;revision:number;assigneeId?:string|null;priority?:string;dueDate?:string|null;conversations:unknown[]}) => ({ id:t.id,title:t.title,status:t.status,kind:t.kind ?? "unclassified",aiResearch:t.aiResearch ?? "unassessed",latestProgress:t.latestProgress ?? null,revision:t.revision,assigneeId:t.assigneeId ?? null,priority:t.priority ?? "none",dueDate:t.dueDate ?? null,conversationCount:t.conversations.length })), ...(command === "list" || command === "for-conversation" ? { total:rows.length,nextOffset:offset+limit < rows.length ? offset+limit : null } : {}) };
   }
   process.stdout.write(JSON.stringify(result) + "\n");
 }

@@ -8,6 +8,8 @@ const turns = new Map();
 const threadTurns = new Map();
 const history = new Map();
 const acceptedInputs = [];
+const testTools = new Map();
+const toolResults = [];
 const deferredSteerHistory = new Map();
 const loadedThreads = new Set();
 // stdio is one physical AppServer connection even when OpenCraft has many logical Clients.
@@ -19,6 +21,14 @@ let nextTitleThread = 0;
 const send = value => process.stdout.write(`${JSON.stringify(value)}\n`);
 input.on("line", line => {
   const message = JSON.parse(line);
+  if (message.method === undefined && testTools.has(String(message.id))) {
+    toolResults.push({id:message.id,...testTools.get(String(message.id)),result:message.result,error:message.error});testTools.delete(String(message.id));return;
+  }
+  if (message.method === "test/readToolResults") {send({id:message.id,result:{data:toolResults}});return;}
+  if (message.method === "test/setHistory") {threadTurns.set(message.params.threadId,message.params.turns);send({id:message.id,result:{}});return;}
+  if (message.method === "test/emitTool") {
+    const id=nextServerRequestId++;testTools.set(String(id),message.params);send({id,method:"item/tool/call",params:{...message.params,callId:String(id)}});send({id:message.id,result:{requestId:id}});return;
+  }
   if (message.method === "initialize") {
     initialized += 1;
     send({ id: message.id, result: { codexHome: process.env.CODEX_HOME, platformFamily: "unix", platformOs: "darwin", userAgent: "fake", serverInfo: { name: "fake-codex", version: String(initialized) }, ...(process.env.OPENCRAFT_TEST_NATIVE_QUEUE_STEER ? { opencraftQueueSteerVersion: Number(process.env.OPENCRAFT_TEST_NATIVE_QUEUE_STEER) } : {}) } });

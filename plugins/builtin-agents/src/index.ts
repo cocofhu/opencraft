@@ -33,7 +33,7 @@ export type BuiltinAgentsExtensionOptions =
       readonly requestHost: HostProtocolRequest;
     };
 
-export interface HeadlessCodexExtensionOptions {
+export interface HeadlessServerExtensionOptions {
   readonly requestHost: HostProtocolRequest;
   readonly createTransport: (hostId: string) => DuplexTransport;
   readonly workspaceBrowseRoots: readonly string[];
@@ -68,7 +68,7 @@ export function createHeadlessModelServicesExtension(options: {
   };
 }
 
-export function createHeadlessCodexExtension(options: HeadlessCodexExtensionOptions): TrustedExtensionDefinition {
+export function createHeadlessServerExtension(options: HeadlessServerExtensionOptions): TrustedExtensionDefinition {
   const config = validate({});
   const hostProvider: HostConnectionProvider = Object.freeze({
     id: "vela.headless-codex",
@@ -84,8 +84,8 @@ export function createHeadlessCodexExtension(options: HeadlessCodexExtensionOpti
     manifest: {
       manifestVersion: 1,
       id: "vela.headless-codex",
-      name: "Server Codex",
-      description: "Connects the browser Workbench to the server-owned Codex Host.",
+      name: "Server Connections",
+      description: "Connects the browser Workbench to the server-owned AppHost.",
       version: "0.1.0",
       apiVersion: 1,
       trust: "trusted",

@@ -1,0 +1,136 @@
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { createServer } from "node:http";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { WebSocket, WebSocketServer } from "ws";
+import { startEngineHost } from "../apps/local-agent-host/src/engine-host.js";
+import { ThreadLifecycle } from "../apps/local-agent-host/src/thread-lifecycle.js";
+import { ThreadCatalog } from "../apps/local-agent-host/src/thread-catalog.js";
+import { createAppServerWorkbenchRuntime } from "../packages/workbench-runtime/src/appserver-runtime.js";
+import { WebSocketTransport } from "../packages/appserver-transport-websocket/src/websocket-transport.js";
+import { LOGICAL_CLIENT_FIELD } from "../packages/app-host-protocol/src/index.js";
+import { createWorkbenchWebServer } from "../scripts/serve-workbench-web.mjs";
+
+const flush = async () => { for (let i = 0; i < 10; i++) await new Promise<void>(resolve => setImmediate(resolve)); };
+async function until(check: () => boolean) {
+  for (let i = 0; i < 500; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 5)); }
+  assert.fail("Recovery did not reach the expected state");
+}
+function deferred() { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; }
+
+async function fixture(t: test.TestContext, proxy = false) {
+  const server = createServer();
+  const sockets = new WebSocketServer({ server });
+  const thread = { id: "dsh-recovery", name: "Recovery", createdAt: 1, updatedAt: 1, cwd: "/tmp", source: "cli", preview: "", modelProvider: "dsh", status: { type: "idle" }, turns: [] };
+  const lifecycle = new ThreadLifecycle(new ThreadCatalog(), async () => ({ released: true }), () => {});
+  const connections: { socket: WebSocket; key: string; clientId: string }[] = [];
+  const calls: { key: string; method: string }[] = [];
+  let beforeRequest: ((method: string) => Promise<void>) | undefined;
+  sockets.on("connection", socket => {
+    const state = { socket, key: `physical-${connections.length + 1}`, clientId: "" }; connections.push(state);
+    socket.on("message", async data => {
+      const frame = JSON.parse(String(data)); state.clientId = frame[LOGICAL_CLIENT_FIELD] ?? "";
+      if (frame.id === undefined) return;
+      calls.push({ key: state.key, method: frame.method });
+      try {
+        await beforeRequest?.(frame.method);
+        const result = await lifecycle.dispatch(frame.method, frame.params ?? {}, state.key, async method => {
+          if (method === "initialize") return { userAgent: "recovery-fixture", platformFamily: "unix", platformOs: "linux" };
+          if (["thread/resume", "thread/read"].includes(method)) return { thread, model: "dsh", modelProvider: "dsh", cwd: "/tmp", approvalPolicy: "never", approvalsReviewer: "user", sandbox: { type: "dangerFullAccess" }, runtimeWorkspaceRoots: [] };
+          if (method === "turn/start") return { turn: { id: "accepted-once", status: "inProgress", items: [] } };
+          if (["thread/list", "model/list", "thread/turns/list", "thread/items/list", "permissionProfile/list"].includes(method)) return { data: [], nextCursor: null };
+          return {};
+        });
+        if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ jsonrpc: "2.0", id: frame.id, result, [LOGICAL_CLIENT_FIELD]: state.clientId }));
+      } catch (error) {
+        if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ jsonrpc: "2.0", id: frame.id, error: { code: -32000, message: String(error) }, [LOGICAL_CLIENT_FIELD]: state.clientId }));
+      }
+    });
+    socket.on("close", () => { lifecycle.revokeClient(state.key); void lifecycle.disconnect(state.key); });
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const target = `ws://127.0.0.1:${(server.address() as any).port}`;
+  let providerClosed = 0, providerDisconnected = 0;
+  const provider: any = { id: "pi", label: "Pi", threadPrefix: "pi_", modelPrefix: "pi:", extensions: {}, ownsThread: (id: string) => id.startsWith("pi_"), ownsModel: (id: string) => id.startsWith("pi:"), subscribe: () => () => {}, disconnect() { providerDisconnected++; }, async close() { providerClosed++; }, async request() { return { data: [], nextCursor: null }; } };
+  let resolveTarget = async () => target;
+  const host = await startEngineHost({ providers: [provider], defaultEngine: "dsh", legacy: { id: "dsh", label: "DSH", start: async () => ({ websocketUrl: target, resolveWebsocketUrl: () => resolveTarget(), async close() {} }) } });
+  let url = host.websocketUrl, web: any, root: string | undefined;
+  if (proxy) {
+    root = await mkdtemp(join(tmpdir(), "engine-host-recovery-"));
+    await writeFile(join(root, "index.html"), "<!doctype html><html><head></head><body>Recovery fixture</body></html>");
+    web = await createWorkbenchWebServer({ root, appServerTarget: url });
+    const address = await web.listen({ host: "127.0.0.1", port: 0 }); url = `ws://127.0.0.1:${address.port}/appserver`;
+  }
+  let client: any;
+  const notifications: any[] = [], phases: string[] = [];
+  const runtime = createAppServerWorkbenchRuntime({ hostId: "recovery-fixture", autoReconnect: true, reconnectDelaysMs: [1],
+    createTransport: () => new WebSocketTransport({ url, createSocket: (url, protocols) => new WebSocket(url, protocols) as any }),
+    installClientHandlers(value) { client = value; return value.subscribeNotification(notification => notifications.push(notification)); },
+  });
+  runtime.subscribe(() => phases.push(runtime.getSnapshot().phase));
+  t.after(async () => { await runtime.dispose(); await web?.close(); await host.close(); for (const state of connections) state.socket.terminate(); await new Promise<void>(resolve => sockets.close(() => resolve())); await new Promise<void>(resolve => server.close(() => resolve())); await lifecycle.close(); if (root) await rm(root, { recursive: true, force: true }); });
+  return { runtime, connections, calls, notifications, phases, host, thread, lifecycle, target,
+    get client() { return client; }, get providerClosed() { return providerClosed; }, get providerDisconnected() { return providerDisconnected; },
+    beforeRequest(value: typeof beforeRequest) { beforeRequest = value; }, resolveTarget(value: typeof resolveTarget) { resolveTarget = value; },
+    emit(delta: string) { for (const state of connections) if (state.socket.readyState === WebSocket.OPEN && lifecycle.receivesNotifications(state.key, thread.id)) state.socket.send(JSON.stringify({ jsonrpc: "2.0", method: "item/agentMessage/delta", params: { threadId: thread.id, turnId: "turn", itemId: "item", delta }, [LOGICAL_CLIENT_FIELD]: state.clientId })); },
+  };
+}
+
+for (const proxy of [false, true]) test(`backend loss restores the actual Thread subscription automatically (${proxy ? "HTTP gateway" : "direct"})`, { timeout: 15_000 }, async t => {
+  const f = await fixture(t, proxy); await f.runtime.connect();
+  const lease = await f.runtime.acquireThread(f.thread.id); lease.setRecoveryVisibility(true);
+  await until(() => lease.getSnapshot().authoritative);
+  await f.client.request("turn/start", { threadId: f.thread.id, input: [{ type: "text", text: "synthetic" }] });
+  let sawRevocation = false;
+  const unsubscribe = lease.subscribe(() => { if (!lease.getSnapshot().authoritative) sawRevocation = true; });
+  t.after(unsubscribe);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const old = f.connections.at(-1)!, count = f.connections.length;
+    f.emit(`before-${cycle}`); await until(() => f.notifications.some(n => n.params?.delta === `before-${cycle}`));
+    old.socket.close(1012, "Synthetic independent Host restart");
+    await until(() => f.connections.length > count && lease.getSnapshot().authoritative && f.lifecycle.receivesNotifications(f.connections.at(-1)!.key, f.thread.id));
+    f.emit(`after-${cycle}`); await until(() => f.notifications.some(n => n.params?.delta === `after-${cycle}`));
+    const methods = f.calls.filter(call => call.key === f.connections.at(-1)!.key).map(call => call.method);
+    assert.ok(methods.includes("initialize")); assert.ok(methods.includes("thread/resume"));
+  }
+  assert.equal(sawRevocation, true); assert.ok(f.phases.includes("reconnecting"));
+  assert.equal(f.calls.filter(call => call.method === "turn/start").length, 1, "Recovery must not replay an accepted execution");
+  assert.equal(f.providerClosed, 0, "Client recovery must not close the engine owner");
+  assert.ok(f.providerDisconnected >= 3, "The shared Host connection also retires its Pi client leases");
+  await lease.release();
+});
+
+test("a configured DSH initialization error cannot become a successful Pi handshake", { timeout: 15_000 }, async t => {
+  const f = await fixture(t); let fail = true;
+  f.beforeRequest(async method => { if (method === "initialize" && fail) throw new Error("Temporary DSH initialization failure"); });
+  await assert.rejects(f.runtime.connect());
+  assert.notEqual(f.runtime.getSnapshot().phase, "ready");
+  fail = false; await until(() => f.runtime.getSnapshot().phase === "ready");
+  assert.ok(f.calls.filter(call => call.method === "initialize").length >= 2);
+});
+
+test("loss during Resume rejects the old restoration and a late result cannot replace its successor", { timeout: 15_000 }, async t => {
+  const f = await fixture(t); await f.runtime.connect(); const gate = deferred(); let first = true;
+  f.beforeRequest(async method => { if (method === "thread/resume" && first) { first = false; await gate.promise; } });
+  const lease = await f.runtime.acquireThread(f.thread.id); lease.setRecoveryVisibility(true);
+  await until(() => !first); f.connections[0]!.socket.close(1012, "Loss during Resume");
+  await until(() => f.connections.length === 2 && lease.getSnapshot().authoritative);
+  gate.resolve(); await flush();
+  assert.equal(f.runtime.getSnapshot().phase, "ready"); assert.equal(lease.getSnapshot().authoritative, true);
+  f.emit("successor"); await until(() => f.notifications.some(n => n.params?.delta === "successor"));
+  assert.equal(f.connections.length, 2); await lease.release();
+});
+
+test("a late backend target cannot allocate a socket after the frontend incarnation was retired", { timeout: 15_000 }, async t => {
+  const f = await fixture(t), gate = deferred(); let first = true;
+  f.resolveTarget(async () => { if (first) { first = false; await gate.promise; } return f.target; });
+  const socket = new WebSocket(f.host.websocketUrl); await once(socket, "open");
+  socket.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }));
+  await until(() => !first); const closed = once(socket, "close"); socket.terminate(); await closed; await flush();
+  await f.runtime.connect(); assert.equal(f.runtime.getSnapshot().phase, "ready");
+  gate.resolve(); await flush();
+  assert.equal(f.connections.length, 1); assert.equal(f.runtime.getSnapshot().phase, "ready");
+});

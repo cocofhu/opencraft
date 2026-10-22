@@ -5,14 +5,14 @@ import { build } from "esbuild";
 
 test("theme choices start with the visible product default independently of the saved selection", async () => {
   const cases = [
-    [{}, ["Neutral", "Canvas", "Frost", "Lavender", "Graphite", "Mist"]],
-    [{ defaultThemeId: "opencraft.core.canvas", hiddenBuiltinThemeIds: ["opencraft.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "Graphite"]],
-    [{ defaultThemeId: "vela.core.web", hiddenBuiltinThemeIds: ["vela.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "Graphite"]],
-    [{ defaultThemeId: "opencraft.core.frost", hiddenBuiltinThemeIds: ["opencraft.core.neutral"] }, ["Frost", "Canvas", "Lavender", "Graphite", "Mist"]],
-    [{ defaultThemeId: "extension.paper" }, ["Neutral", "Canvas", "Frost", "Lavender", "Graphite", "Mist"]],
-    [{ defaultThemeId: "opencraft.core.zencode" }, ["Graphite", "Neutral", "Canvas", "Frost", "Lavender", "Mist"]],
-    [{ hiddenBuiltinThemeIds: ["opencraft.core.zencode"] }, ["Neutral", "Canvas", "Frost", "Lavender", "Mist"]],
-    [{ hiddenBuiltinThemeIds: ["neutral", "canvas", "frost", "lavender", "graphite", "mist"].map(id => `opencraft.core.${id}`) }, ["Neutral"]],
+    [{}, ["Neutral", "Canvas", "Frost", "Longing", "Lavender", "Graphite", "Mist"]],
+    [{ defaultThemeId: "opencraft.core.canvas", hiddenBuiltinThemeIds: ["opencraft.core.mist"] }, ["Canvas", "Neutral", "Frost", "Longing", "Lavender", "Graphite"]],
+    [{ defaultThemeId: "vela.core.web", hiddenBuiltinThemeIds: ["vela.core.mist"] }, ["Canvas", "Neutral", "Frost", "Longing", "Lavender", "Graphite"]],
+    [{ defaultThemeId: "opencraft.core.frost", hiddenBuiltinThemeIds: ["opencraft.core.neutral"] }, ["Frost", "Canvas", "Longing", "Lavender", "Graphite", "Mist"]],
+    [{ defaultThemeId: "extension.paper" }, ["Neutral", "Canvas", "Frost", "Longing", "Lavender", "Graphite", "Mist"]],
+    [{ hiddenBuiltinThemeIds: ["neutral", "canvas", "frost", "longing", "lavender", "graphite", "mist"].map(id => `opencraft.core.${id}`) }, ["Neutral"]],
+    [{ defaultThemeId: "opencraft.core.zencode" }, ["Graphite", "Neutral", "Canvas", "Frost", "Longing", "Lavender", "Mist"]],
+    [{ hiddenBuiltinThemeIds: ["opencraft.core.zencode"] }, ["Neutral", "Canvas", "Frost", "Longing", "Lavender", "Mist"]],
   ];
   for (const [policy, expected] of cases) {
     const { outputFiles } = await build({

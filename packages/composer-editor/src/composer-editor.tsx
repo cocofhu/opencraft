@@ -1,6 +1,11 @@
+import { parseConversationRef, encodeConversationRef } from "@opencraft/appserver-protocol/collaboration";
+import { useConversationReferences } from "./conversation-references";
 import { ComposerModelPicker } from "./composer-model-picker";
-import { SessionModelPicker } from "./session-model-picker";
+import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, AttachmentIcon as Paperclip, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
+import { SessionModelPicker, groupComposerModels } from "./session-model-picker";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
+import { ComposerRecoveryScan } from "./recovery-scan";
 import { ComposerAttachedRail } from "./attached-rail";
 // AppServer state remains externally owned.
 import { baseKeymap, newlineInCode, splitBlock } from "prosemirror-commands";
@@ -33,26 +38,9 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, composerDocumentToPlainText } from "@opencraft/composer-core";
-import {
-  ArrowUp,
-  AtSign,
-  Check,
-  ChevronDown,
-  CircleStop,
-  CircleAlert,
-  FileCode2,
-  FileText,
-  Image,
-  LoaderCircle,
-  Paperclip,
-  Plus,
-  RotateCcw,
-  ShieldCheck,
-  X,
-  Zap,
-} from "lucide-react";
+import { ArrowUpIcon as ArrowUp, AtSignIcon as AtSign, AlertIcon as CircleAlert, CodeFileIcon as FileCode2, TextFileIcon as FileText, ImageIcon as Image, SparklesIcon as Sparkles } from "@opencraft/design-system-web/action-icons";
 import {
   Fragment,
   forwardRef,
@@ -182,6 +170,7 @@ export interface ComposerSelectionCatalog {
   readonly onRememberModelDefaults?: (defaults: {
     readonly model: string;
     readonly effort: string | null;
+    readonly serviceTier?: string | null;
   }) => void;
   readonly retryModels?: () => void;
 }
@@ -258,7 +247,7 @@ function SelectionMenuItemContent({
           className="opencraft-composer-selection-menu__trailing"
           aria-hidden="true"
         >
-          <Check size={16} strokeWidth={1.75} />
+          <Check size={16} />
         </span>
       ) : null}
     </>
@@ -267,13 +256,13 @@ function SelectionMenuItemContent({
 
 function permissionMenuLeadingIcon(mode: ComposerPermissionOption["mode"]): ReactNode {
   if (mode === "full") {
-    return <Zap size={18} strokeWidth={1.65} />;
+    return <LightningIcon size={18} />;
   }
   if (mode === "read-only") {
-    return <FileText size={18} strokeWidth={1.65} />;
+    return <PermissionDocumentIcon size={18} />;
   }
-  if (mode == null) return <ShieldCheck size={18} strokeWidth={1.65} />;
-  return <FileCode2 size={18} strokeWidth={1.65} />;
+  if (mode == null) return <PermissionShieldIcon size={18} />;
+  return <PermissionDocumentIcon size={18} editable />;
 }
 
 function formatSelectionLabel(value: string): string {
@@ -449,6 +438,7 @@ const tokenNode: NodeSpec = {
         "data-composer-token": "true",
         "data-id": node.attrs.id,
         "data-kind": node.attrs.kind,
+        ...(node.attrs.payload?.mentionKind === "thread" && typeof node.attrs.payload?.uri === "string" && parseConversationRef(node.attrs.payload.uri) ? {role:"button",tabindex:"0","data-conversation-reference":node.attrs.payload.uri} : {}),
         "data-label": node.attrs.label,
         ...(node.attrs.payload === null
           ? {}
@@ -737,6 +727,12 @@ export interface OpenCraftComposerProps {
   /** Whether this surface can resolve `@` references through its Host. */
   mentionSuggestionsEnabled?: boolean;
   isStreaming: boolean;
+  /** Read-only projection of current conversation recovery, independent of execution. */
+  isRecovering?: boolean;
+  /** Read-only connection/recovery warning; independent of normal AI execution. */
+  isUnstable?: boolean;
+  /** Thread-owned interrupt acknowledgement; does not imply the Turn has ended. */
+  isStopping?: boolean;
   disabled?: boolean;
   /** Embedded surfaces keep menu focus, styling and stacking in their owner. */
   portalContainer?: HTMLElement | null;
@@ -811,6 +807,9 @@ export const OpenCraftComposer = forwardRef<
     catalog,
     mentionSuggestionsEnabled = true,
     isStreaming,
+    isRecovering = false,
+    isUnstable = false,
+    isStopping = false,
     disabled = false,
     portalContainer,
     submissionDisabled = false,
@@ -853,6 +852,9 @@ export const OpenCraftComposer = forwardRef<
   const fileInputRef = useRef<HTMLInputElement>(null);
   // A native picker may outlive the Composer that opened it.
   const attachmentPickerOwnerRef = useRef<EditorView | null>(null);
+  const conversationReferences = useConversationReferences();
+  const conversationReferencesRef = useRef(conversationReferences);
+  conversationReferencesRef.current = conversationReferences;
   const suggestionQueryRef = useRef<SuggestionQuery | null>(null);
   const dismissedSuggestionRef = useRef<SuggestionQuery | null>(null);
   const suggestionListId = useId();
@@ -903,6 +905,7 @@ export const OpenCraftComposer = forwardRef<
   } | null>(null);
   const [openPicker, setOpenPicker] = useState<SelectionPicker | null>(null);
   const changePicker = (picker: SelectionPicker) => (open: boolean) => {
+    if (open) setAddMenuOpen(false);
     if (open && picker === "intelligence") selectionCatalog?.onModelMenuOpen?.();
     setOpenPicker(current => open ? picker : current === picker ? null : current);
   };
@@ -932,6 +935,11 @@ export const OpenCraftComposer = forwardRef<
   };
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const afterAddMenuClose = useRef<(() => void) | null>(null);
+  const changeAddMenu = (open: boolean) => {
+    if (open) { afterAddMenuClose.current = null; setOpenPicker(null); }
+    setAddMenuOpen(open);
+  };
+  const addFocus = useInputAuxiliaryMenuFocus({ open: addMenuOpen, onOpenChange: changeAddMenu, getEditor: () => editorViewRef.current?.dom ?? null });
   const [editingQueuedSubmissionId, setEditingQueuedSubmissionId] = useState<
     string | null
   >(null);
@@ -1118,7 +1126,8 @@ export const OpenCraftComposer = forwardRef<
     let active = true;
     const owner = { key: catalogRequestKey, catalog, controller };
     setCatalogResult({ ...owner, items: [], phase: "loading", error: null });
-    void Promise.resolve().then(() => catalog.search(
+    void Promise.resolve().then(async () => {
+      const results = await Promise.allSettled([catalog.search(
         {
           kind: catalogQueryKind,
           query: catalogQueryText,
@@ -1128,7 +1137,11 @@ export const OpenCraftComposer = forwardRef<
           limit: catalogQueryKind === "skill" ? Number.MAX_SAFE_INTEGER : 50,
         },
         abortController.signal,
-      ))
+      ), ...(catalogQueryKind === "mention" && conversationReferences ? [conversationReferences.search({kind:"mention",query:catalogQueryText,target:composerSnapshot.draft.target,limit:30},abortController.signal)] : [])]);
+      const entries = results.flatMap(r=>r.status === "fulfilled" ? [...r.value] : []);
+      if (!entries.length && results.every(r=>r.status === "rejected")) throw (results[0] as PromiseRejectedResult).reason;
+      return entries;
+    })
       .then(
         (entries) => {
           if (!active) return;
@@ -1143,7 +1156,7 @@ export const OpenCraftComposer = forwardRef<
       active = false;
       abortController.abort();
     };
-  }, [catalog, controller, catalogQueryKind, catalogQueryText, catalogTargetKey, catalogSearchActive, catalogRequestKey]);
+  }, [catalog, controller, catalogQueryKind, catalogQueryText, catalogTargetKey, catalogSearchActive, catalogRequestKey, conversationReferences]);
 
   const dismissSuggestions = useCallback(() => {
     dismissedSuggestionRef.current = suggestionQueryRef.current;
@@ -1158,7 +1171,7 @@ export const OpenCraftComposer = forwardRef<
     const isDismissed = candidate !== null && dismissed !== null && candidate.kind === dismissed.kind
       && candidate.from === dismissed.from && candidate.to === dismissed.to && candidate.query === dismissed.query;
     if (!isDismissed) dismissedSuggestionRef.current = null;
-    const next = isDismissed || (candidate?.kind === "mention" && !mentionSuggestionsEnabled)
+    const next = isDismissed || (candidate?.kind === "mention" && !mentionSuggestionsEnabled && !conversationReferencesRef.current)
       ? null
       : candidate;
     const previous = suggestionQueryRef.current;
@@ -1502,7 +1515,7 @@ export const OpenCraftComposer = forwardRef<
             }
           : suggestion.uri === undefined && suggestion.metadata === undefined
             ? null
-            : { uri: suggestion.uri, metadata: suggestion.metadata },
+            : { uri: suggestion.uri, metadata: suggestion.metadata, ...(suggestion.metadata?.mentionKind === "thread" ? {mentionKind:"thread"} : {}) },
     });
     const transaction = view.state.tr.replaceWith(query.from, query.to, token);
     transaction.insertText(" ", query.from + token.nodeSize);
@@ -1625,6 +1638,11 @@ export const OpenCraftComposer = forwardRef<
         new Plugin({
           key: suggestionPluginKey,
           props: {
+            handleDOMEvents: {keydown(_view,event) {
+              const uri=(event.target as HTMLElement).dataset?.conversationReference;
+              if(!uri||!["Enter"," "].includes(event.key)||!conversationReferencesRef.current)return false;
+              event.preventDefault();conversationReferencesRef.current.open(uri);return true;
+            }},
             handlePaste(_view, event) {
               const files = filesFromTransfer(event.clipboardData);
               if (files.length > 0) {
@@ -1632,6 +1650,16 @@ export const OpenCraftComposer = forwardRef<
                 return true;
               }
               const text = event.clipboardData?.getData("text/plain") ?? "";
+              const ref = parseConversationRef(text);
+              if (ref) {
+                event.preventDefault();
+                let label = ref.threadId;
+                try { label = new URL(text).searchParams.get("title")?.slice(0,120) || label; } catch { /* Canonical reference has no display hint. */ }
+                const uri = encodeConversationRef(ref);
+                const token = composerSchema.nodes.token.create({id:uri,kind:"mention",label,payload:{mentionKind:"thread",uri,metadata:{mentionKind:"thread"}}});
+                _view.dispatch(_view.state.tr.replaceSelectionWith(token).scrollIntoView());
+                return true;
+              }
               if (text.length >= 5000) {
                 appendFiles([
                   new File([text], "pasted-text.txt", { type: "text/plain" }),
@@ -1639,6 +1667,12 @@ export const OpenCraftComposer = forwardRef<
                 return true;
               }
               return false;
+            },
+            handleClickOn(_view, _pos, node, _nodePos, event, direct) {
+              if (!direct || node.type.name !== "token" || node.attrs.payload?.mentionKind !== "thread") return false;
+              const uri = node.attrs.payload?.uri;
+              if (typeof uri !== "string" || !parseConversationRef(uri) || !conversationReferencesRef.current) return false;
+              event.preventDefault(); conversationReferencesRef.current.open(uri); return true;
             },
             handleDrop(_view, event) {
               const files = filesFromTransfer(event.dataTransfer);
@@ -1937,32 +1971,45 @@ export const OpenCraftComposer = forwardRef<
       ),
       supportsCurrentEffort ? selectedEffortValue : undefined,
     );
+    const serviceTier = model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier ?? null : null;
     controller.dispatch({
       type: "set-selections",
       patch: {
         model: model.value,
         effort,
-        ...(modelSelectionPolicy === "user" && requestedServiceTier !== undefined
-          ? { serviceTier: model.serviceTiers?.some(tier => tier.id === requestedServiceTier) ? requestedServiceTier : null } : {}),
+        ...(modelSelectionPolicy === "user" ? { serviceTier } : {}),
       },
     });
     selectionCatalog?.onRememberModelDefaults?.({
       model: model.value,
       effort: effort ?? null,
+      serviceTier,
     });
   };
 
   const selectEffort = (effort: ComposerReasoningEffortOption) => {
     controller.dispatch({
       type: "set-selections",
-      patch: { effort: effort.value },
+      patch: { effort: effort.value, ...(modelSelectionPolicy === "user" && selectedModel !== null
+        ? { model: selectedModel.value, serviceTier: selectedServiceTier } : {}) },
     });
     if (selectedModel !== null) {
       selectionCatalog?.onRememberModelDefaults?.({
         model: selectedModel.value,
         effort: effort.value,
+        serviceTier: selectedServiceTier,
       });
     }
+  };
+
+  const selectServiceTier = (serviceTier: string | null) => {
+    if (selectedModel === null) return;
+    controller.dispatch({ type: "set-selections", patch: {
+      model: selectedModel.value, effort: selectedEffortValue ?? undefined, serviceTier,
+    } });
+    selectionCatalog?.onRememberModelDefaults?.({
+      model: selectedModel.value, effort: selectedEffortValue, serviceTier,
+    });
   };
 
   const selectPermission = (permissionProfile: string | null) => {
@@ -2021,7 +2068,7 @@ export const OpenCraftComposer = forwardRef<
     editingQueuedSubmissionId !== null
       ? intl.formatMessage({ id: "chat.saveQueuedMessage", defaultMessage: "Save queued message" })
       : primaryAction === "stop"
-        ? intl.formatMessage({ id: "chat.stopResponse", defaultMessage: "Stop response" })
+        ? intl.formatMessage(isStopping ? { id: "chat.stop.pending", defaultMessage: "Stopping response…" } : { id: "chat.stopResponse", defaultMessage: "Stop response" })
         : primaryAction === "queue"
           ? intl.formatMessage({ id: "chat.queueFollowUp", defaultMessage: "Queue follow-up" })
           : primaryAction === "steer"
@@ -2093,7 +2140,8 @@ export const OpenCraftComposer = forwardRef<
         />
         {attachedContent}
       </ComposerAttachedRail>
-      <div className="opencraft-composer-shell">
+      <div className="opencraft-composer-shell" data-warning={isUnstable ? "true" : undefined}>
+        <ComposerRecoveryScan active={isRecovering} />
         {chromeHeader === undefined ? null : (
           <div className="opencraft-composer-chrome-header">{chromeHeader}</div>
         )}
@@ -2132,14 +2180,14 @@ export const OpenCraftComposer = forwardRef<
                     : <img alt="" draggable={false} src={previewUrl} />}
                   {attachment.lifecycle === "pending" || attachment.lifecycle === "processing" || attachment.lifecycle === "uploading" ? (
                     <span aria-label={`Preparing ${attachment.name}`} className="opencraft-composer-image-attachment__status" role="status">
-                      <LoaderCircle aria-hidden="true" size={22} />
+                      <LoadingRingIcon aria-hidden="true" size={22} />
                     </span>
                   ) : null}
                   {attachment.lifecycle === "failed" ? (
                     <span className="opencraft-composer-image-attachment__status is-failed">
                       {attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
                         <button aria-label={`Retry ${attachment.name}: ${attachment.error ?? "Image preparation failed"}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)} type="button">
-                          <RotateCcw aria-hidden="true" size={20} />
+                          <ResetIcon aria-hidden="true" size={20} />
                         </button>
                       ) : <CircleAlert aria-label={attachment.error ?? "Image preparation failed"} role="img" size={20} />}
                     </span>
@@ -2167,7 +2215,7 @@ export const OpenCraftComposer = forwardRef<
                   </span>
                   <span className="opencraft-composer-attachment__actions">
                     {attachment.lifecycle === "failed" && attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
-                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><RotateCcw size={13} /></button>
+                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><ResetIcon size={13} /></button>
                     ) : null}
                     <button type="button" aria-label={`Remove ${attachment.name}`} onClick={() => removeAttachment(attachment.id)}><X size={13} /></button>
                   </span>
@@ -2245,12 +2293,16 @@ export const OpenCraftComposer = forwardRef<
                   onMouseDown={(event) => {
                     event.preventDefault();
                   }}
-                  onMouseEnter={() => { selectedSuggestionRef.current = index; setSelectedSuggestion(index); }}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== "mouse") return;
+                    selectedSuggestionRef.current = index;
+                    setSelectedSuggestion(index);
+                  }}
                   onClick={() => insertSuggestion(suggestion)}
                 >
                   <span>
                     {suggestion.kind === "command" ? (
-                      <Zap size={15} />
+                      <LightningIcon size={15} />
                     ) : suggestion.kind === "skill" ? (
                       <SkillIcon source={suggestion.metadata?.iconSmallUrl ?? suggestion.metadata?.iconSmall} />
                     ) : (
@@ -2304,30 +2356,30 @@ export const OpenCraftComposer = forwardRef<
                 aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                 onClick={openAttachmentPicker}
               >
-                <Plus size={16} />
+                <Plus size={20} />
               </button>
             ) : (
-              <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={(open) => {
-                if (open) afterAddMenuClose.current = null;
-                setAddMenuOpen(open);
-              }}>
+              <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={changeAddMenu}>
                 <DropdownMenu.Trigger asChild>
                   <button
+                    {...addFocus.triggerProps}
                     className="opencraft-composer-icon-button"
                     type="button"
                     aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                   >
-                    <Plus size={16} />
+                    <Plus size={20} />
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
                   <DropdownMenu.Content
+                    {...addFocus.contentProps}
                     className="opencraft-composer-selection-menu opencraft-composer-add-menu"
                     align="start"
                     sideOffset={6}
                     collisionPadding={6}
                     onCloseAutoFocus={(event) => {
                       afterMenuCloseFocus();
+                      addFocus.contentProps.onCloseAutoFocus(event);
                       const afterClose = afterAddMenuClose.current;
                       afterAddMenuClose.current = null;
                       if (afterClose !== null) {
@@ -2386,7 +2438,7 @@ export const OpenCraftComposer = forwardRef<
               {modelDisplayOnly ? <span className="opencraft-composer-mode opencraft-composer-mode--inherited" title={intelligenceLabel}>
                 <span className="opencraft-composer-mode__model-label">{compactSelectedModelLabel}</span>
                 {visibleEffortValue != null ? <span className="opencraft-composer-mode__effort-label">{effortLabel}</span> : null}
-                {displayFast ? <Zap className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label="Fast" /> : null}
+                {displayFast ? <LightningIcon className="opencraft-composer-mode__fast" size={14} fill="currentColor" aria-label="Fast" /> : null}
               </span> : null}
               {!modelDisplayOnly && modelSelectionPolicy === "session" ? <SessionModelPicker catalog={selectionCatalog} label={modelLabel}
                 selected={selectedModelValue} disabled={disabled} open={openPicker === "intelligence"}
@@ -2398,7 +2450,7 @@ export const OpenCraftComposer = forwardRef<
                 portalContainer={portalContainer} focus={intelligenceFocus}
                 efforts={selectedModel?.efforts.map(effort => ({ value: effort.value, label: displayReasoningEffort(effort) })) ?? []}
                 serviceTiers={selectedModel?.serviceTiers ?? []} serviceTier={selectedServiceTier} displayFast={displayFast}
-                onServiceTierChange={serviceTier => controller.dispatch({ type: "set-selections", patch: { serviceTier } })}
+                onServiceTierChange={selectServiceTier}
                 effort={existingConversation ? displayEffortValue ?? null : selectedEffortValue} defaultEffort={selectedModel?.defaultEffort ?? null} onEffortChange={value => {
                   const effort = selectedModel?.efforts.find(candidate => candidate.value === value);
                   if (effort) selectEffort(effort);
@@ -2411,14 +2463,17 @@ export const OpenCraftComposer = forwardRef<
                           {(selectionCatalog?.agentGroups ?? [{ id: "active", label: "", active: true, models: catalogModels, select: selectModel }]).map(group => (
                             <DropdownMenu.Group key={group.id}>
                               {group.label ? <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">{group.label}</DropdownMenu.Label> : null}
-                              {group.models.map(model => (
+                              {groupComposerModels(group.models, true).map(modelGroup => <Fragment key={modelGroup.key}>
+                                {modelGroup.label ? <DropdownMenu.Label className="opencraft-composer-model-group__label">{modelGroup.label}</DropdownMenu.Label> : null}
+                                {modelGroup.models.map(model => (
                                 <DropdownMenu.Item key={model.id} className="opencraft-composer-selection-menu__item"
                                   data-selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue) ? "true" : undefined}
                                   onSelect={event => { event.preventDefault(); if (group.active) { if (selectionCatalog?.agentGroups) void selectAgentModel(group, model); selectModel(model); } else void selectAgentModel(group, model); }}>
                                   <SelectionMenuItemContent description={null} label={model.label}
                                     selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue)} />
                                 </DropdownMenu.Item>
-                              ))}
+                                ))}
+                              </Fragment>)}
                               {switchingAgentId === group.id ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.switchingAgent" defaultMessage="Switching Agent…" /></div> : null}
                               {agentSelectionError?.id === group.id ? <div className="opencraft-composer-selection-menu__status is-error" role="alert">{agentSelectionError.message}</div> : null}
                               {group.loading ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.loadingModels" defaultMessage="Loading models…" /></div> : null}
@@ -2481,11 +2536,11 @@ export const OpenCraftComposer = forwardRef<
                         permissionTriggerTitle
                       }
                     >
-                      <ShieldCheck size={14} />
+                      <PermissionShieldIcon size={18} />
                       <span className="opencraft-composer-mode__permission-label">
                         {permissionSelectionLabel}
                       </span>
-                      <ChevronDown size={12} />
+                      <ChevronDown size={14} />
                     </button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal container={portalContainer}>
@@ -2557,7 +2612,7 @@ export const OpenCraftComposer = forwardRef<
           <div ref={footerLayout.endRef} className="opencraft-composer-footer__end" inert={voiceActive ? true : undefined} aria-hidden={voiceActive ? true : undefined}>
             {(displayFast ?? selectedModel?.serviceTiers?.some(tier => tier.id === selectedServiceTier && (tier.id === "fast" || tier.name.toLowerCase() === "fast"))) ? (
               <span className="opencraft-composer-collapsed-fast" role="img" aria-label="Fast">
-                <Zap size={15} fill="currentColor" aria-hidden="true" />
+                <LightningIcon size={15} fill="currentColor" aria-hidden="true" />
               </span>
             ) : null}
             {endActions}
@@ -2585,10 +2640,13 @@ export const OpenCraftComposer = forwardRef<
               <button
                 className="opencraft-composer-submit is-stop"
                 type="button"
+                disabled={isStopping}
+                aria-busy={isStopping || undefined}
                 aria-label={primaryActionLabel}
                 title={primaryActionTitle}
                 data-composer-primary-action={primaryAction}
-                onPointerDown={(event) => {
+                onMouseDown={(event) => {
+                  // Prevent mouse focus transfer without cancelling touch click synthesis.
                   if (event.button === 0) event.preventDefault();
                 }}
                 onClick={(event) => onCancel({
@@ -2597,7 +2655,7 @@ export const OpenCraftComposer = forwardRef<
                   occurredAt: Date.now(),
                 })}
               >
-                <CircleStop size={17} />
+                {isStopping ? <LoadingRingIcon className="opencraft-composer-stop-spinner" size={17} /> : <StopCircleIcon size={17} />}
               </button>
             ) : (
               <button
@@ -2607,7 +2665,8 @@ export const OpenCraftComposer = forwardRef<
                 title={primaryActionTitle}
                 data-composer-primary-action={primaryAction}
                 disabled={disabled || submissionDisabled || !composerSnapshot.canSubmit}
-                onPointerDown={(event) => {
+                onMouseDown={(event) => {
+                  // Prevent mouse focus transfer without cancelling touch click synthesis.
                   if (event.button === 0) event.preventDefault();
                 }}
                 onClick={() => {

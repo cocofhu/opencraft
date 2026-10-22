@@ -28,7 +28,7 @@ export function createVoiceSettingsView(port: NativeSpeechPort) {
     };
     const unavailable = preferences.deviceId !== null && info !== null && !info.devices.some(device => device.id === preferences.deviceId);
     return <>
-      <SettingsPageHeader title="语音输入" description="使用 Mac 系统语音识别，不依赖聊天模型或 Codex。" />
+      <SettingsPageHeader title="语音输入" description="使用 Mac 系统语音识别，不依赖聊天模型。" />
       <SettingsSection title="系统语音" action={<SettingsButton disabled={busy} onClick={() => { void refresh(); }}>刷新设备</SettingsButton>}>
         <SettingsGroup aria-busy={busy}>
           <SettingsRow label="输入设备" htmlFor="native-speech-device" description={unavailable ? "所选麦克风不可用，请重新选择；不会自动切换设备。" : "设备设置作用于当前客户端，下次录音时使用。"}>

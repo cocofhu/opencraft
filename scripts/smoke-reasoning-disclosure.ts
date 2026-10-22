@@ -24,12 +24,20 @@ try {
   const results = [];
   const activityScales = [];
   const subagentDetails = [];
+  const commandElapsed = [];
+  const commandOutputStates = [];
   for (const touch of [false, true]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width: touch ? 390 : 1024, height: 900 }, hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
       isMobile: touch, reducedMotion: touch ? "reduce" : "no-preference" });
     const errors: string[] = []; page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.addInitScript("window.__name=value=>value");
+    if (process.argv.includes("--command-output-only")) await page.addInitScript(() => {
+      (window as any).commandClipboard = [];
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+        writeText: async (value: string) => { (window as any).commandClipboard.push(value); },
+      } });
+    });
     await page.addInitScript(() => {
       const NativeObserver = window.ResizeObserver;
       const deliveries: unknown[] = [];
@@ -60,6 +68,220 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    for (const scene of ["subagent-details", "subagent-single", "subagent-wait"]) {
+      await update(scene);
+      const agents = page.locator('.thread-subagent-activity');
+      const disclosure = agents.locator('.thread-subagent-activity__toggle');
+      await disclosure.waitFor();
+      if (await disclosure.getAttribute('aria-expanded') === 'false') await activate(disclosure);
+      const rows = agents.locator('.thread-subagent-details__row');
+      await rows.first().waitFor();
+      const content = await agents.locator('.thread-subagent-details__inner').innerText();
+      if (scene === "subagent-details") {
+        assert.equal(await rows.count(), 2, 'one current detail per agent');
+        const typography = rows.filter({ has: page.getByText('Typography', { exact: true }) });
+        const icons = rows.filter({ has: page.getByText('Icons', { exact: true }) });
+        assert.match(await typography.innerText(), /Messaged Typography: Inspect current typography/);
+        assert.doesNotMatch(await typography.innerText(), /Inspect icons|Superseded typography task/);
+        assert.match(await icons.innerText(), /Created Icons with the instructions: Inspect icons/);
+        assert.doesNotMatch(await icons.innerText(), /Inspect current typography/);
+        const before = await page.evaluate(() => (window as any).openedSubagents.length);
+        await activate(agents.getByRole('button', { name: 'Open Icons subagent', exact: true }));
+        assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+          [{ threadId: 'Icons', displayName: 'Icons' }]);
+        assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
+      } else {
+        assert.equal(await rows.count(), 1);
+        assert.match(content, scene === "subagent-single" ? /Inspect typography/ : /Input: Wait for the audit/);
+        assert.match(content, /Reasoning: high/);
+        assert.match(content, /\/work\/agents\/Typography/);
+      }
+      await activate(disclosure);
+      await activate(disclosure);
+      assert.equal(await agents.locator('.thread-subagent-details__inner').innerText(), content,
+        'folding retains the same assigned instructions');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-${scene}.png`) });
+      subagentDetails.push({ scene, theme, touch, content });
+    }
+    if (process.argv.includes("--subagents-only")) {
+      assert.deepEqual(errors, []);
+      await page.close();
+      continue;
+    }
+    await update("reset");
+    if (process.argv.includes("--turn-entry-only")) {
+      await page.evaluate(() => {
+        const w = window as any; w.turnEntryFrames = []; w.turnEntryLabel = "baseline";
+        const sample = () => {
+          const row = document.querySelector<HTMLElement>(".thread-turn-diff-live");
+          if (row) { const css = getComputedStyle(row); w.turnEntryFrames.push({ label: w.turnEntryLabel, opacity: Number(css.opacity), transform: css.transform }); }
+        };
+        const frame = () => { sample(); requestAnimationFrame(frame); };
+        new MutationObserver(sample).observe(document.body, { subtree: true, childList: true }); requestAnimationFrame(frame);
+      });
+      const observe = async (label: string, action: string) => {
+        await page.evaluate(label => { (window as any).turnEntryLabel = label; }, label);
+        await update(action); await page.waitForTimeout(220);
+        return page.evaluate(label => (window as any).turnEntryFrames.filter((f: any) => f.label === label), label);
+      };
+      const staticEntry = (frames: any[], label: string) => {
+        assert.ok(frames.length > 0, label);
+        assert.ok(frames.every(f => f.opacity === 1 && (f.transform === "none" || f.transform === "matrix(1, 0, 0, 1, 0, 0)")), `${label}: recovered resources must be visible and stationary from their first frame: ${JSON.stringify(frames)}`);
+      };
+      staticEntry(await observe("baseline", "turn-entry-baseline"), "baseline");
+      const row = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("return", "restore"), "return");
+      assert.equal(await row!.evaluate(element => element.isConnected), false);
+      await observe("empty", "turn-entry-empty"); assert.equal(await page.locator('.thread-turn-diff-live').count(), 0);
+      const fresh = await observe("fresh", "turn-entry-appear");
+      if (touch) staticEntry(fresh, "reduced motion fresh entry");
+      else assert.ok(fresh.some((f: any) => f.opacity < 1), "genuinely new live resources keep their entry motion");
+      const live = await page.locator('.thread-turn-diff-live').elementHandle();
+      staticEntry(await observe("update", "turn-entry-update"), "update");
+      assert.equal(await live!.evaluate(element => element.isConnected), true);
+      await activate(page.locator('.thread-turn-diff-live')); assert.equal(await page.evaluate(() => (window as any).reviewedLiveChanges), true);
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), []);
+      await writeFile(join(output, `turn-entry-${touch ? 'touch' : 'mouse'}-${theme}.json`), JSON.stringify(await page.evaluate(() => (window as any).turnEntryFrames)));
+      results.push({ touch, theme, baselineStatic: true, returnedStatic: true, freshEntryPreserved: true, updatedNodePreserved: true, reviewWorks: true });
+      await page.close(); continue;
+    }
+    if (process.argv.includes("--turn-files-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle(); await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll); await page.locator('.thread-scroll').waitFor();
+      };
+      await update("turn-files-reset");
+      const row = page.locator('.thread-turn-diff');
+      const more = row.locator('.thread-turn-diff__more');
+      const files = row.locator('.thread-turn-diff__files > button:not(.thread-turn-diff__more)');
+      assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 5);
+      const original = await row.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await files.count(), 5, "the retained View keeps the explicitly expanded Turn file list");
+      assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      const restored = await row.elementHandle(); await update("turn-files-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.equal(await files.count(), 6); assert.ok((await row.innerText()).includes('updated-file-6.ts'));
+      await update("turn-files-shrink"); assert.equal(await files.count(), 2); assert.equal(await more.count(), 0);
+      await update("turn-files-regrow"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await update("turn-files-other"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await update("turn-files-return"); assert.equal(await files.count(), 6); assert.equal(await more.getAttribute('aria-expanded'), 'true');
+      await more.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `turn-files-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await activate(more); await restoreView(); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      await activate(more); assert.equal(await files.count(), 6);
+      await update("turn-files-reset"); assert.equal(await files.count(), 3); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).resizeFeedback), [], "Turn file-list restore must not cause ResizeObserver feedback");
+      results.push({ touch, theme, turnFilesRestored: true, refreshedFiles: true, transientShrink: true, separateTurns: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--turn-files-only")) { await page.close(); continue; }
+    }
+    if (process.argv.includes("--diff-position-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async (action = "restore") => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update(action);
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-position-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const reader = first.locator('.thread-unified-diff');
+      const position = (target = reader) => target.evaluate((element: HTMLElement) => ({ top: element.scrollTop, left: element.scrollLeft }));
+      await unfoldGroup(); await toggleRow(first);
+      await reader.evaluate((element: HTMLElement) => { element.scrollTop = 180; element.scrollLeft = 90; });
+      assert.deepEqual(await position(), { top: 180, left: 90 });
+      const original = await reader.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "the retained View restores both diff reader coordinates");
+      const restored = await reader.elementHandle(); await update("diff-position-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "fresh output keeps manual reading stationary");
+      assert.ok((await first.innerText()).includes('updated-position-219'));
+      await toggleRow(second); assert.deepEqual(await position(second.locator('.thread-unified-diff')), { top: 0, left: 0 });
+      await restoreView("diff-position-pending-restore");
+      assert.equal(await page.evaluate(() => (window as any).pendingDiffScrollEvents), 0,
+        "unmount before the browser delivers the queued scroll event");
+      assert.deepEqual(await position(), { top: 260, left: 140 }, "teardown captures the actual DOM position without waiting for scroll events");
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-position-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await toggleRow(first); await restoreView(); assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first); assert.deepEqual(await position(), { top: 260, left: 140 });
+      await update("diff-position-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.deepEqual(await position(), { top: 0, left: 0 }, "a new View starts at the original reading origin");
+      assert.deepEqual(errors, []);
+      const resizeFeedback = await page.evaluate(() => (window as any).resizeFeedback);
+      if (resizeFeedback.length > 0) console.log(JSON.stringify({ touch, theme, diffPositionResizeFeedback: resizeFeedback }));
+      assert.deepEqual(resizeFeedback, [], "diff reading restoration must not cause ResizeObserver feedback");
+      results.push({ touch, theme, diffPositionRestored: true, refreshedDiff: true, separateFiles: true, pendingNativeScroll: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-position-only")) { await page.close(); continue; }
+    }
+    if (process.argv.includes("--diff-reading-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-reading-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const context = first.locator('.thread-unified-diff__collapsed');
+      const more = first.locator('.thread-unified-diff__show-all');
+      await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1); assert.equal(await more.count(), 1);
+      await activate(context); await activate(more);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      const original = await first.elementHandle();
+      await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.equal(await first.getAttribute('data-open'), 'true');
+      assert.equal(await context.count(), 0, "the retained View keeps explicitly shown unchanged lines");
+      assert.equal(await more.count(), 0, "the retained View keeps the explicitly shown long diff");
+      const restored = await first.elementHandle();
+      await update("diff-reading-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.ok((await first.innerText()).includes('updated-after-450'), "current diff output stays authoritative");
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await toggleRow(second);
+      assert.equal(await second.locator('.thread-unified-diff__collapsed').count(), 1, "different files keep independent context choices");
+      assert.equal(await second.locator('.thread-unified-diff__show-all').count(), 1);
+      await toggleRow(first); await restoreView();
+      assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first);
+      assert.equal(await context.count(), 0); assert.equal(await more.count(), 0);
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-reading-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await update("diff-reading-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.equal(await context.count(), 1, "a new View retains the original context default");
+      assert.equal(await more.count(), 1, "a new View retains the original long-diff limit");
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, diffReadingRestored: true, refreshedDiff: true, separateFiles: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-reading-only")) { await page.close(); continue; }
+    }
     if (process.argv.includes("--detail-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
       const restoreView = async () => {
         const scroll = await page.locator('.thread-scroll').elementHandle();
@@ -109,49 +331,229 @@ try {
       results.push({ touch, theme, detailViewRestored: true, refreshedOutput: true, explicitCollapse: true, freshViewIsolated: true });
       if (process.argv.includes("--detail-view-only")) { await page.close(); continue; }
     }
-
-    for (const scene of ["subagent-details", "subagent-single", "subagent-wait"]) {
-      await update(scene);
-      const agents = page.locator('.thread-subagent-activity');
-      const disclosure = agents.locator('.thread-subagent-activity__toggle');
-      await disclosure.waitFor();
-      if (await disclosure.getAttribute('aria-expanded') === 'false') await activate(disclosure);
-      const rows = agents.locator('.thread-subagent-details__row');
-      await rows.first().waitFor();
-      const content = await agents.locator('.thread-subagent-details__inner').innerText();
-      if (scene === "subagent-details") {
-        assert.equal(await rows.count(), 2, 'one current detail per agent');
-        const typography = rows.filter({ has: page.getByText('Typography', { exact: true }) });
-        const icons = rows.filter({ has: page.getByText('Icons', { exact: true }) });
-        assert.match(await typography.innerText(), /Messaged Typography: Inspect current typography/);
-        assert.doesNotMatch(await typography.innerText(), /Inspect icons|Superseded typography task/);
-        assert.match(await icons.innerText(), /Created Icons with the instructions: Inspect icons/);
-        assert.doesNotMatch(await icons.innerText(), /Inspect current typography/);
-        const before = await page.evaluate(() => (window as any).openedSubagents.length);
-        await activate(agents.getByRole('button', { name: 'Open Icons subagent', exact: true }));
-        assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
-          [{ threadId: 'Icons', displayName: 'Icons' }]);
-        assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
-      } else {
-        assert.equal(await rows.count(), 1);
-        assert.match(content, scene === "subagent-single" ? /Inspect typography/ : /Input: Wait for the audit/);
-        assert.match(content, /Reasoning: high/);
-        assert.match(content, /\/work\/agents\/Typography/);
+    if (process.argv.includes("--command-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("command-view-reset");
+      for (let index = 0; index < 8; index++) {
+        if (await page.locator('.thread-shell-output').count()) break;
+        const closed = page.locator('.thread-agent-activity__group button[aria-expanded="false"], .thread-activity-item__hit-target[aria-expanded="false"]');
+        assert.ok(await closed.count(), "the original command disclosure is reachable");
+        await activate(closed.first());
       }
-      await activate(disclosure);
-      await activate(disclosure);
-      assert.equal(await agents.locator('.thread-subagent-details__inner').innerText(), content,
-        'folding retains the same assigned instructions');
+      const viewport = page.locator('.thread-shell-output__output pre');
+      await viewport.waitFor();
+      await viewport.evaluate(element => { element.scrollTop = 180; element.scrollLeft = 90; });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.thread-shell-output__output pre');
+        return element?.scrollTop === 180 && element.scrollLeft === 90;
+      });
+      const first = await viewport.elementHandle();
+      await restoreView();
+      await page.waitForFunction(element => !element.isConnected, first);
+      await viewport.waitFor();
+      assert.deepEqual(await viewport.evaluate(element => [element.scrollTop, element.scrollLeft]), [180, 90],
+        "the same View restores both log reading axes");
+      const restored = await viewport.elementHandle();
+      await update("command-view-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.equal(await viewport.evaluate(element => element.scrollTop), 180, "new output does not take over manual reading");
+      await viewport.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.thread-shell-output__output pre')!;
+        return element.scrollHeight - element.clientHeight - element.scrollTop <= 2;
+      });
+      await restoreView();
+      await viewport.waitFor();
+      assert.ok(await viewport.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop <= 2),
+        "following the latest output survives a View remount");
+      await page.screenshot({ path: join(output, `command-view-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      const trigger = page.locator('.thread-activity-item[data-status] > .thread-activity-item__header button').last();
+      await activate(trigger);
+      await page.waitForFunction(() => document.querySelector('.thread-activity-item[data-status]')?.getAttribute('data-open') !== 'true');
+      await restoreView();
+      assert.equal(await trigger.getAttribute('aria-expanded'), 'false', "explicit collapse survives the same View restoration");
+      await activate(trigger);
+      await viewport.waitFor();
+      assert.ok(await viewport.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop <= 2),
+        "an explicit reopen still starts at latest output");
+      await update("command-view-reset");
+      assert.equal(await page.locator('.thread-shell-output').count(), 0, "a fresh View does not inherit another View's choice");
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, commandViewRestored: true, readingPosition: true, followIntent: true, freshViewIsolated: true });
+      if (process.argv.includes("--command-view-only")) { await page.close(); continue; }
+    }
+    for (const [kind, label] of [
+      ["started", "Compiler Reviewer started working"],
+      ["interacted", "Compiler Reviewer updated"],
+      ["interrupted", "Compiler Reviewer interrupted"],
+      ["completed", null],
+    ] as const) {
+      await update("subagent-lifecycle-" + kind);
+      const inline = page.locator('.thread-subagent-inline');
+      if (label === null) {
+        assert.equal(await inline.count(), 0, 'completed notices retain their existing aggregate presentation');
+      } else {
+        await inline.waitFor();
+        assert.equal(await inline.locator('span:not(.thread-subagent-avatar)').last().innerText(), label);
+        assert.equal(await page.locator('.thread-subagent-activity__status').count(), 0);
+      }
+      const before = await page.evaluate(() => (window as any).openedSubagents.length);
+      // Tap the label, not just the avatar/name chip: the whole notice navigates.
+      await activate(label === null ? page.getByRole('button', { name: 'Open Compiler Reviewer subagent', exact: true })
+        : inline.locator('span:not(.thread-subagent-avatar)').last());
+      assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
+      assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+        [{ threadId: 'lifecycle-child', displayName: 'Compiler Reviewer' }]);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-${scene}.png`) });
-      subagentDetails.push({ scene, theme, touch, content });
+      results.push({ scene: "subagent-lifecycle-" + kind, theme, touch, content: label });
     }
     if (process.argv.includes("--subagents-only")) {
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
+
+    await update("reset");
+    if (process.argv.includes("--subagents-only")) {
+      for (const scene of ["subagent-many", "subagent-many-single"]) {
+        await update(scene);
+        const agents = page.locator('.thread-subagent-activity');
+        const header = agents.locator('.thread-subagent-activity__header');
+        await header.waitFor();
+        const chips = header.locator('.thread-subagent-chip');
+        assert.equal(await chips.count(), 3);
+        assert.ok(await chips.evaluateAll(nodes => nodes.every(node =>
+          (node.querySelector('span:not(.thread-subagent-avatar)') as HTMLElement).clientWidth > 0)));
+        await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-${scene}.png`) });
+        await activate(header.getByRole('button', { name: '5 more', exact: true }));
+        assert.equal(await chips.count(), 8);
+        await activate(header.getByRole('button', { name: 'Open Hazel subagent', exact: true }));
+        assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+          [{ threadId: 'density-agent-7', displayName: 'Hazel' }]);
+        const toggle = agents.locator('.thread-subagent-activity__toggle');
+        if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        const rows = agents.locator('.thread-subagent-details__row');
+        await rows.last().waitFor(); assert.equal(await rows.count(), 8);
+        const content = await agents.locator('.thread-subagent-details__inner').innerText();
+        await activate(toggle); await activate(toggle);
+        assert.equal(await agents.locator('.thread-subagent-details__inner').innerText(), content);
+        assert.equal(await chips.count(), 8, 'detail disclosure retains the explicit full chip list');
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+        subagentDetails.push({ scene, theme, touch });
+      }
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
+    if (process.argv.includes("--command-completion-only")) {
+      for (const mode of ["completed", "failed", "interrupted"]) {
+        await update("command-completion-reset");
+        await update(`command-completion-${mode}`);
+        assert.equal(await page.locator('.thread-activity-item__hit-target').last().getAttribute('aria-expanded'), 'false',
+          `${mode}: completion cannot expand a command the user never opened`);
+        assert.equal(await page.locator('.thread-shell-output').count(), 0);
+        await update("command-completion-reset");
+        for (let index = 0; index < 8; index++) {
+          const closed = page.locator('.thread-agent-activity__group button[aria-expanded="false"], .thread-activity-item__hit-target[aria-expanded="false"]');
+          if (!await closed.count()) break;
+          await activate(closed.first());
+        }
+        const viewport = page.locator('.thread-shell-output__output pre');
+        const copy = page.locator('.thread-shell-output__output button');
+        await viewport.waitFor();
+        await viewport.evaluate(element => { element.scrollTop = 180; });
+        await page.waitForFunction(() => document.querySelector('.thread-shell-output__output pre')?.scrollTop === 180);
+        if (!touch) await copy.focus();
+        const originalViewport = await viewport.elementHandle();
+        const originalCopy = await copy.elementHandle();
+        const top = await viewport.evaluate(element => element.scrollTop);
+        await update(`command-completion-${mode}`);
+        assert.equal(await originalViewport!.evaluate(element => element.isConnected), true, `${mode}: preserve the log DOM`);
+        assert.equal(await originalCopy!.evaluate(element => element.isConnected), true, `${mode}: preserve the action DOM`);
+        assert.equal(await page.locator('.thread-shell-output__command').isVisible(), true, `${mode}: retain explicit expansion`);
+        assert.equal(await viewport.evaluate(element => element.scrollTop), top, `${mode}: preserve the reading position`);
+        if (!touch) assert.equal(await originalCopy!.evaluate(element => element === document.activeElement), true, `${mode}: retain keyboard focus`);
+        assert.equal(await page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header').count(), 0,
+          `${mode}: completed singleton still has the plain-row presentation`);
+        await update(`command-completion-${mode}`);
+        assert.equal(await originalViewport!.evaluate(element => element.isConnected), true, `${mode}: repeated snapshot stays mounted`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+        results.push({ touch, theme, commandCompletion: mode, top });
+      }
       assert.deepEqual(errors, []);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-completion.png`) });
       await page.close();
       continue;
     }
-    await update("reset");
+    if (process.argv.includes("--commands-only")) {
+      const summary = page.locator('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary');
+      const reveal = async () => {
+        for (const toggle of await page.locator('.thread-agent-activity__turn-toggle button').all())
+          if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        for (const group of await page.locator('.thread-agent-activity__group').all()) {
+          const toggle = group.getByRole('button').first();
+          if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        }
+      };
+      await update("command-timer"); await reveal();
+      await page.waitForFunction(() => /Running command for [2-9]/u.test(document.querySelector('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary')?.textContent ?? ""), undefined, { timeout: 8_000 });
+      const readLabel = () => summary.evaluate(node => node.firstChild?.textContent ?? "");
+      const first = await readLabel();
+      await update("presentation-park");
+      const parked = await readLabel();
+      await page.waitForTimeout(2_200);
+      assert.equal(await readLabel(), parked, 'the parked view has no ticking clock');
+      await update("presentation-resume");
+      await page.waitForFunction(previous => document.querySelector('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary')?.firstChild?.textContent !== previous, parked, { timeout: 5_000 });
+      const resumed = await readLabel();
+      assert.match(resumed, /Running command for/u);
+      await update("command-timer-complete");
+      assert.match(await summary.innerText(), /in 4\s*(?:s|秒)/u, 'completion uses the returned duration');
+      await update("command-timer-authoritative"); await reveal();
+      assert.match(await summary.innerText(), /Running command for 9/u, 'known start time wins');
+      await update("command-timer-background"); await reveal();
+      assert.match(await summary.innerText(), /Started background terminal/u);
+      assert.doesNotMatch(await summary.innerText(), /for \d/u);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-elapsed.png`) });
+      commandElapsed.push({ theme, touch, first, parked, resumed });
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
+    if (process.argv.includes("--command-output-only")) {
+      await update("command-output-reset");
+      const observations = [];
+      for (const [mode, expected] of [
+        ["running-empty", ""], ["running-spaces", ""], ["running-output", "red\nready"],
+        ["complete-empty", "No output"], ["complete-spaces", "No output"],
+        ["failed", "No output"], ["missing", "Execution result unavailable"],
+      ]) {
+        await update("command-output-" + mode);
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const groups = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+          if (await groups.count()) { await activate(groups.first()); continue; }
+          const calls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+          if (await calls.count()) { await activate(calls.first()); continue; }
+          break;
+        }
+        const output = page.locator('.thread-shell-output__output pre');
+        await output.waitFor();
+        assert.equal((await output.innerText()).trim(), expected, mode);
+        const footer = (await page.locator('.thread-shell-output__footer').allTextContents()).join(' ').trim();
+        if (mode.startsWith("running")) assert.equal(footer, "");
+        else assert.match(footer, mode === "missing" ? /Result unknown/u : mode === "failed" ? /Exit code 2/u : /Success/u);
+        if (mode === "running-output") {
+          await activate(page.locator('.thread-shell-output__command button'));
+          await activate(page.locator('.thread-shell-output__output button'));
+          assert.deepEqual(await page.evaluate(() => (window as any).commandClipboard),
+            ["printf 'ready\\n'", "\u001b[31mred\u001b[0m\nready"]);
+        }
+        observations.push({ mode, expected, footer });
+      }
+      assert.deepEqual(errors, []);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-output.png`) });
+      commandOutputStates.push({ theme, touch, observations });
+      await page.close(); continue;
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -177,12 +579,12 @@ try {
           const box = svg.getBoundingClientRect();
           return { width: box.width, height: box.height, color: getComputedStyle(svg).color };
         };
-        return { thought: rect(thought), isBrain: thought.classList.contains('lucide-brain'), slotColor: getComputedStyle(slot).color,
+        return { thought: rect(thought), isBrain: thought.getAttribute('data-activity-glyph') === 'thinking', slotColor: getComputedStyle(slot).color,
           renderedStroke: parseFloat(getComputedStyle(thought).strokeWidth) * thought.getBoundingClientRect().width / thought.viewBox.baseVal.width };
       });
       assert.equal(icons.isBrain, true, 'thinking retains the recognizable brain glyph');
-      assert.equal(icons.thought.width, 18);
-      assert.equal(icons.thought.height, 18);
+      assert.equal(icons.thought.width, 20);
+      assert.equal(icons.thought.height, 20);
       assert.equal(icons.thought.color, icons.slotColor, 'thinking inherits the shared activity slot color');
       assert.ok(Math.abs(icons.renderedStroke - 1.2) < 0.01, 'brain keeps a light stroke at its actual rendered scale');
       await page.screenshot({ path: join(output, `${engine}-${theme}-${touch ? 'touch' : 'mouse'}-long-detail.png`) });
@@ -402,15 +804,15 @@ try {
     assert.ok(compactGaps.length >= 3, 'mixed command/image/reasoning fixture crosses activity group boundaries');
     for (const gap of compactGaps) assert.ok(Math.abs(gap - 4) < 0.5, `collapsed summaries share 4px spacing, got ${gap}`);
 
-    await page.locator('.thread-activity-item__icon > .lucide-image').waitFor();
+    await page.locator('.thread-activity-item__icon > [data-action-glyph="image"]').waitFor();
     await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-collapsed-spacing.png`) });
-    const imageRow = page.locator('.thread-agent-activity__unit').filter({ has: page.locator('.lucide-image') });
+    const imageRow = page.locator('.thread-agent-activity__unit').filter({ has: page.locator('[data-action-glyph="image"]') });
     const imageToggle = imageRow.getByRole('button').first();
     const imageBoundaryGap = () => imageRow.evaluate(unit => unit.nextElementSibling!.getBoundingClientRect().top - unit.getBoundingClientRect().bottom);
     await activate(imageToggle);
     assert.equal(await imageToggle.getAttribute('aria-expanded'), 'true');
     const waitForImageGap = (expected: number) => page.waitForFunction(expected => {
-      const icon = document.querySelector('.thread-agent-activity__unit .lucide-image');
+      const icon = document.querySelector('.thread-agent-activity__unit [data-action-glyph="image"]');
       const unit = icon?.closest('.thread-agent-activity__unit');
       return unit && unit.nextElementSibling && Math.abs(unit.nextElementSibling.getBoundingClientRect().top - unit.getBoundingClientRect().bottom - expected) < 0.5;
     }, expected, { timeout: 3_000 });
@@ -435,7 +837,7 @@ try {
       const summary = header.querySelector('.thread-activity-item__summary')!;
       const box = svg.getBBox(), screen = svg.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const type = getComputedStyle(summary);
-      return { glyph: svg.getAttribute('data-opencraft-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
+      return { glyph: svg.getAttribute('data-activity-glyph') ?? svg.getAttribute('data-opencraft-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
         fontSize: parseFloat(type.fontSize), weight: type.fontWeight,
         width: screen.width, visibleWidth: box.width * screen.width / svg.viewBox.baseVal.width,
         centerOffset: Math.abs(screen.x + screen.width / 2 - slot.x - slot.width / 2),
@@ -458,8 +860,9 @@ try {
       .thread-activity-item__header, .thread-activity-item__header * { transition: none !important; }
       .thread-activity-item__icon { width:16px; }
       .thread-activity-item__icon > svg { width:16px; height:16px; }
-      .thread-activity-item__icon > .lucide { stroke-width:2; }
-      .thread-activity-item__icon > .lucide-brain { width:14px; height:14px; stroke-width:1.8; }
+      .thread-activity-item__icon > .activity-glyph[data-activity-glyph] { width:16px; height:16px; stroke-width:1.8; }
+      .thread-activity-item__icon > .ui-action-glyph { width:16px; height:16px; stroke-width:2; }
+      .thread-activity-item__icon > [data-activity-glyph="thinking"] { width:14px; height:14px; stroke-width:1.8; }
       .thread-activity-item__icon > [data-opencraft-activity-icon="read"] { width:15px; height:15px; }
     ` });
     await page.waitForFunction(() => Array.from(document.querySelectorAll('.thread-activity-item__summary'))
@@ -484,14 +887,14 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") || process.argv.includes("--turn-entry-only") || process.argv.includes("--command-view-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of (process.argv.includes("--subagents-only") ? [] : localizedLabels)) {
+  for (const [locale, running, settled] of ((process.argv.includes("--commands-only") || process.argv.includes("--subagents-only") || process.argv.includes("--command-completion-only")) ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -516,7 +919,9 @@ try {
     await page.close();
   }
   await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
+  await writeFile(join(output, 'command-elapsed.json'), JSON.stringify(commandElapsed, null, 2));
+  await writeFile(join(output, 'command-output-states.json'), JSON.stringify(commandOutputStates, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, localizedLabels: process.argv.includes("--subagents-only") ? [] : localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, subagentDetails, commandOutputStates, localizedLabels: ["--subagents-only", "--command-completion-only", "--commands-only", "--command-output-only"].some(flag => process.argv.includes(flag)) ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }

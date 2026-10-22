@@ -218,3 +218,55 @@ test("menu owner only notifies affected rows and preserves exclusivity across ho
   store.update(a, true);
   assert.deepEqual(counts, [2, 3, 0]);
 });
+
+
+test("list filters and thread overlays share one owner without notifying unrelated rows", () => {
+  const store = new SidebarThreadMenuStore();
+  const row = { hostId: "local", threadId: "a", kind: "context" } as const;
+  const counts = { row: 0, unrelated: 0, filters: 0 };
+  store.subscribe(row, () => counts.row++);
+  store.subscribe({ hostId: "local", threadId: "b" }, () => counts.unrelated++);
+  const off = store.subscribeFilters(() => counts.filters++);
+  store.update(row, true);
+  store.setFiltersOpen(true);
+  assert.equal(store.getKind(row), null);
+  assert.equal(store.getFiltersOpen(), true);
+  assert.deepEqual(counts, { row: 2, unrelated: 0, filters: 1 });
+  store.update(row, false); // A late row dismissal cannot close the newer filters.
+  assert.equal(store.getFiltersOpen(), true);
+  store.update(row, true);
+  store.setFiltersOpen(false); // A late filter dismissal cannot close the newer row.
+  assert.equal(store.getKind(row), "context");
+  assert.deepEqual(counts, { row: 3, unrelated: 0, filters: 2 });
+  store.setFiltersOpen(true);
+  store.setFiltersOpen(true);
+  assert.deepEqual(counts, { row: 4, unrelated: 0, filters: 3 });
+  store.close();
+  store.close();
+  assert.equal(store.getSnapshot(), null);
+  assert.deepEqual(counts, { row: 4, unrelated: 0, filters: 4 });
+  off();
+  store.setFiltersOpen(true);
+  assert.equal(counts.filters, 4);
+  let contextNotifications = 0;
+  const offContext = store.subscribeListContext(() => contextNotifications++);
+  store.setListContextOpen(true);
+  assert.equal(store.getFiltersOpen(), false);
+  assert.equal(store.getListContextOpen(), true);
+  store.update(row, false); // A stale row close cannot dismiss the list context.
+  assert.equal(store.getListContextOpen(), true);
+  store.setFiltersOpen(true);
+  store.setListContextOpen(false); // Nor can a stale context close dismiss Filters.
+  assert.equal(store.getFiltersOpen(), true);
+  store.setListContextOpen(true);
+  store.update(row, true);
+  store.setListContextOpen(false);
+  assert.equal(store.getKind(row), 'context');
+  assert.equal(store.getListContextOpen(), false);
+  assert.equal(contextNotifications, 4);
+  assert.equal(counts.unrelated, 0);
+  offContext();
+  store.setListContextOpen(true);
+  store.close();
+  assert.equal(contextNotifications, 4, 'released list subscriptions stay silent');
+});

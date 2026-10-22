@@ -23,7 +23,7 @@ export function ConnectorNativeServices({ hostId, manager }: { hostId: string; m
     finally { setPending(previous => { const next = new Set(previous); next.delete(name); return next; }); }
   }
   return <details className="connector-native">
-    <summary>已有 MCP 服务？</summary>
+    <summary className="ui-native-disclosure">已有 MCP 服务？</summary>
     <div className="connector-native__body">
       <p>读取此设备已配置的 MCP 服务，不改动原有配置。</p>
       <Button variant="secondary" loading={loading} onClick={() => void discover()}>读取 MCP 服务</Button>

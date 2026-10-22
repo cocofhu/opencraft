@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCodexContentSearchSource, isUnsupportedSearch, mergeConversationSearchResults, serializeContentSearch } from "../apps/workbench-web/src/runtime/conversation-content-search";
+import { createAppServerContentSearchSource, isUnsupportedSearch, mergeConversationSearchResults, serializeContentSearch } from "../apps/workbench-web/src/runtime/conversation-content-search";
 
 test("native method-not-found and explicit DSH rejection retain titles; transport failures remain failures", () => {
   assert.equal(isUnsupportedSearch({ code: -32601 }), true);
@@ -33,7 +33,7 @@ test("body search forwards cursors and readonly filters, extracts locators and f
   const calls: any[] = [];
   let revoked = false;
   let revokeDuringRead = false;
-  const source = createCodexContentSearchSource({ key: "scope", hostId: "a", label: "A", available: true, supported: true,
+  const source = createAppServerContentSearchSource({ key: "scope", hostId: "a", label: "A", available: true, supported: true,
     assertCurrent: () => { if (revoked) throw new Error("revoked"); },
     protocol: { request: async (method: any, params: any, options: any): Promise<any> => {
       calls.push({ method, params, options });
@@ -96,7 +96,7 @@ test("full-history searches outlive the metadata deadline through the actual run
   const runtime = createAppServerWorkbenchRuntime({ hostId: "search", transport, autoReconnect: false, requestTimeoutMs: 20 });
   try {
     await runtime.connect();
-    const source = createCodexContentSearchSource({ key: "search", hostId: "search", label: "Search", available: true, supported: true,
+    const source = createAppServerContentSearchSource({ key: "search", hostId: "search", label: "Search", available: true, supported: true,
       assertCurrent() {}, protocol: runtime.resources.protocol, project() { throw new Error("No matches expected"); } });
     const signal = new AbortController().signal;
     assert.deepEqual(await source.search("中继", null, signal), { matches: [], nextCursor: null });

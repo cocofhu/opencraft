@@ -4,7 +4,7 @@ import { useIntl } from "@opencraft/i18n/react";
 import type { TimelineBlock } from "@opencraft/chat-core";
 import { ConversationDocumentContext } from "../components/conversation/document-context";
 import { createAppBridge } from "./bridge";
-import { boundedJson, record, type McpAppIdentity, type McpAppPort } from "./contract";
+import { boundedJson, record, type McpAppIdentity, type McpAppPort, type McpAppWidgetState } from "./contract";
 import { readAppResource, type AppResource } from "./policy";
 import { sandboxDocument } from "./sandbox";
 import "./app-surface.scss";
@@ -47,7 +47,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); })
       .finally(() => clearTimeout(timer));
     return () => { active = false; clearTimeout(timer); };
-  }, [port, identity]);
+  }, [port, identity.server, identity.uri, identity.callId]);
   useLayoutEffect(() => {
     const bridge = createAppBridge({ port, identity, contextId: block.id, hostContext: context,
       input: () => current.current.block.input, output: () => resultOf(current.current.block), status: () => current.current.block.status, onHeight,
@@ -63,7 +63,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
     };
     window.addEventListener("message", receive);
     return () => { window.removeEventListener("message", receive); bridge.dispose(); bridgeRef.current = null; };
-  }, [port, identity, block.id, onHeight, state, token]);
+  }, [port, identity.server, identity.uri, identity.callId, block.id, onHeight, state, token]);
   useLayoutEffect(() => {
     const element = iframe.current;
     if (!element) return;
@@ -101,15 +101,28 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
 export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const doc = useContext(ConversationDocumentContext);
   const element = useRef<HTMLElement>(null);
-  const widgetState = useRef<unknown>(null);
+  const [localWidgetStates] = useState(() => new Map<string, McpAppWidgetState>());
   const [visible, setVisible] = useState(false);
   const [foreground, setForeground] = useState(document.visibilityState !== "hidden");
-  const [paused, setPaused] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [height, setHeight] = useState(260);
   const intl = useIntl();
   const identity = useMemo<McpAppIdentity>(() => ({ server: block.server ?? "", uri: block.appResourceUri ?? "", callId: block.callId,
     name: block.appName ?? block.name }), [block.server, block.appResourceUri, block.callId, block.appName, block.name]);
+  const widgetState = useMemo(() => {
+    const ownedState = doc.mcpApps?.widgetState?.(block.id, identity);
+    if (ownedState) return ownedState;
+    const key = JSON.stringify([doc.mcpApps?.key, block.id, identity.server, identity.uri, identity.callId]);
+    let state = localWidgetStates.get(key);
+    if (!state) {
+      state = { current: null };
+      localWidgetStates.set(key, state);
+    }
+    return state;
+  }, [doc.mcpApps, block.id, identity, localWidgetStates]);
+  const [pauseChoice, setPauseChoice] = useState(() => ({ state: widgetState, paused: widgetState.pausedByUser === true }));
+  // A new App identity reads its own intent before an iframe can mount.
+  const paused = pauseChoice.state === widgetState ? pauseChoice.paused : widgetState.pausedByUser === true;
   useEffect(() => {
     const observer = new IntersectionObserver(entries => setVisible(entries.some(entry => entry.isIntersecting)), { rootMargin: "160px" });
     if (element.current) observer.observe(element.current);
@@ -120,11 +133,11 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const ready = doc.mcpApps && identity.server && identity.uri.startsWith("ui://");
   if (!ready) return null;
   return <section ref={element} className="mcp-app" aria-label={identity.name}>
-    <header className="mcp-app__header"><span>{identity.name}</span><button type="button" onClick={() => { setPaused(!paused); setAttempt(value => value + 1); }}>
+    <header className="mcp-app__header"><span>{identity.name}</span><button type="button" onClick={() => { widgetState.pausedByUser = !paused; setPauseChoice({ state: widgetState, paused: !paused }); setAttempt(value => value + 1); }}>
       {paused ? intl.formatMessage({ id: "mcpApp.resume", defaultMessage: "Open app" }) : intl.formatMessage({ id: "mcpApp.pause", defaultMessage: "Pause app" })}
     </button></header>
     <div className="mcp-app__body" style={{ height }}>
-      {visible && foreground && !paused ? <LiveApp key={`${doc.mcpApps!.key}:${attempt}`} port={doc.mcpApps!} identity={identity} block={block}
+      {visible && foreground && !paused ? <LiveApp key={JSON.stringify([doc.mcpApps!.key, block.id, identity.server, identity.uri, identity.callId, attempt])} port={doc.mcpApps!} identity={identity} block={block}
         theme={doc.theme} locale={intl.locale} state={widgetState} onHeight={setHeight} /> : null}
     </div>
   </section>;

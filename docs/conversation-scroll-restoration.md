@@ -48,7 +48,7 @@ distanceFromBottom = max(0, -scrollTop)
 
 `positionTarget` 只接受稳定 `targetKey`，平台适配器负责解析和测量；精确目标未出现时保持 pending，取消返回 `cancelled`，目标不属于布局返回 `unavailable`，只有完成真实定位才返回 `positioned`。前一请求由 AbortSignal 明确取消，而不是被当作成功完成。
 
-导航 Rail 还有一个 hydration 拓扑不变量：非权威 hydration 只能补充 label、item key 和 loaded 状态，不能增加、删除或重排 marker；只有 Prompt Index 的权威 mutation 可以改变拓扑。Codex V3 只有轻量 Turn index，因此退化为“一 Turn 一 marker”；完整 V4 Prompt Index 才拥有 item 级 marker。这样首击 hydrate 不会让垂直居中的 Rail 改变高度，也不会使静止指针在第二次点击时命中另一个语义目标。
+导航 Rail 还有一个 hydration 拓扑不变量：非权威 hydration 只能补充 label、item key 和 loaded 状态，不能增加、删除或重排 marker；只有 Prompt Index 的权威 mutation 可以改变拓扑。AppServer V3 只有轻量 Turn index，因此退化为“一 Turn 一 marker”；完整 V4 Prompt Index 才拥有 item 级 marker。这样首击 hydrate 不会让垂直居中的 Rail 改变高度，也不会使静止指针在第二次点击时命中另一个语义目标。
 
 导航定位自身也是一个测量事务。数据层的 projection commit 只证明目标已经进入 Replica，不证明 React 已经提交对应 DOM；Web virtualizer 必须保持请求 pending，让目标 Turn 离屏挂载，读取真实 Turn/Item 几何，再执行唯一一次最终滚动。280px fallback 只可用于窗口枚举，不能作为 `positioned` 的成功条件。Top 对齐必须把 viewport 高度和顶部 inset 纳入同一个 inverted-distance 公式。
 

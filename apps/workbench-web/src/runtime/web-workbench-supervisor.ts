@@ -1,8 +1,11 @@
+import { installClientObservation } from "./observability";
+import { tokenUsageBuiltin } from "./token-usage-builtin";
 import { createHostComposerCommandPort } from "@opencraft/workbench-runtime";
 import { ThreadParticipationContributionRegistry } from "./thread-participation-contributions";
 import { createBrowserConversationOutbox } from "./browser-conversation-outbox";
 import { serverAdmissionOrigin, serverFetch, serverStorageKey } from "./server-context";
-import { reportRecoveryEvent } from "./recovery-diagnostics";
+import { displayTimingCounts } from "./display-timing-diagnostics";
+import { reportDisplayEvent, reportRecoveryEvent } from "./recovery-diagnostics";
 import { TurnCompletionObserver, WORKBENCH_RESOURCE_POLICIES } from "@opencraft/workbench-runtime";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createApplicationDisposer, disposeOwnedSteps } from "./application-disposal";
@@ -238,7 +241,7 @@ export async function createWebWorkbenchApplicationSupervisor(
     );
     const electronAppHost = platform === "electron" ? connectElectronAppHost() : null;
     if (electronAppHost !== null) startupRollback.push(() => electronAppHost.close());
-    const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === "true"
+    const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST === "true"
       ? connectWebSocketAppHost() : null;
     if (headlessAppHost !== null) startupRollback.push(() => headlessAppHost.close());
     const sshManagement = headlessAppHost ? new (await import("@opencraft/plugin-builtin-agents")).SshConnectionsController(serverFetch, serverAdmissionOrigin()) : null;
@@ -338,6 +341,10 @@ export async function createWebWorkbenchApplicationSupervisor(
         await activate();
       }
     };
+    await extensions.loadOptional("opencraft.schedules", async () => {
+      const { conversationSchedulesExtension } = await import("./conversation-schedules-extension");
+      return conversationSchedulesExtension;
+    });
     if (import.meta.env.VITE_INCLUDE_TASKS_PLUGIN === "true") {
       await loadPresentationExtension("opencraft.tasks", async signal => {
         const { createTasksExtension } = await import("@opencraft/plugin-tasks");
@@ -446,6 +453,10 @@ export async function createWebWorkbenchApplicationSupervisor(
       });
     }
     if (headlessAppHost !== null) {
+      await extensions.loadOptional("opencraft.im", async () => {
+        const { createImExtension } = await import("@opencraft/plugin-im");
+        return createImExtension(serverFetch);
+      });
       for (const extension of options.serverExtensions ?? []) {
         await extensions.loadOptional(extension.id, () => extension.load({
           fetcher: serverFetch,
@@ -457,8 +468,8 @@ export async function createWebWorkbenchApplicationSupervisor(
         // Only this headless product queries its backend catalog. Credentials,
         // host-key trust and remote commands never enter a Renderer profile.
         const sshServers = await readSshServerCatalog();
-        const { createHeadlessCodexExtension } = await import("@opencraft/plugin-builtin-agents");
-        return createHeadlessCodexExtension({
+        const { createHeadlessServerExtension } = await import("@opencraft/plugin-builtin-agents");
+        return createHeadlessServerExtension({
           requestHost: (hostId, method, params) => agentRuntimes.request(hostId, method, params),
           createTransport: hostId => (hostId.startsWith("ssh:") && sshManagement && sshManagement.getSnapshot().available !== false ? remoteAppHost! : headlessAppHost).createTransport(hostId),
           workspaceBrowseRoots: bootstrapDefinitions.find((host) => host.hostId === "opencraft-server")?.workspaceBrowseRoots ?? [],
@@ -510,7 +521,7 @@ export async function createWebWorkbenchApplicationSupervisor(
       installations: cordis.extensionInstallations,
       loader: new BrowserModuleUrlExtensionLoader(),
       supervisor: extensions,
-      builtins: platform === "web" ? clientProduct?.builtins ?? [] : [],
+      builtins: [tokenUsageBuiltin, ...(platform === "web" ? clientProduct?.builtins ?? [] : [])],
     });
     startupRollback.push(() => extensionManager.dispose());
     if (options.optionalFeatureStartup !== undefined) {
@@ -778,13 +789,14 @@ export async function createWebWorkbenchApplicationSupervisor(
         clientRegistry: appServerRegistry.clients,
         installClientHandlers: (client) => {
           const stopDiagnostics = installAppServerDiagnostics(client, "runtime");
+          const stopObservation = installClientObservation(client);
           const tools = installWorkbenchDynamicToolHandlers(
             client,
             { browser: browserToolHost, terminal: terminalToolHost, connectors },
             { hostId: profile.hostId },
           );
           const catalog = bindThreadCatalogNotifications(client, profile.hostId, queryClient);
-          return () => { stopDiagnostics(); catalog(); tools(); };
+          return () => { stopObservation(); stopDiagnostics(); catalog(); tools(); };
         },
         });
       } catch (error) {
@@ -931,7 +943,11 @@ export async function createWebWorkbenchApplicationSupervisor(
     retainSubmission: (intent, receipt) => currentDisplayContinuity.retainSubmission(intent, receipt),
     peekSubmission: (hostId, threadId) => currentDisplayContinuity.peekSubmission(hostId, threadId),
     peek: (hostId, threadId) => currentDisplayContinuity.peek(hostId, threadId),
-    load: (hostId, threadId) => currentDisplayContinuity.load(hostId, threadId),
+    async load(hostId, threadId) {
+      const timeline = await currentDisplayContinuity.load(hostId, threadId);
+      reportDisplayEvent("display-load", { ...displayTimingCounts(timeline), cacheHit: Number(timeline !== null) });
+      return timeline;
+    },
     observe(snapshot) {
       if (displayWritesSuspended) {
         if (coordinator.getRuntime().getSnapshot().connectionGeneration <= displayResumeAfterGeneration) {

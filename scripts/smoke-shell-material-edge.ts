@@ -11,22 +11,22 @@ import {createIntlTestRoot as createRoot} from '/tests/fixtures/intl-root.tsx';
 import {AppShell} from '/apps/workbench-web/src/components/app-shell.tsx';
 import {AppShellHeader} from '/apps/workbench-web/src/components/app-shell-header.tsx';
 import {initializeAppearanceTheme} from '/apps/workbench-web/src/appearance-theme.ts';
-import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,frostThemePalette,lavenderThemePalette,opencraftCanvasThemePalette,graphiteThemePalette} from '@opencraft/design-system/theme-engine';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,frostThemePalette,longingThemePalette,lavenderThemePalette,opencraftCanvasThemePalette,graphiteThemePalette} from '@opencraft/design-system/theme-engine';
 import '/apps/workbench-web/src/styles/app.scss';
 import '@fontsource-variable/noto-sans-sc';
 initializeAppearanceTheme();
 let mounts=0,clicks=0;
-const palettes={opencraftNeutral:opencraftNeutralThemePalette,frost:frostThemePalette,lavender:lavenderThemePalette,opencraftCanvas:opencraftCanvasThemePalette,graphite:graphiteThemePalette};
+const palettes={opencraftNeutral:opencraftNeutralThemePalette,frost:frostThemePalette,longing:longingThemePalette,lavender:lavenderThemePalette,opencraftCanvas:opencraftCanvasThemePalette,graphite:graphiteThemePalette};
 function Context(){useEffect(()=>{mounts++},[]);return <div style={{display:'flex',height:'100%',flexDirection:'column'}}>
 <input aria-label='Sidebar draft' defaultValue='侧栏内容保持不变' style={{margin:16}}/>
 <button aria-label='Edge action' onClick={()=>clicks++} style={{marginTop:20,padding:12,textAlign:'right',background:'transparent',border:0}}>边缘操作</button>
 </div>}
-function App(){const [open,setOpen]=useState(true),[context,setContext]=useState(true),[width,setWidth]=useState(320),
+function App(){const [open,setOpen]=useState(true),[context,setContext]=useState(true),[width,setWidth]=useState(320),[unified,setUnified]=useState(false),
 [chrome,setChrome]=useState({kind:'browser',platform:'linux',safeArea:{left:0,right:0}});
-window.fixture={setOpen,setContext,setWidth,setChrome,width,mounts:()=>mounts,clicks:()=>clicks,
+window.fixture={setOpen,setContext,setWidth,setChrome,setUnified,width,mounts:()=>mounts,clicks:()=>clicks,
 theme:(name,mode)=>{document.documentElement.dataset.theme=mode;Object.entries(buildOpenCraftThemeCssProperties(mode,palettes[name][mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))}};
 return <AppShell layoutScope='material-edge' mainContentLayout='default' sidebarOpen={open} sidebarWidth={width}
-navigation={{actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>{}}],settingsActive:false,onOpenSettings:()=>{},account:{snapshot:{phase:'anonymous',name:null,avatarUrl:null},onOpen:()=>{},onRefresh:async()=>{},onSignOut:async()=>{}}}}
+navigation={{layout:unified?'unified':undefined,actions:[{id:'chat',title:'Chat',icon:'chat',onInvoke:()=>{}}],settingsActive:false,onOpenSettings:()=>{},account:{snapshot:{phase:'anonymous',name:null,avatarUrl:null},onOpen:()=>{},onRefresh:async()=>{},onSignOut:async()=>{}}}}
 windowChrome={chrome}
 onSidebarCollapse={()=>setOpen(false)} onSidebarExpand={()=>setOpen(true)} onSidebarResizeEnd={setWidth}
 rightPanel={null} rightPanelOpen={false} rightPanelFullWidth={false} onRightPanelOpenChange={()=>{}}
@@ -84,7 +84,7 @@ try {
   await page.waitForFunction(() => document.querySelector('.app-shell-left-panel')!.getBoundingClientRect().width === 320);
   await page.getByLabel("Main draft").fill("这份草稿不会被材质变更重建");
   await page.evaluate(() => { (window as any).savedDraftNode = document.querySelector('[aria-label="Main draft"]'); });
-  for (const name of ["opencraftNeutral", "frost", "lavender", "opencraftCanvas", "graphite"]) {
+  for (const name of ["opencraftNeutral", "frost", "longing", "lavender", "opencraftCanvas", "graphite"]) {
     for (const mode of ["light", "dark"]) {
       await page.evaluate(([name, mode]: string[]) => (window as any).fixture.theme(name, mode), [name, mode]);
       await page.mouse.move(1000, 600);
@@ -189,7 +189,7 @@ try {
   ]) {
   await page.evaluate((chrome:unknown) => (window as any).fixture.setChrome(chrome),chrome);
   await page.waitForFunction(() => parseFloat(getComputedStyle(document.querySelector('.app-shell-header')!,'::before').width) === 52);
-  for (const name of ["opencraftNeutral", "frost", "lavender", "opencraftCanvas", "graphite"]) {
+  for (const name of ["opencraftNeutral", "frost", "longing", "lavender", "opencraftCanvas", "graphite"]) {
     for (const mode of ["light", "dark"]) {
       await page.evaluate(([name,mode]: string[]) => (window as any).fixture.theme(name,mode), [name,mode]);
       const png = await page.screenshot({path:join(output,`compact-${chrome.kind}-${name}-${mode}.png`)});
@@ -278,6 +278,78 @@ try {
   assert.equal(reduced.open,0);
   assert.equal(reduced.closed,52,JSON.stringify(reduced));
   assert.ok(reduced.frames.every((width:number)=>width===0 || width===52),'reduced motion skips interpolation');
+  await page.setViewportSize({width:1180,height:720});
+  await page.evaluate(() => { const f=(window as any).fixture; f.setUnified(true); f.setContext(true); f.setOpen(true); });
+  await page.locator('.has-unified-sidebar .shell-sidebar__context').waitFor();
+  for (const name of ['longing','opencraftCanvas']) for (const mode of ['light','dark']) {
+    await page.evaluate(([name,mode]) => (window as any).fixture.theme(name,mode),[name,mode]);
+    // Theme changes animate color; sample the final paint after those transitions.
+    await page.locator('.shell-sidebar__context').evaluate(async el => {
+      getComputedStyle(el).backgroundColor;
+      await Promise.all(el.getAnimations().map(animation => animation.finished));
+    });
+    await page.locator('.main-content-frame').evaluate(async el=>{el.setAttribute('data-app-shell-thread-edge-divider','true');getComputedStyle(el).borderTopColor;await Promise.all(el.getAnimations().map(animation=>animation.finished));});
+    const frameDivider=await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderTopColor);
+    const actual=await page.evaluate(() => {
+      const pane=getComputedStyle(document.querySelector('.main-content-surface')!);
+      const depth=getComputedStyle(document.querySelector('.app-shell-content-depth')!);
+      return {shadow:depth.boxShadow==='none'?pane.boxShadow:depth.boxShadow,frameShadow:pane.boxShadow,
+        depthTop:depth.top,depthLeft:depth.left,depthClip:depth.clipPath,depthPointer:depth.pointerEvents,
+        context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor};
+    });
+    const header=await page.evaluate(() => {const el=document.querySelector('.app-shell-header')!,edge=document.querySelector('.app-shell-header__content-edge')!,main=document.querySelector('.main-content-surface')!;return {paint:getComputedStyle(el).backgroundImage,divider:getComputedStyle(el,'::after').backgroundColor,shadow:getComputedStyle(edge).boxShadow,left:edge.getBoundingClientRect().left,mainLeft:main.getBoundingClientRect().left,pointer:getComputedStyle(edge).pointerEvents};});
+    if(name==='longing'){assert.equal(actual.frameShadow,'none','no vertical pane shadow through the titlebar');assert.equal(parseFloat(actual.depthTop),await page.locator('.app-shell-header').evaluate(el=>el.getBoundingClientRect().height));assert.ok(Math.abs(parseFloat(actual.depthLeft)-header.mainLeft)<1);assert.equal(actual.depthClip,'inset(0px -100% -100%)');assert.equal(actual.depthPointer,'none');assert.equal(frameDivider,'rgba(0, 0, 0, 0)','real thread frame adds no horizontal separator');assert.doesNotMatch(header.paint,/1px|to top/,'no horizontal divider paint');assert.equal(header.divider,'rgba(0, 0, 0, 0)');assert.equal(header.shadow,actual.shadow,'top and left share the original pane elevation');assert.ok(Math.abs(header.left-header.mainLeft)<1);assert.equal(header.pointer,'none');}
+    else {assert.notEqual(frameDivider,'rgba(0, 0, 0, 0)');assert.match(header.paint,/1px/);assert.equal(header.shadow,'none');}
+    if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
+    else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
+    if(name==='longing') {
+      const retainedDraft=await page.getByLabel('Main draft').inputValue();
+      const retainedNode=await page.getByLabel('Main draft').elementHandle();
+      assert.equal(await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
+      assert.equal(await page.locator('.app-shell-content-depth').evaluate(el=>getComputedStyle(el).borderStartStartRadius),'12px');
+      const sampleDepth = () => page.evaluate(async () => {
+        const frames=[];
+        for(let i=0;i<12;i++) {
+          await new Promise(requestAnimationFrame);
+          const main=document.querySelector('.main-content-surface')!.getBoundingClientRect();
+          const depth=document.querySelector('.app-shell-content-depth')!.getBoundingClientRect();
+          frames.push({main:main.left,depth:depth.left});
+        }
+        return frames;
+      });
+      const assertDepth = (frames:Awaited<ReturnType<typeof sampleDepth>>) => {
+        assert.ok(frames.every(f=>Math.abs(f.main-f.depth)<1),JSON.stringify(frames));
+      };
+      await page.emulateMedia({reducedMotion:'no-preference'});
+      const saved=await page.evaluate(()=>(window as any).fixture.width);
+      const handle=await page.getByRole('separator',{name:'Resize sidebar',exact:true}).boundingBox();
+      assert.ok(handle); await page.mouse.move(handle.x+1,350); await page.mouse.down();
+      for(const dx of [-50,40,-20]) {
+        await page.mouse.move(handle.x+dx,350,{steps:5}); assertDepth(await sampleDepth());
+        assert.equal(await page.evaluate(()=>(window as any).fixture.width),saved);
+      }
+      await page.mouse.up();
+      await page.evaluate(()=>(window as any).fixture.setOpen(false));
+      const collapse=await sampleDepth(); assertDepth(collapse);
+      await page.evaluate(()=>(window as any).fixture.setOpen(true));
+      const reverse=await sampleDepth(); assertDepth(reverse);
+      await page.evaluate(()=>(window as any).fixture.setOpen(false));
+      await page.waitForFunction(()=>document.querySelector('.main-content-surface')!.getBoundingClientRect().left<1);
+      assertDepth(await sampleDepth());
+      await page.screenshot({path:join(output,`collapsed-${mode}.png`)});
+      await page.evaluate(()=>(window as any).fixture.setOpen(true));
+      await page.waitForFunction(()=>document.querySelector('.main-content-surface')!.getBoundingClientRect().left>100);
+      assertDepth(await sampleDepth());
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.evaluate(()=>(window as any).fixture.setOpen(false)); assertDepth(await sampleDepth());
+      await page.evaluate(()=>(window as any).fixture.setOpen(true)); assertDepth(await sampleDepth());
+      assert.equal(await page.getByLabel('Main draft').inputValue(),retainedDraft);
+      assert.equal(await page.getByLabel('Main draft').evaluate((el,old)=>el===old,retainedNode),true);
+      evidence.push({name,mode,liveDepthHeldDrag:true,collapse,reverse,reducedDepth:true});
+    }
+    await page.screenshot({path:join(output,`unified-${name}-${mode}.png`)});
+    evidence.push({name,mode,presentation:'unified',...actual});
+  }
   assert.deepEqual(errors, []);
   evidence.push({ edgeHitTest: true, heldResize: true, contextExit, reversal, reduced, forcedColors: forced, hiddenZeroWidth: true, floatingStyle, draftIdentity: true, navigationOnlyNoHardDivider: true });
   console.log(JSON.stringify({ output, url, evidence, errors }));

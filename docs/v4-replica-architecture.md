@@ -43,7 +43,7 @@ than silently weakening the current contract.
 In a V4 deployment, one scope represents one `(hostId, replica namespace)`.
 Its single `nextSeq` orders every entity kind in that namespace. It should not
 be split into a separate authority per thread merely for UI convenience. The
-per-thread scope used by `createCodexThreadReplicaSource` is a V3 compatibility
+per-thread scope used by `createThreadViewReplicaSource` is a V3 compatibility
 projection because that legacy server exposes no host-wide Journal.
 
 ## Wire protocol
@@ -76,16 +76,16 @@ snapshot/delta commit finishes. A storage failure preserves the old visible
 cursor; it never publishes an uncommitted state. Gap, epoch change, journal
 compaction and server rewind all converge through the same snapshot install.
 
-## Codex V3 compatibility
+## AppServer V3 compatibility
 
-The Codex V3 compatibility path uses View hydration rather than server-side
+The AppServer V3 compatibility path uses View hydration rather than server-side
 `epoch/seq` Replica methods:
 
 - `thread/resume` sends `excludeTurns` and optionally `initialTurnsPage`;
 - Durable, Paginated and ordinary Tail history are selected after Resume;
 - reconnect marks mounted conversations `needs_resume`.
 
-`createCodexThreadReplicaSource` therefore uses
+`createThreadViewReplicaSource` therefore uses
 `codex-v3:<hostId>:<connectionGeneration>` as a compatibility epoch. Adjacent
 local View revisions can feed the common ReplicaClient reader shape. They are
 not V4 Authority sequence numbers. A missed revision or generation change
@@ -123,7 +123,7 @@ durable authority journal, expected-cursor writes and command receipts.
 - `@opencraft/appserver-replica-storage-node`: atomic server/Lab persistence.
 - `@opencraft/appserver-replica-storage-web`: IndexedDB transaction adapter.
 - `@opencraft/appserver-replica-storage-expo`: Expo SQLite exclusive-transaction adapter.
-- `@opencraft/appserver-session`: Codex V3 Resume/View adapter.
+- `@opencraft/appserver-session`: AppServer V3 Resume/View adapter.
 
 All three storage engines implement the same atomic ports; none defines an
 alternate Replica model.

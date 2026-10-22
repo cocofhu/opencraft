@@ -22,7 +22,12 @@
   .sidebar-activity-list { flex: 1; min-height: 0; overflow: auto; align-content: start; overscroll-behavior: contain; scrollbar-width: none; isolation: isolate; }
   // Badges own local avatar ordering; keep that ordering below the disclosure.
   // Their floating popovers remain in the existing Shell/Radix portals.
-  .sidebar-activity-group__items { isolation: isolate; }
+  .sidebar-activity-group__items {
+    isolation: isolate;
+    // Clip only the rows crossing their own sticky label. The material remains
+    // the continuous Shell plane, including selection and avatar backgrounds.
+    clip-path: inset(var(--sidebar-heading-occlusion, 0px) -100% -100%);
+  }
   .sidebar-thread-group-heading {
     // The section bounds its own disclosure. Desktop scrolls the activity list;
     // mobile scrolls the outer navigation track, with no extra scroll owner.
@@ -31,7 +36,7 @@
     align-self: start;
     // Local to the isolated activity list, below Shell chrome and portals.
     z-index: 1;
-    background: var(--color-surface);
+    background: var(--opencraft-sidebar-heading-background, var(--color-surface));
   }
   .sidebar-list-toolbar, .sidebar-new-chat, .sidebar-list-search, .sidebar-catalog-feedback { flex-shrink: 0; }
 }
@@ -42,7 +47,7 @@
 }
 .shell-sidebar__context.sidecar-content-slot {
   grid-column: 2; grid-row: 1 / 3; min-height: 0; min-width: 0; overflow: hidden;
-  background: var(--color-surface); border-start-start-radius: 0;
+  background: var(--opencraft-sidebar-context-background, var(--color-surface)); border-start-start-radius: 0;
 }
 .shell-sidebar__rail-footer.sidecar-content-slot {
   grid-column: 1; grid-row: 2; height: auto;
@@ -58,7 +63,7 @@
       @include typography.role(metadata, primary);
       display: flex; align-items: center; justify-content: center; gap: 0;
       width: var(--size-application-navigation-hit-min); height: var(--size-application-navigation-hit-min); padding: 0;
-      > svg.lucide { @include icons.navigation-leading-icon; }
+      > svg:is(.lucide, .ui-action-glyph) { @include icons.navigation-leading-icon; }
       .shell-navigation__item-label { display: none; }
 
     }
@@ -306,9 +311,9 @@
   height: 100%;
   // One material plane spans both rails and their footer. Painting each child
   // separately creates a white footer patch and exposes the window's gray base.
-  background: var(--opencraft-sidebar-material-background);
-  backdrop-filter: var(--opencraft-sidebar-material-filter);
-  -webkit-backdrop-filter: var(--opencraft-sidebar-material-filter);
+  background: var(--opencraft-sidecar-background, var(--opencraft-sidebar-material-background));
+  backdrop-filter: var(--opencraft-sidecar-filter, var(--opencraft-sidebar-material-filter));
+  -webkit-backdrop-filter: var(--opencraft-sidecar-filter, var(--opencraft-sidebar-material-filter));
   .shell-navigation__dock, .app-shell-left-panel {
     background: transparent;
     backdrop-filter: none;

@@ -1,5 +1,6 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { MessageSquare, Search } from "lucide-react";
+import { MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import type { SidebarThread } from "./sidebar";
 import { useDismissSidebarAfterSelection } from "./shell-presentation";
@@ -148,7 +149,7 @@ function ConversationSearchDialog({ threads, loading, sources, onClose, onSelect
     </div>
     <div className="conversation-search__body">
     <h2 className="conversation-search__heading">{normalized ? label : intl.formatMessage({ id: "sidebar.flow.recent", defaultMessage: "Recent" })}</h2>
-    <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and Codex messages" })}</div>
+    <div className="conversation-search__scope">{intl.formatMessage({ id: "sidebar.search.scope", defaultMessage: "All servers · Titles and messages" })}</div>
     <div className="conversation-search__results" ref={list} role="listbox" id={listId} aria-label={label} aria-busy={busy || selecting}>
       {results.map((thread, index) => <ConversationSearchResult key={JSON.stringify([thread.connectionHostId, thread.id])}
         thread={thread} index={index} listId={listId} selected={index === selectedIndex}

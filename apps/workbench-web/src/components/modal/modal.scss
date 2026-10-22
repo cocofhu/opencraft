@@ -1,3 +1,5 @@
+@use "../../styles/settings-panel";
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
 @use "./announcement-dialog";
 @use "@opencraft/design-system/material.web" as material;
 
@@ -134,9 +136,11 @@
   color: var(--color-text-secondary);
   cursor: pointer;
 
-  &:hover {
-    background: color-mix(in srgb, var(--color-text) 7%, transparent);
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:hover {
+      background: color-mix(in srgb, var(--color-text) 7%, transparent);
+      color: var(--color-text);
+    }
   }
 
   &:focus-visible {

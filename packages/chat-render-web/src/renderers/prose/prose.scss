@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
+
 .opencraft-chat-document {
   --markdown-font-size: var(--opencraft-chat-font-size, var(--typography-chat-size));
   --markdown-line-height: calc(var(--markdown-font-size) + var(--typography-chat-leading));
@@ -123,7 +125,7 @@
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
   }
-  a:hover { text-decoration-color: currentColor; }
+  @include controls.hover-capable { a:hover { text-decoration-color: currentColor; } }
 
   .chat-media-paragraph {
     margin-bottom: 12px;
@@ -163,7 +165,6 @@
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8;
 }
 
 // Composer document rhythm instead of Agent prose spacing.

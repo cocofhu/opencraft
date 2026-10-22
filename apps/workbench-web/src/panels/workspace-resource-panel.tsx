@@ -1,4 +1,5 @@
 import { ZoomableImage } from "@opencraft/chat-render-web";
+import { FolderIcon as Folder, FolderOpenIcon as FolderOpen, LoadingRingIcon as LoaderCircle, EditIcon as Pencil, ResetIcon as RotateCcw, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { FilePreviewView, officeFileKind } from "@opencraft/file-preview-web";
 import { preparePreviewResources } from "./prepare-preview-resources";
 import { WebChatDocument } from "@opencraft/chat-render-web";
@@ -10,18 +11,7 @@ import { parse, serialize, type DefaultTreeAdapterTypes } from "parse5";
 import type { BlobProgress } from "@opencraft/blob-resources";
 import type { FuzzyFileSearchResult } from "@opencraft/appserver-protocol/generated";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
-import {
-  AlertTriangle,
-  Download,
-  Folder,
-  FolderOpen,
-  Image as ImageIcon,
-  LoaderCircle,
-  Pencil,
-  RotateCcw,
-  Save,
-  Search,
-} from "lucide-react";
+import { WarningIcon as AlertTriangle, DownloadIcon as Download, ImageIcon, SaveIcon as Save } from "@opencraft/design-system-web/action-icons";
 import {
   lazy,
   Suspense,
@@ -108,7 +98,7 @@ function useFuzzyWorkspaceFiles(roots: readonly string[], query: string, enabled
   const runtime = useAppServerRuntime();
   const [results, setResults] = useState<readonly FuzzyFileSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const sessionRef = useRef<Awaited<ReturnType<
+  const [session, setSession] = useState<Awaited<ReturnType<
     typeof runtime.resources.fileSystem.createFuzzyFileSearchSession
   >> | null>(null);
   const rootsKey = roots.join("\u0000");
@@ -116,6 +106,8 @@ function useFuzzyWorkspaceFiles(roots: readonly string[], query: string, enabled
 
   useEffect(() => {
     let active = true;
+    let ownedSession: typeof session = null;
+    setSession(null);
     setResults([]);
     if (!enabled || !supported) { setSearching(false); return; }
     void runtime.resources.fileSystem.createFuzzyFileSearchSession({
@@ -128,19 +120,14 @@ function useFuzzyWorkspaceFiles(roots: readonly string[], query: string, enabled
       },
     }).then((session) => {
       if (!active) return session.stop();
-      sessionRef.current = session;
-      if (query.trim().length > 0) {
-        setSearching(true);
-        return session.update(query.trim());
-      }
+      ownedSession = session;
+      setSession(session);
     }).catch(() => {
       if (active) setSearching(false);
     });
     return () => {
       active = false;
-      const session = sessionRef.current;
-      sessionRef.current = null;
-      if (session !== null) void session.stop();
+      if (ownedSession !== null) void ownedSession.stop();
     };
   }, [rootsKey, runtime, enabled, supported]);
 
@@ -153,11 +140,12 @@ function useFuzzyWorkspaceFiles(roots: readonly string[], query: string, enabled
       return;
     }
     setSearching(true);
+    if (session === null) return;
     const timer = window.setTimeout(() => {
-      void sessionRef.current?.update(normalized).catch(() => setSearching(false));
+      void session.update(normalized).catch(() => setSearching(false));
     }, 100);
     return () => window.clearTimeout(timer);
-  }, [query, enabled, supported]);
+  }, [query, enabled, supported, session]);
 
   return { results, searching, supported };
 }

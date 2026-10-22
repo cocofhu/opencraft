@@ -1,6 +1,7 @@
+import { CheckIcon as Check } from "@opencraft/design-system-web/action-icons";
 import * as ContextMenu from "@radix-ui/react-context-menu";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check } from "lucide-react";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
+
 import { useIntl } from "@opencraft/i18n/react";
 import type { ThreadListGroupingContribution, ThreadListGroupingSnapshot, ThreadListLabel } from "@opencraft/extension-react";
 

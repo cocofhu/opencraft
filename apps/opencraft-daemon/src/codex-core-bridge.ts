@@ -1,4 +1,4 @@
-import WebSocket from "ws";
+import { CodexCoreSocket } from "./codex-core-socket";
 import { CodexCoreControlClient } from "@opencraft/account-pool-host";
 import { LOGICAL_CLIENT_FIELD } from "@opencraft/app-host-protocol";
 import {
@@ -23,8 +23,7 @@ const idOf = (value: unknown): string | number | null => typeof value === "strin
 /** Optional native-core connection. The core, not this bridge, owns accounts and execution lifetime. */
 export class CodexCoreBridge implements DuplexTransport {
   private readonly control: CodexCoreControlClient;
-  private socket: WebSocket | null = null;
-  private statusValue: TransportStatus = { state: "idle" };
+  private readonly connection: CodexCoreSocket;
   private readonly messages = new Set<(frame: string) => void>();
   private readonly statuses = new Set<(status: TransportStatus) => void>();
   private readonly pending = new Map<string, Pending>();
@@ -40,52 +39,24 @@ export class CodexCoreBridge implements DuplexTransport {
 
   constructor(endpoint: string, token: string) {
     this.control = new CodexCoreControlClient(endpoint, token);
+    this.connection = new CodexCoreSocket({
+      health: signal => this.control.health(signal), message: frame => this.receive(frame),
+      status: value => { for (const listener of this.statuses) listener(value); },
+    });
   }
-  get status(): TransportStatus { return this.statusValue; }
+  get status(): TransportStatus { return this.connection.status; }
   subscribeMessage(listener: (frame: string) => void): () => void { this.messages.add(listener); return () => this.messages.delete(listener); }
   subscribeStatus(listener: (status: TransportStatus) => void): () => void { this.statuses.add(listener); return () => this.statuses.delete(listener); }
-  private publish(status: TransportStatus): void { this.statusValue = status; for (const listener of this.statuses) listener(status); }
   private emit(message: RpcRecord, clientId?: string): void {
     const frame = JSON.stringify(clientId ? { ...message, [LOGICAL_CLIENT_FIELD]: clientId } : message);
     for (const listener of this.messages) listener(frame);
   }
-  async connect(signal?: AbortSignal): Promise<void> {
-    if (this.statusValue.state === "open") return;
-    if (signal?.aborted) throw signal.reason;
-    this.publish({ state: "connecting" });
-    try {
-      const health = await this.control.health(signal);
-      const socket = new WebSocket(`ws+unix://${health.nativeSocket}:/`, { handshakeTimeout: 5_000 });
-      this.socket = socket;
-      socket.on("message", data => this.receive(String(data)));
-      socket.on("error", error => { if (this.statusValue.state === "open") this.fail(error); });
-      socket.on("close", () => { if (this.statusValue.state === "open") this.fail(new Error("Codex core connection closed")); });
-      await new Promise<void>((resolve, reject) => {
-        const cleanup = () => { signal?.removeEventListener("abort", abort); socket.off("error", failed); socket.off("close", closed); socket.off("open", opened); };
-        const abort = () => { cleanup(); socket.terminate(); reject(signal?.reason); };
-        const failed = (error: Error) => { cleanup(); reject(error); };
-        const closed = () => failed(new Error("Codex core connection closed during startup"));
-        const opened = () => { cleanup(); resolve(); };
-        socket.once("error", failed); socket.once("close", closed); socket.once("open", opened);
-        signal?.addEventListener("abort", abort, { once: true });
-        if (signal?.aborted) abort();
-      });
-      this.publish({ state: "open" });
-    } catch (error) {
-      await this.close();
-      this.fail(error instanceof Error ? error : new Error(String(error)));
-      throw error;
-    }
-  }
-  private fail(error: Error): void {
-    this.publish({ state: "failed", reason: error.message, failure: { code: "codex-core-connection-failed", recovery: "automatic" } });
-  }
+  connect(signal?: AbortSignal): Promise<void> { return this.connection.connect(signal); }
   private write(message: RpcRecord): void {
-    if (this.socket?.readyState !== WebSocket.OPEN) throw new Error("Codex core connection is closed");
-    this.socket.send(JSON.stringify(message));
+    this.connection.send(JSON.stringify(message));
   }
   async send(frame: string): Promise<void> {
-    if (this.statusValue.state !== "open") throw new Error("Codex Engine is not connected");
+    if (this.connection.status.state !== "open") throw new Error("Codex Engine is not connected");
     const message = record(JSON.parse(frame));
     const clientId = string(message[LOGICAL_CLIENT_FIELD]);
     if (!clientId) throw new Error("Codex Engine requires a logical client identity");
@@ -210,11 +181,9 @@ export class CodexCoreBridge implements DuplexTransport {
     this.write({ id, method: "thread/unsubscribe", params: { threadId } });
   }
   async close(): Promise<void> {
-    if (this.statusValue.state === "closed") return;
-    this.publish({ state: "closing" });
-    this.socket?.terminate(); this.socket = null;
+    if (this.connection.status.state === "closed") return;
+    this.connection.close();
     this.pending.clear(); this.waiters.length = 0; this.initialized.clear(); this.disconnected.clear();
     this.threads.clear(); this.revisions.clear(); this.serverRequests.clear();
-    this.publish({ state: "closed" });
   }
 }

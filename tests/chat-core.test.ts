@@ -1646,7 +1646,7 @@ test("image generation and image viewing retain Codex operational tool semantics
   }
 });
 
-test("standalone image view and empty Web Search preserve Codex render topology", () => {
+test("standalone image view and empty Web Search preserve render topology", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-tool-topology",
     status: "complete",
@@ -1719,7 +1719,7 @@ test("command failure follows exit code even when transport status completed", (
   assert.equal(formatCommandActivitySummary(block, "failed", { expanded: false, elapsedLabel: null }), "Ran false");
 });
 
-test("command labels reproduce Codex disclosure, elapsed, date, and background terminal states", () => {
+test("command labels describe disclosure, elapsed, date, and background terminal states", () => {
   const projected = projectTimeline(source([{
     id: "turn-command-labels",
     status: "complete",
@@ -2114,7 +2114,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated by stable resource identity", () => {
+test("MCP JSON text is promoted and deduplicated with structured content", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",
@@ -2187,7 +2187,7 @@ test("Agent Activity reproduces active labels and deterministic completed summar
   }
 });
 
-test("Web Search action details match Codex search, open-page, and find-in-page labels", () => {
+test("Web Search action details describe search, open-page, and find-in-page actions", () => {
   const blocks = projectTimeline(source([{
     id: "turn-web-actions",
     status: "complete",
@@ -3367,7 +3367,7 @@ test("steering and hook feedback retain their own slots outside Activity disclos
   ]);
 });
 
-test("realtime transcripts follow Codex's pre-toggle and persistent ownership", () => {
+test("realtime transcripts preserve pre-toggle text and persistent ownership", () => {
   const leadingDelegation = `<realtime_delegation>
     <transcript_delta>assistant: I can help.\nuser: Please inspect the app.</transcript_delta>
     <input>Please inspect the app.</input>
@@ -3432,7 +3432,7 @@ test("a non-collapsible realtime transcript renders from the original Unit strea
   assert.equal(layout.visibleUnits.length, 1);
 });
 
-test("realtime delegation parsing matches Codex transcript extension and entity decoding", () => {
+test("realtime delegation parsing preserves transcript extension and entity decoding", () => {
   assert.deepEqual(parseRealtimeDelegation([{
     type: "text",
     text: `<realtime_delegation>
@@ -3482,7 +3482,7 @@ test("Codex skill paths produce stable semantic names for local and cached plugi
   assert.equal(plugin?.isSkillDefinitionFile, true);
 });
 
-test("Agent Activity disclosure follows the Codex state table", () => {
+test("Agent Activity disclosure follows the presentation state table", () => {
   assert.deepEqual(resolveAgentActivityDisclosure({
     hasFinalAssistantStarted: false,
     hasRenderableAgentItems: true,
@@ -3687,4 +3687,40 @@ test("saved command source identities accept legacy aliases and prefer canonical
     assert.ok(block);
     assert.deepEqual(block.sourceItemIds, expected);
   }
+});
+
+
+test("late command completions retain execution start order and failed output", () => {
+  const items = [
+    { id: "before", type: "agentMessage", payload: { text: "Starting", startedAtMs: 10 } },
+    { id: "answer", type: "agentMessage", payload: { text: "Done", phase: "final_answer", startedAtMs: 30 } },
+    { id: "steer", type: "userMessage", payload: { content: [{ type: "text", text: "Next" }], startedAtMs: 40 } },
+    { id: "late", type: "commandExecution", payload: { command: "check", status: "failed", exitCode: 137,
+      aggregatedOutput: "Interrupted check", startedAtMs: 20, completedAtMs: 50 } },
+    { id: "after", type: "commandExecution", payload: { command: "after", status: "completed", startedAtMs: 45 } },
+  ];
+  const original = [...items];
+  const snapshot = projectTimeline(source([{ id: "timed", status: "complete", preserveServerUserMessages: true, items }]), createDefaultTimelineProjectorRegistry());
+  const blocks = snapshot.frames.flatMap(frame => frame.blocks);
+  assert.deepEqual(blocks.flatMap(block => block.sourceItemIds), ["before", "late", "answer", "steer", "after"]);
+  const failed = blocks.find(block => block.type === "command-execution" && block.command === "check");
+  assert.equal(failed?.type, "command-execution");
+  if (failed?.type === "command-execution") {
+    assert.equal(failed.status, "failed");
+    assert.equal(failed.exitCode, 137);
+    assert.equal(failed.output, "Interrupted check");
+  }
+  assert.deepEqual(items, original, "source membership and order stay immutable");
+});
+
+test("command completion order preserves unknown clocks, equal starts and real post-answer work", () => {
+  const items = [
+    { id: "answer", type: "agentMessage", payload: { text: "Done", phase: "final_answer", startedAtMs: 30 } },
+    { id: "unknown", type: "commandExecution", payload: { command: "unknown", status: "completed" } },
+    { id: "equal", type: "commandExecution", payload: { command: "equal", status: "completed", startedAtMs: 30 } },
+    { id: "after", type: "commandExecution", payload: { command: "after", status: "completed", startedAtMs: 40 } },
+    { id: "invalid", type: "commandExecution", payload: { command: "invalid", status: "completed", startedAtMs: NaN } },
+  ];
+  const snapshot = projectTimeline(source([{ id: "untimed", status: "complete", items }]), createDefaultTimelineProjectorRegistry());
+  assert.deepEqual(snapshot.frames.flatMap(frame => frame.blocks.flatMap(block => block.sourceItemIds)), items.map(item => item.id));
 });

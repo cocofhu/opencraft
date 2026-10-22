@@ -6,6 +6,8 @@ export interface OpenSidebarThreadMenu {
   readonly kind: SidebarThreadMenuKind | "badge";
 }
 
+export type OpenSidebarMenu = OpenSidebarThreadMenu | { readonly kind: "filters" | "list-context" };
+
 export function isSidebarThreadMenuOpen(
   current: OpenSidebarThreadMenu | null,
   target: OpenSidebarThreadMenu,
@@ -27,21 +29,42 @@ export function updateOpenSidebarThreadMenu(
 
 /** A Sidebar owns one open menu; only its previous/next row needs to render. */
 export class SidebarThreadMenuStore {
-  private current: OpenSidebarThreadMenu | null = null;
+  private current: OpenSidebarMenu | null = null;
   private readonly listeners = new Map<string, Set<() => void>>();
 
   private key(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">): string {
     return JSON.stringify([target.hostId, target.threadId]);
   }
 
-  getSnapshot = (): OpenSidebarThreadMenu | null => this.current;
+  getSnapshot = (): OpenSidebarMenu | null => this.current;
+
+  getFiltersOpen = (): boolean => this.current?.kind === "filters";
+
+  subscribeFilters = (listener: () => void): (() => void) => this.subscribeKey("filters", listener);
+
+  setFiltersOpen = (open: boolean): void => {
+    if (open) this.set({ kind: "filters" });
+    else if (this.current?.kind === "filters") this.set(null);
+  };
+
+  getListContextOpen = (): boolean => this.current?.kind === "list-context";
+
+  subscribeListContext = (listener: () => void): (() => void) => this.subscribeKey("list-context", listener);
+
+  setListContextOpen = (open: boolean): void => {
+    if (open) this.set({ kind: "list-context" });
+    else if (this.current?.kind === "list-context") this.set(null);
+  };
 
   getKind(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">): OpenSidebarThreadMenu["kind"] | null {
-    return this.current?.hostId === target.hostId && this.current.threadId === target.threadId ? this.current.kind : null;
+    return this.current && "hostId" in this.current && this.current.hostId === target.hostId && this.current.threadId === target.threadId ? this.current.kind : null;
   }
 
   subscribe(target: Pick<OpenSidebarThreadMenu, "hostId" | "threadId">, listener: () => void): () => void {
-    const key = this.key(target);
+    return this.subscribeKey(this.key(target), listener);
+  }
+
+  private subscribeKey(key: string, listener: () => void): () => void {
     const listeners = this.listeners.get(key) ?? new Set();
     listeners.add(listener);
     this.listeners.set(key, listeners);
@@ -52,16 +75,21 @@ export class SidebarThreadMenuStore {
   }
 
   update(target: OpenSidebarThreadMenu, open: boolean): void {
-    this.set(updateOpenSidebarThreadMenu(this.current, target, open));
+    if (open) this.set(target);
+    else if (this.current && "hostId" in this.current) this.set(updateOpenSidebarThreadMenu(this.current, target, false));
   }
 
   close = (): void => { this.set(null); };
 
-  private set(next: OpenSidebarThreadMenu | null): void {
+  private set(next: OpenSidebarMenu | null): void {
     const previous = this.current;
-    if (previous === next || (previous && next && isSidebarThreadMenuOpen(previous, next))) return;
+    if (previous === next) return;
+    if (previous && next) {
+      if (!("hostId" in previous) && !("hostId" in next) && previous.kind === next.kind) return;
+      if ("hostId" in previous && "hostId" in next && isSidebarThreadMenuOpen(previous, next)) return;
+    }
     this.current = next;
-    const keys = new Set([previous, next].filter((target): target is OpenSidebarThreadMenu => target !== null).map(target => this.key(target)));
+    const keys = new Set([previous, next].filter((target): target is OpenSidebarMenu => target !== null).map(target => "hostId" in target ? this.key(target) : target.kind));
     for (const key of keys) for (const listener of this.listeners.get(key) ?? []) listener();
   }
 }

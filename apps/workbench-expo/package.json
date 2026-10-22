@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "main": "index.ts",
   "scripts": {
+    "build:web-workbench": "node --import tsx scripts/build-web-workbench.mts",
+    "start:web-workbench": "OPENCRAFT_EXPO_WORKBENCH=web node scripts/run-expo.cjs start",
     "build:chat-mermaid-runtime": "node scripts/build-chat-mermaid-runtime.mjs",
     "build:chat-math-runtime": "node scripts/build-chat-math-runtime.mjs",
     "start": "node scripts/run-expo.cjs start",
@@ -21,6 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@opencraft/client-product": "0.1.0",
     "@deepseek-ai/cordis": "4.0.4",
     "@expo/metro-runtime": "^57.0.14",
     "@gorhom/bottom-sheet": "5.2.14",
@@ -59,7 +62,7 @@
     "expo-image-picker": "~57.0.14",
     "expo-linking": "~57.0.4",
     "expo-network": "~57.0.2",
-    "expo-router": "~57.0.9",
+    "expo-router": "~57.0.29",
     "expo-secure-store": "~57.0.3",
     "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
@@ -87,6 +90,7 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "@types/ungap__structured-clone": "^1.2.0",
+    "acorn": "8.19.0",
     "compression": "^1.8.2",
     "esbuild": "^0.28.2",
     "mermaid": "^11.17.2",

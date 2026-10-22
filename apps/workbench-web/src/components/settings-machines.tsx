@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { ArrowLeft, Cloud, Laptop, Server } from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, CloudIcon as Cloud, LaptopIcon as Laptop, ServerIcon as Server } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import { SettingsButton, SettingsGroup, SettingsListItem, SettingsPageHeader, SettingsRow, SettingsSection } from "@opencraft/extension-react";
 import type { SettingsPageContribution } from "@opencraft/extension-contract";

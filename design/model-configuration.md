@@ -64,7 +64,7 @@ Headless 的 Model Services 在现有添加提供商表单中选择用途，复�
 
 Only explicit choices on the new-conversation page immediately update personal model/effort/speed defaults; sending a message is not required. Editing a historical conversation changes only its own selection. It does not write personal defaults or change what subsequent new conversations inherit.
 
-Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
+Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort/service tier per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
 
 ## 会话模型的首帧展示
 
@@ -93,3 +93,47 @@ Composer 的 `ModelSelectionPolicy` 显式区分三种模式：`user` 使用用�
 冷目录显示静态占位，失败与空目录仍可打开重试，原始产品错误不进入菜单。
 可选配置动作由装配提供；长名称由容器裁切并提供可复制的完整提示。
 共享 Composer 保留触屏编辑焦点与键盘菜单语义，不复制产品设置页。
+
+## Pi Durable execution projection
+
+Headless Pi uses `PiModelEngineAdapter` through the same `ModelEnginePort` and
+`ModelConfigurationService` as other engines. Catalog/config reads and new or
+resumed execution synchronize the product revision and credential-file stamp.
+The same native `ModelRuntime` remains attached to durable sessions; provider
+replacement does not recreate ledgers or change existing Thread bindings.
+Reads of history and interruption remain available when configuration is invalid.
+Failed synchronization rejects catalog/admission until configuration is repaired.
+
+Enabled chat models project their explicit input, limits and reasoning map.
+Absent fields use exact provider/catalog ID plus model ID metadata from the SDK,
+then its generic custom-model defaults (text, no reasoning, 128000 context and
+16384 output tokens). Names never infer capabilities. Every undeclared reasoning
+level is excluded; explicit `off: null` supports disabling with an omitted wire
+field, while an absent `off` does not advertise disabling. Provider wire strings
+are preserved. Speech models and their credentials do not enter this projection.
+
+Native providers use only the product credential resolver; missing referenced
+credentials or an unbound (null) reference make that provider unavailable.
+The API-key execution port never invents a token to advertise unconfigured endpoints. No key, command or second writable model document is copied to Pi.
+Legacy native `models.json` is read once for stable aliases: exact provider ID,
+or a unique name/protocol/base URL match. A private `model-provider-bindings.json`
+keeps that identity across rename/restart; it owns aliases only, not capabilities
+or credentials. Ambiguous alias collisions fail rather than rebind a Thread.
+Standalone Pi retains its native configuration when no product port is injected.
+
+Managed Pi default reads/writes use the shared document and CAS. A null product
+default remains null; the multi-engine Host also preserves this value rather than
+marking its first catalog entry as default. Explicit
+conversation and account choices keep their original owners.
+
+
+The service tier shares this account authority and CAS record. A missing tier in a
+legacy record inherits the Host default; explicit null means standard and must
+survive reads, writes, reload and submission. Selecting model, effort or speed
+pins the resolved model/effort/tier in that draft, and remembers the same personal
+default for later conversations. Thread execution settings remain authoritative
+for existing conversations; refreshing personal defaults never rewrites them.
+Models without the selected tier resolve to standard through the Composer owner.
+
+If neither personal nor Host data resolves a tier, submission leaves the wire
+field absent. An unknown legacy/default choice must not be converted to standard.

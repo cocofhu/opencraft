@@ -99,6 +99,16 @@ test("WebSocket transport sends only while its socket is open", async () => {
   await assert.rejects(fixture.transport.send("after"), /not open/);
 });
 
+test("WebSocket transport never submits a frame whose signal is already aborted", async () => {
+  const fixture = transportFixture(); const socket = await connectCurrent(fixture);
+  const controller = new AbortController(); controller.abort();
+  try {
+    await assert.rejects(fixture.transport.send("cancelled", controller.signal), { name: "AbortError" });
+    assert.deepEqual(socket.sent, []);
+    await fixture.transport.send("current"); assert.deepEqual(socket.sent, ["current"]);
+  } finally { await fixture.transport.close(); }
+});
+
 test("WebSocket transport decodes every binary frame as UTF-8 in order", async () => {
   const fixture = transportFixture();
   const messages: string[] = [];

@@ -1,3 +1,4 @@
+import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/action-icons";
 import {
   formatWorkDuration,
   type WorkStatusItem,
@@ -5,7 +6,7 @@ import {
 import { useWorkStatusLabel } from "@opencraft/timeline-render-react";
 import { useIntl } from "@opencraft/i18n/react";
 import { defineMessages } from "@opencraft/i18n";
-import { ChevronRight } from "lucide-react";
+
 import { motion, useReducedMotion } from "motion/react";
 import { useContext, useId } from "react";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
@@ -40,7 +41,7 @@ export function ActivityDisclosureLabel({
   const intl = useIntl();
   if (item !== null) return <WorkStatusLabel item={item} />;
   return (
-    <span>
+    <span data-work-duration={durationMs ?? undefined}>
       {durationMs !== null
         ? intl.formatMessage(statusMessages.workedFor, { time: formatWorkDuration(durationMs, intl.locale) })
         : intl.formatMessage({ id: "chat.previousMessages", defaultMessage: "{count, plural, one {# previous message} other {# previous messages}}" }, { count })}
@@ -60,7 +61,7 @@ export function ActivityDisclosureHeader({
   readonly durationMs: number | null;
   readonly count: number;
   readonly open: boolean;
-  readonly onToggle: (anchor: HTMLButtonElement) => void;
+  readonly onToggle?: (anchor: HTMLButtonElement) => void;
 }) {
   const labelId = useId();
   return (
@@ -69,14 +70,15 @@ export function ActivityDisclosureHeader({
         className="thread-agent-activity__turn-toggle"
         contentClassName="thread-agent-activity__turn-toggle-content"
         labelId={labelId}
-        onToggle={onToggle}
+        interactive={onToggle !== undefined}
+        onToggle={(anchor) => onToggle?.(anchor)}
         open={open}
         reflowOwned
       >
           <span id={labelId}>
             <ActivityDisclosureLabel item={item} durationMs={durationMs} count={count} />
           </span>
-          <ChevronRight aria-hidden="true" className={open ? "is-open" : undefined} size={12} />
+          {onToggle ? <ChevronRight aria-hidden="true" className={open ? "is-open" : undefined} size={12} /> : null}
       </OverlayDisclosureTrigger>
       <div className="thread-agent-activity__rule-row">
         <div className="thread-work-status__rule" />

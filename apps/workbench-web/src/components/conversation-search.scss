@@ -1,3 +1,4 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
 @use "@opencraft/design-system/typography.web" as typography;
 @use "./mobile-glass" as glass;
 
@@ -53,7 +54,8 @@
     @include typography.role(metadata, primary);
     flex-shrink: 0; min-height: var(--size-control-hit-min); padding: 6px 10px;
     background: transparent; border: 0; border-radius: var(--radius-md); cursor: pointer;
-    &:hover, &:focus-visible { background: var(--color-background-button-secondary); }
+    &:focus-visible { background: var(--color-background-button-secondary); }
+    @include controls.hover-capable { &:hover { background: var(--color-background-button-secondary); } }
   }
 }
 .conversation-search__server {
@@ -109,12 +111,12 @@
       @include glass.surface;
       top: auto; right: max(12px, env(safe-area-inset-right, 0px)); bottom: var(--search-bottom);
       width: 48px; height: 48px; border-radius: 50%; color: var(--color-text);
-      > svg { width: 22px; height: 22px; stroke-width: 1.8; }
+      > svg { width: 22px; height: 22px; }
     }
     .conversation-search__result-icon {
       display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px;
       border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text);
-      > svg { stroke-width: 1.8; }
+      > svg { }
     }
     .conversation-search__results > button { gap: 12px; min-height: 64px; }
   }
@@ -125,9 +127,9 @@
 :root[data-ui-density="touch"] { @include mobile-search-page; }
 // Keyboard/zoom geometry has one writer: the existing Web timeline viewport port.
 :root[data-timeline-tracks-visual-viewport="true"] .modal-surface.conversation-search[data-appearance="utility"] {
-  --search-viewport-top: var(--timeline-visual-viewport-offset-top, 0px);
-  --search-viewport-left: var(--timeline-visual-viewport-offset-left, 0px);
-  --search-viewport-width: var(--timeline-visual-viewport-width, 100vw);
-  --search-viewport-height: var(--timeline-visual-viewport-height, 100dvh);
+  --search-viewport-top: var(--timeline-available-viewport-top, 0px);
+  --search-viewport-left: var(--timeline-available-viewport-left, 0px);
+  --search-viewport-width: var(--timeline-available-viewport-width, 100vw);
+  --search-viewport-height: var(--timeline-available-viewport-height, 100dvh);
 }
 :root[data-timeline-keyboard-open="true"] .conversation-search { --search-safe-bottom: 0px; }

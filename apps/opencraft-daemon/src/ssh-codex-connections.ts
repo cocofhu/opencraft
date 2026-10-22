@@ -2,11 +2,11 @@ import { readFile, stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { CodexEngineAdapter } from "./codex-engine-adapter.js";
 import { SshCodexTransport, type SshCodexTransportOptions } from "./ssh-codex-transport.js";
-import type { SshCodexServerDescriptor } from "@opencraft/app-host-protocol";
+import type { SshServerDescriptor } from "@opencraft/app-host-protocol";
 import { createSshAttachmentOptions } from "./ssh-attachment-options.js";
 
 export interface SshCodexServerBinding {
-  readonly descriptor: SshCodexServerDescriptor;
+  readonly descriptor: SshServerDescriptor;
   readonly connection: SshCodexTransportOptions;
 }
 

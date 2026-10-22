@@ -29,6 +29,8 @@ window.__resetDraft = () => controller.dispatch({ type: "reset-all" });
 const model = (id, label, isDefault, configuredRole = null) => ({ id, value: id, label, isDefault, configuredRole,
   description: null, efforts: [], defaultEffort: null, inputModalities: ["text"] });
 function Fixture() {
+  const [policy, setPolicy] = React.useState("session");
+  window.__setPolicy = setPolicy;
   const [catalog, setCatalog] = React.useState({ agents: [], permissionProfiles: [], models: [
     model("default-model", "Default model", true, "primary"),
     model("custom-model", "Custom model", false, "fallback"),
@@ -36,7 +38,7 @@ function Fixture() {
   ] });
   window.__setCatalog = setCatalog;
   return <IntlRuntimeProvider runtime={locale}>
-    <OpenCraftComposer controller={controller} modelSelectionPolicy="session" selectionCatalog={catalog}
+    <OpenCraftComposer controller={controller} modelSelectionPolicy={policy} selectionCatalog={catalog}
       onSubmit={(intent) => {
         window.__sent.push({ selected: Object.hasOwn(intent.selections, "model"), model: intent.selections.model });
         return false;
@@ -166,7 +168,29 @@ try {
   await page.screenshot({ path: resolve(root, `.local/session-model-selector/${touch ? "mobile" : "desktop"}-${theme}.png`) });
   await page.getByRole("menuitem", { name: "Add more models" }).click();
   assert.equal(await page.evaluate(() => (window as unknown as { __configured: boolean }).__configured), true);
+  // The standalone picker must preserve engine identity even for identical labels.
+  await page.evaluate(`window.__setPolicy("user");
+    const models = [
+      { id: "dsh-model", value: "dsh-model", label: "Shared model", groupKey: "dsh", groupLabel: "DSH · Models", efforts: [], defaultEffort: null },
+      { id: "pi:provider:model", value: "pi:provider:model", label: "Shared model", groupKey: "pi:provider", groupLabel: "Pi · provider", efforts: [], defaultEffort: null }
+    ];
+    window.__setCatalog({ agents: [], permissionProfiles: [], models,
+      agentGroups: [{ id: "server", label: "Server", active: true, models, select: model => { window.__selectedEngineModel = model.value; } }] });`);
+  await editor.fill("Keep this engine selection draft");
+  await picker.click();
+  const standalone = page.locator(".opencraft-composer-selection-menu--intelligence");
+  await standalone.getByText("DSH · Models", { exact: true }).waitFor();
+  await standalone.getByText("Pi · provider", { exact: true }).waitFor();
+  assert.equal(await standalone.getByRole("menuitem", { name: "Shared model", exact: true }).count(), 2);
+  await standalone.getByRole("menuitem", { name: "Shared model", exact: true }).nth(1).click();
+  await page.waitForFunction(() => (window as unknown as { __selectedEngineModel: string }).__selectedEngineModel === "pi:provider:model");
+  assert.equal(await editor.innerText(), "Keep this engine selection draft");
+  const standaloneGeometry = await standalone.boundingBox();
+  assert.ok(standaloneGeometry && standaloneGeometry.x >= 0 && standaloneGeometry.x + standaloneGeometry.width <= (touch ? 390 : 1280));
+  await page.screenshot({ path: resolve(root, `.local/session-model-selector/standalone-${touch ? "mobile" : "desktop"}-${theme}.png`) });
+  await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
+  console.log(`PASS standalone engine groups ${touch ? "mobile" : "desktop"}/${theme}: duplicate labels retain engine headings and selected native ID, draft preserved`);
   console.log(`PASS session model selector ${touch ? "mobile" : "desktop"}/${theme}: inherited/explicit selection, backup, locales, retry/empty, groups/configure, viewport`);
   await context.close();
   }

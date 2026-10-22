@@ -1,6 +1,7 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, EditIcon as Pencil } from "@opencraft/design-system-web/action-icons";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { BrainCircuit, Check, ChevronDown, Pencil } from "lucide-react";
+
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
 import type { ComposerModelOption, ComposerSelectionCatalog } from "./composer-editor";
@@ -77,7 +78,7 @@ export function SessionModelPicker({ catalog, label, selected, disabled, open, o
                   <span className="opencraft-composer-selection-menu__copy"><span className="opencraft-composer-selection-menu__label"><span className="opencraft-composer-model-label-with-role">
                     <span className="opencraft-composer-model-label-with-role__name">{model.label}</span>
                     {model.configuredRole === "fallback" ? <span className="opencraft-composer-model-role" data-role="fallback"><FormattedMessage id="composer.model.fallbackShort" defaultMessage="Backup" /></span> : null}
-                  </span></span></span>{isSelected ? <span className="opencraft-composer-selection-menu__trailing" aria-hidden="true"><Check size={16} strokeWidth={1.75} /></span> : null}
+                  </span></span></span>{isSelected ? <span className="opencraft-composer-selection-menu__trailing" aria-hidden="true"><Check size={16} /></span> : null}
                 </DropdownMenu.Item>;
               });
               return group.label === null ? <Fragment key={group.key}>{items}</Fragment> : <DropdownMenu.Group key={group.key}>

@@ -1,3 +1,4 @@
+import { MoreIcon as MoreHorizontal } from "@opencraft/design-system-web/action-icons";
 import {
   collapseUnifiedDiffContext,
   parseUnifiedDiff,
@@ -5,8 +6,16 @@ import {
   type UnifiedDiffRenderRow,
   type UnifiedDiffSegment,
 } from "@opencraft/chat-core";
-import { MoreHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ActivityDisclosureStateContext, useActivityOpen } from "./activity/activity-disclosure";
+
+export interface DiffReadingPosition {
+  readonly scrollTop: number;
+  readonly scrollLeft: number;
+}
+
+export const DiffReadingPositionContext = createContext<Map<string, DiffReadingPosition> | null>(null);
 
 function DiffSegments({ segments, text }: { readonly segments: readonly UnifiedDiffSegment[] | null; readonly text: string }) {
   if (segments === null || segments.length === 0) return <>{text || " "}</>;
@@ -39,24 +48,45 @@ function DiffLine({ line }: { readonly line: UnifiedDiffLine }) {
   );
 }
 
-export function UnifiedDiffPreview({ diff }: { readonly diff: string }) {
+export function UnifiedDiffPreview({ diff, restoreKey }: { readonly diff: string; readonly restoreKey?: string }) {
+  const positions = useContext(DiffReadingPositionContext);
+  const viewport = useRef<HTMLDivElement>(null);
+  const rememberPosition = (element: HTMLElement) => {
+    if (restoreKey !== undefined) positions?.set(restoreKey, { scrollTop: element.scrollTop, scrollLeft: element.scrollLeft });
+  };
+  useLayoutEffect(() => {
+    const element = viewport.current;
+    if (!element || restoreKey === undefined || positions === null) return;
+    const saved = positions.get(restoreKey);
+    if (saved) { element.scrollTop = saved.scrollTop; element.scrollLeft = saved.scrollLeft; }
+    // A queued native scroll event may not run before navigation unmounts this View.
+    return () => rememberPosition(element);
+  }, [positions, restoreKey]);
   const lines = useMemo(() => parseUnifiedDiff(diff), [diff]);
   const collapsedRows = useMemo(() => collapseUnifiedDiffContext(lines), [lines]);
-  const [expandedContexts, setExpandedContexts] = useState<ReadonlySet<string>>(() => new Set());
-  const [showAll, setShowAll] = useState(false);
+  const choices = useContext(ActivityDisclosureStateContext);
+  const contextKey = (key: string) => `diff:${JSON.stringify([restoreKey, key])}`;
+  const [expandedContexts, setExpandedContexts] = useState<ReadonlySet<string>>(() => new Set(
+    collapsedRows.filter(row => row.kind === "collapsed" && restoreKey !== undefined
+      && choices?.get(contextKey(row.key))?.settledExpanded).map(row => row.key),
+  ));
+  const [showAll, setShowAll] = useActivityOpen(false, false, restoreKey === undefined ? undefined : contextKey("all"));
   const rows = useMemo<readonly UnifiedDiffRenderRow[]>(() => collapsedRows.flatMap((row): readonly UnifiedDiffRenderRow[] => (
     row.kind === "collapsed" && expandedContexts.has(row.key) ? row.lines : [row]
   )), [collapsedRows, expandedContexts]);
   const visibleRows = showAll ? rows : rows.slice(0, 420);
   const hiddenRowCount = rows.length - visibleRows.length;
   return (
-    <div className="thread-unified-diff" role="table" aria-label="File changes">
+    <div className="thread-unified-diff" ref={viewport} onScroll={event => rememberPosition(event.currentTarget)} role="table" aria-label="File changes">
       {visibleRows.map((row) => row.kind === "collapsed" ? (
         <button
           className="thread-unified-diff__collapsed"
           data-timeline-preserve-on-reflow="true"
           key={row.key}
-          onClick={() => setExpandedContexts((current) => new Set([...current, row.key]))}
+          onClick={() => {
+            if (restoreKey !== undefined) choices?.set(contextKey(row.key), { runningCollapsed: false, settledExpanded: true });
+            setExpandedContexts((current) => new Set([...current, row.key]));
+          }}
           type="button"
         >
           <MoreHorizontal size={13} />

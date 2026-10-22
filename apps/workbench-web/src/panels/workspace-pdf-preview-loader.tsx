@@ -1,6 +1,7 @@
+import { LoadingRingIcon as LoaderCircle } from "@opencraft/design-system-web/action-icons";
 import { preparePreviewResources } from "./prepare-preview-resources";
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+
 import { useIntl } from "@opencraft/i18n/react";
 
 type PdfPreview = typeof import("./workspace-pdf-preview")["WorkspacePdfPreview"];

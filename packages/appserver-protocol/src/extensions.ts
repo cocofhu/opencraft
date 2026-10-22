@@ -40,7 +40,7 @@ export interface OpenCraftThreadQueueCapability {
   /** False for runtimes such as DSH whose inbox order is an invariant. */
   readonly reorder: boolean;
   readonly atomicSteer: true;
-  /** Patched Codex only: an acknowledged, target-bound discard of an unresolved claim. */
+  /** Host-owned acknowledgement for a target-bound discard of an unresolved claim. */
   readonly unconfirmedSteerDiscard?: true;
   /** Whether pause reasons are durable queue-item state rather than UI state. */
   readonly perItemPause: boolean;
@@ -64,6 +64,8 @@ export const OPENCRAFT_THREAD_LIFECYCLE_EXTENSION = "opencraft/thread-lifecycle"
 export interface OpenCraftThreadLifecycleCapability {
   readonly version: 1;
   readonly fork?: boolean;
+  /** Temporary context forks without advertising persistent Fork. */
+  readonly ephemeralFork?: boolean;
   readonly ephemeral?: boolean;
   readonly injectItems?: boolean;
   readonly unsubscribe?: boolean;
@@ -79,6 +81,7 @@ export function parseThreadLifecycleCapability(value: unknown): OpenCraftThreadL
   return {
     version: 1,
     fork: capability.fork === true,
+    ephemeralFork: capability.ephemeralFork === true,
     ephemeral: capability.ephemeral === true,
     injectItems: capability.injectItems === true,
     unsubscribe: capability.unsubscribe === true,

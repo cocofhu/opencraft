@@ -115,7 +115,10 @@ function extractItem(entry: ThreadItemsListResponse["data"][number], turnId: str
   }
   const item = isRecord(entry.item) ? entry.item : entry;
   if (typeof item.id !== "string") throw new Error("thread/items/list returned an Item without a string id");
-  return item as AppServerThreadItem;
+  // Page envelopes carry lifecycle clocks separately from the protocol Item.
+  const clocks = Object.fromEntries(["startedAtMs", "completedAtMs"].flatMap((key) =>
+    typeof entry[key] === "number" && Number.isFinite(entry[key]) ? [[key, entry[key]]] : []));
+  return { ...item, ...clocks } as AppServerThreadItem;
 }
 
 async function fetchItemsPage(

@@ -82,10 +82,12 @@ test("promotion updates a View-evicted owner before POP restores its canonical T
     const secondController = views.get(secondView)!.composer;
     write(secondController, "synthetic accepted input");
     const submission = secondController.createSubmitIntent();
+    secondController.dispatch({ type: "set-lifecycle", phase: "submitting" });
     scopes.beginSubmit(initialDraft.id, submission);
     const receipt = { commandId: submission.commandId, clientMessageId: submission.clientMessageId,
       hostId: "local", threadId: "synthetic-promoted", turnId: "synthetic-turn", acceptedAt: Date.now(), replayed: false };
     scopes.acceptSubmission(initialDraft.id, receipt);
+    assert.equal(secondController.settleSubmission(secondController.getSnapshot().draft.id, submission, { status: "accepted" }), true);
     scopes.beginPromotion(initialDraft.id);
     const canonical = createWorkbenchThreadLocation("local", receipt.threadId);
     assert.deepEqual(await navigation.promoteDraft(initialDraft.id, receipt), canonical);
@@ -97,15 +99,16 @@ test("promotion updates a View-evicted owner before POP restores its canonical T
     assert.equal(views.get(firstView)?.composer, firstController);
     assert.equal(views.get(firstView)?.scopeId, initialDraft.scopeId);
     assert.equal(composerDocumentToPlainText(secondController.getSnapshot().draft.document), "");
-    assert.equal(firstController.getSnapshot().hasContent, false);
-    assert.equal(firstController.hasRetainedContent(), true, "the original target's unsent document remains controller-owned");
+    assert.equal(composerDocumentToPlainText(firstController.getSnapshot().draft.document), "old page input");
+    assert.equal(firstController.getSnapshot().hasContent, true);
+    assert.equal(firstController.hasRetainedContent(), true, "promotion carries the unsent document to the canonical target");
     for (let index = 0; index < 21; index++) {
       await navigation.selectConversation(createWorkbenchThreadLocation("local", `after-promotion-${index}`));
       write(views.get(navigation.getSnapshot().routeScopeId)!.composer, `post-promotion input ${index}`);
     }
     assert.equal(views.get(firstView), null);
     assert.equal(views.getDraftOwner(firstView)?.composer, firstController,
-      "presentation eviction cannot close an owner whose current target is empty but another target has input");
+      "presentation eviction cannot close an owner with unsent input on its promoted target");
     assert.equal(await navigation.selectConversation(canonical), true);
     assert.equal(navigation.getSnapshot().routeScopeId, firstView);
     assert.equal(views.get(firstView)?.composer, firstController);

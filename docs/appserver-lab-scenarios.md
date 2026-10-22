@@ -12,10 +12,10 @@ content and leaves its connection bookkeeping valid.
 | `initialize` | handshake and capability projection | initialization result and generation 1 are observable |
 | `smoke` | minimum real-server read path | initialize plus a valid `thread/list` page |
 | `pagination` | opaque cursor continuation | second page is valid and has no repeated thread IDs |
-| `resume` | Codex tail-hydration resume | selected thread, workspace roots, turn/item cursors and initial page are projected |
+| `resume` | AppServer tail-hydration resume | selected thread, workspace roots, turn/item cursors and initial page are projected |
 | `resume-contract` | repeated and post-reconnect resume identity | every response preserves the requested ID; reconnect advances generation; a missing ID fails with RPC `-32000` |
 | `desktop-resume` | complete Desktop-style View hydration | Cordis strategies load the selected history mode, commit ownership/execution/security View state, and release buffered traffic after commit |
-| `replica-resume` | Codex V3 compatibility into the V4 client model | Resume hydrates a View, adjacent revisions stream into Replica, persisted cache paints non-authoritatively, then exact sync promotes it to live |
+| `replica-resume` | AppServer V3 compatibility into the V4 client model | Resume hydrates a View, adjacent revisions stream into Replica, persisted cache paints non-authoritatively, then exact sync promotes it to live |
 | `history` | post-resume history continuation | `turnsBackwardsCursor` is followed when present; absent cursor is a valid terminal state |
 | `concurrency` | multiple in-flight requests and out-of-order replies | unique JSON-RPC IDs, all replies correlated, pending count returns to zero |
 | `timeout` | a response is blackholed | request fails with `TIMEOUT`, transport stays open, the next request succeeds |
@@ -55,8 +55,8 @@ The `desktop-resume` scenario exercises the separate
 `@opencraft/appserver-session` layer: notification/request buffering, all four
 history strategies, Turn/Item pagination, permissions/workspace/model
 projection, and owner/follower state. `replica-resume` then consumes that View
-through the explicit Codex V3 adapter. It proves cached paint versus authority,
-revision streaming and snapshot fallback without claiming Codex has V4 wire
+through the explicit AppServer V3 adapter. It proves cached paint versus authority,
+revision streaming and snapshot fallback without claiming the provider has V4 wire
 methods.
 
 The canonical-session identity file is acquired before `thread/start`, including

@@ -1,3 +1,4 @@
+import { createObservabilityExtension } from './observability';
 import type { AppServerClient } from "@opencraft/appserver-client";
 import type { TrustedExtensionDefinition } from "@opencraft/extension-runtime";
 import type { LocaleCatalog } from "@opencraft/i18n";
@@ -15,4 +16,6 @@ export interface ServerWorkbenchExtension {
 
 // A generic Headless connection does not imply any enterprise identity source.
 // The build owner can explicitly replace this entry with a product assembly.
-export const serverWorkbenchExtensions: readonly ServerWorkbenchExtension[] = [];
+export const serverWorkbenchExtensions: readonly ServerWorkbenchExtension[] = [
+  {id:'opencraft.observability',load:()=>createObservabilityExtension()},
+];

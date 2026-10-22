@@ -19,6 +19,9 @@ interface AppShellRightPanelProps {
   readonly open: boolean;
   readonly keepMounted?: boolean;
   readonly rightPanelWidth: MotionValue<number>;
+  /** Layout endpoint; physical width may still be animating toward it. */
+  readonly contentWidth?: MotionValue<number>;
+  readonly contentFullWidth?: boolean;
   readonly rightPanelWidthRatio: MotionValue<number>;
   readonly rightPanelLayoutTick: MotionValue<number>;
   readonly shellHeight: MotionValue<number>;
@@ -28,20 +31,22 @@ interface AppShellRightPanelProps {
 
 export function AppShellRightPanel({
   animation, children, fullWidth, mainContentWidth, open, keepMounted = false,
-  rightPanelWidth, rightPanelWidthRatio, rightPanelLayoutTick, shellHeight, onOpenChange,
+  rightPanelWidth, contentWidth = rightPanelWidth, contentFullWidth = fullWidth,
+  rightPanelWidthRatio, rightPanelLayoutTick, shellHeight, onOpenChange,
 }: AppShellRightPanelProps) {
   const [dragging, setDragging] = useState(false);
   const { animatedSize, isMounted, progress } = usePanelAnimation({
     animation, isVisible: open, size: rightPanelWidth,
   });
-  const rightPanelTargetWidthPx = useTransform(rightPanelWidth, value => `${value}px`);
+  const rightPanelTargetWidthPx = useTransform(contentWidth, value => `${value}px`);
 
   useLayoutEffect(() => {
     const invalidate = () => rightPanelLayoutTick.set(rightPanelLayoutTick.get() + 1);
     const removeProgress = progress.on("change", invalidate);
     const removeWidth = rightPanelWidth.on("change", invalidate);
-    return () => { removeWidth(); removeProgress(); };
-  }, [progress, rightPanelWidth, rightPanelLayoutTick]);
+    const removeContentWidth = contentWidth.on("change", invalidate);
+    return () => { removeContentWidth(); removeWidth(); removeProgress(); };
+  }, [progress, rightPanelWidth, contentWidth, rightPanelLayoutTick]);
 
   const bounds = useCallback(() => getRightPanelWidthBounds(
     mainContentWidth.get(), "regular", shellSpaceMetrics.mainMinimum,
@@ -69,7 +74,7 @@ export function AppShellRightPanel({
   } as MotionStyle;
   return (
     <motion.aside className="app-shell-right-panel" data-app-shell-focus-area="right-panel"
-      data-full-width={fullWidth} aria-hidden={!open} inert={!open}
+      data-full-width={fullWidth} data-content-full-width={contentFullWidth} aria-hidden={!open} inert={!open}
       style={{ opacity: progress, width: animatedSize }}>
       {!fullWidth ? <>
         <div className="right-panel-divider" aria-hidden="true" />

@@ -1,3 +1,5 @@
+import { reportDisplayEvent } from "./recovery-diagnostics";
+import { displayStorageFailure, storedDisplayTimingCounts } from "./display-timing-diagnostics";
 import {
   conversationDraftStoragePrefix,
   conversationDisplayStoragePrefix,
@@ -43,8 +45,22 @@ export function createBrowserConversationDraftStorage(scope: string): {
       return null;
     },
     displayStorage: {
-      async load(key) { return !revoked && key.startsWith(displayPrefix) ? window.localStorage.getItem(key) : null; },
-      async save(key, value) { if (!revoked && key.startsWith(displayPrefix)) window.localStorage.setItem(key, value); },
+      async load(key) {
+        if (revoked || !key.startsWith(displayPrefix)) return null;
+        try { return window.localStorage.getItem(key); }
+        catch (error) { reportDisplayEvent("display-load", { storageFailure: displayStorageFailure(error), cacheHit: 0 }); throw error; }
+      },
+      async save(key, value) {
+        if (revoked || !key.startsWith(displayPrefix)) return;
+        const counts = storedDisplayTimingCounts(value);
+        try {
+          window.localStorage.setItem(key, value);
+          reportDisplayEvent("display-save", { ...counts, storageFailure: 0 });
+        } catch (error) {
+          reportDisplayEvent("display-save", { ...counts, storageFailure: displayStorageFailure(error) });
+          throw error;
+        }
+      },
       async remove(key) { if (!revoked && key.startsWith(displayPrefix)) window.localStorage.removeItem(key); },
     },
     revokeAndClear() {

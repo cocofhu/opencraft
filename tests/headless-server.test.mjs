@@ -596,12 +596,53 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   });
   assert.equal(accepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-failure"), { serverProtocolVersion: 2, event: "client-failure", ...valid });
-  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "settled", elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
+  const recovery = { kind: "recovery", recoveryId: "recovery-test-1", stage: "history-started", attemptId: attempts[1], eventAtMs: 1792411504000, elapsedMs: 830, requests: 2, responseBytes: 4150, projectionMs: 0.4, extraConversations: 0 };
   const recoveryAccepted = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(recovery),
   });
   assert.equal(recoveryAccepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-recovery"), { serverProtocolVersion: 2, event: "client-recovery", ...recovery });
+  const viewport = { kind: "viewport", episode: "viewport-test", sourceRevision: "a".repeat(40),
+    layoutHeight: 844, layoutWidth: 390, visualHeight: 440, visualWidth: 390,
+    visualTop: 172, visualLeft: 0, pageTop: 232, scrollY: 60, scale: 1,
+    shellTop: -8, shellHeight: 440, editorTop: 340, sendBottom: 560, editing: 1 };
+  const postViewport = body => fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  });
+  assert.equal((await postViewport(viewport)).status, 202);
+  assert.deepEqual(diagnostics.find(item => item.event === "client-viewport"), { serverProtocolVersion: 2, event: "client-viewport", ...viewport });
+  const projectedViewport = { ...viewport, cssTop: 172, cssHeight: 440, clientHeight: 844,
+    rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844, fixedTop: -60, fixedLeft: 0 };
+  assert.equal((await postViewport(projectedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...projectedViewport });
+  const focusedViewport = { ...projectedViewport, editorBottom: 380, composerTop: 298, composerBottom: 390,
+    draftScroll: 29, editorScroll: 7, sendTop: 336, sendHit: 1,
+    touchSequence: 1, touchScreenClientY: 100, touchPageClientY: 294 };
+  assert.equal((await postViewport(focusedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...focusedViewport });
+  const missingRequiredViewport = { ...projectedViewport }; delete missingRequiredViewport.visualHeight;
+  for (const invalid of [missingRequiredViewport, { ...projectedViewport, cssTop: 1e9 },
+    { ...projectedViewport, bodyTop: "private" }, { ...focusedViewport, touchScreenClientY: "private" },
+    { ...focusedViewport, touchPageClientY: 1e9 }, { ...viewport, text: "private" }, { ...viewport, route: "/private" },
+    { ...viewport, sourceRevision: "private" }, { ...viewport, editorTop: "private" },
+    { ...viewport, shellTop: null }, { ...viewport, scale: 0 }, { ...viewport, shellTop: 1e9 }]) {
+    assert.equal((await postViewport(invalid)).status, 400, "Viewport diagnostics accept bounded geometry only");
+  }
+  for (const stage of ["display-load", "display-save", "display-paint"]) {
+    const display = { ...recovery, stage, displayVersion: 1, messages: 2, timestamps: 2,
+      workClocks: 1, authoritative: 0, cacheHit: 1, storageFailure: 0,
+      renderedTimes: 2, visibleTimes: 2, touch: 1, viewportWidth: 390 };
+    const acceptedDisplay = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(display),
+    });
+    assert.equal(acceptedDisplay.status, 202, stage);
+    for (const privateField of [{ threadId: "private" }, { cacheKey: "private" }, { timestamps: "private" }]) {
+      const rejectedDisplay = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...display, ...privateField }),
+      });
+      assert.equal(rejectedDisplay.status, 400, "Display diagnostics contain only allowed numeric counts");
+    }
+  }
   for (const invalid of [{ ...recovery, params: "private-thread-content" }, { ...recovery, requests: -1 }, { ...recovery, stage: "private-thread-content" }]) {
     const rejected = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(invalid),
@@ -691,7 +732,11 @@ test('incompatible independent Core does not prevent HTTP startup or another Hos
     });
     assert.equal((await fetch(app.url)).status, 200);
     let health;
-    for (let n = 0; n < 100; n++) {
+    // Overlay storage opens asynchronously before Core negotiation. Parallel
+    // suites may delay that work; observe the failed handshake within a bounded
+    // deadline instead of assuming it finishes in the first second.
+    const readinessDeadline = Date.now() + 5_000;
+    while (Date.now() < readinessDeadline) {
       health = await (await fetch(app.url + '/__opencraft_health')).json();
       if (health.hosts['local-codex'].state === 'unavailable') break;
       await new Promise(done => setTimeout(done, 10));

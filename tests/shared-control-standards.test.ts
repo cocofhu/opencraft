@@ -87,7 +87,7 @@ test("shared controls keep theme-owned focus, disabled and invalid states", () =
   assert.doesNotMatch(input, /controls\.focus-indicator/u);
   assert.match(settings, /:has\(\.settings-control-select\[aria-invalid="true"\]\)/u);
   assert.match(block(settings, ".settings-control-select-shell"), /controls\.invalid-feedback/u);
-  const states = read("../packages/design-system/src/controls.web.scss");
+  const states = read("../packages/design-system/src/controls.web.scss") + read("../packages/design-system/src/interaction-mixins.web.scss");
   assert.match(states, /forced-colors: active/u);
   assert.match(states, /var\(--color-border-focus\)/u);
   assert.match(states, /var\(--opacity-control-disabled\)/u);
@@ -96,8 +96,8 @@ test("shared controls keep theme-owned focus, disabled and invalid states", () =
 
 test("loading retains its label footprint and respects reduced motion", () => {
   const button = read("../apps/workbench-web/src/components/ui/button.scss");
-  assert.match(block(button, ".ui-button__spinner"), /position: absolute/u);
-  assert.match(block(button, ".ui-button__spinner"), /prefers-reduced-motion: reduce/u);
+  assert.match(block(button, ".ui-button__spinner, .settings-control-button__spinner"), /position: absolute/u);
+  assert.match(block(button, ".ui-button__spinner, .settings-control-button__spinner"), /prefers-reduced-motion: reduce/u);
   assert.match(button, /\[aria-busy="true"\] \.ui-button__label \{ opacity: 0;/u);
 });
 

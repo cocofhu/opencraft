@@ -1,3 +1,4 @@
+import { LoadingRingIcon } from "@opencraft/design-system-web/action-icons";
 import {
   defaultButtonSize,
   defaultButtonVariant,
@@ -40,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         disabled={disabled || loading}
         type={type}
       >
-        {loading ? <span aria-hidden="true" className="ui-button__spinner" /> : null}
+        {loading ? <LoadingRingIcon size={14} className="ui-button__spinner" /> : null}
         <span className="ui-button__label">{children}</span>
       </button>
     );

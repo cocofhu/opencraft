@@ -1103,6 +1103,10 @@ function NativeAgentActivity({ unit }: { readonly unit: AgentActivityRenderUnit 
   // `open` initialized once cannot own completion-triggered auto-collapse.
   const layout = resolveAgentActivityLayout(unit, persistedCollapsed);
   return <View style={styles.activityContent}>
+    {!layout.showToggle && unit.contentUnits.length === 0 && unit.inlineSubagentActivity === null
+      && unit.workedDurationMs !== null ? <Text style={styles.workStatusLabel}>
+        {`Worked for ${formatWorkDuration(unit.workedDurationMs)}`}
+      </Text> : null}
     {layout.preToggleUnits.length > 0 ? renderContent(layout.preToggleUnits) : null}
     {layout.showToggle ? <View>
       <InteractiveSurface accessibilityRole="button" accessibilityState={{ expanded: !layout.isCollapsed }}

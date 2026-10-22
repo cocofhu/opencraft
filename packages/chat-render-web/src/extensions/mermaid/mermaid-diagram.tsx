@@ -1,3 +1,4 @@
+import { ExpandIcon as SharedExpandIcon, CopyIcon as SharedCopyIcon, DownloadIcon as SharedDownloadIcon, CloseIcon as SharedCloseIcon } from "@opencraft/design-system-web/action-icons";
 import type {
   ChatNodeRendererProps,
   ChatRenderContext,
@@ -369,38 +370,13 @@ function MermaidSvgRenderer({
   return null;
 }
 
-function ExpandIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 16 16">
-      <path d="M6 2H2v4M10 14h4v-4M2 6l4-4m4 12 4-4" />
-    </svg>
-  );
-}
+function ExpandIcon() { return <SharedExpandIcon size={16} />; }
 
-function CopyIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 16 16">
-      <rect height="8" rx="1.5" width="8" x="5" y="2" />
-      <path d="M11 10v2.5A1.5 1.5 0 0 1 9.5 14h-6A1.5 1.5 0 0 1 2 12.5v-6A1.5 1.5 0 0 1 3.5 5H6" />
-    </svg>
-  );
-}
+function CopyIcon() { return <SharedCopyIcon size={16} />; }
 
-function DownloadIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 16 16">
-      <path d="M8 2v8m-3-3 3 3 3-3M3 13h10" />
-    </svg>
-  );
-}
+function DownloadIcon() { return <SharedDownloadIcon size={16} />; }
 
-function CloseIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 16 16">
-      <path d="m4 4 8 8m0-8-8 8" />
-    </svg>
-  );
-}
+function CloseIcon() { return <SharedCloseIcon size={16} />; }
 
 function downloadSvg(svg: string): void {
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));

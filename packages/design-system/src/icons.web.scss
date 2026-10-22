@@ -1,9 +1,10 @@
-// Lucide is the UI line-art family. Brand artwork and content SVGs are exempt.
+// UI glyphs share rounded line-art; dedicated Composer/process artwork has its own owner.
+// Brand artwork and content SVGs retain their identity.
 :root {
   --size-icon-navigation: 14px;
-  --stroke-icon-navigation: 1.8;
+  --stroke-icon-navigation: 2;
 }
-svg.lucide {
+svg:is(.lucide, .ui-action-glyph) {
   stroke-linecap: round;
   stroke-linejoin: round;
   flex-shrink: 0;

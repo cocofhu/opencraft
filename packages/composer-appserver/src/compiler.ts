@@ -125,6 +125,10 @@ function appendInline(
       appendText(input, `/${inline.name}${inline.argument === undefined ? "" : ` ${inline.argument}`}`);
       return;
     case "mention": {
+      if (inline.mentionKind === "thread" && inline.uri) {
+        appendText(input, `[Referenced conversation: ${inline.label}](${inline.uri})`);
+        return;
+      }
       const path = metadataString(inline.metadata, "path") ?? (inline.uri === undefined ? null : localPath(inline.uri));
       if (path !== null) input.push({ type: "mention", name: inline.label, path });
       else appendText(input, `@${inline.label}`);

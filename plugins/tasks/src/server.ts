@@ -5,6 +5,7 @@ import {
   TASK_STATUSES,
   TASK_KINDS,
   TASK_PRIORITIES,
+  TASK_AI_RESEARCH,
   type TaskStatus,
   type TaskProperties,
   type TaskPriority,
@@ -55,8 +56,14 @@ function priority(input: unknown): TaskPriority {
   if (!TASK_PRIORITIES.some(value => value === input)) throw new TasksFault(-32602, "Invalid priority");
   return input as TaskPriority;
 }
+function researchMode(input: unknown): string {
+  if (!TASK_AI_RESEARCH.some(mode => mode === input)) throw new TasksFault(-32602, "Invalid AI research disposition");
+  return String(input);
+}
 function properties(p: Record<string, unknown>): Partial<TaskProperties> {
   return {
+    ...("aiResearch" in p ? { aiResearch: researchMode(p.aiResearch) } : {}),
+    ...("aiResearchReason" in p ? { aiResearchReason: text(p.aiResearchReason, 2048, true).trim() } : {}),
     ...("assigneeId" in p ? { assigneeId: p.assigneeId === null ? null : id(p.assigneeId) } : {}),
     ...("priority" in p ? { priority: priority(p.priority) } : {}),
     ...("dueDate" in p ? { dueDate: dueDate(p.dueDate) } : {}),
@@ -111,7 +118,7 @@ export class TasksService {
       [TASKS.events]: ["taskId", "beforeSeq", "limit"],
       [TASKS.event]: ["taskId", "eventId"],
       [TASKS.progress]: ["taskId", "eventId", "text"],
-      [TASKS.properties]: ["id", "expectedRevision", "assigneeId", "priority", "dueDate"],
+      [TASKS.properties]: ["id", "expectedRevision", "assigneeId", "priority", "dueDate", "aiResearch", "aiResearchReason"],
       [TASKS.members]: ["id", "name", "expectedRevision", "identity"],
       [TASKS.capabilities]: [],
       [TASKS.list]: [],
@@ -123,7 +130,7 @@ export class TasksService {
         "status",
         "projectServerId",
         "projectId",
-        "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria",
+        "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria", "aiResearch", "aiResearchReason",
       ],
       [TASKS.update]: [
         "id",
@@ -132,7 +139,7 @@ export class TasksService {
         "description",
         "projectServerId",
         "projectId",
-        "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria",
+        "assigneeId", "priority", "dueDate", "kind", "acceptanceCriteria", "aiResearch", "aiResearchReason",
       ],
       [TASKS.move]: ["id", "expectedRevision", "status", "beforeId"],
       [TASKS.remove]: ["id", "expectedRevision"],
@@ -153,7 +160,7 @@ export class TasksService {
     const p = input as Record<string, unknown>;
     try {
       const store = (this.store ??= new TasksSqliteStore(this.path));
-      if (method === TASKS.capabilities) return { version: 1, storage: "sqlite-rows", archive: true, properties: true, memberIdentity: true, planning: true, supportedKinds: TASK_KINDS, activity: true, progress: true, recycleBinRetentionMs: TASK_RECYCLE_RETENTION_MS };
+      if (method === TASKS.capabilities) return { version: 1, storage: "sqlite-rows", archive: true, aiResearch: true, properties: true, memberIdentity: true, planning: true, supportedKinds: TASK_KINDS, activity: true, progress: true, recycleBinRetentionMs: TASK_RECYCLE_RETENTION_MS };
       const task = () => ({
         id: id(p.id),
         expectedRevision: revision(p.expectedRevision),

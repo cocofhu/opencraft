@@ -1,6 +1,8 @@
 /** Narrow, owner-bound capabilities. App HTML never receives an AppServer client. */
 export interface McpAppPort {
   readonly key: string;
+  /** Application-memory view data only; never an executable capability. */
+  widgetState?(viewId: string, identity: McpAppIdentity): McpAppWidgetState;
   assertCurrent(): void;
   readResource(server: string, uri: string, callId: string | null): Promise<unknown>;
   listTools(server: string, resourceUri?: string): Promise<Record<string, unknown>>;
@@ -9,6 +11,12 @@ export interface McpAppPort {
   updateContext(id: string, value: string | null): void;
   openLink(url: string): void;
 }
+export interface McpAppWidgetState {
+  current: unknown;
+  /** Host UI intent, separate from the App-authored JSON in current. */
+  pausedByUser?: boolean;
+}
+export type McpAppWidgetStateStore = Map<string, McpAppWidgetState>;
 export interface McpAppIdentity {
   readonly server: string;
   readonly uri: string;

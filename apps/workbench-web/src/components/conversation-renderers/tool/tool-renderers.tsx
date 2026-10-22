@@ -1,13 +1,14 @@
+import { CheckIcon as Check, ChevronRightIcon as ChevronRight, LoadingRingIcon as LoaderCircle, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import {
   codexAppThreadNavigationTarget, createdThreadToolResult,
   deriveSubagentActivityGroupPresentation, deriveSubagentActivityPresentation,
   extractToolCallContentParts, formatThreadHandoffStepLabel, isCodexAppThreadTool,
-  threadHandoffToolResult, visibleThreadHandoffSteps,
+  threadHandoffToolResult, visibleThreadHandoffSteps, subagentInlineStatusLabel,
   type SubagentActivityRenderUnit, type TimelineBlock, type ToolCallContentPart,
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
 import { ZoomableImage, LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
-import { Bot, Check, ChevronRight, Circle, Code2, Globe2, ImageIcon, LoaderCircle, MessageSquare, X } from "lucide-react";
+import { CircleIcon as Circle, CodeIcon as Code2, GlobeIcon as Globe2, ImageIcon, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useDisclosureReflow } from "../../use-disclosure-reflow";
@@ -15,9 +16,11 @@ import { useDisclosureHeight } from "../../use-disclosure-height";
 import { ConversationDocumentContext, browserReadableImageSource } from "../../conversation/document-context";
 import { useConversationMediaSource } from "../../conversation/conversation-media-source";
 import { ModalSurface } from "../../modal";
+import { ActivityRowContent } from "../activity/activity-row-content";
+import { AgentActivityIcon } from "../../activity-glyphs";
 import { ActivityIcon, activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
-import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "../activity/activity-disclosure";
+import { ActivityDisclosure, useActivityOpen } from "../activity/activity-disclosure";
 import {
   SubagentNavigationContext, ToolCallContentRendererContext, ToolCallIconRendererContext,
   useToolActivityPresentation,
@@ -36,10 +39,10 @@ export function JsonPreview({ value }: { value: unknown }) {
   return value == null ? <></> : <pre>{json(value)}</pre>;
 }
 
-function JsonSurface({ value, documentId }: { value: unknown; documentId: string }) {
+function JsonSurface({ value, documentId, showActions = false, title = "JSON" }: { value: unknown; documentId: string; showActions?: boolean; title?: string }) {
   const { theme } = useContext(ConversationDocumentContext);
-  return <LazyHighlightedCodeSurface code={json(value)} language="json" title="JSON"
-    documentId={documentId} theme={theme} showActions={false} />;
+  return <LazyHighlightedCodeSurface code={json(value)} language="json" title={title}
+    documentId={documentId} theme={theme} showActions={showActions} />;
 }
 
 function ResourceLink({ target, children }: { target: string; children: import("react").ReactNode }) {
@@ -59,7 +62,7 @@ function ToolImage({ source, alt, id }: { source: string; alt: string; id: strin
     : <img className="thread-tool-details__image" src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
 }
 
-function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
+function ContentPart({ part, id, showRole }: { part: ToolCallContentPart; id: string; showRole: boolean }) {
   let body;
   switch (part.kind) {
     case "text":
@@ -77,23 +80,41 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
       {part.content !== null ? <div><b>Content</b><pre className="thread-tool-details__embedded-content">{part.content}</pre></div> : null}
     </div>; break;
   }
-  return <section data-role={part.role}>{body}{part.annotations ? <div className="thread-tool-details__annotations">
+  return <section data-role={part.role}>{showRole ? <span>{part.role === "input" ? "Input" : part.role === "output" ? "Output" : "Error"}</span> : null}{body}{part.annotations ? <div className="thread-tool-details__annotations">
     {part.annotations.audience.length > 0 ? <span>Audience: {part.annotations.audience.join(", ")}</span> : null}
     {part.annotations.priority !== null ? <span>Priority: {part.annotations.priority}</span> : null}
     {part.annotations.lastModified !== null ? <span>Last modified: {part.annotations.lastModified}</span> : null}
   </div> : null}</section>;
 }
 
+function websiteToolValue(value: string | null, truncated: boolean): unknown {
+  if (value === null || truncated) return value;
+  try { return JSON.parse(value) as unknown; } catch { return value; }
+}
+
 function WebToolCall({ call, documentId }: { call: WebMcpToolSurfaceCall; documentId: string }) {
   const [open, setOpen] = useActivityOpen(false, false, JSON.stringify(["webmcp", documentId, call.name]));
-  return <ActivityDisclosure icon={<Globe2 />} summary={call.title ?? call.name} open={open}
-    onOpenChange={setOpen} running={false} bodyVariant="grouped" unmountBodyWhenCollapsed>
-    <div className="thread-tool-details">
-      {call.description ? <p>{call.description}</p> : null}
-      {call.sourceHostname ? <p>{call.sourceHostname}</p> : null}
-      {call.readOnlyHint !== null ? <p>{call.readOnlyHint ? "Read only" : "May modify data"}</p> : null}
-      {call.inputJson !== null ? <section data-role="input"><pre>{call.inputJson}</pre>{call.inputTruncated ? <small>Input truncated</small> : null}</section> : null}
-      {call.outputJson !== null ? <section data-role="output"><pre>{call.outputJson}</pre>{call.outputTruncated ? <small>Output truncated</small> : null}</section> : null}
+  const words = call.name.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").replace(/[_-]+/gu, " ").trim();
+  const summary = call.kind === "listTools" ? "Listed website tools"
+    : call.title ?? (words ? words[0]!.toLocaleUpperCase() + words.slice(1) : call.name);
+  const input = call.kind === "invokeTool" ? websiteToolValue(call.inputJson, call.inputTruncated) : null;
+  const details = {
+    name: call.name,
+    ...(call.title === null ? {} : { title: call.title }),
+    ...(call.description === null ? {} : { description: call.description }),
+    ...(call.sourceHostname === null ? {} : { website: call.sourceHostname }),
+    ...(call.readOnlyHint === null ? {} : { readOnlyHint: call.readOnlyHint }),
+    ...(input === null ? {} : { input }),
+    ...(call.inputTruncated ? { inputTruncated: true } : {}),
+  };
+  const output = websiteToolValue(call.outputJson, call.outputTruncated);
+  return <ActivityDisclosure icon={<Globe2 />} summary={summary} open={open}
+    onOpenChange={setOpen} running={false} unmountBodyWhenCollapsed>
+    <div className="thread-webmcp-details">
+      <JsonSurface value={details} documentId={documentId + ":tool"}
+        title={call.inputTruncated ? "Tool (input truncated)" : "Tool"} />
+      {output === null ? null : <JsonSurface value={output} documentId={documentId + ":result"}
+        title={call.outputTruncated ? "Result (truncated)" : "Result"} />}
     </div>
   </ActivityDisclosure>;
 }
@@ -106,21 +127,24 @@ function RawToolOutput({ block }: { block: Tool }) {
   const [open, setOpen] = useState(false);
   const title = "Raw " + [block.server ?? block.namespace, block.name].filter(Boolean).join(".") + " tool call output";
   const output = object(block.output);
+  const result = block.kind === "mcp"
+    ? block.errorMessage !== null
+      ? { type: "error", kind: "protocol", error: block.errorMessage, rawError: { message: block.errorMessage }, raw: block.output ?? undefined }
+      : block.output === null
+        ? null
+        : { type: "success", content: Array.isArray(output?.content) ? output.content : [],
+            structuredContent: output?.structuredContent ?? null, raw: block.output }
+    : { success: block.status === "complete", contentItems: block.output };
   const value = {
     callId: block.callId,
-    invocation: { server: block.server, tool: block.name, arguments: block.input },
+    invocation: { server: block.server ?? block.namespace, tool: block.name, arguments: block.input },
     durationMs: block.durationMs,
-    result: {
-      type: block.errorMessage !== null || output?.isError === true ? "error" : "success",
-      content: output?.content ?? [],
-      structuredContent: output?.structuredContent ?? null,
-      raw: block.output,
-    },
+    result,
   };
   return <><button type="button" className="thread-tool-details__raw" title="Show raw tool call output"
     aria-label="Show raw tool call output" onClick={() => setOpen(true)}><Code2 size={12} /></button>
     {open ? <ModalSurface label={title} size="wide" layer="nested" onDismiss={() => setOpen(false)}>
-      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} />
+      <h2>{title}</h2><JsonSurface value={value} documentId={block.id + ":raw"} showActions />
     </ModalSurface> : null}</>;
 }
 
@@ -152,8 +176,8 @@ function ThreadTool({ block }: { block: Tool }) {
       </div>
     </ActivityDisclosure>;
   }
-  const summary = <><ActivityIcon>{activityIcon(presentation.icon)}</ActivityIcon>
-    <CadencedShimmer className="thread-activity-item__summary" active={presentation.state === "running"}>{presentation.summary}</CadencedShimmer></>;
+  const summary = <ActivityRowContent icon={activityIcon(presentation.icon)} summary={presentation.summary}
+    running={presentation.state === "running"} />;
   return target !== null ? <button type="button" className="thread-codex-app-tool-row thread-activity-item__header is-interactive" aria-label="Open chat"
     disabled={navigation.open === null} onClick={() => navigation.open?.(target.threadId, target.displayName)}>{summary}</button>
     : <div className="thread-codex-app-tool-row thread-activity-item__header">{summary}</div>;
@@ -170,23 +194,25 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const icon = customIcon?.(block, presentation);
   if (block.kind === "image-view") return <ImageViewToolBlock block={block} />;
   if (isCodexAppThreadTool(block) && content === undefined) return <ThreadTool block={block} />;
-  const parts = extractToolCallContentParts(block).filter(part => part.role !== "input");
+  const parts = extractToolCallContentParts(block).filter(part => block.kind !== "mcp" || part.role !== "input");
   const hasCoreBody = presentation.canExpand;
   const coreBody = hasCoreBody ? <div className="thread-tool-details" data-kind={block.kind}>
-    {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index} />)
+    {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index}
+      showRole={block.kind !== "mcp" && (index === 0 || parts[index - 1]?.role !== part.role)} />)
       : <p className="thread-tool-details__empty">Tool returned no content</p>}
-    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     <RawToolOutput block={block} />
   </div> : undefined;
   const body = content === undefined ? coreBody : content;
+  const hasBody = hasCoreBody || content !== undefined || block.automaticApprovalReviews.length > 0;
   return <><ActivityDisclosure icon={icon === undefined ? activityIcon(presentation.icon) : icon}
     summary={presentation.summary} detail={presentation.detail} open={open} onOpenChange={setOpen}
     running={presentation.state === "running"} status={presentation.state}
-    bodyVariant={hasCoreBody || hasCustomBody ? "grouped" : "default"}
+    bodyVariant={content !== null && (hasBody || content !== undefined) ? "grouped" : "default"}
     accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : undefined}
     unmountBodyWhenCollapsed>
-    {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} /></> : undefined}
+    {hasBody ? <>{body}<AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
+    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}
       documentId={block.id + ":webmcp:" + index} />)}
   </>;
@@ -210,7 +236,7 @@ export function ImageViewToolBlock({ block }: { readonly block: Tool }) {
   const paths = block.imagePaths ?? [];
   const summary = (running ? "Viewing " : "Viewed ") + (paths.length > 1 ? paths.length + " images" : "an image");
   return <ActivityDisclosure icon={<ImageIcon />} summary={summary} open={open} onOpenChange={setOpen}
-    running={false} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
+    running={running} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
     {paths.length > 0 ? <div className="thread-image-view"><div className="thread-image-view__strip">{paths.map((path, index) =>
       <InspectedImage key={path + ":" + index} path={path} index={index} id={block.id + ":" + index} />)}</div></div> : undefined}
   </ActivityDisclosure>;
@@ -291,19 +317,35 @@ function Agents({ blocks, grouped, renderToggle }: {
   }
   const running = blocks.some(block => block.status === "running" || block.status === "pending");
   const [open, setOpen] = useActivityOpen(running);
+  const [showAllAgents, setShowAllAgents] = useState(false);
+  const visibleAgents = showAllAgents ? presentation.agents : presentation.agents.slice(0, 3);
+  const hiddenAgentCount = presentation.agents.length - visibleAgents.length;
   const reflow = useDisclosureReflow();
   const height = useDisclosureHeight("auto");
+  if (!grouped && blocks[0]!.tool === null && blocks[0]!.activityKind !== null && presentation.agents.length === 1) {
+    const agent = presentation.agents[0]!;
+    const canOpen = navigation.open !== null && agent.threadId.length > 0;
+    return <button type="button" className="thread-subagent-inline" data-status={agent.displayStatus}
+      disabled={!canOpen} aria-label={canOpen ? "Open " + agent.displayName + " subagent" : undefined}
+      onClick={() => navigation.open?.(agent.threadId, agent.displayName)}>
+      <Avatar agent={agent} /><span>{subagentInlineStatusLabel(agent)}</span>
+    </button>;
+  }
+
   return <section className="thread-subagent-activity" data-status={blocks.at(-1)?.status} data-open={open || undefined}>
     <div className="thread-subagent-activity__header">
       {renderToggle({ label: presentation.actionLabel, open, disabled: !presentation.expandable, onClick: event => {
           reflow.begin(event.currentTarget); setOpen(!open);
         } })}
-      <div className="thread-subagent-chips">{presentation.agents.map(agent =>
+      <div className="thread-subagent-chips">{visibleAgents.map(agent =>
         <button key={agent.threadId} type="button" className="thread-subagent-chip" data-status={agent.status}
           title={agent.model ?? undefined} aria-label={"Open " + agent.displayName + " subagent"}
           disabled={navigation.open === null} onClick={() => navigation.open?.(agent.threadId, agent.displayName)}>
           <Avatar agent={agent} /><span>{agent.displayName}</span>{agent.role ? <small>{agent.role}</small> : null}
-        </button>)}</div>
+        </button>)}
+        {hiddenAgentCount > 0 ? <button type="button" className="thread-subagent-chips__more"
+          onClick={() => setShowAllAgents(true)}>{hiddenAgentCount} more</button> : null}
+      </div>
       <span className="thread-subagent-activity__status">{presentation.groupStatusLabel}</span>
       {presentation.expandable ? <ChevronRight size={12} className="thread-subagent-activity__chevron" /> : null}
     </div>
@@ -336,7 +378,7 @@ export function SubagentBlock({ block }: { block: AgentBlock }) {
   return <Agents blocks={[block]} grouped={false} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
-      <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
+      <ActivityIcon><AgentActivityIcon /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
     </button>} />;
 }
 
@@ -344,6 +386,6 @@ export function SubagentActivityGroup({ unit }: { readonly unit: SubagentActivit
   return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped={unit.blocks.length > 1} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
-      <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
+      <ActivityIcon><AgentActivityIcon /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>
     </button>} /> : <></>;
 }

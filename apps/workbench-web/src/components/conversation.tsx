@@ -1,6 +1,10 @@
 import { ForkTurnButton } from "./conversation/fork-turn-button";
+import { MessageTimestamp } from "./conversation/message-timestamp";
+import { PatchActivityIcon } from "./activity-glyphs";
+import { ResetIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
+import { CommandViewStateContext, type CommandViewState } from "./conversation/command-view-state";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
 import { useIntl } from "@opencraft/i18n/react";
 import { ThinkingLabel } from "./thinking-label";
@@ -9,7 +13,7 @@ import {
   createTimelineTurnPresentationPlan,
   activeTimelineTurnTodo,
   ReasoningPresentationCache,
-  deriveAsyncQuestionStates,
+  deriveAsyncQuestionPresentation,
   groupTimelineFramesByTurn,
   presentAutomationUpdate,
   type AssistantTurnPresentationPlan,
@@ -26,6 +30,8 @@ import {
 import type { ConversationNavigationSource } from "@opencraft/chat-navigation";
 import {
   WebChatDocument,
+  ChatReadingPositionContext,
+  type ChatReadingPosition,
   resolveStandardChatResource,
 } from "@opencraft/chat-render-web";
 import {
@@ -50,13 +56,7 @@ import { UserMessageNavigationRail } from "./user-message-navigation-rail";
 import { ConversationSearchPosition } from "./conversation-search-position";
 import { DisclosureReflowContext } from "./use-disclosure-reflow";
 import { useLatestTurnFollowContentRef } from "./latest-turn-follow-content";
-import {
-  AlertCircle,
-  ArrowRight,
-  CalendarClock,
-  FileCode2,
-  RotateCcw,
-} from "lucide-react";
+import { AlertIcon as AlertCircle, ArrowRightIcon as ArrowRight, CalendarIcon as CalendarClock, CodeFileIcon as FileCode2 } from "@opencraft/design-system-web/action-icons";
 import {
   motion,
   type MotionValue,
@@ -65,6 +65,8 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
+  Suspense,
+  lazy,
   useCallback,
   useContext,
   useEffect,
@@ -88,8 +90,8 @@ import {
 } from "./conversation/document-context";
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
-import { AsyncQuestionCard } from "./conversation/async-question-card";
-import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
+const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card-view"));
+import { DiffReadingPositionContext, UnifiedDiffPreview, type DiffReadingPosition } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
   ActivityDisclosureStateContext,
@@ -171,8 +173,8 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useActivityOpen(presentation.state === "running", false,
-    `patch:${JSON.stringify([block.id, change.path, change.movePath])}`);
+  const restoreKey = `patch:${JSON.stringify([block.id, change.path, change.movePath])}`;
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false, restoreKey);
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -194,7 +196,7 @@ function FileChangeActivity({
           {change.movePath === null ? change.path : `${change.path} → ${change.movePath}`}
         </button>
       )}
-      icon={<FileCode2 />}
+      icon={presentation.state === "running" ? <PatchActivityIcon /> : <FileCode2 />}
       onOpenChange={setOpen}
       open={open}
       running={presentation.state === "running"}
@@ -204,7 +206,7 @@ function FileChangeActivity({
         ? <><b className="is-added">+{change.additions ?? 0}</b><i className="is-deleted">−{change.deletions ?? 0}</i></>
         : null}
     >
-      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} /> : null}
+      {hasDiff ? <UnifiedDiffPreview diff={change.unifiedDiff!} restoreKey={restoreKey} /> : null}
     </ActivityDisclosure>
   );
 }
@@ -215,7 +217,7 @@ function PatchBlock({ block }: { block: Extract<TimelineBlock, { type: "patch" }
     return (
       <>
         <div className="thread-activity-item thread-activity-item--static" data-status={presentation.state}>
-          <ActivitySummaryRow icon={<FileCode2 />} summary={presentation.summary} />
+          <ActivitySummaryRow running={presentation.state === "running"} icon={presentation.state === "running" ? <PatchActivityIcon /> : <FileCode2 />} summary={presentation.summary} />
         </div>
         <AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} />
       </>
@@ -280,8 +282,8 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
-      <AsyncQuestionCard
-        key={question.id}
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}>
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}><AsyncQuestionCard
         question={question}
         title={<WebChatDocument
           conversationId={documentContext.conversationId}
@@ -294,7 +296,8 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
           source={question.title}
           theme={documentContext.theme}
         />}
-      />
+      /></Suspense>
+      </Suspense>
     ))}
   </>;
 }
@@ -384,7 +387,7 @@ export const webBuiltinTimelineRendererComponents = Object.freeze({
   compaction: componentRenderer("compaction", (block) => <CompactionBlock block={block} />),
   "plan-implementation": () => null,
   image: componentRenderer("image", (block) => <GeneratedImageBlock block={block} />),
-  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary>Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
+  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary className="ui-native-disclosure">Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
 });
 
 function Frame({
@@ -525,7 +528,7 @@ function Frame({
           {onFork === undefined ? null : <ForkTurnButton fork={onFork} />}
           {onRetry === undefined ? null : <button onClick={onRetry} type="button" title={intl.formatMessage({ id: "common.retry", defaultMessage: "Try again" })}><RotateCcw size={13} /></button>}
           {visibleFrame.hookStats == null ? null : <HookStatsButton detailLevel={threadDetailLevel} stats={visibleFrame.hookStats} />}
-          {actions?.sentAtMs == null ? null : <time data-assistant-message-sent-time dateTime={new Date(actions.sentAtMs).toISOString()} title={new Date(actions.sentAtMs).toLocaleString()}>{new Date(actions.sentAtMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
+          <MessageTimestamp assistant sentAtMs={actions?.sentAtMs} />
         </div>
       ) : null}
     </div>
@@ -621,7 +624,10 @@ function Turn({
 
 export interface ConversationRestoreSnapshot {
   readonly agentActivityCollapsedById?: Readonly<Record<string, boolean>>;
+  readonly chatReadingPositions?: Readonly<Record<string, ChatReadingPosition>>;
   readonly activityDisclosures?: Readonly<Record<string, ActivityDisclosureState>>;
+  readonly diffReadingPositions?: Readonly<Record<string, DiffReadingPosition>>;
+  readonly commandViews?: Readonly<Record<string, CommandViewState>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -749,13 +755,16 @@ export function Conversation({
   );
   const activityCollapsedByIdRef = useRef(activityCollapsedById);
   activityCollapsedByIdRef.current = activityCollapsedById;
+  const [chatReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.chatReadingPositions ?? {})));
   const [activityDisclosures] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.activityDisclosures ?? {})));
+  const [diffReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.diffReadingPositions ?? {})));
+  const [commandViews] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.commandViews ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
   const asyncQuestionDraftsRef = useRef(asyncQuestionDrafts);
   asyncQuestionDraftsRef.current = asyncQuestionDrafts;
-  const asyncQuestionStates = useMemo(() => deriveAsyncQuestionStates(timeline ?? { frames: [] }), [timeline]);
+  const asyncQuestionPresentation = useMemo(() => deriveAsyncQuestionPresentation(timeline ?? { frames: [] }), [timeline]);
   const [asyncQuestionSubmitting, setAsyncQuestionSubmitting] = useState<ReadonlySet<string>>(() => new Set());
   const asyncQuestionSubmittingRef = useRef(new Set<string>());
   const [asyncQuestionErrors, setAsyncQuestionErrors] = useState<Readonly<Record<string, string>>>({});
@@ -785,14 +794,15 @@ export function Conversation({
   }, [onAnswerAsyncQuestion]);
   const asyncQuestionQueuedIds = useMemo(() => new Set(queuedAsyncQuestionIds), [queuedAsyncQuestionIds]);
   const asyncQuestionContext = useMemo<AsyncQuestionContextValue>(() => ({
-    states: asyncQuestionStates,
+    states: asyncQuestionPresentation.states,
+    answers: asyncQuestionPresentation.answers,
     queuedIds: asyncQuestionQueuedIds,
     drafts: asyncQuestionDrafts,
     submittingIds: asyncQuestionSubmitting,
     errors: asyncQuestionErrors,
     answer: onAnswerAsyncQuestion === undefined ? null : answerAsyncQuestion,
     updateDraft: updateAsyncQuestionDraft,
-  }), [asyncQuestionStates, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
+  }), [asyncQuestionPresentation, asyncQuestionQueuedIds, asyncQuestionDrafts, asyncQuestionSubmitting, asyncQuestionErrors, onAnswerAsyncQuestion, answerAsyncQuestion, updateAsyncQuestionDraft]);
   const handleActivityCollapsedChange = useCallback((id: string, collapsed: boolean) => {
     setActivityCollapsedById((current) => current[id] === collapsed
       ? current
@@ -921,7 +931,10 @@ export function Conversation({
       : null;
     restoreCallbackRef.current?.({
       agentActivityCollapsedById: activityCollapsedByIdRef.current,
+      chatReadingPositions: Object.fromEntries(chatReadingPositions),
       activityDisclosures: Object.fromEntries(activityDisclosures),
+      diffReadingPositions: Object.fromEntries(diffReadingPositions),
+      commandViews: Object.fromEntries(commandViews),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -929,7 +942,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [activityDisclosures, cancelPendingTargetPosition, scrollController, viewportOwner]);
+  }, [activityDisclosures, cancelPendingTargetPosition, chatReadingPositions, commandViews, diffReadingPositions, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -985,7 +998,10 @@ export function Conversation({
     </div>
   );
   return (
+    <ChatReadingPositionContext.Provider value={chatReadingPositions}>
     <ActivityDisclosureStateContext.Provider value={activityDisclosures}>
+    <DiffReadingPositionContext.Provider value={diffReadingPositions}>
+    <CommandViewStateContext.Provider value={commandViews}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1079,6 +1095,9 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </CommandViewStateContext.Provider>
+    </DiffReadingPositionContext.Provider>
     </ActivityDisclosureStateContext.Provider>
+    </ChatReadingPositionContext.Provider>
   );
 }

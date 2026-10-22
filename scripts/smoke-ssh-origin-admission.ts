@@ -14,6 +14,7 @@ import { SshManagement } from '../apps/opencraft-daemon/src/ssh-management.js';
 const directory = await mkdtemp(join(tmpdir(), 'opencraft-origin-smoke-'));
 let management = new SshManagement({ directory: join(directory, 'ssh'), publicAccess: true, resetConnection: async () => {}, connectConnection: async () => {} });
 let originFreeStatus = 0, grants = 0, accepted = 0, rejected = 0;
+let saturationReady = false;
 const bundled = await build({ stdin: { contents: 'export { SshConnectionsController } from "./plugins/builtin-agents/src/ssh-connections/controller.ts"; export { connectWebSocketAppHost } from "./apps/workbench-web/src/runtime/websocket-app-host.ts";', resolveDir: resolve('.') }, bundle: true, format: 'esm', platform: 'browser', write: false });
 const handler = async (req: any, res: any) => {
   if (req.url === '/controller.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundled.outputFiles[0]!.text); return; }
@@ -27,6 +28,8 @@ const handler = async (req: any, res: any) => {
 execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost', '-days', '1', '-keyout', join(directory, 'key'), '-out', join(directory, 'cert')], { stdio: 'ignore' });
 const plain = httpServer(handler), secure = httpsServer({ key: await readFile(join(directory, 'key')), cert: await readFile(join(directory, 'cert')) }, handler);
 const sockets = new WebSocketServer({ noServer: true });
+let heldClaim: { leaseId: string; grant(): void } | null = null;
+const releasedClaims = new Set<string>();
 secure.on('upgrade', (req, socket, head) => {
   if (!management.sameOrigin(req, true) || !management.authorized(req)) { rejected++; socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n'); return; }
   accepted++; sockets.handleUpgrade(req, socket, head, ws => {
@@ -34,8 +37,16 @@ secure.on('upgrade', (req, socket, head) => {
     ws.on('message', raw => {
       const message = JSON.parse(String(raw));
       if (message.type === 'hello') ws.send(JSON.stringify({ type: 'ready', protocolVersion: 2, services: ['appserver'] }));
-      if (message.type === 'host/disconnect') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
-      if (message.type === 'host/connect') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
+      if (message.type === 'host/send') ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
+      if (message.type === 'host/disconnect') {
+        releasedClaims.add(message.leaseId);
+        ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: null }));
+      }
+      if (message.type === 'host/connect') {
+        const grant = () => ws.send(JSON.stringify({ type: 'response', requestId: message.requestId, ok: true, result: { hostId: message.hostId, generation: 1 } }));
+        if (message.hostId === 'ssh:held') heldClaim = { leaseId: message.leaseId, grant };
+        else if (message.hostId !== 'ssh:saturated' || saturationReady) grant();
+      }
     });
   });
 });
@@ -93,7 +104,64 @@ try {
   });
   assert.deepEqual(recovered, { state: 'open', authenticated: true, sameDraft: true });
   assert.equal(grants, 3); assert.equal(rejected, 1); assert.equal(accepted, 3);
-  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, grants, originFreeStatus }));
+  await page.evaluate(() => { document.body.innerHTML = '<textarea>retained draft</textarea>'; });
+  // Exhaust the default budget with expired claims while the bridge remains
+  // reachable. Only shorten claim deadlines after the peer is connected.
+  const saturated = await page.evaluate(async () => {
+    const { connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', reportFailure: () => {} });
+    const slow = client.createTransport('ssh:saturated'), peer = client.createTransport('ssh:peer');
+    await peer.connect();
+    const draft = document.querySelector('textarea');
+    const originalTimer = window.setTimeout;
+    window.setTimeout = ((callback: TimerHandler, delay?: number, ...args: unknown[]) => originalTimer(callback, delay === 30000 ? 5 : delay, ...args)) as typeof window.setTimeout;
+    try {
+      for (let index = 0; index < 256; index++) {
+        try { await slow.connect(); throw new Error('stalled claim unexpectedly opened'); }
+        catch (cause) { if (!(cause instanceof Error) || !cause.message.includes('host/connect timed out')) throw cause; }
+      }
+      let failure = '';
+      try { await slow.connect(); } catch (cause) { failure = (cause as Error).message; }
+      (window as any).saturationFixture = { client, slow, peer, draft };
+      return { failure, peerState: peer.status.state, peerFailure: peer.status.failure };
+    } finally { window.setTimeout = originalTimer; }
+  });
+  assert.deepEqual(saturated, { failure: 'App Host pending request limit reached', peerState: 'failed', peerFailure: { code: 'APP_HOST_REQUEST_LIMIT', recovery: 'automatic' } });
+  saturationReady = true;
+  const saturationRecovered = await page.evaluate(async () => {
+    const { client, slow, peer, draft } = (window as any).saturationFixture;
+    await Promise.all([slow.connect(), peer.connect()]);
+    await peer.send('healthy forwarding after bridge renewal');
+    const result = { slow: slow.status.state, peer: peer.status.state, sharedAttempt: slow.status.attemptId === peer.status.attemptId,
+      sameDraft: draft === document.querySelector('textarea') && draft.value === 'retained draft' };
+    await Promise.all([slow.close(), peer.close()]); client.close(); return result;
+  });
+  assert.deepEqual(saturationRecovered, { slow: 'open', peer: 'open', sharedAttempt: true, sameDraft: true });
+  // Dispose one pending logical channel while its peer uses the same real socket.
+  await page.evaluate(async () => {
+    const { connectWebSocketAppHost } = await import(/* @vite-ignore */ `${location.origin}/controller.js`);
+    const client = connectWebSocketAppHost(undefined, { path: '/ssh-apphost', reportFailure: () => {} });
+    const retired = client.createTransport('ssh:held'), peer = client.createTransport('ssh:peer');
+    const retiring = retired.connect().then(() => 'opened', () => 'rejected');
+    (window as any).lateGrantFixture = { client, retired, peer, retiring };
+    await peer.connect();
+  });
+  assert.ok(heldClaim);
+  await page.evaluate(async () => { await (window as any).lateGrantFixture.retired.close(); });
+  const claim = heldClaim as { leaseId: string; grant(): void };
+  claim.grant();
+  const closed = await page.evaluate(async () => {
+    const { retired, peer, retiring } = (window as any).lateGrantFixture;
+    return { retired: retired.status.state, peer: peer.status.state, result: await retiring };
+  });
+  assert.deepEqual(closed, { retired: 'closed', peer: 'open', result: 'rejected' });
+  const deadline = Date.now() + 5000;
+  while (!releasedClaims.has(claim.leaseId) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.ok(releasedClaims.has(claim.leaseId), 'late grant must release the retired channel claim');
+  await page.evaluate(async () => {
+    const { client, peer } = (window as any).lateGrantFixture; await peer.close(); client.close();
+  });
+  console.log(JSON.stringify({ browser: 'Chromium', referrerPolicy: 'no-referrer', originalGrantRejected: true, currentOriginRenewed: true, webSocketAdmitted: true, leaseEpochStable: true, legacyCookiePreserved: true, saturationRecovered, lateGrantReleased: true, backendRestartRecoveredWithoutDiscovery: true, sameDraft: true, grants, originFreeStatus }));
   await context.close();
 } finally {
   await browser.close(); sockets.close(); plain.closeAllConnections(); secure.closeAllConnections();
