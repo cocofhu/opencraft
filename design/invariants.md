@@ -1026,8 +1026,8 @@ core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向
 
 ## Mobile keyboard Composer budget
 
-The mobile browser Composer uses the Shell's published VisualViewport height,
-including iOS keyboard resize/pan. Queue and long editor content scroll within a
+The mobile browser Composer uses the Shell's shared available extent.
+Native focus pan stays an observation, not a second placement input. Queue and long editor content scroll within a
 bounded stack; the action footer does not shrink or enter the editor scroll area.
 Keeping the keyboard open must leave the Send hit target inside the visible
 surface and permit the first touch to submit. Height changes preserve the editor
@@ -1037,6 +1037,75 @@ VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
 
 The Web viewport port is the only writer of the Shell viewport projection.
+Native geometry events start a bounded one-second reconciliation window on mobile
+browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
+This covers a native transition finishing after its last event. Page restoration,
+foregrounding, orientation and the next touch invalidate the same projection.
+Hidden/disposed ports stop sampling, and desktop hosts retain event-driven reads.
+Actual VisualViewport geometry remains authoritative even without editor focus:
+blur never implies a closed keyboard, and recovery never forces layout height,
+scroll, focus, selection or editor replacement. A browser reporting incorrect
+native geometry still requires device evidence; synthetic timing is not physical
+iOS/in-app verification.
+
+The Web viewport port is the only writer of the Shell viewport projection.
+The browser owns native coordinate movement; the application owns layout capacity.
+The shared snapshot retains raw visual offsets, sizes and focus observations.
+`projectTimelineViewportLayout` derives an available extent, independently of
+pageTop, document scroll and focus. Pinch magnification does not reflow layout.
+The Web adapter measures a zero-inset fixed reference outside the Shell. The
+reference never consumes application viewport CSS or participates in input. Its
+client rectangle supplies the native fixed coordinate basis, separately from the
+reported visual offset. The visible client origin is visual page position minus
+window scroll; CSS placement is that origin minus the fixed reference origin.
+This is a coordinate conversion, not an additive page-scroll correction or
+feedback from the already-positioned Shell. Native reference changes invalidate
+the shared projection even when raw VisualViewport values remain unchanged.
+
+The Web port commits available capacity before measuring the independent fixed
+reference: resizing a focused containing block can itself change the browser's
+native coordinate plane. Origin projection and subscriber publication belong to
+that same layout commit. Mobile native viewport events reconcile synchronously
+before returning to browser paint, with the existing bounded rAF reconciliation
+reserved for later native updates; they must not defer a known invalid origin to
+the next animation frame. Unchanged CSS and data attributes are not rewritten.
+
+Layout capacity comes from document client size and visual size; innerHeight may
+already be visually reduced in WKWebView. Layout containment keeps internal
+fixed descendants in the same frame without reapplying the conversion.
+No Shell-rectangle feedback, per-feature compensation, forced scrolling or
+focus/selection reset. Height-first/pan-later and reverse ordering must preserve
+screen placement, not a constant CSS top. Bounded late reconciliation
+belongs to this same owner; it does not infer keyboard completion from blur.
+Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
+separate evidence: endpoint reachability is insufficient to verify transitions.
+Composer primary buttons preserve editor focus by cancelling mouse down only.
+Cancelling touch pointerdown can suppress WebKit click synthesis, so it cannot
+be used as a focus-retention mechanism for Send or Stop. Activation stays on click
+for pointer, keyboard and assistive input; do not submit on touchstart.
+
+Mobile new-thread pages use the same bottom input anchor as existing threads;
+the welcome region owns flexible spare space, but its title stays at a stable
+block-start inset below navigation. Focus expansion, model/tool content and
+keyboard resize cannot recenter this title. The region clips before competing
+with input capacity on short screens. Desktop retains the centered content group.
+Keyboard changes cannot recenter the mobile input. The action region retains its controls. The route publishes its actual size-container capacity minus
+its own block insets to the shared Composer budget; editor/preview content yields
+before actions. Optional heading gaps are shrinkable space, not padding that
+continues consuming a minimum after the heading collapses. No height breakpoint exchanges fractional grid rows,
+negative margins and auto rows while the keyboard animates. A continuous change
+of available height must produce continuous input placement while controls remain
+reachable, including both sides of the former 540px threshold.
+The outer mobile Composer stack owns one available-height budget. Its queue,
+attachment preview and editor use intrinsic content caps and yield inside that
+budget, never independent percentages of the viewport. Header, error actions and
+the footer retain their intrinsic size. Input wrappers clip; editor content owns
+native text scrolling. Diagnostics consume the Web port's post-commit observation
+callback, including unchanged frames, without separate listeners or animation
+frames. Observation cannot prolong reconciliation. The one-second grace remains
+an explicit compatibility limit; stable early frames do not prove native motion
+has completed. Removing it requires late-update and missing-final-event evidence
+from affected hosts, separate from controlled browser trajectories.
 Native geometry events start a bounded one-second reconciliation window on mobile
 browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
 This covers a native transition finishing after its last event. Page restoration,
@@ -2456,3 +2525,23 @@ multiple pointers, release outside or holding invalidates it. Native pan remains
 available. Radix owns mouse, keyboard, nested menus, focus and dismissal. Composer
 model, permission and Add controls preserve the editor focus and selection on
 touch; opening one retires the other picker without a delayed activation.
+
+
+Keyboard acceptance must not manufacture a visible window by cropping at the
+raw visual offset. Physical WKWebView capture has displayed Shell.clientTop=294
+at screen y=294 while pageTop=scrollY=offsetTop=294 and visualHeight=394.
+For that observed client frame, the Shell begins at zero and the send action
+must fit within [0, 394]. An extra offset subtraction conceals double native-pan
+compensation. Controlled browser geometry remains distinct from physical UIKit
+painting; synthetic passing results do not establish device acceptance.
+
+
+Keyboard diagnostics observe focused-Composer geometry, its local scrollport and
+actual send hit target, rather than the first potentially parked submit button.
+Capture-phase focus/touch/scroll and native viewport events open a bounded
+read-only animation-frame observation window independent of port publication.
+Brief editor/Shell position extrema survive the eight-per-second traffic budget;
+touch screen/client and page/client differences remain separate numeric
+observations. Reports contain no content or route, never drive layout, and all
+listeners/frames are released with the host. These measurements do not establish
+physical compositor painting or device acceptance.

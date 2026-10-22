@@ -16,6 +16,7 @@ import {
   shouldAcceptWebConversationInvalidation,
   timelineReflowScrollAdjustment,
 } from "@opencraft/timeline-host-web";
+import { projectTimelineViewportLayout } from "@opencraft/timeline-virtualizer";
 import { ScrollToBottomButton } from "../apps/workbench-web/src/components/scroll-to-bottom-button";
 import {
   resolveAppShellMainContentChrome,
@@ -1686,6 +1687,48 @@ function viewportPortFixture(mobile = true) {
   };
 }
 
+test("available layout is independent of native pan, focus and pinch magnification", () => {
+  const make = (offset: number, scale = 1, focused = true) => createWebTimelineViewportSnapshot({
+    editableFocused: focused, layoutWidthPx: 390, layoutHeightPx: 844, revision: 0,
+    visualWidthPx: 390 / scale, visualHeightPx: 440 / scale, visualOffsetTopPx: offset, scale,
+  });
+  for (const offset of [0, 180, 60, -30, 0]) {
+    assert.deepEqual(projectTimelineViewportLayout(make(offset)), {
+      availableViewport: { widthPx: 390, heightPx: 440 }, occludedBottomPx: 404,
+    });
+    assert.deepEqual(projectTimelineViewportLayout(make(offset, 1, false)), projectTimelineViewportLayout(make(offset)));
+  }
+  assert.deepEqual(projectTimelineViewportLayout(make(120, 2)), {
+    availableViewport: { widthPx: 390, heightPx: 844 }, occludedBottomPx: 0,
+  });
+});
+
+test("native focus pan maps the fixed frame origin without changing capacity", () => {
+  const f = viewportPortFixture();
+  try {
+    f.input.focus(); f.input.setSelectionRange(2, 2);
+    f.visual.height = 440; f.visual.offsetTop = 0;
+    f.visual.dispatchEvent(new f.win.Event("resize")); f.frame(20);
+    const style = f.win.document.documentElement.style;
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-height"), "440px");
+    f.visual.offsetTop = 180;
+    Object.defineProperty(f.win, "scrollY", { value: 60, configurable: true });
+    f.win.dispatchEvent(new f.win.Event("scroll")); f.frame(40);
+    assert.equal(f.port.getSnapshot().visualOffset.topPx, 180);
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-height"), "440px");
+    assert.equal(style.getPropertyValue("--timeline-available-viewport-top"), "180px");
+    // CSS top is a layout coordinate; subtract the visual origin to test
+    // screen placement. Document scrolling is not another fixed-frame offset.
+    assert.equal(Number.parseFloat(style.getPropertyValue("--timeline-available-viewport-top")) - f.visual.offsetTop, 0);
+    assert.equal(style.getPropertyValue("--timeline-page-viewport-top"), "");
+    assert.equal(style.getPropertyValue("--timeline-visual-viewport-offset-top"), "");
+    const revision = f.port.getSnapshot().revision; f.frame(60);
+    assert.equal(f.port.getSnapshot().revision, revision);
+    assert.equal(f.win.document.activeElement, f.input); assert.equal(f.input.selectionStart, 2);
+    assert.equal(f.input.value, "keep draft");
+  } finally { f.close(); }
+});
+
 test("mobile viewport reconciles a native restoration after the last focus event", () => {
   const f = viewportPortFixture();
   try {
@@ -1703,7 +1746,7 @@ test("mobile viewport reconciles a native restoration after the last focus event
     f.visual.height = 844; // Native transition finishes without another event.
     f.frame(1_250);
     assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
-    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-visual-viewport-height"), "844px");
+    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-available-viewport-height"), "844px");
     assert.equal(f.input.value, "keep draft");
     assert.equal(f.input.selectionStart, 2);
   } finally { f.close(); }

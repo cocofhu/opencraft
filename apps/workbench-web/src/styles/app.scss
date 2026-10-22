@@ -303,11 +303,15 @@ button {
   }
 }
 
-html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
-  top: var(--timeline-visual-viewport-offset-top, 0px);
-  left: var(--timeline-visual-viewport-offset-left, 0px);
-  width: var(--timeline-visual-viewport-width, 100%);
-  height: var(--timeline-visual-viewport-height, 100%);
+// The Web adapter converts the visible frame into the measured fixed basis.
+// Pan changes its origin, never its available capacity. Containment gives
+// fixed descendants the same frame without applying the origin twice.
+html[data-timeline-tracks-visual-viewport="true"] :is(.app-shell-root, .app-shell-floating-overlay-root) {
+  contain: layout;
+  top: var(--timeline-available-viewport-top, 0px);
+  left: var(--timeline-available-viewport-left, 0px);
+  width: var(--timeline-available-viewport-width, 100%);
+  height: var(--timeline-available-viewport-height, 100%);
 }
 
 .app-shell-row {
@@ -1922,9 +1926,8 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   min-height: 0;
 }
 
-// equal rows and the shared thread width are the important geometry
-// invariants: the hero resolves against the upper half while the Composer
-// remains on the same width rail used after Draft promotion.
+// Draft and promoted conversations share the same input width rail.
+// The route owns welcome content; the Composer owns its input geometry.
 .new-thread-draft-page {
   width: 100%;
   height: 100%;
@@ -1947,24 +1950,41 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
 }
 
 .new-thread-draft-layout {
-  display: grid;
+  --draft-block-start: 24px;
+  --draft-block-end: 16px;
+  --draft-composer-gap: 6px;
+  // The route owns these insets; the shared Composer consumes its remaining
+  // containing-block capacity, not the entire browser/keyboard viewport.
+  --composer-available-block-size: calc(100cqh - var(--draft-block-start) - var(--draft-block-end) - var(--draft-composer-gap));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
   min-width: 0;
   min-height: 100%;
   flex: 1;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  padding-top: 24px;
+  padding-top: var(--draft-block-start);
 }
 
 .new-thread-draft-hero {
   display: flex;
+  flex: 0 1 auto;
   min-width: 0;
   min-height: 0;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 var(--padding-toolbar) 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: clip;
+  padding: 0 var(--padding-toolbar);
+
+  &::after {
+    content: "";
+    flex: 0 1 32px;
+    min-height: 0;
+  }
 
   h1 {
+    flex: 0 0 auto;
     width: min(100%, var(--thread-content-max-width));
     margin: 0;
     color: var(--color-text);
@@ -3679,12 +3699,12 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   position: relative;
   z-index: 20;
   display: flex;
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   justify-content: flex-start;
-  margin-top: -64px;
-  padding: 6px 0 16px;
+  padding: var(--draft-composer-gap) 0 var(--draft-block-end);
 }
 
 .new-thread-draft-composer-width {
@@ -3694,28 +3714,29 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   gap: 8px;
 }
 
+// Mobile input has the same bottom anchor before and after thread promotion.
+// The welcome region yields spare space. Its title has a stable block-start
+// inset instead of recentering after focus expansion or keyboard resize.
+// The existing desktop content group remains centered.
+@media (max-width: 767px) and (any-pointer: coarse) {
+  .new-thread-draft-layout {
+    justify-content: flex-start;
+  }
+  .new-thread-draft-hero {
+    flex: 1 1 0;
+    justify-content: flex-start;
+    // Margin remains inside the shrinkable, clipped welcome region. Padding
+    // here would impose a minimum that competes with the input on short screens.
+    h1 { margin-block-start: var(--height-toolbar); }
+    &::after { display: none; }
+  }
+}
+
 @container new-thread-main (width <= 620px) {
   .new-thread-context-trigger {
     max-width: 210px;
   }
 
-}
-
-@container new-thread-main (max-height: 540px) {
-  .new-thread-draft-layout {
-    // Keep the Composer at its measured content height as the keyboard shrinks
-    // this shared viewport; fixed row minima used to push Send below it.
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-
-  .new-thread-draft-hero {
-    padding-bottom: 28px;
-  }
-
-
-  .new-thread-draft-composer-zone {
-    margin-top: 0;
-  }
 }
 
 .thread-scroll-layout {
@@ -12089,15 +12110,27 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .sidebar-thread-group-avatar { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; overflow: hidden; border-radius: 50%; color: var(--color-text-secondary); background: var(--color-background-control); img { width: 100%; height: 100%; object-fit: cover; } }
 .sidebar-activity-group__items[hidden] { display: none; }
 
-// iOS keeps vh at the layout viewport while the keyboard reduces VisualViewport.
-// Budget the composer against the same visible surface as Shell. The editor and
-// queue may scroll; the action footer must remain outside that scroll budget.
+// One outer capacity; intrinsic content yields before persistent actions.
+// Routes may supply a smaller local budget. Native viewport adaptation belongs
+// to Shell, never to individual editor/queue/attachment percentages.
 @media (max-width: 767px) and (any-pointer: coarse) {
   html[data-timeline-tracks-visual-viewport="true"] {
     .opencraft-composer-stack {
+      --composer-platform-block-size: max(120px, calc(var(--timeline-available-viewport-height) - var(--height-toolbar) - 24px));
       display: flex;
       flex-direction: column;
-      max-height: max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px));
+      max-height: min(var(--composer-available-block-size, var(--composer-platform-block-size)), var(--composer-platform-block-size));
+    }
+    .opencraft-composer-attached-rail {
+      display: flex;
+      flex-direction: column;
+      flex: 0 1 auto;
+      min-height: 0;
+      &:empty { display: none; }
+      > * { min-height: 0; flex: 0 1 auto; overflow-y: auto; }
+    }
+    .opencraft-composer-queue-tray {
+      max-height: calc(var(--height-composer-queue-row) * 3 + 34px);
     }
     .opencraft-composer-shell {
       display: flex;
@@ -12105,23 +12138,26 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       min-height: 0;
       flex: 1 1 auto;
     }
-    .opencraft-composer-input-row {
+    .opencraft-composer-chrome-header,
+    .opencraft-composer-error,
+    .opencraft-composer-footer { flex: 0 0 auto; }
+    .opencraft-composer-input-row,
+    .opencraft-composer-editor-mount {
+      display: flex;
+      flex-direction: column;
       min-height: 0;
       flex: 1 1 auto;
-      overflow-y: auto;
-      overscroll-behavior: contain;
+      overflow: clip;
     }
     .opencraft-composer-editor {
-      max-height: min(232px, calc(var(--timeline-visual-viewport-height) * .3));
+      min-height: 1lh;
+      max-height: 232px;
+      flex: 0 1 auto;
     }
-    .opencraft-composer-attached-rail { flex: 0 0 auto; }
-    .opencraft-composer-queue-tray {
-      flex: 0 0 auto;
-      max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-visual-viewport-height) * .25));
-    }
-    .opencraft-composer-footer { flex: 0 0 auto; }
     .opencraft-composer-attachments {
-      max-height: min(120px, calc(var(--timeline-visual-viewport-height) * .2));
+      min-height: 0;
+      max-height: 120px;
+      flex: 0 1 auto;
       overflow-y: auto;
     }
   }

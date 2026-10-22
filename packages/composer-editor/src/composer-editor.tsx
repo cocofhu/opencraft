@@ -2604,7 +2604,8 @@ export const OpenCraftComposer = forwardRef<
                 aria-label={primaryActionLabel}
                 title={primaryActionTitle}
                 data-composer-primary-action={primaryAction}
-                onPointerDown={(event) => {
+                onMouseDown={(event) => {
+                  // Prevent mouse focus transfer without cancelling touch click synthesis.
                   if (event.button === 0) event.preventDefault();
                 }}
                 onClick={(event) => onCancel({
@@ -2623,7 +2624,8 @@ export const OpenCraftComposer = forwardRef<
                 title={primaryActionTitle}
                 data-composer-primary-action={primaryAction}
                 disabled={disabled || submissionDisabled || !composerSnapshot.canSubmit}
-                onPointerDown={(event) => {
+                onMouseDown={(event) => {
+                  // Prevent mouse focus transfer without cancelling touch click synthesis.
                   if (event.button === 0) event.preventDefault();
                 }}
                 onClick={() => {

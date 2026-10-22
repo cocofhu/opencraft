@@ -602,6 +602,32 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
   });
   assert.equal(recoveryAccepted.status, 202);
   assert.deepEqual(diagnostics.find(item => item.event === "client-recovery"), { serverProtocolVersion: 2, event: "client-recovery", ...recovery });
+  const viewport = { kind: "viewport", episode: "viewport-test", sourceRevision: "a".repeat(40),
+    layoutHeight: 844, layoutWidth: 390, visualHeight: 440, visualWidth: 390,
+    visualTop: 172, visualLeft: 0, pageTop: 232, scrollY: 60, scale: 1,
+    shellTop: -8, shellHeight: 440, editorTop: 340, sendBottom: 560, editing: 1 };
+  const postViewport = body => fetch(`${origin}/__opencraft_apphost_diagnostic`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  });
+  assert.equal((await postViewport(viewport)).status, 202);
+  assert.deepEqual(diagnostics.find(item => item.event === "client-viewport"), { serverProtocolVersion: 2, event: "client-viewport", ...viewport });
+  const projectedViewport = { ...viewport, cssTop: 172, cssHeight: 440, clientHeight: 844,
+    rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844, fixedTop: -60, fixedLeft: 0 };
+  assert.equal((await postViewport(projectedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...projectedViewport });
+  const focusedViewport = { ...projectedViewport, editorBottom: 380, composerTop: 298, composerBottom: 390,
+    draftScroll: 29, editorScroll: 7, sendTop: 336, sendHit: 1,
+    touchSequence: 1, touchScreenClientY: 100, touchPageClientY: 294 };
+  assert.equal((await postViewport(focusedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...focusedViewport });
+  const missingRequiredViewport = { ...projectedViewport }; delete missingRequiredViewport.visualHeight;
+  for (const invalid of [missingRequiredViewport, { ...projectedViewport, cssTop: 1e9 },
+    { ...projectedViewport, bodyTop: "private" }, { ...focusedViewport, touchScreenClientY: "private" },
+    { ...focusedViewport, touchPageClientY: 1e9 }, { ...viewport, text: "private" }, { ...viewport, route: "/private" },
+    { ...viewport, sourceRevision: "private" }, { ...viewport, editorTop: "private" },
+    { ...viewport, shellTop: null }, { ...viewport, scale: 0 }, { ...viewport, shellTop: 1e9 }]) {
+    assert.equal((await postViewport(invalid)).status, 400, "Viewport diagnostics accept bounded geometry only");
+  }
   for (const invalid of [{ ...recovery, params: "private-thread-content" }, { ...recovery, requests: -1 }, { ...recovery, stage: "private-thread-content" }]) {
     const rejected = await fetch(`${origin}/__opencraft_apphost_diagnostic`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(invalid),

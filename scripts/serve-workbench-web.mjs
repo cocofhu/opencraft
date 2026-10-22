@@ -222,6 +222,18 @@ function validRecoveryDiagnostic(report) {
       || (Number.isFinite(value) && value >= 0 && value <= Number.MAX_SAFE_INTEGER));
 }
 
+const viewportGeometryKeys = new Set(["layoutHeight", "layoutWidth", "visualHeight", "visualWidth", "visualTop", "visualLeft", "pageTop", "scrollY", "scale", "shellTop", "shellHeight", "editorTop", "sendBottom", "editing"]);
+const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight", "fixedTop", "fixedLeft", "editorBottom", "composerTop", "composerBottom", "draftScroll", "editorScroll", "sendTop", "sendHit", "touchSequence", "touchScreenClientY", "touchPageClientY", "editorMinTop", "editorMaxTop", "shellMinTop", "shellMaxTop", "observedSamples"]);
+function validViewportDiagnostic(report) {
+  return report?.kind === "viewport"
+    && typeof report.episode === "string" && /^viewport-[a-z0-9]{1,20}$/.test(report.episode)
+    && typeof report.sourceRevision === "string" && /^[a-f0-9]{40}$/.test(report.sourceRevision)
+    && [...viewportGeometryKeys].every(key => Number.isFinite(report[key]))
+    && Object.entries(report).every(([key, value]) => ["kind", "episode", "sourceRevision"].includes(key)
+      || ((viewportGeometryKeys.has(key) || viewportOptionalGeometryKeys.has(key)) && Number.isFinite(value) && Math.abs(value) <= 100_000))
+    && [0, 1].includes(report.editing) && report.scale > 0 && report.scale <= 20;
+}
+
 function validAppHostDiagnostic(report) {
   return report && typeof report === "object" && !Array.isArray(report)
     && Object.keys(report).every(key => appHostDiagnosticKeys.has(key))
@@ -517,9 +529,14 @@ export async function createWorkbenchWebServer({
           return;
         }
         let report;
-        try { report = await readJsonBody(request, 1024); }
+        try { report = await readJsonBody(request, 2048); }
         catch {
           sendJson(response, 400, { ok: false, error: "Invalid App Host diagnostic" });
+          return;
+        }
+        if (validViewportDiagnostic(report)) {
+          emitAppHostDiagnostic({ event: "client-viewport", ...report });
+          sendJson(response, 202, { ok: true });
           return;
         }
         if (validRecoveryDiagnostic(report)) {
