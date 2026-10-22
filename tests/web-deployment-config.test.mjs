@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
@@ -70,4 +70,33 @@ test('direct and SPA HTML requests receive uncached config with accurate GET/HEA
     assert.equal((await manifest.json()).name, 'Fixture');
     assert.equal(await (await fetch(base + '/embedded.html')).text(), '<p>Standalone document</p>');
   } finally { await server?.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+
+test('resource recovery gives entry and relative imports fresh URLs without moving the app', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'web-resource-recovery-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, 'assets'));
+  await writeFile(join(root, 'index.html'), `<html><head><base href="/"><script type="module" src="./assets/entry-AAAA1111.js"></script><link rel="modulepreload" href="/assets/child-BBBB2222.js"></head></html>`);
+  await writeFile(join(root, 'assets/entry-AAAA1111.js'), `import './child-BBBB2222.js';`);
+  await writeFile(join(root, 'assets/child-BBBB2222.js'), 'export const healthy = true;');
+  const worker = await createWorkbenchWebServer({ root, appServerTarget: null });
+  t.after(() => worker.close());
+  const base = `http://127.0.0.1:${(await worker.listen({ host: '127.0.0.1', port: 0 })).port}`;
+  const response = await fetch(base + '/local/original-thread?opencraft-resource-recovery=retry-1', { headers: { accept: 'text/html' } });
+  const html = await response.text();
+  assert.match(html, /<base href="\/">/);
+  assert.match(html, /src="\/assets\/recovery-retry-1\/entry-AAAA1111.js"/);
+  assert.match(html, /href="\/assets\/recovery-retry-1\/child-BBBB2222.js"/);
+  assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(html));
+  const entryUrl = new URL('/assets/recovery-retry-1/entry-AAAA1111.js', base);
+  const entry = await fetch(entryUrl);
+  assert.equal(await entry.text(), `import './child-BBBB2222.js';`);
+  assert.match(entry.headers.get('content-type'), /javascript/);
+  const child = await fetch(new URL('./child-BBBB2222.js', entryUrl));
+  assert.equal(await child.text(), 'export const healthy = true;');
+  assert.equal((await fetch(base + '/assets/recovery-retry-1/child-BBBB2222.js.map')).status, 404);
+  assert.equal((await fetch(base + '/assets/recovery-retry-1/missing-CCCC3333.js')).status, 404);
+  const invalid = await (await fetch(base + '/?opencraft-resource-recovery=%3Cscript%3E')).text();
+  assert.doesNotMatch(invalid, /assets\/recovery-/);
 });
