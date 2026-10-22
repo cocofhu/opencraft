@@ -111,7 +111,7 @@ try {
   await dialog.getByRole("button", { name: "暂停", exact: true }).click(); await dialog.getByText("已暂停", { exact: true }).waitFor();
   await dialog.getByRole("button", { name: "完成", exact: true }).click(); await dialog.waitFor({ state: "detached" });
   assert.equal(counts["opencraft/schedules/action"], 1);
-  await catalog.getByText("已暂停", { exact: true }).first().waitFor();
+  await catalog.getByText("任务已暂停", { exact: true }).first().waitFor();
   console.log("management passed");
   await catalog.getByRole("button", { name: /^打开会话：/ }).first().click();
   await page.waitForFunction(() => (window as any).proof.route().kind === "conversation");
@@ -150,6 +150,8 @@ try {
   assert.equal(await catalog.locator('.scheduled-tasks-page__group').count(), 4);
   assert.equal(await catalog.getByRole('button', { name: '刷新', exact: true }).count(), 1, 'refresh has one page-wide owner');
   assert.equal(await catalog.locator('.settings-control-group,.settings-control-notice').count(), 0, 'catalog has no nested settings cards');
+  await catalog.locator('[data-state="paused"]').first().getByText('任务已暂停', {exact:true}).waitFor();
+  await catalog.getByText('暂停期间不会自动执行，可在「管理任务」中恢复。', {exact:true}).first().waitFor();
   const mixedEvidence = [];
   for (const theme of ['light','dark']) for (const width of [1440,390,320]) {
     await page.setViewportSize({width,height:920}); await page.evaluate(theme => (window as any).proof.theme(theme),theme);
@@ -158,10 +160,19 @@ try {
       const rect=el.getBoundingClientRect(), viewport=el.closest('.settings-page__viewport')!.getBoundingClientRect();
       const actions=[...el.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height}));
       const title=el.querySelector('h2')!.getBoundingClientRect(), refresh=el.querySelector('button')!.getBoundingClientRect();
-      return {left:rect.left-viewport.left,right:viewport.right-rect.right,width:rect.width,scroll:el.scrollWidth,client:el.clientWidth,actions,titleRight:title.right,refreshLeft:refresh.left};
+      const cards=[...el.querySelectorAll<HTMLElement>('.scheduled-tasks-page__group:first-child .scheduled-tasks-page__row')].map(card=>{
+        const box=card.getBoundingClientRect(), style=getComputedStyle(card);
+        return {x:box.x,y:box.y,right:box.right,bottom:box.bottom,width:box.width,border:parseFloat(style.borderTopWidth),radius:parseFloat(style.borderTopLeftRadius)};
+      });
+      return {left:rect.left-viewport.left,right:viewport.right-rect.right,width:rect.width,scroll:el.scrollWidth,client:el.clientWidth,actions,titleRight:title.right,refreshLeft:refresh.left,cards};
     });
     assert.ok(geometry.left>=14 && geometry.right>=14 && geometry.width<=760, JSON.stringify(geometry));
     assert.ok(geometry.scroll<=geometry.client+1);
+    assert.equal(geometry.cards.length,3);
+    assert.ok(geometry.cards.every(c=>c.border>=1 && c.radius>0), 'each task has its own visible card boundary');
+    if(width===1440) assert.equal(geometry.cards[0]!.y,geometry.cards[1]!.y,'wide catalog arranges tasks in columns');
+    else assert.ok(geometry.cards[1]!.y>=geometry.cards[0]!.bottom,'narrow catalog stacks complete cards');
+    assert.ok(geometry.cards.every((a,i)=>geometry.cards.every((b,j)=>i===j || a.right<=b.x+1 || b.right<=a.x+1 || a.bottom<=b.y+1 || b.bottom<=a.y+1)),'cards do not overlap');
     assert.ok(geometry.actions.every(a=>a.width>0), 'wrapped header actions remain reachable');
     assert.ok(geometry.actions.every(a=>a.width>=44 && a.height>=44), 'touch targets use the shared 44px capacity');
     await page.screenshot({path: output+'/mixed-'+theme+'-'+width+'.png'}); mixedEvidence.push({theme,width,geometry});

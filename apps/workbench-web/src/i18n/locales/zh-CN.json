@@ -662,7 +662,7 @@
   "schedules.catalog.cached": "正在显示上次获取的任务。",
   "schedules.catalog.next": "下次运行：{time}",
   "schedules.catalog.conversation": "打开会话",
-  "schedules.catalog.manage": "管理",
+  "schedules.catalog.manage": "管理任务",
   "schedules.catalog.openError": "无法打开所属会话。",
   "schedules.catalog.refresh": "刷新",
   "schedules.catalog.connected": "已连接",
@@ -714,5 +714,11 @@
   "schedules.new.error": "未能确认创建结果。已保留草稿及已确认的新会话；重试会先核对服务器状态。",
   "schedules.new.unknown": "服务器未确认新会话的创建结果，请先刷新任务列表和会话核对后再试。",
   "schedules.new.next": "下次执行：{time}",
-  "schedules.new.fullHint": "完全访问允许任务在无需审批的情况下访问工作区外文件并运行命令。"
+  "schedules.new.fullHint": "完全访问允许任务在无需审批的情况下访问工作区外文件并运行命令。",
+  "schedules.catalog.taskPaused": "任务已暂停",
+  "schedules.catalog.pausedHint": "暂停期间不会自动执行，可在「管理任务」中恢复。",
+  "schedules.catalog.activeHint": "服务器 Agent 将按计划自动执行此任务。",
+  "schedules.catalog.reviewHint": "请在「管理任务」中检查上次执行结果，再决定是否继续。",
+  "schedules.catalog.completedHint": "此任务已结束，可打开会话查看执行结果。",
+  "schedules.catalog.viewNamed": "查看会话：{title}"
 }

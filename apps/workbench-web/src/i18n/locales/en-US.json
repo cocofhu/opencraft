@@ -638,7 +638,7 @@
   "schedules.catalog.cached": "Showing the last known schedules.",
   "schedules.catalog.next": "Next run: {time}",
   "schedules.catalog.conversation": "Open conversation",
-  "schedules.catalog.manage": "Manage",
+  "schedules.catalog.manage": "Manage task",
   "schedules.catalog.openError": "Could not open the conversation.",
   "schedules.catalog.refresh": "Refresh",
   "schedules.catalog.connected": "Connected",
@@ -690,5 +690,11 @@
   "schedules.new.error": "Could not confirm creation. Your draft and confirmed conversation are retained. Retry checks the server before saving again.",
   "schedules.new.unknown": "The server did not confirm the new conversation. Refresh the task list and conversations before trying again.",
   "schedules.new.next": "Next run: {time}",
-  "schedules.new.fullHint": "Full access lets this task access files and run commands outside the workspace without approval."
+  "schedules.new.fullHint": "Full access lets this task access files and run commands outside the workspace without approval.",
+  "schedules.catalog.taskPaused": "Task paused",
+  "schedules.catalog.pausedHint": "This task will not run automatically while paused. Resume it in Manage task.",
+  "schedules.catalog.activeHint": "Your server’s agent will run this task automatically as scheduled.",
+  "schedules.catalog.reviewHint": "Check the previous run’s result in Manage task before deciding whether to continue.",
+  "schedules.catalog.completedHint": "This task has ended. Open its conversation to see the results.",
+  "schedules.catalog.viewNamed": "View conversation: {title}"
 }

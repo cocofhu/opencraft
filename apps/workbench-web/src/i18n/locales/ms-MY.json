@@ -640,7 +640,7 @@
   "schedules.catalog.cached": "Showing the last known schedules.",
   "schedules.catalog.next": "Next run: {time}",
   "schedules.catalog.conversation": "Open conversation",
-  "schedules.catalog.manage": "Manage",
+  "schedules.catalog.manage": "Urus tugas",
   "schedules.catalog.openError": "Could not open the conversation.",
   "schedules.catalog.refresh": "Refresh",
   "schedules.catalog.connected": "Connected",
@@ -692,5 +692,11 @@
   "schedules.new.error": "Could not confirm creation. Your draft and confirmed conversation are retained. Retry checks the server before saving again.",
   "schedules.new.unknown": "The server did not confirm the new conversation. Refresh the task list and conversations before trying again.",
   "schedules.new.next": "Next run: {time}",
-  "schedules.new.fullHint": "Full access lets this task access files and run commands outside the workspace without approval."
+  "schedules.new.fullHint": "Full access lets this task access files and run commands outside the workspace without approval.",
+  "schedules.catalog.taskPaused": "Tugas dijeda",
+  "schedules.catalog.pausedHint": "Tugas ini tidak akan berjalan secara automatik semasa dijeda. Sambung semula dalam Urus tugas.",
+  "schedules.catalog.activeHint": "Ejen pelayan anda akan menjalankan tugas ini secara automatik mengikut jadual.",
+  "schedules.catalog.reviewHint": "Semak hasil pelaksanaan sebelumnya dalam Urus tugas sebelum memutuskan untuk meneruskan.",
+  "schedules.catalog.completedHint": "Tugas ini telah tamat. Buka perbualannya untuk melihat hasil.",
+  "schedules.catalog.viewNamed": "Lihat perbualan: {title}"
 }

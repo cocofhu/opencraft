@@ -1,6 +1,7 @@
+import { Clock as ClockIcon, ArrowUpRight as ArrowUpRightIcon, RefreshCw } from "lucide-react";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+
 import { useIntl } from "@opencraft/i18n/react";
 import { SettingsButton, SettingsPageHeader } from "@opencraft/extension-react";
 import { useScheduledTaskCatalog } from "../runtime/scheduled-task-catalog-context";
@@ -58,19 +59,30 @@ export function ScheduledTasksPage() {
           {rows.length ? <ul className="scheduled-tasks-page__list">{rows.map(row => {
             const status = row.needsReview ? "review" : row.status === "paused" ? "paused" : row.status === "active" ? "active" : "completed";
             return <li className="scheduled-tasks-page__row" key={row.threadId}>
-              <div className="scheduled-tasks-page__copy">
-                {host.port ? <button type="button" className="scheduled-tasks-page__destination"
-                  aria-label={intl.formatMessage(messages.openNamed, { title: row.title })}
-                  onClick={() => void openConversation(row.hostId, row.threadId)}>{row.title}</button>
-                  : <div className="scheduled-tasks-page__title">{row.title}</div>}
-                <div className="scheduled-tasks-page__metadata">
-                  <span className="scheduled-tasks-page__task-state" data-state={status}>{text(status)}</span>
-                  {row.status === "active" && !row.needsReview ? <span>{intl.formatMessage(messages.next, { time: intl.formatDate(row.nextRunAt, { dateStyle: "medium", timeStyle: "short" }) })}</span> : null}
-                </div>
+              <header className="scheduled-tasks-page__card-heading">
+                <ClockIcon size={18} aria-hidden="true" className="scheduled-tasks-page__clock" />
+                <h4 className="scheduled-tasks-page__copy">
+                  {host.port ? <button type="button" className="scheduled-tasks-page__destination"
+                    aria-label={intl.formatMessage(messages.openNamed, { title: row.title })}
+                    onClick={() => void openConversation(row.hostId, row.threadId)}>{row.title}</button>
+                    : <span className="scheduled-tasks-page__title">{row.title}</span>}
+                </h4>
+                <span className="scheduled-tasks-page__task-state" data-state={status}>{text(status)}</span>
+              </header>
+              <div className="scheduled-tasks-page__metadata">
+                {row.status === "active" && !row.needsReview
+                  ? <p className="scheduled-tasks-page__next">{intl.formatMessage(messages.next, { time: intl.formatDate(row.nextRunAt, { dateStyle: "medium", timeStyle: "short" }) })}</p>
+                  : null}
+                <p>{text(row.needsReview ? "reviewHint" : row.status === "paused" ? "pausedHint" : row.status === "active" ? "activeHint" : "completedHint")}</p>
               </div>
-              <SettingsButton variant="quiet" disabled={!host.port}
-                aria-label={intl.formatMessage(messages.manageNamed, { title: row.title })}
-                onClick={event => { if (!host.port) return; returnFocus.current = event.currentTarget; select({ hostId: row.hostId, threadId: row.threadId, scope: host.scope, port: host.port }); }}>{text("manage")}</SettingsButton>
+              <footer className="scheduled-tasks-page__card-actions">
+                <SettingsButton variant="quiet" disabled={!host.port}
+                  aria-label={intl.formatMessage(messages.viewNamed, { title: row.title })}
+                  onClick={() => void openConversation(row.hostId, row.threadId)}>{text("conversation")}<ArrowUpRightIcon size={14} aria-hidden="true" /></SettingsButton>
+                <SettingsButton variant="secondary" disabled={!host.port}
+                  aria-label={intl.formatMessage(messages.manageNamed, { title: row.title })}
+                  onClick={event => { if (!host.port) return; returnFocus.current = event.currentTarget; select({ hostId: row.hostId, threadId: row.threadId, scope: host.scope, port: host.port }); }}>{text("manage")}</SettingsButton>
+              </footer>
             </li>;
           })}</ul> : <p className="scheduled-tasks-page__empty" role="status">{text(host.phase === "ready" ? "empty" : host.phase === "offline" ? "offline" : host.phase === "error" ? "loadError" : "loading")}</p>}
         </section>;

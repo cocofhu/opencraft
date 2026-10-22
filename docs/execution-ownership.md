@@ -320,7 +320,12 @@ Headless 的主体协作服务将执行请求交给现有 CodexHostQueue，以�
 The Scheduled tasks workbench entry projects the same admitted Host summaries
 used by conversation markers. It lists current active/paused plans and unresolved
 acceptance, independently of conversation pagination and personal list filters.
-Each row retains its Host identity, even if conversation metadata has not loaded.
+Each task card retains its Host identity, even if conversation metadata has not loaded.
+The catalog uses a responsive card grid with a task title, explicit task status,
+next execution time where applicable, and conversation/management actions.
+Paused tasks explain that automatic execution is suspended; Host connectivity
+remains a separate group-level state. Cards consume the existing content-free
+summary without per-task schedule reads or an additional execution owner.
 It can navigate through the application Router or open the existing conversation
 schedule editor. The catalog also creates schedules using an admitted Host’s
 thread/start and schedule/save operations; no first Turn is submitted at creation.
