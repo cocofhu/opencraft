@@ -22,7 +22,11 @@ export default [
       // Use existing Radix primitives rather than unguarded native Popover APIs.
       "no-restricted-properties": ["error", ...["showPopover", "hidePopover", "togglePopover"].map(property => ({
         property, message: "Native Popover requires Safari 17. Use the shared Radix primitive or a capability adapter with a tested fallback.",
-      }))],
+      })), {
+        // compat/compat does not resolve this AbortSignal static for the baseline.
+        object: "AbortSignal", property: "any",
+        message: "AbortSignal.any requires Safari 17.4. Keep one AbortController as the cancellation and timeout owner, and pass its signal; use an explicit timer for the deadline.",
+      }],
     },
   },
   // This is an injected replay clock, not the experimental window.scheduler.

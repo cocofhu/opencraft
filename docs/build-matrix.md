@@ -117,7 +117,11 @@ browser compatibility and CI Web release tests.
 
 The typed check is necessary:
 transitive declarations can load ESNext even when tsconfig specifies ES2022.
-Native Popover methods are additionally rejected; use existing Radix primitives.
+Native Popover methods and `AbortSignal.any` are additionally rejected: use
+existing Radix primitives, and keep one `AbortController` as the cancellation
+and timeout owner with an explicit deadline timer. `AbortSignal.any` is absent
+from Safari 16.6, and `compat/compat` did not resolve that static for the
+baseline.
 
 Run `npm run build:web:release` for a fresh graph and automatic check, or
 `npm run lint:browser` to recheck source against the last build's graph after
