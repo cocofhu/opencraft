@@ -13,7 +13,7 @@ const mode = params.get("mode") === "dark" ? "dark" : "light";
 const palettes = {
   neutral: themes.opencraftNeutralThemePalette, canvas: themes.opencraftCanvasThemePalette,
   frost: themes.frostThemePalette, lavender: themes.lavenderThemePalette,
-  mist: themes.mistThemePalette, zenCode: themes.zenCodeThemePalette,
+  mist: themes.mistThemePalette, graphite: themes.graphiteThemePalette,
 };
 const paletteName = params.get("palette") ?? "neutral";
 const palette = palettes[paletteName as keyof typeof palettes];

@@ -144,7 +144,7 @@ Headless 通过可信服务端 composition 创建身份适配器；受管站点�
   [Theme surfaces and native appearance](./platform-architecture.md#theme-surfaces-and-native-appearance)。
 - 场景测试覆盖成功激活、激活失败零残留、内部 commit 中断回滚、旧代 API 拒绝、重激活代际、
   平台筛选、Theme palette 校验和真实 WebSocket provider lease retirement。
-- Workbench 已采用 Obsidian 式 `entry -> semantic View -> host placement`：插件不再用一个
+- Workbench 采用 `entry -> semantic View -> host placement`：插件不再用一个
   `View.location` 同时表达侧栏按钮、设置页和物理容器；Sidebar 只消费声明式入口和目录，
   应用级导航事务统一拥有 URL、Back/Forward、激活态与卸载回退。
 
@@ -184,23 +184,22 @@ Agent Capability 是 Extension 的一个可选 Contribution，也是 AppServer/M
 
 OpenCraft 仍然不能把 Cordis 的 `Context` 直接作为公共插件 API。
 
-最终方案吸收五套系统各自最强的一层：
+扩展系统按以下职责划分：
 
-- **Codex**：AppServer 负责插件目录、安装、启用、策略和可用性；客户端只激活已编译的
-  first-party bridge，并把第三方 App UI 放入沙箱；
-- **Obsidian**：插件、View 和子组件都有明确的 `load/unload` 所有权，注册操作自动归还
-  disposer，开发体验非常好；
-- **Chrome Extensions**：manifest-first、稳定 API namespace、package-contained code 和按需
-  background lifecycle；权限与 isolated world 仅作为可选 restricted mode 的参考；
-- **Firefox WebExtensions**：manifest-first、能力授权、执行域分离、受限 API 和消息桥；
-- **Cordis**：作为 OpenCraft 内部的依赖注入、激活图、Fiber 生命周期和逆序清理内核。
+- **原生兼容**：Codex AppServer 负责原生插件目录、安装、启用、策略和可用性；客户端只激活
+  已编译的 first-party bridge，并把第三方 App UI 放入沙箱；
+- **客户端生命周期**：插件、View 和子组件都有明确的 `load/unload` 所有权，注册操作返回
+  disposer，由对应 owner 清理；
+- **公开扩展契约**：manifest-first、稳定 API namespace、package-contained code 和按需
+  background lifecycle；能力授权、执行域分离、受限 API 和消息桥由可选 Restricted Policy 管理；
+- **内部内核**：Cordis 负责 OpenCraft 内部的依赖注入、激活图、Fiber 生命周期和逆序清理。
 
 一句话定义：
 
 > **Cordis 是 OpenCraft 的内部扩展内核，不是安全沙箱、第三方 ABI 或 Agent 能力协议。**
 
 公共插件以版本化 `OpenCraftExtensionApi` 为受支持边界。可信内建功能可以直接使用 Cordis；
-用户明确启用的本地/Workspace Extension 可以采用 Obsidian 式可信执行。独立
+用户明确启用的本地/Workspace Extension 可以采用可信执行。独立
 ExtensionHost、Electron utility process、远端 Host 或 sandbox UI 是可选的故障/安全隔离
 策略，不是所有插件的前置条件。
 
@@ -565,7 +564,7 @@ module-url
 该内容校验不是签名或发布者信任校验。只有显式 reload 请求候选版本；候选激活或保存失败保持
 原安装指针，并尽可能恢复本进程旧定义。清理失败报告 failed，不能保留不存在的 active 状态。
 
-它沿用 Obsidian 已验证的三层所有权：Installation Repository 保存用户意图，Module Loader
+安装事务分为三层所有权：Installation Repository 保存用户意图，Module Loader
 解析工件，Extension Supervisor 保存活跃实例；三者由 Extension Manager 串成唯一事务。
 启用是“先激活、后保存 enabled”，停用是“先保存 disabled、后卸载”，所以刷新永远以明确的
 用户意图恢复，而不会把半成功运行态误当成安装事实。损坏记录和单插件加载失败会隔离，不阻塞
@@ -646,7 +645,7 @@ Artifact Store 是安装基础设施，不是业务状态，也不进入 Replica
 - 即便有完全权限，也仍必须遵守 Activation owner、generation fencing、稳定 ID 和 disposer；
 - 导入 OpenCraft 私有包属于 unsupported 行为，而不是 Host 宣称能够安全阻止的攻击面。
 
-这就是 OpenCraft 第一阶段最适合 vibe coding 的模式，接近 Obsidian：简单、直接、可调试。
+这就是 OpenCraft 第一阶段最适合 vibe coding 的模式：接口直接、可调试。
 
 ### Restricted（可选）
 
@@ -899,8 +898,8 @@ scaffold
 - `contributes.agentCapabilities` 是可选项。普通主题、View、Command 插件不需要理解 Agent
   Capability Spec、Lease 或 Invocation。
 
-Harness 式 `inspect → define → run/update/stop` 可以作为 Workshop 的快速 Preview 实现参考，
-但最终产物必须回到上述工程、构建和安装链，而不是永久保留一段进程内匿名代码。
+Workshop 的快速 Preview 可以使用 `inspect → define → run/update/stop` 流程；
+最终产物必须回到上述工程、构建和安装链，不能永久保留一段进程内匿名代码。
 
 ## 15. 实施顺序
 
@@ -1000,14 +999,14 @@ Harness 式 `inspect → define → run/update/stop` 可以作为 Workshop 的�
 OpenCraft 当前的方向没有错，真正的问题不是“Cordis 用少了”，而是还没有把内部插件机制和
 公共插件生态分层。
 
-如果直接把现有 `Context`/`Plugin` 暴露出去，虽然能快速得到 Obsidian 级开发便利，却会把
+如果直接把现有 `Context`/`Plugin` 暴露出去，虽然能简化开发，却会把
 Web、Electron、Expo 和 SSH Host 锁死在一个不稳定的 TypeScript 内部 ABI 上。真正必须
 隔离的是公共 API 与内部实现；安全沙箱是否启用由插件来源和商业渠道决定。
 
 如果按本文实现：
 
 - 内部功能继续享受 Cordis 的轻量 DI 和自动清理；
-- 插件作者得到接近 Obsidian 的 `activate + subscriptions + registerContribution` 体验；
+- 插件作者通过 `activate + subscriptions + registerContribution` 管理贡献及其生命周期；
 - 本地 vibe coding 可以采用简单的 Trusted 模式；需要时仍有 Restricted channel 演进路径；
 - AppServer Plugin、Skills、Hooks、MCP Apps 与 Codex 协议保持原生兼容；
 - React DOM、React Native 与远端 Host 不需要共享组件体或进程模型；

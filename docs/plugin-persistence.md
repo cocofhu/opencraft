@@ -102,7 +102,6 @@ Web 多标签是必测路径：blocked 必须可见，versionchange 停止新写
 
 已新增 client-local 与 Host 文档 API，无第三方新依赖/Drizzle。`test:extension-storage`、`smoke:extension-storage:web`、`smoke:extension-storage:desktop` 验证本地契约、真实多标签和真实源码 Electron；Host 链路另由 `test:host-storage` / `smoke:host-storage` 验证。未覆盖新签名发行包、历史所有 origin 找回、所有远端 Host 或 Native 插件持久化。当前实现入口：
 
-- [Obsidian 官方 API](https://raw.githubusercontent.com/obsidianmd/obsidian-api/master/obsidian.d.ts) 的 loadData/saveData/onExternalSettingsChange 提供窄接口；没有由此推断跨端 SQL、CAS 或自动 migration。[secret 文档](https://docs.obsidian.md/plugins/guides/secret-storage)仅借鉴引用与值分离。
 - [当前 OpenCraft settings owner](../packages/extension-runtime/src/settings-store.ts) 和 [实际 storage contract](../packages/extension-contract/src/storage.ts)：运行时未装配时 storage=null。字段 schemaVersion 不等于通用文档版本，任意已有设置字段变更的内容迁移规则仍须由领域补齐。
 
 ## 8. 插件的账号本地呈现偏好

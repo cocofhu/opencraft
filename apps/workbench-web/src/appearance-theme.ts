@@ -5,7 +5,7 @@ import {
 } from "@opencraft/design-system/theme";
 import {
   buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, frostThemePalette,
-  lavenderThemePalette, longingThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
+  lavenderThemePalette, longingThemePalette, mistThemePalette, opencraftCanvasThemePalette, graphiteThemePalette,
   type OpenCraftThemeDefinition, type ThemeCssProperties,
 } from "@opencraft/design-system/theme-engine";
 import type { ExtensionContributionSnapshot, ExtensionContributionStore } from "@opencraft/extension-runtime";
@@ -19,7 +19,7 @@ export const frostThemeId = builtinThemeIds.frost;
 export const lavenderThemeId = builtinThemeIds.lavender;
 export const longingThemeId = builtinThemeIds.longing;
 export const mistThemeId = builtinThemeIds.mist;
-export const zenCodeThemeId = builtinThemeIds.zencode;
+export const graphiteThemeId = builtinThemeIds.graphite;
 
 export interface AppearanceThemeDescriptor {
   readonly id: string;
@@ -49,7 +49,7 @@ const builtins: readonly CatalogEntry[] = [
   builtin(frostThemeId, "Frost", "A cool translucent Sidebar with a lighter fixed material.", frostThemePalette),
   builtin(longingThemeId, "Longing", "Blue glass with translucent navigation and soft surface transitions.", longingThemePalette),
   builtin(lavenderThemeId, "Lavender", "A soft lavender workspace with a quiet UI palette.", lavenderThemePalette),
-  builtin(zenCodeThemeId, "ZenCode", "Quiet grayscale layers, crisp controls, and an opaque workspace.", zenCodeThemePalette),
+  builtin(graphiteThemeId, "Graphite", "Quiet grayscale layers, crisp controls, and an opaque workspace.", graphiteThemePalette),
   builtin(mistThemeId, "Mist", "Close neutral surfaces with a quiet, unified canvas.", mistThemePalette),
 ];
 const visibleBuiltins = builtins.filter(entry => !workbenchPresentation.hiddenBuiltinThemeIds.includes(entry.descriptor.id));

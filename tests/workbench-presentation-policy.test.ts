@@ -35,7 +35,7 @@ test("built-in compatibility aliases preserve policy constraints without renamin
   const aliases = {
     codex: builtinThemeIds.neutral, web: builtinThemeIds.canvas,
     frost: builtinThemeIds.frost, lavender: builtinThemeIds.lavender,
-    mist: builtinThemeIds.mist, zencode: builtinThemeIds.zencode,
+    mist: builtinThemeIds.mist, zencode: builtinThemeIds.graphite,
   };
   for (const [alias, canonical] of Object.entries(aliases)) {
     const legacy = `vela.core.${alias}`;
@@ -45,6 +45,13 @@ test("built-in compatibility aliases preserve policy constraints without renamin
     for (const [selected, hidden] of [[legacy,canonical],[canonical,legacy]]) {
       assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
     }
+  }
+  const previousGraphiteId = "opencraft.core.zencode";
+  assert.equal(normalizeBuiltinThemeId(previousGraphiteId), builtinThemeIds.graphite);
+  assert.equal(resolveWorkbenchPresentation({defaultThemeId:previousGraphiteId}).defaultThemeId, builtinThemeIds.graphite);
+  assert.deepEqual(resolveWorkbenchPresentation({hiddenBuiltinThemeIds:[previousGraphiteId,"vela.core.zencode",builtinThemeIds.graphite]}).hiddenBuiltinThemeIds,[builtinThemeIds.graphite]);
+  for (const [selected,hidden] of [[previousGraphiteId,builtinThemeIds.graphite],[builtinThemeIds.graphite,previousGraphiteId]]) {
+    assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
   }
   for (const extension of ["vela.extension.paper", "vendor.core.web", "vela.core.custom", "vela.core.longing", builtinThemeIds.longing]) {
     assert.equal(normalizeBuiltinThemeId(extension), extension);

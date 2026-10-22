@@ -2,7 +2,7 @@ export const builtinThemeIds = Object.freeze({
   neutral: "opencraft.core.neutral", canvas: "opencraft.core.canvas",
   frost: "opencraft.core.frost", lavender: "opencraft.core.lavender",
   longing: "opencraft.core.longing",
-  mist: "opencraft.core.mist", zencode: "opencraft.core.zencode",
+  mist: "opencraft.core.mist", graphite: "opencraft.core.graphite",
 });
 
 /** Exact compatibility aliases only; extension-owned identifiers are opaque. */
@@ -13,7 +13,8 @@ export function normalizeBuiltinThemeId(id: string): string {
     case "vela.core.frost": return builtinThemeIds.frost;
     case "vela.core.lavender": return builtinThemeIds.lavender;
     case "vela.core.mist": return builtinThemeIds.mist;
-    case "vela.core.zencode": return builtinThemeIds.zencode;
+    case "vela.core.zencode":
+    case "opencraft.core.zencode": return builtinThemeIds.graphite;
     default: return id;
   }
 }

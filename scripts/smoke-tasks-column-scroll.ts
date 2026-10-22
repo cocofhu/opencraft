@@ -28,7 +28,7 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 const errors: string[] = [], results: unknown[] = [];
 const cases = baseline ? [{ width: 1440, theme: "light", palette: "neutral" }] :
   ["light", "dark"].flatMap(theme => [320, 390, 430, 600, 601, 820, 1440].map(width => ({ width, theme, palette: "neutral" })))
-    .concat(["frost", "mist", "zencode"].flatMap(palette => ["light", "dark"].map(theme => ({ width: 1440, theme, palette }))));
+    .concat(["frost", "mist", "graphite"].flatMap(palette => ["light", "dark"].map(theme => ({ width: 1440, theme, palette }))));
 try {
   for (const { width, theme, palette } of cases) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 600, hasTouch: width < 600 });

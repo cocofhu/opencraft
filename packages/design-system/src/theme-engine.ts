@@ -297,8 +297,8 @@ export const mistThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefiniti
   },
 };
 
-/** ZCode-inspired surface hierarchy, expressed through OpenCraft's own theme contract. */
-export const zenCodeThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
+/** Opaque grayscale surfaces with a flat, layered hierarchy. */
+export const graphiteThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
   light: {
     accent: "#0b7fff",
     contrast: 45,
