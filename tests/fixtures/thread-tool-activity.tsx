@@ -54,6 +54,15 @@ const webMcpItems: TimelineSourceItem[] = [{ id: "webmcp-browser", type: "mcpToo
   ] } } },
 } }];
 const reviewScenario = new URLSearchParams(location.search).get("scenario") === "reviews";
+const rawScenario = new URLSearchParams(location.search).get("scenario") === "raw";
+const rawItems: TimelineSourceItem[] = [
+{id:'protocol-error',type:'mcpToolCall',payload:{server:'raw-probe',tool:'protocol_error',status:'failed',arguments:{path:'/workspace/report.txt'},error:{message:'PROTOCOL_FAILURE: connection closed before a result'},durationMs:120}},
+{id:'pending',type:'mcpToolCall',payload:{server:'raw-probe',tool:'missing_result',status:'completed',arguments:{request:'PENDING_REQUEST'}}},
+{id:'mcp-success',type:'mcpToolCall',payload:{server:'raw-probe',tool:'complete_result',status:'completed',arguments:{query:'query'},result:{content:[{type:'text',text:'MCP_SUCCESS'}],structuredContent:{value:42}},durationMs:30}},
+{id:'mcp-tool-error',type:'mcpToolCall',payload:{server:'raw-probe',tool:'reported_error',status:'completed',arguments:{query:'absent'},result:{isError:true,content:[{type:'text',text:'REPORTED_ERROR: item absent'}]}}},
+{id:'dynamic-failed',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'read',status:'failed',success:false,arguments:{path:'/workspace/missing.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_FAILURE_CONTENT'}],durationMs:42}},
+{id:'dynamic-success',type:'dynamicToolCall',payload:{namespace:'deepseek-harness',tool:'write',status:'completed',success:true,arguments:{path:'/workspace/success.txt'},contentItems:[{type:'inputText',text:'DYNAMIC_SUCCESS_CONTENT'}],durationMs:50}},
+];
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
 probe.hostActions = [];
@@ -105,7 +114,7 @@ function Demo() {
       },
     })),
     { id: "unreviewed", type: "mcpToolCall", payload: { server: "audit", tool: "plain", status: "inProgress" } },
-  ] : [
+  ] : rawScenario ? rawItems : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),

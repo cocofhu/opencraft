@@ -3196,3 +3196,14 @@ copyable technical details. Existing recovery owners, cold-state presentation,
 authority, outbox and command replay remain unchanged. The Application keeps its
 Composer and transcript mounted. `tests/conversation-recovery.test.tsx` checks
 quiet automatic retry and actionable failures.
+
+
+### Raw tool result facts
+
+The Web Raw dialog preserves the tool transport's result shape. MCP protocol failures
+include the error message and protocol kind; an absent envelope stays null. A received
+MCP result retains its content, structuredContent and raw envelope, including isError
+without reclassifying it as a protocol failure. Dynamic tools retain success and the
+complete contentItems. Invocation identity falls back from server to namespace. The
+existing JSON preview and copy action consume the same complete value; none of these
+display fields can change execution, permissions or the compact-tool policy.

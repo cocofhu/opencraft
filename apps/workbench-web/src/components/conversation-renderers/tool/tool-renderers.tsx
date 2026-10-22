@@ -127,16 +127,19 @@ function RawToolOutput({ block }: { block: Tool }) {
   const [open, setOpen] = useState(false);
   const title = "Raw " + [block.server ?? block.namespace, block.name].filter(Boolean).join(".") + " tool call output";
   const output = object(block.output);
+  const result = block.kind === "mcp"
+    ? block.errorMessage !== null
+      ? { type: "error", kind: "protocol", error: block.errorMessage, rawError: { message: block.errorMessage }, raw: block.output ?? undefined }
+      : block.output === null
+        ? null
+        : { type: "success", content: Array.isArray(output?.content) ? output.content : [],
+            structuredContent: output?.structuredContent ?? null, raw: block.output }
+    : { success: block.status === "complete", contentItems: block.output };
   const value = {
     callId: block.callId,
-    invocation: { server: block.server, tool: block.name, arguments: block.input },
+    invocation: { server: block.server ?? block.namespace, tool: block.name, arguments: block.input },
     durationMs: block.durationMs,
-    result: {
-      type: block.errorMessage !== null || output?.isError === true ? "error" : "success",
-      content: output?.content ?? [],
-      structuredContent: output?.structuredContent ?? null,
-      raw: block.output,
-    },
+    result,
   };
   return <><button type="button" className="thread-tool-details__raw" title="Show raw tool call output"
     aria-label="Show raw tool call output" onClick={() => setOpen(true)}><Code2 size={12} /></button>
