@@ -23,7 +23,7 @@ function deviceProfile(input = {}) {
   if (!deviceProfiles.has(profile)) throw new Error('Invalid device profile');
   return profile;
 }
-const configuration = p => ({ width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028' });
+const configuration = p => ({ navigation: navigation(p), width: p.width, height: p.height, dpr: 1, deviceProfile: p.deviceProfile, codec: 'avc1.42E028' });
 function userAgent(p, profile) {
   const chrome = process.versions.chrome;
   if (profile === 'iphone') return 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
@@ -141,10 +141,26 @@ function refresh(p) {
   if (p.latest) p.pending = { image: p.latest, timestamp: Math.round(performance.now() * 1000) };
   p.window.webContents.invalidate(); pump(p);
 }
+function navigation(p) {
+  const wc = p.window.webContents;
+  return { url: wc.getURL(), title: wc.getTitle(), canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), isLoading: wc.isLoading() };
+}
 function state(p) {
   if (p.closed) return;
   const wc = p.window.webContents;
-  send({ type: 'navigation', page: p.id, state: { url: wc.getURL(), title: wc.getTitle(), canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), isLoading: wc.isLoading() } });
+  send({ type: 'navigation', page: p.id, state: navigation(p) });
+}
+async function resetInput(p) {
+  await p.touchQueue;
+  if (p.closed) return;
+  const wc = p.window.webContents;
+  if (p.touchActive) {
+    await wc.debugger.sendCommand('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] }); p.touchActive = false;
+  }
+  for (const keyCode of p.pressedKeys ?? []) wc.sendInputEvent({ type: 'keyUp', keyCode });
+  p.pressedKeys?.clear();
+  for (const button of p.pressedButtons ?? []) wc.sendInputEvent({ type: 'mouseUp', button, x: p.pointer?.x ?? 0, y: p.pointer?.y ?? 0, clickCount: 1 });
+  p.pressedButtons?.clear();
 }
 function closePage(id) {
   const p = pages.get(id); if (!p) return;
@@ -224,6 +240,7 @@ async function command(message) {
   const wc = p.window.webContents;
   if (method === 'viewport') return resize(p, input);
   if (method !== 'close') await p.viewportQueue;
+  if (method === 'snapshot') return configuration(p);
   if (method === 'close') { closePage(id); return; }
   if (method === 'navigate') { p.previous = null; if (p.visible) activity(p); await wc.loadURL(input.url === null ? 'about:blank' : validUrl(input.url)); return; }
   if (method === 'reload') { wc.reload(); return; }
@@ -239,7 +256,7 @@ async function command(message) {
       const epoch = p.epoch, image = await wc.capturePage();
       if (!p.closed && p.visible && p.epoch === epoch && image.getSize().width === p.width && image.getSize().height === p.height) { p.latest = image; p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p); }
     }
-    else { wc.stopPainting(); p.epoch++; p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
+    else { await resetInput(p); wc.stopPainting(); p.epoch++; p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
     return;
   }
   if (method === 'keyframe') { if (performance.now() - (p.lastKey || -1000) >= 500) { p.lastKey = performance.now(); refresh(p); } return; }
@@ -268,7 +285,13 @@ async function command(message) {
       p.touchQueue = operation.catch(() => {});
       return operation;
     }
-    if (event.type === 'touchCancel') return;
+    if (event.type === 'touchCancel') { await resetInput(p); return; }
+    p.pressedKeys ??= new Set(); p.pressedButtons ??= new Set();
+    if (event.type === 'keyDown' && event.keyCode) p.pressedKeys.add(event.keyCode);
+    if (event.type === 'keyUp') p.pressedKeys.delete(event.keyCode);
+    if (event.type === 'mouseDown' && event.button) p.pressedButtons.add(event.button);
+    if (event.type === 'mouseUp') p.pressedButtons.delete(event.button);
+    if (event.x !== undefined && event.y !== undefined) p.pointer = { x: event.x, y: event.y };
     wc.sendInputEvent(event); return;
   }
   if (method === 'automation') { activity(p); return automation(p, input.method, input.input); }
@@ -288,7 +311,16 @@ app.whenReady().then(async () => {
   encoderWindow = new BrowserWindow({ show: false, width: 1, height: 1,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, preload: join(__dirname, 'encoder-preload.cjs') } });
   await encoderWindow.loadFile(join(__dirname, 'encoder.html'));
-  const receive = message => { void command(message).then(value => send({ type: 'result', id: message.id, value }), error => send({ type: 'result', id: message.id, error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } })); };
+  const controls = new Map();
+  const ordered = new Set(['input', 'text', 'viewport', 'visible', 'zoom', 'close']);
+  const receive = message => {
+    let operation;
+    if (ordered.has(message.method)) {
+      operation = (controls.get(message.page) ?? Promise.resolve()).then(() => command(message));
+      const tail = operation.catch(() => {}); controls.set(message.page, tail);
+      void tail.then(() => { if (controls.get(message.page) === tail) controls.delete(message.page); });
+    } else operation = command(message);
+    void operation.then(value => send({ type: 'result', id: message.id, value }), error => send({ type: 'result', id: message.id, error: { code: error.code || 'BROWSER_ERROR', message: error.message, retryable: !!error.retryable } })); };
   if (ipc) process.on('message', receive);
   else { const lines = createInterface({ input: process.stdin }); lines.on('line', line => { try { receive(JSON.parse(line)); } catch {} }); lines.on('close', () => app.exit(0)); }
   send({ type: 'ready' });
