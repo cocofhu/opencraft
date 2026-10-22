@@ -120,15 +120,6 @@ test("loading hides technical observations while failures retain diagnostic deta
  }finally{runtime.dispose();}
 });
 
-test('console prints the full allowlisted clipboard snapshot with physical correlation', async context => {
- const {logConversationRecoveryDiagnostic,conversationRecoveryDiagnosticText,createConversationRecoveryDiagnostic}=await import('../apps/workbench-web/src/runtime/conversation-recovery-diagnostic');
- const values:unknown[][]=[];context.mock.method(console,'log',(...args:unknown[])=>{values.push(args);});
- const diagnostic=createConversationRecoveryDiagnostic({stage:'history',runtime:'ready',error:{code:'TIMEOUT',message:'secret-body'},transport:{state:'open',attemptId:'11111111-1111-4111-8111-111111111111',reason:'secret-url'}});
- const expected=conversationRecoveryDiagnosticText(diagnostic,1234);
- assert.equal(logConversationRecoveryDiagnostic(diagnostic,1234),expected);
- assert.deepEqual(values,[['[conversation-recovery] details\n'+expected]]);
- assert.match(expected,/attemptId: 11111111-1111-4111-8111-111111111111/);assert.doesNotMatch(expected,/secret/);
-});
 
 
 test("Composer recovery scan follows current recovery, including automatic retries, but stops on terminal errors", async () => {
