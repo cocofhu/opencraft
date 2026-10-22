@@ -38,15 +38,16 @@ export function activeFollowUpTask(task: TaskDetail): boolean {
   return task.deletedAt === null && !task.archivedAt && task.status !== "done" && task.status !== "canceled";
 }
 export function followUpProjection(task: TaskDetail, events: readonly TaskEvent[] = []): FollowUpProjection {
-  let current: { report: FollowUpReport; at: number; readyAt: number | null } | null = null;
+  type Current = { report: FollowUpReport; at: number; readyAt: number | null };
+  let current: Current | null = null;
+  const readyTime = (previous: Current | null, report: FollowUpReport, at: number) => report.lane !== "needs" ? null
+    : previous?.report.lane === "needs" && previous.report.roundId === report.roundId ? previous.readyAt : at;
   for (const event of [...events].sort((a, b) => a.seq - b.seq)) {
     // Status changes close structured rounds. Writers move first, then publish the fact.
     if (["created", "deleted", "restored", "status_changed"].includes(event.type)) current = null;
     if (event.type !== "progress") continue;
     const report = parseFollowUpReport(event.payload.text);
-    if (report) current = { report, at: event.createdAt, readyAt: report.lane === "needs"
-      ? current?.report.lane === "needs" && current.report.roundId === report.roundId ? current.readyAt : event.createdAt
-      : null };
+    if (report) current = { report, at: event.createdAt, readyAt: readyTime(current, report, event.createdAt) };
   }
   const compatible = (lane: FollowUpLane) => lane === "todo" ? ["backlog", "todo"].includes(task.status)
     : lane === "working" ? task.status === "in_progress" : task.status === "in_review";
