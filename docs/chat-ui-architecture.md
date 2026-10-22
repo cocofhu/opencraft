@@ -2340,3 +2340,14 @@ a tool has a body; an unknown compact dynamic tool does not expose its payload.
 `smoke-thread-tool-activity.ts` exercises native Items through the original
 projector and complete Conversation, including completed/failed settlement,
 manual reopening, historical restore and MCP/compact controls.
+
+### Tool detail choices in a retained View
+
+File-change diffs and tool disclosures keep their explicit choices in the owning
+Conversation View snapshot, keyed by tool block or patch block and file identity.
+The shared disclosure hook retains separate running-collapsed and settled-expanded
+choices; restoration does not change either phase's defaults. MCP details continue
+to start collapsed. A new View starts with the existing defaults, while returning
+to a retained View restores its choice before paint. Only presentation booleans
+are checkpointed; output, permission, execution and App document state remain with
+their existing owners. Updated output is rendered from the current timeline.

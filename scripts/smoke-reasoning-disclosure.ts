@@ -59,6 +59,55 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--detail-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      for (const kind of ["patch", "mcp", "dynamic"]) {
+        await update(`detail-view-${kind}-reset`);
+        const row = page.locator('.thread-activity-item[data-status="completed"]').filter({
+          has: page.locator('.thread-activity-item__body'),
+        }).last();
+        const unfoldGroup = async () => {
+          for (let index = 0; index < 8 && !await row.isVisible(); index++) {
+            const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+            assert.ok(await group.count());
+            await activate(group);
+          }
+        };
+        const toggleRow = async () => {
+          const trigger = row.locator(':scope > .thread-activity-item__header > button');
+          if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+          else await trigger.click({ position: { x: 8, y: 8 } });
+        };
+        await unfoldGroup();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "a fresh settled detail starts collapsed");
+        await toggleRow();
+        assert.equal(await row.getAttribute('data-open'), 'true');
+        const first = await row.elementHandle();
+        await restoreView();
+        assert.equal(await first!.evaluate(element => element.isConnected), false);
+        assert.equal(await row.getAttribute('data-open'), 'true', "explicit expansion survives restoration of the same View");
+        const restored = await row.elementHandle();
+        await update(`detail-view-${kind}-append`);
+        assert.equal(await restored!.evaluate(element => element.isConnected), true);
+        assert.equal(await row.getAttribute('data-open'), 'true');
+        assert.ok((await row.innerText()).includes('Updated detail result'), "restoration does not cache stale tool output");
+        await page.screenshot({ path: join(output, `detail-view-${kind}-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+        await toggleRow();
+        await restoreView();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "explicit collapse survives the same View");
+        await update(`detail-view-${kind}-reset`);
+        await unfoldGroup();
+        assert.notEqual(await row.getAttribute('data-open'), 'true', "new Views do not inherit the old View choice");
+      }
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, detailViewRestored: true, refreshedOutput: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--detail-view-only")) { await page.close(); continue; }
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -391,7 +440,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = [
+  const localizedLabels = process.argv.includes("--detail-view-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

@@ -162,9 +162,8 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const customContent = useContext(ToolCallContentRendererContext);
   const customIcon = useContext(ToolCallIconRendererContext);
-  const [mcpOpen, setMcpOpen] = useState(false);
-  const [activityOpen, setActivityOpen] = useActivityOpen(presentation.state === "running" && presentation.canExpand);
-  const [open, setOpen] = block.kind === "mcp" ? [mcpOpen, setMcpOpen] : [activityOpen, setActivityOpen];
+  const [open, setOpen] = useActivityOpen(block.kind !== "mcp" && presentation.state === "running"
+    && presentation.canExpand, false, `tool:${block.id}`);
   const content = customContent?.(block, presentation);
   const icon = customIcon?.(block, presentation);
   if (block.kind === "image-view") return <ImageViewToolBlock block={block} />;

@@ -7,6 +7,7 @@ import { useDisclosureReflow } from "../../use-disclosure-reflow";
 import { useDisclosureHeight } from "../../use-disclosure-height";
 import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import {
+  createContext,
   useCallback,
   useContext,
   useId,
@@ -17,17 +18,31 @@ import {
   type ReactNode,
 } from "react";
 
+export interface ActivityDisclosureState {
+  readonly runningCollapsed: boolean;
+  readonly settledExpanded: boolean;
+}
+
+export const ActivityDisclosureStateContext = createContext<Map<string, ActivityDisclosureState> | null>(null);
+
 export function useActivityOpen(
   running: boolean,
   defaultExpanded = false,
+  restoreKey?: string,
 ): readonly [boolean, (next: boolean) => void] {
-  const [runningCollapsed, setRunningCollapsed] = useState(false);
-  const [settledExpanded, setSettledExpanded] = useState(defaultExpanded);
+  const choices = useContext(ActivityDisclosureStateContext);
+  const saved = restoreKey === undefined ? undefined : choices?.get(restoreKey);
+  const [runningCollapsed, setRunningCollapsed] = useState(saved?.runningCollapsed ?? false);
+  const [settledExpanded, setSettledExpanded] = useState(saved?.settledExpanded ?? defaultExpanded);
   const open = running ? !runningCollapsed : settledExpanded;
   const setOpen = useCallback((next: boolean) => {
+    if (restoreKey !== undefined) choices?.set(restoreKey, {
+      runningCollapsed: running ? !next : runningCollapsed,
+      settledExpanded: running ? settledExpanded : next,
+    });
     if (running) setRunningCollapsed(!next);
     else setSettledExpanded(next);
-  }, [running]);
+  }, [choices, restoreKey, running, runningCollapsed, settledExpanded]);
   return [open, setOpen];
 }
 

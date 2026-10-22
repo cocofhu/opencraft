@@ -63,6 +63,26 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("detail-view-")) {
+      const [, , kind, mode] = action.split("-");
+      const running = mode === "running" || mode === "progress";
+      if (mode === "reset" || mode === "running") { restore = null; setGeneration(value => value + 1); }
+      const output = mode === "append" ? "Updated detail result" : "Original detail result";
+      const item: ThreadItem = kind === "patch" ? {
+        id: "view-patch", type: "fileChange", status: running ? "inProgress" : "completed",
+        changes: [{ path: "/work/view-example.ts", kind: { type: "update", move_path: null },
+          diff: `@@ -1 +1 @@\n-before\n+${output}\n` }],
+      } : kind === "mcp" ? {
+        id: "view-mcp", type: "mcpToolCall", server: "detail-fixture", tool: "inspect",
+        status: running ? "inProgress" : "completed", arguments: {}, appContext: null,
+        result: { content: [{ type: "text", text: output }] }, error: null, durationMs: null,
+      } : {
+        id: "view-dynamic", type: "dynamicToolCall", namespace: "deepseek-harness", tool: "write",
+        status: running ? "inProgress" : "completed", arguments: { path: "/work/view-example.ts", content: output },
+        contentItems: [{ type: "inputText", text: output }], success: running ? null : true, durationMs: null,
+      };
+      setTurn({ id: "turn", status: running ? "streaming" : "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);
