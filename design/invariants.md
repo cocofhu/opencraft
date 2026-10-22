@@ -2573,3 +2573,13 @@ Copy, paste, @ search and saved links share a stable server/thread codec. Displa
 
 
 Token usage people filters select an existing human Actor through the authorized, paginated people usage view. Current display names are presentation metadata, never allocation keys. Selecting a person shows their allocated conversation totals under the retained date/model filters; clearing restores the team view. The optional page never asks users to type an internal Actor ID or obtains other people's directory data through a self query. The Shell still owns the route, scroll and keyboard focus.
+
+### Scheduled task creation
+
+The catalog creates a new durable conversation without starting a Turn. A shared
+utility modal owns transient draft/focus; Host schedule state and recurrence
+remain authoritative. Submission disables closing and duplicate actions. A known
+thread identity is reused after name/save errors; an unknown creation result is
+shown for manual reconciliation, never retried automatically. Server switching
+clears server-specific skills and permissions. The shared modal body scrolls while
+primary and cancel actions remain reachable in short and narrow viewports.

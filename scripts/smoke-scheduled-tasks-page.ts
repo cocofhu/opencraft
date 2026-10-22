@@ -8,6 +8,7 @@ const output = await mkdtemp("/tmp/opencraft-scheduled-tasks-page-");
 const counts: Record<string, number> = {};
 const stamp = Date.now() + 3_600_000;
 let paused = false, failList = false;
+let createdPlan: any = null, createdName = "Created schedule", loseSaveAck = true;
 const source = `
 import React from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
@@ -59,15 +60,15 @@ const vite = await createServer({ configFile: false, root: process.cwd(), cacheD
     configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/" && req.url !== "/feedback") return next(); res.setHeader("content-type", "text/html");res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="app"></div><script type="module" src="'+(req.url === "/feedback" ? "/feedback-proof.tsx" : "/proof.tsx")+'"></script>'); }); } }] });
 const ws = new WebSocketServer({ noServer: true });
 const thread = { id: "scheduled-thread", name: "Synthetic scheduled conversation", preview: "Catalog fixture", cwd: "/synthetic", createdAt: 1, updatedAt: 1, historyMode: "legacy", status: { type: "idle" }, turns: [] };
-function summaries() { return [{ threadId: thread.id, status: paused ? "paused" : "active", nextRunAt: stamp, needsReview: false }, { threadId: "not-paginated", status: "paused", nextRunAt: stamp + 1, needsReview: false }]; }
+function summaries() { return [...(createdPlan ? [{threadId:"new-schedule-thread",status:"active",nextRunAt:createdPlan.nextRunAt,needsReview:false}] : []),{ threadId: thread.id, status: paused ? "paused" : "active", nextRunAt: stamp, needsReview: false }, { threadId: "not-paginated", status: "paused", nextRunAt: stamp + 1, needsReview: false }]; }
 const plan = () => ({ id: "schedule", threadId: thread.id, prompt: "Synthetic prompt", nextRunAt: stamp, intervalMinutes: 60, timeZone: "UTC", status: paused ? "paused" : "active", revision: paused ? 2 : 1, createdBy: null, updatedAt: 1 });
 ws.on("connection", socket => socket.on("message", raw => {
   const { id, method, params } = JSON.parse(String(raw)); if (id == null) return;
   counts[method] = (counts[method] ?? 0) + 1;
   let result: unknown = {};
-  if (method === "initialize") result = { serverInfo: { name: "fixture", version: "1" }, capabilities: { extensions: { "opencraft/conversation-schedules": { version: 1, summary: true } } } };
+  if (method === "initialize") result = { serverInfo: { name: "fixture", version: "1" }, capabilities: { extensions: { "opencraft/conversation-schedules": { version: 1, summary: true, calendar: true } } } };
   else if (method === "thread/list") result = { data: [thread], nextCursor: null };
-  else if (method === "thread/read" || method === "thread/resume") result = { thread };
+  else if (method === "thread/read" || method === "thread/resume") result = { thread: params.threadId === "new-schedule-thread" ? { ...thread, id: params.threadId, name: createdName } : params.threadId === "not-paginated" ? { ...thread, id: params.threadId, name: "Unlisted native conversation" } : thread };
   else if (method === "thread/loaded/list") result = { data: [] };
   else if (method === "thread/items/list" || method === "thread/turns/list") result = { data: [], nextCursor: null };
   else if (method === "model/list" || method === "project/list" || method === "skills/list" || method === "permissionProfile/list") result = { data: [] };
@@ -76,7 +77,10 @@ ws.on("connection", socket => socket.on("message", raw => {
   else if (method === "opencraft/schedules/list") {
     if (failList) { socket.send(JSON.stringify({ id, error: { code: -32000, message: "Synthetic unavailable" } })); return; }
     result = { schedules: summaries() };
-  } else if (method === "opencraft/schedules/read") result = { schedule: plan(), runs: [] };
+  } else if (method === "thread/start") result = { thread: { ...thread, id: "new-schedule-thread" } };
+  else if (method === "thread/name/set") { createdName = params.name; result = {}; }
+  else if (method === "opencraft/schedules/save") { createdPlan = { ...params, id: "new-schedule", status: "active", revision: 1, updatedAt: Date.now(), createdBy: null }; if (loseSaveAck) { loseSaveAck = false; socket.send(JSON.stringify({ id, error: { code: -32000, message: "Synthetic lost acknowledgement" } })); return; } result = {schedule:createdPlan,runs:[]}; }
+  else if (method === "opencraft/schedules/read") result = { schedule: params.threadId === "new-schedule-thread" ? createdPlan : plan(), runs: [] };
   else if (method === "opencraft/schedules/action") { assert.equal(params.action, "pause"); paused = true; result = { schedule: plan(), runs: [] }; for (const client of ws.clients) client.send(JSON.stringify({ method: "opencraft/schedules/changed", params: {} })); }
   socket.send(JSON.stringify({ id, result }));
 }));
@@ -97,6 +101,7 @@ try {
     return { left: content.left - viewport.left, right: viewport.right - content.right, width: content.width };
   });
   assert.ok(inset.left >= 14 && inset.right >= 14 && inset.width <= 760, 'document inset/reading width: '+JSON.stringify(inset));
+  await catalog.getByText("Unlisted native conversation", { exact: true }).waitFor();
   assert.equal(await catalog.locator(".scheduled-tasks-page__row").count(), 2, "task without paginated thread metadata remains visible");
   assert.equal(counts["opencraft/schedules/read"] ?? 0, 0, "catalog has no per-row schedule reads");
   const ids = await page.locator('.shell-sidebar-navigation [data-action-id]').evaluateAll(elements => elements.map(el => el.getAttribute("data-action-id")));
@@ -106,7 +111,7 @@ try {
   await dialog.getByRole("button", { name: "暂停", exact: true }).click(); await dialog.getByText("已暂停", { exact: true }).waitFor();
   await dialog.getByRole("button", { name: "完成", exact: true }).click(); await dialog.waitFor({ state: "detached" });
   assert.equal(counts["opencraft/schedules/action"], 1);
-  await catalog.getByText("已暂停", { exact: true }).first().waitFor();
+  await catalog.getByText("任务已暂停", { exact: true }).first().waitFor();
   console.log("management passed");
   await catalog.getByRole("button", { name: /^打开会话：/ }).first().click();
   await page.waitForFunction(() => (window as any).proof.route().kind === "conversation");
@@ -117,6 +122,7 @@ try {
   const beforeFailure = await catalog.locator(".scheduled-tasks-page__list").boundingBox();
   failList = true; for (const client of ws.clients) client.send(JSON.stringify({ method: "opencraft/schedules/changed", params: {} }));
   await page.getByText("无法刷新定时任务。", { exact: true }).first().waitFor();
+  await catalog.getByText("Unlisted native conversation", { exact: true }).waitFor();
   assert.equal(await catalog.locator(".scheduled-tasks-page__row").count(), 2, "refresh failure preserves known tasks");
   assert.equal(await catalog.getByText("无法刷新定时任务。", { exact: true }).count(), 0, "error is delivered by Toast outside the catalog");
   const afterFailure = await catalog.locator(".scheduled-tasks-page__list").boundingBox();
@@ -144,6 +150,8 @@ try {
   assert.equal(await catalog.locator('.scheduled-tasks-page__group').count(), 4);
   assert.equal(await catalog.getByRole('button', { name: '刷新', exact: true }).count(), 1, 'refresh has one page-wide owner');
   assert.equal(await catalog.locator('.settings-control-group,.settings-control-notice').count(), 0, 'catalog has no nested settings cards');
+  await catalog.locator('[data-state="paused"]').first().getByText('任务已暂停', {exact:true}).waitFor();
+  await catalog.getByText('暂停期间不会自动执行，可在「管理任务」中恢复。', {exact:true}).first().waitFor();
   const mixedEvidence = [];
   for (const theme of ['light','dark']) for (const width of [1440,390,320]) {
     await page.setViewportSize({width,height:920}); await page.evaluate(theme => (window as any).proof.theme(theme),theme);
@@ -152,11 +160,20 @@ try {
       const rect=el.getBoundingClientRect(), viewport=el.closest('.settings-page__viewport')!.getBoundingClientRect();
       const actions=[...el.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].map(b=>({width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height}));
       const title=el.querySelector('h2')!.getBoundingClientRect(), refresh=el.querySelector('button')!.getBoundingClientRect();
-      return {left:rect.left-viewport.left,right:viewport.right-rect.right,width:rect.width,scroll:el.scrollWidth,client:el.clientWidth,actions,titleRight:title.right,refreshLeft:refresh.left};
+      const cards=[...el.querySelectorAll<HTMLElement>('.scheduled-tasks-page__group:first-child .scheduled-tasks-page__row')].map(card=>{
+        const box=card.getBoundingClientRect(), style=getComputedStyle(card);
+        return {x:box.x,y:box.y,right:box.right,bottom:box.bottom,width:box.width,border:parseFloat(style.borderTopWidth),radius:parseFloat(style.borderTopLeftRadius)};
+      });
+      return {left:rect.left-viewport.left,right:viewport.right-rect.right,width:rect.width,scroll:el.scrollWidth,client:el.clientWidth,actions,titleRight:title.right,refreshLeft:refresh.left,cards};
     });
     assert.ok(geometry.left>=14 && geometry.right>=14 && geometry.width<=760, JSON.stringify(geometry));
     assert.ok(geometry.scroll<=geometry.client+1);
-    assert.ok(geometry.titleRight<=geometry.refreshLeft, 'title and refresh retain separate space');
+    assert.equal(geometry.cards.length,3);
+    assert.ok(geometry.cards.every(c=>c.border>=1 && c.radius>0), 'each task has its own visible card boundary');
+    if(width===1440) assert.equal(geometry.cards[0]!.y,geometry.cards[1]!.y,'wide catalog arranges tasks in columns');
+    else assert.ok(geometry.cards[1]!.y>=geometry.cards[0]!.bottom,'narrow catalog stacks complete cards');
+    assert.ok(geometry.cards.every((a,i)=>geometry.cards.every((b,j)=>i===j || a.right<=b.x+1 || b.right<=a.x+1 || a.bottom<=b.y+1 || b.bottom<=a.y+1)),'cards do not overlap');
+    assert.ok(geometry.actions.every(a=>a.width>0), 'wrapped header actions remain reachable');
     assert.ok(geometry.actions.every(a=>a.width>=44 && a.height>=44), 'touch targets use the shared 44px capacity');
     await page.screenshot({path: output+'/mixed-'+theme+'-'+width+'.png'}); mixedEvidence.push({theme,width,geometry});
   }
@@ -168,6 +185,7 @@ try {
   await manage.tap(); await page.getByRole('dialog').waitFor();
   await page.getByRole('dialog').getByRole('button',{name:'完成',exact:true}).tap();
   await page.getByRole('dialog').waitFor({state:'detached'});
+  await page.waitForFunction(el=>document.activeElement===el,await manage.elementHandle());
   assert.equal(await manage.evaluate(el=>document.activeElement===el),true,'manager returns focus to its independent action');
   const listBefore=await catalog.locator('.scheduled-tasks-page__list').first().boundingBox();
   for(const mode of ['refreshing','failure','mixed']) {
@@ -188,6 +206,42 @@ try {
   assert.equal(await keyboardCatalog.locator('.scheduled-tasks-page__destination').first().evaluate(el=>document.activeElement===el),true);
   const focusStyle=await keyboardCatalog.locator('.scheduled-tasks-page__destination').first().evaluate(el=>({style:getComputedStyle(el).outlineStyle,width:getComputedStyle(el).outlineWidth}));
   assert.notEqual(focusStyle.style,'none');assert.ok(parseFloat(focusStyle.width)>0);
+
+  const create = keyboardCatalog.getByRole('button', {name:'新建定时任务',exact:true});
+  await create.click();
+  const createDialog = keyboard.getByRole('dialog', {name:'新建定时任务',exact:true});
+  await createDialog.getByLabel('名称', {exact:true}).fill('原生 Agent 每日汇总');
+  await createDialog.getByLabel('任务说明',{exact:true}).fill('整理项目进展，生成每日摘要');
+  await createDialog.getByRole('button',{name:'周期',exact:true}).click();
+  await createDialog.getByRole('button',{name:'添加时刻',exact:true}).click();
+  await createDialog.getByText('高级设置',{exact:true}).click();
+  const creationEvidence=[];
+  for (const theme of ['light','dark']) for (const width of [1440,390,320]) {
+    await keyboard.setViewportSize({width,height:720});await keyboard.evaluate(theme=>(window as any).proof.theme(theme),theme);
+    const geometry=await createDialog.evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,rect:el.getBoundingClientRect().toJSON(),viewport:innerWidth}));
+    assert.ok(geometry.scroll<=geometry.width+1,JSON.stringify(geometry));
+    assert.ok(geometry.rect.left>=0 && geometry.rect.right<=geometry.viewport+1,JSON.stringify(geometry));
+    const button=createDialog.getByRole('button',{name:'创建任务',exact:true});await button.scrollIntoViewIfNeeded();assert.equal(await button.isEnabled(),true);
+    await keyboard.screenshot({path:output+'/create-'+theme+'-'+width+'.png'});creationEvidence.push({theme,width,geometry});
+  }
+  await createDialog.getByRole('button',{name:'创建任务',exact:true}).click();
+  await keyboard.getByText('未能确认创建结果。已保留草稿及已确认的新会话；重试会先核对服务器状态。',{exact:true}).waitFor();
+  assert.equal(counts['thread/start'],1);assert.ok(createdPlan?.calendar?.times.length===2);
+  assert.equal(await createDialog.getByLabel('名称',{exact:true}).inputValue(),'原生 Agent 每日汇总');
+  await createDialog.getByRole('button',{name:'创建任务',exact:true}).click();
+  await createDialog.waitFor({state:'detached'});
+  assert.equal(counts['thread/start'],1,'save acknowledgement loss never duplicates a thread');
+  assert.equal(counts['opencraft/schedules/save'],1,'retry reconciles an accepted save');
+  assert.equal(counts['turn/start']??0,0,'creation does not submit a first turn');
+  await keyboard.waitForFunction(el=>document.activeElement===el,await create.elementHandle());
+  assert.equal(await create.evaluate(el=>document.activeElement===el),true,'creation restores focus');
+  await keyboard.locator('.scheduled-tasks-page__destination').filter({hasText:'原生 Agent 每日汇总'}).waitFor();
+  await keyboard.reload();
+  await keyboard.locator('.scheduled-tasks-page__destination').filter({hasText:'原生 Agent 每日汇总'}).waitFor();
+  const headingWidth=await keyboard.locator('.scheduled-tasks-page__header > :first-child').evaluate(el=>el.getBoundingClientRect().width);
+  assert.ok(headingWidth>200,'narrow catalog heading retains its reading width: '+headingWidth);
+  await keyboard.screenshot({path:output+'/created-name-after-reload-320.png'});
+  console.log(JSON.stringify({creationEvidence,createdPlan,counts,nativeNameAfterReload:true,headingWidth}));
   await keyboard.close();
   await page.goto(url + "feedback");
   await page.locator(".scheduled-tasks-page__row").waitFor();

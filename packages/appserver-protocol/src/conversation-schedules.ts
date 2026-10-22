@@ -1,4 +1,5 @@
 import type { OpenCraftPermissionProfile } from "./permission-modes";
+import type { ScheduleCalendar, ScheduleWindow } from "./schedule-time";
 
 /** Host-owned schedules. Times are UTC epoch milliseconds; zone is display metadata. */
 export const CONVERSATION_SCHEDULES = {
@@ -11,6 +12,9 @@ export interface ConversationSchedule {
   createdBy: string | null; updatedAt: number;
   /** Omitted/null preserves the engine default for legacy plans. */
   permissions?: string | null;
+  calendar?: ScheduleCalendar | null;
+  window?: ScheduleWindow | null;
+  skills?: string[];
 }
 export type ScheduleRunState = "waiting" | "submitting" | "running" | "completed" | "failed" | "unknown" | "reviewed";
 export interface ConversationScheduleRun {
@@ -27,7 +31,8 @@ export interface ConversationSchedulesMethodMap {
   "opencraft/schedules/list": { params: Record<string, never>; result: { schedules: ConversationScheduleSummary[] } };
   "opencraft/schedules/read": { params: { threadId: string }; result: ConversationScheduleView };
   "opencraft/schedules/save": { params: { threadId: string; expectedRevision: number; prompt: string;
-    nextRunAt: number; intervalMinutes: number | null; timeZone: string; permissions?: string | null }; result: ConversationScheduleView };
+    nextRunAt: number; intervalMinutes: number | null; timeZone: string; permissions?: string | null;
+    calendar?: ScheduleCalendar | null; window?: ScheduleWindow | null; skills?: string[] }; result: ConversationScheduleView };
   "opencraft/schedules/action": { params: { threadId: string; expectedRevision: number;
     action: "pause" | "resume" | "delete" | "run-now" | "review" }; result: ConversationScheduleView };
 }

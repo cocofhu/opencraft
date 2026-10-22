@@ -457,10 +457,31 @@ shared Codex adapter or global native configuration.
 The Scheduled tasks workbench entry projects the same admitted Host summaries
 used by conversation markers. It lists current active/paused plans and unresolved
 acceptance, independently of conversation pagination and personal list filters.
-Each row retains its Host identity, even if conversation metadata has not loaded.
+Each task card retains its Host identity, even if conversation metadata has not loaded.
+The catalog uses a responsive card grid with a task title, explicit task status,
+next execution time where applicable, and conversation/management actions.
+Paused tasks explain that automatic execution is suspended; Host connectivity
+remains a separate group-level state. Cards consume the existing content-free
+summary without per-task schedule reads or an additional execution owner.
 It can navigate through the application Router or open the existing conversation
-schedule editor; creation remains in the conversation menu. Summary reads contain
+schedule editor. The catalog also creates schedules using an admitted Host’s
+thread/start and schedule/save operations; no first Turn is submitted at creation.
+Confirmed thread receipts are retained across name/save failures; ambiguous
+thread creation is never automatically replayed. Host scope is fenced before
+every request. Hosts advertising calendar support accept local daily/weekly/
+monthly rules, multiple times and optional effective windows. The Host computes
+future UTC occurrences using the saved IANA zone; nonexistent wall times and
+month days are skipped and ambiguous wall times run once. Fixed intervals retain
+their original phase and may filter weekdays. Skills are passed as explicit
+instructions to the native agent. Existing conversation editing preserves these
+advanced fields. Summary reads contain
 no prompts or execution history and never acquire conversation execution ownership.
 Unsupported, offline, loading, failed and genuinely empty Host catalogs are distinct;
-same-scope cached plans survive transient disconnects. Editor requests fence the
+same-scope cached plans survive transient disconnects. An idle connection recipe
+without a negotiated schedule-summary capability or a same-scope successful
+summary is not rendered as a disconnected scheduling Server. Previously confirmed
+catalogs remain visible during disconnection; discovery does not connect idle
+Hosts merely to populate this page. Editor requests fence the
 captured Host/profile/authorization scope, with backend revision checks unchanged.
+
+The scheduled task catalog resolves names for durable conversations missing from `thread/list` through metadata-only `thread/read`, under the same Host admission and authorization fences. This does not start a Turn or create a second title authority; failed metadata reads retain the plan with its conversation ID. Reads are limited to four concurrent requests per Host.

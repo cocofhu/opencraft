@@ -1093,7 +1093,7 @@ export class CodexEngineAdapter implements DuplexTransport {
         const value = record(this.initializeResult), capabilities = record(value.capabilities), extensions = record(capabilities.extensions);
         const access = record(extensions[OPENCRAFT_METHOD_ACCESS_EXTENSION]);
         this.initializeResult = { ...value, capabilities: { ...capabilities, extensions: { ...extensions,
-          [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true },
+          [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true, calendar: true },
           ...(Array.isArray(access.methods) ? { [OPENCRAFT_METHOD_ACCESS_EXTENSION]: { ...access, methods: [...new Set([...access.methods, ...Object.values(CONVERSATION_SCHEDULES)])] } } : {}),
         } } };
       }

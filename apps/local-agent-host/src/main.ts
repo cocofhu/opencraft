@@ -678,7 +678,7 @@ export async function startLocalAgentHost(options: {
               extensions: {
                 ...initialized.capabilities?.extensions,
                 [OPENCRAFT_ATTACHMENT_STAGING_EXTENSION]: attachmentStaging.capability,
-                [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true },
+                [CONVERSATION_SCHEDULES_EXTENSION]: { version: 1, target: "existing-thread", repeat: "fixed-interval", summary: true, calendar: true },
               },
             },
           };

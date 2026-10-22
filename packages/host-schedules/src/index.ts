@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { openManagedDatabase, createSchemaValidator } from "@opencraft/sqlite-node";
 import type { ConversationSchedule, ConversationScheduleRun, ConversationScheduleView, ConversationScheduleSummary, OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
+import { nextCalendarRun, nextIntervalRun, validScheduleCalendar, validScheduleWindow } from "@opencraft/appserver-protocol";
 
 /** Engine boundary: a stable occurrence ID must survive retries and Host restarts.
  * submit must not steer. An ambiguous acceptance must return unknown, never throw
@@ -114,9 +115,19 @@ export class ConversationSchedules {
           || !(p.intervalMinutes === null || Number.isInteger(p.intervalMinutes) && Number(p.intervalMinutes) >= 1 && Number(p.intervalMinutes) <= 525600)
           || typeof p.timeZone !== "string") fault();
         try { new Intl.DateTimeFormat("en", { timeZone: p.timeZone }); } catch { fault(); }
+        // Older editors preserve advanced rules rather than silently converting them.
+        const calendar = p.calendar === undefined ? prior?.calendar ?? null : p.calendar;
+        const window = p.window === undefined ? prior?.window ?? null : p.window;
+        const skills = p.skills === undefined ? prior?.skills ?? [] : p.skills;
+        if (calendar !== null && (!validScheduleCalendar(calendar) || p.intervalMinutes !== null)
+          || window !== null && !validScheduleWindow(window)
+          || !Array.isArray(skills) || skills.length > 32 || skills.some(s => typeof s !== "string" || !s.trim() || s.length > 512)) fault();
+        const nextRunAt = calendar ? nextCalendarRun(calendar, p.timeZone, Math.max(now, Number(p.nextRunAt)), window)
+          : p.intervalMinutes !== null ? nextIntervalRun(Number(p.nextRunAt), Number(p.intervalMinutes), p.timeZone, Math.max(now, Number(p.nextRunAt)), window) : Number(p.nextRunAt);
+        if (nextRunAt === null || window && (nextRunAt < (window.startAt ?? -Infinity) || nextRunAt >= (window.endAt ?? Infinity))) fault();
         this.writeSchedule({ id: prior?.status !== "deleted" && prior ? prior.id : randomUUID(), threadId, prompt: p.prompt.trim(),
           permissions: p.permissions === undefined ? prior?.permissions ?? null : p.permissions as string | null,
-          nextRunAt: Number(p.nextRunAt), intervalMinutes: p.intervalMinutes as number | null, timeZone: p.timeZone,
+          nextRunAt, intervalMinutes: p.intervalMinutes as number | null, timeZone: p.timeZone, calendar, window, skills,
           status: "active", revision: (prior?.revision ?? 0) + 1, createdBy: prior && prior.status !== "deleted" ? prior.createdBy : createdBy, updatedAt: now });
       } else {
         if (!prior || prior.status === "deleted" && p.action !== "review") fault();
@@ -132,7 +143,10 @@ export class ConversationSchedules {
           value.status = p.action === "pause" ? "paused" : "deleted";
           if (pending?.state === "waiting") this.writeRun({ ...pending, state: "failed", updatedAt: now });
         } else if (p.action === "resume") {
-          value.status = "active"; value.nextRunAt = Math.max(now, prior.nextRunAt);
+          const next = prior.calendar ? nextCalendarRun(prior.calendar, prior.timeZone, Math.max(now, prior.nextRunAt), prior.window)
+            : prior.intervalMinutes !== null ? nextIntervalRun(prior.nextRunAt, prior.intervalMinutes, prior.timeZone, now, prior.window) : Math.max(now, prior.nextRunAt);
+          if (next === null || prior.window?.endAt != null && next >= prior.window.endAt) throw new ScheduleFault(-32602, "Schedule has no future occurrence");
+          value.status = "active"; value.nextRunAt = next;
         } else {
           this.writeRun({ id: `schedule:${prior.id}:manual:${value.revision}`, scheduleId: prior.id, threadId,
             scheduledAt: now, state: "waiting", turnId: null, updatedAt: now, permissions: prior.permissions ?? null });
@@ -169,6 +183,13 @@ export class ConversationSchedules {
       if (this.stopped) break;
       let plan = this.schedule(snapshot.threadId)!;
       let run = this.runs(plan.threadId).find(value => unfinished.has(value.state));
+      if (plan.status === "active" && plan.window?.endAt != null && this.now() >= plan.window.endAt && (!run || run.state === "waiting")) {
+        this.transaction(() => {
+          if (run) this.writeRun({ ...run, state: "failed", updatedAt: this.now() });
+          this.writeSchedule({ ...plan, status: "completed", revision: plan.revision + 1, updatedAt: this.now() });
+        });
+        continue;
+      }
       if (!run && plan.status === "active" && plan.nextRunAt <= this.now()) {
         run = { id: `schedule:${plan.id}:${plan.nextRunAt}`, scheduleId: plan.id, threadId: plan.threadId,
           scheduledAt: plan.nextRunAt, state: "waiting", turnId: null, updatedAt: this.now(), permissions: plan.permissions ?? null };
@@ -181,7 +202,8 @@ export class ConversationSchedules {
           // Persist intent before crossing the engine boundary. Re-entry uses the SAME ID.
           if (run.state === "waiting") { run = { ...run, state: "submitting", updatedAt: this.now() }; this.writeRun(run); }
           const occurrence = run;
-          const result = await this.port.submit(run, plan.prompt, () => {
+          const prompt = plan.skills?.length ? `${plan.prompt}\n\nUse these installed skills for this task: ${plan.skills.join(", ")}` : plan.prompt;
+          const result = await this.port.submit(run, prompt, () => {
             const current = this.schedule(occurrence.threadId);
             return !this.stopped && current?.id === occurrence.scheduleId && current.status === "active";
           });
@@ -195,9 +217,11 @@ export class ConversationSchedules {
           this.writeRun(settled);
           plan = this.schedule(plan.threadId)!;
           if ((settled.state === "completed" || settled.state === "failed") && plan.status === "active" && !settled.id.includes(":manual:")) {
-            const step = plan.intervalMinutes === null ? null : plan.intervalMinutes * 60000;
-            this.writeSchedule({ ...plan, status: step === null ? "completed" : "active",
-              nextRunAt: step === null ? plan.nextRunAt : plan.nextRunAt + Math.max(1, Math.floor((this.now() - plan.nextRunAt) / step) + 1) * step,
+            const after = Math.max(this.now(), plan.nextRunAt) + 1;
+            const next = plan.calendar ? nextCalendarRun(plan.calendar, plan.timeZone, after, plan.window)
+              : plan.intervalMinutes !== null ? nextIntervalRun(plan.nextRunAt, plan.intervalMinutes, plan.timeZone, after, plan.window) : null;
+            this.writeSchedule({ ...plan, status: next === null ? "completed" : "active",
+              nextRunAt: next ?? plan.nextRunAt,
               revision: plan.revision + 1, updatedAt: this.now() });
           }
         });
