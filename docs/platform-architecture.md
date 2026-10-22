@@ -234,6 +234,11 @@ can use saved SSH credentials in this mode; it is not a member ACL. Operators
 can require an extra key with `--ssh-require-access-key` or `--ssh-access-file`.
 The Application owns bootstrap/renewal and authorization incarnation, not a
 Settings mount; known session loss clears old private projections before renewal.
+Every private AppHost connection attempt also awaits this owner's coalesced
+session check and shared renewal before creating a WebSocket. Recovery does not
+depend on foreground discovery timers, and cancelled or disposed attempts cannot
+open a socket after a late grant. Access-key mode never bootstraps without a key;
+the public AppHost channel does not perform this private admission check.
 Legacy servers without the policy declaration still require manual key admission.
 Bootstrap never dials SSH or replays connection/execution/file mutations. The
 explicit management Connect command uses AppHost's service-owned admission, not
