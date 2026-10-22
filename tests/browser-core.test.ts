@@ -73,6 +73,7 @@ test("fit browser viewport keeps logical size while contain-scaling visual bound
       stageBounds: { x: 300, y: 80, width: 700, height: 720 },
       visualBounds: { x: 320, y: 80, width: 660, height: 413 },
       viewportSize: { width: 1440, height: 900 },
+      deviceProfile: "desktop",
       scale: 660 / 1440,
     },
   );

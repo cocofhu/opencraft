@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "workload": {
-    "version": 1,
-    "sha256": "7d3becb3fc4d96f26c835eed9d291c8efe3b893f2a2d4d3e08555c7c08edd05a",
+    "version": 2,
+    "sha256": "21d7e0ec942cd1924bea2ba45979dcebbc42f4af939f7730e2e4d40073973151",
     "scenarios": {
       "catalog-desktop": [
         "firstPaintMs",
@@ -28,6 +28,18 @@
         "firstPaintMs",
         "readyMs"
       ],
+      "session-navigation-cold-desktop": [
+        "firstPaintMs"
+      ],
+      "session-navigation-cached-desktop": [
+        "firstPaintMs"
+      ],
+      "session-navigation-cold-narrow": [
+        "firstPaintMs"
+      ],
+      "session-navigation-cached-narrow": [
+        "firstPaintMs"
+      ],
       "sidebar-update-30": [
         "ms"
       ],
@@ -43,6 +55,13 @@
     },
     "samples": 10,
     "warmupWorkbench": 1,
+    "navigation": {
+      "rpcDelayMs": 40,
+      "cachedResources": "cold",
+      "initialize": "held-until-cached-paint",
+      "serve": "compressed-release",
+      "warmup": 1
+    },
     "profiles": {
       "desktop": {
         "width": 1100,
@@ -68,7 +87,29 @@
     "arch": "x64",
     "cpu": "Intel(R) Xeon(R) Platinum 8361HC CPU @ 2.60GHz",
     "cpuCount": 64,
-    "browser": "156.0.8078.4"
+    "browser": "156.0.8078.4",
+    "navigationExtension": {
+      "timestamp": "2026-10-19T11:42:42.321Z",
+      "sourceRevision": "c14c8789ec8716c49187ae27cbcb1d559917988f",
+      "dirty": true,
+      "node": "v26.7.0",
+      "platform": "linux",
+      "arch": "x64",
+      "cpu": "Intel(R) Xeon(R) Platinum 8361HC CPU @ 2.60GHz",
+      "cpuCount": 64,
+      "navigationBuild": {
+        "schemaVersion": 1,
+        "buildId": "20261019114243-b87ebbc7950a",
+        "builtAt": "2026-10-19T11:42:43.915Z",
+        "sourceRevision": null,
+        "appServerProtocolVersion": null,
+        "headlessServer": true,
+        "headlessHostId": "opencraft-server"
+      },
+      "navigationBrowser": "156.0.8078.4",
+      "browser": "156.0.8078.4",
+      "retainedPriorScenarioBaseline": "7d3becb3fc4d96f26c835eed9d291c8efe3b893f2a2d4d3e08555c7c08edd05a"
+    }
   },
   "scenarios": {
     "session-desktop": {
@@ -185,6 +226,38 @@
         "p95": 541.7000000476837,
         "relativeTolerance": 0.3,
         "absoluteToleranceMs": 50
+      }
+    },
+    "session-navigation-cold-desktop": {
+      "firstPaintMs": {
+        "p50": 1023.75,
+        "p95": 1145.5,
+        "relativeTolerance": 0.3,
+        "absoluteToleranceMs": 100
+      }
+    },
+    "session-navigation-cached-desktop": {
+      "firstPaintMs": {
+        "p50": 513.9500000476837,
+        "p95": 668.1000000238419,
+        "relativeTolerance": 0.3,
+        "absoluteToleranceMs": 100
+      }
+    },
+    "session-navigation-cold-narrow": {
+      "firstPaintMs": {
+        "p50": 2870.599999964237,
+        "p95": 3269.1999999284744,
+        "relativeTolerance": 0.3,
+        "absoluteToleranceMs": 100
+      }
+    },
+    "session-navigation-cached-narrow": {
+      "firstPaintMs": {
+        "p50": 2081.899999976158,
+        "p95": 2267.600000023842,
+        "relativeTolerance": 0.3,
+        "absoluteToleranceMs": 100
       }
     }
   }

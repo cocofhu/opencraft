@@ -58,6 +58,50 @@ test("schema choices, defaults and typed validation retain ordered data", () => 
   }
 });
 
+test("array item anyOf preserves titled choices and supports required form submission", () => {
+  const alternatives = [{ const: "safe", title: "Safe mode" }, { const: "fast", title: "Fast mode" }, { const: 7 }];
+  const fields = schema({ required: ["tags"], properties: {
+    tags: { type: "array", items: { anyOf: alternatives } },
+    withDefault: { type: "array", items: { anyOf: alternatives }, default: ["safe"] },
+    precedence: { type: "array", enum: ["outer"], items: { anyOf: alternatives } },
+    explicit: { type: "array", oneOf: [{ const: "explicit", title: "Explicit" }], items: { anyOf: alternatives } },
+  } });
+  const choices = [{ value: "safe", label: "Safe mode" }, { value: "fast", label: "Fast mode" }];
+  assert.deepEqual(fields[0].options, choices);
+  assert.deepEqual(fields[1].options, choices);
+  assert.deepEqual(fields[2].options, choices);
+  assert.deepEqual(fields[3].options, [{ value: "explicit", label: "Explicit" }]);
+  const draft = createMcpElicitationDraft(fields);
+  assert.equal(validate(fields, draft).errors.tags, "Select at least one option");
+  assert.deepEqual(validate(fields, { ...draft, tags: ["fast"] }), {
+    content: { tags: ["fast"], withDefault: ["safe"] }, errors: {},
+  });
+});
+
+test("browser origin approvals retain offered persistence with bounded fallback routing", () => {
+  const request = { origin: "https://example.test", persist: ["session", "always"] };
+  const context = { serverName: "browser", requestedSchema: { type: "object", properties: {} } };
+  for (const serverName of ["browser", "browser-use"]) {
+    const result = metadata("form", request, { ...context, serverName });
+    assert.equal(result.interactionKind, "tool-approval");
+    assert.deepEqual(result.persist, ["session", "always"]);
+    assert.equal(result.toolApproval?.connectorId, serverName);
+    assert.deepEqual(result.toolApproval?.toolParams, {});
+  }
+  assert.equal(metadata("openai/form", { ...request, persist: "session" }, context).interactionKind, "tool-approval");
+  for (const origin of [undefined, "", "  ", 3]) assert.equal(metadata("form", { ...request, origin }, context).interactionKind, "form");
+  assert.equal(metadata("form", { ...request, persist: [] }, context).interactionKind, "form");
+  assert.equal(metadata("form", request, { ...context, serverName: "other" }).interactionKind, "form");
+  assert.equal(metadata("form", request, { ...context, requestedSchema: { properties: { name: { type: "string" } } } }).interactionKind, "form");
+  assert.equal(metadata("url", request, context).interactionKind, "url-action");
+  const explicit = metadata("form", { ...request, codex_approval_kind: "mcp_tool_call", connector_id: "custom", tool_name: "open", tool_params: { target: "page" } }, context);
+  assert.equal(explicit.toolApproval?.connectorId, "custom");
+  assert.deepEqual(explicit.toolApproval?.toolParams, { target: "page" });
+  const suggestion = { ...request, codex_approval_kind: "tool_suggestion", suggest_type: "enable", suggest_reason: "Browse", tool_type: "connector", tool_id: "web", tool_name: "Web" };
+  assert.equal(metadata("form", suggestion, context).interactionKind, "tool-suggestion");
+  assert.equal(metadata("form", { ...suggestion, tool_id: 3 }, context).interactionKind, "tool-approval");
+});
+
 test("display boundaries preserve complete values and tolerate circular input", () => {
   assert.equal(display("x".repeat(120)).isExpandable, false);
   assert.equal(display("x".repeat(121)).isExpandable, true);

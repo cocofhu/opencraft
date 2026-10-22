@@ -1,3 +1,4 @@
+import { ThreadPinWriter } from "./thread-pin-writer";
 import type { ConversationScheduleSummary } from "@opencraft/appserver-protocol";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createCodexContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
@@ -79,7 +80,7 @@ import {
   type Context,
   type ReactNode,
 } from "react";
-import { composerCapabilitiesOptions, invalidateComposerCapabilities } from "./composer-capabilities-query";
+import { cachedComposerModelMetadata, composerCapabilitiesOptions, invalidateComposerCapabilities } from "./composer-capabilities-query";
 import { catalogCachedAt, managedCatalogDiscoveryPhase, mergeThreadCatalogPages, sidebarThreadCatalogQueryKey, threadCatalogPhase, type HostThreadCatalogState } from "./thread-catalog-query";
 
 import { subscribeHostCatalogReadiness } from "./host-catalog-readiness";
@@ -239,7 +240,7 @@ export function AppServerRuntimeProvider({
       delete: async (hostId, id) => { const port = await manager(hostId, "delete"); await port.delete!(id); },
       archive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.archive!(id); },
       unarchive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.unarchive!(id); },
-      fork: async (hostId, id) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id })).id; },
+      fork: async (hostId, id, lastTurnId) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id, excludeTurns: true, ...(lastTurnId === undefined ? {} : { lastTurnId }) })).id; },
       listArchived: async hostId => {
         const port = await manager(hostId, "archive");
         const all: Array<{ id: string; name?: string | null; preview?: string }> = [];
@@ -387,6 +388,27 @@ export function useAppServerHosts(): AppServerHostCatalog {
   const value = useContext(ApplicationRuntimeContext);
   if (value === null) throw new Error("AppServerRuntimeProvider is missing");
   return value;
+}
+
+/** The private application context captures connection authority for UI intents. */
+export function useThreadPinWriter(): ThreadPinWriter {
+  const application = useContext(ApplicationRuntimeContext);
+  const queryClient = useQueryClient();
+  if (application === null) throw new Error("AppServerRuntimeProvider is missing");
+  return useMemo(() => new ThreadPinWriter(queryClient, {
+    capture: key => {
+      const owner = application.registry.peekRuntime(key.hostId);
+      const generation = owner?.getSnapshot().connectionGeneration;
+      const profile = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId);
+      const authorizationEpoch = () => profile?.hostKind === "remote-ssh" ? application.managedHostCatalog?.getAuthorizationEpoch() : null;
+      const epoch = authorizationEpoch();
+      return () => owner !== null && application.registry.peekRuntime(key.hostId) === owner
+        && owner.getSnapshot().phase === "ready" && owner.getSnapshot().connectionGeneration === generation
+        && application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId)?.revision === profile?.revision
+        && authorizationEpoch() === epoch;
+    },
+    persist: (key, pinned) => application.threadManagement.setPinned(key.hostId, key.threadId, pinned),
+  }), [application.registry, application.hostProfiles, application.managedHostCatalog, application.threadManagement, queryClient]);
 }
 
 /** Observe one Host, independently of the currently presented conversation. */
@@ -741,7 +763,7 @@ export function useMultiHostThreadCatalog(): {
       }
     };
     const protocol: import("@opencraft/workbench-runtime").AppServerProtocolResourcePort = {
-      request: (method, params) => runtime!.resources.protocol.request(method, params),
+      request: (method, params, options) => runtime!.resources.protocol.request(method, params, options),
     };
     const scope = {
       key: JSON.stringify([host.hostId, profile.revision, epoch, generation, available]),
@@ -828,11 +850,13 @@ export function useProjectCatalog(): ProjectCatalogSnapshot {
 export interface ComposerCatalogSnapshot {
   readonly personalDefaultsPending: boolean;
   readonly models: readonly Model[];
+  readonly displayModels: readonly Model[];
   readonly permissionProfiles: readonly PermissionProfileSummary[];
   readonly isFetching: boolean;
   readonly modelError: Error | null;
   readonly permissionProfileError: Error | null;
   readonly newThreadDefaults: {
+    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
   } | null;
@@ -867,7 +891,7 @@ export function useComposerCatalog(
   const readAccountScope = useCallback(() => application.threadAttention.getScope() ?? "anonymous", [application.threadAttention]);
   const accountScope = useSyncExternalStore(application.threadAttention.subscribe, readAccountScope);
   const displayScope = useSyncExternalStore(application.displayContinuity.subscribe, application.displayContinuity.getScope);
-  const personalDefaults = useAccountModelDefaults(application.platformAccounts, snapshot.hostId, runtimeHostConfiguration);
+  const personalDefaults = useAccountModelDefaults(application.platformAccounts, snapshot.hostId, runtimeHostConfiguration && threadId === null);
   const rememberedSelection = !runtimeHostConfiguration ? undefined : personalDefaults.authoritative ? personalDefaults.selection : readModelSelection(preferenceSnapshot.values["chat.modelSelections"],
     runtimeHostConfiguration ? { displayScope, accountScope, hostId: snapshot.hostId } : null);
   const enabled = snapshot.phase === "ready";
@@ -886,7 +910,7 @@ export function useComposerCatalog(
   );
   const defaults = useQuery({
     queryKey: defaultsKey,
-    enabled,
+    enabled: enabled && threadId === null,
     retry: false,
     queryFn: async () => {
       try {
@@ -907,7 +931,7 @@ export function useComposerCatalog(
     readonly model: string;
     readonly effort: string | null;
   }, hostId: string = snapshot.hostId) => {
-    if (!runtimeHostConfiguration
+    if (!runtimeHostConfiguration || threadId !== null
       || readAccountScope() !== accountScope
       || application.displayContinuity.getScope() !== displayScope) return;
     if (personalDefaults.authoritative) {
@@ -917,7 +941,7 @@ export function useComposerCatalog(
     // Standalone clients without an account authority retain installation memory.
     // Personal selections never mutate shared Host configuration.
     void rememberModelSelection(preferences, { displayScope, accountScope, hostId }, next).catch(() => undefined);
-  }, [runtimeHostConfiguration, accountScope, readAccountScope, displayScope, application, preferences, snapshot.hostId, personalDefaults.authoritative, personalDefaults.remember]);
+  }, [runtimeHostConfiguration, threadId, accountScope, readAccountScope, displayScope, application, preferences, snapshot.hostId, personalDefaults.authoritative, personalDefaults.remember]);
   const catalogActions = useMemo(() => ({
     onModelMenuOpen: () => {
       if (!enabled) return;
@@ -954,17 +978,20 @@ export function useComposerCatalog(
     [permissionProfiles.data],
   );
 
+  const currentModels = capabilities.data?.metadataReader === runtime.resources.composerCatalog ? capabilities.data.models : undefined;
   return {
     personalDefaultsPending: personalDefaults.isPending,
-    models: capabilities.data?.models ?? [],
+    models: currentModels ?? [],
+    displayModels: currentModels ?? cachedComposerModelMetadata(queryClient, snapshot.hostId, runtime.resources.composerCatalog),
     permissionProfiles: permissionProfileData,
     isFetching: capabilities.isFetching || permissionProfiles.isFetching || personalDefaults.isFetching,
     modelError: personalDefaults.error ? errorOrNull(personalDefaults.error) : capabilities.error ? new Error(`${capabilities.data ? "能力目录刷新失败，当前显示上次结果" : "能力目录加载失败"}：${errorOrNull(capabilities.error)!.message}`) : null,
     permissionProfileError: errorOrNull(permissionProfiles.error),
-    newThreadDefaults: rememberedSelection ?? (defaults.data?.supported === true
-      ? { model: defaults.data.model, effort: defaults.data.effort }
+    newThreadDefaults: rememberedSelection ? { ...rememberedSelection, serviceTier: defaults.data?.supported === true ? defaults.data.serviceTier : undefined } : (defaults.data?.supported === true
+      ? { model: defaults.data.model, effort: defaults.data.effort, serviceTier: defaults.data.serviceTier }
       : null),
-    rememberModelDefaults: runtimeHostConfiguration
+    // Historical conversation edits belong only to their existing Composer.
+    rememberModelDefaults: runtimeHostConfiguration && threadId === null
       ? rememberModelDefaults
       : undefined,
     ...catalogActions,

@@ -1,7 +1,7 @@
 import type { ConnectorDefinition, ConnectorField } from "./contract";
 
-// Service identities and setup recipes adapted from Octop ae65fe4 (MIT).
-// Visuals, execution, credentials and lifecycle are OpenCraft-owned. See NOTICE.md.
+// Connector setup metadata; host services own execution and credentials.
+// See ../NOTICE.md for third-party notices.
 const secret = (key: string, label: string, required = true): ConnectorField => ({ key, label, secret: true, required });
 const field = (key: string, label: string, required = true): ConnectorField => ({ key, label, secret: false, required });
 const token = [secret("token", "访问令牌")];
