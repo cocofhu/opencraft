@@ -2052,7 +2052,13 @@ export function createAppServerWorkbenchRuntime(
         setRecoveryVisibility(next: boolean) {
           if (released || visible === next) return;
           visible = next; binding.visibleCount += next ? 1 : -1;
-          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) restoreResources();
+          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) {
+            // Promote this binding's pending recovery without revalidating peer
+            // Threads or restoring Host resources on ordinary navigation.
+            void recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
+              run: () => hydrateBinding(binding, false), retryable: retryableHistoryFailure,
+            }).catch(() => undefined);
+          }
         },
         getSnapshot: binding.runtime.getSnapshot,
         retryRestore() {
