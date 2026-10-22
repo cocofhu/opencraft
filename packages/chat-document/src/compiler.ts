@@ -17,6 +17,7 @@ import {
   type ChatDocumentDialect,
 } from "./preprocess";
 import { findStableMarkdownPrefix } from "./streaming/code-boundary";
+import { jsonBlockTokenizer } from "./json-block";
 
 type MarkdownToken = Record<string, unknown>;
 
@@ -295,6 +296,18 @@ function mapBlockTokens(
     switch (type) {
       case "space":
         break;
+      case "bareJson": {
+        const prefix = string(token.prefix);
+        if (prefix.trim()) nodes.push({
+          ...emptyBase("paragraph", range(start, prefix)),
+          children: mapInlineTokens(tokens(token.tokens), prefix.trimEnd(), start),
+        });
+        nodes.push({
+          ...emptyBase("code-fence", range(start + prefix.length, string(token.text))),
+          language: "json", code: string(token.text), meta: null,
+        });
+        break;
+      }
       case "paragraph":
       case "text": {
         const directive = parseDirective(raw, sourceRange);
@@ -617,14 +630,14 @@ const assistantMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, jsonBlockTokenizer],
 });
 
 const userMessageMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer, jsonBlockTokenizer],
 });
 
 function lex(markdown: string, dialect: ChatDocumentDialect): readonly MarkdownToken[] {

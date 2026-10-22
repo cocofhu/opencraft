@@ -37,6 +37,8 @@ test("streaming prefix cache preserves full-parser semantics at every input spli
     "$$\na\n\nb\n$$\n\nnext",
     "<div>\ninside\n\nmore\n</div>\n\nnext",
     "same\n\nsame\n\nsame",
+    'Before\n\n{\n  "nested": {\n    "value": true\n  }\n}after\n\nnext',
+    '请使用 "sampleServer": {\n    "url": "https://example.test"\n\n}这个来提交',
   ];
   for (const dialect of ["assistant", "user-message"] as const) {
     for (const source of examples) {
@@ -485,4 +487,37 @@ test("Han emphasis relaxation preserves code, escaped delimiters and English pun
   assert.equal(flatten(parsed.nodes).filter(node => node.kind === "strong").length, 1);
   assert.ok(flatten(parsed.nodes).some(node => node.kind === "inline-code" && node.code === '**。**后文'));
   assert.equal(chatDocumentPlainText(compiler.compile('是***“还在输出').nodes).trimEnd(), '是***“还在输出');
+});
+
+
+test("Bare multiline JSON and named configuration stay in one lossless code block", () => {
+  const config = '"sampleServer": {\n    "url": "https://example.test/mcp",\n\n  "timeout": 20000,\n\n  "headers": {\n\n  "PRIVATE-TOKEN": "REDACTED"\n    },\n\n  "transportType": "streamable-http"\n}';
+  for (const code of [config, `{${config}}`, '[\n  {"value": "escaped \\\" } [ and **literal**"},\n  true\n]']) {
+    const source = `请使用  ${code}这个来提交`;
+    for (const dialect of ["assistant", "user-message"] as const) {
+      const compiler = new ChatDocumentCompiler();
+      for (const streaming of [false, true]) {
+        const parsed = compiler.compile(source, { dialect, streaming });
+        assert.equal(parsed.source, source);
+        const blocks = flatten(parsed.nodes).filter(node => node.kind === "code-fence");
+        assert.equal(blocks.length, 1, source);
+        assert.equal(blocks[0].code, code);
+        assert.equal(blocks[0].language, "json");
+        assert.equal(source.slice(blocks[0].sourceRange.start, blocks[0].sourceRange.end), code);
+        assert.match(chatDocumentPlainText(parsed.nodes), /这个来提交/u);
+      }
+    }
+  }
+});
+
+test("JSON recognition preserves fences, inline snippets, Markdown containers and invalid input", () => {
+  const compiler = new ChatDocumentCompiler();
+  for (const source of ['{"inline": true}', '`{"inline": true}`', '{\n  "value": invalid\n}', '{\n  "value": true', '- list\n  continuation', '> quote\n> continuation']) {
+    assert.equal(flatten(compiler.compile(source).nodes).some(node => node.kind === "code-fence" && node.language === "json"), false, source);
+  }
+  const source = '```text\n{\n  "literal": true\n}\n```';
+  const blocks = flatten(compiler.compile(source).nodes).filter(node => node.kind === "code-fence");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].language, "text");
+  assert.equal(blocks[0].code, '{\n  "literal": true\n}');
 });

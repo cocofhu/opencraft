@@ -2322,3 +2322,14 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Pasted multiline JSON
+
+The shared document compiler recognizes complete multiline JSON objects, arrays
+and a single named object/array member before Markdown indentation splits them.
+Plain introductory and trailing prose remain separate reading content. The JSON
+uses the existing code surface with the `json` language; its text and canonical
+source remain unchanged. Recognition validates structure without repairing or
+reserializing it. Explicit fenced code retains its declared language, while
+inline, invalid and incomplete JSON keep ordinary Markdown semantics.
