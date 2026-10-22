@@ -65,6 +65,8 @@ export const frame = {
   sidebarUnifiedMinWidth: sidebarListMinimumWidth + sidebarIconRailWidth,
   sidebarMinWidth: sidebarListMinimumWidth,
   sidebarMaxWidth: 520,
+  /** Mobile drawer keeps full-size controls in a narrower reading column. */
+  sidebarMobileWidthRatio: 0.90,
   rightPanelDefaultWidth: 600,
   rightPanelMinWidth: 320,
   rightPanelMaxWidth: 640,
@@ -386,10 +388,9 @@ export const opencraftShadowTokens = {
 
 /** Artwork scale is a product choice, separate from color and typography. */
 export const workbenchIconMetrics = {
-  // Downstream Agent Console: frontend/src/styles.css .lv-agents-nav-icon.
   // Generic controls retain Lucide's default stroke; navigation has its own role.
   core: { stroke: 2, navigation: 14, settings: 16, panel: 14, work: 15, chrome: 16 },
-  vela: { stroke: 2, navigation: 15, settings: 16, panel: 14, work: 15, chrome: 16 },
+  classic: { stroke: 2, navigation: 15, settings: 16, panel: 14, work: 15, chrome: 16 },
   navigation: { stroke: 2, selectedStroke: 2.5 },
   coreNavigation: { stroke: 1.8 },
 } as const;

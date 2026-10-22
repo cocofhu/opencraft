@@ -18,7 +18,7 @@ const optionalManifest: ExtensionManifestV1 = {
 };
 
 /** A local composition fixture, with no account, remote service or private plugin. */
-export function createSmokeClientProduct(trace: string[] = [], includeOptional = true): ClientWorkbenchProduct {
+export function createSmokeClientProduct(trace: string[] = [], includeOptional = true, useCorePersistence = false): ClientWorkbenchProduct {
   return {
     bootstrap() { trace.push("product.bootstrap"); },
     async create() {
@@ -35,13 +35,13 @@ export function createSmokeClientProduct(trace: string[] = [], includeOptional =
         },
       };
       return {
-        persistenceScope: {
+        ...(useCorePersistence ? {} : { persistenceScope: {
           getSnapshot: () => scope,
           subscribe() {
             trace.push("scope.subscribe");
             return () => { trace.push("scope.unsubscribe"); };
           },
-        },
+        } }),
         extensions: () => [{ manifest: ownerManifest, activate() {
           trace.push("owner.activate");
           return () => { trace.push("owner.dispose"); };

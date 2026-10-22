@@ -419,6 +419,52 @@ try {
     await page.close();
   }
 
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&scenario=images`);
+    await page.locator("[data-phase]").waitFor();
+    const collapsed = page.locator('.thread-agent-activity__group button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await collapsed.count() > 0; index++) await collapsed.first().click();
+    const disclosure = page.getByRole("button", { name: "Inspect images · Completed", exact: true });
+    if (await disclosure.getAttribute("aria-expanded") !== "true") await disclosure.click();
+    const measureImages = async () => {
+      await page.waitForFunction(() => {
+        const images = [...document.querySelectorAll<HTMLImageElement>(".thread-tool-details img")];
+        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+      });
+      return page.locator(".thread-tool-details img").evaluateAll(images => images.map(element => {
+        const image = element as HTMLImageElement;
+        const rect = image.getBoundingClientRect();
+        const section = image.closest("section")!;
+        return { width: rect.width, height: rect.height, bottom: rect.bottom,
+          nextTop: section.nextElementSibling!.getBoundingClientRect().top,
+          availableWidth: image.closest(".thread-tool-details")!.getBoundingClientRect().width,
+          naturalRatio: image.naturalWidth / image.naturalHeight };
+      }));
+    };
+    const initial = await measureImages();
+    for (const image of initial) {
+      assert.ok(image.height <= 192.5, JSON.stringify(image));
+      assert.ok(image.width <= image.availableWidth + 0.5, JSON.stringify(image));
+      assert.ok(image.bottom <= image.nextTop + 0.5, "Tool image cannot cover the following result");
+      assert.ok(Math.abs(image.width / image.height - image.naturalRatio) < 0.01);
+    }
+    assert.equal(initial[2]!.width, 96, "Small images keep their natural size");
+    await disclosure.click();
+    await disclosure.click();
+    const reopened = await measureImages();
+    assert.deepEqual(reopened, initial, "Reopening preserves bounded preview geometry");
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: join(output, `images-${width}-${theme}.png`) });
+    results.push({ width, theme, boundedToolImages: true, followingContentClear: true, reopen: true });
+    console.log(JSON.stringify({ width, theme, toolImages: true, passed: true }));
+    await page.close();
+  }
+
   }
   await writeFile(join(output, "report.json"), JSON.stringify({ results }, null, 2));
   console.log(JSON.stringify({ passed: results.length, output }));

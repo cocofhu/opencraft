@@ -23,7 +23,7 @@ export * from "./workbench-coordinator";
 export * from "./thread-catalog";
 export * from "./turn-completions";
 export * from "./interaction-response";
-export * from "./setup-codex";
+export * from "./setup";
 export * from "./submission-pipeline";
 export * from "./composer-model-catalog";
 export * from "./adaptive-navigation";

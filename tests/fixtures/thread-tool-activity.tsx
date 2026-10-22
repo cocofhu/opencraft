@@ -16,6 +16,28 @@ const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "da
 document.documentElement.dataset.theme = theme;
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const registry = createDefaultTimelineProjectorRegistry();
+const imageScenario = new URLSearchParams(location.search).get("scenario") === "images";
+function resultImage(width: number, height: number, alt: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const paint = canvas.getContext("2d")!;
+  for (const [index, color] of ["#194982", "#56a680", "#d1a84c", "#a56070"].entries()) {
+    paint.fillStyle = color;
+    paint.fillRect(index % 2 * width / 2, Math.floor(index / 2) * height / 2, width / 2, height / 2);
+  }
+  return { type: "image", mimeType: "image/png", data: canvas.toDataURL("image/png").split(",")[1], alt };
+}
+const imageItems: TimelineSourceItem[] = imageScenario ? [{
+  id: "mcp-images", type: "mcpToolCall", payload: {
+    server: "image-probe", tool: "inspect_images", status: "completed", arguments: {},
+    result: { content: [
+      resultImage(1200, 800, "Landscape result"), { type: "text", text: "After landscape image" },
+      resultImage(600, 1400, "Portrait result"), { type: "text", text: "After portrait image" },
+      resultImage(96, 64, "Small result"), { type: "text", text: "After small image" },
+    ] },
+  },
+}] : [];
 const hostContentScenario = new URLSearchParams(location.search).get("scenario") === "host-content";
 const probe = window as unknown as { changeThreadToolPhase: (phase: string) => void; openedThreads: string[]; changeHostContentMode: (mode: string) => void; hostActions: string[]; hostRenderedModes: Record<string, string> };
 probe.openedThreads = [];
@@ -57,7 +79,7 @@ function Demo() {
   probe.changeThreadToolPhase = setPhase;
   const [hostMode, setHostMode] = useState("content");
   probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
-  const items: TimelineSourceItem[] = hostContentScenario ? hostToolItems(phase === "failed") : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
+  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
     server: "node_repl", tool: "browser_click", status: "completed", arguments: {}, result: { content: [], _meta: { "codex/toolSurface": {
       kind: "browserUse", backend: "iab", webMcpCalls: [
         { kind: "invokeTool", name: "lookup_item", title: "Look up an item", inputJson: '{"id":42}', outputJson: '{"result":"WEBSITE_RESULT"}' },

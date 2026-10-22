@@ -6,7 +6,7 @@ import {
   type SubagentActivityRenderUnit, type TimelineBlock, type ToolCallContentPart,
   type WebMcpToolSurfaceCall,
 } from "@opencraft/chat-core";
-import { LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
+import { ZoomableImage, LazyHighlightedCodeSurface, resolveStandardChatResource } from "@opencraft/chat-render-web";
 import { Bot, Check, ChevronRight, Circle, Code2, Globe2, ImageIcon, LoaderCircle, MessageSquare, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useContext, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -56,7 +56,7 @@ function ToolImage({ source, alt, id }: { source: string; alt: string; id: strin
   const context = useContext(ConversationDocumentContext);
   const media = useConversationMediaSource(source, id, context.resolveImageSource);
   return media.source === null ? <span>{media.status === "loading" ? "Loading image…" : "Image unavailable"}</span>
-    : <img src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
+    : <img className="thread-tool-details__image" src={media.source} alt={alt} onLoad={() => media.requestMeasurement("image-load")} />;
 }
 
 function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
@@ -68,7 +68,7 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
       break;
     case "json": body = <JsonSurface value={part.value} documentId={id} />; break;
     case "unknown": body = <div className="thread-tool-details__unknown"><JsonPreview value={part.value} /></div>; break;
-    case "image": body = <div className="thread-tool-details__image"><ToolImage source={part.source} alt={part.alt ?? "Tool image"} id={id} /></div>; break;
+    case "image": body = <div><ToolImage source={part.source} alt={part.alt ?? "Tool image"} id={id} /></div>; break;
     case "audio": body = <audio className="thread-tool-details__audio" controls src={browserReadableImageSource(part.source, undefined) ?? undefined} />; break;
     case "resource-link": body = <div className="thread-tool-details__resource-link"><ResourceLink target={part.uri}>Read {part.name}</ResourceLink></div>; break;
     case "embedded-resource": body = <div className="thread-tool-details__embedded-resource">
@@ -220,7 +220,17 @@ export function GeneratedImageBlock({ block }: { readonly block: Image }) {
   const context = useContext(ConversationDocumentContext);
   const source = context.resolveGeneratedImageSource?.(block) ?? block.uri ?? block.savedPath;
   const identity = JSON.stringify([context.hostId, context.conversationId, context.cwd, block.id, source]);
-  return source === null ? <></> : <GeneratedImage key={identity} block={block} source={source} />;
+  return source === null ? <GeneratedImagePending running={block.status === "pending" || block.status === "running"} />
+    : <GeneratedImage key={identity} block={block} source={source} />;
+}
+
+function GeneratedImagePending({ running, loading = false }: { running: boolean; loading?: boolean }) {
+  if (!running && !loading) return null;
+  const label = running ? "Generating image" : "Loading generated image";
+  return <div className="thread-generated-image-gallery thread-generated-image-gallery--pending"
+    data-testid="generated-image-gallery" role="progressbar" aria-label={label} aria-valuetext={label}>
+    <div className="thread-generated-image-placeholder" />
+  </div>;
 }
 
 function GeneratedImage({ block, source }: { block: Image; source: string }) {
@@ -230,7 +240,8 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
     context.resolveGeneratedImageSource?.(block) ?? browserReadableImageSource(path, context.resolveImageSource),
   [block, context.resolveGeneratedImageSource, context.resolveImageSource]);
   const media = useConversationMediaSource(source, block.id, resolveDirect);
-  if (media.source === null) return <></>;
+  if (media.source === null) return <GeneratedImagePending
+    running={block.status === "pending" || block.status === "running"} loading={media.status === "loading"} />;
   const alt = "Generated image 1";
   return <div className="thread-generated-image-gallery" data-testid="generated-image-gallery">
     <div className="thread-generated-image-preview-wrap">
@@ -243,7 +254,7 @@ function GeneratedImage({ block, source }: { block: Image; source: string }) {
     </div>
     {open ? <ModalSurface label={alt} className="thread-generated-image-lightbox__dialog" layer="nested"
       presentation="fullscreen" showCloseButton={false} onDismiss={() => setOpen(false)}>
-      <img src={media.source} alt={alt} />
+      <ZoomableImage onBackgroundClick={() => setOpen(false)} src={media.source} alt={alt} />
       <div className="thread-generated-image-lightbox__toolbar">
         <a href={media.source} download={block.savedPath?.split(/[\\/]/u).at(-1) ?? "generated-image.png"}>Save</a>
         <button type="button" aria-label="Close generated image 1" onClick={() => setOpen(false)}><X size={18} /></button>
@@ -273,6 +284,11 @@ function Agents({ blocks, grouped, renderToggle }: {
   const navigation = useContext(SubagentNavigationContext);
   const presentation = grouped ? deriveSubagentActivityGroupPresentation(blocks)
     : deriveSubagentActivityPresentation(blocks[0]!);
+  const detailsByThread = new Map<string, { block: AgentBlock; actionLabel: string }>();
+  for (const block of blocks) {
+    const detail = deriveSubagentActivityPresentation(block);
+    for (const agent of detail.agents) detailsByThread.set(agent.threadId, { block, actionLabel: detail.actionLabel });
+  }
   const running = blocks.some(block => block.status === "running" || block.status === "pending");
   const [open, setOpen] = useActivityOpen(running);
   const reflow = useDisclosureReflow();
@@ -295,19 +311,23 @@ function Agents({ blocks, grouped, renderToggle }: {
       initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
       style={{ height }} transition={{ duration: 0.3 }} onAnimationComplete={reflow.complete}>
       <div className="thread-subagent-details__inner">
-      {(grouped ? [blocks.at(-1)!] : blocks).map(block => {
-        const detail = grouped ? presentation : deriveSubagentActivityPresentation(block);
-        return <div key={block.id}>{detail.agents.map(agent => <div key={agent.threadId} className="thread-subagent-details__row" data-status={agent.status}>
-          <Avatar agent={agent} /><div><p><span>{detail.actionLabel} </span><strong>{agent.displayName}</strong>
-            {!grouped && block.prompt ? <> with the instructions: <span>{block.prompt}</span></> : !grouped && block.action ? <> · {block.action}</> : null}
+      {presentation.agents.map(agent => {
+        const { block, actionLabel } = detailsByThread.get(agent.threadId)!;
+        return <div key={agent.threadId} className="thread-subagent-details__row" data-status={agent.status}>
+          <Avatar agent={agent} /><div><p><span>{actionLabel} </span><strong>{agent.displayName}</strong>
+            {block.prompt && block.tool === "spawnAgent" ? <> with the instructions: <span>{block.prompt}</span></>
+              : block.prompt && (block.tool === "sendInput" || block.tool === "resumeAgent") ? <>: <span>{block.prompt}</span></>
+              : !block.prompt && block.action ? <> · {block.action}</> : null}
             <small> · {agent.statusLabel}</small></p>
             {agent.statusMessage ? <p className="thread-subagent-details__message">{agent.statusMessage}</p> : null}
-          </div></div>)}
-          {!grouped && (block.reasoningEffort || block.agentPath) ? <p className="thread-subagent-details__meta">{[
-            block.reasoningEffort ? "Reasoning: " + block.reasoningEffort : null, block.agentPath,
-          ].filter(Boolean).join(" · ")}</p> : null}
-        </div>;
+          </div></div>;
       })}
+      {!grouped && blocks[0]?.tool === "wait" && blocks[0].prompt ?
+        <p className="thread-subagent-details__input">Input: {blocks[0].prompt}</p> : null}
+      {!grouped && (blocks[0]?.reasoningEffort || blocks[0]?.agentPath) ?
+        <p className="thread-subagent-details__meta">{[
+          blocks[0].reasoningEffort ? "Reasoning: " + blocks[0].reasoningEffort : null, blocks[0].agentPath,
+        ].filter(Boolean).join(" · ")}</p> : null}
     </div></motion.div> : null}</AnimatePresence>
   </section>;
 }
@@ -321,7 +341,7 @@ export function SubagentBlock({ block }: { block: AgentBlock }) {
 }
 
 export function SubagentActivityGroup({ unit }: { readonly unit: SubagentActivityRenderUnit }) {
-  return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped renderToggle={props =>
+  return unit.blocks.length > 0 ? <Agents blocks={unit.blocks} grouped={unit.blocks.length > 1} renderToggle={props =>
     <button type="button" className="thread-subagent-activity__toggle thread-activity-item__header"
       aria-expanded={props.open} disabled={props.disabled} onClick={props.onClick}>
       <ActivityIcon><Bot /></ActivityIcon><span className="thread-activity-item__summary">{props.label}</span>

@@ -63,6 +63,7 @@ export interface PendingSubmission {
 export interface ConversationExecutionSnapshot {
   readonly model: string | null;
   readonly effort: string | null;
+  readonly serviceTier?: string | null;
   readonly permissionProfile: string | null;
   readonly cwd: string | null;
   readonly runtimeWorkspaceRoots: readonly string[];

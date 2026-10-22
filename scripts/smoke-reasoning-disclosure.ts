@@ -23,6 +23,7 @@ try {
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
   const results = [];
   const activityScales = [];
+  const subagentDetails = [];
   for (const touch of [false, true]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width: touch ? 390 : 1024, height: 900 }, hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
@@ -108,6 +109,49 @@ try {
       results.push({ touch, theme, detailViewRestored: true, refreshedOutput: true, explicitCollapse: true, freshViewIsolated: true });
       if (process.argv.includes("--detail-view-only")) { await page.close(); continue; }
     }
+
+    for (const scene of ["subagent-details", "subagent-single", "subagent-wait"]) {
+      await update(scene);
+      const agents = page.locator('.thread-subagent-activity');
+      const disclosure = agents.locator('.thread-subagent-activity__toggle');
+      await disclosure.waitFor();
+      if (await disclosure.getAttribute('aria-expanded') === 'false') await activate(disclosure);
+      const rows = agents.locator('.thread-subagent-details__row');
+      await rows.first().waitFor();
+      const content = await agents.locator('.thread-subagent-details__inner').innerText();
+      if (scene === "subagent-details") {
+        assert.equal(await rows.count(), 2, 'one current detail per agent');
+        const typography = rows.filter({ has: page.getByText('Typography', { exact: true }) });
+        const icons = rows.filter({ has: page.getByText('Icons', { exact: true }) });
+        assert.match(await typography.innerText(), /Messaged Typography: Inspect current typography/);
+        assert.doesNotMatch(await typography.innerText(), /Inspect icons|Superseded typography task/);
+        assert.match(await icons.innerText(), /Created Icons with the instructions: Inspect icons/);
+        assert.doesNotMatch(await icons.innerText(), /Inspect current typography/);
+        const before = await page.evaluate(() => (window as any).openedSubagents.length);
+        await activate(agents.getByRole('button', { name: 'Open Icons subagent', exact: true }));
+        assert.deepEqual(await page.evaluate(() => (window as any).openedSubagents.slice(-1)),
+          [{ threadId: 'Icons', displayName: 'Icons' }]);
+        assert.equal(await page.evaluate(() => (window as any).openedSubagents.length), before + 1);
+      } else {
+        assert.equal(await rows.count(), 1);
+        assert.match(content, scene === "subagent-single" ? /Inspect typography/ : /Input: Wait for the audit/);
+        assert.match(content, /Reasoning: high/);
+        assert.match(content, /\/work\/agents\/Typography/);
+      }
+      await activate(disclosure);
+      await activate(disclosure);
+      assert.equal(await agents.locator('.thread-subagent-details__inner').innerText(), content,
+        'folding retains the same assigned instructions');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-${scene}.png`) });
+      subagentDetails.push({ scene, theme, touch, content });
+    }
+    if (process.argv.includes("--subagents-only")) {
+      assert.deepEqual(errors, []);
+      await page.close();
+      continue;
+    }
+    await update("reset");
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -382,7 +426,7 @@ try {
       const toggle = group.getByRole('button').first();
       if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
     }
-    await page.locator('.thread-activity-item__icon > [data-codex-activity-icon="read"]').waitFor();
+    await page.locator('.thread-activity-item__icon > [data-opencraft-activity-icon="read"]').waitFor();
     await page.evaluate(() => document.fonts.ready);
     const measureScale = () => page.evaluate(() => Array.from(document.querySelectorAll<SVGSVGElement>(
       '.thread-activity-item__icon > svg')).map(svg => {
@@ -391,7 +435,7 @@ try {
       const summary = header.querySelector('.thread-activity-item__summary')!;
       const box = svg.getBBox(), screen = svg.getBoundingClientRect(), slot = rail.getBoundingClientRect();
       const type = getComputedStyle(summary);
-      return { glyph: svg.getAttribute('data-codex-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
+      return { glyph: svg.getAttribute('data-opencraft-activity-icon') ?? svg.classList[1], paths: svg.innerHTML,
         fontSize: parseFloat(type.fontSize), weight: type.fontWeight,
         width: screen.width, visibleWidth: box.width * screen.width / svg.viewBox.baseVal.width,
         centerOffset: Math.abs(screen.x + screen.width / 2 - slot.x - slot.width / 2),
@@ -416,7 +460,7 @@ try {
       .thread-activity-item__icon > svg { width:16px; height:16px; }
       .thread-activity-item__icon > .lucide { stroke-width:2; }
       .thread-activity-item__icon > .lucide-brain { width:14px; height:14px; stroke-width:1.8; }
-      .thread-activity-item__icon > [data-codex-activity-icon="read"] { width:15px; height:15px; }
+      .thread-activity-item__icon > [data-opencraft-activity-icon="read"] { width:15px; height:15px; }
     ` });
     await page.waitForFunction(() => Array.from(document.querySelectorAll('.thread-activity-item__summary'))
       .every(node => getComputedStyle(node).fontSize === getComputedStyle(document.documentElement).getPropertyValue('--typography-chat-size').trim()));
@@ -447,7 +491,7 @@ try {
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of localizedLabels) {
+  for (const [locale, running, settled] of (process.argv.includes("--subagents-only") ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -468,10 +512,11 @@ try {
         await page.locator('[data-revision="2"]').waitFor();
       }
     }
-    await page.screenshot({ path: join(output, `codex-${locale}-touch-long-detail.png`) });
+    await page.screenshot({ path: join(output, `opencraft-${locale}-touch-long-detail.png`) });
     await page.close();
   }
+  await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, localizedLabels: localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, localizedLabels: process.argv.includes("--subagents-only") ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }

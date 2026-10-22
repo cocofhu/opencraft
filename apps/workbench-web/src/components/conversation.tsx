@@ -1,3 +1,4 @@
+import { ForkTurnButton } from "./conversation/fork-turn-button";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -396,6 +397,7 @@ function Frame({
   thinkingId,
   thinkingLabel = "Thinking",
   showActions,
+  onFork,
   threadDetailLevel,
 }: {
   allowSingleSlotVirtualization: boolean;
@@ -407,6 +409,7 @@ function Frame({
   thinkingId: string | null;
   thinkingLabel?: "Thinking" | "Planning";
   showActions: boolean;
+  onFork?: () => Promise<void>;
   threadDetailLevel: ConversationDetailLevel;
 }) {
   const intl = useIntl();
@@ -439,7 +442,7 @@ function Frame({
   const units = assistantPlan?.slots ?? [];
   const actions = visibleFrame.type === "assistant" ? assistantMessageActions(visibleFrame) : null;
   const assistantCopyText = actions?.completed ? actions.copyText : "";
-  const hasMessageActions = assistantCopyText.length > 0 || onRetry !== undefined || visibleFrame.hookStats !== null;
+  const hasMessageActions = onFork !== undefined || assistantCopyText.length > 0 || onRetry !== undefined || visibleFrame.hookStats !== null;
   if (visibleFrame.type === "assistant"
     && units.length === 0
     && assistantPlan?.changeSummary == null
@@ -519,6 +522,7 @@ function Frame({
             const nodes = frameRef.current?.querySelectorAll<HTMLElement>("[data-assistant-copy-content] .opencraft-chat-document");
             return nodes?.length ? Array.from(nodes).map((node) => extractMarkdownElement(node).htmlText).join("\n") : null;
           }} /> : null}
+          {onFork === undefined ? null : <ForkTurnButton fork={onFork} />}
           {onRetry === undefined ? null : <button onClick={onRetry} type="button" title={intl.formatMessage({ id: "common.retry", defaultMessage: "Try again" })}><RotateCcw size={13} /></button>}
           {visibleFrame.hookStats == null ? null : <HookStatsButton detailLevel={threadDetailLevel} stats={visibleFrame.hookStats} />}
           {actions?.sentAtMs == null ? null : <time data-assistant-message-sent-time dateTime={new Date(actions.sentAtMs).toISOString()} title={new Date(actions.sentAtMs).toLocaleString()}>{new Date(actions.sentAtMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
@@ -545,6 +549,7 @@ function Turn({
   threadDetailLevel: ConversationDetailLevel;
   turn: TimelineTurnView;
 }) {
+  const forkTurn = useContext(ConversationDocumentContext).onForkTurn;
   const toolActivityPresenters = useContext(ToolActivityPresenterContext);
   const renderMcpApps = useContext(ConversationDocumentContext).mcpApps !== undefined;
   const toolActivityPresenterVersion = useSyncExternalStore(
@@ -587,6 +592,8 @@ function Turn({
           onActivityCollapsedChange={onActivityCollapsedChange}
           onRetry={onRetry}
           showActions
+          onFork={forkTurn !== undefined && ["complete", "failed", "interrupted"].includes(turn.status)
+            ? () => forkTurn(turn.turnId) : undefined}
           thinkingId={turnThinking?.placeholderId ?? null}
           thinkingLabel={turnThinking?.label}
           threadDetailLevel={threadDetailLevel}

@@ -1451,6 +1451,7 @@ export function createReplicaConversationRuntime(
       execution: {
         model: string(execution.model),
         effort: string(execution.reasoningEffort),
+        serviceTier: string(execution.serviceTier),
         permissionProfile: activePermissionProfile,
         cwd: string(execution.cwd) ?? string(thread.cwd),
         runtimeWorkspaceRoots: stringArray(execution.runtimeWorkspaceRoots),
