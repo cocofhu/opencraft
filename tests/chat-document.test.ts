@@ -225,7 +225,7 @@ test("streaming suffix repair handles adversarial marker runs without repeated s
   assert.ok(performance.now() - started < 5_000, "suffix repair must remain responsive on repeated markers");
 });
 
-test("streaming markdown stabilizes incomplete Codex syntax without mutating canonical source", () => {
+test("streaming markdown stabilizes incomplete message syntax without mutating canonical source", () => {
   const image = preprocessChatMarkdown("Ready\n\n![screen](https://assets.exam", { streaming: true });
   assert.equal(image.markdown, "Ready\n\n");
 

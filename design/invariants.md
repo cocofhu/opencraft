@@ -1191,7 +1191,7 @@ and does not receive the standard task-flow continuation button.
 
 ### Shared floating material
 
-Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across Codex/Frost/Lavender light/dark and desktop/touch.
+Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across OpenCraft Neutral/Frost/Lavender light/dark and desktop/touch.
 
 ### Desktop navigation surface (2026-10-15)
 

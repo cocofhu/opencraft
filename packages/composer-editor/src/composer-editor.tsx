@@ -727,7 +727,7 @@ export interface OpenCraftComposerProps {
   floatingContent?: ReactNode;
   /** Host-owned Add items. An optional continuation opens the next surface after menu focus cleanup. */
   addMenuContent?: ReactNode | ((closeMenu: (afterClose?: () => void) => void) => ReactNode);
-  /** Host-scoped slash commands shown in the editor and its shortcut menu. */
+  /** Host-scoped slash commands discovered inline in the editor. */
   shortcutCommands?: readonly ComposerShortcutCommand[];
   /** Host-owned actions immediately after the shortcut command menu. */
   entryActions?: ReactNode;

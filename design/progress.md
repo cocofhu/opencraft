@@ -68,6 +68,6 @@
 - 本机 DSH 0.1.1-rc.2 的 session.fork 只有 sessionId/atSeq，不支持 Codex 的 ephemeral fork；未用持久分支冒充临时侧聊。远端 Hermes 同样按实际协议能力执行。
 - 浏览器紧凑/peek 细节尚未完整验证；输入选择/撤销历史跨呈现与完整 Side Chat 窗口确认流程尚未专门实机验收。
 - Expo 只通过共享内核/构建检查，本轮未移植桌面 Overlay 布局到 Native。
-- 未 commit、push 或发布，不将本次核心版本称为整个 Codex 产品的全量等价实现。
+- 未 commit、push 或发布，本次证据仅覆盖已列出的核心能力。
 
 最终产物已实际启动，并在同一独立测试 profile 上再次通过原生终端迁移/held-drag；旧测试进程已退出，用户此前其他预览未被修改。当前窗口停在匿名本机工作区和原生 Terminal，可直接预览。Side Chat 的全流程成功证据来自标准 Codex AppServer + 本地合成模型，不来自 DSH。

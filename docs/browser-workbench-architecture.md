@@ -215,12 +215,12 @@ Session ID 如果不能满足全局唯一性，只作为 `BrowserAuthorityBindin
 
 Authority 身份分四层，不能再用一个含糊的 `authorityId` 同时表示配置、连接和物理实例：
 
-| OpenCraft 字段 | 稳定范围 | Codex 中对应证据 | 是否进入普通 checkpoint |
+| OpenCraft 字段 | 稳定范围 | 边界职责 | 是否进入普通 checkpoint |
 | --- | --- | --- | --- |
 | `profileId` | 用户配置/路由选择稳定，如 `local-electron` 或某 Remote 集群 | Host kind、远端配置与路由 policy | 是 |
-| `runtimeId` | 一次 Authority 进程或连接 incarnation | Host connection/host generation 的 fencing 思路 | 否 |
+| `runtimeId` | 一次 Authority 进程或连接 incarnation | 连接代次隔离迟到结果 | 否 |
 | `engineInstanceId` | 一个实际浏览器 Backing | 私有 WebView/WebContents 映射或远端 instance ref | 否；`browserStorageId` 对应的是下文 opaque restore ref |
-| `generation` | 当前 Session 绑定序列，rebind 时单调增加 | host generation / reconnect generation 的 fencing 思路 | 否 |
+| `generation` | 当前 Session 绑定序列，rebind 时单调增加 | 重绑代次隔离迟到结果 | 否 |
 
 `hostId` 仍只表示 AppServer 执行/工作区上下文；它可以参与 Authority 路由，但不是
 Browser Authority identity。`BrowserRestoreHandleRef` 是稳定且不透明的恢复能力引用，
@@ -307,8 +307,7 @@ Session Controller 维护 owner set 与 presentation claim set，但二者含义
 - `terminateAuthority()`：在 capability 允许时显式结束远端/独立 Authority instance；
 - Backing destroy：Controller 在 fencing 校验后执行的物理清理结果，不是 UI action。
 
-Codex 的 `adoptionLease` 只用于一次 Electron WebContents handoff，不应泛化为上述 owner
-模型的通用计数器。
+一次 Electron WebContents handoff 的租约不应泛化为上述 owner 模型的通用计数器。
 
 ## 6. 状态所有权
 
