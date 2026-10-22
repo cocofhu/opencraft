@@ -37,6 +37,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 | 任务 | 必读入口 |
 |---|---|
+| 新增功能含 UI，或界面、设置页、列表、表单、弹窗的实现/改版/评审 | [维护 Skill 的 UI 路径](.agents/skills/opencraft-maintenance/SKILL.md#ui-任务先进入设计路径) → [设计入口](design.md)；按需读取专项，不等用户另外提出设计要求 |
 | 平台、AppServer、Chat Runtime、Workbench、扩展 | [platform-architecture](docs/platform-architecture.md) 与命中的专题文档 |
 | 工作区、工具面板、浮动聊天、Side Chat | [design](design/README.md)；实现变更同步维护 `design/invariants.md` |
 | OpenCraft 架构、交互、布局、平台适配或预览 | [opencraft-maintenance](.agents/skills/opencraft-maintenance/SKILL.md)，按任务读取其验证清单 |
@@ -84,7 +85,7 @@ GitHub `opencraft-app/opencraft` 是目标核心上游，产品身份来源、�
 
 ## UI 与设计系统
 
-新增或修改界面前，先读 [设计入口](design.md)，选择最接近的 Settings、任务/对象目录、Chat、Sidebar 或嵌入 App 范式，并查看对应真实消费者。在现有任务记录中简述用户主任务、参考实现、页面容器 owner 及主次动作；目录页按[组合规范与正反例](design/ui/collections.md)设计，不能把导入共享组件等同于整页设计合格。默认延续 OpenCraft 现有设计语言，优先复用共享组件、交互原语和语义 token；缺少可复用能力时在正确 owner 扩展。用户明确指定视觉方向时按该方向调整，并保留可访问性与工作连续性。Token 数值仍由设计系统源码持有；隔离 App 的可用样式以实际宿主能力为准。交付前检查真实路由下的页面组合及相关窄屏/触控状态，按改动补可证伪的布局断言；不以无溢出、组件导入或生成截图代替视觉复核，不新增用户审批步骤。
+新增或修改界面前，先读 [设计入口](design.md)，选择最接近的 Settings、任务/对象目录、Chat、Sidebar 或嵌入 App 范式，并查看对应真实消费者。执行方法见维护 Skill 的 [UI 工作流](.agents/skills/opencraft-maintenance/references/ui-design.md)：把范式落实为可见组合，从相关真实使用状态复核，记录实际看过的画面及判断；目录页继续按[组合规范与正反例](design/ui/collections.md)设计。默认延续 OpenCraft 现有设计语言，优先复用共享组件、交互原语和语义 token；缺少可复用能力时在正确 owner 扩展。用户明确指定视觉方向时按该方向调整，并保留可访问性与工作连续性。Token 数值仍由设计系统源码持有；隔离 App 的可用样式以实际宿主能力为准。不以无溢出、组件导入或生成截图代替视觉复核，不新增用户审批步骤。
 
 ### 应用导航不变量
 

@@ -8,11 +8,16 @@ This is an authoring guide. Linked source owns token values and component behavi
 Read the relevant owner and a real consumer before coding. Do not copy numbers
 from screenshots or freeze a theme's current colors into feature styles.
 
+For repository UI work, use the maintenance Skill's [UI workflow](.agents/skills/opencraft-maintenance/references/ui-design.md)
+to carry the selected pattern through implementation and visual review. New
+features with UI use the same path. Load only the relevant topics below.
+
 ## Choose a working pattern
 
 | Task | Pattern | Working reference |
 |---|---|---|
 | Configuration and preferences | Related sections, aligned label/description/control rows, quiet actions | [Settings page](apps/workbench-web/src/components/settings-page.tsx), [Settings controls](packages/extension-react/src/settings-controls.tsx) |
+| Utility dialogs and configuration forms | Shared modal presentation with compact panel content, adjacent labels/inputs and stable validation | [Settings panel](packages/extension-react/src/settings-panel.tsx), [modal owner](apps/workbench-web/src/components/modal/modal-surface.tsx); keep package boundaries when consuming their public contracts |
 | Browsing tasks, schedules or other managed objects | Scannable object rows, meaningful groups, one clear destination and subordinate actions | [Collection composition](design/ui/collections.md), Settings list primitives and route container in the references above |
 | Reading, input and results | One reading axis, bounded width, separate content/process hierarchy, stable input and result slots | [Chat architecture](docs/chat-ui-architecture.md), [Workbench language](docs/workbench-design-language.md) |
 | Navigation and grouped choices | Shared icon/text alignment, section rhythm, distinct hover/current/pressed states | [Sidebar item](apps/workbench-web/src/components/sidebar-navigation-item.tsx), [shared controls](packages/design-system/src/controls.web.scss) |
