@@ -28,11 +28,15 @@ function string(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function contentParts(value: unknown): readonly unknown[] {
+  return value == null ? [] : Array.isArray(value) ? value : [value];
+}
+
 export function codexUserMessageCompareKey(value: unknown): UserMessageCompareKey {
   if (typeof value === "string") return { rawText: value, imageCount: 0 };
   const text: string[] = [];
   let imageCount = 0;
-  if (Array.isArray(value)) for (const part of value) {
+  for (const part of contentParts(value)) {
     const data = record(part);
     if (typeof part === "string") text.push(part);
     else if (data.type === "text" && typeof data.text === "string") text.push(data.text);
@@ -64,9 +68,9 @@ function identities(item: TimelineSourceItem, server?: TimelineSourceItem): stri
 }
 
 function hasStagedDisplay(input: unknown): boolean {
-  if (!Array.isArray(input)) return false;
-  const mentions = input.map(record).filter(part => part.type === "mention" && typeof part.name === "string" && typeof part.path === "string");
-  for (const part of input) {
+  const parts = contentParts(input);
+  const mentions = parts.map(record).filter(part => part.type === "mention" && typeof part.name === "string" && typeof part.path === "string");
+  for (const part of parts) {
     const data = record(part);
     const elements = data.text_elements ?? data.textElements;
     if (data.type !== "text" || typeof data.text !== "string" || !Array.isArray(elements)) continue;

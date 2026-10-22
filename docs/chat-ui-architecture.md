@@ -2430,3 +2430,12 @@ and `byte_range`/`byteRange`, as the typed message projector does. An enriched
 server echo must remain one message with its original attachment card and
 source anchors; accepting saved field spellings does not relax the exact UTF-8
 span or legacy locator checks.
+
+
+The shared user-input readers accept a single typed content part as well as an
+array, matching the message projector and saved history input contract. Text
+comparison and image counts must not collapse a typed object to an empty input;
+unrelated local steering and server messages retain separate identities. The
+same single-part form participates in exact Host display-span recognition and
+realtime delegation parsing, so voice envelopes remain typed transcripts rather
+than literal user markup. Unsupported part kinds remain ignored.
