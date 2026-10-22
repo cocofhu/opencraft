@@ -2585,6 +2585,14 @@ the AppShell update notice. Touch navigation targets the persistent sidebar
 action owner, rather than the desktop-only stationary placement marker.
 These fixture boundaries retain all original native interaction assertions.
 
+Composer model and permissions menus retain the native editor focus lease on touch. While
+Escape reports isComposing or compatibility keyCode 229, the input method owns
+it: both the existing editor capture listener and Radix onEscapeKeyDown leave
+the menu open. After composition, ordinary Escape retains native dismissal and
+focus behavior. The original picker-focus smoke covers model and permissions
+menus with native composition and Chromium keyboard input, while preserving
+its original selection, scrolling, geometry, outside-focus and unmount checks.
+
 ### Composer model menu close continuity
 
 The quick reasoning view and model list share one native Radix menu. Keep the
