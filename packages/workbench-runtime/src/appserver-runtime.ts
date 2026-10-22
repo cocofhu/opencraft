@@ -4,6 +4,7 @@ import type { ConversationOutboxStorage } from "@opencraft/chat-runtime";
 import { ConversationRecoveryOwner, type RecoveryDemand } from "./recovery-policy";
 import {
   AppServerClientError,
+  AppServerRpcError,
   createCordisAppServerRegistry,
   type AppServerClient,
   type AppServerClientRegistryService,
@@ -282,6 +283,7 @@ export interface AppServerThreadResourcePort {
 export interface AppServerComposerCatalogResourcePort {
   listModels(params?: Partial<ModelListParams>): Promise<ModelListResponse>;
   readNewThreadDefaults(cwd?: string | null): Promise<{
+    readonly serviceTier?: string | null;
     readonly model: string | null;
     readonly effort: string | null;
   }>;
@@ -323,6 +325,7 @@ export interface AppServerProtocolResourcePort {
   request<TMethod extends AppServerMethod>(
     method: TMethod,
     params: AppServerMethodParams<TMethod>,
+    options?: import("@opencraft/appserver-protocol").AppServerRequestOptions,
   ): Promise<AppServerMethodResult<TMethod>>;
 }
 
@@ -1109,7 +1112,10 @@ export function createAppServerWorkbenchRuntime(
               steering.push(...(page.steering ?? []));
               cursor = page.nextCursor;
             } while (cursor !== null);
-            if (!disposed && !binding.disposed) {
+            // A change notification received during this read invalidates its
+            // snapshot. Publish only the next complete read, keeping the current
+            // queue visible while it refreshes (including optimistic additions).
+            if (!disposed && !binding.disposed && !binding.queueRefreshRequested) {
               conversation!.replaceQueuedSubmissions(submissions, steering);
             }
           } while (
@@ -1266,8 +1272,10 @@ export function createAppServerWorkbenchRuntime(
   };
 
   const retryableHistoryFailure = (cause: unknown) => !disposed && phase === "ready"
-    && cause instanceof AppServerClientError
-    && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code);
+    && ((cause instanceof AppServerClientError
+      && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code))
+      || (cause instanceof AppServerRpcError && typeof cause.data === "object" && cause.data !== null
+        && "retryable" in cause.data && cause.data.retryable === true));
 
   // Resource restoration is not part of Host readiness. A missing Thread
   // must not reconnect the Host or delay another Thread's restoration.
@@ -1564,9 +1572,9 @@ export function createAppServerWorkbenchRuntime(
   const runtime: AppServerWorkbenchRuntime = {
     resources: {
       protocol: {
-        request(method, params) {
+        request(method, params, options) {
           assertMethodAccess(method);
-          return requireClient().request(method, params);
+          return requireClient().request(method, params, options);
         },
       },
       goals,
@@ -1855,6 +1863,7 @@ export function createAppServerWorkbenchRuntime(
             ...(cwd === null ? {} : { cwd }),
           });
           return {
+            serviceTier: typeof response.config.service_tier === "string" ? response.config.service_tier : null,
             model: typeof response.config.model === "string"
               ? response.config.model
               : null,
@@ -2043,7 +2052,13 @@ export function createAppServerWorkbenchRuntime(
         setRecoveryVisibility(next: boolean) {
           if (released || visible === next) return;
           visible = next; binding.visibleCount += next ? 1 : -1;
-          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) restoreResources();
+          if (next && phase === "ready" && !binding.runtime.getSnapshot().authoritative) {
+            // Promote this binding's pending recovery without revalidating peer
+            // Threads or restoring Host resources on ordinary navigation.
+            void recovery.recover({ key: binding, demand: () => recoveryDemand(binding),
+              run: () => hydrateBinding(binding, false), retryable: retryableHistoryFailure,
+            }).catch(() => undefined);
+          }
         },
         getSnapshot: binding.runtime.getSnapshot,
         retryRestore() {
