@@ -1675,7 +1675,7 @@ Actual layout and source visibility are verified by
 
 ### First-submit presentation continuity
 
-PendingConversationPage renders the immutable submitted input with UserMessageBlock and the normal thread viewport, width and top inset. It must not maintain an independent bubble surface, font scale or geometry. All submitted attachment names remain visible, including attachment-only input. Loading/failure/retry stays in the conversation, without a Draft Composer or any new identity fetch; a current account is never substituted for a message-author snapshot. Thread creation, receipt ownership and retry/promotion semantics remain unchanged. Real component coverage: `scripts/smoke-pending-conversation.ts`.
+PendingConversationPage renders the immutable submitted input with UserMessageBlock and the normal thread viewport, width and top inset. It must not maintain an independent bubble surface, font scale or geometry. All submitted attachment names remain visible, including attachment-only input. Loading/failure/retry stays in the conversation, without redisplaying the submitted Draft or making any new identity fetch; a current account is never substituted for a message-author snapshot. Thread creation, receipt ownership and retry/promotion semantics remain unchanged. Real component coverage: `scripts/smoke-pending-conversation.ts`.
 
 ### Browser capability compatibility
 
@@ -2098,6 +2098,16 @@ Rename/delete dialogs dismiss when their exact Host/Thread leaves the complete S
 ## Saved Sidebar directory refresh failures
 
 A ready transport response with `cachedAt` is a saved directory after a failed refresh, not an authoritative successful refresh. Retain its rows and the existing failure/retry slot; error responses with that metadata use the same saved-directory explanation. In-flight reads stay quiet (`aria-busy` only), successful refresh clears the feedback, and Retry reads only that Host without selecting a Thread or remounting rows. Existing `smoke:sidebar-thread-catalog` covers ready/error saved results, timestamp zero, retry, quiet refetch and success on desktop/touch in both themes.
+
+### New conversation follow-up input
+
+After the first submit, the pending message uses the normal Conversation viewport and footer.
+The follow-up Composer mounts immediately and receives focus, without waiting for Thread creation
+or Resume. Sending remains disabled until a Thread lease is available. Pending-to-ready promotion
+keeps the same Conversation View, physical editor, selection and follow-up document/attachments;
+only its semantic target is rebound. The submitted first Turn stays immutable and retryable.
+Other target switches continue to restore their own drafts. Validate with the first-submit handoff
+smoke and draft-owner tests; synthetic Host evidence does not assert employee or native-device coverage.
 
 ## Offscreen ordinary navigation rows
 

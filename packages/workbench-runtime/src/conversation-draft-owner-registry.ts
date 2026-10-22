@@ -221,7 +221,7 @@ export function createConversationDraftOwnerRegistry(
           draftContinuity?.discard(entry.ownerId, previousTarget);
         }
       }
-      entry.baseComposer.dispatch({ type: "switch-target", target });
+      entry.baseComposer.dispatch({ type: "switch-target", target, preserveDraft: true });
       entry.touchedAt = ++logicalClock;
       if (targetChanged) attach(entry);
       else entry.targets.set(encodeComposerTarget(target), target);
