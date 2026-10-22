@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 import { MembershipStore, InstanceAccess } from '../packages/access-control/src/index';
 import { ActorStore } from '../packages/access-control/src/actors';
 import { ActorAccess } from '../packages/access-control/src/actor-access';
-import { ActorCollaboration, ActorCollaborationApi, type ActorExecutionPort, type ExecutionReceipt } from '../packages/access-control/src/actor-collaboration';
+import { Collaboration, CollaborationHttpApi, type ConversationExecutionPort, type ExecutionReceipt } from '../packages/access-control/src/collaboration';
 import { parsePrincipal } from '../packages/identity-core/src/index';
 
 async function fixture(t: any, now = Date.now) {
@@ -22,7 +22,7 @@ async function fixture(t: any, now = Date.now) {
   const receipts = new Map<string, ExecutionReceipt>();
   const inputs: string[] = [], calls: string[] = [];
   let failAdd = false, failSteer: boolean | 'ambiguous' = false, validateHold: Promise<void> | undefined, current = true;
-  const execution: ActorExecutionPort = {
+  const execution: ConversationExecutionPort = {
     async validate() { await validateHold; },
     async receipt(_binding, id) { return receipts.get(id) ?? null; },
     async add(_binding, id, input) {
@@ -39,7 +39,7 @@ async function fixture(t: any, now = Date.now) {
     },
     async cancel(_binding, id) { calls.push('cancel'); const receipt = receipts.get(id); if (receipt?.state !== 'queued') return false; receipts.set(id, { ...receipt, state: 'discarded' }); return true; },
   };
-  let service = new ActorCollaboration(join(root, 'collaboration.sqlite'), actors, execution, now, () => current);
+  let service = new Collaboration(join(root, 'collaboration.sqlite'), actors, execution, now, () => current);
   const grant = (from: string, to: string, action: string, enabled = true) => actors.setGrant(from, to, action, enabled, 'operator');
   grant(human.actorId, b.id, 'message.send'); grant(human.actorId, b.id, 'execution.queue'); grant(human.actorId, b.id, 'execution.steer');
   grant(a.id, b.id, 'message.send'); grant(a.id, b.id, 'execution.queue'); grant(a.id, b.id, 'execution.steer'); grant(b.id, a.id, 'message.send');
@@ -49,8 +49,8 @@ async function fixture(t: any, now = Date.now) {
     get service() { return service; },
     setFailAdd(value = true) { failAdd = value; }, setFailSteer(value: boolean | 'ambiguous' = true) { failSteer = value; },
     holdValidation(value: Promise<void>) { validateHold = value; }, revokeAdmission() { current = false; },
-    async restart() { await service.close(); service = new ActorCollaboration(join(root, 'collaboration.sqlite'), actors, execution); },
-    async checksumDrift() { await service.close(); const db = new DatabaseSync(join(root, 'collaboration.sqlite')); db.exec("UPDATE schema_migrations SET checksum='changed' WHERE version=1"); db.close(); assert.throws(() => new ActorCollaboration(join(root, 'collaboration.sqlite'), actors, execution)); },
+    async restart() { await service.close(); service = new Collaboration(join(root, 'collaboration.sqlite'), actors, execution); },
+    async checksumDrift() { await service.close(); const db = new DatabaseSync(join(root, 'collaboration.sqlite')); db.exec("UPDATE schema_migrations SET checksum='changed' WHERE version=1"); db.close(); assert.throws(() => new Collaboration(join(root, 'collaboration.sqlite'), actors, execution)); },
     send(extra: Record<string, unknown> = {}) { return service.send(aContext, { targetActorId: b.id, content: 'review the code', idempotencyKey: 'first', ...extra }); },
   };
 }
@@ -162,7 +162,7 @@ test('accepted work has independent lifetime; actor/instance revocation still pr
 test('HTTP authenticates the source, rejects anonymous/forged fields/CSRF, and accepts a Session bearer', async t => {
   const f = await fixture(t);
   const access = new ActorAccess(f.actors, { authenticateHuman: request => request.headers.cookie === 'human=test' ? f.principal : null, admitted: () => true, administrator: () => false });
-  const api = new ActorCollaborationApi(f.service, access);
+  const api = new CollaborationHttpApi(f.service, access);
   const server = createServer((req, res) => { void api.handle(req, res).then(handled => { if (!handled) { res.writeHead(404); res.end(); } }); });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => { server.closeAllConnections(); return new Promise<void>(resolve => server.close(() => resolve())); });

@@ -680,5 +680,22 @@
   "chat.stop.failed": "Could not stop the response. Try again.",
   "chat.delete.pending": "Deleting conversation…",
   "chat.delete.done": "Conversation deleted",
-  "common.operation.pending": "Applying change…"
+  "common.operation.pending": "Applying change…",
+  "settings.tokenUsage": "Token usage",
+  "conversation.reference.copy": "Copy conversation reference",
+  "conversation.reference.label": "Conversation",
+  "conversation.reference.unavailable": "Could not confirm the operation. Keep your message and review the delivery before retrying.",
+  "conversation.reference.open": "Open conversation",
+  "conversation.reference.user": "User",
+  "conversation.reference.assistant": "Assistant",
+  "conversation.reference.more": "Read more",
+  "conversation.reference.message": "Message to this conversation",
+  "conversation.reference.check": "Check delivery",
+  "conversation.reference.send": "Send message",
+  "conversation.reference.sending": "Sending…",
+  "conversation.reference.submitted": "The target accepted the message",
+  "conversation.reference.cancelled": "Cancelled",
+  "conversation.reference.rejected": "The message could not be delivered",
+  "conversation.reference.unknown": "Delivery needs review",
+  "conversation.reference.queued": "Waiting for the target conversation"
 }

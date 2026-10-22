@@ -682,5 +682,21 @@
   "chat.stop.failed": "หยุดการตอบกลับไม่ได้ โปรดลองอีกครั้ง",
   "chat.delete.pending": "กำลังลบการสนทนา…",
   "chat.delete.done": "ลบการสนทนาแล้ว",
-  "common.operation.pending": "กำลังใช้การเปลี่ยนแปลง…"
+  "common.operation.pending": "กำลังใช้การเปลี่ยนแปลง…",
+  "conversation.reference.copy": "คัดลอกการอ้างอิงการสนทนา",
+  "conversation.reference.label": "การสนทนา",
+  "conversation.reference.unavailable": "ยังยืนยันผลไม่ได้ โปรดเก็บข้อความไว้และตรวจสอบการส่งก่อนลองอีกครั้ง",
+  "conversation.reference.open": "เปิดการสนทนา",
+  "conversation.reference.user": "ผู้ใช้",
+  "conversation.reference.assistant": "ผู้ช่วย",
+  "conversation.reference.more": "อ่านเพิ่มเติม",
+  "conversation.reference.message": "ส่งข้อความถึงการสนทนานี้",
+  "conversation.reference.check": "ตรวจสอบการส่ง",
+  "conversation.reference.send": "ส่งข้อความ",
+  "conversation.reference.sending": "กำลังส่ง…",
+  "conversation.reference.submitted": "ปลายทางรับข้อความแล้ว",
+  "conversation.reference.cancelled": "ยกเลิกแล้ว",
+  "conversation.reference.rejected": "ส่งข้อความไม่ได้",
+  "conversation.reference.unknown": "โปรดตรวจสอบผลการส่ง",
+  "conversation.reference.queued": "รอการสนทนาปลายทางดำเนินการ"
 }

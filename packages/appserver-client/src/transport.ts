@@ -3,6 +3,10 @@ import type { MessageSender } from "@opencraft/appserver-protocol";
 /** Trusted in-process context. Never decoded from a Renderer frame. */
 export interface TransportSubmissionContext {
   readonly sender: MessageSender | null;
+  /** Trusted ingress role lookup, rechecked before delivering statistics. Never wire decoded. */
+  readonly tokenUsageAuthority?: () => { readonly actorId: string; readonly administrator: boolean } | null;
+  /** Verified at ingress; never deserialize from a wire frame. */
+  readonly actorContext?: import("@opencraft/identity-core/actors").ActorContext;
   /** Trusted gateway resource authority; never decoded from a frame or sent to an engine. */
   readonly resourceOwner?: { readonly id: string; readonly assertCurrent: () => void };
   readonly validUntil?: number;

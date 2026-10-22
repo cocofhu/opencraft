@@ -2,6 +2,7 @@
 import { RemoteBrowserService } from './remote-browser-service.mjs';
 
 import { createObservabilityIngress } from "./observability-ingress.mjs";
+import { existsSync } from "node:fs";
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -41,8 +42,8 @@ import { SpeechTranscriptionService } from "./speech-transcription-service.mjs";
 import { MembershipStore, InstanceAccess } from '../packages/access-control/src/index.ts';
 import { ActorStore } from '../packages/access-control/src/actors.ts';
 import { ActorAccess } from '../packages/access-control/src/actor-access.ts';
-import { ActorCollaboration, ActorCollaborationApi } from '../packages/access-control/src/actor-collaboration.ts';
-import { createActorCodexExecution } from './actor-codex-execution.mjs';
+import { Collaboration, CollaborationHttpApi } from '../packages/access-control/src/collaboration.ts';
+import { createConversationExecution } from './conversation-execution.mjs';
 import { HumanAccounts } from '../packages/access-control/src/human-accounts.ts';
 import { LocalAccountServerPlugin } from '../plugins/local-account/src/server.ts';
 import { HumanAuth, readHumanAuthConfiguration } from '../packages/access-control/src/human-auth.ts';
@@ -325,9 +326,10 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       administrator: principal => instanceAccess?.role(principal) === 'admin',
       trustedOrigin: request => instanceAccess?.trustedOrigin(request) ?? humanAuth?.trustedOrigin(request) ?? null,
     });
-    actorCollaboration = new ActorCollaboration(join(dataDirectory, 'actor-collaboration.sqlite'), actorStore,
-      createActorCodexExecution(() => appHostServer), Date.now, actorId => !instanceAccess || instanceAccess.admitsActor(actorId));
-    actorCollaborationApi = new ActorCollaborationApi(actorCollaboration, actorAccess);
+    const machineIdentity = await readDaemonMachineIdentity(dataDirectory, options.machineName);
+    actorCollaboration = new Collaboration(join(dataDirectory, 'actor-collaboration.sqlite'), actorStore,
+      createConversationExecution(() => appHostServer, {serverId: `server:${machineIdentity.machineId}:codex`}), Date.now, actorId => !instanceAccess || instanceAccess.admitsActor(actorId));
+    actorCollaborationApi = new CollaborationHttpApi(actorCollaboration, actorAccess);
     actorCollaboration.start();
     if (options.localDesktop === true) {
       const observer = createNativeObserver();
@@ -340,7 +342,6 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       desktop = new LocalDesktopService({ serverId, environmentId, principalId, observer, control,
         transport: desktopAccess === "trusted-internal" ? "same-origin-trusted-internal" : "same-origin-loopback" });
     }
-    const machineIdentity = await readDaemonMachineIdentity(dataDirectory, options.machineName);
     const startAgent = options.startAgentHost ?? startLocalAgentHost;
     const startDsh = () => startAgent({
       dshExecutable: options.dshExecutable ?? join(root, "runtime/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js"),
@@ -395,7 +396,25 @@ export async function startHeadlessServer(options = {}, composition = {}) {
         if (hostId !== "local-codex") throw new Error(`Unknown server Host ${hostId}`);
         return new McpAppsTransport(new MachineIdentityTransport(machineIdentity, "Codex", () => options.createCodexTransport?.() ?? new CodexEngineAdapter({
           createThreadMetadata,
-          actorExecution: {
+          tokenUsage: {
+            queryWorkerEntry: existsSync(fileURLToPath(new URL('./token-usage-query-worker.mjs',import.meta.url)))
+              ? fileURLToPath(new URL('./token-usage-query-worker.mjs',import.meta.url))
+              : fileURLToPath(new URL('../apps/opencraft-daemon/src/token-usage-query-worker.ts',import.meta.url)),
+            serverId: `server:${machineIdentity.machineId}:codex`,
+            actor: context => actorStore.isCurrent(context) ? actorStore.get(context.actorId) : null,
+            person: actorId => actorStore.get(actorId),
+            submission: (threadId,inputId) => actorCollaboration.usageSubmission(threadId,inputId),
+          },
+          collaboration: {
+            queuedContext: (thread,inputId,input) => actorCollaboration.queuedReferenceContext(thread,inputId,input),
+            continued: (thread,previous,turn) => actorCollaboration.executionContinued(thread,previous,turn),
+            prepare: (context,input) => actorCollaboration.referenceContext(context,input),
+            command: (context, body) => actorCollaboration.command(context, body),
+            authorize: (context, threadId, inputId) => actorCollaboration.authorizeExecution(context, threadId, inputId),
+            started: (threadId, inputId, turnId) => actorCollaboration.executionStarted(threadId, inputId, turnId),
+            tool: (threadId, turnId, name, args) => actorCollaboration.tool(threadId, turnId, name, args),
+          },
+          collaborationInput: {
             available: () => actorCollaboration.available,
             mode: id => actorCollaboration.inputMode(id),
             authorize: (threadId, id, mode, expectedTurnId) => actorCollaboration.authorizeInput(threadId, id, mode, expectedTurnId),

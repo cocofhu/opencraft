@@ -1,4 +1,10 @@
 import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
+import { labelUsagePeople } from "./token-usage-people.js";
+import { TokenUsageStateDatabase } from "./token-usage-state-database.js";
+import { TokenUsageTelemetry } from "./token-usage-telemetry.js";
+import { TokenUsageQueryService } from "./token-usage-query-service.js";
+import { TokenUsageQueryError } from "./token-usage-query.js";
+import { COLLABORATION_METHOD, CONVERSATION_TOOLS } from "@opencraft/appserver-protocol/collaboration";
 import { ConversationSchedules, ScheduleFault, type ScheduleExecutionPort } from "./conversation-schedules.js";
 import { CONVERSATION_SCHEDULES, CONVERSATION_SCHEDULES_EXTENSION, type ConversationScheduleRun } from "@opencraft/appserver-protocol";
 import type { DatabaseOutcome } from "@opencraft/sqlite-node";
@@ -10,6 +16,8 @@ import { createInterface, type Interface as ReadLineInterface } from "node:readl
 import { join } from "node:path";
 import { CodexHostQueue, type HostQueuedSubmission } from "./codex-host-queue.js";
 import { CodexHostStateDatabase } from "./codex-host-state-database.js";
+import { CodexTokenUsageLedger, type UsageSubmission } from "./token-usage-ledger.js";
+import { CodexTokenUsageRuntime } from "./token-usage-runtime.js";
 import { CodexThreadTitles } from "./codex-thread-titles.js";
 import { DurableThreadCatalog } from "./durable-thread-catalog.js";
 import { ThreadIdentity, assertSubmissionIdentity, readThreadMessageIds } from "./thread-identity.js";
@@ -68,6 +76,7 @@ import {
 type RpcRecord = Record<string, unknown>;
 
 interface PendingRequest {
+  usageAttemptId?: string;
   readonly metadataSender?: import("@opencraft/appserver-protocol").MessageSender | null;
   readonly clientId: string;
   readonly clientEpoch: number;
@@ -102,12 +111,28 @@ interface CapacityRetry {
 
 interface SharedCodexRoutingOptions {
   readonly observationComponent?: 'core' | 'gateway';
+  readonly tokenUsage?: {
+    readonly queryWorkerEntry?: string;
+    readonly serverId: string;
+    readonly actor: (context: NonNullable<TransportSubmissionContext["actorContext"]>) => {id:string;kind:"human"|"session"} | null;
+    readonly submission?: (threadId:string,inputId:string) => UsageSubmission | null;
+    readonly person?: (actorId:string) => {kind:string;displayName:string} | null;
+  };
+  readonly collaboration?: {
+    queuedContext?(threadId: string, inputId: string, input: readonly unknown[]): Promise<unknown>;
+    continued?(threadId: string, fromTurnId: string, turnId: string): void;
+    prepare?(context: NonNullable<TransportSubmissionContext["actorContext"]>, input: readonly unknown[]): Promise<unknown>;
+    command(context: NonNullable<TransportSubmissionContext["actorContext"]>, body: Record<string, unknown>): Promise<unknown>;
+    authorize(context: NonNullable<TransportSubmissionContext["actorContext"]>, threadId: string, inputId: string): void;
+    started(threadId: string, inputId: string, turnId: string): void;
+    tool(threadId: string, turnId: string, name: string, args: Record<string, unknown>): Promise<unknown>;
+  };
   readonly onStorageOpened?: (outcomes: readonly { name: string; outcome: DatabaseOutcome }[]) => void;
   readonly createThreadMetadata?: (database: import("node:sqlite").DatabaseSync, context: import("@opencraft/appserver-client").ThreadMetadataContext) => import("@opencraft/appserver-client").ThreadMetadataExtension;
   readonly logDiagnostic?: (event: Record<string, unknown>) => void;
   readonly nativeSubscriptionGraceMs?: number;
   /** Trusted core authority for reserved collaboration inputs; absent means reject. */
-  readonly actorExecution?: {
+  readonly collaborationInput?: {
     readonly available: () => boolean;
     mode(clientUserMessageId: string): 'queue' | 'steer' | null;
     authorize(threadId: string, clientUserMessageId: string, mode: 'queue' | 'steer', expectedTurnId?: string): boolean;
@@ -165,7 +190,7 @@ class CodexQueueRpcError extends Error {
   constructor(readonly code: number, message: string, readonly data?: unknown) { super(message); }
 }
 
-function withCodexHostCapabilities(value: unknown, attachmentStaging: AttachmentStagingCapability, desktop?: HostDesktopCapability): RpcRecord {
+function withCodexHostCapabilities(value: unknown, attachmentStaging: AttachmentStagingCapability, desktop?: HostDesktopCapability, collaboration = false): RpcRecord {
   const result = record(value);
   const capabilities = record(result.capabilities);
   const extensions = { ...record(capabilities.extensions) };
@@ -176,6 +201,7 @@ function withCodexHostCapabilities(value: unknown, attachmentStaging: Attachment
       ...capabilities,
       extensions: {
         ...extensions,
+        ...(collaboration ? {"opencraft/collaboration": {version:1,read:true,queue:true,steer:true}} : {}),
         [OPENCRAFT_THREAD_PINS_EXTENSION]: OPENCRAFT_THREAD_PINS_CAPABILITY,
         [OPENCRAFT_ATTACHMENT_STAGING_EXTENSION]: attachmentStaging,
         ...(desktop ? { [OPENCRAFT_DESKTOP_EXTENSION]: desktop } : {}),
@@ -221,8 +247,9 @@ export class CodexEngineAdapter implements DuplexTransport {
   private readonly nativeReleaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly nativeReleases = new Map<string, Promise<void>>();
   private readonly threadInteractionOwners = new Map<string, string>();
+  private readonly collaborationCalls = new Map<string, symbol>();
   private readonly serverRequests = new Map<string, PendingServerRequest>();
-  private readonly internalRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout>; threadId: string; method: string; params: RpcRecord }>();
+  private readonly internalRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout>; threadId: string; method: string; params: RpcRecord; usageAttemptId?:string }>();
   private readonly threadOperations = new Map<string, Promise<void>>();
   private readonly activeTurns = new Map<string, string>();
   private readonly activeGoalThreads = new Set<string>();
@@ -231,6 +258,10 @@ export class CodexEngineAdapter implements DuplexTransport {
   private queue: CodexHostQueue | null = null;
   private schedules: ConversationSchedules | null = null;
   private hostState: CodexHostStateDatabase | null = null;
+  private tokenUsageState: TokenUsageStateDatabase | null = null;
+  private tokenUsageStorageUnavailable = false;
+  private tokenUsage: CodexTokenUsageRuntime | null = null;
+  private tokenUsageQueries: TokenUsageQueryService | null = null;
   private identity: ThreadIdentity | null = null;
   private get messageSenders() { return this.identity?.senders ?? null; }
   private get threadMetadata() { return this.identity?.metadata ?? null; }
@@ -267,7 +298,14 @@ export class CodexEngineAdapter implements DuplexTransport {
 
   constructor(private readonly options: LocalCodexEngineOptions | RemoteCodexEngineOptions) {
     this.threadTitles = options.kind !== "remote" && options.coreEndpoint && !options.coreHostOverlays ? null : new CodexThreadTitles({
-      request: (method, params, signal) => this.requestPhysical(method, params, 10_000, signal),
+      request: async (method, params, signal) => {
+        const inputId=method==="turn/start"?`internal-input:${randomUUID()}`:null;
+        const identity:UsageSubmission|undefined=inputId?{threadId:string(params.threadId),inputId,mode:"start",actorId:null,actorKind:"session",sourceKind:"system",submittedAt:Date.now()}:undefined;
+        const result=await this.requestPhysical(method,inputId?{...params,clientUserMessageId:inputId}:params,10_000,signal,identity);
+        if(method==="thread/start")this.tokenUsage?.threadStarted(result);
+        if(method==="thread/unsubscribe"&&this.threadTitles?.owns(string(params.threadId)))this.tokenUsage?.releaseEphemeral(string(params.threadId));
+        return result;
+      },
       serialize: (threadId, work) => this.withThreadOperation(threadId, work),
       changed: (threadId, name) => {
         this.durableCatalog?.observe("thread/name/updated", { threadId, threadName: name });
@@ -350,6 +388,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   get storageOutcomes(): readonly { name: string; outcome: DatabaseOutcome }[] {
     return [
       ...(this.hostState ? [{ name: "codex-host-state", outcome: this.hostState.outcome }] : []),
+      ...(this.tokenUsageState ? [{ name: "token-usage", outcome: this.tokenUsageState.outcome }] : []),
       ...(this.schedules ? [{ name: "conversation-schedules", outcome: this.schedules.outcome }] : []),
       ...(this.messageAttachments ? [{ name: "codex-message-attachments", outcome: this.messageAttachments.outcome }] : []),
       ...(this.tasks?.outcome ? [{ name: "tasks", outcome: this.tasks.outcome }] : []),
@@ -402,6 +441,22 @@ export class CodexEngineAdapter implements DuplexTransport {
     const runtimeRoot = join(dataRoot, "runtime");
     await mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
     this.hostState = new CodexHostStateDatabase(dataRoot);
+    try {
+      const telemetry=new TokenUsageTelemetry();
+      this.tokenUsageState = new TokenUsageStateDatabase(dataRoot, join(dataRoot,"codex-host-queue.sqlite"));
+      this.tokenUsage = new CodexTokenUsageRuntime(new CodexTokenUsageLedger(this.tokenUsageState,this.options.tokenUsage?.serverId ?? "local-codex",Date.now,telemetry), {
+        request:(method,params)=>this.requestPhysical(method,params,5000),
+        submission:this.options.tokenUsage?.submission,
+        diagnostic:category=>this.diagnostic({event:"token-usage-partial",category}),
+      });
+      if(this.options.tokenUsage?.queryWorkerEntry)this.tokenUsageQueries=new TokenUsageQueryService({entry:this.options.tokenUsage.queryWorkerEntry,databasePath:join(dataRoot,"token-usage.sqlite"),serverId:this.options.tokenUsage.serverId,telemetry});
+    } catch {
+      this.tokenUsageStorageUnavailable=true;
+      this.tokenUsageQueries?.close();this.tokenUsageQueries=null;
+      this.tokenUsage?.close();this.tokenUsage=null;
+      this.tokenUsageState?.close();this.tokenUsageState=null;
+      this.diagnostic({event:"token-usage-unavailable",category:"storage-open"});
+    }
     const queue = new CodexHostQueue(dataRoot, this.hostState.database);
     try {
       const migrated = this.nativeCore ? 0 : queue.migrateNativeQueue(runtimeRoot);
@@ -541,6 +596,39 @@ export class CodexEngineAdapter implements DuplexTransport {
       return;
     }
     const id = responseId(message.id);
+    if (id !== null && message.method === "opencraft/token-usage/configure") {
+      if (!this.initializedClients.has(clientId)) {this.emit({id,error:{code:-32600,message:"Client is not initialized"}},clientId);return;}
+      if (!this.tokenUsage) {this.emit({id,error:{code:this.tokenUsageStorageUnavailable?-32000:-32601,message:this.tokenUsageStorageUnavailable?"unavailable":"Token statistics are unsupported"}},clientId);return;}
+      const authority=context.tokenUsageAuthority?.();
+      if(!authority||!authority.administrator){this.emit({id,error:{code:authority?403:401,message:authority?"forbidden":"unauthorized"}},clientId);return;}
+      const params=record(message.params);
+      if(typeof params.enabled!=="boolean"||Object.keys(params).some(key=>key!=="enabled")){this.emit({id,error:{code:-32602,message:"invalid-query"}},clientId);return;}
+      try{
+        this.tokenUsage.ledger.setEnabled(params.enabled);
+        const {enabled,enabledAt,revision}=this.tokenUsage.ledger.coverage();
+        this.emit({id,result:{enabled,enabledAt,revision}},clientId);
+      }catch{this.emit({id,error:{code:-32000,message:"unavailable"}},clientId);}
+      return;
+    }
+    if (id !== null && message.method === "opencraft/token-usage/query") {
+      if (!this.initializedClients.has(clientId)) { this.emit({id,error:{code:-32600,message:"Client is not initialized"}},clientId); return; }
+      if (!this.tokenUsageQueries) { this.emit({id,error:{code:this.tokenUsageStorageUnavailable?-32000:-32601,message:this.tokenUsageStorageUnavailable?"unavailable":"Token statistics are unsupported"}},clientId); return; }
+      const epoch=this.clientEpoch(clientId);
+      try {
+        const authorize=context.tokenUsageAuthority??(()=>null),before=authorize();
+        const result=labelUsagePeople(await this.tokenUsageQueries.read(message.params,authorize), this.options.tokenUsage?.person);
+        const liveGaps=this.tokenUsage?.liveGapCount()??0;
+        if(liveGaps)result.coverage={...result.coverage,partial:true,openGaps:Math.max(result.coverage.openGaps,liveGaps)};
+        const after=authorize();
+        if(!after)throw new TokenUsageQueryError("unauthorized");
+        if(!before||after.actorId!==before.actorId||after.administrator!==before.administrator)throw new TokenUsageQueryError("forbidden");
+        if(epoch===this.clientEpoch(clientId)&&this.initializedClients.has(clientId))this.emit({id,result},clientId);
+      } catch (error) {
+        const kind=error instanceof TokenUsageQueryError?error.code:"unavailable";
+        if(epoch===this.clientEpoch(clientId)&&this.initializedClients.has(clientId))this.emit({id,error:{code:kind==="unauthorized"?401:kind==="forbidden"?403:kind==="stale-snapshot"?409:kind==="invalid-query"?-32602:-32000,message:kind}},clientId);
+      }
+      return;
+    }
     if (id !== null && message.method === "thread/list" && this.durableCatalog?.supports(record(message.params))) {
       if (!this.initializedClients.has(clientId)) { this.emit({ id, error: { code: -32600, message: "Client is not initialized" } }, clientId); return; }
       const epoch = this.clientEpoch(clientId);
@@ -595,6 +683,17 @@ export class CodexEngineAdapter implements DuplexTransport {
         return;
       }
       const requestClientEpoch = this.clientEpoch(clientId);
+      if (message.method === COLLABORATION_METHOD) {
+        try {
+          this.validateSubmissionContext(context);
+          if (!this.options.collaboration || !context.actorContext) throw new Error("Authenticated conversation access required");
+          context.resourceOwner?.assertCurrent();
+          const result = await this.options.collaboration.command(context.actorContext, record(message.params));
+          context.resourceOwner?.assertCurrent();
+          if (this.initializedClients.has(clientId) && this.clientEpoch(clientId) === requestClientEpoch) this.emit({id,result},clientId);
+        } catch { this.emit({id,error:{code:-32070,message:"Conversation operation could not be confirmed. Review its receipt before retrying."}},clientId); }
+        return;
+      }
       if (message.method.startsWith("opencraft/schedules/")) {
         try {
           this.validateSubmissionContext(context);
@@ -719,8 +818,19 @@ export class CodexEngineAdapter implements DuplexTransport {
             if (string(params.clientUserMessageId).startsWith('actor-input:')) throw new Error('Actor input requires the managed queue');
             this.validateSubmissionContext(context);
             const prepared = await this.modelVisibleAttachmentInput(params.input);
+            if (context.actorContext && this.options.collaboration?.prepare) {
+              const referenceContext = await this.options.collaboration.prepare(context.actorContext, prepared.input);
+              if (referenceContext) params = {...params, additionalContext:{...record(params.additionalContext), "opencraft.conversations":{kind:"untrusted",value:JSON.stringify(referenceContext)}}};
+            }
             if (!this.initializedClients.has(clientId) || this.clientEpoch(clientId) !== requestClientEpoch) return;
             this.recordSender(params, context); // Rechecks validity after the final await.
+            params = {...params,clientUserMessageId:string(params.clientUserMessageId)||`input:${randomUUID()}`};
+            if (message.method === "turn/start" && context.actorContext && this.options.collaboration) {
+              const inputId = string(params.clientUserMessageId) || `input:${randomUUID()}`;
+              params = {...params, clientUserMessageId: inputId};
+              context.resourceOwner?.assertCurrent();
+              this.options.collaboration.authorize(context.actorContext, string(params.threadId), inputId);
+            }
             if (prepared.attachments.length > 0) this.attachmentRecords().record(
               string(params.threadId), string(params.clientUserMessageId), prepared.attachments);
             params = { ...params, input: prepared.input };
@@ -733,6 +843,17 @@ export class CodexEngineAdapter implements DuplexTransport {
         }
         const pending: PendingRequest = { clientId, clientEpoch: requestClientEpoch, originalId: id, method: message.method as string, params,
           ...((message.method === "thread/start" || message.method === "thread/fork") ? { metadataSender: context.sender } : {}) };
+        if (message.method === "turn/start" || message.method === "turn/steer") {
+          const inputId = string(params.clientUserMessageId);
+          try {
+            const actor=context.actorContext ? this.options.tokenUsage?.actor(context.actorContext) : null;
+            const trusted=this.options.tokenUsage?.submission?.(string(params.threadId),inputId);
+            pending.usageAttemptId=randomUUID();
+            this.tokenUsage?.attempt(pending.usageAttemptId,string(params.threadId),inputId,message.method === "turn/start" ? "start":"steer",{threadId:string(params.threadId),inputId,actorId:actor?.id??trusted?.actorId??null,
+              actorKind:actor?.kind??trusted?.actorKind??"unknown",mode:message.method === "turn/start" ? "start":"steer",
+              sourceKind:actor?.kind === "human" ? "human":actor?.kind === "session" ? "system":trusted?.sourceKind??"unknown",submittedAt:Date.now()});
+          } catch { this.diagnostic({event:"token-usage-partial",category:"submission"}); }
+        }
         // Native fork has no fixed deadline in Workbench. Preserve that
         // contract; its ledger is still bounded by the admission limit and
         // retired with the physical generation, rather than timed out here.
@@ -740,6 +861,7 @@ export class CodexEngineAdapter implements DuplexTransport {
           pending.timer = setTimeout(() => {
             if (this.pending.get(physicalId) !== pending) return;
             this.pending.delete(physicalId);
+            if(pending.usageAttemptId)this.tokenUsage?.attemptOutcome(pending.usageAttemptId,"unknown");
             if (this.validClientRequest(pending)) this.emit({ id, error: { code: -32000, message: "Remote request timed out; delivery outcome is unknown" } }, clientId);
           }, 30_000);
           pending.timer.unref();
@@ -749,7 +871,8 @@ export class CodexEngineAdapter implements DuplexTransport {
           const threadId = string(params.threadId);
           this.cancelNativeRelease(threadId);
         }
-        await this.writePhysical({ ...message, id: physicalId });
+        try{await this.writePhysical({ ...message, id: physicalId });}
+        catch(error){if(pending.usageAttemptId)this.tokenUsage?.attemptOutcome(pending.usageAttemptId,"unknown");throw error;}
       };
       if (message.method === "thread/resume") {
         const threadId = string(params.threadId);
@@ -779,6 +902,11 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (this.coreBridge) return this.coreBridge.close();
     if (this.closeOperation !== null) return this.closeOperation;
     this.threadTitles?.close();
+    this.tokenUsageQueries?.close();
+    this.tokenUsageQueries=null;
+    for(const request of [...this.pending.values(),...this.internalRequests.values()])if(request.usageAttemptId)this.tokenUsage?.attemptOutcome(request.usageAttemptId,"unknown");
+    this.tokenUsage?.close();
+    this.tokenUsage=null;
     this.publishStatus({ state: "closing" });
     this.physicalInitialized = false;
     this.remoteGoalCapability = null;
@@ -818,6 +946,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.queue = null;
       this.identity?.close();
       this.identity = null;
+      this.tokenUsageState?.close();this.tokenUsageState=null;this.tokenUsageStorageUnavailable=false;
       this.hostState?.close();
       this.hostState = null;
       this.messageAttachments?.close();
@@ -838,6 +967,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       this.ephemeralThreads.clear();
       this.nativeReleases.clear();
       this.threadInteractionOwners.clear();
+      this.collaborationCalls.clear();
       this.serverRequests.clear();
       this.activeTurns.clear();
       for (const timer of this.goalContinuationTimers.values()) clearTimeout(timer);
@@ -910,6 +1040,7 @@ export class CodexEngineAdapter implements DuplexTransport {
         if (this.statusValue.state !== "open") return;
       }
       this.durableCatalog?.start();
+      try { this.tokenUsage?.initialize(message.result); } catch { this.diagnostic({event:"token-usage-partial",category:"initialize"}); }
       if (this.options.kind === "remote") {
         let goalCapability: OpenCraftThreadGoalCapability | null = null;
         try {
@@ -937,7 +1068,7 @@ export class CodexEngineAdapter implements DuplexTransport {
         } else this.initializeResult = shared;
       } else {
         this.initializeResult = this.attachmentStaging
-          ? withCodexHostCapabilities(message.result, this.attachmentStaging.capability, this.desktopService?.capability())
+          ? withCodexHostCapabilities(message.result, this.attachmentStaging.capability, this.desktopService?.capability(), !!this.options.collaboration)
           : projectSharedNativeCodexInitialize(message.result);
       }
       if (this.threadMetadata) {
@@ -946,6 +1077,17 @@ export class CodexEngineAdapter implements DuplexTransport {
         this.initializeResult = { ...value, capabilities: { ...capabilities, extensions: { ...extensions, ...this.threadMetadata.capabilities,
           ...(Array.isArray(access.methods) ? { [OPENCRAFT_METHOD_ACCESS_EXTENSION]: { ...access, methods: [...new Set([...access.methods, ...this.threadMetadata.methods])] } } : {}),
         } } };
+      }
+      if (this.options.collaboration) {
+        const value=record(this.initializeResult),capabilities=record(value.capabilities),extensions=record(capabilities.extensions),access=record(extensions[OPENCRAFT_METHOD_ACCESS_EXTENSION]);
+        if(Array.isArray(access.methods)) this.initializeResult={...value,capabilities:{...capabilities,extensions:{...extensions,[OPENCRAFT_METHOD_ACCESS_EXTENSION]:{...access,methods:[...new Set([...access.methods,COLLABORATION_METHOD])]}}}};
+      }
+      if (this.tokenUsageQueries) {
+        const value=record(this.initializeResult),capabilities=record(value.capabilities),extensions=record(capabilities.extensions),access=record(extensions[OPENCRAFT_METHOD_ACCESS_EXTENSION]);
+        this.initializeResult={...value,capabilities:{...capabilities,extensions:{...extensions,
+          "opencraft/token-usage":{version:1,query:true,configure:true,policyVersion:"equal-turn-v1",timezone:"Asia/Shanghai"},
+          ...(Array.isArray(access.methods)?{[OPENCRAFT_METHOD_ACCESS_EXTENSION]:{...access,methods:[...new Set([...access.methods,"opencraft/token-usage/query","opencraft/token-usage/configure"])]}}:{}),
+        }}};
       }
       if (this.schedules) {
         const value = record(this.initializeResult), capabilities = record(value.capabilities), extensions = record(capabilities.extensions);
@@ -985,21 +1127,28 @@ export class CodexEngineAdapter implements DuplexTransport {
       if (internal && typeof message.method !== "string") {
         this.internalRequests.delete(String(id));
         clearTimeout(internal.timer);
+        this.observeUsageAttempt(internal.usageAttemptId,internal.method,internal.params,message);
         if ("error" in message) internal.reject(this.rpcError(record(message.error)));
         else {
           if (internal.threadId && !this.threadTitles?.owns(internal.threadId) && (internal.method === "thread/resume" || internal.method === "turn/start")) {
             this.nativeSubscribedThreads.add(internal.threadId);
             this.cancelNativeRelease(internal.threadId);
           }
+          if (internal.method === "turn/start") this.options.collaboration?.started(string(internal.params.threadId),string(internal.params.clientUserMessageId),string(record(record(message.result).turn).id));
+          this.observeUsageAcceptance(internal.method,internal.params,message.result);
           this.observeMetadataResult(internal.method, internal.params, message.result);
           internal.resolve(message.result);
         }
+        // Metering metadata reads may have held the Host demand guard when a
+        // turn completed. Re-evaluate release after the last internal RPC ends.
+        this.scheduleNativeRelease(internal.threadId);
         return;
       }
       const pending = this.pending.get(String(id));
       if (pending !== undefined && typeof message.method !== "string") {
         this.pending.delete(String(id));
         if (pending.timer) clearTimeout(pending.timer);
+        this.observeUsageAttempt(pending.usageAttemptId,pending.method,pending.params,message);
         if (pending.method === "initialize") {
           void this.completeInitialize(pending, message).catch(error => {
             this.physicalInitializePending = false;
@@ -1025,6 +1174,8 @@ export class CodexEngineAdapter implements DuplexTransport {
           } };
         }
         if ("result" in message) {
+          if (pending.method === "turn/start") this.options.collaboration?.started(string(pending.params.threadId),string(pending.params.clientUserMessageId),string(record(record(message.result).turn).id));
+          this.observeUsageAcceptance(pending.method,pending.params,message.result);
           if (pending.method === "thread/goal/get" || pending.method === "thread/goal/set") {
             this.noteGoal(string(pending.params.threadId), record(message.result).goal);
           } else if (pending.method === "thread/goal/clear" && record(message.result).cleared === true) {
@@ -1074,8 +1225,9 @@ export class CodexEngineAdapter implements DuplexTransport {
       return;
     }
     nodeObserver(this.options.observationComponent ?? 'gateway').execution('codex', String(message.method), message.params);
-    if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     const threadId = string(record(message.params).threadId) || string(record(record(message.params).thread).id);
+    try { this.tokenUsage?.notification(string(message.method),record(message.params)); } catch { this.diagnostic({event:"token-usage-partial",category:"notification"}); }
+    if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     this.durableCatalog?.observe(string(message.method), message.params);
     if (message.method === "thread/archived" || message.method === "thread/deleted") this.schedules?.suspend(threadId);
     if (message.method === "turn/started" && threadId) {
@@ -1127,6 +1279,26 @@ export class CodexEngineAdapter implements DuplexTransport {
     else for (const target of targets) this.emit(message, target);
   };
 
+  private observeUsageAttempt(attemptId:string|undefined,method:string,params:RpcRecord,message:RpcRecord):void {
+    if(!attemptId)return;
+    if("error" in message){
+      const error=this.rpcError(record(message.error));
+      const rejected=method==="turn/steer"?this.definitiveSteerRejection(error):[-32600,-32601,-32602].includes(error.code);
+      this.tokenUsage?.attemptOutcome(attemptId,rejected?"rejected":"unknown");
+      return;
+    }
+    const result=record(message.result),turnId=method==="turn/start"?string(record(result.turn).id):string(result.turnId)||string(record(result.turn).id);
+    const accepted=turnId&&(method!=="turn/steer"||turnId===string(params.expectedTurnId));
+    this.tokenUsage?.attemptOutcome(attemptId,accepted?"accepted":"unknown",accepted?turnId:null);
+  }
+  private observeUsageAcceptance(method: string, params: RpcRecord, result: unknown): void {
+    if (method !== "turn/start" && method !== "turn/steer") return;
+    const turnId=method === "turn/start" ? string(record(record(result).turn).id) : string(record(result).turnId)||string(record(record(result).turn).id);
+    if (!turnId || (method === "turn/steer" && turnId !== string(params.expectedTurnId))) return;
+    try { this.tokenUsage?.admission({threadId:string(params.threadId),turnId},string(params.clientUserMessageId)); }
+    catch { this.diagnostic({event:"token-usage-partial",category:"acceptance"}); }
+  }
+
   private commitThreadSubscription(pending: PendingRequest, result: unknown): void {
     if (!this.validClientRequest(pending)) return;
     if (pending.method === "thread/start" || pending.method === "thread/fork") {
@@ -1149,6 +1321,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (!threadId || !["thread/start", "thread/fork", "thread/resume", "turn/start"].includes(pending.method)) return;
     this.nativeSubscribedThreads.add(threadId);
     if (record(record(result).thread).ephemeral === true) this.ephemeralThreads.add(threadId);
+    if(pending.method==="thread/start")try{this.tokenUsage?.threadStarted(result);}catch{this.diagnostic({event:"token-usage-partial",category:"ephemeral-baseline"});}
     this.cancelNativeRelease(threadId);
   }
 
@@ -1161,6 +1334,22 @@ export class CodexEngineAdapter implements DuplexTransport {
     }
     if (this.threadTitles?.owns(string(record(message.params).threadId))) {
       void this.writePhysical({ id, error: { code: -32601, message: "Title generation does not support tools or user interaction" } })?.catch(() => undefined);
+      return;
+    }
+    const params = record(message.params);
+    if (message.method === "item/tool/call" && CONVERSATION_TOOLS.some(t=>t.name===params.tool) && (params.namespace === undefined || params.namespace === null || params.namespace === "")) {
+      const key=String(id),token=Symbol(key);
+      if(this.collaborationCalls.has(key)) return;
+      if(this.collaborationCalls.size>=16) {void this.writePhysical({id,result:{success:false,contentItems:[{type:"inputText",text:"Conversation tool limit exceeded"}]}})?.catch(()=>{});return;}
+      this.collaborationCalls.set(key,token);
+      const respond = (success: boolean, value: unknown) => {
+        if(this.collaborationCalls.get(key)!==token || this.statusValue.state!=="open")return;
+        return this.writePhysical({id,result:{success,contentItems:[{type:"inputText",text:JSON.stringify(value)}]}});
+      };
+      void Promise.resolve().then(()=>{
+        if (!this.options.collaboration) throw new Error("Conversation tools unavailable");
+        return this.options.collaboration.tool(string(params.threadId),string(params.turnId),string(params.tool),record(params.arguments));
+      }).then(value=>respond(true,value),()=>respond(false,{error:"Conversation operation unavailable or unauthorized. Inspect the original receipt before retrying."})).catch(()=>{}).finally(()=>{if(this.collaborationCalls.get(key)===token)this.collaborationCalls.delete(key);});
       return;
     }
     const key = JSON.stringify(id);
@@ -1510,35 +1699,38 @@ export class CodexEngineAdapter implements DuplexTransport {
     throw new Error(`Permission mode is unavailable on this Codex Host: ${mode}`);
   }
 
-  private requestPhysical(method: string, params: RpcRecord, timeoutMs = 30_000, signal?: AbortSignal): Promise<unknown> {
+  private requestPhysical(method: string, params: RpcRecord, timeoutMs = 30_000, signal?: AbortSignal, usageIdentity?:UsageSubmission): Promise<unknown> {
     if (this.statusValue.state !== "open" || !this.physicalAvailable || !this.physicalInitialized) {
       return Promise.reject(new Error("Codex AppServer is not initialized"));
     }
     if (signal?.aborted) return Promise.reject(new Error("Codex request cancelled"));
     const id = `opencraft:host:${++this.sequence}`;
+    const usageAttemptId=method==="turn/start"||method==="turn/steer"?randomUUID():undefined;
+    if(usageAttemptId)this.tokenUsage?.attempt(usageAttemptId,string(params.threadId),string(params.clientUserMessageId),method==="turn/start"?"start":"steer",usageIdentity);
+    const unknown=()=>{if(usageAttemptId)this.tokenUsage?.attemptOutcome(usageAttemptId,"unknown");};
     return new Promise((resolve, reject) => {
       const cleanup = () => signal?.removeEventListener("abort", cancel);
       const cancel = () => {
         this.internalRequests.delete(id); clearTimeout(timer); cleanup();
-        reject(new Error("Codex request cancelled"));
+        unknown();reject(new Error("Codex request cancelled"));
       };
       const timer = setTimeout(() => {
         this.internalRequests.delete(id); cleanup();
-        reject(new Error(`Codex ${method} delivery outcome is unknown after timeout`));
+        unknown();reject(new Error(`Codex ${method} delivery outcome is unknown after timeout`));
       }, timeoutMs);
       signal?.addEventListener("abort", cancel, { once: true });
-      this.internalRequests.set(id, { resolve: value => { cleanup(); resolve(value); }, reject: error => { cleanup(); reject(error); }, timer, threadId: string(params.threadId), method, params });
+      this.internalRequests.set(id, { resolve: value => { cleanup(); resolve(value); }, reject: error => { cleanup(); reject(error); }, timer, threadId: string(params.threadId), method, params,usageAttemptId });
       try {
         const write = this.writePhysical({ id, method, params });
         void write?.catch(error => {
           if (!this.internalRequests.delete(id)) return;
-          clearTimeout(timer); cleanup(); reject(error);
+          clearTimeout(timer); cleanup(); unknown();reject(error);
         });
       }
       catch (error) {
         clearTimeout(timer); cleanup();
         this.internalRequests.delete(id);
-        reject(error);
+        unknown();reject(error);
       }
     });
   }
@@ -1546,6 +1738,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   private rejectInternalRequests(error: Error): void {
     for (const request of this.internalRequests.values()) {
       clearTimeout(request.timer);
+      if(request.usageAttemptId)this.tokenUsage?.attemptOutcome(request.usageAttemptId,"unknown");
       request.reject(error);
     }
     this.internalRequests.clear();
@@ -1713,10 +1906,15 @@ export class CodexEngineAdapter implements DuplexTransport {
           return;
         }
         retry.inFlight = true;
+        const retryInputId=`capacity-retry:${randomUUID()}`;
+        // This owned continuation has no new human input. Record its origin at
+        // creation; a textual prefix in native history never grants this status.
+        this.tokenUsage?.submission({threadId,inputId:retryInputId,actorId:null,actorKind:"session",mode:"start",sourceKind:"system",submittedAt:Date.now()});
         const started = record(await this.requestPhysical("turn/start", {
-          threadId, input: [], clientUserMessageId: `capacity-retry:${randomUUID()}`,
+          threadId, input: [], clientUserMessageId: retryInputId,
         }));
         retry.autoTurnId = string(record(started.turn).id);
+        if (retry.autoTurnId) this.options.collaboration?.continued?.(threadId, failedTurnId, retry.autoTurnId);
         retry.inFlight = false;
         if (!retry.autoTurnId) throw new Error("Codex returned an invalid capacity retry acknowledgement");
       }).catch(error => {
@@ -1881,7 +2079,7 @@ export class CodexEngineAdapter implements DuplexTransport {
 
   private actorInput(row: HostQueuedSubmission, mode: 'queue' | 'steer', expectedTurnId?: string): void {
     if (!row.clientUserMessageId.startsWith('actor-input:')) return;
-    if (!this.options.actorExecution?.authorize(row.threadId, row.clientUserMessageId, mode, expectedTurnId)) {
+    if (!this.options.collaborationInput?.authorize(row.threadId, row.clientUserMessageId, mode, expectedTurnId)) {
       throw new CodexQueueRpcError(-32600, 'Actor execution authorization changed');
     }
   }
@@ -1892,12 +2090,12 @@ export class CodexEngineAdapter implements DuplexTransport {
     const first = queue.firstAwaitingAdmission(threadId);
     if (!first || first.state !== "queued") return;
     if (first.clientUserMessageId.startsWith('actor-input:')) {
-      if (this.options.actorExecution?.available() === false) return;
-      const mode = this.options.actorExecution?.mode(first.clientUserMessageId);
-      if (!mode || !this.options.actorExecution?.authorize(threadId, first.clientUserMessageId, mode, first.targetTurnId ?? undefined)) {
+      if (this.options.collaborationInput?.available() === false) return;
+      const mode = this.options.collaborationInput?.mode(first.clientUserMessageId);
+      if (!mode || !this.options.collaborationInput?.authorize(threadId, first.clientUserMessageId, mode, first.targetTurnId ?? undefined)) {
         // Steer carries its expected Turn in the collaboration authority, not in an unclaimed queue row.
         if (mode === 'steer') return;
-        if (!this.options.actorExecution) return;
+        if (!this.options.collaborationInput) return;
         queue.delete(threadId, first.id); this.emitQueueChanged(threadId); this.scheduleQueueMaintenance(threadId); return;
       }
       if (mode === 'steer') return;
@@ -1907,7 +2105,14 @@ export class CodexEngineAdapter implements DuplexTransport {
     await this.dispatchQueuedStart(threadId, first.id);
   }
 
-  private async dispatchQueuedStart(threadId: string, id: string): Promise<RpcRecord> {
+  private queuedUsageIdentity(context:TransportSubmissionContext|undefined,threadId:string,inputId:string,mode:"start"|"steer"):UsageSubmission|undefined {
+    if(!context)return undefined;
+    let actor:{id:string;kind:"human"|"session"}|null=null;
+    try{actor=context.actorContext?this.options.tokenUsage?.actor(context.actorContext)??null:null;}
+    catch{try{this.diagnostic({event:"token-usage-partial",category:"dispatch-identity"});}catch{}}
+    return {threadId,inputId,mode,actorId:actor?.id??null,actorKind:actor?.kind??"unknown",sourceKind:actor?.kind==="human"?"human":actor?.kind==="session"?"system":"unknown",submittedAt:Date.now()};
+  }
+  private async dispatchQueuedStart(threadId: string, id: string, context?:TransportSubmissionContext): Promise<RpcRecord> {
     const queue = this.queueStore();
     const head = queue.firstAwaitingAdmission(threadId);
     if (head?.state === "unknown") throw new CodexQueueRpcError(-32600, "Earlier delivery is unconfirmed; review it before sending another message");
@@ -1917,6 +2122,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     const prepared = await this.modelVisibleAttachmentInput(queued.input);
     if (prepared.attachments.length > 0) this.attachmentRecords().record(
       threadId, queued.clientUserMessageId, prepared.attachments);
+    const referenceContext = await this.options.collaboration?.queuedContext?.(threadId, queued.clientUserMessageId, prepared.input);
     this.actorInput(queued, 'queue');
     const selection = this.schedules?.executionPermissions(threadId, queued.clientUserMessageId);
     const thread = selection ? record(record(await this.requestPhysical("thread/read", { threadId, includeTurns: false })).thread) : null;
@@ -1928,7 +2134,8 @@ export class CodexEngineAdapter implements DuplexTransport {
       const response = record(await this.requestPhysical("turn/start", {
         threadId, input: prepared.input, clientUserMessageId: row.clientUserMessageId,
         ...(permissions ? { permissions } : {}),
-      }));
+        ...(referenceContext ? {additionalContext:{"opencraft.conversations":{kind:"untrusted",value:JSON.stringify(referenceContext)}}} : {}),
+      },30_000,undefined,this.queuedUsageIdentity(context,threadId,row.clientUserMessageId,"start")));
       if (!string(record(response.turn).id)) throw new Error("Codex returned an invalid turn/start acknowledgement");
       queue.settle(threadId, id, "delivered", null, string(record(response.turn).id));
       this.emitQueueChanged(threadId);
@@ -1950,7 +2157,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       || error.message === "active turn uses a different output schema";
   }
 
-  private async dispatchQueuedSteer(threadId: string, id: string, expectedTurnId: string): Promise<RpcRecord> {
+  private async dispatchQueuedSteer(threadId: string, id: string, expectedTurnId: string, context?:TransportSubmissionContext): Promise<RpcRecord> {
     const queue = this.queueStore();
     if (queue.firstAwaitingAdmission(threadId)?.state === "unknown") await this.reconcileQueue(threadId);
     const head = queue.firstAwaitingAdmission(threadId);
@@ -1968,7 +2175,7 @@ export class CodexEngineAdapter implements DuplexTransport {
     try {
       const response = record(await this.requestPhysical("turn/steer", {
         threadId, expectedTurnId, input: prepared.input, clientUserMessageId: row.clientUserMessageId,
-      }));
+      },30_000,undefined,this.queuedUsageIdentity(context,threadId,row.clientUserMessageId,"steer")));
       const turnId = string(response.turnId) || string(record(response.turn).id);
       if (turnId !== expectedTurnId) throw new Error("Codex returned an invalid steer acknowledgement");
       queue.settle(threadId, id, "steering");
@@ -1997,7 +2204,7 @@ export class CodexEngineAdapter implements DuplexTransport {
         throw new CodexQueueRpcError(-32600, 'Actor input requires its trusted admission');
       }
       if (selected?.clientUserMessageId.startsWith('actor-input:') && method === 'thread/queue/update') throw new CodexQueueRpcError(-32600, 'Actor messages are immutable');
-      if (method === "thread/queue/actorReceipt") {
+      if (method === "thread/queue/collaborationReceipt") {
         if (!actorRequest) throw new CodexQueueRpcError(-32600, 'Trusted Actor admission required');
         const row = queue.findByClientId(threadId, `actor-input:${actorRequest}`);
         result = { receipt: row ? { id: row.id, state: row.state, targetTurnId: row.targetTurnId } : null };
@@ -2017,13 +2224,14 @@ export class CodexEngineAdapter implements DuplexTransport {
       } else if (method === "thread/queue/add") {
         await this.assertDurableQueueThread(threadId);
         if (actorClientId.startsWith('actor-input:')) {
-          const mode = this.options.actorExecution?.mode(actorClientId);
+          const mode = this.options.collaborationInput?.mode(actorClientId);
           if (!mode) throw new CodexQueueRpcError(-32600, 'Actor request unavailable');
           // Steer is checked again against its exact Turn at dispatch; add itself never executes it.
-          if (mode === 'queue' && !this.options.actorExecution?.authorize(threadId, actorClientId, mode)) throw new CodexQueueRpcError(-32600, 'Actor execution authorization changed');
+          if (mode === 'queue' && !this.options.collaborationInput?.authorize(threadId, actorClientId, mode)) throw new CodexQueueRpcError(-32600, 'Actor execution authorization changed');
         }
         const row = this.hostState!.transaction(() => {
           this.recordSender(params, context);
+          if (context.actorContext && this.options.collaboration && !actorClientId.startsWith('actor-input:')) {context.resourceOwner?.assertCurrent();this.options.collaboration.authorize(context.actorContext, threadId, string(params.clientUserMessageId));}
           return queue.add(threadId, string(params.clientUserMessageId), params.input as readonly unknown[]);
         });
         result = { queuedSubmission: this.queueProjection(row) };
@@ -2073,12 +2281,12 @@ export class CodexEngineAdapter implements DuplexTransport {
           if (row?.state === "unknown") throw new CodexQueueRpcError(-32600, "Earlier delivery is unconfirmed; review it before sending another message");
           if (!row || row.state !== "queued") throw new CodexQueueRpcError(-32600, "Queued message is unavailable");
           if (row.clientUserMessageId.startsWith('actor-input:') && row.clientUserMessageId !== `actor-input:${actorRequest}`) throw new CodexQueueRpcError(-32600, 'Actor input requires its trusted admission');
-          return this.dispatchQueuedStart(threadId, row.id);
+          return this.dispatchQueuedStart(threadId, row.id,context);
         });
       } else if (method === "thread/queue/steer") {
         const target = string(params.expectedTurnId);
         if (!target) throw new CodexQueueRpcError(-32602, "Steer requires expectedTurnId");
-        result = await this.withThreadOperation(threadId, () => this.dispatchQueuedSteer(threadId, string(params.queuedSubmissionId), target));
+        result = await this.withThreadOperation(threadId, () => this.dispatchQueuedSteer(threadId, string(params.queuedSubmissionId), target,context));
       } else throw new CodexQueueRpcError(-32601, `Unknown queue method ${method}`);
       this.emit({ id, result }, clientId);
     } catch (error) {
@@ -2088,6 +2296,11 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private writePhysical(message: RpcRecord): Promise<void> | void {
+    if (this.options.collaboration && message.method === "thread/start") {
+      const params = record(message.params), tools = Array.isArray(params.dynamicTools) ? params.dynamicTools : [];
+      const names = new Set<string>(CONVERSATION_TOOLS.map(t=>t.name));
+      message = {...message, params:{...params,dynamicTools:[...tools.filter(t=>!names.has(string(record(t).name))),...CONVERSATION_TOOLS.map(t=>({type:"function",...t}))]}};
+    }
     // Product default, not a second reasoning owner: all native starts (also
     // Host queue delivery) request returned summaries. Explicit null keeps
     // native inheritance; explicit modes and invalid values remain native's
@@ -2118,6 +2331,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   private readonly fail = (error: Error): void => {
     this.revokeDesktopOwners();
     this.rejectInternalRequests(error);
+    for(const request of this.pending.values())if(request.usageAttemptId)this.tokenUsage?.attemptOutcome(request.usageAttemptId,"unknown");
     for (const timer of this.goalContinuationTimers.values()) clearTimeout(timer);
     this.goalContinuationTimers.clear();
     this.clearAllCapacityRetries();

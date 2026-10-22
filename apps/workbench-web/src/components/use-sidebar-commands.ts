@@ -21,9 +21,11 @@ export function useSidebarCommands(commands: SidebarCommands): SidebarCommands {
   const onSetPinned = useStableEvent<NonNullable<ThreadActionCallbacks["onSetPinned"]>>(
     async (...args) => { await commands.threadActions.onSetPinned?.(...args); },
   );
+  const onCopyReference = useStableEvent<NonNullable<ThreadActionCallbacks["onCopyReference"]>>(async target => {await commands.threadActions.onCopyReference?.(target);});
+  const canReference = commands.threadActions.onCopyReference !== undefined;
   const canPin = commands.threadActions.onSetPinned !== undefined;
   const threadActions = useMemo(() => ({ onRename, onFork, onArchive, onDelete,
-    ...(canPin ? { onSetPinned } : {}),
-  }), [onRename, onFork, onArchive, onDelete, onSetPinned, canPin]);
+    ...(canPin ? { onSetPinned } : {}), ...(canReference ? {onCopyReference} : {}),
+  }), [onRename, onFork, onArchive, onDelete, onSetPinned, canPin, onCopyReference, canReference]);
   return { onSelectThread, onNewTask, onOpenSettings, onRetryThreadCatalog, onRetryThreadCatalogDiscovery, threadActions };
 }

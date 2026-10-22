@@ -3132,9 +3132,9 @@ episode is active.
 
 ### 单 Hub 主体协作
 
-Headless 将 `access-control/actor-collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/actor-codex-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
+Headless 将 `access-control/collaboration` 作为 ActorStore / ActorAccess 后的协作权威，拥有独立托管 SQLite 中的私聊消息、投递、运行绑定与执行交接记录。`scripts/conversation-execution.mjs` 是有限的进程内 AppHost 适配；CodexHostQueue 仍唯一拥有执行领取，并在领取前调用当前 Actor 授权校验。Wire 字段不构成可信调用上下文。契约及未隔离边界见[主体协作接口](actor-collaboration-api.md)。
 
-会话引用与跨会话投递的[目标架构](architecture/conversation-interoperability.md)将 Actor 和 Conversation 资源分开：统一 Collaboration 接纳与交接，目标 Host 继续拥有执行队列，引擎及渠道通过窄端口接入。该文档规定下一步迁移，不表示当前已支持任意会话引用、后台模型工具或跨引擎/跨 Server 投递。
+[会话引用、读取与投递](architecture/conversation-interoperability.md)将Actor和Conversation资源分开，统一Collaboration接纳与交接，目标Host继续拥有执行队列。Headless本地Codex已接通稳定引用、按需历史、原始输入委托的服务端工具；其他引擎与跨Server投递须有实际适配，不因协议类型而自动可用。
 
 ### Read-only Office resource previews
 
@@ -3297,3 +3297,55 @@ must be released on confirm, cancel and Escape without editing body styles.
 Turn interruption remains Thread-owned, coalesces pending requests for the same
 Turn, and projects `interrupting` into Composer progress. Failure restores the
 control and reports an error only for the still-matching visible owner.
+
+
+Conversation resources use the same core Collaboration message/idempotency/handoff authority as Actor channels. Stable references, bounded untrusted native-history context, explicit model delegation and the existing Host queue are documented in [conversation interoperability](architecture/conversation-interoperability.md). Renderer routes never supply execution identity.
+
+
+### Token usage collection controls and account presentation
+
+The optional Token usage Settings view consumes the trusted first-party Host
+query capability. Its collection control appears only when the current snapshot
+explicitly declares `canConfigure`; the Host requires the current instance
+administrator and accepts only a boolean `enabled` on its configure method.
+Collection and view lifecycles remain independent. Pausing retains acquired
+amounts and exposes incomplete coverage; re-enabling admits only new turns.
+Account scope changes remount the presentation before reusing any snapshot,
+and pending controls fence their late effects to the original generation. The
+Host remains the authorization authority; presentation scope never grants access.
+Number/date formatting follows the app locale, with Chinese and English copy
+using the existing Settings bilingual presentation convention.
+
+The usage view retains its current content height while a filter or drilldown query is pending. Returning from a conversation restores the summary cursor, scroll position and initiating row focus within the existing Settings viewport; it does not create another scroll owner. Account changes still remount and clear the previous principal’s snapshot.
+
+Each physical TokenUsageQuery owner retains its two immutable timezone/date formatters. Query filters and authority remain per request; no actor-keyed formatter or completed-response cache is introduced. This bounds repeated ICU allocation during long-lived read workloads.
+
+Usage snapshots may include summary.threads, the distinct conversation count over the complete authorized filter intersection, independently of the detail page. Older Hosts may omit the additive field. The view highlights settled tokens, keeps provisional/pending/system/unknown amounts separate, and presents model aggregates as readable numeric rows as well as filters.
+
+The Token usage view is a managed optional built-in (`opencraft.token-usage`) on Web/Electron. Its manifest is discovered without importing the dashboard; activation contributes the Settings page and deferred platform renderer through the existing supervisor. Disabling withdraws those contributions and preserves the Host ledger and collection configuration. Persisted installation intent is owned by ExtensionManager; no second lifecycle or metering state is introduced.
+
+The physical Token ledger reuses parameterized SQLite statements in a SQL-shape map bounded to 128 entries, avoiding per-event native statement allocation. The database owner still closes the connection; exact allocations, transaction boundaries and authorization are unchanged. No actor-keyed or completed-result cache is introduced.
+
+The read-only usage query owner also bounds native prepared statements to 128 SQL shapes and lends only its prepare port to team projections. Manual bulk iterators close before snapshot rollback on success and exceptions, allowing later reads to reuse that physical owner. This is statement reuse, not a completed-response or per-person cache.
+
+Token metering has its own managed `token-usage.sqlite` physical transaction owner
+and an atomic, read-only import from former shared Host tables. Sender/queue
+storage remains independent; no collector writes two ledgers. A metering lock or
+failed open cannot block native input admission, and unpersisted acquisition
+gaps mark returned coverage partial. Query workers have a 64MiB old-generation
+and 4MiB young-generation limit; scan failure rejects bounded reads and lazily
+restarts the worker. Source rebuilds select only the four fields they consume,
+reducing allocation without changing ordering or exact arithmetic. The limits
+and narrow row shape require measured resource/latency acceptance, not just
+successful compilation.
+
+
+#### Token usage people presentation
+
+The optional dashboard selects a person from the existing authorized, paginated people usage view. The Host decorates only authorized team people rows with current human Actor display names through its existing identity-directory port, then rechecks the original request authority before delivery. Names are presentation metadata, never a participant key, identity binding, allocation weight, or ledger column. The same signed paging/date/model intersection applies when browsing people; choosing a row returns to that person's allocated conversation totals, and clearing the filter restores the team view. Self queries do not resolve or expose other people's names. Missing directory entries remain explicitly unknown; no enterprise directory or statistics account system is introduced.
+
+
+Unchanged native metering metadata is idempotent at the persistence boundary: reconciliation compares stored execution/completeness evidence before rebuilding, and repeated rollout references or metadata cursors avoid writes. Effective participant completeness can remain false due to unresolved admissions without triggering polling rebuilds. Fact and admission mutations retain their own projection updates; changed terminal/response evidence continues through the normal reconciliation transaction. This does not alter source identity, equal allocation, database schema or query authorization.
+
+
+Dedicated metering store v2 adds a thread/date index so filtered thread/turn reads seek the selected thread before its date range. This changes query planning without changing allocation, snapshot revisions, query authorization or the former Host schema. The managed database migration and complete target validator own index creation; repeated opens do not recreate it. Thread/turn-filtered team reductions materialize their selected turn set before grouping, preventing grouped plans from bypassing the thread index; unfiltered projection reads retain their original path.

@@ -2566,3 +2566,10 @@ Real mouse/touch regressions must cover menu → dialog → cancel/confirm → a
 click, including delayed/rejected requests. Static lint cannot prove timing,
 feedback visibility, focus release or failure recovery; do not add a blanket ban
 on async handlers, void expressions, disabled controls or awaited refreshes.
+
+## Conversation references
+
+Copy, paste, @ search and saved links share a stable server/thread codec. Display titles and Host routes cannot replace identity. A reference dialog owns its captured target and pending draft across asynchronous operations; failures preserve the draft and retry key. Core authorization and native history remain authoritative. Delivery uses the existing Host queue independently of page lifetime. See [conversation interoperability](../docs/architecture/conversation-interoperability.md).
+
+
+Token usage people filters select an existing human Actor through the authorized, paginated people usage view. Current display names are presentation metadata, never allocation keys. Selecting a person shows their allocated conversation totals under the retained date/model filters; clearing restores the team view. The optional page never asks users to type an internal Actor ID or obtains other people's directory data through a self query. The Shell still owns the route, scroll and keyboard focus.

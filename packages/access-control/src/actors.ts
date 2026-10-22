@@ -37,6 +37,9 @@ function actor(row: Record<string, unknown>): Actor {
 /** Server-owned identity authority. Mutation methods are trusted local operations;
  * network callers must go through ActorAccess, not call these using body-supplied identities. */
 export class ActorStore {
+  readonly #resourceAuthorities = new Set<(resource: string) => boolean>();
+  /** Trusted local resource adapters only; registration confers no grants. */
+  registerResourceAuthority(owns: (resource: string) => boolean): () => void { this.#resourceAuthorities.add(owns); return () => { this.#resourceAuthorities.delete(owns); }; }
   readonly #db: DatabaseSync;
   readonly authority: string;
   readonly outcome: DatabaseOutcome;
@@ -175,7 +178,7 @@ export class ActorStore {
     if (!this.get(id) || typeof enabled !== 'boolean') throw new Error('Invalid actor grant');
     // This store owns its registry and local Actor resources. It cannot grant a
     // foreign Hub's resources or an engine's workspace permissions on their behalf.
-    if (resource !== this.managementResource && !this.get(resource)) throw new Error('Resource authority required');
+    if (resource !== this.managementResource && !this.get(resource) && ![...this.#resourceAuthorities].some(owns => owns(resource))) throw new Error('Resource authority required');
     this.#transaction(() => {
       this.#db.prepare('INSERT INTO actor_grants VALUES(?,?,?,?) ON CONFLICT(actor_id,resource,action) DO UPDATE SET enabled=excluded.enabled')
         .run(id, resource, action, enabled ? 1 : 0);

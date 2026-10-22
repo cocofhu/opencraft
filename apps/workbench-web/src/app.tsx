@@ -1,3 +1,5 @@
+import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
+import { copyConversationReference } from "./runtime/conversation-reference-actions";
 import { useAsyncNotices } from "./components/async-notices";
 import { ConversationToolbarSizing } from "./components/toolbar-dock-state";
 import { conversationToolbarActionIds } from "./components/toolbar-dock-model";
@@ -1818,6 +1820,7 @@ export function App({
     onRetryThreadCatalog: hostId => { void multiHostCatalog.retry(hostId); },
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
+      onCopyReference: target => copyConversationReference(body=>hostCatalog.agentRuntimes.request(target.hostId,"opencraft/collaboration",body),window.location.href,target),
       onSetPinned: async (target, pinned) => {
         await threadPinWriter.set(target, pinned);
       },
@@ -1869,6 +1872,7 @@ export function App({
     <ScheduledTaskCatalogContext.Provider value={{ ...multiHostCatalog,
       openConversation: (hostId, threadId) => hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, threadId)),
     }}>
+    <ConversationReferenceSurface catalog={hostCatalog} hostId={snapshot.hostId}>
       <InternalDeveloperModeGate />
       <AppShellRouteRegionsProvider
         controller={routeHeader.controller}
@@ -2308,6 +2312,7 @@ export function App({
           onCancel={() => setWorkspacePickerOpen(false)}
           onChoose={chooseWorkspaceDirectory}
         />
+    </ConversationReferenceSurface>
     </ScheduledTaskCatalogContext.Provider>
     </IdentityAvatarContext.Provider>
   );

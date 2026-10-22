@@ -43,6 +43,13 @@ export class ActorAccess {
     return this.current(context, principal) && (this.store.can(context, this.store.managementResource, 'actors.manage')
       || (!!principal && this.options.administrator(principal)));
   }
+  /** Statistics team access follows the current instance role, never actors.manage. */
+  usageAuthority(request: IdentityRequest) {
+    const context = this.authenticate(request);
+    if (!context || this.store.get(context.actorId)?.kind !== 'human') return null;
+    const principal = this.#requests.get(request)?.principal;
+    return { actorId: context.actorId, administrator: !!principal && this.options.administrator(principal) };
+  }
   /** A new Session bearer must not grant access to legacy unscoped HTTP or WebSocket APIs. */
   isSessionRequest(request: IdentityRequest) { return isActorAuthorization(request.headers.authorization); }
   /** Preserve legacy anonymous mode, but never downgrade a recognized, disabled human to anonymous. */

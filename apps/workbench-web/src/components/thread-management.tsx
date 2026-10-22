@@ -6,6 +6,7 @@ import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { ArchiveIcon as Archive, ForkIcon as GitFork, PinIcon as Pin, PinOffIcon as PinOff } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   SettingsActions,
@@ -23,8 +24,9 @@ import type { SidebarThreadMenuKind } from "./sidebar-thread-menu-state";
 import "../styles/context-menu.scss";
 
 export interface ThreadActionTarget { readonly hostId: string; readonly threadId: string; readonly title: string; readonly pinned?: boolean }
-export interface ThreadActionCapabilities { readonly rename: boolean; readonly archive: boolean; readonly fork: boolean; readonly delete: boolean; readonly pin?: boolean }
+export interface ThreadActionCapabilities { readonly rename: boolean; readonly archive: boolean; readonly fork: boolean; readonly delete: boolean; readonly pin?: boolean; readonly reference?: boolean }
 export interface ThreadActionCallbacks {
+  readonly onCopyReference?: (target: ThreadActionTarget) => Promise<void>;
   readonly onRename: (target: ThreadActionTarget, title: string) => Promise<void>;
   readonly onFork: (target: ThreadActionTarget) => Promise<void>;
   readonly onArchive: (target: ThreadActionTarget) => Promise<void>;
@@ -142,6 +144,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   // Shared item model for both the right-click context menu and the row
   // "..." dropdown, mirroring the actions(entry).map pattern in bot-management.
   const menuItems = [
+    capabilities.reference && owner.callbacks.onCopyReference ? {key:"reference",icon:Link2,label:intl.formatMessage({id:"conversation.reference.copy",defaultMessage:"Copy conversation reference"}),onSelect:()=>{run(()=>owner.callbacks.onCopyReference!(target));}} : null,
     capabilities.pin && onSetPinned ? { key: "pin", icon: target.pinned ? PinOff : Pin, label: intl.formatMessage(target.pinned ? { id: "sidebar.thread.unpin", defaultMessage: "Unpin" } : { id: "sidebar.thread.pin", defaultMessage: "Pin" }), onSelect: () => { run(() => onSetPinned(target, target.pinned !== true), "pin"); } } : null,
     capabilities.rename ? { key: "rename", icon: Pencil, label: intl.formatMessage({ id: "sidebar.thread.rename", defaultMessage: "Rename" }), onSelect: () => { modalHandoff.current = true; owner.beginRename(target); } } : null,
     capabilities.fork ? { key: "fork", icon: GitFork, label: intl.formatMessage({ id: "sidebar.thread.fork", defaultMessage: "Create branch" }), onSelect: () => { run(() => onFork(target), "fork"); } } : null,
