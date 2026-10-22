@@ -1370,8 +1370,10 @@ The Web reasoning disclosure uses the shared thinking activity SVG in the center
 supplemental interface icons. Source padding may require different canvas sizes;
 copy, slot geometry and alignment stay shared. Both live and settled content use
 the same metrics. The live glyph's internal pulse/cursor remains animated, and
-live reasoning and thinking group labels use the existing cadenced text sweep.
-Completion removes the sweep; reduced motion disables both decorations. See the activity icon design contract.
+all live process labels use the existing cadenced text sweep: reasoning, commands,
+read/search/edit, tools, compaction and active group summaries. The shared disclosure
+and summary owners each add one sweep; callers do not nest another thinking sweep.
+Completion, failure or interruption removes the sweep; reduced motion disables both decorations. See the activity icon design contract.
 
 Engine-returned reasoning is a chronological Item-owned inner disclosure within
 the response's work container, not the body of a tool group's live “Thinking” header. Codex, DSH and Hermes

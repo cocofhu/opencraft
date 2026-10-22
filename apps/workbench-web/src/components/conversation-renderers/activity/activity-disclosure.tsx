@@ -130,7 +130,7 @@ export function ActivityDisclosure({
         open={open}
       >
           {icon == null ? null : <ActivityIcon running={running}>{icon}</ActivityIcon>}
-          <span className="thread-activity-item__summary" id={summaryId}>{summary}</span>
+          <CadencedShimmer active={running} className="thread-activity-item__summary" id={summaryId}>{summary}</CadencedShimmer>
           {detail ? <span className="thread-activity-item__detail">{detail}</span> : null}
           {trailing ? <span className="thread-activity-item__trailing">{trailing}</span> : null}
           {accessory ? <span className="thread-activity-item__accessory">{accessory}</span> : null}

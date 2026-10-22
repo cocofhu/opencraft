@@ -97,9 +97,11 @@ function AgentActivityGroup({
         running={header.active}
         hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
         shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
-        summary={header.state === "thinking" && header.summary.kind === "text"
-          ? <CadencedShimmer active={header.active}><ThinkingLabel summary={header.summary.text} /></CadencedShimmer>
-          : <AgentActivitySummaryView summary={header.summary} />}
+        summary={<CadencedShimmer active={header.active}>
+          {header.state === "thinking" && header.summary.kind === "text"
+            ? <ThinkingLabel summary={header.summary.text} />
+            : <AgentActivitySummaryView summary={header.summary} />}
+        </CadencedShimmer>}
         summaryKey={header.summaryKey}
         summaryTransition={header.state === "summary" ? "immediate" : "deferred"}
       >
