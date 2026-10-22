@@ -8822,6 +8822,22 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
+// Subtle execution feedback belongs to material, never editable text or controls.
+@keyframes composer-surface-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .opencraft-composer-shell[data-breathing="true"]::before {
+    animation: composer-surface-breathe 5.6s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .opencraft-composer-shell[data-breathing="true"]::before { animation: none; }
+}
+
 :root[data-ui-density="touch"] .opencraft-composer-shell {
   --composer-surface-filter: blur(18px) saturate(145%);
   --composer-surface-background: linear-gradient(

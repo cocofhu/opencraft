@@ -2378,3 +2378,15 @@ declines, scoped permission menu entries retain their chosen scope, and paramete
 disclosures only expand or collapse. The card's window shortcut ignores already
 consumed events and editable fields. Unfocused Enter still allows once and Escape
 still declines; keyboard focus never silently changes the selected permission.
+
+## Composer execution material feedback
+
+The shared Composer projects its existing `isStreaming` state to a paint-only
+`data-breathing` shell attribute. Only its existing material pseudo-element
+changes opacity from 1 to 0.92 and back over 5.6 seconds with ease-in-out timing.
+Editable text, caret, actions, outline, shadow and layout stay fixed. Recovery
+feedback takes precedence, so `isRecovering` suppresses execution breathing without
+changing either lifecycle. Idle/settled, reduced motion, reduced transparency and
+forced colors retain the ordinary static material. No timer, remount or execution
+state is added; every existing Composer consumer shares the same projection.
+

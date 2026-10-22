@@ -2025,7 +2025,7 @@ export const OpenCraftComposer = forwardRef<
         />
         {attachedContent}
       </ComposerAttachedRail>
-      <div className="opencraft-composer-shell">
+      <div className="opencraft-composer-shell" data-breathing={isStreaming && !isRecovering ? "true" : undefined}>
         <ComposerRecoveryScan active={isRecovering} />
         {chromeHeader === undefined ? null : (
           <div className="opencraft-composer-chrome-header">{chromeHeader}</div>
