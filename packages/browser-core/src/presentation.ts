@@ -1,4 +1,4 @@
-import type { BrowserViewportMode } from "./model";
+import { browserViewportDeviceProfile, type BrowserDeviceProfile, type BrowserViewportMode } from "./model";
 import type { BrowserPageId, BrowserTabId } from "./model";
 
 export interface BrowserPresentationRect {
@@ -16,6 +16,7 @@ export interface BrowserViewportLayout {
   /** The iframe's unscaled layout viewport. */
   readonly viewportSize: { readonly width: number; readonly height: number };
   readonly scale: number;
+  readonly deviceProfile?: BrowserDeviceProfile;
 }
 
 export type BrowserPresentationSurface =
@@ -129,6 +130,7 @@ export function computeBrowserViewportLayout(
       height,
     },
     viewportSize: { width: mode.width, height: mode.height },
+    deviceProfile: browserViewportDeviceProfile(mode),
     scale,
   };
 }

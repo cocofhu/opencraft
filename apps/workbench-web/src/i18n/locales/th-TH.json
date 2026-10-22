@@ -461,6 +461,7 @@
   "sidebar.thread.deleteDescription": "การสนทนานี้จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
   "sidebar.thread.deleteQuestion": "ลบ “{title}” หรือไม่?",
   "sidebar.thread.deleteTitle": "ลบการสนทนา",
+  "conversation.forkFromTurn": "สร้างสาขาจากจุดนี้",
   "sidebar.thread.fork": "สร้างสาขา",
   "sidebar.thread.forking": "กำลังสร้างสาขาสำหรับ {title}",
   "sidebar.thread.name": "ชื่อการสนทนา",
@@ -627,5 +628,10 @@
   "composer.model.retry": "ลองใหม่",
   "composer.model.configure": "เพิ่มโมเดลเพิ่มเติม",
   "composer.model.fallbackShort": "สำรอง",
-  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล"
+  "composer.model.empty": "ไม่มีโมเดลที่ใช้ได้ โปรดตรวจสอบการตั้งค่าโมเดล",
+  "composer.model.configureTitle": "กำหนดค่า",
+  "composer.model.speed": "ความเร็ว",
+  "composer.model.standardSpeed": "มาตรฐาน",
+  "composer.model.done": "เสร็จสิ้น",
+  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล"
 }

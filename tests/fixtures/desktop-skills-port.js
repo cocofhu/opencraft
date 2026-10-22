@@ -24,7 +24,7 @@
     frame.error ? call.reject(new Error(frame.error.message)) : call.resolve(frame.result);
   };
   channel.port1.start();
-  window.postMessage({ type: "vela:connect-app-host", protocolVersion: 2, rendererId }, location.origin, [channel.port2]);
+  window.postMessage({ type: "opencraft:connect-app-host", protocolVersion: 2, rendererId }, location.origin, [channel.port2]);
   channel.port1.postMessage({ type: "hello", protocolVersion: 2, rendererId });
   await Promise.race([ready, new Promise((_, reject) => setTimeout(() => reject(new Error("App Host not ready")), 15000))]);
   const command = input => {

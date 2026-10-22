@@ -260,7 +260,7 @@
   "panel.actionFailed": "Could not open the preview. Try again.",
   "panel.addressHint": "Enter an address above to navigate",
   "composer.cloudComputer": "Cloud computer",
-  "panel.desktopEntry": "Desktop",
+  "panel.desktopEntry": "Cloud computer",
   "panel.browser": "Browser",
   "panel.close": "Close preview panel",
   "panel.closeTab": "Close {title}",
@@ -401,6 +401,7 @@
   "sidebar.thread.deleteDescription": "This conversation will be permanently removed and cannot be recovered.",
   "sidebar.thread.deleteQuestion": "Delete “{title}”?",
   "sidebar.thread.deleteTitle": "Delete conversation",
+  "conversation.forkFromTurn": "Branch from here",
   "sidebar.thread.fork": "Create branch",
   "sidebar.thread.forking": "Creating branch for {title}",
   "sidebar.thread.name": "Conversation name",
@@ -625,5 +626,10 @@
   "composer.model.retry": "Retry",
   "composer.model.configure": "Add more models",
   "composer.model.fallbackShort": "Backup",
-  "composer.model.empty": "No models available. Check Model Settings."
+  "composer.model.empty": "No models available. Check Model Settings.",
+  "composer.model.configureTitle": "Configure",
+  "composer.model.speed": "Speed",
+  "composer.model.standardSpeed": "Standard",
+  "composer.model.done": "Done",
+  "composer.resetEffort": "Reset reasoning to model default"
 }

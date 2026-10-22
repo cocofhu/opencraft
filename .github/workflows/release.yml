@@ -20,7 +20,7 @@ concurrency:
 
 env:
   NODE_VERSION: 24.15.0
-  NPM_VERSION: 12.0.2
+  NPM_VERSION: 11.18.0
   NPM_REGISTRY: https://registry.npmjs.org/
   KIT: .github/secure-release/v1/secure_release.py
 
@@ -255,7 +255,7 @@ jobs:
           TARBALL="$(realpath -- "${TARBALLS[0]}")"
           python3 "$KIT" manifest-verify --manifest release/manifest.json --directory release --tag "$RELEASE_TAG" --version "$VERSION"
           if python3 "$KIT" npm-absent --package "$PACKAGE" --version "$VERSION" --registry "$NPM_REGISTRY"; then
-            python3 "$KIT" npm-publish --artifact "$TARBALL" --registry "$NPM_REGISTRY" --provenance false
+            python3 "$KIT" npm-publish --artifact "$TARBALL" --registry "$NPM_REGISTRY" --provenance true
           else
             python3 "$KIT" npm-existing --package "$PACKAGE" --version "$VERSION" --artifact "$TARBALL" --registry "$NPM_REGISTRY"
           fi

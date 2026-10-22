@@ -33,12 +33,13 @@ async function removeStaleSocket(path: string): Promise<void> {
   await unlink(path).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; });
 }
 
-async function nativeReady(path: string, child: ChildProcessWithoutNullStreams): Promise<void> {
+async function nativeReady(path: string, child: ChildProcessWithoutNullStreams,
+  auth: ReturnType<CodexAccountService["launch"]>["auth"]): Promise<WebSocket> {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null || child.signalCode !== null) throw new Error("Codex AppServer exited during startup");
     try {
-      await new Promise<void>((resolve, reject) => {
+      return await new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(`ws+unix://${path}:/`, { handshakeTimeout: 500 });
         const timer = setTimeout(() => { socket.terminate(); reject(new Error("Native initialize timed out")); }, 1_000);
         socket.on("error", error => { clearTimeout(timer); reject(error); });
@@ -48,15 +49,21 @@ async function nativeReady(path: string, child: ChildProcessWithoutNullStreams):
         socket.on("message", data => {
           try {
             const value = JSON.parse(String(data));
-            if (value.id !== 1) return;
-            clearTimeout(timer);
-            if (value.error) reject(new Error("Native initialize rejected"));
-            else { socket.send(JSON.stringify({ method: "initialized" })); resolve(); }
-            socket.terminate();
+            if (value.method === "account/chatgptAuthTokens/refresh" && value.id !== undefined) {
+              const { type: _type, ...result } = auth;
+              socket.send(JSON.stringify({ id: value.id, result }));
+              return;
+            }
+            if (value.id !== 1 && value.id !== 2) return;
+            if (value.error) { clearTimeout(timer); socket.terminate(); reject(new Error("Native authentication initialization rejected")); }
+            else if (value.id === 1) {
+              socket.send(JSON.stringify({ method: "initialized" }));
+              socket.send(JSON.stringify({ id: 2, method: "account/login/start", params: auth }));
+              return;
+            } else { clearTimeout(timer); resolve(socket); }
           } catch (error) { clearTimeout(timer); socket.terminate(); reject(error); }
         });
       });
-      return;
     } catch { await delay(50); }
   }
   throw new Error("Codex AppServer Unix listener did not become ready");
@@ -78,6 +85,7 @@ export async function startCodexCore(options: CodexCoreOptions) {
   let closing: Promise<void> | null = null;
   let ownsControl = false;
   let ownsNative = false;
+  let authSocket: WebSocket | null = null;
   const server = createServer(async (req, res) => {
     res.setHeader("content-type", "application/json");
     res.setHeader("cache-control", "no-store");
@@ -110,6 +118,7 @@ export async function startCodexCore(options: CodexCoreOptions) {
 
   const close = (): Promise<void> => closing ??= (async () => {
     health = null;
+    authSocket?.terminate();
     if (ownsControl) await new Promise<void>(resolve => server.close(() => resolve()));
     if (child && child.exitCode === null && child.signalCode === null) {
       await new Promise<void>(resolve => {
@@ -139,7 +148,7 @@ export async function startCodexCore(options: CodexCoreOptions) {
     const launch = accounts.launch();
     const args = ["app-server", "--listen", `unix://${nativeSocket}`, ...launch.args];
     const env = { ...process.env, ...launch.env, CODEX_HOME: runtimeRoot,
-      OPENAI_API_KEY: "opencraft-account-pool", CODEX_API_KEY: undefined, CODEX_ACCESS_TOKEN: undefined };
+      OPENAI_API_KEY: undefined, CODEX_API_KEY: undefined, CODEX_ACCESS_TOKEN: undefined };
     child = options.spawnAppServer?.({ args, cwd: options.runtimeDirectory, env })
       ?? spawn(options.executable, args, { cwd: options.runtimeDirectory, env, stdio: ["pipe", "pipe", "pipe"] });
     ownsNative = true;
@@ -152,7 +161,7 @@ export async function startCodexCore(options: CodexCoreOptions) {
     };
     child.once("error", failed);
     child.once("close", (code, signal) => failed(new Error(`Codex AppServer exited (${code ?? signal ?? "unknown"})`)));
-    await nativeReady(nativeSocket, child);
+    authSocket = await nativeReady(nativeSocket, child, launch.auth);
     if (startupError) throw startupError;
     await chmod(nativeSocket, 0o600);
     health = { protocolVersion: CODEX_CORE_PROTOCOL_VERSION, pid: process.pid, codexPid: child.pid!, nativeSocket };
