@@ -2458,3 +2458,14 @@ metadata therefore preserves label alignment with known creators. Ordinary task
 flow headings retain their text-only layout. Both disclosure presentations bind
 aria-controls to their own stable list element and keep aria-expanded and hidden
 in step with the existing collapse owner; metadata updates do not replace rows.
+
+### Conversation list display context
+
+Right-clicking the conversation group heading or list background, and a touch
+long press in that area, open the existing display-mode menu. This entrance
+uses the original Radix context-menu behavior and existing mode contribution.
+It shares the Sidebar's exclusive overlay owner with Filters, row actions and
+participant popovers, while subscribing only to its own menu channel. Row
+context events remain row actions; a late close from any previous entrance
+cannot dismiss its replacement. Opening a menu changes neither grouping nor
+selection and must not rebuild the catalog or turn a long press into collapse.

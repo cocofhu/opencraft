@@ -1,4 +1,5 @@
 import { Root as DropdownMenuRoot } from "@radix-ui/react-dropdown-menu";
+import { Root as ContextMenuRoot } from "@radix-ui/react-context-menu";
 import { useCallback, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import type { ThreadBadgeContribution, ThreadBadgeProps } from "@opencraft/extension-react";
 import { ThreadRowMenu } from "./thread-management";
@@ -25,4 +26,10 @@ export function SidebarThreadBadge({ store, contribution, ...props }: Omit<Threa
 export function SidebarFiltersMenu({ store, children }: { store: SidebarThreadMenuStore; children: ReactNode }) {
   const open = useSyncExternalStore(store.subscribeFilters, store.getFiltersOpen, store.getFiltersOpen);
   return <DropdownMenuRoot open={open} onOpenChange={store.setFiltersOpen}>{children}</DropdownMenuRoot>;
+}
+
+/** The list context entrance shares the owner while keeping list rendering isolated. */
+export function SidebarListContextMenu({ store, children }: { store: SidebarThreadMenuStore; children: ReactNode }) {
+  const open = useSyncExternalStore(store.subscribeListContext, store.getListContextOpen, store.getListContextOpen);
+  return <ContextMenuRoot modal={false} open={open} onOpenChange={store.setListContextOpen}>{children}</ContextMenuRoot>;
 }

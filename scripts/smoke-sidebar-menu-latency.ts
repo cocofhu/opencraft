@@ -158,6 +158,51 @@ try {
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?rows=3`);
     await page.locator('.sidebar-activity-item').nth(2).waitFor();
     await page.evaluate(theme => (window as any).fixture.setThemePreference(theme), theme);
+    // The whole-list display context entrance remains separate from row actions.
+    const contextHeading = page.locator('.sidebar-thread-group-toggle').first();
+    const openListContext = async () => {
+      if (touch) {
+        const box = await contextHeading.boundingBox(); assert.ok(box);
+        const cdp = await context.newCDPSession(page);
+        await cdp.send('Input.dispatchTouchEvent', {type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2,radiusX:1,radiusY:1,force:1,id:1}]});
+        await page.waitForTimeout(850);
+        await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd',touchPoints:[]});
+        await cdp.detach();
+      } else await contextHeading.click({button:'right'});
+      await page.getByRole('menu').waitFor();
+    };
+    const beforeListContext = await page.evaluate(() => ({rows:(window as any).rowsProcessed,projections:(window as any).projections}));
+    await openListContext();
+    assert.equal(await contextHeading.getAttribute('aria-expanded'), 'true', 'long press must not become a disclosure click');
+    assert.equal(await page.getByRole('menuitemradio', {name:'Task flow',exact:true}).count(), 1);
+    assert.equal(await page.getByRole('menuitem', {name:'Rename',exact:true}).count(), 0, 'heading context exposes display settings only');
+    assert.deepEqual(await page.evaluate(() => ({rows:(window as any).rowsProcessed,projections:(window as any).projections})), beforeListContext, 'opening list context cannot rebuild the list');
+    await page.getByRole('button', {name:'Filters',exact:true}).click();
+    await page.getByRole('menuitemradio', {name:'All servers',exact:true}).waitFor();
+    assert.equal(await page.getByRole('menu').count(), 1, 'filters replace list context');
+    await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({state:'hidden'});
+    await openListContext();
+    await page.locator('.sidebar-activity-item').first().click({button:'right'});
+    await page.getByRole('menuitem', {name:'Rename',exact:true}).waitFor();
+    assert.equal(await page.getByRole('menu').count(), 1, 'nested row context retains the row owner');
+    await page.getByRole('button', {name:'People t0',exact:true}).click();
+    await page.getByText('Participants t0', {exact:true}).waitFor();
+    assert.equal(await page.getByRole('menu').count(), 0, 'badge replaces the row context');
+    await page.keyboard.press('Escape'); await page.getByText('Participants t0', {exact:true}).waitFor({state:'hidden'});
+    await openListContext();
+    await page.getByRole('menuitemradio', {name:'Task flow',exact:true}).click();
+    await page.getByRole('button', {name:'Recent',exact:true}).waitFor();
+    await page.getByRole('menu').waitFor({state:'hidden'});
+    await page.getByRole('button', {name:'Filters',exact:true}).click();
+    await page.getByRole('menuitemradio', {name:'By creator',exact:true}).click();
+    await page.getByRole('button', {name:'All conversations',exact:true}).waitFor();
+    if (!touch) {
+      await page.locator('.sidebar-list-toolbar > span').click({button:'right'});
+      await page.getByRole('menuitemradio', {name:'Task flow',exact:true}).waitFor();
+      assert.equal(await page.getByRole('menu').count(), 1);
+      await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({state:'hidden'});
+    }
+    evidence.push({listContext:true,touch,theme,nativeOpen:true,noDisclosureClick:true,isolatedOpen:true,exclusiveOwners:true,modeSelection:true});
     // Creator metadata must not change the group heading's reserved avatar geometry.
     const heading = page.locator('.sidebar-thread-group-toggle').first();
     const groupOffset = () => heading.evaluate(element => {
