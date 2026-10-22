@@ -129,7 +129,7 @@ function RawToolOutput({ block }: { block: Tool }) {
 function ThreadTool({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const navigation = useContext(SubagentNavigationContext);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useActivityOpen(presentation.state === "running");
   const created = createdThreadToolResult(block);
   const target = codexAppThreadNavigationTarget(block);
   const handoff = threadHandoffToolResult(block);
@@ -139,10 +139,11 @@ function ThreadTool({ block }: { block: Tool }) {
     <span className="thread-created-thread-card__copy"><strong>{created.title}</strong></span>
     <span className="thread-created-thread-card__action">Open chat <ChevronRight size={13} /></span>
   </button>;
-  if (handoff !== null) {
+  const handoffSteps = handoff === null ? [] : visibleThreadHandoffSteps(handoff);
+  if (handoff !== null && handoffSteps.length > 0) {
     return <ActivityDisclosure icon={activityIcon(presentation.icon)} summary={presentation.summary} open={open} onOpenChange={setOpen}
       running={presentation.state === "running"} status={presentation.state} bodyVariant="unindented">
-      <div className="thread-handoff-steps">{visibleThreadHandoffSteps(handoff).map((step, index) =>
+      <div className="thread-handoff-steps">{handoffSteps.map((step, index) =>
         <div key={step.id + ":" + index} className="thread-handoff-step" data-status={step.status}>
           <span className="thread-handoff-step__icon" aria-label={({
             done: "Completed:", running: "Running:", failed: "Failed:", pending: "Pending:",
@@ -164,12 +165,13 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const customContent = useContext(ToolCallContentRendererContext);
   const customIcon = useContext(ToolCallIconRendererContext);
-  const [open, setOpen] = useActivityOpen(block.kind !== "mcp" && presentation.state === "running"
-    && presentation.canExpand, false, `tool:${block.id}`);
   const content = customContent?.(block, presentation);
+  const hasCustomBody = content !== undefined && content !== null && content !== false;
+  const [open, setOpen] = useActivityOpen(block.kind !== "mcp" && presentation.state === "running"
+    && (presentation.canExpand || hasCustomBody), false, `tool:${block.id}`);
   const icon = customIcon?.(block, presentation);
   if (block.kind === "image-view") return <ImageViewToolBlock block={block} />;
-  if (isCodexAppThreadTool(block)) return <ThreadTool block={block} />;
+  if (isCodexAppThreadTool(block) && content === undefined) return <ThreadTool block={block} />;
   const parts = extractToolCallContentParts(block).filter(part => part.role !== "input");
   const hasCoreBody = presentation.canExpand;
   const coreBody = hasCoreBody ? <div className="thread-tool-details" data-kind={block.kind}>
@@ -181,10 +183,10 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   return <><ActivityDisclosure icon={icon === undefined ? activityIcon(presentation.icon) : icon}
     summary={presentation.summary} detail={presentation.detail} open={open} onOpenChange={setOpen}
     running={presentation.state === "running"} status={presentation.state}
-    bodyVariant={hasCoreBody || content !== undefined ? "grouped" : "default"}
+    bodyVariant={hasCoreBody || hasCustomBody ? "grouped" : "default"}
     accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : undefined}
     unmountBodyWhenCollapsed>
-    {hasCoreBody || content !== undefined ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
+    {hasCoreBody || hasCustomBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
     {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call} />)}
