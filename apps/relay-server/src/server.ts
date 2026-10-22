@@ -6,7 +6,7 @@ import WebSocket, { WebSocketServer } from "ws";
 import { relayDuplex } from '@opencraft/relay-protocol/node';
 import { AssertionSigner, ASSERTION_HEADER, type IdentityProvider } from "@opencraft/identity-core/node";
 import { CONTROL_PATH, DATA_PATH, STREAM_HEADER, RELAY_PROTOCOL, MAX_STREAMS, relayPathAllowed } from "@opencraft/relay-protocol";
-import { RelayAuthentication } from './authentication.js';
+import { RelayAuthentication, type EntryOriginResolver } from './authentication.js';
 import type { HubNetwork } from '../../../packages/hub-network/src/node.js';
 import { SERVERS_PATH, LEGACY_SERVERS_PATH, isServerPath, selectedPath, serverBase, selectorPage, scopedHtml, targetCookies, scopedCookies, selectionDefault, parseServerPaths, type ServerPaths } from './selection.js';
 import type { Principal } from '@opencraft/identity-core';
@@ -31,7 +31,7 @@ function failure(response: ServerResponse, status: number) {
 }
 function reject(socket: Duplex, code: number) { socket.end(`HTTP/1.1 ${code} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); }
 const identityHeaders = new Set(['timestamp', 'signature', 'x-rio-seq', 'staffid', 'staffname', 'x-ext-data', 'x-tai-identity']);
-export function createRelayServer(routes: readonly RelayRoute[], options: { authentication?: { origin: string; provider: IdentityProvider }; build?: { sourceRevision: string | null; buildId: string | null };
+export function createRelayServer(routes: readonly RelayRoute[], options: { authentication?: { origin: string; provider: IdentityProvider }; entryOrigin?: EntryOriginResolver; build?: { sourceRevision: string | null; buildId: string | null };
   hub?: HubNetwork; networkRoute?: (service: HubService) => RelayRoute | null; operator?: { credential: string }; serverSelection?: boolean; selectionDefaults?: ReadonlyMap<string, string>; serverPaths?: ServerPaths } = {}) {
   if ((!routes.length && !options.hub) || routes.length > 1000) throw new Error('Relay requires explicit routes');
   const byHost = new Map<string, RelayRoute>(), byId = new Map<string, RelayRoute>();
@@ -44,6 +44,7 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
     byHost.set(url.host, route); byId.set(route.instanceId, route);
   }
   if (options.serverSelection && (!options.authentication || !routes.some(route => route.origin === options.authentication!.origin))) throw new Error('Server selection requires an authenticated entry route');
+  if (options.entryOrigin && !options.serverSelection) throw new Error('Entry origins require shared server selection');
   const paths = options.serverPaths === undefined ? undefined : parseServerPaths(options.serverPaths);
   if (paths && (!options.serverSelection || (paths.defaultServer !== undefined
     && !routes.some(r => r.instanceId === paths.defaultServer && r.origin === options.authentication?.origin))
@@ -61,8 +62,16 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
   })];
   const names = () => new Map((options.hub?.snapshot().peers ?? []).filter(p => p.hubId).map(p => [p.hubId!, p.name]));
   const selected = new WeakMap<IncomingMessage, { route: RelayRoute; principal: Principal; base: string; name: string; canonicalPath?: string }>();
-  const findRoute = (host: string) => availableRoutes().find(r => new URL(r.origin).host === host);
-  const authentication = options.authentication ? new RelayAuthentication(options.authentication.origin, options.authentication.provider, availableRoutes) : null;
+  const authentication = options.authentication ? new RelayAuthentication(options.authentication.origin, options.authentication.provider, availableRoutes, options.entryOrigin) : null;
+  const findRoute = (request: IncomingMessage) => {
+    const host = request.headers.host ?? '';
+    const route = availableRoutes().find(r => new URL(r.origin).host === host);
+    if (route || !authentication || !options.entryOrigin) return route;
+    const origin = authentication.originFor(request);
+    if (origin === authentication.origin) return undefined;
+    const entry = routes.find(r => r.origin === authentication.origin);
+    return entry ? { ...entry, origin } : undefined;
+  };
   const controls = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
   const data = new WebSocketServer({ noServer: true, maxPayload: 65_536, perMessageDeflate: false });
   let closing = false;
@@ -94,7 +103,7 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
   function authorize(req: IncomingMessage) {
     const context = selected.get(req);
     if (context) return { route: context.route, principal: context.principal };
-    const route = findRoute(req.headers.host ?? '');
+    const route = findRoute(req);
     if (!route || !relayPathAllowed(req.url ?? '/') || (req.headers.origin !== undefined && req.headers.origin !== route.origin)) return { status: 403 as const };
     const principal = authentication ? authentication.authenticate(req, route) : route.identityProvider.authenticate(req);
     if (!principal || principal.expiresAt <= Date.now()) return { status: 401 as const };
@@ -123,8 +132,9 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
   function prepareSelection(req: IncomingMessage): number {
     const path = req.url ?? '/';
     if (!options.serverSelection) return 0;
-    const entry = findRoute(req.headers.host ?? '');
-    const unprefixed = !isServerPath(path) && paths?.defaultServer === entry?.instanceId && entry?.origin === options.authentication?.origin;
+    const entry = findRoute(req);
+    const unprefixed = !isServerPath(path) && entry && entry.origin === authentication?.originFor(req)
+      && (paths?.defaultServer === entry.instanceId || entry.origin !== authentication?.origin);
     if (!isServerPath(path) && !unprefixed) return 0;
     const target = unprefixed ? { id: routeLabel(entry!.instanceId), path, base: '' } : selectedPath(path);
     if (!target || !entry || !relayPathAllowed(target.path) || isServerPath(target.path)) return 403;
@@ -172,8 +182,8 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
   }
   async function handleSelector(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
     if (!options.serverSelection) return false;
-    const url = new URL(req.url ?? '/', 'http://selector.invalid'), entry = findRoute(req.headers.host ?? '');
-    if (!entry || !authentication || new URL(entry.origin).host !== new URL(authentication.origin).host) return false;
+    const url = new URL(req.url ?? '/', 'http://selector.invalid'), entry = findRoute(req);
+    if (!entry || !authentication || entry.origin !== authentication.originFor(req)) return false;
     // Canonicalize browser bookmarks only. Existing clients keep their original
     // HTTP/stream/WS prefix until navigation; never redirect a request body.
     if (req.method === 'GET' && (url.pathname === LEGACY_SERVERS_PATH || url.pathname === LEGACY_SERVERS_PATH + '/' || url.pathname === SERVERS_PATH + '/'
@@ -210,14 +220,14 @@ export function createRelayServer(routes: readonly RelayRoute[], options: { auth
     if (await handleSelector(req,res)) return;
     const selectionStatus = prepareSelection(req);
     if (selectionStatus) {
-      const entry = findRoute(req.headers.host ?? '');
+      const entry = findRoute(req);
       if (selectionStatus===401 && authentication && entry && req.method==='GET' && req.headers.accept?.includes('text/html')) authentication.begin(req,res,entry);
       else if (selectionStatus === 404 && req.method === 'GET' && req.headers.accept?.includes('text/html')) { res.writeHead(303,{location:SERVERS_PATH,'cache-control':'no-store'});res.end(); }
       else failure(res,selectionStatus); return;
     }
     const auth = authorize(req);
     if ('status' in auth) {
-      const route = findRoute(req.headers.host ?? '');
+      const route = findRoute(req);
       if (auth.status === 401 && authentication && route && req.method === 'GET' && req.headers.accept?.includes('text/html')) authentication.begin(req, res, route);
       else failure(res, auth.status!);
       return;

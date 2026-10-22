@@ -5,13 +5,13 @@ import {
   createAssistantTurnPresentationPlan, createConversationKey,
   createDefaultTimelineProjectorRegistry, deriveAgentActivityHeaderPresentation,
   projectTimeline, resolveAgentActivityLayout,
-  type AssistantTimelineFrame, type TimelineSourceItem,
+  type AssistantTimelineFrame, type TimelineSourceItem, type TimelineStatus, type ConversationPhase,
 } from "@opencraft/chat-core";
 
-function frame(items: readonly TimelineSourceItem[]): AssistantTimelineFrame {
+function frame(items: readonly TimelineSourceItem[], status: TimelineStatus = "complete", phase: ConversationPhase = "live"): AssistantTimelineFrame {
   const snapshot = projectTimeline({
     key: createConversationKey("fixture", "independent-activity"), revision: 1,
-    phase: "live", authoritative: true, turns: [{ id: "turn", status: "complete", items }],
+    phase, authoritative: true, turns: [{ id: "turn", status, items }],
   }, createDefaultTimelineProjectorRegistry());
   const result = snapshot.frames.find(frame => frame.type === "assistant");
   assert.ok(result?.type === "assistant");
@@ -67,4 +67,24 @@ test("client cancellation replaces a stale working clock without changing frozen
     type: "worked-for", status: "stopped", startedAtMs: 0, completedAtMs: 1300,
   });
   assert.equal(resolveAgentActivityLayout(work, true).isCollapsed, false);
+});
+
+test("a patch changing multiple files keeps its group across terminal states", () => {
+  for (const status of ["streaming", "complete", "failed", "interrupted"] as const) {
+    for (const files of [1, 2]) {
+      const item: TimelineSourceItem = { id: "patch", type: "fileChange", payload: {
+        status: status === "failed" ? "failed" : "completed",
+        changes: Array.from({ length: files }, (_, index) => ({
+          path: `file-${index}.ts`, kind: { type: "update", move_path: null }, diff: "@@ -1 +1 @@\n-old\n+new",
+        })),
+      } };
+      const plan = createAssistantTurnPresentationPlan(frame([item], status));
+      const activity = plan.slots.find(slot => slot.type === "agent-activity");
+      assert.ok(activity?.type === "agent-activity");
+      assert.equal(activity.contentUnits[0]?.type, files > 1 || status === "streaming" ? "group" : "standalone");
+      const historical = createAssistantTurnPresentationPlan(frame([item], status, "painted"));
+      assert.equal(historical.slots.find(slot => slot.type === "agent-activity")?.contentUnits[0]?.type,
+        activity.contentUnits[0]?.type);
+    }
+  }
 });
