@@ -77,7 +77,7 @@
   .sidebar-panel { height: auto; overflow: visible; }
   .sidebar-content-scroll { flex: 0 0 auto; overflow: visible; contain: none; }
   .sidebar-tasks { flex: 0 0 auto; }
-  .sidebar-thread-group-heading { background: var(--shell-mobile-sidebar-background); }
+  .sidebar-thread-group-heading { background: var(--opencraft-sidebar-heading-background, var(--shell-mobile-sidebar-background)); }
   .sidebar-thread-group-heading .sidebar-thread-group-toggle {
     min-height: max(44px, var(--size-control-hit-min));
     > svg { opacity: 1; }

@@ -665,7 +665,7 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-panel-toolbar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-elevated-secondary)",
     "--opencraft-panel-divider-top": definition.shellMaterial?.recessedHeaderBackground ? "var(--height-toolbar)" : "0px",
     "--opencraft-panel-divider-clip": definition.shellMaterial?.recessedHeaderBackground ? "inset(0 -100% -100% -100%)" : "none",
-    "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "var(--color-surface)",
+    "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "initial",
     "--opencraft-content-corner-radius": definition.shellMaterial?.contentCornerRadius ?? "0px",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
     // Recessed chrome has one paint owner. Repainting the same translucent
