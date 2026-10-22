@@ -2,6 +2,7 @@ import { AssertionSigner, readPrivateJson, type IdentityProvider } from '@opencr
 import { createRelayServer, type RelayRoute } from './server.js';
 import { createServer as createHttpsServer } from 'node:https';
 import type { Server } from 'node:http';
+import type { EntryOriginResolver } from './authentication.js';
 import { readFile } from 'node:fs/promises';
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { HubNetwork } from '../../../packages/hub-network/src/node.js';
@@ -34,6 +35,7 @@ export interface RelayIdentityAdapter {
   close(): void | Promise<void>;
 }
 export interface RelayComposition {
+  entryOrigin?: EntryOriginResolver;
   createIdentity?: (configuration: Readonly<RelayAuthenticationConfiguration>) => Promise<RelayIdentityAdapter>;
   build?: { sourceRevision: string | null; buildId: string | null };
 }
@@ -137,7 +139,7 @@ export async function startRelayApplication(input: unknown, composition: RelayCo
         if (!authority || !provider || JSON.stringify(service.authority) !== JSON.stringify(authority)) return null;
         return { instanceId: service.hubId, hubId: service.hubId, origin: service.origin, credential: '', identityProvider: provider,
           signer: new AssertionSigner({ issuer: auth!.issuer, instanceId: service.hubId, origin: service.origin }, auth!.privateKey) };
-      } } : {}), build: composition.build });
+      } } : {}), entryOrigin: composition.entryOrigin, build: composition.build });
     listener = config.tlsCertFile ? createHttpsServer({ cert: await readFile(config.tlsCertFile), key: await readFile(config.tlsKeyFile!) }) : app.server;
     if (listener !== app.server) {
       listener.maxConnections = 16_384; listener.headersTimeout = 15_000; listener.requestTimeout = 600_000; listener.maxRequestsPerSocket = 1000;

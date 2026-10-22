@@ -1,3 +1,4 @@
+import { ThreadPinWriter } from "./thread-pin-writer";
 import type { ConversationScheduleSummary } from "@opencraft/appserver-protocol";
 import { ApplicationBrandingRegistry } from "./application-branding";
 import { createCodexContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
@@ -239,7 +240,7 @@ export function AppServerRuntimeProvider({
       delete: async (hostId, id) => { const port = await manager(hostId, "delete"); await port.delete!(id); },
       archive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.archive!(id); },
       unarchive: async (hostId, id) => { const port = await manager(hostId, "archive"); await port.unarchive!(id); },
-      fork: async (hostId, id) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id })).id; },
+      fork: async (hostId, id, lastTurnId) => { const port = await manager(hostId, "fork"); return (await port.fork!({ threadId: id, excludeTurns: true, ...(lastTurnId === undefined ? {} : { lastTurnId }) })).id; },
       listArchived: async hostId => {
         const port = await manager(hostId, "archive");
         const all: Array<{ id: string; name?: string | null; preview?: string }> = [];
@@ -387,6 +388,27 @@ export function useAppServerHosts(): AppServerHostCatalog {
   const value = useContext(ApplicationRuntimeContext);
   if (value === null) throw new Error("AppServerRuntimeProvider is missing");
   return value;
+}
+
+/** The private application context captures connection authority for UI intents. */
+export function useThreadPinWriter(): ThreadPinWriter {
+  const application = useContext(ApplicationRuntimeContext);
+  const queryClient = useQueryClient();
+  if (application === null) throw new Error("AppServerRuntimeProvider is missing");
+  return useMemo(() => new ThreadPinWriter(queryClient, {
+    capture: key => {
+      const owner = application.registry.peekRuntime(key.hostId);
+      const generation = owner?.getSnapshot().connectionGeneration;
+      const profile = application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId);
+      const authorizationEpoch = () => profile?.hostKind === "remote-ssh" ? application.managedHostCatalog?.getAuthorizationEpoch() : null;
+      const epoch = authorizationEpoch();
+      return () => owner !== null && application.registry.peekRuntime(key.hostId) === owner
+        && owner.getSnapshot().phase === "ready" && owner.getSnapshot().connectionGeneration === generation
+        && application.hostProfiles.getSnapshot().profiles.find(value => value.hostId === key.hostId)?.revision === profile?.revision
+        && authorizationEpoch() === epoch;
+    },
+    persist: (key, pinned) => application.threadManagement.setPinned(key.hostId, key.threadId, pinned),
+  }), [application.registry, application.hostProfiles, application.managedHostCatalog, application.threadManagement, queryClient]);
 }
 
 /** Observe one Host, independently of the currently presented conversation. */

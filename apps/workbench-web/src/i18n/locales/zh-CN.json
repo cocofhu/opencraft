@@ -486,6 +486,7 @@
   "sidebar.thread.deleteDescription": "删除后该会话将被永久移除，且无法恢复。",
   "sidebar.thread.deleteQuestion": "删除“{title}”？",
   "sidebar.thread.deleteTitle": "删除会话",
+  "conversation.forkFromTurn": "从此处分支",
   "sidebar.thread.fork": "新建分支",
   "sidebar.thread.forking": "{title} 正在新建分支",
   "sidebar.thread.name": "会话名称",

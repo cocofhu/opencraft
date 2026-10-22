@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 export const OPENCRAFT_CODEX_POOL_AUTH_TOKEN_ENV = "OPENCRAFT_CODEX_POOL_AUTH_TOKEN";
 
 function loopbackBaseUrl(raw: string): string {
@@ -13,13 +15,23 @@ function loopbackBaseUrl(raw: string): string {
 export function createCodexAccountPoolLaunch(input: {
   readonly baseUrl: string;
   readonly hostToken: string;
-}): { readonly args: readonly string[]; readonly env: Readonly<Record<string, string>> } {
+}): { readonly args: readonly string[]; readonly env: Readonly<Record<string, string>>;
+  readonly auth: { readonly type: "chatgptAuthTokens"; readonly accessToken: string; readonly chatgptAccountId: string } } {
   const baseUrl = `${loopbackBaseUrl(input.baseUrl)}/v1`;
   if (!input.hostToken || input.hostToken.length > 4096 || /[\r\n\0]/u.test(input.hostToken)) {
     throw new TypeError("Invalid Account Pool Host token");
   }
+  // This is a local broker credential, not an upstream OAuth token or subscription claim.
+  // Native external auth is ephemeral and enables the native ChatGPT tool surface.
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const payload = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
+    iss: "opencraft-account-pool", aud: baseUrl, sub: "local-codex",
+  })}`;
+  const accessToken = `${payload}.${createHmac("sha256", input.hostToken).update(payload).digest("base64url")}`;
   return {
+    auth: { type: "chatgptAuthTokens", accessToken, chatgptAccountId: "opencraft-account-pool" },
     args: [
+      "-c", `chatgpt_base_url=${JSON.stringify(loopbackBaseUrl(input.baseUrl))}`,
       "-c", `openai_base_url=${JSON.stringify(baseUrl)}`,
       "-c", 'model_provider="opencraft-account-pool"',
       "-c", 'model_providers.opencraft-account-pool.name="OpenAI"',

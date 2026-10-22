@@ -4,7 +4,7 @@ import { ConnectorHostError, record, text, type StoredConnection } from "./store
 import { connectorFetch, jsonResponse } from "./network";
 import { KNOWLEDGE_TOOLS, callKnowledge, validateKnowledge } from "./api-knowledge";
 
-// Protocol mappings adapted from Octop ae65fe4 gateway/adapters (MIT; core/NOTICE.md).
+// Connector request mappings; see ../../connector-core/NOTICE.md for notices.
 const tool = (name: string, description: string, required: string[], optional: string[] = []): ConnectorNativeTool => ({ name, description, readOnly: true,
   inputSchema: { type: "object", properties: Object.fromEntries([...required, ...optional].map(key => [key, { type: "string" }])), required, additionalProperties: false } });
 export const API_TOOLS: Readonly<Record<string, readonly ConnectorNativeTool[]>> = {

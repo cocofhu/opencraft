@@ -122,3 +122,39 @@ Use the optional read-only native server benchmark for targeted real deployment
 investigations, and the validation matrix above for network/device/lifecycle
 coverage beyond these fixtures. Those environment-dependent experiments are
 not dependencies of the formal release gate.
+
+### Whole-Application session navigation
+
+The same gate also builds the current Headless Web release and serves its
+compressed production assets through the managed static worker, with a loopback
+AppHost supplying synthetic Codex-compatible read responses (40ms per RPC).
+`smoke-session-cold-open.ts` supplies four additional scenarios: desktop and
+narrow, each with no display cache or with previously persisted display history.
+Each has one excluded warmup and ten measured navigations. Width/CPU profiles
+match the component suite. New browser contexts make HTTP resources cold;
+only actual storage written by the Application is retained for the cached case.
+
+`session-navigation-{cold,cached}-{desktop,narrow}/firstPaintMs` starts at
+navigation and ends at the first history DOM plus next animation frame, a paint
+proxy rather than compositor instrumentation. This includes bundle bootstrap
+and Application initialization; existing `session-*` component metrics keep
+their narrower clock. Synthetic identity/protocol and loopback delivery exclude
+real login, TLS, user network and model latency. A cached display is not an
+execution-readiness measurement. During cached paint the initialize reply stays
+held; resume cannot occur. After release, authoritative history must replace the
+cached answer without discarding the draft. A separate empty profile must wait
+for restoration and cannot see another profile's display. All mutations fail.
+
+These four scenarios add eight p50/p95 comparisons to the existing 32. Workload
+version 2 explicitly records the changed scope. The existing ten scenario
+budgets are retained; only new scenarios receive new measured baselines and the
+same 30% plus 100ms allowance. Historical deployment experiments and their
+percentages are separate evidence, not portable CI calibration values.
+
+Every formal release writes the combined table to the Actions job summary and
+retains the original JSON/Markdown, raw samples, build metadata, screenshots and
+logs in the existing per-attempt artifact. A threshold failure emits an Actions
+error annotation naming the scenario, metric, quantile, baseline, actual,
+percentage/millisecond change and budget; a measurement or behavior failure also
+emits an error and blocks publication. The baseline is never updated by release
+CI. Daily deployment and normal build gates remain outside this full suite.
