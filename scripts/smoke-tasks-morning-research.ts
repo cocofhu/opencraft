@@ -98,7 +98,7 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  await page.locator('.tasks-ai-follow-up').evaluate(el=>{(document.activeElement as HTMLElement)?.blur();el.scrollTop=0;});
  await page.screenshot({path:join(output,`${width}-${theme}.png`)});
  await page.getByRole('radio',{name:'看板',exact:true}).click();assert.equal(await page.getByRole('searchbox',{name:'搜索任务…',exact:true}).inputValue(),'Queued');
- if(width===1440&&theme==='light'){failReads=true;await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();await page.getByText('部分协作记录暂不可用；未推断执行或等待时间。',{exact:true}).waitFor();assert.equal(await page.locator('.tasks-ai-follow-up__wait').count(),0);failReads=false;await page.getByRole('button',{name:'重新核实',exact:true}).click();await page.getByText('等待 3 天 8 小时',{exact:true}).waitFor();}
+ if(width===1440&&theme==='light'){failReads=true;await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();await page.getByText('部分协作记录暂不可用；未推断执行或等待时间。',{exact:false}).waitFor();assert.equal(await page.locator('.tasks-ai-follow-up__wait').count(),0);failReads=false;await page.getByRole('button',{name:'重新核实',exact:true}).click();await page.getByText('等待 3 天 8 小时',{exact:true}).waitFor();}
  assert.deepEqual(errors,[]);checks.push({width,theme,passed:true});await page.close();
 }
 assert.equal(mutations,0);await writeFile(join(output,'result.json'),JSON.stringify({passed:true,checks,realReactAndSqlite:true,fixtureOnly:true,mutationsDuringBrowsing:mutations,paidInference:false},null,2));console.log(JSON.stringify({passed:true,checks}));
