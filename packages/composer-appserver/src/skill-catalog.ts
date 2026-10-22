@@ -82,7 +82,7 @@ function escapeRegExp(value: string): string {
 }
 
 /**
- * Host-scoped skill search: browse on empty query, path-stable, enabled-only and with
+ * Host skill search: browse on empty query, path-stable, enabled-only and with
  * deterministic fuzzy ordering. Display metadata never replaces protocol
  * identity; canonical name and absolute path remain attached to the entry.
  */

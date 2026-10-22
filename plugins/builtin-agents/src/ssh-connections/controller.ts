@@ -1,9 +1,9 @@
-import { parseSshConnectionViews, parseSshCodexServerDescriptors, parseSshManagementSessionView, type SshManagementAccessMode, type SshCodexServerDescriptor, type SshConnectionView, type SshConnectionEdit } from "@opencraft/app-host-protocol";
+import { parseSshConnectionViews, parseSshServerDescriptors, parseSshManagementSessionView, type SshManagementAccessMode, type SshServerDescriptor, type SshConnectionView, type SshConnectionEdit } from "@opencraft/app-host-protocol";
 
 export type SshConnectionSnapshot = {
   available: boolean | null; authenticated: boolean; items: readonly SshConnectionView[];
   refreshing: boolean; error: string | null;
-  legacyServers: readonly SshCodexServerDescriptor[];
+  legacyServers: readonly SshServerDescriptor[];
   accessMode: SshManagementAccessMode | null;
 };
 const messages: Record<string, string> = {
@@ -110,7 +110,7 @@ export class SshConnectionsController {
         session = { ...session, authenticated: true };
       }
       const [records, legacy] = session.authenticated ? await Promise.all([this.request("connections", "GET", undefined, abort.signal), this.request("legacy-connections", "GET", undefined, abort.signal)]) : [[], []];
-      const items = parseSshConnectionViews(records), legacyServers = parseSshCodexServerDescriptors(legacy);
+      const items = parseSshConnectionViews(records), legacyServers = parseSshServerDescriptors(legacy);
       if (epoch === this.epoch && !this.closed) {
         if (!renewed && this.snapshot.authenticated !== session.authenticated) ++this.authEpoch;
         this.readFailures = 0;

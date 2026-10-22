@@ -26,12 +26,12 @@ export function parseSshManagementSessionView(value: unknown): SshManagementSess
   return { available: true, authenticated: value.authenticated, accessMode: mode, ...(origin === undefined ? {} : { authenticatedOrigin: origin as string }) };
 }
 /** Public projection only. No endpoint, shell, credential or trust controls. */
-export interface SshCodexServerDescriptor {
+export interface SshServerDescriptor {
   readonly serverId: string;
   readonly displayName: string;
   readonly workspaceBrowseRoots: readonly string[];
 }
-export function parseSshCodexServerDescriptors(value: unknown): readonly SshCodexServerDescriptor[] {
+export function parseSshServerDescriptors(value: unknown): readonly SshServerDescriptor[] {
   if (!Array.isArray(value) || value.length > 32) throw new Error("Invalid remote Server catalog");
   const ids = new Set<string>();
   return value.map(entry => {
@@ -45,7 +45,7 @@ export function parseSshCodexServerDescriptors(value: unknown): readonly SshCode
   });
 }
 /** Authenticated management projection. Deliberately excludes all secrets and backend paths. */
-export interface SshConnectionView extends SshCodexServerDescriptor {
+export interface SshConnectionView extends SshServerDescriptor {
   readonly revision: number;
   readonly hostname: string;
   readonly port: number;
@@ -65,7 +65,7 @@ export interface SshConnectionEdit {
   readonly password?: string;
 }
 export function parseSshConnectionViews(value: unknown): readonly SshConnectionView[] {
-  const descriptors = parseSshCodexServerDescriptors(value);
+  const descriptors = parseSshServerDescriptors(value);
   return descriptors.map((descriptor, index) => {
     const row = (value as Record<string, unknown>[])[index]!;
     if (Object.keys(row).some(k => !["serverId", "displayName", "workspaceBrowseRoots", "revision", "hostname", "port", "username", "enabled", "fingerprint", "state"].includes(k))

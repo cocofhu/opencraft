@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCodexContentSearchSource, isUnsupportedSearch, mergeConversationSearchResults, serializeContentSearch } from "../apps/workbench-web/src/runtime/conversation-content-search";
+import { createAppServerContentSearchSource, isUnsupportedSearch, mergeConversationSearchResults, serializeContentSearch } from "../apps/workbench-web/src/runtime/conversation-content-search";
 
 test("native method-not-found and explicit DSH rejection retain titles; transport failures remain failures", () => {
   assert.equal(isUnsupportedSearch({ code: -32601 }), true);
@@ -33,7 +33,7 @@ test("body search forwards cursors and readonly filters, extracts locators and f
   const calls: any[] = [];
   let revoked = false;
   let revokeDuringRead = false;
-  const source = createCodexContentSearchSource({ key: "scope", hostId: "a", label: "A", available: true, supported: true,
+  const source = createAppServerContentSearchSource({ key: "scope", hostId: "a", label: "A", available: true, supported: true,
     assertCurrent: () => { if (revoked) throw new Error("revoked"); },
     protocol: { request: async (method: any, params: any, options: any): Promise<any> => {
       calls.push({ method, params, options });

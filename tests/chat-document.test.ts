@@ -148,7 +148,7 @@ test("chat document compiles prose, GFM, code, math, links and tables", () => {
   assert.ok(nodes.some((node) => node.kind === "code-fence" && node.language === "ts" && node.completeness === "complete"));
 });
 
-test("Markdown prose preserves Codex Han rhythm, nested-list grammar and block streaming entry", () => {
+test("Markdown prose preserves Han rhythm, nested-list grammar and block streaming entry", () => {
   assert.match(proseStyles, /> p\[data-markdown-han-text\]:has\(\+ p\[data-markdown-han-text\]\)/u);
   assert.match(proseStyles, /strong \{ font-weight: var\(--typography-prose-strong-weight\); \}/u);
   assert.match(proseStyles, /\.chat-media-paragraph \{[\s\S]{0,120}?text-align: left;/u);
@@ -158,7 +158,7 @@ test("Markdown prose preserves Codex Han rhythm, nested-list grammar and block s
   assert.match(proseStyles, /:is\(\.chat-stream-fade-in, hr, li, tr, blockquote\)/u);
 });
 
-test("Markdown tables use the Codex reading surface rather than a bordered card", () => {
+test("Markdown tables use the reading surface rather than a bordered card", () => {
   assert.match(tableRendererSource, /data-markdown-table="true"/u);
   assert.match(tableRendererSource, /"text\/plain": node\.markdownSource/u);
   assert.match(tableRendererSource, /"text\/html": table\.outerHTML/u);
@@ -225,7 +225,7 @@ test("streaming suffix repair handles adversarial marker runs without repeated s
   assert.ok(performance.now() - started < 5_000, "suffix repair must remain responsive on repeated markers");
 });
 
-test("streaming markdown stabilizes incomplete message syntax without mutating canonical source", () => {
+test("streaming markdown stabilizes incomplete syntax without mutating canonical source", () => {
   const image = preprocessChatMarkdown("Ready\n\n![screen](https://assets.exam", { streaming: true });
   assert.equal(image.markdown, "Ready\n\n");
 
@@ -242,7 +242,7 @@ test("streaming markdown stabilizes incomplete message syntax without mutating c
   assert.equal(reference.markdown, "Visible");
 });
 
-test("isolated HTML breaks retain Codex layout semantics without enabling arbitrary HTML", () => {
+test("isolated HTML breaks retain layout semantics without enabling arbitrary HTML", () => {
   const compiler = new ChatDocumentCompiler();
   const parsed = compiler.compile("before<br>after\n\n<script>alert(1)</script>");
   const nodes = flatten(parsed.nodes);
@@ -250,7 +250,7 @@ test("isolated HTML breaks retain Codex layout semantics without enabling arbitr
   assert.ok(nodes.some((node) => node.kind === "text" && node.text.includes("<script>")));
 });
 
-test("Codex math tokenizers ignore dollar prose and never change fenced source", () => {
+test("math tokenizers ignore dollar prose and never change fenced source", () => {
   const input = "Price is $5, not $10. Inline \\(x^2\\).\n\n\\[y^2\\]\n\n```tex\n\\(inside\\)\n```";
   const compiler = new ChatDocumentCompiler();
   const nodes = flatten(compiler.compile(input).nodes);
@@ -282,7 +282,7 @@ test("streaming session preserves node and segment identity across appends", () 
   if (completedText?.kind === "text") assert.ok(completedText.segments.every((segment) => !segment.entering));
 });
 
-test("ASCII streaming segmentation follows Codex punctuation ownership", () => {
+test("ASCII streaming segmentation preserves punctuation ownership", () => {
   const session = new ChatDocumentStreamingSession("message-ascii-segments");
   const first = session.compile("Hello, ", { streaming: true });
   first.commit();
@@ -320,7 +320,7 @@ test("streaming fade identity is global when Markdown reparses around existing t
   assert.ok(quotedText.segments.every((segment) => !segment.entering));
 });
 
-test("link labels suppress nested Codex text decorations", () => {
+test("link labels suppress nested text decorations", () => {
   const compiler = new ChatDocumentCompiler();
   const parsed = flatten(compiler.compile("[$skill @repo/src #AABBCC](https://example.com)").nodes);
   const link = parsed.find((node) => node.kind === "link");

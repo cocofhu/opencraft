@@ -659,7 +659,7 @@ test("Native virtualizer publishes live Turn height while response policy owns c
   assert.match(webResponseSource, /OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
 });
 
-test("footer geometry and response placement have disjoint Codex owners", () => {
+test("footer geometry and response placement have disjoint owners", () => {
   assert.match(webViewportOwnerSource, /readonly attachFooterElement/u);
   assert.match(
     webViewportOwnerSource,
@@ -754,7 +754,7 @@ test("physical scroll distance and input classification have one platform transa
   );
 });
 
-test("Composer menus live in the root overlay plane with Codex viewport constraints", () => {
+test("Composer menus live in the root overlay plane with viewport constraints", () => {
   const menus = Array.from(composerSource.matchAll(/<DropdownMenu\.Root\b/gu)).length;
   assert.ok(menus >= 2, "Composer retains its selection menus");
   assert.equal(Array.from(composerSource.matchAll(/<DropdownMenu\.Portal container=\{portalContainer\}>/gu)).length, menus,
@@ -974,7 +974,7 @@ test("a new-thread workspace is an optional execution override, not Composer own
   );
 });
 
-test("user messages preserve Codex's authored-message width invariant", () => {
+test("user messages preserve the authored-message width invariant", () => {
   assert.match(
     workbenchStyles,
     /&__bubble\s*\{\s*max-width:\s*77%/u,
@@ -1033,7 +1033,7 @@ test("Web owns one desktop topology and keeps responsive projection separate fro
   );
 });
 
-test("narrow desktop header keeps Codex's intrinsic action rail", () => {
+test("narrow desktop header keeps its intrinsic action rail", () => {
   assert.match(
     workbenchStyles,
     /\.app-shell-header__window-controls\s*\{[\s\S]*?width:\s*var\(--app-shell-header-left-slot-width\);[\s\S]*?min-width:\s*max-content;/u,
@@ -1604,7 +1604,7 @@ test("the conversation scrollport terminates browser boundary scrolling", () => 
   assert.doesNotMatch(workbenchStyles, /data-timeline-overscroll/u);
 });
 
-test("reflow pinning follows Codex window-zoom compensation", () => {
+test("reflow pinning follows window-zoom compensation", () => {
   assert.equal(timelineReflowScrollAdjustment(200, 260), 60);
   assert.equal(timelineReflowScrollAdjustment(200, 260, 1.5), 40);
 });
@@ -1629,7 +1629,7 @@ test("response spacer mutation stays private behind a read/subscribe API", () =>
   assert.doesNotMatch(webConversationSource, /responseApi\?\.spacerHeight/u);
 });
 
-test("the Web host explicitly selects Codex natural bottom-follow without a hidden policy default", () => {
+test("the Web host explicitly selects natural bottom-follow without a hidden policy default", () => {
   assert.match(workbenchApp, /scrollPolicy="natural"/u);
   assert.match(workbenchApp, /consumePendingLatestTurnSubmitPlacement=\{consumeLatestTurnPlacement\}/u);
   assert.match(webConversationSource, /readonly scrollPolicy: ConversationScrollPolicy/u);

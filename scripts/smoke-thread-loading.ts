@@ -30,7 +30,7 @@ function theme(mode,family){
  const palette=family==='custom'?lavenderThemePalette[mode]:opencraftNeutralThemePalette[mode];
  for(const [name,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
 }
-theme('light','opencraftNeutral');
+theme('light','neutral');
 window.loadingFixture={theme};
 function Demo(){
  const [state,setState]=useState('cold-stage');
@@ -80,7 +80,7 @@ try {
   const evidenceDir = process.env.OPENCRAFT_THREAD_LOADING_EVIDENCE_DIR;
   if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
   const results: unknown[] = [];
-  for (const width of [1280, 320, 390]) for (const family of ["opencraftNeutral", "custom"]) for (const mode of ["light", "dark"]) {
+  for (const width of [1280, 320, 390]) for (const family of ["neutral", "custom"]) for (const mode of ["light", "dark"]) {
     const touch = width < 600;
     const context = await browser.newContext({ viewport: { width, height: 800 }, hasTouch: touch, permissions: ["clipboard-read", "clipboard-write"] });
     try {

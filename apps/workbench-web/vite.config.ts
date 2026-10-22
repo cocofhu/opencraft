@@ -80,7 +80,7 @@ export function createWorkbenchWebConfig(
   process.env.VITE_INCLUDE_HYPERNODE_PLUGIN = includeHyperNodePlugin ? "true" : "false";
   process.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN = includeBuiltinAgentsPlugin ? "true" : "false";
   process.env.VITE_INCLUDE_HEADLESS_MODEL_SERVICES = includeHeadlessModelServices ? "true" : "false";
-  process.env.VITE_INCLUDE_HEADLESS_CODEX = includeHeadlessModelServices ? "true" : "false";
+  process.env.VITE_INCLUDE_HEADLESS_APPHOST = includeHeadlessModelServices ? "true" : "false";
   process.env.VITE_INCLUDE_TASKS_PLUGIN = !isEmbeddedWorkbenchBuild && (features.tasks ?? true) ? "true" : "false";
 
   interface WebReleaseMetadata {
@@ -361,7 +361,7 @@ export function createWorkbenchWebConfig(
     // Both targets are served at their origin root. Root-relative assets also
     // survive direct loading/reloading /views/:id and /settings/:id routes.
     // The Electron static server maps that root to the relocatable signed bundle.
-    base: isEmbeddedWorkbenchBuild ? "/__opencraft/" : process.env.VITE_INCLUDE_HEADLESS_CODEX === "true" ? "./" : "/",
+    base: isEmbeddedWorkbenchBuild ? "/__opencraft/" : process.env.VITE_INCLUDE_HEADLESS_APPHOST === "true" ? "./" : "/",
     define: { "process.env.NODE_ENV": JSON.stringify(mode), "process.env.PROD": JSON.stringify(mode === "production") },
     plugins: [
       ...(!isElectronRenderer && !isEmbeddedWorkbenchBuild && (features.pluginBranding ?? true) ? [pluginBranding(workspaceRoot,

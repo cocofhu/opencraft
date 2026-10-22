@@ -2,7 +2,7 @@ import { ThreadPinWriter } from "./thread-pin-writer";
 import type { HostScheduleCatalog } from "./scheduled-task-catalog-context";
 import type { ConversationScheduleSummary, ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { ApplicationBrandingRegistry } from "./application-branding";
-import { createCodexContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
+import { createAppServerContentSearchSource, type ConversationSearchSource } from "./conversation-content-search";
 import { createConversationOverviewSource, type ConversationOverviewSource } from "../features/conversation-overview/source";
 import { IdentityAvatarContributionRegistry } from "./identity-avatar-contributions";
 import { useAccountModelDefaults } from "./use-account-model-defaults";
@@ -772,7 +772,7 @@ export function useMultiHostThreadCatalog(): {
       hostId: host.hostId, available, assertCurrent,
       protocol,
     };
-    return { search: createCodexContentSearchSource({
+    return { search: createAppServerContentSearchSource({
       ...scope, label: host.label, supported,
       project: thread => ({ ...projectAppServerThread(thread),
         ...legacyDirectServerProjectionFromHost({ hostId: host.hostId, hostKind: host.kind, label: host.label }),

@@ -12,7 +12,7 @@ import {TimelineBlockRendererProvider,TimelineBlockRendererRegistryService} from
 import {BuiltinTimelineRendererPlugin} from '/apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin';
 import {createConversationKey,createDefaultTimelineProjectorRegistry,projectTimeline} from '@opencraft/chat-core';
 import {ConversationSearch} from '/apps/workbench-web/src/components/conversation-search.tsx';
-import {createCodexContentSearchSource} from '/apps/workbench-web/src/runtime/conversation-content-search.ts';
+import {createAppServerContentSearchSource} from '/apps/workbench-web/src/runtime/conversation-content-search.ts';
 import {initializeAppearanceTheme,setThemePreference} from '/apps/workbench-web/src/appearance-theme.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 initializeAppearanceTheme();window.calls=[];window.selected=[];
@@ -22,7 +22,7 @@ const makeTurn=id=>({id,status:'complete',items:[{id:id==='old-turn'?'old-user':
 
 const threads=[{id:'title',title:'Title match',updatedAt:5,connectionHostId:'a',serverOrigin:{label:'Alpha'},interactionAvailable:true}];
 const sources=['a','b','broken','unsupported','offline'].map((id,index)=>{
- let fail=true;return createCodexContentSearchSource({key:id,hostId:id,label:['Alpha','Beta','Broken','Unsupported','Offline'][index],available:id!=='offline',supported:id!=='unsupported',assertCurrent:()=>{},
+ let fail=true;return createAppServerContentSearchSource({key:id,hostId:id,label:['Alpha','Beta','Broken','Unsupported','Offline'][index],available:id!=='offline',supported:id!=='unsupported',assertCurrent:()=>{},
  protocol:{request:async(method,params)=>{window.calls.push({id,method,params});
  if(id==='broken'&&fail&&params.searchTerm==='正文'){fail=false;throw new Error('synthetic network failure')}
  if(method==='thread/searchOccurrences')return {data:[{turnId:'old-turn',itemId:'old-answer'}],nextCursor:null};
@@ -74,5 +74,5 @@ try {
   const calls=await page.evaluate(()=>window.calls);assert.ok(calls.every(x=>['thread/search','thread/searchOccurrences'].includes(x.method)));assert.ok(calls.every(x=>!['unsupported','offline'].includes(x.id)));
   await page.keyboard.press('Escape');await page.close();
  }
- assert.deepEqual(errors,[]);console.log('Codex body-search dialog: light/dark desktop/touch, stale queries, duplicates, snippet safety, retry, paging, unsupported/offline, locators and drafts passed');
+ assert.deepEqual(errors,[]);console.log('Conversation body-search dialog: light/dark desktop/touch, stale queries, duplicates, snippet safety, retry, paging, unsupported/offline, locators and drafts passed');
 }finally{await browser?.close();await vite.close()}

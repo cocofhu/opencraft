@@ -1555,7 +1555,7 @@ Trusted build composition selects an explicit, immutable presentation policy
 (`WorkbenchWebBuildFeatures.presentation`), independently of product identity.
 The build validates and serializes icon style, default theme ID and hidden builtin
 theme IDs; the renderer reads it synchronously before its first appearance snapshot.
-Public defaults use the standard icon adapter and OpenCraft Neutral theme. A custom identity
+Public defaults use the standard icon adapter and Neutral theme. A custom identity
 alone never changes artwork, palette defaults or the catalog. Existing async client
 product entries keep their account/engine lifecycle and need no additional export.
 Saved theme intent and existing storage/theme IDs retain their previous authority;

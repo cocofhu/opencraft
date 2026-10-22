@@ -8,7 +8,7 @@ try {
  await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
 
  const quick = process.argv.includes("--quick");
- for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
+ for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["neutral"] : ["neutral", "canvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
   console.log(`Checking ${width}/${palette}/${mode}`);
   const page = await browser.newPage({ viewport: { width, height: 800 }, hasTouch: true });
   const errors: string[] = []; page.on("pageerror", (e: Error) => errors.push(e.message));
@@ -56,8 +56,8 @@ try {
   const railAfter = await rail.screenshot();
   assert(!railBefore.equals(railAfter), 'scrolling backdrop must show through queue glass too');
   await page.locator('[aria-hidden]').first().evaluate((node: HTMLElement) => { node.style.background = ''; });
-  if (width === 390 && palette === 'opencraftNeutral') await page.locator('.opencraft-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
-  if (width === 390 && palette === 'opencraftNeutral') {
+  if (width === 390 && palette === 'neutral') await page.locator('.opencraft-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
+  if (width === 390 && palette === 'neutral') {
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-transparency',value:'reduce'}]});
     assert(await page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches));
@@ -115,7 +115,7 @@ try {
   assert.equal(await toggle.getAttribute('aria-checked'), 'true'); await toggle.click(); await page.waitForTimeout(80);
   assert.equal(await page.locator('html').getAttribute('data-touch-newera'), 'off');
   await toggle.click(); await page.waitForTimeout(80);
-  if (width === 390 && palette === 'opencraftNeutral' && mode === 'light') {
+  if (width === 390 && palette === 'neutral' && mode === 'light') {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await editor.click();
     assert((await shape()).height > compact.height + 20, 'reduced motion preserves focus expansion');

@@ -17,7 +17,7 @@ application.supervisor.navigation.openSettings('appearance');
 createIntlTestRoot(document.getElementById('app'),undefined,'zh-CN').render(<WorkbenchRoot application={application}/>);
 window.proof={theme:setThemePreference,route:()=>application.supervisor.navigation.getSnapshot().applicationRoute};`;
 const vite = await createServer({ configFile: false, cacheDir: '.local/server-settings/vite-cache', root: process.cwd(), logLevel: 'error',
-  define: { 'process.env.NEXT_PUBLIC_REGION': '"cn"', 'process.env.NEXT_PUBLIC_PREVIEW_LOCALES': '""', 'import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_HEADLESS_CODEX': '"false"' },
+  define: { 'process.env.NEXT_PUBLIC_REGION': '"cn"', 'process.env.NEXT_PUBLIC_PREVIEW_LOCALES': '""', 'import.meta.env.VITE_INCLUDE_HYPERNODE_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_BUILTIN_AGENTS_PLUGIN': '"false"', 'import.meta.env.VITE_INCLUDE_HEADLESS_APPHOST': '"false"' },
   esbuild: { jsx: 'automatic' }, resolve: { dedupe: ['react', 'react-dom'] }, server: { host: '127.0.0.1', port: 0, hmr: false },
   plugins: [{ name: 'server-selection-settings-proof', resolveId: id => id === '/proof.tsx' ? id : null, load: id => id === '/proof.tsx' ? source : null,
     configureServer(server) { server.middlewares.use((req, res, next) => {

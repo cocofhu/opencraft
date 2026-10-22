@@ -17,7 +17,7 @@ export const BuiltinThemePackExtension: OpenCraftExtensionDefinition = {
     api.themes.register({
       id: "vela.theme-pack.paper",
       label: "Paper",
-      description: "A warmer, softer work surface with the same Codex contrast model.",
+      description: "A warmer, softer work surface with consistent light and dark contrast.",
       palettes: {
         light: {
           accent: "#3478f6",
