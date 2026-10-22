@@ -2030,3 +2030,14 @@ height token: 36px with pointer input, at least the 44px shared touch target whe
 touch interaction is active. Keep participant artwork, count circles, independent
 action lanes and section/list gaps at their existing sizes; compact density must
 not change metadata rows or other navigation owners.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
