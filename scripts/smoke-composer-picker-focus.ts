@@ -18,7 +18,7 @@ async function assertComposingMenuEscape(page:any, editor:any, trigger:any, menu
   await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:229,nativeVirtualKeyCode:229});
   assert.equal(await menu.getAttribute('data-state'),'open','compatibility IME keyCode229 retains the menu');
   assert(await page.evaluate(()=>window.menuImeKeys.some(e=>!e.composing&&e.keyCode===229)));
-  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   assert(await page.evaluate(()=>window.menuImeEvents.includes('compositionstart')&&window.menuImeEvents.includes('compositionend')&&window.menuImeKeys.some(e=>!e.composing&&e.keyCode===27)));
   assert.equal(await editor.innerText(),'菜单组词草稿已确认');assert(await editor.evaluate(el=>el===window.compositionEditor&&el===document.activeElement));
  } finally {await cdp.detach();}
@@ -46,47 +46,51 @@ try {
    assert.equal(await page.evaluate(()=>getSelection()?.anchorOffset),2,'native selection retained');
   };
   await model.tap();await menu.waitFor();await assertEditing();
+  if(await page.locator('.opencraft-composer-model-quick__title').count())await page.locator('.opencraft-composer-model-quick__title').tap();
   await page.getByRole('menuitem',{name:'Beta',exact:false}).tap();await assertEditing();
   assert.equal(await page.evaluate(()=>(window as any).composerController.getSnapshot().draft.selections.model),'Beta');
   await page.waitForTimeout(220);
-  const list=page.locator('.opencraft-composer-intelligence-models');const box=await list.boundingBox();assert(box);
+  const list=page.locator('.opencraft-composer-intelligence-models');
+  const box=await list.evaluate(el=>{let node:HTMLElement|null=el as HTMLElement;while(node&&!(node.scrollHeight>node.clientHeight&&/(auto|scroll)/.test(getComputedStyle(node).overflowY)))node=node.parentElement;if(!node)throw new Error('model menu must expose its native scroll owner');(window as any).modelScrollport=node;const b=node.getBoundingClientRect();return{x:b.x,y:b.y,width:b.width,height:b.height}});assert(box);
   const cdp=await context.newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height-20}]});
   for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height-20-i*12}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await page.waitForFunction(()=>(document.querySelector('.opencraft-composer-intelligence-models')?.scrollTop ?? 0)>0);
+  await page.waitForFunction(()=>((window as any).modelScrollport?.scrollTop ?? 0)>0);
+  // A tap that stops native momentum is not a completed menu activation.
+  await page.evaluate(()=>new Promise<void>((resolve,reject)=>{const node=(window as any).modelScrollport;let previous=-1,stable=0;const end=performance.now()+5000;const sample=()=>{const current=node.scrollTop;stable=current===previous?stable+1:0;previous=current;if(stable>=6)resolve();else if(performance.now()>end)reject(new Error('model menu scroll did not settle'));else requestAnimationFrame(sample)};sample()}));
   console.log("scroll passed");await assertEditing();
   await permissions.tap();await page.locator('.opencraft-composer-selection-menu--permissions').waitFor();await assertEditing();
-  await page.getByRole('menuitem',{name:'只读',exact:false}).tap();await menu.waitFor({state:'hidden'});await assertEditing();
+  await page.getByRole('menuitem',{name:'只读',exact:false}).tap();await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);await assertEditing();
   // Escape and continued typing keep editing; opening does not change shell geometry.
   const shell=page.locator('.opencraft-composer-shell'),before=await shell.boundingBox();
   await model.tap();await menu.waitFor();await assertEditing();
   assert.deepEqual(await shell.boundingBox(),before);
-  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});await assertEditing();
-  await model.tap();await menu.waitFor();await page.keyboard.type('x');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);await assertEditing();
+  await model.tap();await menu.waitFor();await page.keyboard.type('x');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   assert.equal(await editor.innerText(),'正在x编辑的草稿');
   // Explicit keyboard navigation releases the editor lease and uses native Radix items.
   await model.tap();await menu.waitFor();await page.keyboard.press('ArrowDown');
   assert(await menu.evaluate(el=>el.contains(document.activeElement)));
-  await page.keyboard.press('ArrowDown');await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('ArrowDown');await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   assert(await model.evaluate(el=>el===document.activeElement),'keyboard escape returns to trigger');
   // Keyboard/AT opens without an editor lease; no focus interception.
   await permissions.focus();await page.keyboard.press('Enter');await menu.waitFor();
   assert(await menu.evaluate(el=>el.contains(document.activeElement)));
-  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   assert(await permissions.evaluate(el=>el===document.activeElement));
   // A touch opening from a non-editing state remains an ordinary menu.
   await model.tap();await menu.waitFor();assert(await menu.evaluate(el=>el.contains(document.activeElement)));
-  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   console.log('core passed');
   for(const trigger of [model,permissions])await assertComposingMenuEscape(page,editor,trigger,menu);
   // Outside text entry may take focus and must not be stolen by delayed cleanup.
   await editor.click();await model.tap();await menu.waitFor();
-  await page.getByLabel('Outside input').tap();await menu.waitFor({state:'hidden'});
+  await page.getByLabel('Outside input').tap();await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   await page.waitForTimeout(80);assert(await page.getByLabel('Outside input').evaluate(el=>el===document.activeElement));
   // Unmount revokes pending return-to-editor behavior.
   await editor.click();await model.tap();await menu.waitFor();
-  await page.evaluate(()=>(window as any).setComposerVisible(false));await menu.waitFor({state:'hidden'});
+  await page.evaluate(()=>(window as any).setComposerVisible(false));await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   await page.getByLabel('Outside input').tap();await page.waitForTimeout(80);
   assert(await page.getByLabel('Outside input').evaluate(el=>el===document.activeElement));
   assert.deepEqual(errors,[]);await context.close();
@@ -99,7 +103,7 @@ try {
  for(const selector of ['.opencraft-composer-mode--intelligence','.opencraft-composer-mode--permissions']){
   await editor.click();await page.locator(selector).click();await menu.waitFor();
   assert(await menu.evaluate(el=>el.contains(document.activeElement)),'mouse uses normal Radix focus');
-  await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelectorAll('[role="menu"]').length===0);
   assert(await page.locator(selector).evaluate(el=>el===document.activeElement));
  }
  assert.equal(await editor.innerText(),'桌面草稿');await context.close();
