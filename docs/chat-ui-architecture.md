@@ -2322,3 +2322,16 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+## Delayed command completion placement
+
+History adapters retain finite Item-envelope `startedAtMs` and `completedAtMs`
+when loading paged history. The shared chat-core projection places a delayed
+completed command at its known execution start relative to later timed Items.
+It preserves source membership, non-command order, equal/unknown clocks and
+commands that actually started after an answer; it never globally sorts replies.
+Live completions update an existing execution or use explicit lifecycle evidence.
+An orphan completion without a start cannot establish a new transcript position;
+authoritative history can recover it. Failure status, exit code and output stay
+attached to the execution. Web and Native consume the same projected order.

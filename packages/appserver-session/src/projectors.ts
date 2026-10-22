@@ -618,11 +618,23 @@ export function registerBuiltinThreadProjectors(ctx: Context): () => void {
         const previousTurn = view.turns.find((turn) => turn.id === projected.turnId);
         const previousItem = previousTurn?.items?.find((item) => item.id === projected.item.id);
         const params = record(notification.params);
-        const eventAtMs = typeof params?.startedAtMs === "number" ? params.startedAtMs
-          : typeof params?.completedAtMs === "number" ? params.completedAtMs : Date.now();
+        const clock = (value: unknown): number | undefined =>
+          typeof value === "number" && Number.isFinite(value) ? value : undefined;
+        const completedAtMs = clock(params?.completedAtMs) ?? clock(projected.item.completedAtMs);
+        const durationMs = clock(projected.item.durationMs);
+        const startedAtMs = clock(previousItem?.startedAtMs) ?? clock(projected.item.startedAtMs)
+          ?? clock(params?.startedAtMs)
+          ?? (completedAtMs !== undefined && durationMs !== undefined && durationMs >= 0
+            ? completedAtMs - durationMs : undefined);
+        // A completion updates an execution; a missing start cannot establish a
+        // new transcript position. Authoritative history can recover that Item.
+        if (notification.method === "item/completed" && projected.item.type === "commandExecution"
+          && previousItem === undefined && startedAtMs === undefined) return view;
+        const eventAtMs = (notification.method === "item/completed" ? completedAtMs : startedAtMs) ?? Date.now();
         const item: AppServerThreadItem = {
           ...(notification.method === "item/updated" ? previousItem : {}),
           ...projected.item,
+          ...(startedAtMs !== undefined ? { startedAtMs } : {}),
           ...(notification.method === "item/started" ? {
             status: "inProgress",
             completed: false,

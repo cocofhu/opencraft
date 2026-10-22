@@ -67,6 +67,9 @@ export interface ThreadTurnsPage<TTurn> extends CursorPage<TTurn> {
 }
 
 export interface ThreadItemPageEntry {
+  /** Provider lifecycle clocks, separate from the nested protocol Item. */
+  startedAtMs?: number | null;
+  completedAtMs?: number | null;
   turnId?: string;
   item?: AppServerThreadItem;
   [field: string]: unknown;

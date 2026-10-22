@@ -3654,3 +3654,39 @@ test("saved command source identities accept legacy aliases and prefer canonical
     assert.deepEqual(block.sourceItemIds, expected);
   }
 });
+
+
+test("late command completions retain execution start order and failed output", () => {
+  const items = [
+    { id: "before", type: "agentMessage", payload: { text: "Starting", startedAtMs: 10 } },
+    { id: "answer", type: "agentMessage", payload: { text: "Done", phase: "final_answer", startedAtMs: 30 } },
+    { id: "steer", type: "userMessage", payload: { content: [{ type: "text", text: "Next" }], startedAtMs: 40 } },
+    { id: "late", type: "commandExecution", payload: { command: "check", status: "failed", exitCode: 137,
+      aggregatedOutput: "Interrupted check", startedAtMs: 20, completedAtMs: 50 } },
+    { id: "after", type: "commandExecution", payload: { command: "after", status: "completed", startedAtMs: 45 } },
+  ];
+  const original = [...items];
+  const snapshot = projectTimeline(source([{ id: "timed", status: "complete", items }]), createDefaultTimelineProjectorRegistry());
+  const blocks = snapshot.frames.flatMap(frame => frame.blocks);
+  assert.deepEqual(blocks.flatMap(block => block.sourceItemIds), ["before", "late", "answer", "steer", "after"]);
+  const failed = blocks.find(block => block.type === "command-execution" && block.command === "check");
+  assert.equal(failed?.type, "command-execution");
+  if (failed?.type === "command-execution") {
+    assert.equal(failed.status, "failed");
+    assert.equal(failed.exitCode, 137);
+    assert.equal(failed.output, "Interrupted check");
+  }
+  assert.deepEqual(items, original, "source membership and order stay immutable");
+});
+
+test("command completion order preserves unknown clocks, equal starts and real post-answer work", () => {
+  const items = [
+    { id: "answer", type: "agentMessage", payload: { text: "Done", phase: "final_answer", startedAtMs: 30 } },
+    { id: "unknown", type: "commandExecution", payload: { command: "unknown", status: "completed" } },
+    { id: "equal", type: "commandExecution", payload: { command: "equal", status: "completed", startedAtMs: 30 } },
+    { id: "after", type: "commandExecution", payload: { command: "after", status: "completed", startedAtMs: 40 } },
+    { id: "invalid", type: "commandExecution", payload: { command: "invalid", status: "completed", startedAtMs: NaN } },
+  ];
+  const snapshot = projectTimeline(source([{ id: "untimed", status: "complete", items }]), createDefaultTimelineProjectorRegistry());
+  assert.deepEqual(snapshot.frames.flatMap(frame => frame.blocks.flatMap(block => block.sourceItemIds)), items.map(item => item.id));
+});
