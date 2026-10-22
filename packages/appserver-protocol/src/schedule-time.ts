@@ -29,15 +29,15 @@ function parts(format: Intl.DateTimeFormat, stamp: number) {
 }
 /** At most 370 calendar days; missing month days and DST gaps are skipped.
  * Ambiguous wall times execute once: the earliest matching instant for that date. */
-export function nextCalendarRun(calendar: ScheduleCalendar, zone: string, after: number, window?: ScheduleWindow | null): number | null {
+export function nextCalendarRun(calendar: ScheduleCalendar, zone: string, after: number, scheduleWindow?: ScheduleWindow | null): number | null {
   const format = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const start = Math.max(after, window?.startAt ?? after);
+  const start = Math.max(after, scheduleWindow?.startAt ?? after);
   const local = parts(format, start);
   const first = Date.UTC(Number(local.year), Number(local.month) - 1, Number(local.day));
   const times = [...new Set(calendar.times)].sort();
   for (let day = 0; day <= 370; day++) {
     const date = new Date(first + day * 86400000), weekday = date.getUTCDay();
-    if (calendar.period === "weekly" && !calendar.days.includes(weekday) || calendar.period === "monthly" && !calendar.days.includes(date.getUTCDate()) || window && !window.weekdays.includes(weekday)) continue;
+    if (calendar.period === "weekly" && !calendar.days.includes(weekday) || calendar.period === "monthly" && !calendar.days.includes(date.getUTCDate()) || scheduleWindow && !scheduleWindow.weekdays.includes(weekday)) continue;
     for (const time of times) {
       const [hour, minute] = time.split(":").map(Number);
       const target = date.getTime() + hour! * 3600000 + minute! * 60000;
@@ -51,21 +51,21 @@ export function nextCalendarRun(calendar: ScheduleCalendar, zone: string, after:
       }
       if (!candidates.length) continue;
       const candidate = Math.min(...candidates);
-      if (candidate >= start && (window?.endAt == null || candidate < window.endAt)) return candidate;
+      if (candidate >= start && (scheduleWindow?.endAt == null || candidate < scheduleWindow.endAt)) return candidate;
     }
   }
   return null;
 }
 
-export function nextIntervalRun(anchor: number, intervalMinutes: number, zone: string, after: number, window?: ScheduleWindow | null): number | null {
-  const step = intervalMinutes * 60000, start = Math.max(after, window?.startAt ?? after);
+export function nextIntervalRun(anchor: number, intervalMinutes: number, zone: string, after: number, scheduleWindow?: ScheduleWindow | null): number | null {
+  const step = intervalMinutes * 60000, start = Math.max(after, scheduleWindow?.startAt ?? after);
   let candidate = anchor + Math.max(0, Math.ceil((start - anchor) / step)) * step;
-  if (!window) return candidate;
+  if (!scheduleWindow) return candidate;
   const formatter = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short" });
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   for (let i = 0; i < 10081; i++, candidate += step) {
-    if (window.endAt !== null && candidate >= window.endAt) return null;
-    if (window.weekdays.includes(days.indexOf(formatter.format(candidate)))) return candidate;
+    if (scheduleWindow.endAt !== null && candidate >= scheduleWindow.endAt) return null;
+    if (scheduleWindow.weekdays.includes(days.indexOf(formatter.format(candidate)))) return candidate;
   }
   return null;
 }

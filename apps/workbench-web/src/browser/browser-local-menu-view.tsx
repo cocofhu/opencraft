@@ -1,4 +1,4 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as DropdownMenu from '@opencraft/design-system-web/dropdown-menu';
 import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { useIntl } from '@opencraft/i18n/react';
 import type { BrowserLocalMenuController } from './browser-local-menu';

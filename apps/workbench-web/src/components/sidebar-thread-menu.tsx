@@ -1,4 +1,4 @@
-import { Root as DropdownMenuRoot } from "@radix-ui/react-dropdown-menu";
+import { Root as DropdownMenuRoot } from "@opencraft/design-system-web/dropdown-menu";
 import { Root as ContextMenuRoot } from "@radix-ui/react-context-menu";
 import { useCallback, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import type { ThreadBadgeContribution, ThreadBadgeProps } from "@opencraft/extension-react";

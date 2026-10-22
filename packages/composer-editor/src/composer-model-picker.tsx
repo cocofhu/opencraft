@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { DiscreteSlider, type DiscreteSliderOption } from "@opencraft/design-system-web/discrete-slider";
 import { useIntl } from "@opencraft/i18n/react";
 import { BrainCircuit, ChevronRight, RotateCcw, Zap } from "lucide-react";

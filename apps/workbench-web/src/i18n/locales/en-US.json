@@ -763,5 +763,6 @@
   "chat.question.queued": "Answer in follow-up queue",
   "chat.question.offline": "Connect to answer",
   "chat.question.failure": "Answer not sent. Your selection is saved; please retry.",
-  "chat.question.retry": "Selection saved. Try again."
+  "chat.question.retry": "Selection saved. Try again.",
+  "panel.sideChat": "New side chat"
 }

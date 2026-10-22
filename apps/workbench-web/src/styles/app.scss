@@ -6484,12 +6484,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   opacity: 1;
   pointer-events: auto;
 }
-.thread-user-message:hover .thread-user-message__actions time,
-.thread-frame--assistant:hover > .thread-message-actions time {
-  @include controls.hover-capable { opacity: 1; pointer-events: auto; }
-}
-.thread-frame--assistant:hover > .thread-message-actions {
-  @include controls.hover-capable { opacity: 1; }
+@include controls.hover-capable {
+  .thread-user-message:hover .thread-user-message__actions time,
+  .thread-frame--assistant:hover > .thread-message-actions time { opacity: 1; pointer-events: auto; }
+  .thread-frame--assistant:hover > .thread-message-actions { opacity: 1; }
 }
 
 .thread-message-actions {
@@ -6529,9 +6527,11 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 // Timestamp visibility is independent of action disclosure.
-.thread-frame--assistant:hover > .thread-message-actions:has(time) > :not(time),
 .thread-frame--assistant:focus-within > .thread-message-actions:has(time) > :not(time) {
   opacity: 1;
+}
+@include controls.hover-capable {
+  .thread-frame--assistant:hover > .thread-message-actions:has(time) > :not(time) { opacity: 1; }
 }
 @media (any-pointer: coarse), (hover: none) {
   .thread-message-actions:has(time) > :not(time) { opacity: 1; }

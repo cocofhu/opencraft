@@ -787,5 +787,6 @@
   "chat.question.queued": "回答已加入队列",
   "chat.question.offline": "连接后即可回答",
   "chat.question.failure": "回答未发送，选择已保留，请重试。",
-  "chat.question.retry": "选择已保留，请重试"
+  "chat.question.retry": "选择已保留，请重试",
+  "panel.sideChat": "新建侧边聊天"
 }

@@ -3,7 +3,7 @@ import { DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, clos
 import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { MoreHorizontal as MoreIcon, Pencil as EditIcon } from "lucide-react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { SettingsButton, SettingsNotice, SettingsPanel } from "@opencraft/extension-react";
 import { useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";

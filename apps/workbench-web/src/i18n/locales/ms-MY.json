@@ -764,5 +764,7 @@
   "chat.question.queued": "Jawapan dalam baris gilir susulan",
   "chat.question.offline": "Sambung untuk menjawab",
   "chat.question.failure": "Jawapan tidak dihantar. Pilihan anda disimpan; sila cuba lagi.",
-  "chat.question.retry": "Pilihan disimpan. Cuba lagi."
+  "chat.question.retry": "Pilihan disimpan. Cuba lagi.",
+  "panel.sideChat": "Sembang sisi baharu",
+  "settings.tokenUsage": "Penggunaan token"
 }

@@ -457,8 +457,8 @@ export function TokenUsageDashboardView({
                           data-level={cell.level}
                           data-state={cell.state}
                           title={`${cell.date} · ${count(cell.tokens)} tokens · ${cell.turns} turns`}
-                          onMouseEnter={() => setActiveCell(cell)}
-                          onMouseLeave={() => setActiveCell(null)}
+                          onPointerEnter={event => { if (event.pointerType === "mouse") setActiveCell(cell); }}
+                          onPointerLeave={event => { if (event.pointerType === "mouse") setActiveCell(null); }}
                         />
                       )),
                     )}
