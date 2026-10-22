@@ -1,4 +1,3 @@
-// Source copy: HyperNode text-delta-pacer.js controller; host scheduling is separate.
 
 export const TEXT_DELTA_PACER_DEFAULTS = Object.freeze({
   frameMs: 16,

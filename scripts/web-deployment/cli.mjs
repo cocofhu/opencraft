@@ -24,6 +24,7 @@ const app = await createManagedWebServer({
   headlessBackendTarget: process.env.OPENCRAFT_HEADLESS_BACKEND_URL || null,
   relayIngressTarget: process.env.OPENCRAFT_RELAY_INGRESS_URL || null,
   relayInternalPort: process.env.OPENCRAFT_RELAY_INTERNAL_PORT ? Number(process.env.OPENCRAFT_RELAY_INTERNAL_PORT) : null,
+  localAccessFile: process.env.OPENCRAFT_LOCAL_ACCESS_FILE || null,
   registry: process.env.OPENCRAFT_NPM_REGISTRY,
   channel: process.env.OPENCRAFT_UPDATE_CHANNEL,
   userconfig: process.env.OPENCRAFT_NPM_USERCONFIG,
@@ -38,7 +39,7 @@ try {
   if (process.env.OPENCRAFT_HEADLESS_SSH_TARGET) {
     if (!process.env.OPENCRAFT_HEADLESS_BACKEND_URL) throw new Error('SSH ingress requires a Headless backend');
     const privateAddress = await app.listen({ host: '127.0.0.1', port: 0 });
-    ingress = createProtocolIngress({ httpPort: privateAddress.port, sshTarget: process.env.OPENCRAFT_HEADLESS_SSH_TARGET });
+    ingress = createProtocolIngress({ httpPort: privateAddress.port, httpServer: app.server, sshTarget: process.env.OPENCRAFT_HEADLESS_SSH_TARGET });
     address = await ingress.listen({ host, port });
   } else address = await app.listen({ host, port });
 } catch (error) { await ingress?.close(); await app.close(); throw error; }

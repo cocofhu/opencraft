@@ -41,3 +41,59 @@ test("confirmed listening replaces startup progress; transcription retains its o
     } finally { dom.window.close(); }
   }
 });
+
+test("waveform respects live reduced motion and releases paint and listener ownership", async () => {
+  const { createRoot } = await import("react-dom/client");
+  const dom = new JSDOM('<div id="root"></div>');
+  const saved = new Map<string, PropertyDescriptor | undefined>();
+  const globals = {
+    window: dom.window, document: dom.window.document, React, IS_REACT_ACT_ENVIRONMENT: true,
+    getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
+    ResizeObserver: class { observe() {} disconnect() {} },
+    requestAnimationFrame: (paint: FrameRequestCallback) => { frames.set(++frameId, paint); return frameId; },
+    cancelAnimationFrame: (id: number) => { frames.delete(id); },
+  };
+  let frameId = 0, strokes = 0, subscribed = false;
+  const frames = new Map<number, FrameRequestCallback>();
+  let sample: (value: number) => void = () => {};
+  const listeners = new Set<() => void>();
+  const preference = { matches: true,
+    addEventListener: (_: string, listener: () => void) => { listeners.add(listener); },
+    removeEventListener: (_: string, listener: () => void) => { listeners.delete(listener); },
+  };
+  dom.window.matchMedia = (() => preference) as any;
+  dom.window.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ width: 200, height: 28 } as DOMRect);
+  dom.window.HTMLCanvasElement.prototype.getContext = (() => ({
+    setTransform() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() { strokes++; },
+  })) as any;
+  for (const [key, value] of Object.entries(globals)) {
+    saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
+  }
+  const root = createRoot(dom.window.document.getElementById("root")!);
+  const flush = () => { for (const [id, paint] of [...frames]) { frames.delete(id); paint(0); } };
+  try {
+    await React.act(async () => root.render(<DictationFooter interaction={{ kind: "dictation", phase: "listening",
+      startedAt: null, audioLevels: { subscribe(listener) { sample = listener; subscribed = true; return () => { subscribed = false; }; } },
+      cancel() {}, finish: async () => false,
+    }} canSend onSend={() => {}} onCancel={() => {}} />));
+    flush(); strokes = 0;
+    sample(0.8);
+    assert.equal(frames.size, 0, "reduced motion must not repaint for samples");
+    preference.matches = false; listeners.forEach(listener => listener()); flush();
+    assert.ok(strokes > 0, "live preference change must redraw");
+    strokes = 0; sample(0.4); flush(); assert.ok(strokes > 0);
+    preference.matches = true; listeners.forEach(listener => listener()); flush();
+    strokes = 0; sample(0.6); assert.equal(frames.size, 0);
+    preference.matches = false; listeners.forEach(listener => listener());
+    assert.equal(frames.size, 1);
+  } finally {
+    await React.act(async () => root.unmount());
+    assert.equal(frames.size, 0); assert.equal(listeners.size, 0); assert.equal(subscribed, false);
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+    dom.window.close();
+  }
+});

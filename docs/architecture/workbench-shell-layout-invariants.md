@@ -122,6 +122,22 @@ inside that scroller. A long code line may scroll within the code block, but it
 must never widen the thread, main viewport, or AppShell.
 
 
+## Mobile contact ownership
+
+The existing Shell touch controller owns one arbitration transaction. Actual
+scroll capabilities come from the composed contact path, not a renderer opt-in.
+Ordinary readers participate by default, including future and dynamically mounted
+content. Nested reading selects the first scrollable viewport with capacity in the
+requested direction before committing, then locks that owner. Editors, sliders,
+scrollbar/draggable controls, foreground dialogs, media, interactive terminals and
+explicit exclusive regions retain input priority. Pending contacts resolve to
+sidebar, content or native input; only the committed owner writes movement.
+The [mobile gesture contract](../../design/invariants.md#mobile-sidebar-gestures)
+owns thresholds and lifecycle details. The Shell adds no ancestor touch-action restrictions or DOM registration cache; native vertical input, pinch zoom,
+keyboard/wheel and non-mobile/standalone presentation remain available. Pending horizontal recognition reserves the cancelable stream before its movement owner commits; the decision clock starts at meaningful motion, excluding stationary contact time. Unknown speed waits for a timed segment. The first delayed/coalesced movement cannot prematurely assign content merely by crossing the travel threshold: pending retains its bounded observation window. Admission speed uses motion samples without diluting subsequent segments with touchstart latency; release sampling remains independent. Native
+scroll acquisition, multi-touch, detached content and foreground layers revoke
+pending input rather than creating two movement writers.
+
 ## OpenCraft acceptance rules
 
 Every AppShell change must demonstrate all of the following:

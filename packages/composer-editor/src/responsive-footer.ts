@@ -81,7 +81,7 @@ export function useMeasuredComposerFooterLayout(): MeasuredComposerFooterLayout 
         ".opencraft-composer-mode--static",
       );
       const intelligence = controls.querySelector<HTMLElement>(
-        ".opencraft-composer-mode--intelligence",
+        ".opencraft-composer-mode--intelligence, .opencraft-composer-mode--inherited",
       );
       const permission = controls.querySelector<HTMLElement>(
         ".opencraft-composer-mode--permissions",

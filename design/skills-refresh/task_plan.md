@@ -4,8 +4,8 @@
 已有会话能在执行边界发现安装后的 Skill；DSH 是首个适配，不是公共模型。
 
 ## non_goals
-- 用户已取消正文版本更新和 Hermes 自动热刷新；不修改 Hermes 或 ref，不继续阶段 B/D/E。
-- 仍不自动做托管 update、OAuth、版本快照、提交/推送或覆盖用户安装；ref 保持只读。
+- 用户已取消正文版本更新和 Hermes 自动热刷新；不修改 Hermes，不继续阶段 B/D/E。
+- 仍不自动做托管 update、OAuth、版本快照、提交/推送或覆盖用户安装。
 
 ## requirement_refs / requirement_excerpt
 - 用户：“DSH 只是其中一个引擎”“似乎可以开始落地了”。
@@ -61,10 +61,8 @@
 
 ## 已取消范围：Hermes 热刷新与正文版本更新
 
-- 用户曾要求包含两项；核对参考后已明确取消，两项均不再实施。
-- 当前只读核验：`ref/hermes-agent/tui_gateway/methods_tools.py` 的 `skills.reload` 使用 `_rpc` 而非 `_scoped_rpc`，调用 `agent.skill_commands.reload_skills()` 后仅返回 added/removed/output；未对目标 Session 发布上下文更新。
-- `agent/skill_commands.py` 的 diff 只比较名称集合；`cli_info_mixin.py` 的 pending note 是 CLI 下一消息机制，不能据此推定 TUI Gateway RPC 等价支持。
-- 保留上述调查作为决定依据，不等待其他仓库、不拼接隐藏消息、不实施正文失效账本。
+- 用户曾要求包含两项，后已明确取消，两项均不再实施。
+- 不等待其他仓库、不拼接隐藏消息、不实施正文失效账本。
 
 ## 收尾切片
 
