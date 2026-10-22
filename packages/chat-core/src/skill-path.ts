@@ -54,39 +54,41 @@ function components(path: string, cwd: string | null): string[] {
 
 export function parseSkillPath(path: string, cwd: string | null = null): SkillPathInfo | null {
   if (!path.trim() || path.includes("\0")) return null;
-  const parts = components(path, cwd);
-  for (let owner = 0; owner < parts.length; owner++) {
-    if (parts[owner] !== ".codex" && parts[owner] !== ".agents") continue;
-    let root: number;
-    let pluginId: string | null = null;
-    let pluginMarketplaceName: string | null = null;
-    if (parts[owner + 1] === "skills") {
-      root = owner + 2;
-    } else if (parts[owner] === ".codex"
-      && parts[owner + 1] === "plugins" && parts[owner + 2] === "cache"
-      && parts[owner + 6] === "skills") {
-      pluginMarketplaceName = parts[owner + 3];
-      pluginId = parts[owner + 4];
-      root = owner + 7;
-    } else {
-      continue;
-    }
-    const isSystem = pluginId === null && parts[root] === ".system";
-    if (isSystem) root++;
-    const skillId = parts[root];
-    if (!skillId || skillId === "..") return null;
+  const parts = components(path.trim(), cwd?.trim() || null);
+  const marker = (index: number) => parts[index]?.toLowerCase();
+  const describe = (root: number, skillId: string, pluginId: string | null = null,
+    pluginMarketplaceName: string | null = null, isSystem = false): SkillPathInfo => {
     const resource = parts.slice(root + 1);
     return {
-      skillId,
-      skillRootPath: parts.slice(0, root + 1).join("/"),
-      skillName: formatSkillDisplayName(skillId),
-      pluginId,
+      skillId, skillRootPath: parts.slice(0, root + 1).join("/"),
+      skillName: formatSkillDisplayName(skillId), pluginId,
       pluginDisplayName: pluginId === null ? null : formatSkillDisplayName(pluginId),
-      pluginMarketplaceName,
-      isSystem,
-      isInScriptsFolder: resource[0] === "scripts",
+      pluginMarketplaceName, isSystem,
+      isInScriptsFolder: resource[0]?.toLowerCase() === "scripts",
       isSkillDefinitionFile: resource.length === 1 && resource[0].toLowerCase() === "skill.md",
     };
+  };
+  for (let owner = 0; owner < parts.length; owner++) {
+    if ((marker(owner) !== ".codex" && marker(owner) !== ".agents") || marker(owner + 1) !== "skills") continue;
+    let root = owner + 2;
+    const isSystem = marker(root) === ".system";
+    if (isSystem || marker(root) === "_import") root++;
+    const skillId = parts[root];
+    if (skillId && skillId !== "..") return describe(root, skillId, null, null, isSystem);
+  }
+  for (let owner = 0; owner < parts.length; owner++) {
+    if (marker(owner) !== "plugins") continue;
+    const cached = marker(owner + 1) === "cache";
+    const plugin = owner + (cached ? 3 : 1);
+    const pluginId = parts[plugin];
+    if (!pluginId || pluginId === "..") continue;
+    const pluginRoot = plugin + (cached ? 1 : 0);
+    const skills = parts.findIndex((_, index) => index > pluginRoot && marker(index) === "skills");
+    const root = skills < 0 ? pluginRoot : skills + 1;
+    const skillId = skills < 0 ? pluginId : parts[root];
+    if (!skillId || skillId === "..") continue;
+    if (skills < 0 && (parts.length !== root + 2 || marker(root + 1) !== "skill.md")) continue;
+    return describe(root, skillId, pluginId, cached ? parts[owner + 2] : null);
   }
   return null;
 }

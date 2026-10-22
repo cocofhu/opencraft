@@ -3,6 +3,35 @@ import test from "node:test";
 import { skillReadPresentation } from "../packages/chat-core/src/conversation-presentation";
 import type { CommandExecutionTimelineBlock } from "../packages/chat-core/src/timeline";
 import { formatSkillDisplayName, parseSkillPath } from "../packages/chat-core/src/skill-path";
+import { skillReadPresentation } from "../packages/chat-core/src/conversation-presentation";
+import type { CommandExecutionTimelineBlock } from "../packages/chat-core/src/timeline";
+
+test("imported and plugin-root definitions retain their skill read presentation", () => {
+  for (const path of [
+    "/home/example/.codex/skills/_import/review/SKILL.md",
+    "/home/example/.agents/skills/_import/review/SKILL.md",
+    "/home/example/plugins/review/SKILL.md",
+    "/home/example/.codex/plugins/cache/market/review/1/SKILL.md",
+    "/home/example/plugins/plugin/skills/review/SKILL.md",
+    "C:\\home\\.CODEX\\SKILLS\\_IMPORT\\review\\SKILL.md",
+  ]) {
+    const info = parseSkillPath(path);
+    assert.equal(info?.skillId, "review", path);
+    assert.equal(info?.isSkillDefinitionFile, true, path);
+    assert.equal(info?.isSystem, false, path);
+    const block = { actions: [{ type: "read", path, name: "SKILL.md" }], cwd: null,
+      status: "complete" } as CommandExecutionTimelineBlock;
+    assert.deepEqual(skillReadPresentation(block, "STEPS_PROSE"), {
+      visible: true, summary: "Read", detail: "Review skill",
+    }, path);
+    assert.equal(skillReadPresentation({ ...block, status: "running" }, "STEPS_COMMANDS")?.visible, false);
+  }
+  assert.equal(parseSkillPath("/home/.agents/skills/_import/review/SCRIPTS/check.ts")?.isInScriptsFolder, true);
+  for (const path of ["/home/plugins/review/README.md", "/home/.codex/plugins/cache/market/review/1/README.md",
+    "/home/.agents/skills/_import", "/home/.agents/skills/_import/review/nested/SKILL.md"]) {
+    assert.notEqual(parseSkillPath(path)?.isSkillDefinitionFile, true, path);
+  }
+});
 
 test("recognized roots retain identity across definition and resource paths", () => {
   for (const owner of [".agents", ".codex"]) {
