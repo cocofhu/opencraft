@@ -2025,3 +2025,14 @@ Attention text may follow the badge; workspace identity remains in the row toolt
 and thread model. Missing/hidden contributions retain the default project line.
 Default `trailing` placement and menu/popover exclusivity are unchanged. Products
 own the content and select placement; Shell owns geometry across input modes.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
