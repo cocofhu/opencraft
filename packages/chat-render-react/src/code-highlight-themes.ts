@@ -1,9 +1,9 @@
 import type { ThemeRegistration } from "@shikijs/core";
 
-import codexDarkTokens from "./codex-dark-tokens.json";
-import codexLightTokens from "./codex-light-tokens.json";
+import opencraftDarkTokens from "./opencraft-dark-tokens.json";
+import opencraftLightTokens from "./opencraft-light-tokens.json";
 
-interface CodexSyntaxPalette {
+interface OpenCraftSyntaxPalette {
   readonly foreground: string;
   readonly comment: string;
   readonly string: string;
@@ -15,7 +15,7 @@ interface CodexSyntaxPalette {
   readonly function: string;
 }
 
-export const CODEX_LIGHT_SYNTAX: CodexSyntaxPalette = {
+export const OPENCRAFT_LIGHT_SYNTAX: OpenCraftSyntaxPalette = {
   foreground: "#0d0d0d",
   comment: "#666666",
   string: "#008809",
@@ -27,7 +27,7 @@ export const CODEX_LIGHT_SYNTAX: CodexSyntaxPalette = {
   function: "#751ED9",
 };
 
-export const CODEX_DARK_SYNTAX: CodexSyntaxPalette = {
+export const OPENCRAFT_DARK_SYNTAX: OpenCraftSyntaxPalette = {
   foreground: "#fcfcfc",
   comment: "#999999",
   string: "#85df7b",
@@ -39,10 +39,10 @@ export const CODEX_DARK_SYNTAX: CodexSyntaxPalette = {
   function: "#B06DFF",
 };
 
-function createCodexTheme(
-  name: "codex-light" | "codex-dark",
+function createOpenCraftTheme(
+  name: "opencraft-light" | "opencraft-dark",
   type: "light" | "dark",
-  palette: CodexSyntaxPalette,
+  palette: OpenCraftSyntaxPalette,
 ): ThemeRegistration {
   return {
     name,
@@ -53,9 +53,9 @@ function createCodexTheme(
     },
     fg: palette.foreground,
     bg: type === "light" ? "#ffffff" : "#111111",
-    settings: type === "light" ? codexLightTokens : codexDarkTokens,
+    settings: type === "light" ? opencraftLightTokens : opencraftDarkTokens,
   };
 }
 
-export const codexLightTheme = createCodexTheme("codex-light", "light", CODEX_LIGHT_SYNTAX);
-export const codexDarkTheme = createCodexTheme("codex-dark", "dark", CODEX_DARK_SYNTAX);
+export const opencraftLightTheme = createOpenCraftTheme("opencraft-light", "light", OPENCRAFT_LIGHT_SYNTAX);
+export const opencraftDarkTheme = createOpenCraftTheme("opencraft-dark", "dark", OPENCRAFT_DARK_SYNTAX);

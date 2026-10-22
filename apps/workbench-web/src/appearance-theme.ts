@@ -1,61 +1,24 @@
+import { useSyncExternalStore } from "react";
 import {
-  defaultThemePreference,
-  isThemePreference,
-  resolveThemePreference,
-  type ResolvedTheme,
-  type ThemePreference,
+  defaultThemePreference, isThemePreference, resolveThemePreference,
+  type ResolvedTheme, type ThemePreference,
 } from "@opencraft/design-system/theme";
 import {
-  buildCodexThemeCssProperties,
-  codexThemePalette,
-  frostThemePalette,
-  lavenderThemePalette,
-  mistThemePalette,
-  zenCodeThemePalette,
-  velaThemePalette,
-  type CodexThemeDefinition,
+  buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, frostThemePalette,
+  lavenderThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
+  type OpenCraftThemeDefinition, type ThemeCssProperties,
 } from "@opencraft/design-system/theme-engine";
-import type {
-  ExtensionContributionSnapshot,
-  ExtensionContributionStore,
-} from "@opencraft/extension-runtime";
-import { useSyncExternalStore } from "react";
+import type { ExtensionContributionSnapshot, ExtensionContributionStore } from "@opencraft/extension-runtime";
+import { applyWorkbenchProductPresentation, workbenchProductId, workbenchPresentation } from "./workbench-product";
+import { builtinThemeIds, normalizeBuiltinThemeId, type WorkbenchPresentation } from "./workbench-presentation";
 
-import { workbenchProductId, workbenchPresentation, applyWorkbenchProductPresentation } from "./workbench-product";
-
-const preferenceStorageKey = "vela.appearance-theme";
-const themeIdStorageKey = "vela.appearance-theme-id";
-export const coreThemeId = "vela.core.codex";
-export const velaThemeId = "vela.core.web";
-export const frostThemeId = "vela.core.frost";
-export const lavenderThemeId = "vela.core.lavender";
-export const mistThemeId = "vela.core.mist";
-export const zenCodeThemeId = "vela.core.zencode";
-
-export function defaultAppearanceThemeId(presentation: Pick<import("./workbench-presentation").WorkbenchPresentation, "defaultThemeId"> = workbenchPresentation): string {
-  return presentation.defaultThemeId ?? coreThemeId;
-}
-
-const defaultThemeId = defaultAppearanceThemeId();
-
-interface SystemThemeQuery {
-  readonly matches: boolean;
-  addEventListener(type: "change", listener: () => void): void;
-  removeEventListener(type: "change", listener: () => void): void;
-}
-
-function createSystemThemeQuery(): SystemThemeQuery {
-  if (typeof window.matchMedia === "function") {
-    return window.matchMedia("(prefers-color-scheme: dark)") as SystemThemeQuery;
-  }
-  return {
-    matches: false,
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-  };
-}
-
-const systemDarkQuery = createSystemThemeQuery();
+// Canonical built-in identities; legacy values are normalized at read boundaries.
+export const coreThemeId = builtinThemeIds.neutral;
+export const canvasThemeId = builtinThemeIds.canvas;
+export const frostThemeId = builtinThemeIds.frost;
+export const lavenderThemeId = builtinThemeIds.lavender;
+export const mistThemeId = builtinThemeIds.mist;
+export const zenCodeThemeId = builtinThemeIds.zencode;
 
 export interface AppearanceThemeDescriptor {
   readonly id: string;
@@ -64,354 +27,191 @@ export interface AppearanceThemeDescriptor {
   readonly source: "core" | "extension";
 }
 
-interface AppearanceThemeRecord {
-  readonly descriptor: AppearanceThemeDescriptor;
-  readonly palettes: Readonly<Record<ResolvedTheme, CodexThemeDefinition>>;
-}
-
 export interface AppearanceThemeSnapshot {
   readonly preference: ThemePreference;
   readonly resolvedTheme: ResolvedTheme;
-  /** Persisted intent may temporarily refer to an unloaded extension. */
   readonly requestedThemeId: string;
-  /** Theme currently applied after deterministic fallback. */
   readonly themeId: string;
   readonly availableThemes: readonly AppearanceThemeDescriptor[];
 }
 
-const coreTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: coreThemeId,
-    label: "Codex",
-    description: "OpenCraft's source-faithful neutral theme.",
-    source: "core",
-  }),
-  palettes: codexThemePalette,
-});
+type PalettePair = Readonly<Record<ResolvedTheme, OpenCraftThemeDefinition>>;
+type CatalogEntry = Readonly<{ descriptor: AppearanceThemeDescriptor; palettes: PalettePair }>;
 
-const velaTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: velaThemeId,
-    label: "Canvas",
-    description: "A quiet, web-native canvas.",
-    source: "core",
-  }),
-  palettes: velaThemePalette,
-});
-
-const frostTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: frostThemeId,
-    label: "Frost",
-    description: "A cool translucent Sidebar with a lighter fixed material.",
-    source: "core",
-  }),
-  palettes: frostThemePalette,
-});
-
-const lavenderTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: lavenderThemeId,
-    label: "Lavender",
-    description: "A soft lavender workspace with a quiet UI palette.",
-    source: "core",
-  }),
-  palettes: lavenderThemePalette,
-});
-
-const zenCodeTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: zenCodeThemeId,
-    label: "ZenCode",
-    description: "Quiet grayscale layers, crisp controls, and an opaque workspace.",
-    source: "core",
-  }),
-  palettes: zenCodeThemePalette,
-});
-
-const mistTheme: AppearanceThemeRecord = Object.freeze({
-  descriptor: Object.freeze({
-    id: mistThemeId,
-    label: "Mist",
-    description: "Close neutral surfaces with a quiet, unified canvas.",
-    source: "core",
-  }),
-  palettes: mistThemePalette,
-});
-
-const coreThemes = new Map<string, AppearanceThemeRecord>(([
-  [coreThemeId, coreTheme],
-  [velaThemeId, velaTheme],
-  [frostThemeId, frostTheme],
-  [lavenderThemeId, lavenderTheme],
-  [zenCodeThemeId, zenCodeTheme],
-  [mistThemeId, mistTheme],
-] as const).filter(([id]) => !workbenchPresentation.hiddenBuiltinThemeIds.includes(id)));
-
-let extensionThemes = new Map<string, AppearanceThemeRecord>();
-let contributionRevision = -1;
-let disconnectContributionStore: (() => void) | null = null;
-
-function readStorage(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
+function builtin(id: string, label: string, description: string, palettes: PalettePair): CatalogEntry {
+  return { descriptor: Object.freeze({ id, label, description, source: "core" }), palettes };
 }
 
-function writeStorage(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Sandboxed browser contexts may deny storage; memory state remains valid.
-  }
+const builtins: readonly CatalogEntry[] = [
+  builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", opencraftNeutralThemePalette),
+  builtin(canvasThemeId, "Canvas", "A quiet, web-native canvas.", opencraftCanvasThemePalette),
+  builtin(frostThemeId, "Frost", "A cool translucent Sidebar with a lighter fixed material.", frostThemePalette),
+  builtin(lavenderThemeId, "Lavender", "A soft lavender workspace with a quiet UI palette.", lavenderThemePalette),
+  builtin(zenCodeThemeId, "ZenCode", "Quiet grayscale layers, crisp controls, and an opaque workspace.", zenCodeThemePalette),
+  builtin(mistThemeId, "Mist", "Close neutral surfaces with a quiet, unified canvas.", mistThemePalette),
+];
+const visibleBuiltins = builtins.filter(entry => !workbenchPresentation.hiddenBuiltinThemeIds.includes(entry.descriptor.id));
+const defaultBuiltin = visibleBuiltins.find(entry => entry.descriptor.id === defaultAppearanceThemeId());
+// Even a policy that hides every built-in needs an executable fallback.
+const baseCatalog = defaultBuiltin
+  ? [defaultBuiltin, ...visibleBuiltins.filter(entry => entry !== defaultBuiltin)]
+  : visibleBuiltins.length ? visibleBuiltins : [builtins[0]!];
+let catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
+let availableThemes = Object.freeze([...catalog.values()].map(entry => entry.descriptor));
+const subscribers = new Set<() => void>();
+const projectedProperties = new WeakMap<HTMLElement, readonly string[]>();
+const preferenceKey = "opencraft.appearance-theme";
+const selectionKey = "opencraft.appearance-theme-id";
+const systemAppearance = window.matchMedia("(prefers-color-scheme: dark)");
+let initialized = false;
+let disconnectSource: (() => void) | undefined;
+
+export function defaultAppearanceThemeId(
+  presentation: Pick<WorkbenchPresentation, "defaultThemeId"> = workbenchPresentation,
+): string {
+  return normalizeBuiltinThemeId(presentation.defaultThemeId ?? coreThemeId);
 }
 
-function readStoredPreference(): ThemePreference {
-  const stored = readStorage(preferenceStorageKey);
-  return isThemePreference(stored) ? stored : defaultThemePreference;
+function readPreference(key: string): string | null {
+  try { return window.localStorage.getItem(key); }
+  catch { return null; }
 }
 
-function readStoredThemeId(): string {
-  const stored = readStorage(themeIdStorageKey)?.trim();
-  return stored === undefined || stored === null || stored.length === 0
-    ? defaultThemeId
-    : stored;
+function writePreference(key: string, value: string): void {
+  try { window.localStorage.setItem(key, value); }
+  catch { /* Storage availability does not own the current in-memory choice. */ }
 }
 
-function themeRecords(): readonly AppearanceThemeRecord[] {
-  const defaultTheme = coreThemes.get(defaultThemeId) ?? coreTheme;
-  return [
-    defaultTheme,
-    ...[...coreThemes.values()].filter((theme) => theme !== defaultTheme),
-    ...extensionThemes.values(),
-  ];
+function resolveEntry(id: string): CatalogEntry {
+  return catalog.get(normalizeBuiltinThemeId(id)) ?? baseCatalog.find(entry => entry.descriptor.id === defaultAppearanceThemeId()) ?? baseCatalog[0]!;
 }
 
-function resolveThemeRecord(themeId: string): AppearanceThemeRecord {
-  return coreThemes.get(themeId)
-    ?? extensionThemes.get(themeId)
-    ?? coreThemes.get(defaultThemeId)
-    ?? coreTheme;
-}
-
-function createSnapshot(
-  preference: ThemePreference,
-  requestedThemeId: string,
-): AppearanceThemeSnapshot {
-  const activeTheme = resolveThemeRecord(requestedThemeId);
+function snapshot(preference: ThemePreference, requestedThemeId: string): AppearanceThemeSnapshot {
   return Object.freeze({
     preference,
-    resolvedTheme: resolveThemePreference(preference, systemDarkQuery.matches),
+    resolvedTheme: resolveThemePreference(preference, systemAppearance.matches),
     requestedThemeId,
-    themeId: activeTheme.descriptor.id,
-    availableThemes: Object.freeze(themeRecords().map(({ descriptor }) => descriptor)),
+    themeId: resolveEntry(requestedThemeId).descriptor.id,
+    availableThemes,
   });
 }
 
-let snapshot = createSnapshot(readStoredPreference(), readStoredThemeId());
-const listeners = new Set<() => void>();
-let listeningToSystemTheme = false;
-let initialized = false;
+const persistedMode = readPreference(preferenceKey) ?? readPreference("vela.appearance-theme");
+let current = snapshot(
+  isThemePreference(persistedMode) ? persistedMode : defaultThemePreference,
+  normalizeBuiltinThemeId((readPreference(selectionKey) ?? readPreference("vela.appearance-theme-id"))?.trim() || defaultAppearanceThemeId()),
+);
 
-interface DesktopAppearanceBridge {
-  readonly setWindowAppearance?: (appearance: import("@opencraft/design-system/theme-options").ThemeWindowAppearance) => void;
+export function getAppearanceThemeSnapshot(): AppearanceThemeSnapshot { return current; }
+
+export function subscribeToAppearanceTheme(listener: () => void): () => void {
+  subscribers.add(listener);
+  return () => { subscribers.delete(listener); };
 }
 
-function synchronizeDesktopAppearance(next: AppearanceThemeSnapshot): void {
-  const definition = activeDefinition(next);
-  const bridge = (
-    globalThis as typeof globalThis & { readonly opencraftDesktop?: DesktopAppearanceBridge }
-  ).opencraftDesktop;
-  bridge?.setWindowAppearance?.({
-    themeSource: next.preference,
-    resolvedTheme: next.resolvedTheme,
-    opaqueWindows: definition.material?.window === undefined ? definition.opaqueWindows : definition.material.window === "opaque",
-    backgroundColor: definition.surfaces?.window ?? definition.surface,
-  });
+export function useAppearanceTheme(): AppearanceThemeSnapshot {
+  return useSyncExternalStore(subscribeToAppearanceTheme, getAppearanceThemeSnapshot, getAppearanceThemeSnapshot);
 }
 
-function activeDefinition(next: AppearanceThemeSnapshot): CodexThemeDefinition {
-  return resolveThemeRecord(next.themeId).palettes[next.resolvedTheme];
+export function getAppearanceThemePreviewProperties(themeId: string): ThemeCssProperties {
+  return buildOpenCraftThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
 }
 
-/** Project the complete semantic theme contract onto a non-document root. */
-export function applyAppearanceThemeToElement(
-  element: HTMLElement,
-  next: AppearanceThemeSnapshot = snapshot,
-): void {
-  const definition = activeDefinition(next);
+export function applyAppearanceThemeToElement(element: HTMLElement, next = current): void {
+  const css = buildOpenCraftThemeCssProperties(next.resolvedTheme, resolveEntry(next.themeId).palettes[next.resolvedTheme]);
+  for (const key of projectedProperties.get(element) ?? []) {
+    if (!(key in css)) element.style.removeProperty(key);
+  }
+  for (const [key, value] of Object.entries(css)) element.style.setProperty(key, value);
+  projectedProperties.set(element, Object.keys(css));
+  element.classList.toggle("electron-light", next.resolvedTheme === "light");
+  element.classList.toggle("electron-dark", next.resolvedTheme === "dark");
   element.dataset.theme = next.resolvedTheme;
   element.dataset.themePreference = next.preference;
   element.dataset.themeId = next.themeId;
   element.style.colorScheme = next.resolvedTheme;
-  for (const [name, value] of Object.entries(
-    buildCodexThemeCssProperties(next.resolvedTheme, definition),
-  )) {
-    if (element.style.getPropertyValue(name) !== value) {
-      element.style.setProperty(name, value);
-    }
-  }
 }
 
-function applySnapshot(next: AppearanceThemeSnapshot): void {
-  const root = document.documentElement;
-  const definition = activeDefinition(next);
-
-  applyAppearanceThemeToElement(root, next);
-  applyWorkbenchProductPresentation(root, workbenchProductId);
-  root.classList.toggle("electron-dark", next.resolvedTheme === "dark");
-  root.classList.toggle("electron-light", next.resolvedTheme === "light");
-
-  document
-    .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    ?.setAttribute("content", definition.surface);
-  synchronizeDesktopAppearance(next);
-}
-
-function sameThemeCatalog(
-  left: readonly AppearanceThemeDescriptor[],
-  right: readonly AppearanceThemeDescriptor[],
-): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
-
-function publish(next: AppearanceThemeSnapshot, force = false): void {
-  if (
-    !force
-    && next.preference === snapshot.preference
-    && next.resolvedTheme === snapshot.resolvedTheme
-    && next.requestedThemeId === snapshot.requestedThemeId
-    && next.themeId === snapshot.themeId
-    && sameThemeCatalog(next.availableThemes, snapshot.availableThemes)
-  ) return;
-  snapshot = next;
-  if (initialized) applySnapshot(snapshot);
-  for (const listener of listeners) listener();
-}
-
-function refreshSnapshot(force = false): void {
-  publish(createSnapshot(snapshot.preference, snapshot.requestedThemeId), force);
-}
-
-function handleSystemThemeChange(): void {
-  if (snapshot.preference === "system") refreshSnapshot();
-}
-
-function syncSystemSubscription(): void {
-  const shouldListen = initialized && snapshot.preference === "system";
-  if (shouldListen === listeningToSystemTheme) return;
-  if (shouldListen) systemDarkQuery.addEventListener("change", handleSystemThemeChange);
-  else systemDarkQuery.removeEventListener("change", handleSystemThemeChange);
-  listeningToSystemTheme = shouldListen;
-}
-
-type ContributedPalette =
-  ExtensionContributionSnapshot["themes"][number]["contribution"]["palettes"]["light"];
-
-function toThemeDefinition(palette: ContributedPalette): CodexThemeDefinition {
-  return Object.freeze({
-    accent: palette.accent,
-    contrast: palette.contrast,
-    fonts: Object.freeze({ code: null, ui: null }),
-    ink: palette.ink,
-    opaqueWindows: palette.material?.window === "opaque",
-    surfaces: palette.surfaces,
-    material: palette.material,
-    semanticColors: palette.semanticColors,
-    surface: palette.surface,
+function projectDocument(): void {
+  const definition = resolveEntry(current.themeId).palettes[current.resolvedTheme];
+  applyAppearanceThemeToElement(document.documentElement);
+  applyWorkbenchProductPresentation(document.documentElement, workbenchProductId);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", definition.surface);
+  const desktop = (globalThis as typeof globalThis & {
+    opencraftDesktop?: { setWindowAppearance?: (appearance: import("@opencraft/design-system/theme-options").ThemeWindowAppearance) => void };
+  }).opencraftDesktop;
+  desktop?.setWindowAppearance?.({
+    themeSource: current.preference,
+    resolvedTheme: current.resolvedTheme,
+    opaqueWindows: definition.material?.window === "opaque" || definition.opaqueWindows,
+    backgroundColor: definition.surfaces?.window ?? definition.surface,
   });
 }
 
-function importContributedThemes(contributions: ExtensionContributionSnapshot): void {
-  if (contributions.revision === contributionRevision) return;
-  contributionRevision = contributions.revision;
-  extensionThemes = new Map(contributions.themes.map(({ contribution }) => [
-    contribution.id,
-    Object.freeze({
-      descriptor: Object.freeze({
-        id: contribution.id,
-        label: contribution.label,
-        ...(contribution.description === undefined
-          ? {}
-          : { description: contribution.description }),
-        source: "extension" as const,
-      }),
-      palettes: Object.freeze({
-        light: toThemeDefinition(contribution.palettes.light),
-        dark: toThemeDefinition(contribution.palettes.dark),
-      }),
-    }),
-  ]));
-  refreshSnapshot(true);
-}
-
-export function getAppearanceThemeSnapshot(): AppearanceThemeSnapshot {
-  return snapshot;
-}
-
-/** Theme cards sample the actual selected-mode palette, never an ID-specific CSS copy. */
-export function getAppearanceThemePreviewProperties(themeId: string) {
-  return buildCodexThemeCssProperties(snapshot.resolvedTheme, resolveThemeRecord(themeId).palettes[snapshot.resolvedTheme]);
-}
-
-export function subscribeToAppearanceTheme(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+function publish(next: AppearanceThemeSnapshot): void {
+  if (next.preference === current.preference && next.resolvedTheme === current.resolvedTheme
+    && next.requestedThemeId === current.requestedThemeId && next.themeId === current.themeId
+    && next.availableThemes === current.availableThemes) return;
+  current = next;
+  projectDocument();
+  for (const listener of subscribers) listener();
 }
 
 export function setThemePreference(preference: ThemePreference): void {
-  writeStorage(preferenceStorageKey, preference);
-  publish(createSnapshot(preference, snapshot.requestedThemeId));
-  syncSystemSubscription();
+  writePreference(preferenceKey, preference);
+  publish(snapshot(preference, current.requestedThemeId));
 }
 
 export function setAppearanceThemeId(themeId: string): void {
-  const normalized = themeId.trim();
-  if (normalized.length === 0) throw new TypeError("Theme ID must not be empty");
-  if (resolveThemeRecord(normalized).descriptor.id !== normalized) {
-    throw new Error(`Theme ${normalized} is not available`);
+  const id = normalizeBuiltinThemeId(themeId.trim());
+  if (!id) throw new Error("Theme ID must not be empty");
+  if (!catalog.has(id)) throw new Error(`Theme ${id} is not available`);
+  writePreference(selectionKey, id);
+  publish(snapshot(current.preference, id));
+}
+
+function updateCatalog(themes: ExtensionContributionSnapshot["themes"]): void {
+  catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
+  for (const { contribution } of themes) {
+    const adapt = (mode: ResolvedTheme): OpenCraftThemeDefinition => ({
+      ...contribution.palettes[mode], fonts: { code: null, ui: null }, opaqueWindows: false,
+    });
+    catalog.set(contribution.id, {
+      descriptor: Object.freeze({
+        id: contribution.id, label: contribution.label,
+        ...(contribution.description === undefined ? {} : { description: contribution.description }),
+        source: "extension",
+      }),
+      palettes: { light: adapt("light"), dark: adapt("dark") },
+    });
   }
-  writeStorage(themeIdStorageKey, normalized);
-  publish(createSnapshot(snapshot.preference, normalized));
+  availableThemes = Object.freeze([...catalog.values()].map(entry => entry.descriptor));
+  publish(snapshot(current.preference, current.requestedThemeId));
 }
 
-export function useAppearanceTheme(): AppearanceThemeSnapshot {
-  return useSyncExternalStore(
-    subscribeToAppearanceTheme,
-    getAppearanceThemeSnapshot,
-    getAppearanceThemeSnapshot,
-  );
-}
-
-/**
- * Application-owned bridge from immutable extension snapshots to the root
- * theme catalog. Unload falls back atomically while retaining persisted intent.
- */
 export function connectAppearanceThemeContributions(
   store: Pick<ExtensionContributionStore, "getSnapshot" | "subscribe">,
 ): () => void {
-  disconnectContributionStore?.();
-  importContributedThemes(store.getSnapshot());
-  const unsubscribe = store.subscribe(() => importContributedThemes(store.getSnapshot()));
-  let connected = true;
+  disconnectSource?.();
+  let active = true;
+  const refresh = () => { if (active) updateCatalog(store.getSnapshot().themes); };
+  const unsubscribe = store.subscribe(refresh);
   const disconnect = () => {
-    if (!connected) return;
-    connected = false;
+    if (!active) return;
+    active = false;
     unsubscribe();
-    if (disconnectContributionStore === disconnect) disconnectContributionStore = null;
-    contributionRevision = -1;
-    extensionThemes = new Map();
-    refreshSnapshot(true);
+    if (disconnectSource === disconnect) disconnectSource = undefined;
+    updateCatalog([]);
   };
-  disconnectContributionStore = disconnect;
+  disconnectSource = disconnect;
+  refresh();
   return disconnect;
 }
 
-/** Root-owned initialization; no button or settings route owns theme state. */
 export function initializeAppearanceTheme(): void {
-  initialized = true;
-  applySnapshot(snapshot);
-  syncSystemSubscription();
+  if (!initialized) {
+    initialized = true;
+    systemAppearance.addEventListener("change", () => publish(snapshot(current.preference, current.requestedThemeId)));
+  }
+  projectDocument();
 }

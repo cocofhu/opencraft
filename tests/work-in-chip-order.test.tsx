@@ -140,7 +140,7 @@ test("new task presents localized Chinese labels and aria-labels with zh-CN loca
     assert.match(markup, /aria-label="主要内容"/);
     assert.match(markup, /aria-label="开始新任务"/);
     assert.match(markup, /aria-label="运行在"/);
-    assert.match(markup, /<span class="codex-composer-mode__permission-label">权限<\/span>/);
+    assert.match(markup, /<span class="opencraft-composer-mode__permission-label">权限<\/span>/);
   } finally {
     scopes.dispose();
   }

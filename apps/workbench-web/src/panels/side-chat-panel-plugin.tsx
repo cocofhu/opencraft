@@ -1,12 +1,17 @@
 import type { Context } from "@deepseek-ai/cordis";
 import { useState, useSyncExternalStore } from "react";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { useQuery } from "@tanstack/react-query";
+import { projectComposerModelChoices, type AppServerWorkbenchRuntime } from "@opencraft/workbench-runtime";
+import { composerCapabilitiesOptions } from "../runtime/composer-capabilities-query";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createInteractionResponse, type ConversationBindingStore, type ConversationScopeId, type SideChatService, type SideChatSession } from "@opencraft/workbench-runtime";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { Conversation } from "../components/conversation";
 import { useAppearanceTheme } from "../appearance-theme";
 
-function SideChatContent({ session, service }: { session: SideChatSession; service: SideChatService }) {
+export function SideChatContent({ session, service, runtime }: { session: SideChatSession; service: SideChatService; runtime: AppServerWorkbenchRuntime }) {
+  const catalog = useQuery(composerCapabilitiesOptions(session.key.hostId, session.key.threadId, runtime.resources.composerCatalog));
+  const displayModels = projectComposerModelChoices(catalog.data?.metadataReader === runtime.resources.composerCatalog ? catalog.data.models : []);
   const theme = useAppearanceTheme().resolvedTheme;
   const snapshot = useSyncExternalStore(session.lease.subscribe, session.lease.getSnapshot, session.lease.getSnapshot);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +28,9 @@ function SideChatContent({ session, service }: { session: SideChatSession; servi
       onLoadOlder={snapshot.history.hasOlder ? () => session.lease.loadOlder() : undefined}
       footer={<div className="thread-composer-region">
         {error ? <p role="alert">{error}</p> : null}
-        <CodexComposer controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} submissionDisabled={!snapshot.authoritative}
-          effectiveSelections={{ model: snapshot.execution.model, effort: snapshot.execution.effort, permissionProfile: snapshot.execution.permissionProfile }}
+        <OpenCraftComposer modelDisplayOnly controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} submissionDisabled={!snapshot.authoritative}
+          selectionCatalog={{ models: [], displayModels, permissionProfiles: [] }}
+          effectiveSelections={{ model: snapshot.execution.model, effort: snapshot.execution.effort, serviceTier: snapshot.execution.serviceTier, permissionProfile: snapshot.execution.permissionProfile }}
           onSubmit={(intent, context) => {
             setError(null);
             // Rejection must be synchronous: the shared editor consumes an
@@ -43,10 +49,11 @@ function SideChatContent({ session, service }: { session: SideChatSession; servi
   </div>;
 }
 
-export function createSideChatPanelPlugin(service: SideChatService, bindings: ConversationBindingStore) {
+export function createSideChatPanelPlugin(service: SideChatService, bindings: ConversationBindingStore, resolveRuntime: (hostId: string) => AppServerWorkbenchRuntime | null) {
   function SideChatPanel({ tab }: PanelRendererProps) {
     const session = tab.resource ? service.get(tab.resource) : null;
-    return session ? <SideChatContent key={session.id} session={session} service={service} />
+    const runtime = session ? resolveRuntime(session.key.hostId) : null;
+    return session && runtime ? <SideChatContent key={session.id} session={session} service={service} runtime={runtime} />
       : <div className="right-panel-empty" role="status">{tab.title}</div>;
   }
   return Object.assign(function SideChatPanelPlugin(ctx: Context) {

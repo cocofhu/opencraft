@@ -221,7 +221,7 @@ checkFiles("Vite host", "apps/workbench-web/src", [
 
 checkFiles("Expo host", "apps/workbench-expo/src", [
   {
-    pattern: /(?:from\s*|import\s*)["'](?:@opencraft\/codex-composer|prosemirror-|lucide-react["'])/m,
+    pattern: /(?:from\s*|import\s*)["'](?:@opencraft\/opencraft-composer|prosemirror-|lucide-react["'])/m,
     message: "must not import DOM-only composer or icon packages",
   },
   {

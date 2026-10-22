@@ -3,26 +3,26 @@ import { Bot, ImageIcon, Monitor, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
-  CodexFilesActivityIcon,
-  CodexGlobeActivityIcon,
-  CodexPatchActivityIcon,
-  CodexReadActivityIcon,
-  CodexSearchActivityIcon,
-  CodexStopActivityIcon,
-  CodexTerminalActivityIcon,
-} from "../../codex-activity-icons";
+  FilesActivityIcon,
+  GlobeActivityIcon,
+  PatchActivityIcon,
+  ReadActivityIcon,
+  SearchActivityIcon,
+  StopActivityIcon,
+  TerminalActivityIcon,
+} from "../../activity-glyphs";
 
 export function activityIcon(icon: ToolActivityIcon): ReactNode {
   if (icon === "none") return null;
-  if (icon === "terminal") return <CodexTerminalActivityIcon aria-hidden="true" data-codex-activity-icon="terminal" />;
-  if (icon === "patch") return <CodexPatchActivityIcon aria-hidden="true" data-codex-activity-icon="patch" />;
-  if (icon === "search") return <CodexSearchActivityIcon aria-hidden="true" data-codex-activity-icon="search" />;
-  if (icon === "read") return <CodexReadActivityIcon aria-hidden="true" data-codex-activity-icon="read" />;
-  if (icon === "files") return <CodexFilesActivityIcon aria-hidden="true" data-codex-activity-icon="files" />;
-  if (icon === "stop") return <CodexStopActivityIcon aria-hidden="true" data-codex-activity-icon="stop" />;
+  if (icon === "terminal") return <TerminalActivityIcon aria-hidden="true" data-opencraft-activity-icon="terminal" />;
+  if (icon === "patch") return <PatchActivityIcon aria-hidden="true" data-opencraft-activity-icon="patch" />;
+  if (icon === "search") return <SearchActivityIcon aria-hidden="true" data-opencraft-activity-icon="search" />;
+  if (icon === "read") return <ReadActivityIcon aria-hidden="true" data-opencraft-activity-icon="read" />;
+  if (icon === "files") return <FilesActivityIcon aria-hidden="true" data-opencraft-activity-icon="files" />;
+  if (icon === "stop") return <StopActivityIcon aria-hidden="true" data-opencraft-activity-icon="stop" />;
   if (icon === "image") return <ImageIcon />;
   if (icon === "agent") return <Bot />;
-  if (icon === "browser") return <CodexGlobeActivityIcon aria-hidden="true" data-codex-activity-icon="browser" />;
+  if (icon === "browser") return <GlobeActivityIcon aria-hidden="true" data-opencraft-activity-icon="browser" />;
   if (icon === "computer") return <Monitor />;
   return <Wrench />;
 }

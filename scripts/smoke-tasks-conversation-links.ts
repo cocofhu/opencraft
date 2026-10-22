@@ -41,13 +41,13 @@ const server = await startHeadlessServer({ root, dataDirectory: data, port: 0,
 const browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
 const errors: string[] = [], writes: string[] = [], cases: unknown[] = [];
 try {
-  for (const width of [1440, 390]) for (const theme of ["light", "dark"] as const) for (const palette of ["codex", "frost"]) {
+  for (const width of [1440, 390]) for (const theme of ["light", "dark"] as const) for (const palette of ["neutral", "frost"]) {
     const context = await browser.newContext({ viewport: { width, height: 960 }, isMobile: width === 390, hasTouch: width === 390 });
     const page = await context.newPage(); page.setDefaultTimeout(15000);
     page.on("pageerror", error => errors.push(error.message));
     await page.addInitScript(({ theme, palette }) => {
-      localStorage.setItem("vela.appearance-theme", theme);
-      localStorage.setItem("vela.appearance-theme-id", `vela.core.${palette}`);
+      localStorage.setItem("opencraft.appearance-theme", theme);
+      localStorage.setItem("opencraft.appearance-theme-id", `opencraft.core.${palette}`);
     }, { theme, palette });
     await page.routeWebSocket(/.*/, route => {
       const upstream = route.connectToServer(), reads = new Map<unknown, string>();

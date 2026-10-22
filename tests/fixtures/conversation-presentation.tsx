@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createIntlTestRoot as createRoot } from "./intl-root";
 import { Context } from "@deepseek-ai/cordis";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import {
   createConversationKey,
   createDefaultTimelineProjectorRegistry,
@@ -23,7 +23,7 @@ await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
 document.documentElement.dataset.theme = "light";
 for (const [key, value] of Object.entries(
-  buildCodexThemeCssProperties("light"),
+  buildOpenCraftThemeCssProperties("light"),
 ))
   document.documentElement.style.setProperty(key, value);
 const probe = window as any;
@@ -57,6 +57,14 @@ function Demo() {
   probe.restore = () => setGeneration((value) => value + 1);
   probe.detail = setDetail;
   probe.scenario = (scenario: string) => {
+    if (scenario === "single-unrelated" || scenario === "single-voice") {
+      setGeneration(value => value + 1);
+      setTurn({ id: "single-input-turn", status: "complete", items: scenario === "single-unrelated" ? [
+        { id: "local", type: "steeringUserMessage", payload: { input: { type: "text", text: "Keep the draft" }, status: "accepted" } },
+        { id: "server", type: "userMessage", payload: { content: { type: "text", text: "Delete the draft" } } },
+      ] : [{ id: "realtime-delegation-fixture", type: "userMessage", payload: { content: { type: "text", text: "<realtime_delegation><transcript_delta>assistant: Ready</transcript_delta><input>Hello voice</input></realtime_delegation>" } } }] });
+      return;
+    }
     setGeneration((value) => value + 1);
     setTurn({
       id: "turn",

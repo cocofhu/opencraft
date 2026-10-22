@@ -5,7 +5,7 @@ import { LocaleRuntime } from "@opencraft/i18n";
 import { UiPreferencesRuntime } from "@opencraft/ui-preferences";
 import { createComposerController } from "@opencraft/composer-core";
 import { createConversationKey } from "@opencraft/chat-core";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { UiPreferencesProvider } from "../../apps/workbench-web/src/runtime/ui-preferences-runtime";
 import { IndexedDbUiPreferenceStore } from "../../apps/workbench-web/src/runtime/indexeddb-ui-preference-store";
 import { WorkbenchLocaleController, WorkbenchIntlProvider } from "../../apps/workbench-web/src/i18n/workbench-locale";
@@ -44,7 +44,7 @@ function App() {
         <div data-settings-menu style={{ height: 180, overflow: "auto" }}><SettingsNavigation section={section} onSectionChange={setSection} extensionContributions={contributions} profiles={[]} machines={[]} activeHostId="" onBack={() => {}} presentation="dialog" showArchivedConversations /></div>
         <Probe />
         <div data-imperative>{snapshot.intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}</div>
-        <CodexComposer controller={composer} onSubmit={() => false} onCancel={() => {}}
+        <OpenCraftComposer controller={composer} onSubmit={() => false} onCancel={() => {}}
           selectionCatalog={{ agents: [], models: [{ id: "fixture", value: "fixture", label: "Fixture", isDefault: true, description: null, efforts: [], defaultEffort: null, inputModalities: ["text"] }], permissionProfiles: [] }} />
       </WorkbenchIntlProvider>
     </UiPreferencesProvider>

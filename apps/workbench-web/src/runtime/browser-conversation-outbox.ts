@@ -29,7 +29,7 @@ function decode(raw: string | null, key: ConversationKey): readonly Conversation
     const selections: Record<string, string | null> = {};
     for (const [field, fieldValue] of Object.entries(source.selections)) {
       if (!["agentId", "model", "mode", "effort", "permissionProfile", "cwd", "serviceTier", "personality"].includes(field)
-        || (typeof fieldValue !== "string" && !(field === "permissionProfile" && fieldValue === null)))
+        || (typeof fieldValue !== "string" && !((field === "permissionProfile" || field === "serviceTier") && fieldValue === null)))
         throw new Error("Invalid local message selections");
       selections[field] = fieldValue;
     }

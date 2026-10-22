@@ -240,7 +240,7 @@ export function createVoiceInputAction(provider: SpeechInputProvider) {
     return (
       <button
         ref={buttonRef}
-        className="codex-composer-icon-button opencraft-voice-input-action"
+        className="opencraft-composer-icon-button opencraft-voice-input-action"
         type="button"
         aria-label={label}
         aria-pressed={active}

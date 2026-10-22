@@ -26,12 +26,12 @@ floatingSidebarHeader={()=>null} leftPanel={<p>Navigation</p>}
 rightPanel={<RightPanel state={state} presentationId='view' renderers={[]} toolbarActions={[action]} toolbarActionContext={{ownerId:'scope',resourceOwnerId:'scope',hostId:'fixture',cwd:null}} onAction={a=>panels.dispatch('scope',a)} onCloseTab={t=>panels.close('scope',t.region,t.id)}/>}
 rightPanelOpen={state.right.open} rightPanelFullWidth={state.rightPanelFullWidth} onRightPanelOpenChange={open=>panels.dispatch('scope',{type:'set-region-open',region:'right',open})}><div data-chat-scroll style={{overflowY:'auto',height:'100%'}}><input aria-label='Draft' defaultValue='Keep draft'/><p data-chat-paragraph>Keep chat text readable while tools open. 保持聊天内容的可读宽度，不把正常段落挤成每行两个字。</p>{Array.from({length:45},(_,i)=><p key={i} data-chat-anchor={i===10?true:undefined}>Message {i}: persistent scroll and draft.</p>)}</div></AppShell>}
 createRoot(document.getElementById('root')).render(<App/>);`;
-const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',resolve:{dedupe:['react','react-dom','react-intl']},cacheDir:'node_modules/.vite-readable-pane',optimizeDeps:{entries:[],include:['react','react-dom/client','react-intl','@radix-ui/react-dialog','@radix-ui/react-dropdown-menu','@radix-ui/react-tooltip']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0,hmr:false},plugins:[{name:'readable-pane-fixture',resolveId:id=>id==='/pane-fixture.tsx'?id:null,load:id=>id==='/pane-fixture.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url!=='/')return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/pane-fixture.tsx"></script>');});}}]});
+const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'error',resolve:{dedupe:['react','react-dom','react-intl']},cacheDir:'node_modules/.vite-readable-pane',optimizeDeps:{entries:[],include:['react','react-dom/client','react-intl','@radix-ui/react-dialog','@radix-ui/react-dropdown-menu','@radix-ui/react-tooltip','sonner','motion/react']},esbuild:{jsx:'automatic'},server:{host:'127.0.0.1',port:0,hmr:false},plugins:[{name:'readable-pane-fixture',resolveId:id=>id==='/pane-fixture.tsx'?id:null,load:id=>id==='/pane-fixture.tsx'?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url!=='/')return next();res.setHeader('content-type','text/html');res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/pane-fixture.tsx"></script>');});}}]});
 const {chromium}=await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE??'playwright');
-let browser:any;const evidence:any[]=[];
+let browser:any;const evidence:any[]=[];const resizeEvidence:any[]=[];
 try {
  await mkdir(output,{recursive:true});await vite.listen();
- browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ browser=await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});
  for(const reducedMotion of ['no-preference','reduce'] as const)for(const theme of ['light','dark']) {
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,reducedMotion});
   const page=await context.newPage();page.setDefaultTimeout(30000);
@@ -67,15 +67,29 @@ try {
     await sample('maximize',()=>maximize.click());
     await sample('restore',()=>page.getByRole('button',{name:'Restore panel',exact:true}).click());
     await sample('reverse',async()=>{await maximize.click();await page.waitForTimeout(70);await page.getByRole('button',{name:'Restore panel',exact:true}).click();});
-    const separator=page.getByRole('separator',{name:'Resize right panel',exact:true});
-    if(width>=1280&&await separator.count()){
+    const separator=page.getByRole('separator',{name:'Resize preview panel',exact:true});
+    if(width>=1280){
+     assert.equal(await separator.count(),1,'desktop resize handle is present');
+     // Viewport changes can leave the preference at minimum. Start inside the
+     // ordinary range so narrowing and widening are both observable while held.
+     const settleGeometry=()=>page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+     await separator.press('End');await settleGeometry();
+     for(let step=0;step<10;step++){await separator.press('ArrowRight');await settleGeometry();}
+     await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
      const box=await separator.boundingBox();assert.ok(box);
      const before=await page.locator('.main-content-frame').evaluate(e=>e.getBoundingClientRect().width);
-     await page.mouse.move(box!.x+1,box!.y+140);await page.mouse.down();await page.mouse.move(box!.x+65,box!.y+140,{steps:6});
+     const startingWidth=await page.locator('.app-shell-right-panel').evaluate(e=>e.getBoundingClientRect().width);
+     assert.ok(startingWidth>420&&startingWidth<width-500,'held gesture starts inside ordinary bounds');
+     await page.mouse.move(box!.x+1,box!.y+140);await page.mouse.down();await page.mouse.move(box!.x+65,box!.y+140,{steps:6});await settleGeometry();
      const held=await page.locator('.main-content-frame').evaluate(e=>e.getBoundingClientRect().width);
      assert.ok(held>before+30,'ordinary resize reflows before release');
-     await page.evaluate(()=>window.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true})));await page.mouse.up();
-     assert.ok(Math.abs(await page.locator('.main-content-frame').evaluate(e=>e.getBoundingClientRect().width)-before)<2,'cancel restores starting geometry');
+     await page.mouse.move(box!.x-39,box!.y+140,{steps:8});await settleGeometry();
+     const reversed=await page.locator('.main-content-frame').evaluate(e=>e.getBoundingClientRect().width);
+     assert.ok(reversed<before-20,'reversing the held gesture reflows before release');
+     await page.evaluate(()=>window.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true})));await page.mouse.up();await settleGeometry();
+     const cancelled=await page.locator('.main-content-frame').evaluate(e=>e.getBoundingClientRect().width);
+     assert.ok(Math.abs(cancelled-before)<2,'cancel restores starting geometry');
+     resizeEvidence.push({theme,reducedMotion,width,before,held,reversed,cancelled});
     }
    }
    await sample('close',()=>toggle.click());
@@ -85,5 +99,6 @@ try {
   assert.deepEqual(errors,[]);await context.close();
  }
  await writeFile(output+'/result.json',JSON.stringify(evidence));
- console.log(JSON.stringify({passed:true,cases:evidence.length,frames:evidence.reduce((n,e)=>n+e.samples.length,0),output}));
+ await writeFile(output+'/held-resize.json',JSON.stringify(resizeEvidence));
+ console.log(JSON.stringify({passed:true,cases:evidence.length,heldGestures:resizeEvidence.length,frames:evidence.reduce((n,e)=>n+e.samples.length,0),output}));
 }finally{await browser?.close();await vite.close();}

@@ -6,7 +6,7 @@ export function useMobileEditorVoiceHold(action: RefObject<HTMLButtonElement | n
 }) {
   const latest = useRef(callbacks); latest.current = callbacks;
   useEffect(() => {
-    const surface = action.current?.closest<HTMLElement>(".codex-composer-stack");
+    const surface = action.current?.closest<HTMLElement>(".opencraft-composer-stack");
     if (!surface) return;
     let held: { id: number; x: number; y: number; active: boolean; editor: HTMLElement } | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +23,7 @@ export function useMobileEditorVoiceHold(action: RefObject<HTMLButtonElement | n
         || (document.documentElement.dataset.uiDensity === "compact"
           || (document.documentElement.dataset.uiDensity !== "touch" && !matchMedia("(any-pointer: coarse)").matches))
         || window.getSelection()?.toString()) return;
-      const editor = event.target instanceof Element ? event.target.closest<HTMLElement>(".codex-composer-editor") : null;
+      const editor = event.target instanceof Element ? event.target.closest<HTMLElement>(".opencraft-composer-editor") : null;
       if (!editor || !surface.contains(editor)) return;
       held = { id: event.pointerId, x: event.clientX, y: event.clientY, active: false, editor };
       timer = setTimeout(() => {

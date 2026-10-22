@@ -1,4 +1,4 @@
-/** Requirements and historical source boundary: docs/provenance/user-message-replacement.md. */
+
 export interface CodexUserMessageSemantics {
   readonly message: string;
   readonly goal: boolean;

@@ -196,7 +196,7 @@ class RenewableAppHostTransport implements DuplexTransport {
   private connectOperation: Promise<void> | null = null;
   private closed = false;
 
-  constructor(private readonly createLease: () => { transport: DuplexTransport; attemptId: string; diagnostic: () => TransportFailureDiagnostic | undefined }, private readonly onClose: () => void) {}
+  constructor(private readonly createLease: () => { transport: DuplexTransport; attemptId: string; diagnostic: () => TransportFailureDiagnostic | undefined }, private readonly onClose: () => void, private readonly beforeConnect?: () => Promise<void>) {}
 
   get status(): TransportStatus { return this.currentStatus; }
 
@@ -205,6 +205,10 @@ class RenewableAppHostTransport implements DuplexTransport {
     if (this.currentStatus.state === "open") return Promise.resolve();
     if (this.connectOperation !== null) return this.connectOperation;
     const operation = (async () => {
+      signal?.throwIfAborted();
+      await this.beforeConnect?.();
+      signal?.throwIfAborted();
+      if (this.closed) throw new Error("App Host transport is closed");
       if (this.lease === null || this.currentStatus.state === "failed" || this.currentStatus.state === "closed") {
         const previous = this.lease;
         this.detachLease();
@@ -298,6 +302,8 @@ export function connectWebSocketAppHost(
     readonly recoveryEvents?: AppHostRecoveryEvents;
     readonly reportFailure?: (diagnostic: AppHostConnectionDiagnostic) => void;
     readonly path?: "/apphost" | "/ssh-apphost";
+    /** Revalidate private admission through its existing owner before opening a socket. */
+    readonly beforeConnect?: () => Promise<void>;
   } = {},
 ): { createTransport(hostId: string): DuplexTransport; close(): void } {
   let current: { port: WebSocketAppHostPort; client: MessagePortAppHostClient } | null = null;
@@ -335,7 +341,7 @@ export function connectWebSocketAppHost(
         }
         const leaseOwner = current;
         return { transport: leaseOwner.client.createTransport(hostId), attemptId: leaseOwner.port.attemptId, diagnostic: () => leaseOwner.port.failureDiagnostic };
-      }, () => transports.delete(transport));
+      }, () => transports.delete(transport), options.beforeConnect);
       transports.add(transport);
       return transport;
     },

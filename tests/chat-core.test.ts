@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import gitDiffCases from "./fixtures/turn-diff-git-cases.json";
 
 import {
   aggregateUserInputQuestionAnswers,
@@ -23,7 +24,7 @@ import {
   deriveTimelineLatestTurnActivityKey,
   deriveTimelineLatestTurnPhase,
   extractToolCallContentParts,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatCommandActivitySummary,
   formatThreadHandoffStepLabel,
   formatAutomaticApprovalReviewSummary,
@@ -73,7 +74,7 @@ function activityHeaderFor(
   return deriveAgentActivityHeaderPresentation(group);
 }
 
-test("Hook lifecycle summaries match Codex counts, filtering, and adjacent-run coalescing", () => {
+test("Hook lifecycle summaries preserve counts, filtering, and adjacent-run coalescing", () => {
   const stats = summarizeHookRuns([
     {
       id: "lint",
@@ -669,14 +670,14 @@ test("paginated history without Turn params promotes a later client UserMessage 
 
   const normalized = normalizeCodexTurnUserMessages(turn);
   assert.equal(normalized.items.length, 5);
-  const firstSource = normalized.items[0]?.payload as { __velaMessageKind?: string };
+  const firstSource = normalized.items[0]?.payload as { __opencraftMessageKind?: string };
   const steeringSource = normalized.items[3]?.payload as {
-    __velaMessageKind?: string;
-    __velaSteeringStatus?: string;
+    __opencraftMessageKind?: string;
+    __opencraftSteeringStatus?: string;
   };
-  assert.equal(firstSource.__velaMessageKind, "user");
-  assert.equal(steeringSource.__velaMessageKind, "steering");
-  assert.equal(steeringSource.__velaSteeringStatus, "accepted");
+  assert.equal(firstSource.__opencraftMessageKind, "user");
+  assert.equal(steeringSource.__opencraftMessageKind, "steering");
+  assert.equal(steeringSource.__opencraftSteeringStatus, "accepted");
 
   const snapshot = projectTimeline(source([turn]), createDefaultTimelineProjectorRegistry());
   assert.deepEqual(snapshot.frames.map((frame) => frame.type), ["user", "assistant"]);
@@ -741,11 +742,11 @@ test("an explicit steered marker closes the leading-user ownership segment even 
   assert.deepEqual(normalized.nonVisualItemIds, ["boundary-steered-marker"]);
   assert.deepEqual(normalized.items.map((item) => item.id), ["boundary-leading-user", "boundary-follow-up-user"]);
   const followUp = normalized.items[1]?.payload as {
-    __velaMessageKind?: string;
-    __velaSteeringStatus?: string;
+    __opencraftMessageKind?: string;
+    __opencraftSteeringStatus?: string;
   };
-  assert.equal(followUp.__velaMessageKind, "steering");
-  assert.equal(followUp.__velaSteeringStatus, "accepted");
+  assert.equal(followUp.__opencraftMessageKind, "steering");
+  assert.equal(followUp.__opencraftSteeringStatus, "accepted");
 });
 
 test("UserMessage projection retains file, comment and MCP context attachments as typed domain values", () => {
@@ -1290,7 +1291,7 @@ test("adjacent imageView tool calls coalesce into one expandable visual activity
   assert.equal(presentToolActivity(third).summary, "Viewed an image");
 });
 
-test("node_repl MCP calls use Codex's terminal activity icon", () => {
+test("node_repl MCP calls use the terminal activity icon", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-node-repl",
     status: "complete",
@@ -1712,7 +1713,7 @@ test("command failure follows exit code even when transport status completed", (
   assert.equal(block?.type, "command-execution");
   if (block?.type !== "command-execution") throw new Error("Expected command block");
   assert.equal(presentToolActivity(block).state, "failed");
-  // Codex keeps the completed action wording and communicates failure through
+  // Keep completed action wording and communicate failure through
   // row status plus the shell footer's exit code.
   assert.equal(presentToolActivity(block).summary, "Ran command");
   assert.equal(formatCommandActivitySummary(block, "failed", { expanded: false, elapsedLabel: null }), "Ran false");
@@ -1730,8 +1731,8 @@ test("command labels reproduce Codex disclosure, elapsed, date, and background t
     ],
   }]), createDefaultTimelineProjectorRegistry());
   const blocks = projected.frames.flatMap((frame) => frame.blocks).filter((block): block is Extract<TimelineBlock, { type: "command-execution" }> => block.type === "command-execution");
-  assert.equal(formatCodexToolDuration(999), null);
-  assert.equal(formatCodexToolDuration(62_000), "1m 2s");
+  assert.equal(formatToolDuration(999), null);
+  assert.equal(formatToolDuration(62_000), "1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[0]!, "completed", { expanded: false, elapsedLabel: "1m 2s" }), "Ran npm test in 1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[0]!, "completed", { expanded: true, elapsedLabel: "1m 2s" }), "Ran command in 1m 2s");
   assert.equal(formatCommandActivitySummary(blocks[1]!, "running", { expanded: true, elapsedLabel: "9s" }), "Started background terminal with npm run dev");
@@ -2113,7 +2114,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated exactly like Codex", () => {
+test("MCP JSON text is promoted and deduplicated by stable resource identity", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",
@@ -2312,6 +2313,39 @@ test("unified diff projection preserves line numbers and highlights paired edits
   assert.equal(addition?.newLine, 9);
   assert.deepEqual(deletion?.oldSegments?.filter((segment) => segment.changed).map((segment) => segment.text), ["1"]);
   assert.deepEqual(addition?.newSegments?.filter((segment) => segment.changed).map((segment) => segment.text), ["2"]);
+});
+
+test("real Git operator edits retain code, line numbers and intraline highlighting", () => {
+  const entry = gitDiffCases.find(entry => entry.name === "operators")!;
+  const lines = parseUnifiedDiff(entry.diff);
+  const edits = lines.filter(line => line.kind === "addition" || line.kind === "deletion");
+  assert.deepEqual(edits.map(({ kind, content, oldLine, newLine }) => ({ kind, content, oldLine, newLine })), [
+    { kind: "deletion", content: "--counter;", oldLine: 1, newLine: null },
+    { kind: "deletion", content: "old", oldLine: 2, newLine: null },
+    { kind: "addition", content: "++counter;", oldLine: null, newLine: 1 },
+    { kind: "addition", content: "new", oldLine: null, newLine: 2 },
+  ]);
+  assert.deepEqual(edits[0]!.oldSegments?.filter(segment => segment.changed).map(segment => segment.text), ["--"]);
+  assert.deepEqual(edits[2]!.newSegments?.filter(segment => segment.changed).map(segment => segment.text), ["++"]);
+  assert.equal(lines.at(-1)?.kind, "meta", "the final patch separator is not another source line");
+  assert.equal(lines.at(-1)?.oldLine, null);
+  assert.equal(lines.at(-1)?.newLine, null);
+});
+
+test("real Git sections isolate line numbers from binary, rename and mode metadata", () => {
+  const patch = gitDiffCases.map(entry => entry.diff).join("");
+  const lines = parseUnifiedDiff(patch);
+  assert.equal(lines.filter(line => line.kind === "addition").length, gitDiffCases.reduce((sum, entry) => sum + entry.expected.additions, 0));
+  assert.equal(lines.filter(line => line.kind === "deletion").length, gitDiffCases.reduce((sum, entry) => sum + entry.expected.deletions, 0));
+  assert.equal(lines.filter(line => line.kind === "context").length, 0, "these actual Git fixtures contain no unchanged hunk lines");
+  for (const line of lines.filter(line => line.kind === "meta" || line.kind === "hunk")) {
+    assert.equal(line.oldLine, null, line.text);
+    assert.equal(line.newLine, null, line.text);
+  }
+  const partial = parseUnifiedDiff("+new\n-old");
+  assert.deepEqual(partial.map(({ kind, oldLine, newLine }) => [kind, oldLine, newLine]), [
+    ["addition", null, null], ["deletion", null, null],
+  ], "partial observations remain readable without fabricated line numbers");
 });
 
 test("tool presentation registry is priority ordered and reversibly extensible", () => {
@@ -3635,4 +3669,22 @@ test("generated images move from live Activity to final assistant content withou
   if (runningFrame?.type !== "assistant" || completeFrame?.type !== "assistant") throw new Error("Expected assistant frames");
   assert.equal(createAssistantTurnPresentationPlan(runningFrame).slots[0]?.type, "agent-activity");
   assert.equal(createAssistantTurnPresentationPlan(completeFrame).slots[0]?.type, "assistant-content");
+});
+
+
+test("saved command source identities accept legacy aliases and prefer canonical metadata", () => {
+  const cases = [
+    { payload: { __velaSourceItemId: "legacy" }, expected: ["legacy"] },
+    { payload: { __velaSourceItemIds: ["legacy-a", "legacy-b"] }, expected: ["legacy-a", "legacy-b"] },
+    { payload: { __opencraftSourceItemId: "canonical", __velaSourceItemId: "stale" }, expected: ["canonical"] },
+    { payload: { __opencraftSourceItemIds: ["canonical-a"], __velaSourceItemIds: ["stale"] }, expected: ["canonical-a"] },
+  ];
+  for (const { payload, expected } of cases) {
+    const snapshot = projectTimeline(source([{ id: "saved", status: "complete", items: [{
+      id: "command", type: "commandExecution", payload: { command: "echo retained", output: "retained", ...payload },
+    }] }]), createDefaultTimelineProjectorRegistry());
+    const block = snapshot.frames.flatMap(frame => frame.blocks).find(block => block.type === "command-execution");
+    assert.ok(block);
+    assert.deepEqual(block.sourceItemIds, expected);
+  }
 });

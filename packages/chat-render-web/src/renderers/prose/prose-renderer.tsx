@@ -83,7 +83,6 @@ export function ProseRenderer(props: ChatNodeRendererProps): ReactNode {
     case "heading": {
       const Heading = `h${node.depth}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
       // Transcript headings are content, not document navigation anchors.
-      // Codex therefore does not synthesize slug IDs (which also collide when
       // the model repeats a heading later in a long conversation).
       return <Heading dir="auto">{children(props)}</Heading>;
     }

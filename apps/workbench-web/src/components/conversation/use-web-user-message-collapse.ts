@@ -16,12 +16,6 @@ export interface WebUserMessageCollapseObserver {
   readonly toggleExpansion: () => void;
 }
 
-/**
- * DOM observation provider for the shared collapse policy.
- *
- * The inner content's scrollHeight is the natural height even while the outer
- * clip owns max-height. This is the same measurement boundary used by Codex.
- */
 export function useWebUserMessageCollapse({
   collapsedLineCount,
   contentIdentity,

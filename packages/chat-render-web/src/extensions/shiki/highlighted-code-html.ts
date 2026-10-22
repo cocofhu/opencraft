@@ -6,11 +6,6 @@ function escapeHtml(source: string): string {
   });
 }
 
-/**
- * Shiki returns a complete `<pre><code>…</code></pre>` document fragment.
- * Codex keeps one permanent code element and only replaces its inline token
- * children, so discard Shiki's layout wrappers before committing the result.
- */
 export function unwrapHighlightedCodeHtml(html: string): string {
   const codeStart = html.indexOf("<code");
   if (codeStart < 0) return "";

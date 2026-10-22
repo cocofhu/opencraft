@@ -22,7 +22,7 @@ Electron profile 下新增 `opencraft-extensions.sqlite`，设置和安装记录
 
 ## 1. 决策
 
-插件默认使用宿主提供的异步 JSON/KV 数据接口，不依赖 SQLite、IndexedDB、Drizzle 或文件路径。本期保留 node:sqlite，不引入 ORM。参考 Obsidian 的窄数据接口和 BB 的分层存储；不照搬二者所有权限、文件和凭据策略。
+插件默认使用宿主提供的异步 JSON/KV 数据接口，不依赖 SQLite、IndexedDB、Drizzle 或文件路径。本期保留 node:sqlite，不引入 ORM。数据接口保持窄职责，不扩大权限、文件和凭据的访问边界。
 
 | 数据 | 唯一 authority | 物理实现 |
 |---|---|---|
@@ -53,7 +53,7 @@ Electron profile 下新增 `opencraft-extensions.sqlite`，设置和安装记录
 - **通用数据**使用上述 KV 契约，适合插件配置以外的小型状态。namespace 为宿主授权区域内的插件私有空间，不是一张供插件直接修改的核心表。
 - **Tasks 领域行存储**：内建 `opencraft.tasks` 的任务与多会话关联使用独立 `tasks.sqlite` 的 tasks/task_conversations 结构化表，经后端打包的 typed domain API 访问。后端事务负责 CAS、排序、变更通知和 schema 基线；客户端不提交 SQL、不修改通用文档表。旧卡片库不迁移、不删除。详见 [Tasks 存储](../plugins/tasks/README.md)。
 - **Host 只提供 API**：不建设 Host 插件装载器、安装/激活服务或插件专用 SQL 能力。插件经已有 token 授权的 Host API 使用文档存储，不能上传 JS、SQL 或转换函数，不通过断线落本地替代。首个 Local Host 的权限粒度是整个 Host 会话，不宣称按插件或多租户安全隔离。
-- **secret**只引用既有 Host 凭据身份及授权能力。不得给 Web 插件一个返回所有 token 的通用 KV；仍遵守“凭据只存数据库”，不迁到 Obsidian 的本地存储或 BB 的 secrets 文件。
+- **secret**只引用既有 Host 凭据身份及授权能力。不得给 Web 插件一个返回所有 token 的通用 KV；仍遵守“凭据只存数据库”。
 
 ## 4. 两层迁移，分别负责
 
@@ -100,9 +100,8 @@ Web 多标签是必测路径：blocked 必须可见，versionchange 停止新写
 4. 插件生命周期验证：停用保留、重载撤销、升级失败保留旧数据、未知新版本拒绝写、显式卸载清理范围。
 5. 复用契约验证现有 settings 与领域存储不回归；Native 未完成真实 adapter 验收之前，不宣称支持。
 
-已新增 client-local 与 Host 文档 API，无第三方新依赖/Drizzle。`test:extension-storage`、`smoke:extension-storage:web`、`smoke:extension-storage:desktop` 验证本地契约、真实多标签和真实源码 Electron；Host 链路另由 `test:host-storage` / `smoke:host-storage` 验证。未覆盖新签名发行包、历史所有 origin 找回、所有远端 Host 或 Native 插件持久化。源码事实与参考入口：
+已新增 client-local 与 Host 文档 API，无第三方新依赖/Drizzle。`test:extension-storage`、`smoke:extension-storage:web`、`smoke:extension-storage:desktop` 验证本地契约、真实多标签和真实源码 Electron；Host 链路另由 `test:host-storage` / `smoke:host-storage` 验证。未覆盖新签名发行包、历史所有 origin 找回、所有远端 Host 或 Native 插件持久化。当前实现入口：
 
-- [BB storage contract](../../ref/bb/packages/plugin-sdk/src/backend-contract.ts)、[Host adapter](../../ref/bb/apps/server/src/services/plugins/plugin-api.ts)、[小型迁移 helper](../../ref/bb/packages/plugin-sdk/src/internal/host-policy.ts)、[相邻测试](../../ref/bb/apps/server/test/services/plugins/plugin-settings-storage.test.ts)。主库 Drizzle 与插件 helper 共存，不代表前端持有 SQLite。
 - [Obsidian 官方 API](https://raw.githubusercontent.com/obsidianmd/obsidian-api/master/obsidian.d.ts) 的 loadData/saveData/onExternalSettingsChange 提供窄接口；没有由此推断跨端 SQL、CAS 或自动 migration。[secret 文档](https://docs.obsidian.md/plugins/guides/secret-storage)仅借鉴引用与值分离。
 - [当前 OpenCraft settings owner](../packages/extension-runtime/src/settings-store.ts) 和 [实际 storage contract](../packages/extension-contract/src/storage.ts)：运行时未装配时 storage=null。字段 schemaVersion 不等于通用文档版本，任意已有设置字段变更的内容迁移规则仍须由领域补齐。
 
