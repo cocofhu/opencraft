@@ -69,12 +69,12 @@ export function AutomaticApprovalReviewIcon() {
   return <Shield aria-hidden="true"><Terminal x={6} y={6} width={12} height={12} strokeWidth={2} /></Shield>;
 }
 
-function ReviewAssessment({ review }: { readonly review: AutomaticApprovalReview }) {
-  const [expanded, setExpanded] = useState(false);
+function ReviewAssessment({ blockId, review }: { readonly blockId: string; readonly review: AutomaticApprovalReview }) {
+  const [expanded, setExpanded] = useActivityOpen(false, false, JSON.stringify(["review-assessment", blockId, review.id]));
   const reduceMotion = useReducedMotion();
   const running = review.status === "inProgress";
   return <div className="thread-auto-review" data-status={review.status} data-warning={isAutomaticApprovalReviewWarning(review) || undefined}>
-    <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+    <button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
       <CadencedShimmer active={running}>{formatAutomaticApprovalReviewTitle(review)}</CadencedShimmer>
       <ChevronRight aria-hidden="true" size={12} />
     </button>
@@ -87,18 +87,18 @@ function ReviewAssessment({ review }: { readonly review: AutomaticApprovalReview
   </div>;
 }
 
-export function AutomaticApprovalReviewList({ reviews }: { readonly reviews: readonly AutomaticApprovalReview[] }) {
-  return <div className="thread-auto-review-list">{reviews.map(review => <ReviewAssessment key={review.id} review={review} />)}</div>;
+export function AutomaticApprovalReviewList({ blockId, reviews }: { readonly blockId: string; readonly reviews: readonly AutomaticApprovalReview[] }) {
+  return <div className="thread-auto-review-list">{reviews.map(review => <ReviewAssessment key={review.id} blockId={blockId} review={review} />)}</div>;
 }
 
 export function AutomaticApprovalReviewBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "automatic-approval-review" }> }) {
   const review = block.review;
   const running = review.status === "inProgress";
-  const [open, setOpen] = useActivityOpen(running);
+  const [open, setOpen] = useActivityOpen(running, false, JSON.stringify(["review", block.id]));
   return <ActivityDisclosure icon={<AutomaticApprovalReviewIcon />} summary={summarizeAutomaticApprovalReviewAction(review.action)}
     running={running} status={running ? "running" : review.status === "denied" ? "failed" : review.status === "aborted" ? "interrupted" : "completed"}
     open={open} onOpenChange={setOpen}>
-    <ReviewAssessment review={review} />
+    <ReviewAssessment blockId={block.id} review={review} />
   </ActivityDisclosure>;
 }
 
@@ -207,7 +207,7 @@ export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: 
     accessory={block.automaticApprovalReviews.length ? <AutomaticApprovalReviewIcon /> : undefined}>
     {isTerminal && presentation.canExpand ? <>
       <CommandOutput block={block} running={running} />
-      {block.automaticApprovalReviews.length ? <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /> : null}
+      {block.automaticApprovalReviews.length ? <AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} /> : null}
     </> : null}
   </ActivityDisclosure>;
 }
