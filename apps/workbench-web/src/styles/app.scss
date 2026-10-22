@@ -4216,7 +4216,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 
-  // Desktop cuts off transcript paint at a straight horizontal gutter edge.
+  // Desktop cuts off transcript paint before the shell's lower corner arcs.
   // Touch keeps the Composer floating, including its surrounding safe area.
   &::after {
     content: "";
@@ -4224,7 +4224,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     z-index: 0;
     inset-inline: 0;
     bottom: 0;
-    height: max(16px, env(safe-area-inset-bottom, 0px));
+    height: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--radius-composer-shell));
     background: var(--color-surface);
     pointer-events: none;
   }
