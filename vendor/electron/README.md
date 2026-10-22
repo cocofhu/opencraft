@@ -246,3 +246,7 @@ Run `electron --no-sandbox vendor/electron/probe-offscreen-resize.cjs` against
 the built runtime in an isolated profile. The CPU probe paints through keyboard
 height changes, width changes and rotations while retaining the document,
 input value, focus and selection. It does not test a physical phone keyboard.
+
+## Nested Chromium patch validation
+
+`manage.py` validates the syntax of Chromium patch files changed by this fork against the resulting Electron tree, before changing a checkout branch or running Chromium hooks. Outer patch SHA/tree verification alone cannot detect corrupt inner hunk counts. This early check is not a substitute for a full clean Chromium patch replay or native compilation.

@@ -54,7 +54,18 @@ class Fork:
             self.git('read-tree', self.lock['revision'], env=env)
             for patch in self.patches:
                 self.git('apply', '--cached', '--whitespace=error', patch, env=env)
-            return self.git('write-tree', env=env).strip()
+            tree = self.git('write-tree', env=env).strip()
+            # An outer Electron patch can be valid while the Chromium patch it
+            # creates has corrupt hunk counts. Validate the actual nested files
+            # before checkout changes any branch or sync starts Chromium hooks.
+            changed = self.git('diff', '--name-only', '--diff-filter=ACM', self.lock['revision'], tree,
+                               '--', 'patches/chromium', env=env).splitlines()
+            for path in changed:
+                if path.endswith('.patch'):
+                    payload = self.git('show', f'{tree}:{path}', env=env)
+                    subprocess.run(['git', 'apply', '--numstat'], input=payload,
+                                   text=True, stdout=subprocess.DEVNULL, check=True)
+            return tree
 
     def verify(self):
         if not (self.source / '.git').exists():

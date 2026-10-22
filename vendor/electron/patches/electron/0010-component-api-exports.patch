@@ -215,7 +215,7 @@ new file mode 100644
 +
 + void GtkWindowDestroy(GtkWidget* widget);
 +
-+@@ -196,7 +196,7 @@
++@@ -196,6 +196,6 @@
 + float GetDeviceScaleFactor();
 +
 + // This should only be called on Gtk4.

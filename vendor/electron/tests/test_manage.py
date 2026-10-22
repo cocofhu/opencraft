@@ -93,6 +93,24 @@ class ForkSourceTests(unittest.TestCase):
         self.assertEqual(self.git('rev-parse', 'HEAD'), before)
         self.assertEqual(self.git('status', '--porcelain'), '')
 
+    def test_corrupt_nested_chromium_patch_rejected_before_checkout(self):
+        nested = self.source / 'patches/chromium/test.patch'
+        nested.parent.mkdir(parents=True)
+        nested.write_text('diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,7 +1,7 @@\n-old\n+new\n')
+        self.git('add', '-N', 'patches/chromium/test.patch')
+        outer = self.directory / 'patches/electron/nested.patch'
+        outer.write_text(self.git('diff', '--', 'patches/chromium/test.patch'))
+        self.git('reset', '-q', '--', 'patches/chromium/test.patch')
+        nested.unlink()
+        self.lock['patches'].append({'path':'patches/electron/nested.patch',
+                                    'sha256':hashlib.sha256(outer.read_bytes()).hexdigest()})
+        self.lock_path.write_text(json.dumps(self.lock))
+        before = self.git('rev-parse', 'HEAD')
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.fork().checkout()
+        self.assertEqual(self.git('rev-parse', 'HEAD'), before)
+        self.assertEqual(self.git('status', '--porcelain'), '')
+
 
 if __name__ == '__main__':
     unittest.main()

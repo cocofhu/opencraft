@@ -7,16 +7,41 @@ const types = new Set(['touchStart', 'touchMove', 'touchEnd', 'touchCancel']);
 // Read native metrics at dispatch, including while a gesture changes scale;
 // a viewer notification or a once-per-gesture snapshot would be stale.
 function createWidgetTouchDispatcher(debuggerPort, getZoomFactor) {
+  // Wire identities are not Chromium pointer slots (VelocityTracker uses a
+  // 32-bit bitset). Keep held contacts stable, even when their wire IDs are
+  // large or their snapshot order changes. Commit slots only after native ACK.
+  let slots = new Map();
   return async input => {
+    if (input.type === 'touchCancel') {
+      try { return await debuggerPort.sendCommand('Input.dispatchTouchEvent', input); }
+      finally { slots.clear(); }
+    }
+    const next = new Map(slots);
+    if (input.type === 'touchStart') {
+      for (const point of input.touchPoints) {
+        if (next.has(point.id)) throw new Error('Duplicate native touch contact');
+        let slot = 0;
+        while ([...next.values()].includes(slot)) slot++;
+        if (slot >= MAX_TOUCH_POINTS) throw new Error('Too many native touch contacts');
+        next.set(point.id, slot);
+      }
+    }
     let touchPoints = input.touchPoints;
     if (touchPoints.length) {
+      if (touchPoints.some(point => !next.has(point.id))) throw new Error('Unknown native touch contact');
       const metrics = await debuggerPort.sendCommand('Page.getLayoutMetrics');
       const scale = metrics.cssVisualViewport?.scale * getZoomFactor();
       if (!Number.isFinite(scale) || scale <= 0) throw new Error('Invalid native touch scale');
-      touchPoints = touchPoints.map(point => ({ ...point, x: point.x / scale, y: point.y / scale }));
+      touchPoints = touchPoints.map(point => ({ ...point, id: next.get(point.id), x: point.x / scale, y: point.y / scale }));
     }
     // Chromium's per-contact dispatcher leaves radius/force in widget units.
-    return debuggerPort.sendCommand('Input.dispatchTouchEvent', { ...input, touchPoints });
+    const result = await debuggerPort.sendCommand('Input.dispatchTouchEvent', { ...input, touchPoints });
+    if (input.type === 'touchEnd') {
+      if (!touchPoints.length) next.clear();
+      else for (const point of input.touchPoints) next.delete(point.id);
+    }
+    slots = next;
+    return result;
   };
 }
 function points(input) {

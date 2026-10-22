@@ -30,10 +30,14 @@ let closed=0;
 try {
  await service.start();
  const old=service.child;
+ old.stderr.emit('data',Buffer.from('[1:1:FATAL:ui/events/bitset_32.h:27] DCHECK failed: private-secret\n#0 0x123 ui::VelocityTracker::AddMovement()\n'));
  const page={live:true,socket:{close(code){assert.equal(code,1011);closed++}}};service.pages.set('synthetic',page);
  await assert.rejects(service.request('page','capture'),/disconnected|exited/);
  await new Promise(r=>setTimeout(r,50));
  assert.equal(service.child,null);assert.equal(service.requests.size,0);assert.equal(page.live,false);assert.equal(closed,1);
+ assert.equal(service.lastBrowserFailure.native.fatal.file,'bitset_32.h');
+ assert.equal(service.lastBrowserFailure.native.frames[0].symbol,'ui::VelocityTracker::AddMovement');
+ assert(!JSON.stringify(service.lastBrowserFailure).includes('private-secret'));
  await service.start();const replacement=service.child;
  assert.notEqual(old,replacement);
  old.emit('message',{type:'error',page:'page',message:'late'});
@@ -55,4 +59,5 @@ test('isolated browser EPIPE retires only its generation and Gateway survives/re
   const result=spawnSync(process.execPath,['--input-type=module','-e',probe],{encoding:'utf8',timeout:10000});
   assert.equal(result.status,0,result.stderr||result.error?.message);
   assert.match(result.stdout,/gateway-survived-and-recovered/);
+  assert.doesNotMatch(result.stderr,/private-secret/);
 });

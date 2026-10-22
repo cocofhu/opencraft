@@ -5,6 +5,30 @@ const {createTouchInput,createWidgetTouchDispatcher}=createRequire(import.meta.u
 const p=(id,x=30)=>({id,x,y:50,force:.5,radiusX:4,radiusY:5});
 const frame=(type,...touchPoints)=>({type,touchPoints});
 
+test('native slots bound large wire identities and survive release/reorder/cancel',async()=>{
+ const seen=[],port={async sendCommand(method,input){if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{scale:1}};seen.push(input);}};
+ const touch=createTouchInput(createWidgetTouchDispatcher(port,()=>1));
+ await touch.apply(frame('touchStart',p(2147483647)));
+ await touch.apply(frame('touchStart',p(2147483647),p(101)));
+ await touch.apply(frame('touchMove',p(101),p(2147483647)));
+ await touch.apply(frame('touchEnd',p(101)));
+ await touch.apply(frame('touchStart',p(101),p(102)));
+ await touch.reset();
+ await touch.apply(frame('touchStart',p(500)));
+ await touch.apply(frame('touchEnd'));
+ await touch.apply(frame('touchStart',p(501)));
+ assert.deepEqual(seen.map(v=>v.touchPoints.map(p=>p.id)),[[0],[1],[1,0],[0],[0],[],[0],[],[0]]);
+});
+
+test('native slots reset after an accepted press with failed ACK or failed cancel',async()=>{
+ let fail=true;const seen=[];
+ const port={async sendCommand(method,input){if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{scale:1}};seen.push(input);if(fail)throw Error('lost ack');}};
+ const touch=createTouchInput(createWidgetTouchDispatcher(port,()=>1));
+ await assert.rejects(touch.apply(frame('touchStart',p(101))),/lost ack/);
+ fail=false;await touch.apply(frame('touchStart',p(102)));
+ assert.deepEqual(seen.map(v=>[v.type,v.touchPoints.map(p=>p.id)]),[['touchStart',[0]],['touchCancel',[]],['touchStart',[0]]]);
+});
+
 test('rendered touch locations survive changing native pinch and browser zoom',async()=>{
  let pinch=1,zoom=1;const seen=[],queries=[];
  const port={async sendCommand(method,input){queries.push(method);if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{scale:pinch,pageX:700,pageY:900,offsetX:140,offsetY:80}};seen.push(input);}};

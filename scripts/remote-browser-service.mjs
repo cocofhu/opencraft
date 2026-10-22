@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { access, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
+import nativeDiagnostics from './remote-browser/diagnostics.cjs';
 
 const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'ime', 'copy', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
@@ -194,10 +195,14 @@ export class RemoteBrowserService {
           { env, stdio: ['ignore', 'ignore', 'pipe', 'ipc'], serialization: 'json' });
       }
       this.child = child;
+      const diagnostics = nativeDiagnostics.createNativeDiagnostics();
+      let failure;
       let failStartup;
       const retire = event => {
         if (this.child !== child) return;
         this.child = null; this.starting = null;
+        failure = { event, native: diagnostics.snapshot() };
+        this.lastBrowserFailure = failure;
         if (!this.closed) this.diagnose(event);
         failStartup?.(new Error('Browser process exited during startup'));
         for (const request of this.requests.values()) { clearTimeout(request.timer); request.reject(new Error('Browser process exited')); }
@@ -209,7 +214,11 @@ export class RemoteBrowserService {
         if (!isolated && child.connected) child.disconnect();
       };
       child.on('error', () => retire('process_error'));
-      child.on('exit', () => retire('process_exited'));
+      child.on('exit', (code, signal) => {
+        retire('process_exited');
+        // A pipe error can retire the owner before the OS exit notification.
+        if (failure) { failure.code = code; failure.signal = signal; }
+      });
       // A write callback does not consume Writable's separate error event.
       // Keep handlers after bootstrap/close so late EPIPE cannot kill Gateway.
       for (const stream of [child.stdin, child.stdout, child.stderr]) stream?.on('error', () => retire('transport_error'));
@@ -219,8 +228,14 @@ export class RemoteBrowserService {
         lines.on('error', () => retire('transport_error'));
         lines.on('line', line => { if (this.child !== child) return; try { child.emit('message', JSON.parse(line)); } catch {} });
       }
-      // Do not log visited URLs, page content, cookies or arbitrary Chromium stderr.
-      child.stderr?.resume();
+      child.stderr?.on('data', chunk => {
+        diagnostics.consume(chunk);
+        if (failure) failure.native = diagnostics.snapshot();
+      });
+      child.stderr?.on('end', () => {
+        diagnostics.finish();
+        if (failure) failure.native = diagnostics.snapshot();
+      });
       await new Promise((resolve, reject) => {
         let settled = false;
         const finish = error => { if (settled) return; settled = true; clearTimeout(timer); child.off('message', ready); error ? reject(error) : resolve(); };

@@ -1662,3 +1662,9 @@ and shutdown. This contains browser failures within their resource owner; it
 does not establish the cause of a native Electron abort or promise DOM recovery
 after that abort. Diagnostics expose only owned event enums and counters, never
 visited URLs, page text or arbitrary Chromium stderr.
+
+### Native touch identities and private crash diagnostics
+
+Wire touch IDs are arbitrary validated identities, not Chromium pointer slots. The widget CDP adapter allocates at most ten stable slots, commits allocation/release only after native ACK, preserves held fingers across partial release/reorder, and clears slots after cancellation even when cancellation fails. Browser-provided pointer IDs never reach VelocityTracker directly.
+
+The Gateway consumes the browser stderr pipe with a bounded private in-memory parser. It retains only the most recent fatal code location, up to 24 argument-free stack symbols and counters, associated with the retired process and its exit code/signal. `lastBrowserFailure` is process-owner memory, not a client endpoint: no raw stderr/messages, console forwarding, file/checkpoint writes or page socket disclosure. Replacement workers cannot be retired by old pipe events. This evidence does not establish a cause for an unobserved native abort.
