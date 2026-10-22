@@ -1095,7 +1095,10 @@ labels. Extraction includes the owning public built-in and voice plugins; employ
 identity, creator grouping and participant catalogs and their validation belong
 to the downstream adapter. Trusted product composition adds non-conflicting
 messages to the existing application catalogs; it cannot replace core messages
-or add language choices. All consumers retain the same application Intl runtime
+or add language choices. The build entry replacement covers both the main bootstrap
+and the locale catalog importer, so activation and translation consume the same
+trusted composition rather than silently using separate extension lists.
+All consumers retain the same application Intl runtime
 and activation owner. Anonymous account labels use provider-owned message
 descriptors rather than provider-ID conditionals in the Shell.
 English and Simplified Chinese cover these menu labels and section headings.
