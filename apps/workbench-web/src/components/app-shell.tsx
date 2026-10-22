@@ -960,6 +960,7 @@ export function AppShell({
               >
                 <motion.div
                   className="main-content-frame"
+                  data-app-shell-content-plane="main"
                   style={{ width: mainFrameWidth }}
                   data-app-shell-thread-edge-divider={threadEdgeDivider}
                 >

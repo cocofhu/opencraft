@@ -3167,3 +3167,17 @@ When the Host advertises version 1, the client cancels its fallback timer and
 leaves retry ownership with the Host.
 
 The Electron Main and Preload bundled together use `opencraft:get-window-fullscreen`, `opencraft:window-fullscreen-changed` and `opencraft:set-window-appearance` for internal window projection. The renderer methods, payloads, admission checks and window lifecycle are unchanged; these channel names do not alter persisted identities or the AppHost transport.
+
+### Shell content-plane shape ownership (2026-10-22)
+
+The theme supplies `contentCornerRadius`; Shell projects it through the shared
+`data-app-shell-content-plane` role on both the main reading Frame and the
+RightPanel body. A conversation, browser, file viewer or empty launcher does not
+choose its own pane shape. The tab strip/header stays outside that content plane.
+Existing overflow on each plane clips child paint and pointer hit testing at the
+same rounded border, and the preview upper-lip shadow follows that border.
+
+A content plane is distinct from the animated reveal aperture and the tool's
+layout viewport. Its shape never changes the viewport dimensions, surface
+identity, scroll owner or control lease. Main/preview and regular/maximized modes
+consume the same theme token; themes without that capability keep zero radius.
