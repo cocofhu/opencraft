@@ -2489,3 +2489,8 @@ the input method owns Escape: prevent Radix dismissal at onEscapeKeyDown, before
 the document capture listener can close the dialog and unmount its query.
 The original conversation-search regression drives Chromium composition and
 ordinary Escape, retaining query, input identity and focus on desktop and touch.
+
+The complete search fixture supplies the same QueryClientProvider required by
+the AppShell update notice. Touch navigation targets the persistent sidebar
+action owner, rather than the desktop-only stationary placement marker.
+These fixture boundaries retain all original native interaction assertions.
