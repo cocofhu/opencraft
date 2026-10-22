@@ -67,6 +67,8 @@ export const BranchIcon = glyph("branch", <><circle cx="6.5" cy="5.5" r="2" /><c
 export const ForkIcon = glyph("fork", <><circle cx="6" cy="5.5" r="2" /><circle cx="18" cy="5.5" r="2" /><circle cx="12" cy="18.5" r="2" /><path d="M6 7.5V9a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V7.5M12 12v4.5" /></>);
 export const EyeIcon = glyph("eye", <><path d="M3.5 12S6.5 6.5 12 6.5s8.5 5.5 8.5 5.5-3 5.5-8.5 5.5S3.5 12 3.5 12Z" /><circle cx="12" cy="12" r="2.75" /></>);
 export const EyeOffIcon = glyph("eye-off", <path d="M9 7c4.5-1.3 8.4.8 11.5 5-.8 1.2-1.7 2.2-2.7 3M15 17c-4.5 1.3-8.4-.8-11.5-5 .8-1.2 1.7-2.2 2.7-3M4 4l16 16" />);
+export const PointerIcon = glyph("pointer", <path d="m5 3.5 14 9-6.5 1.5-3 6.5L5 3.5Z" />);
+export const PointerOffIcon = glyph("pointer-off", <path d="m9 6 10 6.5-4 1M6.5 10l3 10.5 3-6.5M3.5 3.5l17 17" />);
 export const KeyboardIcon = glyph("keyboard", <><rect x="3.5" y="5.5" width="17" height="13" rx="2.75" /><path d="M7 9h.1m3.2 0h.1m3.2 0h.1m3.2 0h.1M7 12h.1m3.2 0h.1m3.2 0h.1m3.2 0h.1M8 15.5h8" /></>);
 export const AudioIcon = glyph("audio", <path d="M4 10v4m4-7v10m4-13v16m4-13v10m4-7v4" />);
 export const CpuIcon = glyph("cpu", <><rect x="6" y="6" width="12" height="12" rx="2.75" /><rect x="9.5" y="9.5" width="5" height="5" rx="1" /><path d="M9.5 3.5V6m5-2.5V6m-5 12v2.5m5-2.5v2.5M3.5 9.5H6m-2.5 5H6m12-5h2.5m-2.5 5h2.5" /></>);

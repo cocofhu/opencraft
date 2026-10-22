@@ -1719,3 +1719,13 @@ are converted using current pinch scale and browser zoom; wheel deltas retain
 their physical magnitude and convert from Electron to web direction. Native
 modifier semantics, sandboxing, page leases and memory-only stderr remain intact.
 No public debugger endpoint or arbitrary input command surface is added.
+
+### Browser toolbar input action artwork (2026-10-22)
+
+The input-control and keyboard actions use the shared hand-drawn SVG family in
+`design-system-web/action-icons` and the existing toolbar icon slots. Control uses
+a pointer to take control and a crossed pointer to release it; keyboard uses the
+shared keyboard artwork. Localized accessible names and hint titles remain on
+the buttons. Unavailable controls stay absent, keyboard readiness still determines
+disabled state, and actions still call the existing surface owner without changing
+lease, focus or keyboard policy.

@@ -1880,3 +1880,7 @@ and window resizing remain live; parking preserves the normal viewport.
   element, attributes and keyboard/popup behavior; multiple/size lists never gain
   a dropdown arrow. Numeric stepper paint is opt-in where hidden spinners already
   serve another control. Forced-colors native paint remains intentional.
+
+- Browser toolbar input-control and keyboard actions use shared self-drawn SVG
+  icon slots with localized accessible names and hint titles. State and actions
+  remain owned by BrowserSurfaceHost; changing artwork never requests control.
