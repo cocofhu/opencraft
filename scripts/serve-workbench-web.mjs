@@ -360,6 +360,7 @@ export async function createWorkbenchWebServer({
   speechService = null,
   /** @type {import('@opencraft/app-host-server').WorkbenchRequestIdentity | null} */
   identityService = null,
+  localAccess = null,
   accessService = null,
   actorService = null,
   actorCollaborationService = null,
@@ -378,8 +379,12 @@ export async function createWorkbenchWebServer({
   const staticRoot = await realpath(resolve(root || join(repositoryRoot, "apps/workbench-web/dist")));
   if (sshServerDescriptors.length && !loopbackOnly && !sshManagement?.options.publicOrigin && !sshManagement?.options.publicAccess) throw new Error("SSH Server catalog requires a protected listener");
   const normalizedTarget = appServerTarget === null ? null : normalizeTarget(appServerTarget);
-  const sameOrigin = (request, requireOrigin) => allowedSameOriginRequest(request, requireOrigin, true)
-    || (!!accessService?.trustedOrigin(request) && (request.headers.origin === accessService.trustedOrigin(request) || (!requireOrigin && request.headers.origin === undefined)));
+  const sameOrigin = (request, requireOrigin) => {
+    const localOrigin = localAccess?.origin(request);
+    return (!!localOrigin && (!requireOrigin || request.headers.origin === localOrigin))
+      || allowedSameOriginRequest(request, requireOrigin, true)
+      || (!!accessService?.trustedOrigin(request) && (request.headers.origin === accessService.trustedOrigin(request) || (!requireOrigin && request.headers.origin === undefined)));
+  };
   const runtimeReports = [];
   const emitAppHostDiagnostic = diagnostic => {
     try { onAppHostDiagnostic({ serverProtocolVersion: APP_HOST_PROTOCOL_VERSION, ...diagnostic }); }
@@ -393,6 +398,7 @@ export async function createWorkbenchWebServer({
         return;
       }
       const url = new URL(request.url || "/", "http://vela.invalid");
+      const local = !!localAccess?.origin(request);
       // Login/callback endpoints must remain reachable before instance admission.
       if (url.pathname === '/__opencraft_auth' || url.pathname.startsWith('/__opencraft_auth/')) {
         if (authService && await authService.handle(request, response)) return;
@@ -413,7 +419,7 @@ export async function createWorkbenchWebServer({
       }
       // Health remains available to installation probes; no application data bypasses admission.
       if (!["/health", "/__opencraft_health"].includes(url.pathname)) {
-        const status = authService?.invalidSession(request) ? 401 : accessService?.admissionStatus(request) ?? identityService?.admissionStatus(request) ?? 204;
+        const status = local ? 204 : authService?.invalidSession(request) ? 401 : accessService?.admissionStatus(request) ?? identityService?.admissionStatus(request) ?? 204;
         if (status !== 204) {
           response.setHeader("cache-control", "private, no-store");
           if (request.headers.accept?.includes("text/html")) {
@@ -426,6 +432,7 @@ export async function createWorkbenchWebServer({
       if (!["/health", "/__opencraft_health"].includes(url.pathname) && actorService?.legacyAdmissionStatus(request) === 403) {
         sendJson(response, 403, { error: 'actor_access_denied' }); return;
       }
+      if (local && url.pathname === '/__opencraft_access/admission' && request.method === 'GET') { response.writeHead(204, { 'cache-control': 'no-store' }); response.end(); return; }
       if (accessService) {
         const identity = accessService.authenticate(request);
         if (identity) { const unwatch = accessService.watch(identity, () => response.destroy()); response.once('close', unwatch); }
@@ -447,7 +454,7 @@ export async function createWorkbenchWebServer({
         }
         await speechService.handle(request, response, (req, mutation) => {
           if (!loopbackOnly && !speechPublicAccess) return false;
-          const origin = accessService?.trustedOrigin(req) ?? requestOrigin(req, loopbackOnly);
+          const origin = localAccess?.origin(req) ?? accessService?.trustedOrigin(req) ?? requestOrigin(req, loopbackOnly);
           if (origin === null) return false;
           // An HTTPS reverse proxy may retain the public Host; never trust forwarded Origin headers.
           const supplied = req.headers.origin;
@@ -641,9 +648,10 @@ export async function createWorkbenchWebServer({
     }
     let admissionStatus, submissionContext, principal;
     try {
-      admissionStatus = authService?.invalidSession(request) ? 401 : accessService?.admissionStatus(request) ?? identityService?.admissionStatus(request) ?? 204;
-      submissionContext = identityService ? identityService.connectionContext(request) : { sender: null };
-      principal = accessService?.authenticate(request);
+      const local = !!localAccess?.origin(request);
+      admissionStatus = local ? 204 : authService?.invalidSession(request) ? 401 : accessService?.admissionStatus(request) ?? identityService?.admissionStatus(request) ?? 204;
+      submissionContext = local ? { sender: null } : identityService ? identityService.connectionContext(request) : { sender: null };
+      principal = local ? null : accessService?.authenticate(request);
       if (submissionContext !== null && (typeof submissionContext !== 'object'
         || (submissionContext.validUntil !== undefined && !Number.isFinite(submissionContext.validUntil)))) throw new Error("Invalid connection identity context");
     } catch {
