@@ -438,14 +438,51 @@ content; a leftward drag dismisses it, following the iOS direction convention.
 The Shell owns one progress MotionValue for direct manipulation, reversal and
 settling. Short slow gestures return to the starting intent; distance or a
 horizontal flick commits. Cancellation, multitouch and resize return to the
-starting intent. Vertical scrolling, editors, horizontal scroll areas, selection,
-menus and dialogs keep their own input; the outer 24px remains reserved for
+starting intent. Vertical scrolling, editors, exclusive gesture regions,
+selection, menus and dialogs keep their own input; the outer 24px remains reserved for
 browser/OS gestures. Ordinary buttons, links and clickable content (including
 reasoning/tool disclosures and image previews) do not own horizontal input merely
 because they are clickable. They may start a sidebar gesture; taps and small
 unrecognized movement still activate the original control. A recognized swipe
 suppresses its synthesized click without blocking the next deliberate tap.
-An image lightbox or a genuinely overflowing horizontal gallery retains its own input.
+The enabled mobile Shell discovers horizontal scrollports from the composed
+contact path using actual overflow and scroll extent. Reading content participates
+by default: Markdown, command output, raw details, future and dynamically mounted
+readers need no registration or navigation handlers. Only true input owners opt
+out via their semantics or `data-sidebar-gesture="ignore"`: editors, sliders,
+scrollbar controls, draggable controls, interactive terminals, media/canvas/iframes
+and foreground layers. Before committing, nested reading chooses the innermost
+scrollport with capacity in the requested direction; an exhausted child does not
+hide a readable parent. After committing, its movement owner stays fixed.
+The existing touch controller arbitrates one contact:
+`pending → sidebar | content | native`. Ambiguous diagonals remain pending;
+committed ownership never changes on reversal or later acceleration. A competing
+sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
+horizontal/vertical ratio 1.8 within 100ms of meaningful movement; speed is
+averaged over the last 80ms. Stationary contact time does not consume this window.
+A prompt first sample may establish fast intent; a low initial estimate cannot
+establish reading because event delivery may include contact latency. Later speed
+uses samples beginning at meaningful movement, excluding touchstart latency.
+A rested first sample has unknown speed until the next timed segment. Passing
+28px alone never commits reading: a non-winning contact keeps the observation
+window and commits to content at 100ms of movement or on release. Pending, direction-locked horizontal contacts in discovered
+scrollports cancel their first cancelable move to prevent native takeover without moving either surface; vertical and
+ambiguous input remain available to the browser. A one-sample horizontal contact
+finishes as local reading on release rather than disappearing or synthesizing a
+click. A scrollport already
+at the requested boundary can yield to the ordinary sidebar threshold. These are
+initial tuning values, not physical-device or universal platform constants.
+The Shell does not impose ancestor `touch-action` restrictions or maintain a
+second DOM registration cache. Native vertical scrolling, pinch zoom, wheel and
+keyboard remain available, including inside exclusive descendants of reading
+scrollports. The capture listener drives `scrollLeft` only after content wins;
+sidebar wins never write content offsets. A non-cancelable stream remains with
+the browser instead of being seized or frozen. Desktop/standalone Chat stays native.
+Content momentum is bounded, respects reduced motion and is revoked by a new
+contact, modal, resize or unmount. Foreground layers, editors and explicit ignore
+regions retain native behavior; the outer 24px never acquires the sidebar.
+An image lightbox retains its own input. An ordinary horizontal gallery is reading
+content; a gallery with custom gestures declares an exclusive owner at its boundary.
 The entire foreground input layer owns the sequence, including image-preview
 letterboxing/scrims and controls. Shell admission resolves the composed event
 path and its presentation DOM root, so native dialogs and Shadow DOM portals
