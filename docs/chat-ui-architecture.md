@@ -2650,11 +2650,75 @@ allocations do not create a new input transaction. Changed request IDs, turns or
 input definitions create a fresh draft. A successful response releases only its
 own checkpoint, so a late completion cannot erase a newer request's input.
 
-These checkpoints contain input only, live in Application memory and end with
-that Application. They neither keep an obsolete request actionable nor authorize
+These checkpoints contain input and read-only parameter disclosure state, live in
+Application memory and end with that Application. They neither keep an obsolete request actionable nor authorize
 or replay a response; the active Host request remains the response authority.
 The temporarily removed DOM and its focus are not persisted across a connection
-gap. Setup/onboarding pickers keep their existing local state contract.
+gap. Supported setup pickers follow the input contract described below.
+
+Pending MCP tool approvals retain expanded parameter values and Show more state
+through a connection gap. A different request, turn or parameter definition starts
+a fresh review. The permission menu, permission choices and execution state are
+not checkpointed; recovery never grants permission or sends a response.
+
+### MCP App widget state continuity
+
+The inline App surface sits outside the raw tool-result disclosure. Collapsing raw
+details does not hide or dispose the App. Existing visibility, background and
+manual Pause owners still control its resource lifetime.
+
+MCP App widget data explicitly saved through `setWidgetState` lives in Application
+memory, separate from an iframe or virtualized Turn row. The active App owner
+selects the state by Host, Thread, source block, server, resource URI and call ID;
+replacing the connection lease preserves that data but never restores its authority.
+The bridge retains its existing 32 KiB JSON limit and lease/disposal checks.
+Resource access is reacquired normally. Offscreen/background frames still dispose;
+ordinary DOM, focus, model context and pending operations are not checkpointed.
+The App restores its own controls from the saved data; an Application reload ends
+the checkpoint. Display-name changes do not change the App identity.
+
+Manual Pause is a separate host-owned view choice in the same App scope. Row
+recycling and connection replacement keep the App paused, without loading its
+resource or mounting its iframe. Only an explicit Open resumes it. App-authored
+widget JSON cannot change that choice. A different App identity starts with its
+own choice, and an Application reload ends this in-memory preference.
+
+A different server, resource URI, call or source block starts a new document. The
+old iframe and bridge dispose before loading its replacement; resource, error,
+token and navigation-load state belong to that document alone. Late resource
+results cannot revive it. A display-name update keeps the existing document.
+Without an owner-provided store, the surface keeps separate local cells by port
+key, source block, server, resource URI and call ID. Saved JSON and manual Pause
+cannot pass to a different App; returning to the original identity in that surface
+retains its own cell. These fallback cells end when the surface unmounts, and a
+different port key starts fresh. Cross-row or connection continuity requires the
+owner-provided Application store.
+
+### MCP approval keyboard ownership
+
+MCP tool approvals preserve the focused control's native Enter action: Deny
+declines, scoped permission menu entries retain their chosen scope, and parameter
+disclosures only expand or collapse. The card's window shortcut ignores already
+consumed events and editable fields. Unfocused Enter still allows once and Escape
+still declines; keyboard focus never silently changes the selected permission.
+
+Ordinary command and permission approval shortcuts also ignore already consumed
+keyboard events. Escape used to dismiss a foreground menu or dialog must not
+answer a background approval. The focused controls, permanent-approval confirmation
+and unconsumed body shortcuts retain their existing actions and scope.
+
+### Setup interaction drafts
+
+Supported setup role/task/context requests use the same pending-input checkpoint
+as questions and forms. Keep unsubmitted role choices, the first-task choice or
+freeform text, and the context search and Browse state through a browser connection
+gap. A different request, turn or setup definition starts fresh. Explicit successful
+responses release their own checkpoint; inputs never cause an automatic response.
+
+The context catalog, connected-source selection, authentication, installation and
+in-flight connection status keep their existing owner. A search checkpoint grants
+no source access. Dynamic-tool compatibility support does not imply that a product
+registers these tools by default; validate the actual tool registration separately.
 
 运行中的普通命令在 `STEPS_COMMANDS` 的 Activity 标题保留具体原命令；分类器返回一个或多个 `unknown` action 仍属于普通命令，不能因 action 列表非空而退回泛化标题。空白命令回退 `Running command`，`STEPS_PROSE` 保持简洁标题；read/search/list 继续消费各自语义呈现，shell 包装、执行事实与复制内容不在标题层改写。
 

@@ -121,6 +121,7 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
   useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
       // Focused controls own Enter. The shortcut must not turn a keyboard
@@ -450,8 +451,7 @@ function SetupStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setu
 
 function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selectedRoles, setSelectedRoles] = useState<readonly string[]>([]);
-  useEffect(() => setSelectedRoles([]), [block.requestId]);
+  const [selectedRoles, setSelectedRoles] = useInteractionDraftState<readonly string[]>("setupRoles", []);
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-role",
     action,
@@ -473,9 +473,8 @@ function SetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, { type:
 
 function SetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   const submission = useInteractionSubmission(block.requestId);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [other, setOther] = useState("");
-  useEffect(() => { setSelected(null); setOther(""); }, [block.requestId]);
+  const [selected, setSelected] = useInteractionDraftState<string | null>("setupTask", null);
+  const [other, setOther] = useInteractionDraftState("setupTaskOther", "");
   const answer = selected ?? other.trim();
   const reply = (action: "submit" | "skip" | "dismiss") => void submission.submit({
     type: "submit-setup-task",
@@ -497,12 +496,12 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   const submission = useInteractionSubmission(block.requestId);
   const catalog = useContext(SetupContextCatalog);
   const [selected, setSelected] = useState<readonly string[]>(() => catalog.sources.filter((source) => source.connected).map((source) => source.id));
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useInteractionDraftState("setupContextSearch", "");
+  const [browseOpen, setBrowseOpen] = useInteractionDraftState("setupContextBrowseOpen", false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     setSelected(catalog.sources.filter((source) => source.connected).map((source) => source.id));
-    setSearch("");
     setConnecting(null);
     setError(null);
   }, [block.requestId, catalog.sources]);
@@ -536,7 +535,7 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   return <section className="thread-interaction-card thread-setup-context" data-interaction-kind="setup-context" data-state={block.state}>
     <header><strong>Where can we pull context from?</strong><button aria-label="Dismiss" className="thread-option-picker__dismiss" disabled={submission.disabled} onClick={() => reply("dismiss")} type="button"><X size={12} /></button></header>
     <div className="thread-setup-context__sources">{sourceRows(catalog.sources.slice(0, 3))}</div>
-    <details className="thread-setup-context__browse"><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
+    <details className="thread-setup-context__browse" onToggle={(event) => setBrowseOpen(event.currentTarget.open)} open={browseOpen}><summary>Browse all<Search aria-hidden="true" size={12} /></summary><div><input aria-label="Search apps and plugins" onChange={(event) => setSearch(event.currentTarget.value)} placeholder="Search apps and plugins" value={search} />{catalog.loading ? <small>Loading apps…</small> : filtered.length > 0 ? sourceRows(filtered) : <small>No apps found</small>}</div></details>
     {error ? <small className="thread-interaction-card__error" role="alert">{error}</small> : null}
     <footer><button className="is-ghost" disabled={submission.disabled} onClick={() => reply("skip")} type="button">Skip</button><button className="is-primary" disabled={submission.disabled || catalog.loading} onClick={() => reply("continue")} type="button"><span>Continue</span><kbd>↵</kbd></button></footer>
   </section>;
@@ -545,8 +544,8 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
 function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "elicitation" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const approval = block.toolApproval;
-  const [showAll, setShowAll] = useState(false);
-  const [expanded, setExpanded] = useState<Readonly<Record<string, boolean>>>({});
+  const [showAll, setShowAll] = useInteractionDraftState("reviewShowAll", false);
+  const [expanded, setExpanded] = useInteractionDraftState<Readonly<Record<string, boolean>>>("reviewExpanded", {});
   const pending = block.state === "pending";
   const connectorName = approval?.connectorName ?? block.serverName ?? "Connector";
   const toolName = approval?.toolTitle ?? approval?.toolName;
@@ -560,14 +559,13 @@ function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type:
     : Object.entries(approval?.toolParams ?? {}).map(([name, value]) => ({ name, displayName: name, value }));
   const visibleEntries = showAll ? entries : entries.slice(0, 4);
   useEffect(() => {
-    setShowAll(false);
-    setExpanded({});
-  }, [block.requestId]);
-  useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
+      // Buttons and disclosure controls own their native Enter activation.
+      if (event.key === "Enter" && target instanceof HTMLElement && target.closest("button, a, summary, [role='menuitem']") !== null) return;
       if (event.key === "Enter") {
         event.preventDefault();
         void submission.submit({ type: "accept-elicitation" });

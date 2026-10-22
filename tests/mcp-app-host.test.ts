@@ -3,7 +3,7 @@ import test from "node:test";
 import { createAppBridge } from "../apps/workbench-web/src/mcp-apps/bridge";
 import { readAppResource, appCsp } from "../apps/workbench-web/src/mcp-apps/policy";
 import { createMcpAppOwner } from "../apps/workbench-web/src/mcp-apps/owner";
-import type { McpAppPort } from "../apps/workbench-web/src/mcp-apps/contract";
+import type { McpAppPort, McpAppWidgetStateStore } from "../apps/workbench-web/src/mcp-apps/contract";
 import { MCP_APP_RESOURCE_META } from "../packages/appserver-protocol/src/mcp-apps";
 
 test("same-name published cards select their own tools and exact URI metadata", async () => {
@@ -25,6 +25,47 @@ test("same-name published cards select their own tools and exact URI metadata", 
 });
 
 const identity = { server: "apps", uri: "ui://counter/app.html", callId: "call1", name: "Counter" };
+test("saved widget data survives owner replacement, isolates App identities and rejects stale writes", async () => {
+  const entries: McpAppWidgetStateStore = new Map();
+  const calls: string[] = [], replies: any[] = [];
+  let current = true;
+  const owner = (scope: string, key: string, assertCurrent = () => {}) => createMcpAppOwner({
+    key, threadId: "thread", widgetStateStore: { scope, entries }, assertCurrent,
+    request: (async (method: string) => { calls.push(method); throw Error("Unexpected RPC"); }) as any,
+    sendMessage: async () => { calls.push("message"); }, openLink() { calls.push("link"); },
+  });
+  const first = owner("host:thread", "lease1", () => { if (!current) throw Error("stale"); });
+  const state = first.widgetState!("item", identity);
+  const bridge = createAppBridge({ port: first, identity, contextId: "item", hostContext: () => ({}),
+    input: () => ({}), output: () => ({}), onHeight() {}, onWidgetState: value => { state.current = value; } });
+  const save = (id: number, value: unknown) => bridge.receive({ jsonrpc: "2.0", id, method: "opencraft/widget-state", params: { state: value } }, reply => replies.push(reply), true);
+  const saved = { note: "Keep my note 你好", pausedByUser: false };
+  state.pausedByUser = true;
+  await save(1, saved); saved.note = "mutated caller object";
+  assert.deepEqual(state.current, { note: "Keep my note 你好", pausedByUser: false });
+  await save(2, { note: "x".repeat(32769) });
+  assert.ok(replies.at(-1).error);
+  current = false; await save(3, { note: "late overwrite" });
+  assert.match(replies.at(-1).error.message, /stale/);
+  assert.throws(() => first.widgetState!("item", identity), /stale/);
+  const replacement = owner("host:thread", "lease2");
+  assert.equal(replacement.widgetState!("item", identity), state);
+  assert.equal(state.pausedByUser, true, "App-authored JSON cannot change the host pause choice");
+  assert.equal(replacement.widgetState!("item", { ...identity, name: "Renamed display" }), state);
+  for (const [scope, item, changed] of [
+    ["other-host:thread", "item", identity], ["host:other-thread", "item", identity],
+    ["host:thread", "other-item", identity], ["host:thread", "item", { ...identity, callId: "call2" }],
+    ["host:thread", "item", { ...identity, uri: "ui://other/app.html" }],
+    ["host:thread", "item", { ...identity, server: "other" }],
+  ] as const) {
+    const fresh = owner(scope, "lease3").widgetState!(item, changed);
+    assert.equal(fresh.current, null);
+    assert.notEqual(fresh.pausedByUser, true, "A different App does not inherit manual pause");
+  }
+  assert.deepEqual(state.current, { note: "Keep my note 你好", pausedByUser: false });
+  assert.deepEqual(calls, []);
+  bridge.dispose();
+});
 test("cached built-in cards share one canonical history read; resources retry once, tool calls never retry", async () => {
   let hydrated = false, hydrations = 0, reads = 0, writes = 0;
   const owner = createMcpAppOwner({ key: "host:thread:1", threadId: "thread", assertCurrent() {},
