@@ -2366,6 +2366,10 @@ not checkpointed; recovery never grants permission or sends a response.
 
 ### MCP App widget state continuity
 
+The inline App surface sits outside the raw tool-result disclosure. Collapsing raw
+details does not hide or dispose the App. Existing visibility, background and
+manual Pause owners still control its resource lifetime.
+
 MCP App widget data explicitly saved through `setWidgetState` lives in Application
 memory, separate from an iframe or virtualized Turn row. The active App owner
 selects the state by Host, Thread, source block, server, resource URI and call ID;
