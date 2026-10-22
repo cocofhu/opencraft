@@ -14,10 +14,11 @@ export function MessageTimestamp({ sentAtMs, assistant = false }: {
   // Compare calendar days rather than elapsed hours, including across DST.
   const dayOffset = (Date.UTC(sent.getFullYear(), sent.getMonth(), sent.getDate())
     - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000;
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const options: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZone: timeZone === "Etc/Unknown" ? undefined : timeZone,
   };
   if (dayOffset < 0 && dayOffset > -7) options.weekday = "long";
   else if (dayOffset !== 0) {
