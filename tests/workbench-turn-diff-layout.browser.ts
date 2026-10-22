@@ -103,6 +103,35 @@ try {
     results.push({ width, theme, files: gitCases.length, countsIntact: true, fullPathReview: true });
     await page.close();
   }
+  for (const width of [390, 1200]) for (const theme of ["light", "dark"]) for (const gitCase of ["operators", "all"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1200 }, hasTouch: width === 390, reducedMotion: "reduce" });
+    const errors: string[] = [];
+    page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&gitCase=${gitCase}&review=1`);
+    const activate = async (button: any) => width === 390 ? button.tap() : button.click();
+    await activate(page.locator(".thread-turn-diff").getByRole("button", { name: "View changes", exact: true }));
+    const dialog = page.getByRole("dialog", { name: "Review changed files" });
+    await dialog.waitFor();
+    assert.equal(await dialog.locator('[data-diff-line="context"]').count(), 0, "actual Git fixtures contain no context lines; metadata and separators get no fabricated numbers");
+    if (gitCase === "all") await activate(dialog.getByRole("button", { name: "operators.cpp", exact: true }));
+    const changed = dialog.locator('[data-diff-line="deletion"], [data-diff-line="addition"]');
+    assert.deepEqual(await changed.evaluateAll((nodes: Element[]) => nodes.map(node => ({
+      kind: (node as HTMLElement).dataset.diffLine,
+      cells: [...node.querySelectorAll('[role="cell"]')].map(cell => cell.textContent),
+    }))), [
+      { kind: "deletion", cells: ["1", "", "−", "--counter;"] },
+      { kind: "deletion", cells: ["2", "", "−", "old"] },
+      { kind: "addition", cells: ["", "1", "+", "++counter;"] },
+      { kind: "addition", cells: ["", "2", "+", "new"] },
+    ]);
+    assert.deepEqual(await changed.locator('[data-diff-changed="true"]').allTextContents(), ["--", "old", "++", "new"]);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.deepEqual(errors, []);
+    results.push({ width, theme, files: gitCase === "all" ? gitCases.length : 1, countsIntact: true, fullPathReview: true });
+    await page.close();
+  }
   console.log(JSON.stringify({ passed: results }));
 } finally {
   await browser?.close();
