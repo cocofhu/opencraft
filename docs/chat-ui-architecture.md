@@ -2376,7 +2376,6 @@ ordinary DOM, focus, model context and pending operations are not checkpointed.
 The App restores its own controls from the saved data; an Application reload ends
 the checkpoint. Display-name changes do not change the App identity.
 
-
 ### MCP approval keyboard ownership
 
 MCP tool approvals preserve the focused control's native Enter action: Deny
