@@ -1,5 +1,6 @@
-import { createObservabilityIngress } from "./observability-ingress.mjs";
 #!/usr/bin/env node
+
+import { createObservabilityIngress } from "./observability-ingress.mjs";
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
