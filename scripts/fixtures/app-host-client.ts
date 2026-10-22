@@ -18,7 +18,7 @@ export async function connectFixtureAppHost(page: Page) {
       } else if (message.type === "ready") outer.get("ready")?.resolve();
     }; port.start();
     const ready = new Promise<void>((resolve, reject) => outer.set("ready", { resolve, reject }));
-    window.postMessage({ type: "vela:connect-app-host", protocolVersion: 2, rendererId }, location.origin, [channel.port2]);
+    window.postMessage({ type: "opencraft:connect-app-host", protocolVersion: 2, rendererId }, location.origin, [channel.port2]);
     port.postMessage({ type: "hello", protocolVersion: 2, rendererId }); await ready;
     const envelope = (body: any) => new Promise<any>((resolve, reject) => {
       const requestId = "diagnostic-envelope:" + ++sequence; outer.set(requestId, { resolve, reject }); port.postMessage({ ...body, requestId });

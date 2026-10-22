@@ -381,7 +381,7 @@ export function createWorkbenchWebConfig(
     resolve: {
       alias: [
         { find: /^\.\/runtime\/client-product-entry$/, replacement: clientProductEntry },
-        { find: /^\.\/runtime\/server-product-extensions$/, replacement: serverProductEntry },
+        { find: /^\.{1,2}\/runtime\/server-product-extensions$/, replacement: serverProductEntry },
         { find: /^\.\/fonts$/, replacement: path.resolve(import.meta.dirname, "src", isElectronRenderer || isEmbeddedWorkbenchBuild ? "fonts.desktop.ts" : "fonts.ts") },
       ],
       // Mermaid keeps KaTeX optional, but when a diagram uses math it should

@@ -31,7 +31,7 @@ async function setup(t: test.TestContext) {
       default: throw new Error(`Unexpected method ${method}`);
     }
   };
-  const create = () => { const service = new SshAttachmentStagingService({ directory: state, namespace: "a".repeat(64), files, request: rpc, isRetained: () => faults.retained }); assert.equal(service.initialize(home), true); return service; };
+  const create = (codexHome = home) => { const service = new SshAttachmentStagingService({ directory: state, namespace: "a".repeat(64), files, request: rpc, isRetained: () => faults.retained }); assert.equal(service.initialize(codexHome), true); return service; };
   const service = create();
   t.after(async () => { await service.close(); await rm(root, { force: true, recursive: true }); });
   return { root, state, home, calls, faults, files, service, create };
@@ -148,4 +148,24 @@ test("chunked files above the old limit reach SSH storage through SFTP with exac
   assert.equal(calls.filter(call => call === "sftp:put").length, 1);
   assert.equal(calls.includes("fs/writeFile"), false);
   assert.deepEqual(await service.referenceForHostPath("录屏.mp4", response.ref.location.path), response.ref);
+});
+
+test("stale or corrupt unrelated manifests cannot block new uploads; direct access still rejects them", async t => {
+  const { service, state, home, create } = await setup(t);
+  const old = await service.stage(request("old-home"));
+  const oldPath = old.ref.location.kind === "host-file" ? old.ref.location.path : "";
+  const oldManifest = await readFile(join(state, "old-home.json"), "utf8");
+  const current = create(home + "-new");
+  t.after(() => current.close());
+  const result = await current.stage(request("fresh", Buffer.from("new bytes")));
+  assert.equal(result.ref.location.kind, "host-file");
+  if (result.ref.location.kind === "host-file") assert.equal((await readFile(result.ref.location.path)).toString(), "new bytes");
+  await writeFile(join(state, "corrupt.json"), "{invalid");
+  await current.stage(request("after-corrupt"));
+  await assert.rejects(current.stage(request("old-home")), /Invalid SSH attachment manifest/u);
+  await assert.rejects(current.remove("old-home"), /Invalid SSH attachment manifest/u);
+  await assert.rejects(current.remove("corrupt"), SyntaxError);
+  assert.equal(await readFile(join(state, "old-home.json"), "utf8"), oldManifest);
+  assert.equal(await readFile(join(state, "corrupt.json"), "utf8"), "{invalid");
+  assert.equal((await readFile(oldPath)).toString(), "hello");
 });

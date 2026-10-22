@@ -381,3 +381,36 @@ for (const accessMode of ["shared", "access-key"] as const) {
     } finally { controller.dispose(); }
   });
 }
+
+test("socket preflight renews an expired shared grant without discovery wake and coalesces concurrent recovery", async () => {
+  let authenticated = true, grants = 0;
+  const methods: string[] = [];
+  const controller = new SshConnectionsController(async (input, init) => {
+    methods.push(`${init?.method ?? "GET"} ${input}`);
+    if (init?.method === "POST") { grants++; authenticated = true; return json({ authenticated: true }); }
+    if (String(input).endsWith("/session")) return json({ available: true, authenticated, accessMode: "shared" });
+    return json(String(input).endsWith("/legacy-connections") ? [] : [row]);
+  });
+  try {
+    await controller.refresh();
+    authenticated = false; methods.length = 0;
+    await Promise.all([controller.prepareConnection(), controller.prepareConnection()]);
+    assert.equal(grants, 1);
+    assert.equal(controller.getSnapshot().authenticated, true);
+    assert.deepEqual(methods, ["GET /__opencraft_ssh/session", "POST /__opencraft_ssh/session", "GET /__opencraft_ssh/connections", "GET /__opencraft_ssh/legacy-connections"]);
+  } finally { controller.dispose(); }
+});
+
+test("socket preflight cannot admit locked access-key or failed shared renewal", async () => {
+  for (const accessMode of ["shared", "access-key"] as const) {
+    let grants = 0;
+    const controller = new SshConnectionsController(async (_input, init) => {
+      if (init?.method === "POST") { grants++; return json({ error: "unavailable" }, 503); }
+      return json({ available: true, authenticated: false, accessMode });
+    });
+    try {
+      await assert.rejects(controller.prepareConnection(), accessMode === "shared" ? /连接已失效/ : /解锁/);
+      assert.equal(grants, accessMode === "shared" ? 1 : 0);
+    } finally { controller.dispose(); }
+  }
+});

@@ -9,7 +9,7 @@
 | 资源 | 唯一 owner | 生命周期 |
 |---|---|---|
 | 原生 CLI、account-pool、OAuth、账户代理 | core | 网站/Headless 断开不终止原 turn |
-| Host queue、sender、企业身份、Bot、附件、私有 Tasks、pins 投影 | Headless 的 CodexEngineAdapter | 原生 transport 只提供帧，不绕过 overlay；实例关闭释放存储 |
+| Host queue、sender、企业身份、附件、私有 Tasks、pins 投影 | Headless 的 CodexEngineAdapter | 原生 transport 只提供帧，不绕过 overlay；实例关闭释放存储 |
 | DSH、agent 目录、执行 journal 与公共 Tasks | 内嵌 Local Agent，或显式配置的独立 DSH Host | 独立 Host 不随 Web/execution 更新停止 |
 | SSH management/SSH Host、employee/speech 路由 | Headless | 沿用私有配置、Host/凭据/域名身份 |
 | Web worker、历史静态 assets、update job | 稳定启动器 | 旧 WebSocket/worker 保留至断开；事务不依赖页面 |
@@ -17,7 +17,7 @@
 显式 `coreHostOverlays` 使用 raw native Unix WebSocket，沿原 CodexEngineAdapter 执行
 connect/send/subscribe/close。原纯 core bridge 和未选择 core 的默认方式保持独立，不能用
 纯 bridge 的早返回代替 Headless overlay。账户 RPC 单次转发给认证 control socket；原生请求
-由 Host 映射 ID、保留 client epoch、订阅/queue/goal/Bot 处理，结果未知不重放。
+由 Host 映射 ID、保留 client epoch、订阅/queue/goal 处理，结果未知不重放。
 
 core 的数据目录 guard 与 overlay 的 `host-overlays-owner` guard 独立，均复用内核持有的
 SQLite EXCLUSIVE 锁，进程退出释放。Headless 的安装级 server.lock 仍保护整个数据根。
@@ -26,28 +26,23 @@ Headless startup 通过已有 AppHost owner 完成一次内部 initialize 并释
 该连接不拥有队列、账户或额外存储。首次切换检查旧 CLI/任务；旧二进制未使用新 guard 不能当作自动排空。关闭 overlay 只关闭
 其原生连接与 stores，不关闭 core。复用数据/项目 cwd，不从包目录推导身份。
 
-## Codex Bot 来源与迁移
+## Codex 原生会话与保留数据
 
-恢复依据为 join runtime SHA256
-`ac9737d51dfe4b5b9896f9de96070f5a69b115f71c7fdad1d5fe7217d6877686` 中的
-CodexBotBridge 与存活的早期 TypeScript。早期源只有 rooms/commands；最终部署中的
-native/cwd/draft、message slots 与恢复分支从可定位 bundle 重建，不能称为完整原提交恢复。
-该 JavaScript 模块配独立 TypeScript contract，未知 wire 输入在业务边界收窄。
+Codex 使用原生 Thread/Turn 协议。旧 Codex Bot bridge 已删除；Headless 不再启用或
+声明 Codex 的 `vela/bot-conversations` 能力，也不再把 `bot/*` 请求翻译为原生会话操作。
+通用 Bot 协议及其他引擎提供的 Bot 能力不受影响。
 
-Bot 借用唯一 CodexHostStateDatabase 的连接，不自行 CREATE/ALTER 或关闭连接。v1 SQL/name/checksum
-保留，v2 追加三表；无账本的已知完整结构采纳，已知早期列序/缺列转换在同一事务中规范化并
-保留记录。只接受有来源证据的对象与约束，未知表/索引/DDL拒绝，不移开重建。rooms 维护稳定
-逻辑/native/cwd/draft 映射；commands 保存 admission fingerprint/receipt，未确认结果禁止重复提交；
-slots 持久分配稳定消息 ID。原生 transcript 仍是会话历史 authority，不复制第二份正文。
-
-代码回退不恢复 SQLite 数据。先在隔离副本证明实际旧 reader 接受升级后的库、继续保留
-room/receipt/slot 语义，才能交付相应回退；不把备份存在当作任意旧版兼容证据。
+`CodexHostStateDatabase` 仍由 Host 独占。历史 `codex_bot_rooms`、
+`codex_bot_commands`、`codex_bot_message_slots` 表、已发布迁移与 checksum 保持不变，
+兼容读取和数据保留测试继续执行；本次退役不删除、转换或重放历史 Bot 数据。
+原生会话、队列、sender、附件、Tasks、pins 与 core/Host writer 边界保持。
+代码回退不恢复 SQLite 数据，沿用受管版本回退与既有存储兼容检查。
 
 ## 回归边界
 
 - connect 报告真实存储 outcome、拒绝第二 owner；账户 writer 仍由 core 独占。
-- send 保留权限、summary、sender/企业身份、附件、Tasks、Bot receipt 与 unknown fence。
-- subscribe 在 Host epoch 内恢复原 turn/queue/goal/approval，Bot slot 不变；不重放已确认或未知提交。
+- send 保留权限、summary、sender/企业身份、附件、Tasks 与 unknown fence。
+- subscribe 在 Host epoch 内恢复原 turn/queue/goal/approval；不重放已确认或未知提交。
 - close 释放 overlay/guard，core/CLI/原生工具继续；旧默认模式和不可用 core 的拒绝不回退为内嵌。
 - 最终 Headless profile 的真实 systemd 安装、失败恢复、页面回退和启动器重启，分别核网站、执行、core。
 - 真实目标的 Host/数据/私有路由与精确归档身份另验；隔离合成模型不证明 OAuth、付费推理或设备通知。
@@ -185,3 +180,15 @@ SSH owner检查位置及与正式 `SSH_CONNECTION_MIGRATIONS` 相同的v1 schema
 维护前应在真实隔离副本完成旧→新→兼容旧完整入口启动和必要读取，核记录/账本digest，
 将生成物精确hash和兼容入口配置纳入快照。回退时指向经审查的兼容产物并保留当前数据，
 准确称“兼容旧版回退”，不能称原未修改旧binary接受新账本。
+
+## 内置远程网页渲染
+
+Headless Linux 分发及 managed headless execution 包携带 `runtime/browser/`：固定 Electron、worker、受限编码 preload 与 PreviewBridge bundle。无需 DISPLAY、Wayland、桌面或 Xvfb；Linux Chromium 所需动态库和字体仍由系统提供。浏览器进程按首次 Tab 使用惰性启动，故障不阻断 Agent/Server 启动。客户端优先使用 H.264 WebCodecs；HTTP 或缺少 WebCodecs 的浏览器使用 H.264 MediaSource/fMP4 原生解码，无需因为解码升级网站 HTTPS。两者均不支持的客户端保留原 iframe 能力。MSE 使用连续虚拟媒体时间线和稀疏更新追帧，不要求服务器发送静态保活视频帧。
+
+非 root Server 直接以自身用户启动沙箱 Electron，profile 在 Server data dir 的 `remote-browser`。root Gateway 默认通过 systemd transient child 使用 DynamicUser、PrivateTmp、NoNewPrivileges 和只读 runtime 挂载，不把远程网页以 root 运行，不关闭 Chromium sandbox；需要 systemd、可用用户命名空间。该模式 profile 由 systemd 保存在 `/var/lib/opencraft-browser-<data-dir-hash>`（对应 `/var/lib/private/`），备份/删除实例时须包含此目录。受管升级不清除该目录，不重启 core 或独立 DSH。退出关闭子进程 stdin，子进程及其窗口退出；非 root 模式随 IPC 断开退出。
+
+网页按客户端内容区CSS尺寸重新排版，远端DPR固定1（默认100%网页缩放），不会因Retina屏额外渲染多倍像素；无View时回退1280×720。实时调宽合并重配，保留原页面、输入及滚动，资源上限与控制协议见浏览器架构文档。
+
+仅隔离测试可显式设置 `OPENCRAFT_BROWSER_ALLOW_NO_SANDBOX=1`；默认关闭，不应在正式环境启用。运行时目录只含公开代码和 Electron 资产，权限统一为可读/可遍历，以便 DynamicUser 只读挂载；用户数据仍私有。
+
+查看 `GET /__opencraft_browser/capabilities` 可知分发是否包含 runtime；该探测不等于编码器和 Linux 动态依赖已实机验证。实际媒体与类型化控制复用 `/__opencraft_browser/stream` 的同源及现有认证/撤权。原始页面 JS/CDP/Node 入口不暴露。

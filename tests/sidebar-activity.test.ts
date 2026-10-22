@@ -136,7 +136,7 @@ test("running transitions keep pinned and recent membership and preserve status"
   }
 });
 
-test("recent prioritizes running before pagination, keeps creation order through output and retires on completion", () => {
+test("recent prioritizes running before pagination and orders old conversations by canonical recency", () => {
   const date = new Date(2026, 9, 17, 12);
   const oldRun = { ...thread("old-run", date, { createdAt: 1, updatedAt: 10 }), status: "running" };
   const newRun = { ...thread("new-run", date, { createdAt: 2, updatedAt: 5 }), status: "running" };
@@ -145,16 +145,18 @@ test("recent prioritizes running before pagination, keeps creation order through
   }));
   const input = [...completed, oldRun, newRun];
   const recent = () => groupThreadsByTaskFlow(input).recent;
-  assert.deepEqual(recent().slice(0, 3).map(t => t.id), ["new-run", "old-run", "done-0"]);
-  oldRun.updatedAt = 200;
+  assert.deepEqual(recent().slice(0, 3).map(t => t.id), ["old-run", "new-run", "done-0"]);
+  newRun.updatedAt = 150;
   assert.deepEqual(recent().slice(0, 2).map(t => t.id), ["new-run", "old-run"]);
+  oldRun.updatedAt = 200;
+  assert.deepEqual(recent().slice(0, 2).map(t => t.id), ["old-run", "new-run"]);
   oldRun.status = "ready";
   assert.deepEqual(recent().slice(0, 3).map(t => t.id), ["new-run", "old-run", "done-0"]);
   const beforeRead = recent().map(t => t.id);
   completed[0]!.unread = false;
   assert.deepEqual(recent().map(t => t.id), beforeRead);
   newRun.status = "ready";
-  assert.equal(recent().at(-1)?.id, "new-run");
+  assert.deepEqual(recent().slice(0, 3).map(t => t.id), ["old-run", "new-run", "done-0"]);
   assert.deepEqual(input.slice(0, 12), completed, "sorting never mutates the caller array");
 });
 

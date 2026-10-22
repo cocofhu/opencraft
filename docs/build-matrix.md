@@ -19,11 +19,22 @@ so each surface is an explicit matrix target with its own artifact contract.
 | `electron-linux-x64-appimage` | Electron host + renderer | Portable x86_64 AppImage | Linux |
 | `electron-linux-x64-rpm` | Electron host + renderer | TencentOS/RHEL/Fedora RPM | Linux |
 | `electron-linux-x64-deb` | Electron host + renderer | Debian/Ubuntu amd64 package | Linux |
-| `headless-linux-amd64-tar` | Node Local Agent Host + Vite WebUI | Self-contained private server `.tar.gz` | Native Linux amd64 |
+| `headless-linux-amd64-tar` | Node Local Agent Host + Vite WebUI + bundled headless Electron browser | Self-contained private server `.tar.gz` | Native Linux amd64 |
 | `expo-web` | Public RN Workbench + Metro Web | Expo static export | Linux/macOS/Windows |
 | `expo-ios-bundle` | React Native + Metro | JS bundle and assets | Linux/macOS; native archive on macOS |
 | `expo-android-internal-apk` | Expo prebuild + Gradle release | Installable internal APK | Linux/macOS with JDK and Android SDK |
 | `expo-android-release-apk` | Expo prebuild + Gradle, external PKCS12 signing | Configured public application ID, signed APK and filing text | Linux with JDK, Android SDK and release key |
+
+## Repository-owned Electron source fork
+
+[`vendor/electron`](../vendor/electron/README.md) owns the fixed Electron source
+baseline, checksummed patch series and explicit source/sync/build commands. Its
+initial native patch exposes observation-only editing metadata and caret bounds;
+source verification is separate from compilation and real native input testing.
+Normal desktop and browser-runtime packages continue using their existing pinned
+distribution until a compiled custom artifact is explicitly integrated and
+validated. The fork's initial build entry targets Linux; macOS/Windows builds and
+physical input-method validation remain separate work.
 
 ## Developer diagnostics and browser evidence
 
@@ -38,11 +49,10 @@ including final-response transitions and reading-position measurements:
 WORK_TRANSITION_ONLY=1 npx tsx scripts/diagnose-work-status-completion.ts
 ```
 
-External execution-runtime checks and connector catalog exports require an
-explicit local input. Missing arguments fail with usage before reading files:
+Connector catalog exports require an explicit local input. Missing arguments
+fail with usage before reading files:
 
 ```sh
-node scripts/check-dsh-source.mjs /absolute/runtime/services
 node scripts/export-hermes-connector-catalog.mjs /absolute/marketplace
 ```
 
@@ -332,6 +342,12 @@ profile, checks its real renderer and retains logs/a screenshot as
 `opencraft-macos-universal-smoke-<sha>` for three days. Only the final DMG,
 app ZIP and their checksums are delivered;
 intermediate update metadata/blockmaps are not published by this workflow.
+
+The standalone signing process queues file opens before loading the signer, so
+its concurrent resource inspection cannot exhaust macOS file descriptors.
+After Apple accepts an app or DMG, transient ticket-delivery failures retry
+with bounded backoff without resubmitting the artifact. Rejected submissions,
+exhausted retries and failed ticket validation still fail the release.
 
 To provision the Environment, use GitHub **Settings → Environments →
 macos-release → Environment secrets**, or `gh secret set --repo
@@ -702,3 +718,7 @@ retain their pixels and alpha. Corrupt supported images fail the build.
 `test:web-release` exercises these contracts and the raw RGBA API also used by
 the mobile sidebar screenshot probe; dependency upgrades require both Node
 build/release runtimes and actual copied delivery-asset verification.
+
+### Linux remote-browser payload
+
+Both `package-headless-linux.mjs` and managed headless `package-web-server.mjs` ship `runtime/browser` using `package-browser-runtime.mjs`, including Electron licenses. Build on native Linux using the workspace-pinned Electron distribution. The independent browser worker does not start the desktop application. See [managed headless](managed-headless.md#内置远程网页渲染) for sandbox, dependencies and profile ownership. `npm run smoke:remote-browser` exercises the real typed Dynamic Tool Host, Page/Presentation and H.264 Canvas on Linux; it uses a synthetic website and does not prove macOS behavior or physical-device input.

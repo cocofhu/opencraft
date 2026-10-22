@@ -1,4 +1,3 @@
-// Source copy: ref/hypernode/policy/src/services/thread-execution.js
 import { randomUUID as uuidV4 } from "node:crypto";
 const TERMINAL_EXECUTION_STATES = new Set(["completed", "failed", "interrupted", "orphaned"]);
 
