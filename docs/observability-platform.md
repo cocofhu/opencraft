@@ -324,3 +324,7 @@ Comparison can select an operation/cache/engine from immutable evidence; it
 rejects missing workload dimensions, overlapping sample IDs and ambiguous pairs.
 Selection does not rewrite either capture. CLI results include the installed
 CLI's own build/source identity separately from server components.
+
+### Named-server deployment paths (2026-10-22)
+
+Browser capabilities, telemetry and dashboard navigation use the selected server context. Operator-owned `grafanaBasePath` in ingress and observation-service configuration must match Grafana root_url for that named-server prefix. The relay preserves already-scoped HTML paths exactly once; ingress maps authorized Grafana requests to the configured Unix-socket path. These URL transformations never establish identity or expand target ACL. Each deployment owns independent storage and deploymentId; missing component capture stays partial.

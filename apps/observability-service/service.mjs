@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { ObserveStore } from './store.ts';
 import { createEventQueue } from '../../packages/observability-contract/queue.mjs';
 import { limits, schemaVersion, fault, windowFor } from '../../packages/observability-contract/index.mjs';
+import { observationGrafanaBasePath } from '../../packages/observability-contract/node.mjs';
 import { definitions, queryDefinitionRevision, requireQuery, compare, issues } from '../../packages/observability-query/index.mjs';
 
 export async function readJson(request, max = limits.batchBytes + 4096) {
@@ -20,7 +21,8 @@ export function json(response, status, body) {
 }
 
 export async function startObserve({ directory, deploymentId, prometheus = 'http://127.0.0.1:23302', metricsHost = '127.0.0.1', metricsPort = 23305,
-  collector = 'http://127.0.0.1:23304/v1/logs', sourceRevision = process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION??null, buildId = process.env.OPENCRAFT_OBSERVE_BUILD_ID??null, now = Date.now } = {}) {
+  collector = 'http://127.0.0.1:23304/v1/logs', grafanaBasePath, sourceRevision = process.env.OPENCRAFT_OBSERVE_SOURCE_REVISION??null, buildId = process.env.OPENCRAFT_OBSERVE_BUILD_ID??null, now = Date.now } = {}) {
+  const grafanaPath=observationGrafanaBasePath(grafanaBasePath);
   if (!directory?.startsWith('/') || !/^[a-zA-Z0-9_.-]{1,80}$/u.test(deploymentId??'')) throw fault('invalid_configuration');
   for (const address of [prometheus,collector]) {const url=new URL(address);if(url.hostname!=='127.0.0.1'||url.protocol!=='http:'||url.username||url.password)throw fault('invalid_backend');}
   await mkdir(directory,{recursive:true,mode:0o700});await chmod(directory,0o700);
@@ -43,7 +45,7 @@ export async function startObserve({ directory, deploymentId, prometheus = 'http
     const base=new URL(collector),health=new URL(collector);health.port=String(Number(base.port)+4);health.pathname='/';
     const jobs=[['prometheus',new URL('/-/ready',prometheus).href],['loki',new URL('/ready',`http://127.0.0.1:${Number(base.port)-1}`).href],['collector',health.href]];
     await Promise.all(jobs.map(async([name,url])=>{try{backendHealth[name]=(await fetch(url,{signal:AbortSignal.timeout(3500)})).ok?'available':'unavailable';}catch{backendHealth[name]='unavailable';}}));
-    backendHealth.grafana=await new Promise(resolve=>{const req=httpRequest({socketPath:resolveGrafanaSocket(),path:'/__opencraft_observe/grafana/api/health'},res=>{res.resume();resolve(res.statusCode===200?'available':'unavailable');});req.setTimeout(3500,()=>req.destroy());req.on('error',()=>resolve('unavailable'));req.end();});
+    backendHealth.grafana=await new Promise(resolve=>{const req=httpRequest({socketPath:resolveGrafanaSocket(),path:grafanaPath+'/api/health'},res=>{res.resume();resolve(res.statusCode===200?'available':'unavailable');});req.setTimeout(3500,()=>req.destroy());req.on('error',()=>resolve('unavailable'));req.end();});
     }finally{backendBusy=false;}
   }
   const resolveGrafanaSocket=()=>resolve(directory,'../grafana/grafana.sock');

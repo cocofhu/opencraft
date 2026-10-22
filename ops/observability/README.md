@@ -80,3 +80,18 @@ restore business backups as part of an observation rollback.
 
 Runtime acceptance remains tracked by [the V1 matrix](../../docs/observability-acceptance.md).
 Container health and the focused tests are not completion of that matrix.
+
+### Named-server dashboard paths
+
+Browser telemetry, capability discovery and dashboard navigation use the selected
+server's existing URL scope. They must never fall back to the default server.
+For an installation reached under `/servers/example`, set `grafanaBasePath` in
+both its Observe JSON and private ingress JSON to
+`/servers/example/__opencraft_observe/grafana`. Set Grafana's
+`GF_SERVER_ROOT_URL` to the public HTTPS origin followed by that same path and a
+trailing slash (using an operator-owned Compose override). Keep the default path
+for root installations. The ingress maps its internal route to the configured
+Grafana path; readiness uses that path too. This affects URL routing only, never
+the identity/membership authority. Relay HTML scoping preserves already-scoped
+base and resource paths. Validate HTML, static chunks and datasource requests
+through the actual server route, including rejection outside existing grants.
