@@ -1,7 +1,10 @@
 # Workbench design language
 
 For UI authoring, start with the [design entry](../design.md), then use this
-document for detailed Workbench behavior and material contracts.
+document for detailed Workbench behavior and material contracts. Task catalogs and
+management lists follow [Collection composition](../design/ui/collections.md) for
+page hierarchy, action scope, container ownership and rendered acceptance. That
+guide is a target contract, not a claim that existing pages have been migrated.
 
 The target sidebar and draft target picker use the existing workbench palette,
 typography and surfaces, not a separate the downstream product theme.
