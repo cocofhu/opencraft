@@ -652,11 +652,11 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 边界：普通并排使用 shellSpaceMetrics.mainMinimum（480），保持既有空间策略。状态：63项聚焦测试、完整门禁、最终包556帧验收通过；Frame最低480而Viewport可到0，普通held resize及取消恢复通过。证据 /tmp/oc-pane-4aFgS4；草稿和WebContents ID保留。
 
-## Browser 源实现迁移不变量
+## Browser 生命周期不变量
 
 | ID | 不变量 | 责任/验证 |
 |---|---|---|
-| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | opencraft/browser-manager.js；历史来源与当前模块分开锁定、冻结行为及实际 Web consumer、opencraft-browser-manager.test.ts |
+| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | opencraft/browser-manager.js；当前模块行为及实际 Web consumer、opencraft-browser-manager.test.ts |
 | BRW-02 | 上一个页面在新页面收到对应代次的 attachment ack、预热完成前继续承载画面；提交后一帧才释放旧画面与新页面交互 | opencraft/presentation-transition.js；确定性调度测试 |
 | BRW-03 | 替换/取消 pending handoff 后，旧 ack、timer、frame callback 不得重新显示旧 incoming 或清理新页面 | A→B→C 和迟到回调回归 |
 | BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 独立状态机＋标准 host port；原生多标签回归 |

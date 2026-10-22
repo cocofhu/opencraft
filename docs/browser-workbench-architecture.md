@@ -2,7 +2,7 @@
 
 > 状态：Web iframe 与标准 Electron webview 已接入并通过桌面主链路验收；Playwright/Expo Adapter Proposed
 > 目标平台：Vite Web、Electron Desktop、Expo iOS/iPadOS、Expo Web  
-> 架构修订：R6（Codex 生命周期、多 Host 与 AI Capability 边界复审）  
+> 架构修订：R6（浏览器生命周期、多 Host 与 AI Capability 边界复审）
 > 当前已实现 `browser-core`、Web iframe Runtime、应用级 Presentation Root、右侧多
 > Tab 投影、显式关闭、会话恢复、聊天外链接入，以及 OpenVibe 形状的 typed Preview Bridge。
 > Authority/Backing owner、Electron
@@ -10,7 +10,7 @@
 
 ## 1. 结论
 
-Shell 几何（2026-09-14，Codex 26.908.40834 Wba/Xba/Vba）：Viewport 用 flex
+Shell 几何：Viewport 用 flex
 表达可见范围并裁切，Frame 独立消费 F=max(0,W-min(R,A))，且 min-width:100%；
 聊天容器查询归 Frame，而不是动画 aperture。显隐和全宽是两个 MotionValue，
 同一个 Shell 事务 owner 停止旧写入者并提交新目标，模式切换先消除半关闭状态，
@@ -18,13 +18,12 @@ scope/reduced-motion 使用端点。退出期间保存同 scope 的布局描述�
 resize 不冻结内容。原生 guest 上方的临时 resize 捕获层只在拖动事务存续期间存在，
 松手/取消/失焦结束，避免 guest 吞掉主页面 pointermove。
 
-2026-09-14 源实现迁移为历史起点；2026-10-20 的有界替换后，ApplicationSupervisor
+ApplicationSupervisor
 创建的 BrowserPresentationCoordinator 经原薄 adapter 实例化独立 Host registry 与
 PagePresentationTransition。管理器仍拥有 backing host、存储身份和挂载代次；ElectronBrowserSurfaceHost 仅提供
 独立 body root、标准 guest、导航及持久化端口。面板仅申领挂载并提交几何，park/unmount 不销毁页面，
 显式 close 才销毁。逻辑 Page、持久化 browserStorageId、rendererInstanceId、
-host generation 与 mount generation 分离。存储分区采用标准 Electron partition；
-不实现 Codex 的 Owl WebContents adoption。
+host generation 与 mount generation 分离。存储分区采用标准 Electron partition。
 
 原生导航事件是桌面 URL、title、Back/Forward 的真源。主进程校验 guest URL/partition，
 强制 sandbox/contextIsolation、禁用 Node/任意 preload 与嵌套 webview。
