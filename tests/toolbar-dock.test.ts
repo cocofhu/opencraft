@@ -2,6 +2,35 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { moveToolbarAction, projectToolbarDock, toolbarDockCapacity, toolbarDockKey, conversationToolbarActionIds } from "../apps/workbench-web/src/components/toolbar-dock-model";
 import { uiPreferenceDefinitions, UiPreferencesRuntime, type UiPreferenceStore, type StoredUiPreference } from "../packages/ui-preferences/src/index";
+import type { CollisionDetection } from "@dnd-kit/core";
+import { toolbarEditorCollision } from "../apps/workbench-web/src/components/toolbar-dock-drag";
+
+test("editor hit testing prefers rows inside the pointer's zone, including its center", () => {
+  type Arguments = Parameters<CollisionDetection>[0];
+  const rect = (top: number, height: number) => ({ left: 0, right: 300, top, bottom: top + height, width: 300, height });
+  const entries = [
+    { id: "@dock", box: rect(0, 160) },
+    { id: "link-tasks", box: rect(40, 40), zone: "@dock" },
+    { id: "rename", box: rect(80, 40), zone: "@dock" },
+    { id: "@more", box: rect(180, 120) },
+    { id: "information", box: rect(220, 40), zone: "@more" },
+  ];
+  const args: Arguments = {
+    active: { id: "rename", data: { current: {} }, rect: { current: { initial: rect(80, 40), translated: rect(80, 40) } } },
+    collisionRect: rect(60, 40), pointerCoordinates: { x: 15, y: 80 },
+    droppableRects: new Map(entries.map(entry => [entry.id, entry.box])),
+    droppableContainers: entries.map(entry => ({ id: entry.id, key: entry.id, disabled: false,
+      data: { current: { zone: entry.zone } }, node: { current: null }, rect: { current: entry.box } })),
+  };
+  assert.notEqual(toolbarEditorCollision(args)[0]?.id, "@dock", "Group center must not steal row drops");
+  // The pointer enters More while most of the large dragged row still overlaps Toolbar.
+  assert.equal(toolbarEditorCollision({ ...args, pointerCoordinates: { x: 15, y: 230 } })[0]?.id, "information");
+  assert.deepEqual(toolbarEditorCollision({ ...args, pointerCoordinates: { x: 15, y: 170 } }), [], "Outside both groups is not a drop");
+  const emptyMore = args.droppableContainers.filter(entry => entry.id !== "information");
+  assert.equal(toolbarEditorCollision({ ...args, droppableContainers: emptyMore, pointerCoordinates: { x: 15, y: 230 } })[0]?.id, "@more");
+  assert.equal(toolbarEditorCollision({ ...args, pointerCoordinates: null, collisionRect: rect(220, 40) })[0]?.id, "information");
+  assert.equal(toolbarEditorCollision({ ...args, droppableContainers: emptyMore, pointerCoordinates: null, collisionRect: rect(220, 40) })[0]?.id, "@more");
+});
 
 test("capacity projection has one action owner and does not mutate personal intent", () => {
   const actions = [{ id: "link-tasks" }, { id: "rename" }, { id: "archive" }];

@@ -1,14 +1,16 @@
 import { useIntl } from "@opencraft/i18n/react";
-import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { MoreHorizontal as MoreIcon, Pencil as EditIcon } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { SettingsButton, SettingsNotice, SettingsPanel } from "@opencraft/extension-react";
 import { useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ModalSurface } from "./modal";
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 import { moveToolbarAction } from "./toolbar-dock-model";
+import { toolbarEditorCollision } from "./toolbar-dock-drag";
 import { useToolbarDock } from "./toolbar-dock-state";
 import { useAsyncNotices } from "./async-notices";
 import "../styles/toolbar-dock.scss";
@@ -27,11 +29,13 @@ function SortableAction({ action, customize, selected, onToggle, onInvoke }: {
   action: ToolbarDockAction; customize?: boolean; selected?: boolean; onToggle?(): void; onInvoke?(element: HTMLButtonElement): void;
 }) {
   const intl = useIntl();
-  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: action.id });
+  const { setNodeRef, setActivatorNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
+    id: action.id, data: { zone: customize ? selected ? "@dock" : "@more" : undefined },
+  });
   return <div ref={setNodeRef} className={customize ? "toolbar-dock__choice" : "toolbar-dock__item"}
-    data-dragging={isDragging || undefined} style={{ transform: CSS.Transform.toString(transform), transition }}>
+    data-dragging={isDragging || undefined} style={{ transform: customize && isDragging ? undefined : CSS.Transform.toString(transform), transition }}>
     {customize ? <>
-      <button type="button" className="toolbar-dock__grip" {...attributes} {...listeners} aria-label={intl.formatMessage({ id: "toolbarDock.dragAction", defaultMessage: "Drag {action}" }, { action: action.label })} title={intl.formatMessage({ id: "toolbarDock.drag", defaultMessage: "Drag to reorder" })}>⠿</button>
+      <button ref={setActivatorNodeRef} type="button" className="toolbar-dock__grip" {...attributes} {...listeners} aria-label={intl.formatMessage({ id: "toolbarDock.dragAction", defaultMessage: "Drag {action}" }, { action: action.label })} title={intl.formatMessage({ id: "toolbarDock.drag", defaultMessage: "Drag to reorder" })}>⠿</button>
       <span className="toolbar-dock__choice-icon" aria-hidden="true">{action.icon}</span><span className="toolbar-dock__choice-label">{action.label}</span>
       <button type="button" className="toolbar-dock__toggle" aria-label={intl.formatMessage(selected ? { id: "toolbarDock.remove", defaultMessage: "Remove from toolbar: {action}" } : { id: "toolbarDock.add", defaultMessage: "Add to toolbar: {action}" }, { action: action.label })} onClick={onToggle}>{selected ? "−" : "+"}</button>
     </> : <button type="button" className="chrome-button toolbar-dock__action" {...attributes} {...listeners}
@@ -63,6 +67,7 @@ export function ToolbarDock({ scope, dockId, actions, label, defaultActions = []
   const [draft, setDraft] = useState<readonly string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [draggedAction, setDraggedAction] = useState<ToolbarDockAction | null>(null);
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
@@ -112,7 +117,10 @@ export function ToolbarDock({ scope, dockId, actions, label, defaultActions = []
       </>}>
         <SettingsNotice>{message("toolbarDock.hint", "Drag to reorder or move actions between toolbar and menu. Actions fold into the menu when space is limited.")}</SettingsNotice>
         {saveError ? <SettingsNotice tone="error" role="alert">{message("toolbarDock.saveFailed", "Could not save toolbar settings. Try again.")}</SettingsNotice> : null}
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+        <DndContext sensors={sensors} collisionDetection={toolbarEditorCollision}
+          onDragStart={({ active }) => setDraggedAction(byId.get(String(active.id)) ?? null)}
+          onDragCancel={() => setDraggedAction(null)} onDragEnd={({ active, over }) => {
+          setDraggedAction(null);
           if (!over || saving || active.id === over.id) return;
           const id = String(active.id); const target = String(over.id);
           if (draft.includes(id) && draft.includes(target)) {
@@ -128,6 +136,15 @@ export function ToolbarDock({ scope, dockId, actions, label, defaultActions = []
               {draftMore.map(action => <SortableAction key={action.id} action={action} customize onToggle={() => setDraft(moveToolbarAction(draft, action.id, null, true))} />)}
             </SortableContext>{!draftMore.length ? <p>{message("toolbarDock.emptyMenu", "All actions are in the toolbar")}</p> : null}</DropZone>
           </div>
+          {createPortal(<DragOverlay adjustScale={false} dropAnimation={null}
+            style={{ zIndex: "calc(var(--layer-application-modal, 230) + 2)", pointerEvents: "none" }}>
+            {draggedAction ? <div className="toolbar-dock__choice toolbar-dock__drag-preview" aria-hidden="true">
+              <span className="toolbar-dock__grip">⠿</span>
+              <span className="toolbar-dock__choice-icon">{draggedAction.icon}</span>
+              <span className="toolbar-dock__choice-label">{draggedAction.label}</span>
+              <span className="toolbar-dock__toggle">{draft.includes(draggedAction.id) ? "−" : "+"}</span>
+            </div> : null}
+          </DragOverlay>, portal ?? document.body)}
         </DndContext>
       </SettingsPanel>
     </ModalSurface> : null}

@@ -24,4 +24,8 @@
   &:hover { background: var(--color-background-tertiary-hover); }
 }
 .toolbar-dock__grip { cursor: grab; touch-action: none; }
-.toolbar-dock__choice[data-dragging] { opacity: .65; z-index: 1; }
+.toolbar-dock__choice[data-dragging] { opacity: 0; }
+.toolbar-dock__drag-preview {
+  color: var(--color-text); font: var(--typography-body-font);
+  background: var(--color-background-elevated-secondary-opaque); border-radius: var(--radius-control);
+}
