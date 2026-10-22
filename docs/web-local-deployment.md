@@ -132,3 +132,13 @@ ABI 不匹配、共享库或 spawn helper 不可用均中止打包。受管 exec
 确认成功后重新打包；不借用另一 worktree 的依赖，也不为修一个模块放开全部
 依赖安装脚本。使用目标服务 Node 的主版本、ABI、平台与架构构建。预检失败
 保留当前运行版本，既不手工覆盖 native 文件，也不绕过受管更新事务。
+
+## Independent static documents
+
+The admitted static host serves a directory's `index.html` before its SPA fallback.
+A packaged `tools/probe/index.html` can therefore be visited at `/tools/probe`,
+`/tools/probe/` or its explicit HTML path, without starting Workbench. Use absolute
+asset URLs when the extensionless and trailing-slash forms share a document.
+Ordinary document admission, reserved API paths, GET/HEAD and revalidation policy
+remain in force; this does not add a public-authentication exception. Product
+composition owns its document and build entry, not the generic gateway.
