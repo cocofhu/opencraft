@@ -54,7 +54,7 @@ try {
   await mkdir(output, { recursive: true });
   await vite.listen();
   const pw = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
-  browser = await pw.chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
+  browser = await pw.chromium.launch({ headless: true, args: process.env.OPENCRAFT_CHROMIUM_NO_SANDBOX === "1" ? ["--no-sandbox"] : [], executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE });
   for (const rows of [30, 200]) {
     const page = await browser.newPage({ viewport: { width: 1000, height: 844 } });
     const errors: string[] = [];
@@ -102,10 +102,21 @@ try {
     await page.getByText("Participants t0", { exact: true }).waitFor({ state: "hidden" });
     await page.evaluate(() => (window as any).fixture.setActive("t2"));
     await page.getByRole("menu").waitFor({ state: "hidden" });
+    // Navigation can change selection without an outside pointer event (Browser POP).
+    // Opening the list filter itself must retain the isolated menu-update cost.
+    const beforeFilter = await page.evaluate(() => ({ rows: (window as any).rowsProcessed, projections: (window as any).projections }));
+    await page.getByRole("button", { name: "Filters", exact: true }).click();
+    await page.getByRole("menu").waitFor();
+    assert.deepEqual(await page.evaluate(() => ({ rows: (window as any).rowsProcessed, projections: (window as any).projections })), beforeFilter);
+    await page.evaluate(() => (window as any).fixture.setActive("t1"));
+    await page.getByRole("menu").waitFor({ state: "hidden" });
     // The list-level display menu remains exclusive with row menus.
     await page.getByRole("button", { name: "Filters", exact: true }).click();
     await page.getByRole("menu").waitFor();
-    await page.locator(".sidebar-activity-item").first().dispatchEvent("contextmenu", { clientX: 100, clientY: 200, button: 2 });
+    // Native pointer input also exercises the modal menu's outside dismissal.
+    const rowBounds = await page.locator(".sidebar-activity-item").first().boundingBox();
+    assert.ok(rowBounds);
+    await page.mouse.click(rowBounds.x + rowBounds.width / 2, rowBounds.y + rowBounds.height / 2, { button: "right" });
     await page.getByRole("menuitem", { name: "Archive", exact: true }).waitFor();
     assert.equal(await page.getByRole("menu").count(), 1);
     await page.keyboard.press("Escape");

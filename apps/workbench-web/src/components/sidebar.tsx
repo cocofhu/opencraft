@@ -27,7 +27,7 @@ import type { ReactNode } from "react";
 import { SidebarBots, SidebarEntityDndCoordinator } from "./sidebar-bots";
 import { ThreadActionModals, threadActionKey, useThreadActionOwner, type ThreadActionCallbacks, type ThreadActionCapabilities } from "./thread-management";
 import { SidebarThreadMenuStore, type OpenSidebarThreadMenu, type SidebarThreadMenuKind } from "./sidebar-thread-menu-state";
-import { SidebarThreadRowMenu, SidebarThreadBadge } from "./sidebar-thread-menu";
+import { SidebarThreadRowMenu, SidebarThreadBadge, SidebarFiltersMenu } from "./sidebar-thread-menu";
 import { sidebarActivityDateHeadings, groupThreadsByTaskFlow, sidebarActivityMetadata } from "../sidebar-activity";
 import { NavigationIcon as SidebarContributionIcon, type NavigationAction as SidebarActionItem } from "./shell-navigation/navigation-action";
 import { useSidebarEndPull } from "./use-sidebar-end-pull";
@@ -177,7 +177,6 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const [pinnedLimit, setPinnedLimit] = useState(PINNED_PAGE_SIZE);
   const [recentLimit, setRecentLimit] = useState(RECENT_PAGE_SIZE);
   const [menus] = useState(() => new SidebarThreadMenuStore());
-  const [filterOpen, setFilterOpen] = useState(false);
   const actionOwner = useThreadActionOwner(threadActions ?? noThreadActions);
   const rowIdPrefix = useId();
   const text = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
@@ -201,7 +200,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     groupingWatch.current = undefined;
   }, []);
   useEffect(() => () => menus.close(), [menus]);
-  useEffect(() => { menus.close(); }, [menus, activeHostId, activeThreadId, pendingHostId, pendingThreadId, grouping.mode, grouping.hideRowBadge]);
+  useLayoutEffect(() => { menus.close(); }, [menus, activeHostId, activeThreadId, pendingHostId, pendingThreadId, grouping.mode, grouping.hideRowBadge]);
 
   const serverOptions = useMemo(() => {
     const names = new Map<string, string>();
@@ -228,12 +227,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const allServersLabel = text("sidebar.allServers", "All servers");
   const dismissAfter = (action: () => void) => { menus.close(); action(); dismiss?.(); };
   const writeServerFilter = (serverId: string) => {
-    setFilterOpen(false);
+    menus.setFiltersOpen(false);
     const name = serverOptions.find(([id]) => id === serverId)?.[1] ?? "";
     void preferences.set("sidebar.serverFilter", { serverId, label: name });
   };
   const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind}
-    onSelect={kind === "dropdown" ? () => setFilterOpen(false) : undefined} />;
+    onSelect={kind === "dropdown" ? () => menus.setFiltersOpen(false) : undefined} />;
   const renderThreadContent = useCallback((thread: SidebarThread, attention: boolean) => {
     const pending = pendingHostId === thread.connectionHostId && pendingThreadId === thread.id;
     const active = activeHostId === thread.connectionHostId && activeThreadId === thread.id;
@@ -245,7 +244,6 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const capabilities = threadCapabilities?.(thread.connectionHostId)
       ?? { rename: !!threadActions, archive: !!threadActions, fork: !!threadActions, delete: !!threadActions, pin: !!threadActions?.onSetPinned };
     const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => {
-      if (open) setFilterOpen(false);
       menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
     };
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
@@ -336,11 +334,12 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         <SidebarBots items={bots} creation={botCreation} />
         <section className="sidebar-tasks" aria-label="Tasks" aria-busy={busyCatalog}>
           <div className="sidebar-list-toolbar"><span>{text("sidebar.conversations", "Conversations")}</span>
-            <DropdownMenu.Root open={filterOpen} onOpenChange={open => { if (open) menus.close(); setFilterOpen(open); }}>
+            <SidebarFiltersMenu store={menus}>
               <DropdownMenu.Trigger asChild><button type="button" className="sidebar-list-mode-trigger"
                 aria-label={filtersLabel} title={[filtersLabel, ...(grouping.filter?.enabled ? [label(grouping.filter.label)] : []), serverFilter.serverId ? serverFilter.label : allServersLabel].join(" · ")}
                 data-filter-active={serverFilter.serverId !== "" || grouping.filter?.enabled || undefined}><ListFilter size={16} /></button></DropdownMenu.Trigger>
-              <DropdownMenu.Portal container={presentationRoot}><DropdownMenu.Content className="workbench-context-menu" align="end" sideOffset={4}>
+              <DropdownMenu.Portal container={presentationRoot}><DropdownMenu.Content className="workbench-context-menu" align="end" sideOffset={4}
+                onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
                 {modeItems("dropdown")}
                 <DropdownMenu.Separator />
                 <DropdownMenu.Label className="sidebar-display-mode-label">{text("sidebar.serverFilter", "Filter by server")}</DropdownMenu.Label>
@@ -350,7 +349,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
                   </DropdownMenu.RadioItem>)}
                 </DropdownMenu.RadioGroup>
               </DropdownMenu.Content></DropdownMenu.Portal>
-            </DropdownMenu.Root>
+            </SidebarFiltersMenu>
           </div>
           {!searchInDialog ? <label className="sidebar-list-search"><Search size={14} aria-hidden="true" /><input type="search"
             aria-label={text("sidebar.search", "Search conversations")} placeholder={text("sidebar.search", "Search conversations")}

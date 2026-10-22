@@ -1,4 +1,5 @@
-import { useCallback, useSyncExternalStore, type ComponentProps } from "react";
+import { Root as DropdownMenuRoot } from "@opencraft/design-system-web/dropdown-menu";
+import { useCallback, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import type { ThreadBadgeContribution, ThreadBadgeProps } from "@opencraft/extension-react";
 import { ThreadRowMenu } from "./thread-management";
 import { SidebarThreadMenuStore, type OpenSidebarThreadMenu } from "./sidebar-thread-menu-state";
@@ -18,4 +19,10 @@ export function SidebarThreadRowMenu({ store, ...props }: Omit<ComponentProps<ty
 export function SidebarThreadBadge({ store, contribution, ...props }: Omit<ThreadBadgeProps, "open"> & { store: SidebarThreadMenuStore; contribution: ThreadBadgeContribution }) {
   const kind = useRowMenu(store, props);
   return <contribution.Component {...props} open={kind === "badge"} />;
+}
+
+/** The list-level menu subscribes without rebuilding the conversation list. */
+export function SidebarFiltersMenu({ store, children }: { store: SidebarThreadMenuStore; children: ReactNode }) {
+  const open = useSyncExternalStore(store.subscribeFilters, store.getFiltersOpen, store.getFiltersOpen);
+  return <DropdownMenuRoot open={open} onOpenChange={store.setFiltersOpen}>{children}</DropdownMenuRoot>;
 }
