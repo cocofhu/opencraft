@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { openManagedDatabase, createSchemaValidator } from "@opencraft/sqlite-node";
-import type { ConversationSchedule, ConversationScheduleRun, ConversationScheduleView, ConversationScheduleSummary } from "@opencraft/appserver-protocol";
+import type { ConversationSchedule, ConversationScheduleRun, ConversationScheduleView, ConversationScheduleSummary, OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
 
 /** Engine boundary: a stable occurrence ID must survive retries and Host restarts.
  * submit must not steer. An ambiguous acceptance must return unknown, never throw
  * a retryable error after it might have reached the engine. */
 export interface ScheduleExecutionPort {
   validate(threadId: string): Promise<void>;
+  permissionProfiles?(threadId: string): Promise<OpenCraftPermissionProfile[]>;
   submit(run: ConversationScheduleRun, prompt: string, canAdmit: () => boolean): Promise<{ state: "waiting" | "running" | "completed" | "failed" | "unknown"; turnId?: string }>;
   inspect(run: ConversationScheduleRun): Promise<{ state: "running" | "completed" | "failed" | "unknown" }>;
 }
@@ -84,12 +85,22 @@ export class ConversationSchedules {
     try { this.changed(); } catch { /* A notification observer cannot roll back committed state. */ }
   }
   read(threadId: string): ConversationScheduleView { return { schedule: this.schedule(threadId), runs: this.runs(threadId) }; }
+  /** Occurrence policy survives queue recovery and later plan edits. */
+  executionPermissions(threadId: string, occurrenceId: string): string | null {
+    const row = this.db.prepare("SELECT value FROM schedule_runs WHERE thread_id=? AND id=?").get(threadId, occurrenceId);
+    return row ? (JSON.parse(String(row.value)) as ConversationScheduleRun).permissions ?? null : null;
+  }
   async handle(method: string, input: unknown, createdBy: string | null): Promise<ConversationScheduleView> {
     const p = object(input), threadId = p.threadId;
     if (typeof threadId !== "string" || !threadId.trim() || threadId.length > 512) fault();
-    if (method === "opencraft/schedules/read") return this.read(threadId);
+    // Catalog failure must not prevent pausing/deleting a task or reading its history.
+    const permissionProfiles = method.endsWith("/action") ? undefined
+      : await this.port.permissionProfiles?.(threadId).catch(() => undefined);
+    if (method === "opencraft/schedules/read") return { ...this.read(threadId), ...(permissionProfiles ? { permissionProfiles } : {}) };
     if (method !== "opencraft/schedules/save" && method !== "opencraft/schedules/action") throw new ScheduleFault(-32601, "Unsupported schedule method");
     await this.port.validate(threadId);
+    if (method.endsWith("/save") && p.permissions != null &&
+      (typeof p.permissions !== "string" || !permissionProfiles?.some(profile => profile.id === p.permissions && profile.allowed))) fault();
     if (this.stopped) throw new ScheduleFault(-32000, "Schedule service is closing");
     this.transaction(() => {
       const prior = this.schedule(threadId), now = this.now();
@@ -104,6 +115,7 @@ export class ConversationSchedules {
           || typeof p.timeZone !== "string") fault();
         try { new Intl.DateTimeFormat("en", { timeZone: p.timeZone }); } catch { fault(); }
         this.writeSchedule({ id: prior?.status !== "deleted" && prior ? prior.id : randomUUID(), threadId, prompt: p.prompt.trim(),
+          permissions: p.permissions === undefined ? prior?.permissions ?? null : p.permissions as string | null,
           nextRunAt: Number(p.nextRunAt), intervalMinutes: p.intervalMinutes as number | null, timeZone: p.timeZone,
           status: "active", revision: (prior?.revision ?? 0) + 1, createdBy: prior && prior.status !== "deleted" ? prior.createdBy : createdBy, updatedAt: now });
       } else {
@@ -123,12 +135,12 @@ export class ConversationSchedules {
           value.status = "active"; value.nextRunAt = Math.max(now, prior.nextRunAt);
         } else {
           this.writeRun({ id: `schedule:${prior.id}:manual:${value.revision}`, scheduleId: prior.id, threadId,
-            scheduledAt: now, state: "waiting", turnId: null, updatedAt: now });
+            scheduledAt: now, state: "waiting", turnId: null, updatedAt: now, permissions: prior.permissions ?? null });
         }
         this.writeSchedule(value);
       }
     });
-    return this.read(threadId);
+    return { ...this.read(threadId), ...(permissionProfiles ? { permissionProfiles } : {}) };
   }
   suspend(threadId: string) {
     if (this.stopped) return;
@@ -159,7 +171,7 @@ export class ConversationSchedules {
       let run = this.runs(plan.threadId).find(value => unfinished.has(value.state));
       if (!run && plan.status === "active" && plan.nextRunAt <= this.now()) {
         run = { id: `schedule:${plan.id}:${plan.nextRunAt}`, scheduleId: plan.id, threadId: plan.threadId,
-          scheduledAt: plan.nextRunAt, state: "waiting", turnId: null, updatedAt: this.now() };
+          scheduledAt: plan.nextRunAt, state: "waiting", turnId: null, updatedAt: this.now(), permissions: plan.permissions ?? null };
         this.writeRun(run);
       }
       if (run?.state === "waiting" && plan.status !== "active") { this.writeRun({ ...run, state: "failed", updatedAt: this.now() }); continue; }

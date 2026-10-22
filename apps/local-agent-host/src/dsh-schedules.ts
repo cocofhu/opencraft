@@ -23,7 +23,9 @@ export function dshScheduleExecutionPort(adapter: DshAppServerAdapter, authority
     if (prior.state === "running" && authority.table.get(run.threadId)?.turnId === prior.turnId) return { state: "running" as const };
     return { state: "unknown" as const };
   };
-  return { validate, inspect, submit: (run, prompt, canAdmit) => lifecycle.enqueue(run.threadId, async () => {
+  return { validate, inspect,
+    permissionProfiles: async () => (await adapter.dispatch("permissionProfile/list", { limit: 100 }) as { data: import("@opencraft/appserver-protocol").OpenCraftPermissionProfile[] }).data,
+    submit: (run, prompt, canAdmit) => lifecycle.enqueue(run.threadId, async () => {
     if (authority.scheduleInput(run.threadId, run.id)) return { ...await inspect(run), turnId: authority.scheduleInput(run.threadId, run.id)?.turnId };
     try { await validate(run.threadId); } catch { return { state: "failed" }; }
     if (authority.table.get(run.threadId) || authority.leases.get(run.threadId) || authority.queueStore.pending(run.threadId).length) return { state: "waiting" };
@@ -35,6 +37,7 @@ export function dshScheduleExecutionPort(adapter: DshAppServerAdapter, authority
     if (!canAdmit() || authority.table.get(run.threadId) || authority.leases.get(run.threadId)) return { state: "waiting" };
     try {
       const { turn } = await adapter.dispatchOwned("turn/start", { threadId: run.threadId,
+        ...(run.permissions ? { permissions: run.permissions } : {}),
         clientUserMessageId: run.id, input: [{ type: "text", text: `[Scheduled task]\n${prompt}` }] }, owner, run.id) as any;
       lifecycle.acceptedTurn(run.threadId, {});
       return { state: "running", turnId: turn.id };

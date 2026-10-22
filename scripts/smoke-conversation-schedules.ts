@@ -10,7 +10,8 @@ const artifacts = resolve(process.env.OPENCRAFT_SCHEDULE_ARTIFACTS ?? join(root,
 let submitted = 0, fail = false, held: (() => void) | null = null, hold = false;
 const service = new ConversationSchedules(root, {
   validate: async id => { assert.equal(id, "thread"); },
-  submit: async () => { submitted++; return { state: "completed", turnId: "synthetic-turn" }; },
+  permissionProfiles: async () => [{ id: "opencraft:permission-mode:full", allowed: true, description: null, openCraftMode: "full", openCraftLabel: "Full access" }],
+  submit: async run => { assert.equal(run.permissions, "opencraft:permission-mode:full"); submitted++; return { state: "completed", turnId: "synthetic-turn" }; },
   inspect: async () => ({ state: "completed" }),
 });
 const source = `
@@ -52,6 +53,7 @@ try {
   await panel.getByLabel("What should it do?", { exact: true }).fill("Check the synthetic report");
   await panel.getByLabel("Repeat", { exact: true }).selectOption("repeat");
   await panel.getByLabel("Interval in minutes", { exact: true }).fill("60");
+  await panel.getByLabel("Permissions", { exact: true }).selectOption("opencraft:permission-mode:full");
   await page.screenshot({ path: join(artifacts, "mobile-create.png") });
   assert.ok(await panel.evaluate((el: HTMLElement) => el.scrollWidth <= el.clientWidth + 1));
   await page.evaluate(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
@@ -75,6 +77,7 @@ try {
   await panel.getByRole("button", { name: "Save", exact: true }).click();
   await panel.getByRole("button", { name: "Pause", exact: true }).waitFor();
   assert.equal(service.read("thread").schedule!.intervalMinutes, 60);
+  assert.equal(service.read("thread").schedule!.permissions, "opencraft:permission-mode:full");
   await panel.getByRole("button", { name: "Pause", exact: true }).click();
   await panel.getByRole("button", { name: "Resume", exact: true }).waitFor();
   assert.equal(service.read("thread").schedule!.status, "paused");
@@ -92,6 +95,7 @@ try {
   assert.notEqual(await panel.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundColor), "rgba(0, 0, 0, 0)");
   await page.evaluate(() => (window as any).fixtureTheme("light"));
   await panel.getByRole("button", { name: "Edit", exact: true }).click();
+  assert.equal(await panel.getByLabel("Permissions", { exact: true }).inputValue(), "opencraft:permission-mode:full");
   await panel.getByLabel("What should it do?", { exact: true }).fill("Unsaved user draft");
   await page.waitForTimeout(5200); assert.equal(await panel.getByLabel("What should it do?", { exact: true }).inputValue(), "Unsaved user draft");
   await page.screenshot({ path: join(artifacts, "desktop-edit.png") });

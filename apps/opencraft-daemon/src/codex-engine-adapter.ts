@@ -1752,6 +1752,20 @@ export class CodexEngineAdapter implements DuplexTransport {
   private scheduleExecutionPort(): ScheduleExecutionPort {
     return {
       validate: threadId => this.assertDurableQueueThread(threadId),
+      permissionProfiles: async threadId => {
+        const { thread } = record(await this.requestPhysical("thread/read", { threadId, includeTurns: false }));
+        const profiles: OpenCraftPermissionProfile[] = [];
+        let cursor: string | null = null;
+        for (let page = 0; page < 10; page++) {
+          const response = record(await this.requestPhysical("permissionProfile/list", { limit: 100, cwd: record(thread).cwd, cursor }));
+          if (!Array.isArray(response.data)) throw new Error("Codex permission catalog is unavailable");
+          profiles.push(...response.data as OpenCraftPermissionProfile[]);
+          if (response.nextCursor == null) return projectPermissionProfileCatalog(profiles, profile => codexPermissionMode(profile.id));
+          if (typeof response.nextCursor !== "string" || response.nextCursor === cursor) throw new Error("Codex permission catalog did not advance");
+          cursor = response.nextCursor;
+        }
+        throw new Error("Codex permission catalog is too long");
+      },
       submit: (run, prompt, canAdmit) => this.withThreadOperation(run.threadId, async () => {
         const queue = this.queueStore();
         const prior = queue.findByClientId(run.threadId, run.id);
@@ -1894,12 +1908,16 @@ export class CodexEngineAdapter implements DuplexTransport {
     if (prepared.attachments.length > 0) this.attachmentRecords().record(
       threadId, queued.clientUserMessageId, prepared.attachments);
     this.actorInput(queued, 'queue');
+    const selection = this.schedules?.executionPermissions(threadId, queued.clientUserMessageId);
+    const thread = selection ? record(record(await this.requestPhysical("thread/read", { threadId, includeTurns: false })).thread) : null;
+    const permissions = selection ? await this.resolvePermissionSelection(selection, thread?.cwd) : null;
     const row = queue.claim(threadId, id, "unknown");
     if (!row) throw new CodexQueueRpcError(-32600, "Queued message is already being dispatched");
     this.emitQueueChanged(threadId);
     try {
       const response = record(await this.requestPhysical("turn/start", {
         threadId, input: prepared.input, clientUserMessageId: row.clientUserMessageId,
+        ...(permissions ? { permissions } : {}),
       }));
       if (!string(record(response.turn).id)) throw new Error("Codex returned an invalid turn/start acknowledgement");
       queue.settle(threadId, id, "delivered", null, string(record(response.turn).id));
