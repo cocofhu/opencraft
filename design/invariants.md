@@ -968,7 +968,7 @@ Header 的可见导航 rail 用 `max-content` 在同一次布局中保留真实�
 
 触屏行高仅消费密度token：单行max(32px, --size-control-hit-min)，两行最小max(48px, --size-control-hit-min + 12px)；状态、头像与行菜单垂直居中。漏斗/右键的模式radio与filter checkbox共享indicator槽与文字轴，四种locale/桌面触屏均保留间隔。
 
-core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉先按屏宽减64px保留关闭区域，再以共享frame.sidebarMobileWidthRatio（85%）收窄并取整；不写回桌面宽度、不缩小字体或触控目标；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
+core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉先按屏宽减64px保留关闭区域，再以共享frame.sidebarMobileWidthRatio（90%）收窄并取整；不写回桌面宽度、不缩小字体或触控目标；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
 
 `scripts/smoke-sidebar-thread-insets.mjs` 挂载真实 AppShell + Sidebar + ThreadRowMenu，以合成短/长标题、日期组、项目和状态测宽窄固定/浮动、选中/hover浅深几何；此前 Settings 列测试不代替会话消费链。
 
@@ -1370,6 +1370,8 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 附属rail背景在结构tuck之外仅覆盖1px材料接缝（coverage-composer-material-seam），到输入框边框下方，避免两份伪元素背景的外/内缘留下亚像素未覆盖带。验收测材料绘制边界，不能只比容器bbox；独立材质与无缝约束保持，结构tuck按完整对称圆弧计算。
 
 非空附属rail与shell连接处不重复绘制shell顶部边框/内侧高光；空rail恢复独立输入框完整边界。用户确认本轮对象为静止时中间横缝。
+
+Conversation search keeps result identity as Host/Thread. Moving the active result may reuse unchanged row presentation, while query/catalog/content-source/locale changes refresh the projection, disabled state and callbacks. The dialog retains input focus, active-descendant navigation and selection/abort ownership; rendering reuse must not truncate results or defer search. Unrelated App snapshot updates keep the searched-thread callback stable for the same Host catalog, and the search wrapper keeps close stable for the same open-state owner. Search selection subscribes only to the existing sidebar-dismiss action rather than unrelated Shell geometry. Owner replacement still refreshes callbacks; result reuse never captures obsolete navigation, close or locate behavior.
 
 ## Global conversation search
 
