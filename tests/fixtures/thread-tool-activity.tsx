@@ -165,7 +165,7 @@ function LiveToolsDemo() {
             status: block.status, content: (block.input as { content?: string } | null)?.content,
           };
           return hostScenario && block.callId === "compact" ? <span data-live-host-icon>H</span> : undefined;
-        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }
@@ -177,6 +177,9 @@ const handoffProbe = window as unknown as {
 };
 handoffProbe.presentations = {};
 function HandoffToolsDemo() {
+  const [mounted, setMounted] = useState(true);
+  const restore = useRef<ConversationRestoreSnapshot | null>(null);
+  Object.assign(handoffProbe, { setHandoffMounted: setMounted, clearHandoffRestore: () => { restore.current = null; } });
   const [phase, setPhase] = useState(handoffParams.get("initial") ?? "queued");
   handoffProbe.setPhase = setPhase;
   const live = phase === "queued" || phase === "running";
@@ -206,7 +209,9 @@ function HandoffToolsDemo() {
   }, registry);
   return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        initialRestoreSnapshot={restore.current}
+        onRestoreSnapshotChange={snapshot => { restore.current = snapshot; }}
         renderToolCallIcon={(block, presentation) => {
           handoffProbe.presentations[block.callId ?? block.id] = {
             phase, canExpand: presentation.canExpand, state: presentation.state,

@@ -2352,7 +2352,10 @@ to start collapsed. A new View starts with the existing defaults, while returnin
 to a retained View restores its choice before paint. Only presentation booleans
 are checkpointed. Website tool subcalls use the same View store, keyed by their
 source block, ordered subcall slot and tool name; each restores its own explicit
-choice independently and fresh Views retain collapsed defaults. Output,
+choice independently and fresh Views retain collapsed defaults. Thread handoff
+step disclosures checkpoint their separate running and settled choices under
+the handoff block identity. Returning to the same View restores those choices;
+a fresh View keeps the running-open and settled-collapsed defaults. Output,
 permission, execution and App document state remain with
 
 their existing owners. Updated output is rendered from the current timeline.

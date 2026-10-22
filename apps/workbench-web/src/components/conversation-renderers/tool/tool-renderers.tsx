@@ -127,7 +127,7 @@ function RawToolOutput({ block }: { block: Tool }) {
 function ThreadTool({ block }: { block: Tool }) {
   const presentation = useToolActivityPresentation(block);
   const navigation = useContext(SubagentNavigationContext);
-  const [open, setOpen] = useActivityOpen(presentation.state === "running");
+  const [open, setOpen] = useActivityOpen(presentation.state === "running", false, `thread-handoff:${block.id}`);
   const created = createdThreadToolResult(block);
   const target = codexAppThreadNavigationTarget(block);
   const handoff = threadHandoffToolResult(block);

@@ -310,6 +310,16 @@ try {
         await page.screenshot({ path: join(output, `handoff-live-${width}-${theme}-initial.png`) });
         if (await trigger.getAttribute('aria-expanded') === 'true')
           await activate(trigger);
+        const restoreHandoff = async (fresh = false) => {
+          await page.evaluate(() => (window as any).setHandoffMounted(false));
+          await trigger.waitFor({ state: "detached" });
+          if (fresh) await page.evaluate(() => (window as any).clearHandoffRestore());
+          await page.evaluate(() => (window as any).setHandoffMounted(true));
+          await trigger.waitFor();
+        };
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Same View keeps explicit running handoff collapse");
+        features.runningChoiceRestored = true;
         await page.evaluate(() => (window as any).setPhase('running'));
         await page.waitForFunction(() => (window as any).presentations['handoff-live']?.phase === 'running');
         features.manualCollapseSurvivesProgress = await trigger.getAttribute('aria-expanded') === 'false';
@@ -320,9 +330,22 @@ try {
         features.settlementStartsCollapsed = await trigger.getAttribute('aria-expanded') === 'false';
         if (await trigger.getAttribute('aria-expanded') === 'false')
           await activate(trigger);
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "true", "Same View keeps explicit settled handoff expansion");
+        features.settledChoiceRestored = true;
         await page.evaluate(() => (window as any).setPhase('error'));
         await page.waitForFunction(() => (window as any).presentations['handoff-live']?.state === 'failed');
         features.settledManualChoiceSurvivesFailure = await trigger.getAttribute('aria-expanded') === 'true';
+        await activate(trigger);
+        await restoreHandoff();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Same View keeps explicit settled handoff collapse");
+        features.settledCollapseRestored = true;
+        await activate(trigger);
+        await restoreHandoff(true);
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false", "Fresh settled View retains collapsed default");
+        await page.evaluate(() => (window as any).setPhase("queued"));
+        assert.equal(await trigger.getAttribute("aria-expanded"), "true", "Fresh running View retains open default");
+        features.freshViewDefaults = true;
         await page.evaluate(() => (window as any).setPhase('empty'));
         await page.locator('[data-phase="empty"]').waitFor();
         features.emptyHandoffSummaryOnly = await page.locator('.thread-handoff-steps').count() === 0 && await page.locator('.thread-codex-app-tool-row button[aria-expanded]').count() === 0;
