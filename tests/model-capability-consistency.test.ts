@@ -165,3 +165,11 @@ test("default settings cannot persist a reasoning effort the model does not supp
       ops: [{ op: "set", path: ["reasoningEffort"], value: "none" }] }), /does not support reasoning effort/);
   } finally { adapter.close(); }
 });
+
+test("speed tiers are projected only from model service capabilities", () => {
+  const model = { id: "speed", model: "speed", displayName: "Speed", hidden: false, description: "", isDefault: true,
+    supportedReasoningEfforts: [], defaultReasoningEffort: null, serviceTiers: [{ id: "fast", name: "Fast", description: "Server description" }] };
+  assert.deepEqual(projectComposerModelChoices([model as any])[0]?.serviceTiers, model.serviceTiers);
+  assert.deepEqual(projectComposerModelChoices([{ ...model, serviceTiers: [] } as any])[0]?.serviceTiers, []);
+  assert.deepEqual(projectComposerModelChoices([{ ...model, serviceTiers: [], additionalSpeedTiers: ["fast"] } as any])[0]?.serviceTiers, [{ id: "fast", name: "Fast", description: "" }]);
+});

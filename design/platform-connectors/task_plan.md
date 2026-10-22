@@ -76,16 +76,15 @@
 - unresolved：全仓 context validator/4 项治理测试因已有文档问题失败，正式文档与本轮影响检查通过；详见 progress。
 - next_action：交接设计文档和明确限制；不提交、推送或发布。
 
-## 第三阶段：Octop 接入体验、Skills 入口、Host 数据库
+## 第三阶段：服务接入体验、Skills 入口、Host 数据库
 
-用户确认：交互和具体服务学习 ref/octop；Skills 中与技能/技能包并列连接器 Tab；视觉用 OpenCraft token/控件；配置、凭据和 OAuth 事务只存数据库；不改 Hermes 引擎，不接真实账号。
+用户确认：Skills 中与技能/技能包并列连接器 Tab；视觉用 OpenCraft token/控件；配置、凭据和 OAuth 事务只存数据库；不改 Hermes 引擎，不接真实账号。
 
 ### 当前设计与演进
 
 - current_design_refs：`docs/platform-connectors.md`、`docs/platform-architecture.md`。
 - superseded：第二阶段“仅发现已配置原生 MCP”的产品入口不是完整服务目录；其 SPI/审批/撤销仍复用。
 - relevant_evolution：新增 OpenCraft Host 管理的接入，原生 MCP adapter 保持兼容，不强制外部 Host 改存储。
-- 参考 pin：ref/octop `ae65fe4e26854d2eaf751cee89341ec5d71569f0`；只迁移有源代码依据的服务声明/步骤及适配，保留 MIT 归属，不引入其 Python/harness/Antd。
 
 ### phases
 
