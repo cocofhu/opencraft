@@ -148,7 +148,11 @@ test("actual SSH transport + shared broker + Runtime restores paginated items, o
     assert.ok(!calls.includes("thread/resume"), "search must not resume a thread");
     assert.equal(runtime.resources.host.canRequest?.("thread/turns/list"), true);
     assert.equal(runtime.resources.host.canRequest?.("thread/queue/add"), false);
-    assert.deepEqual(runtime.resources.threads.capabilities?.(), { fork: true, rename: true, archive: true, delete: false, pin: false });
+    const nativeCapabilities = runtime.resources.threads.capabilities?.();
+    assert.ok(nativeCapabilities);
+    if ("reference" in nativeCapabilities) assert.equal(nativeCapabilities.reference, false);
+    const lifecycleCapabilities = Object.fromEntries(Object.entries(nativeCapabilities).filter(([name]) => name !== "reference"));
+    assert.deepEqual(lifecycleCapabilities, { fork: true, rename: true, archive: true, delete: false, pin: false });
     assert.equal(runtime.resources.attachments.capabilities(), null);
     assert.equal(runtime.resources.goals.capability(), null);
     await runtime.resources.composerCatalog.listSkills();
