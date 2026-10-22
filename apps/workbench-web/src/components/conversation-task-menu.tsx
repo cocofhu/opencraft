@@ -2,7 +2,7 @@ import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Archive, Clock, GitFork, Info, ListTodo, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
+import { Archive, Clock, GitFork, Info, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -89,7 +89,7 @@ function TaskPicker(props: TaskProps & { onClose(): void; returnFocus(): HTMLEle
   const tasks = (query.data?.tasks ?? []).filter(task =>
     !needle || `${task.title}\n${task.description}`.toLocaleLowerCase().includes(needle),
   ).sort((a, b) => Number(belongsTo(b, props)) - Number(belongsTo(a, props)));
-  const title = intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Task membership" });
+  const title = intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" });
   return <ModalSurface label={title} size="compact" appearance="utility"
     onDismiss={props.onClose} returnFocus={props.returnFocus}>
     <SettingsPanel title={title} footer={<>
@@ -126,6 +126,7 @@ export function ConversationTaskMenu(props: Props) {
   const portalContainer = useWorkbenchPresentationRoot();
   const notices = useAsyncNotices();
   const trigger = useRef<HTMLButtonElement | null>(null);
+  const taskTrigger = useRef<HTMLButtonElement | null>(null);
   const modalHandoff = useRef(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -162,6 +163,10 @@ export function ConversationTaskMenu(props: Props) {
   const busy = pin.isPending || archive.isPending || fork.isPending;
   const label = intl.formatMessage({ id: "tasks.relation.actions", defaultMessage: "Conversation actions" });
   return <>
+    {props.port ? <button ref={taskTrigger} type="button" className="chrome-button chrome-button--text"
+      disabled={busy} aria-haspopup="dialog" aria-expanded={pickerOpen} onClick={() => setPickerOpen(true)}>
+      {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
+    </button> : null}
     <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenu.Trigger asChild>
         <button ref={trigger} type="button" className="chrome-button" aria-label={label} title={label}>
@@ -191,10 +196,6 @@ export function ConversationTaskMenu(props: Props) {
             setMenuOpen(false);
             archive.mutate({ key: `archive:${props.scope}:${props.serverId}:${props.threadId}`, title: props.title ?? "", execute: props.onArchive! });
           }}><Archive size={16} aria-hidden="true" />{intl.formatMessage({ id: "sidebar.thread.archive", defaultMessage: "Archive" })}</DropdownMenu.Item> : null}
-          {props.port && (props.onRename || props.onSetPinned || props.onArchive || props.onFork) ? <DropdownMenu.Separator /> : null}
-          {props.port ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setPickerOpen(true); }}>
-            <ListTodo size={16} aria-hidden="true" />{intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Task membership" })}
-          </DropdownMenu.Item> : null}
           {props.schedules ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setSchedulesOpen(true); }}>
             <Clock size={16} aria-hidden="true" />{intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" })}
           </DropdownMenu.Item> : null}
@@ -210,6 +211,6 @@ export function ConversationTaskMenu(props: Props) {
     {detailsOpen ? <Suspense fallback={null}><ConversationInformationDialog project={props.project} workspaceDirectory={props.workspaceDirectory}
       onDismiss={() => setDetailsOpen(false)} returnFocus={() => trigger.current} /></Suspense> : null}
     {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={() => trigger.current} /> : null}
-    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={() => trigger.current} /> : null}
+    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={() => taskTrigger.current} /> : null}
   </>;
 }

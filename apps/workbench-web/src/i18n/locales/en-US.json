@@ -418,7 +418,7 @@
   "tasks.relation.retry": "Retry",
   "tasks.relation.saveError": "Could not confirm the change. Review the current selection and retry.",
   "tasks.relation.search": "Search tasks",
-  "tasks.relation.title": "Task membership",
+  "tasks.relation.title": "Link tasks",
   "webUpdates.admin": "Deployment administrator",
   "webUpdates.adminHint": "Enter the admin-key from the website state directory to install updates or roll back.",
   "webUpdates.authorize": "Authorize management",

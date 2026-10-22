@@ -1838,3 +1838,12 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+## Conversation task linking entrance
+
+Existing conversations with Tasks authority expose a labeled Link tasks action
+immediately before the overflow menu. Both routes use the original task picker
+and confirmed conversation identity; dismissing it restores focus to its own
+trigger. Shell measures the inert label projection at its intrinsic width, so
+the title never reserves only an icon slot for a text action, including touch
+and floating Newera chrome. No Tasks authority means no task-link entrance.

@@ -22,7 +22,7 @@
   "panel.showFileTree": "展开文件树",
   "chat.addSelectionToChat": "添加到对话",
   "panel.downloadFile": "下载文件",
-  "tasks.relation.title": "归属任务",
+  "tasks.relation.title": "关联任务",
   "tasks.relation.actions": "会话操作",
   "tasks.relation.openTasks": "打开任务",
   "tasks.relation.close": "完成",

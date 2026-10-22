@@ -1650,14 +1650,20 @@ export function App({
     }) : null;
   useConversationHistoryRefresh(activeThreadLease,
     conversationContribution?.refreshHistory === true && snapshot.phase === "ready", refreshConversationCatalog);
+  const conversationActionSizing = <>
+    {hostCatalog.tasks ? <span className="chrome-button chrome-button--text">
+      {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
+    </span> : null}
+    <span className="chrome-button" />
+  </>;
   const header = (
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
       navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
-      headerActionCount={conversationMenuAvailable ? 1 : 0}
+      headerActionSizing={conversationActionSizing}
       headerAction={conversationMenuAvailable ? (
-        <Suspense fallback={<span className="chrome-button" />}>
+        <Suspense fallback={conversationActionSizing}>
           <ConversationTaskMenu
             key={JSON.stringify([displayScope, snapshot.hostId, activeThreadId])}
             port={hostCatalog.tasks ?? undefined}

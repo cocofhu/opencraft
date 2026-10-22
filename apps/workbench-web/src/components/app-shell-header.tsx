@@ -197,6 +197,8 @@ export interface AppShellHeaderProps {
   readonly headerAction?: ReactNode;
   /** Number of chrome-button slots to reserve during panel animation. */
   readonly headerActionCount?: number;
+  /** Inert sizing projection for route actions with intrinsic text width. */
+  readonly headerActionSizing?: ReactNode;
   readonly title: string | null;
   readonly project: string | null;
   readonly titleContent?: ReactNode;
@@ -227,6 +229,7 @@ export function AppShellHeader({
   navigationBrand,
   headerAction,
   headerActionCount = 1,
+  headerActionSizing,
   conversationHeader = false,
   title,
   project,
@@ -308,7 +311,7 @@ export function AppShellHeader({
         >
           {showRightPanelAction || headerAction ? (
             <div className="app-shell-header__end-actions">
-              {headerAction ? Array.from({ length: headerActionCount }, (_, index) => <span key={index} className="chrome-button" />) : null}
+              {headerAction ? headerActionSizing ?? Array.from({ length: headerActionCount }, (_, index) => <span key={index} className="chrome-button" />) : null}
               {showRightPanelAction ? <span className="chrome-button app-shell-header__right-panel-toggle">
                 <RightPanelToggleIcon panelOpen={rightPanelOpen} />
               </span> : null}
