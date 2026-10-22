@@ -2022,3 +2022,14 @@ expanded frame and then animate it away. Explicit saved expansion, manual toggle
 and live content updates retain their existing ownership and transitions.
 Evidence: `scripts/smoke-conversation-entry-motion.ts` samples real Conversation
 group phase and body height on the first commit and subsequent animation frames.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.

@@ -84,6 +84,7 @@ interface PendingRequest {
   startedAtMs: number;
   params: unknown;
   timeoutMs: number;
+  preparationTurnId?: string;
   resolve(value: unknown): void;
   reject(error: Error): void;
   timerId: ReturnType<typeof globalThis.setTimeout> | null;
@@ -463,6 +464,7 @@ export class JsonRpcAppServerClient implements AppServerClient {
         method: message.method,
         params: message.params,
       };
+      this.trackContextPreparation(notification);
       if (notification.method === "serverRequest/resolved") {
         const { requestId, threadId } = notification.params as { readonly requestId?: unknown; readonly threadId?: unknown };
         if (typeof requestId === "string" || typeof requestId === "number") {
@@ -649,6 +651,29 @@ export class JsonRpcAppServerClient implements AppServerClient {
     const reason = status.reason == null ? "AppServer transport closed" : `AppServer transport closed: ${status.reason}`;
     this.rejectAllPending(new AppServerClientError("TRANSPORT_ERROR", reason), "failed");
     this.invalidateServerRequests(new AppServerClientError("TRANSPORT_ERROR", reason));
+  }
+
+  private trackContextPreparation(notification: AppServerNotification): void {
+    const params = notification.params as { threadId?: unknown; turnId?: unknown; item?: { type?: unknown }; turn?: { id?: unknown } } | null;
+    if (typeof params?.threadId !== "string") return;
+    const started = notification.method === "item/started" && params.item?.type === "contextCompaction" && typeof params.turnId === "string";
+    const completed = notification.method === "turn/completed" && typeof params.turn?.id === "string";
+    if (!started && !completed) return;
+    for (const pending of this.pending.values()) {
+      if (pending.timeoutMs <= 0 || !["turn/start", "thread/resume"].includes(pending.method)) continue;
+      if ((pending.params as { threadId?: unknown } | null)?.threadId !== params.threadId) continue;
+      if (started) {
+        if (pending.preparationTurnId !== undefined) continue;
+        pending.preparationTurnId = params.turnId as string;
+      } else if (pending.preparationTurnId === undefined || pending.preparationTurnId !== params.turn?.id) continue;
+      // Context preparation is model work, not a stalled RPC. Extend only for
+      // the matching thread and never beyond a bounded absolute deadline.
+      const remaining = Math.max(0, pending.startedAtMs + Math.max(pending.timeoutMs, 180_000) - this.clock.now());
+      const delay = started ? remaining : Math.min(remaining, pending.timeoutMs);
+      if (pending.timerId !== null) this.clock.clearTimeout(pending.timerId);
+      pending.timerId = this.clock.setTimeout(() => this.rejectPending(pending.id,
+        new AppServerClientError("TIMEOUT", `AppServer request ${pending.method} timed out during context preparation`), "timed-out"), delay);
+    }
   }
 
   private rejectPending(
