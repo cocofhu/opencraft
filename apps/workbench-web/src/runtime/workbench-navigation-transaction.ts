@@ -252,7 +252,8 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
     const origin = navigation.getSnapshot();
     const viewId = scope ?? createRouteScopeId();
     const epoch = beginIntent();
-    const finish = beginObservedOperation("thread_open", {cache:preferredView(location) ? "warm" : "cold"});
+    const isWarm = scope !== undefined || preferredView(location) !== undefined || isRetainedView(canonicalLocation(location), viewId);
+    const finish = beginObservedOperation("thread_open", { cache: isWarm ? "warm" : "cold" });
     const promise = prepareNavigation(location, mode, viewId, epoch, origin).then(result => {finish(result?"ok":"aborted");return result;},error=>{finish("failed");throw error;});
     const operation = { location, viewId, promise };
     pendingNavigation = operation;
@@ -265,6 +266,8 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
       return pendingNavigation.promise;
     }
     if (equalWorkbenchLocation(location, activeLocation) && scope === activeScope) {
+      const fastFinish = beginObservedOperation("thread_open", { cache: "warm" });
+      fastFinish("ok");
       const epoch = beginIntent();
       commitRoute(() => navigation.push(location, { routeScopeId: scope }),
         () => rememberPresentedView(location, scope));
@@ -299,6 +302,8 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
       if (current.applicationRoute.kind === "conversation" && pendingNavigation === null
         && equalWorkbenchLocation(current.location, location)
         && equalWorkbenchLocation(activeLocation, location) && retainedScope === activeScope) {
+        const fastFinish = beginObservedOperation("thread_open", { cache: "warm" });
+        fastFinish("ok");
         return Promise.resolve(true);
       }
       return returnToView(location, retainedScope);

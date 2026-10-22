@@ -27,7 +27,9 @@ INSERT OR IGNORE INTO recovery_episodes SELECT json_extract(body,'$.recoveryId')
 `;
 export class ObserveStore {
   db; outcome; accepted = 0; rejected = 0; dropped = 0;
-  constructor(path: string, readonly now = Date.now) {
+  readonly now: () => number;
+  constructor(path: string, now: () => number = Date.now) {
+    this.now = now;
     const managed = openManagedDatabase({ path, legacyPolicy: 'reject', backup: {keep: 1},
       validateSchema: createSchemaValidator(observationSchemaV1+observationSchemaV2+observationSchemaV3+observationSchemaV4), migrations: [{version: 1, name: 'bounded-derived-observations', sql: observationSchemaV1},{version:2,name:'bounded-query-indexes-and-domain-rollups',sql:observationSchemaV2+backfill},{version:3,name:'execution-progress-and-queue-samples',sql:observationSchemaV3},{version:4,name:'latest-component-producer-index',sql:observationSchemaV4}] });
     this.db = managed.database; this.outcome = managed.outcome;
@@ -73,8 +75,8 @@ export class ObserveStore {
               .run(key,event.engine??'unknown',event.stage??'other',event.at,now,terminal?1:0);
             this.db.prepare(`INSERT INTO executions VALUES(?,?,?,?,?) ON CONFLICT(domain_key) DO UPDATE SET
               started=COALESCE(executions.started,excluded.started), ended=COALESCE(executions.ended,excluded.ended),
-              outcome=CASE WHEN executions.ended IS NULL THEN excluded.outcome ELSE executions.outcome END, updated=MAX(executions.updated,excluded.updated)`)
-              .run(key,event.outcome==='started'?event.at:null,terminal?event.at:null,event.outcome??'unknown',now);
+              outcome=CASE WHEN excluded.ended IS NOT NULL THEN excluded.outcome ELSE executions.outcome END, updated=MAX(executions.updated,excluded.updated)`)
+              .run(key,event.outcome==='started'?event.at:null,terminal?event.at:null,terminal?event.outcome:'started',now);
           }
         } catch { dropped++; }
       }
@@ -104,13 +106,14 @@ export class ObserveStore {
   executions(from: number, to: number) {
     return this.db.prepare('SELECT outcome,count(*) AS count FROM executions WHERE started<=? AND COALESCE(ended,?)>=? GROUP BY outcome').all(to,to,from);
   }
-  progress() {
-    return this.db.prepare('SELECT engine,stage,count(*) AS count,MIN(progress_at) AS oldestProgressAt FROM execution_progress WHERE terminal=0 GROUP BY engine,stage').all();
+  progress(activeWindowMs = 1_800_000) {
+    return this.db.prepare('SELECT engine,stage,count(*) AS count,MIN(progress_at) AS oldestProgressAt FROM execution_progress WHERE terminal=0 AND progress_at>=? GROUP BY engine,stage').all(this.now() - activeWindowMs);
   }
   queues() {
     return this.db.prepare('SELECT engine,sum(count) AS count,MIN(received) AS oldestCaptureAt FROM queue_samples WHERE received>=? AND observed_at>=? GROUP BY engine').all(this.now()-limits.freshnessMs,this.now()-limits.freshnessMs);
   }
-  prune() {
+  prune(maxAgeMs = 1_800_000) {
+    this.db.prepare('UPDATE execution_progress SET terminal=1 WHERE terminal=0 AND progress_at<?').run(this.now() - maxAgeMs);
     const cutoff = this.now()-limits.retentionMs;
     this.db.prepare('DELETE FROM execution_progress WHERE received<?').run(cutoff);
     this.db.prepare('DELETE FROM queue_samples WHERE received<?').run(cutoff);
