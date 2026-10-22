@@ -3,6 +3,7 @@ import type { DesktopSurface, DesktopSurfaceFactory } from "./viewer";
 import { loadRfbClient, type RfbClient, type RfbClientConstructor } from "./rfb-client";
 import { bindDesktopPointerInput } from "./pointer-input";
 import { createDesktopTextInput } from "./text-input";
+import { bindDesktopClipboard } from "./clipboard-input";
 import { captureFramePreview } from "./frame-preview";
 import type { DesktopFramePreview } from "./contract";
 
@@ -56,6 +57,7 @@ class RfbConnection implements DesktopConnection {
   private cancelPaste: (() => void) | null = null;
   private pointerInput: ReturnType<typeof bindDesktopPointerInput> | null = null;
   private textInput: ReturnType<typeof createDesktopTextInput> | null = null;
+  private clipboardInput: ReturnType<typeof bindDesktopClipboard> | null = null;
   private preview: DesktopFramePreview | null = null;
 
   capturePreview = (): DesktopFramePreview | null => {
@@ -184,36 +186,14 @@ class RfbConnection implements DesktopConnection {
         channel.removeEventListener("close", disconnected); channel.removeEventListener("error", channelError);
       });
       const focus = () => { if (!this.closed && this.surfaceActive && this.snapshot.videoReady) client.focus({ preventScroll: true }); };
-      let pasteKey = false;
-      const keyDown = (event: KeyboardEvent) => {
-        if (this.session.control?.canPaste?.() === false || !this.activeInput?.isValid() || !this.pasteHandler || event.key.toLowerCase() !== "v"
-          || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-        event.preventDefault(); event.stopImmediatePropagation(); pasteKey = true;
-        if (event.repeat) return;
-        // Read only on this focused surface's explicit user gesture. No polling
-        // or unsolicited peer-to-local clipboard writes.
-        this.pasteHandler(() => element.ownerDocument.defaultView!.navigator.clipboard.readText());
-      };
-      const keyUp = (event: KeyboardEvent) => {
-        if (pasteKey && event.key.toLowerCase() === "v") {
-          pasteKey = false; event.preventDefault(); event.stopImmediatePropagation();
-        }
-      };
-      const paste = (event: ClipboardEvent) => {
-        if (this.session.control?.canPaste?.() === false || !this.activeInput?.isValid() || !this.pasteHandler || !event.clipboardData) return;
-        event.preventDefault(); event.stopImmediatePropagation();
-        const text = event.clipboardData.getData("text/plain");
-        this.pasteHandler(async () => text);
-      };
+      this.clipboardInput = bindDesktopClipboard(element, client,
+        () => !this.closed && this.surfaceActive && this.session.control?.canPaste?.() !== false
+          && this.activeInput?.isValid() === true && !!this.pasteHandler,
+        read => this.pasteHandler?.(read));
+      this.disposers.push(() => { this.clipboardInput?.dispose(); this.clipboardInput = null; });
       element.addEventListener("pointerdown", focus, true);
-      element.addEventListener("keydown", keyDown, true);
-      element.addEventListener("keyup", keyUp, true);
-      element.addEventListener("paste", paste, true);
       this.disposers.push(() => {
         element.removeEventListener("pointerdown", focus, true);
-        element.removeEventListener("keydown", keyDown, true);
-        element.removeEventListener("keyup", keyUp, true);
-        element.removeEventListener("paste", paste, true);
       });
       const connection = this;
       return { setActive: active => this.setActive(active),
@@ -289,6 +269,7 @@ class RfbConnection implements DesktopConnection {
     this.textInput?.finish(() => client.focus({ preventScroll: true }));
     if (!allowed()) return Promise.reject(new Error("Desktop paste retired"));
     return new Promise<void>((resolve, reject) => {
+      let provided = false, keysSent = false;
       const finish = () => {
         clearTimeout(timer); client.removeEventListener("clipboardready", ready);
         signal.removeEventListener("abort", cancel); this.cancelPaste = null;
@@ -296,23 +277,27 @@ class RfbConnection implements DesktopConnection {
       const cancel = () => { finish(); cleanup(() => client.clearClipboard()); reject(new Error("Desktop paste retired")); };
       const ready = () => {
         if (!allowed()) { cancel(); return; }
-        finish();
-        try {
-          // Both basic ClientCutText and extended Provide are now SENT, not
-          // merely requested. Paste keys follow on the same ordered RFB stream.
-          client.sendKey(0xffe3, "ControlLeft", true);
-          if (!allowed()) throw new Error("Desktop paste retired");
-          client.sendKey(0x76, "KeyV");
-          if (!allowed()) throw new Error("Desktop paste retired");
-          client.sendKey(0xffe3, "ControlLeft", false);
-          resolve();
-        } catch (error) { reject(error); }
+        provided = true;
+        if (keysSent) { finish(); resolve(); }
       };
       const timer = setTimeout(cancel, 5_000);
       this.cancelPaste = cancel;
       client.addEventListener("clipboardready", ready);
       signal.addEventListener("abort", cancel, { once: true });
-      try { client.clipboardPasteFrom(text); } catch { cancel(); }
+      try {
+        // Notify/basic text must precede Ctrl+V on the ordered stream. An
+        // extended peer can request Provide lazily only AFTER the application
+        // receives Ctrl+V; waiting for Provide before keys deadlocks that peer.
+        client.clipboardPasteFrom(text);
+        if (!allowed()) { cancel(); return; }
+        client.sendKey(0xffe3, "ControlLeft", true);
+        if (!allowed()) { cancel(); return; }
+        client.sendKey(0x76, "KeyV");
+        if (!allowed()) { cancel(); return; }
+        client.sendKey(0xffe3, "ControlLeft", false);
+        keysSent = true;
+        if (provided) { finish(); resolve(); }
+      } catch { cancel(); }
     });
   }
 
@@ -325,6 +310,7 @@ class RfbConnection implements DesktopConnection {
 
   private disableInput(): void {
     this.pointerInput?.reset();
+    this.clipboardInput?.reset();
     this.activeInput = null;
     this.textInput?.reset();
     this.cancelPaste?.();

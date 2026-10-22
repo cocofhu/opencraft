@@ -9,8 +9,8 @@ import {
   type ToolActivityPresenterRegistry,
 } from "@opencraft/chat-core";
 import {
-  codexSetupContextSourceExamples,
-  type SetupCodexContextSource,
+  setupContextSourceExamples,
+  type SetupContextSource,
   type WorkbenchInteractionAction,
 } from "@opencraft/workbench-runtime";
 import {
@@ -50,14 +50,14 @@ export const AsyncQuestionContext = createContext<AsyncQuestionContextValue>({
 });
 export const ConversationDetailContext = createContext<ConversationDetailLevel>("STEPS_COMMANDS");
 
-export interface SetupCodexContextCatalogValue {
-  readonly sources: readonly SetupCodexContextSource[];
+export interface SetupContextCatalogValue {
+  readonly sources: readonly SetupContextSource[];
   readonly loading: boolean;
-  readonly connect: ((source: SetupCodexContextSource) => Promise<void>) | null;
+  readonly connect: ((source: SetupContextSource) => Promise<void>) | null;
 }
 
-export const SetupCodexContextCatalog = createContext<SetupCodexContextCatalogValue>({
-  sources: codexSetupContextSourceExamples,
+export const SetupContextCatalog = createContext<SetupContextCatalogValue>({
+  sources: setupContextSourceExamples,
   loading: false,
   connect: null,
 });

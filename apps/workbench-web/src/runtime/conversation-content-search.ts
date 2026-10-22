@@ -38,6 +38,10 @@ export function isUnsupportedSearch(error: unknown): boolean {
     && /^Method not supported by OpenCraft DSH host: thread\/search/.test(rpc.message ?? ""));
 }
 
+/** Native substring scans can traverse the complete history. Keep their bounded
+ * deadline separate from foreground metadata RPCs (normally 30 seconds). */
+const CONTENT_SEARCH_TIMEOUT_MS = 120_000;
+
 /** At most one native scan per source. Obsolete queued queries never execute. */
 export function serializeContentSearch() {
   let tail: Promise<unknown> = Promise.resolve();
@@ -65,13 +69,13 @@ export function createCodexContentSearchSource(input: {
     search: (term, cursor, signal) => serialize(signal, async () => {
       input.assertCurrent();
       const result = await input.protocol.request("thread/search", { searchTerm: term, cursor, limit: 30,
-        archived: false, sortKey: "updated_at", sortDirection: "desc" });
+        archived: false, sortKey: "updated_at", sortDirection: "desc" }, { timeoutMs: CONTENT_SEARCH_TIMEOUT_MS });
       input.assertCurrent();
       return { matches: result.data.map(match => ({ ...input.project(match.thread), snippet: match.snippet, searchTerm: term })), nextCursor: result.nextCursor };
     }),
     locate: (term, threadId, signal) => serialize(signal, async () => {
       input.assertCurrent();
-      const page = await input.protocol.request("thread/searchOccurrences", { threadId, searchTerm: term, limit: 1 });
+      const page = await input.protocol.request("thread/searchOccurrences", { threadId, searchTerm: term, limit: 1 }, { timeoutMs: CONTENT_SEARCH_TIMEOUT_MS });
       input.assertCurrent();
       return page.data[0] ?? null;
     }),

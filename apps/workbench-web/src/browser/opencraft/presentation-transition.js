@@ -144,8 +144,10 @@ export function createImplementation(_ports) {
       }
       if (lane.waiting) this.#cancel(lane, true);
       if (!lane.front || lane.front.host === host || !lane.front.host.isPainted()) {
+        const previous = lane.front;
         lane.front = claim;
-        host.sync(state, reference);
+        if (previous && previous.host !== host) this.#detach(previous);
+        if (lane.front === claim && host.getConversationId() === claim.owner) host.sync(state, reference);
         return;
       }
       const waiting = { claim, frame: null, timer: null, epoch: 0,

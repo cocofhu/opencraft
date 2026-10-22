@@ -5,6 +5,7 @@ import { createServer } from "vite";
 const output = process.env.OPENCRAFT_SIDEBAR_UPDATE_OUTPUT ?? "/tmp/opencraft-sidebar-conversation-latency";
 const sampleCount = Number(process.env.OPENCRAFT_PERFORMANCE_SAMPLES ?? 3);
 assert.ok(Number.isSafeInteger(sampleCount) && sampleCount >= 3 && sampleCount <= 100);
+const initialMatchingCount = (rows: number) => Array.from({length: rows}, (_, i) => `Conversation ${i}`).filter(title => title.includes("Conversation 1")).length;
 const source = `
 import React,{useState,useMemo,useCallback} from 'react';
 import {useSidebarCommands} from '/apps/workbench-web/src/components/use-sidebar-commands.ts';
@@ -94,6 +95,25 @@ try {
       assert.equal(sample.projections,0,'conversation publication must not regroup the catalog');
       samples.push(sample);
     }
+    const searchSamples = [];
+    const search = page.getByRole('searchbox', { name: 'Search conversations', exact: true });
+    const firstRow = page.locator('.sidebar-activity-item').first();
+    await firstRow.evaluate(node => { (window as any).originalSearchRow = node; });
+    for (let i = 0; i < sampleCount; i++) {
+      const before = await page.evaluate(() => ({ rows: (window as any).rowsProcessed, start: performance.now() }));
+      await search.fill(i % 2 ? 'Conversation ' : 'conversation');
+      const sample = await page.evaluate(async before => {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return { ms: performance.now() - before.start, rowsProcessed: (window as any).rowsProcessed - before.rows };
+      }, before);
+      assert.equal(sample.rowsProcessed, 0, 'search retaining a row must not rebuild its menu and content');
+      assert.equal(await firstRow.evaluate(node => node === (window as any).originalSearchRow), true);
+      assert.equal(await search.evaluate(node => node === document.activeElement), true, 'search keeps focus');
+      searchSamples.push(sample);
+    }
+    await search.fill('Conversation 1');
+    assert.equal(await page.locator('.sidebar-activity-item').count(), initialMatchingCount(rows));
+    await search.fill('');
     await cdp.send('Emulation.setCPUThrottlingRate',{rate:1});
     // Cached command identity still dispatches to the latest committed render.
     await page.locator('.sidebar-activity-item').first().click({button:'right'});
@@ -116,7 +136,7 @@ try {
     assert.deepEqual((await page.evaluate(()=>(window as any).actions))[1],['select',sampleCount,'t1']);
     await page.evaluate(()=>(window as any).fixture.setRows((window as any).fixture.initial.filter((r:any)=>r.id!=='t0')));
     await page.waitForFunction(count=>document.querySelectorAll('.sidebar-activity-item').length===count-1,rows);
-    assert.deepEqual(errors,[]);evidence.push({rows,samples});await page.close();
+    assert.deepEqual(errors,[]);evidence.push({rows,samples,searchSamples});await page.close();
   }
   await writeFile(output+'/results.json',JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
 }finally{await browser?.close();await vite.close()}

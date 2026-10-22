@@ -98,7 +98,7 @@ export function sidebarActivityDateHeadings<T extends SidebarActivityThread>(
   return headings;
 }
 
-/** Running rows stay ahead without output-driven reshuffling within that set. */
+/** Running rows stay ahead; all rows use the catalog's canonical recency clock. */
 function compareRecentThreads(
   left: SidebarActivityThread & { readonly status: string },
   right: SidebarActivityThread & { readonly status: string },
@@ -106,9 +106,9 @@ function compareRecentThreads(
   const leftRunning = left.status === "running";
   const rightRunning = right.status === "running";
   if (leftRunning !== rightRunning) return leftRunning ? -1 : 1;
+  const recency = right.updatedAt - left.updatedAt;
+  if (recency !== 0) return recency;
   if (leftRunning) {
-    const created = (right.createdAt ?? 0) - (left.createdAt ?? 0);
-    if (created !== 0) return created;
     const leftKey = JSON.stringify([left.serverOrigin.serverId, left.id]);
     const rightKey = JSON.stringify([right.serverOrigin.serverId, right.id]);
     return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
