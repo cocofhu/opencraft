@@ -661,6 +661,7 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 | BRW-09 | 恢复未完成不是用户关闭；close 与清除站点数据分离，重启不因 localhost 端口变化丢失归属 | desktop metadata＋native restart smoke |
 | BRW-10 | 设备工具栏只投影父层 viewport mode/zoom；聚焦数字草稿独立，范围内编辑即时提交、失焦规范化，预设/旋转不夺取 Page 或持久化所有权 | 独立 toolbar/input；136 静态、64 Web 检查点及两组258边界；手柄/布局保持原owner |
 | BRW-11 | 远端帧按外层 visualBounds 宽度等比投影并从顶部裁切；软键盘改变高度时不得把旧帧再次 contain 缩成小整页；触点、菜单和光标共用此投影，固定设备外层居中不变 | RemoteBrowserSurfaceHost；真实 Canvas/MSE H.264 高度变化中间帧负控与命中验证 |
+| BRW-12 | 同一远端页的尺寸/解码切换保留最后可读帧，首个完整新帧就绪才原子交接；晚到旧代次与未就绪视频不得覆盖，保帧不冻结远端真实布局或增加空闲刷新 | Canvas 同任务 resize/draw、MSE 首帧 fence；延迟首帧/连续切换/恢复负控与取消测试 |
 
 历史迁移验收：66 项聚焦测试、完整门禁，以及当时最终打包应用的多标签/隐藏保活/分区重启验收通过（/tmp/oc-browser-MGEbk1）。没有新增 bottom-panel UI；非标准 WebContents adoption 不在标准 Electron port 内伪装支持。标准宿主桥接单独验证，不沿用旧原生验收证明 registry 与 toolbar 的后续实现。
 

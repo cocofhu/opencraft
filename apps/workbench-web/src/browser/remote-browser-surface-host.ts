@@ -1,6 +1,6 @@
 import { browserPresentationClipPath } from "./browser-presentation-geometry";
 import type { BrowserMetadataStorage } from './desktop-browser-storage';
-import { H264MediaSource } from './h264-media-source';
+import { H264MediaSource, onFirstVideoFrame } from './h264-media-source';
 import { BrowserAutomationError, type BrowserAutomation, type BrowserDeviceProfile, type BrowserPageId, type BrowserUrl, type BrowserViewportLayout } from '@opencraft/browser-core';
 import type { BrowserSurfaceEvents, BrowserSurfaceHost } from './web-browser-surface-host';
 import type { PresentationHostPort } from './opencraft-presentation-host';
@@ -12,7 +12,7 @@ import { remoteBrowserDeviceProfile } from './remote-browser-device';
 interface RemoteKeyboardPolicy { kind: string; secure: boolean; inputMode: string; enterKeyHint: string; multiline: boolean; autoKeyboard: boolean; }
 type Pending = { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 interface Page {
-  media: H264MediaSource | null; video: HTMLVideoElement | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLInputElement; editor: string | null; keyboard: RemoteKeyboardPolicy | null; keyboardIntent: { pointer: number; x: number; y: number; editor: string | null; until: number; completed: boolean } | null; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
+  media: H264MediaSource | null; video: HTMLVideoElement | null; cancelVideoReady: (() => void) | null; id: BrowserPageId; lease: string; container: HTMLDivElement; canvas: HTMLCanvasElement; receiver: HTMLInputElement; editor: string | null; keyboard: RemoteKeyboardPolicy | null; keyboardIntent: { pointer: number; x: number; y: number; editor: string | null; until: number; completed: boolean } | null; ime: RemoteBrowserIme | null; editable: boolean; nativeIme: boolean; multiTouch: boolean;
   events: BrowserSurfaceEvents; navigation: number; url: BrowserUrl | null | undefined; socket: WebSocket | null;
   restored: boolean; resumed: boolean; ready: Promise<void>; opened: boolean; disconnected: boolean; closed: boolean; visible: boolean; blocked: boolean;
   pending: Map<string, Pending>; decoder: VideoDecoder | null; latest: VideoFrame | null; raf: number;
@@ -195,7 +195,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     // inside the new shorter slot would briefly shrink the entire document.
     Object.assign(canvas.style, { display: 'block', width: '100%', height: 'auto', outline: 'none', touchAction: 'none' });
     container.append(canvas, receiver); this.root?.prepend(container);
-    const p: Page = { media: null, video: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editor: null, keyboard: null, keyboardIntent: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
+    const p: Page = { media: null, video: null, cancelVideoReady: null, id, lease: (this.storageIds.get(id) ?? ('browser-' + crypto.randomUUID())).replace(':', '-'), container, canvas, receiver, ime: null, editor: null, keyboard: null, keyboardIntent: null, editable: false, nativeIme: false, multiTouch: false, events, navigation: 0, url: undefined, socket: null,
       nativeCopy: false, interaction: 0, menuIntent: null, restored: false, resumed: false, ready: Promise.resolve(), opened: false, disconnected: false, closed: false, visible: false, blocked: false, pending: new Map(), decoder: null,
       viewportMeasured: false, width: 1280, height: 720, viewport: { width: 1280, height: 720 }, sentViewport: '', resizeTimer: null, resizing: false,
       latest: null, raf: 0, reconnect: null, connection: 0, retries: 0, needsKey: true, automation: null!, resetPointers: () => {}, resetInput: () => {}, inputDispose: () => {} };
@@ -298,7 +298,9 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
   private applyViewport(p: Page, config: { width: number; height: number }) {
     if (!Number.isInteger(config.width) || !Number.isInteger(config.height) || config.width < 1 || config.height < 1) return;
     if (p.width === config.width && p.height === config.height) return;
-    this.resetDecoder(p); p.width = p.canvas.width = config.width; p.height = p.canvas.height = config.height;
+    // Config belongs to the new input/decoder epoch. The displayed bitmap keeps
+    // its own dimensions until a complete replacement can be painted atomically.
+    this.resetDecoder(p, true); p.width = config.width; p.height = config.height;
   }
   private retireMenu(p: Page) { ++p.interaction; p.menuIntent = null; if (this.menuOwner === p) { this.menuOwner = null; this.localMenu.retire(); } }
   private acceptsInput(p: Page) {
@@ -352,20 +354,50 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     });
   }
   private run(p: Page, method: string, input?: unknown) { void p.ready.then(() => this.call(p, method, input)).catch(error => { if (!p.closed) p.events.onError(error.message); }); }
-  private resetDecoder(p: Page) { if (p.decoder && p.decoder.state !== 'closed') p.decoder.close(); p.decoder = null; p.media?.dispose(); p.media = null; p.video?.remove(); p.video = null; p.latest?.close(); p.latest = null; cancelAnimationFrame(p.raf); p.raf = 0; p.needsKey = true; }
+  private paintFrame(p: Page, frame: CanvasImageSource, width: number, height: number) {
+    // Resizing a canvas clears it. Resize and draw in this same rendering task,
+    // never in the earlier viewport-notification task.
+    if (p.canvas.width !== width) p.canvas.width = width;
+    if (p.canvas.height !== height) p.canvas.height = height;
+    p.canvas.getContext('2d', { alpha: false })?.drawImage(frame, 0, 0, width, height);
+  }
+  private snapshotVideo(p: Page, video: HTMLVideoElement) {
+    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+    // A temporary snapshot protects the existing cover if the video cannot be
+    // read. No per-frame video copying, retained second decoder or idle loop.
+    const frame = document.createElement('canvas');
+    frame.width = video.videoWidth; frame.height = video.videoHeight;
+    try {
+      const context = frame.getContext('2d', { alpha: false }); if (!context) return;
+      context.drawImage(video, 0, 0);
+      this.paintFrame(p, frame, frame.width, frame.height);
+    } catch { /* Keep the previous readable cover. */ }
+    finally { frame.width = frame.height = 0; }
+  }
+  private resetDecoder(p: Page, preserveFrame = false) {
+    p.cancelVideoReady?.(); p.cancelVideoReady = null;
+    if (preserveFrame && p.video?.style.opacity === '1') this.snapshotVideo(p, p.video);
+    if (p.decoder && p.decoder.state !== 'closed') p.decoder.close(); p.decoder = null;
+    p.media?.dispose(); p.media = null; p.video?.remove(); p.video = null;
+    p.latest?.close(); p.latest = null; cancelAnimationFrame(p.raf); p.raf = 0; p.needsKey = true;
+  }
   private decode(p: Page, bytes: ArrayBuffer) {
     if (bytes.byteLength < 10) return;
     if (typeof VideoDecoder === 'undefined' || typeof EncodedVideoChunk === 'undefined') {
       if (!p.media) {
         const video = document.createElement('video');
-        Object.assign(video.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: 'auto', aspectRatio: `${p.width} / ${p.height}`, pointerEvents: 'none' });
+        Object.assign(video.style, { position: 'absolute', left: '0', top: '0', width: '100%', height: 'auto', aspectRatio: `${p.width} / ${p.height}`, opacity: '0', zIndex: '1', pointerEvents: 'none' });
         p.canvas.style.position = 'relative'; p.container.prepend(video); p.video = video;
-        p.media = new H264MediaSource(video, p.width, p.height, () => { this.resetDecoder(p); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
+        p.cancelVideoReady = onFirstVideoFrame(video, () => {
+          if (p.closed || p.video !== video) return;
+          this.snapshotVideo(p, video); video.style.opacity = '1'; p.cancelVideoReady = null;
+        });
+        p.media = new H264MediaSource(video, p.width, p.height, () => { this.resetDecoder(p, true); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
       }
       p.media.push(bytes);
     } else {
       const data = new Uint8Array(bytes), key = data[0] === 1;
-      const recover = () => { this.resetDecoder(p); this.run(p, 'keyframe'); };
+      const recover = () => { this.resetDecoder(p, true); this.run(p, 'keyframe'); };
       if (p.decoder && p.decoder.decodeQueueSize > 2) { recover(); return; }
       if (p.needsKey && !key) return;
       if (!p.decoder) {
@@ -373,7 +405,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           if (p.closed || p.decoder !== decoder) { frame.close(); return; }
           p.latest?.close(); p.latest = frame;
           if (!p.raf) p.raf = requestAnimationFrame(() => { p.raf = 0; const latest = p.latest; p.latest = null;
-            if (latest) { p.canvas.getContext('2d', { alpha: false })?.drawImage(latest, 0, 0, p.width, p.height); latest.close(); } });
+            if (latest) { this.paintFrame(p, latest, p.width, p.height); latest.close(); } });
         }, error: recover });
         p.decoder = decoder;
         p.decoder.configure({ codec: 'avc1.42E028', optimizeForLatency: true });

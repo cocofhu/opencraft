@@ -1622,3 +1622,27 @@ the same width-derived frame projection. The invisible keyboard receiver is
 clamped to the visible container. Native page zoom remains remote authority;
 this is frame presentation, not an additional page-scale or DPR transformation.
 Fixed-device preview padding and outer centering remain layout-owned.
+
+### First-frame handoff within a remote page
+
+A viewport notification updates the native input/decoder dimensions, not the
+currently displayed bitmap. Canvas dimensions change only in the same render
+task that draws the first complete replacement frame. Reset cancels queued
+frames and retires their decoder identity; old callbacks cannot repaint a newer
+epoch. Real native resizing continues while the last readable picture is held.
+
+The MSE path copies its currently presented video into the existing canvas once
+before disposing the old media source. An incoming video stays transparent above
+the canvas until requestVideoFrameCallback confirms its first presented frame;
+then the current video identity is checked, the canvas cover is updated and the
+video is revealed. Older browsers use readable data, completed seek and one RAF
+as the fallback fence. Cancelling a replacement removes callbacks/listeners.
+An unready video never replaces the existing cover during a second reset.
+Temporary snapshot storage is released immediately; a failed video read leaves
+the earlier readable cover intact. There is no retained second decoder, permanent
+video-to-canvas copy loop, frame-rate increase or new idle polling. Recovery
+uses the same handoff; closing a page releases media and callback ownership.
+
+This avoids the decoder-reset white interval, not legitimate white webpage
+content or the new area exposed when a viewport grows. The held picture can be
+stale until the remote page paints again; no local layout prediction is applied.

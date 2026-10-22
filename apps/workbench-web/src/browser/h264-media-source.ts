@@ -34,6 +34,36 @@ function fragment(sequence: number, time: number, sample: Uint8Array, key: boole
 export function supportsH264MediaSource() {
   return typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E028"');
 }
+/** A one-shot presentation fence; cancellation also retires queued callbacks. */
+export function onFirstVideoFrame(video: HTMLVideoElement, present: () => void): () => void {
+  let retired = false, frame: number | null = null, raf: number | null = null;
+  const events = ['loadeddata', 'seeked', 'playing'];
+  const cancel = () => {
+    if (retired) return;
+    retired = true;
+    if (frame !== null) video.cancelVideoFrameCallback(frame);
+    if (raf !== null) cancelAnimationFrame(raf);
+    frame = raf = null;
+    for (const event of events) video.removeEventListener(event, signal);
+  };
+  const ready = () => { if (!retired && video.readyState >= 2) { cancel(); present(); } };
+  const signal = () => {
+    if (retired || raf !== null) return;
+    raf = requestAnimationFrame(() => { raf = null; if (!video.seeking) ready(); });
+  };
+  if (typeof video.requestVideoFrameCallback === 'function') {
+    const awaitFrame = () => { frame = video.requestVideoFrameCallback(() => {
+      frame = null; if (retired) return;
+      if (video.readyState >= 2) ready(); else awaitFrame();
+    }); };
+    awaitFrame();
+  } else {
+    for (const event of events) video.addEventListener(event, signal);
+    signal();
+  }
+  return cancel;
+}
+
 export class H264MediaSource {
   private source = new MediaSource();
   private buffer: SourceBuffer | null = null;
