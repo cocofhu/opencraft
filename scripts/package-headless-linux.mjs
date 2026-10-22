@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { packageBrowserRuntime } from './package-browser-runtime.mjs';
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -168,6 +169,7 @@ export async function packageHeadlessLinux(composition = {}) {
       filter: (path) => !path.endsWith(".map"),
     });
     await copyRuntimeModules(stage);
+    await packageBrowserRuntime(join(stage, 'runtime/browser'));
     const versionInfo = JSON.parse(await readFile(join(stage, "web/version.json"), "utf8"));
     const files = await inventory(stage);
     await writeFile(join(stage, "manifest.json"), `${JSON.stringify({

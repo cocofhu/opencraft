@@ -508,9 +508,11 @@ export class ThreadResumeCoordinatorService extends Service {
       return committed;
     } catch (error) {
       const failure = error instanceof Error ? error : new Error(String(error));
-      // A server rejection cannot be fixed by reacquiring the same View.
-      // Preserve explicit retry and a new physical connection as recovery paths.
-      if (failure instanceof AppServerRpcError && generation === this.client.connectionGeneration) {
+      // Only an explicitly retryable rejection may be reissued in this generation.
+      // Other rejections still require explicit retry or a new connection.
+      if (failure instanceof AppServerRpcError && generation === this.client.connectionGeneration
+        && !(typeof failure.data === "object" && failure.data !== null
+          && "retryable" in failure.data && failure.data.retryable === true)) {
         this.rejectedResumes.set(threadId, { generation, error: failure });
       }
       if (provisionalOwner && this.ctx.threadStreamOwnership.get(threadId)?.role === "owner") {

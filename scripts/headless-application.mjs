@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { RemoteBrowserService } from './remote-browser-service.mjs';
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -25,6 +26,7 @@ import { startEngineHost } from "../apps/local-agent-host/src/engine-host.ts";
 import { createPiModelConfiguration } from "../apps/local-agent-host/src/model-config/pi-adapter.ts";
 import { PiEngine } from "../plugins/pi-engine/src/index.ts";
 import { createWorkbenchWebServer } from "./serve-workbench-web.mjs";
+import { loadLocalMachineAccess } from './local-machine-access.mjs';
 import { maintainHeadlessCodexHost } from "./headless-host-readiness.mjs";
 import { readTaskCodexConversations } from "./tasks-conversation-catalog.mjs";
 import { assertHeadlessWebRelease } from "./headless-web-release.mjs";
@@ -78,6 +80,7 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
   const accessMemberProviders = [];
   let relayConnectFile;
   let humanAuthConfig;
+  let localAccessFile = env.OPENCRAFT_LOCAL_ACCESS_FILE;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--help" || argument === "-h") return { help: true };
@@ -106,6 +109,9 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
       const value = argv[++index];
       if (!value || value.startsWith("--")) throw new Error("--data-dir requires a path");
       dataDirectory = value;
+    } else if (argument === '--local-access-file') {
+      localAccessFile = argv[++index];
+      if (!localAccessFile?.startsWith('/')) throw new Error('--local-access-file requires an absolute private file');
     } else if (argument === '--access-control') {
       accessControl = true;
     } else if (argument === '--access-member-provider') {
@@ -163,6 +169,7 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
     ...(sshConfig ? { sshConfig } : {}),
     ...(accessControl ? { accessControl } : {}), ...(relayConnectFile ? { relayConnectFile } : {}),
     ...(humanAuthConfig ? { humanAuthConfig } : {}),
+    ...(localAccessFile ? { localAccessFile } : {}),
     ...(accessMemberProviders.length ? { accessMemberProviders } : {}),
     ...(localDesktop || trustedInternalDesktop ? { localDesktop: true } : {}),
     ...(trustedInternalDesktop ? { desktopAccess: "trusted-internal" } : {}),
@@ -180,6 +187,7 @@ async function secureDataDirectory(path) {
 }
 
 export async function startHeadlessServer(options = {}, composition = {}) {
+  const localAccess = await loadLocalMachineAccess(options.localAccessFile);
   if (composition.createIdentity !== undefined && typeof composition.createIdentity !== "function") throw new Error("Invalid Headless identity factory");
   if (composition.isHuman !== undefined && typeof composition.isHuman !== "function") throw new Error("Invalid Headless human qualification");
   const root = resolve(options.root ?? packageRoot);
@@ -228,6 +236,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
   let hubController;
   let sshNativeRpc;
   let codexReadiness;
+  let remoteBrowser;
   let closing = null;
   const close = () => {
     if (closing !== null) return closing;
@@ -235,6 +244,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     closing = (async () => {
       relay?.close();
       hubController?.close();
+      remoteBrowser?.close();
       desktop?.close(); // Retire viewers before the execution provider; never stop the desktop.
       // Retire admitted ingress clients before their Host provider.
       const entryResults = await Promise.allSettled([ingress?.close(), sshNativeRpc?.close()]);
@@ -393,7 +403,6 @@ export async function startHeadlessServer(options = {}, composition = {}) {
           coreEndpoint: options.codexCoreEndpoint,
           coreAuthToken: options.codexCoreAuthToken,
           coreHostOverlays: options.codexCoreEndpoint !== undefined,
-          botConversations: options.botConversations === true,
           nativeCodexHomeDirectory: join(dataDirectory, "native-codex"),
           desktop,
         })), mcpApps);
@@ -418,6 +427,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       appServerIdentity: agentIdentity ?? null,
       mcpAppsService: mcpApps,
       loopbackOnly: host === "127.0.0.1",
+      localAccess,
       appHostServer,
       sshServerDescriptors: sshServers.map(binding => binding.descriptor),
       sshManagement,
@@ -448,6 +458,8 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       actorCollaborationService: actorCollaborationApi,
       authService: humanAuth ?? null,
       hubService: hubController,
+      remoteBrowserService: remoteBrowser = new RemoteBrowserService({ root, dataDirectory,
+        allowNoSandbox: process.env.OPENCRAFT_BROWSER_ALLOW_NO_SANDBOX === '1' }),
       speechService: new SpeechTranscriptionService({ configuration: new SpeechModelConfiguration(
         new ModelConfigurationRepository(join(dataDirectory, "models")), new ModelCredentialRepository(join(dataDirectory, "models"))) }),
     });
@@ -477,6 +489,7 @@ export async function runHeadlessCli({ parseArguments = parseHeadlessArguments, 
     if (args.help) {
       process.stdout.write('Optional instance-owned membership: --access-control (memberships.sqlite under --data-dir); administer with access-admin. --access-member-provider PROVIDER admits verified identities from that provider as ordinary members; explicit revocations and admin roles remain authoritative. --relay-connect-file ABSOLUTE_PRIVATE_JSON enables an outbound relay and requires instance membership.\n');
       process.stdout.write('Optional human login (bundled opencraft.account plugin for local accounts): --human-auth-config ABSOLUTE_PRIVATE_JSON (local accounts and OIDC); provision with human-account. Add --access-control to require instance membership.\n');
+      process.stdout.write('Optional same-machine managed Web workspace: --local-access-file ABSOLUTE_PRIVATE_FILE (also OPENCRAFT_LOCAL_ACCESS_FILE); the same private key file must be configured at the outer managed Web entry.\n');
       for (const line of help) process.stdout.write(line + '\n');
       process.stdout.write("Usage: opencraft-server [--host 127.0.0.1|0.0.0.0] [--port 10000] [--data-dir PATH] [--machine-name NAME] [--engines dsh,pi|pi|dsh] [--default-engine dsh|pi] [--ssh-servers PRIVATE_JSON] [--ssh-public-origin HTTPS_ORIGIN | --ssh-public-access] [--ssh-require-access-key] [--ssh-access-file PRIVATE_FILE] [--allow-unauthenticated-public] [--local-desktop | --trusted-internal-desktop] [--desktop-control]\nDefault: loopback only; SSH management uses shared installation access without an extra key. --ssh-require-access-key or --ssh-access-file enables key protection. Public SSH requires explicit opt-in; every permitted visitor can use saved connections in shared mode. HTTP provides no transport encryption. Desktop requires an installed verified observer. Trusted-internal desktop trusts everyone able to access this deployment; operator-owned network admission is required. Optional desktop control requires a separate installed private native executor.\n");
       return;

@@ -107,7 +107,7 @@ export interface AppServerHostCatalog {
     setPinned(hostId: string, threadId: string, pinned: boolean): Promise<void>;
     rename(hostId: string, threadId: string, name: string): Promise<void>;
     delete(hostId: string, threadId: string): Promise<void>;
-    fork(hostId: string, threadId: string): Promise<string>;
+    fork(hostId: string, threadId: string, lastTurnId?: string): Promise<string>;
     archive(hostId: string, threadId: string): Promise<void>;
     unarchive(hostId: string, threadId: string): Promise<void>;
     listArchived(hostId: string): Promise<Array<{ id: string; name?: string | null; preview?: string }>>;

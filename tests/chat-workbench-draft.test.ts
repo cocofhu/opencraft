@@ -383,7 +383,7 @@ test("Composer catalog reads and writes AppServer-owned new-thread model default
     await runtime.connect();
     assert.deepEqual(
       await runtime.resources.composerCatalog.readNewThreadDefaults("/workspace"),
-      { model: "gpt-5.6", effort: "high" },
+      { model: "gpt-5.6", effort: "high", serviceTier: null },
     );
     await runtime.resources.composerCatalog.writeNewThreadDefaults({
       model: "gpt-5.6-codex",
