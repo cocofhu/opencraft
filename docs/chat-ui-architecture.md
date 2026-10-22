@@ -2482,3 +2482,10 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+Workspace file search owns its filesystem session in the panel startup effect.
+Session readiness reruns the existing query debounce with the latest input;
+queries typed or cleared before startup completes are never replayed from the
+startup closure. Retired sessions stop even when their startup resolves late.
+The original workspace media smoke retains its preview assertions and covers
+latest pending input, cleared input and closure during pending startup.
