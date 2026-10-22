@@ -6504,6 +6504,27 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 
+// Message clocks stay quiet by default, including touch. Keep their geometry
+// and authoritative datetime; the existing message hover/focus owns disclosure.
+.thread-user-message__actions time,
+.thread-message-actions time {
+  opacity: 0;
+  transition: opacity 100ms ease;
+  pointer-events: none;
+}
+.thread-user-message:focus-within .thread-user-message__actions time,
+.thread-frame--assistant:focus-within > .thread-message-actions time {
+  opacity: 1;
+  pointer-events: auto;
+}
+.thread-user-message:hover .thread-user-message__actions time,
+.thread-frame--assistant:hover > .thread-message-actions time {
+  @include controls.hover-capable { opacity: 1; pointer-events: auto; }
+}
+.thread-frame--assistant:hover > .thread-message-actions {
+  @include controls.hover-capable { opacity: 1; }
+}
+
 .thread-message-actions {
   display: flex;
   height: 20px;
