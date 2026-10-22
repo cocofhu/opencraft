@@ -65,7 +65,7 @@ test("fixed frame separates native fixed basis from reported visual offset in ei
     stages.forEach((stage, i) => {
       Object.assign(f.visual, { pageTop: stage.page, offsetTop: stage.offset });
       f.scroll(stage.scroll); f.native.top = stage.native; f.frame(20 + i * 20);
-      const visibleClientOrigin = stage.page - stage.scroll;
+      const visibleClientOrigin = stage.offset;
       assert.equal(f.css("top") + stage.native - visibleClientOrigin, 0, JSON.stringify(stage));
       assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-available-viewport-height"), "394px");
     });
@@ -119,10 +119,10 @@ test("a capacity commit measures the fixed basis after layout-induced native foc
       }
     };
     const samples: number[] = [];
-    f.port.subscribe(() => samples.push(f.css("top") + f.native.top - (f.visual.pageTop - f.win.scrollY)));
+    f.port.subscribe(() => samples.push(f.css("top") + f.native.top - f.visual.offsetTop));
     f.visual.height = 394; f.frame(40);
     assert.deepEqual(samples, [0], "Subscribers must see the committed capacity and its current coordinate basis together");
-    assert.equal(f.css("top"), 294);
+    assert.equal(f.css("top"), 588);
     assert.equal(f.win.document.activeElement, f.input);
     assert.equal(f.input.selectionStart, 2); assert.equal(f.input.value, "preserve draft");
   } finally { f.close(); }
@@ -135,7 +135,7 @@ test("mobile viewport events commit before returning even after the current anim
     f.native.top = -294; f.scroll(294);
     Object.assign(f.visual, { height: 394, pageTop: 294, offsetTop: 294 });
     f.visual.dispatchEvent(new f.win.Event("resize"));
-    assert.equal(f.css("top"), 294, "No stale origin while waiting for a later rAF");
+    assert.equal(f.css("top"), 588, "No stale origin while waiting for a later rAF");
     const revision = f.port.getSnapshot().revision;
     f.frame(40);
     assert.equal(f.port.getSnapshot().revision, revision, "Settling does not duplicate a committed observation");
@@ -143,5 +143,25 @@ test("mobile viewport events commit before returning even after the current anim
     Object.assign(f.visual, { height: 688, pageTop: 0, offsetTop: 0 });
     f.win.dispatchEvent(new f.win.Event("scroll"));
     assert.equal(f.css("top"), 0);
+  } finally { f.close(); }
+});
+
+
+test("document scroll cannot cancel a nonzero physical visual window origin", () => {
+  const f = fixture();
+  try {
+    f.native.top = -294;
+    Object.assign(f.visual, { height: 394, offsetTop: 294, pageTop: 294 });
+    f.scroll(294); f.frame(20);
+    // Replay the reported stable tuple. The screenshot's visible window begins
+    // at layout y=294: a Shell client top of zero is 294px above that window.
+    const screenTop = f.css("top") + f.native.top - f.visual.offsetTop;
+    assert.equal(screenTop, 0);
+    assert.equal(f.css("top"), 588);
+    f.visual.pageTop = 588; f.scroll(100); f.frame(40);
+    assert.equal(f.css("top"), 588, "Document bookkeeping is not visual placement authority");
+    f.visual.offsetLeft = 30; f.visual.pageLeft = 30;
+    f.scroll(100, 30); f.native.left = -30; f.frame(60);
+    assert.equal(f.css("left") + f.native.left - f.visual.offsetLeft, 0);
   } finally { f.close(); }
 });

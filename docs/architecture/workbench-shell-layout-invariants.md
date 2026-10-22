@@ -147,8 +147,11 @@ pageTop, document scroll and focus. Pinch magnification does not reflow layout.
 The Web adapter measures a zero-inset fixed reference outside the Shell. The
 reference never consumes application viewport CSS or participates in input. Its
 client rectangle supplies the native fixed coordinate basis, separately from the
-reported visual offset. The visible client origin is visual page position minus
-window scroll; CSS placement is that origin minus the fixed reference origin.
+reported visual offset. The visible origin in layout coordinates is `VisualViewport.offsetTop/Left`;
+CSS placement is that origin minus the independent fixed reference origin.
+`pageTop - scrollY` is not a substitute: on-device keyboard pan has reported
+pageTop=scrollY=offsetTop=294 while the physical visible window still starts at
+layout y=294. A zero client top in that state is not a zero screen top.
 This is a coordinate conversion, not an additive page-scroll correction or
 feedback from the already-positioned Shell. Native reference changes invalidate
 the shared projection even when raw VisualViewport values remain unchanged.
@@ -203,3 +206,14 @@ visual-offset subtraction during a native transition.
 Primary and body-portalled floating Shell hosts share the same origin/extent
 projection. Fixed descendants inside either host use local coordinates; the
 viewport origin is never applied again within those hosts.
+
+
+Keyboard acceptance distinguishes DOM readback from the physical visible window.
+For a visual window beginning at layout offset V, a fixed reference readback B,
+and an application CSS inset C, screen position is C + B - V (before scale).
+The shared origin therefore uses C = V - B. Native document scroll/page position
+remain independent diagnostic observations and cannot cancel V. Controlled
+keyboard tests must crop to the independently supplied visible window and reject
+an input card pinned at its top while the intended bottom anchor is below it;
+asserting Shell.clientTop == pageTop - scrollY repeats the implementation's old
+error. Device acceptance remains separate from synthetic viewport tests.
