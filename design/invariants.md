@@ -2169,6 +2169,15 @@ horizontal scrolling. Open code stays plain; only a complete fence enables
 copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
 presentation without changing the canonical source or replacing the surface.
 
+## Single-line title badge placement (2026-10-21)
+Thread badge contributions may select `title` for a single-line row. Shell suppresses
+visible project/status metadata, keeps it in the navigation tooltip and retains
+activity indicators, scheduling and the independent menu hit lane. Badge and title
+are sibling controls, vertically centered; the title shrinks with ellipsis while
+accessories retain intrinsic width. Default trailing and metadata layouts remain
+unchanged. The real Sidebar consumer checks title-only geometry, narrow columns,
+keyboard focus, menus and independent badge popovers in both input modes/themes.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
