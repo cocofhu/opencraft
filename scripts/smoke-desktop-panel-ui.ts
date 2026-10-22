@@ -180,6 +180,40 @@ try {
     assert.deepEqual(shoulders, width === 1024
       ? { leftTop: '-1px', rightTop: '-1.5px', leftWidth: '17px', leftHeight: '24px', rightHeight: '25px' }
       : { leftTop: '1.42969px', rightTop: '1.42969px', leftWidth: '18px', leftHeight: '24px', rightHeight: '25px' });
+    if (theme === "light" && (width === 1024 || width === 320)) {
+      // A real media adapter such as noVNC can consume the canvas click before
+      // React's bubble listener. Physical activation must still reach the owner.
+      const canvas = page.locator(".cloud-desktop-panel__surface canvas");
+      await canvas.evaluate(element => element.addEventListener("click", event => event.stopImmediatePropagation()));
+      const requestsBefore = (await page.evaluate(() => (window as any).__desktopUi.counts())).requests;
+      await canvas.hover();
+      assert.equal((await page.evaluate(() => (window as any).__desktopUi.counts())).requests, requestsBefore,
+        "hovering must keep the desktop in observe mode");
+      const modes = width === 320 ? ["touch"] : ["mouse", "pen"];
+      for (const mode of modes) {
+        const before = (await page.evaluate(() => (window as any).__desktopUi.counts())).requests;
+        if (mode === "touch") await canvas.tap();
+        else if (mode === "mouse") await canvas.click();
+        else {
+          const bounds = (await canvas.boundingBox())!;
+          const pen = await page.context().newCDPSession(page);
+          const position = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2, pointerType: "pen" };
+          await pen.send("Input.dispatchMouseEvent", { type: "mousePressed", ...position, button: "left", buttons: 1, clickCount: 1 });
+          await pen.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...position, button: "left", buttons: 0, clickCount: 1 });
+          await pen.detach();
+        }
+        await page.locator('[data-control="requesting"]').waitFor();
+        assert.equal((await page.evaluate(() => (window as any).__desktopUi.counts())).requests, before + 1,
+          `${mode} commits exactly once even when the native click is swallowed`);
+        await page.evaluate(() => (window as any).__desktopUi.grant());
+        await page.locator('[data-control="controlling"]').waitFor();
+        await activate(page.getByRole("button", { name: "Stop controlling", exact: true }));
+        await page.locator('[data-control="observing"]').waitFor();
+      }
+    }
+    await page.locator(".ui-desktop-view__controls").evaluate(async element => {
+      await Promise.all(element.getAnimations().map(animation => animation.finished));
+    });
     const controlBounds = await page.getByRole("button", { name: "Take control", exact: true }).boundingBox();
     const pasteBefore = await page.getByRole("button", { name: "Paste", exact: true }).boundingBox();
     const takeAction = page.getByRole("button", { name: "Take control", exact: true });

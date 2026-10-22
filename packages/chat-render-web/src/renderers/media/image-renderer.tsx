@@ -2,6 +2,7 @@ import { chatMediaPresentationKey, type ChatNodeRendererProps, type ChatResource
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePreviewFocusOrigin } from "../../preview-focus-origin";
+import { ZoomableImage } from "../../zoomable-image";
 import "./image.scss";
 
 function CloseGlyph() {
@@ -163,7 +164,7 @@ export function createImageRenderer(resources: ChatResourcePolicyService) {
         }} ref={dialogRef}>
           <button aria-label="Close image preview" className="chat-markdown-image-preview__close" onClick={close} type="button"><CloseGlyph /></button>
           {showPrevious ? <button aria-label="Previous image" className="chat-markdown-image-preview__previous" onClick={() => setGallery((current) => current?.key !== loadKey ? null : { ...current, index: current.index - 1 })} type="button"><PreviousGlyph /></button> : null}
-          <img alt={currentImage.alt} src={currentImage.source} title={node.title ?? undefined} />
+          <ZoomableImage onBackgroundClick={close} key={`${activeGallery !== null}:${activeGallery?.index}`} alt={currentImage.alt} src={currentImage.source} title={node.title ?? undefined} />
           {showNext ? <button aria-label="Next image" className="chat-markdown-image-preview__next" onClick={() => setGallery((current) => current?.key !== loadKey ? null : { ...current, index: current.index + 1 })} type="button"><NextGlyph /></button> : null}
         </dialog>
       </>

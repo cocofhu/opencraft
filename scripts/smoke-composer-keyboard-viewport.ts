@@ -18,7 +18,7 @@ const vite=await createServer({configFile:false,root:process.cwd(),logLevel:'err
 await mkdir('.local/composer-keyboard',{recursive:true});await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const evidence=[];
 try{for(const theme of ['light','dark']) for(const newera of [false,true]){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'});
- await context.addInitScript(()=>{const v=new EventTarget();Object.assign(v,{width:390,height:844,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,'visualViewport',{value:v});(window as any).setViewport=(height:number,offsetTop:number)=>{Object.assign(v,{height,offsetTop});v.dispatchEvent(new Event('resize'));v.dispatchEvent(new Event('scroll'))}});
+ await context.addInitScript(()=>{const v=new EventTarget();Object.assign(v,{width:390,height:844,offsetTop:0,offsetLeft:0,scale:1});Object.defineProperty(window,'visualViewport',{value:v});(window as any).setViewport=(height:number,offsetTop:number,emit=true)=>{Object.assign(v,{height,offsetTop});if(emit){v.dispatchEvent(new Event('resize'));v.dispatchEvent(new Event('scroll'))}}});
  const page=await context.newPage();await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);const editor=page.locator('.opencraft-composer-editor');await editor.waitFor();await page.evaluate(({theme,newera})=>{document.documentElement.dataset.theme=theme;document.documentElement.dataset.uiDensity='touch';document.documentElement.dataset.touchNewera=newera?'on':'off'}, {theme,newera});
  // Native selection stays owned by the editor while the conversation and visual
  // viewport move independently. This checks DOM geometry, not iOS caret pixels.
@@ -87,6 +87,19 @@ try{for(const theme of ['light','dark']) for(const newera of [false,true]){
   const before=await page.evaluate(()=>(window as any).fixture.sent);await send.tap();assert.equal(await page.evaluate(()=>(window as any).fixture.sent),before+1,'Send works on first touch without closing keyboard');
   evidence.push({theme,newera,height,offset,send:rect,caretEvidence});
  }
+ // A terminal focus event can precede the native viewport's final geometry.
+ // Missing resize/scroll must not strand the Shell and Composer above blank space.
+ await page.waitForTimeout(1_100);
+ await editor.evaluate(e=>(e as HTMLElement).blur());await page.waitForTimeout(80);
+ await page.evaluate(()=>(window as any).setViewport(844,0,false));
+ await page.waitForFunction(()=>Math.abs(document.querySelector('.app-shell-root')!.getBoundingClientRect().height-844)<1);
+ assert.equal(await editor.evaluate(e=>e===(window as any).keptEditor),true);
+ assert.equal(await editor.innerText(),rendered);
+ await editor.focus();
+ await page.evaluate(()=>(window as any).setViewport(440,0));await page.waitForTimeout(100);
+ await page.evaluate(()=>(window as any).setViewport(844,0,false));
+ await page.waitForFunction(()=>Math.abs(document.querySelector('.app-shell-root')!.getBoundingClientRect().height-844)<1);
+ assert.equal(await editor.evaluate(e=>document.activeElement===e),true,'viewport recovery preserves native focus');
  await page.evaluate(()=>(window as any).setViewport(844,0));await page.waitForTimeout(150);assert.equal(await editor.innerText(),rendered);await page.screenshot({path:'.local/composer-keyboard/'+theme+'-'+newera+'.png'});await context.close();
 }console.log('Keyboard viewport/send reachability and draft continuity passed');}
 finally{await writeFile('.local/composer-keyboard/result.json',JSON.stringify(evidence,null,2));await browser.close();await vite.close()}

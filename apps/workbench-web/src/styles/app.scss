@@ -1,8 +1,10 @@
+@use "../../../../packages/chat-render-web/src/zoomable-image";
 @use "@opencraft/design-system/icons.web" as icons;
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/focus.web";
 @use "@opencraft/design-system/menu.web" as menu;
+@use "@opencraft/design-system/material.web" as material;
 @use "@opencraft/design-system/toolbar.web" as toolbar;
 @use "@opencraft/design-system/typography.web" as typography;
 @use "@opencraft/design-system/selection.web";
@@ -784,14 +786,19 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   --application-brand-mark-size: 26px;
   display: inline-flex; align-items: center; gap: 7px;
   white-space: nowrap; user-select: none;
+  &:is(button) {
+    appearance: none; padding: 0; border: 0; background: transparent;
+    color: inherit; font: inherit; text-align: start; cursor: pointer;
+    border-radius: var(--radius-sm); pointer-events: auto;
+  }
   .application-brand__mark { width: var(--application-brand-mark-size); height: var(--application-brand-mark-size); flex: 0 0 auto; object-fit: contain; }
   .application-brand__wordmark { @include typography.role(navigation-title, primary); }
 }
 
 // Brand and collapse control form one stable header across application routes.
 .app-shell-header__window-controls-rail[data-navigation-brand] {
-  width: min(var(--app-shell-brand-header-width), calc(100vw - 2 * var(--height-toolbar)));
-  > .application-brand { flex: 1 0 auto; padding-inline: 6px; }
+  width: max-content;
+  > .application-brand { flex: 0 0 auto; padding-inline: 6px; }
 }
 // Desktop browser branding consumes the same rail center as navigation glyphs.
 // Mobile has labeled drawers; native desktop keeps its host-owned safe inset.
@@ -1609,6 +1616,15 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   width: 100%;
 
   > .sidebar-activity-row__target { flex: 1 1 auto; min-width: 0; }
+}
+
+// Keep ordinary offscreen rows out of resize layout work. An empty optional
+// contribution still has a slot, so eligibility follows its rendered content.
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-activity-row:not(:focus-within):not(:has([data-state="open"])):has(.sidebar-activity-item-container[data-row-lines="one"]):not(:has(.sidebar-activity-item__badge-slot:not(:empty))) {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto max(32px, var(--size-control-hit-min), calc(var(--typography-thread-list-title-line-height) + 8px));
+  }
 }
 
 // Reserve space independently of whether Host capabilities provide a menu.
@@ -4164,8 +4180,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 
-  // The safe-area gutter sits below the translucent Composer. Cover only that
-  // gutter so a scrolled activity row cannot appear beneath the input.
+  // Desktop cuts off transcript paint at a straight horizontal gutter edge.
+  // Touch keeps the Composer floating, including its surrounding safe area.
   &::after {
     content: "";
     position: absolute;
@@ -4176,6 +4192,10 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     background: var(--color-surface);
     pointer-events: none;
   }
+}
+
+:root[data-ui-density="touch"] .thread-scroll-footer::after {
+  content: none;
 }
 
 .thread-scroll-footer__gradient {
@@ -4680,29 +4700,33 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-.modal-surface.thread-user-image-lightbox {
+.modal-surface:is(.thread-user-image-lightbox, .thread-generated-image-lightbox__dialog) {
   display: grid;
-  width: min(92vw, 1280px);
-  max-width: min(92vw, 1280px);
-  max-height: 90dvh;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
   place-items: center;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
 
-  > img {
-    display: block;
-    max-width: 100%;
-    max-height: 82dvh;
+  > .opencraft-zoomable-image { width: 100%; height: 100%; max-height: none; }
+
+  > .opencraft-zoomable-image > img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(100dvh - 48px);
     border-radius: 12px;
-    object-fit: contain;
     box-shadow: 0 18px 70px rgb(0 0 0 / 34%);
   }
 
   > .modal-surface__close {
-    top: 8px;
-    right: 8px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    width: 44px;
+    height: 44px;
     color: #fff;
     background: rgb(0 0 0 / 55%);
   }
@@ -4719,6 +4743,9 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .thread-user-image-lightbox__navigation {
+  position: absolute;
+  z-index: 1;
+  bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 14px;
@@ -6382,36 +6409,13 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .thread-generated-image-edit:hover {
   background: rgba(0, 0, 0, 0.6);
 }
-.modal-surface.thread-generated-image-lightbox__dialog {
-  display: grid;
-  max-width: min(92vw, 1280px);
-  max-height: 90vh;
-  place-items: center;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.thread-generated-image-lightbox__dialog > img {
-  display: block;
-  max-width: 100%;
-  max-height: 86vh;
-  border-radius: 16px;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.34);
-}
 .thread-generated-image-lightbox__toolbar {
   position: absolute;
   z-index: 1;
-  inset-inline-end: 50px;
-  top: 8px;
+  inset-inline-end: max(64px, calc(env(safe-area-inset-right) + 56px));
+  top: max(12px, env(safe-area-inset-top));
   display: flex;
   gap: 6px;
-}
-.thread-generated-image-lightbox__dialog > .modal-surface__close {
-  top: 8px;
-  right: 8px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.48);
 }
 .thread-generated-image-lightbox__toolbar button,
 .thread-generated-image-lightbox__toolbar a {
@@ -6443,6 +6447,22 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     opacity: 1;
   }
 }
+
+// Positive action owners keep relational selector invalidation out of unrelated
+// conversation content. :where preserves the previous type-level specificity.
+// Keep acknowledged intent visible while the disabled button cannot hold focus.
+.thread-message-actions:has([data-turn-fork][aria-busy="true"]) {
+  opacity: 1;
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
+}
+@media (any-pointer: coarse), (hover: none) {
+  .thread-message-actions:has([data-turn-fork]) { opacity: 1; > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; } }
+}
+:root[data-touch-interaction] .thread-message-actions:has([data-turn-fork]) {
+  opacity: 1;
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
+}
+
 
 .thread-message-actions {
   display: flex;
@@ -9586,56 +9606,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
-.opencraft-composer-shortcut-trigger {
-  display: inline-flex;
-  height: var(--composer-control-size, 28px);
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: var(--typography-metadata-font);
-  white-space: nowrap;
-  cursor: default;
-
-  &:hover,
-  &[data-state="open"] {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-border-focus);
-    outline-offset: 2px;
-  }
-
-  letter-spacing: var(--typography-metadata-tracking)
-}
-
-.opencraft-composer-shortcut-menu {
-  width: min(260px, calc(100vw - 16px));
-
-  .opencraft-composer-selection-menu__item {
-    justify-content: flex-start;
-    gap: 12px;
-  }
-}
-
-.opencraft-composer-shortcut-menu__command {
-  flex: 0 0 auto;
-  color: var(--color-text);
-}
-
-.opencraft-composer-shortcut-menu__description {
-  color: var(--color-text-secondary);
-}
-
 .opencraft-voice-input-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -11662,12 +11632,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 
 .workspace-file-viewer__image {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
   place-items: center;
   padding: 18px;
   overflow: auto;
+
+  > .opencraft-zoomable-image { width: 100%; height: 100%; max-height: 100%; }
 
   img {
     display: block;
@@ -12023,6 +11996,14 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
       box-shadow: var(--elevation-sidebar);
     }
   }
+  .app-shell-mobile-page-wash {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: var(--color-background-elevated-primary-opaque);
+    will-change: opacity;
+  }
   .app-shell-header {
     padding-left: max(var(--padding-toolbar), var(--shell-mobile-safe-left));
     padding-right: max(var(--padding-toolbar), var(--shell-mobile-safe-right));
@@ -12045,6 +12026,15 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   // Keep the material plane stationary while the panel scales/fades above it.
   // The portal outlives presence; exiting/inert or empty hosts must not cover the page.
   &:has(.app-shell-floating-left-panel:not([aria-hidden="true"])) { background: var(--shell-mobile-sidebar-background); }
+  // Mobile progress has finished before presence exits. aria-hidden/inert
+  // revoke input but still paint, so hide the retained surface in this same
+  // DOM commit, before Motion's next render or the portal's final removal.
+  .app-shell-floating-left-panel {
+    // Even the global reduced-motion 0.01ms duration would defer visibility
+    // until another frame. Mobile MotionValues own movement; CSS owns hiding.
+    transition-property: none;
+    &[aria-hidden="true"] { visibility: hidden; }
+  }
   @media (prefers-reduced-motion: no-preference) {
     // This owner exists only for floating presence. Keep its changing scale on
     // a composited layer rather than re-rasterizing it at every scale value.
@@ -12185,7 +12175,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   > img { width: 100%; height: 100%; object-fit: cover; }
 }
 
-// Touch chrome owns one stationary sidebar action above the drawer, below dialogs.
+// Unified chrome owns one stationary sidebar action above the drawer, below dialogs.
 // Its measured placeholder reserves the same header slot in every visibility state.
 .app-shell-touch-sidebar-toggle {
   position: fixed;
@@ -12194,10 +12184,12 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   > .chrome-button {
     width: 100%;
     height: 100%;
-    > svg { width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile); }
   }
 }
 :root[data-ui-density="touch"] {
+  .app-shell-touch-sidebar-toggle > .chrome-button > svg {
+    width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile);
+  }
   .app-shell-root.has-mobile-sidebar-gestures .app-shell-header {
     // The rails own edge clearance, including safe areas, without a second inset.
     padding-inline: 0;
@@ -12212,7 +12204,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   .app-shell-header [data-app-shell-window-action="sidebar-toggle"] .chrome-button {
     width: var(--size-shell-header-action-mobile); height: var(--size-shell-header-action-mobile);
   }
-  .shell-sidebar__toggle { display: none; }
   .app-shell-floating-overlay-root:not([data-mobile-sidebar]) .shell-sidebar__header {
     padding-inline-start: calc(max(var(--spacing-token-safe-header-left), var(--spacing-shell-header-edge-touch)) + var(--size-shell-header-action-mobile) + 4px);
     > [data-app-shell-sidebar-trigger] { display: none; }
@@ -12254,8 +12245,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     clip-path: circle(50%); // Match pointer hit testing to the visible circle.
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
   }
-  .opencraft-composer-mode,
-  .opencraft-composer-shortcut-trigger {
+  .opencraft-composer-mode {
     border-radius: var(--radius-composer-newera-capsule);
     clip-path: inset(0 round var(--radius-composer-newera-capsule));
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
@@ -12275,7 +12265,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     border-top-color: transparent;
     --composer-seam-highlight: transparent;
   }
-  .opencraft-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"] {
+  .opencraft-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"][data-composer-editing="false"] {
     .opencraft-composer-shell {
       --newera-input-row: 1;
       display: grid;
@@ -12299,7 +12289,6 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
     .opencraft-composer-footer { display: contents; }
     .opencraft-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
     .opencraft-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .opencraft-composer-shortcut-trigger,
     .opencraft-composer-icon-button--context,
     .opencraft-composer-icon-button--attachment { display: none; }
     // Dictation replaces this same row. The inactive editor stays mounted and
@@ -12369,27 +12358,18 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 @media (any-hover: hover) and (any-pointer: fine) {
-  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:hover, :focus-visible, [data-state="open"])) {
+  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:hover) {
     .sidebar-activity-item__trailing { opacity: 0; }
     .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
   }
 }
-// Touch retains a discoverable action beside the single activity renderer,
-// both within the same existing 44px hit target rather than another column.
-@mixin sidebar-activity-touch-menu {
-  .sidebar-activity-row[data-has-menu="true"]:has(.sidebar-activity-item__status[role="img"]) {
-    .sidebar-activity-item__trailing { opacity: 1; padding-inline-end: calc(var(--size-icon-navigation) + var(--spacing)); }
-    .sidebar-activity-item__menu-trigger:not([data-forking]) {
-      padding-inline-start: calc(var(--size-icon-navigation) + var(--spacing));
-      > .sidebar-activity-item__menu-dots { display: block; }
-    }
-    &:has(.sidebar-activity-item__menu-trigger[data-forking]) {
-      .sidebar-activity-item__trailing { opacity: 0; }
-    }
-  }
+// Touch uses the same single-glyph lane. Its transparent 44px action target
+// remains operable over activity paint; opening actions (or keyboard focus)
+// replaces that paint with dots rather than displaying both glyphs together.
+.sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:focus-visible, [data-state="open"])) {
+  .sidebar-activity-item__trailing { opacity: 0; }
+  .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
 }
-:root[data-touch-interaction] { @include sidebar-activity-touch-menu; }
-@media (hover: none), (any-pointer: coarse) { @include sidebar-activity-touch-menu; }
 .sidebar-activity-row:has(.sidebar-activity-item__menu-trigger[data-forking]) {
   .sidebar-activity-item__trailing { opacity: 0; }
 }
@@ -12572,3 +12552,104 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   flex-direction: column;
   .opencraft-composer-intelligence-view { min-height: 0; max-height: none; flex: 1 1 auto; }
 }
+
+// Inherited model metadata has no pointer or menu interaction.
+.opencraft-composer-mode--inherited {
+  cursor: default;
+  pointer-events: none;
+  .opencraft-composer-mode__model-label { flex: 0 1 auto; }
+  padding-inline: 0;
+}
+
+.opencraft-composer-model-quick {
+  @include material.surface(menu);
+  z-index: 90;
+  box-sizing: border-box;
+  width: min(288px, calc(100vw - 24px));
+  padding: calc(var(--spacing) * 3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  outline: none;
+}
+.opencraft-composer-model-quick__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing);
+}
+.opencraft-composer-model-quick__action-slot { width: max(32px, var(--size-control-hit-min)); }
+.opencraft-composer-model-quick__labels { min-width: 0; }
+.opencraft-composer-model-quick__effort {
+  @include typography.role(control-compact, null);
+  color: var(--color-text-accent);
+  min-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opencraft-composer-model-quick__title {
+  @include typography.role(control-compact, secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing);
+  min-height: max(24px, var(--size-control-hit-min));
+  padding: 0 var(--spacing);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  > svg { flex: none; }
+}
+.opencraft-composer-model-quick__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(32px, var(--size-control-hit-min));
+  height: max(32px, var(--size-control-hit-min));
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  &[data-state="checked"] { color: var(--color-icon-accent); }
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  &[data-disabled] { opacity: var(--opacity-control-disabled); cursor: default; }
+}
+.opencraft-composer-mode__fast { flex: none; color: var(--color-icon-accent); }
+.opencraft-composer-selection-menu--model-select {
+  box-sizing: border-box;
+  z-index: 91;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(320px, var(--radix-dropdown-menu-content-available-height), calc(100dvh - 24px));
+  overflow-y: auto;
+  .opencraft-composer-intelligence-view { display: block; max-height: none; }
+  .opencraft-composer-intelligence-models { overflow: visible; max-height: none; }
+}
+
+.opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: none; }
+.opencraft-composer-footer[data-footer-density="minimal"] .opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: block; }
+
+// Empty idle touch drafts use a single row without a model entrance. Editor
+// focus opens the ordinary footer; content retains its own expansion policy.
+.opencraft-composer-collapsed-fast { display: none; color: var(--color-text-accent); }
+:root[data-ui-density="touch"][data-touch-newera="on"] .opencraft-composer-stack[data-composer-layout="auto-single-line"]:has(.opencraft-composer-footer[data-input-mode="standard"]) {
+  .opencraft-composer-input-row { flex: 0 1 auto; }
+  .opencraft-composer-editor { min-height: 1lh; text-align: start; }
+  // Add already owns attachments. Avoid a duplicate action consuming the
+  // model/depth budget after the idle row opens.
+  .opencraft-composer-icon-button--attachment { display: none; }
+  .opencraft-composer-footer[data-footer-density="tight"] {
+    .opencraft-composer-mode--depth .opencraft-composer-mode__model-label { max-width: 60px; }
+    .opencraft-composer-mode--depth .opencraft-composer-mode__effort-label {
+      display: block;
+      max-width: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  &[data-composer-empty="true"][data-composer-editing="false"] {
+    .opencraft-composer-collapsed-fast { display: inline-flex; align-items: center; }
+  }
+}
+
+.opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }

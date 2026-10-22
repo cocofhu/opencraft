@@ -7,6 +7,10 @@ export const scenarios = Object.freeze({
   'session-warm-desktop': ['firstPaintMs', 'readyMs'],
   'session-narrow': ['firstPaintMs', 'readyMs'],
   'session-warm-narrow': ['firstPaintMs', 'readyMs'],
+  'session-navigation-cold-desktop': ['firstPaintMs'],
+  'session-navigation-cached-desktop': ['firstPaintMs'],
+  'session-navigation-cold-narrow': ['firstPaintMs'],
+  'session-navigation-cached-narrow': ['firstPaintMs'],
   'sidebar-update-30': ['ms'], 'sidebar-update-200': ['ms'],
   'sidebar-menu-30': ['ms'], 'sidebar-menu-200': ['ms'],
 });
@@ -49,7 +53,7 @@ export function compare(summary, baseline, workload) {
         duration(budget[quantile]); duration(summary[id].metrics[metric][quantile]);
         const limit = budget[quantile] * (1 + budget.relativeTolerance) + budget.absoluteToleranceMs;
         const actual = summary[id].metrics[metric][quantile];
-        comparisons.push({ scenario: id, metric, quantile, baseline: budget[quantile], actual, limit, passed: actual <= limit });
+        comparisons.push({ scenario: id, metric, quantile, baseline: budget[quantile], actual, deltaMs: actual - budget[quantile], deltaPercent: budget[quantile] === 0 ? null : (actual / budget[quantile] - 1) * 100, limit, passed: actual <= limit });
       }
     }
   }
@@ -59,9 +63,18 @@ export function markdown(report) {
   const lines = ['# Performance regression report', '', `Result: **${report.passed ? 'PASS' : 'FAIL'}**`, '',
     `Source: ${report.environment?.sourceRevision ?? 'unknown'}; workload: ${report.workload?.sha256 ?? 'unknown'}`, '',
     'Sample p95 is a nearest-rank statistic from this synthetic workload, not a user-population percentile.', '',
-    '| Scenario | Metric | Quantile | Baseline (ms) | Actual (ms) | Limit (ms) | Result |',
-    '| --- | --- | --- | ---: | ---: | ---: | --- |'];
-  for (const r of report.comparisons ?? []) lines.push(`| ${r.scenario} | ${r.metric} | ${r.quantile} | ${r.baseline.toFixed(1)} | ${r.actual.toFixed(1)} | ${r.limit.toFixed(1)} | ${r.passed ? 'PASS' : 'FAIL'} |`);
+    '| Scenario | Metric | Quantile | Baseline (ms) | Actual (ms) | Change | Limit (ms) | Result |',
+    '| --- | --- | --- | ---: | ---: | --- | ---: | --- |'];
+  for (const r of report.comparisons ?? []) lines.push(`| ${r.scenario} | ${r.metric} | ${r.quantile} | ${r.baseline.toFixed(1)} | ${r.actual.toFixed(1)} | ${r.deltaPercent === null ? "n/a" : `${r.deltaPercent.toFixed(1)}%`} (${r.deltaMs.toFixed(1)}ms) | ${r.limit.toFixed(1)} | ${r.passed ? 'PASS' : 'FAIL'} |`);
   if (report.error) lines.push('', '```text', report.error, '```');
   return lines.join('\n') + '\n';
+}
+
+// The same report feeds the release log, Actions annotation and job summary.
+export function annotations(report) {
+  const escape = value => String(value).replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+  const failures = (report.comparisons ?? []).filter(row => !row.passed);
+  const messages = failures.map(row => `${row.scenario}/${row.metric}/${row.quantile}: ${row.actual.toFixed(1)}ms vs baseline ${row.baseline.toFixed(1)}ms (${row.deltaPercent === null ? 'n/a' : `${row.deltaPercent.toFixed(1)}%`}, +${row.deltaMs.toFixed(1)}ms); budget ${row.limit.toFixed(1)}ms. See performance report artifact.`);
+  if (report.error) messages.push(`Performance measurement/behavior failed: ${report.error}. See performance report and child logs.`);
+  return messages.map(message => `::error title=Performance regression::${escape(message)}`);
 }

@@ -40,6 +40,7 @@ interface HarnessOptions {
   turnsDelayMs?: number;
   holdTurnsResponse?: (respond: () => void) => void;
   failResume?: boolean;
+  resumeErrorData?: unknown;
   oversizedFullPage?: boolean;
   oversizedResumePage?: boolean;
   malformedResume?: boolean;
@@ -164,7 +165,7 @@ async function createHarness(options: HarnessOptions = {}): Promise<{
           if (options.failResume) {
             peer.send(encodeJsonRpcMessage({
               id: message.id,
-              error: { code: -32022, message: "resume failed" },
+              error: { code: -32022, message: "resume failed", data: options.resumeErrorData },
             }));
           } else {
             peer.send(encodeJsonRpcMessage({ id: message.id, result: resumeResult(options) }));
@@ -1417,6 +1418,18 @@ test("a server-rejected Resume pauses automatic retries but permits explicit ret
   } finally {
     await harness.close();
   }
+});
+
+test("an explicitly retryable Resume rejection is not memoized in its generation", async () => {
+  const options: HarnessOptions = { failResume: true, resumeErrorData: { retryable: true }, initialTurnsPage: { data: [], nextCursor: null } };
+  const harness = await createHarness(options);
+  try {
+    await assert.rejects(harness.runtime.resume.resume({ threadId: "thread-one" }), /resume failed/);
+    options.failResume = false;
+    const recovered = await harness.runtime.resume.resume({ threadId: "thread-one" });
+    assert.equal(recovered.resumeState, "resumed");
+    assert.equal(harness.requests.filter(entry => entry.method === "thread/resume").length, 2);
+  } finally { await harness.close(); }
 });
 
 test("a new connection generation can retry a previously rejected Resume", async () => {

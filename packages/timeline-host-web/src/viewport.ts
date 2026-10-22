@@ -128,6 +128,10 @@ export function createWebTimelineViewportPort(
   let revision = 0;
   let frame: number | null = null;
   let disposed = false;
+  // Native keyboard/browser chrome transitions can finish after their last
+  // viewport event. Reconcile briefly, without a permanent polling owner.
+  const settleDurationMs = policy.tracksVisualViewport ? 1_000 : 0;
+  let settleUntil = 0;
 
   const read = (): TimelineViewportSnapshot => {
     const visualViewport = windowObject.visualViewport;
@@ -146,16 +150,40 @@ export function createWebTimelineViewportPort(
   let snapshot = read();
   applyTimelineViewportDocumentState(root, snapshot, policy);
 
-  const publish = () => {
+  const scheduleFrame = () => {
+    if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
+  };
+  const publish = (now: number) => {
     frame = null;
-    if (disposed) return;
-    revision += 1;
-    snapshot = read();
-    applyTimelineViewportDocumentState(root, snapshot, policy);
-    for (const listener of listeners) listener();
+    if (disposed || documentObject.visibilityState === "hidden") return;
+    const next = read();
+    if (
+      next.editableFocused !== snapshot.editableFocused
+      || next.scale !== snapshot.scale
+      || next.layoutViewport.widthPx !== snapshot.layoutViewport.widthPx
+      || next.layoutViewport.heightPx !== snapshot.layoutViewport.heightPx
+      || next.visualViewport.widthPx !== snapshot.visualViewport.widthPx
+      || next.visualViewport.heightPx !== snapshot.visualViewport.heightPx
+      || next.visualOffset.leftPx !== snapshot.visualOffset.leftPx
+      || next.visualOffset.topPx !== snapshot.visualOffset.topPx
+    ) {
+      revision += 1;
+      snapshot = { ...next, revision };
+      applyTimelineViewportDocumentState(root, snapshot, policy);
+      for (const listener of listeners) listener();
+    }
+    if (now < settleUntil) scheduleFrame();
   };
   const schedule = () => {
-    if (frame === null && !disposed) frame = windowObject.requestAnimationFrame(publish);
+    if (disposed) return;
+    if (documentObject.visibilityState === "hidden") {
+      if (frame !== null) windowObject.cancelAnimationFrame(frame);
+      frame = null;
+      settleUntil = 0;
+      return;
+    }
+    settleUntil = windowObject.performance.now() + settleDurationMs;
+    scheduleFrame();
   };
   const visualViewport = windowObject.visualViewport;
   windowObject.addEventListener("resize", schedule, { passive: true });
@@ -163,6 +191,16 @@ export function createWebTimelineViewportPort(
   visualViewport?.addEventListener("scroll", schedule, { passive: true });
   documentObject.addEventListener("focusin", schedule, { passive: true });
   documentObject.addEventListener("focusout", schedule, { passive: true });
+  if (policy.tracksVisualViewport) {
+    windowObject.addEventListener("pageshow", schedule, { passive: true });
+    windowObject.addEventListener("focus", schedule, { passive: true });
+    windowObject.addEventListener("orientationchange", schedule, { passive: true });
+    documentObject.addEventListener("visibilitychange", schedule, { passive: true });
+    // Observation only: a missed terminal event must not survive the next
+    // interaction, including descendants that stop bubbling. Input stays native.
+    documentObject.addEventListener("touchstart", schedule, { passive: true, capture: true });
+    schedule();
+  }
 
   return {
     getSnapshot: () => snapshot,
@@ -180,6 +218,13 @@ export function createWebTimelineViewportPort(
       visualViewport?.removeEventListener("scroll", schedule);
       documentObject.removeEventListener("focusin", schedule);
       documentObject.removeEventListener("focusout", schedule);
+      if (policy.tracksVisualViewport) {
+        windowObject.removeEventListener("pageshow", schedule);
+        windowObject.removeEventListener("focus", schedule);
+        windowObject.removeEventListener("orientationchange", schedule);
+        documentObject.removeEventListener("visibilitychange", schedule);
+        documentObject.removeEventListener("touchstart", schedule, true);
+      }
       listeners.clear();
     },
   };
