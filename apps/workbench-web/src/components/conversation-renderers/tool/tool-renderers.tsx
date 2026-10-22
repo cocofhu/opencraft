@@ -210,7 +210,7 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     bodyVariant={content !== null && (hasBody || content !== undefined) ? "grouped" : "default"}
     accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : undefined}
     unmountBodyWhenCollapsed>
-    {hasBody ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
+    {hasBody ? <>{body}<AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
     {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}

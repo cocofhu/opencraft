@@ -83,6 +83,86 @@ try {
   }
 
   if (!restoreOnly) {
+
+  if (!handoffOnly && !process.argv.some(value => value.endsWith("-only"))) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=review-view&restore=1&theme=${theme}`);
+    await page.locator("[data-phase]").waitFor();
+    await page.evaluate(() => (window as any).changeThreadToolPhase("completed"));
+    await page.locator('[data-phase="completed"]').waitFor();
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const reveal = async () => {
+      const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+      for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    };
+    await reveal();
+    const reviews = page.locator('.thread-activity-item[data-body-variant="default"]:has(.thread-auto-review):not(:has(.thread-auto-review-list))');
+    assert.equal(await reviews.count(), 2);
+    const first = reviews.nth(0).locator(':scope > .thread-activity-item__header button[aria-expanded]');
+    const second = reviews.nth(1).locator(':scope > .thread-activity-item__header button[aria-expanded]');
+    const reason = reviews.nth(0).locator('.thread-auto-review > button');
+    const otherReason = reviews.nth(1).locator('.thread-auto-review > button');
+    const toolHeader = page.locator('.thread-activity-item[data-status] > .thread-activity-item__header').filter({ hasText: "Reviewed · Completed" });
+    const tool = toolHeader.locator('button[aria-expanded]');
+    const commandHeader = page.locator('.thread-activity-item[data-status]').last().locator(':scope > .thread-activity-item__header');
+    const command = commandHeader.locator('button[aria-expanded]');
+    const toolBody = toolHeader.locator('..');
+    const commandBody = commandHeader.locator('..');
+    const toolReason = toolBody.locator('.thread-auto-review > button').first();
+    const toolOther = toolBody.locator('.thread-auto-review > button').nth(1);
+    const commandReason = commandBody.locator('.thread-auto-review > button').first();
+    const patchReason = page.locator('.thread-patch-activities .thread-auto-review > button');
+    assert.equal(await patchReason.count(), 1);
+    await activate(patchReason);
+    await activate(first); await activate(second); await activate(reason);
+    await activate(tool); await activate(toolReason);
+    await activate(command); await activate(commandReason);
+    await toolBody.getByText("DE_REASON_TOOL: completed", { exact: true }).waitFor();
+    await activate(tool); await toolReason.waitFor({ state: "detached", timeout: 10000 });
+    await activate(tool); await toolReason.waitFor();
+    assert.equal(await toolReason.getAttribute("aria-expanded"), "true", "Reopening a tool retains its explicit review reason choice");
+    const remount = async (fresh = false) => {
+      await page.evaluate(() => (window as any).setThreadToolMounted(false));
+      await first.waitFor({ state: "detached" });
+      if (fresh) await page.evaluate(() => (window as any).clearThreadToolRestore());
+      await page.evaluate(() => (window as any).setThreadToolMounted(true));
+      if (fresh) await reveal();
+      await first.waitFor();
+    };
+    await remount();
+    // This branch's command body has local outer state; reopen it to inspect
+    // the nested review choice independently of command scroll restoration.
+    if (await command.getAttribute("aria-expanded") !== "true") await activate(command);
+    for (const target of [first, second, reason, tool, toolReason, commandReason, patchReason])
+      assert.equal(await target.getAttribute("aria-expanded"), "true", "Same View retains outer and nested review choices");
+    for (const target of [otherReason, toolOther]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Other review choices stay independent");
+    await page.evaluate(() => (window as any).changeThreadToolPhase("failed"));
+    await toolBody.getByText("DE_REASON_TOOL: failed", { exact: true }).waitFor();
+    await activate(reason); await activate(first); await activate(toolReason); await remount();
+    for (const target of [first, reason, toolReason]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Same View retains explicit close choices");
+    if (await command.getAttribute("aria-expanded") !== "true") await activate(command);
+    assert.equal(await commandReason.getAttribute("aria-expanded"), "true");
+    await remount(true);
+    for (const target of [first, second, tool, command]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Fresh settled View retains collapsed defaults");
+    for (const target of [patchReason]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Fresh patch reasons remain independent and collapsed");
+    await activate(first); assert.equal(await reason.getAttribute("aria-expanded"), "false");
+    await activate(tool); assert.equal(await toolReason.getAttribute("aria-expanded"), "false");
+    await activate(command); assert.equal(await commandReason.getAttribute("aria-expanded"), "false");
+    await remount(true);
+    await page.evaluate(() => (window as any).changeThreadToolPhase("inProgress"));
+    await page.locator('[data-phase="inProgress"]').waitFor();
+    assert.equal(await first.getAttribute("aria-expanded"), "true", "Fresh running review keeps existing open default");
+    assert.equal(await reason.getAttribute("aria-expanded"), "false", "Running review reason remains manual");
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    results.push({ width, theme, reviewViewChoices: true, toolReopen: true, independentReasons: true, refreshedRationale: true, explicitClose: true, freshDefaults: true });
+    await page.close();
+  }
+
   if (!process.argv.some(value => value.endsWith("-only")) || process.argv.includes("--website-view-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;

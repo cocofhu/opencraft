@@ -219,7 +219,7 @@ function PatchBlock({ block }: { block: Extract<TimelineBlock, { type: "patch" }
         <div className="thread-activity-item thread-activity-item--static" data-status={presentation.state}>
           <ActivitySummaryRow running={presentation.state === "running"} icon={presentation.state === "running" ? <PatchActivityIcon /> : <FileCode2 />} summary={presentation.summary} />
         </div>
-        <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} />
+        <AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} />
       </>
     );
   }
@@ -228,7 +228,7 @@ function PatchBlock({ block }: { block: Extract<TimelineBlock, { type: "patch" }
       {block.changes.map((change, index) => (
         <FileChangeActivity block={block} change={change} key={`${change.path}:${change.movePath ?? ""}:${index}`} />
       ))}
-      <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} />
+      <AutomaticApprovalReviewList blockId={block.id} reviews={block.automaticApprovalReviews} />
     </div>
   );
 }

@@ -94,6 +94,28 @@ function hostToolItems(failed: boolean): TimelineSourceItem[] {
   ].map(({ id, type, ...payload }) => ({ id, type, payload }));
 }
 
+const reviewViewScenario = new URLSearchParams(location.search).get("scenario") === "review-view";
+function reviewViewItems(phase: string): TimelineSourceItem[] {
+  const review = (id: string, label: string) => ({ reviewId: id, startedAtMs: 100,
+    completedAtMs: phase === "inProgress" ? null : 200,
+    status: phase === "inProgress" ? "inProgress" : phase === "completed" ? "denied" : "timedOut",
+    riskLevel: "high", userAuthorization: "low", decisionSource: "agent",
+    rationale: phase === "inProgress" ? null : `${label}: ${phase}`,
+    action: { type: "networkAccess", target: "network.example.test:443", host: "network.example.test", protocol: "https", port: 443 },
+  });
+  return [
+    { id: "view-standalone-1", type: "automaticApprovalReview", payload: review("view-review-1", "DE_REASON_STANDALONE") },
+    { id: "view-standalone-2", type: "automaticApprovalReview", payload: review("view-review-2", "DE_REASON_SECOND") },
+    { id: "view-tool", type: "mcpToolCall", payload: { server: "audit", tool: "reviewed", status: "completed", arguments: {},
+      result: { content: [{ type: "text", text: "DE_TOOL_RESULT" }] },
+      automaticApprovalReviews: [review("view-tool-review", "DE_REASON_TOOL"), review("view-tool-second", "DE_REASON_TOOL_SECOND")] } },
+    { id: "view-patch", type: "fileChange", payload: { status: "completed", changes: [{ path: "/fixture/review.txt", kind: "update", diff: "@@ -1 +1 @@\n-old\n+new" }],
+      automaticApprovalReviews: [review("view-tool-review", "DE_REASON_PATCH")] } },
+    { id: "view-command", type: "commandExecution", payload: { command: "printf DE_command", status: "completed", exitCode: 0,
+      aggregatedOutput: "DE_COMMAND_RESULT", automaticApprovalReviews: [review("view-command-review", "DE_REASON_COMMAND")] } },
+  ];
+}
+
 function Demo() {
   const [mounted, setMounted] = useState(true);
   const restore = useRef<ConversationRestoreSnapshot | null>(null);
@@ -104,7 +126,7 @@ function Demo() {
   probe.changeThreadToolPhase = setPhase;
   const [hostMode, setHostMode] = useState("content");
   probe.changeHostContentMode = mode => { setHostMode(mode); setPhase("inProgress"); };
-  const items: TimelineSourceItem[] = imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
+  const items: TimelineSourceItem[] = reviewViewScenario ? reviewViewItems(phase) : imageScenario ? imageItems : hostContentScenario ? hostToolItems(phase === "failed") : webMcpScenario ? webMcpItems : websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
     server: "node_repl", tool: "browser_click", status: "completed", arguments: {}, result: { content: [], _meta: { "codex/toolSurface": {
       kind: "browserUse", backend: "iab", webMcpCalls: [
         { kind: "invokeTool", name: "lookup_item", title: "Look up an item", inputJson: '{"id":42}', outputJson: '{"result":"WEBSITE_RESULT"}' },
