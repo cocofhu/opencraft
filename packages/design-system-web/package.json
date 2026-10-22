@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./progress": "./src/progress.tsx",
-    "./discrete-slider": "./src/discrete-slider.tsx"
+    "./discrete-slider": "./src/discrete-slider.tsx",
+    "./task-link-icon": "./src/task-link-icon.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

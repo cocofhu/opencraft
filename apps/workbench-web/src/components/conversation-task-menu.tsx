@@ -1,7 +1,8 @@
+import { TaskLinkIcon } from "@opencraft/design-system-web/task-link-icon";
 import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
-import { ListTodo, Archive, Clock, GitFork, Info, LoaderCircle, Pencil, Pin, PinOff } from "lucide-react";
+import { Archive, Clock, GitFork, Info, LoaderCircle, Pencil, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -162,7 +163,7 @@ export function ConversationTaskMenu(props: Props) {
   const actions: ToolbarDockAction[] = [];
   const add = (id: string, label: string, icon: ToolbarDockAction["icon"], invoke: () => void, dialog = false, pending = false) =>
     actions.push({ id, label, icon, invoke, dialog, disabled: busy, pending });
-  if (props.port) add("link-tasks", intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" }), <ListTodo size={16} aria-hidden="true" />, () => setPickerOpen(true), true);
+  if (props.port) add("link-tasks", intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" }), <TaskLinkIcon size={16} aria-hidden="true" />, () => setPickerOpen(true), true);
   if (props.onRename) add("rename", intl.formatMessage({ id: "common.rename", defaultMessage: "Rename" }), <Pencil size={16} aria-hidden="true" />,
     () => { rename.reset(); setName(props.title ?? ""); setRenameOpen(true); }, true);
   if (props.onSetPinned) add("pin", intl.formatMessage(props.pinned ? { id: "chat.unpin", defaultMessage: "Unpin" } : { id: "chat.pin", defaultMessage: "Pin" }),
