@@ -1839,11 +1839,12 @@ owner.
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
 
-### Composer material breathing
+### Composer warning material
 
-During an actual response, only the Composer material layer may breathe slowly
-within 92–100% opacity. Draft text, caret, buttons and geometry remain stable.
-Recovery scan owns recovery feedback and suppresses this secondary execution
-motion. Idle/settled and reduced motion/transparency/forced colors are static;
-no animation callback owns execution or changes draft identity.
-
+An active conversation's existing recovery or connection failure may project a
+static faint red material and rim to the shared Composer. Normal streaming, idle
+and new drafts stay neutral. No Composer opacity breathing, blinking or scaling.
+Draft text, caret, controls and geometry remain stable. The material is paint-only:
+recovery diagnostics, scan, retry and submission ownership remain independent.
+Forced colors retain a system outline and the existing textual recovery notice;
+reduced-motion users receive the same static warning.
