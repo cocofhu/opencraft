@@ -9,7 +9,7 @@ import "../../apps/workbench-web/src/styles/app.scss";
 document.documentElement.dataset.theme = "light";
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 
-const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void; hideMcpForm(): void; replayMcpForm(change?: "request" | "schema"): void };
+const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void; hideMcpForm(): void; replayMcpForm(change?: "request" | "schema" | "tool" | "turn"): void };
 probe.mcpActions = []; probe.mcpOpened = [];
 window.open = ((url: string) => { probe.mcpOpened.push(String(url)); return null; }) as typeof window.open;
 const formSchema = { type: "object", required: ["name", "count"], properties: {
@@ -34,15 +34,18 @@ function Demo() {
   const [block, setBlock] = useState<McpElicitationTimelineBlock | null>(() => example("form"));
   const lastBlock = useRef(block!);
   const [draftStore] = useState(() => new InteractionDraftStore());
+  const [requestTurnId, setRequestTurnId] = useState("fixture-turn");
   probe.showMcpCase = name => { lastBlock.current = example(name); setBlock(lastBlock.current); };
   probe.hideMcpForm = () => setBlock(null);
   probe.replayMcpForm = change => {
     const next = JSON.parse(JSON.stringify(lastBlock.current)) as McpElicitationTimelineBlock;
+    if (change === "turn") setRequestTurnId(value => `${value}-next`);
     lastBlock.current = change === "request" ? { ...next, requestId: `${next.requestId}-replacement` }
+      : change === "tool" && next.toolApproval !== null ? { ...next, toolApproval: { ...next.toolApproval, toolParams: { ...next.toolApproval.toolParams, payload: { body: "y".repeat(140) } } } }
       : change === "schema" ? { ...next, requestedSchema: { ...formSchema, properties: { ...formSchema.properties, count: { ...formSchema.properties.count, default: 1 } } } } : next;
     setBlock(lastBlock.current);
   };
-  return <main data-scenario={block?.id ?? "hidden"} style={{ padding: 16, maxWidth: 760, margin: "auto" }}><ConversationPendingInteractionPanel block={block} draftStore={draftStore} draftScope="fixture-view"
+  return <main data-scenario={block?.id ?? "hidden"} style={{ padding: 16, maxWidth: 760, margin: "auto" }}><ConversationPendingInteractionPanel block={block} draftStore={draftStore} draftScope="fixture-view" requestTurnId={requestTurnId}
     onRespondInteraction={async (_requestId, action) => { probe.mcpActions.push(action); }} /></main>;
 }
 createIntlTestRoot(document.getElementById("root")!).render(<Demo />);

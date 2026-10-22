@@ -78,7 +78,25 @@ try {
     assert.match(await approval.locator('[data-expanded="true"]').innerText(), /x{140}/);
     await approval.getByRole("button", { name: "Show 1 more items", exact: true }).click();
     assert.equal(await approval.locator("dt").count(), 5);
+    await approval.locator("summary").click();
+    await page.evaluate(() => (window as any).hideMcpForm());
+    await page.locator('main[data-scenario="hidden"]').waitFor();
+    await page.evaluate(() => (window as any).replayMcpForm());
+    await approval.waitFor();
+    assert.equal(await approval.locator("dt").count(), 5);
+    assert.match(await approval.locator('[data-expanded="true"]').innerText(), /x{140}/);
+    assert.equal(await approval.getByRole("button", { name: "Show fewer items", exact: true }).count(), 1);
+    assert.equal(await approval.locator("details[open]").count(), 0, "approval menu is not a retained permission");
+    assert.deepEqual(await actions(), []);
     await page.screenshot({ path: `/tmp/opencraft-mcp-elicitation-${width}.png`, fullPage: true });
+    for (const change of ["request", "tool", "turn"]) {
+      await page.evaluate(change => (window as any).replayMcpForm(change), change);
+      await page.waitForFunction(() => document.querySelectorAll('.thread-mcp-tool-approval dt').length === 4);
+      assert.equal(await approval.locator('[data-expanded="true"]').count(), 0, "changed request, parameters or turn starts a fresh review");
+      assert.deepEqual(await actions(), []);
+      await approval.getByRole("button", { name: "Expand payload", exact: true }).click();
+      await approval.getByRole("button", { name: "Show 1 more items", exact: true }).click();
+    }
     await approval.locator("summary").click();
     await approval.getByRole("menuitem", { name: "Allow this conversation", exact: true }).click();
     await page.waitForFunction(() => (window as any).mcpActions.length === 1);

@@ -538,8 +538,8 @@ function SetupContextPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
 function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "elicitation" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const approval = block.toolApproval;
-  const [showAll, setShowAll] = useState(false);
-  const [expanded, setExpanded] = useState<Readonly<Record<string, boolean>>>({});
+  const [showAll, setShowAll] = useInteractionDraftState("reviewShowAll", false);
+  const [expanded, setExpanded] = useInteractionDraftState<Readonly<Record<string, boolean>>>("reviewExpanded", {});
   const pending = block.state === "pending";
   const connectorName = approval?.connectorName ?? block.serverName ?? "Connector";
   const toolName = approval?.toolTitle ?? approval?.toolName;
@@ -552,10 +552,6 @@ function McpToolApprovalBlock({ block }: { block: Extract<TimelineBlock, { type:
     ? approval.toolParamsDisplay
     : Object.entries(approval?.toolParams ?? {}).map(([name, value]) => ({ name, displayName: name, value }));
   const visibleEntries = showAll ? entries : entries.slice(0, 4);
-  useEffect(() => {
-    setShowAll(false);
-    setExpanded({});
-  }, [block.requestId]);
   useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {

@@ -2353,11 +2353,16 @@ allocations do not create a new input transaction. Changed request IDs, turns or
 input definitions create a fresh draft. A successful response releases only its
 own checkpoint, so a late completion cannot erase a newer request's input.
 
-These checkpoints contain input only, live in Application memory and end with
-that Application. They neither keep an obsolete request actionable nor authorize
+These checkpoints contain input and read-only parameter disclosure state, live in
+Application memory and end with that Application. They neither keep an obsolete request actionable nor authorize
 or replay a response; the active Host request remains the response authority.
 The temporarily removed DOM and its focus are not persisted across a connection
-gap. Setup/onboarding pickers keep their existing local state contract.
+gap. Supported setup pickers follow the input contract described below.
+
+Pending MCP tool approvals retain expanded parameter values and Show more state
+through a connection gap. A different request, turn or parameter definition starts
+a fresh review. The permission menu, permission choices and execution state are
+not checkpointed; recovery never grants permission or sends a response.
 
 ### MCP approval keyboard ownership
 
