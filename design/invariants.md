@@ -1847,3 +1847,11 @@ are sibling controls, vertically centered; the title shrinks with ellipsis while
 accessories retain intrinsic width. Default trailing and metadata layouts remain
 unchanged. The real Sidebar consumer checks title-only geometry, narrow columns,
 keyboard focus, menus and independent badge popovers in both input modes/themes.
+
+## Compact title-accessory conversation rows
+
+Single-line conversation rows with title badges use the shared sidebar title-row
+height token: 36px with pointer input, at least the 44px shared touch target when
+touch interaction is active. Keep participant artwork, count circles, independent
+action lanes and section/list gaps at their existing sizes; compact density must
+not change metadata rows or other navigation owners.
