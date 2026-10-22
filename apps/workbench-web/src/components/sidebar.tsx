@@ -225,7 +225,8 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     || catalog.hostId === serverFilter.serverId
     || threads.some(thread => thread.connectionHostId === catalog.hostId && thread.serverOrigin.serverId === serverFilter.serverId));
   const busyCatalog = threadCatalogDiscovery === "loading" || applicableCatalogs.some(catalog => catalog.phase === "loading");
-  const catalogErrors = applicableCatalogs.filter(catalog => catalog.phase === "error");
+  const catalogErrors = applicableCatalogs.filter(catalog => catalog.phase === "error"
+    || catalog.phase === "ready" && catalog.cachedAt !== undefined);
   const empty = matching.length === 0 && !busyCatalog && catalogErrors.length === 0 && threadCatalogDiscovery !== "error";
   const filtersLabel = text("sidebar.filters", "Filters");
   const allServersLabel = text("sidebar.allServers", "All servers");
@@ -378,7 +379,9 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
               {renderFlowSection("recent", text("sidebar.flow.recent", "Recent"), taskFlow.recent, recentLimit, setRecentLimit)}
             </>}
             {empty ? <div className="sidebar-activity-empty">{text("sidebar.empty", "No tasks yet")}</div> : null}
-            {catalogErrors.map(catalog => retryFeedback(catalog.hostId, intl.formatMessage({ id: "sidebar.catalog.error", defaultMessage: "Couldn't load {server} conversations" }, { server: catalog.label }), onRetryThreadCatalog ? () => onRetryThreadCatalog(catalog.hostId) : undefined))}
+            {catalogErrors.map(catalog => retryFeedback(catalog.hostId, intl.formatMessage(catalog.cachedAt !== undefined
+              ? { id: "sidebar.catalog.cached", defaultMessage: "Showing saved {server} conversations; refresh failed" }
+              : { id: "sidebar.catalog.error", defaultMessage: "Couldn't load {server} conversations" }, { server: catalog.label }), onRetryThreadCatalog ? () => onRetryThreadCatalog(catalog.hostId) : undefined))}
             {threadCatalogDiscovery === "error" ? retryFeedback("discovery", text("sidebar.catalog.discoveryError", "Couldn't load remote connections"), onRetryThreadCatalogDiscovery) : null}
           </div>
         </section></ContextMenu.Trigger>
