@@ -46,6 +46,21 @@ filter fallbacks and explicit extension popover surfaces remain readable.
 See the workbench language and `scripts/smoke-frosted-materials.ts` for real
 consumer, backdrop and fallback verification. Native appearance is unchanged.
 
+Longing is an optional built-in blue glass palette in both light and dark modes.
+Its theme definition owns the translucent Sidebar, cool surfaces and diffuse
+navigation-to-content edge shadow. That edge reuses the established prominent
+elevation (hairline, near shadow and diffuse shadow), preserving the original
+pane transition instead of a separate accent-colored stroke. Settings previews and the mounted Shell
+consume the same palette; selecting it preserves drafts, layout and focus.
+Shared material fallbacks retain their existing accessibility ownership.
+The unified Shell also consumes the theme's optional unified surface elevation
+and context background; it must not replace Longing's glass edge with a flat
+surface. Longing's browser titlebar shares the Sidebar background and recesses
+behind the same reading-plane elevation at the top edge; it paints no horizontal
+separator. The paint-only Header edge follows existing live Shell geometry and
+panel apertures without intercepting input. Other themes retain their existing
+Header separator, flat unified shell and opaque context.
+
 
 ## Floating sidebar presentation boundary
 
@@ -1225,12 +1240,15 @@ block-start padding; sticky headings retain zero additional block-start inset.
 The active heading's visible top equals the real header's bottom, not the
 scrollport origin plus a second toolbar height. Tests measure that chrome edge
 independently and sample continuous scroll phases to catch blank gaps or row bleed.
-The original disclosure remains the interactive owner, with
-an opaque context-surface background over the rows and local stacking below Shell
-chrome. Each group's item container forms its own isolated stacking context, so
-row badges and avatar stacks cannot paint over the sticky disclosure. Participant
-popover portals retain their existing floating-surface ownership. No duplicate
-headings, scroll listeners or additional scrollports.
+The original disclosure remains the interactive owner, stacked below Shell
+chrome. Opaque themes use their context surface; a continuous translucent Sidebar
+plane keeps the disclosure transparent, without a local backdrop filter. Each
+group's item container forms its own isolated stacking context and clips row
+paint entering its own sticky heading. The list observes existing viewport scroll
+only to project overlap; it introduces no scroll writer, scroll state or extra
+scrollport. Row badges and avatar stacks cannot tint or paint over the disclosure.
+Participant popover portals retain their existing floating-surface ownership.
+There are no duplicate headings.
 Real Shell coverage: OPENCRAFT_SIDEBAR_STICKY_ONLY=1 in
 scripts/smoke-sidebar-topology.ts.
 
@@ -2014,6 +2032,24 @@ and unmounting retain a single paint/listener owner.
 
 Sidebar search may reuse unchanged row presentation. Parent props, grouping and action-owner/context changes must invalidate render-time readers; controlled menus, badges, locale and busy states remain live through their own subscriptions. Reuse must preserve input focus, Host/Thread identity and current capability/callback ownership; it must not cap semantic catalog membership.
 
+Longing suppresses the conversation frame top-divider paint through the same recessed-material policy as the titlebar. Keep the frame border geometry so the theme switch preserves content position; other themes retain their strong divider color.
+
+Longing pane and titlebar depth uses the shared diffuse prominent elevation without its hairline outline. Keep the original blur layers, geometry and existing separator suppression; other themes retain their own elevation policy.
+
+Recessed Longing chrome paints its translucent blue once at the browser Shell root, shared by titlebar and Sidecar. Header and Sidecar do not re-composite it into rectangular tiles; the shared root highlight stays continuous. Keep native window ownership, pane geometry, toolbar apertures and mounted drafts.
+
+Longing unified pane depth begins below the toolbar. Its paint-only Shell projection follows the existing live left slot, clips shadow above the toolbar and does not intercept input; the main surface no longer casts a vertical stripe through the titlebar. Preserve the reading plane upper lip, body diffuse depth, continuous blue chrome and mounted content.
+
+Longing right-panel chrome consumes the same single Shell-root blue as the titlebar. Chassis layers and toolbar are transparent, divider colors are transparent without changing border geometry, and the vertical divider shadow starts below the toolbar. Panel body keeps its opaque reading surface and diffuse upper lip; tabs, resident tools, apertures, resize and controls retain their existing owners.
+
+Longing reading-plane upper-left radius and shadow geometry share the theme's content corner token. Body depth is a paint-only sibling driven directly by the same current Sidecar width, never root's saved-width CSS fallback; held resize, collapse, reversal and reduced-motion snaps preserve the visible boundary without toolbar stripes. Sticky Pinned/Recent headings consume theme-owned transparent blur over the shared sidebar material, not the opaque reading-surface fill. Keep disclosure hit/focus behavior, scroll ownership and mounted drafts.
+
+Sticky Sidebar section labels are part of the Shell plane, not floating glass surfaces. Longing uses transparent label backgrounds with no local backdrop filter. The existing Sidebar list projects each group's actual heading/row overlap into row clipping, observing the current dock or mobile viewport without creating another scroll owner. Rows, selected backgrounds and avatars cannot tint or show through the label; retain disclosure, row identity, focus/menu portals and pagination. This replaces the earlier local-blur heading treatment only.
+
+### Recessed browser reading plane
+
+AppShell resolves the active appearance shell material with the same catalog and mode as CSS projection. A recessed browser header keeps the reading frame below the toolbar at all widths; frame origin, upper lip and body depth share that boundary. Width eligibility alone must not move conversation content behind recessed chrome. Other materials and native window presentation retain their existing immersive layout. Appearance changes update this single Shell decision without replacing the conversation or editor.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
@@ -2024,3 +2060,9 @@ previously measured size remains authoritative. Metadata and contribution rows
 retain natural layout. Focused rows and rows with open menus retain ordinary
 rendering so focus rings and overlays remain reachable. Native scrolling,
 keyboard reveal, destination selection and drafts keep their existing owners.
+
+- Shell content-plane shape is theme-owned and shared by the main reading Frame
+  and RightPanel body (`data-app-shell-content-plane`). Toolbars stay outside;
+  overflow clips child pixels and hits to that same shape. Active tab kind,
+  maximizing or revealing a tool must not replace the plane with a square one,
+  nor feed presentation shape into the tool's layout viewport or lifetime.

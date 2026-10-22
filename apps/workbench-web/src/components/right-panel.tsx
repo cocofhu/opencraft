@@ -635,6 +635,7 @@ export function RightPanel({
 
         <div
           className="right-panel-view"
+          data-app-shell-content-plane="preview"
           id={
             activeTab === null ? undefined : `right-panel-view-${activeTab.id}`
           }

@@ -6,6 +6,7 @@ import {
   buildOpenCraftThemeCssProperties,
   opencraftNeutralThemePalette,
   frostThemePalette,
+  longingThemePalette,
   lavenderThemePalette,
   zenCodeThemePalette,
   opencraftCanvasThemePalette,
@@ -28,7 +29,7 @@ test("keyboard focus is neutral and independent of brand accent, including legac
 
 test("utility controls receive semantic status colors in both themes and accept theme overrides", () => {
   for (const mode of ["light", "dark"] as const) {
-    for (const definition of [opencraftNeutralThemePalette[mode], opencraftCanvasThemePalette[mode], frostThemePalette[mode], lavenderThemePalette[mode]]) {
+    for (const definition of [opencraftNeutralThemePalette[mode], opencraftCanvasThemePalette[mode], frostThemePalette[mode], longingThemePalette[mode], lavenderThemePalette[mode]]) {
       const css = buildOpenCraftThemeCssProperties(mode, definition);
       for (const key of ["--color-text-warning", "--color-text-danger", "--color-status-success", "--color-usage-track", "--color-dialog-scrim", "--elevation-dialog-utility"]) {
         assert.ok(css[key], `${mode} must define ${key}`);
@@ -51,7 +52,7 @@ test("badge pairs stay readable across palettes, overridden surfaces and brand a
     return channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722;
   };
   for (const mode of ["light", "dark"] as const) {
-    for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette, frostThemePalette, lavenderThemePalette, zenCodeThemePalette]) {
+    for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette, frostThemePalette, longingThemePalette, lavenderThemePalette, zenCodeThemePalette]) {
       for (const panel of [undefined, "#ffffff", "#101020", "#777777"]) {
         const definition = { ...palette[mode], surfaces: { ...palette[mode].surfaces, ...(panel ? { panel } : {}) } };
         const css = buildOpenCraftThemeCssProperties(mode, definition);
@@ -202,8 +203,8 @@ test("extension theme selection is root-owned and unload falls back atomically",
     appearance.initializeAppearanceTheme();
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.deepEqual(
-      appearance.getAppearanceThemeSnapshot().availableThemes.slice(0, 5).map(({ label }) => label),
-      ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode"],
+      appearance.getAppearanceThemeSnapshot().availableThemes.slice(0, 6).map(({ label }) => label),
+      ["Neutral", "Canvas", "Frost", "Longing", "Lavender", "ZenCode"],
     );
     assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.zenCodeThemeId)?.label, "ZenCode");
     assert.equal(properties.get("--opencraft-base-surface"), "#ffffff");
@@ -245,6 +246,15 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#ffffff" });
     appearance.setAppearanceThemeId(appearance.coreThemeId);
     assert.equal(properties.get("--opencraft-sidebar-material-filter"), "blur(28px) saturate(145%)");
+    assert.equal(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground, undefined);
+    appearance.setAppearanceThemeId(appearance.longingThemeId);
+    for (const mode of ["light", "dark"] as const) {
+      appearance.setThemePreference(mode);
+      assert.equal(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground,
+        longingThemePalette[mode].shellMaterial?.recessedHeaderBackground);
+      assert.ok(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground);
+    }
+    appearance.setThemePreference("light");
     appearance.setAppearanceThemeId(appearance.frostThemeId);
     assert.equal(dataset.themeId, appearance.frostThemeId);
     assert.equal(properties.get("--opencraft-sidebar-material-background"), "rgb(226 244 250 / 35%)");

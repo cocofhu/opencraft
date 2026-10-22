@@ -21,6 +21,11 @@ export interface OpenCraftThemeDefinition {
    * web canvas without component-level selectors.
    */
   shellMaterial?: {
+    unifiedSurfaceElevation?: string;
+    sidebarContextBackground?: string;
+    sidebarHeadingBackground?: string;
+    contentCornerRadius?: string;
+    recessedHeaderBackground?: string;
     mainSurfaceElevation: string;
     sidebarBackground: string;
     sidebarFilter: string;
@@ -141,6 +146,60 @@ export const frostThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinit
     },
     semanticColors: { diffAdded: "#13834d", diffRemoved: "#c73d3a", skill: "#7956c8" },
     surface: "#ffffff",
+  },
+};
+
+/** Cool blue glass, with a soft edge between navigation and the reading surface. */
+export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefinition> = {
+  light: {
+    accent: "#2279d5",
+    contrast: 45,
+    fonts: { code: null, ui: null },
+    ink: "#182c43",
+    opaqueWindows: false,
+    surface: "#f5f9ff",
+    surfaces: { window: "#e8f2ff", panel: "#f8fbff", input: "#f0f6ff" },
+    shellMaterial: {
+      unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
+      sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      contentCornerRadius: "var(--radius-xl)",
+      recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
+      mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
+      sidebarBackground: "rgb(207 228 255 / 42%)",
+      sidebarFilter: "blur(28px) saturate(140%)",
+      windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(255 255 255 / 60%), transparent 65%)",
+      windowMaterial: "#e8f2ff",
+    },
+    semanticColors: {
+      diffAdded: "#1b8053", diffRemoved: "#c23e50", skill: "#7760c5",
+      warning: "#946019", error: "#b63145", success: "#23764f",
+    },
+  },
+  dark: {
+    accent: "#77b9ff",
+    contrast: 57,
+    fonts: { code: null, ui: null },
+    ink: "#edf5ff",
+    opaqueWindows: false,
+    surface: "#132238",
+    surfaces: { window: "#0c192c", panel: "#192c45", input: "#1e334f" },
+    shellMaterial: {
+      unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
+      sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      contentCornerRadius: "var(--radius-xl)",
+      recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
+      mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
+      sidebarBackground: "rgb(27 56 91 / 42%)",
+      sidebarFilter: "blur(28px) saturate(140%)",
+      windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(93 164 255 / 10%), transparent 65%)",
+      windowMaterial: "#0c192c",
+    },
+    semanticColors: {
+      diffAdded: "#65c99b", diffRemoved: "#ff8996", skill: "#c4afff",
+      warning: "#eec080", error: "#ff9eac", success: "#8bdcb5",
+    },
   },
 };
 
@@ -599,6 +658,29 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-base-ink": definition.ink,
     "--opencraft-base-surface": definition.surface,
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
+    "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-frame-elevation": definition.shellMaterial?.recessedHeaderBackground ? "none" : definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? definition.shellMaterial?.unifiedSurfaceElevation ?? "none" : "none",
+    "--opencraft-panel-chassis-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-surface)",
+    "--opencraft-panel-toolbar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-elevated-secondary)",
+    "--opencraft-panel-divider-top": definition.shellMaterial?.recessedHeaderBackground ? "var(--height-toolbar)" : "0px",
+    "--opencraft-panel-divider-clip": definition.shellMaterial?.recessedHeaderBackground ? "inset(0 -100% -100% -100%)" : "none",
+    "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "initial",
+    "--opencraft-content-corner-radius": definition.shellMaterial?.contentCornerRadius ?? "0px",
+    "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
+    // Recessed chrome has one paint owner. Repainting the same translucent
+    // blue over Sidecar makes a darker brand tile even with identical tokens.
+    "--opencraft-shell-material-paint": definition.shellMaterial?.recessedHeaderBackground
+      ? `linear-gradient(${definition.shellMaterial.recessedHeaderBackground}, ${definition.shellMaterial.recessedHeaderBackground}), ${shell.windowHighlight}`
+      : shell.windowHighlight,
+    "--opencraft-sidecar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--opencraft-sidebar-material-background)",
+    "--opencraft-sidecar-filter": definition.shellMaterial?.recessedHeaderBackground ? "none" : "var(--opencraft-sidebar-material-filter)",
+    "--opencraft-header-surface-paint": definition.shellMaterial?.recessedHeaderBackground
+      ? "none"
+      : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
+    "--opencraft-header-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
+    "--opencraft-thread-edge-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-strong)",
+    "--opencraft-header-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? shell.mainSurfaceElevation : "none",
     "--opencraft-sidebar-material-background": shell.sidebarBackground,
     "--opencraft-sidebar-material-filter": shell.sidebarFilter,
     "--opencraft-window-highlight": shell.windowHighlight,

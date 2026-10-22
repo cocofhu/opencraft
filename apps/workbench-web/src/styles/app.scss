@@ -353,7 +353,7 @@ button {
   overscroll-behavior: none;
   // Browser fallback for Electron's transparent/vibrant window material.
   background-color: var(--opencraft-window-material);
-  background-image: var(--opencraft-window-highlight);
+  background-image: var(--opencraft-shell-material-paint, var(--opencraft-window-highlight));
 
   &:has(.app-shell-left-panel__resize[data-resizing="true"]) {
     cursor: col-resize;
@@ -614,7 +614,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   margin-top: var(--app-shell-main-content-frame-top-offset);
 
   &[data-app-shell-thread-edge-divider="true"] {
-    border-top: 0.5px solid var(--color-border-strong);
+    border-top: 0.5px solid var(--opencraft-thread-edge-divider-color, var(--color-border-strong));
   }
 }
 
@@ -811,15 +811,55 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   &[data-opencraft-window-type="browser"] .app-shell-header {
     // Shell owns two painted regions; the live panel-toolbar aperture stays
     // transparent. One pane projection drives paint, resizing and animation.
-    background: linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
-      linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
+    background: var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
+      var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
   &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
-  .main-content-surface { background: transparent; box-shadow: none; }
+  &[data-opencraft-window-type="browser"] .app-shell-header::after {
+    background: var(--opencraft-header-divider-color, var(--color-border-subtle));
+    @media (forced-colors: active) { background: CanvasText; }
+  }
+  &[data-opencraft-window-type="browser"] .app-shell-header__content-edge {
+    // Project the reading plane's upper edge into the recessed titlebar.
+    // Existing live Shell geometry follows resize/collapse and panel apertures.
+    position: absolute;
+    z-index: -1;
+    top: 100%;
+    left: var(--app-shell-header-left-slot-width, 0px);
+    width: max(0px, calc(var(--app-shell-header-leading-paint-width, 100%) - var(--app-shell-header-left-slot-width, 0px)));
+    height: var(--height-toolbar);
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+    box-shadow: var(--opencraft-header-content-elevation, none);
+    clip-path: inset(calc(-1 * var(--height-toolbar)) 0 100% 0);
+    pointer-events: none;
+  }
+  .app-shell-content-depth {
+    // This paint-only sibling shares Sidecar's live layout MotionValue.
+    // Root's fallback left slot describes saved width, not current geometry.
+    position: absolute;
+    z-index: 1;
+    top: var(--height-toolbar);
+    right: 0;
+    bottom: 0;
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+    box-shadow: var(--opencraft-unified-content-elevation, none);
+    clip-path: inset(0 -100% -100% -100%);
+    pointer-events: none;
+  }
+  .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-frame-elevation, var(--opencraft-unified-surface-elevation, none)); }
+  // Content planes share the theme's shape, irrespective of the active tool.
+  // Each plane keeps its existing overflow owner; clipping and hit testing
+  // follow this rounded border while the tab/header chrome stays outside it.
+  [data-app-shell-content-plane] {
+    border-start-start-radius: var(--opencraft-content-corner-radius, 0px);
+  }
   .main-content-frame {
-    background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
+    background: var(--color-surface);
+    overflow: clip;
   }
 }
+
+.app-shell-root:not(.has-unified-sidebar) .app-shell-content-depth { display: none; }
 
 // The slot and rail remain transparent to hit testing so their empty area is
 // native window chrome. Each concrete action exclusively reclaims its own hit
@@ -10382,7 +10422,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .right-panel-divider {
   position: absolute;
   z-index: 42;
-  inset-block: 0;
+  inset-block: var(--opencraft-panel-divider-top, 0px) 0;
+  clip-path: var(--opencraft-panel-divider-clip, none);
   left: 0;
   width: 1px;
   pointer-events: none;
@@ -10393,7 +10434,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
 }
 
 .app-shell-right-panel__surface {
@@ -10403,8 +10444,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   width: var(--app-shell-right-panel-target-width);
   min-width: var(--app-shell-right-panel-target-width);
   overflow: hidden;
-  border-left: 1px solid var(--color-border-subtle);
-  background: var(--color-background-surface);
+  border-left: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   contain: layout paint;
 }
 
@@ -10456,7 +10497,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  background: var(--color-background-surface);
+  background: var(--opencraft-panel-chassis-background, var(--color-background-surface));
   overflow: hidden;
 }
 
@@ -10471,8 +10512,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   justify-content: space-between;
   gap: 4px;
   padding: 0 0 0 8px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-background-elevated-secondary);
+  border-bottom: 1px solid var(--opencraft-header-divider-color, var(--color-border-subtle));
+  background: var(--opencraft-panel-toolbar-background, var(--color-background-elevated-secondary));
 }
 
 .right-panel-tab-strip {
@@ -10687,6 +10728,8 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 .right-panel-view {
+  // The body keeps its surface; only its soft upper lip enters the chrome.
+  box-shadow: var(--opencraft-header-content-elevation, none);
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden auto;

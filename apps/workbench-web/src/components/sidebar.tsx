@@ -31,6 +31,7 @@ import { SidebarThreadRowMenu, SidebarThreadBadge } from "./sidebar-thread-menu"
 import { sidebarActivityDateHeadings, groupThreadsByTaskFlow, sidebarActivityMetadata } from "../sidebar-activity";
 import { NavigationIcon as SidebarContributionIcon, type NavigationAction as SidebarActionItem } from "./shell-navigation/navigation-action";
 import { useSidebarEndPull } from "./use-sidebar-end-pull";
+import { useSidebarHeadingOcclusion } from "./use-sidebar-heading-occlusion";
 import { SidebarActivityItem } from "./sidebar-activity-item";
 import { SidebarNavigationItem } from "./sidebar-navigation-item";
 import { useShellPresentation, useDismissSidebarAfterSelection } from "./shell-presentation";
@@ -180,6 +181,8 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const [filterOpen, setFilterOpen] = useState(false);
   const actionOwner = useThreadActionOwner(threadActions ?? noThreadActions);
   const rowIdPrefix = useId();
+  const activityList = useRef<HTMLDivElement>(null);
+  useSidebarHeadingOcclusion(activityList);
   const text = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
   const label = (value: ThreadListLabel) => typeof value === "string" ? value : intl.formatMessage(value);
   const identity = (thread: SidebarThread) => JSON.stringify([thread.connectionHostId, thread.id]);
@@ -356,7 +359,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
             aria-label={text("sidebar.search", "Search conversations")} placeholder={text("sidebar.search", "Search conversations")}
             value={query} onChange={event => setQuery(event.currentTarget.value)} /></label> : null}
           {showNewChat ? <SidebarNewChatButton onNewTask={onNewTask} /> : null}
-          <div className="sidebar-activity-list">
+          <div className="sidebar-activity-list" ref={activityList}>
             {grouping.notice ? <div className="sidebar-activity-empty">{label(grouping.notice)}</div> : null}
             {groupedSections ? groupedSections.map(group => <section key={group.id} className="sidebar-activity-group" aria-label={label(group.label)} data-collapsed={group.collapsed}>
               <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!group.collapsed} onClick={() => threadListGrouping?.toggleGroup(group.id)}>

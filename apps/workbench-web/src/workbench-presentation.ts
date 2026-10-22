@@ -1,6 +1,7 @@
 export const builtinThemeIds = Object.freeze({
   neutral: "opencraft.core.neutral", canvas: "opencraft.core.canvas",
   frost: "opencraft.core.frost", lavender: "opencraft.core.lavender",
+  longing: "opencraft.core.longing",
   mist: "opencraft.core.mist", zencode: "opencraft.core.zencode",
 });
 
