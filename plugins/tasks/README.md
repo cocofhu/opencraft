@@ -2,7 +2,7 @@
 
 Built-in Web/Electron extension, opened from **任务** in the primary sidebar.
 Tasks are business records; Board and List display the same rows. Six fixed
-statuses follow the agreed BB Tasks abstraction. Drag a handle or choose a
+statuses are shared by both views. Drag a handle or choose a
 status to move a task. The shared `SegmentedControl` switches views and selects
 one status column when the container is 600px or narrower. The detail workspace
 fills narrow containers and retains its draft across conversation navigation.
@@ -135,3 +135,14 @@ and filter it from Board/List. The coordinator may assess unowned tasks; the
 field itself does not launch execution. Hosts must advertise `aiResearch:true`.
 Assessments reuse the existing transactional event authority, retaining v5 storage
 and rollback compatibility. See docs/tasks-model.md for the exact contract.
+
+## AI follow-up board
+
+A peer of Board/List with five collaboration lanes: Todo, Working, Needs you,
+In review, Ready to merge. All active tasks participate, including old rows.
+Explicit progress facts distinguish execution/review/readiness; old business
+statuses remain visibly unverified. No synthetic Demo tasks or simulate actions
+ship. Owner filtering and All/Needs me/My work plus search scope every count.
+Cards open existing task details and independently link original conversations.
+See [Tasks model](../../docs/tasks-model.md#ai-collaboration-board-and-compatibility)
+for `AI_FOLLOW_UP_V1`, legacy handoff compatibility and round timing.

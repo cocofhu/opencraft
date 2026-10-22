@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {TasksService} from '../plugins/tasks/src/server';
 import {TasksSqliteStore} from '../plugins/tasks/src/sqlite';
+import {AI_FOLLOW_UP_PREFIX} from '../plugins/tasks/src/ai-follow-up-model';
 import {RESEARCH_HANDOFF_PREFIX} from '../plugins/tasks/src/research-handoff';
 import {TASKS} from '@opencraft/appserver-protocol';
 const output=process.env.OPENCRAFT_SMOKE_OUTPUT??'/tmp/morning-research-ui';await mkdir(output,{recursive:true});
@@ -23,6 +24,8 @@ for (const [id,assigneeId] of [['Oldest handoff','owner-a'],['Overdue handoff','
 }
 let multiple=service.handle(TASKS.read,{id:'Overdue handoff'}) as import('@opencraft/appserver-protocol').TaskDetail;
 service.handle(TASKS.attach,{id:multiple.id,expectedRevision:multiple.revision,serverId:'server-second',threadId:'thread-second'});
+create('Ready delivery','unassessed','in_review');service.handle(TASKS.progress,{taskId:'Ready delivery',eventId:'ready-delivery',text:AI_FOLLOW_UP_PREFIX+JSON.stringify({lane:'ready',summary:'CI and review reported passed',artifact:'PR #42'})});
+create('Automatic review','unassessed','in_review');service.handle(TASKS.progress,{taskId:'Automatic review',eventId:'auto-review',text:AI_FOLLOW_UP_PREFIX+JSON.stringify({lane:'review',summary:'Automatic checks running',artifact:'PR #43'})});
 timestamp=now;service.handle(TASKS.progress,{taskId:'Oldest handoff',eventId:'wording-update',text:'Wording update must not reset the clock'});
 let failReads=false;let mutations=0;
 const source=`
@@ -53,44 +56,49 @@ for(const width of [1440,390,320])for(const theme of ['light','dark']){
  await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();
  assert.equal(await page.getByRole('radio',{name:'AI 跟进',exact:true}).getAttribute('aria-checked'),'true');
  assert.equal(await page.locator('.tasks-morning__metrics').count(),0,'Business metrics do not belong to AI follow-up');
- await page.getByText('等待判断 80 小时',{exact:true}).waitFor();assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),6);
- assert.deepEqual(await page.locator('.tasks-ai-follow-up__item--overdue').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-ai-follow-up-task-id'))),['Oldest handoff','Overdue handoff']);
- for(const id of ['Context request','Unassessed','Triage decision','Hidden context handoff','Completed'])assert.equal(await page.locator('[data-ai-follow-up-task-id="'+id+'"]').count(),0);
- await page.getByText('尚无有效交接 · 未开始计时',{exact:true}).waitFor();
+ await page.getByText('等待 3 天 8 小时',{exact:true}).waitFor();assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),12);
+ assert.deepEqual(await page.locator('.tasks-ai-follow-up__column h3').allTextContents(),['Todo','Working','Needs you','In review','Ready to merge']);
+ assert.deepEqual(await page.locator('.tasks-ai-follow-up__count').allTextContents(),['3','1','4','3','1']);
+ assert.equal(await page.locator('.tasks-ai-follow-up__column--needs [data-ai-follow-up-task-id="Oldest handoff"]').count(),1);
+ assert.equal(await page.locator('.tasks-ai-follow-up__column--ready [data-ai-follow-up-task-id="Ready delivery"]').count(),1);
+ assert.equal(await page.locator('[data-ai-follow-up-task-id="Completed"]').count(),0);
+ await page.getByText('待审阅 · 方式未核实',{exact:true}).first().waitFor();
  const bounds=await page.locator('.tasks-ai-follow-up').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,body:document.documentElement.scrollWidth,viewport:innerWidth}));assert.ok(bounds.scroll<=bounds.width+1&&bounds.body<=bounds.viewport+1,JSON.stringify({width,theme,bounds}));
 
  const card=page.locator('[data-ai-follow-up-task-id="Oldest handoff"]');
  assert.equal(await card.locator('h4').innerText(),'Oldest handoff');
- assert.equal(await card.locator('dd').innerText(),'Approve option A? Recommendation: A');
- assert.equal(await card.locator('dt').count(),1);
- assert.equal(await page.locator('.tasks-ai-follow-up__disclosure,.tasks-ai-follow-up__basis,.tasks-ai-follow-up__status').count(),0);
- assert.doesNotMatch(await card.innerText(),/Verified report|Design A after judgment|查看详情/);
+ assert.equal(await card.locator('.tasks-ai-follow-up__decision').innerText(),'Approve option A? Recommendation: A');
+ assert.doesNotMatch(await card.innerText(),/Verified report|Design A after judgment/);
  const filter=page.getByRole('combobox',{name:'按 Owner 筛选',exact:true});
  await filter.selectOption('member:owner-a');assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),2);
- assert.deepEqual(await page.locator('.tasks-ai-follow-up__counts strong').allTextContents(),['2','1','0','0']);
+ assert.deepEqual(await page.locator('.tasks-ai-follow-up__count').allTextContents(),['0','0','2','0','0']);
  assert.equal(await page.locator('[data-ai-follow-up-task-id="Overdue handoff"]').count(),0);
  await page.getByRole('radio',{name:'看板',exact:true}).click();await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();
  assert.equal(await filter.inputValue(),'member:owner-a','Owner selection survives leaving the follow-up view');
- await page.getByText('等待判断 80 小时',{exact:true}).waitFor();assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),2);
+ await page.getByText('等待 3 天 8 小时',{exact:true}).waitFor();assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),2);
  const cta=card.getByRole('button',{name:'打开会话：Oldest handoff',exact:true});
  if(width<600)await cta.tap();else {await cta.focus();await page.keyboard.press('Enter');}
  assert.deepEqual(await page.evaluate(()=>window.openedConversations),[{serverId:'server-test',threadId:'thread-Oldest handoff'}]);
  assert.equal(await page.locator('.tasks-editor').count(),0,'Conversation destination must not open task details');
- await filter.selectOption('unassigned');assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),3);
- assert.deepEqual(await page.locator('.tasks-ai-follow-up__counts strong').allTextContents(),['1','0','1','1']);
- assert.equal(await page.getByText('未关联会话',{exact:true}).count(),3);
+ await filter.selectOption('unassigned');assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),9);
+ assert.deepEqual(await page.locator('.tasks-ai-follow-up__count').allTextContents(),['3','1','1','3','1']);
+ assert.equal(await page.getByText('未关联会话',{exact:true}).count(),9);
  await filter.selectOption('');
  const multi=page.getByRole('button',{name:'选择关联会话：Overdue handoff',exact:true});
  if(width<600)await multi.tap();else await multi.click();
  await page.getByRole('menuitem',{name:'关联会话 1',exact:true}).click();
  assert.deepEqual(await page.evaluate(()=>window.openedConversations.at(-1)),{serverId:'server-second',threadId:'thread-second'});
  const first=await card.boundingBox();const second=await page.locator('[data-ai-follow-up-task-id="Overdue handoff"]').boundingBox();
- assert.ok(first&&second);if(width===1440)assert.ok(Math.abs(first.y-second.y)<2&&second.x>first.x,'Desktop cards share a scannable row');else assert.ok(second.y>first.y,'Narrow cards stack');
+ assert.ok(first&&second);assert.ok(second.y>first.y,'Items stack inside each collaboration lane');
+ const todo=await page.locator('.tasks-ai-follow-up__column--todo').boundingBox();const working=await page.locator('.tasks-ai-follow-up__column--working').boundingBox();assert.ok(todo&&working);
+ if(width===1440)assert.ok(Math.abs(todo.y-working.y)<2&&working.x>todo.x,'Desktop columns are parallel');else assert.ok(working.y>todo.y,'Phone columns stack');
+ await page.getByRole('searchbox',{name:'搜索跟进事项'}).fill('Queued');assert.equal(await page.locator('[data-ai-follow-up-task-id]').count(),1);await page.getByRole('searchbox',{name:'搜索跟进事项'}).fill('');
+ await card.getByRole('button',{name:'查看详情：Oldest handoff',exact:true}).click();await page.locator('.tasks-editor').waitFor();await page.keyboard.press('Escape');
 
  await page.locator('.tasks-ai-follow-up').evaluate(el=>{(document.activeElement as HTMLElement)?.blur();el.scrollTop=0;});
  await page.screenshot({path:join(output,`${width}-${theme}.png`)});
  await page.getByRole('radio',{name:'看板',exact:true}).click();assert.equal(await page.getByRole('searchbox',{name:'搜索任务…',exact:true}).inputValue(),'Queued');
- if(width===1440&&theme==='light'){failReads=true;await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();await page.getByText('部分交接记录暂不可用，超时统计尚不完整。',{exact:true}).waitFor();assert.equal(await page.locator('.tasks-ai-follow-up__item--overdue').count(),0);failReads=false;await page.getByRole('button',{name:'重新核实',exact:true}).click();await page.getByText('等待判断 80 小时',{exact:true}).waitFor();}
+ if(width===1440&&theme==='light'){failReads=true;await page.getByRole('radio',{name:'AI 跟进',exact:true}).click();await page.getByText('部分协作记录暂不可用；未推断执行或等待时间。',{exact:true}).waitFor();assert.equal(await page.locator('.tasks-ai-follow-up__wait').count(),0);failReads=false;await page.getByRole('button',{name:'重新核实',exact:true}).click();await page.getByText('等待 3 天 8 小时',{exact:true}).waitFor();}
  assert.deepEqual(errors,[]);checks.push({width,theme,passed:true});await page.close();
 }
 assert.equal(mutations,0);await writeFile(join(output,'result.json'),JSON.stringify({passed:true,checks,realReactAndSqlite:true,fixtureOnly:true,mutationsDuringBrowsing:mutations,paidInference:false},null,2));console.log(JSON.stringify({passed:true,checks}));
