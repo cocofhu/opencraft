@@ -122,7 +122,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   openMenuKind: SidebarThreadMenuKind | null;
   onOpenMenuChange: (kind: SidebarThreadMenuKind, open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
-  onPointerDown?: PointerEventHandler<HTMLDivElement>;
+  onPointerDown?: PointerEventHandler<HTMLElement>;
   owner: ThreadActionOwner;
 }) {
   const portalContainer = useWorkbenchPresentationRoot();
