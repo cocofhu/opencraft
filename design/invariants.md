@@ -2109,6 +2109,15 @@ only its semantic target is rebound. The submitted first Turn stays immutable an
 Other target switches continue to restore their own drafts. Validate with the first-submit handoff
 smoke and draft-owner tests; synthetic Host evidence does not assert employee or native-device coverage.
 
+### Thinking tool-group restoration
+
+A folded lazy tool group mounts collapsed on its first DOM commit, including an
+in-progress Turn restored by session switching. It must not manufacture an
+expanded frame and then animate it away. Explicit saved expansion, manual toggles
+and live content updates retain their existing ownership and transitions.
+Evidence: `scripts/smoke-conversation-entry-motion.ts` samples real Conversation
+group phase and body height on the first commit and subsequent animation frames.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
