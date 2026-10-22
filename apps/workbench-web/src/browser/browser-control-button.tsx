@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { PointerIcon, PointerOffIcon } from '@opencraft/design-system-web/action-icons';
 import { useIntl } from '@opencraft/i18n/react';
 import type { BrowserPageId } from '@opencraft/browser-core';
 import type { BrowserSurfaceHost } from './web-browser-surface-host';
@@ -18,6 +19,8 @@ export function BrowserControlButton({ surfaces, pageId }: { surfaces?: BrowserS
     : state === 'elsewhere'
       ? intl.formatMessage({ id: 'browser.control.takeoverHint', defaultMessage: 'Another client or Agent is controlling this page. Take control' })
       : intl.formatMessage({ id: 'browser.control.viewingHint', defaultMessage: 'Viewing shared page. Take input control' });
-  return <button type="button" className="browser-toolbar-button browser-toolbar-button--keyboard"
-    aria-label={hint} title={hint} onClick={() => own ? surfaces?.releaseControl?.(pageId) : surfaces?.takeControl?.(pageId)}>{label}</button>;
+  return <button type="button" className="browser-toolbar-button"
+    aria-label={label} title={hint} onClick={() => own ? surfaces?.releaseControl?.(pageId) : surfaces?.takeControl?.(pageId)}>
+    {own ? <PointerOffIcon size={15} /> : <PointerIcon size={15} />}
+  </button>;
 }

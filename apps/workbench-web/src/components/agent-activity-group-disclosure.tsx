@@ -1,5 +1,6 @@
+import { ChevronRightIcon as ChevronRight } from "@opencraft/design-system-web/action-icons";
 import React, { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+
 import { motion, useReducedMotion } from "motion/react";
 import { ActivityIcon } from "./conversation-renderers/activity/activity-icon";
 import { OverlayDisclosureTrigger } from "./overlay-disclosure-trigger";

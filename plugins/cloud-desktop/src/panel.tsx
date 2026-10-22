@@ -1,3 +1,4 @@
+import { LoadingRingIcon } from "@opencraft/design-system-web/action-icons";
 /// <reference path="./styles.d.ts" />
 import "./panel.web.scss";
 import type { CloudDesktopPluginAdapter } from "./index";
@@ -5,7 +6,7 @@ import React from "react";
 import { useIntl } from "@opencraft/i18n/react";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { ClipboardPaste, Keyboard, MonitorOff } from "lucide-react";
+import { PasteIcon as ClipboardPaste, KeyboardIcon as Keyboard, MonitorOffIcon as MonitorOff } from "@opencraft/design-system-web/action-icons";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { DesktopBackend } from "./contract";
 import { DesktopViewController, type DesktopViewSnapshot } from "./controller";
@@ -201,7 +202,7 @@ export function createDesktopPanel(adapter: CloudDesktopPluginAdapter | undefine
           title={intl.formatMessage({ id: "desktop.paste", defaultMessage: "Paste" })}
           disabled={!snapshot.canPaste || snapshot.clipboardBusy} aria-busy={snapshot.clipboardBusy || undefined}
           onClick={() => void controller.current?.pasteClipboard(() => navigator.clipboard.readText())}>
-          {snapshot.clipboardBusy ? <span aria-hidden="true" className="ui-button__spinner" /> : null}
+          {snapshot.clipboardBusy ? <LoadingRingIcon size={14} className="ui-button__spinner" /> : null}
           <span className="ui-button__label"><ClipboardPaste size={16} aria-hidden="true" /></span>
         </button> : null}
         <button type="button" className="ui-desktop-view__action"

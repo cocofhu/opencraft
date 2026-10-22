@@ -1,3 +1,4 @@
+import { ResetIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -49,18 +50,13 @@ import { UserMessageNavigationRail } from "./user-message-navigation-rail";
 import { ConversationSearchPosition } from "./conversation-search-position";
 import { DisclosureReflowContext } from "./use-disclosure-reflow";
 import { useLatestTurnFollowContentRef } from "./latest-turn-follow-content";
-import {
-  AlertCircle,
-  ArrowRight,
-  CalendarClock,
-  FileCode2,
-  RotateCcw,
-} from "lucide-react";
+import { AlertIcon as AlertCircle, ArrowRightIcon as ArrowRight, CalendarIcon as CalendarClock, CodeFileIcon as FileCode2 } from "@opencraft/design-system-web/action-icons";
 import {
   motion,
   type MotionValue,
 } from "motion/react";
 import {
+  lazy, Suspense,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -87,7 +83,7 @@ import {
 } from "./conversation/document-context";
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
-import { AsyncQuestionCard } from "./conversation/async-question-card";
+const AsyncQuestionCard = lazy(() => import("./conversation/async-question-card").then(module => ({ default: module.AsyncQuestionCard })));
 import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
@@ -276,8 +272,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
       />
       : <p>{block.text}</p>)}
     {block.asyncQuestions?.map((question) => (
-      <AsyncQuestionCard
-        key={question.id}
+      <Suspense key={question.id} fallback={<p aria-busy="true">{question.title}</p>}><AsyncQuestionCard
         question={question}
         title={<WebChatDocument
           conversationId={documentContext.conversationId}
@@ -290,7 +285,7 @@ function TextTimelineRenderer({ block, richText }: TimelineBlockRendererProps) {
           source={question.title}
           theme={documentContext.theme}
         />}
-      />
+      /></Suspense>
     ))}
   </>;
 }
@@ -380,7 +375,7 @@ export const webBuiltinTimelineRendererComponents = Object.freeze({
   compaction: componentRenderer("compaction", (block) => <CompactionBlock block={block} />),
   "plan-implementation": () => null,
   image: componentRenderer("image", (block) => <GeneratedImageBlock block={block} />),
-  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary>Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
+  unknown: componentRenderer("unknown", (block) => <details className="thread-semantic-card"><summary className="ui-native-disclosure">Unsupported AppServer item: {block.itemType}</summary><JsonPreview value={block.payload} /></details>),
 });
 
 function Frame({

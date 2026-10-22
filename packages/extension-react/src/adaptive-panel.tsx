@@ -1,3 +1,4 @@
+import { ChevronLeftIcon } from "@opencraft/design-system-web/action-icons";
 import type { ReactNode } from "react";
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AdaptivePanel, projectPanel, type PanelPage } from "@opencraft/workbench-runtime";
@@ -30,7 +31,7 @@ export function AdaptivePanelView({ pages, controller }: {
   // Stable page keys, not fixed list/detail slots, preserve page identity.
   return <div ref={root} className="adaptive-panel" data-presentation={visible.length > 1 ? "split" : "stack"} style={{ gridTemplateColumns: columns }}>
     {ordered.map((page, index) => <section key={page.id} data-panel-page={page.id} data-layout={page.layout ?? "document"} aria-label={page.title} hidden={!visible.includes(page.id)} className="adaptive-panel__page">
-      {index > 0 && canGoBack ? <nav className="adaptive-panel__navigation" aria-label="Panel navigation"><button type="button" className="settings-navigation-link" onClick={controller.back}><span aria-hidden="true">‹</span>{ordered[0].title}</button></nav> : null}
+      {index > 0 && canGoBack ? <nav className="adaptive-panel__navigation" aria-label="Panel navigation"><button type="button" className="settings-navigation-link" onClick={controller.back}><ChevronLeftIcon size={16} />{ordered[0].title}</button></nav> : null}
       {page.content}
     </section>)}
   </div>;

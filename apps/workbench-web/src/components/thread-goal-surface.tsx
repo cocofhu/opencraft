@@ -1,9 +1,10 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, MoreIcon as MoreHorizontal, EditIcon as Pencil, DeleteIcon as Trash2, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { threadGoalNeedsResume } from "@opencraft/appserver-protocol";
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
-import { Check, ChevronDown, CirclePause, MoreHorizontal, Pencil, Play, Target, Trash2, X } from "lucide-react";
+import { PausedCircleIcon as CirclePause, PlayIcon as Play, TargetIcon as Target } from "@opencraft/design-system-web/action-icons";
 import type { ThreadGoalResource, ThreadGoalSnapshot } from "@opencraft/workbench-runtime";
 import { defineMessages, type IntlShape } from "@opencraft/i18n";
 import { useIntl } from "@opencraft/i18n/react";

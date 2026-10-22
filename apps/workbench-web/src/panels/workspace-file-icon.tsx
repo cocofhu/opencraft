@@ -1,4 +1,4 @@
-import { FileCode2, FileImage, FileJson2, FileText } from "lucide-react";
+import { CodeFileIcon as FileCode2, ImageFileIcon as FileImage, JsonFileIcon as FileJson2, TextFileIcon as FileText } from "@opencraft/design-system-web/action-icons";
 
 import { workspaceFileKind } from "./workspace-resource-model";
 

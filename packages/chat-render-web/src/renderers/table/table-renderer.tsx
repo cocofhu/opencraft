@@ -1,3 +1,5 @@
+import { CopyIcon, CheckIcon } from "@opencraft/design-system-web/action-icons";
+import { ExpandIcon as SharedExpandIcon, CloseIcon as SharedCloseIcon } from "@opencraft/design-system-web/action-icons";
 import type { ChatDocumentNode } from "@opencraft/chat-document";
 import type { ChatNodeRendererProps } from "@opencraft/chat-render-react";
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
@@ -9,17 +11,12 @@ import "./table.scss";
 type TableNode = Extract<ChatDocumentNode, { kind: "table" }>;
 
 function CopyGlyph({ copied }: { readonly copied: boolean }) {
-  if (copied) return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m3.5 8.3 2.7 2.7 6.3-6.3" /></svg>;
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="9" rx="1.5" width="9" x="5" y="2" /><path d="M11 11v1.5A1.5 1.5 0 0 1 9.5 14h-6A1.5 1.5 0 0 1 2 12.5v-6A1.5 1.5 0 0 1 3.5 5H5" /></svg>;
+  return copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />;
 }
 
-function ExpandGlyph() {
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M6.25 2.5H2.5v3.75M9.75 13.5h3.75V9.75M2.7 6.1l3.4-3.4M13.3 9.9l-3.4 3.4" /></svg>;
-}
+function ExpandGlyph() { return <SharedExpandIcon size={16} />; }
 
-function CloseGlyph() {
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m3.5 3.5 9 9m0-9-9 9" /></svg>;
-}
+function CloseGlyph() { return <SharedCloseIcon size={16} />; }
 
 function TableContents({ node, renderNodes }: {
   readonly node: TableNode;

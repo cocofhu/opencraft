@@ -1,3 +1,4 @@
+import { CheckIcon } from "@opencraft/design-system-web/action-icons";
 import type { ChatDocumentNode } from "@opencraft/chat-document";
 import { containsHanText, type ChatNodeRendererProps } from "@opencraft/chat-render-react";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
@@ -56,9 +57,7 @@ function TaskCheckbox({ checked }: { readonly checked: boolean }) {
       role="checkbox"
     >
       {checked ? (
-        <svg aria-hidden="true" viewBox="0 0 12 12">
-          <path d="m2.2 6.1 2.2 2.2 5.4-5.4" />
-        </svg>
+        <CheckIcon size={10} />
       ) : null}
     </span>
   );

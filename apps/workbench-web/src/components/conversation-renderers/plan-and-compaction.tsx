@@ -1,3 +1,5 @@
+import { TimelineProgressIcon, TimelineStatusIcon } from "@opencraft/design-system-web/timeline-icons";
+import { ChevronDownIcon as ChevronDown } from "@opencraft/design-system-web/action-icons";
 import * as Popover from "@radix-ui/react-popover";
 import { useWorkbenchPresentationRoot } from "../workbench-presentation-root";
 import { useIntl } from "@opencraft/i18n/react";
@@ -7,12 +9,11 @@ import {
   type TimelineBlock,
 } from "@opencraft/chat-core";
 import { WebChatDocument } from "@opencraft/chat-render-web";
-import { ChevronDown, Download, ListChecks } from "lucide-react";
+import { DownloadIcon as Download, ChecklistIcon as ListChecks } from "@opencraft/design-system-web/action-icons";
 import { motion, useReducedMotion } from "motion/react";
 import {
   useContext,
   useEffect,
-  useId,
   useRef,
   useState,
 } from "react";
@@ -142,31 +143,7 @@ export function TodoBlock({
         onPointerEnter={event => { if (event.pointerType === "mouse") { cancelDismiss(); setOpen(true); } }}
         onPointerLeave={event => { if (event.pointerType === "mouse") scheduleDismiss(); }}
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-          <circle
-            cx="8"
-            cy="8"
-            r="6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            opacity="0.2"
-          />
-          <motion.circle
-            cx="8"
-            cy="8"
-            r="6"
-            pathLength="1"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeDasharray="1"
-            initial={{ strokeDashoffset: 1 }}
-            animate={{ strokeDashoffset: 1 - completed / block.entries.length }}
-            transition={{ duration: reducedMotion ? 0 : 0.3 }}
-            transform="rotate(-90 8 8)"
-          />
-        </svg>
+        <TimelineProgressIcon completed={completed} total={block.entries.length} reducedMotion={!!reducedMotion} />
         {todoSummary(block)}
       </button>
       </Popover.Trigger>
@@ -185,7 +162,7 @@ export function TodoBlock({
         <ul>
           {block.entries.map((entry) => (
             <li key={entry.id} data-status={entry.status}>
-              <TodoEntryGlyph status={entry.status} />
+              <TimelineStatusIcon status={entry.status} />
               <span>
                 <CadencedShimmer active={entry.status === "in-progress"}>
                   {entry.text}
@@ -197,27 +174,6 @@ export function TodoBlock({
       </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
-  );
-}
-
-function TodoEntryGlyph({ status }: { status: Extract<TimelineBlock, { type: "todo" }>["entries"][number]["status"] }) {
-  const gradientId = useId();
-  if (status === "complete") return (
-    <svg aria-hidden="true" height="14" viewBox="0 0 14 14" width="14">
-      <circle cx="7" cy="7" fill="none" r="6.4" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M3.4 7.2 5.8 9.4 10.7 4.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.25" />
-    </svg>
-  );
-  if (status === "in-progress") return (
-    <svg aria-hidden="true" className="thread-todo__progress-glyph" height="14" viewBox="0 0 14 14" width="14">
-      <defs><linearGradient id={gradientId} x1="2.5" x2="10.5" y1="12" y2="3.5"><stop stopColor="currentColor" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs>
-      <circle cx="7" cy="7" fill="none" r="6.4" stroke={`url(#${gradientId})`} strokeWidth="1.2" />
-    </svg>
-  );
-  return (
-    <svg aria-hidden="true" height="14" viewBox="0 0 14 14" width="14">
-      <circle cx="7" cy="7" fill="none" r="6.4" stroke="currentColor" strokeDasharray="2.4 2.4" strokeWidth="1.2" />
-    </svg>
   );
 }
 

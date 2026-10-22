@@ -1,7 +1,8 @@
 import { basicSetup } from "codemirror";
+import { search } from "@codemirror/search";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, foldGutter } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 
@@ -61,6 +62,14 @@ export function WorkspaceCodeEditor({
         doc: value,
         extensions: [
           basicSetup,
+          // Keep native search controls clear of the workspace chat overlay.
+          search({ top: true }),
+          foldGutter({ markerDOM: (open) => {
+            const marker = document.createElement("span");
+            marker.className = `ui-control-glyph ui-control-glyph--${open ? "chevron-down" : "chevron-right"}`;
+            marker.setAttribute("aria-hidden", "true");
+            return marker;
+          } }),
           EditorView.lineWrapping,
           syntaxHighlighting(codeColors),
           languageCompartment.of([]),

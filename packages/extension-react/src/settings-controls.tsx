@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from "@opencraft/design-system-web/action-icons";
 import type {
   ButtonHTMLAttributes,
   HTMLAttributes,
@@ -170,9 +171,7 @@ export const SettingsSelect = forwardRef<HTMLSelectElement, SelectHTMLAttributes
     return (
       <span className="settings-control-select-shell">
         <select {...props} ref={ref} className={classes("settings-control-select", className)} />
-        <svg aria-hidden="true" viewBox="0 0 16 16">
-          <path d="m4.25 6.25 3.75 3.5 3.75-3.5" />
-        </svg>
+        <ChevronDownIcon size={16} />
       </span>
     );
   },

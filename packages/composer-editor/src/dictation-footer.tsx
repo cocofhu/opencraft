@@ -1,4 +1,6 @@
-import { ArrowUp, LoaderCircle, RotateCcw, Square, X } from "lucide-react";
+import { CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { LoadingRingIcon, ResetIcon } from "@opencraft/design-system-web/action-icons";
+import { ArrowUpIcon as ArrowUp, SquareIcon as Square } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState } from "react";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import type { ComposerAudioLevels, ComposerDictationInteraction } from "@opencraft/composer-core";
@@ -105,7 +107,7 @@ export function DictationFooter({ interaction, canSend, onSend, onCancel }: {
   const finishControl = phase === "failed"
     ? <button type="button" className="opencraft-composer-icon-button" aria-label="重试语音识别"
         title={interaction.message} onClick={() => interaction.retry()}>
-        <RotateCcw size={14} aria-hidden="true" />
+        <ResetIcon size={14} aria-hidden="true" />
       </button>
     : <button type="button" className="opencraft-composer-icon-button" aria-label="停止并写入文字"
         title="停止并写入文字" disabled={phase !== "listening"} onClick={() => { void interaction.finish(); }}>
@@ -118,7 +120,7 @@ export function DictationFooter({ interaction, canSend, onSend, onCancel }: {
     <div className="opencraft-composer-voice-footer__signal">
       {phase === "listening" ? <AudioSignal levels={interaction.audioLevels} />
         : <span className="opencraft-composer-voice-footer__status" title={phase === "failed" ? interaction.message : undefined}>
-          {phase === "starting" ? <ProgressIndicator /> : phase === "transcribing" ? <LoaderCircle size={14} aria-hidden="true" /> : null}
+          {phase === "starting" ? <ProgressIndicator /> : phase === "transcribing" ? <LoadingRingIcon size={14} aria-hidden="true" /> : null}
           {phase !== "starting" && <span className="opencraft-composer-voice-footer__status-label" aria-hidden="true">{status}</span>}
         </span>}
       <span className="sr-only" role="status">{status}</span>

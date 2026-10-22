@@ -1,3 +1,5 @@
+import { ChevronDownIcon as ChevronDown, LoadingRingIcon as LoaderCircle, ComposeIcon as SquarePen, SearchIcon as Search, CheckIcon as Check } from "@opencraft/design-system-web/action-icons";
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { shortcutLabel, shortcutAria } from "../workbench-shortcuts";
 import { createPortal } from "react-dom";
 import * as ContextMenu from "@radix-ui/react-context-menu";
@@ -7,16 +9,7 @@ import { AvatarImage, type ThreadBadgeContribution, type ThreadListGroupingContr
 import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
 
 import { useIntl } from "@opencraft/i18n/react";
-import {
-  ChevronDown,
-  ListFilter,
-  LoaderCircle,
-  SquarePen,
-  UserRound,
-  Settings,
-  Search,
-  Check,
-} from "lucide-react";
+import { FilterIcon as ListFilter, PersonIcon as UserRound } from "@opencraft/design-system-web/action-icons";
 import type { ServerRouteLocality, ThreadServerOrigin, WorkbenchThread } from "@opencraft/workbench-runtime";
 import type {
   SidebarEntity,
@@ -339,7 +332,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
       </div>
       {showFooter ? <div className="sidebar-panel__footer">
         {footerActions.map(navigationAction)}
-        <SidebarNavigationItem title={text("settings.title", "Settings")} icon={<Settings size={18} />} onInvoke={() => dismissAfter(onOpenSettings)} />
+        <SidebarNavigationItem title={text("settings.title", "Settings")} icon={<SettingsGearIcon size={18} />} onInvoke={() => dismissAfter(onOpenSettings)} />
       </div> : null}
       <ThreadActionModals owner={actionOwner} />
     </div>

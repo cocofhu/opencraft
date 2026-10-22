@@ -1,9 +1,11 @@
+import { DocumentIcon } from "@opencraft/design-system-web/action-icons";
+import { CopyIcon as Copy } from "@opencraft/design-system-web/action-icons";
 import { chatFileCitationPresentation, chatReferenceTarget, useSettledResourceTarget, type ChatNodeRendererProps, type ChatResourcePolicyService } from "@opencraft/chat-render-react";
 import type { ChatResourceDecision, ChatResourceOpenIntent } from "@opencraft/chat-render-react";
 import { FormattedMessage } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Copy, ExternalLink, Globe2 } from "lucide-react";
+import { ExternalLinkIcon as ExternalLink, GlobeIcon as Globe2 } from "@opencraft/design-system-web/action-icons";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 
 import { writeTextToClipboard } from "../../clipboard";
@@ -193,7 +195,7 @@ export function createInlineMarkdownFileRenderer(resources: ChatResourcePolicySe
 }
 
 function FileGlyph() {
-  return <svg aria-hidden="true" className="chat-file-citation__icon" viewBox="0 0 16 16"><path d="M3.5 1.75h5l4 4v8.5h-9z" /><path d="M8.5 1.75v4h4" /></svg>;
+  return <DocumentIcon size={16} className="chat-file-citation__icon" />;
 }
 
 export function createFileCitationRenderer(resources: ChatResourcePolicyService) {

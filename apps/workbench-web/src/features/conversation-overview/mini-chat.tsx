@@ -1,3 +1,4 @@
+import { CheckboxIcon, ImageIcon } from "@opencraft/design-system-web/action-icons";
 import { ChatDocumentCompiler, type ChatDocumentNode } from "@opencraft/chat-document";
 import React, { Fragment, memo, useMemo, type ReactNode } from "react";
 import type { RecentTurnPreview } from "./model";
@@ -16,12 +17,12 @@ function documentNodes(nodes: readonly ChatDocumentNode[]): ReactNode {
       case "delete": content = <del>{children}</del>; break;
       case "blockquote": content = <blockquote>{children}</blockquote>; break;
       case "list": content = node.ordered ? <ol start={node.start ?? undefined}>{children}</ol> : <ul>{children}</ul>; break;
-      case "list-item": content = <li>{node.checked === null ? null : node.checked ? "☑ " : "☐ "}{children}</li>; break;
+      case "list-item": content = <li>{node.checked === null ? null : <CheckboxIcon size={14} checked={node.checked} className="mini-chat__inline-glyph" aria-label={node.checked ? "Completed" : "Not completed"} />}{children}</li>; break;
       case "inline-code": content = <code className="ui-text--inline-code">{node.code}</code>; break;
       case "code-fence": content = <pre className="ui-text--prose-code"><code>{node.code}</code></pre>; break;
       // Destinations stay inert, including workspace files and javascript URLs.
       case "link": content = <span className="mini-chat__link">{children}</span>; break;
-      case "image": content = <span className="mini-chat__attachment">{node.alt || "▧"}</span>; break;
+      case "image": content = <span className="mini-chat__attachment">{node.alt || <ImageIcon size={14} className="mini-chat__inline-glyph" aria-label="Image" />}</span>; break;
       case "table": content = <table><thead><tr>{node.header.map((cell, i) => <th key={i}>{documentNodes(cell)}</th>)}</tr></thead>
         <tbody>{node.rows.slice(0, 3).map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{documentNodes(cell)}</td>)}</tr>)}</tbody></table>; break;
       case "math": content = <code className="ui-text--inline-code">{node.source}</code>; break;

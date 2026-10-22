@@ -138,7 +138,7 @@
     > .shell-sidebar__action {
       @include glass.surface;
       pointer-events: auto; width: 44px; height: 44px; border-radius: 50%; color: var(--color-text);
-      > svg { width: 20px; height: 20px; stroke-width: 1.8; }
+      > svg { width: 20px; height: 20px; }
     }
   }
   .shell-sidebar__column[data-navigation-layout="mobile"] {

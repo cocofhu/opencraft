@@ -7,6 +7,7 @@ owners; it does not introduce a second theme, component library or token registr
 |---|---|---|
 | Text, font, weight, size, menus, form labels, content typography | [Typography](typography.md) | Existing design-system registry; `npm run check:typography`, `npm run test:typography`, `npm run smoke:typography` |
 | Conversation process-summary parity, SVG size, optical weight and clarity | [Activity icons](activity-icons.md) | Shared summary/rail owner; activity policy in typography gate; real Conversation metrics smoke |
+| Composer microphone, lightning and action artwork consistency | [Composer icons](composer-icons.md) | Shared design-system-web glyphs; real Composer/voice checks |
 | Layout, pane ownership, adaptive presentation | [Workspace invariants](../invariants.md) | Existing Shell geometry and platform adapters |
 | Colors, surfaces, controls | [Workbench language](../../docs/workbench-design-language.md), [platform theme ownership](../../docs/platform-architecture.md#theme-surfaces-and-native-appearance) | Existing theme engine and shared controls |
 

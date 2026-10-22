@@ -1863,3 +1863,24 @@ and window resizing remain live; parking preserves the normal viewport.
 - Tool maximization/visibility animates the aperture independently of the content layout endpoint. Retain the last layout mode while closed; a new visible intent picks the endpoint immediately. Normal handle/window resizing remains live. Chrome borders follow the content mode so visibility alone cannot resize embedded pages.
 
 - Portaled browser surfaces follow Shell foreground translation after Motion DOM writes, including the terminal frame; unchanged viewport size must not suppress position updates.
+
+- Native control and editor icon paint: reuse the shared SVG artwork through the
+  generated native-control masks or JSX, while retaining native input events,
+  keyboard/label focus, validation, system pickers and CodeMirror command owners.
+  Forced-colors fallbacks remain accessible; retained sidebar/panel artwork and
+  collaboration numeral font are unchanged.
+
+
+- Workspace code search uses the editor's top panel slot so the existing floating
+  chat input cannot cover search options or replacement controls on narrow screens.
+  Search query, replacement, editor draft and save ownership remain unchanged.
+
+- Notification and native-selection artwork: dependency defaults are mapped to
+  shared SVG at the notification owner. Native selects keep their original
+  element, attributes and keyboard/popup behavior; multiple/size lists never gain
+  a dropdown arrow. Numeric stepper paint is opt-in where hidden spinners already
+  serve another control. Forced-colors native paint remains intentional.
+
+- Browser toolbar input-control and keyboard actions use shared self-drawn SVG
+  icon slots with localized accessible names and hint titles. State and actions
+  remain owned by BrowserSurfaceHost; changing artwork never requests control.

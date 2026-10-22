@@ -1,5 +1,5 @@
 import { lazy, Suspense, type CSSProperties } from "react";
-import { Blocks, Brain } from "lucide-react";
+import { ExtensionsIcon as Blocks, ModelIcon as Brain } from "@opencraft/design-system-web/action-icons";
 import type { BrandKind } from "./brand-resolution";
 
 export interface BrandMarkProps { kind: BrandKind; id: string; size?: 22 | 24 | 32 }

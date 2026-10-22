@@ -1,3 +1,4 @@
+import "./async-question-card.scss";
 import type { AsyncQuestion } from "@opencraft/chat-core";
 import * as React from "react";
 

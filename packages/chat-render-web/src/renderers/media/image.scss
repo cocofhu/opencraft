@@ -81,7 +81,7 @@
 .chat-markdown-image-preview__next { inset-block-start: 50%; transform: translateY(-50%); }
 .chat-markdown-image-preview__previous { inset-inline-start: 8px; }
 .chat-markdown-image-preview__next { inset-inline-end: 8px; }
-.chat-markdown-image-preview :is(button) svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
+.chat-markdown-image-preview :is(button) svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
 
 @media (prefers-reduced-motion: no-preference) {
   .opencraft-chat-document[data-markdown-animated] .chat-markdown-image { animation: opencraft-markdown-image-enter 180ms ease-out both; }
