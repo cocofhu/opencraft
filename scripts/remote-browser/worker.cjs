@@ -77,7 +77,7 @@ function resize(p, input = {}) {
     if (size.width === p.width && size.height === p.height && profile === p.deviceProfile) return configuration(p);
     await p.touch.reset();
     const previous = {width:p.width,height:p.height}, previousProfile = p.deviceProfile;
-    p.reconfiguring = true; p.epoch++; p.inFlight = false; p.key = true;
+    p.reconfiguring = true; p.epoch = randomUUID(); p.inFlight = false; p.key = true;
     clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null;
     encoderWindow.webContents.send('release-encoder', p.id);
     try {
@@ -192,7 +192,7 @@ async function createPage(id, input) {
     webPreferences: { partition, offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
   const p = { id, window, width, height, deviceProfile:'desktop', deviceConfigured:false,
     desktopUserAgent:window.webContents.getUserAgent(), desktopPlatform:process.platform === 'darwin'?'MacIntel':process.platform === 'win32'?'Win32':'Linux x86_64',
-    desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
+    desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: randomUUID(), visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
   p.touch = createTouchInput(createWidgetTouchDispatcher(wc.debugger, () => wc.getZoomFactor()));
@@ -312,7 +312,7 @@ async function command(message) {
       const epoch = p.epoch, image = await wc.capturePage();
       if (!p.closed && p.visible && p.epoch === epoch && image.getSize().width === p.width && image.getSize().height === p.height) { p.latest = image; p.pending = { image, timestamp: Math.round(performance.now() * 1000) }; pump(p); }
     }
-    else { await resetInput(p); wc.stopPainting(); p.epoch++; p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
+    else { await resetInput(p); wc.stopPainting(); p.epoch = randomUUID(); p.inFlight = false; encoderWindow.webContents.send('release-encoder', id); p.key = true; clearTimeout(p.activityTimer); clearTimeout(p.mergeTimer); p.mergeUntil = 0; p.pending = p.previous = p.latest = null; }
     return;
   }
   if (method === 'keyframe') { if (performance.now() - (p.lastKey || -1000) >= 500) { p.lastKey = performance.now(); refresh(p); } return; }
@@ -355,7 +355,7 @@ async function command(message) {
   throw new Error('Unsupported browser command');
 }
 ipcMain.on('encoder-ready', event => { if (encoderWindow?.webContents === event.sender) { encoderReady = true; for (const p of pages.values()) pump(p); } });
-ipcMain.on('encoder-error', (event, id) => { const p = pages.get(id); if (p && encoderWindow?.webContents === event.sender) { p.inFlight = false; p.key = true; send({ type: 'error', page: p.id, message: 'H.264 encoder unavailable' }); } });
+ipcMain.on('encoder-error', (event, packet) => { const p = pages.get(packet?.id); if (p && packet.epoch === p.epoch && encoderWindow?.webContents === event.sender) { p.inFlight = false; p.key = true; send({ type: 'error', page: p.id, message: 'H.264 encoder unavailable' }); } });
 ipcMain.on('encoded-packet', (event, packet) => {
   const p = pages.get(packet.id);
   if (!p || packet.epoch !== p.epoch || encoderWindow?.webContents !== event.sender) return;

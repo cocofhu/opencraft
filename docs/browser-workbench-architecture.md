@@ -1750,3 +1750,5 @@ are converted using current pinch scale and browser zoom; wheel deltas retain
 their physical magnitude and convert from Electron to web direction. Native
 modifier semantics, sandboxing, page leases and memory-only stderr remain intact.
 No public debugger endpoint or arbitrary input command surface is added.
+
+Media epochs are opaque, non-reused identities across renderer recreation, resize and parking. Encoder callbacks belong to their exact encoder instance; a late output/error cannot emit into, clear or release a replacement encoder for the same logical Tab. Worker accepts packets and failures only for the current media epoch.
