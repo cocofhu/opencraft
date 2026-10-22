@@ -65,6 +65,7 @@ import {
   type SetupCodexContextCatalogValue,
 } from "../render-contexts";
 
+import { ConversationEntryMotionContext } from "../../conversation/entry-motion";
 import { interactionDraftIdentity, type InteractionDraftStore } from "./interaction-drafts";
 
 function useInteractionDraftState<T>(key: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
@@ -784,6 +785,8 @@ export function ConversationPendingInteractionPanel({
   draftScope,
   requestTurnId,
 }: ConversationPendingInteractionPanelProps) {
+  const allowEntryMotion = useContext(ConversationEntryMotionContext);
+  const reduceMotion = useReducedMotion();
   const identity = block === null ? null : JSON.stringify([requestTurnId, interactionDraftIdentity(block)]);
   const entry = useMemo(() => identity === null || draftScope === undefined ? undefined : draftStore?.prepare(draftScope, identity), [draftScope, draftStore, identity]);
   useLayoutEffect(() => {
@@ -810,8 +813,8 @@ export function ConversationPendingInteractionPanel({
         animate={{ opacity: 1, y: 0 }}
         className="thread-pending-request-panel"
         data-pending-request-id={block.requestId}
-        initial={{ opacity: 0, y: 6 }}
-        transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+        initial={reduceMotion || !allowEntryMotion ? false : { opacity: 0, y: 6 }}
+        transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
       >
         {block.type === "approval"
           ? <ApprovalBlock block={block} />
