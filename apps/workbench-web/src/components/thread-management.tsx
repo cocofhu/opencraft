@@ -3,7 +3,7 @@ import { useIntl } from "@opencraft/i18n/react";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Archive, GitFork, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   SettingsActions,
@@ -85,14 +85,14 @@ export function useThreadActionOwner(callbacks: ThreadActionCallbacks): ThreadAc
     }
     finally { if (!mounted.current && (action === "archive" || action === "pin")) notices.dismiss(`thread-action:${key}`); if (mounted.current) patch(key, { busy: false, forking: false }); }
   };
-  return {
+  return useMemo<ThreadActionOwner>(() => ({
     callbacks, modal, run,
     activity: target => activity.get(threadActionKey(target)) ?? idleActivity,
     beginRename: target => { setModal({ kind: "rename", target, draft: target.title }); },
     beginDelete: target => { setModal({ kind: "delete", target }); },
     setDraft: draft => setModal(current => current?.kind === "rename" ? { ...current, draft } : current),
     dismiss: () => setModal(null),
-  };
+  }), [callbacks, activity, modal, notices, intl]);
 }
 
 export function ThreadActionModals({ owner }: { owner: ThreadActionOwner }) {

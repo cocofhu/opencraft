@@ -55,7 +55,7 @@ export interface SidebarCatalogItem {
   readonly initiallyCollapsed?: boolean;
   readonly content: ReactNode;
 }
-import { memo, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 interface SidebarProps {
   threads: readonly SidebarThread[];
@@ -144,6 +144,14 @@ function SidebarPagination({ total, visibleCount, pageSize, onChange, pullToLoad
   </div>;
 }
 
+const SidebarThreadContent = memo(function SidebarThreadContent({ thread, attention, render }: {
+  thread: SidebarThread;
+  attention: boolean;
+  render: (thread: SidebarThread, attention: boolean) => ReactNode;
+}) {
+  return render(thread, attention);
+});
+
 export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const {
     threads, activeHostId, activeThreadId, sidebarLayout, onSelectThread, onNewTask, onOpenSettings,
@@ -226,7 +234,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   };
   const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind}
     onSelect={kind === "dropdown" ? () => setFilterOpen(false) : undefined} />;
-  const renderThread = (thread: SidebarThread, attention = false) => {
+  const renderThreadContent = useCallback((thread: SidebarThread, attention: boolean) => {
     const pending = pendingHostId === thread.connectionHostId && pendingThreadId === thread.id;
     const active = activeHostId === thread.connectionHostId && activeThreadId === thread.id;
     const selected = pendingHostId !== null && pendingThreadId !== null ? pending : active;
@@ -248,7 +256,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const metadata = sidebarActivityMetadata(thread);
     return <SidebarThreadRowMenu key={identity(thread)} store={menus} target={target} owner={actionOwner}
       capabilities={capabilities} disabled={disabled} activityLabelId={activityId}
-      contextMenuExtra={threadListGrouping ? modeItems("context") : undefined}
+      contextMenuExtra={threadListGrouping ? <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind="context" /> : undefined}
       onOpenMenuChange={(kind, open) => changeOverlay(kind, open)}
       onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
       <SidebarActivityItem activityId={activityId} active={active} selected={selected} pending={pending}
@@ -258,9 +266,13 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
           hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
         }) ?? true)} goalActive={thread.goalActive}
         schedule={thread.schedule} twoLine={attention} badge={badge} badgePlacement={threadBadge?.placement}
-        onInvoke={() => dismissAfter(() => onSelectThread(thread.connectionHostId, thread.id))} />
+        onInvoke={() => { menus.close(); onSelectThread(thread.connectionHostId, thread.id); dismiss?.(); }} />
     </SidebarThreadRowMenu>;
-  };
+  // Parent props invalidate render-time readers even when their function identity
+  // is stable. Only local search/folding/page changes can reuse an unchanged row.
+  }, [props, actionOwner, grouping, presentationRoot, dismiss, menus, rowIdPrefix]);
+  const renderThread = (thread: SidebarThread, attention = false) => <SidebarThreadContent
+    key={identity(thread)} thread={thread} attention={attention} render={renderThreadContent} />;
   const renderFlowSection = (key: string, title: string, rows: readonly SidebarThread[], limit?: number, update?: (count: number) => void) => {
     if (!rows.length) return null;
     const collapsed = folded[key] ?? false;
