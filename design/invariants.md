@@ -2125,6 +2125,18 @@ and live content updates retain their existing ownership and transitions.
 Evidence: `scripts/smoke-conversation-entry-motion.ts` samples real Conversation
 group phase and body height on the first commit and subsequent animation frames.
 
+
+## Sidebar metadata badge placement (2026-10-20)
+
+A thread badge contribution may select `metadata` placement to replace the visible
+project line below the title. Shell owns shared row tracks and the existing
+activity/menu lane; the title consumes the released trailing width. The badge
+remains a sibling control, never a button nested in the navigation button.
+Attention text may follow the badge; workspace identity remains in the row tooltip
+and thread model. Missing/hidden contributions retain the default project line.
+Default `trailing` placement and menu/popover exclusivity are unchanged. Products
+own the content and select placement; Shell owns geometry across input modes.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line

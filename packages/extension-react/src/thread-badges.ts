@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
 export const THREAD_BADGE_CHANNEL = "threadBadge";
-/** Shell owns an intrinsic-width, right-aligned slot and popover exclusivity; products own content and data. */
+/** Shell owns an intrinsic-width slot and popover exclusivity; products own content and data. */
 export interface ThreadBadgeProps {
   readonly hostId: string;
   readonly threadId: string;
@@ -12,6 +12,7 @@ export interface ThreadBadgeProps {
 }
 export interface ThreadBadgeContribution {
   readonly id: string;
+  /** Trailing aligns beside the title; metadata replaces the project line below it. */
   readonly placement?: "trailing" | "metadata";
   readonly Component: ComponentType<ThreadBadgeProps>;
 }
