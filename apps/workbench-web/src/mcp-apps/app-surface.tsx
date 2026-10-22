@@ -47,7 +47,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); })
       .finally(() => clearTimeout(timer));
     return () => { active = false; clearTimeout(timer); };
-  }, [port, identity]);
+  }, [port, identity.server, identity.uri, identity.callId]);
   useLayoutEffect(() => {
     const bridge = createAppBridge({ port, identity, contextId: block.id, hostContext: context,
       input: () => current.current.block.input, output: () => resultOf(current.current.block), status: () => current.current.block.status, onHeight,
@@ -63,7 +63,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
     };
     window.addEventListener("message", receive);
     return () => { window.removeEventListener("message", receive); bridge.dispose(); bridgeRef.current = null; };
-  }, [port, identity, block.id, onHeight, state, token]);
+  }, [port, identity.server, identity.uri, identity.callId, block.id, onHeight, state, token]);
   useLayoutEffect(() => {
     const element = iframe.current;
     if (!element) return;
@@ -128,7 +128,7 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
       {paused ? intl.formatMessage({ id: "mcpApp.resume", defaultMessage: "Open app" }) : intl.formatMessage({ id: "mcpApp.pause", defaultMessage: "Pause app" })}
     </button></header>
     <div className="mcp-app__body" style={{ height }}>
-      {visible && foreground && !paused ? <LiveApp key={`${doc.mcpApps!.key}:${attempt}`} port={doc.mcpApps!} identity={identity} block={block}
+      {visible && foreground && !paused ? <LiveApp key={JSON.stringify([doc.mcpApps!.key, block.id, identity.server, identity.uri, identity.callId, attempt])} port={doc.mcpApps!} identity={identity} block={block}
         theme={doc.theme} locale={intl.locale} state={widgetState} onHeight={setHeight} /> : null}
     </div>
   </section>;

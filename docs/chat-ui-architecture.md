@@ -2381,6 +2381,11 @@ recycling and connection replacement keep the App paused, without loading its
 resource or mounting its iframe. Only an explicit Open resumes it. App-authored
 widget JSON cannot change that choice. A different App identity starts with its
 own choice, and an Application reload ends this in-memory preference.
+
+A different server, resource URI, call or source block starts a new document. The
+old iframe and bridge dispose before loading its replacement; resource, error,
+token and navigation-load state belong to that document alone. Late resource
+results cannot revive it. A display-name update keeps the existing document.
 Without an owner-provided store, the surface uses the same typed cell locally.
 
 ### MCP approval keyboard ownership

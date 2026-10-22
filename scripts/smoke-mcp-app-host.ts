@@ -58,14 +58,14 @@ import{createMcpAppOwner}from'/apps/workbench-web/src/mcp-apps/owner.ts';
 import{ConversationDocumentContext}from'/apps/workbench-web/src/components/conversation/document-context.ts';
 const fixture=window.fixture={generation:1,mode:'legacy',reads:[],calls:[],messages:[],hold:false,release:null};
 const html={legacy:${JSON.stringify(legacy)},standard:${JSON.stringify(standard)},hypernode:${JSON.stringify(hypernode)},sdk:${JSON.stringify(sdkHtml)}};
-function App(){const[widgetStates]=useState(()=>new Map());const[available,setAvailable]=useState(false);const[resourceUri,setResourceUri]=useState('ui://counter/app.html');const[mode,setMode]=useState('legacy'),[generation,setGeneration]=useState(1),[theme,setTheme]=useState('light'),[show,setShow]=useState(true);
+function App(){const[widgetStates]=useState(()=>new Map());const[available,setAvailable]=useState(false);const[resourceUri,setResourceUri]=useState('ui://counter/app.html');const[displayName,setDisplayName]=useState('Counter');const[mode,setMode]=useState('legacy'),[generation,setGeneration]=useState(1),[theme,setTheme]=useState('light'),[show,setShow]=useState(true);
 const port=useMemo(()=>createMcpAppOwner({key:'host:thread:'+generation,threadId:'thread',widgetStateStore:{scope:'host:thread',entries:widgetStates},assertCurrent:()=>{if(fixture.generation!==generation)throw Error('stale owner')},request:async(method,params)=>{
-if(method==='mcpServer/resource/read'){fixture.reads.push(params);return{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:html[mode].replaceAll('__SDK_ORIGIN__',location.origin),_meta:mode==='sdk'?{ui:{csp:{resourceDomains:[location.origin]}}}:undefined}]}}
+if(method==='mcpServer/resource/read'){fixture.reads.push(params);if(fixture.holdResource)await new Promise(resolve=>{fixture.releaseResource=resolve});return{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:html[mode].replaceAll('__SDK_ORIGIN__',location.origin),_meta:mode==='sdk'?{ui:{csp:{resourceDomains:[location.origin]}}}:undefined}]}}
 if(method==='mcpServerStatus/list')return{data:[{name:'counter',tools:Object.fromEntries(['increment','appBuilder.list','appBuilder.saveDraft','appBuilder.publish','appBuilder.read'].map(name=>[name,{name,inputSchema:{type:'object'}}]))}],nextCursor:null};
 if(method==='mcpServer/tool/call'){fixture.calls.push(params);if(params.tool==='appBuilder.list')return{content:[],structuredContent:{apps:[]}};if(params.tool==='appBuilder.saveDraft')return{content:[],structuredContent:{appId:params.arguments.spec.appId}};if(fixture.hold)await new Promise(resolve=>{fixture.release=resolve});return{content:[],structuredContent:{count:params.arguments.amount},_meta:{private:'for UI'}}}throw Error(method)
 },sendMessage:async text=>{fixture.messages.push(text)},openLink:url=>fixture.messages.push(url)}),[mode,generation]);
-Object.assign(fixture,{setAvailable,setTheme,setResourceUri,switchMode:value=>{fixture.mode=value;setMode(value)},revoke:()=>{fixture.generation++;setGeneration(fixture.generation)},hide:value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:value?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},unmount:()=>setShow(false),mount:()=>setShow(true),port});
-const timeline=useMemo(()=>projectTimeline({key:createConversationKey('host','thread'),revision:1,authoritative:true,phase:'live',turns:[{id:'turn',status:'complete',items:[{id:'question',type:'userMessage',payload:{content:[{type:'text',text:'Show a counter'}]}},{id:'call1',type:'mcpToolCall',payload:{server:'counter',tool:'Counter',status:'completed',mcpAppResourceUri:resourceUri,arguments:{count:0},result:{content:[],structuredContent:{count:0},_meta:{private:'initial'}}}},{id:'ordinary',type:'mcpToolCall',payload:{server:'counter',tool:'plain_tool',status:'completed',result:{content:[{type:'text',text:'Plain MCP output'}]}}},{id:'answer',type:'agentMessage',payload:{text:'Use the app above.',phase:'final_answer'}}]}]},projectors),[mode,resourceUri]);
+Object.assign(fixture,{setAvailable,setTheme,setResourceUri,setDisplayName,switchMode:value=>{fixture.mode=value;setMode(value)},revoke:()=>{fixture.generation++;setGeneration(fixture.generation)},hide:value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:value?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},unmount:()=>setShow(false),mount:()=>setShow(true),port});
+const timeline=useMemo(()=>projectTimeline({key:createConversationKey('host','thread'),revision:1,authoritative:true,phase:'live',turns:[{id:'turn',status:'complete',items:[{id:'question',type:'userMessage',payload:{content:[{type:'text',text:'Show a counter'}]}},{id:'call1',type:'mcpToolCall',payload:{server:'counter',tool:'Counter',status:'completed',mcpAppResourceUri:resourceUri,appContext:{appName:displayName},arguments:{count:0},result:{content:[],structuredContent:{count:0},_meta:{private:'initial'}}}},{id:'ordinary',type:'mcpToolCall',payload:{server:'counter',tool:'plain_tool',status:'completed',result:{content:[{type:'text',text:'Plain MCP output'}]}}},{id:'answer',type:'agentMessage',payload:{text:'Use the app above.',phase:'final_answer'}}]}]},projectors),[mode,resourceUri,displayName]);
 return <><input aria-label='Draft' defaultValue='Keep my draft'/>{show?<div style={{height:'80vh'}}><TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><Conversation key={mode} timeline={timeline} scrollPolicy='natural' documentContext={{conversationId:'thread',cwd:null,hostId:'host',theme,mcpApps:available?port:undefined}}/></TimelineBlockRendererProvider></div>:null}<div style={{height:2000}}/></>}
 
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
@@ -188,6 +188,28 @@ try {
     assert.equal(await page.locator('iframe').count(),0,"Returning to the original identity retains its own pause");
     await page.getByRole("button",{name:"Open app"}).click();
     await app.locator("#theme").filter({hasText:'state={"selected":9}'}).waitFor();
+    const beforeRenameFrame = await page.locator('iframe').elementHandle();
+    const beforeRenameCounts = await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length}));
+    await page.evaluate(()=>window.fixture.setDisplayName('Renamed Counter'));
+    await page.locator('.mcp-app__header span').filter({hasText:'Renamed Counter'}).waitFor();
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    assert.equal(await beforeRenameFrame!.evaluate(element=>element.isConnected),true,'Display names do not replace the document');
+    assert.deepEqual(await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length})),beforeRenameCounts);
+    await page.evaluate(()=>{window.fixture.holdResource=true;window.fixture.setResourceUri('ui://counter/active-first.html')});
+    await page.waitForFunction(()=>!!window.fixture.releaseResource);
+    assert.equal(await beforeRenameFrame!.evaluate(element=>element.isConnected),false,'New identity disposes the old document before its read completes');
+    assert.equal(await page.locator('iframe').count(),0,'Loading a different App never exposes the previous document');
+    await page.evaluate(()=>{window.fixture.oldResourceRelease=window.fixture.releaseResource;window.fixture.holdResource=false;window.fixture.setResourceUri('ui://counter/active-second.html')});
+    await app.locator('#theme').filter({hasText:'state=null'}).waitFor();
+    await app.locator('#result').filter({hasText:'"count":2'}).waitFor();
+    const replacementFrame = await page.locator('iframe').elementHandle();
+    await page.evaluate(()=>window.fixture.oldResourceRelease());
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    assert.equal(await replacementFrame!.evaluate(element=>element.isConnected),true,'Late old resource cannot replace the new App');
+    assert.equal(await page.getByRole('alert').count(),0);
+    await page.evaluate(()=>window.fixture.setResourceUri('ui://counter/app.html'));
+    await app.locator('#theme').filter({hasText:'state={"selected":9}'}).waitFor();
+    assert.equal(await replacementFrame!.evaluate(element=>element.isConnected),false);
     await page.evaluate(()=>window.fixture.switchMode("standard"));
     await app.locator("#result").filter({hasText:'"count":3'}).waitFor();
     await app.locator("#events").filter({hasText:"ui/notifications/tool-result"}).waitFor();
@@ -240,7 +262,7 @@ try {
     await page.getByRole("alert").filter({hasText:"App navigation is not allowed"}).waitFor();
     await page.evaluate(()=>window.fixture.unmount()); assert.equal(await page.locator("iframe").count(),0);
     assert.deepEqual(errors,[]);
-    results.push({width,legacy:true,standard:true,isolated:true,sourceForgeryBlocked:true,themeWithoutReload:true,stateRetained:true,wholeRowStateRetained:true,replacementLeaseStateRetained:true,manualPauseRetained:true,pauseIdentityIsolated:true,hiddenReleased:true,unmounted:true,calls:rpc.length,pageerrors:errors,hypernodeBuilder:!!hypernode,officialSdk:!!sdkBundle,protocolErrors,production:!!productionServer,cspBlocked:true,staleGenerationReleased:true,navigationRevoked:true,viewportHeightSettled:viewportHeight,containerResize:true,narrowWidth,resizeEvents});
+    results.push({width,legacy:true,standard:true,isolated:true,sourceForgeryBlocked:true,themeWithoutReload:true,stateRetained:true,wholeRowStateRetained:true,replacementLeaseStateRetained:true,manualPauseRetained:true,pauseIdentityIsolated:true,activeResourceIdentityIsolated:true,displayNameStable:true,lateResourceReleased:true,hiddenReleased:true,unmounted:true,calls:rpc.length,pageerrors:errors,hypernodeBuilder:!!hypernode,officialSdk:!!sdkBundle,protocolErrors,production:!!productionServer,cspBlocked:true,staleGenerationReleased:true,navigationRevoked:true,viewportHeightSettled:viewportHeight,containerResize:true,narrowWidth,resizeEvents});
     await context.close();
   }
   await writeFile(output+"/result.json",JSON.stringify(results,null,2));

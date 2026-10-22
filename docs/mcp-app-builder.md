@@ -133,6 +133,10 @@ nor grants access, and an Application reload ends this view checkpoint.
 The host also retains an explicit Pause choice in that scope. Recycling a row or
 replacing a connection does not reload a paused App; only the user choosing Open
 resumes it. App-authored widget JSON cannot alter this host control.
+Changing server, resource URI, call or source block disposes the old document and
+bridge before reading the new resource. Its error, token and navigation-load count
+start independently; late old resources cannot revive it. Display-name changes
+update the label without reloading the App.
 The builder UI is an explicit management resource, not a startup page.
 
 ## Visual authoring in the conversation
