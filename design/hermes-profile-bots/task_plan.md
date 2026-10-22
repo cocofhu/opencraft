@@ -75,4 +75,4 @@
 预览为ad-hoc签名，非Developer ID/notarization发行。这里的native远端测试为替身，不代表真实企业服务或推理成功。
 
 源码事实：旧Bridge可opt-in但正式transport未开；已有bot/* typed扩展和generic Bot Directory，不新造协议；Ctl main映射native default，非默认bot ID来自native ID。账户bots列表仍指物理实例，此阶段保留其transport角色，子Bot只由Host下typed目录发现。
-路由无匹配，有界搜索。ref/hermes不存在，不clone或查私人config。无图谱只读检索，不生成全仓图。
+路由无匹配，有界搜索。不clone外部仓库或查私人config。无图谱只读检索，不生成全仓图。

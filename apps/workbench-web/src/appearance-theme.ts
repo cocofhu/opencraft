@@ -51,8 +51,11 @@ const builtins: readonly CatalogEntry[] = [
   builtin(mistThemeId, "Mist", "Close neutral surfaces with a quiet, unified canvas.", mistThemePalette),
 ];
 const visibleBuiltins = builtins.filter(entry => !workbenchPresentation.hiddenBuiltinThemeIds.includes(entry.descriptor.id));
+const defaultBuiltin = visibleBuiltins.find(entry => entry.descriptor.id === defaultAppearanceThemeId());
 // Even a policy that hides every built-in needs an executable fallback.
-const baseCatalog = visibleBuiltins.length ? visibleBuiltins : [builtins[0]!];
+const baseCatalog = defaultBuiltin
+  ? [defaultBuiltin, ...visibleBuiltins.filter(entry => entry !== defaultBuiltin)]
+  : visibleBuiltins.length ? visibleBuiltins : [builtins[0]!];
 let catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
 let availableThemes = Object.freeze([...catalog.values()].map(entry => entry.descriptor));
 const subscribers = new Set<() => void>();

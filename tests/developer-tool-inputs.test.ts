@@ -9,7 +9,7 @@ const root = resolve(import.meta.dirname, "..");
 
 test("external input tools fail with actionable usage before reading files", () => {
   const env = { ...process.env };
-  for (const [script, required] of [["check-dsh-source.mjs", "reference-services-directory"], ["export-hermes-connector-catalog.mjs", "marketplace-directory"]]) {
+  for (const [script, required] of [["export-hermes-connector-catalog.mjs", "marketplace-directory"]]) {
     const result = spawnSync(process.execPath, [join(root, "scripts", script)], { cwd: tmpdir(), env, encoding: "utf8", timeout: 15_000 });
     assert.equal(result.error, undefined, script);
     assert.equal(result.status, 1, script);

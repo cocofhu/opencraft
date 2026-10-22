@@ -277,8 +277,10 @@ export function createAgentActivityContentUnits(blocks: readonly TimelineBlock[]
     if (unit.type !== "group") return [unit];
     const latest = index === output.length - 1;
     const inProgress = latest && !isActivitySliceClosed && live(status);
-    if (!inProgress && unit.blocks.length === 1 && !running(unit.blocks[0]!)) {
-      return isVisibleAgentActivityRow(unit.blocks[0]!, registry) ? [{ type: "standalone", id: unit.id, block: unit.blocks[0]! }] : [];
+    const onlyBlock = unit.blocks.length === 1 ? unit.blocks[0] : undefined;
+    const groupedPatch = onlyBlock?.type === "patch" && onlyBlock.changes.length > 1;
+    if (!inProgress && onlyBlock && !running(onlyBlock) && !groupedPatch) {
+      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock }] : [];
     }
     return [{ ...unit, lifecycle: { isLatestVisibleUnit: latest, isActivitySliceClosed,
       isExploring: (() => { const block = unit.blocks[unit.blocks.length - 1]; return Boolean(block?.type === "command-execution" && running(block) && block.actions.some(action => action.type !== "unknown")); })(), inProgress } }];
@@ -533,12 +535,14 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
   const remaining = turn.frames.slice(start);
   const assistants = remaining.filter(frame => frame.type === "assistant");
   const seed = assistants[0];
+  // A Turn resource survives independently of which transcript lanes exist.
+  const changeSummary = turn.frames.find(frame => frame.changeSummary !== undefined)?.changeSummary ?? null;
   const blocks = remaining.flatMap(frame => frame.blocks);
   const active = isMostRecentTurn && live(turn.status);
   const latestObservation = [...blocks].reverse().find(block => block.type !== "todo");
-  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active ? {
+  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active || changeSummary !== null ? {
     type: "assistant", id: `${turn.turnId}:assistant-surface`, turnId: turn.turnId, status: turn.status,
-    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary: seed?.changeSummary ?? null,
+    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
     interruptedByThisClient: seed?.interruptedByThisClient ?? false, hookStats: seed?.hookStats ?? null,
     anchors: assistants.flatMap(frame => frame.anchors), blocks,
   } : null;

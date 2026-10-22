@@ -1,5 +1,6 @@
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useIntl } from "@opencraft/i18n/react";
+import type { IntlShape } from "@opencraft/i18n";
 import { WorkbenchIcon } from "./ui/workbench-icon";
 import type {
   PanelAction,
@@ -8,6 +9,7 @@ import type {
   PanelTabDescriptor,
   ConversationPanelState,
 } from "@opencraft/workbench-panels";
+
 import type { PanelRendererRegistration } from "@opencraft/workbench-panels-react";
 import {
   FileCode2,
@@ -56,6 +58,12 @@ import {
   resolvePanelTabCommit,
   RIGHT_PANEL_TAB_DROP_TAIL_ID,
 } from "./right-panel-tab-drag";
+
+function panelTitle(tab: PanelTabDescriptor, intl: IntlShape): string {
+  if (tab.kind === "cloud-desktop") return intl.formatMessage({ id: "panel.desktopEntry", defaultMessage: "Cloud computer" });
+  return tab.kind === "browser" && tab.title === "New tab"
+    ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title;
+}
 
 interface RightPanelProps {
   /** Host supplies container geometry; this view retains the full toolbar and renderer residency. */
@@ -182,11 +190,11 @@ function PanelCreationMenu({
               <DropdownMenu.Label className="app-shell-toolbar-menu__title">{intl.formatMessage({ id: "panel.openTabs", defaultMessage: "Open tabs" })}</DropdownMenu.Label>
               <DropdownMenu.RadioGroup value={activeTabId ?? ""}>
                 {tabs.length === 0 ? <DropdownMenu.Item className="right-panel-creation-menu__item" disabled>{intl.formatMessage({ id: "panel.noTabs", defaultMessage: "No open tabs" })}</DropdownMenu.Item> : tabs.map((tab, index) => (
-                  <DropdownMenu.RadioItem key={tab.id} value={tab.id} textValue={tab.title}
+                  <DropdownMenu.RadioItem key={tab.id} value={tab.id} textValue={panelTitle(tab, intl)}
                     className="app-shell-toolbar-menu__item" onSelect={() => {
                       if (tab.id !== activeTabId) pending.current = () => onActivateTab?.(tab.id);
                     }}>
-                    <span className="app-shell-toolbar-menu__item-content"><PanelIcon tab={tab} /><span>{tab.kind === "browser" && tab.title === "New tab" ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title}</span></span>
+                    <span className="app-shell-toolbar-menu__item-content"><PanelIcon tab={tab} /><span>{panelTitle(tab, intl)}</span></span>
                     {tabs.filter(other => other.title === tab.title).length > 1 ? <span className="right-panel-tab-menu__ordinal">{index + 1}</span> : null}
                     <DropdownMenu.ItemIndicator><Check size={14} aria-hidden="true" /></DropdownMenu.ItemIndicator>
                   </DropdownMenu.RadioItem>
@@ -241,8 +249,7 @@ function SortablePanelTab({
   readonly onClose: () => void;
 }) {
   const intl = useIntl();
-  const title = tab.kind === "browser" && tab.title === "New tab"
-    ? intl.formatMessage({ id: "panel.newTab", defaultMessage: "New tab" }) : tab.title;
+  const title = panelTitle(tab, intl);
   const closeLabel = intl.formatMessage({ id: "panel.closeTab", defaultMessage: "Close {title}" }, { title });
   const {
     attributes,
@@ -318,6 +325,7 @@ function DraggedPanelTabOverlay({
   readonly dragged: DraggedPanelTab;
   readonly active: boolean;
 }) {
+  const intl = useIntl();
   return (
     <div
       className="right-panel-tab right-panel-tab--drag-overlay"
@@ -328,7 +336,7 @@ function DraggedPanelTabOverlay({
       {active ? <span className="right-panel-tab__visor" /> : null}
       <div className="right-panel-tab__activate" role="presentation">
         <PanelIcon tab={dragged.tab} />
-        <span>{dragged.tab.title}</span>
+        <span>{panelTitle(dragged.tab, intl)}</span>
       </div>
       {dragged.tab.closable ? (
         <span className="right-panel-tab__close right-panel-tab__close--overlay">

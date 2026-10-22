@@ -191,6 +191,7 @@ function createUpstreamFetch(override?: typeof fetch): typeof fetch {
 }
 
 export class CodexAccountPoolProxy {
+  private readonly imageTurns = new Map<string, { affinityId: string; expiresAt: number }>();
   private readonly store: AccountPoolStore;
   private readonly upstreamBaseUrl: string;
   private readonly fetch: typeof fetch;
@@ -221,14 +222,36 @@ export class CodexAccountPoolProxy {
 
   async handle(request: Request): Promise<Response> {
     const route = new URL(request.url).pathname;
-    if (!((route === "/v1/responses" && request.method === "POST") || (route === "/v1/models" && request.method === "GET"))) {
+    const imageRequest = request.method === "POST" && ["/v1/images/generations", "/v1/images/edits"].includes(route);
+    if (!(imageRequest || (route === "/v1/responses" && request.method === "POST") || (route === "/v1/models" && request.method === "GET"))) {
       return Response.json({ error: { message: "Account Pool route not found" } }, { status: 404 });
     }
     const hostId = this.store.authenticateHostToken(request.headers.get(HOST_TOKEN_HEADER) ?? "");
     if (hostId === null) return new Response(null, { status: 401 });
     const body = request.method === "GET" ? new Uint8Array() : new Uint8Array(await request.arrayBuffer());
     if (body.byteLength > CODEX_POOL_MAX_REQUEST_BYTES) return Response.json({ error: { message: "Request too large" } }, { status: 413 });
-    const identity = affinity(request, body);
+    let identity = affinity(request, body);
+    // Images carry the native turn ID instead of the Responses thread metadata.
+    // Never admit an image as a new, unrelated pooled conversation.
+    if (imageRequest) {
+      const turnId = text(request.headers.get("x-codex-image-turn-id"));
+      const turn = turnId === null ? undefined : this.imageTurns.get(`${hostId}\0${turnId}`);
+      if (turn === undefined || turn.expiresAt <= this.now()) {
+        return Response.json({ error: { message: "Image generation requires a known active Codex turn" } }, { status: 409 });
+      }
+      identity = { affinityId: turn.affinityId, parentAffinityId: null };
+    } else if (route === "/v1/responses") {
+      let metadata: Record<string, unknown> | null = null;
+      try { metadata = object(JSON.parse(request.headers.get("x-codex-turn-metadata") ?? "null")); } catch { /* No native turn metadata. */ }
+      const turnId = text(metadata?.turn_id);
+      if (turnId !== null && identity.affinityId !== "catalog") {
+        for (const [key, turn] of this.imageTurns) if (turn.expiresAt <= this.now()) this.imageTurns.delete(key);
+        const key = `${hostId}\0${turnId}`;
+        this.imageTurns.delete(key);
+        this.imageTurns.set(key, { affinityId: identity.affinityId, expiresAt: this.now() + 24 * 60 * 60 * 1_000 });
+        while (this.imageTurns.size > 8_192) this.imageTurns.delete(this.imageTurns.keys().next().value!);
+      }
+    }
     const attempted = new Set<string>();
     const refreshedAfterUnauthorized = new Set<string>();
     let lastFailure: { status: number; message: string } | null = null;
@@ -288,6 +311,13 @@ export class CodexAccountPoolProxy {
           durationMs: upstreamDurationMs,
           status: upstream.status,
         }));
+      }
+      // Image quota is independent of Codex text quota. Do not rotate accounts or
+      // replay image mutations, and retain native image-specific failure details.
+      if (imageRequest) {
+        if (upstream.ok) selection.accept();
+        return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText,
+          headers: responseHeaders(upstream.headers) });
       }
       const quota = quotaFromHeaders(upstream.headers, this.now(), upstream.status);
       if (quota !== null) this.store.observeQuota(selection.account.id, quota);
