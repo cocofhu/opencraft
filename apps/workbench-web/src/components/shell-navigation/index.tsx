@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useIntl } from "@opencraft/i18n/react";
 import { NavigationIcon } from "./navigation-action";
 import { AccountSignInMenu } from "./account-sign-in-menu";
+import { useManagedWebUpdateNotice } from "../web-updates-settings";
 import {
   motion,
   useTransform,
@@ -232,21 +233,53 @@ export function ShellNavigationFooter({ config, controller, visible = true, mobi
   }, [visible, mobile, config.layout, state.peek, dispatch]);
   const anonymousAccount = isAnonymousShellAccount(config.account);
   const intl = useIntl();
+  const notice = useManagedWebUpdateNotice();
+  const updateTitle = notice.updateAvailable
+    ? intl.formatMessage(
+        { id: "webUpdates.noticeAvailable", defaultMessage: "Update available (v{version}), click to download" },
+        { version: notice.latestVersion ?? "" },
+      )
+    : intl.formatMessage({ id: "webUpdates.noticeRefresh", defaultMessage: "New version ready, click to refresh" });
+  const updateActionText = notice.updateAvailable
+    ? intl.formatMessage(
+        { id: "webUpdates.noticeAction", defaultMessage: "Download update v{version}" },
+        { version: notice.latestVersion ?? "" },
+      )
+    : intl.formatMessage({ id: "webUpdates.noticeRefreshAction", defaultMessage: "Refresh update" });
   const accountLabel = shellAccountEntranceLabel(config.account, intl);
   const unified = config.layout === "unified";
   const availableSurfaces = unified && mobile ? [] : surfaces.filter((surface) => surface === "applications" ? !unified : accountLabel !== null);
   return <div ref={root} className={`shell-navigation__footer${unified ? " shell-navigation__footer--unified" : ""}`} aria-label="Application entrances">
-    {unified ? <button type="button" className="shell-navigation__entrance" data-surface="settings"
-      aria-label={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
-      title={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
-      aria-current={config.settingsActive ? "page" : undefined} onClick={() => {
-        // Settings replaces this slot with category navigation. Keep the mobile
-        // drawer available until the user chooses a destination within it.
-        if (mobile) config.onOpenSettings();
-        else onInvoke(config.onOpenSettings);
-      }}>
-      <NavigationIcon name="settings" selected={config.settingsActive} />
-    </button> : null}
+    {unified ? <>
+      {notice.visible ? <button type="button"
+        className="shell-navigation__entrance shell-navigation__entrance--update"
+        data-surface="updates"
+        data-update-version={notice.latestVersion ?? undefined}
+        aria-label={updateTitle}
+        title={updateTitle}
+        aria-current={config.updatesActive ? "page" : undefined}
+        onClick={() => {
+          if (config.onOpenUpdates) onInvoke(config.onOpenUpdates);
+          else onInvoke(config.onOpenSettings);
+        }}>
+        <span className="shell-navigation__icon-wrapper">
+          <NavigationIcon name={notice.updateAvailable ? "updates" : "refresh"} selected={config.updatesActive} />
+          <span className="shell-navigation__update-dot" aria-hidden="true" />
+        </span>
+        <span className="shell-navigation__name">{updateActionText}</span>
+      </button> : null}
+      <button type="button" className="shell-navigation__entrance" data-surface="settings"
+        aria-label={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
+        title={intl.formatMessage({ id: "settings.title", defaultMessage: "Settings" })}
+        aria-current={config.settingsActive ? "page" : undefined} onClick={() => {
+          // Settings replaces this slot with category navigation. Keep the mobile
+          // drawer available until the user chooses a destination within it.
+          if (mobile) config.onOpenSettings();
+          else onInvoke(config.onOpenSettings);
+        }}>
+        <NavigationIcon name="settings" selected={config.settingsActive} />
+      </button>
+    </> : null}
     {availableSurfaces.map(surface => {
       const surfaceLabel = surface === "account" ? accountLabel! : intl.formatMessage(labels.applications);
       const directSignIn = surface === "account" && anonymousAccount;

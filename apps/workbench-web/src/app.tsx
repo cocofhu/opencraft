@@ -489,7 +489,7 @@ export function App({
   const conversationSurfaceVisible = conversationRouteOpen
     || (managementSettingsOpen && !standaloneManagementOpen);
   const shellSidebarOpen = presentation.contextSidebar ? sidebarOpen : false;
-  const openSettingsFromConversation = useCallback(() => {
+  const openSettingsFromConversation = useCallback((slug?: string) => {
     const focusedElement = document.activeElement;
     if (
       focusedElement instanceof HTMLElement &&
@@ -497,7 +497,7 @@ export function App({
     ) {
       focusedElement.blur();
     }
-    workbenchNavigation.openSettings();
+    workbenchNavigation.openSettings(slug);
   }, [workbenchNavigation]);
   const extensionViewHost = useMemo<PlatformViewHost>(() => ({
     authentication: hostCatalog.authenticationFlows,
@@ -1812,6 +1812,7 @@ export function App({
           navigation={!presentation.shellNavigation ? undefined : {
             layout: "unified",
             settingsActive: routeSettingsOpen,
+            updatesActive: routeSettingsOpen && workbenchNavigationSnapshot.applicationRoute.kind === 'settings' && workbenchNavigationSnapshot.applicationRoute.slug === 'updates',
             actions: [
               { id: "shell.home", title: intl.formatMessage({ id: "navigation.home", defaultMessage: "Home" }), icon: "home", active: conversationRouteOpen,
                 onInvoke: workbenchNavigation.openChat },
@@ -1827,7 +1828,8 @@ export function App({
               onRefresh: extensionProjection.account.provider.refresh,
               onSignOut: extensionProjection.account.provider.signOut,
             },
-            onOpenSettings: openSettingsFromConversation,
+            onOpenSettings: () => openSettingsFromConversation(),
+            onOpenUpdates: () => openSettingsFromConversation('updates'),
           }}
           layoutScope={`${managementSettingsOpen ? "conversation" : workbenchNavigationSnapshot.applicationRoute.kind}:${panelOwnerId}`}
           mainContentLayout={conversationSurfaceVisible ? "thread-edge-scroll" : "default"}

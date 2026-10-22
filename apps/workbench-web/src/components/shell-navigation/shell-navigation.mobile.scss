@@ -56,7 +56,7 @@
     pointer-events: none;
   }
   .shell-sidebar__rail-footer .shell-navigation__footer--unified {
-    display: flex; width: auto; padding: 0;
+    display: flex; flex-direction: column; gap: 8px; width: auto; padding: 0;
     .shell-navigation__entrance {
       pointer-events: auto;
       justify-content: center; padding: 0;
@@ -67,10 +67,11 @@
       background: linear-gradient(var(--color-background-button-secondary), var(--color-background-button-secondary)), var(--color-background-elevated-primary-opaque);
       color: var(--color-text);
       box-shadow: var(--elevation-prominent);
-      > svg { width: 20px; height: 20px; }
-      &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); }
+      > svg, .shell-navigation__icon-wrapper > svg { width: 20px; height: 20px; }
+      @include controls.hover-capable { &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); } }
       &:active { background: linear-gradient(var(--color-background-button-secondary-active), var(--color-background-button-secondary-active)), var(--color-background-elevated-primary-opaque); }
     }
+    .shell-navigation__name { display: none; }
   }
   // One native scrolling owner makes search and filters fold out with the list.
   // Keeping them mounted preserves text, focus and open/filter state on resize.
