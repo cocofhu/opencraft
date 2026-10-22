@@ -87,6 +87,16 @@ try {
     await page.keyboard.press('Escape');
     const prompt = `Handoff ${width} ${theme} ${atomic ? 'atomic' : 'ordinary'}`;
     await editor.fill(prompt);
+    await page.evaluate(() => {
+      (window as any).duplicateFrames = [];
+      const sample = () => {
+        const message = document.querySelector('[data-user-message-bubble]');
+        const queue = document.querySelector('.opencraft-composer-queue-item');
+        if (message && queue) (window as any).duplicateFrames.push(performance.now());
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     const beforeStarts = started, beforeCreates = created;
     const sendButton = page.getByRole('button', { name: 'Send message', exact: true });
     if (width === 390) await sendButton.tap(); else await sendButton.click();
@@ -124,12 +134,23 @@ try {
       // Retry is an explicit focus move; resume editing before testing continuity.
       await followupEditor.focus();
     }
+    assert.equal(await page.locator('.opencraft-composer-queue-item').count(), 0, 'initial outbox handoff is not a second copy of the bubble');
     pending!(); pending = null;
     if (!atomic) {
       for (let i = 0; i < 150 && !dispatchQueued; i++) await page.waitForTimeout(20);
       assert.ok(dispatchQueued, 'first input reaches the real execution queue adapter');
       await page.waitForTimeout(500);
       assert.equal(queued.length, 1, 'queue admission is retained while execution is held');
+      assert.equal(await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).count(), 1);
+      await page.screenshot({ path: `${output}/${width}-${theme}-queued-first.png` });
+      dispatchQueued!(); dispatchQueued = null;
+    }
+    if (!atomic) {
+      for (let i = 0; i < 150 && !dispatchQueued; i++) await page.waitForTimeout(20);
+      assert.ok(dispatchQueued, 'first input reaches the real execution queue adapter');
+      await page.waitForTimeout(500);
+      assert.equal(queued.length, 1, 'queue admission is retained while execution is held');
+      assert.equal(await page.locator('.opencraft-composer-queue-item').count(), 0, 'accepted first queue row must not duplicate the visible handoff');
       assert.equal(await page.locator('[data-user-message-bubble]').filter({ hasText: prompt }).count(), 1);
       await page.screenshot({ path: `${output}/${width}-${theme}-queued-first.png` });
       dispatchQueued!(); dispatchQueued = null;
@@ -145,6 +166,7 @@ try {
     if (started - beforeStarts !== 1) { console.log('REQUESTS', requests); console.log('BODY', await page.locator('body').innerText()); }
     assert.equal(started - beforeStarts, 1, 'first Turn submitted exactly once');
     assert.deepEqual(errors, []);
+    assert.deepEqual(await page.evaluate(() => (window as any).duplicateFrames), [], 'no rendered frame may contain both copies of the first input');
     results.push({ width, theme, atomic, heldResume: true, visibleInput: true, duplicateUsers: 0, starts: 1, pageerrors: 0 });
     if (width === 1280 && theme === 'dark' && atomic) {
       const oldUrl = page.url().replace(/new-\d+/, 'old-cold');

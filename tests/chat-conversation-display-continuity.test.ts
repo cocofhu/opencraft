@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { visibleQueuedSubmissions } from "../apps/workbench-web/src/queued-submission-presentation";
+import type { QueuedSubmission } from "@opencraft/chat-runtime";
 
 import { asTurnId, createConversationKey, groupTimelineFramesByTurn, type TimelineSnapshot } from "@opencraft/chat-core";
 import {
@@ -190,4 +192,35 @@ test("synchronous display memory cannot cross account namespaces", async () => {
   assert.ok(a.peek("host", "thread"));
   assert.equal(b.peek("host", "thread"), null);
   assert.equal(await b.load("host", "thread"), null);
+});
+
+
+test("first-send queue display suppresses only the input already painted by its handoff", () => {
+  const cache = createConversationDisplayContinuity({ namespace: "account", storage: storage() });
+  cache.retainSubmission(submission(), accepted);
+  const first = cache.peekSubmission("host", "thread");
+  const row: QueuedSubmission = { commandId: "command", clientMessageId: "client-message",
+    serverSubmissionId: "queue-first", input: [], preview: "Keep my submitted message",
+    state: "queued", operation: "idle", createdAt: 10, pausedReason: null, error: null };
+  const followup = { ...row, commandId: "next", clientMessageId: "next-message", serverSubmissionId: "next" };
+  assert.deepEqual(visibleQueuedSubmissions([row, followup], first), [followup], "identical text in a distinct message stays queued");
+  assert.deepEqual(visibleQueuedSubmissions([{ ...row, state: "submitting" }], first), []);
+  assert.deepEqual(visibleQueuedSubmissions([{ ...row, local: true, pausedReason: "outbox-waiting" }], first), []);
+  for (const visible of [
+    { ...row, state: "failed" as const }, { ...row, state: "unknown" as const },
+    { ...row, error: new Error("delivery failed") },
+    { ...row, pausedReason: "outbox-unconfirmed" }, { ...row, pausedReason: "outbox-failed" },
+    { ...row, pausedReason: "interrupted" }, { ...row, operation: "updating" as const },
+  ]) assert.deepEqual(visibleQueuedSubmissions([visible], first), [visible], "recovery/action state must remain accessible");
+  const canonical = timeline(true);
+  const frame = canonical.frames[0]!;
+  const message = frame.blocks[0]!;
+  if (message.type !== "user-message") throw new Error("expected canonical user message");
+  const acknowledged = { ...canonical, frames: [{ ...frame, blocks: [{ ...message, clientId: row.clientMessageId }] }] };
+  assert.deepEqual(visibleQueuedSubmissions([row, followup], acknowledged), [followup], "queue read may lag canonical acknowledgement without flashing a duplicate");
+  assert.equal(visibleQueuedSubmissions([row], canonical).length, 1, "unidentified history cannot suppress a queue entry");
+  const queue = [row, followup];
+  assert.equal(visibleQueuedSubmissions(queue, null), queue, "existing conversations keep their queue");
+  assert.equal(visibleQueuedSubmissions(queue, cache.peekSubmission("host", "another-thread")), queue);
+  assert.equal(queue.length, 2, "presentation never deletes execution queue state");
 });
