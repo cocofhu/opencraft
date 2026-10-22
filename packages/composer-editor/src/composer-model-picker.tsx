@@ -2,7 +2,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { DiscreteSlider, type DiscreteSliderOption } from "@opencraft/design-system-web/discrete-slider";
 import { useIntl } from "@opencraft/i18n/react";
 import { BrainCircuit, ChevronRight, RotateCcw, Zap } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 
 /** Presentation only. Catalog, selection and remembered defaults retain their owners. */
@@ -29,8 +29,9 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
   readonly children: ReactNode;
 }) {
   const intl = useIntl();
+  // Keep the closing surface stable until Radix finishes its exit animation.
+  // The next native opening resets the view before it becomes visible.
   const [modelsOpen, setModelsOpen] = useState(false);
-  useEffect(() => { if (!open) setModelsOpen(false); }, [open]);
   const quick = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     if (modelsOpen && !focus.preservesEditorFocus()) {
@@ -76,7 +77,7 @@ export function ComposerModelPicker({ label, modelLabel, fullLabel, effortLabel,
     </div>
   );
   return <>
-    <DropdownMenu.Root modal={false} open={open} onOpenChange={next => { if (!next) setModelsOpen(false); onOpenChange(next); }}>
+    <DropdownMenu.Root modal={false} open={open} onOpenChange={next => { if (next) setModelsOpen(false); onOpenChange(next); }}>
       <div className="opencraft-composer-picker opencraft-composer-picker--intelligence">
         <DropdownMenu.Trigger asChild>
           <button {...focus.triggerProps} className="opencraft-composer-mode opencraft-composer-mode--intelligence opencraft-composer-mode--depth"

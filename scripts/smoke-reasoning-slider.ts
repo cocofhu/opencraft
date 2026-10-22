@@ -27,7 +27,7 @@ await mkdir('.local/reasoning-slider',{recursive:true});await vite.listen();
 const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:['--no-sandbox']});const results=[];
 try {
  for(const palette of ['opencraftNeutral','lavender']) for(const mode of ['light','dark']) for(const touch of [false,true]){
-  const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"reduce"});
+  const context=await browser.newContext({viewport:{width:touch?390:1280,height:844},hasTouch:touch,isMobile:touch,deviceScaleFactor:touch?2:1,reducedMotion:"no-preference"});
   const page=await context.newPage(),errors:string[]=[];page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(90000);page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript('window.__name=v=>v');
   await page.goto(vite.resolvedUrls!.local[0]+'?mode='+mode+'&palette='+palette+(touch?'&touch':''));
@@ -59,7 +59,9 @@ try {
     await models.getByRole('menuitem',{name,exact:true}).click();
     await page.keyboard.press('Escape');
     await models.waitFor({state:'hidden'});
-    if(!await menu.isVisible()){if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();}
+    // Closing the model view must finish its native exit before the next opening.
+    await menu.waitFor({state:'hidden'});
+    if(touch)await trigger.tap();else await trigger.click();await menu.waitFor();
     if(name==='Model 1'){
       assert.equal(await menu.getByRole('menuitemcheckbox').count(),0,'unsupported model hides Fast');
       assert.equal(await page.evaluate(()=>(window as any).fixture.controller.getSnapshot().draft.selections.serviceTier),null);

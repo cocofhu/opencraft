@@ -2482,3 +2482,12 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+### Composer model menu close continuity
+
+The quick reasoning view and model list share one native Radix menu. Keep the
+current view mounted while the menu closes so its exit animation can finish.
+Reset the model-list view on the next opening, rather than changing the content
+class during the closing animation. Escape, outside dismissal and touch editing
+retain the same focus owner; reopening starts at the quick reasoning view.
+The original Composer smoke exercises native menu close with motion enabled.
