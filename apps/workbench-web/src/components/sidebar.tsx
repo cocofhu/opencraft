@@ -172,6 +172,14 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const [recentLimit, setRecentLimit] = useState(RECENT_PAGE_SIZE);
   const [menus] = useState(() => new SidebarThreadMenuStore());
   const actionOwner = useThreadActionOwner(threadActions ?? noThreadActions);
+  useEffect(() => {
+    const target = actionOwner.modal?.target;
+    // Regrouping/filtering may hide a row without removing its Thread. Only
+    // authoritative membership of the exact Host/Thread ends the modal lease.
+    if (target && !threads.some(thread => thread.connectionHostId === target.hostId && thread.id === target.threadId)) {
+      actionOwner.dismiss();
+    }
+  }, [threads, actionOwner]);
   const rowIdPrefix = useId();
   const activityList = useRef<HTMLDivElement>(null);
   useSidebarHeadingOcclusion(activityList);

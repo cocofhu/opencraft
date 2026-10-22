@@ -2569,6 +2569,16 @@ Sidebar viewport or clip its Retry button. Existing truncation and action slots
 remain responsible for content; this does not change Shell width, mobile drawer
 preferences, selection, grouping or refresh semantics.
 
+
+### Sidebar action target lifetime
+
+Sidebar owns rename/delete modal lifetime against the complete authoritative
+Host/Thread directory. When that exact pair disappears, dismiss the modal without
+submitting an action. Another Host with the same Thread ID does not retain it.
+Filtering, pagination and task-flow regrouping only change row presentation and
+retain valid modal drafts/focus; cached refresh rows remain authoritative inputs
+until the directory actually replaces them. Action state stays above row owners.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and

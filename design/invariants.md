@@ -2089,6 +2089,11 @@ code remains visible. Explicit sticky captions retain their elevated layer.
 
 Directory grids and their groups use a bounded single column. Long unbroken project names or feedback must shrink inside the Sidebar rather than increase an automatic grid track's minimum. The existing saved/error message truncates within its slot and leaves the Retry action completely visible before interaction; activating it must not require automatic horizontal scrolling. Nested and grouped rows retain their existing owners and order.
 
+
+## Sidebar modal target membership
+
+Rename/delete dialogs dismiss when their exact Host/Thread leaves the complete Sidebar directory. Search, filtering, pagination and regrouping do not revoke a still-present target or lose its draft/focus. A same-ID Thread on another Host cannot preserve a removed target's modal. Cleanup does not submit actions or change selection. Existing `smoke:thread-management` verifies regroup continuity and both removal paths across desktop/touch and themes.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
