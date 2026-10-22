@@ -2612,3 +2612,19 @@ Live completions update an existing execution or use explicit lifecycle evidence
 An orphan completion without a start cannot establish a new transcript position;
 authoritative history can recover it. Failure status, exit code and output stay
 attached to the execution. Web and Native consume the same projected order.
+
+### Pending interaction draft recovery
+
+The Application owns pending input checkpoints for each Host, Thread and View.
+A browser connection gap may remove and remount the question, option picker or
+MCP form panel; equivalent requests in the same turn recover their entered text,
+choices, typed form values and question page. Presentation IDs and fresh transport
+allocations do not create a new input transaction. Changed request IDs, turns or
+input definitions create a fresh draft. A successful response releases only its
+own checkpoint, so a late completion cannot erase a newer request's input.
+
+These checkpoints contain input only, live in Application memory and end with
+that Application. They neither keep an obsolete request actionable nor authorize
+or replay a response; the active Host request remains the response authority.
+The temporarily removed DOM and its focus are not persisted across a connection
+gap. Setup/onboarding pickers keep their existing local state contract.

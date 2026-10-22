@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { normalizeMcpElicitationMetadata, type McpElicitationTimelineBlock } from "@opencraft/chat-core";
 import { ConversationPendingInteractionPanel } from "../../apps/workbench-web/src/components/conversation-renderers/interaction/interaction-renderers";
+import { InteractionDraftStore } from "../../apps/workbench-web/src/components/conversation-renderers/interaction/interaction-drafts";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { createIntlTestRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
@@ -8,7 +9,7 @@ import "../../apps/workbench-web/src/styles/app.scss";
 document.documentElement.dataset.theme = "light";
 for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 
-const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void };
+const probe = window as typeof window & { mcpActions: unknown[]; mcpOpened: string[]; showMcpCase(name: string): void; hideMcpForm(): void; replayMcpForm(change?: "request" | "schema"): void };
 probe.mcpActions = []; probe.mcpOpened = [];
 window.open = ((url: string) => { probe.mcpOpened.push(String(url)); return null; }) as typeof window.open;
 const formSchema = { type: "object", required: ["name", "count"], properties: {
@@ -36,9 +37,18 @@ function example(name: string): McpElicitationTimelineBlock {
     elicitationId: null, ...normalizeMcpElicitationMetadata(mode, raw, { serverName, message, requestedSchema }) };
 }
 function Demo() {
-  const [block, setBlock] = useState(() => example("form"));
-  probe.showMcpCase = name => setBlock(example(name));
-  return <main data-scenario={block.id} style={{ padding: 16, maxWidth: 760, margin: "auto" }}><ConversationPendingInteractionPanel key={block.requestId} block={block}
+  const [block, setBlock] = useState<McpElicitationTimelineBlock | null>(() => example("form"));
+  const lastBlock = useRef(block!);
+  const [draftStore] = useState(() => new InteractionDraftStore());
+  probe.showMcpCase = name => { lastBlock.current = example(name); setBlock(lastBlock.current); };
+  probe.hideMcpForm = () => setBlock(null);
+  probe.replayMcpForm = change => {
+    const next = JSON.parse(JSON.stringify(lastBlock.current)) as McpElicitationTimelineBlock;
+    lastBlock.current = change === "request" ? { ...next, requestId: `${next.requestId}-replacement` }
+      : change === "schema" ? { ...next, requestedSchema: { ...formSchema, properties: { ...formSchema.properties, count: { ...formSchema.properties.count, default: 1 } } } } : next;
+    setBlock(lastBlock.current);
+  };
+  return <main data-scenario={block?.id ?? "hidden"} style={{ padding: 16, maxWidth: 760, margin: "auto" }}><ConversationPendingInteractionPanel block={block} draftStore={draftStore} draftScope="fixture-view"
     onRespondInteraction={async (_requestId, action) => { probe.mcpActions.push(action); }} /></main>;
 }
 createIntlTestRoot(document.getElementById("root")!).render(<Demo />);

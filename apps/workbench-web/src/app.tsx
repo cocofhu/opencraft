@@ -111,6 +111,7 @@ import {
   conversationRecoveryPresentation,
 } from "./components/conversation-recovery";
 import { ConversationPendingInteractionPanel } from "./components/conversation-renderers/interaction/interaction-renderers";
+import { InteractionDraftStore } from "./components/conversation-renderers/interaction/interaction-drafts";
 import { useConversationRecoveryDiagnostic } from "./runtime/conversation-recovery-diagnostic";
 import { RightPanel } from "./components/right-panel";
 import { ThreadComposerPresentation } from "./components/thread-composer-presentation";
@@ -592,6 +593,7 @@ export function App({
     }
   }, [extensionProjection.activeView, extensionViewOpen, workbenchNavigation]);
   const activeConversationRestoreKey = conversationViewIdentity.viewId;
+  const [interactionDraftStore] = useState(() => new InteractionDraftStore());
   useEffect(() => () => {
     pendingLatestTurnPlacementRef.current = null;
     conversationScrollApiRef.current?.releaseLatestTurnSubmitPlacementCapture();
@@ -2211,6 +2213,9 @@ export function App({
                         {composerChangeSummary}
                         <ConversationPendingInteractionPanel
                           block={pendingInteraction}
+                          draftStore={interactionDraftStore}
+                          draftScope={activeThreadId === null ? undefined : JSON.stringify([snapshot.hostId, activeThreadId, activeConversationRestoreKey])}
+                          requestTurnId={snapshot.conversation?.pendingInteractions.find(interaction => interaction.requestId === pendingInteraction?.requestId)?.turnId}
                           onRespondInteraction={respondToInteraction}
                         />
                       </div>
