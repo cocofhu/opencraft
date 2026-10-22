@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import ts from "typescript";
+import { JSDOM } from "jsdom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { menuGeometry } from "@opencraft/design-system/tokens";
 
 import {
+  createWebTimelineViewportPort,
   createWebTimelineViewportSnapshot,
   resizeObserverBlockSize,
   resolveWebTimelinePlatform,
@@ -1632,4 +1634,143 @@ test("natural policy mounts the virtualizer without constructing response owners
   assert.match(webResponseSource, /preserveMeasuredTurnViewport=\{!isLatestTurnInProgress\}/u);
   assert.match(webConversationSource, /turnFollow: responseRestore\?\.turnFollow \?\? null/u);
   assert.doesNotMatch(webResponseSource, /viewportOwner\.dispose\(/u, "policy must not dispose the shared platform owner");
+});
+
+
+function viewportPortFixture(mobile = true) {
+  const dom = new JSDOM("<input aria-label='draft' value='keep draft'>", { pretendToBeVisual: true });
+  const win = dom.window;
+  const previousHTMLElement = globalThis.HTMLElement;
+  globalThis.HTMLElement = win.HTMLElement as unknown as typeof HTMLElement;
+  Object.defineProperty(win.navigator, "userAgent", { value: mobile ? "iPhone" : "Desktop" });
+  const visual = Object.assign(new win.EventTarget(), {
+    width: 390, height: 844, offsetLeft: 0, offsetTop: 0, scale: 1,
+  });
+  Object.defineProperty(win, "visualViewport", { value: visual });
+  Object.defineProperty(win, "innerHeight", { value: 844 });
+  Object.defineProperty(win, "innerWidth", { value: 390 });
+  let now = 0;
+  let frameId = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  win.performance.now = () => now;
+  win.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
+  win.cancelAnimationFrame = (id) => { frames.delete(id); };
+  const port = createWebTimelineViewportPort(win as unknown as Window, win.document, {
+    kind: "browser", platform: "linux",
+  });
+  return {
+    win, visual, port, frames,
+    input: win.document.querySelector("input")!,
+    frame(at: number) {
+      now = at;
+      const pending = [...frames.values()];
+      frames.clear();
+      for (const callback of pending) callback(now);
+    },
+    close() {
+      port.dispose();
+      dom.window.close();
+      if (previousHTMLElement === undefined) Reflect.deleteProperty(globalThis, "HTMLElement");
+      else globalThis.HTMLElement = previousHTMLElement;
+    },
+  };
+}
+
+test("mobile viewport reconciles a native restoration after the last focus event", () => {
+  const f = viewportPortFixture();
+  try {
+    f.input.focus();
+    f.input.setSelectionRange(2, 2);
+    f.visual.height = 440;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(20);
+    assert.equal(f.port.getSnapshot().keyboardInsetBottomPx, 404);
+    f.frame(1_100);
+    assert.equal(f.frames.size, 0, "settled keyboards do not poll forever");
+    f.input.blur();
+    f.frame(1_120);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 440, "blur cannot infer keyboard closure");
+    f.visual.height = 844; // Native transition finishes without another event.
+    f.frame(1_250);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-visual-viewport-height"), "844px");
+    assert.equal(f.input.value, "keep draft");
+    assert.equal(f.input.selectionStart, 2);
+  } finally { f.close(); }
+});
+
+test("viewport recovery preserves focus and suppresses unchanged publications", () => {
+  const f = viewportPortFixture();
+  try {
+    let publications = 0;
+    f.port.subscribe(() => { publications += 1; });
+    f.input.focus();
+    f.visual.height = 440;
+    f.frame(20);
+    const previous = f.port.getSnapshot();
+    f.frame(40);
+    assert.equal(f.port.getSnapshot(), previous);
+    assert.equal(publications, 1);
+    f.visual.height = 844;
+    f.frame(200);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(f.win.document.activeElement, f.input, "native keyboard dismissal may retain focus");
+    f.visual.height = 500;
+    f.visual.scale = 1.5;
+    f.visual.offsetTop = 80;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(220);
+    assert.equal(f.port.getSnapshot().keyboardInsetBottomPx, 0);
+    assert.equal(f.port.getSnapshot().visualOffset.topPx, 80);
+  } finally { f.close(); }
+});
+
+test("mobile viewport invalidates on resume, page restoration and next contact", () => {
+  const f = viewportPortFixture();
+  try {
+    f.visual.height = 440;
+    f.frame(20);
+    f.frame(1_100);
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "hidden" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 844;
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "visible" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    f.frame(1_200);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    f.frame(2_300);
+    f.visual.height = 440;
+    f.win.dispatchEvent(new f.win.Event("pageshow"));
+    f.frame(2_400);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 440);
+    f.frame(3_500);
+    f.visual.height = 844;
+    const touch = new f.win.Event("touchstart", { bubbles: true, cancelable: true });
+    f.input.dispatchEvent(touch);
+    f.frame(3_600);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(touch.defaultPrevented, false, "viewport observation cannot arbitrate input");
+    f.port.dispose();
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 200;
+    f.win.dispatchEvent(new f.win.Event("pageshow"));
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    assert.equal(f.frames.size, 0, "disposed ports cannot restart");
+  } finally { f.close(); }
+});
+
+test("desktop viewport reads remain event driven", () => {
+  const f = viewportPortFixture(false);
+  try {
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 500;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(20);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 500);
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 844;
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    assert.equal(f.frames.size, 0);
+  } finally { f.close(); }
 });

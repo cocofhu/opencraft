@@ -39,7 +39,7 @@ export function resolveWorkbenchIcon(name: string | undefined, classic: boolean,
   return purpose === "navigation" ? Blocks : classic ? purpose === "panel" ? Plus : Blocks : CircleHelp;
 }
 export function workbenchIconSize(classic: boolean, purpose: WorkbenchIconPurpose): number {
-  return (classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core)[purpose === "settings-page" ? "settings" : purpose];
+  return (classic ? workbenchIconMetrics.classic : workbenchIconMetrics.core)[purpose === "settings-page" ? "settings" : purpose];
 }
 
 /** Decorative glyph; the owning control supplies its accessible name. */
@@ -52,7 +52,7 @@ export function WorkbenchIcon({ name, size, purpose = "settings", className }: {
   const classic = useWorkbenchPresentation().iconStyle === "classic";
   const Icon = resolveWorkbenchIcon(name, classic, purpose);
   const stroke = !classic && purpose === "navigation" ? workbenchIconMetrics.coreNavigation.stroke
-    : (classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke;
+    : (classic ? workbenchIconMetrics.classic : workbenchIconMetrics.core).stroke;
   return <Icon size={size ?? workbenchIconSize(classic, purpose)} strokeWidth={stroke} aria-hidden="true" focusable="false"
     className={className} data-workbench-icon={name ?? "unknown"} />;
 }
