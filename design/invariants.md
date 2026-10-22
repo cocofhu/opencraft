@@ -44,7 +44,9 @@ consumer, backdrop and fallback verification. Native appearance is unchanged.
 
 Longing is an optional built-in blue glass palette in both light and dark modes.
 Its theme definition owns the translucent Sidebar, cool surfaces and diffuse
-navigation-to-content edge shadow. Settings previews and the mounted Shell
+navigation-to-content edge shadow. That edge reuses the established prominent
+elevation (hairline, near shadow and diffuse shadow), preserving the original
+pane transition instead of a separate accent-colored stroke. Settings previews and the mounted Shell
 consume the same palette; selecting it preserves drafts, layout and focus.
 Shared material fallbacks retain their existing accessibility ownership.
 The unified Shell also consumes the theme's optional unified surface elevation

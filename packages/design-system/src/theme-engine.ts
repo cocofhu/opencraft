@@ -159,7 +159,7 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
-      mainSurfaceElevation: "-1px 0 0 rgb(82 126 175 / 10%), -5px 0 22px rgb(64 115 176 / 9%), 0 2px 8px rgb(23 55 90 / 4%)",
+      mainSurfaceElevation: "var(--elevation-prominent)",
       sidebarBackground: "rgb(207 228 255 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
       windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(255 255 255 / 60%), transparent 65%)",
@@ -181,7 +181,7 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
-      mainSurfaceElevation: "-1px 0 0 rgb(159 199 247 / 10%), -5px 0 24px rgb(0 8 23 / 25%), 0 2px 8px rgb(0 8 23 / 16%)",
+      mainSurfaceElevation: "var(--elevation-prominent)",
       sidebarBackground: "rgb(27 56 91 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
       windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(93 164 255 / 10%), transparent 65%)",
