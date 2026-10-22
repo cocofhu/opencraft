@@ -55,6 +55,15 @@ try {
     const live = page.locator('[data-turn-key="live"]');
     assert.equal(await live.getAttribute("data-turn-status"), "complete");
     assert.match(await live.textContent(), /Answer live(?: ·){8}/);
+    await update("late-complete");
+    assert.deepEqual(await order(), expected);
+    const blocks = await page.evaluate(() => (window as any).historyOrderBlocks());
+    const commandIndex = blocks.findIndex((block: any) => block.type === "command-execution");
+    const answerIndex = blocks.findIndex((block: any) => block.type === "text");
+    assert.ok(commandIndex >= 0 && commandIndex < answerIndex, "late completion projects before the existing answer");
+    assert.equal(blocks[commandIndex].exitCode, 137);
+    assert.equal(blocks[commandIndex].output, "Delayed failure retained");
+    assert.match(await live.textContent(), /Answer live/);
     assert.deepEqual(errors, []);
     results.push({ surface: mobile ? "touch-sized Chromium" : "desktop Chromium", order: await order(), iterations: 8, retainedLiveDOM: true });
     await page.close();

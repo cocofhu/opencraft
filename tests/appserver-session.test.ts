@@ -35,6 +35,7 @@ interface HarnessOptions {
   initialTurnsPage?: { data: readonly Record<string, unknown>[]; nextCursor: string | null } | null;
   turnsPages?: Readonly<Record<string, { data: readonly Record<string, unknown>[]; nextCursor: string | null }>>;
   itemsByTurnId?: Readonly<Record<string, readonly Record<string, unknown>[]>>;
+  itemClocksById?: Readonly<Record<string, { startedAtMs?: unknown; completedAtMs?: unknown }>>;
   fallbackTurns?: readonly Record<string, unknown>[];
   resumeDelayMs?: number;
   turnsDelayMs?: number;
@@ -197,7 +198,7 @@ async function createHarness(options: HarnessOptions = {}): Promise<{
         peer.send(encodeJsonRpcMessage({
           id: message.id,
           result: {
-            data: items.map((item) => ({ turnId, item })),
+            data: items.map((item) => ({ turnId, item, ...options.itemClocksById?.[String(item.id)] })),
             nextCursor: options.repeatItemCursor && typeof params.cursor === "string" ? params.cursor : null,
           },
         }));
@@ -1792,4 +1793,44 @@ test("unadvertised durable providers preserve bounded Item reads", async () => {
     assert.deepEqual(h.requests.filter(r => r.method === "thread/turns/list").map(r => r.params.itemsView), ["notLoaded"]);
     assert.equal(h.requests.filter(r => r.method === "thread/items/list").length, 1);
   } finally { await h.close(); }
+});
+
+
+test("paged history retains finite lifecycle clocks from Item envelopes", async () => {
+  const harness = await createHarness({ hostId: "durable", hostKind: "durable", historyMode: "paginated",
+    turnsPages: { null: { data: [{ id: "timed" }], nextCursor: null } },
+    itemsByTurnId: { timed: [{ id: "answer", type: "agentMessage" }, { id: "late", type: "commandExecution", status: "failed", exitCode: 137 }] },
+    itemClocksById: { answer: { startedAtMs: 300, completedAtMs: 310 }, late: { startedAtMs: 100, completedAtMs: 400 } },
+  });
+  try {
+    const view = await harness.runtime.resume.resume({ threadId: "thread-one" });
+    const items = view.turns.find(turn => turn.id === "timed")!.items;
+    assert.deepEqual(items.map(item => [item.id, item.startedAtMs, item.completedAtMs]), [["answer", 300, 310], ["late", 100, 400]]);
+    assert.equal(items[1]?.exitCode, 137);
+  } finally { await harness.close(); }
+});
+
+test("command completions update known executions and do not invent an untimed tail", async () => {
+  const harness = await createHarness({ useTailHydration: false });
+  try {
+    await harness.runtime.resume.resume({ threadId: "thread-one" });
+    await harness.emit("turn/started", { threadId: "thread-one", turn: { id: "late", status: "inProgress", items: [] } });
+    await harness.emit("item/started", { threadId: "thread-one", turnId: "late", startedAtMs: 100,
+      item: { id: "known", type: "commandExecution", command: "check" } });
+    await harness.emit("item/started", { threadId: "thread-one", turnId: "late", startedAtMs: 300,
+      item: { id: "answer", type: "agentMessage", text: "Done", phase: "final_answer" } });
+    await harness.emit("item/completed", { threadId: "thread-one", turnId: "late", startedAtMs: 900, completedAtMs: 400,
+      item: { id: "known", type: "commandExecution", status: "failed", exitCode: 137 } });
+    await harness.emit("item/completed", { threadId: "thread-one", turnId: "late",
+      item: { id: "orphan", type: "commandExecution", status: "failed", exitCode: 137 } });
+    let items = harness.runtime.views.get("thread-one")!.turns.find(turn => turn.id === "late")!.items;
+    assert.deepEqual(items.map(item => item.id), ["known", "answer"]);
+    assert.equal(items[0]?.startedAtMs, 100);
+    assert.equal(items[0]?.completedAtMs, 400);
+    assert.equal(items[0]?.exitCode, 137);
+    await harness.emit("item/completed", { threadId: "thread-one", turnId: "late", completedAtMs: 500,
+      item: { id: "recoverable", type: "commandExecution", command: "check again", durationMs: 300, status: "failed", exitCode: 137 } });
+    items = harness.runtime.views.get("thread-one")!.turns.find(turn => turn.id === "late")!.items;
+    assert.equal(items.find(item => item.id === "recoverable")?.startedAtMs, 200);
+  } finally { await harness.close(); }
 });

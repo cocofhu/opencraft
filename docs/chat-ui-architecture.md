@@ -2599,3 +2599,16 @@ existing single owner and scoped close callbacks.
 The nearest sidebar row context trigger owns its pointer gesture, so the enclosing list trigger cannot arm a competing long press. When a touch context menu is open, its trigger consumes the release click before it reaches a disclosure or conversation selection. Ordinary taps, keyboard activation and existing desktop menu modality remain unchanged. Native held/released row and heading gestures are covered by the complete sidebar menu regression.
 
 Message footer sending clocks are hidden at rest on desktop and touch. Existing message hover/focus reveals user and assistant clocks while retaining their slots and time metadata. Touch action controls remain available; elapsed work duration is a separate status.
+
+
+## Delayed command completion placement
+
+History adapters retain finite Item-envelope `startedAtMs` and `completedAtMs`
+when loading paged history. The shared chat-core projection places a delayed
+completed command at its known execution start relative to later timed Items.
+It preserves source membership, non-command order, equal/unknown clocks and
+commands that actually started after an answer; it never globally sorts replies.
+Live completions update an existing execution or use explicit lifecycle evidence.
+An orphan completion without a start cannot establish a new transcript position;
+authoritative history can recover it. Failure status, exit code and output stay
+attached to the execution. Web and Native consume the same projected order.
