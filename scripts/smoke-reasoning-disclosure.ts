@@ -59,6 +59,57 @@ try {
       await page.locator(`[data-revision="${before + 1}"]`).waitFor();
     };
     const activate = (target: any) => touch ? target.tap() : target.click();
+    if (process.argv.includes("--diff-position-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async (action = "restore") => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update(action);
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("diff-position-reset");
+      const rows = page.locator('.thread-activity-item[data-status="completed"]').filter({ has: page.locator('.thread-unified-diff') });
+      const first = rows.nth(0), second = rows.nth(1);
+      const unfoldGroup = async () => {
+        for (let index = 0; index < 8 && !await first.isVisible(); index++) {
+          const group = page.locator('.thread-agent-activity__group button[aria-expanded="false"]').first();
+          assert.ok(await group.count()); await activate(group);
+        }
+      };
+      const toggleRow = async (row: any) => {
+        const trigger = row.locator(':scope > .thread-activity-item__header > button');
+        if (touch) await trigger.tap({ position: { x: 8, y: 8 } });
+        else await trigger.click({ position: { x: 8, y: 8 } });
+      };
+      const reader = first.locator('.thread-unified-diff');
+      const position = (target = reader) => target.evaluate((element: HTMLElement) => ({ top: element.scrollTop, left: element.scrollLeft }));
+      await unfoldGroup(); await toggleRow(first);
+      await reader.evaluate((element: HTMLElement) => { element.scrollTop = 180; element.scrollLeft = 90; });
+      assert.deepEqual(await position(), { top: 180, left: 90 });
+      const original = await reader.elementHandle(); await restoreView();
+      assert.equal(await original!.evaluate(element => element.isConnected), false);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "the retained View restores both diff reader coordinates");
+      const restored = await reader.elementHandle(); await update("diff-position-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.deepEqual(await position(), { top: 180, left: 90 }, "fresh output keeps manual reading stationary");
+      assert.ok((await first.innerText()).includes('updated-position-219'));
+      await toggleRow(second); assert.deepEqual(await position(second.locator('.thread-unified-diff')), { top: 0, left: 0 });
+      await restoreView("diff-position-pending-restore");
+      assert.equal(await page.evaluate(() => (window as any).pendingDiffScrollEvents), 0,
+        "unmount before the browser delivers the queued scroll event");
+      assert.deepEqual(await position(), { top: 260, left: 140 }, "teardown captures the actual DOM position without waiting for scroll events");
+      await first.locator(':scope > .thread-activity-item__header > button').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `diff-position-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      await toggleRow(first); await restoreView(); assert.notEqual(await first.getAttribute('data-open'), 'true');
+      await toggleRow(first); assert.deepEqual(await position(), { top: 260, left: 140 });
+      await update("diff-position-reset"); await unfoldGroup(); await toggleRow(first);
+      assert.deepEqual(await position(), { top: 0, left: 0 }, "a new View starts at the original reading origin");
+      assert.deepEqual(errors, []);
+      const resizeFeedback = await page.evaluate(() => (window as any).resizeFeedback);
+      if (resizeFeedback.length > 0) console.log(JSON.stringify({ touch, theme, diffPositionResizeFeedback: resizeFeedback }));
+      assert.deepEqual(resizeFeedback, [], "diff reading restoration must not cause ResizeObserver feedback");
+      results.push({ touch, theme, diffPositionRestored: true, refreshedDiff: true, separateFiles: true, pendingNativeScroll: true, explicitCollapse: true, freshViewIsolated: true });
+      if (process.argv.includes("--diff-position-only")) { await page.close(); continue; }
+    }
     if (process.argv.includes("--diff-reading-only") || !process.argv.some(value => value.endsWith("-only"))) {
       const restoreView = async () => {
         const scroll = await page.locator('.thread-scroll').elementHandle();
@@ -494,7 +545,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

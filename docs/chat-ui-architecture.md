@@ -2352,6 +2352,16 @@ to a retained View restores its choice before paint. Only presentation booleans
 are checkpointed; output, permission, execution and App document state remain with
 their existing owners. Updated output is rendered from the current timeline.
 
+### Diff reader position in a retained View
+
+The file-change reader checkpoints its horizontal and vertical DOM scroll
+coordinates under its existing patch/file View identity. Restore before paint;
+ordinary output growth leaves manual reading stationary. Layout teardown reads
+the live element before refs detach, including when its native scroll event is
+still queued. Different files and new Views start at their original reading
+origin. Unkeyed consumers retain local behavior. The snapshot contains only
+coordinates, without diff text, execution state or permission.
+
 ### Reading expanded file diffs in a retained View
 
 The file-change consumer also keys its nested diff preview to the same patch and

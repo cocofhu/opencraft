@@ -88,7 +88,7 @@ import {
 import { UserMessageBlock } from "./conversation/user-message";
 import { TurnDiffBlock } from "./conversation/turn-diff-resource";
 import { AsyncQuestionCard } from "./conversation/async-question-card";
-import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-preview";
+import { DiffReadingPositionContext, UnifiedDiffPreview, type DiffReadingPosition } from "./conversation-renderers/unified-diff-preview";
 import {
   ActivityDisclosure,
   ActivityDisclosureStateContext,
@@ -615,6 +615,7 @@ function Turn({
 export interface ConversationRestoreSnapshot {
   readonly agentActivityCollapsedById?: Readonly<Record<string, boolean>>;
   readonly activityDisclosures?: Readonly<Record<string, ActivityDisclosureState>>;
+  readonly diffReadingPositions?: Readonly<Record<string, DiffReadingPosition>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -743,6 +744,7 @@ export function Conversation({
   const activityCollapsedByIdRef = useRef(activityCollapsedById);
   activityCollapsedByIdRef.current = activityCollapsedById;
   const [activityDisclosures] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.activityDisclosures ?? {})));
+  const [diffReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.diffReadingPositions ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
@@ -915,6 +917,7 @@ export function Conversation({
     restoreCallbackRef.current?.({
       agentActivityCollapsedById: activityCollapsedByIdRef.current,
       activityDisclosures: Object.fromEntries(activityDisclosures),
+      diffReadingPositions: Object.fromEntries(diffReadingPositions),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -922,7 +925,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [activityDisclosures, cancelPendingTargetPosition, scrollController, viewportOwner]);
+  }, [activityDisclosures, cancelPendingTargetPosition, diffReadingPositions, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -979,6 +982,7 @@ export function Conversation({
   );
   return (
     <ActivityDisclosureStateContext.Provider value={activityDisclosures}>
+    <DiffReadingPositionContext.Provider value={diffReadingPositions}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1072,6 +1076,7 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </DiffReadingPositionContext.Provider>
     </ActivityDisclosureStateContext.Provider>
   );
 }

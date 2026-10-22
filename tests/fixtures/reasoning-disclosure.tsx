@@ -2,6 +2,7 @@ import { FileCode2, MessageSquare, Globe2 } from "lucide-react";
 import { ActivitySummaryRow } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-summary-row";
 import { activityIcon } from "../../apps/workbench-web/src/components/conversation-renderers/activity/activity-icon";
 import React, { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { Context } from "@deepseek-ai/cordis";
 import { createConversationKey, createDefaultTimelineProjectorRegistry, projectTimeline,
   type TimelineSourceItem, type TimelineSourceTurn } from "@opencraft/chat-core";
@@ -63,6 +64,25 @@ function Demo() {
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
+    if (action.startsWith("diff-position-")) {
+      if (action === "diff-position-pending-restore") {
+        const reader = document.querySelector<HTMLElement>(".thread-unified-diff")!;
+        let delivered = 0;
+        reader.addEventListener("scroll", () => { delivered += 1; }, { once: true });
+        reader.scrollTop = 260; reader.scrollLeft = 140;
+        flushSync(() => setMounted(false));
+        probe.pendingDiffScrollEvents = delivered;
+        return;
+      }
+      const reset = action === "diff-position-reset";
+      if (reset) { restore = null; setGeneration(value => value + 1); }
+      const count = reset ? 200 : 220;
+      const diff = `@@ -0,0 +1,${count} @@\n` + Array.from({ length: count }, (_, index) =>
+        `+${reset ? "original" : "updated"}-position-${index} ${"long diff column ".repeat(12)}`).join("\n") + "\n";
+      const item: ThreadItem = { id: "position-patch", type: "fileChange", status: "completed",
+        changes: ["a", "b"].map(name => ({ path: `/work/${name}.ts`, kind: { type: "update", move_path: null }, diff })) };
+      setTurn({ id: "turn", status: "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
     if (action.startsWith("diff-reading-")) {
       const reset = action === "diff-reading-reset";
       if (reset) { restore = null; setGeneration(value => value + 1); }
