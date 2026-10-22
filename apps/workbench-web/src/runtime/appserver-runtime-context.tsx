@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import { ThreadPinWriter } from "./thread-pin-writer";
 import type { HostScheduleCatalog } from "./scheduled-task-catalog-context";
 import type { ConversationScheduleSummary, ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
@@ -1008,6 +1009,14 @@ export function useComposerCatalog(
   );
 
   const currentModels = capabilities.data?.metadataReader === runtime.resources.composerCatalog ? capabilities.data.models : undefined;
+  const observationOwner = useMemo(() => ({finish:null as ReturnType<typeof beginObservedOperation> | null,done:false}), [snapshot.hostId,threadId,connectionGeneration]);
+  useEffect(()=>{observationOwner.finish=beginObservedOperation("configuration_confirmed");return ()=>{if(!observationOwner.done)observationOwner.finish?.("aborted");};},[observationOwner]);
+  useEffect(() => {
+    if (!observationOwner.done && currentModels && !personalDefaults.isPending && !personalDefaults.error && !capabilities.error) {
+      observationOwner.done=true;observationOwner.finish?.("ok",{count:currentModels.length});
+    }
+  },[observationOwner,currentModels,personalDefaults.isPending,personalDefaults.error,capabilities.error]);
+
   return {
     personalDefaultsPending: personalDefaults.isPending,
     models: currentModels ?? [],

@@ -250,6 +250,7 @@ export function createWorkbenchWebConfig(
               },
               injectTo: "head",
             },
+            {tag:"meta",attrs:{name:"opencraft-source-revision",content:metadata.sourceRevision??""},injectTo:"head"},
           ];
         },
       },

@@ -1,3 +1,4 @@
+import { piSkillsPrompt } from "./skills.js";
 import { ModelRuntime, loadProjectContextFiles } from "@earendil-works/pi-coding-agent";
 import { BACKGROUND_CONTEXT as context, type Context } from "@earendil-works/chord/context";
 import { AgentDoc, InboxDoc, LiveDoc, UsageDoc, createRegistry, defineDoc, defineExtension, defineTool,
@@ -39,6 +40,7 @@ export class PiDurableSession {
   private root!: Conversation;
   private storage!: Storage;
   private release?: () => Promise<void>;
+  private readonly skillPrompts = new Map<string, string>();
   private readonly environments = new Map<string, NodeExecutionEnv>();
   private entries: EntryRecord[] = [];
   private readonly submissions = new Map<number, SubmissionRecord>();
@@ -63,6 +65,17 @@ export class PiDurableSession {
         const cwd = input.agent.cwd ?? this.options.cwd;
         return `Working directory: ${cwd}\n` + loadProjectContextFiles({ cwd, agentDir: this.options.agentDirectory })
           .map(file => `# ${file.path}\n${file.content}`).join("\n\n");
+      }, { tag: false }),
+      section("skills", input => {
+        if (!process.env.OPENCRAFT_OFFICIAL_SKILLS_ROOT) return '';
+        const cwd = input.agent.cwd ?? this.options.cwd;
+        let prompt = this.skillPrompts.get(cwd);
+        if (prompt === undefined) {
+          prompt = piSkillsPrompt(cwd, this.options.agentDirectory);
+          if (this.skillPrompts.size >= 16) this.skillPrompts.delete(this.skillPrompts.keys().next().value!);
+          this.skillPrompts.set(cwd, prompt);
+        }
+        return prompt;
       }, { tag: false }),
     ] }));
     this.replaceTools = tools => registry.install(defineExtension({ name: "opencraft.platform-tools", tools: tools.map(tool => defineTool({

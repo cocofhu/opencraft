@@ -32,7 +32,7 @@ export async function createDshSkillCatalog(ctx, config) {
       control = value;
       provider = new OpenCraftSkillProvider(owner, value, {
         providerName: "opencraft-filesystem", includeDefaultRoots,
-        customSkillDirs: [config.persistentSkillsRoot, config.taskSkillsRoot].filter(value => typeof value === "string"),
+        customSkillDirs: [config.persistentSkillsRoot, config.taskSkillsRoot, process.env.OPENCRAFT_OFFICIAL_SKILLS_ROOT].filter(value => typeof value === "string"),
       });
       return provider;
     });

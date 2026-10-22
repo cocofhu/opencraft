@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import type { UiPreferencesRuntime, UiPreferenceValues } from "@opencraft/ui-preferences";
 
 type ModelSelections = UiPreferenceValues["chat.modelSelections"];
@@ -19,8 +20,12 @@ export function readModelSelection(selections: ModelSelections, scope: ModelSele
 
 export async function rememberModelSelection(preferences: UiPreferencesRuntime, scope: ModelSelectionScope | null, selection: ModelSelection): Promise<void> {
   if (scope === null) return;
+  const finish=beginObservedOperation("preference_save");
+  try {
   await preferences.set("chat.modelSelections", {
     ...preferences.get("chat.modelSelections"),
     [selectionKey(scope)]: selection,
   });
+  finish("ok");
+  } catch(error){finish("failed");throw error;}
 }

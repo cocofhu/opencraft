@@ -1,3 +1,4 @@
+import { observeRecovery } from "./observability";
 import { serverFetch } from "./server-context";
 /** Bounded metadata only. No conversation IDs, params, content or error strings. */
 const pending = new Map<string, Record<string, string | number>>();
@@ -21,6 +22,7 @@ async function flush() {
   finally { sending = false; }
 }
 export function reportRecoveryEvent(event: Readonly<Record<string, string | number>>) {
+  observeRecovery(event);
   console.info("[appserver-recovery]", event);
   const report = Object.fromEntries(Object.entries(event).filter(([key]) => fields.has(key)));
   if (typeof report.recoveryId !== "string") return;

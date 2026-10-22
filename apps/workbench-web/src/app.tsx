@@ -1,3 +1,4 @@
+import { useObservedReadiness } from './runtime/observability-react';
 import { executionEngineExtension } from "@opencraft/appserver-client";
 import { ScheduledTaskCatalogContext } from "./runtime/scheduled-task-catalog-context";
 import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
@@ -605,6 +606,8 @@ export function App({
   const activeConversationRestoreKey = conversationViewIdentity.viewId;
   const [interactionDraftStore] = useState(() => new InteractionDraftStore());
   const [mcpAppWidgetStates] = useState<McpAppWidgetStateStore>(() => new Map());
+  useObservedReadiness(draft === null ? activeConversationRestoreKey : null, snapshot.phase === 'ready' && activeThreadLease !== null
+    && snapshot.conversation?.authoritative === true && runtime.resources.host.canRequest?.('turn/start') === true);
   useEffect(() => () => {
     pendingLatestTurnPlacementRef.current = null;
     conversationScrollApiRef.current?.releaseLatestTurnSubmitPlacementCapture();

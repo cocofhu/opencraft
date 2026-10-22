@@ -1,3 +1,4 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
 import { LocalHostResources } from "./host-resources.js";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -97,6 +98,7 @@ export async function startEngineHost(options: {
       connection.on("message", data => {
         if (stopped || backend !== connection) return;
         let message: Value; try { message = JSON.parse(data.toString()); } catch { connection.close(); return; }
+        if (typeof message.method === 'string') nodeObserver('gateway').execution('dsh',message.method,message.params);
         const pending = internal.get(String(message.id));
         if (pending && !message.method) {
           internal.delete(String(message.id)); clearTimeout(pending.timer);

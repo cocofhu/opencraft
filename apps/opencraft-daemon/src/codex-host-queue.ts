@@ -93,6 +93,10 @@ export class CodexHostQueue {
       .all(threadId).map(fromRow);
   }
 
+  observationCount(threadId: string): number {
+    return Number(this.db.prepare("SELECT count(*) AS n FROM codex_host_queue WHERE thread_id=? AND state IN ('queued','dispatching','unknown')").get(threadId)!.n);
+  }
+
   pendingThreads(): string[] {
     return this.db.prepare("SELECT DISTINCT thread_id FROM codex_host_queue WHERE state IN ('queued','dispatching','steering','unknown')")
       .all().map(row => requiredText(row.thread_id, "thread id"));

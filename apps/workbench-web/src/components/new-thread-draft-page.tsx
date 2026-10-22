@@ -1,4 +1,5 @@
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, FolderIcon as Folder, LoadingRingIcon as LoaderCircle, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
+import { useObservedReadiness } from '../runtime/observability-react';
 import { ThreadGoalSurface } from "./thread-goal-surface";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
@@ -475,6 +476,7 @@ export function NewThreadDraftPage({
 }: NewThreadDraftPageProps) {
   const intl = useIntl();
   const composerRef = useRef<OpenCraftComposerHandle>(null);
+  useObservedReadiness(draft.scopeId, connectionPhase === 'ready' && !personalDefaultsPending && !draftSubmissionOwnsNavigation(draft.phase));
   const portalContainer = useWorkbenchPresentationRoot();
 
   if (draft.submission !== null) {

@@ -1,3 +1,4 @@
+import { beginObservedOperation } from "./observability";
 import { FULL_WORKBENCH_PRESENTATION, type WorkbenchPresentationPolicy } from "../workbench-presentation-policy";
 import type {
   ConversationActivationCoordinator,
@@ -251,7 +252,10 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
     const origin = navigation.getSnapshot();
     const viewId = scope ?? createRouteScopeId();
     const epoch = beginIntent();
-    const operation = { location, viewId, promise: prepareNavigation(location, mode, viewId, epoch, origin) };
+    const isWarm = scope !== undefined || preferredView(location) !== undefined || isRetainedView(canonicalLocation(location), viewId);
+    const finish = beginObservedOperation("thread_open", { cache: isWarm ? "warm" : "cold" });
+    const promise = prepareNavigation(location, mode, viewId, epoch, origin).then(result => {finish(result?"ok":"aborted");return result;},error=>{finish("failed");throw error;});
+    const operation = { location, viewId, promise };
     pendingNavigation = operation;
     const clear = () => { if (pendingNavigation === operation) pendingNavigation = null; };
     void operation.promise.then(clear, clear);
@@ -262,6 +266,8 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
       return pendingNavigation.promise;
     }
     if (equalWorkbenchLocation(location, activeLocation) && scope === activeScope) {
+      const fastFinish = beginObservedOperation("thread_open", { cache: "warm" });
+      fastFinish("ok");
       const epoch = beginIntent();
       commitRoute(() => navigation.push(location, { routeScopeId: scope }),
         () => rememberPresentedView(location, scope));
@@ -296,6 +302,8 @@ export function createWorkbenchNavigationTransaction<TRuntime extends WorkbenchA
       if (current.applicationRoute.kind === "conversation" && pendingNavigation === null
         && equalWorkbenchLocation(current.location, location)
         && equalWorkbenchLocation(activeLocation, location) && retainedScope === activeScope) {
+        const fastFinish = beginObservedOperation("thread_open", { cache: "warm" });
+        fastFinish("ok");
         return Promise.resolve(true);
       }
       return returnToView(location, retainedScope);

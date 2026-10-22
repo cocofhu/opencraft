@@ -1,3 +1,4 @@
+import { nodeObserver } from "../../../packages/observability-contract/node.mjs";
 import { ConversationSchedules, ScheduleFault, type ScheduleExecutionPort } from "./conversation-schedules.js";
 import { CONVERSATION_SCHEDULES, CONVERSATION_SCHEDULES_EXTENSION, type ConversationScheduleRun } from "@opencraft/appserver-protocol";
 import type { DatabaseOutcome } from "@opencraft/sqlite-node";
@@ -100,6 +101,7 @@ interface CapacityRetry {
 }
 
 interface SharedCodexRoutingOptions {
+  readonly observationComponent?: 'core' | 'gateway';
   readonly onStorageOpened?: (outcomes: readonly { name: string; outcome: DatabaseOutcome }[]) => void;
   readonly createThreadMetadata?: (database: import("node:sqlite").DatabaseSync, context: import("@opencraft/appserver-client").ThreadMetadataContext) => import("@opencraft/appserver-client").ThreadMetadataExtension;
   readonly logDiagnostic?: (event: Record<string, unknown>) => void;
@@ -1071,6 +1073,7 @@ export class CodexEngineAdapter implements DuplexTransport {
       if (typeof message.method === "string") this.receiveServerRequest(id, message);
       return;
     }
+    nodeObserver(this.options.observationComponent ?? 'gateway').execution('codex', String(message.method), message.params);
     if (this.threadTitles?.notification(string(message.method), record(message.params))) return;
     const threadId = string(record(message.params).threadId) || string(record(record(message.params).thread).id);
     this.durableCatalog?.observe(string(message.method), message.params);
@@ -1150,6 +1153,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private receiveServerRequest(id: string | number, message: RpcRecord): void {
+    nodeObserver(this.options.observationComponent??'gateway').execution('codex',String(message.method),message.params);
     if (message.method === "account/chatgptAuthTokens/refresh" && this.poolAuth !== null) {
       const { type: _type, ...result } = this.poolAuth;
       void this.writePhysical({ id, result })?.catch(() => undefined);
@@ -1621,6 +1625,7 @@ export class CodexEngineAdapter implements DuplexTransport {
   }
 
   private emitQueueChanged(threadId: string): void {
+    if(process.env.OPENCRAFT_OBSERVE_SOCKET&&this.queue)try{nodeObserver(this.options.observationComponent??'gateway').queue('codex',threadId,this.queue.observationCount(threadId));}catch{/* Observation cannot break the queue owner. */}
     const clients = this.threadClients.get(threadId);
     if (!clients || clients.size === 0) return;
     for (const clientId of clients) this.emit({ method: "thread/queue/changed", params: { threadId } }, clientId);

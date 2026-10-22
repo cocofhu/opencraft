@@ -1,6 +1,6 @@
 # OpenCraft 运行观测平台规格 V1
 
-状态：实施规格，运行能力尚未由本次文档变更实现。规范版本：1.1（2026-10-21：补充宿主维护入口和免二次登录，扩展 F-13/F-19、NF-06/NF-12）。最终完成以真实目标部署的验收为准，文档合入、进程启动或单元测试通过均不代表能力已落地。功能性与非功能性验收见 [验收矩阵](observability-acceptance.md)。
+状态：实施规格，首批实现见 [可选观测部署与运行手册](../ops/observability/README.md)，运行验收仍按矩阵逐项记录。规范版本：1.1（2026-10-21：补充宿主维护入口和免二次登录，扩展 F-13/F-19、NF-06/NF-12）。最终完成以真实目标部署的验收为准，文档合入、进程启动或单元测试通过均不代表能力已落地。功能性与非功能性验收见 [验收矩阵](observability-acceptance.md)。
 
 本文的“必须”是 V1 验收要求；预算是待实现验证的工程目标，不是当前产品的性能声明。变更规范须记录版本、理由、兼容性和受影响验收项，不得通过放宽阈值掩盖失败。
 
@@ -296,3 +296,35 @@ SQLite 使用项目既有持久化、事务、升级与备份契约。变更、�
 - [启动/性能基线与整页导航范围](startup-performance.md)。
 - [持久化生命周期](sqlite-lifecycle.md)、[Skill 发现协议](appserver-profile-skills-protocol-v1.md)。
 - [验收矩阵与证据格式](observability-acceptance.md)。
+
+### Implementation measurement notes
+
+The `navigation` operation ends at the existing startup-finished event and uses
+the browser navigation time origin. It is distinct from `submit_ready`, whose
+existing Host/history/capability or draft-configuration predicates are observed
+without changing admission. Unsettled captured operation starts are reported as
+`unfinished`, never as proof of a frozen client. An idle browser without new
+events has no recent capture; the client does not add a heartbeat upload timer.
+
+Independent legacy processes can be projected by Gateway health. Their versions
+are null unless self-reported or bound to the actual PID/start and installed
+artifact/manifest by the trusted operator profile. `observedBy`, `producerMode`
+and `identitySource` disclose this provenance. Imported modules do not start
+component producers: initialization belongs to the actual process owner.
+
+A private per-deployment probe key can classify controlled browser measurements
+as `probe` at the authenticated ingress. It does not grant authentication or
+query access, and is never embedded in the page. Verified-human activity counts
+only interactive-origin observations; probes retain their own origin and cannot
+increase the real-human union. The query registry revision identifies this
+semantics. Hourly actor rollups plus exact boundary-hour samples avoid full raw
+retention scans without changing the selected-window union.
+
+Comparison can select an operation/cache/engine from immutable evidence; it
+rejects missing workload dimensions, overlapping sample IDs and ambiguous pairs.
+Selection does not rewrite either capture. CLI results include the installed
+CLI's own build/source identity separately from server components.
+
+### Named-server deployment paths (2026-10-22)
+
+Browser capabilities, telemetry and dashboard navigation use the selected server context. Operator-owned `grafanaBasePath` in ingress and observation-service configuration must match Grafana root_url for that named-server prefix. The relay preserves already-scoped HTML paths exactly once; ingress maps authorized Grafana requests to the configured Unix-socket path. These URL transformations never establish identity or expand target ACL. Each deployment owns independent storage and deploymentId; missing component capture stays partial.

@@ -17,6 +17,7 @@ Pods/
 .local/
 .edgeone/
 /runtime/*
+!/runtime/skills/
 !/runtime/dsh/
 /runtime/dsh/*
 !/runtime/dsh/package.json
