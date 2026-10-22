@@ -2160,6 +2160,15 @@ no desktop panel, toolbar action or Composer shortcut, even for a capable Host.
 An omitted option keeps Host capability discovery and an adapter keeps its explicit
 backend. This policy never mutates desktop state or grants input authority.
 
+
+## Streamed code fence continuity (2026-10-21)
+
+A Web non-Mermaid code fence keeps one surface, wrap control and scroller while
+streaming and closing. Completion cannot remove a focused control or reset local
+horizontal scrolling. Open code stays plain; only a complete fence enables
+copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
+presentation without changing the canonical source or replacing the surface.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
