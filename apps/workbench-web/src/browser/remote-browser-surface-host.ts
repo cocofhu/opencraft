@@ -392,7 +392,10 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           if (p.closed || p.video !== video) return;
           this.snapshotVideo(p, video); video.style.opacity = '1'; p.cancelVideoReady = null;
         });
-        p.media = new H264MediaSource(video, p.width, p.height, () => { this.resetDecoder(p, true); this.run(p, 'keyframe'); }, () => this.run(p, 'keyframe'));
+        p.media = new H264MediaSource(video, p.width, p.height, () => {
+          if (p.closed || p.video !== video) return;
+          this.resetDecoder(p, true); this.run(p, 'keyframe');
+        }, () => { if (!p.closed && p.video === video) this.run(p, 'keyframe'); });
       }
       p.media.push(bytes);
     } else {
@@ -406,7 +409,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           p.latest?.close(); p.latest = frame;
           if (!p.raf) p.raf = requestAnimationFrame(() => { p.raf = 0; const latest = p.latest; p.latest = null;
             if (latest) { this.paintFrame(p, latest, p.width, p.height); latest.close(); } });
-        }, error: recover });
+        }, error: () => { if (p.decoder === decoder) recover(); } });
         p.decoder = decoder;
         p.decoder.configure({ codec: 'avc1.42E028', optimizeForLatency: true });
       }
