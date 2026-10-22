@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.14
+
+- Fix the catalog entry performance smoke to wait on the sidebar directory `aria-busy` state instead of the removed `Loading conversations…` status banner, so the release performance gate matches the current shell.
+- Server and website runtime behavior is unchanged from v0.1.13.
+
 ## v0.1.13
 
 - Support Linux server browser tabs over H.264 with shared Browser Use and persistent remote tabs.
