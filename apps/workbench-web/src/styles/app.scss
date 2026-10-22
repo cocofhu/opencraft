@@ -8829,7 +8829,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-ui-density="touch"] .opencraft-composer-shell[data-breathing="true"]::before {
+  :where(:root[data-ui-density="touch"]) .opencraft-composer-shell[data-breathing="true"]::before {
     animation: composer-surface-breathe 5.6s ease-in-out infinite;
   }
 }
