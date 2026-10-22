@@ -233,6 +233,28 @@
     padding: 0;
   }
   &[data-surface="account"] { width: 100%; padding-inline: var(--padding-control-inline); }
+  &[data-surface="updates"] {
+    .shell-navigation__icon-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--size-application-navigation-icon, 20px);
+      height: var(--size-application-navigation-icon, 20px);
+      flex-shrink: 0;
+    }
+    .shell-navigation__update-dot {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-accent-blue, #2563eb);
+      box-shadow: 0 0 0 1.5px var(--opencraft-sidebar-material-background, var(--color-background-primary, #ffffff));
+      pointer-events: none;
+    }
+  }
   .sidebar-account__avatar { width: 20px; height: 20px; flex: 0 0 20px; font: var(--typography-label-font); border: 0; letter-spacing: var(--typography-label-tracking); }
 }
 .shell-navigation__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--opencraft-sidebar-font-size); }
