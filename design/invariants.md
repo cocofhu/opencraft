@@ -1371,6 +1371,8 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 
 非空附属rail与shell连接处不重复绘制shell顶部边框/内侧高光；空rail恢复独立输入框完整边界。用户确认本轮对象为静止时中间横缝。
 
+Conversation search keeps result identity as Host/Thread. Moving the active result may reuse unchanged row presentation, while query/catalog/content-source/locale changes refresh the projection, disabled state and callbacks. The dialog retains input focus, active-descendant navigation and selection/abort ownership; rendering reuse must not truncate results or defer search. Unrelated App snapshot updates keep the searched-thread callback stable for the same Host catalog, and the search wrapper keeps close stable for the same open-state owner. Search selection subscribes only to the existing sidebar-dismiss action rather than unrelated Shell geometry. Owner replacement still refreshes callbacks; result reuse never captures obsolete navigation, close or locate behavior.
+
 ## Global conversation search
 
 Title results remain available immediately; Codex message results add an escaped snippet and Server provenance. Closing/retyping/revoking a connection cannot publish late results or relocate another conversation. The dialog preserves keyboard ownership and drafts. Loading, per-Server failure/retry, title-only support, disconnected sources and remaining pages are explicit; incomplete coverage is never reported as an exhaustive empty match. Selecting a visible message reuses authoritative hydration and measured virtualized positioning, at the containing prompt for assistant matches. A raw-history match without a visible locator opens with a positioning notice; it does not claim an exact jump.

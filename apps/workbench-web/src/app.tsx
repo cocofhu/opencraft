@@ -294,6 +294,12 @@ export function App({
   const composerController = useRootComposerController();
   const defaultFollowUpAction = useDefaultFollowUpAction();
   const hostCatalog = useAppServerHosts();
+  const selectSearchedThread = useCallback((hostId: string, id: string, target?: ConversationSearchTarget) => {
+    setConversationSearchTarget(null);
+    void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
+      if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
+    }).catch(error => console.error("Failed to activate searched Thread", error));
+  }, [hostCatalog]);
   const attentionScope = hostCatalog.threadAttention.getScope();
   const conversationViewIdentity = useConversationViewIdentity();
   const extensionPlatform = (
@@ -2229,12 +2235,7 @@ export function App({
         <ConversationSearch enabled={presentation.shellNavigation} open={conversationSearchOpen} onOpenChange={setConversationSearchOpen}
           sources={multiHostCatalog.searchSources}
           threads={multiHostCatalog.threads} loading={multiHostCatalog.discovery === "loading" || multiHostCatalog.catalogs.some(catalog => catalog.phase === "loading")}
-          onSelectThread={(hostId, id, target) => {
-            setConversationSearchTarget(null);
-            void hostCatalog.selectConversation(createWorkbenchThreadLocation(hostId, id)).then(activated => {
-              if (activated && target) setConversationSearchTarget({ ...target, hostId, threadId: id });
-            }).catch(error => console.error("Failed to activate searched Thread", error));
-          }} />
+          onSelectThread={selectSearchedThread} />
         </AppShell>
       </AppShellRouteRegionsProvider>
         <ModalHost requests={modalRequests} />
