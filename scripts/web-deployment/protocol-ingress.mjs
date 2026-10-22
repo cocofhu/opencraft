@@ -1,4 +1,5 @@
 import { createConnection, createServer } from 'node:net';
+import { Server as HttpServer } from 'node:http';
 
 const httpMethods = ['GET ', 'HEAD ', 'POST ', 'PUT ', 'DELETE ', 'OPTIONS ', 'PATCH ', 'CONNECT ', 'TRACE '];
 export function classifyProtocol(prefix) {
@@ -8,14 +9,15 @@ export function classifyProtocol(prefix) {
   return ['SSH-', ...httpMethods].some(method => method.startsWith(text)) ? 'pending' : 'reject';
 }
 /** Transparent routing only: SSH authentication belongs to Headless, never to Web. */
-export function createProtocolIngress({ httpPort, sshTarget, handshakeTimeoutMs = 10_000, maxConnections = 256 }) {
+export function createProtocolIngress({ httpPort, httpServer = null, sshTarget, handshakeTimeoutMs = 10_000, maxConnections = 256 }) {
   const target = new URL(sshTarget);
   if (target.protocol !== 'http:' || target.hostname !== '127.0.0.1' || target.username || target.password
     || target.pathname !== '/' || target.search || target.hash) throw new Error('SSH backend must be a loopback origin');
   const sshPort = Number(target.port || 80);
   if (![httpPort, sshPort].every(port => Number.isInteger(port) && port > 0 && port <= 65535)
     || !Number.isSafeInteger(handshakeTimeoutMs) || handshakeTimeoutMs < 1
-    || !Number.isSafeInteger(maxConnections) || maxConnections < 1) throw new Error('Invalid ingress configuration');
+    || !Number.isSafeInteger(maxConnections) || maxConnections < 1
+    || (httpServer !== null && !(httpServer instanceof HttpServer))) throw new Error('Invalid ingress configuration');
   const sockets = new Set(); const peers = new Set(); let closed = false; let closing;
   const server = createServer(socket => {
     if (closed || sockets.size >= maxConnections) { socket.destroy(); return; }
@@ -30,6 +32,13 @@ export function createProtocolIngress({ httpPort, sshTarget, handshakeTimeoutMs 
       if (kind === 'pending') return;
       socket.pause(); socket.off('data', classify);
       if (kind === 'reject') { socket.destroy(); return; }
+      if (kind === 'http' && httpServer) {
+        // Keep the actual peer, destination and public port at HTTP admission.
+        clearTimeout(deadline);
+        socket.unshift(prefix); prefix = null;
+        httpServer.emit('connection', socket); socket.resume();
+        return;
+      }
       const peer = createConnection({ host: '127.0.0.1', port: kind === 'ssh' ? sshPort : httpPort });
       peers.add(peer);
       peer.once('close', () => { peers.delete(peer); socket.destroy(); });

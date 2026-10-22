@@ -1,5 +1,4 @@
-// Pure Shell presentation projections; historical source evidence is retained in
-// docs/provenance/sidebar-policy-baseline.json.
+
 
 export const SIDEBAR_EDGE_REVEAL_WIDTH = 4;
 export const SIDEBAR_TRIGGER_PEEK_DELAY_MS = 100;

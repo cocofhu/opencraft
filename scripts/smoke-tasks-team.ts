@@ -56,7 +56,7 @@ async function connectNative() {
 const browser=await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE});
 const errors:string[]=[];
 const page=await browser.newPage({viewport:{width:1680,height:1000}});page.setDefaultTimeout(15000);page.on("pageerror",(e:Error)=>errors.push(e.message));
-await page.addInitScript(()=>localStorage.setItem("vela.appearance-theme","system"));
+await page.addInitScript(()=>localStorage.setItem("opencraft.appearance-theme","system"));
 const executionGeometry:unknown[]=[];
 async function checkExecutionRow(target:any,scenario:string,touch=false) {
  const button=target.getByRole("button",{name:"New conversation",exact:true});
@@ -215,7 +215,7 @@ try {
  const touch=await browser.newContext({viewport:{width:320,height:844},isMobile:true,hasTouch:true});
  try {
   const phone=await touch.newPage();phone.setDefaultTimeout(15000);phone.on("pageerror",(error:Error)=>errors.push(error.message));
-  await phone.addInitScript(()=>localStorage.setItem("vela.appearance-theme","system"));
+  await phone.addInitScript(()=>localStorage.setItem("opencraft.appearance-theme","system"));
   await phone.goto(server.url+"/views/opencraft.tasks.board");await phone.locator('.tasks-card:visible').first().waitFor();
   for(const theme of ["light","dark"] as const)for(const width of [320,390,430]) {
    await phone.setViewportSize({width,height:width===320?568:844});await phone.emulateMedia({colorScheme:theme});
@@ -315,7 +315,7 @@ try {
  await page.getByLabel("Execution connection",{exact:true}).selectOption("local-codex");
  await page.getByRole("button",{name:"New conversation",exact:true}).focus();await page.keyboard.press("Enter");
  await page.waitForURL((url:URL)=>!url.pathname.startsWith('/views/'));
- const editor=page.locator('.codex-composer-editor[role="textbox"]:visible');await editor.waitFor();
+ const editor=page.locator('.opencraft-composer-editor[role="textbox"]:visible');await editor.waitFor();
  assert.match(await editor.innerText(),/Aligned action opens a native draft/);
  const handoffTask=(await cli("list",{search:handoffTitle})).tasks.find((task:any)=>task.title===handoffTitle);
  assert.ok(handoffTask);assert.equal((await cli("read",{id:handoffTask.id})).conversations.length,0,"The action saves the task and prepares a draft without starting a Thread or Turn");

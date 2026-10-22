@@ -1,7 +1,7 @@
 import { createHighlighterCore } from "@shikijs/core";
 import { createJavaScriptRegexEngine } from "@shikijs/engine-javascript";
 
-import { CODEX_DARK_SYNTAX, CODEX_LIGHT_SYNTAX, codexDarkTheme, codexLightTheme } from "./code-highlight-themes";
+import { OPENCRAFT_DARK_SYNTAX, OPENCRAFT_LIGHT_SYNTAX, opencraftDarkTheme, opencraftLightTheme } from "./code-highlight-themes";
 
 const languageAliases: Record<string, string> = {
   c: "cpp", cjs: "javascript", h: "cpp", hpp: "cpp", js: "javascript",
@@ -46,7 +46,7 @@ export type ChatCodeTokenLines = readonly (readonly ChatCodeToken[])[];
 const highlighterPromise = createHighlighterCore({
   engine: createJavaScriptRegexEngine(),
   langs: [],
-  themes: [codexLightTheme, codexDarkTheme],
+  themes: [opencraftLightTheme, opencraftDarkTheme],
 });
 const languageLoads = new Map<SupportedLanguage, Promise<void>>();
 
@@ -94,7 +94,7 @@ export async function highlightChatCodeHtml(
   throwIfAborted(signal);
   const html = highlighter.codeToHtml(code, {
     lang: language,
-    theme: theme === "dark" ? "codex-dark" : "codex-light",
+    theme: theme === "dark" ? "opencraft-dark" : "opencraft-light",
   });
   throwIfAborted(signal);
   return html;
@@ -111,10 +111,10 @@ export async function highlightChatCodeTokens(
   await ensureLanguage(language, signal);
   const highlighter = await highlighterPromise;
   throwIfAborted(signal);
-  const fallbackColor = theme === "dark" ? CODEX_DARK_SYNTAX.foreground : CODEX_LIGHT_SYNTAX.foreground;
+  const fallbackColor = theme === "dark" ? OPENCRAFT_DARK_SYNTAX.foreground : OPENCRAFT_LIGHT_SYNTAX.foreground;
   const lines = highlighter.codeToTokensBase(code, {
     lang: language,
-    theme: theme === "dark" ? "codex-dark" : "codex-light",
+    theme: theme === "dark" ? "opencraft-dark" : "opencraft-light",
   }).map(line => line.map(token => ({
     content: token.content,
     color: token.color ?? fallbackColor,

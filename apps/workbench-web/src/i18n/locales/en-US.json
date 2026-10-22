@@ -260,7 +260,7 @@
   "panel.actionFailed": "Could not open the preview. Try again.",
   "panel.addressHint": "Enter an address above to navigate",
   "composer.cloudComputer": "Cloud computer",
-  "panel.desktopEntry": "Desktop",
+  "panel.desktopEntry": "Cloud computer",
   "panel.browser": "Browser",
   "panel.close": "Close preview panel",
   "panel.closeTab": "Close {title}",
@@ -642,5 +642,15 @@
   "schedules.catalog.disconnected": "Disconnected",
   "schedules.catalog.failed": "Refresh failed",
   "schedules.catalog.openNamed": "Open conversation: {title}",
-  "schedules.catalog.manageNamed": "Manage schedule: {title}"
+  "schedules.catalog.manageNamed": "Manage schedule: {title}",
+  "conversation.forkFromTurn": "Branch from here",
+  "webUpdates.noticeAvailable": "Update available (v{version}), click to download",
+  "webUpdates.noticeRefresh": "New version ready, click to refresh",
+  "webUpdates.noticeAction": "Download update v{version}",
+  "webUpdates.noticeRefreshAction": "Refresh update",
+  "composer.model.configureTitle": "Configure",
+  "composer.model.speed": "Speed",
+  "composer.model.standardSpeed": "Standard",
+  "composer.model.done": "Done",
+  "composer.resetEffort": "Reset reasoning to model default"
 }

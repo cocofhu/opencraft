@@ -241,13 +241,16 @@ export async function createWebWorkbenchApplicationSupervisor(
     const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === "true"
       ? connectWebSocketAppHost() : null;
     if (headlessAppHost !== null) startupRollback.push(() => headlessAppHost.close());
-    const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, { path: "/ssh-apphost" }) : null;
-    if (remoteAppHost) startupRollback.push(() => remoteAppHost.close());
     const sshManagement = headlessAppHost ? new (await import("@opencraft/plugin-builtin-agents")).SshConnectionsController(serverFetch, serverAdmissionOrigin()) : null;
     if (sshManagement) { startupRollback.push(() => sshManagement.dispose()); await sshManagement.startDiscovery(webSshDiscoveryLifecycle); }
+    const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, {
+      path: "/ssh-apphost",
+      beforeConnect: () => sshManagement!.prepareConnection(),
+    }) : null;
+    if (remoteAppHost) startupRollback.push(() => remoteAppHost.close());
     const clientProduct = await options.clientProduct?.create({ platform, hostProfileMode: options.hostProfileMode, defaultExtensions: deployment.extensions });
     if (clientProduct) startupRollback.push(() => clientProduct.dispose());
-    const localClientScope = clientProduct ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
+    const localClientScope = clientProduct?.persistenceScope ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
     if (localClientScope) startupRollback.push(() => localClientScope.dispose());
     const clientPersistenceScope = clientProduct?.persistenceScope ?? localClientScope!;
     // Existing task View continuity remains its sole persistence owner. Bot

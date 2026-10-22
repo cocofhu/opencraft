@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { hasPermissionProfileChoices } from "../packages/codex-composer/src/codex-composer.js";
+import { hasPermissionProfileChoices } from "../packages/composer-editor/src/composer-editor.js";
 
-const source = readFileSync(new URL("../packages/codex-composer/src/codex-composer.tsx", import.meta.url), "utf8");
+const source = readFileSync(new URL("../packages/composer-editor/src/composer-editor.tsx", import.meta.url), "utf8");
 const menu = source.slice(source.indexOf('aria-label={permissionsLabel}'), source.indexOf('<div ref={footerLayout.endRef}'));
 
 test("permission picker is hidden when the Host declares no permission profiles", () => {
@@ -48,14 +48,14 @@ async function renderPermission(mode: string | null, requested: string | null = 
   const { LocaleRuntime } = await import("@opencraft/i18n");
   const { IntlRuntimeProvider } = await import("@opencraft/i18n/react");
   const { createComposerController } = await import("@opencraft/composer-core");
-  const { CodexComposer } = await import("@opencraft/codex-composer");
+  const { OpenCraftComposer } = await import("@opencraft/composer-editor");
   const { default: zh } = await import("../apps/workbench-web/src/i18n/locales/zh-CN.json");
   const locale = new LocaleRuntime([{ locale: "zh-CN", label: "中文", load: async () => zh }]);
   await locale.update({ localeOverride: localeId });
   const controller = createComposerController({ type: "existing-thread", key: { hostId: "fixture", threadId: "one" } }, { now: Date.now, createId: () => "one" });
   if (requested) controller.dispatch({ type: "set-selections", patch: { permissionProfile: requested } });
   return renderToStaticMarkup(React.createElement(IntlRuntimeProvider, { runtime: locale },
-    React.createElement(CodexComposer, { controller, effectiveSelections: { permissionProfile: mode },
+    React.createElement(OpenCraftComposer, { controller, effectiveSelections: { permissionProfile: mode },
       selectionCatalog: { models: [], permissionProfiles: ["read-only", "accept-edits", "auto", "full"].map(value => ({
         id: value, value, label: native ? "Custom Policy" : value, mode: native ? null : value,
         description: null, disabled: false,

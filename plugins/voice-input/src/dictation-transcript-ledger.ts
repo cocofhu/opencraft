@@ -1,6 +1,5 @@
 import type { NativeSpeechUtterance } from "@opencraft/app-host-protocol";
 
-/** Codex-style ordered final results; hypotheses never enter confirmed history. */
 export class DictationTranscriptLedger {
   private readonly entries = new Map<string, NativeSpeechUtterance>();
   private result: string | null = null;

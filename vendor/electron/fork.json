@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/electron/electron.git",
+  "tag": "v44.8.0",
+  "version": "44.8.0",
+  "revision": "60169b45c12488c6fda237af7f6425526a7ce5f0",
+  "chromiumVersion": "152.0.7977.167",
+  "patchDate": "2026-10-21T06:00:00Z",
+  "patches": [
+    {
+      "path": "patches/electron/0001-observe-native-text-input-state.patch",
+      "sha256": "6803467eb8ecd7300b21ba4f50cc31705770b4c5d1b44e2f07ddd25f7d37c7f4"
+    }
+  ]
+}

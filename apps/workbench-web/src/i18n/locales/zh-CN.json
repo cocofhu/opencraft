@@ -666,5 +666,15 @@
   "schedules.catalog.disconnected": "未连接",
   "schedules.catalog.failed": "刷新失败",
   "schedules.catalog.openNamed": "打开会话：{title}",
-  "schedules.catalog.manageNamed": "管理定时任务：{title}"
+  "schedules.catalog.manageNamed": "管理定时任务：{title}",
+  "webUpdates.noticeAvailable": "发现新版本 v{version}，点击下载更新",
+  "webUpdates.noticeRefresh": "新版本已就绪，点击刷新更新",
+  "webUpdates.noticeAction": "下载更新 v{version}",
+  "webUpdates.noticeRefreshAction": "刷新更新",
+  "conversation.forkFromTurn": "从此处分支",
+  "composer.model.configureTitle": "配置",
+  "composer.model.speed": "速度",
+  "composer.model.standardSpeed": "标准",
+  "composer.model.done": "完成",
+  "composer.resetEffort": "恢复模型默认思考深度"
 }

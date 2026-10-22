@@ -4,7 +4,7 @@ import type {
   ApprovalTimelineBlock,
   QuestionTimelineBlock,
   OptionPickerTimelineBlock,
-  SetupCodexStepTimelineBlock,
+  SetupStepTimelineBlock,
   SetupContextPickerTimelineBlock,
   McpElicitationTimelineBlock,
   TimelineFrame,
@@ -13,12 +13,12 @@ import type {
 } from "./timeline";
 
 export type AttachedInteractionTimelineBlock = ApprovalTimelineBlock | QuestionTimelineBlock | OptionPickerTimelineBlock
-  | SetupCodexStepTimelineBlock | SetupContextPickerTimelineBlock | McpElicitationTimelineBlock;
+  | SetupStepTimelineBlock | SetupContextPickerTimelineBlock | McpElicitationTimelineBlock;
 
 /**
  * Composer-owned requests are projected into the timeline for durable identity
- * and history, but their interactive surface lives beside the Composer. Codex
- * presents one request at a time, with the newest pending request winning.
+ * and history, but their interactive surface lives beside the Composer. Present
+ * one request at a time, with the newest pending request winning.
  */
 export function findPendingInteraction(
   timeline: Pick<TimelineSnapshot, "frames"> | null | undefined,
@@ -72,7 +72,7 @@ export function getTimelineUserMessageTargetKey(frame: TimelineFrame): string | 
 /**
  * Identity of the latest visual Activity inside a Turn.
  *
- * Codex deliberately does not use `turnKey` alone here: steering appends work
+ * Do not use `turnKey` alone here: steering appends work
  * to an existing Turn, so the Turn row remains stable while latest-response
  * placement must run again. Source Item identity is the durable protocol key;
  * the projected block id is only a defensive fallback for synthetic frames.
@@ -126,9 +126,9 @@ export function indexAttachedInteractions(
 export type TimelineLatestTurnPhase = "idle" | "prework" | "final_answer";
 
 /**
- * Renderer-neutral equivalent of Codex's latest Turn phase classifier. A
+ * Renderer-neutral latest Turn phase classification. A
  * projected assistant Item is the final-answer boundary even before its
- * first text delta (Codex AD classifies by Item phase, not text length); reasoning,
+ * first text delta (classification uses Item phase, not text length); reasoning,
  * tools and interaction/event work remain prework while the Turn is active.
  */
 export function deriveTimelineLatestTurnPhase(

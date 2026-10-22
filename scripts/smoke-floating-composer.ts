@@ -36,9 +36,9 @@ try {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.setDefaultTimeout(15000);
-  await page.locator(".codex-composer-editor").waitFor({ timeout: 30000 });
+  await page.locator(".opencraft-composer-editor").waitFor({ timeout: 30000 });
   await page.evaluate("globalThis.__name = value => value");
-  const editor = page.locator(".codex-composer-editor");
+  const editor = page.locator(".opencraft-composer-editor");
   await editor.fill("Stable native draft");
   await editor.evaluate(
     (element: HTMLElement) => ((window as any).__originalEditor = element)
@@ -92,7 +92,7 @@ try {
     "0s",
     "source width animation has a resolved easing token"
   );
-  await page.locator(".codex-composer-mode--permissions").click();
+  await page.locator(".opencraft-composer-mode--permissions").click();
   await page.getByRole("menu", { name: "Permissions", exact: true }).waitFor();
   assert.equal(
     await content.getAttribute("data-density"),

@@ -15,8 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
-/** Live and settled disclosure state are independent, matching Codex. */
-export function useCodexActivityOpen(
+export function useActivityOpen(
   running: boolean,
   defaultExpanded = false,
 ): readonly [boolean, (next: boolean) => void] {

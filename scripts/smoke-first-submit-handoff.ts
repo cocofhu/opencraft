@@ -60,7 +60,7 @@ try {
   for (const width of [390, 1280]) for (const theme of ['light', 'dark']) for (const atomic of [false, true]) {
     durable = atomic; pending = null;
     const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: width === 390 });
-    await context.addInitScript(mode => { (window as any).__name = (value: unknown) => value; localStorage.setItem('vela.appearance-theme', mode); }, theme);
+    await context.addInitScript(mode => { (window as any).__name = (value: unknown) => value; localStorage.setItem('opencraft.appearance-theme', mode); }, theme);
     const page = await context.newPage();
     page.on('console', message => { if (/failed|error/i.test(message.text())) console.log('CONSOLE', message.text()); });
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));

@@ -207,8 +207,7 @@ export interface TimelineTurnPresentationOptions {
     readonly reasoningPresenter?: typeof presentReasoning;
 }
 
-// Requirements-driven replacement. Scope, historical source and authoring limits:
-// docs/provenance/agent-activity-replacement.md
+
 function lastIndex<T>(values: readonly T[], matches: (value: T) => boolean): number {
   for (let index = values.length - 1; index >= 0; index--) if (matches(values[index]!)) return index;
   return -1;
@@ -278,8 +277,10 @@ export function createAgentActivityContentUnits(blocks: readonly TimelineBlock[]
     if (unit.type !== "group") return [unit];
     const latest = index === output.length - 1;
     const inProgress = latest && !isActivitySliceClosed && live(status);
-    if (!inProgress && unit.blocks.length === 1 && !running(unit.blocks[0]!)) {
-      return isVisibleAgentActivityRow(unit.blocks[0]!, registry) ? [{ type: "standalone", id: unit.id, block: unit.blocks[0]! }] : [];
+    const onlyBlock = unit.blocks.length === 1 ? unit.blocks[0] : undefined;
+    const groupedPatch = onlyBlock?.type === "patch" && onlyBlock.changes.length > 1;
+    if (!inProgress && onlyBlock && !running(onlyBlock) && !groupedPatch) {
+      return isVisibleAgentActivityRow(onlyBlock, registry) ? [{ type: "standalone", id: unit.id, block: onlyBlock }] : [];
     }
     return [{ ...unit, lifecycle: { isLatestVisibleUnit: latest, isActivitySliceClosed,
       isExploring: (() => { const block = unit.blocks[unit.blocks.length - 1]; return Boolean(block?.type === "command-execution" && running(block) && block.actions.some(action => action.type !== "unknown")); })(), inProgress } }];
@@ -401,6 +402,13 @@ export function deriveAgentActivityHeaderPresentation(unit: Pick<AgentActivityGr
 export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFrame, registry?: ToolActivityPresenterRegistry): boolean {
   if (!live(frame.status)) return false;
   const blocks = frame.blocks.filter(block => !(block.type === "automatic-approval-review" && block.review.status === "approved"));
+  // Generated media owns its pending feedback within the current response.
+  // Earlier images must not suppress work after a new answer or input.
+  const responseBoundary = lastIndex(blocks, block => block.type === "user-message"
+    || (block.type === "text" && (isAssistantAnswerContent(block)
+      || block.delivery === "async" || (block.asyncQuestions?.length ?? 0) > 0)));
+  if (blocks.slice(responseBoundary + 1).some(block => block.type === "image"
+    && (block.status === "pending" || block.status === "running"))) return false;
   const block = blocks[blocks.length - 1];
   if (!block) return true;
   if (block.type === "reasoning") return true;
@@ -527,12 +535,14 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
   const remaining = turn.frames.slice(start);
   const assistants = remaining.filter(frame => frame.type === "assistant");
   const seed = assistants[0];
+  // A Turn resource survives independently of which transcript lanes exist.
+  const changeSummary = turn.frames.find(frame => frame.changeSummary !== undefined)?.changeSummary ?? null;
   const blocks = remaining.flatMap(frame => frame.blocks);
   const active = isMostRecentTurn && live(turn.status);
   const latestObservation = [...blocks].reverse().find(block => block.type !== "todo");
-  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active ? {
+  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active || changeSummary !== null ? {
     type: "assistant", id: `${turn.turnId}:assistant-surface`, turnId: turn.turnId, status: turn.status,
-    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary: seed?.changeSummary ?? null,
+    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
     interruptedByThisClient: seed?.interruptedByThisClient ?? false, hookStats: seed?.hookStats ?? null,
     anchors: assistants.flatMap(frame => frame.anchors), blocks,
   } : null;

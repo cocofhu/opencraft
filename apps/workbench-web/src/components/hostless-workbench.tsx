@@ -103,12 +103,12 @@ export function HostlessWorkbench({
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty(
-      "--codex-sidebar-preferred-width",
+      "--opencraft-sidebar-preferred-width",
       `${sidebarWidth}px`,
     );
     return () => {
       document.documentElement.style.removeProperty(
-        "--codex-sidebar-preferred-width",
+        "--opencraft-sidebar-preferred-width",
       );
     };
   }, [sidebarWidth]);
@@ -303,6 +303,7 @@ export function HostlessWorkbench({
       <AppShell
         navigation={{
           settingsActive: routeSettingsOpen,
+          updatesActive: routeSettingsOpen && applicationRoute.kind === 'settings' && applicationRoute.slug === 'updates',
           actions: [
             { id: "shell.chat", title: intl.formatMessage({ id: "navigation.chat", defaultMessage: "Chat" }), icon: "chat", active: applicationRoute.kind === "conversation", onInvoke: closeApplicationRoute },
             ...extensionProjection.primaryActions, ...extensionProjection.footerActions,
@@ -315,6 +316,7 @@ export function HostlessWorkbench({
             onSignOut: extensionProjection.account.provider.signOut,
           },
           onOpenSettings: () => openSettings(),
+          onOpenUpdates: () => openSettings('updates'),
         }}
         layoutScope="hostless"
         mainContentLayout={

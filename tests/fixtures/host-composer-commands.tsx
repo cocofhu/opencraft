@@ -1,6 +1,6 @@
 import { applyAppearanceThemeToElement } from "../../apps/workbench-web/src/appearance-theme";
 import { createIntlTestRoot as createRoot } from "./intl-root";
-import { CodexComposer } from "@opencraft/codex-composer";
+import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createComposerController, composerDocumentToPlainText } from "@opencraft/composer-core";
 import { createConversationKey } from "@opencraft/chat-core";
 import { HostConnectionProviderRegistry, createHostComposerCommandPort, findStandaloneHostComposerAction } from "@opencraft/workbench-runtime";
@@ -29,7 +29,7 @@ let sequence = 0;
 const controller = createComposerController({ type: "existing-thread", key: createConversationKey("fixture-host", "fixture-thread") },
   { now: Date.now, createId: () => String(++sequence) });
 (window as any).__commandsFixture = { calls, retire() { resident.release(); return unregister(); } };
-createRoot(document.getElementById("root")!).render(<CodexComposer controller={controller}
+createRoot(document.getElementById("root")!).render(<OpenCraftComposer controller={controller}
   shortcutCommands={port.commands.map(c => ({ name: c.name, description: c.description.defaultMessage }))}
   onSubmit={intent => {
     const action = findStandaloneHostComposerAction(intent, port.commands);

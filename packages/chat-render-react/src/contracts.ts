@@ -43,11 +43,6 @@ export interface ChatRenderContext {
   readonly externalResourcePolicy: ChatExternalResourcePolicy;
   readonly streaming: boolean;
   readonly allowWideBlocks: boolean;
-  /**
-   * Product-surface capability matching Codex's remotely gated code-header
-   * behavior. A renderer must never infer this from viewport width or make it
-   * an unconditional property of every code block.
-   */
   readonly stickyCodeHeaders?: boolean;
   readonly fadeTimeline?: ChatFadeTimeline;
   readonly openResource?: (

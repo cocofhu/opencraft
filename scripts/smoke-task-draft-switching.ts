@@ -27,7 +27,7 @@ try {
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
     page.setDefaultTimeout(10000);
     await page.goto(origin);
-    const editor = page.locator('.codex-composer-editor[role="textbox"]');
+    const editor = page.locator('.opencraft-composer-editor[role="textbox"]');
     await editor.waitFor();
     await editor.fill(`Task A unfinished ${width}`);
     const choose = async () => {
@@ -39,20 +39,20 @@ try {
       { name: "capture.png", mimeType: "image/png", buffer: imageBytes },
       { name: "notes.md", mimeType: "text/markdown", buffer: markdownBytes },
     ]);
-    await page.locator('.codex-composer-image-attachment img').waitFor();
+    await page.locator('.opencraft-composer-image-attachment img').waitFor();
     await page.getByText("notes.md", { exact: true }).waitFor();
     const before = await page.evaluate(() => (window as any).__taskDraftFixture.snapshot());
     const image = before.attachments.find((asset: any) => asset.name === "capture.png");
     assert.match(image.previewUrl, /^blob:/u);
     assert.deepEqual(before.attachments.map((asset: any) => asset.lifecycle), ["processing", "uploading"]);
     await page.evaluate(() => (window as any).__taskDraftFixture.select("b"));
-    await page.waitForFunction(() => document.querySelector('.codex-composer-placeholder') !== null);
+    await page.waitForFunction(() => document.querySelector('.opencraft-composer-placeholder') !== null);
     await editor.fill("Task B independent");
     const b = await page.evaluate(() => (window as any).__taskDraftFixture.completeFiles());
     assert.equal(b.text, "Task B independent"); assert.deepEqual(b.attachments, []);
     assert.equal(b.jobs.every((job: any) => !job.aborted), true);
     await page.evaluate(() => (window as any).__taskDraftFixture.select("a"));
-    await page.waitForFunction(text => document.querySelector('.codex-composer-editor')?.textContent === text, `Task A unfinished ${width}`);
+    await page.waitForFunction(text => document.querySelector('.opencraft-composer-editor')?.textContent === text, `Task A unfinished ${width}`);
     const returned = await page.evaluate(() => (window as any).__taskDraftFixture.snapshot());
     assert.equal(returned.sameOriginalController, true);
     assert.equal(returned.viewId, before.viewId); assert.equal(returned.draftId, before.draftId);
@@ -61,24 +61,24 @@ try {
     assert.deepEqual(await page.evaluate(async preview => Array.from(new Uint8Array(await (await fetch(preview)).arrayBuffer())), image.previewUrl), Array.from(imageBytes));
     const retainedFiles = await page.evaluate(() => (window as any).__taskDraftFixture.retainedFileBytes());
     assert.deepEqual(retainedFiles.find((file: any) => file.name === "notes.md").bytes, Array.from(markdownBytes));
-    await page.waitForFunction(() => (document.querySelector('.codex-composer-image-attachment img') as HTMLImageElement | null)?.naturalWidth === 1);
+    await page.waitForFunction(() => (document.querySelector('.opencraft-composer-image-attachment img') as HTMLImageElement | null)?.naturalWidth === 1);
     const visited = await page.evaluate(() => (window as any).__taskDraftFixture.visitContent(25));
     assert.equal(visited.originalViewCached, false); assert.equal(visited.originalOwnerRetained, true);
     await page.evaluate(() => (window as any).__taskDraftFixture.select("a"));
-    await page.waitForFunction(text => document.querySelector('.codex-composer-editor')?.textContent === text, `Task A unfinished ${width}`);
+    await page.waitForFunction(text => document.querySelector('.opencraft-composer-editor')?.textContent === text, `Task A unfinished ${width}`);
     assert.equal((await page.evaluate(() => (window as any).__taskDraftFixture.snapshot())).sameOriginalController, true);
     const failed = await page.evaluate(() => (window as any).__taskDraftFixture.settle("failed"));
     assert.equal(failed.draftId, before.draftId); assert.equal(failed.attachments[0].previewUrl, image.previewUrl);
     const accepted = await page.evaluate(() => (window as any).__taskDraftFixture.settle("accepted"));
     assert.equal(accepted.hasContent, false); assert.deepEqual(accepted.attachments, []);
-    await page.locator('.codex-composer-image-attachment').waitFor({ state: "hidden" });
+    await page.locator('.opencraft-composer-image-attachment').waitFor({ state: "hidden" });
     assert.equal(await page.evaluate(async preview => { try { await fetch(preview); return false; } catch { return true; } }, image.previewUrl), true);
     await (await choose()).setFiles({ name: "revoke.png", mimeType: "image/png", buffer: imageBytes });
-    await page.locator('.codex-composer-image-attachment').waitFor();
+    await page.locator('.opencraft-composer-image-attachment').waitFor();
     const revoked = await page.evaluate(() => (window as any).__taskDraftFixture.revoke());
     assert.equal(revoked.hasContent, false); assert.equal(revoked.jobs.at(-1).aborted, true);
     await page.evaluate(() => (window as any).__taskDraftFixture.completeFiles());
-    await page.locator('.codex-composer-image-attachment').waitFor({ state: "hidden" });
+    await page.locator('.opencraft-composer-image-attachment').waitFor({ state: "hidden" });
     assert.equal((await page.evaluate(() => (window as any).__taskDraftFixture.snapshot())).sends, 0);
     assert.deepEqual(errors, []);
     console.log(`PASS ${width}px real Task editor: completed A→B→A, exact image/Markdown bytes, late preparation, >20 Views, failed/accepted settlement and account revoke; no sends`);

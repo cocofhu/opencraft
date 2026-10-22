@@ -23,7 +23,7 @@ try {
       const envelope = JSON.parse(String(payload)), frame = envelope.frame ? JSON.parse(envelope.frame) : envelope;
       if (writeMethods.has(frame.method)) writes.push(frame.method);
     }));
-    await page.addInitScript(() => localStorage.setItem('vela.appearance-theme', 'system'));
+    await page.addInitScript(() => localStorage.setItem('opencraft.appearance-theme', 'system'));
     await page.goto(base + '/views/opencraft.tasks.board');
     const card = page.locator('.tasks-card:visible').first(); await card.waitFor();
     const id = await card.getAttribute('data-task-id');

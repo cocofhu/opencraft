@@ -6,7 +6,7 @@ const {chromium}=playwright.default??playwright;
 await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
 try {
  const quick=process.argv.includes("--quick");
- for(const dpr of quick?[2]:[1,2,3]) for(const palette of quick?["codex"]:["codex","frost"]) for(const mode of quick?["light"]:["light","dark"]) for(const variant of quick?["newera"]:["newera","off","desktop"]){
+ for(const dpr of quick?[2]:[1,2,3]) for(const palette of quick?["opencraftNeutral"]:["opencraftNeutral","frost"]) for(const mode of quick?["light"]:["light","dark"]) for(const variant of quick?["newera"]:["newera","off","desktop"]){
   const context=await browser.newContext({viewport:{width:variant==="desktop"?1280:390,height:844},hasTouch:variant!=="desktop",deviceScaleFactor:dpr});
   const page=await context.newPage();const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");
@@ -14,8 +14,8 @@ try {
   await page.waitForFunction(()=>typeof(window as any).setTouch==="function");
   await page.evaluate(()=>{document.documentElement.dataset.timelineTracksVisualViewport="true";document.documentElement.style.setProperty("--timeline-visual-viewport-height","500px")});
   await page.evaluate(async variant=>{await(window as any).setTouch(variant!=="desktop");await(window as any).setNewera(variant==="newera");await(window as any).setQueue(true)},variant);
-  const rail=page.locator('.codex-composer-attached-rail'),shell=page.locator('.codex-composer-shell'),editor=page.locator('.codex-composer-editor');
-  await page.locator('.codex-composer-queue-item').waitFor();
+  const rail=page.locator('.opencraft-composer-attached-rail'),shell=page.locator('.opencraft-composer-shell'),editor=page.locator('.opencraft-composer-editor');
+  await page.locator('.opencraft-composer-queue-item').waitFor();
   const originalEditor=await editor.elementHandle();
   for(const state of ["idle","focused","draft"]){
    if(state==="focused")await editor.click();
@@ -36,7 +36,7 @@ try {
    if(state==="idle" && variant==="newera" && dpr===2){
     // Probe actual paint coverage against a contrasting backdrop, including the
     // border box. Geometry alone previously missed this one-pixel hairline.
-    const probe=await page.addStyleTag({content:`main,[aria-hidden]{background:black !important} .codex-composer-shell > *{visibility:hidden !important} .codex-composer-shell{border-color:transparent !important;box-shadow:none !important}.codex-composer-shell::before,.codex-composer-attached-rail::before{background:rgb(255,0,80) !important;backdrop-filter:none !important}`});
+    const probe=await page.addStyleTag({content:`main,[aria-hidden]{background:black !important} .opencraft-composer-shell > *{visibility:hidden !important} .opencraft-composer-shell{border-color:transparent !important;box-shadow:none !important}.opencraft-composer-shell::before,.opencraft-composer-attached-rail::before{background:rgb(255,0,80) !important;backdrop-filter:none !important}`});
     const bounds=await shell.boundingBox();const railBounds=await rail.boundingBox();
     const readGapPixels=async()=>{
      const png=await page.screenshot({clip:{x:Math.ceil(railBounds!.x)+2,y:Math.floor(bounds!.y)-1,width:Math.floor(railBounds!.width)-4,height:10}});
@@ -53,7 +53,7 @@ try {
    if(state==="idle"){
 
    }
-   if(variant==="newera")await page.locator('.codex-composer-stack').screenshot({animations:"disabled",path:`/tmp/rail-seam-${palette}-${mode}-${state}-dpr${dpr}.png`});
+   if(variant==="newera")await page.locator('.opencraft-composer-stack').screenshot({animations:"disabled",path:`/tmp/rail-seam-${palette}-${mode}-${state}-dpr${dpr}.png`});
   }
   await page.evaluate(()=>(window as any).setQueue(false));await rail.waitFor({state:'hidden'});
   assert.equal(await shell.evaluate(el=>getComputedStyle(el).borderTopLeftRadius),variant==="newera"?"28px":"16px");

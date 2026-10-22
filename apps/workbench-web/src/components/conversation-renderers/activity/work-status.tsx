@@ -48,7 +48,7 @@ export function ActivityDisclosureLabel({
   );
 }
 
-/** r3562 _A: the rule is a separate, full-width row BELOW the toggle. */
+/** The rule is a separate, full-width row BELOW the toggle. */
 export function ActivityDisclosureHeader({
   item,
   durationMs,
@@ -85,7 +85,7 @@ export function ActivityDisclosureHeader({
   );
 }
 
-/** r3562 ok: a standalone work divider, not the outer disclosure animation. */
+/** A standalone work divider, not the outer disclosure animation. */
 export function WorkStatusDivider({ item }: { readonly item: WorkStatusItem }) {
   const reducedMotion = useReducedMotion();
   const allowEntryMotion = useContext(ConversationEntryMotionContext);

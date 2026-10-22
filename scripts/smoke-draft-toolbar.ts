@@ -23,19 +23,19 @@ try {
     const page = await context.newPage(), errors: string[] = [];
     page.on("pageerror", error => { errors.push(error.message); console.error("PAGEERROR", error.message); });
     await page.goto(`${vite.resolvedUrls!.local[0]}?toolbar&theme=${theme}&policy=${policy}${width === 320 ? "&longPath" : ""}`);
-    const editor = page.locator(".codex-composer-editor"); await editor.waitFor(); console.log("MOUNT", width, theme, policy);
+    const editor = page.locator(".opencraft-composer-editor"); await editor.waitFor(); console.log("MOUNT", width, theme, policy);
     await editor.evaluate(element => { (window as any).keptEditor = element; });
-    const geometry = () => page.locator(".codex-composer-shell").evaluate(shell => {
+    const geometry = () => page.locator(".opencraft-composer-shell").evaluate(shell => {
       const rect = shell.getBoundingClientRect();
-      const header = shell.querySelector(".codex-composer-chrome-header")!.getBoundingClientRect();
-      const input = shell.querySelector(".codex-composer-input-row")!.getBoundingClientRect();
-      const footer = shell.querySelector(".codex-composer-footer")!.getBoundingClientRect();
-      const buttons = Array.from(shell.querySelectorAll<HTMLElement>(".codex-composer-footer button")).filter(button => button.offsetWidth && button.offsetHeight).map(button => {
+      const header = shell.querySelector(".opencraft-composer-chrome-header")!.getBoundingClientRect();
+      const input = shell.querySelector(".opencraft-composer-input-row")!.getBoundingClientRect();
+      const footer = shell.querySelector(".opencraft-composer-footer")!.getBoundingClientRect();
+      const buttons = Array.from(shell.querySelectorAll<HTMLElement>(".opencraft-composer-footer button")).filter(button => button.offsetWidth && button.offsetHeight).map(button => {
         const r = button.getBoundingClientRect();
         const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
         return { label: button.title || button.getAttribute("aria-label") || button.textContent, left: r.left, right: r.right, top: r.top, bottom: r.bottom, reachable: hit === button || button.contains(hit) };
       });
-      return { shell: rect.toJSON(), header: header.toJSON(), input: input.toJSON(), footer: footer.toJSON(), buttons, position: getComputedStyle(shell.querySelector(".codex-composer-footer__controls")!).position };
+      return { shell: rect.toJSON(), header: header.toJSON(), input: input.toJSON(), footer: footer.toJSON(), buttons, position: getComputedStyle(shell.querySelector(".opencraft-composer-footer__controls")!).position };
     });
     await page.waitForTimeout(180);
     const initial = await geometry();
@@ -49,15 +49,15 @@ try {
     };
     check(initial);
     if (width === 390 && policy === "session") await page.screenshot({ path: `${output}/${theme}-initial.png` });
-    const permission = page.locator(".codex-composer-mode--permissions");
+    const permission = page.locator(".opencraft-composer-mode--permissions");
     assert(await permission.isVisible());
     assert(initial.buttons.find(b => b.label?.includes("access") || b.label?.includes("访问"))?.reachable, "permission can be hit");
     await permission.click();
-    await page.locator(".codex-composer-selection-menu--permissions").waitFor();
-    await page.locator(".codex-composer-selection-menu--permissions [role=menuitem]").last().click();
+    await page.locator(".opencraft-composer-selection-menu--permissions").waitFor();
+    await page.locator(".opencraft-composer-selection-menu--permissions [role=menuitem]").last().click();
     if (policy !== "host-default") {
-      await page.locator(".codex-composer-mode--intelligence").click();
-      await page.locator(".codex-composer-selection-menu--intelligence[data-state=open]").waitFor();
+      await page.locator(".opencraft-composer-mode--intelligence").click();
+      await page.locator(".opencraft-composer-selection-menu--intelligence[data-state=open]").waitFor();
       await page.keyboard.press("Escape");
     }
     await editor.fill("保留当前草稿"); check(await geometry());

@@ -178,7 +178,6 @@ export class TurnResponsePositioningController {
     readonly responseSpacerHeightPx: number;
     readonly scrollPaddingBottomPx: number;
   }): { readonly distanceFromBottomPx: number; readonly scrollState: TurnFollowState } {
-    // Codex fO is a pure persistence projection. Being inside the synthetic
     // response spacer changes the checkpoint that will be restored later; it
     // must never grant follow ownership to the currently mounted viewport.
     // In particular, API cleanup can capture a checkpoint at the

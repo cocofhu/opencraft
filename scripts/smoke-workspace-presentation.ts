@@ -15,7 +15,7 @@ import{BrowserPresentationCoordinator}from'/apps/workbench-web/src/browser/brows
 import{BrowserWorkbenchCoordinator}from'/apps/workbench-web/src/browser/browser-workbench-coordinator.ts';
 import{createBrowserWorkbenchPanelPlugin}from'/apps/workbench-web/src/browser/browser-panel-plugin.tsx';
 import{createComposerController}from'@opencraft/composer-core';import{createConversationKey}from'@opencraft/chat-core';
-import{CodexComposer}from'@opencraft/codex-composer';
+import{OpenCraftComposer}from'@opencraft/composer-editor';
 import{AppShell}from'/apps/workbench-web/src/components/app-shell.tsx';
 import{RightPanel}from'/apps/workbench-web/src/components/right-panel.tsx';
 import{ThreadComposerPresentation}from'/apps/workbench-web/src/components/thread-composer-presentation.tsx';
@@ -41,7 +41,7 @@ const panel=()=> <RightPanel state={state} presentationId='view' renderers={rend
 return <AppShell layoutScope='scope' mainContentLayout='default' header={<span>Fixture workspace</span>} floatingSidebarHeader={()=>null} leftPanel={<p>Navigation</p>} sidebarOpen={sidebar} sidebarWidth={width} onSidebarCollapse={()=>setSidebar(false)} onSidebarExpand={()=>setSidebar(true)} onSidebarResizeEnd={setWidth} windowChrome={{kind:'browser',platform:'linux',safeArea:{left:0,right:0}}} rightPanel={panel('right')} rightPanelOpen={state.right.open} rightPanelFullWidth={state.rightPanelFullWidth} onRightPanelOpenChange={open=>panels.dispatch('scope',{type:'set-region-open',region:'right',open})}>
 <div style={{height:'100%',display:'flex',flexDirection:'column'}}><p style={{flex:1}}>Parent conversation</p>
 <ThreadComposerPresentation scopeId='scope' controller={controller} activeTabId={state.right.activeTabId} enabled={enabled} timeline={{key,revision:1,phase:'live',authoritative:true,anchorFrameIds:new Map(),frames:[{id:'user-frame',type:'user',turnId:'turn',status:'complete',durationMs:null,hookStats:null,anchors:[],blocks:[{id:'user-block',type:'text',text:'User intro must not be duplicated',sourceItemIds:[],streaming:false}]},{id:'assistant-frame',type:'assistant',turnId:'turn',status:'complete',durationMs:1000,hookStats:null,anchors:[],blocks:[{id:'answer',type:'text',text:'Latest answer preview\\n\\n'+('A bounded response paragraph.\\n\\n'.repeat(40)),sourceItemIds:['answer'],streaming:false,completed:true,phase:'final_answer'}]}]}} documentContext={{conversationId:'parent',hostId:'fixture-host',cwd:null,theme:'light'}}>
-<div className='thread-composer-region'><CodexComposer controller={controller} onSubmit={async intent=>{submitted.push(intent.target)}} onCancel={()=>{}} /></div>
+<div className='thread-composer-region'><OpenCraftComposer controller={controller} onSubmit={async intent=>{submitted.push(intent.target)}} onCancel={()=>{}} /></div>
 </ThreadComposerPresentation></div></AppShell>}
 createRoot(document.getElementById('root')).render(<TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><BrowserEnvironmentProvider pages={pages} surfaces={surfaces} presentations={presentations} workbench={workbench}><App/><BrowserPresentationRoot/></BrowserEnvironmentProvider></TimelineBlockRendererProvider>);`;
 const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error", cacheDir: "node_modules/.vite-workspace-presentation", resolve: { dedupe: ["react", "react-dom"] }, esbuild: { jsx: "automatic" }, server: { host: "127.0.0.1", port: 0 }, optimizeDeps: { include: ["react", "react-dom/client", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover", "@tanstack/react-query"] }, plugins: [{ name: "workspace-presentation-fixture", resolveId: id => id === "/workspace-probe.tsx" ? id : null, load: id => id === "/workspace-probe.tsx" ? source : null, configureServer(server) { server.middlewares.use((req,res,next) => { if (req.url === "/browser-fixture") { res.setHeader("content-type","text/html"); res.end('<title>Fixture web page</title><button onclick="this.textContent=String.fromCharCode(80,97,103,101,32,99,111,117,110,116,32)+(++window.count)">Page count 0</button><script>window.count=0</script>'); return; } if(req.url !== "/") return next();res.setHeader("content-type","text/html");res.end('<div id="root"></div><script type="module" src="/workspace-probe.tsx"></script>'); }); } }] });
@@ -62,7 +62,7 @@ try {
   assert.equal(await editor.count(), 1); assert.match(await editor.innerText(), /Keep this parent draft/);
   assert.equal(await editor.evaluate(element => element.closest("[inert]") !== null), false);
   await page.getByRole("textbox", { name: "Terminal input" }).fill("Still interactive behind overlay");
-  // Non-browser tools use Codex's default overlay, without browser peek handles.
+  // Non-browser tools use the default overlay, without browser peek handles.
   assert.equal(await page.getByRole("button", { name: "Hide chat input" }).count(), 0);
   assert.match(await editor.innerText(), /Keep this parent draft/);
   for (const theme of ["light", "dark"]) {
@@ -99,7 +99,7 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Latest turn', exact: true }).getAttribute('aria-expanded'), 'true');
   await page.getByRole('button', { name: 'Hide chat input', exact: true }).click();
   await page.waitForTimeout(180);
-  assert.equal(await page.locator('.codex-composer-editor').evaluate(e => Boolean(e.closest('[inert]'))), true);
+  assert.equal(await page.locator('.opencraft-composer-editor').evaluate(e => Boolean(e.closest('[inert]'))), true);
   const reveal = page.getByRole('button', { name: 'Show chat input', exact: true });
   await reveal.focus(); await reveal.press('Enter'); await page.waitForTimeout(180);
   assert.match(await editor.innerText(), /Keep this parent draft/);

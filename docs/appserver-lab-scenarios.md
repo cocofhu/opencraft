@@ -33,24 +33,15 @@ inbound blackholes and delayed-frame cancellation. Transport tests additionally
 cover stale WebSocket generation events, connect/close failures, abort error
 classification, binary frame ordering, and domain-ID-sensitive replay matching.
 
-## What was learned from Paseo
+## Scenario ownership
 
-The scenario selection follows behavior covered in these local Paseo suites:
+- A request timeout must not destroy a healthy transport; connection loss rejects in-flight work.
+- Reconnect lifecycle and grace windows are explicit protocol cases.
+- Stale generations cannot commit after a Host switch or refresh.
+- Resume, gaps, epoch changes, rewinds and buffered updates are separate state-machine cases.
+- Cursors are opaque continuation tokens rather than client-owned offsets.
 
-- `/data/paseo/packages/client/src/daemon-client.test.ts`: request timeout must
-  not destroy a healthy transport; connection loss rejects all in-flight work.
-- `/data/paseo/packages/server/src/server/websocket-server.relay-reconnect.test.ts`:
-  reconnect lifecycle and grace-window behavior are explicit protocol cases.
-- `/data/paseo/packages/app/src/runtime/host-runtime.test.ts`: stale generations
-  must not commit state after a host switch or refresh.
-- `/data/paseo/packages/app/src/timeline/session-stream-reducers.test.ts` and
-  `/data/paseo/packages/app/src/timeline/replica.test.ts`: resume, gaps, epoch
-  changes, rewinds and buffered updates are separate state-machine cases.
-- `/data/paseo/packages/server/src/server/pagination/cursor.test.ts`: cursors are
-  opaque continuation tokens rather than offsets owned by the client.
-
-OpenCraft copies the invariants, not Paseo's implementation. The Lab owns both the
-transport/Resume scenarios and a real Replica compatibility scenario.
+The Lab owns transport/Resume scenarios and a real Replica compatibility scenario.
 
 ## Exact Resume boundary
 

@@ -83,7 +83,7 @@ export function presentApprovalRequest(block: ApprovalTimelineBlock): ApprovalRe
         : canUseSession ? { kind: "session" as const, label: "Allow this conversation", info: null } : null;
   return {
     title: block.title,
-    // Codex treats network approval as a policy card, not as a command card.
+    // Network approval uses a policy card, not a command card.
     // The originating shell command is deliberately absent from the surface;
     // the host allow-list explanation occupies the secondary text slot.
     subtitle: block.approvalKind === "command" && !hasNetworkContext ? block.command : null,

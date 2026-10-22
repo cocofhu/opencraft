@@ -104,7 +104,7 @@ function dynamicResult(block: ToolCallTimelineBlock): Readonly<Record<string, un
 }
 
 /**
- * Codex gives its own thread tools a semantic renderer. They are not generic
+ * Native thread tools have a semantic renderer. They are not generic
  * expandable JSON calls, even though their AppServer transport carries JSON.
  */
 export function isCodexAppThreadTool(block: ToolCallTimelineBlock): boolean {

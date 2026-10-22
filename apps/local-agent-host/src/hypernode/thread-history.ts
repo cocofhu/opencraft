@@ -1,4 +1,3 @@
-// Source copy: ref/hypernode/policy/src/services/transparent-thread-history.ts
 export interface ProjectedThreadItem {
   id?: string | null;
   type?: string;

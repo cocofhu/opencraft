@@ -1,5 +1,5 @@
 .opencraft-chat-document {
-  --markdown-font-size: var(--codex-chat-font-size, var(--typography-chat-size));
+  --markdown-font-size: var(--opencraft-chat-font-size, var(--typography-chat-size));
   --markdown-line-height: calc(var(--markdown-font-size) + var(--typography-chat-leading));
   color: var(--color-text, var(--text-primary));
   font-family: var(--font-family-content);
@@ -80,7 +80,9 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
   li[data-task-item]:has(> p) > .chat-task-checkbox { margin-top: 0.25rem; }
-  li[data-task-item]:has(> p) > :not(.chat-task-checkbox) { grid-column: 2; }
+  // Grid placement is inert in inline task items; keep the broad child match
+  // independent of :has() to avoid invalidating unrelated editing subtrees.
+  li[data-task-item] > :not(.chat-task-checkbox) { grid-column: 2; }
 
   blockquote {
     position: relative;
@@ -164,7 +166,6 @@
   stroke-width: 1.8;
 }
 
-// Codex UserFormattedText keeps the shared Markdown renderer but applies the
 // Composer document rhythm instead of Agent prose spacing.
 .opencraft-chat-document[data-chat-document-dialect="user-message"] {
   white-space: pre-wrap;
@@ -187,7 +188,7 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-background-primary-ghost-hover, var(--alpha-06)) 60%, currentColor 6%);
   font-family: var(--font-family-mono);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   overflow-wrap: anywhere;
   word-break: break-word;
   direction: ltr;

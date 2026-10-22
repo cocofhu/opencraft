@@ -6,7 +6,7 @@ import type {
 } from "./types";
 import {
   buildTurnLayout,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   compensateDistanceFromBottom,
   findMeasuredViewportAnchor,
   updateTurnViewportState,
@@ -152,7 +152,7 @@ export function createTurnMeasurementTransaction<TEntry extends VirtualizedTurnE
     currentDistanceFromBottomPx, bottomPaddingPx, preserveMeasuredTurnViewport,
     getPendingRestoreScrollDistanceFromBottomPx,
     previousPendingTransaction: pending = null,
-    config = CODEX_TURN_VIRTUALIZER_CONFIG,
+    config = OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   } = options;
   const restoreTarget = preserveMeasuredTurnViewport
     ? null : getPendingRestoreScrollDistanceFromBottomPx?.() ?? null;
