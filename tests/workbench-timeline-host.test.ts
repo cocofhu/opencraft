@@ -1396,6 +1396,16 @@ test("thread edge-scroll is one measured AppShell state", () => {
     { headerEdgeScroll: true, threadEdgeDivider: false },
   );
 
+  for (const eligible of [false, true]) {
+    assert.deepEqual(resolveAppShellMainContentChrome({
+      layout: "thread-edge-scroll", threadEdgeScrollEligible: eligible, recessedHeader: true,
+    }), { headerEdgeScroll: false, threadEdgeDivider: true },
+    "a recessed reading plane and its depth must share the header boundary at every width");
+  }
+  assert.deepEqual(resolveAppShellMainContentChrome({
+    layout: "default", threadEdgeScrollEligible: true, recessedHeader: true,
+  }), { headerEdgeScroll: false, threadEdgeDivider: false });
+
   const threshold = THREAD_EDGE_SCROLL_MINIMUM_WIDTH_REM * 16;
   assert.equal(
     resolveThreadEdgeScroll({
