@@ -48,7 +48,7 @@ export function ReasoningBlock({ block, presentation, active = block.streaming, 
   return <div className="thread-reasoning" data-conversation-row="activity" data-reasoning-id={block.id} data-reasoning-active={active}>
     <ActivityDisclosure
       icon={<Brain />}
-      summary={active ? <CadencedShimmer active><ThinkingLabel /></CadencedShimmer> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
+      summary={active ? <ThinkingLabel /> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
       detail={selected.header}
       running={active}
       open={open}

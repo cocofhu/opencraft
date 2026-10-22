@@ -16,6 +16,7 @@ import { useDisclosureHeight } from "../../use-disclosure-height";
 import { ConversationDocumentContext, browserReadableImageSource } from "../../conversation/document-context";
 import { useConversationMediaSource } from "../../conversation/conversation-media-source";
 import { ModalSurface } from "../../modal";
+import { ActivityRowContent } from "../activity/activity-row-content";
 import { ActivityIcon, activityIcon } from "../activity/activity-icon";
 import { AutomaticApprovalReviewIcon, AutomaticApprovalReviewList } from "../activity/command-and-review-renderers";
 import { ActivityDisclosure, useActivityOpen } from "../activity/activity-disclosure";
@@ -152,8 +153,8 @@ function ThreadTool({ block }: { block: Tool }) {
       </div>
     </ActivityDisclosure>;
   }
-  const summary = <><ActivityIcon>{activityIcon(presentation.icon)}</ActivityIcon>
-    <span className="thread-activity-item__summary">{presentation.summary}</span></>;
+  const summary = <ActivityRowContent icon={activityIcon(presentation.icon)} summary={presentation.summary}
+    running={presentation.state === "running"} />;
   return target !== null ? <button type="button" className="thread-codex-app-tool-row thread-activity-item__header is-interactive" aria-label="Open chat"
     disabled={navigation.open === null} onClick={() => navigation.open?.(target.threadId, target.displayName)}>{summary}</button>
     : <div className="thread-codex-app-tool-row thread-activity-item__header">{summary}</div>;
@@ -207,7 +208,7 @@ export function ImageViewToolBlock({ block }: { readonly block: Tool }) {
   const paths = block.imagePaths ?? [];
   const summary = (running ? "Viewing " : "Viewed ") + (paths.length > 1 ? paths.length + " images" : "an image");
   return <ActivityDisclosure icon={<ImageIcon />} summary={summary} open={open} onOpenChange={setOpen}
-    running={false} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
+    running={running} status={running ? "running" : block.status === "failed" ? "failed" : block.status === "interrupted" ? "interrupted" : "completed"} bodyVariant="grouped">
     {paths.length > 0 ? <div className="thread-image-view"><div className="thread-image-view__strip">{paths.map((path, index) =>
       <InspectedImage key={path + ":" + index} path={path} index={index} id={block.id + ":" + index} />)}</div></div> : undefined}
   </ActivityDisclosure>;

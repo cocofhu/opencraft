@@ -97,8 +97,9 @@ Collapsed groups pass their real active state to the shared rail. Expanding hand
 motion to visible running activity rows. Summary-only exploration (such as an
 in-progress read) keeps its header motion when expanded because there is no active
 body row. The renderer derives this from existing visibility and presentation. Thinking-only
-group summaries use the shared reasoning icon, not a second spinner. Process
-summary text stays static rather than duplicating the glyph motion with shimmer.
+group summaries use the shared reasoning icon, not a second spinner. All running process
+summary text also uses the shared cadenced shimmer. Settled summaries remain static;
+reduced motion suppresses the text sweep alongside glyph detail motion.
 The standalone review and other non-process shimmer consumers keep their owners.
 No timers or animation completion callback can change task execution state.
 
@@ -111,3 +112,12 @@ frame has a continuous rounded corner and a centered prompt. Static model,
 terminal, book and edit controls consume the same base artwork without overlays.
 The retained sidebar/split/gear artwork, collaboration numeral font, existing rail
 metrics, theme colors and reading hierarchy stay unchanged.
+
+
+All process row variants compose `ActivityRowContent`: disclosure headers,
+noninteractive summaries, group headers and navigable agent tool rows. It owns
+both the glyph rail and the single summary sweep from required `running` input.
+Group headers may override glyph motion for handoff while text continues to use
+current running state outside deferred summary snapshots. Callers provide raw
+summary content; they never wrap another process shimmer. `CadencedShimmer` stays
+a leaf primitive for independent plan/approval/loading consumers.
