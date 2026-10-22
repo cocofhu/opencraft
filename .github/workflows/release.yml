@@ -247,6 +247,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.request.outputs.tag }}
           NPM_CONFIG_USERCONFIG: ${{ runner.temp }}/opencraft-npmrc
+          NPM_CONFIG_LOGLEVEL: verbose
         run: |
           VERSION="${RELEASE_TAG#v}"
           PACKAGE="$(node -p "require('./packaging/web-server/package.json').name")"
