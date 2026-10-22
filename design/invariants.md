@@ -2195,6 +2195,32 @@ touch interaction is active. Keep participant artwork, count circles, independen
 action lanes and section/list gaps at their existing sizes; compact density must
 not change metadata rows or other navigation owners.
 
+
+## Tasks first-round research disposition
+
+AI research triage is a task property independent of workflow, assignment and
+conversation execution. One authority event projection feeds card/list summaries,
+filters and the existing editor draft. An unassessed default is distinct from
+missing context or a pending human decision. Assessment changes never create a
+conversation, claim a research result or start decision-wait timing. Capability
+absence hides unsupported controls; saved rationale and disposition survive
+legacy edits and view changes. See docs/tasks-model.md.
+
+
+## Tasks morning overview
+
+Morning overview is a read-only projection of the task controller snapshot, with explicit metric and waiting-time placeholders. Browse filters cannot silently narrow its whole-board triage counts. Terminal tasks are excluded from current attention groups; eligibility, workflow state and idle conversations cannot substitute for completed work or a decision-ready handoff. The entry/back controls preserve mounted browse state, scroll, editor drafts and focus. Existing detail/refresh commands retain their owners; no additional task store, mutation or scheduling is introduced.
+
+- Morning research overview excludes context requests/unassessed items. Only an
+  explicit decision-ready research report in the current review round starts the
+  human wait clock; strict >72h highlights are ordered longest first. Ordinary
+  progress, triage and task timestamps cannot establish/reset that clock. Leaving
+  review ends the round; unknown history stays unknown. The morning view is read-only.
+
+### AI follow-up cards and Morning separation
+
+AI follow-up is a peer of Board and List on the Tasks home, with no business metrics. Morning is a separate risk/key-exploration surface whose detailed content is deferred. AI follow-up cards contain title, decision question, human waiting time, Owner and a direct conversation destination. Owner filtering applies consistently to all task groups and summary counts, independently of board browsing filters. Research output, next step and rationale stay in source progress/conversations rather than card disclosures. Waiting authority and the strict 72-hour threshold remain unchanged. Missing links are explicit; multiple links use the existing accessible menu. Navigation never approves or starts work. Cards reflow within the Tasks container using shared typography, semantic paired colors and Settings controls.
+
 ## Offscreen ordinary navigation rows
 
 Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
