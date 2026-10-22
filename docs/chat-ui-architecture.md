@@ -2553,3 +2553,16 @@ The complete search fixture supplies the same QueryClientProvider required by
 the AppShell update notice. Touch navigation targets the persistent sidebar
 action owner, rather than the desktop-only stationary placement marker.
 These fixture boundaries retain all original native interaction assertions.
+
+### Composer model menu close continuity
+
+The quick reasoning view and model list share one native Radix menu. Keep the
+current view mounted while the menu closes so its exit animation can finish.
+Reset the model-list view on the next opening, rather than changing the content
+class during the closing animation. Escape, outside dismissal and touch editing
+retain the same focus owner; reopening starts at the quick reasoning view.
+The original Composer smoke exercises native menu close with motion enabled.
+
+Keyboard reopening checks wait for the native close-focus cleanup to restore
+the trigger before sending ArrowDown; menu disappearance alone does not signal
+that deferred native focus cleanup has finished.
