@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import gitDiffCases from "./fixtures/turn-diff-git-cases.json";
 
 import {
   aggregateUserInputQuestionAnswers,
@@ -73,7 +74,7 @@ function activityHeaderFor(
   return deriveAgentActivityHeaderPresentation(group);
 }
 
-test("Hook lifecycle summaries match Codex counts, filtering, and adjacent-run coalescing", () => {
+test("Hook lifecycle summaries preserve counts, filtering, and adjacent-run coalescing", () => {
   const stats = summarizeHookRuns([
     {
       id: "lint",
@@ -1290,7 +1291,7 @@ test("adjacent imageView tool calls coalesce into one expandable visual activity
   assert.equal(presentToolActivity(third).summary, "Viewed an image");
 });
 
-test("node_repl MCP calls use Codex's terminal activity icon", () => {
+test("node_repl MCP calls use the terminal activity icon", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-node-repl",
     status: "complete",
@@ -2113,7 +2114,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated exactly like Codex", () => {
+test("MCP JSON text is promoted and deduplicated by stable resource identity", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",
@@ -2312,6 +2313,39 @@ test("unified diff projection preserves line numbers and highlights paired edits
   assert.equal(addition?.newLine, 9);
   assert.deepEqual(deletion?.oldSegments?.filter((segment) => segment.changed).map((segment) => segment.text), ["1"]);
   assert.deepEqual(addition?.newSegments?.filter((segment) => segment.changed).map((segment) => segment.text), ["2"]);
+});
+
+test("real Git operator edits retain code, line numbers and intraline highlighting", () => {
+  const entry = gitDiffCases.find(entry => entry.name === "operators")!;
+  const lines = parseUnifiedDiff(entry.diff);
+  const edits = lines.filter(line => line.kind === "addition" || line.kind === "deletion");
+  assert.deepEqual(edits.map(({ kind, content, oldLine, newLine }) => ({ kind, content, oldLine, newLine })), [
+    { kind: "deletion", content: "--counter;", oldLine: 1, newLine: null },
+    { kind: "deletion", content: "old", oldLine: 2, newLine: null },
+    { kind: "addition", content: "++counter;", oldLine: null, newLine: 1 },
+    { kind: "addition", content: "new", oldLine: null, newLine: 2 },
+  ]);
+  assert.deepEqual(edits[0]!.oldSegments?.filter(segment => segment.changed).map(segment => segment.text), ["--"]);
+  assert.deepEqual(edits[2]!.newSegments?.filter(segment => segment.changed).map(segment => segment.text), ["++"]);
+  assert.equal(lines.at(-1)?.kind, "meta", "the final patch separator is not another source line");
+  assert.equal(lines.at(-1)?.oldLine, null);
+  assert.equal(lines.at(-1)?.newLine, null);
+});
+
+test("real Git sections isolate line numbers from binary, rename and mode metadata", () => {
+  const patch = gitDiffCases.map(entry => entry.diff).join("");
+  const lines = parseUnifiedDiff(patch);
+  assert.equal(lines.filter(line => line.kind === "addition").length, gitDiffCases.reduce((sum, entry) => sum + entry.expected.additions, 0));
+  assert.equal(lines.filter(line => line.kind === "deletion").length, gitDiffCases.reduce((sum, entry) => sum + entry.expected.deletions, 0));
+  assert.equal(lines.filter(line => line.kind === "context").length, 0, "these actual Git fixtures contain no unchanged hunk lines");
+  for (const line of lines.filter(line => line.kind === "meta" || line.kind === "hunk")) {
+    assert.equal(line.oldLine, null, line.text);
+    assert.equal(line.newLine, null, line.text);
+  }
+  const partial = parseUnifiedDiff("+new\n-old");
+  assert.deepEqual(partial.map(({ kind, oldLine, newLine }) => [kind, oldLine, newLine]), [
+    ["addition", null, null], ["deletion", null, null],
+  ], "partial observations remain readable without fabricated line numbers");
 });
 
 test("tool presentation registry is priority ordered and reversibly extensible", () => {
