@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import React, { useEffect, useState } from "react";
 import { createConversationKey } from "@opencraft/chat-core";
 import { createComposerController, composerDocumentToPlainText } from "@opencraft/composer-core";
@@ -13,7 +13,7 @@ import { createVoiceInputAction } from "../../plugins/voice-input/src/voice-inpu
 import type { SpeechInputObserver } from "../../plugins/voice-input/src/speech-input-provider";
 import "../../apps/workbench-web/src/styles/app.scss";
 const params = new URLSearchParams(location.search), mode = params.get("mode") === "dark" ? "dark" : "light";
-const palette = (themes as any)[`${params.get("palette") ?? "codex"}ThemePalette`];
+const palette = params.has("palette") ? (themes as any)[`${params.get("palette")}ThemePalette`] : themes.opencraftNeutralThemePalette;
 document.documentElement.dataset.theme = mode;
 for (const [key, value] of Object.entries(themes.buildOpenCraftThemeCssProperties(mode, palette[mode]))) document.documentElement.style.setProperty(key, value);
 const controller = createComposerController({ type: "existing-thread", key: createConversationKey("local", "test") }, { now: () => 100, createId: () => "draft" });

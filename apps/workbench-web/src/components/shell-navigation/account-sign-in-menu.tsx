@@ -1,4 +1,4 @@
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import { useIntl } from "@opencraft/i18n/react";
 import { ArrowUpRight, Settings } from "lucide-react";
 import { useEffect, useState } from "react";

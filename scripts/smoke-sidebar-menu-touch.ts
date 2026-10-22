@@ -62,6 +62,13 @@ try {
     p = await point(); await send("touchStart", [p]); await send("touchCancel", []); await closed();
     p = await point(); await send("touchStart", [p]); await page.waitForTimeout(650); await send("touchEnd", []); await closed();
     p = await point(); await send("touchStart", [p]); await send("touchStart", [p, { ...p, x: 100, id: 2 }]); await send("touchEnd", []); await closed();
+    // The toolbar filter is the same direct-touch rule, with uncontrolled Radix state.
+    const filter = page.locator('.sidebar-list-mode-trigger');
+    const fb = (await filter.boundingBox())!; p = { x: fb.x + fb.width / 2, y: fb.y + fb.height / 2, id: 1 };
+    await send('touchStart', [p]); await page.waitForTimeout(120); await closed();
+    await send('touchCancel', []); await closed();
+    await filter.tap(); await page.getByRole('menu').waitFor();
+    await page.keyboard.press('Escape'); await closed();
     // A fresh ordinary tap still opens immediately, once, and invokes one action.
     await trigger.tap(); await page.getByRole("menuitem", { name: "Pin", exact: true }).waitFor();
     assert.equal(await page.getByRole("menu").count(), 1);

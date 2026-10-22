@@ -1,7 +1,7 @@
 import { threadGoalNeedsResume } from "@opencraft/appserver-protocol";
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, CirclePause, MoreHorizontal, Pencil, Play, Target, Trash2, X } from "lucide-react";
 import type { ThreadGoalResource, ThreadGoalSnapshot } from "@opencraft/workbench-runtime";

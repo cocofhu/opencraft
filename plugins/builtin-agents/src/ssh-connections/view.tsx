@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import * as Menu from "@radix-ui/react-dropdown-menu";
+import * as Menu from "@opencraft/design-system-web/dropdown-menu";
 import { Ellipsis, Globe2, LogOut, Plus, RefreshCw, Settings, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SettingsActions, SettingsButton, SettingsGroup, SettingsIconButton, SettingsListItem, SettingsNotice, SettingsPageHeader, SettingsRow, SettingsSection, SettingsSwitch, SettingsTextInput } from "@opencraft/extension-react";

@@ -1845,3 +1845,11 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
   outside the hit area or a hold beyond 500ms invalidates that tap. These guards
   never prevent native scrolling. Row long-press/right-click and Radix keyboard,
   focus, dismissal and the single Sidebar menu owner remain unchanged.
+
+
+Web dropdown consumers use design-system-web/dropdown-menu. Direct touch/pen
+opens only after a valid completed tap; movement, ancestor scrolling, cancel,
+multiple pointers, release outside or holding invalidates it. Native pan remains
+available. Radix owns mouse, keyboard, nested menus, focus and dismissal. Composer
+model, permission and Add controls preserve the editor focus and selection on
+touch; opening one retires the other picker without a delayed activation.

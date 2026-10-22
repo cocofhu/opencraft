@@ -8,7 +8,7 @@ import {
 import { BrowserDeviceToolbar, BrowserDeviceHandles } from "./browser-device-toolbar";
 import { useIntl } from "@opencraft/i18n/react";
 import type { Context } from "@deepseek-ai/cordis";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import * as DropdownMenu from "@opencraft/design-system-web/dropdown-menu";
 import type { PanelToolbarActionContext } from "@opencraft/workbench-panels";
 import type { PanelRendererProps } from "@opencraft/workbench-panels-react";
 import { usePanelPresentation } from "../components/panel-presentation";
