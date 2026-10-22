@@ -1,0 +1,57 @@
+@use "@opencraft/design-system/typography.web" as type;
+
+.tasks-ai-follow-up {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--spacing) * 5);
+  @include type.role(body);
+  &__intro { margin-bottom: calc(var(--spacing) * 4); }
+  &__intro > p { margin: 0 0 calc(var(--spacing) * 2); }
+  &__brief span, &__empty {
+    @include type.role(metadata);
+    color: var(--color-text-secondary);
+  }
+  h3, h4 { @include type.role(sidebar-section); margin: 0; }
+  &__brief { display: flex; gap: calc(var(--spacing) * 3); margin-bottom: calc(var(--spacing) * 6); padding: calc(var(--spacing) * 5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-xl); background: var(--color-background-elevated-secondary); }
+  &__brief > svg { flex-shrink: 0; color: var(--color-text-secondary); }
+  &__brief > div { min-width: 0; }
+  &__brief p { margin: 0 0 calc(var(--spacing) * 2); }
+  &__counts { display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 4) calc(var(--spacing) * 8); margin-block: calc(var(--spacing) * 4); }
+  &__counts > span { display: flex; flex-direction: column; gap: var(--spacing); }
+  &__counts strong { @include type.role(settings-title); color: var(--color-text); }
+  &__counts .tasks-ai-follow-up__count--warning, &__count--warning strong { color: var(--color-text-warning); }
+  &__groups { display: flex; flex-direction: column; gap: calc(var(--spacing) * 6); }
+  &__group-heading { display: flex; align-items: center; gap: calc(var(--spacing) * 2); margin-bottom: calc(var(--spacing) * 3); }
+  &__group-heading > span { @include type.role(metadata); color: var(--color-text-secondary); }
+  &__group > ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: calc(var(--spacing) * 4); list-style: none; margin: 0; padding: 0; }
+  &__empty { margin: 0; padding-block: calc(var(--spacing) * 2); }
+  &__item { min-width: 0; padding: calc(var(--spacing) * 5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-xl); background: var(--color-background-elevated-primary); }
+  &__item--overdue { border-inline-start: var(--spacing) solid var(--color-text-warning); }
+  &__filters { display: flex; flex-wrap: wrap; margin-bottom: calc(var(--spacing) * 4); }
+  &__filters label { display: flex; align-items: center; gap: calc(var(--spacing) * 3); min-width: 0; max-width: 100%; }
+  &__filters select { min-width: 0; max-width: 100%; }
+  &__unlinked { @include type.role(metadata); color: var(--color-text-secondary); }
+  &__wait { margin-block: calc(var(--spacing) * 3) 0; @include type.role(metadata); display: inline-flex; align-items: center; gap: var(--spacing); color: var(--color-text-secondary); }
+  &__wait svg { flex-shrink: 0; }
+  &__item--overdue &__wait { color: var(--color-text-warning); }
+  &__item h4 { @include type.role(panel-title); overflow-wrap: anywhere; }
+  &__handoff { display: grid; gap: calc(var(--spacing) * 4); margin: calc(var(--spacing) * 4) 0 0; }
+  &__handoff dt { @include type.role(metadata); color: var(--color-text-secondary); margin-bottom: calc(var(--spacing) * 2); }
+  &__handoff dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  &__decision { padding: calc(var(--spacing) * 3); border-radius: var(--radius-md); background: var(--color-background-elevated-secondary); }
+  &__item-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(var(--spacing) * 3); border-top: 1px solid var(--color-border-subtle); padding-top: calc(var(--spacing) * 3); margin-top: calc(var(--spacing) * 3); }
+  &__item-footer > div { min-width: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: calc(var(--spacing) * 2); @include type.role(metadata); }
+  &__item-footer > div > span:first-child { color: var(--color-text-secondary); }
+
+}
+@container tasks (max-width: 960px) {
+  .tasks-ai-follow-up__group > ul { grid-template-columns: minmax(0, 1fr); }
+}
+@container tasks (max-width: 420px) {
+  .tasks-ai-follow-up__brief, .tasks-ai-follow-up__item { padding: calc(var(--spacing) * 3); }
+  .tasks-ai-follow-up__brief > svg { display: none; }
+  .tasks-ai-follow-up__counts { gap: calc(var(--spacing) * 3); }
+}

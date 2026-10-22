@@ -49,11 +49,13 @@ import { TasksArchiveController } from "./archive-controller";
 import { TasksController } from "./controller";
 import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
+import { AIFollowUp } from "./ai-follow-up";
 import { MorningOverview } from "./morning-overview";
 import { parseResearchHandoff } from "./research-handoff";
 const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
   morningOverview: ["晨会总览", "Morning overview"],
+  aiFollowUp: ["AI 跟进", "AI follow-up"],
   morningShort: ["晨会", "Morning"],
   aiResearch: ["AI 主动预研", "AI research"],
   allResearch: ["全部预研判断", "All research dispositions"],
@@ -304,7 +306,7 @@ function linkKey(link: Pick<TaskConversation, "serverId" | "threadId">): string 
   return JSON.stringify([link.serverId, link.threadId]);
 }
 interface ViewDraft {
-  mode: "board" | "list";
+  mode: "board" | "list" | "ai";
   status: TaskStatus;
   project: string;
   search: string;
@@ -1142,6 +1144,7 @@ export function createTasksView(
   preferences?: TrustedExtensionApiV1["localPreferences"],
 ) {
   const localSelections = new Map<string, string>();
+  const aiOwnerSelections = new Map<string, string>();
   let controller: TasksController | null = null;
   let archiveController: TasksArchiveController | null = null;
   const positions = new Map<string, number>();
@@ -1163,6 +1166,7 @@ export function createTasksView(
       for (const activity of activities.values()) activity.dispose();
       activities.clear();
       localSelections.clear();
+      aiOwnerSelections.clear();
       remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "" };
     },
     { once: true },
@@ -1543,7 +1547,7 @@ export function createTasksView(
               </>}
             </div>
           </div>
-          <header className="tasks-toolbar" hidden={managementOpen || morningOpen}>
+          <header className={`tasks-toolbar${draft.mode === "ai" && !overviewOpen ? " tasks-toolbar--ai-follow-up" : ""}`} hidden={managementOpen || morningOpen}>
             <SegmentedControl
               className="tasks-view-switch"
               label={t("view")}
@@ -1555,9 +1559,11 @@ export function createTasksView(
               options={[
                 { value: "board", label: <><Columns3 className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("board")}</span></> },
                 { value: "list", label: <><List className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("list")}</span></> },
+                { value: "ai", label: <><MessageSquare className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("aiFollowUp")}</span></> },
                 ...(ports.conversationOverview ? [{ value: "overview", label: <><ChartNoAxesCombined className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("conversationOverview")}</span></> }] : []),
               ]}
             />
+            {draft.mode !== "ai" || overviewOpen ? <>
             <SettingsTextInput className="tasks-search" aria-label={t("searchTasks")} placeholder={t("searchTasks")} type="search" value={draft.search} onChange={e=>change({search:e.target.value})} />
             {state.properties ? <SettingsButton className="tasks-mine" variant="quiet" aria-label={t("myTasks")} title={t("myTasks")} aria-pressed={draft.assignee === "mine"} onClick={() => {
               change({ assignee: draft.assignee === "mine" ? "" : "mine" });
@@ -1567,8 +1573,9 @@ export function createTasksView(
               <SlidersHorizontal size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("filters")}</span>
               {(draft.assignee || draft.project || draft.overdue || draft.kind || draft.aiResearch) ? <span className="tasks-filter-count" aria-hidden="true">{Number(!!draft.assignee)+Number(!!draft.project)+Number(draft.overdue)+Number(!!draft.kind)+Number(!!draft.aiResearch)}</span> : null}
             </SettingsButton>
+            </> : null}
             <SettingsButton className="tasks-refresh tasks-icon-action" variant="ghost" aria-label={t("refreshBoard")} title={t("refreshBoard")} aria-busy={refreshing} disabled={state.pending || refreshing || state.phase === "loading"} onClick={() => void refreshTasks()}><RefreshCw size={18} aria-hidden="true" /></SettingsButton>
-            <div id={filterId} className="tasks-filters" hidden={!filtersOpen} role="group" aria-label={t("filters")}>
+            <div id={filterId} className="tasks-filters" hidden={!filtersOpen || (draft.mode === "ai" && !overviewOpen)} role="group" aria-label={t("filters")}>
             {state.aiResearch ? <label>{t("aiResearch")}<SettingsSelect aria-label={t("aiResearch")} value={draft.aiResearch} onChange={event => change({ aiResearch: event.target.value })}><option value="">{t("allResearch")}</option>{TASK_AI_RESEARCH.map(mode => <option key={mode} value={mode}>{researchLabel(mode, t)}</option>)}</SettingsSelect></label> : null}
             {state.planning ? <label>{t("kind")}<SettingsSelect aria-label={t("kind")} value={draft.kind} onChange={event => change({ kind: event.target.value })}><option value="">{t("allKinds")}</option>{[...new Set([...TASK_KINDS, ...state.tasks.map(task => task.kind ?? "unclassified")])].map(kind => <option key={kind} value={kind}>{kt(kind)}</option>)}</SettingsSelect></label> : null}
             {state.properties ? <>
@@ -1623,7 +1630,8 @@ export function createTasksView(
               <SettingsButton disabled={refreshing} onClick={() => void refreshTasks()}>{t("retry")}</SettingsButton>
             </div>
           ) : <>
-          {morningOpen ? <MorningOverview tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} activity={state.activity} port={morningPort} onOpen={task => openEditor(task)} /> : null}
+          {morningOpen ? <MorningOverview /> : null}
+          {draft.mode === "ai" && !morningOpen && !managementOpen && !overviewOpen ? <AIFollowUp tasks={state.tasks} members={state.members} aiResearch={state.aiResearch} activity={state.activity} port={morningPort} ownerFilter={aiOwnerSelections.get(memberScope) ?? ""} onOwnerFilterChange={value => { aiOwnerSelections.set(memberScope, value); refreshLocalSelection(epoch => epoch + 1); }} onOpenConversation={host.openConversation ? open : undefined} /> : null}
           {archiveOpen && state.archive ? <ArchivePanel model={archives} members={state.members} pending={state.pending} reportError={reportError} ports={ports} session={editorSession}
             activityFor={item => { let activity = activities.get(item.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, item.id, () => {}); activities.set(item.id, activity); } return activity; }}
             onRead={id => ports.request(authority!, TASKS.read, { id })} onOpen={open} onRestore={async item => { const saved = await model.mutate(TASKS.unarchive, { id: item.id, expectedRevision: item.revision }); await archives.refresh(); return saved; }} /> : null}
@@ -1641,7 +1649,7 @@ export function createTasksView(
               </li>)}
             </ul>}
           </section>
-          <div className="tasks-active-view" hidden={managementOpen || morningOpen}>
+          <div className="tasks-active-view" hidden={managementOpen || morningOpen || draft.mode === "ai"}>
           {draft.mode === "board" ? (
             <SegmentedControl
               className="tasks-statuses tasks-compact-only"
