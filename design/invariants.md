@@ -1977,3 +1977,5 @@ interrupting capture, controls or bounded sample collection; changing preference
 and unmounting retain a single paint/listener owner.
 
 Longing suppresses the conversation frame top-divider paint through the same recessed-material policy as the titlebar. Keep the frame border geometry so the theme switch preserves content position; other themes retain their strong divider color.
+
+Longing pane and titlebar depth uses the shared diffuse prominent elevation without its hairline outline. Keep the original blur layers, geometry and existing separator suppression; other themes retain their own elevation policy.
