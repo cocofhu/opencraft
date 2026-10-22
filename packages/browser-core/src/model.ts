@@ -8,15 +8,29 @@ export type BrowserTabId = string & {
   readonly __brand: "BrowserTabId";
 };
 
+export type BrowserDeviceProfile = "desktop" | "iphone" | "ipad" | "android-phone" | "android-tablet" | "desktop-touch";
+
 export type BrowserViewportMode =
   | { readonly type: "responsive" }
   | { readonly type: "fit"; readonly width: number; readonly height: number }
   | {
       readonly type: "device";
       readonly presetId: string;
+      /** Retain device semantics when a preset is resized into custom dimensions. */
+      readonly deviceProfile?: BrowserDeviceProfile;
       readonly width: number;
       readonly height: number;
     };
+
+export function browserViewportDeviceProfile(mode: BrowserViewportMode): BrowserDeviceProfile {
+  if (mode.type !== "device") return "desktop";
+  if (mode.deviceProfile) return mode.deviceProfile;
+  if (mode.presetId.startsWith("iphone-")) return "iphone";
+  if (mode.presetId.startsWith("ipad-")) return "ipad";
+  if (["pixel-8", "samsung-galaxy-s24-ultra", "surface-duo"].includes(mode.presetId)) return "android-phone";
+  if (mode.presetId === "surface-pro-7") return "desktop-touch";
+  return "desktop";
+}
 
 export const DEFAULT_BROWSER_VIEWPORT_MODE: BrowserViewportMode = {
   type: "responsive",
@@ -41,6 +55,7 @@ export function normalizeBrowserViewportMode(
   const candidate = value as {
     readonly type?: unknown;
     readonly presetId?: unknown;
+    readonly deviceProfile?: unknown;
     readonly width?: unknown;
     readonly height?: unknown;
   };
@@ -58,7 +73,9 @@ export function normalizeBrowserViewportMode(
     };
     if (candidate.type === "fit") return { type: "fit", ...dimensions };
     if (typeof candidate.presetId === "string" && candidate.presetId !== "") {
-      return { type: "device", presetId: candidate.presetId, ...dimensions };
+      const deviceProfile = ["desktop", "iphone", "ipad", "android-phone", "android-tablet", "desktop-touch"].includes(candidate.deviceProfile as string)
+        ? candidate.deviceProfile as BrowserDeviceProfile : undefined;
+      return { type: "device", presetId: candidate.presetId, ...dimensions, ...(deviceProfile ? { deviceProfile } : {}) };
     }
   }
   return DEFAULT_BROWSER_VIEWPORT_MODE;

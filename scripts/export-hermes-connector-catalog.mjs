@@ -1,5 +1,4 @@
 // Emit a public, build-time browsing projection. Runtime state is never copied.
-// Icons beside the generated file are copied from the same Overmind marketplace snapshot.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 if (!process.argv[2]?.trim()) throw new Error('Usage: node scripts/export-hermes-connector-catalog.mjs <marketplace-directory>; this optional product snapshot is not included in OpenCraft.');

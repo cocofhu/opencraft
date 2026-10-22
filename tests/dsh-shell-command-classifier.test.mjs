@@ -24,7 +24,7 @@ test("vendored corpus contains every upstream parse_command parser assertion", (
 });
 
 for (const fixture of upstream.cases) {
-  test(`Codex parse_command parity: ${fixture.test} ${JSON.stringify(fixture.argv)}`, () => {
+  test(`parse_command corpus: ${fixture.test} ${JSON.stringify(fixture.argv)}`, () => {
     assert.deepEqual(parseCommand(fixture.argv), fixture.expected);
   });
 }
@@ -32,27 +32,27 @@ for (const fixture of upstream.cases) {
 // These six upstream tests exercise the formatting helper directly rather than
 // going through assert_parsed. Keep the cases and assertions structurally equal
 // to codex-shell-command's parse_command.rs tests.
-test("Codex parity: small_formatting_always_true_commands", () => {
+test("Formatting helper corpus: small_formatting_always_true_commands", () => {
   for (const cmd of ["wc", "tr", "cut", "sort", "uniq", "xargs", "tee", "column"]) {
     assert.equal(isSmallFormattingCommand(tokenizeShellWords(cmd)), true);
     assert.equal(isSmallFormattingCommand(tokenizeShellWords(`${cmd} -x`)), true);
   }
 });
 
-test("Codex parity: awk_behavior", () => {
+test("Formatting helper corpus: awk_behavior", () => {
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk '{print $1}'")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk '{print $1}' Cargo.toml")), false);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("awk -f script.awk Cargo.toml")), false);
 });
 
-test("Codex parity: head_behavior", () => {
+test("Formatting helper corpus: head_behavior", () => {
   assert.equal(isSmallFormattingCommand(["head"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("head -n 40")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("head -n 40 file.txt")), false);
   assert.equal(isSmallFormattingCommand(["head", "file.txt"]), false);
 });
 
-test("Codex parity: tail_behavior", () => {
+test("Formatting helper corpus: tail_behavior", () => {
   assert.equal(isSmallFormattingCommand(["tail"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("tail -n +10")), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("tail -n +10 file.txt")), false);
@@ -63,7 +63,7 @@ test("Codex parity: tail_behavior", () => {
   assert.equal(isSmallFormattingCommand(["tail", "file.txt"]), false);
 });
 
-test("Codex parity: sed_behavior", () => {
+test("Formatting helper corpus: sed_behavior", () => {
   assert.equal(isSmallFormattingCommand(["sed"]), true);
   assert.equal(isSmallFormattingCommand(["sed", "-n", "10p"]), true);
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("sed -n 10p file.txt")), false);
@@ -74,7 +74,7 @@ test("Codex parity: sed_behavior", () => {
   assert.equal(isSmallFormattingCommand(tokenizeShellWords("sed -n +10p file.txt")), true);
 });
 
-test("Codex parity: empty_tokens_is_not_small", () => {
+test("Formatting helper corpus: empty_tokens_is_not_small", () => {
   assert.equal(isSmallFormattingCommand([]), false);
 });
 
