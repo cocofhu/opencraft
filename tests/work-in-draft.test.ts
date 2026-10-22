@@ -35,10 +35,11 @@ async function fixture(targetProject = false, targetDirectory = targetProject, p
 test("switching Agent preserves text/cwd/project and applies the requested model", async () => {
   const f = await fixture();
   try {
-    await f.commands.selectHost("local-codex", { model: "codex-model", effort: "high" });
+    await f.commands.selectHost("local-codex", { model: "codex-model", effort: "high", serviceTier: "priority" });
     assert.equal(composerDocumentToPlainText(f.composer().getSnapshot().draft.document), "keep my draft");
     assert.deepEqual(f.scopes.getActiveDraft()!.target.execution.workspace, { cwd: "/project", runtimeWorkspaceRoots: ["/project"], projectId: "source-project" });
     assert.equal(f.composer().getSnapshot().draft.selections.model, "codex-model");
+    assert.equal(f.composer().getSnapshot().draft.selections.serviceTier, "priority");
     assert.equal(f.projectCreates, 0);
   } finally { await f.close(); }
 });
@@ -101,10 +102,11 @@ test("choosing a model on the current Agent cancels a held engine switch", async
   try {
     f.holds.set("local-codex", held.promise);
     const old = f.commands.selectHost("local-codex", { model: "late-model", effort: "high" });
-    await f.commands.selectHost("local", { model: "new-local-model", effort: null });
+    await f.commands.selectHost("local", { model: "new-local-model", effort: null, serviceTier: null });
     held.resolve(); await old;
     assert.equal(f.scopes.getActiveDraft()!.target.execution.hostId, "local");
     assert.equal(f.composer().getSnapshot().draft.selections.model, "new-local-model");
+    assert.equal(f.composer().getSnapshot().draft.selections.serviceTier, null);
   } finally { held.resolve(); await f.close(); }
 });
 

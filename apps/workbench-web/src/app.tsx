@@ -1228,8 +1228,11 @@ export function App({
         error: group.hostId === snapshot.hostId ? composerCatalog.modelError?.message : group.error,
         retry: group.hostId === snapshot.hostId ? composerCatalog.retryModels : group.retry,
         select: async (model) => {
-          await hostCatalog.selectHost(group.hostId, group.hostId === snapshot.hostId ? undefined : { model: model.value, effort: model.defaultEffort });
-          if (group.hostId !== snapshot.hostId) composerCatalog.rememberModelDefaults?.({ model: model.value, effort: model.defaultEffort }, group.hostId);
+          const currentTier = composerController.getSnapshot().draft.selections.serviceTier;
+          const requestedTier = currentTier !== undefined ? currentTier : composerCatalog.newThreadDefaults?.serviceTier;
+          const serviceTier = model.serviceTiers?.some(tier => tier.id === requestedTier) ? requestedTier ?? null : null;
+          await hostCatalog.selectHost(group.hostId, group.hostId === snapshot.hostId ? undefined : { model: model.value, effort: model.defaultEffort, serviceTier });
+          if (group.hostId !== snapshot.hostId) composerCatalog.rememberModelDefaults?.({ model: model.value, effort: model.defaultEffort, serviceTier }, group.hostId);
         },
         manage: hostCatalog.extensionContributions.getSnapshot().settingsPages.some(page => page.contribution.targetHostId === group.hostId && page.contribution.id === (group.hostId === "local" ? "vela.builtin-agents.model-services" : "vela.builtin-agents.codex-accounts"))
           ? () => hostCatalog.navigation.openSettings(group.hostId === "local" ? "vela.builtin-agents.model-services" : "vela.builtin-agents.codex-accounts") : undefined,
@@ -1244,6 +1247,8 @@ export function App({
       composerCatalog.modelError,
       composerCatalog.onModelMenuOpen,
       composerCatalog.rememberModelDefaults,
+      composerCatalog.newThreadDefaults,
+      composerController,
       composerCatalog.retryModels,
       composerCatalog.models,
       composerCatalog.permissionProfileError,
@@ -1970,6 +1975,7 @@ export function App({
                 target: draft.target,
                 document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: objective }] }] },
                 attachments: [], context: [], selections: {
+                  ...(composerCatalog.newThreadDefaults?.serviceTier === undefined ? {} : { serviceTier: composerCatalog.newThreadDefaults.serviceTier }),
                   ...(composerCatalog.newThreadDefaults?.model ? { model: composerCatalog.newThreadDefaults.model, ...(composerCatalog.newThreadDefaults.effort === null ? {} : { effort: composerCatalog.newThreadDefaults.effort }) } : {}),
                   ...content.selections,
                 }, options: content.options,

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AccountModelDefaultsStore } from "../scripts/account-model-defaults-store";
 
-const selection = { model: 'provider/model', effort: 'high' };
+const selection = { model: 'provider/model', effort: 'high', serviceTier: 'priority' };
 test('personal defaults survive restart, isolate users/Hosts, and reject stale device writes', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'account-model-'));
   try {
@@ -25,6 +25,14 @@ test('personal defaults survive restart, isolate users/Hosts, and reject stale d
       assert.throws(() => restored.write('alice', 'host', 1, value));
     }
     assert.deepEqual(restored.read('alice', 'host').selection, selection);
+    assert.equal(restored.read('bob', 'host').selection?.serviceTier, undefined, 'legacy selections retain Host inheritance');
+    for (const serviceTier of [true, 1, '', ' ', 'x'.repeat(129)]) {
+      assert.throws(() => restored.write('alice', 'host', 1, { ...selection, serviceTier }));
+    }
+    const standard = { ...selection, serviceTier: null };
+    assert.equal(restored.write('alice', 'host', 1, standard).updated, true);
+    assert.deepEqual(restored.read('alice', 'host').selection, standard, 'explicit standard survives persistence');
+    assert.deepEqual(restored.read('alice', 'other').selection, { model: 'other-host', effort: null });
     restored.close();
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

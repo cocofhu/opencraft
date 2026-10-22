@@ -62,7 +62,7 @@ Headless 的 Model Services 在现有添加提供商表单中选择用途，复�
 
 ## Personal defaults on shared servers
 
-Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
+Authenticated account contributions may provide `AccountModelDefaultsPort`. Composer remembers explicit model/effort/service tier per verified account and Host in server-owned managed SQLite, with revision CAS. Another browser for the same account reads the same choice. The authenticated request determines the account; caller scope only fences identity changes. Anonymous requests cannot read or save personal defaults. Browser model history is not imported into this authority. New task submission waits for initial account/default hydration; embedded Host-default presentations do not consume this cache. Personal changes never call `config/batchWrite` or modify the Host-wide provider default; absent personal settings use that default, and existing Thread bindings remain unchanged. A removed personal model still requires explicit reselection. Standalone clients without an account authority retain installation memory. Explicit provider administration remains Host configuration.
 
 ## 会话选择与产品目录
 
@@ -80,3 +80,15 @@ Composer 的 `ModelSelectionPolicy` 显式区分三种模式：`user` 使用用�
 冷目录显示静态占位，失败与空目录仍可打开重试，原始产品错误不进入菜单。
 可选配置动作由装配提供；长名称由容器裁切并提供可复制的完整提示。
 共享 Composer 保留触屏编辑焦点与键盘菜单语义，不复制产品设置页。
+
+
+The service tier shares this account authority and CAS record. A missing tier in a
+legacy record inherits the Host default; explicit null means standard and must
+survive reads, writes, reload and submission. Selecting model, effort or speed
+pins the resolved model/effort/tier in that draft, and remembers the same personal
+default for later conversations. Thread execution settings remain authoritative
+for existing conversations; refreshing personal defaults never rewrites them.
+Models without the selected tier resolve to standard through the Composer owner.
+
+If neither personal nor Host data resolves a tier, submission leaves the wire
+field absent. An unknown legacy/default choice must not be converted to standard.

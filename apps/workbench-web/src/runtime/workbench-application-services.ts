@@ -139,7 +139,7 @@ export interface AppServerHostCatalog {
    */
   readonly pendingLocation: WorkbenchLocation | null;
   readonly currentLocation: WorkbenchLocation;
-  selectHost(hostId: string, selection?: { model: string; effort: string | null }): Promise<void>;
+  selectHost(hostId: string, selection?: { model: string; effort: string | null; serviceTier?: string | null }): Promise<void>;
   navigate(location: WorkbenchLocation, mode?: WorkbenchHistoryMode): Promise<boolean>;
   selectConversation(location: WorkbenchLocation): Promise<boolean>;
   promoteDraft(draftId: string, receipt: SubmissionReceipt): Promise<WorkbenchLocation>;
@@ -164,7 +164,7 @@ export interface AppServerHostCatalog {
 }
 
 export interface WebWorkbenchCommands {
-  selectHost(hostId: string, selection?: { model: string; effort: string | null }): Promise<void>;
+  selectHost(hostId: string, selection?: { model: string; effort: string | null; serviceTier?: string | null }): Promise<void>;
   navigate(location: WorkbenchLocation, mode?: WorkbenchHistoryMode): Promise<boolean>;
   selectConversation(location: WorkbenchLocation): Promise<boolean>;
   navigateToHome(options: {
@@ -724,7 +724,7 @@ export function createWebWorkbenchCommands(input: {
               }), context: previous.context });
             nextComposer.dispatch({ type: "set-selections", patch: { ...previous.selections, cwd: workspace.cwd ?? undefined } });
             nextComposer.dispatch({ type: "set-options", patch: previous.options });
-            if (selection) nextComposer.dispatch({ type: "set-selections", patch: { model: selection.model, effort: selection.effort ?? undefined } });
+            if (selection) nextComposer.dispatch({ type: "set-selections", patch: { model: selection.model, effort: selection.effort ?? undefined, ...(selection.serviceTier === undefined ? {} : { serviceTier: selection.serviceTier }) } });
           }
           input.scopes.dismissDraft(activeDraft.id);
         } catch (error) {
@@ -737,7 +737,7 @@ export function createWebWorkbenchCommands(input: {
       if (epoch !== hostSelectionEpoch) return;
       if (activeDraft?.target.execution.hostId === hostId && selection) {
         const viewId = input.coordinator.getSnapshot().viewId;
-        if (viewId !== null) input.views.get(viewId)?.composer.dispatch({ type: "set-selections", patch: { model: selection.model, effort: selection.effort ?? undefined } });
+        if (viewId !== null) input.views.get(viewId)?.composer.dispatch({ type: "set-selections", patch: { model: selection.model, effort: selection.effort ?? undefined, ...(selection.serviceTier === undefined ? {} : { serviceTier: selection.serviceTier }) } });
       }
       input.coordinator.setSelectedHostId(hostId);
       if (presentation.executionSelection === "selectable") setLocalPreference(currentProductStorageKey("vela.active-host-id"), hostId);
