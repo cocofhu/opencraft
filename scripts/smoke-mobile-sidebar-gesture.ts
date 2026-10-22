@@ -308,7 +308,7 @@ try {
         const page=document.querySelector('.app-shell-row')!.getBoundingClientRect();
         const peek=document.elementFromPoint(innerWidth-12,200);
         return {drawerLeft:drawer.left,drawerRight:drawer.right,layoutWidth:panel.clientWidth,scale:matrix.a,opacity:Number(style.opacity),wash:Number(getComputedStyle(document.querySelector('.app-shell-mobile-sidebar-wash')!).opacity),
-          pageLeft:page.left,peek:innerWidth-page.left,
+          frontWash:Number(getComputedStyle(document.querySelector('.app-shell-mobile-page-wash')!).opacity),pageLeft:page.left,peek:innerWidth-page.left,
           radius:getComputedStyle(document.querySelector('.app-shell-row')!).borderTopLeftRadius,
           hit:peek?.classList.contains('app-shell-mobile-page-dismiss')};
       });
@@ -342,6 +342,7 @@ try {
         for(const sample of [a,b]) {
           assert.ok(Math.abs(sample.drawerLeft)<1,'sidebar never slides in from offscreen');
           assert.ok(sample.drawerRight>sample.pageLeft+20,'page uncovers the stationary rear layer');
+          assert.ok(Math.abs(sample.frontWash + sample.wash - (reducedMotion==='reduce'?0:.65))<.002,'foreground and sidebar wash remain reciprocal');
           if(reducedMotion==='reduce') assert.ok(sample.scale===1&&sample.opacity===1&&sample.wash===0,'reduced motion skips depth');
           else assert.ok(sample.scale<1&&sample.scale>.9&&sample.opacity<1&&sample.opacity>.45&&sample.wash>0&&sample.wash<.65,JSON.stringify(sample));
         }

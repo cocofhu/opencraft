@@ -8,6 +8,7 @@ import { SidebarToggleButton } from "../chrome-actions/sidebar-toggle-button";
 import {
   motion,
   useMotionValue,
+  useReducedMotion,
   useTransform,
   type MotionStyle,
   type MotionValue,
@@ -610,6 +611,8 @@ export function AppShell({
   // One progress drives foreground travel and stationary sidebar depth; translating the row leaves the root's
   // viewport coordinates (and gesture acquisition) unchanged.
   const mobilePageX = useTransform([mobileGesture.progress, floatingWidth], ([progress, width]) => Number(progress) * Number(width));
+  const reducedMotion = useReducedMotion();
+  const mobilePageWash = useTransform(mobileGesture.progress, value => reducedMotion ? 0 : 0.65 * Math.max(0, Math.min(1, value)));
   const mobilePageBlocked = mobileSidebarEnabled && (drawerRequested || floatingIntent.requested || mobileGesture.dragging);
   const sidebarPresentation = resolveSidebarPresentation({
     docked: sidebarOpen,
@@ -982,6 +985,8 @@ export function AppShell({
             </FloatingComposerRegistryContext.Provider>
             </ComposerOverlayAnchorContext.Provider>
           </main>
+          {mobileSidebarEnabled ? <motion.div aria-hidden="true" className="app-shell-mobile-page-wash"
+            style={{ opacity: mobilePageWash }} /> : null}
           {mobilePageBlocked ? <button
             type="button" className="app-shell-mobile-page-dismiss"
             aria-label="Close sidebar" onClick={() => { sidebarToggleFocusPending.current = true; dismissFloatingSidebar(); }} /> : null}
