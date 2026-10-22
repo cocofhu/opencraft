@@ -122,8 +122,7 @@ try {
     await show("tool");
     const cancelled = await page.evaluate(() => {
       (document.activeElement as HTMLElement)?.blur();
-      const consume = (event: KeyboardEvent) => event.preventDefault();
-      document.addEventListener("keydown", consume, { once: true });
+      document.addEventListener("keydown", (event: KeyboardEvent) => event.preventDefault(), { once: true });
       const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
       document.body.dispatchEvent(event);
       return event.defaultPrevented;
