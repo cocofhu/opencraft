@@ -2333,3 +2333,7 @@ uses the existing code surface with the `json` language; its text and canonical
 source remain unchanged. Recognition validates structure without repairing or
 reserializing it. Explicit fenced code retains its declared language, while
 inline, invalid and incomplete JSON keep ordinary Markdown semantics.
+
+Program statement prefixes and call/statement suffixes are excluded from bare
+JSON recognition. Failed outer candidates are scanned once, without repeatedly
+parsing each nested suffix.

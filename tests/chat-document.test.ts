@@ -521,3 +521,11 @@ test("JSON recognition preserves fences, inline snippets, Markdown containers an
   assert.equal(blocks[0].language, "text");
   assert.equal(blocks[0].code, '{\n  "literal": true\n}');
 });
+
+
+test("Bare JSON leaves program statements and malformed nested input under Markdown", () => {
+  for (const source of ['return {\n  "value": true\n};', 'callback({\n "value": true\n})', '{\n "value": true\n};', 'Text\n{\n{\n "nested": true\n}\ninvalid\n}']) {
+    const nodes = flatten(new ChatDocumentCompiler().compile(source).nodes);
+    assert.equal(nodes.some(node => node.kind === "code-fence" && node.language === "json"), false, source);
+  }
+});
