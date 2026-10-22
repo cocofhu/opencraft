@@ -216,6 +216,15 @@ test("rich Composer documents compile into ordered native Codex UserInput entrie
   });
 });
 
+test("explicit standard speed clears Fast in both thread and turn requests", () => {
+  for (const serviceTier of ["fast", null]) {
+    const compiled = compileSubmitIntent(intent({ type: "existing-thread", key: existingKey }, { selections: { serviceTier } }));
+    assert.equal(compiled.turnOptions.serviceTier, serviceTier);
+    assert.equal(compiled.threadOptions.serviceTier, serviceTier);
+    assert(Object.hasOwn(compiled.turnOptions, "serviceTier"));
+  }
+});
+
 test("Composer inline marks survive submission as Markdown in shared AppServer text", () => {
   const marked: ComposerDocument = { version: 1, blocks: [{ type: "paragraph", children: [
     { type: "text", text: "Read " },

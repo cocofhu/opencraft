@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createShellNavigationState, projectShellNavigation, reduceShellNavigation, resolveShellNavigationWidth, shellNavigationMetrics } from "../packages/workbench-runtime/src/shell-navigation";
+import { projectManagedWebUpdateNotice } from "../apps/workbench-web/src/components/web-updates-settings";
+import type { WebUpdateStatus } from "@opencraft/web-update-protocol";
 
 const project = (state = createShellNavigationState(), viewportWidth = 1400, previouslyAvailable?: boolean) =>
   projectShellNavigation({ state, viewportWidth, contextWidth: 275, contextAvailable: true, sidecarOpen: true, previouslyAvailable });
@@ -174,5 +176,43 @@ test("context-free applications use one navigation pane without changing pin pre
     assert.equal(projectShellNavigation({ ...input, sidecarOpen: false }).footerVisible, false);
     assert.equal(projectShellNavigation({ ...input, contextAvailable: true }).dockOpen, false);
     assert.deepEqual(state.pinned, { applications: false, account: false });
+  }
+});
+
+const updateStatus = (overrides: Partial<WebUpdateStatus> = {}): WebUpdateStatus => ({
+  schemaVersion: 1, enabled: true, localInstall: false, authenticated: false,
+  current: { version: "1.0.0", buildId: "build-1.0.0" },
+  latest: null, checking: false, checkedAt: null, checkError: null, checkErrorCode: null,
+  canRollback: false, updateAvailable: false, execution: null,
+  packageName: "@opencraft-app/opencraft", channel: "latest", job: null, ...overrides,
+});
+
+test("footer update entrance appears only for an installable release or a stale page build", () => {
+  assert.equal(projectManagedWebUpdateNotice(undefined, "build-1.0.0").visible, false);
+  assert.equal(projectManagedWebUpdateNotice(updateStatus({ checking: true }), "build-1.0.0").visible, false);
+  assert.equal(projectManagedWebUpdateNotice(updateStatus({ checkedAt: new Date().toISOString() }), "build-1.0.0").visible, false);
+
+  const available = updateStatus({ updateAvailable: true, latest: { version: "1.1.0", buildId: "build-1.1.0" } });
+  assert.deepEqual(projectManagedWebUpdateNotice(available, "build-1.0.0"), {
+    visible: true, updateAvailable: true, needsRefresh: false, latestVersion: "1.1.0", updating: false,
+  });
+  const stalePage = updateStatus({ current: { version: "1.1.0", buildId: "build-1.1.0" }, latest: { version: "1.1.0", buildId: "build-1.1.0" } });
+  assert.deepEqual(projectManagedWebUpdateNotice(stalePage, "build-1.0.0"), {
+    visible: true, updateAvailable: false, needsRefresh: true, latestVersion: "1.1.0", updating: false,
+  });
+  assert.equal(projectManagedWebUpdateNotice(stalePage, null).visible, false, "a page without release identity cannot compare builds");
+});
+
+test("footer update entrance treats only in-flight jobs as updating", () => {
+  for (const phase of ["downloading", "verifying", "starting"] as const) {
+    const notice = projectManagedWebUpdateNotice(updateStatus({ job: { id: "job", version: "1.1.0", phase, error: null } }), "build-1.0.0");
+    assert.equal(notice.updating, true, `${phase} is still in flight`);
+  }
+});
+
+test("footer update entrance stops animating after terminal job phases", () => {
+  for (const phase of ["completed", "failed"] as const) {
+    const notice = projectManagedWebUpdateNotice(updateStatus({ job: { id: "job", version: "1.1.0", phase, error: null } }), "build-1.0.0");
+    assert.equal(notice.updating, false, `${phase} is terminal`);
   }
 });

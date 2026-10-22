@@ -36,3 +36,9 @@ export async function attachDshHost(path, expectedDataDirectory, expectedMachine
     getIdentity: async () => (await read()).identity,
     async close() {} };
 }
+
+/** A configured independent Host exists before a lazy engine client attaches. */
+export async function readDshHostIdentity(path) {
+  const descriptor = await readPrivateJson(path);
+  return (await readDshHost(path, descriptor.dataDirectory)).identity;
+}

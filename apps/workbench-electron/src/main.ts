@@ -356,7 +356,7 @@ function rejectAppHostPort(
   });
 }
 
-ipcMain.on("vela:get-window-fullscreen", (event) => {
+ipcMain.on("opencraft:get-window-fullscreen", (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   event.returnValue = window !== null && !window.isDestroyed() && window.isFullScreen();
 });
@@ -470,7 +470,7 @@ function applyWindowAppearance(
   applyNativeWindowAppearance(window, appearance, process.platform);
 }
 
-ipcMain.on("vela:set-window-appearance", (event, payload: unknown) => {
+ipcMain.on("opencraft:set-window-appearance", (event, payload: unknown) => {
   if (event.sender !== mainWebContents || !isWindowAppearanceMessage(payload)) return;
   const window = BrowserWindow.fromWebContents(event.sender);
   if (window !== null) applyWindowAppearance(window, payload);
@@ -577,7 +577,7 @@ async function createMainWindow(): Promise<void> {
 
   const publishFullscreen = (isFullScreen: boolean) => {
     if (!webContents.isDestroyed()) {
-      webContents.send("vela:window-fullscreen-changed", { isFullScreen });
+      webContents.send("opencraft:window-fullscreen-changed", { isFullScreen });
     }
   };
   const publishEnteredFullscreen = () => publishFullscreen(true);
