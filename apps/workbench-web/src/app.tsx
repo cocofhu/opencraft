@@ -1,3 +1,4 @@
+import { useConversationDisplay } from "./runtime/use-conversation-display";
 import { displayTimingCounts } from "./runtime/display-timing-diagnostics";
 import { reportDisplayEvent } from "./runtime/recovery-diagnostics";
 import { Monitor } from "lucide-react";
@@ -71,7 +72,6 @@ import {
   equalWorkbenchLocation,
   findHostConnectionInterventionError,
   projectComposerModelChoices,
-  selectConversationDisplayTimeline,
 } from "@opencraft/workbench-runtime";
 import { OPENCRAFT_THREAD_QUEUE_EXTENSION, OPENCRAFT_PERMISSION_MODES_EXTENSION, supportsAtomicQueuedSteer, supportsUnconfirmedSteerDiscard, type OpenCraftPermissionProfile } from "@opencraft/appserver-protocol";
 import {
@@ -671,42 +671,11 @@ export function App({
   // The committed View has a display identity before network lease acquisition.
   // This local binding never grants execution or authoritative history access.
   const displayKey = useConversationViewDisplayKey();
+  const { selection: display, scope: displayScope, hasSubmission } = useConversationDisplay(hostCatalog.displayContinuity, displayKey, timeline);
   const displayHostId = displayKey?.hostId ?? null;
   const displayThreadId = displayKey?.threadId ?? null;
-  const displayScope = useSyncExternalStore(
-    hostCatalog.displayContinuity.subscribe,
-    hostCatalog.displayContinuity.getScope,
-    hostCatalog.displayContinuity.getScope,
-  );
-  const [cachedTimeline, setCachedTimeline] = useState<{ scope: string; timeline: TimelineSnapshot } | null>(null);
-  useEffect(() => {
-    let current = true;
-    setCachedTimeline(null);
-    if (displayHostId !== null && displayThreadId !== null) {
-      void hostCatalog.displayContinuity.load(displayHostId, displayThreadId).then(value => {
-        if (current) setCachedTimeline(value === null ? null : { scope: displayScope, timeline: value });
-      });
-    }
-    return () => { current = false; };
-  }, [displayHostId, displayThreadId, displayScope, hostCatalog.displayContinuity]);
-  useEffect(() => {
-    if (timeline?.authoritative) void hostCatalog.displayContinuity.observe(timeline).catch(() => undefined);
-  }, [hostCatalog.displayContinuity, timeline]);
-  const firstSubmissionTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peekSubmission(displayKey.hostId, displayKey.threadId);
-  const memoryTimeline = displayKey === null ? null
-    : hostCatalog.displayContinuity.peek(displayKey.hostId, displayKey.threadId);
-  const displayTimeline = memoryTimeline ?? (cachedTimeline?.scope === displayScope
-    && cachedTimeline.timeline.key.hostId === displayHostId
-    && cachedTimeline.timeline.key.threadId === displayThreadId ? cachedTimeline.timeline : null);
-  const previewTimeline = useMemo(() => timeline === null ? null : selectConversationDisplayTimeline(timeline, displayTimeline), [timeline, displayTimeline]);
-  const visibleTimeline = timeline !== null && timeline.frames.length > 0
-    ? previewTimeline
-    : firstSubmissionTimeline !== null ? firstSubmissionTimeline
-    : timeline?.authoritative
-    ? timeline
-    : displayTimeline ?? timeline;
-  const showingDisplayCache = visibleTimeline !== null && (visibleTimeline !== timeline || !visibleTimeline.authoritative);
+  const visibleTimeline = display.timeline;
+  const showingDisplayCache = display.source !== "history" && display.source !== "empty";
   const displayCounts = useMemo(() => displayTimingCounts(visibleTimeline), [visibleTimeline]);
   const displaySignature = JSON.stringify(displayCounts);
   useEffect(() => {
@@ -2203,7 +2172,7 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
+                {(recoveryPresentation === "warm-loading" && !hasSubmission) || recoveryPresentation === "warm-error" ? (
                   <ConversationRecoveryNotice
                     failed={recoveryPresentation === "warm-error"}
                     requiresUpdate={recoveryRequiresUpdate}

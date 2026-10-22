@@ -67,56 +67,6 @@ function messageSender(value: unknown): UserMessageTimelineBlock["sender"] {
     ? { kind: "employee", loginName: sender.loginName } : null;
 }
 
-/** Keep known static clocks and per-message sender through preview, never authority. */
-export function retainPreviewTiming(preview: TimelineSnapshot, display: TimelineSnapshot | null): TimelineSnapshot {
-  if (preview.authoritative || display === null || preview.key.hostId !== display.key.hostId
-    || preview.key.threadId !== display.key.threadId) return preview;
-  const known = new Map(display.frames.flatMap(frame => frame.blocks.map(block =>
-    [JSON.stringify([frame.turnId, frame.type, block.type, block.id]), { frame, block }] as const)));
-  return { ...preview, frames: preview.frames.map(frame => {
-    let durationMs = frame.durationMs, workStatus = frame.workStatus, displayDurationMs = frame.displayDurationMs;
-    const blocks = frame.blocks.map(block => {
-      const prior = known.get(JSON.stringify([frame.turnId, frame.type, block.type, block.id]));
-      if (!prior) return block;
-      if (block.type === "user-message" && prior.block.type === "user-message") {
-        return { ...block, sentAtMs: block.sentAtMs ?? prior.block.sentAtMs,
-          sender: block.sender === undefined ? prior.block.sender : block.sender };
-      }
-      if (block.type !== "text" || prior.block.type !== "text") return block;
-      if (frame.status === "complete" && !block.streaming && block.completed !== false && block.phase === "final_answer"
-        && prior.block.completed !== false && prior.block.phase === "final_answer") {
-        durationMs ??= prior.frame.durationMs;
-        displayDurationMs ??= prior.frame.displayDurationMs;
-        workStatus ??= completedWork(prior.frame.workStatus);
-      }
-      return block.sentAtMs == null ? { ...block, sentAtMs: prior.block.sentAtMs } : block;
-    });
-    return { ...frame, blocks, durationMs, workStatus, displayDurationMs };
-  }) };
-}
-
-/** A partial history may regroup or omit cached messages. Do not let that
- * provisional body erase their already visible clocks before authority. */
-export function selectConversationDisplayTimeline(timeline: TimelineSnapshot | null, display: TimelineSnapshot | null): TimelineSnapshot | null {
-  if (timeline === null) return display;
-  if (timeline.authoritative || display === null || timeline.key.hostId !== display.key.hostId
-    || timeline.key.threadId !== display.key.threadId) return timeline;
-  const preview = retainPreviewTiming(timeline, display);
-  const clocks = new Map(preview.frames.flatMap(frame => frame.blocks.map(block =>
-    [JSON.stringify([frame.turnId, frame.type, block.type, block.id]), { frame, block }] as const)));
-  for (const frame of display.frames) for (const block of frame.blocks) {
-    if (block.type !== "text" && block.type !== "user-message") continue;
-    const incoming = clocks.get(JSON.stringify([frame.turnId, frame.type, block.type, block.id]));
-    if (block.sentAtMs != null && (!incoming || !("sentAtMs" in incoming.block) || incoming.block.sentAtMs == null)) return display;
-    if (block.type === "user-message" && block.sender != null
-      && (!incoming || incoming.block.type !== "user-message" || incoming.block.sender === undefined)) return display;
-    if (frame.type === "assistant" && (frame.durationMs != null || completedWork(frame.workStatus) !== null)
-      && (!incoming || (frame.durationMs != null && incoming.frame.durationMs == null)
-        || (completedWork(frame.workStatus) !== null && completedWork(incoming.frame.workStatus) === null))) return display;
-  }
-  return preview;
-}
-
 function projectMessages(snapshot: TimelineSnapshot): readonly DisplayMessage[] {
   const messages: DisplayMessage[] = [];
   const visibleDurations = new Map<string, number>();
