@@ -54,13 +54,26 @@ export function inspectActivityJsx(source, file = "fixture.tsx") {
       let rail = false;
       let header = false;
       const find = child => {
-        if ((ts.isJsxOpeningElement(child) || ts.isJsxSelfClosingElement(child)) && child.tagName.getText(tree) === "ActivityIcon") rail = true;
+        if ((ts.isJsxOpeningElement(child) || ts.isJsxSelfClosingElement(child)) && ["ActivityIcon", "ActivityRowContent"].includes(child.tagName.getText(tree))) rail = true;
         if (ts.isJsxAttribute(child) && child.name.getText(tree) === "className" && child.initializer
           && /\bthread-activity-item__header\b/.test(child.initializer.getText(tree))) header = true;
         ts.forEachChild(child, find);
       };
       find(node);
       if (!rail || !header) add(node);
+    }
+    if (ts.isFunctionDeclaration(node) && ["ActivityDisclosure", "ActivitySummaryRow", "AgentActivityGroupDisclosure", "ThreadTool"].includes(node.name?.text)) {
+      let shared = false;
+      const find = child => {
+        if (ts.isJsxOpeningElement(child) || ts.isJsxSelfClosingElement(child)) {
+          const name = child.tagName.getText(tree);
+          if (name === "ActivityRowContent") shared = true;
+          if (name === "CadencedShimmer") add(child);
+        }
+        ts.forEachChild(child, find);
+      };
+      find(node);
+      if (!shared) add(node);
     }
     if (ts.isFunctionDeclaration(node) && node.name?.text === "CompactionBlock") {
       let shared = false;
@@ -73,7 +86,7 @@ export function inspectActivityJsx(source, file = "fixture.tsx") {
     }
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const name = node.tagName.getText(tree);
-      if (["ActivityDisclosure", "ActivitySummaryRow"].includes(name)) {
+      if (["ActivityDisclosure", "ActivitySummaryRow", "ActivityRowContent"].includes(name)) {
         for (const attr of node.attributes.properties) {
           if (ts.isJsxAttribute(attr) && attr.name.getText(tree) === "icon" && attr.initializer) checkGlyph(attr.initializer);
         }
