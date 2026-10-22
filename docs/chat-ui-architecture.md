@@ -2337,3 +2337,7 @@ inline, invalid and incomplete JSON keep ordinary Markdown semantics.
 Program statement prefixes and call/statement suffixes are excluded from bare
 JSON recognition. Failed outer candidates are scanned once, without repeatedly
 parsing each nested suffix.
+
+Streaming input containing object braces follows the existing full-parser
+fallback: a later closing delimiter can promote previously separate Markdown
+blocks into one JSON surface, so those prefixes cannot be frozen early.

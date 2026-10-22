@@ -22,6 +22,7 @@ function semanticDocument(value: unknown): unknown {
 
 test("streaming prefix cache preserves full-parser semantics at every input split", () => {
   const examples = [
+    "    \"sampleServer\": {\n\n      \"url\": \"https://example.test/mcp\",\n\n\"timeout\": 20000,\n\n\"headers\": {\n\n\"PRIVATE-TOKEN\": \"REDACTED\"\n\n      },\n\n\"transportType\": \"streamable-http\"\n\n    }",
     "- a\n\n- b",
     "- a\n\n  continuation\n\n  - nested\n\n- b\n\nnext",
     "1. one\n\n2. two\n\nnext",

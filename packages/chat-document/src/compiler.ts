@@ -682,9 +682,10 @@ export class ChatDocumentCompiler {
     const preprocessed = preprocessChatMarkdown(dialectSource, { streaming: options.streaming });
     const openFenceStart = preprocessed.openFence?.start ?? null;
     // Reference definitions can reinterpret earlier blocks; unresolved shortcuts
-    // also matter. Conservative bracket fallback includes images/inline links.
+    // also matter. Braces can turn earlier Markdown blocks into one JSON block
+    // when a later closing delimiter arrives; do not freeze those prefixes.
     // Marked normalizes CRLF internally, so raw offsets cannot be reused here.
-    if (options.streaming !== true || /[\[\r]/u.test(preprocessed.markdown)
+    if (options.streaming !== true || /[\[{\r]/u.test(preprocessed.markdown)
       || preprocessed.markdown.includes("$$")) {
       const parsed: ParsedChatDocument = {
         source,
