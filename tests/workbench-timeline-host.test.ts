@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import ts from "typescript";
+import { JSDOM } from "jsdom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { menuGeometry } from "@opencraft/design-system/tokens";
 
 import {
+  createWebTimelineViewportPort,
   createWebTimelineViewportSnapshot,
   resizeObserverBlockSize,
   resolveWebTimelinePlatform,
@@ -390,7 +392,7 @@ test("theme bootstrap is owned by the application root, not a removable header c
   );
   assert.doesNotMatch(webConversationSource, /toolJsonTheme/u);
 
-  const lightTheme = buildCodexThemeCssProperties("light");
+  const lightTheme = buildOpenCraftThemeCssProperties("light");
   for (const token of [
     "--color-background-button-tertiary-hover",
     "--color-surface-tertiary",
@@ -527,7 +529,7 @@ test("Draft menus consume one design-system rhythm and stay out of the hero titl
 });
 
 test("dark primary actions preserve inverted foreground contrast", () => {
-  const darkTheme = buildCodexThemeCssProperties("dark");
+  const darkTheme = buildOpenCraftThemeCssProperties("dark");
 
   assert.equal(darkTheme["--color-background-button-primary"], "#ffffff");
   assert.equal(darkTheme["--color-text-button-primary"], "#181818");
@@ -539,7 +541,7 @@ test("dark primary actions preserve inverted foreground contrast", () => {
 });
 
 test("light primary action hover remains an opaque inverted surface", () => {
-  const lightTheme = buildCodexThemeCssProperties("light");
+  const lightTheme = buildOpenCraftThemeCssProperties("light");
   const primary = lightTheme["--color-background-button-primary"];
   const hover = lightTheme["--color-background-button-primary-hover"];
 
@@ -654,7 +656,7 @@ test("Native virtualizer publishes live Turn height while response policy owns c
     /Animated\.spring\(latestTurnOffset,[\s\S]{0,520}?Animated\.spring\(responseSpacerHeight/u,
     "Native translation and spacer height must share the recovered zero-bounce spring",
   );
-  assert.match(webResponseSource, /CODEX_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
+  assert.match(webResponseSource, /OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING\.durationMs/u);
 });
 
 test("footer geometry and response placement have disjoint Codex owners", () => {
@@ -808,16 +810,26 @@ test("Composer menus live in the root overlay plane with Codex viewport constrai
   );
 });
 
-test("Composer intelligence keeps model and reasoning in one catalog-owned menu", () => {
+test("Composer intelligence keeps model and reasoning under catalog ownership", () => {
   assert.doesNotMatch(composerSource, /<DropdownMenu\.Sub(?:Trigger|Content)/u);
   assert.match(
     composerSource,
     /opencraft-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.model" defaultMessage="Model"/u,
   );
-  assert.match(
-    composerSource,
-    /opencraft-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.reasoning" defaultMessage="Reasoning"/u,
-  );
+  if (composerSource.includes("<ComposerModelPicker")) {
+    const pickerSource = readFileSync(new URL("../packages/composer-editor/src/composer-model-picker.tsx", import.meta.url), "utf8");
+    assert.match(pickerSource, /id: "chat\.reasoning", defaultMessage: "Reasoning"/u);
+    assert.match(pickerSource, /role="group" aria-label=\{reasoningLabel\}/u);
+    assert.match(pickerSource, /options=\{efforts\} value=\{effort\} label=\{reasoningLabel\}/u);
+    assert.match(pickerSource, /onValueChange=\{onEffortChange\}/u);
+    assert.match(composerSource, /efforts=\{selectedModel\?\.efforts\.map/u);
+    assert.match(composerSource, /const effort = selectedModel\?\.efforts\.find\(candidate => candidate\.value === value\);\s*if \(effort\) selectEffort\(effort\);/u);
+  } else {
+    assert.match(
+      composerSource,
+      /opencraft-composer-selection-menu__heading">\s*<FormattedMessage id="chat\.reasoning" defaultMessage="Reasoning"/u,
+    );
+  }
   assert.doesNotMatch(composerSource, /Power presets|>\s*Advanced\s*</u);
   assert.doesNotMatch(
     composerSource,
@@ -970,7 +982,7 @@ test("user messages preserve Codex's authored-message width invariant", () => {
   assert.doesNotMatch(workbenchStyles, /--thread-user-message-inline-gutter/u);
 });
 
-test("the transcript and Composer consume Codex's shared toolbar inset", () => {
+test("the transcript and Composer consume the shared toolbar inset", () => {
   assert.match(
     workbenchStyles,
     /\.thread-layout-width\s*\{[\s\S]{0,240}?padding-inline:\s*var\(--padding-toolbar\)/u,
@@ -978,7 +990,7 @@ test("the transcript and Composer consume Codex's shared toolbar inset", () => {
   assert.doesNotMatch(workbenchStyles, /--thread-toolbar-inline-padding/u);
 });
 
-test("workbench preserves Codex's native themed scrollbar contract", () => {
+test("workbench preserves the native themed scrollbar contract", () => {
   assert.match(
     workbenchStyles,
     /\*\s*\{[\s\S]*?scrollbar-color:\s*var\(--scrollbar-thumb\)\s+transparent;[\s\S]*?scrollbar-width:\s*thin;[\s\S]*?\}/u,
@@ -1429,7 +1441,7 @@ test("thread edge-scroll is one measured AppShell state", () => {
   );
   assert.match(
     workbenchStyles,
-    /html\[data-codex-window-type="browser"\]\s+\.main-content-top-fade\s*\{[\s\S]*?display:\s*none;[\s\S]*?\}/u,
+    /html\[data-opencraft-window-type="browser"\]\s+\.main-content-top-fade\s*\{[\s\S]*?display:\s*none;[\s\S]*?\}/u,
   );
   assert.match(
     workbenchStyles,
@@ -1622,4 +1634,143 @@ test("natural policy mounts the virtualizer without constructing response owners
   assert.match(webResponseSource, /preserveMeasuredTurnViewport=\{!isLatestTurnInProgress\}/u);
   assert.match(webConversationSource, /turnFollow: responseRestore\?\.turnFollow \?\? null/u);
   assert.doesNotMatch(webResponseSource, /viewportOwner\.dispose\(/u, "policy must not dispose the shared platform owner");
+});
+
+
+function viewportPortFixture(mobile = true) {
+  const dom = new JSDOM("<input aria-label='draft' value='keep draft'>", { pretendToBeVisual: true });
+  const win = dom.window;
+  const previousHTMLElement = globalThis.HTMLElement;
+  globalThis.HTMLElement = win.HTMLElement as unknown as typeof HTMLElement;
+  Object.defineProperty(win.navigator, "userAgent", { value: mobile ? "iPhone" : "Desktop" });
+  const visual = Object.assign(new win.EventTarget(), {
+    width: 390, height: 844, offsetLeft: 0, offsetTop: 0, scale: 1,
+  });
+  Object.defineProperty(win, "visualViewport", { value: visual });
+  Object.defineProperty(win, "innerHeight", { value: 844 });
+  Object.defineProperty(win, "innerWidth", { value: 390 });
+  let now = 0;
+  let frameId = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  win.performance.now = () => now;
+  win.requestAnimationFrame = (callback) => { frames.set(++frameId, callback); return frameId; };
+  win.cancelAnimationFrame = (id) => { frames.delete(id); };
+  const port = createWebTimelineViewportPort(win as unknown as Window, win.document, {
+    kind: "browser", platform: "linux",
+  });
+  return {
+    win, visual, port, frames,
+    input: win.document.querySelector("input")!,
+    frame(at: number) {
+      now = at;
+      const pending = [...frames.values()];
+      frames.clear();
+      for (const callback of pending) callback(now);
+    },
+    close() {
+      port.dispose();
+      dom.window.close();
+      if (previousHTMLElement === undefined) Reflect.deleteProperty(globalThis, "HTMLElement");
+      else globalThis.HTMLElement = previousHTMLElement;
+    },
+  };
+}
+
+test("mobile viewport reconciles a native restoration after the last focus event", () => {
+  const f = viewportPortFixture();
+  try {
+    f.input.focus();
+    f.input.setSelectionRange(2, 2);
+    f.visual.height = 440;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(20);
+    assert.equal(f.port.getSnapshot().keyboardInsetBottomPx, 404);
+    f.frame(1_100);
+    assert.equal(f.frames.size, 0, "settled keyboards do not poll forever");
+    f.input.blur();
+    f.frame(1_120);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 440, "blur cannot infer keyboard closure");
+    f.visual.height = 844; // Native transition finishes without another event.
+    f.frame(1_250);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(f.win.document.documentElement.style.getPropertyValue("--timeline-visual-viewport-height"), "844px");
+    assert.equal(f.input.value, "keep draft");
+    assert.equal(f.input.selectionStart, 2);
+  } finally { f.close(); }
+});
+
+test("viewport recovery preserves focus and suppresses unchanged publications", () => {
+  const f = viewportPortFixture();
+  try {
+    let publications = 0;
+    f.port.subscribe(() => { publications += 1; });
+    f.input.focus();
+    f.visual.height = 440;
+    f.frame(20);
+    const previous = f.port.getSnapshot();
+    f.frame(40);
+    assert.equal(f.port.getSnapshot(), previous);
+    assert.equal(publications, 1);
+    f.visual.height = 844;
+    f.frame(200);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(f.win.document.activeElement, f.input, "native keyboard dismissal may retain focus");
+    f.visual.height = 500;
+    f.visual.scale = 1.5;
+    f.visual.offsetTop = 80;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(220);
+    assert.equal(f.port.getSnapshot().keyboardInsetBottomPx, 0);
+    assert.equal(f.port.getSnapshot().visualOffset.topPx, 80);
+  } finally { f.close(); }
+});
+
+test("mobile viewport invalidates on resume, page restoration and next contact", () => {
+  const f = viewportPortFixture();
+  try {
+    f.visual.height = 440;
+    f.frame(20);
+    f.frame(1_100);
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "hidden" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 844;
+    Object.defineProperty(f.win.document, "visibilityState", { configurable: true, value: "visible" });
+    f.win.document.dispatchEvent(new f.win.Event("visibilitychange"));
+    f.frame(1_200);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    f.frame(2_300);
+    f.visual.height = 440;
+    f.win.dispatchEvent(new f.win.Event("pageshow"));
+    f.frame(2_400);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 440);
+    f.frame(3_500);
+    f.visual.height = 844;
+    const touch = new f.win.Event("touchstart", { bubbles: true, cancelable: true });
+    f.input.dispatchEvent(touch);
+    f.frame(3_600);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 844);
+    assert.equal(touch.defaultPrevented, false, "viewport observation cannot arbitrate input");
+    f.port.dispose();
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 200;
+    f.win.dispatchEvent(new f.win.Event("pageshow"));
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    assert.equal(f.frames.size, 0, "disposed ports cannot restart");
+  } finally { f.close(); }
+});
+
+test("desktop viewport reads remain event driven", () => {
+  const f = viewportPortFixture(false);
+  try {
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 500;
+    f.visual.dispatchEvent(new f.win.Event("resize"));
+    f.frame(20);
+    assert.equal(f.port.getSnapshot().visualViewport.heightPx, 500);
+    assert.equal(f.frames.size, 0);
+    f.visual.height = 844;
+    f.input.dispatchEvent(new f.win.Event("touchstart", { bubbles: true }));
+    assert.equal(f.frames.size, 0);
+  } finally { f.close(); }
 });

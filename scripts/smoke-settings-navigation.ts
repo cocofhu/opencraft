@@ -7,9 +7,9 @@ import React from 'react';
 import {createIntlTestRoot as createRoot} from '/tests/fixtures/intl-root.tsx';
 import {AppShell} from '/apps/workbench-web/src/components/app-shell.tsx';
 import {useSettingsPresentation} from '/apps/workbench-web/src/components/use-settings-presentation.ts';
-import {buildCodexThemeCssProperties} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
-for(const [key,value] of Object.entries(buildCodexThemeCssProperties('light'))) document.documentElement.style.setProperty(key,value);
+for(const [key,value] of Object.entries(buildOpenCraftThemeCssProperties('light'))) document.documentElement.style.setProperty(key,value);
 function Demo(){
  const [preferred,setPreferred]=React.useState(310);
  const p=useSettingsPresentation(preferred);

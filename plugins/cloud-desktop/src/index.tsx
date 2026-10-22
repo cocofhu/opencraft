@@ -27,7 +27,7 @@ export function createCloudDesktopWorkbenchPanelPlugin(adapter?: CloudDesktopPlu
     ctx.effect(() => ctx.workbenchPanels.register<{ readonly conversationId: string }>({
       kind: "cloud-desktop",
       createTab: ({ conversationId }) => ({
-        id: "cloud-desktop", kind: "cloud-desktop", region: "right", title: "Desktop",
+        id: "cloud-desktop", kind: "cloud-desktop", region: "right", title: "Cloud computer",
         icon: "desktop", showTabIcon: true, resource: conversationId, closable: true, preview: false,
       }),
       // Close/owner release revoke input immediately, not after a Shell exit animation.
@@ -47,7 +47,7 @@ export function createCloudDesktopWorkbenchPanelPlugin(adapter?: CloudDesktopPlu
       };
       const register = () => ctx.workbenchPanels.registerToolbarAction({
         id: "opencraft.cloud-desktop.open", region: "right", order: 250,
-        label: "Desktop", creationLabel: "Desktop", icon: "desktop",
+        label: "Cloud computer", creationLabel: "Cloud computer", icon: "desktop",
         isAvailable: context => isAvailable(context.resourceOwnerId),
         run: context => {
           if (!isAvailable(context.resourceOwnerId)) return;

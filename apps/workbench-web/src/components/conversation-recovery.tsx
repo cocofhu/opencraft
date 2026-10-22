@@ -80,6 +80,15 @@ function RecoveryProgressDetails({ diagnostic, failed = false }: { readonly diag
   </div>;
 }
 
+/** An intermediate failed request can still be waiting for automatic retry. */
+function RecoveryFailureDetails({ diagnostic }: { readonly diagnostic: ConversationRecoveryDiagnostic }) {
+  if (diagnostic.progress) {
+    if (diagnostic.progress.stage !== "failed" && diagnostic.progress.stage !== "blocked") return null;
+    return <RecoveryProgressDetails diagnostic={diagnostic} failed />;
+  }
+  return <RecoveryTechnicalDetails diagnostic={diagnostic} />;
+}
+
 export function ConversationRecoveryEmptyState({ failed, requiresUpdate = false, onRetry, diagnostic }: {
   readonly diagnostic?: ConversationRecoveryDiagnostic;
   readonly failed: boolean;
@@ -90,14 +99,13 @@ export function ConversationRecoveryEmptyState({ failed, requiresUpdate = false,
     <div className="conversation-recovery-empty-error thread-layout-width" role="alert">
       <p>{requiresUpdate ? <ClientUpdateRequired /> : <FormattedMessage id="chat.restore.failed" defaultMessage="Could not load this conversation" />}</p>
       {!requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
-      {diagnostic?.progress ? <RecoveryProgressDetails key={diagnostic.viewKey} diagnostic={diagnostic} failed /> : diagnostic ? <RecoveryTechnicalDetails key={`${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
+      {diagnostic ? <RecoveryFailureDetails key={diagnostic.progress ? diagnostic.viewKey : `${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
     </div>
   );
   return (
-    <div className={`conversation-recovery-loading${diagnostic ? " conversation-recovery-loading--observable" : ""}`} role="status">
+    <div className="conversation-recovery-loading" role="status">
       <span className="conversation-recovery-loading__label"><FormattedMessage id="chat.restore.loading" defaultMessage="Loading conversation history…" /></span>
       <LoadingSpinner />
-      {diagnostic ? <RecoveryProgressDetails key={diagnostic.viewKey} diagnostic={diagnostic} /> : null}
     </div>
   );
 }
@@ -120,8 +128,7 @@ export function ConversationRecoveryNotice({ failed, reconnecting, requiresUpdat
           : <FormattedMessage id="chat.sync.pending" defaultMessage="Syncing…" />}
       </span>
       {failed && !requiresUpdate && onRetry ? <button type="button" onClick={onRetry}><FormattedMessage id="common.retry" defaultMessage="Try again" /></button> : null}
-      {diagnostic && (!failed || diagnostic.progress) ? <RecoveryProgressDetails key={diagnostic.viewKey} diagnostic={diagnostic} failed={failed} /> : null}
-      {failed && diagnostic && !diagnostic.progress ? <RecoveryTechnicalDetails key={`${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
+      {failed && diagnostic ? <RecoveryFailureDetails key={diagnostic.progress ? diagnostic.viewKey : `${diagnostic.viewKey ?? ""}:${conversationRecoveryDiagnosticText(diagnostic)}`} diagnostic={diagnostic} /> : null}
     </div>
   );
 }

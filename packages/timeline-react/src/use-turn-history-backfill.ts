@@ -22,13 +22,6 @@ export interface TurnHistoryBackfillHandle {
   readonly invalidate: () => void;
 }
 
-/**
- * React ownership adapter for Codex-style history backfill.
- *
- * The returned command never changes identity. The coordinator sees only the
- * latest committed callbacks, so a render cannot reconnect observers or start
- * a second load merely because a closure was recreated.
- */
 export function useTurnHistoryBackfill({
   historyKey,
   loadPage,

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject, type PointerEvent } from "react";
 import { RotateCcw, X } from "lucide-react";
-import { computeBrowserViewportLayout, type BrowserViewportMode } from "@opencraft/browser-core";
-import { DEVICE_PRESETS, initializeBrowserViewportPresets, clampPanelWidth__rBr_2f54e, getDefaultPanelWidth } from "./codex/viewport-presets.js";
-import { computeDragResizeDimensions } from "./codex/viewport-resize.js";
+import { browserViewportDeviceProfile, computeBrowserViewportLayout, type BrowserViewportMode } from "@opencraft/browser-core";
+import { DEVICE_PRESETS, initializeBrowserViewportPresets, clampPanelWidth__rBr_2f54e, getDefaultPanelWidth } from "./opencraft/viewport-presets.js";
+import { computeDragResizeDimensions } from "./opencraft/viewport-resize.js";
 initializeBrowserViewportPresets();
 
 type DeviceMode = Exclude<BrowserViewportMode, {type:"responsive"}>;
@@ -12,14 +12,14 @@ const labels: Record<string,string> = {
   "iphone-15-pro-max":"iPhone 15 Pro Max","pixel-8":"Pixel 8","iphone-15-pro":"iPhone 15 Pro",
   "samsung-galaxy-s24-ultra":"Galaxy S24 Ultra","iphone-se":"iPhone SE",
 };
-/** OpenCraft toolbar projection; bounded history: docs/provenance/browser-toolbar-replacement.md. */
+
 export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
   mode:DeviceMode;onChange(mode:DeviceMode):void;onClose():void;zoom:number;onZoom?: (percent:number)=>void;
 }) {
   const selection = mode.type === "device" && DEVICE_PRESETS.some(item => item.id === mode.presetId)
     ? mode.presetId : "responsive";
   const editDimension = (axis: "width" | "height", dimension: number) => {
-    onChange({...mode, [axis]: dimension, type: "device", presetId: "responsive"});
+    onChange({...mode, [axis]: dimension, type: "device", presetId: "responsive", deviceProfile: browserViewportDeviceProfile(mode)});
   };
   return (
     <div className="browser-device-toolbar" role="toolbar" aria-label="Device toolbar">
@@ -117,7 +117,7 @@ export function BrowserDeviceHandles({mode,slot,onChange}:{mode:DeviceMode;slot:
           drag:{edge:d.edge,startWidth:d.mode.width,startHeight:d.mode.height,startPointerX:d.x,startPointerY:d.y},
           pointerX:event.clientX,pointerY:event.clientY,scale:d.scale,fitWidth:Math.max(0,size.width-40),fitHeight:Math.max(0,size.height-20),
         });
-        onChange({type:"device",presetId:"responsive",...dimensions});
+        onChange({type:"device",presetId:"responsive",deviceProfile:browserViewportDeviceProfile(d.mode),...dimensions});
       }}
       onPointerUp={event=>finish(event,false)} onPointerCancel={event=>finish(event,true)}
       onLostPointerCapture={event=>finish(event,true)}
@@ -127,7 +127,7 @@ export function BrowserDeviceHandles({mode,slot,onChange}:{mode:DeviceMode;slot:
         if(!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key))return;
         event.preventDefault();
         const horizontal=edge!=="bottom",vertical=edge!=="left"&&edge!=="right";
-        onChange({type:"device",presetId:"responsive",
+        onChange({type:"device",presetId:"responsive",deviceProfile:browserViewportDeviceProfile(mode),
           width:clampPanelWidth__rBr_2f54e(mode.width+(horizontal?(event.key==="ArrowRight"?amount:event.key==="ArrowLeft"?-amount:0):0)),
           height:getDefaultPanelWidth(mode.height+(vertical?(event.key==="ArrowDown"?amount:event.key==="ArrowUp"?-amount:0):0))});
       }}/>)}

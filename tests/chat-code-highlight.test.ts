@@ -12,7 +12,7 @@ test("shared Shiki grammar preserves native code text and matches Web theme colo
   ]);
   assert.equal(lines.map(line => line.map(token => token.content).join("")).join("\n"), code);
   assert.ok(lines.flat().some(token => token.color.toLowerCase() !== "#0d0d0d"));
-  assert.match(html, /class="shiki codex-light"/u);
+  assert.match(html, /class="shiki opencraft-light"/u);
 });
 
 test("cancelled syntax work cannot commit a stale result", async () => {

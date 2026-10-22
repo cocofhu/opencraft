@@ -28,7 +28,7 @@ test("compact titlebar paint reads live motion rather than terminal pane presenc
   assert.match(shell, /\[animatedNavigationWidth, animatedSidebarWidth, sidebarProgress\]/u);
   assert.match(block(styles, '.app-shell-header::before'), /width: var\(--app-shell-titlebar-extension-width/u);
   assert.match(block(styles, '.app-shell-header::before'), /background: var\(--background-shell-compact-titlebar\)/u);
-  assert.match(block(styles, '.app-shell-header::before'), /box-shadow: var\(--codex-main-surface-elevation\)/u);
+  assert.match(block(styles, '.app-shell-header::before'), /box-shadow: var\(--opencraft-main-surface-elevation\)/u);
   assert.match(block(styles, '.app-shell-header::before'), /clip-path: inset\(0 0 calc\(-1 \* var\(--height-toolbar\)\) 0\)/u);
   assert.doesNotMatch(block(styles, '.app-shell-header::before'), /transition|animation/u);
   const horizontal = block(styles, '.app-shell-header::after');
@@ -42,7 +42,7 @@ test("compact titlebar paint reads live motion rather than terminal pane presenc
   assert.doesNotMatch(sidecar, /::(?:before|after)|padding|border-right/u);
   assert.doesNotMatch(navigation, /\.app-shell-sidecar\s*\+\s*\.main-content-surface/u);
   assert.doesNotMatch(tokens, /--elevation-shell-docked-content/u);
-  assert.match(block(styles, ".main-content-surface"), /box-shadow: var\(--codex-main-surface-elevation\)/u);
+  assert.match(block(styles, ".main-content-surface"), /box-shadow: var\(--opencraft-main-surface-elevation\)/u);
   assert.doesNotMatch(block(styles, ".app-shell-left-panel"), /::after/u);
   assert.match(block(styles, ".app-shell-floating-left-panel__surface"), /box-shadow: var\(--elevation-sidebar\)/u);
 });

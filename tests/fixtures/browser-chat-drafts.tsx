@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { AppServerBotConversationSource, type AppServerBotConversationService } from "@opencraft/bot-conversation-appserver";
 import { botConversationResourceUri } from "@opencraft/bot-conversation";
 import { createConversationKey } from "@opencraft/chat-core";
@@ -38,7 +38,7 @@ const View = createBotChatView(source, {
 const locale = new LocaleRuntime([]);
 await locale.update({ ideLocale: "en-US" });
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) document.documentElement.style.setProperty(key, value);
 let navigate = (_room: string) => {};
 function Probe() {
   const [room, setRoom] = useState("a"); navigate = setRoom;

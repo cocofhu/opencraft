@@ -60,12 +60,11 @@ original ShadowRoot stylesheet assembly and resource URL. Public shared styles
 no longer reserve that product artwork space or reference its image.
 
 
-Optional source-parity diagnostics no longer select a maintainer's absolute
-filesystem path or assume a parent reference checkout. Their local snapshots are
-explicit inputs, and browser evidence uses system temporary directories. Default
-builds and the public gate remain independent of those snapshots; this portability
-change does not replace reference code or resolve provenance records. See
-[developer inputs](build-matrix.md#optional-developer-references-and-browser-evidence).
+The work-status diagnostic exercises current production components without a
+separate source snapshot. Browser evidence uses system temporary directories.
+External execution-runtime checks and connector catalog exports still require
+explicit local inputs. See
+[developer inputs](build-matrix.md#developer-diagnostics-and-browser-evidence).
 
 Host-specific Composer shortcut declarations and standalone action adapters belong
 to the trusted connection provider. Core matching, presentation and resident
@@ -235,27 +234,16 @@ successful build with those behaviors disabled is not a completed split.
 
 ## Current delivery decision (2026-10-19)
 
-The earlier instruction to finish the source inventory before the public
-upstream cutover was replaced by a narrower one: **presentation is neutralized,
-provenance evidence is not**. Reader-facing text — documentation prose, UI copy,
-labels, comments and test descriptions — no longer carries company, personal,
-internal-service or downstream brand identities. Wire contracts, persisted
-identifiers, package IDs and release artifact names are unchanged: renaming them
-would be a data migration, not copy editing.
+Reader-facing text and owned core names use OpenCraft identity. Extra source
+comments and source archives are removed without rewriting working implementations.
+Actual provider integrations retain their protocol names. Persisted identifiers
+need explicit compatibility handling when renamed; copy editing cannot silently
+change saved selections or external contracts.
 
-This does not touch legal provenance. The source inventory, `NOTICE`, per-package
-provenance records and the recorded review remain exactly as recorded, and no
-unresolved record is marked resolved. Source replacement work stays stopped; the
-unmerged client replacements remain in draft
-[PR #20](https://github.com/opencraft-app/opencraft/pull/20) and are not part of
-the accepted migration baseline.
-
-Original core contributions use Apache-2.0. Existing inventory, source
-annotations and third-party notices remain unchanged; this decision does not
-mark unresolved records as resolved or claim independent authorship. The source
-inventory checker retains integrity validation, without requiring inventory
-resolution in the release workflow. Do not resume source replacement work
-solely to complete this migration.
+Original core contributions use Apache-2.0. Third-party copyright, license and
+required notices remain. Removing extra records does not establish redistribution
+rights, claim independent authorship or authorize publication. Do not resume
+implementation replacement work solely for a naming or archive cleanup.
 
 The canonical GitHub repository owns contributions, protected checks and release
 automation. The old history archive stays private. Complete Web/Electron/Expo
@@ -335,9 +323,8 @@ a public release complete.
 Connector brand images were subsequently excluded from current core following
 their exact-source review. Existing licensed category icons retain service
 identification alongside unchanged service names, catalog and operations.
-Historical hashes and attribution remain in
-[the artwork disposition](provenance/connector-artwork.md); this current-tree
-exclusion does not clear old Git history or change downstream artwork.
+This exclusion does not establish redistribution rights for old Git history or
+change downstream artwork.
 
 Connector management is contributed through the generic View role and its eligible Settings Page. Public App no longer names a downstream management page; product composition must declare the existing destination. This does not migrate or replace connector execution/authentication.
 

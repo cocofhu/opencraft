@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { workspacePaneGeometry, paneTransitionIntent } from "../apps/workbench-web/src/components/workspace-pane-geometry";
 
-test("Codex Frame never follows the maximization aperture below its ordinary split width",()=>{
+test("Workspace frame never follows the maximization aperture below its ordinary split width",()=>{
   for(const full of [0,.1,.5,.9,1,1.02]){
     const value=workspacePaneGeometry(1000,600,1,full,480);
     assert.equal(value.frameWidth,480);

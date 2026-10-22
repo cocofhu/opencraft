@@ -14,7 +14,7 @@ import { WorkbenchIcon } from "../apps/workbench-web/src/components/ui/workbench
 import { NavigationIcon } from "../apps/workbench-web/src/components/shell-navigation/navigation-action";
 import { SidebarToggleIcon } from "../apps/workbench-web/src/chrome-actions/sidebar-toggle-icon";
 import { NewTaskIcon } from "../apps/workbench-web/src/chrome-actions/new-task-icon";
-import { ReferenceNavigationIcon, ReferenceSidebarToggleIcon } from "./fixtures/vela-icon-reference";
+import { ReferenceNavigationIcon, ReferenceSidebarToggleIcon } from "./fixtures/opencraft-icon-reference";
 import { resolveWorkbenchPresentation } from "../apps/workbench-web/src/workbench-presentation";
 const render = (component: ReturnType<typeof createElement>, iconStyle: "classic" | "standard" = "classic") => renderToStaticMarkup(createElement(WorkbenchPresentationContext.Provider, { value: resolveWorkbenchPresentation({iconStyle}) }, component));
 const geometry = (markup: string) => [...markup.matchAll(/<(?:path|circle|rect|line|polyline|polygon|ellipse)\b[^>]*>/g)].map(match => match[0]);

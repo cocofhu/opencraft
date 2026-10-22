@@ -21,8 +21,8 @@ full gate.
 
 Do not add protocol, persistence, clocks, or daemon state directly to a React
 component. Define a renderer-neutral port first and inject the platform
-adapter. Do not edit recovered Codex or Paseo evidence; record its path in the
-relevant architecture document and implement the behavior cleanly in OpenCraft.
+adapter. Record the current ownership and behavior contract in the relevant
+architecture document.
 
 ## Replica invariants
 

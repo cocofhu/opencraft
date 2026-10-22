@@ -1,3 +1,22 @@
+export const builtinThemeIds = Object.freeze({
+  neutral: "opencraft.core.neutral", canvas: "opencraft.core.canvas",
+  frost: "opencraft.core.frost", lavender: "opencraft.core.lavender",
+  mist: "opencraft.core.mist", zencode: "opencraft.core.zencode",
+});
+
+/** Exact compatibility aliases only; extension-owned identifiers are opaque. */
+export function normalizeBuiltinThemeId(id: string): string {
+  switch (id) {
+    case "vela.core.codex": return builtinThemeIds.neutral;
+    case "vela.core.web": return builtinThemeIds.canvas;
+    case "vela.core.frost": return builtinThemeIds.frost;
+    case "vela.core.lavender": return builtinThemeIds.lavender;
+    case "vela.core.mist": return builtinThemeIds.mist;
+    case "vela.core.zencode": return builtinThemeIds.zencode;
+    default: return id;
+  }
+}
+
 /** Trusted, synchronous build composition. Never inferred from product identity. */
 export interface WorkbenchPresentationOptions {
   readonly iconStyle?: "standard" | "classic";
@@ -21,10 +40,11 @@ export function resolveWorkbenchPresentation(options: WorkbenchPresentationOptio
   if (options.iconStyle !== undefined && options.iconStyle !== "standard" && options.iconStyle !== "classic") {
     throw new TypeError("Unknown Workbench icon style");
   }
-  const defaultThemeId = options.defaultThemeId?.trim();
-  const hiddenBuiltinThemeIds = [...(options.hiddenBuiltinThemeIds ?? [])];
+  const defaultThemeId = options.defaultThemeId === undefined ? undefined : normalizeBuiltinThemeId(options.defaultThemeId.trim());
+  const rawHiddenIds = [...(options.hiddenBuiltinThemeIds ?? [])];
+  const hiddenBuiltinThemeIds = rawHiddenIds.map(normalizeBuiltinThemeId);
   if ((options.defaultThemeId !== undefined && !defaultThemeId)
-    || hiddenBuiltinThemeIds.some(id => !id.trim() || id !== id.trim())
+    || rawHiddenIds.some(id => !id.trim() || id !== id.trim())
     || (defaultThemeId !== undefined && hiddenBuiltinThemeIds.includes(defaultThemeId))) {
     throw new TypeError("Invalid Workbench theme policy");
   }

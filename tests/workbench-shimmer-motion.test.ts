@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { buildCodexThemeCssProperties, codexThemePalette, velaThemePalette } from "@opencraft/design-system/theme-engine";
-import { codexColorTokens, workingShimmerMotion } from "@opencraft/design-system/tokens";
+import { buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, opencraftCanvasThemePalette } from "@opencraft/design-system/theme-engine";
+import { opencraftColorTokens, workingShimmerMotion } from "@opencraft/design-system/tokens";
 
 const web = readFileSync(new URL("../apps/workbench-web/src/components/conversation-renderers/activity/activity-disclosure.tsx", import.meta.url), "utf8");
 const native = readFileSync(new URL("../apps/workbench-expo/src/components/workbench-conversation.tsx", import.meta.url), "utf8");
@@ -30,14 +30,14 @@ test("Web loops a one-way sweep while Native schedules from the first sweep", ()
 });
 
 test("working highlight uses opaque theme ink across Web and Native", () => {
-  for (const palette of [codexThemePalette, velaThemePalette]) {
+  for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette]) {
     for (const mode of ["light", "dark"] as const) {
-      const css = buildCodexThemeCssProperties(mode, palette[mode]);
+      const css = buildOpenCraftThemeCssProperties(mode, palette[mode]);
       assert.equal(css["--color-text-working-highlight"], palette[mode].ink);
     }
   }
-  assert.equal(codexColorTokens.light.text.workingHighlight, codexThemePalette.light.ink);
-  assert.equal(codexColorTokens.dark.text.workingHighlight, codexThemePalette.dark.ink);
+  assert.equal(opencraftColorTokens.light.text.workingHighlight, opencraftNeutralThemePalette.light.ink);
+  assert.equal(opencraftColorTokens.dark.text.workingHighlight, opencraftNeutralThemePalette.dark.ink);
   assert.match(webStyles, /\.is-shimmering__highlight\s*\{[^}]*color:\s*var\(--color-text-working-highlight, var\(--color-text\)\)/u);
   assert.doesNotMatch(webStyles, /--shimmer-contrast:\s*color-mix/u);
   assert.match(native, /cadencedTextHighlight:\s*\{\s*color:\s*theme\.color\.text\.workingHighlight\s*\}/u);

@@ -122,10 +122,22 @@ export function ThreadGoalSurface({ threadId, goals, draftScope, onCreateGoal, d
   }, [presentationScope]);
   useEffect(() => {
     if (!presentationActive || capability?.usageAccounting === false || goal?.status !== "active") return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    let displayedTime: number | null = null;
+    const refresh = () => {
+      const next = Date.now();
+      const seconds = Math.max(0, Math.floor(goal.timeUsedSeconds + Math.max(0, next / 1000 - goal.updatedAt)));
+      // Both duration labels show seconds below a minute, then whole minutes.
+      // Keep sampling for clock/accounting changes without rerendering the Composer
+      // when neither the summary nor the detailed elapsed label can change.
+      const displayTime = seconds < 60 ? seconds : 60 + Math.floor(seconds / 60);
+      if (displayTime === displayedTime) return;
+      displayedTime = displayTime;
+      setNow(next);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 1000);
     return () => window.clearInterval(timer);
-  }, [presentationActive, goal?.status, capability?.usageAccounting]);
+  }, [presentationActive, threadId, goal?.status, goal?.timeUsedSeconds, goal?.updatedAt, capability?.usageAccounting]);
   useEffect(() => {
     if (goal?.status === "complete") setExpanded(false);
     else setEditorMode(mode => mode === "view" ? null : mode);

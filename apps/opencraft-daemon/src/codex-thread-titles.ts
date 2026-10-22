@@ -21,7 +21,7 @@ interface Job {
 }
 
 /** One Host-owned title attempt after a newly created durable Thread accepts input.
- * Like Codex App, inference uses an isolated ephemeral AppServer Thread, then
+ * Inference uses an isolated ephemeral AppServer Thread, then
  * persists the result with thread/name/set. No browser, API key or second engine.
  */
 export class CodexThreadTitles {
@@ -101,8 +101,8 @@ export class CodexThreadTitles {
       if (text(current.name) || current.ephemeral === true || signal.aborted) return;
       const models = record(await this.port.request("model/list", {}, signal));
       const available = (Array.isArray(models.data) ? models.data : []).map(record).map(row => text(row.model) || text(row.id));
-      // Prefer the current runtime's Luna, then Codex App's reference default,
-      // then a listed mini. Never invent availability or change the user's model.
+      // Prefer the configured Luna/mini candidates, then a listed Luna or mini.
+      // Never invent availability or change the user's model.
       const model = ["gpt-6-luna", "gpt-5.6-luna", "gpt-5.4-mini"].find(id => available.includes(id))
         ?? available.find(id => /(?:^|[-/])(?:luna|mini)(?:$|-)/u.test(id));
       if (!model || signal.aborted) return;

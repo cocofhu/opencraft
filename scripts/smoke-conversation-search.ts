@@ -91,7 +91,7 @@ try {
   for(const theme of ['light','dark']) {
     const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce',userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148'});
     page.setDefaultTimeout(15000);page.on('pageerror',(e:Error)=>errors.push(e.message));
-    await page.addInitScript(theme=>{localStorage.setItem('vela.appearance-theme',theme);document.addEventListener('DOMContentLoaded',()=>document.documentElement.dataset.uiDensity='touch');
+    await page.addInitScript(theme=>{localStorage.setItem('opencraft.appearance-theme',theme);document.addEventListener('DOMContentLoaded',()=>document.documentElement.dataset.uiDensity='touch');
       window.fixtureViewport=new EventTarget();Object.assign(window.fixtureViewport,{width:390,height:844,offsetLeft:0,offsetTop:0,scale:1});
       Object.defineProperty(window,'visualViewport',{value:window.fixtureViewport,configurable:true});
     },theme);

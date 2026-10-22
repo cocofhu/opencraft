@@ -59,7 +59,6 @@ function scoreCandidate(rawValue: string, rawQuery: string): number | null {
   return subsequenceScore(value, query);
 }
 
-/** Stable Codex-shaped fuzzy ordering for the Project picker. */
 export function searchDraftWorkspaceOptions(
   options: readonly DraftWorkspaceOption[],
   rawQuery: string,

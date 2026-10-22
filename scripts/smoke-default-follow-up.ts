@@ -12,15 +12,15 @@ import {ChatSettings} from '/apps/workbench-web/src/components/chat-settings.tsx
 import {UiPreferencesProvider,openWorkbenchUiPreferences} from '/apps/workbench-web/src/runtime/ui-preferences-runtime.tsx';
 import {useDefaultFollowUpAction} from '/apps/workbench-web/src/runtime/use-default-follow-up-action.ts';
 import {WorkbenchLocaleController,WorkbenchIntlProvider} from '/apps/workbench-web/src/i18n/workbench-locale.tsx';
-import {buildCodexThemeCssProperties,velaThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftCanvasThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
-Object.entries(buildCodexThemeCssProperties('light',velaThemePalette.light)).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+Object.entries(buildOpenCraftThemeCssProperties('light',opencraftCanvasThemePalette.light)).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
 const preferences=await openWorkbenchUiPreferences();
 const locale=new WorkbenchLocaleController(preferences,{ideLocale:'en-US'});await locale.initialize();
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const calls=[];
 function App(){const[active,setActive]=useState(true);const action=useDefaultFollowUpAction();
-window.fixture={setActive,calls,flush:()=>preferences.flush(),draft:()=>controller.getSnapshot().draft,setTheme:mode=>Object.entries(buildCodexThemeCssProperties(mode,velaThemePalette[mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))};
+window.fixture={setActive,calls,flush:()=>preferences.flush(),draft:()=>controller.getSnapshot().draft,setTheme:mode=>Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftCanvasThemePalette[mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))};
 return <main style={{padding:20,maxWidth:750}}><ChatSettings/><OpenCraftComposer controller={controller} defaultFollowUpAction={action} isStreaming={active} selectionCatalog={{models:[{id:'fixture-model',value:'fixture-model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={(intent,context)=>{calls.push({text:intent.plainText,action:context.followUpAction});return true}} onCancel={()=>{}}/></main>}
 createRoot(document.getElementById('root')).render(<UiPreferencesProvider runtime={preferences}><WorkbenchIntlProvider controller={locale} target={document.documentElement}><App/></WorkbenchIntlProvider></UiPreferencesProvider>);
 `;

@@ -130,7 +130,7 @@ Headless 通过可信服务端 composition 创建身份适配器；受管站点�
 - WebSocket Host provider 已从匿名 Cordis plugin 迁移为 `vela.websocket-host` first-party Extension；
   provider owner 是 activationId，卸载会先撤出 provider，再等待在用 Host lease 归还；
 - `vela.theme-pack` 是第二个真实 Extension 切片：插件只登记 accent/ink/surface/contrast 与
-  diff/skill 语义色，应用根统一派生完整 Token；选择被持久化，卸载时原子回退到内建 Codex 主题；
+  diff/skill 语义色，应用根统一派生完整 Token；选择被持久化，卸载时原子回退到内建中性主题；
 - Theme palette 现在还可选择性声明 `surfaces`（window/sidebar/panel/input/popover 的
   `#RRGGBB` 色值）、`material.window`（translucent/opaque）和
   `material.elevation`（soft/flat，主工作区表面阴影）。没有覆盖的值继续由原算法生成。
@@ -169,7 +169,7 @@ Settings V1 刻意不包含 global/host/workspace 多层 scope、自定义 migra
 
 ## 1. 结论
 
-OpenCraft 是类似 Codex 的桌面/Web/移动商业 Workbench。它的公开生态和用户心智应当以
+OpenCraft 是桌面/Web/移动 Workbench。它的公开生态和用户心智应当以
 Plugin/Extension 为中心：安装、启用、设置、命令、面板、渲染器、Workspace 集成、升级和
 卸载都属于稳定的 Extension Platform。
 
@@ -207,65 +207,28 @@ Contribution 仍不会因为安装或激活而自动进入模型上下文。
 
 面向开发者的一句话定义是：
 
-> **开发手感与信任方式接近 Obsidian，API 稳定性借鉴 Chrome，远端能力接近 Codex。**
+> **插件经显式贡献接口接入，由统一的激活与卸载生命周期管理资源。**
 
 这不会推翻现有的多 Runtime 设计。OpenCraft 仍然保留多个独立 Cordis Context；新增的
 `ExtensionSupervisor` 用一个 Contribution Broker 跨域登记贡献，并把所有 disposer 挂到
 同一个插件 Activation Fiber 上，从而做到“一次激活、原子贡献、一次卸载、完整清理”。
 
-## 2. 参考系统复审
+## 2. 客户端扩展边界
 
-| 系统 | 已证明的优点 | 不能直接复制的部分 | OpenCraft 采用方式 |
-| --- | --- | --- | --- |
-| Codex | 插件目录/安装/启用属于 AppServer 产品面；first-party bridge 按可用性惰性创建；App Action 有 schema 和 lazy registry；MCP App 使用独立 sandbox | 尚未看到把任意第三方 React 组件加载进主 Renderer 的公共 ABI | 复用上游 Plugin 协议；客户端扩展只经 capability/action/sandbox 边界进入 |
-| Obsidian | `Plugin extends Component`；`register*()` 自动清理；命令、View、编辑器扩展、Markdown、设置等贡献点成熟；Workspace 可按 View 类型恢复 | 公共 API 与内部实现边界仍会受 Renderer/Node 环境影响 | 复制生命周期手感、可信本地插件、命名空间、View 恢复和 SDK 体验 |
-| Firefox/Chrome | manifest、版本化 API namespace、package-contained code；可进一步提供权限、执行分域和消息桥 | 完整 WebExtension 安全平台成本高且不是本地 vibe coding 的必要条件 | 首先采用 manifest/API/打包边界；restricted sandbox 和细粒度权限按发行渠道选配 |
-| OpenCraft 当前 | Chat renderer、directive、resource policy、panel、session projector 等已经可通过 Cordis 注册；销毁已有 Fiber 语义 | 多个小 Runtime 各自暴露 `install(plugin, unknown)`；无 manifest、稳定 SDK、activation owner、迁移与兼容门 | 保留内部 registry，实现统一 ExtensionSupervisor 和公开稳定 SDK |
+插件目录、安装和启用状态属于 Host/AppServer；客户端 bridge 按可用性惰性激活。
+内部 registry、主题 factory 和编辑器扩展登记不构成第三方任意代码执行边界。
+外部 App 内容经独立 sandbox、CSP、资源代理和主题/尺寸 RPC 呈现。
 
-参考资料：
+客户端贡献使用 manifest 身份、命名空间和由激活 owner 持有的 disposer；停止激活
+按生命周期回收。命令、View、编辑器、Markdown 与设置贡献继续使用各自 registry，
+统一 SDK/activation 编排不代替这些领域 owner。
 
-- Codex 恢复源码：`reference://codex/.runtime/partition-r2440-lifecycle-owner-adoption`；
-- Obsidian 恢复源码：`/data/obsidian/recovered-standard-js/web/app/renderer.js`；
-- [Obsidian 插件生命周期](https://docs.obsidian.md/plugins/guides/lifecycle-management)；
-- [Firefox 扩展结构](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Anatomy_of_a_WebExtension)；
-- [Firefox 权限模型](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions)；
-- [Firefox 沙箱页](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/sandbox)。
-- [Firefox WebExtension API 执行域](https://firefox-source-docs.mozilla.org/toolkit/components/extensions/webextensions/basics.html)。
+明暗偏好、色板、代码主题、字号和动效是独立设置。system 偏好才订阅系统主题；
+平台订阅由根服务持有，缓存和重复注册需显式处理。
 
-### 2.1 Codex 源码证据
-
-| 证据 | 说明 |
-| --- | --- |
-| `shared/create-plugin-bridge-manager-07301.js` | 监听 installed/enabled availability；只在可用时创建 bridge，无订阅且无实例时释放 watcher |
-| `shared/create-first-party-plugin-bridges-07300.js` | bridge 来自编译期 registration；当前策略仅为 local Host 上已安装、已启用的同名插件激活 |
-| `shared/dispatch-app-action-01763.js` | 先解析 action envelope，再 lazy import action registry，未知 action 明确失败 |
-| `lazy/app-initial/register-app-actions-DuIY2vIO.js` | 内建 action 逐类做 schema validation 和版本化 dispatch，不执行外部任意函数 |
-| `service/mcp-app-sandbox-renderer-07461.js` | MCP App 通过独立 sandbox origin、CSP、资源代理、主题/尺寸 RPC 和失败状态呈现 |
-| `service/renderer-mcp-schema-config-07344.js` | sandbox、theme、device/input、host/app capabilities 都有显式 schema |
-| `shared/create-theme-registry-06923.js` | 内部 theme factory registry 有重复检查、lazy resolve 和 generation cache |
-| `settings/appearance-settings-01201.ts` | 明暗偏好、Chrome 色板、代码主题、字号和动效是独立设置，不压成一个 theme blob |
-| `shared/use-theme-value-07840.ts` | 只有 system 偏好才订阅系统主题，并通过 `useSyncExternalStore` 消费 |
-| `shared/subscribe-to-system-theme.ts` | Electron 原生主题订阅优先，Web 回退到 `matchMedia`，由根服务持有订阅 |
-| `shared/prose-mirror-extension-registry-03888.js` | 内部编辑器扩展按 Node/Mark/other 分类、解析依赖；它不是社区插件沙箱 |
-| `packages/appserver-protocol/src/generated/v2/Plugin*.ts` | OpenCraft 已同步 AppServer 的 source/catalog/install/policy/interface 协议 |
-
-这里最重要的不是“Codex 也有 Registry”，而是 **Codex 没有把这些内部 Registry 当成
-第三方执行边界**。产品插件是否可用来自 AppServer；主 Renderer 的 bridge/action 是应用
-已经知道的代码；任意 App 内容进入另一条 sandbox 路径。
-
-### 2.2 Obsidian、WebExtensions 与 OpenCraft 源码证据
-
-- Obsidian `renderer.js:63055` 附近的 `Component` 保存 children 与 disposer，并在 unload
-  时逆序清理；`renderer.js:117057` 附近的 `Plugin` 给 command、view、editor extension、
-  markdown processor、settings 等登记 disposer，并用 manifest ID 做 namespace；
-- `/data/obsidian/ANALYSIS.md` 和加载器证明社区 `main.js` 在 `nodeIntegration: true`、
-  `contextIsolation: false` 的 Renderer 中执行。这解释了它极强的插件能力，也解释了 OpenCraft
-  不能照搬其安全边界；
-- Firefox 的 manifest 声明入口和权限，content script 只获得受限 API，并通过消息请求
-  background；sandbox page 使用不透明 origin，拿不到 WebExtension API；
-- OpenCraft 的 `packages/chat-render-react/src/runtime.ts` 与
-  `packages/workbench-panels-react/src/index.ts` 都新建各自 Context 并直接暴露
-  `install(plugin, config?: unknown)`；这证明生命周期内核已存在，但公共治理层尚不存在。
+现有 AppServer Plugin source/catalog/install/policy/interface 字段由生成协议定义；
+客户端 Extension 与该原生协议的区别见下一节。当前 SDK、manifest 与安全边界
+的实现状态以本文前述实现账本及后续正式契约为准。
 
 ## 3. 先区分两种“插件”
 
@@ -488,7 +451,7 @@ function activateBuiltin(ctx: CordisContext, broker: ContributionBroker): void {
 
 ### 6.4 View、入口与布局不得合并
 
-OpenCraft 采用与 Obsidian `Ribbon/Command -> ViewType -> WorkspaceLeaf` 相同的所有权原则，但不公开
+OpenCraft 将 Command、View 类型和持久 Workspace slot 的所有权分开，但不公开
 任意 DOM 注入：
 
 ```text
@@ -821,8 +784,7 @@ UI view instance           = (rendererId, contributionId, viewInstanceId)
 - 一个插件在两个 Host 安装时是两个可用性/授权实例；
 - 全局插件管理 UI 可以聚合展示，但不能抹掉 Host 来源。
 
-Codex 当前的 first-party bridge 只对 `local` Host 生效，是产品策略证据，不应被泛化成
-“所有插件都只能 local”。OpenCraft 的 bridge 必须显式声明 location policy。
+OpenCraft 的 bridge 必须显式声明 location policy；单个产品的本机限制不得变成通用插件约束。
 
 ## 13. 包与模块边界
 

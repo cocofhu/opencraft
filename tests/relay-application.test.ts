@@ -30,7 +30,7 @@ async function config() {
 }
 function get(port: number, path = '/', headers: Record<string, string> = {}) {
   return new Promise<{ status: number; body: string; headers: IncomingHttpHeaders }>((resolve, reject) => {
-    const req = request({ hostname: '127.0.0.1', port, path, headers: { host: 'team.test', ...headers } }, res => {
+    const req = request({ hostname: '127.0.0.1', port, path, agent: false, headers: { host: 'team.test', ...headers } }, res => {
       let body = ''; res.on('data', c => body += c); res.on('end', () => resolve({ status: res.statusCode!, body, headers: res.headers }));
     }); req.once('error', reject); req.end();
   });

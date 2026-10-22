@@ -4,21 +4,21 @@ import {
   type ResolvedTheme, type ThemePreference,
 } from "@opencraft/design-system/theme";
 import {
-  buildCodexThemeCssProperties, codexThemePalette, frostThemePalette,
-  lavenderThemePalette, mistThemePalette, velaThemePalette, zenCodeThemePalette,
-  type CodexThemeDefinition, type ThemeCssProperties,
+  buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette, frostThemePalette,
+  lavenderThemePalette, mistThemePalette, opencraftCanvasThemePalette, zenCodeThemePalette,
+  type OpenCraftThemeDefinition, type ThemeCssProperties,
 } from "@opencraft/design-system/theme-engine";
 import type { ExtensionContributionSnapshot, ExtensionContributionStore } from "@opencraft/extension-runtime";
 import { applyWorkbenchProductPresentation, workbenchProductId, workbenchPresentation } from "./workbench-product";
-import type { WorkbenchPresentation } from "./workbench-presentation";
+import { builtinThemeIds, normalizeBuiltinThemeId, type WorkbenchPresentation } from "./workbench-presentation";
 
-// Persisted identifiers are compatibility data, independent of displayed names.
-export const coreThemeId = "vela.core.codex";
-export const velaThemeId = "vela.core.web";
-export const frostThemeId = "vela.core.frost";
-export const lavenderThemeId = "vela.core.lavender";
-export const mistThemeId = "vela.core.mist";
-export const zenCodeThemeId = "vela.core.zencode";
+// Canonical built-in identities; legacy values are normalized at read boundaries.
+export const coreThemeId = builtinThemeIds.neutral;
+export const canvasThemeId = builtinThemeIds.canvas;
+export const frostThemeId = builtinThemeIds.frost;
+export const lavenderThemeId = builtinThemeIds.lavender;
+export const mistThemeId = builtinThemeIds.mist;
+export const zenCodeThemeId = builtinThemeIds.zencode;
 
 export interface AppearanceThemeDescriptor {
   readonly id: string;
@@ -35,7 +35,7 @@ export interface AppearanceThemeSnapshot {
   readonly availableThemes: readonly AppearanceThemeDescriptor[];
 }
 
-type PalettePair = Readonly<Record<ResolvedTheme, CodexThemeDefinition>>;
+type PalettePair = Readonly<Record<ResolvedTheme, OpenCraftThemeDefinition>>;
 type CatalogEntry = Readonly<{ descriptor: AppearanceThemeDescriptor; palettes: PalettePair }>;
 
 function builtin(id: string, label: string, description: string, palettes: PalettePair): CatalogEntry {
@@ -43,22 +43,25 @@ function builtin(id: string, label: string, description: string, palettes: Palet
 }
 
 const builtins: readonly CatalogEntry[] = [
-  builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", codexThemePalette),
-  builtin(velaThemeId, "Canvas", "A quiet, web-native canvas.", velaThemePalette),
+  builtin(coreThemeId, "Neutral", "A neutral palette with light and dark appearances.", opencraftNeutralThemePalette),
+  builtin(canvasThemeId, "Canvas", "A quiet, web-native canvas.", opencraftCanvasThemePalette),
   builtin(frostThemeId, "Frost", "A cool translucent Sidebar with a lighter fixed material.", frostThemePalette),
   builtin(lavenderThemeId, "Lavender", "A soft lavender workspace with a quiet UI palette.", lavenderThemePalette),
   builtin(zenCodeThemeId, "ZenCode", "Quiet grayscale layers, crisp controls, and an opaque workspace.", zenCodeThemePalette),
   builtin(mistThemeId, "Mist", "Close neutral surfaces with a quiet, unified canvas.", mistThemePalette),
 ];
 const visibleBuiltins = builtins.filter(entry => !workbenchPresentation.hiddenBuiltinThemeIds.includes(entry.descriptor.id));
+const defaultBuiltin = visibleBuiltins.find(entry => entry.descriptor.id === defaultAppearanceThemeId());
 // Even a policy that hides every built-in needs an executable fallback.
-const baseCatalog = visibleBuiltins.length ? visibleBuiltins : [builtins[0]!];
+const baseCatalog = defaultBuiltin
+  ? [defaultBuiltin, ...visibleBuiltins.filter(entry => entry !== defaultBuiltin)]
+  : visibleBuiltins.length ? visibleBuiltins : [builtins[0]!];
 let catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
 let availableThemes = Object.freeze([...catalog.values()].map(entry => entry.descriptor));
 const subscribers = new Set<() => void>();
 const projectedProperties = new WeakMap<HTMLElement, readonly string[]>();
-const preferenceKey = "vela.appearance-theme";
-const selectionKey = "vela.appearance-theme-id";
+const preferenceKey = "opencraft.appearance-theme";
+const selectionKey = "opencraft.appearance-theme-id";
 const systemAppearance = window.matchMedia("(prefers-color-scheme: dark)");
 let initialized = false;
 let disconnectSource: (() => void) | undefined;
@@ -66,7 +69,7 @@ let disconnectSource: (() => void) | undefined;
 export function defaultAppearanceThemeId(
   presentation: Pick<WorkbenchPresentation, "defaultThemeId"> = workbenchPresentation,
 ): string {
-  return presentation.defaultThemeId ?? coreThemeId;
+  return normalizeBuiltinThemeId(presentation.defaultThemeId ?? coreThemeId);
 }
 
 function readPreference(key: string): string | null {
@@ -80,7 +83,7 @@ function writePreference(key: string, value: string): void {
 }
 
 function resolveEntry(id: string): CatalogEntry {
-  return catalog.get(id) ?? baseCatalog.find(entry => entry.descriptor.id === defaultAppearanceThemeId()) ?? baseCatalog[0]!;
+  return catalog.get(normalizeBuiltinThemeId(id)) ?? baseCatalog.find(entry => entry.descriptor.id === defaultAppearanceThemeId()) ?? baseCatalog[0]!;
 }
 
 function snapshot(preference: ThemePreference, requestedThemeId: string): AppearanceThemeSnapshot {
@@ -93,10 +96,10 @@ function snapshot(preference: ThemePreference, requestedThemeId: string): Appear
   });
 }
 
-const persistedMode = readPreference(preferenceKey);
+const persistedMode = readPreference(preferenceKey) ?? readPreference("vela.appearance-theme");
 let current = snapshot(
   isThemePreference(persistedMode) ? persistedMode : defaultThemePreference,
-  readPreference(selectionKey)?.trim() || defaultAppearanceThemeId(),
+  normalizeBuiltinThemeId((readPreference(selectionKey) ?? readPreference("vela.appearance-theme-id"))?.trim() || defaultAppearanceThemeId()),
 );
 
 export function getAppearanceThemeSnapshot(): AppearanceThemeSnapshot { return current; }
@@ -111,11 +114,11 @@ export function useAppearanceTheme(): AppearanceThemeSnapshot {
 }
 
 export function getAppearanceThemePreviewProperties(themeId: string): ThemeCssProperties {
-  return buildCodexThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
+  return buildOpenCraftThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
 }
 
 export function applyAppearanceThemeToElement(element: HTMLElement, next = current): void {
-  const css = buildCodexThemeCssProperties(next.resolvedTheme, resolveEntry(next.themeId).palettes[next.resolvedTheme]);
+  const css = buildOpenCraftThemeCssProperties(next.resolvedTheme, resolveEntry(next.themeId).palettes[next.resolvedTheme]);
   for (const key of projectedProperties.get(element) ?? []) {
     if (!(key in css)) element.style.removeProperty(key);
   }
@@ -160,7 +163,7 @@ export function setThemePreference(preference: ThemePreference): void {
 }
 
 export function setAppearanceThemeId(themeId: string): void {
-  const id = themeId.trim();
+  const id = normalizeBuiltinThemeId(themeId.trim());
   if (!id) throw new Error("Theme ID must not be empty");
   if (!catalog.has(id)) throw new Error(`Theme ${id} is not available`);
   writePreference(selectionKey, id);
@@ -170,7 +173,7 @@ export function setAppearanceThemeId(themeId: string): void {
 function updateCatalog(themes: ExtensionContributionSnapshot["themes"]): void {
   catalog = new Map(baseCatalog.map(entry => [entry.descriptor.id, entry]));
   for (const { contribution } of themes) {
-    const adapt = (mode: ResolvedTheme): CodexThemeDefinition => ({
+    const adapt = (mode: ResolvedTheme): OpenCraftThemeDefinition => ({
       ...contribution.palettes[mode], fonts: { code: null, ui: null }, opaqueWindows: false,
     });
     catalog.set(contribution.id, {
