@@ -335,7 +335,11 @@ instructions to the native agent. Existing conversation editing preserves these
 advanced fields. Summary reads contain
 no prompts or execution history and never acquire conversation execution ownership.
 Unsupported, offline, loading, failed and genuinely empty Host catalogs are distinct;
-same-scope cached plans survive transient disconnects. Editor requests fence the
+same-scope cached plans survive transient disconnects. An idle connection recipe
+without a negotiated schedule-summary capability or a same-scope successful
+summary is not rendered as a disconnected scheduling Server. Previously confirmed
+catalogs remain visible during disconnection; discovery does not connect idle
+Hosts merely to populate this page. Editor requests fence the
 captured Host/profile/authorization scope, with backend revision checks unchanged.
 
 The scheduled task catalog resolves names for durable conversations missing from `thread/list` through metadata-only `thread/read`, under the same Host admission and authorization fences. This does not start a Turn or create a second title authority; failed metadata reads retain the plan with its conversation ID. Reads are limited to four concurrent requests per Host.

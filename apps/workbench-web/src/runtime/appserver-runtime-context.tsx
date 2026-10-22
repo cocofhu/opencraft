@@ -790,11 +790,14 @@ export function useMultiHostThreadCatalog(): {
     })),
     [hosts, querySignature]);
   return {
-    scheduleCatalogs: hosts.map((host, index): HostScheduleCatalog => {
+    scheduleCatalogs: hosts.flatMap((host, index): HostScheduleCatalog[] => {
       const query = scheduleQueries[index]!;
       const runtime = application.registry.peekRuntime(host.hostId);
       const capability = runtime?.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { summary?: unknown; calendar?: unknown } | undefined;
       const readable = admitted[index] && phases[index] === "ready";
+      // An idle connection recipe is not evidence of a scheduling Server.
+      // Keep previously confirmed catalogs visible when their Host disconnects.
+      if (!readable && capability?.summary !== true && query.data === undefined) return [];
       const profile = application.profiles.find(value => value.hostId === host.hostId)!;
       const epoch = application.managedHostCatalog?.getAuthorizationEpoch();
       const assertScope = () => {
@@ -814,7 +817,7 @@ export function useMultiHostThreadCatalog(): {
           return runtime.resources.protocol.request(method, params);
         },
       } : null;
-      return {
+      return [{
         hostId: host.hostId, hostLabel: host.label, scope: JSON.stringify(scheduleKeys[index]),
         schedules: displayable[index] ? query.data?.schedules ?? [] : [],
         titleByThreadId: displayable[index] ? query.data?.titleByThreadId ?? {} : {},
@@ -842,7 +845,7 @@ export function useMultiHostThreadCatalog(): {
           },
         } } : {}),
         retry: async () => { if (readable && capability?.summary === true && runtime?.resources.host.canRequest?.("opencraft/schedules/list") === true) await query.refetch(); },
-      };
+      }];
     }),
     threads,
     searchSources,
