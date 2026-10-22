@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import type { ChatResourceDecision, ChatResourceOpenIntent } from "@opencraft/chat-render-web";
 import { WebChatDocument } from "@opencraft/chat-render-web";
 
@@ -7,7 +7,7 @@ import { createIntlTestRoot as createRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 
 document.documentElement.dataset.theme = "light";
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) {
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) {
   document.documentElement.style.setProperty(key, value);
 }
 

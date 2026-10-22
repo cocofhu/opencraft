@@ -10,7 +10,7 @@ const bundle = await build({ entryPoints: ["tests/fixtures/hunyuan-dictation.tsx
 const root = await mkdtemp(join(tmpdir(), "opencraft-hunyuan-browser-"));
 const assets = resolve("apps/workbench-web/dist/assets");
 let cssName: string | undefined;
-for (const name of await readdir(assets)) if (name.endsWith(".css") && (await readFile(join(assets, name), "utf8")).includes(".codex-composer-voice-footer")) { cssName = name; break; }
+for (const name of await readdir(assets)) if (name.endsWith(".css") && (await readFile(join(assets, name), "utf8")).includes(".opencraft-composer-voice-footer")) { cssName = name; break; }
 assert.ok(cssName, "Build this checkout's Web CSS first");
 await writeFile(join(root, "fixture.js"), bundle.outputFiles[0]!.contents);
 await writeFile(join(root, "fixture.css"), await readFile(join(assets, cssName)));
@@ -60,7 +60,7 @@ try {
       await starting.waitFor();
       await page.waitForFunction(() => typeof (window as any).__releaseCaptureReady === "function");
       assert.equal(await starting.locator(".ui-progress-indicator").isVisible(), true);
-      assert.equal(await starting.locator(".codex-composer-voice-footer__status-label, canvas").count(), 0);
+      assert.equal(await starting.locator(".opencraft-composer-voice-footer__status-label, canvas").count(), 0);
       assert.equal(await starting.getByRole("status").textContent(), "正在准备录音");
       assert.equal(await page.locator(".opencraft-voice-input-action").getAttribute("title"), "正在准备录音，点击取消");
       assert.equal(await page.getByRole("button", { name: "取消语音输入", exact: true }).isEnabled(), true);
@@ -88,12 +88,12 @@ try {
       } else {
         if (action === "cancel") await page.getByRole("button", { name: "取消语音输入", exact: true }).click();
         else await page.evaluate(() => (window as any).__hunyuanFixture.replace());
-        await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+        await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
         await page.evaluate(() => (window as any).__releaseCaptureReady());
         await page.waitForFunction(() => (window as any).__heldCaptureStream.getTracks().every((track: MediaStreamTrack) => track.readyState === "ended"));
       }
       assert.equal(await page.evaluate(() => (window as any).__startupEditor === document.querySelector(".ProseMirror")), true);
-      assert.equal(await page.locator(".codex-composer-voice-footer").count(), 0);
+      assert.equal(await page.locator(".opencraft-composer-voice-footer").count(), 0);
       assert.equal(await editor.textContent(), action === "replace" ? "Replacement" : "Original text");
       assert.deepEqual(await page.evaluate(() => (window as any).__hunyuanFixture.sent), []);
       assert.equal(calls, beforeCalls);
@@ -102,7 +102,7 @@ try {
     await page.getByRole("button", { name: "停止并写入文字", exact: true }).click();
     await page.waitForFunction(() => document.querySelector(".ProseMirror")?.textContent === "Original text 混元测试文字").catch(async error => {
       console.log(JSON.stringify({ viewport, colorScheme, calls, errors, syntheticState: await page.evaluate(() => ({ text: document.querySelector(".ProseMirror")?.textContent,
-        mic: document.querySelector(".opencraft-voice-input-action")?.getAttribute("title"), footer: document.querySelector(".codex-composer-voice-footer")?.getAttribute("data-voice-phase") })) }));
+        mic: document.querySelector(".opencraft-voice-input-action")?.getAttribute("title"), footer: document.querySelector(".opencraft-composer-voice-footer")?.getAttribute("data-voice-phase") })) }));
       throw error;
     });
     assert.deepEqual(await page.evaluate(() => (window as any).__hunyuanFixture.sent), []);
@@ -113,7 +113,7 @@ try {
     mode = "fail-once"; await load(); await start();
     await page.getByRole("button", { name: "识别完成后发送", exact: true }).click();
     await page.getByRole("button", { name: "重试语音识别", exact: true }).waitFor();
-    const geometry = await page.locator(".codex-composer-voice-footer").boundingBox();
+    const geometry = await page.locator(".opencraft-composer-voice-footer").boundingBox();
     assert.ok(geometry && geometry.width <= viewport.width && geometry.height < 70);
     if (process.env.OPENCRAFT_SPEECH_UI_ARTIFACT_DIR) await page.screenshot({ path: `${process.env.OPENCRAFT_SPEECH_UI_ARTIFACT_DIR}/speech-retry-${viewport.width}-${colorScheme}.png` });
     assert.equal(await editor.textContent(), "Original text"); const before = calls;

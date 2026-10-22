@@ -1,4 +1,4 @@
-/** Requirements and historical disposition: docs/provenance/skill-path-replacement.md. */
+
 export interface SkillPathInfo {
   readonly skillId: string;
   readonly skillRootPath: string;

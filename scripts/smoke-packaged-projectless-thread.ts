@@ -86,7 +86,7 @@ try {
   await page.locator('.workbench-connection-status[data-phase="ready"]').first().waitFor({
     state: "attached",
   });
-  const editor = page.locator(".codex-composer-editor").first();
+  const editor = page.locator(".opencraft-composer-editor").first();
   await editor.fill("hello");
   await editor.press("Enter");
   await page.getByRole("paragraph")

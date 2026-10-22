@@ -60,7 +60,7 @@ test("renderer host identity is installed above body for the viewport contract",
     platform: "darwin",
   });
 
-  assert.equal(root.dataset.codexWindowType, "browser");
+  assert.equal(root.dataset.opencraftWindowType, "browser");
   assert.equal(root.dataset.codexOs, "darwin");
 });
 
@@ -247,9 +247,9 @@ test("macOS desktop uses a snapshot-safe focus-driven native surface", () => {
     desktopMain,
     /return \(\) => \{[\s\S]{0,900}?window\.webContents/u,
   );
-  assert.match(desktopMain, /ipcMain\.on\("vela:set-window-appearance"/u);
+  assert.match(desktopMain, /ipcMain\.on\("opencraft:set-window-appearance"/u);
   assert.match(desktopPreload, /setWindowAppearance/u);
-  assert.match(desktopMain, /ipcMain\.on\("vela:get-window-fullscreen"/u);
+  assert.match(desktopMain, /ipcMain\.on\("opencraft:get-window-fullscreen"/u);
   assert.match(desktopMain, /window\.on\("enter-full-screen", publishEnteredFullscreen\)/u);
   assert.match(desktopMain, /window\.on\("leave-full-screen", publishLeftFullscreen\)/u);
   assert.match(desktopPreload, /getWindowFullscreen/u);
@@ -259,4 +259,29 @@ test("macOS desktop uses a snapshot-safe focus-driven native surface", () => {
   assert.doesNotMatch(appStyles, /electron-opaque/u);
   assert.doesNotMatch(appShellHeader, /traffic-light-snapshot/u);
   assert.doesNotMatch(appStyles, /traffic-light-snapshot/u);
+});
+
+
+test("window chrome projection settles without rewriting observed identity", () => {
+  const writes: string[] = [];
+  const dataset = new Proxy({} as DOMStringMap, {
+    set(target, key, value) {
+      writes.push(String(key));
+      return Reflect.set(target, key, value);
+    },
+  });
+  const root = { dataset };
+  applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
+  assert.deepEqual(writes, ["opencraftWindowType", "codexOs"]);
+  writes.length = 0;
+  // MutationObserver callbacks and repeated resize events must reach a fixed point.
+  for (let index = 0; index < 20; index += 1) {
+    applyWindowChromeDocumentAttributes(root, { kind: "browser", platform: "darwin" });
+  }
+  assert.deepEqual(writes, []);
+  applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "darwin" });
+  assert.deepEqual(writes, ["opencraftWindowType"]);
+  writes.length = 0;
+  applyWindowChromeDocumentAttributes(root, { kind: "electron", platform: "win32" });
+  assert.deepEqual(writes, ["codexOs"]);
 });

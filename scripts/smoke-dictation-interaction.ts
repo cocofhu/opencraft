@@ -49,38 +49,38 @@ try {
   console.log("COLD_CATALOG", { modelCount: coldModels.data.length, defaults: coldModels.data.filter((entry: any) => entry.isDefault).length });
   await page.getByRole("button", { name: "Chat", exact: true }).first().click();
   await page.getByRole("button", { name: "New chat", exact: true }).first().click();
-  try { await page.waitForFunction(() => document.querySelector(".codex-composer-mode--intelligence")?.getAttribute("title")?.startsWith("dictation-fixture")); }
-  catch (error) { console.log("MODEL_PICKER_DIAGNOSTIC", await page.locator(".codex-composer-mode--intelligence").getAttribute("title")); throw error; }
+  try { await page.waitForFunction(() => document.querySelector(".opencraft-composer-mode--intelligence")?.getAttribute("title")?.startsWith("dictation-fixture")); }
+  catch (error) { console.log("MODEL_PICKER_DIAGNOSTIC", await page.locator(".opencraft-composer-mode--intelligence").getAttribute("title")); throw error; }
   const mic = page.locator(".opencraft-voice-input-action"), editor = page.locator(".ProseMirror").first();
   const original = "Existing typed text. ";
   await editor.fill(original);
   await page.evaluate(() => { (window as any).__dictationEditor = document.querySelector(".ProseMirror"); });
   const start = async () => {
     const before = await editor.textContent();
-    await mic.click(); await page.locator('.codex-composer-voice-footer[data-voice-phase="listening"]').waitFor();
+    await mic.click(); await page.locator('.opencraft-composer-voice-footer[data-voice-phase="listening"]').waitFor();
     assert.equal(await editor.textContent(), before); assert.equal(await page.locator("[data-transient-text]").count(), 0);
     assert.equal(await editor.getAttribute("contenteditable"), "false");
   };
   await start();
-  assert.equal(await page.locator('.codex-composer-footer__end[inert][aria-hidden="true"]').count(), 1);
+  assert.equal(await page.locator('.opencraft-composer-footer__end[inert][aria-hidden="true"]').count(), 1);
   assert.equal(await page.getByRole("button", { name: "Send message", exact: true }).count(), 0);
   await page.getByRole("button", { name: "停止并写入文字", exact: true }).click();
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   const committed = original + "Native fixture transcript";
   assert.equal(await editor.textContent(), committed); assert.equal(requests.length, 0);
   assert.equal(await page.evaluate(() => (window as any).__dictationEditor === document.querySelector(".ProseMirror")), true);
   await start(); await page.keyboard.press("Escape");
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   assert.equal(await editor.textContent(), committed);
   await start(); await page.getByRole("button", { name: "停止并写入文字", exact: true }).click();
   await page.getByRole("button", { name: "取消语音输入", exact: true }).click();
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   assert.equal(await editor.textContent(), committed); assert.equal(requests.length, 0);
   console.log("PASS insert, Escape, processing-cancel and physical editor identity");
   const microphoneBounds = await mic.boundingBox();
   await page.mouse.move(microphoneBounds!.x + microphoneBounds!.width / 2, microphoneBounds!.y + microphoneBounds!.height / 2);
-  await page.mouse.down(); await page.locator('.codex-composer-voice-footer[data-voice-phase="listening"]').waitFor();
-  await page.mouse.up(); await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.mouse.down(); await page.locator('.opencraft-composer-voice-footer[data-voice-phase="listening"]').waitFor();
+  await page.mouse.up(); await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   assert.equal((await editor.textContent())?.match(/Native fixture transcript/g)?.length, 2);
   assert.equal(requests.length, 0); console.log("PASS real pointer hold/release writes once without a second click session");
   await editor.fill("");
@@ -98,7 +98,7 @@ try {
   await page.getByRole("button", { name: "Chat", exact: true }).first().click();
   await start();
   await desktop.evaluate(({ BrowserWindow }: any) => { const window = BrowserWindow.getAllWindows()[0]; window.setSize(760, 800); window.show(); window.focus(); });
-  const bounds = await page.locator(".codex-composer-voice-footer").evaluate((footer: HTMLElement) => {
+  const bounds = await page.locator(".opencraft-composer-voice-footer").evaluate((footer: HTMLElement) => {
     const outer = footer.getBoundingClientRect(); return [...footer.querySelectorAll("button, canvas")].every(node => {
       const rect = node.getBoundingClientRect(); return rect.left >= outer.left - 1 && rect.right <= outer.right + 1;
     });
@@ -118,10 +118,10 @@ try {
   await start();
   await page.getByRole("button", { name: "识别完成后发送", exact: true }).click();
   await page.getByRole("button", { name: "取消语音输入", exact: true }).click();
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   await request("model/list"); assert.equal(taskRequests().length, 1);
   await start(); await page.getByRole("button", { name: "New chat", exact: true }).first().click();
-  await page.locator(".codex-composer-voice-footer").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-voice-footer").waitFor({ state: "hidden" });
   assert.equal((await editor.textContent())?.includes("Late canceled"), false);
   assert.equal(taskRequests().length, 1); assert.deepEqual(errors, []);
   console.log("PASS dark/light, narrow geometry, canceled-send and draft replacement; synthetic OS boundary and local DSH inference only; no microphone capture");

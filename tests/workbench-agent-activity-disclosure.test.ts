@@ -7,14 +7,14 @@ import {
   type AgentActivityDisclosurePhase,
 } from "../apps/workbench-web/src/components/agent-activity-group-disclosure";
 
-test("r2440 Agent Activity disclosure uses four interruptible phases", () => {
+test("Agent Activity disclosure uses four interruptible phases", () => {
   assert.equal(reduceAgentActivityDisclosurePhase("collapsed", "toggle"), "opening");
   assert.equal(reduceAgentActivityDisclosurePhase("opening", "animation-frame"), "expanded");
   assert.equal(reduceAgentActivityDisclosurePhase("expanded", "toggle"), "closing");
   assert.equal(reduceAgentActivityDisclosurePhase("closing", "animation-complete"), "collapsed");
 });
 
-test("r2440 Agent Activity disclosure reverses an interrupted close without remounting", () => {
+test("Agent Activity disclosure reverses an interrupted close without remounting", () => {
   let phase: AgentActivityDisclosurePhase = "expanded";
   phase = reduceAgentActivityDisclosurePhase(phase, "toggle");
   assert.equal(phase, "closing");
@@ -23,7 +23,7 @@ test("r2440 Agent Activity disclosure reverses an interrupted close without remo
   assert.equal(reduceAgentActivityDisclosurePhase(phase, "disable"), "collapsed");
 });
 
-test("r2440 virtualization belongs to the sole top-level Turn slot, never an inner Activity row", () => {
+test("virtualization belongs to the sole top-level Turn slot, never an inner Activity row", () => {
   const conversationSource = readFileSync(new URL("../apps/workbench-web/src/components/conversation.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../apps/workbench-web/src/styles/app.scss", import.meta.url), "utf8");
   assert.match(conversationSource, /className="thread-frame__slot"/u);
@@ -32,7 +32,7 @@ test("r2440 virtualization belongs to the sole top-level Turn slot, never an inn
   assert.doesNotMatch(styles, /\.thread-agent-activity__unit\[data-virtualized-unit/u);
 });
 
-test("terminal Turn errors use Codex's neutral timeline banner instead of an error-owned card", () => {
+test("terminal Turn errors use a neutral timeline banner instead of an error-owned card", () => {
   const conversationSource = readFileSync(new URL("../apps/workbench-web/src/components/conversation.tsx", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../apps/workbench-web/src/styles/app.scss", import.meta.url), "utf8");
   const errorStyleStart = styles.indexOf(".thread-system-error {");

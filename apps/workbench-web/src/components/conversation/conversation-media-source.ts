@@ -50,9 +50,12 @@ export function useConversationMediaSource(
     () => resolveConversationMediaSource(source, context.cwd, resolveDirect, context.loadMediaSource !== undefined),
     [context.cwd, context.loadMediaSource, resolveDirect, source],
   );
-  const loadKey = chatMediaPresentationKey(source, resolution.decision, {
-    hostId: context.hostId, conversationId: context.conversationId, cwd: context.cwd, documentId,
-  });
+  const loadKey = useMemo(
+    () => chatMediaPresentationKey(source, resolution.decision, {
+      hostId: context.hostId, conversationId: context.conversationId, cwd: context.cwd, documentId,
+    }),
+    [context.hostId, context.conversationId, context.cwd, documentId, resolution.decision, source],
+  );
   const [loaded, setLoaded] = useState<{
     readonly key: string;
     readonly source: string | null;

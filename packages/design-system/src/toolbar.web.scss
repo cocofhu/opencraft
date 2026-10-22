@@ -1,6 +1,5 @@
 @use "./menu.web" as menu;
 
-// Shared Codex toolbar controls. Feature surfaces choose content and placement;
 // this contract owns density, typography, icon scale and menu geometry.
 @mixin trigger {
   max-width: var(--width-toolbar-control-max);

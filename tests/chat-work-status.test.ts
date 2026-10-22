@@ -319,7 +319,7 @@ test("You stopped is client-owned, not a synonym for every interrupted Turn", ()
   );
 });
 
-test("formatting and label thresholds reproduce Codex without rounding or losing seconds", () => {
+test("formatting and label thresholds preserve whole seconds without rounding", () => {
   assert.equal(formatWorkDuration(197_000, "zh-CN"), "3 分钟 17 秒");
   assert.equal(formatWorkDuration(17_000, "zh-CN"), "17 秒");
   assert.equal(formatWorkDuration(900, "zh-CN"), "0 秒");

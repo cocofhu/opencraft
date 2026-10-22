@@ -78,7 +78,6 @@ function lastUnescapedIndex(text: string, delimiter: string): number {
   return -1;
 }
 
-/** Codex ignores inline backticks that belong to complete or open fenced blocks. */
 function hasOddInlineBackticks(text: string): boolean {
   let count = 0;
   for (let cursor = 0; cursor < text.length;) {
@@ -133,49 +132,33 @@ function userMessageListKind(line: string): UserMessageListKind {
   return null;
 }
 
-/**
- * Source-equivalent block normalization from Codex's UserFormattedText.
- *
- * Composer text is a distinct Markdown dialect. In particular, an adjacent
- * paragraph after a list must not be swallowed into the final list item, and
- * a switch between bullet/ordered lists starts a new block. Fenced source is
- * copied byte-for-byte and never participates in this normalization.
- */
+
 export function preprocessUserMessageMarkdown(source: string): string {
   const output: string[] = [];
-  let previousListKind: UserMessageListKind = null;
-  let fenceMarker: "`" | "~" | null = null;
-  for (const line of source.replace(/\r\n?/gu, "\n").split("\n")) {
-    const fence = userMessageFence.exec(line);
-    if (fenceMarker !== null) {
-      output.push(line);
-      if (fence?.[2]?.startsWith(fenceMarker) === true) fenceMarker = null;
-      continue;
-    }
+  let list: UserMessageListKind = null;
+  let fence: "```" | "~~~" | null = null;
+  for (const line of source.split(/\r\n?|\n/u)) {
+    let indentation = 0;
+    while (line[indentation] === " " || line[indentation] === "\t") indentation += 1;
+    const prefix = line.substring(indentation, indentation + 3);
+    const marker = prefix === "```" || prefix === "~~~" ? prefix : null;
     if (fence !== null) {
-      if (previousListKind !== null && (fence[1]?.length ?? 0) === 0) {
-        output.push("");
-        previousListKind = null;
-      }
-      fenceMarker = fence[2]?.[0] === "~" ? "~" : "`";
       output.push(line);
+      if (marker === fence) fence = null;
       continue;
     }
-    const nextListKind = userMessageListKind(line);
-    if (previousListKind !== null) {
-      if (/^[ \t]+/u.test(line)) {
-        output.push(line);
-        continue;
-      }
-      if (line.length === 0) {
-        previousListKind = null;
-        output.push(line);
-        continue;
-      }
-      if (nextListKind !== previousListKind) output.push("");
-    }
-    previousListKind = nextListKind;
+    const kind = userMessageListKind(line);
+    const blank = line.length === 0;
+    if (list !== null && !blank && indentation === 0 && kind !== list) output.push("");
     output.push(line);
+    if (marker !== null) fence = marker;
+    if (blank) {
+      list = null;
+    } else if (kind !== null) {
+      list = kind;
+    } else if (indentation === 0) {
+      list = null;
+    }
   }
   return output.join("\n");
 }
@@ -195,7 +178,7 @@ function closeOddDelimiter(text: string, delimiter: "**" | "*"): string {
 }
 
 /**
- * Streaming normalization follows Codex r1381's parser-stability contract:
+ * Streaming normalization preserves parser stability:
  * incomplete syntax is hidden or temporarily closed without changing the
  * canonical source stored by the session. Math normalization remains OpenCraft's
  * typed extension and is deliberately excluded from fenced source.

@@ -1,28 +1,14 @@
 import { createServer } from "vite";
 import assert from "node:assert/strict";
-import { createCodexScrollReferenceModules } from "./lib/codex-scroll-reference";
-import { requireReferenceDirectory } from "./lib/reference-input";
-const reference = createCodexScrollReferenceModules(requireReferenceDirectory(
-  process.env.CODEX_SCROLL_REFERENCE_ROOT ?? process.env.CODEX_REFERENCE_ROOT,
-  "CODEX_SCROLL_REFERENCE_ROOT or CODEX_REFERENCE_ROOT",
-));
 const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const { chromium } = playwright.default ?? playwright;
 const vite = await createServer({
   configFile: false, root: process.cwd(), logLevel: "error", esbuild: { jsx: "automatic" },
-  resolve: { dedupe: ["react", "react-dom"] }, cacheDir: process.env.WORK_REFERENCE === "1"
-    ? "node_modules/.vite-work-transition-reference" : "node_modules/.vite-work-transition-candidate",
+  resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-work-transition",
   optimizeDeps: { include: ["react", "react-dom/client", "react-dom", "react/jsx-runtime", "react/compiler-runtime"] },
   server: { host: "127.0.0.1", port: 0, hmr: false },
   plugins: [{ name: "completion-diagnostic", enforce: "pre",
-    resolveId(id) { if (reference.modules.has(id)) return `\0${id}`; },
-    load(id) { return reference.modules.get(id.replace(/^\0/, "")); },
-    transform(source, id) {
-      if (process.env.WORK_REFERENCE === "1" && id.endsWith("/tests/fixtures/work-status.tsx")) {
-        return 'import { ReferenceConversation as Conversation } from "/tests/fixtures/work-status-reference-host.tsx";\n'
-          + source.replace("import { Conversation,", "import { Conversation as VelaConversation,");
-      }
-    }, configureServer(server) {
+    configureServer(server) {
     server.middlewares.use((request, response, next) => {
       if (!request.url?.startsWith("/?")) return next();
       response.setHeader("content-type", "text/html");
@@ -153,6 +139,6 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(process.env.WORK_INTERIM_SHRINK === "1"
-    ? "Interim shrink captured; detached initial state asserted. Visible/reference cases reject placeholder collapse; reading-position trace remains diagnostic."
+    ? "Interim shrink captured; detached initial state asserted. Visible cases reject placeholder collapse; reading-position trace remains diagnostic."
     : "Working/Worked diagnostic completed; late-final cases passed measurement assertions.");
 } finally { await browser?.close(); await vite.close(); }

@@ -56,6 +56,8 @@ for(const width of [390,1280])for(const theme of ['light','dark']){
  await page.locator('[data-file-preview-phase]:not([data-file-preview-phase="opening"])').waitFor({state:'attached',timeout:60000}).catch(async error=>{console.log('BODY',await page.locator('body').innerText());console.log('READS',await page.evaluate(()=>(window as any).fixtureReads));await page.screenshot({path:join(output,'failure.png')});throw error}); assert.equal(await page.locator('[data-file-preview-phase]').getAttribute('data-file-preview-phase'),'ready');
  await page.getByText('Office preview document',{exact:true}).waitFor();
  assert.equal(await page.locator('.office-preview--docx').count(),1);
+ assert.equal(await page.getByRole('button',{name:'Show file tree',exact:true}).getAttribute('aria-expanded'),'false');
+ assert.equal(await page.locator('.workspace-file-browser').isVisible(),false);
  assert.ok(await page.getByText('Revenue',{exact:true}).evaluate(e=>getComputedStyle(e).color.match(/\d+/g)?.slice(0,3).map(Number).every(c=>c<80)),'document paper must remain readable in dark Workbench');
  await page.screenshot({path:join(output,'docx-'+theme+'-'+width+'.png')});
  await page.evaluate(()=>{(window as any).retainedDocument=document.querySelector('.office-preview--docx')});

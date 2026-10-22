@@ -124,7 +124,7 @@ try {
       const shadow=host.attachShadow({mode:"open"});
       for(const style of document.querySelectorAll("style")) shadow.append(style.cloneNode(true));
       shadow.append(document.getElementById("root")!); document.body.append(host);
-      document.documentElement.removeAttribute("data-codex-window-type");
+      document.documentElement.removeAttribute("data-opencraft-window-type");
       (window as HeaderFixtureWindow).fixture.setActions([]); (window as HeaderFixtureWindow).fixture.setBrand(null);
     });
     await page.waitForFunction(() => (window as HeaderFixtureWindow).fixture.readFitWidth()===0);

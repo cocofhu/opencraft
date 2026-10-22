@@ -39,14 +39,12 @@ Electron Main 三库仍按消费入口懒打开。Local Agent 基础五库及配
 
 Web preferences、Connector configuration 与插件文档继续使用各自 IndexedDB adapter；Web/Expo replica 保持原有平台语义。SQLite debug reader 是只读消费者，不建表、不迁移。DSH/Hermes/Codex 引擎私有存储、JSON 项目/模型配置不由本 runner 接管。`codex-thread-pins` 经原生 reserved section 协议操作，不是另一份本地自有 SQLite；Hermes pins 同样由远端协议 owner 持有。原生 `queue_1.sqlite` 只沿既有队列搬运语义读取/删除已确认导入记录，不接管其 schema；`.codex-writer.sqlite` 只承担 writer lock，排除于业务库清单。类名中的 DSH 不改变 routing/executions 的 OpenCraft 所有权。
 
-## 3. 参考证据与不能照搬的部分
+## 3. 存储边界
 
-- [Paseo](https://github.com/getpaseo/paseo) 固定研究版本 `3cc4ae28664493b2f1ad75a6a6ed1d318c76e944`：借鉴权威数据与 replica cache 分类、跨平台共享语义而非驱动、稳定迁移 ID 与失败重试。没有把其 cache 版本不一致就重建的方式用于有账本权威库。
-- BB：借鉴迁移账本、不可变历史校验与破坏性处置前保留数据，不复制分支修复特例或引入 Drizzle。
-- [Codex runtime migrations](https://github.com/openai/codex/blob/main/codex-rs/state/src/migrations.rs)：参考已知 checksum 校验；OpenCraft 当前严格拒绝未知新版，不沿用其新版记录容忍策略。
-- WB：仅借鉴迁移状态/恢复提示的责任分层，没有据此声称 OpenCraft 已有全局升级 UI 或任意降级能力。
-
-这些是设计参考，不是当前运行时验收证据；本轮未运行参考项目测试。OpenCraft 的事实以以下源码、测试和 smoke 为准。
+权威数据与可重建 replica cache 分开管理；cache 版本变化不授权重建权威库。
+平台共享存储语义，驱动和迁移代码由各 owner 持有。迁移 ID、历史 checksum
+不可改写；失败需可重试，破坏性处置前必须保留数据。未知新版仍严格拒绝打开。
+这不表示存在全局升级 UI 或任意降级能力。运行时验收以当前源码、测试和 smoke 为准。
 
 ## 4. 版本与兼容模型
 
@@ -162,7 +160,7 @@ Web preferences、Connector configuration 与插件文档继续使用各自 Inde
 
 迁移 SQL 是第 2 节各 owner 源码里的 TS 常量，随 Main/Daemon/core bundle 交付，没有独立 SQL 资产目录或 manifest。migrations 为 readonly 的 version/name/sql 列表；返回 database 与 outcome（status、appliedVersion、可选 backupPath、movedAsidePaths）。共享包不导入 Feature/React、账户服务或执行引擎；连接不跨 IPC。生产不动态 diff 数据库，不依赖仓库 cwd、不联网下载迁移。
 
-executions 中 hypernode 表 DDL 以 [DSH_EXECUTION_BASELINE](../apps/local-agent-host/src/dsh-execution-authority.ts) 为基线权威；[execution-authority](../apps/local-agent-host/src/hypernode/execution-authority.js) 与 [thread-queue](../apps/local-agent-host/src/hypernode/thread-queue.js) 的 `initializeSchema` 原文保留为上游镜像。当前构造器仍调用镜像中的 `CREATE ... IF NOT EXISTS`，在已完成基线迁移的库上为 no-op，不承担表结构升级。[check-dsh-source](../scripts/check-dsh-source.mjs) 核对参考源，[指纹等价测试](../tests/dsh-execution-authority.test.ts) 防止基线与镜像漂移。已发布 SQL 不改写，后续结构变化追加版本迁移；hypernode 变更还需同步基线与参考镜像，不能建立第二份升级 authority。
+executions 中 hypernode 表 DDL 以 [DSH_EXECUTION_BASELINE](../apps/local-agent-host/src/dsh-execution-authority.ts) 为基线权威；[execution-authority](../apps/local-agent-host/src/hypernode/execution-authority.js) 与 [thread-queue](../apps/local-agent-host/src/hypernode/thread-queue.js) 的 `initializeSchema` 保持与基线一致。当前构造器仍调用声明中的 `CREATE ... IF NOT EXISTS`，在已完成基线迁移的库上为 no-op，不承担表结构升级。[指纹等价测试](../tests/dsh-execution-authority.test.ts) 防止基线与初始化声明漂移。已发布 SQL 不改写，后续结构变化追加版本迁移；hypernode 变更还需同步基线与初始化声明，不能建立第二份升级 authority。
 
 IndexedDB 使用原生升级事务，不运行 SQL runner；广播仅通知已提交 revision 失效，跨标签 CAS 仍由事务保证。浏览器没有桌面文件快照能力，不把 abort 回滚称为文件备份，不通过删库处理 VersionError。
 
@@ -185,12 +183,12 @@ IndexedDB 使用原生升级事务，不运行 SQL runner；广播仅通知已�
 
 历史设计与实施记录见 [任务计划](../design/sqlite-lifecycle/task_plan.md)、[进展](../design/sqlite-lifecycle/progress.md)。本分支尚未推送或发布，源码与 smoke 证据不代表线上部署已升级。
 
-### 受管 Headless 的 Codex Bot 共库 owner
+### 受管 Headless 的历史 Codex Bot 数据保留
 
 CodexHostStateDatabase 的已发布 v1 保持原文，v2 追加 rooms/commands/message slots；
-其业务 adapter 借用同一连接。已知旧结构在 owner 内有界转换并保留映射/receipt/消息 ID，
+旧 Bot bridge 已删除，历史表不再由 Bot adapter 使用。已知旧结构仍在 owner 内有界转换并保留映射/receipt/消息 ID，
 未知仍拒绝；回退接受性须用实际旧 reader 在隔离副本验证。来源与边界见
-[受管 Headless](managed-headless.md#codex-bot-来源与迁移)。
+[受管 Headless](managed-headless.md#codex-原生会话与保留数据)。
 
 
 受管站点首次受管迁移的SSH历史恢复：旧单体只接受v1账本，而正式owner已发布的v2仅维护

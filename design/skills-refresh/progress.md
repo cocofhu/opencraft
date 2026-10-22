@@ -11,11 +11,10 @@
 - 文档校验通过；11 个局部文档链接有效；git diff --check 通过。影响检查按显式本轮源码路径通过，要求后续 Owner review；--staged 暂存集为空，不作为源码验收替代。
 - 未完成：签名/运行中的桌面窗口验收，扫描故障、压缩、漏通知/乱序及大目录专项；Hermes 原生热更新、正文更新和 Connector 下一阶段。未提交。
 - Daemon bundle 构建与 typecheck 通过；没有启动或替换用户正在运行的 Daemon/桌面应用。
-- 用户已扩大范围至 Hermes 热刷新和正文更新。只读检查定位原生 RPC 能力缺口；当前仅有 ref/hermes-agent 参考副本，等待可写真源位置。未调用远端 reload、未修改 ref 或运行时代码。
 
 ## 范围收敛与收尾（后续决定覆盖上面的历史计划）
 
-- 用户已取消正文版本更新、Hermes 自动热刷新；不再等待可写 Hermes 仓库，不修改 ref。
+- 用户已取消正文版本更新、Hermes 自动热刷新；不再等待可写 Hermes 仓库，不修改 Hermes 引擎。
 - 新增外部 DSH 安装→继续聊天负例，修复前失败于 refresh bridge unavailable，修复后通过。unsupported 不进入 pending；真正的暂时失败继续重试。
 - 为桌面 QA 接通 `OPENCRAFT_SKILLS_DIRECTORY` → Daemon 参数 → Local Host，默认用户路径不变。
 - 实际 Electron 暴露 pre-start Skills 订阅异常。新增同序列负例并修复为 Runtime-owned listeners；21 项 Workbench 回归通过。

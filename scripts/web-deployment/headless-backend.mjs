@@ -3,9 +3,9 @@ import { createConnection } from 'node:net';
 
 /** Only Headless-owned API routes. Static files and update authority stay in Web. */
 export function isHeadlessBackendPath(pathname, upgrade = false) {
-  if (upgrade) return ['/appserver', '/apphost', '/ssh-apphost', '/desktop/connect', '/__opencraft_hub/control', '/__opencraft_hub/data'].includes(pathname);
+  if (upgrade) return ['/__opencraft_browser/stream', '/appserver', '/apphost', '/ssh-apphost', '/desktop/connect', '/__opencraft_hub/control', '/__opencraft_hub/data'].includes(pathname);
   return ['/appserver', '/apphost', '/ssh-apphost', '/desktop/connect', '/__opencraft_health', '/health', '/__opencraft_ssh_servers', '/__opencraft_apphost_diagnostic'].includes(pathname)
-    || ['/__opencraft_hub', '/__opencraft_auth', '/__opencraft_actors', '/__opencraft_access', '/__opencraft_ssh', '/__opencraft_enterprise_identity', '/__opencraft_speech', '/__opencraft_apphost'].some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
+    || ['/__opencraft_browser', '/__opencraft_hub', '/__opencraft_auth', '/__opencraft_actors', '/__opencraft_access', '/__opencraft_ssh', '/__opencraft_enterprise_identity', '/__opencraft_speech', '/__opencraft_apphost'].some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
 }
 export function createHeadlessBackendProxy(target) {
   if (!target) return null;
