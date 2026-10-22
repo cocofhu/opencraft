@@ -10,6 +10,7 @@ export interface UiPreferenceValues {
   readonly "chat.defaultFollowUpAction": "steer" | "queue";
   readonly "chat.turnNotifications": boolean;
   readonly "chat.touchNewera": boolean;
+  readonly "shell.toolbarDocks": Readonly<Record<string, readonly string[]>>;
   readonly "shell.applicationsPinned": boolean;
   readonly "shell.accountPinned": boolean;
   readonly "shell.navigationDetent": ShellNavigationDetent;
@@ -39,6 +40,20 @@ const widthValue = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
 export const uiPreferenceDefinitions = Object.freeze({
+  "shell.toolbarDocks": {
+    key: "shell.toolbarDocks", scope: "installation", defaultValue: {},
+    parse: (value: unknown): UiPreferenceValues["shell.toolbarDocks"] | null => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const entries = Object.entries(value);
+      if (entries.length > 256) return null;
+      for (const [key, ids] of entries) {
+        if (!key || key.length > 2048 || !Array.isArray(ids) || ids.length > 32
+          || ids.some(id => typeof id !== "string" || !/^[a-z][a-z0-9-]{0,63}$/.test(id))
+          || new Set(ids).size !== ids.length) return null;
+      }
+      return Object.fromEntries(entries.map(([key, ids]) => [key, [...ids]]));
+    },
+  },
   "sidebar.conversationOverview": {
     key: "sidebar.conversationOverview", scope: "installation", defaultValue: false, parse: booleanValue,
   },
@@ -260,14 +275,16 @@ export class UiPreferencesRuntime {
     return this.#snapshot.storedRevisions[key] ?? 0;
   }
 
-  set<Key extends UiPreferenceKey>(key: Key, value: UiPreferenceValue<Key>): Promise<void> {
+  set<Key extends UiPreferenceKey>(key: Key, value: UiPreferenceValue<Key>, options: { readonly optimistic?: boolean } = {}): Promise<void> {
     this.#ensureOpen();
     const parsed = definitionFor(key).parse(value);
     if (parsed === null) return Promise.reject(new TypeError(`Invalid UI preference value for ${key}`));
     if (this.storedRevision(key) > 0 && Object.is(this.#snapshot.values[key], parsed) && !this.#tails.has(key)) return Promise.resolve();
-    this.#publishValue(key, parsed);
+    if (options.optimistic !== false) this.#publishValue(key, parsed);
     const previous = this.#tails.get(key) ?? Promise.resolve();
-    const tail = previous.catch(() => undefined).then(() => this.#persist(key, parsed)).finally(() => {
+    const tail = previous.catch(() => undefined).then(() => this.#persist(key, parsed)).then(() => {
+      if (options.optimistic === false && this.#tails.get(key) === tail) this.#publishValue(key, parsed);
+    }).finally(() => {
       if (this.#tails.get(key) === tail) this.#tails.delete(key);
     });
     this.#tails.set(key, tail);

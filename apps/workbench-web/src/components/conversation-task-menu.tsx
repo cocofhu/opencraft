@@ -1,8 +1,8 @@
+import { TaskLinkIcon } from "@opencraft/design-system-web/task-link-icon";
 import { ConversationSchedulesPanel } from "./conversation-schedules-panel";
 import type { ConversationSchedulesRequestPort } from "@opencraft/appserver-protocol";
 import { useAsyncNotices } from "./async-notices";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Link2, Archive, Clock, GitFork, Info, LoaderCircle, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
+import { Archive, Clock, GitFork, Info, LoaderCircle, Pencil, Pin, PinOff } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TASKS, type TaskDetail, type TasksRequestPort } from "@opencraft/appserver-protocol";
@@ -13,13 +13,13 @@ import {
 } from "@opencraft/extension-react";
 import { ModalSurface } from "./modal";
 import { ConversationRenameDialog } from "./conversation-rename-dialog";
-import { useShellPresentation } from "./shell-presentation";
-import { useWorkbenchPresentationRoot } from "./workbench-presentation-root";
+import { ToolbarDock, type ToolbarDockAction } from "./toolbar-dock";
+import { conversationToolbarDock } from "./toolbar-dock-state";
 import "../styles/context-menu.scss";
 
 const ConversationInformationDialog = lazy(() => import("./conversation-information-dialog"));
 
-interface Props {
+export interface ConversationTaskMenuProps {
   readonly port?: TasksRequestPort;
   readonly schedules?: ConversationSchedulesRequestPort;
   readonly scope: string;
@@ -36,6 +36,8 @@ interface Props {
   readonly project?: string;
   readonly workspaceDirectory?: string;
 }
+
+type Props = ConversationTaskMenuProps;
 
 function belongsTo(task: TaskDetail, target: Pick<Props, "serverId" | "threadId">) {
   return task.conversations.some(link => link.serverId === target.serverId && link.threadId === target.threadId);
@@ -124,18 +126,14 @@ function TaskPicker(props: TaskProps & { onClose(): void; returnFocus(): HTMLEle
 /** The application supplies the confirmed conversation identity and fixed Tasks authority. */
 export function ConversationTaskMenu(props: Props) {
   const intl = useIntl();
-  const mobile = useShellPresentation()?.mobileSidebar === true;
-  const portalContainer = useWorkbenchPresentationRoot();
   const notices = useAsyncNotices();
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const taskTrigger = useRef<HTMLButtonElement | null>(null);
-  const modalHandoff = useRef(false);
+  const actionTrigger = useRef<HTMLElement | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [schedulesOpen, setSchedulesOpen] = useState(false);
   const [name, setName] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const rename = useMutation({
     onError: () => notices.error({ key: `rename:${props.scope}:${props.serverId}:${props.threadId}`, detail: props.title, message: intl.formatMessage({ id: "chat.rename.failed", defaultMessage: "Could not rename the conversation. Try again." }) }),
     mutationFn: (title: string) => props.onRename!(title),
@@ -144,7 +142,6 @@ export function ConversationTaskMenu(props: Props) {
   const pin = useMutation({
     onError: () => notices.error({ key: `pin:${props.scope}:${props.serverId}:${props.threadId}`, detail: props.title, message: intl.formatMessage({ id: "chat.pin.failed", defaultMessage: "Could not update pin. Try again." }) }),
     mutationFn: (value: boolean) => props.onSetPinned!(value),
-    onSuccess: () => setMenuOpen(false),
   });
   const archive = useMutation({
     onMutate: target => notices.loading({ key: target.key, detail: target.title,
@@ -160,62 +157,35 @@ export function ConversationTaskMenu(props: Props) {
     onError: () => notices.error({ key: `fork:${props.scope}:${props.serverId}:${props.threadId}`, detail: props.title, message: intl.formatMessage({ id: "chat.fork.unconfirmed", defaultMessage: "Could not confirm the new branch. Check the conversation list before trying again." }) }),
     mutationFn: () => props.onFork!(),
     retry: false,
-    onSuccess: () => setMenuOpen(false),
   });
   const busy = pin.isPending || archive.isPending || fork.isPending;
   const label = intl.formatMessage({ id: "tasks.relation.actions", defaultMessage: "Conversation actions" });
+  const actions: ToolbarDockAction[] = [];
+  const add = (id: string, label: string, icon: ToolbarDockAction["icon"], invoke: () => void, dialog = false, pending = false) =>
+    actions.push({ id, label, icon, invoke, dialog, disabled: busy, pending });
+  if (props.port) add("link-tasks", intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" }), <TaskLinkIcon size={16} aria-hidden="true" />, () => setPickerOpen(true), true);
+  if (props.onRename) add("rename", intl.formatMessage({ id: "common.rename", defaultMessage: "Rename" }), <Pencil size={16} aria-hidden="true" />,
+    () => { rename.reset(); setName(props.title ?? ""); setRenameOpen(true); }, true);
+  if (props.onSetPinned) add("pin", intl.formatMessage(props.pinned ? { id: "chat.unpin", defaultMessage: "Unpin" } : { id: "chat.pin", defaultMessage: "Pin" }),
+    props.pinned ? <PinOff size={16} aria-hidden="true" /> : <Pin size={16} aria-hidden="true" />, () => pin.mutate(props.pinned !== true));
+  if (props.onFork) add("fork", intl.formatMessage({ id: "sidebar.thread.fork", defaultMessage: "Create branch" }),
+    fork.isPending ? <LoaderCircle size={16} aria-hidden="true" /> : <GitFork size={16} aria-hidden="true" />, () => fork.mutate(), false, fork.isPending);
+  if (props.onArchive) add("archive", intl.formatMessage({ id: "sidebar.thread.archive", defaultMessage: "Archive" }), <Archive size={16} aria-hidden="true" />,
+    () => archive.mutate({ key: `archive:${props.scope}:${props.serverId}:${props.threadId}`, title: props.title ?? "", execute: props.onArchive! }));
+  if (props.schedules) add("schedules", intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" }), <Clock size={16} aria-hidden="true" />, () => setSchedulesOpen(true), true);
+  if (props.project || props.workspaceDirectory) add("information", intl.formatMessage({ id: "chat.details.title", defaultMessage: "Conversation info" }), <Info size={16} aria-hidden="true" />, () => setDetailsOpen(true), true);
+  const returnFocus = () => actionTrigger.current?.isConnected ? actionTrigger.current : trigger.current;
   return <>
-    {props.port && !mobile ? <button ref={taskTrigger} type="button" className="chrome-button chrome-button--text chrome-button--outlined conversation-task-link"
-      disabled={busy} aria-haspopup="dialog" aria-expanded={pickerOpen} onClick={() => setPickerOpen(true)}>
-      {intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}
-    </button> : null}
-    <DropdownMenu.Root open={menuOpen} onOpenChange={setMenuOpen}>
-      <DropdownMenu.Trigger asChild>
-        <button ref={trigger} type="button" className="chrome-button" aria-label={label} title={label}>
-          <MoreHorizontal size={16} aria-hidden="true" />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal container={portalContainer}>
-        <DropdownMenu.Content className="workbench-context-menu" align="end" sideOffset={4}
-          onCloseAutoFocus={event => {
-            if (modalHandoff.current) { event.preventDefault(); modalHandoff.current = false; }
-          }}>
-          {props.port && mobile ? <DropdownMenu.Item disabled={busy} onSelect={() => {
-            modalHandoff.current = true; setPickerOpen(true);
-          }}><Link2 size={16} aria-hidden="true" />{intl.formatMessage({ id: "tasks.relation.title", defaultMessage: "Link tasks" })}</DropdownMenu.Item> : null}
-          {props.onRename ? <DropdownMenu.Item disabled={busy} onSelect={() => {
-            modalHandoff.current = true; rename.reset(); setName(props.title ?? ""); setRenameOpen(true);
-          }}><Pencil size={16} aria-hidden="true" />{intl.formatMessage({ id: "common.rename", defaultMessage: "Rename" })}</DropdownMenu.Item> : null}
-          {props.onSetPinned ? <DropdownMenu.Item disabled={busy} onSelect={event => {
-            event.preventDefault(); pin.mutate(props.pinned !== true);
-          }}>{props.pinned ? <PinOff size={16} aria-hidden="true" /> : <Pin size={16} aria-hidden="true" />}
-            {props.pinned ? intl.formatMessage({ id: "chat.unpin", defaultMessage: "Unpin" }) : intl.formatMessage({ id: "chat.pin", defaultMessage: "Pin" })}
-          </DropdownMenu.Item> : null}
-          {props.onFork ? <DropdownMenu.Item disabled={busy} aria-busy={fork.isPending || undefined} onSelect={event => {
-            event.preventDefault(); fork.mutate();
-          }}>
-            {fork.isPending ? <LoaderCircle size={16} aria-hidden="true" /> : <GitFork size={16} aria-hidden="true" />}
-            {intl.formatMessage({ id: "sidebar.thread.fork", defaultMessage: "Create branch" })}
-          </DropdownMenu.Item> : null}
-          {props.onArchive ? <DropdownMenu.Item disabled={busy} onSelect={() => {
-            setMenuOpen(false);
-            archive.mutate({ key: `archive:${props.scope}:${props.serverId}:${props.threadId}`, title: props.title ?? "", execute: props.onArchive! });
-          }}><Archive size={16} aria-hidden="true" />{intl.formatMessage({ id: "sidebar.thread.archive", defaultMessage: "Archive" })}</DropdownMenu.Item> : null}
-          {props.schedules ? <DropdownMenu.Item disabled={busy} onSelect={() => { modalHandoff.current = true; setSchedulesOpen(true); }}>
-            <Clock size={16} aria-hidden="true" />{intl.formatMessage({ id: "schedules.title", defaultMessage: "Scheduled task" })}
-          </DropdownMenu.Item> : null}
-          {props.project || props.workspaceDirectory ? <DropdownMenu.Item disabled={busy} onSelect={() => {
-            modalHandoff.current = true; setDetailsOpen(true);
-          }}><Info size={16} aria-hidden="true" />{intl.formatMessage({ id: "chat.details.title", defaultMessage: "Conversation info" })}</DropdownMenu.Item> : null}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <span ref={node => { trigger.current = node?.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]') ?? null; }} className="conversation-toolbar">
+      <ToolbarDock scope={props.scope} dockId={conversationToolbarDock} defaultActions={["link-tasks"]} actions={actions} label={label}
+        onActionTrigger={element => { actionTrigger.current = element; }} returnFocus={returnFocus} />
+    </span>
     {renameOpen ? <ConversationRenameDialog value={name} pending={rename.isPending}
       onChange={setName} onSubmit={title => rename.mutate(title)} onDismiss={() => setRenameOpen(false)}
-      returnFocus={() => trigger.current} /> : null}
+      returnFocus={returnFocus} /> : null}
     {detailsOpen ? <Suspense fallback={null}><ConversationInformationDialog project={props.project} workspaceDirectory={props.workspaceDirectory}
-      onDismiss={() => setDetailsOpen(false)} returnFocus={() => trigger.current} /></Suspense> : null}
-    {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={() => trigger.current} /> : null}
-    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={() => taskTrigger.current ?? trigger.current} /> : null}
+      onDismiss={() => setDetailsOpen(false)} returnFocus={returnFocus} /></Suspense> : null}
+    {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={returnFocus} /> : null}
+    {pickerOpen && props.port ? <TaskPicker {...props} port={props.port} onClose={() => setPickerOpen(false)} returnFocus={returnFocus} /> : null}
   </>;
 }
