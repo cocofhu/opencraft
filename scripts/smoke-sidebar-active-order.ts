@@ -64,8 +64,11 @@ try {
     await page.waitForFunction(()=>document.querySelector('[aria-label="Recent"] .sidebar-activity-item')?.textContent?.includes('Newer running'));
     assert.ok(!(await order()).some(t=>t.includes('Older running')),'completed old row falls outside first page');
     await recent.getByRole('button',{name:'Show more',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Recent"] .sidebar-activity-item').length===14);
     assert.equal(await rows.count(),14);assert.match((await order()).at(-1)!,/Older running/);
-    await recent.getByRole('button',{name:'Show less',exact:true}).click();assert.equal(await rows.count(),10);
+    await recent.getByRole('button',{name:'Show less',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Recent"] .sidebar-activity-item').length===10);
+    assert.equal(await rows.count(),10);
     assert.equal(await page.locator('[data-selected]').textContent(),'done0');
     if(touch) await rows.first().tap(); else await rows.first().click();
     await page.waitForFunction(()=>document.querySelector('[data-selected]')?.textContent==='newer-run');
