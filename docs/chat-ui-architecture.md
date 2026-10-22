@@ -3003,3 +3003,12 @@ does not mean that the child finished: started, interacted and interrupted remai
 visible as such. The whole inline button opens the child through the existing
 navigation context and is disabled without that capability. Collaboration tool
 groups and completed-notice projection keep their existing presentation.
+
+### Subagent summary density
+
+The summary initially exposes at most three agent chips and a remaining-agent
+count action. Expanding that count exposes all navigation chips independently of
+the detail disclosure. This keeps narrow summaries readable while the shared core
+continues to own every agent identity and status. The header and chip rail wrap
+naturally when a long operation label or an explicit full list needs more room;
+the remaining-agent action stays on one line.
