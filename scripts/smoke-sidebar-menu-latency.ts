@@ -110,6 +110,14 @@ try {
     assert.deepEqual(await page.evaluate(() => ({ rows: (window as any).rowsProcessed, projections: (window as any).projections })), beforeFilter);
     await page.evaluate(() => (window as any).fixture.setActive("t1"));
     await page.getByRole("menu").waitFor({ state: "hidden" });
+    await page.getByRole("button", { name: "Filters", exact: true }).click();
+    await page.getByRole("menu").waitFor();
+    await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial.slice(1)));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await page.getByRole("menu").count(), 1, "a catalog refresh must preserve the independent filters owner");
+    await page.keyboard.press("Escape");
+    await page.getByRole("menu").waitFor({ state: "hidden" });
+    await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial));
     // The list-level display menu remains exclusive with row menus.
     await page.getByRole("button", { name: "Filters", exact: true }).click();
     await page.getByRole("menu").waitFor();
@@ -133,6 +141,8 @@ try {
       }, change);
       await page.getByRole("menu").waitFor({ state: "hidden" });
       await page.evaluate(() => (window as any).fixture.setRows((window as any).fixture.initial));
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      assert.equal(await page.getByRole("menu").count(), 0, "restoring a disabled/removed row must not restore its old menu");
     }
     assert.deepEqual(errors, []);
     evidence.push({ rows, cpuRate: 4, samples, interactionRegression: true });

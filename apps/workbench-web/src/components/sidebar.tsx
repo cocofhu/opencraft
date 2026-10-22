@@ -295,25 +295,22 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   // Row menus, the badge and the list display menu are one exclusive overlay
   // owner; an owner whose row is no longer visible or no longer accepts
   // interaction must not keep the menu open.
-  const visibleMenuTargets = useMemo(() => {
-    const targets = new Set<string>();
-    const addThread = (thread: SidebarThread | undefined) => {
-      if (thread && thread.interactionAvailable !== false) targets.add(JSON.stringify([thread.connectionHostId, thread.id]));
-    };
-    if (groupedSections) for (const group of groupedSections) {
-      if (group.collapsed) continue;
-      for (const ref of group.threads) addThread(matchingById.get(JSON.stringify([ref.hostId, ref.threadId])));
-    } else {
-      if (!(folded.attention ?? false)) for (const row of taskFlow.attention) addThread(row);
-      if (!(folded.pinned ?? false)) for (const row of taskFlow.pinned.slice(0, pinnedLimit)) addThread(row);
-      if (!(folded.recent ?? false)) for (const row of taskFlow.recent.slice(0, recentLimit)) addThread(row);
-    }
-    return targets;
-  }, [folded, groupedSections, matchingById, pinnedLimit, recentLimit, taskFlow]);
+  // A retained menu owner must not outlive its visible, interactive row.
+  // Inspect only the open target on parent commits; menu-channel updates still
+  // render only the affected row and never rebuild the catalog or grouping.
   useLayoutEffect(() => {
     const current = menus.getSnapshot();
-    if (current && current.kind !== "filters" && !visibleMenuTargets.has(JSON.stringify([current.hostId, current.threadId]))) menus.close();
-  }, [menus, visibleMenuTargets]);
+    if (!current || current.kind === "filters") return;
+    const key = JSON.stringify([current.hostId, current.threadId]);
+    const target = matchingById.get(key);
+    const visible = target && target.interactionAvailable !== false && (groupedSections
+      ? groupedSections.some(group => !group.collapsed && group.threads.some(ref =>
+          ref.hostId === current.hostId && ref.threadId === current.threadId))
+      : Object.entries(taskFlow).some(([id, rows]) => !(folded[id] ?? false)
+          && rows.slice(0, id === "pinned" ? pinnedLimit : id === "recent" ? recentLimit : rows.length)
+            .some(row => row.connectionHostId === current.hostId && row.id === current.threadId)));
+    if (!visible) menus.close();
+  });
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
   const retryLabel = text("sidebar.catalog.retry", "Retry");
