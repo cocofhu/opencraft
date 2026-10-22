@@ -1975,3 +1975,5 @@ history gaps and never replace ordinary local text with enriched Host prose.
 A live reduced-motion preference keeps dictation's signal static without
 interrupting capture, controls or bounded sample collection; changing preference
 and unmounting retain a single paint/listener owner.
+
+Longing suppresses the conversation frame top-divider paint through the same recessed-material policy as the titlebar. Keep the frame border geometry so the theme switch preserves content position; other themes retain their strong divider color.

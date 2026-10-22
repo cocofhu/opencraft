@@ -658,6 +658,7 @@ export function buildOpenCraftThemeCssProperties(
       ? `linear-gradient(${definition.shellMaterial?.recessedHeaderBackground}, ${definition.shellMaterial?.recessedHeaderBackground})`
       : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
     "--opencraft-header-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
+    "--opencraft-thread-edge-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-strong)",
     "--opencraft-header-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? shell.mainSurfaceElevation : "none",
     "--opencraft-sidebar-material-background": shell.sidebarBackground,
     "--opencraft-sidebar-material-filter": shell.sidebarFilter,

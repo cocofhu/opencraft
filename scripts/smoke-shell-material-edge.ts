@@ -288,10 +288,12 @@ try {
       getComputedStyle(el).backgroundColor;
       await Promise.all(el.getAnimations().map(animation => animation.finished));
     });
+    await page.locator('.main-content-frame').evaluate(el=>el.setAttribute('data-app-shell-thread-edge-divider','true'));
+    const frameDivider=await page.locator('.main-content-frame').evaluate(el=>getComputedStyle(el).borderTopColor);
     const actual=await page.evaluate(() => ({shadow:getComputedStyle(document.querySelector('.main-content-surface')!).boxShadow,context:getComputedStyle(document.querySelector('.shell-sidebar__context')!).backgroundColor}));
     const header=await page.evaluate(() => {const el=document.querySelector('.app-shell-header')!,edge=document.querySelector('.app-shell-header__content-edge')!,main=document.querySelector('.main-content-surface')!;return {paint:getComputedStyle(el).backgroundImage,divider:getComputedStyle(el,'::after').backgroundColor,shadow:getComputedStyle(edge).boxShadow,left:edge.getBoundingClientRect().left,mainLeft:main.getBoundingClientRect().left,pointer:getComputedStyle(edge).pointerEvents};});
-    if(name==='longing'){assert.doesNotMatch(header.paint,/1px|to top/,'no horizontal divider paint');assert.equal(header.divider,'rgba(0, 0, 0, 0)');assert.equal(header.shadow,actual.shadow,'top and left share the original pane elevation');assert.ok(Math.abs(header.left-header.mainLeft)<1);assert.equal(header.pointer,'none');}
-    else {assert.match(header.paint,/1px/);assert.equal(header.shadow,'none');}
+    if(name==='longing'){assert.equal(frameDivider,'rgba(0, 0, 0, 0)','real thread frame adds no horizontal separator');assert.doesNotMatch(header.paint,/1px|to top/,'no horizontal divider paint');assert.equal(header.divider,'rgba(0, 0, 0, 0)');assert.equal(header.shadow,actual.shadow,'top and left share the original pane elevation');assert.ok(Math.abs(header.left-header.mainLeft)<1);assert.equal(header.pointer,'none');}
+    else {assert.notEqual(frameDivider,'rgba(0, 0, 0, 0)');assert.match(header.paint,/1px/);assert.equal(header.shadow,'none');}
     if(name==='longing') { assert.notEqual(actual.shadow,'none','Longing glass edge survives unified layout'); assert.equal(actual.context,'rgba(0, 0, 0, 0)','context shares the glass plane'); }
     else { assert.equal(actual.shadow,'none'); assert.notEqual(actual.context,'rgba(0, 0, 0, 0)'); }
     await page.screenshot({path:join(output,`unified-${name}-${mode}.png`)});
