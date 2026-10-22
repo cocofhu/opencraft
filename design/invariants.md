@@ -2049,3 +2049,14 @@ Sticky Sidebar section labels are part of the Shell plane, not floating glass su
 ### Recessed browser reading plane
 
 AppShell resolves the active appearance shell material with the same catalog and mode as CSS projection. A recessed browser header keeps the reading frame below the toolbar at all widths; frame origin, upper lip and body depth share that boundary. Width eligibility alone must not move conversation content behind recessed chrome. Other materials and native window presentation retain their existing immersive layout. Appearance changes update this single Shell decision without replacing the conversation or editor.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.

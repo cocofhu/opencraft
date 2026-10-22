@@ -1653,6 +1653,15 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   > .sidebar-activity-row__target { flex: 1 1 auto; min-width: 0; }
 }
 
+// Keep ordinary offscreen rows out of resize layout work. An empty optional
+// contribution still has a slot, so eligibility follows its rendered content.
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-activity-row:not(:focus-within):not(:has([data-state="open"])):has(.sidebar-activity-item-container[data-row-lines="one"]):not(:has(.sidebar-activity-item__badge-slot:not(:empty))) {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto max(32px, var(--size-control-hit-min), calc(var(--typography-thread-list-title-line-height) + 8px));
+  }
+}
+
 // Reserve space independently of whether Host capabilities provide a menu.
 .sidebar-activity-item-container {
   --sidebar-activity-menu-size: max(28px, var(--size-control-hit-min));
@@ -6474,17 +6483,19 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
   }
 }
 
+// Positive action owners keep relational selector invalidation out of unrelated
+// conversation content. :where preserves the previous type-level specificity.
 // Keep acknowledged intent visible while the disabled button cannot hold focus.
 .thread-message-actions:has([data-turn-fork][aria-busy="true"]) {
   opacity: 1;
-  > :not(time) { opacity: 1; }
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
 }
 @media (any-pointer: coarse), (hover: none) {
-  .thread-message-actions:has([data-turn-fork]) { opacity: 1; > :not(time) { opacity: 1; } }
+  .thread-message-actions:has([data-turn-fork]) { opacity: 1; > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; } }
 }
 :root[data-touch-interaction] .thread-message-actions:has([data-turn-fork]) {
   opacity: 1;
-  > :not(time) { opacity: 1; }
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
 }
 
 
