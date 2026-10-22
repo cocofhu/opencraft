@@ -652,6 +652,24 @@ apply the Web user-message paragraph rhythm without adding a trailing gap.
 It also carries the next document node: Web and Native use one Han-text test
 to tighten adjacent root paragraphs, while first/last heading and divider
 margins follow the same document-edge rules.
+Web image previews share `ZoomableImage` across user attachments, Markdown,
+generated images and workspace image resources. The preview owns a transient
+0.2–5× transform: two pointers zoom and freely rotate around their midpoint;
+one pointer pans against bounds derived from the rotated image and the actual
+preview viewport. Shrinking below the fitted size remains available. Lightbox viewports fill the
+available screen independently of the fitted image dimensions; zoomed pixels
+must be visible outside the initial image rectangle. Embedded workspace resources
+retain their panel viewport. Only the image viewport claims touch
+gestures, leaving modal close, gallery navigation and focus with their existing
+owners. Source changes, reopening and viewport resizing restore the fitted view.
+No page zoom, navigation or media reload is required for manipulation.
+The preview's whole modal input layer, including empty screen space, excludes
+background Shell gestures. Global capture listeners must resolve native dialog
+semantics, the composed path and the presentation root before admitting input;
+image-only propagation handling cannot establish modality. Opening the preview
+revokes an already-held background gesture; dismissal allows fresh gestures.
+
+
 Native Markdown images retain their intrinsic ratio within the current
 container and use a document-scoped native preview for adjacent images in
 source order. Its modal exists only while previewing; no browser page or

@@ -8,8 +8,22 @@ interface Gesture {
   dragging: boolean; samples: { x: number; time: number }[];
 }
 
-function ownsHorizontalInput(target: Element, boundary: HTMLElement): boolean {
-  for (let node: Element | null = target; node && node !== boundary; node = node.parentElement) {
+const foregroundInputSelector = 'dialog[open],[aria-modal="true"],[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]';
+
+function hasForegroundInputOwner(shell: HTMLElement, path: EventTarget[] = []): boolean {
+  if (path.some(node => node instanceof Element && node.matches(foregroundInputSelector))) return true;
+  // Portals live in the presentation's own DOM root. Document queries cannot
+  // see embedded dialogs; a retargeted event.target cannot identify their input.
+  const scope = shell.getRootNode() as Document | ShadowRoot;
+  const scopes = scope === shell.ownerDocument ? [scope] : [scope, shell.ownerDocument];
+  return scopes.some(root => [...root.querySelectorAll(foregroundInputSelector)].some(node =>
+    node.getClientRects().length > 0 && (node.matches('dialog:modal') || !node.closest('[hidden],[inert],[aria-hidden="true"]'))));
+}
+
+function ownsHorizontalInput(path: EventTarget[], boundary: HTMLElement): boolean {
+  for (const node of path) {
+    if (node === boundary) break;
+    if (!(node instanceof Element)) continue;
     if (node.matches('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="slider"],iframe,canvas,video,audio,.xterm,[data-sidebar-gesture="ignore"],[role="dialog"],[role="menu"],[role="listbox"]')) return true;
     if (node instanceof HTMLElement && node.scrollWidth > node.clientWidth + 1
       && /auto|scroll/.test(getComputedStyle(node).overflowX)) return true;
@@ -54,22 +68,41 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
 
   useLayoutEffect(() => {
     if (!enabled) return;
-    const cancel = () => {
+    const cancel = (immediate = false) => {
       if (!gesture.current) return;
       const previous = gesture.current.initiallyOpen;
       if (gesture.current.dragging) suppressClick.current = performance.now() + 500;
-      gesture.current = null; setDragging(false); settleRef.current(previous);
+      gesture.current = null; setDragging(false);
+      if (immediate) {
+        ++generation.current; progress.stop(); target.current = previous;
+        progress.set(previous ? 1 : 0); setPresent(previous);
+      } else settleRef.current(previous);
+    };
+    const foregroundOwnsInput = (event?: Event) => {
+      const shell = root.current;
+      if (!shell || !hasForegroundInputOwner(shell, event?.composedPath())) return false;
+      cancel(true);
+      // Native showModal may dispatch touchcancel before its open mutation is
+      // observed. Revoke that already-settling background animation as well.
+      if (target.current !== null) {
+        ++generation.current; progress.stop();
+        progress.set(target.current ? 1 : 0); setPresent(target.current);
+      }
+      // A newly opened input layer owns its clicks too, including the first
+      // close/navigation action after revoking an in-flight Shell contact.
+      suppressClick.current = 0;
+      return true;
     };
     const start = (event: TouchEvent) => {
       // A fresh deliberate tap must remain usable immediately after a swipe.
       suppressClick.current = 0;
       if (event.touches.length !== 1) { cancel(); return; }
       const shell = root.current, surface = overlay.current;
-      const node = event.target;
-      if (!shell || !(node instanceof Element)) return;
-      const boundary = surface?.contains(node) ? surface : shell.contains(node) ? shell : null;
-      if (!boundary || document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]') || window.getSelection()?.toString()) return;
-      if (ownsHorizontalInput(node, boundary)) return;
+      if (!shell) return;
+      const path = event.composedPath();
+      const boundary = surface && path.includes(surface) ? surface : shell && path.includes(shell) ? shell : null;
+      if (!boundary || foregroundOwnsInput(event) || window.getSelection()?.toString()) return;
+      if (ownsHorizontalInput(path, boundary)) return;
       // Clickable content (reasoning disclosures, image previews, links) can
       // also start a swipe. Axis locking preserves taps/vertical scrolling;
       // the recognized drag suppresses its click in end/cancel below.
@@ -82,6 +115,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     const move = (event: TouchEvent) => {
       const transaction = gesture.current;
       if (!transaction) return;
+      if (foregroundOwnsInput(event)) return;
       if (event.touches.length !== 1) { cancel(); return; }
       const touch = Array.from(event.touches).find(t => t.identifier === transaction.id);
       if (!touch) { cancel(); return; }
@@ -106,6 +140,7 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     const end = (event: TouchEvent) => {
       const transaction = gesture.current;
       if (!transaction || !Array.from(event.changedTouches).some(t => t.identifier === transaction.id)) return;
+      if (foregroundOwnsInput(event)) return;
       gesture.current = null; setDragging(false);
       if (!transaction.dragging) return;
       if (event.cancelable) event.preventDefault();
@@ -119,18 +154,28 @@ export function useMobileSidebarGesture({ enabled, open, width, root, overlay, o
     };
     const click = (event: MouseEvent) => {
       if (performance.now() >= suppressClick.current) return;
+      if (foregroundOwnsInput(event)) return;
       suppressClick.current = 0; event.preventDefault(); event.stopImmediatePropagation();
     };
     document.addEventListener("touchstart", start, { passive: true, capture: true });
     document.addEventListener("touchmove", move, { passive: false, capture: true });
     document.addEventListener("touchend", end, { passive: false, capture: true });
-    document.addEventListener("touchcancel", cancel, true);
+    const cancelContact = () => cancel();
+    document.addEventListener("touchcancel", cancelContact, true);
     document.addEventListener("click", click, true);
-    window.addEventListener("resize", cancel);
+    window.addEventListener("resize", cancelContact);
+    // A modal appearing while the finger is held revokes the old gesture now,
+    // rather than letting its later move/end write behind the foreground view.
+    const foreground = new MutationObserver(() => { if (gesture.current || (progress.get() > 0 && progress.get() < 1)) foregroundOwnsInput(); });
+    const scope = root.current?.getRootNode();
+    const observation = { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "aria-modal", "role", "hidden", "aria-hidden"] };
+    if (scope) foreground.observe(scope, observation);
+    if (scope !== document) foreground.observe(document, observation);
     return () => {
+      foreground.disconnect();
       document.removeEventListener("touchstart", start, true); document.removeEventListener("touchmove", move, true);
-      document.removeEventListener("touchend", end, true); document.removeEventListener("touchcancel", cancel, true);
-      document.removeEventListener("click", click, true); window.removeEventListener("resize", cancel);
+      document.removeEventListener("touchend", end, true); document.removeEventListener("touchcancel", cancelContact, true);
+      document.removeEventListener("click", click, true); window.removeEventListener("resize", cancelContact);
       gesture.current = null;
     };
   }, [enabled, overlay, root, progress, width]);

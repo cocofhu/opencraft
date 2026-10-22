@@ -1,5 +1,17 @@
 # 工作区不变量
 
+## Image preview gestures
+
+Web image previews share a bounded local pinch/rotate/pan viewport. Scaling spans 0.2–5× the fitted size;
+rotation and scaling preserve the two-finger anchor, with rotated bounds for pan. Lightboxes use the
+full available screen as that viewport, never the initial image rectangle;
+embedded resources retain the panel boundary. Manipulation never
+changes the document, page scale, source or active gallery index. Preview controls
+remain outside the transformed image and reachable at every scale; cancelling a
+pointer ends its participation without closing the modal or starting navigation.
+
+
+
 ## Internal projection metadata identity
 
 OpenCraft message projection writes use `__opencraft*` keys. The five exact
@@ -427,6 +439,13 @@ because they are clickable. They may start a sidebar gesture; taps and small
 unrecognized movement still activate the original control. A recognized swipe
 suppresses its synthesized click without blocking the next deliberate tap.
 An image lightbox or a genuinely overflowing horizontal gallery retains its own input.
+The entire foreground input layer owns the sequence, including image-preview
+letterboxing/scrims and controls. Shell admission resolves the composed event
+path and its presentation DOM root, so native dialogs and Shadow DOM portals
+have the same priority as accessible modal surfaces. Opening a foreground layer
+revokes any pending/held Shell gesture before its late move/end can commit.
+Closing it permits a new Shell sequence, never resumes the revoked contact.
+
 Acceptance: `OPENCRAFT_GESTURE_CONTENT_ONLY=1 npx tsx scripts/smoke-mobile-sidebar-gesture.ts`
 uses real reasoning, inspected/generated/sent-image renderers and CDP touch to
 check held following, no activation on swipe, original tap actions, cancellation
