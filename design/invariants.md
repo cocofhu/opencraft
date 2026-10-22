@@ -1236,12 +1236,15 @@ block-start padding; sticky headings retain zero additional block-start inset.
 The active heading's visible top equals the real header's bottom, not the
 scrollport origin plus a second toolbar height. Tests measure that chrome edge
 independently and sample continuous scroll phases to catch blank gaps or row bleed.
-The original disclosure remains the interactive owner, with
-an opaque context-surface background over the rows and local stacking below Shell
-chrome. Each group's item container forms its own isolated stacking context, so
-row badges and avatar stacks cannot paint over the sticky disclosure. Participant
-popover portals retain their existing floating-surface ownership. No duplicate
-headings, scroll listeners or additional scrollports.
+The original disclosure remains the interactive owner, stacked below Shell
+chrome. Opaque themes use their context surface; a continuous translucent Sidebar
+plane keeps the disclosure transparent, without a local backdrop filter. Each
+group's item container forms its own isolated stacking context and clips row
+paint entering its own sticky heading. The list observes existing viewport scroll
+only to project overlap; it introduces no scroll writer, scroll state or extra
+scrollport. Row badges and avatar stacks cannot tint or paint over the disclosure.
+Participant popover portals retain their existing floating-surface ownership.
+There are no duplicate headings.
 Real Shell coverage: OPENCRAFT_SIDEBAR_STICKY_ONLY=1 in
 scripts/smoke-sidebar-topology.ts.
 
