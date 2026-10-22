@@ -35,6 +35,7 @@ test("Workbench exposes Fork and Side Chat only for explicitly declared lifecycl
     { declared: undefined, fork: false, sideChat: false },
     { declared: { version: 2, fork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: false, sideChat: false },
     { declared: { version: 1, fork: true }, fork: true, sideChat: false },
+    { declared: { version: 1, fork: false, ephemeralFork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: false, sideChat: true },
     { declared: { version: 1, fork: true, ephemeral: true, injectItems: true, unsubscribe: true }, fork: true, sideChat: true },
   ];
   for (const item of cases) {

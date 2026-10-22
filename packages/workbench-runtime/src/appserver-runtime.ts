@@ -1,3 +1,4 @@
+import { executionEngineExtension } from "@opencraft/appserver-client";
 import type { HostComposerCommandPort } from "./host-composer-commands";
 import { MCP_APPS_NAMESPACE } from "@opencraft/appserver-protocol/mcp-apps";
 import type { ConversationOutboxStorage } from "@opencraft/chat-runtime";
@@ -266,14 +267,14 @@ export interface StartThreadOptions {
 }
 
 export interface AppServerThreadResourcePort {
-  capabilities?(): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean };
+  capabilities?(threadId?: string): { fork: boolean; rename: boolean; archive: boolean; delete: boolean; pin?: boolean; reference?: boolean };
   setPinned?(threadId: string, pinned: boolean): Promise<void>;
   rename?(threadId: string, name: string): Promise<void>;
   delete?(threadId: string): Promise<void>;
   archive?(threadId: string): Promise<void>;
   unarchive?(threadId: string): Promise<ProtocolThread>;
   injectItems?(threadId: string, items: ThreadInjectItemsParams["items"]): Promise<void>;
-  supportsSideChat?(): boolean;
+  supportsSideChat?(threadId?: string): boolean;
   list(params?: Partial<ThreadListParams>): Promise<ThreadListResponse>;
   start(options: StartThreadOptions): Promise<ProtocolThread>;
   fork?(params: ThreadForkParams): Promise<ProtocolThread>;
@@ -577,7 +578,7 @@ export function createAppServerWorkbenchRuntime(
   let removeSkillsNotificationListener: (() => void) | null = null;
   let removeGoalNotificationListener: (() => void) | null = null;
   const goals = new ThreadGoalResource({
-    capability: () => parseThreadGoalCapability(client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_GOAL_EXTENSION]),
+    capability: threadId => parseThreadGoalCapability(executionEngineExtension(client?.initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_THREAD_GOAL_EXTENSION)),
     get: (threadId) => requireClient().request("thread/goal/get", { threadId }),
     set: (threadId, change) => requireClient().request("thread/goal/set", { threadId, ...change }),
     clear: (threadId) => requireClient().request("thread/goal/clear", { threadId }),
@@ -956,7 +957,12 @@ export function createAppServerWorkbenchRuntime(
       };
       const baselineGatedCommands: ConversationCommandPort = {
         ...currentCommandPort,
-        submit: (intent, options) => afterAuthoritativeBaseline(() => currentCommandPort.submit(intent, options), true),
+        submit: (intent, options) => afterAuthoritativeBaseline(() => {
+          const followUp = executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up");
+          const dispatched = intent.target.type === "enqueue-follow-up" && followUp?.queue === false
+            ? { ...intent, target: { type: "existing-thread" as const, key: intent.target.key } } : intent;
+          return currentCommandPort.submit(dispatched, options);
+        }, true),
         interrupt: (key, turnId, provenance) => afterAuthoritativeBaseline(
           () => currentCommandPort.interrupt(key, turnId, provenance),
         ),
@@ -980,7 +986,8 @@ export function createAppServerWorkbenchRuntime(
       };
       conversation = createReplicaConversationRuntime({
         outbox: config.outbox,
-        canDispatchOutbox: () => phase === "ready" && !requiresManualRecovery() && currentTransport?.status.state === "open",
+        canDispatchOutbox: () => phase === "ready" && !requiresManualRecovery() && currentTransport?.status.state === "open"
+          && (executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue !== false || !conversation?.getSnapshot().activeTurn),
         canAutoContinueCapacity: () => currentClient.initializeResult?.capabilities?.extensions?.["opencraft/capacity-retry"] === undefined,
         getSubmissionSender: config.getSubmissionSender,
         key: createConversationKey(hostId, threadId),
@@ -1087,7 +1094,7 @@ export function createAppServerWorkbenchRuntime(
         }
       });
       const refreshQueue = (): Promise<void> => {
-        if (!canRequest("thread/queue/list")) return Promise.resolve();
+        if (!canRequest("thread/queue/list") || executionEngineExtension(currentClient.initializeResult?.capabilities?.extensions, threadId, "opencraft/thread-follow-up")?.queue === false) return Promise.resolve();
         if (binding.queueRefreshOperation !== null) {
           binding.queueRefreshRequested = true;
           return binding.queueRefreshOperation;
@@ -1618,19 +1625,21 @@ export function createAppServerWorkbenchRuntime(
         },
       },
       threads: {
-        capabilities() {
-          const capability = parseThreadLifecycleCapability(client?.initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]);
-          return { fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
-            pin: client !== null && threadPins?.client === client && threadPins.generation === client.connectionGeneration && threadPins.resource.available() };
+        capabilities(threadId) {
+          const extension = (key: string) => executionEngineExtension(client?.initializeResult?.capabilities?.extensions, threadId, key);
+          const reference = extension("opencraft/collaboration") !== undefined;
+          const capability = parseThreadLifecycleCapability(extension(OPENCRAFT_THREAD_LIFECYCLE_EXTENSION));
+          return { reference, fork: capability?.fork === true, rename: capability?.rename === true, archive: capability?.archive === true, delete: capability?.delete === true,
+            pin: (extension(OPENCRAFT_THREAD_LIFECYCLE_EXTENSION)?.pin !== false) && client !== null && threadPins?.client === client && threadPins.generation === client.connectionGeneration && threadPins.resource.available() };
         },
         async setPinned(threadId, pinned) { await pinResource(requireClient()).set(threadId, pinned); },
         async rename(threadId, name) { await requireClient().request("thread/name/set", { threadId, name }); },
         async delete(threadId) { await requireClient().request("thread/delete", { threadId }); },
         async archive(threadId) { await requireClient().request("thread/archive", { threadId }); },
         async unarchive(threadId) { return (await requireClient().request("thread/unarchive", { threadId })).thread as ProtocolThread; },
-        supportsSideChat() {
-          const capability = parseThreadLifecycleCapability(requireClient().initializeResult?.capabilities?.extensions?.[OPENCRAFT_THREAD_LIFECYCLE_EXTENSION]);
-          return capability?.fork === true && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
+        supportsSideChat(threadId) {
+          const capability = parseThreadLifecycleCapability(executionEngineExtension(requireClient().initializeResult?.capabilities?.extensions, threadId, OPENCRAFT_THREAD_LIFECYCLE_EXTENSION));
+          return (capability?.fork === true || capability?.ephemeralFork === true) && capability.ephemeral === true && capability.injectItems === true && capability.unsubscribe === true;
         },
         async injectItems(threadId, items) {
           await requireClient().request("thread/inject_items", { threadId, items: [...items] });
@@ -1668,7 +1677,10 @@ export function createAppServerWorkbenchRuntime(
           await currentClient.request("thread/unsubscribe", { threadId });
           if (disposed || generation !== lifecycleGeneration || client !== currentClient || currentClient.connectionGeneration !== connectionGeneration) return;
           const current = bindings.get(threadId);
-          if (current && (current !== binding || hasHardResidencyReason(current))) {
+          // Temporary ownership ends here even if its final projection has not
+          // settled yet. Only a new consumer can require reattachment.
+          const retained = current && (ephemeralThreadIds.has(threadId) ? current.retainCount > 0 : hasHardResidencyReason(current));
+          if (current && (current !== binding || retained)) {
             // The unsubscribe won on the wire; the new consumer must actually
             // reattach, not merely retain a stale local projection.
             requireSession().resume.markNeedsResume(threadId);
@@ -2100,6 +2112,16 @@ export function createAppServerWorkbenchRuntime(
             // queue. Transport failure after adoption is a different boundary.
             if (!config.outbox || (phase === "ready" && binding.runtime.getSnapshot().authoritative && !binding.runtime.getSnapshot().queuedSubmissions.some(item => item.local))) assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
               : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+            // Online first inputs can own ready asset/context references while
+            // the new Thread is still hydrating. Keep that custody on this
+            // command; the offline text outbox cannot persist these handles.
+            if (phase === "ready" && !binding.runtime.getSnapshot().authoritative
+              && (intent.attachments.length > 0 || intent.context.length > 0)) {
+              assertMethodAccess(intent.target.type === "enqueue-follow-up" ? "thread/queue/add"
+                : intent.target.type === "steer-active-turn" ? "turn/steer" : "turn/start");
+              await hydrateBinding(binding, false);
+              if (released || binding.disposed) throw new Error(`Thread ${threadId} lease is released`);
+            }
             const receipt = await binding.runtime.submit(intent);
             if (receipt.turnId !== null)
               retainAcceptedTurn(binding, receipt.turnId);

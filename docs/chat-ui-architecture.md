@@ -1,5 +1,15 @@
 # ChatUI integration architecture
 
+## Sidebar Goal reads on multi-engine Hosts
+
+The catalog's Goal scheduler and activity projection check the capability for
+each Thread, in addition to Host readiness and admission. A Host-level capability
+does not grant every engine that feature. Unsupported Threads remain idle and
+consume no read slot; they never enter the completion pump. This prevents a
+no-op refresh from scheduling itself through resolved promises and starving
+the browser event loop. Supported Threads retain the shared three-read limit,
+connection-reset recovery and metadata-only behavior.
+
 ## Shared history backfill coordinator
 
 `TurnHistoryBackfillCoordinator` owns one history-load operation and layout epoch

@@ -916,7 +916,7 @@ be declared failed after the generic 30 seconds. A transport loss still leaves
 the outcome unknown, so the UI warns against blind retry rather than claiming
 that the child was not created. Identical concurrent durable Fork intents
 share one pending AppServer request within the Host runtime.
-Temporary Side Chat requires explicit fork, ephemeral, inject-items and
+Temporary Side Chat requires explicit fork or ephemeralFork, plus ephemeral, inject-items and
 unsubscribe support. Codex
 Fork is only recoverable after the source's first Turn has been accepted;
 paginated ephemeral Fork uses `excludeTurns: true` and its returned child is
@@ -931,6 +931,10 @@ once the native list includes it; ephemeral children and filtered/archived
 queries are never overlaid. The projection is in-memory, so a browser reload
 before the child's first Turn retains direct-route recovery but not sidebar
 discovery of that blank child.
+`ephemeralFork` additionally declares temporary context forks without enabling
+persistent Fork actions. Side Chat requires `fork` or `ephemeralFork` together
+with ephemeral, injection and unsubscribe support, resolved for its parent Thread.
+
 
 The SDK fences late unsubscribe responses, retains newly acquired views and
 actually reattaches them. Naming uses per-Host/Thread acknowledgement queues and

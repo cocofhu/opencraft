@@ -64,6 +64,8 @@ export const OPENCRAFT_THREAD_LIFECYCLE_EXTENSION = "opencraft/thread-lifecycle"
 export interface OpenCraftThreadLifecycleCapability {
   readonly version: 1;
   readonly fork?: boolean;
+  /** Temporary context forks without advertising persistent Fork. */
+  readonly ephemeralFork?: boolean;
   readonly ephemeral?: boolean;
   readonly injectItems?: boolean;
   readonly unsubscribe?: boolean;
@@ -79,6 +81,7 @@ export function parseThreadLifecycleCapability(value: unknown): OpenCraftThreadL
   return {
     version: 1,
     fork: capability.fork === true,
+    ephemeralFork: capability.ephemeralFork === true,
     ephemeral: capability.ephemeral === true,
     injectItems: capability.injectItems === true,
     unsubscribe: capability.unsubscribe === true,

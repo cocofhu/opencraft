@@ -74,7 +74,7 @@ interface SidebarProps {
   threadActions?: ThreadActionCallbacks;
   threadBadge?: ThreadBadgeContribution | null;
   threadListGrouping?: ThreadListGroupingContribution | null;
-  threadCapabilities?(hostId: string): ThreadActionCapabilities;
+  threadCapabilities?(hostId: string, threadId?: string): ThreadActionCapabilities;
   pendingTitle?(hostId: string, threadId: string): string | null;
   threadCatalogs?: readonly HostThreadCatalogState[];
   onRetryThreadCatalog?(hostId: string): void;
@@ -237,7 +237,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const target = { hostId: thread.connectionHostId, threadId: thread.id, title, pinned: thread.pinned };
     const activityId = `${rowIdPrefix}-${encodeURIComponent(identity(thread))}`;
     const disabled = thread.interactionAvailable === false;
-    const capabilities = threadCapabilities?.(thread.connectionHostId)
+    const capabilities = threadCapabilities?.(thread.connectionHostId, thread.id)
       ?? { rename: !!threadActions, archive: !!threadActions, fork: !!threadActions, delete: !!threadActions, pin: !!threadActions?.onSetPinned };
     const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => {
       if (open && disabled) return;

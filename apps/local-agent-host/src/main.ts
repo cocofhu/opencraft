@@ -1,3 +1,4 @@
+import { fileRequest } from "./host-resources.js";
 import { ConversationSchedules, ScheduleFault } from "@opencraft/host-schedules";
 import { CONVERSATION_SCHEDULES_EXTENSION } from "@opencraft/appserver-protocol";
 import { dshScheduleExecutionPort } from "./dsh-schedules.js";
@@ -95,36 +96,6 @@ function sendClient(socket: WebSocket, clientId: string, packet: Record<string, 
   send(socket, { ...packet, [LOGICAL_CLIENT_FIELD]: clientId || undefined });
 }
 
-async function fileRequest(method: string, params: unknown): Promise<unknown> {
-  const value = typeof params === "object" && params !== null ? params as Record<string, unknown> : {};
-  const path = resolve(String(value.path ?? homedir()));
-  if (method === "fs/readDirectory") {
-    const entries = await readdir(path, { withFileTypes: true });
-    return {
-      entries: entries.map((entry) => ({
-        fileName: entry.name,
-        isDirectory: entry.isDirectory(),
-        isFile: entry.isFile(),
-      })),
-    };
-  }
-  if (method === "fs/getMetadata") {
-    const [metadata, pathMetadata] = await Promise.all([stat(path), lstat(path)]);
-    return {
-      isDirectory: metadata.isDirectory(),
-      isFile: metadata.isFile(),
-      isSymlink: pathMetadata.isSymbolicLink(),
-      createdAtMs: Number.isFinite(metadata.birthtimeMs) ? metadata.birthtimeMs : 0,
-      modifiedAtMs: Number.isFinite(metadata.mtimeMs) ? metadata.mtimeMs : 0,
-    };
-  }
-  if (method === "fs/readFile") return { dataBase64: (await readFile(path)).toString("base64") };
-  if (method === "fs/writeFile") {
-    await writeFile(path, Buffer.from(String(value.dataBase64 ?? ""), "base64"));
-    return {};
-  }
-  throw new Error(`Unsupported filesystem method ${method}`);
-}
 
 export async function startLocalAgentHost(options: {
   readonly host?: string;

@@ -14,7 +14,7 @@ export interface ThreadGoalClient {
   get(threadId: string): Promise<{ goal: ThreadGoal | null }>;
   set(threadId: string, change: { objective?: string; status?: ThreadGoal["status"]; tokenBudget?: number | null }): Promise<{ goal: ThreadGoal }>;
   clear(threadId: string): Promise<{ cleared: boolean }>;
-  capability(): OpenCraftThreadGoalCapability | null;
+  capability(threadId?: string): OpenCraftThreadGoalCapability | null;
 }
 
 const INITIAL: ThreadGoalSnapshot = Object.freeze({ goal: null, completedGoal: null, phase: "idle", busy: false, error: null });
@@ -32,7 +32,7 @@ export class ThreadGoalResource {
 
   constructor(private readonly client: ThreadGoalClient) {}
 
-  capability(): OpenCraftThreadGoalCapability | null { return this.client.capability(); }
+  capability(threadId?: string): OpenCraftThreadGoalCapability | null { return this.client.capability(threadId); }
   getSnapshot(threadId: string): ThreadGoalSnapshot { return this.snapshots.get(threadId) ?? INITIAL; }
 
   /** Observe cached metadata without making every catalog row an active View. */
@@ -65,7 +65,7 @@ export class ThreadGoalResource {
     this.snapshots.clear();
     for (const threadId of this.listeners.keys()) {
       this.publish(threadId, INITIAL);
-      if (this.capability()?.read) void this.refresh(threadId).catch(() => undefined);
+      if (this.capability(threadId)?.read) void this.refresh(threadId).catch(() => undefined);
     }
     for (const listener of this.catalogListeners) listener();
   }
@@ -76,7 +76,7 @@ export class ThreadGoalResource {
   }
 
   async refresh(threadId: string, force = false): Promise<void> {
-    if (!threadId || !this.capability()?.read) return;
+    if (!threadId || !this.capability(threadId)?.read) return;
     const existing = this.reads.get(threadId);
     if (existing && !force) return existing;
     if (force) this.revisions.set(threadId, (this.revisions.get(threadId) ?? 0) + 1);
@@ -99,7 +99,7 @@ export class ThreadGoalResource {
   }
 
   private async mutate(threadId: string, command: () => Promise<unknown>): Promise<void> {
-    if (!this.capability()?.write) throw new Error("This Host cannot change goals");
+    if (!this.capability(threadId)?.write) throw new Error("This Host cannot change goals");
     if (this.writes.has(threadId)) throw new Error("A goal change is already in progress");
     const generation = this.generation;
     this.writes.add(threadId);
@@ -127,7 +127,7 @@ export class ThreadGoalResource {
     if (!objective) return Promise.reject(new Error("A Goal objective is required"));
     const generation = this.generation;
     const assertCurrent = () => {
-      if (generation !== this.generation || !this.capability()?.write) throw new Error("The Goal connection changed");
+      if (generation !== this.generation || !this.capability(threadId)?.write) throw new Error("The Goal connection changed");
     };
     return this.mutate(threadId, async () => {
       const { goal } = await this.client.get(threadId);

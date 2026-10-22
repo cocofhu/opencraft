@@ -1,7 +1,7 @@
 import { ComposerModelPicker } from "./composer-model-picker";
 import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, AttachmentIcon as Paperclip, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
-import { SessionModelPicker } from "./session-model-picker";
+import { SessionModelPicker, groupComposerModels } from "./session-model-picker";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
 // AppServer state remains externally owned.
@@ -2396,14 +2396,17 @@ export const OpenCraftComposer = forwardRef<
                           {(selectionCatalog?.agentGroups ?? [{ id: "active", label: "", active: true, models: catalogModels, select: selectModel }]).map(group => (
                             <DropdownMenu.Group key={group.id}>
                               {group.label ? <DropdownMenu.Label className="opencraft-composer-selection-menu__heading">{group.label}</DropdownMenu.Label> : null}
-                              {group.models.map(model => (
+                              {groupComposerModels(group.models, true).map(modelGroup => <Fragment key={modelGroup.key}>
+                                {modelGroup.label ? <DropdownMenu.Label className="opencraft-composer-model-group__label">{modelGroup.label}</DropdownMenu.Label> : null}
+                                {modelGroup.models.map(model => (
                                 <DropdownMenu.Item key={model.id} className="opencraft-composer-selection-menu__item"
                                   data-selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue) ? "true" : undefined}
                                   onSelect={event => { event.preventDefault(); if (group.active) { if (selectionCatalog?.agentGroups) void selectAgentModel(group, model); selectModel(model); } else void selectAgentModel(group, model); }}>
                                   <SelectionMenuItemContent description={null} label={model.label}
                                     selected={group.active && (model.value === selectedModelValue || model.id === selectedModelValue)} />
                                 </DropdownMenu.Item>
-                              ))}
+                                ))}
+                              </Fragment>)}
                               {switchingAgentId === group.id ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.switchingAgent" defaultMessage="Switching Agent…" /></div> : null}
                               {agentSelectionError?.id === group.id ? <div className="opencraft-composer-selection-menu__status is-error" role="alert">{agentSelectionError.message}</div> : null}
                               {group.loading ? <div className="opencraft-composer-selection-menu__status"><FormattedMessage id="workIn.loadingModels" defaultMessage="Loading models…" /></div> : null}

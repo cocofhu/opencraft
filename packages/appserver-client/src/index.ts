@@ -6,3 +6,6 @@ export * from "./registry";
 export * from "./transport";
 
 export type { ThreadMetadataContext, ThreadMetadataExtension } from "./thread-metadata";
+
+export type { ExecutionEngineClient, ExecutionEngineProvider } from "./execution-engine";
+export { executionEngineExtension } from "./execution-engine";

@@ -1,3 +1,4 @@
+import { executionEngineExtension } from "@opencraft/appserver-client";
 import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
 import { MonitorIcon as Monitor } from "@opencraft/design-system-web/action-icons";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
@@ -324,10 +325,10 @@ export function App({
     hostCatalog.environmentDirectory.getSnapshot,
     hostCatalog.environmentDirectory.getSnapshot,
   );
-  const queueExtension = runtime.resources.host.getInitializeResult()
-    ?.capabilities?.extensions?.[OPENCRAFT_THREAD_QUEUE_EXTENSION];
-  const permissionModesExtension = runtime.resources.host.getInitializeResult()
-    ?.capabilities?.extensions?.[OPENCRAFT_PERMISSION_MODES_EXTENSION];
+  const engineExtensions = runtime.resources.host.getInitializeResult()?.capabilities?.extensions;
+  const queueExtension = executionEngineExtension(engineExtensions, snapshot.activeThreadId, OPENCRAFT_THREAD_QUEUE_EXTENSION);
+  const followUpCapability = executionEngineExtension(engineExtensions, snapshot.activeThreadId, "opencraft/thread-follow-up") as { queue?: boolean; steer?: boolean } | undefined;
+  const permissionModesExtension = executionEngineExtension(engineExtensions, snapshot.activeThreadId, OPENCRAFT_PERMISSION_MODES_EXTENSION);
   const supportsPermissionModes = typeof permissionModesExtension === "object"
     && permissionModesExtension !== null
     && "version" in permissionModesExtension
@@ -1310,7 +1311,7 @@ export function App({
   const loadArchivedThreads = useCallback(async (hostId: string) => {
     return hostCatalog.threadManagement.listArchived(hostId);
   }, [hostCatalog.threadManagement]);
-  const archivedConversationsAvailable = hostCatalog.threadManagement.capabilities(snapshot.hostId).archive;
+  const archivedConversationsAvailable = hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive;
   const embeddedSessions = useMemo(() => {
     if (embedded === undefined) return [];
     return catalog.threads.map((thread): EmbeddedWorkbenchAppSession => {
@@ -1660,10 +1661,10 @@ export function App({
     if (embedded !== undefined) return;
     return () => { document.title = applicationName; };
   }, [embedded, applicationName]);
-  const scheduleCapability = runtime.resources.host.getInitializeResult()?.capabilities?.extensions?.["opencraft/conversation-schedules"] as { version?: number } | undefined;
+  const scheduleCapability = executionEngineExtension(runtime.resources.host.getInitializeResult()?.capabilities?.extensions, activeThreadId, "opencraft/conversation-schedules") as { version?: number } | undefined;
   const schedulesAvailable = scheduleCapability?.version === 1 && runtime.resources.host.canRequest?.("opencraft/schedules/read") === true;
   const conversationMenuAvailable = conversationSurfaceVisible && draft === null && activeThreadId !== null
-        && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
+        && (schedulesAvailable || hostCatalog.tasks || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).pin || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive || hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork || activeThread?.project || snapshot.conversation?.execution.cwd || activeProtocolThread?.cwd);
   const refreshConversationCatalog = useCallback(() => queryClient.invalidateQueries({
     queryKey: ["appserver", snapshot.hostId, "threads"],
   }), [queryClient, snapshot.hostId]);
@@ -1671,7 +1672,7 @@ export function App({
     ? conversationPresentation?.({
       hostId: snapshot.hostId, threadId: activeThreadId, extra: activeProtocolThread?.extra,
       ready: snapshot.phase === "ready", authoritative: snapshot.conversation?.authoritative === true,
-      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId).fork,
+      canFork: hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork,
       readExtra: async () => (await hostCatalog.agentRuntimes.request(snapshot.hostId, "thread/read", {
         threadId: activeThreadId, includeTurns: false,
       })).thread.extra,
@@ -1703,18 +1704,18 @@ export function App({
             pinned={activeThread?.pinned}
             project={activeThread?.project}
             workspaceDirectory={snapshot.conversation?.execution.cwd ?? activeProtocolThread?.cwd ?? undefined}
-            onRename={hostCatalog.threadManagement.capabilities(snapshot.hostId).rename
+            onRename={hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename
               ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
-            onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
+            onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).pin
               ? async pinned => {
                 await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
               } : undefined}
-            onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
+            onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).archive
               ? () => archiveThread({
                 archive: () => hostCatalog.threadManagement.archive(snapshot.hostId, activeThreadId),
                 refreshThreads: () => queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }),
               }) : undefined}
-            onFork={hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
+            onFork={hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).fork
               ? () => forkAndOpenThread({
                 routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
                 fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId),
@@ -1726,7 +1727,7 @@ export function App({
           />
         </Suspense>
       ) : null}
-      titleContent={conversationSurfaceVisible && draft === null && activeThread !== undefined && hostCatalog.threadManagement.capabilities(snapshot.hostId).rename ? (
+      titleContent={conversationSurfaceVisible && draft === null && activeThread !== undefined && hostCatalog.threadManagement.capabilities(snapshot.hostId, activeThreadId ?? undefined).rename ? (
         <EditableThreadTitle
           key={JSON.stringify([snapshot.hostId, activeThread.id])}
           title={activeThread.title}
@@ -1811,7 +1812,7 @@ export function App({
     },
   });
   const sidebarThreadCapabilities = useCallback(
-    (hostId: string) => hostCatalog.threadManagement.capabilities(hostId),
+    (hostId: string, threadId?: string) => hostCatalog.threadManagement.capabilities(hostId, threadId),
     // Catalog readiness changes when a Host gains/loses its initialized capabilities.
     [hostCatalog.threadManagement, multiHostCatalog.threads],
   );
@@ -2151,10 +2152,10 @@ export function App({
                         floatingContent={composerChangeSummary}
                         controller={composerController}
                         defaultFollowUpAction={embedded ? "queue" : defaultFollowUpAction}
-                        availableFollowUpActions={snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
+                        availableFollowUpActions={followUpCapability?.queue === false && followUpCapability?.steer === false ? [] : snapshot.phase !== "ready" || snapshot.conversation?.authoritative !== true
                           || snapshot.conversation.queuedSubmissions.some(item => item.local)
                           ? ["queue"]
-                          : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
+                          : (["steer", "queue"] as const).filter(action => followUpCapability?.[action] !== false && runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
                         isStreaming={isStreaming}
                         awaitSubmission
