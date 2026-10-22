@@ -2094,3 +2094,12 @@ Morning overview is a read-only projection of the task controller snapshot, with
 AI follow-up is a peer of Board and List with Todo / Working / Needs you / In review / Ready to merge. All active tasks participate; Owner and local scope/search consistently filter every lane/count and survive route remounts within the authority/account activation. Todo is not started, Working requires an explicit execution report to claim AI activity; old business statuses stay visibly unverified. Needs you requires ready material and a specific round request, sorted by original server time; comments/reassignment never reset it. Judge and Owner are distinct. Ready requires a compatible explicit recorded fact and never implies merged/deployed. Cards provide readable titles, a bounded decision/material summary, state/time, Owner, existing task-detail entry and independent exact conversation navigation. Full content stays in original task activity/conversation. Semantic theme tokens, shared controls, profile avatars and Radix menus own presentation/interaction; five columns reflow within the Tasks container. No simulation, synthetic task, approval/scheduling or separate writable execution state is introduced. Morning remains the separate future risk/key-exploration surface.
 
 Message footer sending clocks are hidden at rest on desktop and touch. Existing message hover/focus reveals user and assistant clocks while retaining their slots and time metadata. Touch action controls remain available; elapsed work duration is a separate status.
+
+
+## Streamed code fence continuity (2026-10-21)
+
+A Web non-Mermaid code fence keeps one surface, wrap control and scroller while
+streaming and closing. Completion cannot remove a focused control or reset local
+horizontal scrolling. Open code stays plain; only a complete fence enables
+copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
+presentation without changing the canonical source or replacing the surface.

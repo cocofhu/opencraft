@@ -794,7 +794,11 @@ and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
 until a complete fence is present and caps tokenization at 12,000 characters;
 larger or still-streaming fences remain plain text. Highlighting is presentation
-only and never changes the copied code or Timeline content.
+only and never changes the copied code or Timeline content. Web assigns one code-surface owner to each
+non-Mermaid fence from its first streamed bytes through completion. Closing the
+fence enables near-viewport highlighting and complete-only copy/SVG preview
+without replacing the surface, wrap control or scroller, retaining focus and
+local horizontal position. Open fences remain plain text.
 
 Complete Mermaid fences share Web's source preparation rule. Native reads a
 bundled, offline renderer only when a diagram is present and runs it inside a
@@ -2641,3 +2645,15 @@ The temporarily removed DOM and its focus are not persisted across a connection
 gap. Setup/onboarding pickers keep their existing local state contract.
 
 运行中的普通命令在 `STEPS_COMMANDS` 的 Activity 标题保留具体原命令；分类器返回一个或多个 `unknown` action 仍属于普通命令，不能因 action 列表非空而退回泛化标题。空白命令回退 `Running command`，`STEPS_PROSE` 保持简洁标题；read/search/list 继续消费各自语义呈现，shell 包装、执行事实与复制内容不在标题层改写。
+
+
+### Code text selection
+
+Streaming prose segments preserve native selection before React replaces a growing text node. The original text-node renderer owns one snapshot boundary across its existing word spans, rather than adding a React lifecycle owner for every word; boundary refs identify the existing contiguous span run and release ownership on unmount. Prose and code share endpoint capture and restoration, including UTF-16 offsets, direction and independently updating text roots. Existing source replacements keep native behavior; the original word segmentation, fade timeline, DOM structure, focus and scrolling keep their owners.
+
+The code text renderer snapshots native selection endpoints before an append or
+syntax-only DOM update and restores their text offsets afterwards. Preserve
+selection direction and endpoints outside the code, without moving focus or
+scrolling. A replacement that changes existing source does not restore stale
+offsets. Streaming completion and theme recoloring keep the reader's selection;
+source text, highlighting policy and the code surface keep their owners. When a range crosses code surfaces, capture both stable code roots and text offsets: a theme update may replace tokens at both ends in one commit. Resolve only roots whose existing source remains unchanged or extended.

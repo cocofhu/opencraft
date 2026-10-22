@@ -41,9 +41,10 @@ export function ShikiCodeRenderer({
   const isCodeFence = node.kind === "code-fence";
   const code = isCodeFence ? node.code : "";
   const language = isCodeFence ? node.language : null;
+  const complete = isCodeFence && node.completeness === "complete";
 
   useEffect(() => {
-    if (!enhancement.granted || !isCodeFence) return;
+    if (!enhancement.granted || !complete) return;
     let active = true;
     const controller = new AbortController();
     const currentGeneration = ++generation.current;
@@ -90,11 +91,11 @@ export function ShikiCodeRenderer({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [code, context.requestMeasurement, context.theme, enhancement.granted, enhancements, isCodeFence, language]);
+  }, [code, complete, context.requestMeasurement, context.theme, enhancement.granted, enhancements, language]);
 
   if (!isCodeFence) return null;
 
-  const highlightedHtml = highlighted === null
+  const highlightedHtml = !complete || highlighted === null || !code.startsWith(highlighted.code)
     ? null
     : appendUnhighlightedCodeTail(highlighted.code, highlighted.html, code);
 
@@ -103,7 +104,8 @@ export function ShikiCodeRenderer({
       code={code}
       highlightedHtml={highlightedHtml}
       language={language}
-      pending={enhancement.granted && highlighted?.code !== code}
+      open={!complete}
+      pending={complete && enhancement.granted && highlighted?.code !== code}
       policy={surfaceProps?.policy}
       rootRef={enhancement.frameRef}
       showActions={surfaceProps?.showActions}

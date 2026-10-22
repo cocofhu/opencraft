@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { writeTextToClipboard } from "../../clipboard";
+import { CodeText } from "./code-text";
 import {
   codeBlockWrapPreference,
   codeLanguageLabel,
@@ -160,18 +161,7 @@ export function CodeBlockSurface({
           />
         ) : (
           <pre>
-            <code
-              className={
-                highlightedHtml === null ? undefined : "chat-code-highlight"
-              }
-              dangerouslySetInnerHTML={
-                highlightedHtml === null
-                  ? undefined
-                  : { __html: highlightedHtml }
-              }
-            >
-              {highlightedHtml === null ? code : undefined}
-            </code>
+            <CodeText code={code} highlightedHtml={highlightedHtml} />
           </pre>
         )}
       </div>

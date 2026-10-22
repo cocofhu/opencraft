@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Context } from "@deepseek-ai/cordis";
 
 import type { ChatDocumentNode } from "@opencraft/chat-document";
@@ -19,6 +21,7 @@ import {
   parseAnsiTerminalOutput,
 } from "../packages/chat-render-web/src/renderers/terminal/ansi-terminal-text";
 import { ChatEnhancementService } from "../packages/chat-render-web/src/services/chat-enhancement-service";
+import { CodeText } from "../packages/chat-render-web/src/renderers/code/code-text";
 import {
   codeBlockWrapPreference,
   codeLanguageLabel,
@@ -331,8 +334,12 @@ test("syntax highlighting preserves the permanent code-box geometry", () => {
   assert.equal(appendUnhighlightedCodeTail("old", "highlighted", "new"), "");
   assert.match(
     codeBlockSource,
-    /<pre>[\s\S]*<code[\s\S]*dangerouslySetInnerHTML/u,
+    /<pre>[\s\S]*<CodeText/u,
   );
+  assert.equal(renderToStaticMarkup(createElement(CodeText, { code: "const x < y", highlightedHtml: null })),
+    "<code>const x &lt; y</code>");
+  assert.equal(renderToStaticMarkup(createElement(CodeText, { code: "const x", highlightedHtml: '<span style="color:red">const</span> x' })),
+    '<code class="chat-code-highlight"><span style="color:red">const</span> x</code>');
   assert.doesNotMatch(codeBlockSource, /<div className="chat-code-highlight"/u);
 });
 
