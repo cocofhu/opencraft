@@ -1707,6 +1707,6 @@ Morning overview is a read-only projection of the task controller snapshot, with
   progress, triage and task timestamps cannot establish/reset that clock. Leaving
   review ends the round; unknown history stays unknown. The morning view is read-only.
 
-### Morning research card hierarchy
+### AI follow-up cards and Morning separation
 
-Morning research is a task-oriented reading surface: decision request precedes output and next step, one labeled detail destination remains visible, and a separate accessible summary disclosure reveals uncropped original content. Status/wait/owner retain their existing authority; the UI does not introduce approval or execution writes. Pending metric checks are unknown; unconnected product metrics stay explicit and subordinate to actionable cards. Cards reflow within the Tasks container using existing typography, semantic paired colors and shared SettingsButton controls.
+AI follow-up is a peer of Board and List on the Tasks home, with no business metrics. Morning is a separate risk/key-exploration surface whose detailed content is deferred. AI follow-up cards contain title, decision question, human waiting time, Owner and a direct conversation destination. Owner filtering applies consistently to all task groups and summary counts, independently of board browsing filters. Research output, next step and rationale stay in source progress/conversations rather than card disclosures. Waiting authority and the strict 72-hour threshold remain unchanged. Missing links are explicit; multiple links use the existing accessible menu. Navigation never approves or starts work. Cards reflow within the Tasks container using shared typography, semantic paired colors and Settings controls.

@@ -408,7 +408,7 @@ Among non-terminal tasks, existing research assessments populate needs-decision 
 
 ### Morning research queue and explicit handoffs
 
-The read-only morning overview excludes context requests and unassessed tasks.
+The read-only AI follow-up view, alongside Board and List on the Tasks home, excludes context requests and unassessed tasks.
 `proactive` backlog/todo items form the research queue; in-progress items form the
 active research group. Review items with an explicit AI research handoff also
 remain visible after triage changes to `needs_decision`. A triage-only decision is
@@ -426,9 +426,7 @@ AI_RESEARCH_HANDOFF_V1
 All three nonempty fields are required and the whole report must fit the existing
 4096-character progress limit. Only publish after the referenced material is
 ready and accessible to the reviewer. Ordinary progress text remains unchanged.
-The morning view renders these fields as readable output, decision and next step;
-opening a card retains its original activity and conversation links. No separate
-storage, schema migration, schedule or write from the morning view is introduced.
+The AI follow-up card displays the decision question; full output and next steps remain in the original progress and linked conversation. No separate storage, schema migration, schedule or write from the follow-up view is introduced.
 
 Waiting starts at the later server timestamp of the first valid report in the
 current round and entry into review. Ordinary updates and repeated handoffs never
@@ -440,6 +438,8 @@ report has no clock. History failures or incomplete bounded pagination are shown
 as unknown, with retry; they are never converted into inferred timestamps or
 complete zero totals. Historical timestamps are not backfilled from task age.
 
-### Morning card reading and actions
+### AI follow-up cards and separate Morning scope
 
-The morning view leads with review/overdue/research/queue counts and places the four explicitly unconnected product metrics after the task groups. Pending or incomplete handoff checks use an unknown marker rather than a verified zero. Each task card orders status and waiting time, title, decision requested, completed output, next step, then owner and a labeled task-detail action. Desktop cards use two columns; narrow containers use one. Long fields show a three-line preview with a keyboard/touch disclosure that exposes the complete original text. Disclosure is offered only when the current container actually clips a field; short summaries have no no-op expansion. Disclosure is presentation only; Review details/View details invoke the same existing editor owner without approving, moving or starting work. Invalid/unavailable handoffs remain explicit and never gain ready-for-review status from triage alone.
+AI follow-up is a peer of Board/List in the Tasks home view switch. It leads with review/overdue/research/queue counts and contains no business metric cards. Morning remains a separate entry reserved for risk and key exploration disclosure; no risk rules or exploration workflow are implemented in this change. Its existing business metrics remain explicitly unconnected placeholders. Its independent Owner selector filters all task groups and their summary counts by the task assignee ID; all owners and unassigned are explicit choices. Member names are presentation only; a retained assignee absent from the member directory remains selectable by its recorded ID. An owner whose last item disappears remains selected with truthful empty groups. Ordinary board filters remain independent. The view owner retains the selected Owner across view switches and route remounts within the same task activation, keyed by task authority and verified account scope; switching accounts cannot inherit another account’s selection.
+
+Cards contain only title, decision question, waiting time, Owner and a labeled conversation destination. Decision text wraps in full; research output, rationale, next step, extra status badges and summary disclosures are omitted. Queued/running items have no decision requested or human-wait clock. Missing/failed handoffs never infer readiness or elapsed time. Desktop cards use two columns and narrow containers one. A single association opens its exact server/thread through the existing Host navigation owner; multiple associations offer a keyboard/touch-accessible menu. Missing links or unavailable navigation are explicit, with no dead button or task-editor fallback. Navigation performs no approval, mutation or research execution.
