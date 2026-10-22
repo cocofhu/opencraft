@@ -22,7 +22,7 @@ test('every model page publishes together, including an empty replacement', asyn
   pending.resolve({data:[model('new-2')],nextCursor:null}); await refresh;
   assert.deepEqual(client.getQueryData(old.queryKey)?.models.map(m=>m.id),['new','new-2']);
   await client.fetchQuery({...composerCapabilitiesOptions('local',null,{listModels:async()=>({data:[]})}),staleTime:0});
-  assert.deepEqual(client.getQueryData(old.queryKey),{models:[]});client.clear();
+  assert.deepEqual(client.getQueryData(old.queryKey)?.models,[]);client.clear();
 });
 
 test('a failed refresh retains the previous complete result with an error', async () => {
@@ -58,4 +58,31 @@ test('host invalidation covers its thread scopes but not other hosts; fresh read
 test('all provider/model writes share one invalidation contract; reads do not invalidate',()=>{
   for(const method of ['runtime/providers/apply','runtime/providers/setEnabled','runtime/providers/delete','runtime/models/setEnabled','runtime/models/delete','runtime/settings/mutate'])assert.equal(changesComposerCapabilities(method),true);
   assert.equal(changesComposerCapabilities('runtime/models/list'),false);
+});
+
+test('display metadata is reusable across threads only within the same Host runtime', async () => {
+  const { cachedComposerModelMetadata } = await import('../apps/workbench-web/src/runtime/composer-capabilities-query');
+  const client = new QueryClient();
+  const source = reader(['same-model']);
+  await client.fetchQuery(composerCapabilitiesOptions('host', 'a', source));
+  assert.deepEqual(cachedComposerModelMetadata(client, 'host', source).map(model => model.id), ['same-model']);
+  assert.deepEqual(cachedComposerModelMetadata(client, 'other-host', source), []);
+  assert.deepEqual(cachedComposerModelMetadata(client, 'host', reader(['same-model'])), []);
+  const b = composerCapabilitiesOptions('host', 'b', source);
+  assert.equal(client.getQueryData(b.queryKey), undefined, 'metadata cannot seed another thread selectable catalog');
+  await client.fetchQuery({...composerCapabilitiesOptions('host', 'a', {...source, listModels: async () => ({data:[]})}), staleTime:0});
+  assert.deepEqual(cachedComposerModelMetadata(client, 'host', source), [], 'replacement owner and empty refresh clear old metadata');
+  client.clear();
+});
+
+
+test('changing a reader while its replacement is pending cannot adopt old metadata', async () => {
+  const { cachedComposerModelMetadata } = await import('../apps/workbench-web/src/runtime/composer-capabilities-query');
+  const client = new QueryClient(), first = reader(['old']);
+  await client.fetchQuery(composerCapabilitiesOptions('host', 'a', first));
+  const pending = deferred<any>(), replacement = {listModels: () => pending.promise} as CapabilitiesReader;
+  const refresh = client.fetchQuery({...composerCapabilitiesOptions('host', 'a', replacement), staleTime:0});
+  assert.deepEqual(cachedComposerModelMetadata(client, 'host', replacement), [], 'query option replacement does not transfer ownership of settled data');
+  assert.deepEqual(cachedComposerModelMetadata(client, 'host', first).map(model => model.id), ['old']);
+  pending.resolve({data:[]}); await refresh; client.clear();
 });

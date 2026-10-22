@@ -27,7 +27,7 @@ controls or returned documents.
 The rail is centered in a 20px slot. Existing glyphs have different source
 viewBoxes/padding, so calibrated canvases produce roughly 15px visible geometry
 rather than identical outer boxes. Brain and other Lucide effective strokes
-(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled Codex
+(SVG stroke × rendered width/viewBox width) stay near 1.2 CSS pixels. Filled glyph
 contours retain their paths: no added strokes, filters, transforms or rendering
 hacks. Preserve normal vector antialiasing, caps/joins and theme color. Active,
 completed, folded and expanded states do not choose independent metrics.

@@ -276,3 +276,27 @@ test("detail mode controls command summaries without changing execution facts", 
   assert.equal(skillReadPresentation(skill, "STEPS_PROSE")?.visible, true);
   assert.equal(skillReadPresentation(skill, "STEPS_COMMANDS")?.visible, false);
 });
+
+
+test("pending generated images own feedback until completion or a response boundary", () => {
+  const image = (status: string) => ({ id: "image", type: "imageGeneration", payload: { status, result: "", failure: null } });
+  const answer = { id: "answer", type: "agentMessage", payload: { text: "Result ready.", phase: "final_answer", completed: true } };
+  const reasoning = { id: "next", type: "reasoning", payload: { summary: [], content: [] } };
+  const owner = (items: TimelineSourceTurn["items"]) => {
+    const current = frame(items);
+    return createTimelineTurnPresentationPlan({ type: "turn", turnKey: current.turnId, turnId: current.turnId,
+      status: current.status, frames: [current] }, undefined, { isMostRecentTurn: true }).thinkingOwner.type;
+  };
+  for (const status of ["pending", "inProgress"]) {
+    for (const prefix of [[], [answer]]) {
+      const items = [...prefix, image(status)];
+      assert.equal(shouldRenderAgentThinkingPlaceholder(frame(items)), false, status);
+      assert.equal(owner(items), "none", status);
+    }
+    assert.equal(owner([image(status), answer, reasoning]), "turn", "old image cannot suppress the next response");
+  }
+  for (const status of ["completed", "failed", "interrupted"]) {
+    assert.equal(owner([image(status)]), "turn", "completed media must release the placeholder");
+    assert.equal(owner([image(status), reasoning]), "turn", "new empty reasoning keeps feedback");
+  }
+});

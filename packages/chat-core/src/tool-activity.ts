@@ -1105,8 +1105,8 @@ export function presentToolActivity(
     return {
       state,
       grouping: "groupable",
-      // The source renderer gives every generic codex_app dynamic call the
-      // agent mark, even when it has no specialized presenter.
+      // Generic codex_app dynamic calls use the agent mark even without a
+      // specialized presenter.
       icon: block.namespace === "codex_app" ? "agent" : "none",
       summary: formatDynamicToolActivityLabel(block, state),
       detail: null,

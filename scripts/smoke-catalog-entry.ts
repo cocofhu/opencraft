@@ -88,7 +88,7 @@ try {
       const page = await browser.newPage({ viewport: { width, height: 850 }, hasTouch: width === 390 });
       const errors: string[] = []; page.on('pageerror', (error: Error) => errors.push(error.message)); await page.addInitScript('window.__name=value=>value');
       await page.goto(`${origin}/?theme=${theme}`); await page.locator('.sidebar-activity-item').first().waitFor();
-      await page.getByRole('status').filter({ hasText: 'Loading conversations' }).waitFor();
+      await page.locator('.sidebar-tasks[aria-busy="true"]').waitFor();
       assert.equal(await page.evaluate(() => (window as any).catalogEntry.cached()), undefined);
       assert.equal(await page.locator('.sidebar-tasks').getAttribute('aria-busy'), 'true');
       await page.getByText('Conversation 221', { exact: true }).waitFor();
