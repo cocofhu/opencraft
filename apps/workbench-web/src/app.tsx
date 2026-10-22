@@ -2040,6 +2040,14 @@ export function App({
                     onOpenResource: openChatResource,
                     onReviewTurnDiff: openTurnDiffReview,
                     composerChangeSummaryTurnId: snapshot.conversation?.activeTurn?.turnId ?? null,
+                    onForkTurn: !showingDisplayCache && snapshot.conversation?.authoritative === true
+                      && activeThreadId !== null && hostCatalog.threadManagement.capabilities(snapshot.hostId).fork
+                      ? turnId => forkAndOpenThread({
+                          routeScopeId: () => workbenchNavigation.getSnapshot().routeScopeId,
+                          fork: () => hostCatalog.threadManagement.fork(snapshot.hostId, activeThreadId, turnId),
+                          refreshThreads: refreshConversationCatalog,
+                          openThread: childId => hostCatalog.navigate(createWorkbenchThreadLocation(snapshot.hostId, childId)),
+                        }) : undefined,
                     theme: appearanceTheme.resolvedTheme,
                   }}
                   timeline={visibleTimeline}
