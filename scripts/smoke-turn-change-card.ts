@@ -8,13 +8,13 @@ import { assertBrowserRuntimeDependencies } from "./browser-smoke-preflight.mjs"
 const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const { chromium } = playwright.default ?? playwright;
 assertBrowserRuntimeDependencies(process.env.OPENCRAFT_CHROMIUM_EXECUTABLE ?? chromium.executablePath());
-const artifacts = await mkdtemp(join(tmpdir(), "opencraft-codex-change-card-"));
+const artifacts = await mkdtemp(join(tmpdir(), "opencraft-turn-change-card-"));
 const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error", esbuild: { jsx: "automatic" },
-  resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-codex-change-card", server: { host: "127.0.0.1", port: 0 },
-  plugins: [{ name: "codex-change-card", configureServer(server) { server.middlewares.use((request, response, next) => {
+  resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-turn-change-card", server: { host: "127.0.0.1", port: 0 },
+  plugins: [{ name: "turn-change-card", configureServer(server) { server.middlewares.use((request, response, next) => {
     if (request.url !== "/" && !request.url?.startsWith("/?")) return next();
     response.setHeader("content-type", "text/html");
-    response.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/codex-change-card.tsx"></script>');
+    response.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/turn-change-card.tsx"></script>');
   }); } }] });
 let browser: any;
 try {

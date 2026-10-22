@@ -263,7 +263,7 @@ test("floating dismissal has one Shell hit surface above the conversation", () =
   assert.ok(Number(dismiss.match(/z-index:\s*(\d+)/u)?.[1]) < Number(panel.match(/z-index:\s*(\d+)/u)?.[1]));
 });
 
-test("a hidden desktop sidebar is acquired only from Codex's four-pixel edge", () => {
+test("a hidden desktop sidebar is acquired only from the four-pixel edge", () => {
   assert.equal(floatingIntent({ pointerX: SIDEBAR_EDGE_REVEAL_WIDTH }), true);
   assert.equal(floatingIntent({ pointerX: SIDEBAR_EDGE_REVEAL_WIDTH + 0.01 }), false);
 });
@@ -327,7 +327,7 @@ test("docking retires the floating presence owner without an exit overlay", () =
   }), false, "layout transition owns the visual surface until it finishes");
 });
 
-test("layout resize preserves Codex's 120px collapse shelf", () => {
+test("layout resize preserves the 120px collapse shelf", () => {
   const maximum = getSidebarMaximumWidth(1440);
   assert.deepEqual(resolveSidebarWidth(119.9, maximum), {
     collapsed: true,

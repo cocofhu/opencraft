@@ -15,7 +15,7 @@ import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,opencraftC
 import '/apps/workbench-web/src/styles/app.scss';
 function App(){const [pending,setPending]=useState(false);window.fixture={setPending,theme:(mode,family)=>{
 document.documentElement.dataset.theme=mode;
-const base=family==='opencraftNeutral'?opencraftNeutralThemePalette[mode]:opencraftCanvasThemePalette[mode];
+const base=family==='neutral'?opencraftNeutralThemePalette[mode]:opencraftCanvasThemePalette[mode];
 const palette=family==='custom'?{...base,accent:'#d8a442',surface:mode==='dark'?'#18232c':'#fbfaf7',semanticColors:{...base.semanticColors,error:mode==='dark'?'#ffaabb':'#a01133'}}:base;
 for(const [k,v] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(k,v);
 }};
@@ -78,7 +78,7 @@ try {
   assert.equal(utility.display, 'flex');
   assert.ok(utility.headerHeight >= 52);
   assert.equal(utility.padding, '24px');
-  for (const family of ["opencraftNeutral","opencraftCanvas","custom"]) for (const mode of ["light","dark"]) {
+  for (const family of ["neutral","canvas","custom"]) for (const mode of ["light","dark"]) {
     await page.evaluate(({mode,family}: any) => (window as any).fixture.theme(mode,family),{mode,family});
     // Theme projections and native control repaint may span a frame. Do not
     // compare a newly resolved border with a previous-frame text color.

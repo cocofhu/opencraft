@@ -7,7 +7,7 @@ import {
   SAFE_URL_SETTLE_MS,
 } from "../packages/chat-render-web/src/renderers/resource-link/external-link-model.js";
 
-test("Inline URL presentation uses origin and Google favicon fallbacks", () => {
+test("URL presentation uses origin and Google favicon fallbacks", () => {
   assert.deepEqual(faviconSources("https://git.example.test/merge/1"), [
     "https://git.example.test/favicon.ico",
     "https://www.google.com/s2/favicons?domain=https%3A%2F%2Fgit.example.test&sz=32",

@@ -553,7 +553,7 @@ graph TD
   );
 });
 
-test("code-header stickiness is an explicit surface capability with timeline scroll coordinates", () => {
+test("code-header stickiness is an explicit surface capability with shared scroll coordinates", () => {
   assert.match(
     webDocumentSource,
     /stickyCodeHeaders:\s*props\.stickyCodeHeaders \?\? false/u,

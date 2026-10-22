@@ -40,7 +40,7 @@ export interface OpenCraftThreadQueueCapability {
   /** False for runtimes such as DSH whose inbox order is an invariant. */
   readonly reorder: boolean;
   readonly atomicSteer: true;
-  /** Patched Codex only: an acknowledged, target-bound discard of an unresolved claim. */
+  /** Host-owned acknowledgement for a target-bound discard of an unresolved claim. */
   readonly unconfirmedSteerDiscard?: true;
   /** Whether pause reasons are durable queue-item state rather than UI state. */
   readonly perItemPause: boolean;

@@ -22,7 +22,7 @@ try {
   await vite.listen();
   browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
-  const traceResize = process.env.CODEX_SCROLL_TRACE_RESIZE === "1";
+  const traceResize = process.env.OPENCRAFT_SCROLL_TRACE_RESIZE === "1";
   if (traceResize) {
     const evaluate = page.evaluate.bind(page);
     page.evaluate = async (fn: unknown, arg?: unknown) => {
@@ -279,7 +279,7 @@ try {
   for (const height of [1800, 3600]) {
     await page.evaluate((value: number) => (window as any).change(6, value), height);
     await settle();
-    assert.ok(Math.abs(await answerTop() - answerStart) < 2, "direct final-answer streaming preserves its beginning, as Codex static mode does");
+    assert.ok(Math.abs(await answerTop() - answerStart) < 2, "direct final-answer streaming preserves its beginning");
   }
   await page.evaluate(() => (window as any).api.scrollToBottom());
   await settle();

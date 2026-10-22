@@ -69,7 +69,7 @@ try {
     return { outline: css.outlineStyle, width: css.outlineWidth, color: css.outlineColor,
       shadow: css.boxShadow, focused: document.activeElement === el, visible: el.matches(":focus-visible") };
   });
-  for (const family of ["codex", "custom"]) for (const mode of ["light", "dark"]) {
+  for (const family of ["neutral", "custom"]) for (const mode of ["light", "dark"]) {
     await page.evaluate(({ mode, family }: any) => (window as any).focusFixture.theme(mode, family), { mode, family });
     await editor.click();
     assert.equal((await appearance(".opencraft-composer-editor")).outline, "none", "mouse-clicked Composer must own no outline");

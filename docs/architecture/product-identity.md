@@ -29,26 +29,27 @@ The launch directory is not the product data root.
 | Project workspace | Explicit Project/Thread cwd | Project catalog / Thread | User-owned files |
 | Projectless workspace | `<product-home>/workspaces/<stable-id>` | Conversation creation transaction | Durable until explicitly removed |
 
-Installation IDs are explicit per platform and build profile:
+Installation IDs are owned by each build configuration:
 
-| Host/profile | Identifier |
-|---|---|
-| Desktop installed app | `ai.lightvela.vela` |
-| Android Expo Go and internal APK | `dev.opencraft.workbench` |
-| Android the downstream product signed release APK | `app.opencraft.workbench` |
-| iOS development and internal IPA | `dev.opencraft.workbench` |
-| iOS the downstream product test IPA | `ai.lightvela.vela` |
+| Host/profile | Identifier | Authority |
+|---|---|---|
+| Desktop installed app | `dev.opencraft.workbench` | `apps/workbench-electron/package.json` |
+| macOS local Preview | `dev.opencraft.workbench.preview` | `scripts/package-macos-preview.mjs` |
+| Standalone Expo Android and iOS | `dev.opencraft.workbench` | `apps/workbench-expo/app.json` |
+| Explicit downstream Expo product | Defined by the selected product | Local config selected by `OPENCRAFT_EXPO_PRODUCT_CONFIG` |
 
-The Expo release profiles are selected by `OPENCRAFT_ANDROID_RELEASE=1` and
-`OPENCRAFT_IOS_RELEASE=1` in `apps/workbench-expo/app.config.js`. A changed
-identifier is a separate installation; it does not update the old package.
-Bundle compatibility does not authorize a the downstream product-named data root.
+`apps/workbench-expo/app.config.js` delegates product configuration through
+`product-entry.cjs` and preserves the public open-source notices in the final
+manifest. The standalone core does not select a product from
+`OPENCRAFT_ANDROID_RELEASE` or `OPENCRAFT_IOS_RELEASE`; a selected downstream
+configuration owns any release flags, edition, package ID and signing profile.
+The downstream runner selects that configuration before invoking Expo.
 
-The 2026-10-18 provenance de-sensitization renamed the company-branded installation
-identities: the signed Android release package is `app.opencraft.workbench`
-(`.intl` for the international edition), and development/internal Android and iOS
-builds use `dev.opencraft.workbench`. The retired identifiers belong to the old
-installation; the renamed packages install separately and do not update it.
+Desktop installers and Preview bundles must match their compiled host identity.
+An old installation identifier in a migration or mismatch fixture is historical
+input, not the current package identity. Changing an identifier creates a separate
+installation; it does not update the old package or rename its data root.
+Downstream branding never authorizes a different core data root.
 
 ### Authority rules
 

@@ -279,7 +279,7 @@ explicit distinction between implemented coordination and pending delivery guara
 OpenCraft uses the latest Codex AppServer `Thread -> Turn -> Item` protocol. The
 AppServer remains the business write authority. ChatUI consumes one normalized
 Conversation Read Model: a V4 ReplicaClient for a V4-native Authority, or a
-snapshot-oriented compatibility projection for Codex V3 Resume. Web and Native
+snapshot-oriented compatibility projection for AppServer V3 Resume. Web and Native
 surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
@@ -368,7 +368,7 @@ WebSocket / Replay Transport
 Codex AppServer protocol
           |
 Conversation Read Model
-V4 ReplicaClient or Codex V3 compatibility projection
+V4 ReplicaClient or AppServer V3 compatibility projection
           |
 Conversation Runtime
           |
@@ -611,7 +611,8 @@ The picker displays loading, unavailable/retry and no-results states, supports
 wrapped arrow navigation (and macOS Ctrl-P/N), Enter/Tab insertion and mouse
 selection, and never submits while a Skill picker owns Enter. Escape/blur
 dismiss the current match without deleting its text; changing the match may
-reopen it. Unmatched queries containing whitespace dismiss the picker. Selected text and code blocks do not activate the picker, and IME
+reopen it. Unmatched queries containing whitespace dismiss the picker.
+Selected text and code blocks do not activate the picker, and IME
 commit does not select or submit. Async results carry catalog, target, query,
 retry and controller ownership; stale completions cannot become selectable.
 Inserted resources retain canonical Skill name/path through the document
@@ -817,8 +818,8 @@ Unspecified table-cell alignment and prose/heading writing direction are
 natural rather than forced LTR, matching Web's `dir="auto"` intent; explicit
 Markdown column alignment remains authoritative.
 
-Web and Native code fences now consume one Shiki grammar registry and OpenCraft
-syntax theme. Web turns that result into HTML; Native projects its token colors
+Web and Native code fences now consume one Shiki grammar registry and the shared
+OpenCraft syntax theme. Web turns that result into HTML; Native projects its token colors
 and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
 until a complete fence is present and caps tokenization at 12,000 characters;
@@ -1094,7 +1095,7 @@ execution policy. See [migration contract](../design/dsh-engine-migration.md).
    not a cross-host identity.
 2. React components never import a WebSocket, JSON-RPC client, Electron bridge,
    Session View store or Replica Journal entry.
-3. `appserver-session` may translate Codex V3 Resume/history into the common
+3. `appserver-session` may translate AppServer V3 Resume/history into the common
    reader contract. Its local View revisions are snapshot continuity hints,
    not a server-sequenced V4 Journal.
 4. A Transcript, Timeline Frame and Timeline Block are disposable projections.
@@ -1188,7 +1189,7 @@ transactions, without requiring a platform scroll event. Persisted restoration
 by anchor/count remains a different operation; neither rule sorts the transcript
 or takes over response following.
 
-In the Codex V3 compatibility reader, an established Turn/Item slot is not
+In the AppServer V3 compatibility reader, an established Turn/Item slot is not
 derived from status, update time, or opaque ID. Live updates merge by identity
 without moving that slot. Ordered history owns topology only within its fetched
 window; a navigation locator index is a placement hint for one unloaded Turn,
@@ -1445,7 +1446,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `composer-editor` | OpenCraft Web ProseMirror editor | authoritative drafts |
 | `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
-| `workbench-web` | DOM Timeline, ProseMirror adapter and shared Web frame | JSON-RPC storage |
+| `workbench-web` | DOM Timeline, ProseMirror adapter and precise Workbench frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
 
 The Embedded Workbench keeps Sidebar presentation outside this table: the host
@@ -1810,7 +1811,7 @@ history, or remounting the Conversation.
 
 - `appserver-session` currently materializes a Thread View before exposing it
   through the ReplicaClient-shaped reader. This is the compatibility ingestion
-  boundary, not proof that Codex V3 has a V4 Authority or retained Journal.
+  boundary, not proof that AppServer V3 has a V4 Authority or retained Journal.
 - `DisplayTurn` remains exported only for older fixtures. Neither application
   host uses it as its conversation read model.
 - Browser attachment blobs require a compatible Host attachment-staging

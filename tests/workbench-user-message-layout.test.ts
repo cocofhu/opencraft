@@ -31,7 +31,7 @@ function message(overrides: Partial<UserMessageTimelineBlock> = {}): UserMessage
   };
 }
 
-test("a truly empty UserMessage retains Codex's no-content bubble", () => {
+test("a truly empty UserMessage retains its no-content bubble", () => {
   const layout = deriveUserMessageWebLayout(message());
   assert.equal(layout.hasText, false);
   assert.equal(layout.showBubble, true);

@@ -6,7 +6,7 @@ import {
 import { buildResumeHistoryRequest } from "@opencraft/appserver-protocol";
 import { MemoryReplicaStorage, ReplicaClient } from "@opencraft/appserver-replica";
 import {
-  createCodexThreadReplicaSource,
+  createThreadViewReplicaSource,
   createCordisThreadSessionRuntime,
 } from "@opencraft/appserver-session";
 import { asHostId, createConversationKey } from "@opencraft/chat-core";
@@ -333,7 +333,7 @@ async function runReplicaResume(environment: LabScenarioEnvironment): Promise<vo
   try {
     await session.resume.resume({ threadId });
     await session.resume.waitForBackgroundHistory(threadId);
-    const source = createCodexThreadReplicaSource(
+    const source = createThreadViewReplicaSource(
       session.views,
       environment.client.hostId,
       threadId,
@@ -356,7 +356,7 @@ async function runReplicaResume(environment: LabScenarioEnvironment): Promise<vo
       () => first?.getSnapshot().nextSeq === updatedView.revision + 1,
       environment.options.timeoutMs,
     );
-    if (!caughtUp) throw new Error("Codex V3 Replica adapter did not apply every View revision");
+    if (!caughtUp) throw new Error("AppServer V3 Replica adapter did not apply every View revision");
     first.dispose();
     first = null;
 
@@ -374,7 +374,7 @@ async function runReplicaResume(environment: LabScenarioEnvironment): Promise<vo
     if (record === null) throw new Error("Replica cache does not contain the selected Thread");
     environment.reporter.emit("replica-resume.verified", {
       threadId,
-      protocol: "codex-v3-resume-adapter",
+      protocol: "appserver-v3-resume-adapter",
       scope: source.scope,
       epoch: restarted.getSnapshot().epoch,
       firstCursor,
@@ -577,7 +577,7 @@ async function runChatRuntime(environment: LabScenarioEnvironment): Promise<void
     storageKey: `chat-runtime:${environment.options.hostId}:${threadId}`,
     storage: new MemoryReplicaStorage(),
   });
-  const source = createCodexThreadReplicaSource(session.views, environment.options.hostId, threadId);
+  const source = createThreadViewReplicaSource(session.views, environment.options.hostId, threadId);
   const interactionBroker = new AppServerInteractionBroker({
     hostId: environment.options.hostId,
     client: environment.client,

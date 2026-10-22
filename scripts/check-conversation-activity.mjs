@@ -50,7 +50,7 @@ export function inspectActivityJsx(source, file = "fixture.tsx") {
   }
   function visit(node) {
     if (ts.isFunctionDeclaration(node) && node.name?.text === "activityIcon" && node.body) checkGlyph(node.body);
-    if (ts.isFunctionDeclaration(node) && ["SubagentBlock", "AggregatedSubagentActivity", "CodexAppThreadToolRow"].includes(node.name?.text)) {
+    if (ts.isFunctionDeclaration(node) && ["SubagentBlock", "AggregatedSubagentActivity", "ThreadTool"].includes(node.name?.text)) {
       let rail = false;
       let header = false;
       const find = child => {

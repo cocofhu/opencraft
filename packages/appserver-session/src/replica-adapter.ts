@@ -53,11 +53,11 @@ export function projectThreadViewForReplica(
   return projected;
 }
 
-export function codexThreadReplicaScope(hostId: string, threadId: string): string {
+export function threadViewReplicaScope(hostId: string, threadId: string): string {
   return `codex-thread:${hostId}:${threadId}`;
 }
 
-function codexViewEpoch(view: ThreadView): string {
+function threadViewEpoch(view: ThreadView): string {
   return `codex-v3:${view.hostId}:${view.connectionGeneration}`;
 }
 
@@ -76,7 +76,7 @@ function snapshotFor(
   cache: WeakMap<object, ReplicaJsonValue>,
   onProjection?: (durationMs: number) => void,
 ): ReplicaSnapshotResponse {
-  const epoch = view === null ? `${scope}:unmounted` : codexViewEpoch(view);
+  const epoch = view === null ? `${scope}:unmounted` : threadViewEpoch(view);
   const nextSeq = view === null ? 1 : view.revision + 1;
   return {
     kind: "snapshot",
@@ -92,18 +92,18 @@ function snapshotFor(
 }
 
 /**
- * Compatibility source for Codex AppServer V3. It exposes View revisions to
+ * Compatibility source for AppServer V3 Thread Views. It exposes View revisions to
  * the V4 client shape without claiming a server-retained journal. A missed
  * revision or connection generation change is therefore a snapshot boundary.
  */
-export function createCodexThreadReplicaSource(
+export function createThreadViewReplicaSource(
   store: ThreadViewReplicaStore,
   hostId: string,
   threadId: string,
   cache = new WeakMap<object, ReplicaJsonValue>(),
   onProjection?: (durationMs: number) => void,
 ): ReplicaSource {
-  const scope = codexThreadReplicaScope(hostId, threadId);
+  const scope = threadViewReplicaScope(hostId, threadId);
   return {
     scope,
     async sync(cursor) {
@@ -137,7 +137,7 @@ export function createCodexThreadReplicaSource(
         }
         if (
           previous === null
-          || codexViewEpoch(previous) !== codexViewEpoch(current)
+          || threadViewEpoch(previous) !== threadViewEpoch(current)
           || current.revision !== previous.revision + 1
         ) {
           previous = current;
@@ -149,7 +149,7 @@ export function createCodexThreadReplicaSource(
           kind: "entry",
           entry: {
             scope,
-            epoch: codexViewEpoch(current),
+            epoch: threadViewEpoch(current),
             seq: current.revision,
             mutation: {
               kind: "upsert",

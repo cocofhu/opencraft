@@ -41,7 +41,7 @@ interface HydratedTurnNavigation {
   readonly prompts: readonly TurnPromptPreview[];
 }
 
-export interface CodexV3ConversationNavigationPort {
+export interface V3ConversationNavigationPort {
   getView(): ThreadView | null;
   subscribeView(listener: () => void): () => void;
   listTurns(params: ThreadTurnsListRequest): Promise<ThreadTurnsListResponse>;
@@ -53,9 +53,9 @@ export interface CodexV3ConversationNavigationPort {
   readonly projectionBarrier: ThreadViewProjectionBarrier;
 }
 
-export interface CodexV3ConversationNavigationConfig {
+export interface V3ConversationNavigationConfig {
   readonly threadId: string;
-  readonly port: CodexV3ConversationNavigationPort;
+  readonly port: V3ConversationNavigationPort;
   readonly maxPages?: number;
   readonly pageSize?: number;
 }
@@ -175,11 +175,11 @@ function projectionCommitForView(view: ThreadView): ThreadViewProjectionCommit {
 }
 
 /**
- * Codex V3 compatibility source. It enumerates lightweight Turn stubs, then
+ * AppServer V3 compatibility source. It enumerates lightweight Turn stubs, then
  * hydrates only one full Turn for hover or navigation.
  */
-export function createCodexV3ConversationNavigationSource(
-  config: CodexV3ConversationNavigationConfig,
+export function createV3ConversationNavigationSource(
+  config: V3ConversationNavigationConfig,
 ): ConversationNavigationSource {
   const maxPages = config.maxPages ?? 10;
   const pageSize = config.pageSize ?? 100;

@@ -22,7 +22,7 @@ import {
 import { JsonFileReplicaStorage } from "@opencraft/appserver-replica-storage-node";
 import { IndexedDbReplicaClientStorage } from "@opencraft/appserver-replica-storage-web";
 import {
-  createCodexThreadReplicaSource,
+  createThreadViewReplicaSource,
   createEmptyThreadView,
   type ThreadView,
 } from "@opencraft/appserver-session";
@@ -777,7 +777,7 @@ test("V4 Replica sync, mutate and live entry cross the AppServer JSON-RPC bounda
   }
 });
 
-test("Codex V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
+test("AppServer V3 adapter emits adjacent View revisions and snapshots every continuity break", async () => {
   const threadId = "thread-codex";
   let current: ThreadView = {
     ...createEmptyThreadView("local", threadId),
@@ -787,7 +787,7 @@ test("Codex V3 adapter emits adjacent View revisions and snapshots every continu
     resumeError: new Error("serialized failure"),
   };
   const listeners = new Set<() => void>();
-  const source = createCodexThreadReplicaSource({
+  const source = createThreadViewReplicaSource({
     get: (candidate) => candidate === threadId ? current : null,
     subscribeThread: (_candidate, listener) => {
       listeners.add(listener);
@@ -847,10 +847,10 @@ test("a binding reuses immutable projections across connection-local sources wit
   };
   const store = { get: () => view, subscribeThread: () => () => undefined };
   const cache = new WeakMap<object, ReplicaJsonValue>();
-  const first = await createCodexThreadReplicaSource(store, "local", "stable", cache).sync(null);
+  const first = await createThreadViewReplicaSource(store, "local", "stable", cache).sync(null);
   assert.equal(first.kind, "snapshot");
   view = { ...view, revision: 2, connectionGeneration: 2 };
-  const second = await createCodexThreadReplicaSource(store, "local", "stable", cache).sync(null);
+  const second = await createThreadViewReplicaSource(store, "local", "stable", cache).sync(null);
   assert.equal(second.kind, "snapshot");
   if (first.kind !== "snapshot" || second.kind !== "snapshot") throw Error("Expected snapshots");
   assert.notEqual(first.epoch, second.epoch);

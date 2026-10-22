@@ -9,7 +9,7 @@ const input: ShellSpaceInput = {
   contextOpen: true, contextWidth: 275, rightOpen: true, rightFullWidth: false,
 };
 
-test("native window width and immersive shell fallback share the Codex minimum", () => {
+test("native window width and immersive shell fallback share the shared minimum", () => {
   assert.equal(workbenchWindowMetrics.minimumWidth, 480);
   assert.equal(shellSpaceMetrics.mainMinimum, workbenchWindowMetrics.minimumWidth);
   const minimum = resolveShellSpace({ ...input, width: workbenchWindowMetrics.minimumWidth });

@@ -1646,7 +1646,7 @@ test("image generation and image viewing retain Codex operational tool semantics
   }
 });
 
-test("standalone image view and empty Web Search preserve Codex render topology", () => {
+test("standalone image view and empty Web Search preserve render topology", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-tool-topology",
     status: "complete",
@@ -1719,7 +1719,7 @@ test("command failure follows exit code even when transport status completed", (
   assert.equal(formatCommandActivitySummary(block, "failed", { expanded: false, elapsedLabel: null }), "Ran false");
 });
 
-test("command labels reproduce Codex disclosure, elapsed, date, and background terminal states", () => {
+test("command labels describe disclosure, elapsed, date, and background terminal states", () => {
   const projected = projectTimeline(source([{
     id: "turn-command-labels",
     status: "complete",
@@ -2114,7 +2114,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated by stable resource identity", () => {
+test("MCP JSON text is promoted and deduplicated with structured content", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",
@@ -2187,7 +2187,7 @@ test("Agent Activity reproduces active labels and deterministic completed summar
   }
 });
 
-test("Web Search action details match Codex search, open-page, and find-in-page labels", () => {
+test("Web Search action details describe search, open-page, and find-in-page actions", () => {
   const blocks = projectTimeline(source([{
     id: "turn-web-actions",
     status: "complete",
@@ -3367,7 +3367,7 @@ test("steering and hook feedback retain their own slots outside Activity disclos
   ]);
 });
 
-test("realtime transcripts follow Codex's pre-toggle and persistent ownership", () => {
+test("realtime transcripts preserve pre-toggle text and persistent ownership", () => {
   const leadingDelegation = `<realtime_delegation>
     <transcript_delta>assistant: I can help.\nuser: Please inspect the app.</transcript_delta>
     <input>Please inspect the app.</input>
@@ -3432,7 +3432,7 @@ test("a non-collapsible realtime transcript renders from the original Unit strea
   assert.equal(layout.visibleUnits.length, 1);
 });
 
-test("realtime delegation parsing matches Codex transcript extension and entity decoding", () => {
+test("realtime delegation parsing preserves transcript extension and entity decoding", () => {
   assert.deepEqual(parseRealtimeDelegation([{
     type: "text",
     text: `<realtime_delegation>

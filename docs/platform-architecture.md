@@ -820,7 +820,7 @@ rolls back a rejected latest intent, and cannot project or write through a
 replaced connection, recipe or authorization epoch. This overlay is not durable
 pin authority; successful catalog refreshes and reloads still use native metadata.
 
-The the downstream product site renders its own Agent sidebar around the embedded Workbench.
+The downstream site renders its own Agent sidebar around the embedded Workbench.
 The embedded element passes each Thread's pinned state and the current Host's
 discovered pin capability to that sidebar, and forwards pin commands to the same
 Thread management resource. The site shows pinned rows outside its recent-page
@@ -879,7 +879,7 @@ durable Threads, immediate for ephemeral Threads); release and new native work
 serialize per Thread. This is live fan-out plus snapshot/replay during resume,
 not a durable event log or multi-tenant authorization boundary.
 
-The packaged Codex runtime is pinned to `0.157.0`: its loaded paginated-Thread
+The packaged Codex runtime is selected by `runtime/codex/package-lock.json`. Its loaded paginated-Thread
 resume path can attach a new Client with `excludeTurns` without materializing
 the full persisted history. OpenCraft still sends the physical `thread/resume`;
 skipping it would lose atomic subscription and interaction ownership. A
@@ -1112,7 +1112,7 @@ locale override, an `IDE` / `SYSTEM` / `FIRST_AVAILABLE` source policy, canonica
 BCP-47 tags, regional catalog matching, lazy messages, and a cached FormatJS Intl
 instance. `FIRST_AVAILABLE` prefers a non-English IDE locale, then a non-English
 system locale. The standalone Web/Electron adapter selects `SYSTEM`; the embedded
-host supplies the equivalent of Codex's IDE locale. Product region is not an input.
+host supplies its locale through the `ideLocale` input. Product region is not an input.
 
 `packages/i18n` owns `LocaleRuntime` and its narrow `IntlPort`. Each application
 gets its own runtime/cache. Its snapshot carries the exact Intl object consumed
@@ -2503,7 +2503,7 @@ over either fixed region.
 
 `workbenchWindowMetrics` is the shared native/renderer window-size authority.
 The primary desktop window may shrink to 480px, matching the main content
-reserve. At that width the Shell
+reserve and the shared Workbench window contract. At that width the Shell
 uses its immersive fallback: application navigation, context and right tools
 are temporarily hidden without changing their saved open/Pin/width intent.
 Electron Main must consume this metric rather than maintaining a larger
@@ -2610,7 +2610,7 @@ establish native parity.
 Expo Web is a first-class output of `apps/workbench-expo`, not a compatibility
 mode hidden inside the Vite app. It is appropriate for mobile-width browsers,
 PWA distribution, and validating universal routes. The Vite app remains the
-desktop browser/Electron target where precise desktop layout and mature chunk
+desktop browser/Electron target where precise Workbench layout and mature chunk
 control matter.
 
 Production routing can send desktop browsers to the Vite deployment and mobile

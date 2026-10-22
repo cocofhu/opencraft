@@ -14,8 +14,7 @@ existing scope. Navigation remains independently keyed by history entry.
   Thread-scope LRU disposal releases only cached panel state. It does not delete
   a bound conversation alias, kill a PTY, or destroy a browser page.
 - If cached panel state is later recreated, plugin resource directories rebuild
-  its Browser and Terminal tab descriptors. The outlet starts closed, matching
-  Codex's no-retained-ThreadScope fallback.
+  its Browser and Terminal tab descriptors. The outlet starts closed.
 - Dismissing an unbound Draft is logical deletion: its orphaned resources and
   unbound alias are released when that scope disappears.
 - Only `close` invokes terminal termination. `owner-release`, replacement and
