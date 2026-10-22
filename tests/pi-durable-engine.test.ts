@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -464,4 +464,103 @@ test("Pi native compaction and passive context writes never invent user Turns", 
   await engine.close();
   const reopened = new PiEngine({ directory, cwd: directory, models }); t.after(() => reopened.close());
   assert.deepEqual((await reopened.request("thread/resume", { threadId: id }, noTools)).thread.turns, history);
+});
+
+test("temporary Pi fork inherits committed context, stays memory-only and closes independently", async t => {
+  const prompts: string[] = [];
+  const f = await fixture(t, [fauxAssistantMessage("parent answer"), context => {
+    prompts.push(JSON.stringify(context)); return fauxAssistantMessage("side answer");
+  }, context => { prompts.push(JSON.stringify(context)); return fauxAssistantMessage("second side answer"); }]);
+  const parent = await f.engine.request("thread/start", { model: piModel("faux", "faux-1"), cwd: f.directory,
+    developerInstructions: "parent developer policy", baseInstructions: "parent base policy", effort: "none" }, noTools);
+  let done = completed(f.engine);
+  await f.engine.request("turn/start", { threadId: parent.thread.id, input: [{ type: "text", text: "parent question" }] }, noTools); await done;
+  const before = await f.engine.request("thread/read", { threadId: parent.thread.id, includeTurns: true }, noTools);
+  const files = (await readdir(f.directory)).filter(file => !file.endsWith(".tmp")).sort();
+  const child = await f.engine.request("thread/fork", { threadId: parent.thread.id, ephemeral: true, excludeTurns: true,
+    developerInstructions: "side policy" }, noTools);
+  const threadId = child.thread.id;
+  assert.equal(child.thread.ephemeral, true); assert.equal(child.thread.path, null);
+  assert.equal(child.thread.forkedFromId, parent.thread.id);
+  assert.equal(child.model, parent.model); assert.equal(child.reasoningEffort, parent.reasoningEffort);
+  await f.engine.request("thread/inject_items", { threadId, items: [{ type: "message", role: "user", content: [{ type: "input_text", text: "side boundary" }] }] }, noTools);
+  assert.equal(f.faux.state.callCount, 1);
+  assert.deepEqual((await f.engine.request("thread/read", { threadId, includeTurns: true }, noTools)).thread.turns, []);
+  await f.engine.request("runtime/capabilities/register", { threadId, dynamicTools: [{ type: "function", name: "unused", description: "unused", inputSchema: { type: "object" } }] }, noTools);
+  for (const text of ["child first", "child second"]) {
+    done = completed(f.engine);
+    await f.engine.request("turn/start", { threadId, input: [{ type: "text", text }] }, noTools);
+    assert.equal((await done).status, "completed");
+  }
+  for (const text of ["parent question", "parent answer", "parent developer policy", "parent base policy", "side policy", "side boundary"])
+    assert.ok(prompts[0]!.includes(text), `Missing inherited context: ${text}`);
+  assert.match(prompts[1]!, /side answer/); assert.match(prompts[1]!, /child second/);
+  assert.equal((await f.engine.request("thread/read", { threadId, includeTurns: true }, noTools)).thread.turns.length, 2);
+  assert.deepEqual(await f.engine.request("thread/read", { threadId: parent.thread.id, includeTurns: true }, noTools), before);
+  assert.deepEqual((await f.engine.request("thread/list", {}, noTools)).data.map((row: any) => row.id), [parent.thread.id]);
+  assert.deepEqual((await readdir(f.directory)).filter(file => !file.endsWith(".tmp")).sort(), files);
+  await f.engine.request("thread/unsubscribe", { threadId }, noTools);
+  await assert.rejects(f.engine.request("thread/read", { threadId }, noTools), /not found/);
+  assert.deepEqual((await readdir(f.directory)).filter(file => !file.endsWith(".tmp")).sort(), files);
+  await assert.rejects(f.engine.request("thread/fork", { threadId: parent.thread.id }, noTools), /temporary forks/);
+});
+
+test("Pi side chat opens through the shared service over the actual Engine Host", async t => {
+  const { Context } = await import("@deepseek-ai/cordis");
+  const { createConversationKey } = await import("@opencraft/chat-core");
+  const { SideChatService } = await import("../packages/workbench-runtime/src/side-chat/service.js");
+  const { createAppServerWorkbenchRuntime } = await import("../packages/workbench-runtime/src/appserver-runtime.js");
+  const { WebSocketTransport } = await import("../packages/appserver-transport-websocket/src/index.js");
+  const f = await fixture(t, [fauxAssistantMessage("shared child answer")]);
+  const host = await startEngineHost({ providers: [f.engine], defaultEngine: "pi" }); t.after(() => host.close());
+  const sent: string[] = [];
+  const runtime = createAppServerWorkbenchRuntime({ hostId: "pi-side", hostKind: "durable", createTransport: () => {
+    const transport = new WebSocketTransport(host.websocketUrl), send = transport.send.bind(transport);
+    transport.send = frame => { sent.push(JSON.parse(frame).method); return send(frame); }; return transport;
+  } });
+  t.after(() => runtime.dispose()); await runtime.connect();
+  const parent = await runtime.resources.threads.start({ model: piModel("faux", "faux-1"), cwd: f.directory });
+  assert.equal(runtime.resources.threads.capabilities(parent.id).fork, false);
+  assert.equal(runtime.resources.threads.supportsSideChat!(parent.id), true);
+  const service = new SideChatService(new Context(), { resolveHost: async () => runtime });
+  t.after(() => service.close("side-one"));
+  const child = await service.open("side-one", createConversationKey("pi-side", parent.id), f.directory);
+  for (let i = 0; i < 100 && !child.lease.getSnapshot().authoritative; i++) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(child.lease.getSnapshot().authoritative, true);
+  const done = completed(f.engine);
+  await service.submit("side-one", { commandId: "side-command", clientMessageId: "side-client", target: { type: "existing-thread", key: child.key },
+    document: { version: 1, blocks: [{ type: "paragraph", children: [{ type: "text", text: "shared child question" }] }] },
+    attachments: [], context: [], selections: { model: null, permissionProfile: null }, options: { autoContext: true }, createdAt: Date.now() }, null);
+  assert.equal((await done).status, "completed");
+  assert.equal(sent.filter(method => method === "thread/fork").length, 1);
+  assert.ok(sent.includes("thread/inject_items")); assert.ok(sent.includes("turn/start"));
+  assert.equal(sent.filter(method => method === "thread/resume").length, 0);
+  await service.close("side-one");
+  await assert.rejects(f.engine.request("thread/read", { threadId: child.key.threadId }, noTools), /not found/);
+});
+
+test("Pi temporary fork validates before allocation and does not survive engine restart", async t => {
+  const f = await fixture(t, []);
+  const parent = await f.engine.request("thread/start", { model: piModel("faux", "faux-1"), cwd: f.directory }, noTools);
+  const fork = { threadId: parent.thread.id, ephemeral: true, excludeTurns: true };
+  for (const override of [{ permissions: "restricted" }, { lastTurnId: "old" }, { model: "other-engine" }, { collaborationMode: {} }])
+    await assert.rejects(f.engine.request("thread/fork", { ...fork, ...override }, noTools));
+  const child = await f.engine.request("thread/fork", fork, noTools), threadId = child.thread.id;
+  await assert.rejects(f.engine.request("thread/inject_items", { threadId, items: [
+    { type: "message", role: "user", content: [{ type: "input_text", text: "must not commit" }] },
+    { type: "message", role: "system", content: [{ type: "input_text", text: "wrong role" }] },
+  ] }, noTools), /user text/);
+  assert.equal(f.faux.state.callCount, 0);
+  f.faux.setResponses([context => {
+    assert.ok(!JSON.stringify(context).includes("must not commit")); return fauxAssistantMessage("validated");
+  }]);
+  const done = completed(f.engine);
+  await f.engine.request("turn/start", { threadId, input: [{ type: "text", text: "new child question" }] }, noTools);
+  assert.equal((await done).status, "completed");
+  const next = fixtureModels([]);
+  await f.engine.close();
+  const reopened = new PiEngine({ directory: f.directory, cwd: f.directory, models: next.models }); t.after(() => reopened.close());
+  await assert.rejects(reopened.request("thread/read", { threadId }, noTools), /not found/);
+  assert.equal((await reopened.request("thread/list", {}, noTools)).data.length, 1);
+  assert.equal((await reopened.request("thread/resume", { threadId: parent.thread.id }, noTools)).thread.id, parent.thread.id);
 });

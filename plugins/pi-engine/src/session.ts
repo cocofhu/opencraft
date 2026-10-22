@@ -1,7 +1,7 @@
 import { ModelRuntime, loadProjectContextFiles } from "@earendil-works/pi-coding-agent";
 import { BACKGROUND_CONTEXT as context, type Context } from "@earendil-works/chord/context";
 import { AgentDoc, InboxDoc, LiveDoc, UsageDoc, createRegistry, defineDoc, defineExtension, defineTool,
-  Harness, section, watchEvents, type AgentEventStream, type Conversation, type Storage,
+  Harness, MemoryStorage, section, watchEvents, type AgentEventStream, type Conversation, type Storage, type ContextView,
   type EntryRecord, type SubmissionRecord, type TaskRecord, type AgentState, type LiveState, type UsageState } from "@earendil-works/pi-durable";
 import { NodeExecutionEnv } from "@earendil-works/pi-durable/env/node";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
@@ -20,6 +20,11 @@ export interface PiSnapshot {
   inbox: readonly Value[];
 }
 export const createPiModels = (directory: string) => ModelRuntime.create({ allowModelNetwork: false, authPath: `${directory}/auth.json`, modelsPath: `${directory}/models.json` });
+export interface PiForkContext {
+  messages: ContextView["messages"];
+  base: string | null;
+  developer: string | null;
+}
 const InstructionDoc = defineDoc<{ base: string | null; developer: string | null }>({
   kind: "opencraft.instructions", version: 1, scope: "conversation", history: "rewindable", fork: "asOf",
   initial: () => ({ base: null, developer: null }),
@@ -39,7 +44,9 @@ export class PiDurableSession {
   private readonly submissions = new Map<number, SubmissionRecord>();
   private tasks = new Map<number, TaskRecord<any, any, any>>();
   private reads: Promise<unknown> = Promise.resolve();
+  private replaceTools!: (tools: Value[]) => void;
   private constructor(private readonly options: { cwd: string; file: string; agentDirectory: string; models: ModelRuntime; tools: Value[];
+    ephemeral?: boolean; inherited?: PiForkContext;
     onSnapshot(snapshot: PiSnapshot): Promise<void> | void; onTool(request: Value): Promise<unknown>; onExit(error: Error): void }) {}
   static async open(options: PiDurableSession["options"]) {
     const session = new PiDurableSession(options);
@@ -47,7 +54,7 @@ export class PiDurableSession {
     catch (error) { await session.close(); throw error; }
   }
   private async open() {
-    this.release = await lockfile.lock(this.options.file, { realpath: false, stale: 10_000,
+    if (!this.options.ephemeral) this.release = await lockfile.lock(this.options.file, { realpath: false, stale: 10_000,
       retries: { retries: 12, minTimeout: 1000, maxTimeout: 1000 } });
     const registry = createRegistry(); registry.install(CodingTools);
     registry.install(defineExtension({ name: "opencraft", sections: [
@@ -57,7 +64,8 @@ export class PiDurableSession {
         return `Working directory: ${cwd}\n` + loadProjectContextFiles({ cwd, agentDir: this.options.agentDirectory })
           .map(file => `# ${file.path}\n${file.content}`).join("\n\n");
       }, { tag: false }),
-    ], tools: this.options.tools.map(tool => defineTool({
+    ] }));
+    this.replaceTools = tools => registry.install(defineExtension({ name: "opencraft.platform-tools", tools: tools.map(tool => defineTool({
       name: tool.piName, description: tool.description, parameters: tool.inputSchema,
       // The native intent is unsafe to replay: reconnect never repeats an external effect.
       execute: async (args: unknown, api: Value, ctx: Context) => {
@@ -78,7 +86,8 @@ export class PiDurableSession {
         return { output, isError: result?.success !== true };
       },
     })) }));
-    this.storage = await openNodeSqliteStorage(this.options.file);
+    this.replaceTools(this.options.tools);
+    this.storage = this.options.ephemeral ? new MemoryStorage() : await openNodeSqliteStorage(this.options.file);
     this.harness = await Harness.open(this.storage, { models: this.options.models, registry, env: target => {
       const cwd = target.cwd ?? this.options.cwd;
       let env = this.environments.get(cwd);
@@ -93,6 +102,11 @@ export class PiDurableSession {
       }
     }).catch(() => {});
     this.root = await this.harness.root(context);
+    if (this.options.inherited) {
+      const inherited = this.options.inherited;
+      await this.instructions(inherited.base ?? undefined, inherited.developer ?? undefined);
+      await this.root.commit(tx => tx.appendEntry(this.root.id, { kind: "opencraft.reference", model: inherited.messages }), context);
+    }
     for (const record of await this.pages(cursor => this.storage.scanSubmissions({ conversationId: this.root.id }, 100, cursor, context)))
       this.submissions.set(record.id, record);
     this.stream = await watchEvents(this.harness, this.root.id, context);
@@ -148,6 +162,18 @@ export class PiDurableSession {
   }
   async configure(change: Value) {
     await this.root.configure(change, context);
+  }
+  tools(tools: Value[]) { this.replaceTools(tools); }
+  async forkContext(): Promise<PiForkContext> {
+    const instructions = await this.root.commit(async tx => {
+      const doc = await tx.doc(InstructionDoc, this.root.id);
+      return { base: doc.base, developer: doc.developer };
+    }, context);
+    const view = await this.root.context(context);
+    return { messages: view.messages, base: instructions.base, developer: instructions.developer };
+  }
+  async inject(messages: ContextView["messages"]) {
+    await this.root.commit(tx => tx.appendEntry(this.root.id, { kind: "opencraft.injected", model: messages }), context);
   }
   async instructions(base: string | undefined, developer: string | undefined) {
     if (base === undefined && developer === undefined) return;

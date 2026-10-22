@@ -339,8 +339,7 @@ blocks and client identity are atomically recorded in the native input entry, in
 queued admission, rather than in a parallel message store. Platform tool
 leases expire on client disconnect; they are not marked replay-safe, so recovery
 cannot repeat an external side effect on that assumption. Workspace AGENTS.md files
-are loaded by the coding-agent context loader. Workspace project IDs are retained as catalog metadata across restart; they do not enable project-specific runtime instructions or change the native cwd. The canonical Full access profile and equivalent never-approve/danger-full-access policy are accepted on creation, restore and turns; restricted/custom permission profiles are rejected before execution. Fork/side chat, injected
-history, managed profile skills, schedules and alternative permission profiles are not yet
+are loaded by the coding-agent context loader. Workspace project IDs are retained as catalog metadata across restart; they do not enable project-specific runtime instructions or change the native cwd. The canonical Full access profile and equivalent never-approve/danger-full-access policy are accepted on creation, restore and turns; restricted/custom permission profiles are rejected before execution. Managed profile skills, schedules and alternative permission profiles are not yet
 implemented by this provider. Native tools run with the execution owner's filesystem
 and process permissions; this provider does not advertise a sandbox.
 
@@ -409,3 +408,26 @@ supplied permission field and rejecting any restricted or custom value.
 Online first submissions with ready attachments or context wait for the existing Thread hydration owner before entering Conversation admission. The command retains the original references and checks lease lifetime after hydration. The text-only offline outbox does not take custody of transient asset handles; offline refusal and uncertain-execution fencing remain unchanged.
 
 Native user-role model context is not itself user admission. Only input submissions, native UserEntry and the adapter input entry start Turns. CompactionEntry renders a stable contextCompaction item on the prior Turn without changing its execution duration; passive context writes cannot invent a user Turn.
+
+### Pi temporary Side Chat
+
+Pi declares `ephemeralFork` independently of persistent `fork`. The shared Side Chat
+service resolves that capability for the parent Thread, forks with `ephemeral: true`
+and `excludeTurns: true`, injects its boundary, then adopts the active child. The
+Engine Host admits that returned child identity without a disk Resume. Persistent
+Pi Fork and historical fork points remain unsupported.
+
+A temporary owner uses native MemoryStorage. Its passive reference entry contains
+the parent's committed native model context, including images, tool results and
+compaction effects, rather than rendered transcript text. It inherits the current
+model, thinking level, cwd, instructions and tool declarations; it never copies
+active tasks, inbox inputs or usage. Parent and child execution remain independent.
+Only new child input starts generation. User-text boundary injection is passive and
+rejects unsupported roles/media and active-child injection before committing.
+
+Temporary Threads have no index, SQLite database, writer lock or catalog row.
+Platform-tool changes update the native registry without replacing the memory
+owner. Disconnect revokes its tool lease; reconnect may reattach the same live
+owner. Explicit unsubscribe disposes it and removes its identity. Server restart
+loses these conversations. The normal persistent Pi owner and recovery path remain
+disk-backed. Full access validation applies equally to both kinds.

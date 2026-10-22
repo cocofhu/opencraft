@@ -211,7 +211,7 @@ export async function startEngineHost(options: {
           if (provider) {
             if (params.threadId && !["thread/read", "thread/resume"].includes(method) && !state.opened.has(params.threadId)) throw new Error("Open the thread before mutating it");
             const result = await provider.request(method, params, state.owner);
-            if (["thread/start", "thread/resume"].includes(method) && result.thread?.id) state.opened.add(result.thread.id);
+            if (["thread/start", "thread/resume", "thread/fork"].includes(method) && result.thread?.id) state.opened.add(result.thread.id);
             if (method === "thread/unsubscribe") state.opened.delete(params.threadId);
             reply(result); return;
           }

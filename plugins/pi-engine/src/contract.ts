@@ -21,7 +21,7 @@ export function assertPiFields(params: Value) {
   // Workbench may resend both a named profile and its resolved native policy.
   // Every supplied value was checked above; redundant Full access is equivalent.
   const neutral: Record<string, (v: any) => boolean> = {
-    ephemeral: v => v === false, outputSchema: () => false, collaborationMode: () => false, toolOutput: () => false,
+    ephemeral: v => typeof v === "boolean", outputSchema: () => false, collaborationMode: () => false, toolOutput: () => false,
     serviceTier: v => v === "default", serviceTierForTurn: v => v === "default", serviceName: () => false,
     approvalsReviewer: v => v === "user", summary: v => v === "auto",
     allowProviderModelFallback: v => v === false, daybreakEnabled: v => v === false,

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai/models";
-import { PiDurableSession, createPiModels, type PiSnapshot } from "./session.js";
+import { PiDurableSession, createPiModels, type PiSnapshot, type PiForkContext } from "./session.js";
 import { assertPiFields, compareThreads, fullAccessProfile, piModel, selection, thinking, workspace } from "./contract.js";
 import { compilePiInput } from "./input.js";
 import { projectPiSnapshot, tokenUsage, textOf } from "./projection.js";
@@ -19,6 +19,7 @@ interface Session {
   format: "pi-durable-1"; id: string; cwd: string; model: string; name: string | null; preview: string;
   createdAt: number; updatedAt: number; archived: boolean; projectId?: string | null; pendingRecovery?: boolean; tools: Value[];
   threadSource?: Value | null; sessionStartSource?: Value | string | null;
+  ephemeral?: boolean; forkedFromId?: string; inherited?: PiForkContext;
   native?: PiDurableSession; starting?: Promise<PiDurableSession>; owner?: EngineClient; lease?: AbortController;
   active?: Value; turns?: Value[]; snapshot?: PiSnapshot; effort?: string; failed?: boolean;
 }
@@ -47,7 +48,7 @@ export class PiEngine {
   readonly threadPrefix = "pi_";
   readonly modelPrefix = "pi:";
   readonly extensions = Object.freeze({
-    "opencraft/thread-lifecycle": { version: 1, fork: false, ephemeral: false, injectItems: false, rename: true, archive: true, unsubscribe: true, pin: false },
+    "opencraft/thread-lifecycle": { version: 1, fork: false, ephemeralFork: true, ephemeral: true, injectItems: true, rename: true, archive: true, unsubscribe: true, pin: false },
     "opencraft/host-capabilities": { version: 1 },
     "opencraft/scoped-model-catalog": { version: 1 },
     "opencraft/resume-history": { version: 1, mode: "legacy" },
@@ -94,6 +95,7 @@ export class PiEngine {
     }
   }
   private save(session: Session): Promise<void> {
+    if (session.ephemeral) return Promise.resolve();
     const { native: _native, starting: _starting, owner: _owner, lease: _lease, active: _active, turns: _turns,
       snapshot: _snapshot, effort: _effort, failed: _failed, ...record } = session;
     const file = join(this.options.directory, `${session.id}.json`), temporary = `${file}.${randomUUID()}.tmp`;
@@ -112,8 +114,10 @@ export class PiEngine {
   private async native(session: Session): Promise<PiDurableSession> {
     if (this.closed) throw new Error("Pi engine is closed");
     if (session.native) return session.native;
+    if (session.ephemeral && session.failed) throw new Error("Temporary Pi session is no longer available");
     return session.starting ??= (async () => {
       const native = await PiDurableSession.open({ cwd: session.cwd, file: join(this.options.directory, `${session.id}.sqlite`),
+        ephemeral: session.ephemeral, inherited: session.inherited,
         agentDirectory: this.options.modelDirectory ?? this.options.directory, models: await this.modelsRuntime, tools: session.tools,
         onSnapshot: snapshot => this.accept(session, snapshot),
         onTool: async request => {
@@ -138,7 +142,7 @@ export class PiEngine {
         // Old indexes predate AgentDoc configuration. Bootstrap once; afterwards the native document wins.
         if (!snapshot.agent.model) await native.configure({ model: selection(session.model), cwd: session.cwd });
         if (this.closed) throw new Error("Pi engine is closed");
-        session.native = native; session.failed = false;
+        session.native = native; session.inherited = undefined; session.failed = false;
         this.accept(session, await native.snapshot()); return native;
       } catch (error) { await native.close(); throw error; }
       finally { session.starting = undefined; }
@@ -225,11 +229,11 @@ export class PiEngine {
     });
   }
   private thread(session: Session, turns: Value[] = []) {
-    return { id: session.id, sessionId: session.id, forkedFromId: null, parentThreadId: null, name: session.name, preview: session.preview,
-      ephemeral: false, projectId: session.projectId ?? null, historyMode: "legacy", modelProvider: "pi", model: session.model, reasoningEffort: session.effort ?? null,
+    return { id: session.id, sessionId: session.id, forkedFromId: session.forkedFromId ?? null, parentThreadId: null, name: session.name, preview: session.preview,
+      ephemeral: session.ephemeral === true, projectId: session.projectId ?? null, historyMode: "legacy", modelProvider: "pi", model: session.model, reasoningEffort: session.effort ?? null,
       createdAt: session.createdAt, updatedAt: session.updatedAt, recencyAt: session.updatedAt,
       status: session.failed ? { type: "systemError" } : session.active ? { type: "active", activeFlags: [] } : { type: "idle" },
-      path: join(this.options.directory, `${session.id}.sqlite`), cwd: session.cwd, cliVersion: "1.3.0", source: "appServer", originator: "opencraft",
+      path: session.ephemeral ? null : join(this.options.directory, `${session.id}.sqlite`), cwd: session.cwd, cliVersion: "1.3.0", source: "appServer", originator: "opencraft",
       canAcceptDirectInput: true, threadSource: session.threadSource ?? null, agentNickname: null, agentRole: null, gitInfo: null,
       daybreakEnabled: null, environments: null, extra: null, section: null, sectionEnteredAt: null, turns };
   }
@@ -273,7 +277,7 @@ export class PiEngine {
   }
   private async handle(method: string, params: Value, client: EngineClient): Promise<any> {
     await this.load(); if (this.closed) throw new Error("Pi engine is closed");
-    if (["config/read", "config/batchWrite", "thread/start", "thread/resume", "turn/start"].includes(method)) await this.options.configuration?.synchronize();
+    if (["config/read", "config/batchWrite", "thread/start", "thread/fork", "thread/resume", "turn/start"].includes(method)) await this.options.configuration?.synchronize();
     if (method === "config/read") {
       const saved = await this.defaults();
       return { config: { model: saved.model ?? (await this.models()).find(model => model.isDefault)?.model ?? null, model_reasoning_effort: saved.effort ?? null }, origins: {}, layers: null };
@@ -297,7 +301,7 @@ export class PiEngine {
     if (method === "model/list") return { data: await this.models(), nextCursor: null };
     if (method === "thread/list") {
       if (params.parentThreadId && params.ancestorThreadId) throw new Error("parentThreadId and ancestorThreadId are mutually exclusive");
-      const data = [...this.sessions.values()].filter(s => s.archived === (params.archived === true))
+      const data = [...this.sessions.values()].filter(s => !s.ephemeral && s.archived === (params.archived === true))
         .filter(s => !("projectId" in params) || (s.projectId ?? null) === params.projectId)
         .filter(s => params.cwd == null || (Array.isArray(params.cwd) ? params.cwd : [params.cwd]).includes(s.cwd))
         .filter(() => !params.modelProviders?.length || params.modelProviders.includes("pi"))
@@ -316,14 +320,31 @@ export class PiEngine {
       selection(model ?? "");
       const session: Session = { format: "pi-durable-1", id: `pi_${randomUUID()}`, cwd: await workspace(params, this.options.cwd), model,
         projectId: params.projectId ?? null, threadSource: params.threadSource ?? null, sessionStartSource: params.sessionStartSource ?? null,
-        name: null, preview: "", createdAt: seconds(), updatedAt: seconds(), archived: false, effort: saved.effort, tools: flattenPiTools(params.dynamicTools ?? []) };
+        ephemeral: params.ephemeral === true, name: null, preview: "", createdAt: seconds(), updatedAt: seconds(), archived: false, effort: saved.effort, tools: flattenPiTools(params.dynamicTools ?? []) };
       this.attach(session, client); this.sessions.set(session.id, session);
       try {
         await this.configure(session, params, true);
         await this.save(session); return this.response(session);
       } catch (error) { this.sessions.delete(session.id); await session.native?.close(); throw error; }
     }
+    if (method === "thread/unsubscribe" && !this.sessions.has(params.threadId)) return { status: "notLoaded" };
     const session = await this.session(params.threadId);
+    if (method === "thread/fork") {
+      assertPiFields(params);
+      if (params.ephemeral !== true || params.excludeTurns !== true || params.path != null || params.lastTurnId != null)
+        throw new Error("Pi supports temporary forks from the latest context with excludeTurns only");
+      await this.refresh(session);
+      const inherited = await (await this.native(session)).forkContext();
+      const child: Session = { format: "pi-durable-1", id: `pi_${randomUUID()}`, cwd: session.cwd, model: session.model,
+        effort: session.effort, projectId: session.projectId, threadSource: session.threadSource, sessionStartSource: session.sessionStartSource,
+        ephemeral: true, forkedFromId: session.id, inherited, tools: session.tools.map(tool => ({ ...tool })),
+        name: null, preview: "", createdAt: seconds(), updatedAt: seconds(), archived: false };
+      this.attach(child, client); this.sessions.set(child.id, child);
+      try {
+        await this.configure(child, { ...params, developerInstructions: [inherited.developer, params.developerInstructions].filter(Boolean).join("\n\n") || undefined }, true);
+        return this.response(child);
+      } catch (error) { this.sessions.delete(child.id); this.detach(child); await child.native?.close(); throw error; }
+    }
     if (params.model && !String(params.model).startsWith("pi:")) throw new Error("This thread belongs to Pi; create a new thread to change engines");
     if (method === "thread/read") { if (params.includeTurns) await this.refresh(session); return { thread: this.thread(session, params.includeTurns ? session.turns : []) }; }
     if (method === "thread/resume") {
@@ -332,18 +353,37 @@ export class PiEngine {
       if (!session.owner || !session.active) this.attach(session, client);
       native.resume(); return this.response(session, params.excludeTurns ? [] : session.turns);
     }
+    if (method === "thread/inject_items") {
+      if (!session.ephemeral) throw new Error("Pi history injection is limited to temporary threads");
+      if (session.active) throw new Error("Stop the Pi turn before injecting history");
+      if (!Array.isArray(params.items) || params.items.some((item: Value) => !item || item.type !== "message" || item.role !== "user"
+        || !Array.isArray(item.content) || item.content.some((part: Value) => !part || part.type !== "input_text" || typeof part.text !== "string")))
+        throw new Error("Pi history injection supports user text messages only");
+      await (await this.native(session)).inject(params.items.map((item: Value) => ({ role: "user", timestamp: Date.now(),
+        content: item.content.map((part: Value) => ({ type: "text", text: part.text })) })));
+      return {};
+    }
     if (method === "thread/name/set") { session.name = params.name; await this.save(session); this.notify("thread/name/updated", { threadId: session.id, threadName: session.name }); return {}; }
     if (method === "thread/archive" || method === "thread/unarchive") {
+      if (session.ephemeral) throw new Error("Temporary Pi threads cannot be archived");
       if (session.active) throw new Error("Stop the Pi turn before archiving");
       session.archived = method === "thread/archive"; await this.save(session); return method === "thread/unarchive" ? { thread: this.thread(session) } : {};
     }
-    if (method === "thread/unsubscribe") { if (session.owner === client) this.detach(session); return { status: "unsubscribed" }; }
+    if (method === "thread/unsubscribe") {
+      if (session.owner === client) {
+        this.detach(session);
+        if (session.ephemeral) { await session.native?.close(); this.sessions.delete(session.id); }
+      }
+      return { status: "unsubscribed" };
+    }
     if (method === "runtime/capabilities/register") {
       if (session.active && session.owner && session.owner !== client) throw new Error("Cannot replace the platform tool owner during a Pi turn");
       const tools = flattenPiTools(params.dynamicTools ?? [], session.tools);
       if (!same(sortedTools(tools), sortedTools(session.tools))) {
         if (session.active) throw new Error("Cannot replace platform tools during a Pi turn");
-        await session.native?.close(); session.native = undefined; session.tools = tools; await this.save(session);
+        if (session.ephemeral) (await this.native(session)).tools(tools);
+        else { await session.native?.close(); session.native = undefined; }
+        session.tools = tools; await this.save(session);
       }
       this.attach(session, client); await this.native(session); return { registered: tools.length };
     }
