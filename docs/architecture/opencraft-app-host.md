@@ -64,7 +64,7 @@ Renderer-to-Agent or Electron-Main-to-Agent compatibility path.
 ## Renderer ⇄ App Host protocol
 
 The trusted Renderer asks preload for a transferred port with
-`vela:connect-app-host`, protocol version `1`. Messages on that port are:
+`opencraft:connect-app-host`, protocol version `2`. Messages on that port are:
 
 - `hello` / `ready` / `fatal`
 - `host/connect { requestId, hostId, leaseId }`

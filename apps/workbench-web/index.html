@@ -9,7 +9,7 @@
     <title>OpenCraft</title>
     <script>
       // Web Crypto exposes getRandomValues on HTTP origins, but randomUUID only
-      // in secure contexts. The authenticated IP preview uses HTTP like BB.
+      // in secure contexts. The authenticated IP preview can use HTTP.
       if (typeof crypto.randomUUID !== "function" && typeof crypto.getRandomValues === "function") {
         crypto.randomUUID = () => {
           const bytes = crypto.getRandomValues(new Uint8Array(16));
