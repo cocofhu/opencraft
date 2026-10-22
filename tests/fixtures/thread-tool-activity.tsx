@@ -292,7 +292,7 @@ function HandoffToolsDemo() {
             phase, canExpand: presentation.canExpand, state: presentation.state,
           };
           return undefined;
-        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        }} footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }
