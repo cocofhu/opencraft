@@ -577,8 +577,7 @@ The picker displays loading, unavailable/retry and no-results states, supports
 wrapped arrow navigation (and macOS Ctrl-P/N), Enter/Tab insertion and mouse
 selection, and never submits while a Skill picker owns Enter. Escape/blur
 dismiss the current match without deleting its text; changing the match may
-reopen it. Unmatched queries containing whitespace dismiss as in the Codex
-reference. Selected text and code blocks do not activate the picker, and IME
+reopen it. Unmatched queries containing whitespace dismiss the picker. Selected text and code blocks do not activate the picker, and IME
 commit does not select or submit. Async results carry catalog, target, query,
 retry and controller ownership; stale completions cannot become selectable.
 Inserted resources retain canonical Skill name/path through the document
@@ -591,7 +590,7 @@ protocol payload, not remote Skill installation or model execution.
 Model-response URLs are resources, not page-local anchors. `chat-document`
 preserves the model-authored paragraph/heading/list/table structure and raw
 Markdown label; `chat-render-react` alone classifies and sanitizes the target;
-the Web renderer projects an allowed HTTP(S) target as a Codex-style inline
+the Web renderer projects an allowed HTTP(S) target as an inline
 mention with origin favicon, globe fallback, URL tooltip and Radix context
 actions. It never demotes a heading merely because its child is a link.
 Restricted or unsafe targets receive no href, favicon request or open action.
@@ -633,7 +632,7 @@ trackpad/wheel scrolling and scrollbar dragging retain browser text selection,
 link activation and vertical timeline scrolling. Appending rows keeps the same
 table and scrollport; no JavaScript pan controller or document-wide overflow is
 introduced. `scripts/smoke-markdown-table-scroll.ts` verifies the real renderer.
-Wide blocks use Codex-style automatic expansion beyond the prose column, bounded
+Wide blocks use automatic expansion beyond the prose column, bounded
 by the current reading surface rather than window width. The timeline supplies
 `--chat-wide-content-available-width` and `--wide-block-panel-max-width`; its
 viewport already excludes docked panels and accounts for content shift. Tables
@@ -778,7 +777,7 @@ Unspecified table-cell alignment and prose/heading writing direction are
 natural rather than forced LTR, matching Web's `dir="auto"` intent; explicit
 Markdown column alignment remains authoritative.
 
-Web and Native code fences now consume one Shiki grammar registry and Codex
+Web and Native code fences now consume one Shiki grammar registry and OpenCraft
 syntax theme. Web turns that result into HTML; Native projects its token colors
 and font emphasis into selectable `Text`, preserving exactly the original code
 string, wrap mode and horizontal scroll geometry. Native delays enhancement
@@ -834,7 +833,7 @@ interruption and failure notifications are lifecycle summaries (`itemsView:
 "summary"`), never empty full Item snapshots. Full membership belongs to
 history reconstruction. Visible reasoning, assistant and tool Items settle
 before the Turn; only explicit completed output receives final-answer phase.
-Like Codex, `final_answer` is an optional Item rather than a prerequisite for a
+`final_answer` is an optional Item rather than a prerequisite for a
 completed Turn. A Turn with settled commentary or tool activity may complete
 without fabricating an answer; a completely empty completed Turn still fails
 closed as a provider/runtime contract violation.
@@ -1388,7 +1387,7 @@ lost connection expires that temporary baseline. See the [workspace design](../d
 | `composer-editor` | OpenCraft Web ProseMirror editor | authoritative drafts |
 | `timeline-virtualizer` | Shared Turn window, restore, geometry, follow and response-spacer policy | DOM and React Native |
 | `workbench-runtime` | per-Host runtime, Thread catalog, Replica/Session lifecycle and commands | platform views |
-| `workbench-web` | DOM Timeline, ProseMirror adapter and precise Codex frame | JSON-RPC storage |
+| `workbench-web` | DOM Timeline, ProseMirror adapter and shared Web frame | JSON-RPC storage |
 | `workbench-expo` | RN Timeline, Native editor adapter and iOS/Expo Web frame | DOM |
 
 The Embedded Workbench keeps Sidebar presentation outside this table: the host
