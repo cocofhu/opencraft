@@ -1,17 +1,64 @@
 import assert from "node:assert/strict";
 import { createServer } from "vite";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 const { chromium } = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
 const output = resolve(process.env.OPENCRAFT_SMOKE_OUTPUT_DIR ?? ".local/question-extensions"); await mkdir(output, { recursive: true });
-const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error", esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-question-extensions", server: { host: "127.0.0.1", port: 0 }, plugins: [{ name: "question-extensions", configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/") return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/question-extensions.tsx"></script>'); }); } }] });
+const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error", esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] }, cacheDir: "node_modules/.vite-question-extensions", server: { host: "127.0.0.1", port: 0 }, plugins: [{ name: "question-extensions", configureServer(server) { server.middlewares.use((req, res, next) => { if (req.url !== "/" && !req.url?.startsWith("/?")) return next(); res.setHeader("content-type", "text/html"); res.end('<meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/question-extensions.tsx"></script>'); }); } }] });
 let browser: any;
 try {
   await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
-  for (const width of [390, 1100]) {
-    const page = await browser.newPage({ viewport: { width, height: 850 }, reducedMotion: "reduce" }); const errors: string[] = [];
+  const entryOnly = process.argv.includes("--entry-only");
+  const scenes = entryOnly ? [390, 1100].flatMap(width => ["light", "dark"].flatMap(theme => ["reduce", "no-preference"].map(reducedMotion => ({ width, theme, reducedMotion }))))
+    : [390, 1100].map(width => ({ width, theme: "light", reducedMotion: "reduce" }));
+  const entries: unknown[] = [];
+  for (const { width, theme, reducedMotion } of scenes) {
+    const page = await browser.newPage({ viewport: { width, height: 850 }, reducedMotion, hasTouch: width === 390 }); const errors: string[] = [];
     page.on("pageerror", (error: Error) => errors.push(error.message)); await page.addInitScript("window.__name=value=>value");
-    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}`);
+    if (entryOnly) await page.addInitScript(() => {
+      const w = window as any; w.entryFrames = []; w.entryLabel = "cold"; w.entryResizeFeedback = [];
+      window.addEventListener("error", event => { if (event.message.startsWith("ResizeObserver")) w.entryResizeFeedback.push({ label: w.entryLabel, message: event.message }); });
+      const sample = () => {
+        const panel = document.querySelector<HTMLElement>(".thread-pending-request-panel");
+        if (panel) { const css = getComputedStyle(panel); w.entryFrames.push({ label: w.entryLabel, opacity: Number(css.opacity), transform: css.transform }); }
+      };
+      new MutationObserver(sample).observe(document, { subtree: true, childList: true });
+      const frame = () => { sample(); requestAnimationFrame(frame); }; requestAnimationFrame(frame);
+    });
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}${entryOnly ? `/?entry=1&theme=${theme}` : "/"}`);
+    if (entryOnly) {
+      const panel = page.locator('.thread-pending-request-panel'); await panel.waitFor(); await page.waitForTimeout(260);
+      const frames = (label: string) => page.evaluate(label => (window as any).entryFrames.filter((frame: any) => frame.label === label), label);
+      const staticFrames = (rows: any[], label: string) => {
+        assert.ok(rows.length > 0, label);
+        assert.ok(rows.every(row => row.opacity === 1 && (row.transform === "none" || row.transform === "matrix(1, 0, 0, 1, 0, 0)")), `${label}: recovered and reduced-motion interaction panels must be visible and stationary from the first frame: ${JSON.stringify(rows)}`);
+      };
+      staticFrames(await frames("cold"), "cold baseline");
+      const act = async (label: string, method: string, kind?: string) => {
+        await page.evaluate(([label, method, kind]) => { (window as any).entryLabel = label; (window as any).entryFixture[method](kind); }, [label, method, kind]);
+        await page.waitForTimeout(260); return frames(label);
+      };
+      for (const kind of ["question", "approval"]) {
+        staticFrames(await act(kind + "-baseline", "reset", kind), kind + " baseline");
+        const node = await panel.elementHandle();
+        if (kind === "question") await panel.getByRole('textbox').fill('未提交中文草稿');
+        staticFrames(await act(kind + "-return", "restore"), kind + " return");
+        assert.equal(await node!.evaluate(element => element.isConnected), false);
+        if (kind === "question") assert.equal(await panel.getByRole('textbox').inputValue(), '未提交中文草稿');
+        await act(kind + "-empty", "clear"); assert.equal(await panel.count(), 0);
+        const fresh = await act(kind + "-fresh", "appear", kind);
+        if (reducedMotion === "reduce") staticFrames(fresh, kind + " reduced-motion new entry");
+        else assert.ok(fresh.some((row: any) => row.opacity < 1), kind + " genuinely new live requests keep entry motion");
+        const current = await panel.elementHandle();
+        staticFrames(await act(kind + "-update", "refresh"), kind + " equivalent update");
+        assert.equal(await current!.evaluate(element => element.isConnected), true);
+      }
+      assert.deepEqual(await page.evaluate(() => (window as any).answers), []); assert.deepEqual(errors, []); assert.deepEqual(await page.evaluate(() => (window as any).entryResizeFeedback), []);
+      await writeFile(join(output, `entry-${width}-${theme}-${reducedMotion}.json`), JSON.stringify(await page.evaluate(() => (window as any).entryFrames)));
+      await page.screenshot({ path: join(output, `entry-${width}-${theme}-${reducedMotion}.png`) });
+      entries.push({ width, theme, reducedMotion, baselineStatic: true, returnStatic: true, draftRestored: true, liveEntryPreserved: true, equivalentNodeRetained: true });
+      await page.close(); continue;
+    }
     await page.getByRole("heading", { name: "Full fixture plan" }).waitFor();
     const first = page.getByRole("button", { name: /1 Verify/ }), second = page.getByRole("button", { name: /2 Deliver/ });
     await first.click(); await second.click(); assert.equal(await first.getAttribute("aria-pressed"), "true"); assert.equal(await second.getAttribute("aria-pressed"), "true");
@@ -124,5 +171,6 @@ try {
     assert.equal(await page.locator('.thread-setup-context input').inputValue(), "");
     assert.deepEqual(errors, []); await page.close();
   }
-  console.log(JSON.stringify({ result: "passed", mobileWeb: true, desktopWeb: true, explicitMultiSubmit: true, fullPlanMarkdown: true, semanticRefreshRetainsDraft: true, replacementResetsDraft: true, questionPageRetained: true, imeKeysRetained: true, implicitFormCompositionGuard: true, ordinaryQuestionAndPickerKeys: true, output }));
+  if (entryOnly) console.log(JSON.stringify({ result: "passed", entries, output }));
+  else console.log(JSON.stringify({ result: "passed", mobileWeb: true, desktopWeb: true, explicitMultiSubmit: true, fullPlanMarkdown: true, semanticRefreshRetainsDraft: true, replacementResetsDraft: true, questionPageRetained: true, imeKeysRetained: true, implicitFormCompositionGuard: true, ordinaryQuestionAndPickerKeys: true, output }));
 } finally { await browser?.close(); await vite.close(); }

@@ -2343,6 +2343,16 @@ keydown alone does not prevent the browser from submitting a form. Ordinary
 Enter and Escape retain their existing answer and dismissal actions once
 composition has ended.
 
+### Pending interaction recovery motion
+
+Pending question, approval and setup panels consume their owning Conversation's
+entry-motion context. Recovered baselines and retained View returns paint fully
+visible and stationary from the first frame. New live requests keep their normal
+entry animation; reduced-motion preferences suppress it. Equivalent request
+updates retain the same panel node and input transaction. Question page changes
+keep their separate user-initiated transition. No request is authorized or answered
+by restoring its presentation.
+
 ### Pending interaction draft recovery
 
 The Application owns pending input checkpoints for each Host, Thread and View.
