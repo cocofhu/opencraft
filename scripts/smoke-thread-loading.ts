@@ -14,13 +14,16 @@ import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderTh
 import {TimelineBlockRendererProvider,TimelineBlockRendererRegistryService} from '@opencraft/timeline-render-react';
 import {BuiltinTimelineRendererPlugin} from '/apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin.ts';
 import {Conversation} from '/apps/workbench-web/src/components/conversation.tsx';
-import {ConversationRecoveryEmptyState,ConversationRecoveryNotice,conversationRecoveryPresentation} from '/apps/workbench-web/src/components/conversation-recovery.tsx';
+import {ConversationRecoveryEmptyState,ConversationRecoveryNotice,conversationRecoveryPresentation,conversationRecoveryIsPending} from '/apps/workbench-web/src/components/conversation-recovery.tsx';
 import {useConversationRecoveryDiagnostic} from '/apps/workbench-web/src/runtime/conversation-recovery-diagnostic.ts';
+import {createComposerController} from '@opencraft/composer-core';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import '/apps/workbench-web/src/styles/app.scss';
 const ctx=new Context();
 await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
 const key=createConversationKey('fixture','loading');
+const controller=createComposerController({type:'existing-thread',key},{now:Date.now,createId:()=>crypto.randomUUID()});
 const history=projectTimeline({key,revision:1,authoritative:true,phase:'live',turns:Array.from({length:20},(_,i)=>({id:'turn-'+i,status:'complete',items:[
  {id:'u-'+i,type:'userMessage',payload:{id:'u-'+i,type:'userMessage',content:[{type:'text',text:'Prompt '+i}]}},
  {id:'a-'+i,type:'agentMessage',payload:{id:'a-'+i,type:'agentMessage',text:('Retained response '+i+'\\n\\n').repeat(6),phase:'final_answer'}}
@@ -30,7 +33,7 @@ function theme(mode,family){
  const palette=family==='custom'?lavenderThemePalette[mode]:opencraftNeutralThemePalette[mode];
  for(const [name,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
 }
-theme('light','codex');
+theme('light','neutral');
 window.loadingFixture={theme};
 function Demo(){
  const [state,setState]=useState('cold-stage');
@@ -44,14 +47,14 @@ function Demo(){
  const diagnostic=useConversationRecoveryDiagnostic({scope,failed,stage:warm?'history':'connection',error:null,runtime:'error',transport:{state:'failed'}});
  const presentation=conversationRecoveryPresentation({authoritative:state==='ready',hasVisibleHistory:warm,failed});
  const retry=()=>setState('cold-view');
- return <main className="local-conversation-page" style={{height:'100vh','--thread-content-top-inset':'0px',background:'var(--color-background-surface)'}}>
+ return <main className="local-conversation-page" style={{height:'100vh','--thread-content-top-inset':'0px',background:'var(--color-background-surface)',overflow:'hidden'}}>
   <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
-   {state==='cold-stage'?<div className="conversation-recovery-cold-stage"><ConversationRecoveryEmptyState failed={false}/></div>:
-    <Conversation scrollPolicy="natural" timeline={warm?history:null}
+   <Conversation scrollPolicy="natural" timeline={warm?history:null}
      emptyState={<ConversationRecoveryEmptyState failed={failed} diagnostic={diagnostic} requiresUpdate={requiresUpdate} onRetry={retry}/>}
-     footer={<footer style={{height:60,padding:8}}><input aria-label="Draft" defaultValue="preserved draft"/></footer>}/>
-   }
-   {presentation==='warm-loading'||presentation==='warm-error'?<ConversationRecoveryNotice failed={failed} diagnostic={diagnostic} reconnecting={state!=='warm-syncing'} requiresUpdate={requiresUpdate} onRetry={()=>setState('warm-loading')}/>:null}
+     footer={<footer style={{padding:8}}>
+      {presentation==='warm-error'?<ConversationRecoveryNotice failed diagnostic={diagnostic} requiresUpdate={requiresUpdate} onRetry={()=>setState('warm-loading')}/>:null}
+      <OpenCraftComposer controller={controller} isStreaming={false} isRecovering={conversationRecoveryIsPending(presentation,diagnostic,requiresUpdate)} onSubmit={()=>false} onCancel={()=>{}}/>
+     </footer>}/>
   </TimelineBlockRendererProvider>
  </main>;
 }
@@ -80,7 +83,7 @@ try {
   const evidenceDir = process.env.OPENCRAFT_THREAD_LOADING_EVIDENCE_DIR;
   if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
   const results: unknown[] = [];
-  for (const width of [1280, 320, 390]) for (const family of ["codex", "custom"]) for (const mode of ["light", "dark"]) {
+  for (const width of [1280, 320, 390]) for (const family of ["neutral", "custom"]) for (const mode of ["light", "dark"]) {
     const touch = width < 600;
     const context = await browser.newContext({ viewport: { width, height: 800 }, hasTouch: touch, permissions: ["clipboard-read", "clipboard-write"] });
     try {
@@ -89,55 +92,52 @@ try {
       page.on("pageerror", (error: Error) => errors.push(error.message));
       await page.addInitScript("window.__name=value=>value");
       await page.goto(origin);
-      const ring = page.locator(".workbench-loading-spinner");
-      await ring.waitFor();
+      const scan = page.locator(".opencraft-composer-recovery");
+      const beam = page.locator(".opencraft-composer-recovery__beam").first();
+      await scan.waitFor();
       await page.evaluate(({ mode, family }: any) => (window as any).loadingFixture.theme(mode, family), { mode, family });
       const setState = async (state: string) => page.evaluate(state => (window as any).loadingFixture.set(state), state);
+      const expectActive = async () => {
+        await page.waitForFunction(() => {
+          const el = document.querySelector(".opencraft-composer-recovery");
+          return el?.getAttribute("data-active") === "true" && Number(getComputedStyle(el).opacity) > .99;
+        });
+      };
       for (const stage of ["cold-stage", "cold-view"]) {
         await setState(stage);
-        await ring.waitFor();
-        await page.waitForFunction(() => getComputedStyle(document.querySelector(".conversation-recovery-loading")!).opacity === "1");
-        const rendered = await ring.evaluate((el: SVGElement) => {
+        await expectActive();
+        const rendered = await scan.evaluate(el => {
+          const svg = el.querySelector("svg")!;
           const rect = el.getBoundingClientRect();
-          const parent = el.parentElement!.getBoundingClientRect();
-          const label = el.parentElement!.querySelector("span")!;
-          const probe = document.createElement("span");
-          probe.style.color = "var(--color-text-secondary)";
-          el.parentElement!.append(probe);
-          const expectedColor = getComputedStyle(probe).color;
-          probe.remove();
-          return { width: parseFloat(getComputedStyle(el).width), height: parseFloat(getComputedStyle(el).height),
-            dx: rect.x + rect.width / 2 - parent.x - parent.width / 2,
-            dy: rect.y + rect.height / 2 - parent.y - parent.height / 2,
-            regionHeight: parent.height, regionTop: parent.top, regionBottom: parent.bottom,
-            labelWidth: label.getBoundingClientRect().width,
-            color: getComputedStyle(el).color, expectedColor,
+          const shell = el.parentElement!.getBoundingClientRect();
+          return { width: rect.width, height: rect.height,
+            shellWidth: shell.width, shellHeight: shell.height,
+            labelWidth: el.querySelector("span")!.getBoundingClientRect().width,
             pointer: getComputedStyle(el).pointerEvents,
-            animation: getComputedStyle(el).animationName,
-            focusable: el.getAttribute("focusable"), hidden: el.getAttribute("aria-hidden") };
+            focusable: svg.getAttribute("focusable"), hidden: svg.getAttribute("aria-hidden"),
+            stroke: getComputedStyle(svg).stroke };
         });
-        assert.equal(rendered.width, 24); assert.equal(rendered.height, 24);
-        assert.ok(Math.abs(rendered.dx) <= 1 && Math.abs(rendered.dy) <= 1, JSON.stringify(rendered));
-        assert.ok(rendered.regionHeight > 500 && rendered.regionBottom <= 800, "empty slot must occupy available chat height, not content height or whole page overflow");
-        assert.ok(rendered.labelWidth <= 1, "label must remain screen-reader only");
+        assert.ok(rendered.width > 200 && rendered.height > 30);
+        assert.ok(Math.abs(rendered.width - rendered.shellWidth) <= 2 && Math.abs(rendered.height - rendered.shellHeight) <= 2, "scan follows existing composer border");
+        assert.ok(rendered.labelWidth <= 1, "label remains screen-reader only");
         assert.equal(rendered.pointer, "none"); assert.equal(rendered.focusable, "false"); assert.equal(rendered.hidden, "true");
-        assert.equal(rendered.color, rendered.expectedColor, "spinner uses semantic theme color, not blue/accent");
-        assert.equal(rendered.animation, "workbench-loading-spin");
-        assert.equal(await page.locator(".conversation-recovery-loading").evaluate(el =>
-          [...el.children].filter(child => child.tagName.toLowerCase() !== "svg" && child.className !== "conversation-recovery-loading__label").length), 0, "only ring and screen-reader label, no visible loading prose");
-        await page.waitForFunction(() => document.querySelector(".workbench-loading-spinner")!.getAnimations().some(a => a.currentTime !== null && Number(a.currentTime) > 50));
+        assert.notEqual(rendered.stroke, "none");
+        assert.equal(await page.locator(".conversation-recovery-loading,.conversation-recovery-cold-stage").count(), 0, "no central loading chrome");
+        const offset = await beam.evaluate(el => getComputedStyle(el).strokeDashoffset);
+        await page.waitForTimeout(180);
+        assert.notEqual(await beam.evaluate(el => getComputedStyle(el).strokeDashoffset), offset, "scan must move");
         await page.emulateMedia({ reducedMotion: "reduce" });
-        assert.equal(await ring.evaluate(el => getComputedStyle(el).animationName), "none");
-        assert.equal(await ring.evaluate(el => getComputedStyle(el.parentElement!).opacity), "1");
+        assert.equal(await beam.evaluate(el => getComputedStyle(el).animationName), "none");
+        assert.ok(Number(await scan.evaluate(el => getComputedStyle(el).opacity)) > .99);
         await page.emulateMedia({ reducedMotion: "no-preference" });
       }
       await page.emulateMedia({ forcedColors: "active" });
-      assert.ok(await ring.evaluate(el => getComputedStyle(el).color !== "rgba(0, 0, 0, 0)"));
+      assert.notEqual(await page.locator(".opencraft-composer-recovery__scan").evaluate(el => getComputedStyle(el).stroke), "none");
       await page.emulateMedia({ forcedColors: "none" });
       if (evidenceDir) await page.screenshot({ path: join(evidenceDir, `${width}-${family}-${mode}.png`) });
       await setState("cold-error");
       await page.getByRole("alert").waitFor();
-      assert.equal(await ring.count(), 0, "error must not keep spinning indefinitely");
+      assert.equal(await scan.getAttribute("data-active"), "false", "terminal failure stops scanning");
       const details = page.locator(".conversation-recovery-details");
       assert.equal(await details.getAttribute("open"), null);
       await details.locator("summary").click();
@@ -162,16 +162,16 @@ try {
       assert.equal(await details.getAttribute("open"), null, "navigation clears expanded/copy state");
       const retry = page.getByRole("button", { name: "Try again" });
       if (touch) await retry.tap(); else await retry.click();
-      await ring.waitFor();
+      await expectActive();
       await setState("cold-update-error");
       await page.getByRole("alert").waitFor();
       assert.match(await page.getByRole("alert").innerText(), /Update or reload to reconnect/);
       assert.equal(await retry.count(), 0);
-      assert.equal(await ring.count(), 0);
+      assert.equal(await scan.getAttribute("data-active"), "false");
       await setState("ready");
       await page.locator(".thread-scroll").waitFor();
       await page.getByText("Prompt 19", { exact: true }).waitFor();
-      assert.equal(await ring.count(), 0);
+      assert.equal(await scan.getAttribute("data-active"), "false");
       // The real virtualizer measures a newly populated history after paint.
       // Begin the recovery assertion only after that initial layout settles.
       await page.evaluate(async () => {
@@ -184,7 +184,7 @@ try {
           lastHeight = height;
         }
       });
-      await page.getByRole("textbox", { name: "Draft" }).fill("Keep my unsent input");
+      await page.locator(".ProseMirror").fill("Keep my unsent input");
       const original = await page.evaluate(async () => {
         const scroll = document.querySelector(".thread-scroll")! as HTMLElement;
         scroll.scrollTop = -150;
@@ -195,37 +195,42 @@ try {
           last = scroll.scrollTop;
         }
         (window as any).retainedScroll = scroll;
-        (window as any).retainedDraft = document.querySelector("input");
-        return scroll.scrollTop;
+        (window as any).retainedDraft = document.querySelector(".ProseMirror");
+        return { scroll: scroll.scrollTop, anchor: [...document.querySelectorAll("[data-turn-key]")].at(-1)!.getBoundingClientRect().top };
       });
       for (const state of ["warm-loading", "warm-syncing", "warm-error", "warm-update-error", "ready"]) {
         await setState(state);
-        if (state !== "ready") await page.locator(".conversation-recovery-notice").waitFor();
+        if (state === "warm-error" || state === "warm-update-error") await page.locator(".conversation-recovery-notice").waitFor();
         else await page.locator(".conversation-recovery-notice").waitFor({ state: "detached" });
-        assert.equal(await ring.count(), state === "warm-syncing" ? 1 : 0);
+        assert.equal(await scan.getAttribute("data-active"), state === "warm-loading" || state === "warm-syncing" ? "true" : "false");
+        await page.evaluate(async () => {
+          for (let frame = 0; frame < 10; frame++) await new Promise(requestAnimationFrame);
+        });
         const retained = await page.evaluate(() => ({
           sameScroll: (window as any).retainedScroll === document.querySelector(".thread-scroll"),
           scroll: (document.querySelector(".thread-scroll")! as HTMLElement).scrollTop,
-          sameDraft: (window as any).retainedDraft === document.querySelector("input"),
-          draft: document.querySelector("input")!.value,
+          sameDraft: (window as any).retainedDraft === document.querySelector(".ProseMirror"),
+          draft: document.querySelector(".ProseMirror")!.textContent,
+          anchor: [...document.querySelectorAll("[data-turn-key]")].at(-1)!.getBoundingClientRect().top,
         }));
         assert.equal(retained.sameScroll, true); assert.equal(retained.sameDraft, true);
-        assert.ok(Math.abs(retained.scroll - original) <= 1, JSON.stringify({ state, original, ...retained }));
+        assert.ok(Math.abs(retained.anchor - original.anchor) <= 1, JSON.stringify({ state, original, ...retained }));
+        if (state === "warm-loading" || state === "warm-syncing") assert.ok(Math.abs(retained.scroll - original.scroll) <= 1);
         assert.equal(retained.draft, "Keep my unsent input");
         assert.equal(await page.getByText("Prompt 19", { exact: true }).count(), 1);
-        if (state === "warm-syncing") {
-          const notice = page.locator(".conversation-recovery-notice");
-          const label = await notice.locator(".conversation-recovery-loading__label").boundingBox();
-          assert.ok(label && label.width <= 1 && label.height <= 1, "sync prose is screen-reader only");
-          assert.match(await notice.textContent() ?? "", /Syncing/);
-          assert.equal(await notice.locator(".workbench-loading-spinner").count(), 1);
-          assert.equal(await notice.locator(".conversation-recovery-notice__dot").count(), 0);
-          assert.equal(await notice.evaluate(el => getComputedStyle(el).backgroundColor), "rgba(0, 0, 0, 0)");
-          assert.equal(await ring.evaluate(el => getComputedStyle(el).animationName), "workbench-loading-spin");
-          await page.emulateMedia({ reducedMotion: "reduce" });
-          assert.equal(await ring.evaluate(el => getComputedStyle(el).animationName), "none");
-          await page.emulateMedia({ reducedMotion: "no-preference" });
+        if (state === "warm-loading" || state === "warm-syncing") {
+          assert.equal(await page.locator(".conversation-recovery-notice").count(), 0, "background recovery adds no floating chrome");
           if (evidenceDir) await page.screenshot({ path: join(evidenceDir, `sync-${width}-${family}-${mode}.png`) });
+        }
+        if (state === "warm-error" || state === "warm-update-error") {
+          const geometry = await page.locator(".conversation-recovery-notice").evaluate(el => {
+            const rect = el.getBoundingClientRect();
+            const input = document.querySelector(".ProseMirror")!.getBoundingClientRect();
+            return { position: getComputedStyle(el).position, background: getComputedStyle(el).backgroundColor, bottom: rect.bottom, inputTop: input.top };
+          });
+          assert.equal(geometry.position, "static");
+          assert.notEqual(geometry.background, "rgba(0, 0, 0, 0)", "terminal action text cannot mix with scrolled history behind the sticky footer");
+          assert.ok(geometry.bottom <= geometry.inputTop, "manual recovery stays above the draft in normal flow");
         }
         if (state === "warm-update-error") {
           const notice = page.locator(".conversation-recovery-notice");
