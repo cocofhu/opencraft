@@ -36,7 +36,7 @@
 .token-usage__activity-head h3 { margin:0; font:var(--typography-settings-section-title-font); }
 .token-usage__activity-head p { margin:3px 0 0; color:var(--color-text-secondary); font:var(--typography-caption-font); }
 .token-usage__heatmap-wrap { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px; min-width:0; }
-.token-usage__heatmap-days { display:grid; grid-template-rows:repeat(7,minmax(0,1fr)); gap:3px; color:var(--color-text-tertiary); font:var(--typography-disclaimer-font); line-height:1; }
+.token-usage__heatmap-days { display:grid; grid-template-rows:repeat(7,minmax(0,1fr)); gap:3px; color:var(--color-text-tertiary); font:var(--typography-disclaimer-font); }
 .token-usage__heatmap { display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,minmax(0,1fr)); gap:3px; min-width:0; }
 .token-usage__heatmap-cell { aspect-ratio:1; min-width:4px; border-radius:2px; background:var(--token-usage-heat-0); box-shadow:inset 0 0 0 0.5px color-mix(in srgb,var(--color-border-subtle) 70%,transparent); }
 .token-usage__heatmap-cell[data-level="1"] { background:var(--token-usage-heat-1); }

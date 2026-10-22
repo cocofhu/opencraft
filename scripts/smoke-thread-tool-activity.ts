@@ -595,6 +595,10 @@ try {
     assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output"]);
     await page.evaluate(() => (window as any).changeThreadToolPhase("completed"));
     await page.locator('[data-phase="completed"]').waitFor();
+    // Running details open automatically; settlement restores the collapsed default.
+    // Reopen them explicitly before checking the preserved input and new output.
+    const settledCalls = page.locator('.thread-activity-item button[aria-expanded="false"]');
+    for (let index = 0; index < 20 && await settledCalls.count() > 0; index++) await settledCalls.first().click();
     await checkInputs();
     assert.deepEqual(await details.locator('section[data-role="output"] > span').allTextContents(), ["Output", "Output", "Output"]);
     const toggle = (await details.first().evaluateHandle(element => element.closest(".thread-activity-item")!.querySelector<HTMLButtonElement>(":scope > .thread-activity-item__header button[aria-expanded]")!)).asElement()!;

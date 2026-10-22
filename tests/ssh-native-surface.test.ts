@@ -68,6 +68,10 @@ for (const mode of ["enabled", "disabled", "unsupported"] as const) {
       } });
     try {
       await runtime.connect();
+      // The fixture reports calls through IPC independently of the stdout RPC reply.
+      for (let attempt = 0; !calls.includes("experimentalFeature/list") && attempt < 100; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
       assert.equal(calls.filter(method => method === "experimentalFeature/list").length, 1);
       if (mode !== "enabled") {
         assert.equal(runtime.resources.goals.capability(), null);
