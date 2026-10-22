@@ -309,15 +309,15 @@ try {
     assert.ok(compactGaps.length >= 3, 'mixed command/image/reasoning fixture crosses activity group boundaries');
     for (const gap of compactGaps) assert.ok(Math.abs(gap - 4) < 0.5, `collapsed summaries share 4px spacing, got ${gap}`);
 
-    await page.locator('.thread-activity-item__icon > .lucide-image').waitFor();
+    await page.locator('.thread-activity-item__icon > [data-action-glyph="image"]').waitFor();
     await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-collapsed-spacing.png`) });
-    const imageRow = page.locator('.thread-agent-activity__unit').filter({ has: page.locator('.lucide-image') });
+    const imageRow = page.locator('.thread-agent-activity__unit').filter({ has: page.locator('[data-action-glyph="image"]') });
     const imageToggle = imageRow.getByRole('button').first();
     const imageBoundaryGap = () => imageRow.evaluate(unit => unit.nextElementSibling!.getBoundingClientRect().top - unit.getBoundingClientRect().bottom);
     await activate(imageToggle);
     assert.equal(await imageToggle.getAttribute('aria-expanded'), 'true');
     const waitForImageGap = (expected: number) => page.waitForFunction(expected => {
-      const icon = document.querySelector('.thread-agent-activity__unit .lucide-image');
+      const icon = document.querySelector('.thread-agent-activity__unit [data-action-glyph="image"]');
       const unit = icon?.closest('.thread-agent-activity__unit');
       return unit && unit.nextElementSibling && Math.abs(unit.nextElementSibling.getBoundingClientRect().top - unit.getBoundingClientRect().bottom - expected) < 0.5;
     }, expected, { timeout: 3_000 });
@@ -365,8 +365,8 @@ try {
       .thread-activity-item__header, .thread-activity-item__header * { transition: none !important; }
       .thread-activity-item__icon { width:16px; }
       .thread-activity-item__icon > svg { width:16px; height:16px; }
-      .thread-activity-item__icon > .lucide { stroke-width:2; }
-      .thread-activity-item__icon > .lucide-brain { width:14px; height:14px; stroke-width:1.8; }
+      .thread-activity-item__icon > .ui-action-glyph { stroke-width:2; }
+      .thread-activity-item__icon > [data-activity-glyph="thinking"] { width:14px; height:14px; stroke-width:1.8; }
       .thread-activity-item__icon > [data-codex-activity-icon="read"] { width:15px; height:15px; }
     ` });
     await page.waitForFunction(() => Array.from(document.querySelectorAll('.thread-activity-item__summary'))

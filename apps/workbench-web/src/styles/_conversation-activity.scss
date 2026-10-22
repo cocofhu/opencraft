@@ -58,11 +58,13 @@
     width: 21.82px; height: 21.82px; stroke-width: 1.32;
   }
 
-  &[data-activity-glyph="terminal"],
-  &[data-activity-glyph="read"] {
+  &[data-activity-glyph="terminal"] {
     width: 21.18px;
     height: 21.18px;
     stroke-width: 1.36;
+  }
+  &[data-activity-glyph="read"] {
+    width: 22.15px; height: 22.15px; stroke-width: 1.3;
   }
 }
 
