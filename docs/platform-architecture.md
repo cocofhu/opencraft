@@ -1,5 +1,15 @@
 # OpenCraft platform architecture
 
+While a `turn/start` or `thread/resume` request is pending, an authoritative
+`item/started` notification for `contextCompaction` on the same thread grants
+context preparation up to a three-minute absolute request deadline (or the
+caller's longer existing deadline). Duplicate starts cannot renew that deadline.
+Completion of that exact compaction turn restores the ordinary response wait,
+bounded by the same absolute deadline. Other threads and short reads retain their
+normal deadlines; timeout-disabled requests remain disabled. Abort, connection
+loss and close still reject the exact pending request. The Host owns preparation
+and must stop before its deadline; the client never retries or replays the input.
+
 The proposed cross-cutting observation plane is specified in
 [Observability V1](observability-platform.md), with a separate
 [functional and nonfunctional acceptance matrix](observability-acceptance.md).
@@ -2756,6 +2766,10 @@ open leases, running work and unresolved interactions recover in the background
 with concurrency one and at most three transient retries. Cache residency and DOM
 subscription counts alone do not create recovery demand. A reserved foreground
 slot permits a newly visible conversation to start while hidden work is pending.
+Making one lease visible schedules or promotes only that binding's existing
+recovery task. It does not revalidate peer Threads or restore Host terminals and
+file watches. Connection recovery still restores all demanded bindings; explicit
+Thread retry retains forced same-connection revalidation.
 Semantic Thread failure stays local. Same-connection revalidation forces a real
 Resume instead of reusing its previously resumed fast path. A stable 60-second
 connection is still required to reset connection retry escalation; cancelled
