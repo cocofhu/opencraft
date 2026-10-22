@@ -121,7 +121,7 @@ try {
     const colors=await action.evaluate(el=>({color:getComputedStyle(el).color,bg:getComputedStyle(el.parentElement!).backgroundColor}));
     assert.notEqual(colors.color,colors.bg);await page.keyboard.press('Escape');
   }
-  await page.evaluate(()=>(window as any).fixture.setAppearanceThemeId('vela.core.lavender'));
+  await page.evaluate(()=>(window as any).fixture.setAppearanceThemeId('opencraft.core.lavender'));
   await mkdir('.local/selection-quote',{recursive:true});
   await select(page,'#assistant p',0,5);await action.waitFor();await page.waitForTimeout(160);await page.screenshot({path:'.local/selection-quote/desktop.png'});
   if(!process.env.OPENCRAFT_CDP_URL){

@@ -215,7 +215,5 @@ until disposal; late frames cannot target a replacement request. App-owned
 audio files are removed after delivery or cancellation. Hardware microphone
 permission, interruptions and waveform quality require device acceptance.
 
-Reference: read-only Paseo `3cc4ae2` splits shared dictation from
-`use-dictation-audio-source.native/web` and `audio-engine.native/web`. Its current
-native dictation uses a custom two-way module; this App uses the SDK-compatible
-Expo Audio module so the iOS path can also be bundled for Expo Go.
+The SDK-compatible Expo Audio module allows the iOS capture path to be bundled
+for Expo Go.

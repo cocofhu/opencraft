@@ -5,19 +5,12 @@ OpenCraft contributions. Third-party components retain their own licenses
 and attribution. Trademarks and product artwork are not licensed merely by
 the presence of LICENSE.
 
-Migration status: redistribution review is incomplete. The source inventory
-in config/source-provenance.json lists material whose rights or independent
-implementation status have not yet been established. LICENSE does not grant
+Migration status: redistribution review is incomplete. LICENSE does not grant
 rights that the OpenCraft contributors do not hold. Do not represent this
 mixed migration tree as a cleared Apache-2.0 release.
 
 Existing third-party notices:
 - vendor/lucide/LICENSE (lucide-react 1.58.0, ISC and Feather-derived MIT notices)
 - packages/connector-core/NOTICE.md
-- docs/provenance/connector-artwork.md (excluded artwork; historical attribution)
 - packages/react-runtime/NOTICE.json (react-use-event-hook 0.9.6, MIT;
   includes the complete copyright and permission notice)
-
-Recovery/adaptation evidence is retained in vendor/codex/IMPORT_MAP.json and
-the package PROVENANCE.md documents. Those records establish source lineage,
-not permission to redistribute the referenced material.

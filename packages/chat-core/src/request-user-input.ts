@@ -6,7 +6,7 @@ export interface UserInputQuestionDraft {
   readonly freeformText: string;
 }
 
-/** Mirrors Codex RequestInputPanel: an option question starts on its first choice. */
+/** An option question starts on its first choice. */
 export function createUserInputQuestionDrafts(
   questions: readonly UserInputQuestion[],
 ): readonly UserInputQuestionDraft[] {
@@ -31,7 +31,7 @@ export function resolveUserInputQuestionDraft(
 
 /**
  * Builds the renderer-neutral answer map consumed by the AppServer adapter.
- * Empty/skipped questions are omitted, matching Codex aggregateSurveyResponses.
+ * Empty/skipped questions are omitted.
  */
 export function aggregateUserInputQuestionAnswers(
   questions: readonly UserInputQuestion[],

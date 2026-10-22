@@ -1,5 +1,11 @@
 # Workbench design language
 
+For UI authoring, start with the [design entry](../design.md), then use this
+document for detailed Workbench behavior and material contracts. Task catalogs and
+management lists follow [Collection composition](../design/ui/collections.md) for
+page hierarchy, action scope, container ownership and rendered acceptance. That
+guide is a target contract, not a claim that existing pages have been migrated.
+
 The target sidebar and draft target picker use the existing workbench palette,
 typography and surfaces, not a separate the downstream product theme.
 
@@ -65,7 +71,7 @@ content lifetime, never paint timing. Expanded/context and floating materials
 remain unchanged; main content retains its surface and edge-scroll policy.
 Child navigation and conversation components do not paint their own seam.
 The main surface always consumes the existing theme's
-`--codex-main-surface-elevation`: soft shadows, thin strokes and flat variants
+`--opencraft-main-surface-elevation`: soft shadows, thin strokes and flat variants
 must all survive unchanged. The titlebar treatment cannot disable full-surface
 elevation. Its compact titlebar lip consumes that same elevation, including
 flat/none; only the lower exposed edge casts into Sidecar, with the joining
@@ -127,7 +133,7 @@ group may retain its own accessible navigation landmark without rendering a
 visual heading; section separation comes from the Shell spacing tokens rather
 than stacked feature margins.
 
-The persistent desktop titlebar rail mirrors Codex's disclosure rule: while the
+The persistent desktop titlebar rail has one disclosure rule: while the
 Sidebar is open, Start is the single new-task affordance; while it is hidden, a
 16px Write action appears immediately after the Sidebar toggle and dispatches
 the same `navigateToHome` intent. The transient floating Sidebar never renders a
@@ -152,7 +158,7 @@ it renders no duplicate `Back to chat` or ineffective width action.
 
 Frost is an optional core palette for the translucent desktop treatment. Its
 light Sidebar uses the fixed material `rgb(226 244 250 / 35%)`; this constant is
-intentionally independent of Codex's 70% client material. Theme identity remains
+fixed by the palette. Theme identity remains
 orthogonal to Light/Dark/System appearance mode.
 
 Lavender is an optional opaque core palette derived from the downstream product frontend's
@@ -265,7 +271,7 @@ Maintain the local audit as a migration baseline, not a retrospective blanket ba
 
 ### Sidebar alignment
 
-Labeled mobile navigation uses the same compact leading edge as section headings, dates and thread titles; the desktop application rail remains centered in its separate column. List actions and the filter share an inline-end inset and control center. Reserve one shared activity/action lane for pending, running, Goal, review, error, unread and idle rows, with or without Host menu capabilities. The content grid has only body and participant tracks; do not reserve an additional status column. Indicator or menu projection must not shift participant badges. One accessible activity renderer remains in that lane; desktop menu hover/focus/open swaps its paint for dots, while touch places activity and dots together inside the existing44px target. Error, review and unread dots all use the existing5px tertiary neutral mark; keep their distinct accessible labels and auxiliary text. Menu descriptions reference that activity label rather than rendering a duplicate status. On two-line rows, avatar/status/menu paint aligns with the title center, with the offset derived from the existing label/metadata line height and body gap. Keep the full menu hit target centered in the row and retain accessible running state. Touch retains44px action targets; font roles, glyph artwork and plugin-owned badges remain unchanged.
+Labeled mobile navigation uses the same compact leading edge as section headings, dates and thread titles; the desktop application rail remains centered in its separate column. List actions and the filter share an inline-end inset and control center. Reserve one shared activity/action lane for pending, running, Goal, review, error, unread and idle rows, with or without Host menu capabilities. The content grid has only body and participant tracks; do not reserve an additional status column. Indicator or menu projection must not shift participant badges. One accessible activity renderer remains in that lane; activity and menu dots are mutually exclusive on every input path. At rest, activity replaces the dots; idle rows retain their normal action cue. Menu open or keyboard focus swaps activity paint for dots, as does fine-pointer hover. Touch keeps the existing44px transparent action target over the centered status glyph, so tapping it still opens the menu without an extra cue. Transient branch creation replaces both with its own spinner. Error, review and unread dots all use the existing5px tertiary neutral mark; keep their distinct accessible labels and auxiliary text. Menu descriptions reference that activity label rather than rendering a duplicate status. On two-line rows, avatar/status/menu paint aligns with the title center, with the offset derived from the existing label/metadata line height and body gap. Keep the full menu hit target centered in the row and retain accessible running state. Touch retains44px action targets; font roles, glyph artwork and plugin-owned badges remain unchanged.
 
 The inline desktop New chat glyph also consumes the list row inline inset: Conversations, New chat glyph, group/date labels and conversation titles share the leading edge. Its text follows the glyph with the existing control gap. Mobile floating New chat retains its independent pill geometry; do not apply inline-list padding to that presentation.
 
@@ -373,8 +379,7 @@ Header and sidebar rename actions share `ConversationRenameDialog`, whose form
 stylesheet is imported with the component rather than through the lazy Settings
 page. The compact surface uses the existing ModalSurface/Radix focus and dismissal
 owner, shared typography, inputs and buttons: 384px maximum width, 20px padding,
-full-width input and right-aligned actions. Reference geometry comes from the
-pinned BB dialog; palette, localization and title authority remain OpenCraft's.
+full-width input and right-aligned actions. Palette, localization and title authority retain their current owners.
 The caller owns the draft and save. Blank names, composition Enter and repeat
 submits during saving do not write. Pending disables dismissal; failed writes
 retain the draft and use the shared asynchronous notice without changing layout.

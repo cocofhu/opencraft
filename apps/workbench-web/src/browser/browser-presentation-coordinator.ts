@@ -5,8 +5,8 @@ import {
 } from "@opencraft/browser-core";
 import type { WebBrowserPageRuntime } from "./web-browser-runtime";
 import type { BrowserSurfaceHost } from "./web-browser-surface-host";
-import { createCodexBrowserManager } from "./codex-browser-manager";
-import { CodexPresentationHost } from "./codex-presentation-host";
+import { createOpenCraftBrowserManager } from "./opencraft-browser-manager";
+import { OpenCraftPresentationHost } from "./opencraft-presentation-host";
 
 export interface BrowserPresentationHandle {
   measure(): void;
@@ -25,7 +25,7 @@ interface PresentationRecord {
   snapshot: BrowserPresentationSnapshot;
   readonly slot: HTMLElement;
   readonly aperture: HTMLElement;
-  readonly host: CodexPresentationHost;
+  readonly host: OpenCraftPresentationHost;
   readonly owner: string;
   readonly reference: object;
   viewportMode: BrowserViewportMode;
@@ -36,19 +36,19 @@ interface PresentationRecord {
 }
 const presentationIdFor = (input: PresentBrowserPageInput) =>
   `${input.viewId}\0${input.surface}\0${input.tabId}`;
-const codexSurface = (surface: BrowserPresentationSurface) =>
+const presentationSurface = (surface: BrowserPresentationSurface) =>
   surface === "background" ? "hidden-browser-use" : surface === "fullscreen" ? "right-panel" : surface;
 
-/** Layout adapter only. The imported Codex manager owns mounts, backing hosts
+/** Layout adapter only. The browser manager owns mounts, backing hosts
  * and the complete handoff state machine; no second timer/paint-owner loop. */
 export class BrowserPresentationCoordinator {
   private readonly records = new Map<string, PresentationRecord>();
   private readonly pageSubscriptions = new Map<BrowserPageId, () => void>();
   private readonly useCounts = new Map<BrowserPageId, number>();
-  readonly manager: ReturnType<typeof createCodexBrowserManager>;
+  readonly manager: ReturnType<typeof createOpenCraftBrowserManager>;
   private readonly removeCloseListener: () => void;
   constructor(private readonly pages: WebBrowserPageRuntime, private readonly surfaces: BrowserSurfaceHost) {
-    const Host = class extends CodexPresentationHost {
+    const Host = class extends OpenCraftPresentationHost {
       constructor(options: Record<string, any>) {
         const pageId = options.browserTabId as BrowserPageId;
         surfaces.bindHostIdentity?.(pageId, { rendererInstanceId: options.rendererInstanceId, hostGeneration: options.hostGeneration });
@@ -59,7 +59,7 @@ export class BrowserPresentationCoordinator {
         super(options, port);
       }
     };
-    this.manager = createCodexBrowserManager(Host);
+    this.manager = createOpenCraftBrowserManager(Host);
     surfaces.setBackingFactory?.(pageId => {
       const page = pages.getSnapshot(pageId);
       if (!page) throw new Error("Cannot create a backing without a logical Page owner");
@@ -72,7 +72,7 @@ export class BrowserPresentationCoordinator {
     surfaces.setUseFactory?.(pageId => {
       const page = pages.getSnapshot(pageId);
       if (!page) throw new Error("Browser page is closed");
-      const host = this.manager.getWebview(page.ownerId, pageId, page.navigation.currentUrl ?? "") as CodexPresentationHost;
+      const host = this.manager.getWebview(page.ownerId, pageId, page.navigation.currentUrl ?? "") as OpenCraftPresentationHost;
       const count = this.useCounts.get(pageId) ?? 0;
     if (count > 0) throw new Error("Browser page is busy with another automation operation");
       this.useCounts.set(pageId, 1);
@@ -109,7 +109,7 @@ export class BrowserPresentationCoordinator {
     const savedStorage = this.surfaces.existingStorageId?.(input.pageId);
     if (savedStorage && !this.manager.getExistingBrowserStorageId(owner, input.pageId))
       this.manager.restorePersistedPageState(owner, input.pageId, savedStorage);
-    const host = this.manager.getWebview(owner, input.pageId, page.navigation.currentUrl ?? "", { hostKind: input.surface }) as CodexPresentationHost;
+    const host = this.manager.getWebview(owner, input.pageId, page.navigation.currentUrl ?? "", { hostKind: input.surface }) as OpenCraftPresentationHost;
     if (!this.pageSubscriptions.has(input.pageId)) {
       const syncSnapshot = () => {
         const current = this.pages.getSnapshot(input.pageId);
@@ -178,7 +178,7 @@ export class BrowserPresentationCoordinator {
     this.manager.syncElectronWebview(record.host, {
       bounds: layout.visualBounds, layout, isVisible: bounds.width > 0 && bounds.height > 0,
       mountGeneration: record.snapshot.generation, scale: layout.scale, windowZoom: 1, shouldPaint: true,
-    }, record.reference, codexSurface(record.snapshot.surface));
+    }, record.reference, presentationSurface(record.snapshot.surface));
   }
   private disposeRecord(record: PresentationRecord | undefined): void {
     if (!record || record.disposed) return;
@@ -194,7 +194,7 @@ export class BrowserPresentationCoordinator {
         || this.manager.hasOtherMountGenerationClaim(record.owner, record.snapshot.pageId,
           record.snapshot.id, record.snapshot.generation)) return;
       this.manager.pagePresentationTransition.detach(record.host, record.reference,
-        codexSurface(record.snapshot.surface), record.snapshot.generation);
+        presentationSurface(record.snapshot.surface), record.snapshot.generation);
     });
   }
 }

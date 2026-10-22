@@ -25,7 +25,6 @@ const PREVIEW_DELAY_MS = 150;
 const MINIMUM_ITEM_COUNT = 4;
 // Keep the existing hit target; the Web inset comes from the shared title/rail axis.
 const NAVIGATION_HIT_WIDTH_PX = 36;
-// Codex's user-message search wrapper uses Tailwind `scroll-mt-4`.
 const USER_MESSAGE_NAVIGATION_TOP_INSET_PX = 16;
 const EMPTY_NAVIGATION_ANCHORS: readonly ConversationNavigationAnchor[] = [];
 const TURN_OBSERVATION_SELECTOR = "[data-turn-key], [data-content-search-turn-key]";
@@ -429,7 +428,6 @@ export function UserMessageNavigationRail({
       pointerId: event.pointerId,
       anchorId: target.anchor.id,
       // Capturing on the list retargets the synthesized click away from the
-      // button in Chromium/WebKit. Codex deliberately captures on the marker.
       pointerCaptureTarget: target.button,
     };
     setScrubTargetId(target.anchor.id);

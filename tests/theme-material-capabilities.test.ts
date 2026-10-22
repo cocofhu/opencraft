@@ -4,22 +4,22 @@ import { transform } from "lightningcss";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { validateThemeOptions } from "@opencraft/design-system/theme-options";
-import { buildCodexThemeCssProperties as build, codexThemePalette, velaThemePalette } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties as build, opencraftNeutralThemePalette, opencraftCanvasThemePalette } from "@opencraft/design-system/theme-engine";
 import { ExtensionSupervisor } from "@opencraft/extension-runtime";
 import { isWindowAppearanceMessage, resolveWindowAppearance } from "../apps/workbench-electron/src/window-appearance";
 
 test("optional theme surfaces override only named semantic roles and reset to defaults", () => {
   for (const mode of ["light", "dark"] as const) {
-    const base = codexThemePalette[mode];
+    const base = opencraftNeutralThemePalette[mode];
     const defaults = build(mode, base);
     const themed = build(mode, { ...base,
       surfaces: { window: "#111111", sidebar: "#222222", panel: "#333333", input: "#444444", popover: "#555555" },
       material: { window: "opaque", elevation: "flat" },
     });
-    assert.equal(themed["--codex-window-material"], "#111111");
-    assert.equal(themed["--codex-sidebar-material-background"], "#222222");
-    assert.equal(themed["--codex-sidebar-material-filter"], "none");
-    assert.equal(themed["--codex-main-surface-elevation"], "none");
+    assert.equal(themed["--opencraft-window-material"], "#111111");
+    assert.equal(themed["--opencraft-sidebar-material-background"], "#222222");
+    assert.equal(themed["--opencraft-sidebar-material-filter"], "none");
+    assert.equal(themed["--opencraft-main-surface-elevation"], "none");
     assert.equal(themed["--color-background-panel"], "#333333");
     assert.equal(themed["--color-background-input"], "#444444");
     assert.equal(themed["--color-background-elevated-primary-opaque"], "#555555");
@@ -30,8 +30,8 @@ test("optional theme surfaces override only named semantic roles and reset to de
     }
     assert.notEqual(defaults["--material-glass-panel"], themed["--material-glass-panel"]);
     assert.deepEqual(build(mode, { ...base, surfaces: {}, material: {} }), defaults);
-    assert.equal(build(mode, velaThemePalette[mode])["--codex-sidebar-material-filter"], "none");
-    assert.equal(build(mode, { ...base, opaqueWindows: true })["--codex-sidebar-material-filter"], "none");
+    assert.equal(build(mode, opencraftCanvasThemePalette[mode])["--opencraft-sidebar-material-filter"], "none");
+    assert.equal(build(mode, { ...base, opaqueWindows: true })["--opencraft-sidebar-material-filter"], "none");
   }
 });
 
@@ -62,7 +62,7 @@ test("extension palettes freeze nested options and reject invalid activation ato
   const material={window:"opaque" as const};
   const definition=(bad=false)=>({manifest:{manifestVersion:1 as const,id:"vela.theme-test",name:"Theme test",version:"1.0.0",apiVersion:1 as const,trust:"trusted" as const,platforms:["web" as const],activationEvents:["onStartupFinished"]},activate(api: any){
     api.commands.register({id:"vela.theme-test.command",title:"Test"},()=>{});
-    api.themes.register({id:"vela.theme-test.palette",label:"Theme",palettes:{light:{...codexThemePalette.light,surfaces:bad?{panel:"url(x)"}:surfaces,material},dark:codexThemePalette.dark}});
+    api.themes.register({id:"vela.theme-test.palette",label:"Theme",palettes:{light:{...opencraftNeutralThemePalette.light,surfaces:bad?{panel:"url(x)"}:surfaces,material},dark:opencraftNeutralThemePalette.dark}});
   }});
   await assert.rejects(supervisor.activate(definition(true)),/Invalid theme surface/u);
   assert.equal(supervisor.contributions.getSnapshot().themes.length,0);

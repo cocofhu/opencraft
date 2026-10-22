@@ -27,11 +27,6 @@ export function resolveComposerFollowUpAction(
   return available.includes(preferred) ? preferred : available[0] ?? null;
 }
 
-/**
- * Codex keeps Stop and follow-up submission on one primary-action slot:
- * an empty draft stops the active turn, while a sendable draft queues or
- * steers it. Keeping this resolver pure prevents Web/Native drift.
- */
 export function resolveComposerPrimaryAction({
   isResponseInProgress,
   canSubmit,

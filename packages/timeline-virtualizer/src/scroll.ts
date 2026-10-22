@@ -1,12 +1,12 @@
 import type { TurnScrollOrigin } from "./ports";
 
-export const CODEX_SCROLL_NEAR_BOTTOM_PX = 24;
-export const CODEX_SCROLL_TOP_LOAD_THRESHOLD_PX = 64;
-export const CODEX_SCROLL_TO_BOTTOM_DURATION_MS = 260;
-export const CODEX_SCROLL_DIRECTION_TIMEOUT_MS = 1_000;
-export const CODEX_TOUCH_DIRECTION_THRESHOLD_PX = 8;
-export const CODEX_WHEEL_LINE_HEIGHT_PX = 16;
-export const CODEX_FOOTER_GAP_PX = 16;
+export const OPENCRAFT_SCROLL_NEAR_BOTTOM_PX = 24;
+export const OPENCRAFT_SCROLL_TOP_LOAD_THRESHOLD_PX = 64;
+export const OPENCRAFT_SCROLL_TO_BOTTOM_DURATION_MS = 260;
+export const OPENCRAFT_SCROLL_DIRECTION_TIMEOUT_MS = 1_000;
+export const OPENCRAFT_TOUCH_DIRECTION_THRESHOLD_PX = 8;
+export const OPENCRAFT_WHEEL_LINE_HEIGHT_PX = 16;
+export const OPENCRAFT_FOOTER_GAP_PX = 16;
 
 export type TurnUserScrollDirection = "away" | "toward";
 export type WheelDeltaMode = 0 | 1 | 2;
@@ -26,14 +26,14 @@ export function clampScrollDistance(distanceFromBottomPx: number): number {
   return Number.isFinite(distanceFromBottomPx) ? Math.max(0, distanceFromBottomPx) : 0;
 }
 
-/** Recovered initialOffset behavior: near-bottom snapshots resume at exact bottom. */
+/** Near-bottom snapshots resume at exact bottom. */
 export function normalizeInitialScrollDistance(distanceFromBottomPx: number | null | undefined): number {
   const distance = clampScrollDistance(distanceFromBottomPx ?? 0);
-  return distance > CODEX_SCROLL_NEAR_BOTTOM_PX ? distance : 0;
+  return distance > OPENCRAFT_SCROLL_NEAR_BOTTOM_PX ? distance : 0;
 }
 
 export function isScrolledFromBottom(distanceFromBottomPx: number): boolean {
-  return clampScrollDistance(distanceFromBottomPx) > CODEX_SCROLL_NEAR_BOTTOM_PX;
+  return clampScrollDistance(distanceFromBottomPx) > OPENCRAFT_SCROLL_NEAR_BOTTOM_PX;
 }
 
 /** Virtualizer distance excludes the sticky footer/response bottom padding. */
@@ -44,13 +44,13 @@ export function distanceExcludingBottomPadding(
   return Math.max(0, clampScrollDistance(distanceFromBottomPx) - clampScrollDistance(bottomPaddingPx));
 }
 
-/** Recovered Ge rule: with bottom padding, only literal zero counts as bottom. */
+/** With bottom padding, only literal zero counts as bottom. */
 export function isAtVirtualizedBottom(
   distanceFromBottomPx: number,
   bottomPaddingPx: number,
 ): boolean {
   return clampScrollDistance(distanceFromBottomPx)
-    <= (clampScrollDistance(bottomPaddingPx) > 0 ? 0 : CODEX_SCROLL_NEAR_BOTTOM_PX);
+    <= (clampScrollDistance(bottomPaddingPx) > 0 ? 0 : OPENCRAFT_SCROLL_NEAR_BOTTOM_PX);
 }
 
 export function distanceFromTopPx({
@@ -75,7 +75,7 @@ export function shouldLoadOlderHistory(metrics: {
   readonly distanceFromBottomPx: number;
   readonly viewportHeightPx: number;
 }): boolean {
-  return distanceFromTopPx(metrics) <= CODEX_SCROLL_TOP_LOAD_THRESHOLD_PX;
+  return distanceFromTopPx(metrics) <= OPENCRAFT_SCROLL_TOP_LOAD_THRESHOLD_PX;
 }
 
 export function normalizeWheelDeltaPx(
@@ -84,7 +84,7 @@ export function normalizeWheelDeltaPx(
   viewportHeightPx: number,
 ): number {
   if (!Number.isFinite(deltaY)) return 0;
-  if (deltaMode === 1) return deltaY * CODEX_WHEEL_LINE_HEIGHT_PX;
+  if (deltaMode === 1) return deltaY * OPENCRAFT_WHEEL_LINE_HEIGHT_PX;
   if (deltaMode === 2) return deltaY * clampScrollDistance(viewportHeightPx);
   return deltaY;
 }
@@ -135,21 +135,20 @@ export function directionForTouchDelta(
   deltaX: number,
   deltaY: number,
 ): TurnUserScrollDirection | null {
-  if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < CODEX_TOUCH_DIRECTION_THRESHOLD_PX) return null;
+  if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < OPENCRAFT_TOUCH_DIRECTION_THRESHOLD_PX) return null;
   if (Math.abs(deltaY) <= Math.abs(deltaX)) return null;
   return deltaY > 0 ? "away" : "toward";
 }
 
 export function isDirectionSampleActive(sample: ScrollDirectionSample, nowMs: number): boolean {
-  return nowMs - sample.lastAtMs <= CODEX_SCROLL_DIRECTION_TIMEOUT_MS;
+  return nowMs - sample.lastAtMs <= OPENCRAFT_SCROLL_DIRECTION_TIMEOUT_MS;
 }
 
-/** Exact cubic ease-out used by Codex's 260ms scroll-to-bottom animation. */
 export function scrollToBottomDistanceAtTime(
   initialDistanceFromBottomPx: number,
   elapsedMs: number,
 ): number {
-  const progress = Math.min(1, Math.max(0, elapsedMs) / CODEX_SCROLL_TO_BOTTOM_DURATION_MS);
+  const progress = Math.min(1, Math.max(0, elapsedMs) / OPENCRAFT_SCROLL_TO_BOTTOM_DURATION_MS);
   const eased = 1 - (1 - progress) ** 3;
   return clampScrollDistance(initialDistanceFromBottomPx) * (1 - eased);
 }
@@ -210,7 +209,7 @@ export function footerResizeCompensation({
 }
 
 export function footerScrollPaddingPx(footerHeightPx: number): number {
-  return clampScrollDistance(footerHeightPx) + CODEX_FOOTER_GAP_PX;
+  return clampScrollDistance(footerHeightPx) + OPENCRAFT_FOOTER_GAP_PX;
 }
 
 export function resolveScrollOrigin(

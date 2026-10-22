@@ -1,8 +1,0 @@
-{
-  "baselineCommit": "2e9ee4b06a1846e2a2479f9ff4f687bd72df754c",
-  "path": "packages/chat-runtime/src/interaction-lifecycle.ts",
-  "blob": "85bade1973044d789bbf549f10416102bab3371b",
-  "sha256": "b806faf4bbc37a498d0354ec22d5eec7610bffb6f13fa62b667617fe5a75c12f",
-  "sourceAnnotation": "Source-equivalent Desktop cleanup before turn/interrupt. Dynamic item/tool/call requests are intentionally left to AppServer's serverRequest/resolved event.",
-  "authorExposure": "The existing 30-line module body was printed during prior bounded inspection. Protocol types, runtime caller and existing tests were read. No strict author isolation is claimed. The next implementation is authored against separately frozen protocol requirements; this record does not establish historical rights."
-}

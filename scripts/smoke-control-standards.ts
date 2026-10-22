@@ -11,13 +11,13 @@ import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Button} from '/apps/workbench-web/src/components/ui/button.tsx';
 import {SettingsButton,SettingsTextInput,SettingsSelect,SettingsRow,SettingsGroup,SettingsPageHeader,SettingsPanel} from '@opencraft/extension-react';
-import {buildCodexThemeCssProperties,codexThemePalette,velaThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,opencraftCanvasThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 function App(){const [pending,setPending]=useState(false);window.fixture={setPending,theme:(mode,family)=>{
 document.documentElement.dataset.theme=mode;
-const base=family==='codex'?codexThemePalette[mode]:velaThemePalette[mode];
+const base=family==='opencraftNeutral'?opencraftNeutralThemePalette[mode]:opencraftCanvasThemePalette[mode];
 const palette=family==='custom'?{...base,accent:'#d8a442',surface:mode==='dark'?'#18232c':'#fbfaf7',semanticColors:{...base.semanticColors,error:mode==='dark'?'#ffaabb':'#a01133'}}:base;
-for(const [k,v] of Object.entries(buildCodexThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(k,v);
+for(const [k,v] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(k,v);
 }};
 return <main style={{padding:24,display:'grid',gap:20,background:'var(--color-background-surface)',color:'var(--color-text)'}}>
 <SettingsPageHeader title="共享控件 / Shared controls" description="Typography · focus · disabled · invalid · pending"/>
@@ -78,7 +78,7 @@ try {
   assert.equal(utility.display, 'flex');
   assert.ok(utility.headerHeight >= 52);
   assert.equal(utility.padding, '24px');
-  for (const family of ["codex","vela","custom"]) for (const mode of ["light","dark"]) {
+  for (const family of ["opencraftNeutral","opencraftCanvas","custom"]) for (const mode of ["light","dark"]) {
     await page.evaluate(({mode,family}: any) => (window as any).fixture.theme(mode,family),{mode,family});
     // Theme projections and native control repaint may span a frame. Do not
     // compare a newly resolved border with a previous-frame text color.

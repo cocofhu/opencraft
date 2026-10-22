@@ -13,7 +13,7 @@ import{createIntlTestRoot}from'/tests/fixtures/intl-root.tsx';
 import{ShellNavigationDock}from'/apps/workbench-web/src/components/shell-navigation/index.tsx';
 import{createShellNavigationState,projectShellNavigation}from'@opencraft/workbench-runtime';
 import{bindTouchInteractionMode}from'/apps/workbench-web/src/runtime/pointer-modality.ts';
-import{buildCodexThemeCssProperties,codexThemePalette,lavenderThemePalette}from'@opencraft/design-system/theme-engine';
+import{buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderThemePalette}from'@opencraft/design-system/theme-engine';
 import'/apps/workbench-web/src/styles/app.scss';
 bindTouchInteractionMode(document);
 function App(){const[compact,setCompact]=useState(true),[active,setActive]=useState('chat');
@@ -22,8 +22,8 @@ const state=createShellNavigationState({applications:true,railDetent:compact?'co
 const projection=projectShellNavigation({state,viewportWidth:1200,contextWidth:275,contextAvailable:true,sidecarOpen:true});
 const actions=['chat','message-circle','folder','cloud','bot','server'].map(name=>({id:name,title:name,icon:name,active:active===name,onInvoke:()=>setActive(name)}));
 window.fixture={active:()=>active,resize:v=>frame.set(v),compact:v=>{frame.set(v?52:137);setCompact(v)},theme:(mode,family)=>{
-document.documentElement.dataset.theme=mode;const palette=(family==='lavender'?lavenderThemePalette:codexThemePalette)[mode];
-for(const[key,value]of Object.entries(buildCodexThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(key,value);
+document.documentElement.dataset.theme=mode;const palette=(family==='lavender'?lavenderThemePalette:opencraftNeutralThemePalette)[mode];
+for(const[key,value]of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(key,value);
 }};
 return <main style={{display:'flex',padding:24,gap:36,background:'var(--color-background-surface)',color:'var(--color-text)'}}>
 <motion.div className='shell-navigation__dock' style={{width:frame,height:650}}>
