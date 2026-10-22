@@ -654,11 +654,11 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
     "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
-    "--opencraft-header-surface-paint": shell.recessedHeaderBackground
-      ? `linear-gradient(${shell.recessedHeaderBackground}, ${shell.recessedHeaderBackground})`
+    "--opencraft-header-surface-paint": definition.shellMaterial?.recessedHeaderBackground
+      ? `linear-gradient(${definition.shellMaterial?.recessedHeaderBackground}, ${definition.shellMaterial?.recessedHeaderBackground})`
       : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
-    "--opencraft-header-divider-color": shell.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
-    "--opencraft-header-content-elevation": shell.recessedHeaderBackground ? shell.mainSurfaceElevation : "none",
+    "--opencraft-header-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
+    "--opencraft-header-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? shell.mainSurfaceElevation : "none",
     "--opencraft-sidebar-material-background": shell.sidebarBackground,
     "--opencraft-sidebar-material-filter": shell.sidebarFilter,
     "--opencraft-window-highlight": shell.windowHighlight,
