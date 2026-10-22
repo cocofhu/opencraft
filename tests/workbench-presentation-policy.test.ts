@@ -42,6 +42,13 @@ test("built-in compatibility aliases preserve policy constraints without renamin
       assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
     }
   }
+  const previousGraphiteId = "opencraft.core.zencode";
+  assert.equal(normalizeBuiltinThemeId(previousGraphiteId), builtinThemeIds.graphite);
+  assert.equal(resolveWorkbenchPresentation({defaultThemeId:previousGraphiteId}).defaultThemeId, builtinThemeIds.graphite);
+  assert.deepEqual(resolveWorkbenchPresentation({hiddenBuiltinThemeIds:[previousGraphiteId,"vela.core.zencode",builtinThemeIds.graphite]}).hiddenBuiltinThemeIds,[builtinThemeIds.graphite]);
+  for (const [selected,hidden] of [[previousGraphiteId,builtinThemeIds.graphite],[builtinThemeIds.graphite,previousGraphiteId]]) {
+    assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
+  }
   for (const extension of ["vela.extension.paper", "vendor.core.web", "vela.core.custom"]) {
     assert.equal(normalizeBuiltinThemeId(extension), extension);
     assert.equal(resolveWorkbenchPresentation({defaultThemeId:extension}).defaultThemeId, extension);

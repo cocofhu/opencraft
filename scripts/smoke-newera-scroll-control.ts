@@ -5,7 +5,7 @@ const playwright=await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE??"playwrig
 const {chromium}=playwright.default??playwright;
 await vite.listen();const browser=await chromium.launch({executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE,args:["--no-sandbox"]});
 try {
- for(const palette of ["opencraftNeutral","opencraftCanvas","frost","lavender","mist","zenCode"]) for(const mode of ["light","dark"]) for(const variant of ["newera","off","desktop"]){
+ for(const palette of ["opencraftNeutral","opencraftCanvas","frost","lavender","mist","graphite"]) for(const mode of ["light","dark"]) for(const variant of ["newera","off","desktop"]){
   const context=await browser.newContext({viewport:{width:variant==="desktop"?1280:390,height:844},hasTouch:variant!=="desktop"});
   const page=await context.newPage();const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");

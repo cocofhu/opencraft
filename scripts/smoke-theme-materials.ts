@@ -83,30 +83,30 @@ try {
   await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>(window as any).themeHarness.snapshot().resolvedTheme==='light');
   await page.evaluate(()=>(window as any).opencraftDesktop.setWindowAppearance({themeSource:'dark',resolvedTheme:'dark',backgroundColor:'url(x)'}));
   await page.waitForTimeout(100);assert.equal(await desktop.evaluate(()=>(globalThis as any).probe.rejected),1);
-  if(process.env.OPENCRAFT_VERIFY_ZENCODE==='1'){
+  if(process.env.OPENCRAFT_VERIFY_GRAPHITE==='1'){
     await page.evaluate(()=>(window as any).themeHarness.remove());
     await page.evaluate(()=>(window as any).themeHarness.showSettings());
-    const zen=page.getByRole('radio',{name:/ZenCode/});
-    await zen.click();await page.waitForFunction(()=>document.documentElement.dataset.themeId==='opencraft.core.zencode');
+    const graphite=page.getByRole('radio',{name:/Graphite/});
+    await graphite.click();await page.waitForFunction(()=>document.documentElement.dataset.themeId==='opencraft.core.graphite');
     for(const mode of ['Light','Dark']){
       await page.getByRole('radiogroup',{name:'Appearance mode'}).getByText(mode,{exact:true}).click();
       await page.waitForFunction(mode=>(window as any).themeHarness.snapshot().resolvedTheme===mode,mode.toLowerCase());
       await page.waitForTimeout(200);
-      assert.equal(await zen.getAttribute('aria-checked'),'true');
-      const swatch=await page.locator('[data-theme-preview="opencraft.core.zencode"] span:first-child').evaluate(e=>getComputedStyle(e).backgroundColor);
+      assert.equal(await graphite.getAttribute('aria-checked'),'true');
+      const swatch=await page.locator('[data-theme-preview="opencraft.core.graphite"] span:first-child').evaluate(e=>getComputedStyle(e).backgroundColor);
       assert.equal(swatch,mode==='Dark'?'rgb(22, 22, 22)':'rgb(240, 240, 240)');
       const native=await desktop.evaluate(()=>{const p=(globalThis as any).probe;return{background:p.window.getBackgroundColor(),vibrancy:p.calls.at(-1)}});
       assert.equal(native.vibrancy,null);assert.equal(native.background.toLowerCase(),mode==='Dark'?'#161616':'#f8f8f8');
-      await page.screenshot({path:join(output,`zencode-${mode.toLowerCase()}.png`)});
-      evidence.push({preset:'ZenCode',mode,swatch,native});
+      await page.screenshot({path:join(output,`graphite-${mode.toLowerCase()}.png`)});
+      evidence.push({preset:'Graphite',mode,swatch,native});
     }
     await page.reload();await page.locator('#name').waitFor();
-    assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'opencraft.core.zencode');
+    assert.equal((await page.evaluate(()=>(window as any).themeHarness.snapshot())).themeId,'opencraft.core.graphite');
     await page.evaluate(()=>(window as any).themeHarness.showSettings());
     await page.getByRole('radiogroup',{name:'Appearance mode'}).getByText('System',{exact:true}).click();
     await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>(window as any).themeHarness.snapshot().resolvedTheme==='light');
     await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>(window as any).themeHarness.snapshot().resolvedTheme==='dark');
-    evidence.push({preset:'ZenCode',reloadRestores:true,systemChange:true});
+    evidence.push({preset:'Graphite',reloadRestores:true,systemChange:true});
   }
   assert.deepEqual(errors,[]);evidence.push({focusTransitions:true,unloadFallback:true,reinstallRestoresIntent:true,systemChange:true,invalidIPCRejected:true});
   console.log(JSON.stringify({output,evidence,errors}));

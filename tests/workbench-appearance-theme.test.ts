@@ -7,7 +7,7 @@ import {
   opencraftNeutralThemePalette,
   frostThemePalette,
   lavenderThemePalette,
-  zenCodeThemePalette,
+  graphiteThemePalette,
   opencraftCanvasThemePalette,
 } from "@opencraft/design-system/theme-engine";
 
@@ -51,7 +51,7 @@ test("badge pairs stay readable across palettes, overridden surfaces and brand a
     return channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722;
   };
   for (const mode of ["light", "dark"] as const) {
-    for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette, frostThemePalette, lavenderThemePalette, zenCodeThemePalette]) {
+    for (const palette of [opencraftNeutralThemePalette, opencraftCanvasThemePalette, frostThemePalette, lavenderThemePalette, graphiteThemePalette]) {
       for (const panel of [undefined, "#ffffff", "#101020", "#777777"]) {
         const definition = { ...palette[mode], surfaces: { ...palette[mode].surfaces, ...(panel ? { panel } : {}) } };
         const css = buildOpenCraftThemeCssProperties(mode, definition);
@@ -71,9 +71,9 @@ test("badge pairs stay readable across palettes, overridden surfaces and brand a
   }
 });
 
-test("ZenCode uses layered neutral surfaces without changing shared geometry", () => {
-  const light = buildOpenCraftThemeCssProperties("light", zenCodeThemePalette.light);
-  const dark = buildOpenCraftThemeCssProperties("dark", zenCodeThemePalette.dark);
+test("Graphite uses layered neutral surfaces without changing shared geometry", () => {
+  const light = buildOpenCraftThemeCssProperties("light", graphiteThemePalette.light);
+  const dark = buildOpenCraftThemeCssProperties("dark", graphiteThemePalette.dark);
   assert.equal(light["--color-background-surface"], "#f8f8f8");
   assert.equal(light["--opencraft-sidebar-material-background"], "#f0f0f0");
   assert.equal(light["--color-background-panel"], "#ffffff");
@@ -203,9 +203,9 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.equal(dataset.themeId, appearance.coreThemeId);
     assert.deepEqual(
       appearance.getAppearanceThemeSnapshot().availableThemes.slice(0, 5).map(({ label }) => label),
-      ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode"],
+      ["Neutral", "Canvas", "Frost", "Lavender", "Graphite"],
     );
-    assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.zenCodeThemeId)?.label, "ZenCode");
+    assert.equal(appearance.getAppearanceThemeSnapshot().availableThemes.find(theme => theme.id === appearance.graphiteThemeId)?.label, "Graphite");
     assert.equal(properties.get("--opencraft-base-surface"), "#ffffff");
     assert.deepEqual(desktopAppearances.at(-1), {
       themeSource: "light",
@@ -223,13 +223,13 @@ test("extension theme selection is root-owned and unload falls back atomically",
     });
     appearance.setThemePreference("light");
 
-    appearance.setAppearanceThemeId(appearance.zenCodeThemeId);
+    appearance.setAppearanceThemeId(appearance.graphiteThemeId);
     assert.equal(properties.get("--color-background-surface"), "#f8f8f8");
-    assert.equal(appearance.getAppearanceThemePreviewProperties(appearance.zenCodeThemeId)["--color-background-panel"], "#ffffff");
+    assert.equal(appearance.getAppearanceThemePreviewProperties(appearance.graphiteThemeId)["--color-background-panel"], "#ffffff");
     assert.deepEqual(desktopAppearances.at(-1), {themeSource:"light",resolvedTheme:"light",opaqueWindows:true,backgroundColor:"#f8f8f8"});
     appearance.setThemePreference("dark");
     assert.equal(properties.get("--color-background-input"), "#2b2b2b");
-    assert.equal(appearance.getAppearanceThemePreviewProperties(appearance.zenCodeThemeId)["--color-background-panel"], "#202020");
+    assert.equal(appearance.getAppearanceThemePreviewProperties(appearance.graphiteThemeId)["--color-background-panel"], "#202020");
     appearance.setThemePreference("light");
 
     appearance.setAppearanceThemeId("vela.core.web");

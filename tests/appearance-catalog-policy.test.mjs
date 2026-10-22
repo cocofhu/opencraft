@@ -5,12 +5,14 @@ import { build } from "esbuild";
 
 test("theme choices start with the visible product default independently of the saved selection", async () => {
   const cases = [
-    [{}, ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode", "Mist"]],
-    [{ defaultThemeId: "opencraft.core.canvas", hiddenBuiltinThemeIds: ["opencraft.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "ZenCode"]],
-    [{ defaultThemeId: "vela.core.web", hiddenBuiltinThemeIds: ["vela.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "ZenCode"]],
-    [{ defaultThemeId: "opencraft.core.frost", hiddenBuiltinThemeIds: ["opencraft.core.neutral"] }, ["Frost", "Canvas", "Lavender", "ZenCode", "Mist"]],
-    [{ defaultThemeId: "extension.paper" }, ["Neutral", "Canvas", "Frost", "Lavender", "ZenCode", "Mist"]],
-    [{ hiddenBuiltinThemeIds: ["neutral", "canvas", "frost", "lavender", "zencode", "mist"].map(id => `opencraft.core.${id}`) }, ["Neutral"]],
+    [{}, ["Neutral", "Canvas", "Frost", "Lavender", "Graphite", "Mist"]],
+    [{ defaultThemeId: "opencraft.core.canvas", hiddenBuiltinThemeIds: ["opencraft.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "Graphite"]],
+    [{ defaultThemeId: "vela.core.web", hiddenBuiltinThemeIds: ["vela.core.mist"] }, ["Canvas", "Neutral", "Frost", "Lavender", "Graphite"]],
+    [{ defaultThemeId: "opencraft.core.frost", hiddenBuiltinThemeIds: ["opencraft.core.neutral"] }, ["Frost", "Canvas", "Lavender", "Graphite", "Mist"]],
+    [{ defaultThemeId: "extension.paper" }, ["Neutral", "Canvas", "Frost", "Lavender", "Graphite", "Mist"]],
+    [{ defaultThemeId: "opencraft.core.zencode" }, ["Graphite", "Neutral", "Canvas", "Frost", "Lavender", "Mist"]],
+    [{ hiddenBuiltinThemeIds: ["opencraft.core.zencode"] }, ["Neutral", "Canvas", "Frost", "Lavender", "Mist"]],
+    [{ hiddenBuiltinThemeIds: ["neutral", "canvas", "frost", "lavender", "graphite", "mist"].map(id => `opencraft.core.${id}`) }, ["Neutral"]],
   ];
   for (const [policy, expected] of cases) {
     const { outputFiles } = await build({
@@ -19,7 +21,7 @@ test("theme choices start with the visible product default independently of the 
       define: { "import.meta.env": JSON.stringify({ VITE_OPENCRAFT_PRESENTATION: JSON.stringify(policy) }), "process.env.NODE_ENV": '"production"' },
       logLevel: "silent",
     });
-    for (const saved of [null, "opencraft.core.frost", "extension.missing"]) {
+    for (const saved of [null, "opencraft.core.frost", "extension.missing", "vela.core.zencode", "opencraft.core.zencode"]) {
       const context = vm.createContext({ window: {
         matchMedia: () => ({ matches: false }),
         localStorage: { getItem: key => key === "opencraft.appearance-theme-id" ? saved : null },
@@ -27,7 +29,13 @@ test("theme choices start with the visible product default independently of the 
       vm.runInContext(outputFiles[0].text, context);
       const snapshot = context.appearance.getAppearanceThemeSnapshot();
       assert.deepEqual(Array.from(snapshot.availableThemes, theme => theme.label), expected);
-      if (saved) assert.equal(snapshot.requestedThemeId, saved);
+      if (saved) {
+        const requested = saved.endsWith(".zencode") ? "opencraft.core.graphite" : saved;
+        assert.equal(snapshot.requestedThemeId, requested);
+        if (requested === "opencraft.core.graphite" && !policy.hiddenBuiltinThemeIds?.includes("opencraft.core.zencode") && !policy.hiddenBuiltinThemeIds?.includes("opencraft.core.graphite")) {
+          assert.equal(snapshot.themeId, requested);
+        }
+      }
     }
   }
 });
