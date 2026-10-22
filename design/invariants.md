@@ -1586,7 +1586,11 @@ Recent conversations use the same section-local paging controls as pinned conver
 
 Hidden documents and explicitly parked embedded/settings conversation surfaces
 stop Goal/command elapsed clocks without unmounting the Composer or stopping a
-remote task. Reopening recalibrates elapsed time. Resident desktop viewers revoke
+remote task. Reopening recalibrates elapsed time. A foreground command without a
+reported start uses its first observation in that mounted view for the elapsed
+label; a reported start takes precedence and completion uses the returned
+duration. Observation time is presentation-only and never persisted as protocol
+time. Background commands do not run an elapsed interval. Resident desktop viewers revoke
 input and pause RFB pixel requests/continuous updates, retaining connection and
 last frame; an in-flight frame may finish. Showing resumes observation, never
 control. Native background shimmer also stops. Avatar 30Hz/ambient clocks use

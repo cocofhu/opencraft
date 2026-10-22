@@ -9,6 +9,7 @@ import { createConversationKey, createDefaultTimelineProjectorRegistry, projectT
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { ComposerTurnChangeSummary } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
+import { WorkbenchPresentationActivityProvider } from "../../apps/workbench-web/src/components/workbench-presentation-activity";
 import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
@@ -66,6 +67,7 @@ function Demo() {
   const [generation, setGeneration] = useState(0);
   const [mounted, setMounted] = useState(true);
   const [revision, setRevision] = useState(0);
+  const [presentationActive, setPresentationActive] = useState(true);
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
@@ -155,6 +157,17 @@ function Demo() {
       } satisfies ThreadItem;
       setTurn({ id: "turn", status: running ? "streaming" : mode === "interrupted" ? "interrupted" : mode === "failed" ? "failed" : "complete",
         items: [{ id: item.id, type: item.type, payload: item }] }); return;
+    }
+    if (action === "presentation-park" || action === "presentation-resume") {
+      setPresentationActive(action === "presentation-resume"); return;
+    }
+    if (action === "command-timer" || action === "command-timer-authoritative" || action === "command-timer-background") {
+      restore = null; setGeneration(value => value + 1);
+      setTurn({ id: "turn", status: action === "command-timer-background" ? "complete" : "streaming", items: [
+        { id: "elapsed-command", type: "commandExecution", payload: { command: "audit-elapsed-command", status: "inProgress",
+          ...(action === "command-timer-authoritative" ? { startedAtMs: Date.now() - 9_000 } : {}),
+          ...(action === "command-timer-background" ? { processId: "background-fixture" } : {}) } },
+      ] }); return;
     }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
@@ -267,6 +280,8 @@ function Demo() {
         ] }); return;
     }
     setTurn(current => {
+      if (action === "command-timer-complete") return { ...current, items: current.items.map(item =>
+        item.id === "elapsed-command" ? { ...item, payload: { ...(item.payload as object), status: "completed", exitCode: 0, durationMs: 4_321 } } : item) };
       if (action === "spacing-grow") return { ...current, items: current.items.map(item => item.id === "spacing-middle"
         ? { ...reasoning(engine, "Middle detail\n\n" + text + "\n\n" + "Additional returned content. ".repeat(30), true), id: item.id }
         : item) };
@@ -291,6 +306,7 @@ function Demo() {
   const timeline = projectTimeline({ key: createConversationKey(engine, "thread"), revision, authoritative: true,
     phase: "live", turns: [turn] }, registry);
   return <div data-revision={revision} style={{ width: "100vw", height: "100dvh" }}>
+    <WorkbenchPresentationActivityProvider active={presentationActive}>
     <TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}>
       {mounted ? <Conversation key={generation} timeline={timeline} scrollPolicy="natural" onOpenSubagent={(threadId, displayName) => probe.openedSubagents.push({ threadId, displayName })} initialRestoreSnapshot={restore}
         documentContext={{ composerChangeSummaryTurnId: turnEntry ? turn.id : undefined, theme, conversationId: "thread", hostId: engine, cwd: "/work",
@@ -301,6 +317,7 @@ function Demo() {
         footer={<>{turnEntry ? <ComposerTurnChangeSummary timeline={timeline} turnId={turn.id}
           documentContext={{ theme, conversationId: "thread", hostId: engine, cwd: "/work", onReviewTurnDiff: () => { probe.reviewedLiveChanges = true; } }} /> : null}<div style={{ height: 48 }}>Composer fixture</div></>} /> : null}
     </TimelineBlockRendererProvider>
+    </WorkbenchPresentationActivityProvider>
     {turn.items[0]?.id === "metrics-command" ? <div data-activity-metrics-gallery>
       {(["terminal", "patch", "wrench", "search", "read", "files", "stop", "agent", "image", "browser", "computer"] as const).map(kind =>
         <ActivitySummaryRow key={kind} icon={activityIcon(kind)} summary={kind} />)}

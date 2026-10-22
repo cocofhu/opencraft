@@ -1792,6 +1792,15 @@ Older instructions for the same agent are not repeated. A single-operation group
 retains the standalone input, reasoning effort and agent path. Disclosure changes
 only presentation and does not start, message or approve a subagent.
 
+### Command elapsed presentation
+
+Active foreground commands retain an elapsed label when their protocol item has
+no start timestamp. The mounted view tracks its first observation only as a
+presentation fallback; a reported start wins and a completed item uses its
+reported duration. This local observation is not a reconstructed execution start
+or persistent history clock. Parked/hidden views stop ticking and recalibrate
+when shown; background terminal labels do not create an elapsed interval.
+
 ### Established
 
 - AppServer client, WebSocket, memory and Replay transports.

@@ -206,14 +206,16 @@ function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlo
 
 function useCommandElapsed(block: Extract<TimelineBlock, { type: "command-execution" }>, running: boolean) {
   const active = useWorkbenchPresentationActive();
+  const observedStart = useRef<number | null>(null);
+  if (running && observedStart.current === null) observedStart.current = Date.now();
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    if (!running || !active || block.startedAtMs === null) return;
+    if (!running || !active || !block.turnInProgress) return;
     setNow(Date.now());
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [active, running, block.startedAtMs]);
-  return running && block.startedAtMs !== null ? Math.max(0, now - block.startedAtMs) : block.durationMs;
+  }, [active, running, block.turnInProgress, block.startedAtMs]);
+  return running ? Math.max(0, now - (block.startedAtMs ?? observedStart.current ?? now)) : block.durationMs;
 }
 
 export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: "command-execution" }> }) {

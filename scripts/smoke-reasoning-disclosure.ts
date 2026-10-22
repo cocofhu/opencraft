@@ -24,6 +24,7 @@ try {
   const results = [];
   const activityScales = [];
   const subagentDetails = [];
+  const commandElapsed = [];
   for (const touch of [false, true]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width: touch ? 390 : 1024, height: 900 }, hasTouch: touch,
       deviceScaleFactor: touch ? 2 : 1,
@@ -478,6 +479,39 @@ try {
       await page.close();
       continue;
     }
+    if (process.argv.includes("--commands-only")) {
+      const summary = page.locator('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary');
+      const reveal = async () => {
+        for (const toggle of await page.locator('.thread-agent-activity__turn-toggle button').all())
+          if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        for (const group of await page.locator('.thread-agent-activity__group').all()) {
+          const toggle = group.getByRole('button').first();
+          if (await toggle.getAttribute('aria-expanded') === 'false') await activate(toggle);
+        }
+      };
+      await update("command-timer"); await reveal();
+      await page.waitForFunction(() => /Running command for [2-9]/u.test(document.querySelector('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary')?.textContent ?? ""), undefined, { timeout: 8_000 });
+      const readLabel = () => summary.evaluate(node => node.firstChild?.textContent ?? "");
+      const first = await readLabel();
+      await update("presentation-park");
+      const parked = await readLabel();
+      await page.waitForTimeout(2_200);
+      assert.equal(await readLabel(), parked, 'the parked view has no ticking clock');
+      await update("presentation-resume");
+      await page.waitForFunction(previous => document.querySelector('.thread-activity-item[data-body-variant]:not(:has(.thread-activity-item[data-body-variant])) > .thread-activity-item__header .thread-activity-item__summary')?.firstChild?.textContent !== previous, parked, { timeout: 5_000 });
+      const resumed = await readLabel();
+      assert.match(resumed, /Running command for/u);
+      await update("command-timer-complete");
+      assert.match(await summary.innerText(), /in 4\s*(?:s|秒)/u, 'completion uses the returned duration');
+      await update("command-timer-authoritative"); await reveal();
+      assert.match(await summary.innerText(), /Running command for 9/u, 'known start time wins');
+      await update("command-timer-background"); await reveal();
+      assert.match(await summary.innerText(), /Started background terminal/u);
+      assert.doesNotMatch(await summary.innerText(), /for \d/u);
+      await page.screenshot({ path: join(output, `${theme}-${touch ? 'touch' : 'mouse'}-command-elapsed.png`) });
+      commandElapsed.push({ theme, touch, first, parked, resumed });
+      assert.deepEqual(errors, []); await page.close(); continue;
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -818,7 +852,7 @@ try {
     ["ja-JP", "思考中…", "思考過程"],
     ["ko-KR", "생각하는 중…", "사고 과정"],
   ] as const;
-  for (const [locale, running, settled] of ((process.argv.includes("--subagents-only") || process.argv.includes("--command-completion-only")) ? [] : localizedLabels)) {
+  for (const [locale, running, settled] of ((process.argv.includes("--commands-only") || process.argv.includes("--subagents-only") || process.argv.includes("--command-completion-only")) ? [] : localizedLabels)) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true });
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=light&locale=${locale}`);
     await page.locator('[data-revision="0"]').waitFor();
@@ -843,7 +877,8 @@ try {
     await page.close();
   }
   await writeFile(join(output, 'subagent-details.json'), JSON.stringify(subagentDetails, null, 2));
+  await writeFile(join(output, 'command-elapsed.json'), JSON.stringify(commandElapsed, null, 2));
   await writeFile(join(output, 'activity-scales.json'), JSON.stringify(activityScales, null, 2));
-  console.log(JSON.stringify({ passed: results, subagentDetails, localizedLabels: process.argv.includes("--subagents-only") ? [] : process.argv.includes("--subagents-only") ? [] : process.argv.includes("--command-completion-only") ? [] : localizedLabels.map(([locale]) => locale), output,
+  console.log(JSON.stringify({ passed: results, subagentDetails, localizedLabels: process.argv.includes("--subagents-only") ? [] : process.argv.includes("--subagents-only") ? [] : process.argv.includes("--command-completion-only") ? [] : process.argv.includes("--commands-only") ? [] : localizedLabels.map(([locale]) => locale), output,
     scope: 'Real shared projector and Conversation/disclosure/viewport; engine text synthetic, not paid model or native iPhone acceptance.' }));
 } finally { await browser?.close(); await vite.close(); }
