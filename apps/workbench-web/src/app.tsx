@@ -1651,7 +1651,7 @@ export function App({
     <AppShellHeader
       conversationHeader={conversationSurfaceVisible}
       subtitle={conversationContribution?.subtitle}
-      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+      navigationBrand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
       headerActionCount={conversationMenuAvailable ? 1 : 0}
       headerAction={conversationMenuAvailable ? (
         <Suspense fallback={<span className="chrome-button" />}>
@@ -1851,7 +1851,7 @@ export function App({
           header={embedded !== undefined && draft !== null && draft.submission === null && !presentation.rightPanel ? null : header}
           floatingSidebarHeader={(onDock) => !presentation.contextSidebar ? null : (
             <AppShellNavigationControls
-              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} /> : undefined}
+              brand={embedded === undefined && extensionPlatform === "web" ? <ApplicationBrand branding={branding} onHome={workbenchNavigation.openChat} /> : undefined}
               hostRole="transient"
               sidebarOpen={false}
               canGoBack={canGoBack}

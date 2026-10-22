@@ -152,6 +152,7 @@ export function AppShellNavigationControls({
     <>
       <div
         ref={measureRef}
+        inert
         aria-hidden="true"
         className="app-shell-header__window-controls-measure"
       >
