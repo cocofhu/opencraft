@@ -2290,10 +2290,22 @@ snapshot carries connection progress; each resident Thread carries only its own
 history progress. UI never substitutes background Thread work for the current
 conversation. Timestamps, actual starts, the scheduler's retry deadline and a
 bounded machine-code failure are local metadata, with at most twelve stage events.
-A visible recovery notice and cold-history surface expose elapsed time and a
-collapsed copyable report before failure as well as during automatic retries.
-The presentation clock pauses in background tabs and never schedules work.
-Authoritative recovery removes the notice; invalidation fences late observations.
+While the current conversation is recovering (including retained display-only
+history and intermediate automatic retries), a thin, tapered scan travels along
+the existing Composer border every 4.8 seconds. Its read-only `isRecovering`
+projection is independent of Turn streaming and does not authorize commands. It
+appears after 600ms, fades out in 350ms, uses theme colors, intercepts no input and
+preserves the mounted editor, draft, focus and selection. Reduced motion retains
+a static faint edge. Cold history uses the same Composer feedback instead of a
+central spinner; activation failures retain their retry action. Loading copy is
+screen-reader-only. No syncing/reconnecting notice is inserted into the transcript.
+Only a stopped/blocked recovery or required client update presents
+an actionable instruction in normal flow above the Composer, never over the
+transcript. Its diagnostic report stays collapsed. Elapsed time, attempts, retry
+deadlines and machine failure codes remain in the existing diagnostic snapshot;
+they do not add visible progress chrome or schedule work. The presentation clock is mounted only with failure
+details, pauses in background tabs and never schedules work.
+Authoritative recovery removes any manual action row; invalidation fences late observations.
 No remote error text, content, endpoint or credentials enter this report.
 A fresh work item after a terminal failure starts a new history observation;
 its correlation ID and attempt count cannot inherit the completed report.

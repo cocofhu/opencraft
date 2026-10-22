@@ -108,6 +108,7 @@ import {
   ConversationRecoveryNotice,
   ConversationRecoveryEmptyState,
   conversationRecoveryPresentation,
+  conversationRecoveryIsPending,
 } from "./components/conversation-recovery";
 import { ConversationPendingInteractionPanel } from "./components/conversation-renderers/interaction/interaction-renderers";
 import { InteractionDraftStore } from "./components/conversation-renderers/interaction/interaction-drafts";
@@ -1995,17 +1996,6 @@ export function App({
           />
         ) : (
           <div className="local-conversation-page">
-            {activeThreadLease === null && (visibleTimeline?.frames.length ?? 0) === 0 ? (
-                <div className="conversation-recovery-cold-stage">
-                  <ConversationRecoveryEmptyState
-                    failed={recoveryPresentation === "cold-error"}
-                    requiresUpdate={recoveryRequiresUpdate}
-                    diagnostic={recoveryDiagnostic}
-                    onRetry={retryColdActivation}
-                  />
-                </div>
-            ) : (
-              <>
                 <Conversation
                   scrollPolicy="natural"
                   onAddSelectionToChat={conversationRouteOpen && activeThreadId !== null ? (text) => {
@@ -2023,7 +2013,7 @@ export function App({
                         failed={recoveryPresentation === "cold-error"}
                         requiresUpdate={recoveryRequiresUpdate}
                         diagnostic={recoveryDiagnostic}
-                        onRetry={retryConversationRecovery}
+                        onRetry={activeThreadLease === null ? retryColdActivation : retryConversationRecovery}
                       />
                     : undefined}
                   key={activeConversationRestoreKey ?? "empty"}
@@ -2093,6 +2083,10 @@ export function App({
                       className="thread-composer-region"
                       data-thread-find-composer="true"
                     >
+                    {recoveryPresentation === "warm-error" ? <ConversationRecoveryNotice
+                      failed requiresUpdate={recoveryRequiresUpdate} diagnostic={recoveryDiagnostic}
+                      onRetry={retryConversationRecovery}
+                    /> : null}
                     {conversationContribution?.beforeComposer}
                     {snapshot.conversation?.continuation.error ? (
                       <p role="alert">{snapshot.conversation.continuation.error.message}</p>
@@ -2113,6 +2107,8 @@ export function App({
                           ? ["queue"]
                           : (["steer", "queue"] as const).filter(action => runtime.resources.host.canRequest?.(action === "queue" ? "thread/queue/add" : "turn/steer") !== false)}
                         portalContainer={portalContainer}
+                        isRecovering={activeThreadId !== null
+                          && conversationRecoveryIsPending(recoveryPresentation, recoveryDiagnostic, recoveryRequiresUpdate)}
                         isStreaming={isStreaming}
                         awaitSubmission
                         submissionDisabled={activeThreadLease === null}
@@ -2184,17 +2180,6 @@ export function App({
                     </ThreadComposerPresentation>
                   }
                 />
-                {(recoveryPresentation === "warm-loading" && firstSubmissionTimeline === null) || recoveryPresentation === "warm-error" ? (
-                  <ConversationRecoveryNotice
-                    failed={recoveryPresentation === "warm-error"}
-                    requiresUpdate={recoveryRequiresUpdate}
-                    diagnostic={recoveryDiagnostic}
-                    reconnecting={snapshot.phase === "reconnecting" || snapshot.conversation?.phase === "offline"}
-                    onRetry={retryConversationRecovery}
-                  />
-                ) : null}
-              </>
-            )}
           </div>
         )}
           </div>

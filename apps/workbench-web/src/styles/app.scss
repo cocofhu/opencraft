@@ -1,3 +1,4 @@
+@use "../../../../packages/composer-editor/src/recovery-scan";
 @use "@opencraft/design-system/icons.web" as icons;
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
@@ -151,38 +152,10 @@ body {
   }
 }
 
-.conversation-recovery-cold-stage {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-  padding-top: var(--thread-content-top-inset);
-}
-
 .conversation-recovery-empty-error {
   width: 100%;
   box-sizing: border-box;
   padding: 28px var(--padding-toolbar);
-}
-
-.conversation-recovery-loading {
-  display: grid;
-  flex: 1 0 auto;
-  width: 100%;
-  place-items: center;
-  pointer-events: none;
-  opacity: 0;
-  animation: conversation-recovery-appear 1ms 200ms forwards;
-}
-
-.conversation-recovery-loading__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .conversation-recovery-empty-error {
@@ -262,22 +235,7 @@ body {
 }
 .conversation-recovery-progress__time,
 .conversation-recovery-progress__failure { color: var(--color-text-secondary); }
-.conversation-recovery-loading--observable {
-  pointer-events: auto;
-  align-content: center;
-  gap: 12px;
-  padding: 24px var(--padding-toolbar);
-  box-sizing: border-box;
-  .conversation-recovery-progress { width: min(100%, 420px); }
-}
-.conversation-recovery-loading--observable button {
-  min-height: 44px;
-  color: var(--color-text);
-  background: var(--color-background-elevated-primary-opaque);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  padding: 4px 10px;
-}
+
 .conversation-recovery-details {
   flex-basis: 100%;
   min-width: 0;

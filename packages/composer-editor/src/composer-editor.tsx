@@ -1,6 +1,7 @@
 import { SessionModelPicker } from "./session-model-picker";
 import { DiscreteSlider } from "@opencraft/design-system-web/discrete-slider";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
+import { ComposerRecoveryScan } from "./recovery-scan";
 import { ComposerAttachedRail } from "./attached-rail";
 // AppServer state remains externally owned.
 import { baseKeymap, newlineInCode, splitBlock } from "prosemirror-commands";
@@ -741,6 +742,8 @@ export interface OpenCraftComposerProps {
   /** Whether this surface can resolve `@` references through its Host. */
   mentionSuggestionsEnabled?: boolean;
   isStreaming: boolean;
+  /** Read-only projection of current conversation recovery, independent of execution. */
+  isRecovering?: boolean;
   disabled?: boolean;
   /** Embedded surfaces keep menu focus, styling and stacking in their owner. */
   portalContainer?: HTMLElement | null;
@@ -813,6 +816,7 @@ export const OpenCraftComposer = forwardRef<
     catalog,
     mentionSuggestionsEnabled = true,
     isStreaming,
+    isRecovering = false,
     disabled = false,
     portalContainer,
     submissionDisabled = false,
@@ -2022,6 +2026,7 @@ export const OpenCraftComposer = forwardRef<
         {attachedContent}
       </ComposerAttachedRail>
       <div className="opencraft-composer-shell">
+        <ComposerRecoveryScan active={isRecovering} />
         {chromeHeader === undefined ? null : (
           <div className="opencraft-composer-chrome-header">{chromeHeader}</div>
         )}

@@ -137,8 +137,6 @@
   "common.retry": "Cuba lagi",
   "chat.restore.loading": "Memuatkan sejarah perbualan…",
   "chat.reconnect.failed": "Tidak dapat menyambung semula",
-  "chat.reconnect.pending": "Menyambung semula…",
-  "chat.sync.pending": "Menyelaraskan…",
   "chat.thought": "Fikiran",
   "chat.response.copy": "Salin jawapan",
   "chat.command.copy": "Salin arahan",

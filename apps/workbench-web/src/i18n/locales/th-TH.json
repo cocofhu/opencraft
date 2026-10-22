@@ -138,8 +138,6 @@
   "common.retry": "ลองอีกครั้ง",
   "chat.restore.loading": "กำลังโหลดประวัติการสนทนา…",
   "chat.reconnect.failed": "ไม่สามารถเชื่อมต่อใหม่ได้",
-  "chat.reconnect.pending": "กำลังเชื่อมต่อใหม่…",
-  "chat.sync.pending": "กำลังซิงค์…",
   "chat.thought": "ความคิด",
   "chat.response.copy": "คัดลอกการตอบกลับ",
   "chat.command.copy": "คำสั่งคัดลอก",
