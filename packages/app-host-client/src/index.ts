@@ -6,6 +6,7 @@ import {
   type RendererToAppHostMessage,
 } from "@opencraft/app-host-protocol";
 import type { DuplexTransport, TransportStatus } from "@opencraft/appserver-client/transport";
+import { combineAbortSignals } from "@opencraft/appserver-client/transport";
 
 interface AppHostPort {
   postMessage(message: RendererToAppHostMessage): void;
@@ -357,8 +358,9 @@ class AppHostChannelTransport implements DuplexTransport {
     this.generation = 0;
     const attempt: NonNullable<AppHostChannelTransport["connectingAttempt"]> = { terminal: new Map() };
     this.connectingAttempt = attempt;
+    const connectionSignals = combineAbortSignals([...(signal ? [signal] : []), this.closeAbort.signal]);
     const operation = Promise.resolve().then(() => this.client.connectHost(this.hostId, leaseId,
-      signal ? AbortSignal.any([signal, this.closeAbort.signal]) : this.closeAbort.signal))
+      connectionSignals.signal))
       .then((result) => {
         const revoked = attempt.revoked ?? attempt.terminal.get(result.generation);
         if (this.closed || this.connectingAttempt !== attempt || revoked !== undefined) {
@@ -383,6 +385,7 @@ class AppHostChannelTransport implements DuplexTransport {
         throw cause;
       })
       .finally(() => {
+        connectionSignals.dispose();
         if (this.connectOperation === operation) this.connectOperation = null;
         if (this.connectingAttempt === attempt) this.connectingAttempt = null;
       });

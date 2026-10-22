@@ -55,6 +55,30 @@ test("local adapter projects presentation Scope but requests only the native Thr
   } finally { await f.close(); }
 });
 
+test("parent cancellation stays attached to the wire session after media.connect returns", async () => {
+  let linked: AbortSignal | null = null;
+  const media: RfbDesktopAdapter = {
+    surfaces: { mount() { throw new Error("not mounted"); } },
+    async connect(_session, signal) {
+      linked = signal;
+      return { getSnapshot: () => ({ videoReady: true, inputReady: true, controlAvailable: false, ended: false }),
+        subscribe: () => () => {}, requestControl: async () => { throw new Error("control unavailable"); }, close: () => {} };
+    },
+  };
+  const f = fixture(undefined, undefined, undefined, { renewable: false, media });
+  try {
+    const target = f.backend.resolveTarget("view-scope")!;
+    const attachment = await f.backend.prepare(target, new AbortController().signal);
+    const open = new AbortController();
+    await attachment.connect(open.signal);
+    assert.ok(linked);
+    assert.equal(linked!.aborted, false);
+    open.abort();
+    assert.equal(linked!.aborted, true, "the attachment lifetime keeps the parent signal attached");
+    attachment.release();
+  } finally { await f.close(); }
+});
+
 test("real Host backend, wire and controller retain one viewer across multiple five-minute deadlines", async t => {
   t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: 1_000_000 });
   const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };

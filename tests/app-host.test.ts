@@ -136,7 +136,10 @@ test("Host activation rejects physical loss before its connect continuation", as
   finally { await channel.close(); client.close(); await server.close(); }
 });
 
-test("AppHost channel connecting observers share one owned claim", async () => {
+test("AppHost channel connecting observers share one owned claim without native AbortSignal.any", async t => {
+  const native = Object.getOwnPropertyDescriptor(AbortSignal, "any");
+  if (native) Object.defineProperty(AbortSignal, "any", {...native, value: undefined});
+  t.after(() => { if (native) Object.defineProperty(AbortSignal, "any", native); });
   const server = new AppHostServer({ createTransport: () => new TestTransport() });
   const pair = createPortPair(); server.accept(pair.host, "reentry"); let grants = 0;
   const client = new MessagePortAppHostClient({ ...pair.browser, postMessage(message) {
@@ -146,7 +149,7 @@ test("AppHost channel connecting observers share one owned claim", async () => {
   const channel = client.createTransport("host"); let second: Promise<void> | undefined; let entered = false;
   channel.subscribeStatus(status => { if (status.state === "connecting" && !entered) { entered = true; second = channel.connect(); } });
   try {
-    const first = channel.connect(); assert.equal(first, second); await first; await second;
+    const first = channel.connect(new AbortController().signal); assert.equal(first, second); await first; await second;
     assert.equal(grants, 1); assert.equal(channel.status.state, "open");
   } finally { await channel.close(); client.close(); await server.close(); }
 });

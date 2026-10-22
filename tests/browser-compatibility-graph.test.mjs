@@ -50,15 +50,16 @@ test("real product graph and CLI retain typed checks outside the core workspace"
     await mkdir(product);
     await writeFile(path.join(root, "main.ts"), `import { load } from "../external product/entry.ts"; globalThis.loadProduct = load;`);
     await writeFile(path.join(product, "entry.ts"), `import type { Server } from "./server.ts"; export const load = () => import("./lazy.mts");`);
-    await writeFile(path.join(product, "server.ts"), `import "node:fs"; export interface Server { id: string }; Promise.withResolvers();`);
+    await writeFile(path.join(product, "server.ts"), `import "node:fs"; export interface Server { id: string }; Promise.withResolvers(); AbortSignal.any([new AbortController().signal]);`);
     await writeFile(path.join(product, "tsconfig.json"), JSON.stringify({ compilerOptions: { lib: ["ES2022"] } }));
-    await writeFile(path.join(product, "lazy.mts"), `import { value } from "./view.tsx"; export function values(tabs: Map<string, number>) { return tabs.values().map(x => x + value); }`);
+    await writeFile(path.join(product, "lazy.mts"), `import { value } from "./view.tsx"; export function values(tabs: Map<string, number>) { return tabs.values().map(x => x + value); } export function employeeRequest(request: AbortController) { return AbortSignal.any([request.signal, AbortSignal.timeout(10_000)]); }`);
     await writeFile(path.join(product, "view.tsx"), `import { value } from "./plain.js"; export { value }; export const View = (input: number) => input;`);
     await writeFile(path.join(product, "plain.js"), `export const value = Promise.withResolvers();`);
     await build({ root, configFile: false, logLevel: "silent", plugins: [browserCompatibility(root)],
       build: { write: false, minify: false, rollupOptions: { input: path.join(root, "main.ts") } } });
     const captured = JSON.parse(await readFile(path.join(root, "node_modules/.cache/opencraft/browser-modules.json"), "utf8"));
     assert.deepEqual(captured, ["../external product/entry.ts", "../external product/lazy.mts", "../external product/plain.js", "../external product/view.tsx", "apps/workbench-web/public/opencraft-host-proxy-sw.js", "main.ts"]);
+    assert.ok(!captured.some(file => file.endsWith("server.ts")), "the type-only server module must stay outside the browser graph");
     const graph = path.join(temporary, "graph.json");
     const files = captured.map(file => file.startsWith("apps/") ? file : path.relative(core, path.resolve(root, file)).split(path.sep).join("/"));
     await writeFile(graph, JSON.stringify(files));
@@ -67,13 +68,16 @@ test("real product graph and CLI retain typed checks outside the core workspace"
       assert.equal(error.code, 1);
       assert.match(error.stdout, /es-x\/no-iterator-prototype-map/);
       assert.match(error.stdout, /es-x\/no-promise-withresolvers/);
+      assert.match(error.stdout, /no-restricted-properties/);
+      assert.match(error.stdout, /AbortSignal\.any/u);
       assert.doesNotMatch(error.stdout + error.stderr, /Parsing error|outside of the base path|File ignored|was not found|provided project/);
       return true;
     });
-    await writeFile(path.join(product, "lazy.mts"), `import { value } from "./view.tsx"; export function values(tabs: Map<string, number>) { return Array.from(tabs.values(), x => x + value); }`);
+    await writeFile(path.join(product, "lazy.mts"), `import { value } from "./view.tsx"; export function values(tabs: Map<string, number>) { return Array.from(tabs.values(), x => x + value); } export function employeeRequest(request: AbortController) { return request.signal; }`);
     await writeFile(path.join(product, "plain.js"), `export const value = 1;`);
     const safe = await run(process.execPath, command, { cwd: core });
     assert.match(safe.stdout, /6 runtime source files, 0 issues/);
+    assert.ok(!captured.includes("../external product/server.ts"), "the type-only server may use the same API without entering the browser runtime graph");
     // A lookalike downstream path does not inherit the core replay-clock exception.
     const lookalike = path.join(product, "plugins/bot-chat/src");
     await mkdir(lookalike, { recursive: true });

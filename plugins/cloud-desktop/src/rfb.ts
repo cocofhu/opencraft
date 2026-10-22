@@ -6,6 +6,7 @@ import { createDesktopTextInput } from "./text-input";
 import { bindDesktopClipboard } from "./clipboard-input";
 import { captureFramePreview } from "./frame-preview";
 import type { DesktopFramePreview } from "./contract";
+import { combineAbortSignals } from "@opencraft/appserver-client/transport";
 
 /** Supplied by an authorized backend adapter, never inferred from a Host URL.
  * The server must reject input without a grant; viewOnly is only local UX.
@@ -210,43 +211,45 @@ class RfbConnection implements DesktopConnection {
   async requestControl(signal: AbortSignal): Promise<DesktopControlLease> {
     if (this.closed || !this.snapshot.videoReady || !this.snapshot.controlAvailable
       || !this.session.control || this.leases.size || this.requesting) throw new Error("Desktop control is unavailable");
-    const requestSignal = AbortSignal.any([signal, this.abort.signal]);
-    requestSignal.throwIfAborted();
-    this.requesting = true;
-    let remote: DesktopControlLease;
-    try { remote = await this.session.control.request(requestSignal); }
-    finally { this.requesting = false; }
-    if (this.closed || requestSignal.aborted || !this.snapshot.controlAvailable) {
-      cleanup(() => remote.release());
-      throw new Error("Desktop control request retired");
-    }
-    let valid = true;
-    let unsubscribe: (() => void) | undefined;
-    const listeners = new Set<() => void>();
-    const lease: DesktopControlLease = {
-      isValid: () => valid && !this.closed && remote.isValid(),
-      subscribeRevoked: listener => {
-        if (!lease.isValid()) { listener(); return () => {}; }
-        listeners.add(listener); return () => { listeners.delete(listener); };
-      },
-      release: () => {
-        if (!valid) return;
-        valid = false;
-        this.leases.delete(lease);
-        if (this.activeInput === lease) this.disableInput();
-        cleanup(unsubscribe);
-        for (const listener of listeners) cleanup(listener);
-        listeners.clear();
-        cleanup(() => remote.release());
-      },
-    };
-    this.leases.add(lease);
+    const request = combineAbortSignals([signal, this.abort.signal]);
     try {
-      unsubscribe = remote.subscribeRevoked(() => lease.release());
-      if (!valid) cleanup(unsubscribe);
-      if (!lease.isValid()) throw new Error("Desktop control grant retired");
-      return lease;
-    } catch (error) { lease.release(); throw error; }
+      request.signal.throwIfAborted();
+      this.requesting = true;
+      let remote: DesktopControlLease;
+      try { remote = await this.session.control.request(request.signal); }
+      finally { this.requesting = false; }
+      if (this.closed || request.signal.aborted || !this.snapshot.controlAvailable) {
+        cleanup(() => remote.release());
+        throw new Error("Desktop control request retired");
+      }
+      let valid = true;
+      let unsubscribe: (() => void) | undefined;
+      const listeners = new Set<() => void>();
+      const lease: DesktopControlLease = {
+        isValid: () => valid && !this.closed && remote.isValid(),
+        subscribeRevoked: listener => {
+          if (!lease.isValid()) { listener(); return () => {}; }
+          listeners.add(listener); return () => { listeners.delete(listener); };
+        },
+        release: () => {
+          if (!valid) return;
+          valid = false;
+          this.leases.delete(lease);
+          if (this.activeInput === lease) this.disableInput();
+          cleanup(unsubscribe);
+          for (const listener of listeners) cleanup(listener);
+          listeners.clear();
+          cleanup(() => remote.release());
+        },
+      };
+      this.leases.add(lease);
+      try {
+        unsubscribe = remote.subscribeRevoked(() => lease.release());
+        if (!valid) cleanup(unsubscribe);
+        if (!lease.isValid()) throw new Error("Desktop control grant retired");
+        return lease;
+      } catch (error) { lease.release(); throw error; }
+    } finally { request.dispose(); }
   }
 
   private enableInput(lease: DesktopControlLease): void {

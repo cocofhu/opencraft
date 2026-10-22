@@ -109,6 +109,32 @@ test("revocation cancels in-flight calls and late results cannot reach the consu
   } finally { await runtime.dispose(); }
 });
 
+test("cancelling while approval is pending aborts the combined invocation and never calls", async () => {
+  let releaseApproval!: (approved: boolean) => void;
+  let approvalSignal: AbortSignal | undefined;
+  const runtime = new ConnectorRuntime(authFixture(), 30_000, { approvals: {
+    request: (_input, approval) => { approvalSignal = approval; return new Promise<boolean>(resolve => { releaseApproval = resolve; }); },
+  } });
+  const f = fixture({ tools: [{ name: "write", description: "Write fixture", readOnly: false, inputSchema: { type: "object" } }] });
+  runtime.register("owner", f.provider);
+  try {
+    const connection = await runtime.connect(f.provider.id, "local", "approval-cancel");
+    runtime.select(scope, [connection.connectionId]);
+    const [tool] = await runtime.discover(scope, signal());
+    const abort = new AbortController();
+    const invocation = runtime.invoke(scope, tool.handle, { text: "must-not-run" }, abort.signal);
+    const rejected = assert.rejects(invocation, /cancelled|approval-denied/);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.ok(approvalSignal, "the invocation reached the approval gate");
+    abort.abort();
+    await rejected;
+    assert.equal(approvalSignal?.aborted, true);
+    releaseApproval(true);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.calls(), 0, "a late approval cannot execute after the invocation was cancelled");
+  } finally { await runtime.dispose(); }
+});
+
 test("service access is rechecked at invocation and scope deselection revokes handles", async () => {
   const runtime = new ConnectorRuntime(authFixture());
   let allow = true;

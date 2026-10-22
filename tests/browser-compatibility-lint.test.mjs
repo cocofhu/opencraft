@@ -25,6 +25,9 @@ for (const [name, code, rule] of [
   ["Promise.withResolvers", "Promise.withResolvers();", "es-x/no-promise-withresolvers"],
   ["Set methods", "new Set().union(new Set());", "es-x/no-set-prototype-union"],
   ["native Popover", "document.createElement('div').showPopover();", "no-restricted-properties"],
+  ["AbortSignal.any", "const request = new AbortController(); const options: RequestInit = { signal: AbortSignal.any([request.signal, AbortSignal.timeout(10_000)]) };", "no-restricted-properties"],
+  ["computed AbortSignal['any']", "const request = new AbortController(); AbortSignal['any']([request.signal]);", "no-restricted-properties"],
+  ["employee identity RequestInit", "class EmployeeIdentity { request = new AbortController(); options(): RequestInit { return { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.any([this.request.signal, AbortSignal.timeout(10_000)]) }; } }", "no-restricted-properties"],
   ["unavailable browser global", "window.requestIdleCallback(() => {});", "compat/compat"],
 ]) {
   test(`browser lint rejects ${name}`, async () => {
@@ -40,6 +43,15 @@ test("browser lint accepts arrays, Array.from migration and feature detection wi
     Array.from(tabs.values(), tab => tab.pageId);
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => {});
     else setTimeout(() => {}, 0);
+  `), []);
+});
+test("browser lint accepts AbortController signals and unrelated any properties", async () => {
+  assert.deepEqual(await lint(`
+    const request = new AbortController();
+    const signal: AbortSignal = request.signal;
+    AbortSignal.timeout(10_000);
+    const helper = { any: (values: AbortSignal[]) => values[0]! };
+    helper.any([signal]);
   `), []);
 });
 test("unrelated inline lint directives do not break compatibility checks", async () => {
