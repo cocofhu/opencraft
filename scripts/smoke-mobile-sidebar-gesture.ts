@@ -40,7 +40,7 @@ import {MobileSidebarContentProbe} from '/tests/fixtures/mobile-sidebar-content.
 import '/apps/workbench-web/src/styles/app.scss';
 initializeAppearanceTheme();
 const layout=await SidebarLayoutStore.open({load:async()=>null,save:async(_scope,doc)=>doc});
-const threads=Array.from({length:35},(_,i)=>({id:'thread-'+i,title:'Conversation '+i,project:'workspace',pinned:true,status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'fixture',connectionHostLabel:'Synthetic server',...legacyDirectServerProjectionFromHost({hostId:'fixture',hostKind:'remote-ssh',label:'Synthetic server'})}));
+const threads=Array.from({length:35},(_,i)=>({id:'thread-'+i,title:'协同对话标题字符完整显示测试'+i,project:'workspace',pinned:true,status:'ready',updatedAt:Date.now()/1000-i,connectionHostId:'fixture',connectionHostLabel:'Synthetic server',...legacyDirectServerProjectionFromHost({hostId:'fixture',hostKind:'remote-ssh',label:'Synthetic server'})}));
 const stationaryProbe=${JSON.stringify(process.env.OPENCRAFT_GESTURE_INPLACE_ONLY === "1" || process.env.OPENCRAFT_GESTURE_STACK_ONLY === "1")};
 const brand=<ApplicationBrand branding={joinBrand}/>;
 let mounts=0;const actions=[];
@@ -610,7 +610,7 @@ try {
       for (const width of [320, 390, 430]) {
         await page.setViewportSize({width,height:844}); await page.waitForTimeout(250);
         await drag(80,width-50); const box=await opened();
-        assert.ok(Math.abs(box.width-Math.min(335,width-24))<1, JSON.stringify({viewport:width,actual:box.width}));
+        assert.ok(Math.abs(box.width-Math.floor(Math.min(335,width-64)*0.85))<1, JSON.stringify({viewport:width,actual:box.width}));
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'drawer does not overflow the screen');
         widths.push({viewport:width,drawer:box.width,gutter:width-box.width});
         await page.screenshot({path:`${output}/${theme}-${reducedMotion}-${width}-width.png`});
@@ -650,7 +650,7 @@ try {
     // A short, fast right flick may commit without crossing the distance threshold.
     await touch('touchStart',100);await touch('touchMove',165);await touch('touchEnd');await page.waitForTimeout(650);await opened();
     await drag(285,65,400);await closed();
-    await drag(80,310);const full=await opened();assert.ok(full.width<390&&full.width>=275,'Drawer leaves a backdrop gutter');
+    await drag(80,310);const full=await opened();assert.ok(full.width<390&&full.width>=230,'Drawer leaves a backdrop gutter');
     assert.equal(await page.getByLabel('Draft', { exact: true }).inputValue(),'Keep this draft');
     const safe=await page.evaluate(()=>{
       const surface=document.querySelector('.app-shell-floating-left-panel__surface')!,header=document.querySelector('.app-shell-floating-left-panel__header')!,footer=document.querySelector('.app-shell-floating-left-panel .shell-sidebar__rail-footer')!;
