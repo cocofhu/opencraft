@@ -177,6 +177,14 @@ function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlo
     if (followOutput.current) viewport.scrollTop = viewport.scrollHeight;
     rememberReading(viewport);
   }, [output]);
+  useLayoutEffect(() => () => {
+    // A route change can unmount before the browser dispatches its queued
+    // scroll event. Save the live reading position before refs are detached.
+    const viewport = outputViewport.current;
+    if (!viewport) return;
+    followOutput.current = viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop <= 2;
+    rememberReading(viewport);
+  }, [views, block.id]);
   return <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
     <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
       <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
