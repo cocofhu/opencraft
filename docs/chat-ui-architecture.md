@@ -2409,6 +2409,18 @@ unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
 
 
+### Conversation content search deadlines
+
+Native `thread/search` and `thread/searchOccurrences` may scan full raw history.
+Their bounded 120-second request deadline passes through the shared runtime
+protocol port, independently of the normal 30-second metadata deadline. Searches
+remain serialized per source: changing or clearing input aborts presentation and
+skips obsolete queued queries, while an already dispatched scan retains its
+physical lifetime until completion or timeout. This avoids spawning overlapping
+full-history scans. Late results still require the current query, connection and
+authorization scope; a slow source does not prevent another source from rendering
+its results. The longer deadline does not imply an indexed or faster search.
+
 ### Initial user echoes and explicit steering acknowledgements
 
 User-message normalization may associate the initial params input with an echo
