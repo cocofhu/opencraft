@@ -451,7 +451,7 @@ function activateBuiltin(ctx: CordisContext, broker: ContributionBroker): void {
 
 ### 6.4 View、入口与布局不得合并
 
-OpenCraft 采用与 Obsidian `Ribbon/Command -> ViewType -> WorkspaceLeaf` 相同的所有权原则，但不公开
+OpenCraft 将 Command、View 类型和持久 Workspace slot 的所有权分开，但不公开
 任意 DOM 注入：
 
 ```text
@@ -784,8 +784,7 @@ UI view instance           = (rendererId, contributionId, viewInstanceId)
 - 一个插件在两个 Host 安装时是两个可用性/授权实例；
 - 全局插件管理 UI 可以聚合展示，但不能抹掉 Host 来源。
 
-Codex 当前的 first-party bridge 只对 `local` Host 生效，是产品策略证据，不应被泛化成
-“所有插件都只能 local”。OpenCraft 的 bridge 必须显式声明 location policy。
+OpenCraft 的 bridge 必须显式声明 location policy；单个产品的本机限制不得变成通用插件约束。
 
 ## 13. 包与模块边界
 

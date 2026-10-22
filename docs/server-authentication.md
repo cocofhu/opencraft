@@ -39,6 +39,25 @@ does not imply that private plugin directories or all client dependencies moved.
 
 已有前置中继仍执行其显式配置的身份验证。实例的内建登录不自动替换中继认证来源；本指南的标准 Headless 入口可独立完成本地和 OIDC 登录。
 
+### 同机浏览器诊断入口
+
+受管 Web 和 Headless 可以显式共享 `OPENCRAFT_LOCAL_ACCESS_FILE`，恢复仅供本机
+操作人使用的匿名工作区。文件必须由运行用户拥有、权限 `0600`、非符号链接，内容为
+独立随机的 32 字节密钥（64 个小写十六进制字符）；保存在 Web 根目录之外，不输出到日志。
+Headless 也接受 `--local-access-file /absolute/private-file`。默认不启用。
+
+最外层 Web 根据实际 TCP 对端、目标接口地址、监听端口及 IP/localhost Host 核对同机
+来源；同端口 SSH/HTTP 分流将原 HTTP socket 交给同进程的 HTTP Server，保留真实
+对端、目标与公开端口，不通过重新连接回环端口或转发头恢复来源。SSH 仍代理到私有
+鉴权后端。远端访问本机 IP、伪造 Host/forwarded 头或跨站 Origin 都不能取得本机访问证明。
+合法请求绕过外部中继登录，由 Web 在私有回环链路内加入短时 HMAC 证明，绑定原始
+方法、路径及浏览器 origin；Headless 同时验证证明和回环来源。静态文件准入探针及
+WebSocket 使用同一证明。浏览器不接触密钥或证明。
+
+这只恢复当前实例的匿名工作区，不创建员工身份或 human Actor，不授予成员管理、
+Hub 管理或 Session 的资源授权。外部访问保持原中继及实例准入策略。启用或撤回需
+同时更新两个受管服务；替换私有文件并重启这两个入口后，旧证明失效，业务数据不变。
+
 服务器数据目录要求同一运行用户持有、权限 `0700`；认证配置及临时密码 JSON 文件要求同一用户持有、普通文件、权限 `0600`，不允许符号链接。不要将它们提交到仓库或放入 Web 根目录。通过私有文件提供密码，避免放进命令参数和历史。
 
 本地配置示例（HTTPS 由部署入口提供；HTTP 仅允许回环地址）：

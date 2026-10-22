@@ -348,6 +348,10 @@
   "chat.details.project": "项目",
   "chat.details.directory": "工作目录",
   "webUpdates.title": "网站更新",
+  "webUpdates.noticeAvailable": "发现新版本 v{version}，点击下载更新",
+  "webUpdates.noticeRefresh": "新版本已就绪，点击刷新更新",
+  "webUpdates.noticeAction": "下载更新 v{version}",
+  "webUpdates.noticeRefreshAction": "刷新更新",
   "webUpdates.description": "从npm 源更新网站，执行服务继续运行。",
   "webUpdates.version": "网站版本",
   "webUpdates.installed": "已安装版本",
@@ -486,6 +490,7 @@
   "sidebar.thread.deleteDescription": "删除后该会话将被永久移除，且无法恢复。",
   "sidebar.thread.deleteQuestion": "删除“{title}”？",
   "sidebar.thread.deleteTitle": "删除会话",
+  "conversation.forkFromTurn": "从此处分支",
   "sidebar.thread.fork": "新建分支",
   "sidebar.thread.forking": "{title} 正在新建分支",
   "sidebar.thread.name": "会话名称",
@@ -652,5 +657,10 @@
   "composer.model.retry": "重试",
   "composer.model.configure": "配置更多模型",
   "composer.model.fallbackShort": "备用",
-  "composer.model.empty": "没有可用模型，请检查模型配置。"
+  "composer.model.empty": "没有可用模型，请检查模型配置。",
+  "composer.model.configureTitle": "配置",
+  "composer.model.speed": "速度",
+  "composer.model.standardSpeed": "标准",
+  "composer.model.done": "完成",
+  "composer.resetEffort": "恢复模型默认思考深度"
 }

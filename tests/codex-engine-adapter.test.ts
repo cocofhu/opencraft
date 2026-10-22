@@ -1247,3 +1247,33 @@ test("scheduled permission snapshots reach native Codex and survive adapter reco
     assert.match(inputs.at(-1).params.clientUserMessageId, /^schedule:/);
   } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
 });
+
+
+
+test("native auth rejection fails initialization before a logical client becomes ready", async () => {
+  const root = await mkdtemp(join(tmpdir(), "oc-native-auth-reject-"));
+  const frames: Record<string, unknown>[] = [];
+  const adapter = new CodexEngineAdapter({ executable: process.execPath, runtimeDirectory: root,
+    dataDirectory: join(root, "data"), nativeCodexHomeDirectory: join(root, "native"),
+    fetch: async () => Response.json({}), logDiagnostic: () => undefined,
+    createMaintenanceClient: async () => { throw new Error("not used"); },
+    spawnAppServer: ({ cwd, env }) => {
+      assert.equal(env.OPENAI_API_KEY, undefined);
+      assert.equal(env.CODEX_API_KEY, undefined);
+      return spawn(process.execPath, [new URL("./fixtures/fake-codex-stdio-appserver.mjs", import.meta.url).pathname],
+        { cwd, env: { ...env, OPENCRAFT_TEST_REJECT_POOL_AUTH: "1" }, stdio: ["pipe", "pipe", "pipe"] });
+    },
+  });
+  adapter.subscribeMessage(raw => frames.push(JSON.parse(raw)));
+  try {
+    await adapter.connect();
+    await adapter.send(JSON.stringify({ id: "native-auth", method: "initialize", params: {
+      clientInfo: { name: "test", version: "1" }, capabilities: { experimentalApi: true },
+    }, [LOGICAL_CLIENT_FIELD]: "client" }));
+    const result = await waitFor(frames, frame => frame.id === "native-auth");
+    assert.equal(result.result, undefined);
+    assert.equal((result.error as any).message, "Codex initialization failed");
+    assert.equal(adapter.status.state, "failed");
+    assert.doesNotMatch(JSON.stringify(frames), /accessToken|eyJhbGci/);
+  } finally { await adapter.close(); await rm(root, { recursive: true, force: true }); }
+});
