@@ -1960,3 +1960,5 @@ history gaps and never replace ordinary local text with enriched Host prose.
 A live reduced-motion preference keeps dictation's signal static without
 interrupting capture, controls or bounded sample collection; changing preference
 and unmounting retain a single paint/listener owner.
+
+Sidebar search may reuse unchanged row presentation. Parent props, grouping and action-owner/context changes must invalidate render-time readers; controlled menus, badges, locale and busy states remain live through their own subscriptions. Reuse must preserve input focus, Host/Thread identity and current capability/callback ownership; it must not cap semantic catalog membership.
