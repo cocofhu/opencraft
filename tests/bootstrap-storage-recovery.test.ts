@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const html = readFileSync(new URL("../apps/workbench-web/index.html", import.meta.url), "utf8");
-const bootstrap = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+const bootstrap = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)]
   .map(match => match[1]).find(script => script.includes("isResizeObserverDeliveryWarning"))!;
 
 function fixture({ recoverySupported = false, recovered = false } = {}) {

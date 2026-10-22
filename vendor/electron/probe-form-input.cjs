@@ -28,11 +28,19 @@ app.whenReady().then(async () => { try {
   wc.debugger.attach('1.3');
   await wc.debugger.sendCommand('Emulation.setFocusEmulationEnabled',{enabled:true});
   const run = code => wc.executeJavaScript(code);
+  const fixtureGlobal = (await wc.debugger.sendCommand('Runtime.evaluate', {expression:'globalThis'})).result.objectId;
+  async function callFixture(functionDeclaration, ...values) {
+    const result = await wc.debugger.sendCommand('Runtime.callFunctionOn', {
+      objectId:fixtureGlobal, functionDeclaration, arguments:values.map(value=>({value})), returnByValue:true,
+    });
+    if (result.exceptionDetails) throw new Error('Fixture function failed');
+    return result.result.value;
+  }
   const events=[];
   const page={window,visible:true,closed:false,id:'probe',document:'doc'};
   port=installIme(page,event=>events.push(event));
   async function focus(id) {
-    await run(`document.activeElement.blur();document.getElementById(${JSON.stringify(id)}).focus()`);
+    await callFixture('function(id){document.activeElement.blur();document.getElementById(id).focus()}', id);
     await delay(100);port.observe();return events.at(-1);
   }
   let serial=0;
@@ -46,7 +54,7 @@ app.whenReady().then(async () => { try {
     await port.apply({id:tid,type:'begin',editor:state.editor});
     await port.apply({id:tid,type:'compose',text:id==='number'?'4':id==='password'?'s':'zhong'});
     await port.apply({id:tid,type:'commit',text});
-    assert.equal(await run(`(()=>{const e=document.getElementById(${JSON.stringify(id)});return e.value??e.textContent})()`),text,id+' final value');
+    assert.equal(await callFixture('function(id){const e=document.getElementById(id);return e.value??e.textContent}', id),text,id+' final value');
     assert(!JSON.stringify(events).includes('synthetic-9!'));assert(!JSON.stringify(events).includes(native.token));
     assert(!JSON.stringify(events).includes(observed.targetIdentity));
     cases.push({name:id+' native composition/commit/metadata',passed:true});

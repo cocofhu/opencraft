@@ -57,8 +57,8 @@ try {
   if (process.env.OPENCRAFT_CONTROL_ELECTRON_EXECUTABLE) {
     const profile = await mkdtemp(join(tmpdir(), "opencraft-control-electron-"));
     const entry = join(profile, "probe.cjs");
-    await writeFile(entry, `const {app,BrowserWindow}=require('electron');app.setPath('userData',${JSON.stringify(profile)});app.whenReady().then(()=>{const w=new BrowserWindow({width:1080,height:800,show:false,webPreferences:{contextIsolation:true,nodeIntegration:false}});w.loadURL(${JSON.stringify(url)});});app.on('window-all-closed',()=>app.quit());`);
-    desktop = await _electron.launch({executablePath:process.env.OPENCRAFT_CONTROL_ELECTRON_EXECUTABLE,args:[entry],env:Object.fromEntries(Object.entries(process.env).filter(([k])=>k!=="ELECTRON_RUN_AS_NODE"))});
+    await writeFile(entry, `const {app,BrowserWindow}=require('electron');app.setPath('userData',process.env.OPENCRAFT_CONTROL_PROBE_PROFILE);app.whenReady().then(()=>{const w=new BrowserWindow({width:1080,height:800,show:false,webPreferences:{contextIsolation:true,nodeIntegration:false}});w.loadURL(process.env.OPENCRAFT_CONTROL_PROBE_URL);});app.on('window-all-closed',()=>app.quit());`);
+    desktop = await _electron.launch({executablePath:process.env.OPENCRAFT_CONTROL_ELECTRON_EXECUTABLE,args:[entry],env:{...Object.fromEntries(Object.entries(process.env).filter(([k])=>k!=="ELECTRON_RUN_AS_NODE")),OPENCRAFT_CONTROL_PROBE_PROFILE:profile,OPENCRAFT_CONTROL_PROBE_URL:url}});
     page = await desktop.firstWindow();
   } else {
     browser = await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE});

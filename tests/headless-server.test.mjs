@@ -732,7 +732,11 @@ test('incompatible independent Core does not prevent HTTP startup or another Hos
     });
     assert.equal((await fetch(app.url)).status, 200);
     let health;
-    for (let n = 0; n < 100; n++) {
+    // Overlay storage opens asynchronously before Core negotiation. Parallel
+    // suites may delay that work; observe the failed handshake within a bounded
+    // deadline instead of assuming it finishes in the first second.
+    const readinessDeadline = Date.now() + 5_000;
+    while (Date.now() < readinessDeadline) {
       health = await (await fetch(app.url + '/__opencraft_health')).json();
       if (health.hosts['local-codex'].state === 'unavailable') break;
       await new Promise(done => setTimeout(done, 10));

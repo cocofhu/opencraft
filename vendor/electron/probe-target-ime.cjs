@@ -47,8 +47,13 @@ async function context() {
   throw new Error('Native editable context unavailable');
 }
 async function reset(value = '') {
-  await run(`cleanup();cleanup=()=>{};a.value=${JSON.stringify(value)};b.value='保留B';
-    a.focus();a.setSelectionRange(a.value.length,a.value.length);events=[];`);
+  const {result:global} = await wc.debugger.sendCommand('Runtime.evaluate', {expression:'globalThis'});
+  const result = await wc.debugger.sendCommand('Runtime.callFunctionOn', {
+    objectId:global.objectId,
+    functionDeclaration:"function(value){cleanup();cleanup=()=>{};a.value=value;b.value='保留B';a.focus();a.setSelectionRange(a.value.length,a.value.length);events=[];}",
+    arguments:[{value}], returnByValue:true,
+  });
+  if (result.exceptionDetails) throw new Error('Fixture reset failed');
   return context();
 }
 const apply = (state, type, text = '', extra = {}) => frame.applyNativeImeForTesting({

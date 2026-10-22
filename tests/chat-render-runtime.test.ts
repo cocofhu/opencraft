@@ -172,10 +172,11 @@ test("resource policies reject restricted external resources and can be overridd
   const removeHostRestriction = runtime.resources.register({
     name: "host-restricted-domain",
     priority: 100,
-    matches: target => target.startsWith("https://private.example"),
+    matches: target => URL.canParse(target) && new URL(target).origin === "https://private.example",
     resolve: () => ({ allowed: false, kind: "blocked", target: null, reason: "Host policy" }),
   });
   assert.equal(runtime.resources.resolve("https://private.example/path", context).allowed, false);
+  assert.equal(runtime.resources.resolve("https://private.example.other.test/path", context).allowed, true);
   removeHostRestriction();
   const remove = runtime.resources.register({
     name: "workspace-files",
