@@ -1315,6 +1315,10 @@ Sidebar 会话行只拥有选中/导航命中区；右键菜单触发区只覆�
 标识。菜单触发区不互相嵌套；菜单项选择之后，由行级操作或
 独立 Modal 接管，不能让下拉菜单的 Portal 触摸事件回流成行本体长按。浮动与
 固定侧栏仍使用同一个 Sidebar 内容 owner，切换呈现不另建会话菜单状态。
+顶部筛选菜单也由同一owner管理，独立订阅自己的通道；会话/Host切换及浏览器后退在新页面绘制前关闭旧菜单。关闭回调按入口身份判断，不能迟到关闭或抢走新菜单焦点；开菜单不重建或重新分组会话列表。
+行菜单的打开项在目录刷新、分组折叠或分页后仍须属于一个可见且可交互的目标；目标消失或禁用时在布局阶段释放owner，再恢复同一条目不能自行重开旧菜单。只在Sidebar父提交时检查当前打开项，保留行通道更新隔离；筛选菜单不依附任何行，普通目录刷新不能把它关闭。
+
+行入口还须在申请打开owner时检查当前目标可交互性；不可交互行的头像等扩展入口不能只依赖主体按钮disabled或父提交时的清理。拒绝新打开时仍接受自身关闭，恢复可交互后允许用户主动重开；目录/重连本身不重开旧菜单。
 
 Conversation 的活动折叠将点击语义与标题呈现分开。`OverlayDisclosureTrigger`
 提供稳定的原生覆盖按钮、可见标题的 accessible name 关联及非交互内容层；
@@ -2566,3 +2570,30 @@ The original Composer smoke exercises native menu close with motion enabled.
 Keyboard reopening checks wait for the native close-focus cleanup to restore
 the trigger before sending ArrowDown; menu disappearance alone does not signal
 that deferred native focus cleanup has finished.
+
+### Conversation group heading continuity
+
+Creator-group headings retain the existing avatar slot and generic person fallback
+when their contribution has no photo. Loading, unknown or unavailable creator
+metadata therefore preserves label alignment with known creators. Ordinary task
+flow headings retain their text-only layout. Both disclosure presentations bind
+aria-controls to their own stable list element and keep aria-expanded and hidden
+in step with the existing collapse owner; metadata updates do not replace rows.
+
+### Conversation list display context
+
+Right-clicking the conversation group heading or list background, and a touch
+long press in that area, open the existing display-mode menu. This entrance
+uses the original Radix context-menu behavior and existing mode contribution.
+It shares the Sidebar's exclusive overlay owner with Filters, row actions and
+participant popovers, while subscribing only to its own menu channel. Row
+context events remain row actions; a late close from any previous entrance
+cannot dismiss its replacement. Opening a menu changes neither grouping nor
+selection and must not rebuild the catalog or turn a long press into collapse.
+
+The list context entrance retains the original modal Radix behavior: a touch
+release after long press cannot activate the underlying group disclosure.
+Outside controls resume after dismissal; explicit menu handoffs keep the
+existing single owner and scoped close callbacks.
+
+The nearest sidebar row context trigger owns its pointer gesture, so the enclosing list trigger cannot arm a competing long press. When a touch context menu is open, its trigger consumes the release click before it reaches a disclosure or conversation selection. Ordinary taps, keyboard activation and existing desktop menu modality remain unchanged. Native held/released row and heading gestures are covered by the complete sidebar menu regression.
