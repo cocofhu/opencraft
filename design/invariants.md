@@ -2020,3 +2020,14 @@ Trusted renderer composition owns desktop availability: `cloudDesktop: null` ins
 no desktop panel, toolbar action or Composer shortcut, even for a capable Host.
 An omitted option keeps Host capability discovery and an adapter keeps its explicit
 backend. This policy never mutates desktop state or grants input authority.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
