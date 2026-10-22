@@ -716,6 +716,13 @@ is never rewritten to a phone-local `file://` URI; direct HTTP(S) and image
 data remain direct sources. Native preview opens the resolved image source in
 the conversation's gallery when no product-specific preview owner is supplied.
 
+MCP tool-result thumbnails retain their intrinsic aspect ratio inside the
+current details width and a 192px height budget. Those constraints and
+`object-fit` belong to the rendered image, rather than an outer wrapper that
+could let intrinsic pixels overlap later result parts. Small images are not
+upscaled. Collapsing and reopening uses the same media policy and bounded
+geometry; the Host loader and resource permissions remain unchanged.
+
 Web and Native derive file citation labels/targets and workspace mention
 targets from one renderer-neutral model. Native presents workspace mentions
 as inline code and file citations with a separate citation tone; it makes
