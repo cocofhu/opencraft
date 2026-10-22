@@ -2603,6 +2603,14 @@ Arduino, Python REPL, PHP template and the patch alias for Diff. Normalization
 ignores surrounding whitespace and casing. Unknown language tags retain their
 original text; labels do not choose a highlighter or change code, wrap or copy policy.
 
+
+## Skill display names
+
+Skill and plugin display names retain canonical spellings such as GitHub,
+OpenAI and SQLite, known initialisms and their plurals, lowercase title
+connectors after the first word, and colon-separated namespaces. These labels
+never replace the original identifier or resource path.
+
 ### Relational style invalidation during editing
 
 Message action rows keep their existing clock, pointer, keyboard, touch and
