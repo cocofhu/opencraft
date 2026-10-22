@@ -4,7 +4,7 @@
 
 已实施：呈现附着瞬时输入事务、草稿/View置换同步释放；真实数值音量事件（原生≤20Hz）不发布草稿snapshot；专用原位Footer、时长、停止写入/等待最终再发送、Escape/150ms长按。
 红绿：旧事务/Footer归属、原生数值音量校验、完成只停止一次且取消胜过迟到完成、长按释放不触发再次点击、物理View替换不继承旧mode。聚焦测试通过。
-旧根gate完成，CodexComposer/voice类型及universalSwift构建通过；签名隔离桌面场景正在验证。图标CLI未安装，采用项目已有lucide入口，不另引图标库。
+旧根gate完成，OpenCraftComposer/voice类型及universalSwift构建通过；签名隔离桌面场景正在验证。图标CLI未安装，采用项目已有lucide入口，不另引图标库。
 
 桌面准备失败：第一轮还在设置页面，后续用原始model ID匹配Composer展示名失败。冷目录RPC实际1项/1默认，UI title为正确dictation-fixture；源码compactModelLabel会把连字符折叠为空格。之前“未热刷新”判断被此证据推翻，不能声称缓存故障；测试改匹配原始语义title。冷启动保留为隔离配置准备，不扩目录服务。
 多次失败后已更新checkpoint并检查真实RPC/title而非重复同一等待。语音无模型probe/事务桌面独立验收通过，不冒充发送验收。
@@ -15,4 +15,4 @@
 最终产物strict deep codesign及native helper strict校验通过；smoke:dictation-interaction、smoke:native-speech均退出0。应用实际Dark/Light截图已检查（不是模拟system偏好）。文档/正式设计映射/diff检查通过，33项context-audit测试通过；最终catalog已无本Task新增命中，历史schema/英文/budget/hex扫描仍存在。
 证据：/tmp/opencraft-dictation-{desktop-final,probe-desktop-final,focused,gate-final,context-final}.log；/tmp/opencraft-dictation-{dark,light}.png。手势释放修复后26聚焦通过，最终gate收尾。
 交接：最终完整npm gate退出0，26聚焦、签名helper/bundle、无录音原生probe与合成实机UI/本地正文请求验收通过。根context最终26测试4项历史失败（本Task格式已修正且无新增命中），33项audit测试通过；未扩大清理历史。
-新预览已启动最终产物并回Chat，未录音/未复制认证/未提交推送，旧预览未覆盖或终止。真实语音与端侧识别本轮未复验；不声称与恢复源码/官方发行100%类体或像素相同。
+新预览已启动最终产物并回Chat，未录音/未复制认证/未提交推送，旧预览未覆盖或终止。真实语音与端侧识别本轮未复验。

@@ -144,8 +144,7 @@ function preset(
 }
 
 /**
- * Timing and vocabulary track Grok Bot 0.39.0. Geometry remains OpenCraft-owned,
- * typed, and independent from the recovered renderer.
+ * Typed presets describe avatar timing and geometry.
  */
 export const BOT_AVATAR_MOTION: Readonly<
   Record<BotAvatarMotionState, BotAvatarMotionPreset>

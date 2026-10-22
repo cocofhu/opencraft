@@ -24,53 +24,43 @@ export interface UserMessageWebLayout {
   readonly showBubble: boolean;
 }
 
-/**
- * Source-equivalent UserMessage visibility policy. External attachments and
- * semantic context can stand alone; a truly empty message still receives the
- * `(No content)` bubble. This is Web layout state, not protocol state.
- */
+
 export function deriveUserMessageWebLayout(block: UserMessageTimelineBlock): UserMessageWebLayout {
-  const images = block.content.filter((part): part is UserMessageImagePart => part.type === "image" || part.type === "local-image");
-  const audio = block.content.filter((part): part is UserMessageAudioPart => part.type === "audio" || part.type === "local-audio");
-  const files = block.attachments.filter((attachment): attachment is UserMessageFileAttachment => attachment.type === "file");
-  const fileTargets = new Set(files.flatMap((file) => file.target === null ? [] : [file.target]));
-  const contexts = block.content.filter((part): part is UserMessageContextPart =>
-    part.type === "skill" || (part.type === "mention" && !fileTargets.has(part.path)));
-  const comments = block.attachments.filter((attachment): attachment is UserMessageCommentAttachment => attachment.type === "comment");
-  const mcpContexts = block.attachments.filter((attachment): attachment is UserMessageMcpContextAttachment => attachment.type === "mcp-context");
+  const images: UserMessageImagePart[] = [];
+  const audio: UserMessageAudioPart[] = [];
+  const contexts: UserMessageContextPart[] = [];
+  const files: UserMessageFileAttachment[] = [];
+  const comments: UserMessageCommentAttachment[] = [];
+  const mcpContexts: UserMessageMcpContextAttachment[] = [];
+  const fileTargets = new Set<string>();
+  for (const attachment of block.attachments) {
+    switch (attachment.type) {
+      case "file":
+        files.push(attachment);
+        if (attachment.target !== null) fileTargets.add(attachment.target);
+        break;
+      case "comment": comments.push(attachment); break;
+      case "mcp-context": mcpContexts.push(attachment); break;
+    }
+  }
+  for (const part of block.content) {
+    switch (part.type) {
+      case "image": case "local-image": images.push(part); break;
+      case "audio": case "local-audio": audio.push(part); break;
+      case "skill": contexts.push(part); break;
+      case "mention": if (!fileTargets.has(part.path)) contexts.push(part); break;
+    }
+  }
   const hasText = block.message.trim().length > 0;
-  const hasStatus = block.deliveryStatus === "not-sent"
-    || block.deliveryStatus === "unknown"
-    || block.deliveryStatus === "failed"
-    || block.goal
-    || block.hookFeedback
-    || block.reviewMode
-    || block.pullRequestFixMode
-    || block.autoResolveSync
-    || block.commentCount > 0;
-  const hasSemanticAttachments = images.length > 0
-    || audio.length > 0
-    || contexts.length > 0
-    || files.length > 0
-    || comments.length > 0
-    || mcpContexts.length > 0
-    || block.hasExternalAttachments
-    || block.referencesPriorConversation
-    || block.reviewMode
-    || block.pullRequestFixMode
-    || block.autoResolveSync
-    || block.commentCount > 0;
-  const showBubble = hasText || !hasSemanticAttachments;
-  return {
-    images,
-    audio,
-    contexts,
-    files,
-    comments,
-    mcpContexts,
-    hasText,
-    hasStatus,
-    showBody: showBubble || hasStatus,
-    showBubble,
-  };
+  const hasStatus = block.goal || block.hookFeedback || block.reviewMode
+    || block.pullRequestFixMode || block.autoResolveSync || block.commentCount > 0
+    || block.deliveryStatus === "not-sent" || block.deliveryStatus === "failed"
+    || block.deliveryStatus === "unknown";
+  const standalone = block.hasExternalAttachments || block.referencesPriorConversation
+    || block.reviewMode || block.pullRequestFixMode || block.autoResolveSync
+    || block.commentCount > 0 || images.length + audio.length + contexts.length
+      + files.length + comments.length + mcpContexts.length > 0;
+  const showBubble = hasText || !standalone;
+  return { images, audio, contexts, files, comments, mcpContexts, hasText,
+    hasStatus, showBubble, showBody: showBubble || hasStatus };
 }

@@ -37,7 +37,7 @@ async function scan(directory) {
 // These are the application-owned catalogs. Vendored feature translations have
 // their own extraction authority and must not be silently imported here.
 await scan(join(root, "apps/workbench-web/src"));
-await scan(join(root, "packages/codex-composer/src"));
+await scan(join(root, "packages/composer-editor/src"));
 await scan(join(root, "plugins/cloud-desktop/src"));
 await scan(join(root, "plugins/builtin-agents/src"));
 await scan(join(root, "plugins/voice-input/src"));

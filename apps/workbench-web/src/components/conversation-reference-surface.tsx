@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ConversationReferenceProvider, type ConversationReferencePort } from "@opencraft/codex-composer";
+import { ConversationReferenceProvider, type ConversationReferencePort } from "@opencraft/composer-editor";
 import { encodeConversationRef, parseConversationRef, type ConversationRef } from "@opencraft/appserver-protocol/collaboration";
 import { createWorkbenchThreadLocation } from "@opencraft/workbench-runtime";
 import { SettingsButton } from "@opencraft/extension-react";

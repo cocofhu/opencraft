@@ -1,4 +1,4 @@
-import { serverStorageKey, serverUrl } from "./server-context";
+import { serverStorageKey, serverUrl, serverEndpointNeedsRefresh } from "./server-context";
 import { TurnCompletionObserver } from "@opencraft/workbench-runtime";
 import { FULL_WORKBENCH_PRESENTATION, type WorkbenchPresentationPolicy } from "../workbench-presentation-policy";
 import { ApplicationBrandingRegistry } from "./application-branding";
@@ -107,7 +107,7 @@ export interface AppServerHostCatalog {
     setPinned(hostId: string, threadId: string, pinned: boolean): Promise<void>;
     rename(hostId: string, threadId: string, name: string): Promise<void>;
     delete(hostId: string, threadId: string): Promise<void>;
-    fork(hostId: string, threadId: string): Promise<string>;
+    fork(hostId: string, threadId: string, lastTurnId?: string): Promise<string>;
     archive(hostId: string, threadId: string): Promise<void>;
     unarchive(hostId: string, threadId: string): Promise<void>;
     listArchived(hostId: string): Promise<Array<{ id: string; name?: string | null; preview?: string }>>;
@@ -221,24 +221,26 @@ export function hostDefinitionProfile(host: WebHostDefinition): HostConnectionPr
   };
 }
 
-export async function refreshBundledHostBrowseRoots(
+export async function refreshBundledHostProfiles(
   store: HostConnectionProfileStore,
   definitions: readonly WebHostDefinition[],
 ): Promise<void> {
   for (const definition of definitions) {
-    if (definition.workspaceBrowseRoots.length === 0) continue;
     const current = store.getSnapshot().profiles.find((profile) => profile.hostId === definition.hostId);
     const providerUrl = current?.providerConfig !== null
       && typeof current?.providerConfig === "object"
       && !Array.isArray(current.providerConfig)
       ? (current.providerConfig as { readonly url?: unknown }).url
       : null;
-    if (current === undefined || current.workspaceBrowseRoots.length > 0
-      || current.providerId !== "vela.websocket"
-      || providerUrl !== definition.url) continue;
+    if (current === undefined || current.providerId !== "vela.websocket") continue;
+    const refreshEndpoint = typeof providerUrl === "string" && serverEndpointNeedsRefresh(providerUrl, definition.url);
+    if (providerUrl !== definition.url && !refreshEndpoint) continue;
+    const refreshRoots = current.workspaceBrowseRoots.length === 0 && definition.workspaceBrowseRoots.length > 0;
+    if (!refreshEndpoint && !refreshRoots) continue;
     await store.put({
       ...current,
-      workspaceBrowseRoots: definition.workspaceBrowseRoots,
+      ...(refreshEndpoint ? { providerConfig: { ...current.providerConfig as object, url: definition.url } } : {}),
+      ...(refreshRoots ? { workspaceBrowseRoots: definition.workspaceBrowseRoots } : {}),
       revision: current.revision + 1,
     });
   }

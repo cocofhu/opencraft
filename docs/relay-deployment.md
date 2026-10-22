@@ -16,6 +16,22 @@ The legacy connector remains supported. The Hub network additionally implements 
 
 The relay is also a trusted identity issuer: a malicious operator holding its signing key can impersonate an admitted employee. Key pinning and local membership constrain the trust relationship but cannot protect against that issuer itself. Teams requiring a different trust boundary should deploy their own department relay.
 
+## Request-local shared entry origins
+
+Trusted server composition may supply `RelayComposition.entryOrigin(request)`
+when shared server selection is enabled. It returns an approved browser origin or
+null for the existing configured behavior. Core requires the request authority and
+configured TLS scheme to match; public JSON and forwarded headers cannot load or
+select the resolver. Product code owns domain allowlists and ingress approval.
+
+For an approved entry, login and callback use that origin. Login starts, one-use
+tickets and host-only sessions remain bound to the exact browser origin, including
+concurrent entries; a token copied between origins is rejected. Logout affects its
+own session. API, mutation and WebSocket Origin checks use the visiting entry,
+while forwarding keeps the selected installation's configured origin, assertion
+scope and independent membership. No extra tunnel, route registry or session
+owner is created for aliases. Existing fixed-origin deployments are unchanged.
+
 ## Shared entry server selection
 
 Set `serverSelection: true` on an authenticated relay whose approved authentication
@@ -122,6 +138,15 @@ injected deployment context. Target cookies are renamed and path scoped; entry
 login cookies and other instances' cookies are never forwarded. Uploads, SSE and
 binary responses remain streams; only HTML documents are buffered (maximum 2 MiB)
 to inject context. Update/deployment control paths remain unavailable.
+
+Saved bundled WebSocket profiles use the stable instance namespace. Before opening
+transports, the client reconciles a profile whose same-origin AppServer URL still
+uses that instance's former stable-ID prefix to the current deployment URL. This
+updates only the endpoint and retains the profile identity, enabled state, custom
+browse roots and other preferences. Other instances, origins, custom paths and
+URLs carrying credentials or query parameters are never retargeted. This is a
+saved-recipe repair; retired public routes are not enabled or redirected. Reloading
+the client is sufficient and does not clear its conversation or profile databases.
 
 This mode reuses the existing entry DNS/TLS/enterprise identity configuration; no target DNS record
 is required. The enrolled target origin remains a virtual identity audience.

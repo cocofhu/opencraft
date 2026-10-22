@@ -9,74 +9,69 @@ export interface RealtimeDelegation {
   readonly transcriptDelta: string | null;
 }
 
-function record(value: unknown): Readonly<Record<string, unknown>> | null {
-  return typeof value === "object" && value !== null
-    ? value as Readonly<Record<string, unknown>>
-    : null;
-}
 
-function decodeXmlText(value: string): string {
-  // This order is intentional: it matches Codex and avoids decoding a value
-  // such as `&amp;lt;` twice.
-  return value
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&quot;", "\"")
-    .replaceAll("&apos;", "'")
-    .replaceAll("&amp;", "&");
-}
-
-function tagContent(value: string, tagName: string): string | null {
-  const match = new RegExp(`<${tagName}>\\s*([\\s\\S]*?)\\s*</${tagName}>`, "i").exec(value);
-  return match?.[1] === undefined ? null : decodeXmlText(match[1].trim());
-}
-
-function parseTranscriptHistory(value: string | null, input: string): readonly RealtimeTranscriptEntry[] {
-  const entries: RealtimeTranscriptEntry[] = [];
-  let current: RealtimeTranscriptEntry | null = null;
-  for (const line of value?.split(/\r?\n/u) ?? []) {
-    const roleLine = /^(user|assistant):\s?(.*)$/iu.exec(line);
-    if (roleLine !== null) {
-      if (current !== null && current.text.trim().length > 0) {
-        entries.push({ ...current, text: current.text.trim() });
-      }
-      current = {
-        role: roleLine[1]?.toLocaleLowerCase() === "user" ? "user" : "assistant",
-        text: roleLine[2] ?? "",
-      };
-      continue;
-    }
-    if (current !== null) current = { ...current, text: `${current.text}\n${line}` };
-  }
-  if (current !== null && current.text.trim().length > 0) {
-    entries.push({ ...current, text: current.text.trim() });
-  }
-  const last = entries.at(-1);
-  if (last?.role !== "user" || last.text !== input) entries.push({ role: "user", text: input });
-  return entries;
-}
-
-/** Extract only Composer text parts; attachments are not delegation markup. */
 export function realtimeDelegationText(value: unknown): string {
-  const values = Array.isArray(value) ? value : value == null ? [] : [value];
-  return values.flatMap((entry): string[] => {
-    if (typeof entry === "string") return [entry];
-    const source = record(entry);
-    return source?.type === "text" && typeof source.text === "string" ? [source.text] : [];
-  }).join("\n");
+  if (typeof value === "string") return value;
+  const parts: string[] = [];
+  for (const part of Array.isArray(value) ? value : [value]) {
+    if (typeof part === "string") parts.push(part);
+    else if (part !== null && typeof part === "object" && part.type === "text" && typeof part.text === "string") {
+      parts.push(part.text);
+    }
+  }
+  return parts.join("\n");
 }
 
-/** Source-equivalent parser for Codex's private realtime handoff envelope. */
+const entities: Readonly<Record<string, string>> = {
+  lt: "<", gt: ">", quot: '"', apos: "'", amp: "&",
+};
+
+function tagValue(body: string, name: string): string | null {
+  const opening = `<${name}>`;
+  const start = body.indexOf(opening);
+  if (start < 0) return null;
+  const end = body.indexOf(`</${name}>`, start + opening.length);
+  if (end < 0) return null;
+  return body.slice(start + opening.length, end)
+    .replace(/&(lt|gt|quot|apos|amp);/g, (_, entity: string) => entities[entity]!)
+    .trim();
+}
+
+function transcriptEntries(delta: string | null, input: string): RealtimeTranscriptEntry[] {
+  const result: RealtimeTranscriptEntry[] = [];
+  let role: RealtimeTranscriptEntry["role"] | null = null;
+  let lines: string[] = [];
+  const finish = () => {
+    const text = lines.join("\n").trim();
+    if (role !== null && text.length > 0) result.push({ role, text });
+  };
+  for (const line of (delta ?? "").split(/\r?\n/)) {
+    const marker = /^(user|assistant):\s*(.*)$/i.exec(line);
+    if (marker) {
+      finish();
+      role = marker[1]!.toLowerCase() as RealtimeTranscriptEntry["role"];
+      lines = [marker[2]!];
+    } else if (role !== null) lines.push(line);
+  }
+  finish();
+  const last = result.at(-1);
+  if (last?.role !== "user" || last.text !== input) result.push({ role: "user", text: input });
+  return result;
+}
+
 export function parseRealtimeDelegation(value: unknown): RealtimeDelegation | null {
-  const payload = realtimeDelegationText(value).trim();
-  if (!payload.startsWith("<realtime_delegation>") || !payload.endsWith("</realtime_delegation>")) return null;
-  const input = tagContent(payload, "input");
+  const text = realtimeDelegationText(value).trim();
+  const opening = "<realtime_delegation>";
+  const closing = "</realtime_delegation>";
+  if (!text.startsWith(opening) || !text.endsWith(closing)) return null;
+  const body = text.slice(opening.length, -closing.length);
+  const input = tagValue(body, "input");
   if (input === null) return null;
-  const transcriptDelta = tagContent(payload, "transcript_delta");
+  const transcriptDelta = tagValue(body, "transcript_delta");
   return {
     input,
-    source: tagContent(payload, "source") === "transcript_tail_flush" ? "transcript_tail_flush" : null,
-    transcript: parseTranscriptHistory(transcriptDelta, input),
+    source: tagValue(body, "source") === "transcript_tail_flush" ? "transcript_tail_flush" : null,
+    transcript: transcriptEntries(transcriptDelta, input),
     transcriptDelta,
   };
 }

@@ -11,9 +11,9 @@ import { connectWebSocketAppHost } from "../../apps/workbench-web/src/runtime/we
 import { HostDesktopBackend } from "../../apps/workbench-web/src/runtime/host-desktop-backend";
 import { createCloudDesktopWorkbenchPanelPlugin } from "../../plugins/cloud-desktop/src/index";
 import { OPENCRAFT_DESKTOP_ATTACH } from "@opencraft/appserver-protocol/desktop";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties("light"))) {
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties("light"))) {
   document.documentElement.style.setProperty(key, value);
 }
 

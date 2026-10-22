@@ -3,7 +3,6 @@ export const themePreferences = ["light", "dark", "system"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 export type ResolvedTheme = Exclude<ThemePreference, "system">;
 
-// Codex defaults to `system`; OpenCraft deliberately opens in its light chrome.
 export const defaultThemePreference: ThemePreference = "light";
 
 export const themeMetaColors: Record<ResolvedTheme, string> = {

@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {createComposerController} from '@opencraft/composer-core';
 import {createConversationKey} from '@opencraft/chat-core';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {compileSubmitIntent} from '@opencraft/composer-appserver';
 import {ConversationReferenceSurface} from '../../apps/workbench-web/src/components/conversation-reference-surface';
 import {ThreadRowMenu,useThreadActionOwner} from '../../apps/workbench-web/src/components/thread-management';
@@ -20,7 +20,7 @@ function App(){
  Object.assign(window,{fixture:{controller,hold(value:boolean){held=value;},offline(value:boolean){reject=value;},prompt(){return compileSubmitIntent(controller.createSubmitIntent());}}});
  return <ConversationReferenceSurface catalog={catalog} hostId='fixture'><main style={{maxWidth:700,margin:'40px auto',padding:16}}>
  <ThreadRowMenu target={{hostId:'fixture',threadId:'codex-fork-1',title:'Target conversation'}} capabilities={{reference:true,rename:false,fork:false,archive:false,delete:false}} owner={owner} openMenuKind={kind} onOpenMenuChange={(next,open)=>setKind(open?next:null)}><button>Target conversation</button></ThreadRowMenu>
- <CodexComposer controller={controller} catalog={{search:async()=>[]}} onSubmit={()=>false} onCancel={()=>{}} />
+ <OpenCraftComposer controller={controller} catalog={{search:async()=>[]}} onSubmit={()=>false} onCancel={()=>{}} />
  <a href='opencraft://conversation/v1/fixture/codex-fork-1'>Saved conversation reference</a>
  </main></ConversationReferenceSurface>;
 }

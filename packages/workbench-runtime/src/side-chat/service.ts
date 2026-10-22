@@ -3,7 +3,7 @@ import { createConversationKey, type ConversationKey } from "@opencraft/chat-cor
 import { createComposerController, retargetSubmitIntentForFollowUp, type ComposerController, type ComposerFollowUpAction, type SubmitIntent } from "@opencraft/composer-core";
 import type { AppServerThreadRuntimeLease, AppServerWorkbenchRuntime } from "../appserver-runtime";
 
-// Verbatim policy from the pinned Codex side-conversation implementation.
+// Side-conversation policy keeps inherited history separate from active intent.
 export const SIDE_CHAT_INSTRUCTIONS = `You are in a side conversation, not the main thread.
 
 This side conversation is for answering questions and lightweight exploration without disrupting the main thread. Do not present yourself as continuing the main thread's active task.

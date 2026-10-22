@@ -29,7 +29,7 @@ try {
     };
     port.start();
     const ready = new Promise<void>((resolve, reject) => outer.set("ready", { resolve, reject }));
-    window.postMessage({ type: "vela:connect-app-host", protocolVersion: 2, rendererId }, window.location.origin, [channel.port2]);
+    window.postMessage({ type: "opencraft:connect-app-host", protocolVersion: 2, rendererId }, window.location.origin, [channel.port2]);
     port.postMessage({ type: "hello", protocolVersion: 2, rendererId }); await ready;
     const envelope = (body: any) => new Promise<any>((resolve, reject) => {
       const requestId = "fixture-envelope:" + ++sequence; outer.set(requestId, { resolve, reject }); port.postMessage({ ...body, requestId });
@@ -51,7 +51,7 @@ try {
     await request("thread/name/set", { threadId: thread.id, name: "Lifecycle desktop fixture" });
     return thread.id;
   }, directory);
-  await page.waitForFunction(() => document.querySelector(".codex-composer-mode__model-label")?.textContent?.trim() === "Model");
+  await page.waitForFunction(() => document.querySelector(".opencraft-composer-mode__model-label")?.textContent?.trim() === "Model");
   const row = page.locator(".sidebar-activity-item").filter({ hasText: "Lifecycle desktop fixture" }); await row.waitFor();
   await row.click({ button: "right" }); await page.getByRole("menuitem", { name: "重命名", exact: true }).click();
   await page.getByRole("textbox", { name: "会话名称" }).fill("Desktop renamed fixture");

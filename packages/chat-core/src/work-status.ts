@@ -1,7 +1,7 @@
 import type { TimelineSourceTurn } from "./projection";
-import { formatCodexDuration } from "./format-duration";
+import { formatDuration } from "./format-duration";
 
-/** Codex r3562 worked-for display item. This is not assistant/reasoning text. */
+/** Worked-for status is separate from assistant and reasoning text. */
 export type WorkStatusItem = {
   readonly type: "worked-for";
   readonly startedAtMs: number;
@@ -21,7 +21,7 @@ function timestamp(value: unknown): number | null {
 }
 
 /**
- * r3562 normalizeTurnToDisplayItems → insertWorkStatusItem. Event clocks are
+ * Event clocks are
  * sampled by the session projector, never by this pure projection or React.
  * History without those facts stays unknown; Turn duration is a separate
  * disclosure-label fallback, not a fabricated work interval.
@@ -103,10 +103,10 @@ export function deriveTurnWorkStatus(
     : null;
 }
 
-/** r3562 formatDurationShort: floor seconds, trim zero units, localize units. */
+/** Floor seconds, trim zero units, localize units. */
 export function formatWorkDuration(durationMs: number, locale = "en"): string {
   return (
-    formatCodexDuration(durationMs, {
+    formatDuration(durationMs, {
       locale,
       underOneSecond: "zero",
       trimZeroUnits: true,

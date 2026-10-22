@@ -47,7 +47,7 @@ try {
       await page.waitForFunction(() => !!(window as any).fixture);
       await page.evaluate(theme => {
         (window as any).fixture.setThemePreference(theme === "lavender" ? "light" : theme);
-        if (theme === "lavender") (window as any).fixture.setAppearanceThemeId("vela.core.lavender");
+        if (theme === "lavender") (window as any).fixture.setAppearanceThemeId("opencraft.core.lavender");
       }, theme);
       const trigger = page.getByRole("button", { name: "Conversation actions", exact: true });
       const open = async () => { await trigger.click(); await page.getByRole("menuitem", { name: "Conversation info", exact: true }).click(); };

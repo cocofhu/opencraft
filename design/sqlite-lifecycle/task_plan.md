@@ -10,7 +10,7 @@
 - 不把 JSON 文件、IndexedDB 或 Expo 存储顺带改成桌面数据库。
 
 ## requirement_refs / requirement_excerpt
-当前对话：用户要求先设计，随后补充 Web IndexedDB、插件兼容、BB 与 Obsidian 参考，并要求“定一下”。最终决策替代早期以 Drizzle 为目标的草案；只定设计。
+当前对话：用户要求先设计，随后补充 Web IndexedDB、插件兼容，并要求“定一下”。最终决策替代早期以 Drizzle 为目标的草案；只定设计。
 
 ## history_context
 current_design_refs: `../../docs/platform-architecture.md`、`../../docs/platform-connectors.md`、`../invariants.md`。
@@ -22,14 +22,13 @@ superseded_refs: 本任务早期“Drizzle 为默认方案”的设计草案已�
 
 ## phases
 1. [complete] 存储清单、物理路径、owner 和不可丢数据分类。
-2. [complete] Paseo/WB/BB/Obsidian 证据核对；决定保留驱动、有限平台迁移代码、跨端契约与不同区域 authority。
+2. [complete] 决定保留驱动、有限平台迁移代码、跨端契约与不同区域 authority。
 3. [complete] 定稿生命周期与插件持久化文档、同步旧架构和索引；按文档门禁验收。
 4. [complete] Client-local 文档契约、双后端与迁移/CAS contract tests。
 5. [complete] SDK scoped handle、Cordis 生命周期、Main/Preload 和设置/安装记录接线。
 6. [complete] Web 多实例与真实 Electron 重启验收、类型/边界/测试和正式文档回写。
 7. [complete] Host 通用文档 API：提取共用文档端口/SQLite、Host RPC/能力/通知、绑定明确 Host 的 SDK adapter、隔离协议与重启验收。
 
-用户追加：先 clone 官方 Paseo 到 `ref/paseo`，加入有界 SQLite/客户端升级参考研究，再收敛设计。授权克隆，不执行参考仓库脚本，不修改参考源码。
 
 ## acceptance
 正式文档明确所有权、版本轴、文件拓扑、无版本旧库接管、新旧客户端兼容、失败恢复、安全边界和阶段验收。未定兼容性必须作为实施前门禁，而非猜测已支持。
@@ -69,4 +68,4 @@ Host切片：4项专用测试、真实Chromium双标签→真实认证Host→SQL
 17项存储专项、4个相关workspace类型检查、完整OpenCraft gate通过；最终源码Electron构建及两种真实运行时smoke通过。报告：`/tmp/oc-extension-desktop-pffNFI/report.json`、`/tmp/oc-extension-web-XRy1Bq/report.json`。没有真实账号/付费推理/用户库操作。最新边界/文档检查在交接前执行。
 
 ## 设计阶段历史 checkpoint（非当前实施状态）
-Paseo HEAD `3cc4ae28664493b2f1ad75a6a6ed1d318c76e944`，BB HEAD `62fe3bc46bd1d935b71482b62a1e0887ffb83487`。查阅生产入口及相邻测试，未执行外部参考脚本。最终文档 validator errors=[]、warnings=[]，两个专题共 17 个本地链接存在，git diff --check 通过；staged impact 检查通过但 staging 为空，不把它称为覆盖全部工作区。架构已定，后续实现首先交付同一契约在 Electron/Web 的真实纵向验证；本轮不进入实现。
+最终文档 validator errors=[]、warnings=[]，两个专题共 17 个本地链接存在，git diff --check 通过；staged impact 检查通过但 staging 为空，不把它称为覆盖全部工作区。架构已定，后续实现首先交付同一契约在 Electron/Web 的真实纵向验证；本轮不进入实现。

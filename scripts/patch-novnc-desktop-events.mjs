@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +8,8 @@ import { fileURLToPath } from "node:url";
 // Keep npm's pinned decoder, encodings and render queue. Never infer first paint
 // from canvas size/colour, arbitrary delay, or an independently parsed RFB stream.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const packageRoot = resolve(root, "node_modules/@novnc/novnc");
+const packageRoot = dirname(createRequire(resolve(root, "plugins/cloud-desktop/package.json"))
+  .resolve("@novnc/novnc/package.json"));
 const originalHash = "690d5506d161d6b8c536f9b1a5b018fcd510c72b4fcf8124d037005d18cff098";
 const hash = source => createHash("sha256").update(source).digest("hex");
 const mediaAndPointerEdits = [

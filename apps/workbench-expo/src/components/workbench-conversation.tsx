@@ -20,7 +20,7 @@ import {
   deriveSubagentActivityGroupPresentation,
   extractToolCallContentParts,
   formatThreadHandoffStepLabel,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatWorkDuration,
   workStatusLabelText,
   resolveAgentActivityLayout,
@@ -112,10 +112,10 @@ import {
   X,
 } from "lucide-react-native";
 import {
-  codexSetupContextSourceExamples,
-  codexSetupRoleOptions,
-  codexSetupTaskOptions,
-  type SetupCodexContextSource,
+  setupContextSourceExamples,
+  setupRoleOptions,
+  setupTaskOptions,
+  type SetupContextSource,
   type WorkbenchInteractionAction,
 } from "@opencraft/workbench-runtime";
 import type { ReactNode } from "react";
@@ -549,7 +549,7 @@ function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: "comman
     ? presentation.summary
     : formatCommandActivitySummary(block, presentation.state, {
         expanded: false,
-        elapsedLabel: formatCodexToolDuration(block.durationMs ?? 0),
+        elapsedLabel: formatToolDuration(block.durationMs ?? 0),
       });
   if (skill?.visible === false) return null;
   const hasBody = (!semanticAction && presentation.canExpand) || block.automaticApprovalReviews.length > 0;
@@ -1138,10 +1138,10 @@ function SemanticCard({ icon, title, children, status }: { icon?: ReactNode; tit
 type NativeInteractionResponder = (requestId: string, action: WorkbenchInteractionAction) => Promise<void>;
 const NativeInteractionContext = createContext<NativeInteractionResponder | null>(null);
 const NativeSetupContextCatalog = createContext<{
-  readonly sources: readonly SetupCodexContextSource[];
+  readonly sources: readonly SetupContextSource[];
   readonly loading: boolean;
-  readonly connect: ((source: SetupCodexContextSource) => Promise<void>) | null;
-}>({ sources: codexSetupContextSourceExamples, loading: false, connect: null });
+  readonly connect: ((source: SetupContextSource) => Promise<void>) | null;
+}>({ sources: setupContextSourceExamples, loading: false, connect: null });
 
 function NativeApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "approval" }> }) {
   const respond = useContext(NativeInteractionContext);
@@ -1320,7 +1320,7 @@ function NativeOptionPickerBlock({ block }: { block: Extract<TimelineBlock, { ty
   );
 }
 
-function NativeSetupCodexStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
+function NativeSetupStepBlock({ block }: { block: Extract<TimelineBlock, { type: "setup-codex-step" }> }) {
   if (block.step === "context") return <NativeSetupContextPickerBlock block={block} />;
   return block.step === "role" ? <NativeSetupRolePickerBlock block={block} /> : <NativeSetupTaskPickerBlock block={block} />;
 }
@@ -1337,7 +1337,7 @@ function NativeSetupRolePickerBlock({ block }: { block: Extract<TimelineBlock, {
   };
   return <View style={styles.optionPicker}>
     <View style={styles.optionPickerHeader}><Text style={styles.optionPickerQuestion}>What type of work do you do?</Text><IconButton accessibilityLabel="Dismiss" onPress={() => reply("dismiss")} size="sm"><X size={12} /></IconButton></View>
-    <View style={styles.optionPickerChoices}>{codexSetupRoleOptions.map((option) => {
+    <View style={styles.optionPickerChoices}>{setupRoleOptions.map((option) => {
       const checked = selected.includes(option.id);
       return <InteractiveSurface accessibilityRole="checkbox" accessibilityState={{ checked }} disabled={submitting} key={option.id} onPress={() => setSelected((current) => current.includes(option.id) ? current.filter((id) => id !== option.id) : [...current, option.id])} style={[styles.optionPickerChoice, checked && styles.optionPickerChoiceSelected]}><Text style={styles.optionPickerChoiceText}>{option.label}</Text></InteractiveSurface>;
     })}</View>
@@ -1359,7 +1359,7 @@ function NativeSetupTaskPickerBlock({ block }: { block: Extract<TimelineBlock, {
   };
   return <View style={styles.setupTask}>
     <View style={styles.optionPickerHeader}><View style={styles.setupTaskHeaderCopy}><Text style={styles.semanticStatus}>First task</Text><Text style={styles.optionPickerQuestion}>What's something we can knock off your list today?</Text></View><IconButton accessibilityLabel="Dismiss" onPress={() => reply("dismiss")} size="sm"><X size={12} /></IconButton></View>
-    <View style={styles.questionOptions}>{codexSetupTaskOptions.map((option) => <InteractiveSurface accessibilityRole="radio" accessibilityState={{ checked: selected === option.label }} key={option.id} onPress={() => { setSelected(option.label); setOther(""); }} style={[styles.questionOption, selected === option.label && styles.questionOptionSelected]}><View style={styles.questionOptionCopy}><Text style={styles.interactionButtonText}>{option.label}</Text><Text style={styles.semanticStatus}>{option.description}</Text></View>{selected === option.label ? <Check size={14} /> : null}</InteractiveSurface>)}</View>
+    <View style={styles.questionOptions}>{setupTaskOptions.map((option) => <InteractiveSurface accessibilityRole="radio" accessibilityState={{ checked: selected === option.label }} key={option.id} onPress={() => { setSelected(option.label); setOther(""); }} style={[styles.questionOption, selected === option.label && styles.questionOptionSelected]}><View style={styles.questionOptionCopy}><Text style={styles.interactionButtonText}>{option.label}</Text><Text style={styles.semanticStatus}>{option.description}</Text></View>{selected === option.label ? <Check size={14} /> : null}</InteractiveSurface>)}</View>
     <TextInput onChangeText={(value) => { setOther(value); setSelected(null); }} placeholder="Something else" style={styles.questionInput} value={other} />
     <View style={styles.optionPickerFooter}><Button disabled={submitting} onPress={() => reply("skip")} size="sm" variant="ghost">Skip</Button><Button disabled={submitting || !answer} onPress={() => reply("submit")} size="sm">Continue  ↵</Button></View>
   </View>;
@@ -1377,7 +1377,7 @@ function NativeSetupContextPickerBlock({ block }: { block: Extract<TimelineBlock
     setSubmitting(true);
     void respond(block.requestId, { type: "submit-setup-context", action, selectedSources: action === "continue" ? selected : [] }).finally(() => setSubmitting(false));
   };
-  const choose = async (source: SetupCodexContextSource) => {
+  const choose = async (source: SetupContextSource) => {
     if (source.connected || selected.includes(source.id)) {
       setSelected((current) => current.includes(source.id) ? current.filter((id) => id !== source.id) : [...current, source.id]);
       return;
@@ -1591,16 +1591,16 @@ export function WorkbenchPendingInteractionPanel({
   block,
   bottomInset,
   onRespondInteraction,
-  setupContextSources = codexSetupContextSourceExamples,
+  setupContextSources = setupContextSourceExamples,
   setupContextLoading = false,
   onConnectSetupContextSource,
 }: {
   readonly block: AttachedInteractionTimelineBlock;
   readonly bottomInset: number;
   readonly onRespondInteraction: NativeInteractionResponder;
-  readonly setupContextSources?: readonly SetupCodexContextSource[];
+  readonly setupContextSources?: readonly SetupContextSource[];
   readonly setupContextLoading?: boolean;
-  readonly onConnectSetupContextSource?: (source: SetupCodexContextSource) => Promise<void>;
+  readonly onConnectSetupContextSource?: (source: SetupContextSource) => Promise<void>;
 }) {
   const { theme } = useWorkbenchTheme();
   return (
@@ -1616,7 +1616,7 @@ export function WorkbenchPendingInteractionPanel({
                 : block.type === "option-picker"
                   ? <NativeOptionPickerBlock block={block} />
                   : block.type === "setup-codex-step"
-                    ? <NativeSetupCodexStepBlock block={block} />
+                    ? <NativeSetupStepBlock block={block} />
                     : block.type === "setup-context-picker"
                       ? <NativeSetupContextPickerBlock block={block} />
                       : <NativeElicitationBlock block={block} />}

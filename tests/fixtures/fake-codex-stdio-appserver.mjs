@@ -35,6 +35,9 @@ input.on("line", line => {
     return;
   }
   if (message.method === "initialized") return;
+  if (message.method === "account/login/start" && process.env.OPENCRAFT_TEST_REJECT_POOL_AUTH) {
+    send({ id: message.id, error: { code: -32000, message: "Native external auth rejected" } }); return;
+  }
   if (message.method === "model/list" && process.env.OPENCRAFT_TEST_AUTO_TITLES) {
     send({ id: message.id, result: { data: [{ model: "gpt-6-luna" }], nextCursor: null } });
     return;

@@ -14,19 +14,19 @@
     "@opencraft/bot-conversation": "0.1.0",
     "@opencraft/chat-core": "0.1.0",
     "@opencraft/chat-render-web": "0.1.0",
-    "@opencraft/codex-composer": "0.1.0",
+    "@opencraft/composer-editor": "0.1.0",
     "@opencraft/composer-core": "0.1.0",
     "@opencraft/design-system": "0.1.0",
     "@opencraft/extension-react": "0.1.0",
     "@opencraft/extension-runtime": "0.1.0",
     "@opencraft/timeline-host-web": "0.1.0",
     "@opencraft/timeline-virtualizer": "0.1.0",
-    "lucide-react": "^1.35.0",
-    "react": "19.2.3",
+    "lucide-react": "^1.58.0",
+    "react": "19.3.1",
     "@opencraft/react-runtime": "0.1.0"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
+    "@types/react": "~19.3.0",
     "typescript": "^5.9.3"
   }
 }

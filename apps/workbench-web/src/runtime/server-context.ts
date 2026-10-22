@@ -41,6 +41,24 @@ export function serverStorageKey(key: string): string {
   return id ? `server:${id}:${key}` : key;
 }
 
+/** A saved deployment recipe may outlive its public route. Match only the
+ * current instance's old stable-ID AppServer path, never another Host's URL. */
+export function serverEndpointNeedsRefresh(previous: string, current: string): boolean {
+  const context = browserServerContext();
+  if (!context || typeof window === 'undefined') return false;
+  try {
+    const page = new URL(window.location.href), before = new URL(previous), after = new URL(current);
+    const protocol = page.protocol === 'https:' ? 'wss:' : page.protocol === 'http:' ? 'ws:' : null;
+    const oldPaths = ['/__opencraft_servers/', '/servers/'].map(base => base + context.id + '/appserver');
+    return protocol !== null && before.protocol === protocol && after.protocol === protocol
+      && before.host === page.host && after.host === page.host
+      && !before.username && !before.password && !after.username && !after.password
+      && !before.search && !before.hash && !after.search && !after.hash
+      && oldPaths.includes(before.pathname) && after.pathname === serverUrl('/appserver')
+      && before.href !== after.href;
+  } catch { return false; }
+}
+
 /** The enrolled target owns installation sessions; the browser entry owns URLs. */
 export function serverAdmissionOrigin(): string {
   return browserServerContext()?.targetOrigin ?? window.location.origin;

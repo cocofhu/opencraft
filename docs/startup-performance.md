@@ -56,3 +56,105 @@ program covering Web and plugin sources with uniform ESNext and DOM declarations
 ESNext describes APIs for the checker; existing browser/ECMAScript policy still
 rejects unsupported APIs and is not raised. The actual runtime graph continues
 to select linted files, including lazy plugins supplied by a trusted factory.
+
+## Formal release performance regression gate
+
+`npm run gate:performance` runs the repeatable browser suite independently of
+ordinary builds and deployment. Only `.github/workflows/release.yml` invokes it
+automatically, in preflight before packaging/publication. Daily server deployment
+and normal PR/build workflows do not invoke this suite. Existing startup resource
+budgets still run as part of release builds; `check:startup:cache` retains its
+existing separate owner and gate.
+
+The suite uses real Sidebar/catalog queries, Workbench runtime, Conversation and
+DSH history adapter with synthetic data and loopback protocol boundaries. It
+never connects to a user's server, activates execution or calls a model:
+
+| Scenario | Fixed workload | Measurements and behavior |
+| --- | --- | --- |
+| Directory entry | 222 rows, five 50-row pages; first response delayed 100ms, later responses 250ms | First committed rows and complete-directory animation frame; exactly five reads, all rows searchable, no partial authoritative cache or empty handover |
+| Conversation cold/warm entry | 12 synthetic turns; bounded latest five turns, 40ms per RPC response | First content animation frame and authoritative readiness; ten user/assistant frames, latest turn visible, one cold native read and zero additional reads on unchanged warm entry |
+| Unrelated conversation update | 30 and 200 rows, 4× CPU | Two animation frames after publication; zero row reconstruction/grouping; latest commands, permissions, title and selection still work |
+| Row action menu | 30 and 200 rows, 4× CPU | Menu DOM plus animation frame; zero row reconstruction/grouping; pin, keyboard, badges, exclusivity and invalidation still work |
+
+Directory and conversation run at 1100px/normal CPU and 390px/4× CPU. Each has one
+excluded warmup and ten measured samples in fresh browser contexts. Sidebar
+interaction probes retain their existing page and take ten samples, including
+the first interaction. Chromium comes from the locked Playwright dependency.
+Times start at fixture initialization or the actual action; they exclude the
+Vite module bootstrap. These are component/protocol regression measurements,
+not whole-site navigation, real mobile hardware, login, model response latency,
+or population p95. Existing catalog behavior smoke also covers narrow/wide,
+light/dark, failed/retried reads and authorization/lifecycle changes.
+
+`config/performance-baseline.json` owns versioned p50 and nearest-rank sample p95
+budgets. Both must satisfy `actual <= baseline × 1.30 + absolute allowance`.
+The initial allowance is 50ms for sidebar interactions, 150ms for complete
+directory loading and 100ms otherwise. It absorbs scheduling/frame noise while
+still rejecting the historical full-directory-before-first-rows regression.
+Ten samples provide a small controlled regression signal, not fleet tail
+confidence. The calibration environment is recorded; a different runner can
+expose machine sensitivity and must be evaluated with evidence rather than
+repeated until green or silently raising thresholds.
+
+```sh
+npm run test:performance-gate
+npm run gate:performance -- --output .local/performance/check-001
+# Explicit candidate only: inspect the diff and reason before committing a new baseline.
+npm run gate:performance -- --output .local/performance/calibration-001 \
+  --record-baseline .local/performance/baseline-candidate.json
+# Expected failure: actual old full-directory barrier through the real catalog fixture.
+npm run gate:performance -- --output .local/performance/control-001 --control legacy
+```
+
+Every run needs a fresh output directory. It retains raw samples, a JSON/Markdown
+comparison, source revision/dirty state, Node/Chromium/CPU environment, workload
+hash, baseline digest, child logs and screenshots. Formal release retains these
+as an Actions artifact for 30 days, including failures. A child failure, missing
+scenario/metric, fewer than ten samples, non-finite duration, wrong units or
+changed workload fails closed. Baseline generation is an explicit separate
+operation and is never part of release CI. Workload changes require an explicit
+new calibration candidate and a reason in the change; old Git baselines remain
+available. Production implementation changes keep the same workload so they
+compare against the existing budget.
+
+Use the optional read-only native server benchmark for targeted real deployment
+investigations, and the validation matrix above for network/device/lifecycle
+coverage beyond these fixtures. Those environment-dependent experiments are
+not dependencies of the formal release gate.
+
+### Whole-Application session navigation
+
+The same gate also builds the current Headless Web release and serves its
+compressed production assets through the managed static worker, with a loopback
+AppHost supplying synthetic Codex-compatible read responses (40ms per RPC).
+`smoke-session-cold-open.ts` supplies four additional scenarios: desktop and
+narrow, each with no display cache or with previously persisted display history.
+Each has one excluded warmup and ten measured navigations. Width/CPU profiles
+match the component suite. New browser contexts make HTTP resources cold;
+only actual storage written by the Application is retained for the cached case.
+
+`session-navigation-{cold,cached}-{desktop,narrow}/firstPaintMs` starts at
+navigation and ends at the first history DOM plus next animation frame, a paint
+proxy rather than compositor instrumentation. This includes bundle bootstrap
+and Application initialization; existing `session-*` component metrics keep
+their narrower clock. Synthetic identity/protocol and loopback delivery exclude
+real login, TLS, user network and model latency. A cached display is not an
+execution-readiness measurement. During cached paint the initialize reply stays
+held; resume cannot occur. After release, authoritative history must replace the
+cached answer without discarding the draft. A separate empty profile must wait
+for restoration and cannot see another profile's display. All mutations fail.
+
+These four scenarios add eight p50/p95 comparisons to the existing 32. Workload
+version 2 explicitly records the changed scope. The existing ten scenario
+budgets are retained; only new scenarios receive new measured baselines and the
+same 30% plus 100ms allowance. Historical deployment experiments and their
+percentages are separate evidence, not portable CI calibration values.
+
+Every formal release writes the combined table to the Actions job summary and
+retains the original JSON/Markdown, raw samples, build metadata, screenshots and
+logs in the existing per-attempt artifact. A threshold failure emits an Actions
+error annotation naming the scenario, metric, quantile, baseline, actual,
+percentage/millisecond change and budget; a measurement or behavior failure also
+emits an error and blocks publication. The baseline is never updated by release
+CI. Daily deployment and normal build gates remain outside this full suite.

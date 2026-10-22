@@ -10,7 +10,7 @@ import React,{useState} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {Context} from '@deepseek-ai/cordis';
 import {createConversationKey,createDefaultTimelineProjectorRegistry,projectTimeline} from '@opencraft/chat-core';
-import {buildCodexThemeCssProperties,codexThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
+import {buildOpenCraftThemeCssProperties,opencraftNeutralThemePalette,lavenderThemePalette} from '@opencraft/design-system/theme-engine';
 import {TimelineBlockRendererProvider,TimelineBlockRendererRegistryService} from '@opencraft/timeline-render-react';
 import {BuiltinTimelineRendererPlugin} from '/apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin.ts';
 import {Conversation} from '/apps/workbench-web/src/components/conversation.tsx';
@@ -27,10 +27,10 @@ const history=projectTimeline({key,revision:1,authoritative:true,phase:'live',tu
 ]}))},createDefaultTimelineProjectorRegistry());
 function theme(mode,family){
  document.documentElement.dataset.theme=mode;
- const palette=family==='custom'?lavenderThemePalette[mode]:codexThemePalette[mode];
- for(const [name,value] of Object.entries(buildCodexThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
+ const palette=family==='custom'?lavenderThemePalette[mode]:opencraftNeutralThemePalette[mode];
+ for(const [name,value] of Object.entries(buildOpenCraftThemeCssProperties(mode,palette)))document.documentElement.style.setProperty(name,value);
 }
-theme('light','codex');
+theme('light','opencraftNeutral');
 window.loadingFixture={theme};
 function Demo(){
  const [state,setState]=useState('cold-stage');
@@ -80,7 +80,7 @@ try {
   const evidenceDir = process.env.OPENCRAFT_THREAD_LOADING_EVIDENCE_DIR;
   if (evidenceDir) await mkdir(evidenceDir, { recursive: true });
   const results: unknown[] = [];
-  for (const width of [1280, 320, 390]) for (const family of ["codex", "custom"]) for (const mode of ["light", "dark"]) {
+  for (const width of [1280, 320, 390]) for (const family of ["opencraftNeutral", "custom"]) for (const mode of ["light", "dark"]) {
     const touch = width < 600;
     const context = await browser.newContext({ viewport: { width, height: 800 }, hasTouch: touch, permissions: ["clipboard-read", "clipboard-write"] });
     try {

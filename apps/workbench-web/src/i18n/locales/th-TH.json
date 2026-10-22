@@ -642,5 +642,16 @@
   "conversation.reference.cancelled": "ยกเลิกแล้ว",
   "conversation.reference.rejected": "ส่งข้อความไม่ได้",
   "conversation.reference.unknown": "โปรดตรวจสอบผลการส่ง",
-  "conversation.reference.queued": "รอการสนทนาปลายทางดำเนินการ"
+  "conversation.reference.queued": "รอการสนทนาปลายทางดำเนินการ",
+  "sidebar.catalog.end": "ไม่มีการสนทนาเพิ่มเติม",
+  "webUpdates.noticeAvailable": "มีอัปเดตใหม่ (v{version}) คลิกเพื่อดาวน์โหลด",
+  "webUpdates.noticeRefresh": "เวอร์ชันใหม่พร้อมแล้ว คลิกเพื่อรีเฟรช",
+  "webUpdates.noticeAction": "ดาวน์โหลดอัปเดต v{version}",
+  "webUpdates.noticeRefreshAction": "รีเฟรชอัปเดต",
+  "conversation.forkFromTurn": "สร้างสาขาจากจุดนี้",
+  "composer.model.configureTitle": "กำหนดค่า",
+  "composer.model.speed": "ความเร็ว",
+  "composer.model.standardSpeed": "มาตรฐาน",
+  "composer.model.done": "เสร็จสิ้น",
+  "composer.resetEffort": "รีเซ็ตการใช้เหตุผลเป็นค่าเริ่มต้นของโมเดล"
 }

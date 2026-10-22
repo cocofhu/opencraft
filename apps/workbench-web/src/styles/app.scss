@@ -1,8 +1,10 @@
+@use "../../../../packages/chat-render-web/src/zoomable-image";
 @use "@opencraft/design-system/icons.web" as icons;
 @use "@opencraft/design-system/tokens.web";
 @use "@opencraft/design-system/controls.web" as controls;
 @use "@opencraft/design-system/focus.web";
 @use "@opencraft/design-system/menu.web" as menu;
+@use "@opencraft/design-system/material.web" as material;
 @use "@opencraft/design-system/toolbar.web" as toolbar;
 @use "@opencraft/design-system/typography.web" as typography;
 @use "@opencraft/design-system/selection.web";
@@ -91,14 +93,11 @@
   text-align: left;
 }
 
-// AppShell geometry is restored from physical/app-initial-JeCCd060.css and
-// terminal/use-app-shell-layout-motion-04358.ts (r822).
 * {
   box-sizing: border-box;
   // Safari's rectangular tap flash ignores our control shapes. The app owns
   // pressed feedback; keep keyboard focus indicators in their own rules.
   -webkit-tap-highlight-color: transparent;
-  // Codex keeps the platform scrollbar and only themes its native chrome.
   // Overlay visibility and idle fading remain owned by Chromium/macOS.
   scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-width: thin;
@@ -126,7 +125,6 @@ body,
   overscroll-behavior: none;
 }
 
-// Codex runs inside an immovable Electron viewport. The browser build must
 // establish the same host contract explicitly so Safari cannot rubber-band the
 // document and carry the sticky Composer with it. Structural clips must not
 // become programmatic scroll containers during native focus reveal. Actual
@@ -354,8 +352,8 @@ button {
   overflow: clip;
   overscroll-behavior: none;
   // Browser fallback for Electron's transparent/vibrant window material.
-  background-color: var(--codex-window-material);
-  background-image: var(--codex-window-highlight);
+  background-color: var(--opencraft-window-material);
+  background-image: var(--opencraft-window-highlight);
 
   &:has(.app-shell-left-panel__resize[data-resizing="true"]) {
     cursor: col-resize;
@@ -382,9 +380,9 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   display: flex;
   padding-top: var(--height-toolbar);
   // Sidecar owns the material; each Pane owns its Frame/Clip/Viewport geometry.
-  background: var(--codex-sidebar-material-background);
-  backdrop-filter: var(--codex-sidebar-material-filter);
-  -webkit-backdrop-filter: var(--codex-sidebar-material-filter);
+  background: var(--opencraft-sidebar-material-background);
+  backdrop-filter: var(--opencraft-sidebar-material-filter);
+  -webkit-backdrop-filter: var(--opencraft-sidebar-material-filter);
 
   [data-sidebar-mounted="false"] & {
     visibility: hidden;
@@ -393,9 +391,8 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 
 }
 
-// Codex's renderer leaves the Electron layout panel unpainted. The native
 // NSVisualEffectView installed by BrowserWindow is the material owner.
-.app-shell-root[data-codex-window-type="electron"] {
+.app-shell-root[data-opencraft-window-type="electron"] {
   background: transparent;
 
   .app-shell-left-panel {
@@ -460,7 +457,6 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   pointer-events: none;
 }
 
-// Codex does not translate the docked layout panel over the content. Once the
 // layout panel is fully gone, a separate overlay owns edge reveal and resize.
 .app-shell-floating-overlay-root {
   // This host lives beside AppShell in body. Carry the inherited shell values
@@ -518,7 +514,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
 }
 
 .app-shell-floating-left-panel__header {
-  --header-tint: var(--codex-titlebar-tint, transparent);
+  --header-tint: var(--opencraft-titlebar-tint, transparent);
   display: flex;
   height: var(--height-toolbar);
   flex: 0 0 auto;
@@ -568,7 +564,7 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   flex: 1;
   flex-direction: column;
   background: var(--color-surface);
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   overflow: clip;
 }
 
@@ -658,10 +654,9 @@ html[data-timeline-tracks-visual-viewport="true"] .app-shell-root {
   transition: opacity var(--transition-duration-basic);
 }
 
-// Codex's browser renderer lets thread content pass directly beneath the
 // transparent header. Only the Electron surface retains the opaque titlebar
 // guard plus its short downward fade for native drag/window chrome.
-html[data-codex-window-type="browser"] .main-content-top-fade {
+html[data-opencraft-window-type="browser"] .main-content-top-fade {
   display: none;
 }
 
@@ -684,7 +679,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .app-shell-header {
-  --header-tint: var(--codex-titlebar-tint, transparent);
+  --header-tint: var(--opencraft-titlebar-tint, transparent);
   position: fixed;
   z-index: 30;
   top: 0;
@@ -722,7 +717,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   background: var(--background-shell-compact-titlebar);
   // This lip belongs to the same raised main surface. Reveal its lower edge
   // toward Sidecar only; its joining edge must not draw a second white seam.
-  box-shadow: var(--codex-main-surface-elevation);
+  box-shadow: var(--opencraft-main-surface-elevation);
   clip-path: inset(0 0 calc(-1 * var(--height-toolbar)) 0);
   content: "";
   pointer-events: none;
@@ -774,7 +769,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   align-items: center;
   gap: 4px;
   pointer-events: none;
-  // Codex reserves six additional pixels beyond the host-reported native
   // titlebar inset. This buffer belongs to the window rail and must not be
   // interpolated with sidebar width.
   --window-controls-padding-start: max(calc(var(--spacing-token-safe-header-left) + 6px), 8px);
@@ -783,7 +777,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
 // A browser host with neither actions nor branding has no native controls to
 // reserve. Its measurement twin must publish zero, including after a switch.
-.app-shell-root[data-codex-window-type="browser"]
+.app-shell-root[data-opencraft-window-type="browser"]
   .app-shell-header__window-controls-rail[data-navigation-empty="true"] {
   padding: 0;
 }
@@ -792,30 +786,35 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   --application-brand-mark-size: 26px;
   display: inline-flex; align-items: center; gap: 7px;
   white-space: nowrap; user-select: none;
+  &:is(button) {
+    appearance: none; padding: 0; border: 0; background: transparent;
+    color: inherit; font: inherit; text-align: start; cursor: pointer;
+    border-radius: var(--radius-sm); pointer-events: auto;
+  }
   .application-brand__mark { width: var(--application-brand-mark-size); height: var(--application-brand-mark-size); flex: 0 0 auto; object-fit: contain; }
   .application-brand__wordmark { @include typography.role(navigation-title, primary); }
 }
 
 // Brand and collapse control form one stable header across application routes.
 .app-shell-header__window-controls-rail[data-navigation-brand] {
-  width: min(var(--app-shell-brand-header-width), calc(100vw - 2 * var(--height-toolbar)));
-  > .application-brand { flex: 1 0 auto; padding-inline: 6px; }
+  width: max-content;
+  > .application-brand { flex: 0 0 auto; padding-inline: 6px; }
 }
 // Desktop browser branding consumes the same rail center as navigation glyphs.
 // Mobile has labeled drawers; native desktop keeps its host-owned safe inset.
-.has-unified-sidebar[data-codex-window-type="browser"]:not(.has-mobile-sidebar-gestures)
+.has-unified-sidebar[data-opencraft-window-type="browser"]:not(.has-mobile-sidebar-gestures)
   .app-shell-header__window-controls-rail[data-navigation-brand] > .application-brand {
   padding-inline-start: max(0px, calc(var(--shell-sidebar-icon-rail-width) / 2 - var(--window-controls-padding-start) - var(--application-brand-mark-size) / 2));
 }
 // Shared header surface removes the empty material band above application pages.
 .has-unified-sidebar {
-  &[data-codex-window-type="browser"] .app-shell-header {
+  &[data-opencraft-window-type="browser"] .app-shell-header {
     // Shell owns two painted regions; the live panel-toolbar aperture stays
     // transparent. One pane projection drives paint, resizing and animation.
     background: linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
       linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
-  &[data-codex-window-type="browser"] .app-shell-header::before { display: none; }
+  &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
   .main-content-surface { background: transparent; box-shadow: none; }
   .main-content-frame {
     background: var(--color-surface); border-start-start-radius: 0; overflow: clip;
@@ -824,7 +823,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
 // The slot and rail remain transparent to hit testing so their empty area is
 // native window chrome. Each concrete action exclusively reclaims its own hit
-// target, matching Codex HeaderSlotEntries rather than relying on descendants
 // to punch through a draggable ancestor.
 .app-shell-header__window-action {
   display: inline-flex;
@@ -902,7 +900,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 // Narrow headers retain their measured navigation-control spacing. Electron
 // keeps its native titlebar geometry; only Web conversation titles share this axis.
 @media (min-width: 641px) {
-  .app-shell-root[data-codex-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
+  .app-shell-root[data-opencraft-window-type="browser"] .app-shell-header__context:has(.thread-header-title) {
     padding-left: var(--thread-navigation-web-inset);
   }
 }
@@ -1022,7 +1020,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   display: none;
 }
 
-// A full-width task panel owns the center toolbar. Codex keeps the global
 // start/end slots mounted, but makes the thread context surface non-painting
 // and non-interactive so the panel tab bar cannot visually collide with it.
 .app-shell-header__context-surface[data-app-shell-header-context-hidden="true"] {
@@ -1258,7 +1255,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-// Codex HeaderSlot measures an out-of-flow max-content duplicate. Measuring
 // the visible slot would feed its animated width back into fitWidth and allow
 // the reopen action to collapse to zero with the panel.
 .app-shell-header__end-measure {
@@ -1324,7 +1320,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   padding: 1px 8px 8px;
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: var(--codex-sidebar-font-size);
+  font-size: var(--opencraft-sidebar-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -1408,7 +1404,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   border-radius: 6px;
   background: transparent;
   color: var(--color-text-tertiary);
-  font-size: var(--codex-sidebar-meta-font-size);
+  font-size: var(--opencraft-sidebar-meta-font-size);
   font-weight: var(--typography-primary-action-weight);
   text-align: left;
 
@@ -1548,7 +1544,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
     padding: 0 6px;
     border-radius: 6px;
     color: inherit;
-    font-size: var(--codex-sidebar-meta-font-size);
+    font-size: var(--opencraft-sidebar-meta-font-size);
     font-weight: var(--typography-primary-action-weight);
 
     &:hover {
@@ -1564,6 +1560,8 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .sidebar-activity-list {
+  // Append pages without letting the browser anchor the moving tail controls.
+  overflow-anchor: none;
   gap: var(--gap-sidebar-activity-groups);
 }
 
@@ -1618,6 +1616,15 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   width: 100%;
 
   > .sidebar-activity-row__target { flex: 1 1 auto; min-width: 0; }
+}
+
+// Keep ordinary offscreen rows out of resize layout work. An empty optional
+// contribution still has a slot, so eligibility follows its rendered content.
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-activity-row:not(:focus-within):not(:has([data-state="open"])):has(.sidebar-activity-item-container[data-row-lines="one"]):not(:has(.sidebar-activity-item__badge-slot:not(:empty))) {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto max(32px, var(--size-control-hit-min), calc(var(--typography-thread-list-title-line-height) + 8px));
+  }
 }
 
 // Reserve space independently of whether Host capabilities provide a menu.
@@ -1727,7 +1734,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
 .sidebar-activity-item__title {
   @include typography.role(thread-list-title, primary);
-  // Match bb list copy: normal tracking instead of the body's -0.01em.
   letter-spacing: normal;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1803,6 +1809,13 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   }
 }
 
+// Mobile uses the outer Shell scrollport; its tail must not become an anchor.
+.shell-sidebar__scroll { overflow-anchor: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-activity-pagination .is-spinning { animation: none; }
+}
+
 .sidebar-activity-more,
 .sidebar-activity-empty {
   @include typography.role(metadata, tertiary);
@@ -1812,6 +1825,9 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 }
 
 .sidebar-activity-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-control-group);
   @include controls.quiet-control;
   @include typography.role(sidebar-section, secondary);
   min-height: max(30px, var(--size-control-hit-min));
@@ -1912,7 +1928,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   min-height: 0;
 }
 
-// Codex Home/New chat is a Draft route, not an empty Conversation. The two
 // equal rows and the shared thread width are the important geometry
 // invariants: the hero resolves against the upper half while the Composer
 // remains on the same width rail used after Draft promotion.
@@ -2804,7 +2819,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   > .settings-page__content { width: 100%; height: 100%; padding: 0; margin: 0; gap: 0; min-height: 0; }
 }
 
-// Codex route pages can own their internal catalog toolbar and spacing while
 // the persistent AppShell continues to own the native titlebar offset.
 .settings-page__viewport[data-layout="edge-to-edge"] {
   overflow-x: hidden;
@@ -3267,7 +3281,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
 
   span:first-child {
     grid-row: 1 / 3;
-    background: var(--codex-sidebar-material-background);
+    background: var(--opencraft-sidebar-material-background);
   }
 
   span:nth-child(2) {
@@ -3751,7 +3765,6 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
   flex-direction: column-reverse;
   overflow: hidden auto;
   overflow-anchor: none;
-  // Codex can leave this implicit because Electron owns an immovable native
   // viewport. In the Web host this element is the terminal scroll owner, so it
   // must suppress the browser's boundary affordance as well as scroll chaining.
   // `contain` only handles chaining and still permits the rubber-band motion
@@ -3791,7 +3804,7 @@ html[data-codex-window-type="browser"] .main-content-top-fade {
     cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-html[data-codex-window-type="electron"] .conversation-navigation-rail {
+html[data-opencraft-window-type="electron"] .conversation-navigation-rail {
   left: 16px;
 }
 
@@ -4104,7 +4117,7 @@ html[data-codex-window-type="electron"] .conversation-navigation-rail {
   }
 }
 
-html[data-codex-window-type="electron"] .thread-scroll {
+html[data-opencraft-window-type="electron"] .thread-scroll {
   scrollbar-gutter: stable both-edges;
 }
 
@@ -4167,8 +4180,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
   margin-top: auto;
   padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
 
-  // The safe-area gutter sits below the translucent Composer. Cover only that
-  // gutter so a scrolled activity row cannot appear beneath the input.
+  // Desktop cuts off transcript paint at a straight horizontal gutter edge.
+  // Touch keeps the Composer floating, including its surrounding safe area.
   &::after {
     content: "";
     position: absolute;
@@ -4179,6 +4192,10 @@ html[data-codex-window-type="electron"] .thread-scroll {
     background: var(--color-surface);
     pointer-events: none;
   }
+}
+
+:root[data-ui-density="touch"] .thread-scroll-footer::after {
+  content: none;
 }
 
 .thread-scroll-footer__gradient {
@@ -4289,7 +4306,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 .thread-user-message-anchor {
   // The content-search wrapper is the scroll target; its child bubble remains
-  // the highlight and measurement target, matching the recovered source tree.
+  // the highlight and measurement target.
   min-width: 0;
   scroll-margin-top: 16px;
 }
@@ -4322,7 +4339,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   justify-content: flex-end;
   gap: 8px;
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__sender {
@@ -4679,33 +4696,37 @@ html[data-codex-window-type="electron"] .thread-scroll {
     display: block;
     margin-bottom: 1px;
     color: var(--color-text-tertiary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
   }
 }
 
-.modal-surface.thread-user-image-lightbox {
+.modal-surface:is(.thread-user-image-lightbox, .thread-generated-image-lightbox__dialog) {
   display: grid;
-  width: min(92vw, 1280px);
-  max-width: min(92vw, 1280px);
-  max-height: 90dvh;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
   place-items: center;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
 
-  > img {
-    display: block;
-    max-width: 100%;
-    max-height: 82dvh;
+  > .opencraft-zoomable-image { width: 100%; height: 100%; max-height: none; }
+
+  > .opencraft-zoomable-image > img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(100dvh - 48px);
     border-radius: 12px;
-    object-fit: contain;
     box-shadow: 0 18px 70px rgb(0 0 0 / 34%);
   }
 
   > .modal-surface__close {
-    top: 8px;
-    right: 8px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    width: 44px;
+    height: 44px;
     color: #fff;
     background: rgb(0 0 0 / 55%);
   }
@@ -4722,6 +4743,9 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 .thread-user-image-lightbox__navigation {
+  position: absolute;
+  z-index: 1;
+  bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 14px;
@@ -4785,7 +4809,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
 
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
 
     p {
@@ -4949,7 +4973,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-// Pending requests are Composer surfaces in Codex, not children of tool rows.
 // PanelContainer is rounded-3xl, primary-soft and electron elevation-prominent.
 .thread-pending-request-panel {
   position: relative;
@@ -4979,7 +5002,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   min-height: 20px;
   padding-left: 24px;
   color: color-mix(in srgb, var(--color-text) 30%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -5011,7 +5034,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     padding: 0 6px;
 
     strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5029,7 +5052,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__question {
     padding: 0 6px;
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-primary-action-weight);
     line-height: var(--typography-chat-line-height);
   }
@@ -5167,7 +5190,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-// A Codex async question belongs to its AgentMessage, not the blocking
 // server-request panel. The card remains reachable while Composer stays open.
 .thread-async-question {
   max-width: min(100%, 620px);
@@ -5422,7 +5444,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     }
     strong {
       color: var(--color-text);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5642,7 +5664,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     padding: 14px 16px 8px;
 
     > strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
       line-height: var(--typography-chat-line-height);
     }
@@ -5654,7 +5676,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 6px;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
 
     svg {
@@ -5680,7 +5702,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__description {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-metadata-line-height);
   }
 
@@ -5814,7 +5836,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     align-items: center;
     gap: 6px;
     color: var(--color-text-secondary);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-primary-action-weight);
     line-height: var(--typography-chat-line-height);
   }
@@ -5825,7 +5847,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
   &__title {
     color: var(--color-text);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     font-weight: var(--typography-body-weight);
     line-height: var(--typography-chat-line-height);
 
@@ -5964,7 +5986,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
         min-width: 0;
         overflow: hidden;
         color: var(--color-text);
-        font-size: var(--codex-chat-font-size);
+        font-size: var(--opencraft-chat-font-size);
         font-weight: var(--typography-primary-action-weight);
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -5974,7 +5996,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     > p {
       margin: 0;
       color: var(--color-text-secondary);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       line-height: var(--typography-chat-line-height);
     }
     > small {
@@ -5998,7 +6020,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
       align-items: center;
       gap: 7px;
       color: var(--color-text-tertiary);
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       white-space: nowrap;
 
       input {
@@ -6040,7 +6062,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     gap: 2px;
 
     strong {
-      font-size: var(--codex-chat-font-size);
+      font-size: var(--opencraft-chat-font-size);
       font-weight: var(--typography-prose-strong-weight);
     }
     small {
@@ -6177,7 +6199,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-stream-error {
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
   overflow-wrap: anywhere;
 }
@@ -6197,7 +6219,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   background: transparent;
   box-shadow: var(--elevation-stroke), 0 1px 2px rgb(0 0 0 / 4%);
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__icon {
@@ -6387,36 +6409,13 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-generated-image-edit:hover {
   background: rgba(0, 0, 0, 0.6);
 }
-.modal-surface.thread-generated-image-lightbox__dialog {
-  display: grid;
-  max-width: min(92vw, 1280px);
-  max-height: 90vh;
-  place-items: center;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.thread-generated-image-lightbox__dialog > img {
-  display: block;
-  max-width: 100%;
-  max-height: 86vh;
-  border-radius: 16px;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.34);
-}
 .thread-generated-image-lightbox__toolbar {
   position: absolute;
   z-index: 1;
-  inset-inline-end: 50px;
-  top: 8px;
+  inset-inline-end: max(64px, calc(env(safe-area-inset-right) + 56px));
+  top: max(12px, env(safe-area-inset-top));
   display: flex;
   gap: 6px;
-}
-.thread-generated-image-lightbox__dialog > .modal-surface__close {
-  top: 8px;
-  right: 8px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.48);
 }
 .thread-generated-image-lightbox__toolbar button,
 .thread-generated-image-lightbox__toolbar a {
@@ -6436,7 +6435,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-assistant-message {
   position: relative;
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   > p {
@@ -6448,6 +6447,22 @@ html[data-codex-window-type="electron"] .thread-scroll {
     opacity: 1;
   }
 }
+
+// Positive action owners keep relational selector invalidation out of unrelated
+// conversation content. :where preserves the previous type-level specificity.
+// Keep acknowledged intent visible while the disabled button cannot hold focus.
+.thread-message-actions:has([data-turn-fork][aria-busy="true"]) {
+  opacity: 1;
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
+}
+@media (any-pointer: coarse), (hover: none) {
+  .thread-message-actions:has([data-turn-fork]) { opacity: 1; > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; } }
+}
+:root[data-touch-interaction] .thread-message-actions:has([data-turn-fork]) {
+  opacity: 1;
+  > :is(button, :where(.thread-hook-stats, [role="alert"])) { opacity: 1; }
+}
+
 
 .thread-message-actions {
   display: flex;
@@ -6699,7 +6714,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-agent-activity {
   min-width: 0;
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 }
 
 .thread-agent-activity__turn-header {
@@ -6755,7 +6770,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   align-items: flex-start;
   gap: 8px;
   overflow: hidden;
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 }
 
@@ -6812,7 +6827,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-// Codex Le: the virtual list owns mounted-row geometry. Nested browser
 // skipping must not substitute an intrinsic estimate for a measured height.
 .thread-virtualizer-row [data-virtualized-turn-content] {
   content-visibility: visible;
@@ -6889,7 +6903,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-activity-item {
   min-width: 0;
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 }
 
 .thread-activity-item__header {
@@ -7210,7 +7224,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     overflow: hidden;
     padding-top: 4px;
     color: color-mix(in srgb, var(--color-text) 60%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     line-height: var(--typography-chat-line-height);
     white-space: pre-wrap;
   }
@@ -7242,7 +7256,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
   );
 }
 
-// Codex TurnDiff is a trailing Turn resource, not another patch Activity row.
 .modal-surface.thread-turn-diff-review {
   display: flex;
   width: min(960px, calc(100vw - 36px));
@@ -7363,7 +7376,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     transparent
   );
   color: var(--color-text);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__header {
@@ -7642,7 +7655,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     justify-content: space-between;
     gap: 16px;
     padding: 12px;
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   }
   > .thread-unified-diff { margin: 0; min-height: 0; overflow: auto; border: 0; border-radius: 0; }
@@ -8130,14 +8143,14 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &__annotations {
     margin: 2px 0 0;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
     white-space: pre-wrap;
   }
 
   &__empty {
     margin: 0;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
   }
 
   &__embedded-resource {
@@ -8145,7 +8158,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     flex-direction: column;
     gap: 2px;
     color: color-mix(in srgb, var(--color-text-tertiary) 80%, transparent);
-    font-size: var(--codex-chat-font-size);
+    font-size: var(--opencraft-chat-font-size);
 
     > div {
       display: flex;
@@ -8376,7 +8389,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   align-items: center;
   gap: 8px;
   color: var(--color-text-tertiary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
   line-height: var(--typography-chat-line-height);
 
   &__icon {
@@ -8637,7 +8650,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 .thread-subagent-activity {
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: var(--codex-chat-font-size);
+  font-size: var(--opencraft-chat-font-size);
 
   &__header {
     display: flex;
@@ -8841,15 +8854,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 // Composer surface: the editor owns draft behavior; Thread state supplies
 // activity and queue projections. Visual layers must not infer either.
-.codex-composer-stack {
+.opencraft-composer-stack {
   position: relative;
   isolation: auto;
-  container: codex-composer / inline-size;
+  container: opencraft-composer / inline-size;
   min-width: 0;
   color: var(--color-text);
 }
 
-.codex-composer-connection-hint {
+.opencraft-composer-connection-hint {
   margin: 6px 0 0;
   padding-inline: 12px;
   font: var(--typography-metadata-font);
@@ -8857,7 +8870,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-shell {
+.opencraft-composer-shell {
   --composer-surface-filter: none;
   position: relative;
   z-index: 1;
@@ -8888,7 +8901,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-:root[data-ui-density="touch"] .codex-composer-shell {
+:root[data-ui-density="touch"] .opencraft-composer-shell {
   --composer-surface-filter: blur(18px) saturate(145%);
   --composer-surface-background: linear-gradient(
     180deg,
@@ -8908,13 +8921,13 @@ html[data-codex-window-type="electron"] .thread-scroll {
 @supports not (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
-  .codex-composer-shell {
+  .opencraft-composer-shell {
     --composer-surface-background: var(--color-background-elevated-primary-opaque);
   }
 }
 
 // One border/material owns all above-composer items. The editor covers the tuck.
-.codex-composer-attached-rail {
+.opencraft-composer-attached-rail {
   --overlap-composer-rail: var(--radius-composer-shell);
   position: relative;
   z-index: 0;
@@ -8958,21 +8971,21 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 // The rail follows the complete, symmetric editor contour. The connection is
 // internal, so it does not add another horizontal outline or highlight.
-.codex-composer-attached-rail:not(:empty) + .codex-composer-shell {
+.opencraft-composer-attached-rail:not(:empty) + .opencraft-composer-shell {
   border-top-color: transparent;
   --composer-seam-highlight: transparent;
 }
 
-.codex-composer-queue-tray {
+.opencraft-composer-queue-tray {
   position: relative;
   max-height: min(30dvh, calc(var(--height-composer-queue-row) * 3 + 34px));
   overflow: hidden auto;
   overscroll-behavior: contain;
-  animation: codex-composer-tray-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: opencraft-composer-tray-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
   &[data-queue-size="1"] { overflow: hidden; }
 }
 
-.codex-composer-queue-tray__heading {
+.opencraft-composer-queue-tray__heading {
   display: flex;
   min-height: 32px;
   align-items: center;
@@ -8985,7 +8998,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-label-tracking);
 }
 
-.codex-composer-queue-tray__resume {
+.opencraft-composer-queue-tray__resume {
   display: inline-flex;
   height: 22px;
   align-items: center;
@@ -9008,14 +9021,14 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-queue-tray__items {
+.opencraft-composer-queue-tray__items {
   display: flex;
   flex-direction: column;
   gap: var(--width-composer-rail-border);
   padding: 0;
 }
 
-.codex-composer-queue-item {
+.opencraft-composer-queue-item {
   display: grid;
   min-width: 0;
   min-height: var(--height-composer-queue-row);
@@ -9065,7 +9078,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-body-tracking)
 }
 
-.codex-composer-queue-item__drag {
+.opencraft-composer-queue-item__drag {
   position: relative;
   display: grid;
   width: 34px;
@@ -9089,7 +9102,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     cursor: default;
   }
 
-  .codex-composer-queue-item__grip {
+  .opencraft-composer-queue-item__grip {
     position: absolute;
     opacity: 0;
     transition: opacity 100ms ease;
@@ -9099,20 +9112,20 @@ html[data-codex-window-type="electron"] .thread-scroll {
     &:hover:not(:disabled) {
       background: var(--color-background-button-tertiary-hover);
 
-      .codex-composer-queue-item__avatar { opacity: 0.16; }
-      .codex-composer-queue-item__grip { opacity: 1; }
+      .opencraft-composer-queue-item__avatar { opacity: 0.16; }
+      .opencraft-composer-queue-item__grip { opacity: 1; }
     }
   }
 
   html:not([data-touch-interaction="true"]) &:focus-visible:not(:disabled) {
     background: var(--color-background-button-tertiary-hover);
 
-    .codex-composer-queue-item__avatar { opacity: 0.16; }
-    .codex-composer-queue-item__grip { opacity: 1; }
+    .opencraft-composer-queue-item__avatar { opacity: 0.16; }
+    .opencraft-composer-queue-item__grip { opacity: 1; }
   }
 }
 
-.codex-composer-queue-item__avatar {
+.opencraft-composer-queue-item__avatar {
   display: grid;
   width: 20px;
   height: 20px;
@@ -9130,7 +9143,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-queue-item__status {
+.opencraft-composer-queue-item__status {
   position: absolute;
   right: calc(50% - 12px);
   bottom: calc(50% - 12px);
@@ -9138,30 +9151,30 @@ html[data-codex-window-type="electron"] .thread-scroll {
   background: var(--color-background-elevated-primary-opaque);
 }
 
-.codex-composer-queue-item[data-dragging="true"]
-  .codex-composer-queue-item__grip {
+.opencraft-composer-queue-item[data-dragging="true"]
+  .opencraft-composer-queue-item__grip {
   opacity: 1;
 }
 
-.codex-composer-queue-item[data-dragging="true"]
-  .codex-composer-queue-item__avatar {
+.opencraft-composer-queue-item[data-dragging="true"]
+  .opencraft-composer-queue-item__avatar {
   opacity: 0.16;
 }
 
 @media (pointer: coarse) {
-  .codex-composer-queue-item {
+  .opencraft-composer-queue-item {
     padding-block: 0;
     grid-template-columns: 34px minmax(0, 1fr) auto;
   }
 
-  .codex-composer-queue-item__drag {
+  .opencraft-composer-queue-item__drag {
     width: 44px;
     height: var(--height-composer-queue-row);
     margin: 0 -5px;
   }
 }
 
-.codex-composer-queue-item__preview {
+.opencraft-composer-queue-item__preview {
   min-width: 0;
   overflow: hidden;
   color: inherit;
@@ -9169,15 +9182,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
   white-space: nowrap;
 }
 
-.codex-composer-queue-action-trigger {
+.opencraft-composer-queue-action-trigger {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
 }
 
-.codex-composer-model-name-tooltip,
-.codex-composer-queue-action-tooltip {
+.opencraft-composer-model-name-tooltip,
+.opencraft-composer-queue-action-tooltip {
   z-index: var(--layer-tooltip, 1000);
   max-width: min(320px, calc(100vw - 16px));
   padding: 6px 12px;
@@ -9194,14 +9207,14 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-model-name-tooltip__arrow,
-.codex-composer-queue-action-tooltip__arrow {
+.opencraft-composer-model-name-tooltip__arrow,
+.opencraft-composer-queue-action-tooltip__arrow {
   fill: var(--color-background-elevated-primary-opaque);
   stroke: var(--border-subtle, var(--color-border-subtle, rgb(15 23 42 / 12%)));
   stroke-width: 1px;
 }
 
-.codex-composer-queue-item__actions {
+.opencraft-composer-queue-item__actions {
   display: flex;
   align-items: center;
   gap: 1px;
@@ -9243,7 +9256,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-steer-discard-dialog__body {
+.opencraft-composer-steer-discard-dialog__body {
   display: grid;
   gap: 12px;
   padding: 24px;
@@ -9251,7 +9264,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   [role="alert"] { color: var(--color-text-error, #cf222e); }
 }
 
-@keyframes codex-composer-tray-enter {
+@keyframes opencraft-composer-tray-enter {
   from {
     opacity: 0;
     transform: translateY(3px);
@@ -9259,17 +9272,17 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .codex-composer-queue-tray {
+  .opencraft-composer-queue-tray {
     animation: none;
   }
 
-  .codex-composer-queue-item__avatar,
-  .codex-composer-queue-item__grip {
+  .opencraft-composer-queue-item__avatar,
+  .opencraft-composer-queue-item__grip {
     transition: none;
   }
 }
 
-.codex-composer-chrome-header {
+.opencraft-composer-chrome-header {
   min-width: 0;
   border-bottom: 1px solid
     color-mix(in srgb, var(--color-border-subtle) 72%, transparent);
@@ -9281,12 +9294,12 @@ html[data-codex-window-type="electron"] .thread-scroll {
   );
 }
 
-.codex-composer-input-row {
+.opencraft-composer-input-row {
   min-width: 0;
   padding: 11px 13px 2px;
 }
 
-.codex-composer-error {
+.opencraft-composer-error {
   display: flex;
   min-height: 30px;
   align-items: center;
@@ -9319,11 +9332,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking)
 }
 
-.codex-composer-editor-mount {
+.opencraft-composer-editor-mount {
   min-width: 0;
 }
 
-.codex-composer-editor {
+.opencraft-composer-editor {
   min-height: 48px;
   max-height: min(232px, 34vh);
   overflow: hidden auto;
@@ -9369,19 +9382,19 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 @media (min-width: 768px) {
-  .codex-composer-editor,
-  .new-thread-draft-composer-zone .codex-composer-editor {
+  .opencraft-composer-editor,
+  .new-thread-draft-composer-zone .opencraft-composer-editor {
     min-height: 64px;
   }
 }
 
-.codex-composer-placeholder {
+.opencraft-composer-placeholder {
   // Anchor generated copy to the editable paragraph, including the compact
   // grid column. The shell's absolute containing block also includes buttons.
   position: relative;
 }
 
-.codex-composer-placeholder::before {
+.opencraft-composer-placeholder::before {
   content: attr(data-placeholder);
   position: absolute;
   inset-inline: 0;
@@ -9389,7 +9402,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   pointer-events: none;
 }
 
-.codex-composer-token {
+.opencraft-composer-token {
   padding: 1px 3px;
   border-radius: 4px;
   color: var(--color-text-accent);
@@ -9402,7 +9415,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-footer {
+.opencraft-composer-footer {
   --composer-control-size: 28px;
   --composer-primary-size: 30px;
   --composer-footer-gap: 5px;
@@ -9421,16 +9434,16 @@ html[data-codex-window-type="electron"] .thread-scroll {
   container: composer-footer / inline-size;
 }
 
-.codex-composer-footer[data-input-mode="dictation"] {
-  > .codex-composer-footer__attachment,
-  > .codex-composer-footer__controls,
-  > .codex-composer-footer__end {
+.opencraft-composer-footer[data-input-mode="dictation"] {
+  > .opencraft-composer-footer__attachment,
+  > .opencraft-composer-footer__controls,
+  > .opencraft-composer-footer__end {
     opacity: 0;
     pointer-events: none;
   }
 }
 
-.codex-composer-voice-footer {
+.opencraft-composer-voice-footer {
   position: absolute;
   inset: var(--composer-footer-padding-top) var(--composer-footer-padding-inline) var(--composer-footer-padding-bottom);
   display: flex;
@@ -9440,8 +9453,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
   color: var(--color-text-primary);
   animation: composer-voice-enter 180ms ease-out;
 
-  .codex-composer-icon-button,
-  .codex-composer-submit {
+  .opencraft-composer-icon-button,
+  .opencraft-composer-submit {
     border-radius: 50%;
     flex: 0 0 auto;
   }
@@ -9453,11 +9466,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .codex-composer-voice-footer { animation: none; }
+  .opencraft-composer-voice-footer { animation: none; }
 }
 
 // Keep dictation announcements accessible without adding a visual status row.
-.codex-composer-voice-footer .sr-only {
+.opencraft-composer-voice-footer .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -9469,20 +9482,20 @@ html[data-codex-window-type="electron"] .thread-scroll {
   border: 0;
 }
 
-.codex-composer-voice-footer__signal {
+.opencraft-composer-voice-footer__signal {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
-.codex-composer-voice-waveform {
+.opencraft-composer-voice-waveform {
   display: block;
   width: 100%;
   height: var(--composer-control-size);
   color: var(--color-text-primary);
 }
 
-.codex-composer-voice-footer__status {
+.opencraft-composer-voice-footer__status {
   display: flex;
   align-items: center;
   gap: var(--composer-footer-gap);
@@ -9492,7 +9505,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-voice-footer__duration {
+.opencraft-composer-voice-footer__duration {
   flex: 0 0 auto;
   color: var(--color-text-secondary);
   font: var(--typography-metadata-font);
@@ -9500,55 +9513,55 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-footer__attachment,
-.codex-composer-footer__controls,
-.codex-composer-footer__end {
+.opencraft-composer-footer__attachment,
+.opencraft-composer-footer__controls,
+.opencraft-composer-footer__end {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 2px;
 }
 
-.codex-composer-footer__attachment,
-.codex-composer-footer__end {
+.opencraft-composer-footer__attachment,
+.opencraft-composer-footer__end {
   flex: 0 0 auto;
 }
 
-.codex-composer-footer__controls {
+.opencraft-composer-footer__controls {
   overflow: hidden;
 }
 
-.codex-composer-footer__controls,
-.codex-composer-mode,
-.codex-composer-mode__model-label,
-.codex-composer-mode__effort-label,
-.codex-composer-mode__permission-label {
+.opencraft-composer-footer__controls,
+.opencraft-composer-mode,
+.opencraft-composer-mode__model-label,
+.opencraft-composer-mode__effort-label,
+.opencraft-composer-mode__permission-label {
   transition:
     max-width 120ms ease,
     opacity 90ms ease,
     padding 120ms ease;
 }
 
-.codex-composer-footer[data-footer-density="compact"],
-.codex-composer-footer[data-footer-density="tight"],
-.codex-composer-footer[data-footer-density="minimal"] {
-  .codex-composer-mode--static,
-  .codex-composer-mode__permission-label {
+.opencraft-composer-footer[data-footer-density="compact"],
+.opencraft-composer-footer[data-footer-density="tight"],
+.opencraft-composer-footer[data-footer-density="minimal"] {
+  .opencraft-composer-mode--static,
+  .opencraft-composer-mode__permission-label {
     display: none;
   }
 
-  .codex-composer-mode--permissions {
+  .opencraft-composer-mode--permissions {
     padding-inline: 6px;
   }
 }
 
-.codex-composer-footer[data-footer-density="tight"],
-.codex-composer-footer[data-footer-density="minimal"] {
-  .codex-composer-mode__effort-label {
+.opencraft-composer-footer[data-footer-density="tight"],
+.opencraft-composer-footer[data-footer-density="minimal"] {
+  .opencraft-composer-mode__effort-label {
     display: none;
   }
 
-  .codex-composer-mode__model-label {
+  .opencraft-composer-mode__model-label {
     max-width: 92px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -9556,28 +9569,28 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-footer[data-footer-density="minimal"] {
-  .codex-composer-mode__model-label {
+.opencraft-composer-footer[data-footer-density="minimal"] {
+  .opencraft-composer-mode__model-label {
     display: none;
   }
 
-  .codex-composer-mode--intelligence {
+  .opencraft-composer-mode--intelligence {
     width: 28px;
     justify-content: center;
     padding-inline: 5px;
   }
 }
 
-.codex-composer-icon-button,
-.codex-composer-mode,
-.codex-composer-submit,
-.codex-composer-attachment button,
-.codex-composer-suggestions button {
+.opencraft-composer-icon-button,
+.opencraft-composer-mode,
+.opencraft-composer-submit,
+.opencraft-composer-attachment button,
+.opencraft-composer-suggestions button {
   border: 0;
   cursor: default;
 }
 
-.codex-composer-icon-button {
+.opencraft-composer-icon-button {
   display: grid;
   width: var(--composer-control-size, 28px);
   height: var(--composer-control-size, 28px);
@@ -9591,56 +9604,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
     background: var(--color-background-button-tertiary-hover);
     color: var(--color-icon-primary);
   }
-}
-
-.codex-composer-shortcut-trigger {
-  display: inline-flex;
-  height: var(--composer-control-size, 28px);
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font: var(--typography-metadata-font);
-  white-space: nowrap;
-  cursor: default;
-
-  &:hover,
-  &[data-state="open"] {
-    background: var(--color-background-button-tertiary-hover);
-    color: var(--color-text);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-border-focus);
-    outline-offset: 2px;
-  }
-
-  letter-spacing: var(--typography-metadata-tracking)
-}
-
-.codex-composer-shortcut-menu {
-  width: min(260px, calc(100vw - 16px));
-
-  .codex-composer-selection-menu__item {
-    justify-content: flex-start;
-    gap: 12px;
-  }
-}
-
-.codex-composer-shortcut-menu__command {
-  flex: 0 0 auto;
-  color: var(--color-text);
-}
-
-.codex-composer-shortcut-menu__description {
-  color: var(--color-text-secondary);
 }
 
 .opencraft-voice-input-action:disabled {
@@ -9657,7 +9620,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   color: var(--color-text-danger);
 }
 
-.codex-composer-transient-text {
+.opencraft-composer-transient-text {
   color: var(--color-text-primary);
   opacity: 0.72;
   white-space: pre-wrap;
@@ -9678,7 +9641,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   50% { opacity: 0; }
 }
 
-.codex-composer-mode {
+.opencraft-composer-mode {
   display: flex;
   min-width: 0;
   max-width: 100%;
@@ -9733,7 +9696,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-picker-region {
+.opencraft-composer-picker-region {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
@@ -9742,7 +9705,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   overflow: hidden;
 }
 
-.codex-composer-picker {
+.opencraft-composer-picker {
   min-width: 0;
 
   &--intelligence {
@@ -9756,17 +9719,17 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-mode__model-label {
+.opencraft-composer-mode__model-label {
   @include typography.role(control-compact, secondary);
   flex: 1 1 auto;
   white-space: nowrap;
 }
 
-.codex-composer-mode__model-icon {
+.opencraft-composer-mode__model-icon {
   flex: 0 0 auto;
 }
 
-.codex-composer-mode__effort-label {
+.opencraft-composer-mode__effort-label {
   @include typography.role(control-compact, secondary);
   display: inline-flex;
   flex: 0 0 auto;
@@ -9774,11 +9737,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
   text-transform: none;
 }
 
-.codex-composer-mode__chevron {
+.opencraft-composer-mode__chevron {
   flex: 0 0 auto;
 }
 
-.codex-composer-selection-menu {
+.opencraft-composer-selection-menu {
   z-index: 90;
   width: min(260px, calc(100vw - 16px));
   @include menu.surface;
@@ -9814,20 +9777,20 @@ html[data-codex-window-type="electron"] .thread-scroll {
       background: var(--color-background-primary-ghost-hover);
     }
 
-    &.is-dangerous .codex-composer-selection-menu__label,
-    &.is-dangerous .codex-composer-selection-menu__description,
-    &.is-dangerous .codex-composer-selection-menu__leading,
-    &.is-dangerous .codex-composer-selection-menu__trailing {
+    &.is-dangerous .opencraft-composer-selection-menu__label,
+    &.is-dangerous .opencraft-composer-selection-menu__description,
+    &.is-dangerous .opencraft-composer-selection-menu__leading,
+    &.is-dangerous .opencraft-composer-selection-menu__trailing {
       color: var(--color-text-warning, rgb(180 83 9));
     }
   }
 }
 
-.codex-composer-add-menu {
+.opencraft-composer-add-menu {
   width: min(220px, calc(100vw - 16px));
 }
 
-.codex-composer-add-menu__item {
+.opencraft-composer-add-menu__item {
   > svg {
     flex: 0 0 15px;
     width: 15px;
@@ -9836,12 +9799,12 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-add-menu__chevron {
+.opencraft-composer-add-menu__chevron {
   margin-left: auto;
 }
 
-.codex-composer-selection-menu__heading,
-.codex-composer-selection-menu__status {
+.opencraft-composer-selection-menu__heading,
+.opencraft-composer-selection-menu__status {
   min-height: 24px;
   padding: 5px 8px;
   color: var(--color-text-tertiary);
@@ -9849,13 +9812,13 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-selection-menu__separator {
+.opencraft-composer-selection-menu__separator {
   height: 0.5px;
   margin: 4px 8px;
   background: var(--color-border-subtle);
 }
 
-.codex-composer-selection-menu__status {
+.opencraft-composer-selection-menu__status {
   font: var(--typography-metadata-font);
 
   &.is-error {
@@ -9865,8 +9828,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking)
 }
 
-.codex-composer-selection-menu__leading,
-.codex-composer-selection-menu__trailing {
+.opencraft-composer-selection-menu__leading,
+.opencraft-composer-selection-menu__trailing {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -9875,33 +9838,33 @@ html[data-codex-window-type="electron"] .thread-scroll {
   opacity: 0.75;
 }
 
-.codex-composer-selection-menu__leading {
+.opencraft-composer-selection-menu__leading {
   width: 18px;
   height: 18px;
 }
 
-.codex-composer-selection-menu__trailing {
+.opencraft-composer-selection-menu__trailing {
   width: 16px;
   height: 16px;
   margin-left: auto;
 }
 
-.codex-composer-selection-menu__item:hover,
-.codex-composer-selection-menu__item[data-highlighted] {
-  .codex-composer-selection-menu__leading,
-  .codex-composer-selection-menu__trailing {
+.opencraft-composer-selection-menu__item:hover,
+.opencraft-composer-selection-menu__item[data-highlighted] {
+  .opencraft-composer-selection-menu__leading,
+  .opencraft-composer-selection-menu__trailing {
     opacity: 1;
   }
 }
 
-.codex-composer-selection-menu__copy {
+.opencraft-composer-selection-menu__copy {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
 }
 
-.codex-composer-selection-menu__label {
+.opencraft-composer-selection-menu__label {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text);
@@ -9911,7 +9874,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-control-compact-tracking);
 }
 
-.codex-composer-selection-menu__description {
+.opencraft-composer-selection-menu__description {
   display: -webkit-box;
   overflow: hidden;
   color: var(--color-text-tertiary);
@@ -9923,7 +9886,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking);
 }
 
-.codex-composer-intelligence-view {
+.opencraft-composer-intelligence-view {
   display: grid;
   // The menu surface owns the collision/viewport budget, including its padding.
   // Both panes must shrink inside it rather than overflowing a second maximum.
@@ -9933,7 +9896,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   grid-template-columns: minmax(0, 268px) 1px minmax(0, 1fr);
 }
 
-.codex-composer-intelligence-models {
+.opencraft-composer-intelligence-models {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
@@ -9941,7 +9904,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   scrollbar-gutter: stable;
 }
 
-.codex-composer-intelligence-view > .codex-composer-selection-menu__separator {
+.opencraft-composer-intelligence-view > .opencraft-composer-selection-menu__separator {
   width: 0.5px;
   height: auto;
   align-self: stretch;
@@ -9949,7 +9912,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   background: var(--color-border-default);
 }
 
-.codex-composer-intelligence-detail {
+.opencraft-composer-intelligence-detail {
   display: flex;
   min-height: 0;
   min-width: 0;
@@ -9958,7 +9921,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   overflow-y: auto;
 }
 
-.codex-composer-intelligence-detail__header {
+.opencraft-composer-intelligence-detail__header {
   display: flex;
   min-width: 0;
   min-height: 32px;
@@ -9975,8 +9938,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-intelligence-detail__source,
-.codex-composer-model-capabilities__list > span {
+.opencraft-composer-intelligence-detail__source,
+.opencraft-composer-model-capabilities__list > span {
   @include typography.role(label, secondary);
   display: inline-flex;
   min-height: 20px;
@@ -9988,11 +9951,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
   white-space: nowrap;
 }
 
-.codex-composer-intelligence-detail__source {
+.opencraft-composer-intelligence-detail__source {
   flex: 0 0 auto;
 }
 
-.codex-composer-model-metadata {
+.opencraft-composer-model-metadata {
   display: grid;
   margin: 0;
   padding: 2px 8px 8px;
@@ -10016,45 +9979,45 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-model-capabilities {
+.opencraft-composer-model-capabilities {
   padding-bottom: 6px;
 
-  > .codex-composer-selection-menu__heading {
+  > .opencraft-composer-selection-menu__heading {
     display: flex;
     align-items: center;
   }
 }
 
-.codex-composer-model-capabilities__list {
+.opencraft-composer-model-capabilities__list {
   display: flex;
   flex-wrap: wrap;
   padding: 0 8px;
   gap: 4px;
 }
 
-.codex-composer-intelligence-reasoning {
+.opencraft-composer-intelligence-reasoning {
   padding-top: 2px;
   border-top: 0.5px solid var(--color-border-subtle);
 }
 
-.codex-composer-reasoning-heading {
+.opencraft-composer-reasoning-heading {
   display: flex;
   min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-control-group);
 
-  > .codex-composer-selection-menu__heading {
+  > .opencraft-composer-selection-menu__heading {
     flex: 1 1 auto;
   }
 }
 
 @media (max-width: 560px) {
-  .codex-composer-selection-menu--intelligence {
+  .opencraft-composer-selection-menu--intelligence {
     width: min(320px, calc(100vw - 16px));
   }
 
-  .codex-composer-intelligence-view {
+  .opencraft-composer-intelligence-view {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
 
@@ -10062,30 +10025,30 @@ html[data-codex-window-type="electron"] .thread-scroll {
     [data-has-detail="false"] > & { grid-template-rows: minmax(0, 1fr); }
   }
 
-  .codex-composer-intelligence-models {
+  .opencraft-composer-intelligence-models {
     max-height: 208px;
     padding-right: 0;
   }
 
-  .codex-composer-intelligence-view > .codex-composer-selection-menu__separator {
+  .opencraft-composer-intelligence-view > .opencraft-composer-selection-menu__separator {
     width: auto;
     height: 0.5px;
     margin: 4px 8px;
   }
 
-  .codex-composer-intelligence-detail {
+  .opencraft-composer-intelligence-detail {
     max-height: 230px;
     padding: 0 4px 4px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .codex-composer-selection-menu[data-state] {
+  .opencraft-composer-selection-menu[data-state] {
     animation: none;
   }
 }
 
-.codex-composer-submit {
+.opencraft-composer-submit {
   display: grid;
   width: var(--composer-primary-size, 30px);
   height: var(--composer-primary-size, 30px);
@@ -10121,7 +10084,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-attachments {
+.opencraft-composer-attachments {
   display: flex;
   gap: 9px;
   padding: 9px 10px 0;
@@ -10132,7 +10095,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   &::-webkit-scrollbar { display: none; }
 }
 
-.codex-composer-image-attachment {
+.opencraft-composer-image-attachment {
   position: relative;
   display: grid;
   flex: 0 0 80px;
@@ -10157,17 +10120,17 @@ html[data-codex-window-type="electron"] .thread-scroll {
       height: 80px;
     }
 
-    > .codex-composer-image-attachment__fallback {
+    > .opencraft-composer-image-attachment__fallback {
       grid-column: 1;
       grid-row: 1;
     }
 
-    > .codex-composer-image-attachment__status {
+    > .opencraft-composer-image-attachment__status {
       inset: 0 auto 0 0;
       width: 80px;
     }
 
-    > .codex-composer-image-attachment__remove {
+    > .opencraft-composer-image-attachment__remove {
       right: auto;
       left: 44px;
     }
@@ -10187,7 +10150,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
     background: rgb(0 0 0 / 28%);
     color: white;
 
-    > svg { animation: codex-composer-image-spin 1s linear infinite; }
+    > svg { animation: opencraft-composer-image-spin 1s linear infinite; }
 
     &.is-failed { background: rgb(0 0 0 / 55%); }
 
@@ -10245,15 +10208,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
   button:focus-visible { outline: 2px solid var(--color-border-strong); outline-offset: -2px; }
 }
 
-@keyframes codex-composer-image-spin {
+@keyframes opencraft-composer-image-spin {
   to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .codex-composer-image-attachment__status > svg { animation: none; }
+  .opencraft-composer-image-attachment__status > svg { animation: none; }
 }
 
-.codex-composer-attachment {
+.opencraft-composer-attachment {
   display: grid;
   min-width: 172px;
   max-width: 230px;
@@ -10284,13 +10247,13 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-attachment__actions {
+.opencraft-composer-attachment__actions {
   display: flex;
   align-items: center;
   gap: 2px;
 }
 
-.codex-composer-attachment__icon {
+.opencraft-composer-attachment__icon {
   display: grid;
   width: 30px;
   height: 34px;
@@ -10300,7 +10263,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   color: var(--color-icon-secondary);
 }
 
-.codex-composer-attachment__copy {
+.opencraft-composer-attachment__copy {
   display: grid;
   min-width: 0;
 
@@ -10321,7 +10284,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 
-.codex-composer-suggestions {
+.opencraft-composer-suggestions {
   position: absolute;
   z-index: 70;
   right: 0;
@@ -10336,23 +10299,23 @@ html[data-codex-window-type="electron"] .thread-scroll {
   box-shadow: 0 12px 36px rgb(0 0 0 / 18%);
 }
 
-.codex-composer-suggestions__label {
+.opencraft-composer-suggestions__label {
   padding: 5px 7px 6px;
   color: var(--color-text-tertiary);
   font: var(--typography-label-font);
   letter-spacing: var(--typography-label-tracking);
 }
 
-.codex-composer-suggestions[data-kind="skill"] {
+.opencraft-composer-suggestions[data-kind="skill"] {
   max-height: 240px;
-  .codex-composer-suggestions__label { @include typography.role(caption, tertiary); }
-  .codex-composer-suggestions__status { @include typography.role(caption, secondary); }
-  .codex-composer-suggestions__status.is-error { color: var(--color-text-danger); }
+  .opencraft-composer-suggestions__label { @include typography.role(caption, tertiary); }
+  .opencraft-composer-suggestions__status { @include typography.role(caption, secondary); }
+  .opencraft-composer-suggestions__status.is-error { color: var(--color-text-danger); }
   button strong { @include typography.role(settings-label); }
   button small { @include typography.role(caption, secondary); }
 }
 
-.codex-composer-suggestions__status {
+.opencraft-composer-suggestions__status {
   padding: 9px 8px 10px;
   color: var(--color-text-tertiary);
   font: var(--typography-metadata-font);
@@ -10364,7 +10327,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   letter-spacing: var(--typography-metadata-tracking)
 }
 
-.codex-composer-suggestions button {
+.opencraft-composer-suggestions button {
   display: grid;
   width: 100%;
   min-height: 42px;
@@ -11669,12 +11632,15 @@ html[data-codex-window-type="electron"] .thread-scroll {
 
 .workspace-file-viewer__image {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
   place-items: center;
   padding: 18px;
   overflow: auto;
+
+  > .opencraft-zoomable-image { width: 100%; height: 100%; max-height: 100%; }
 
   img {
     display: block;
@@ -11894,8 +11860,8 @@ html[data-codex-window-type="electron"] .thread-scroll {
     font-size: max(var(--typography-mobile-input-size), 1rem) !important;
   }
 
-  .codex-composer-editor,
-  .new-thread-draft-composer-zone .codex-composer-editor {
+  .opencraft-composer-editor,
+  .new-thread-draft-composer-zone .opencraft-composer-editor {
     line-height: var(--typography-mobile-input-line-height);
 
     p { min-height: 24px; }
@@ -12030,6 +11996,14 @@ html[data-codex-window-type="electron"] .thread-scroll {
       box-shadow: var(--elevation-sidebar);
     }
   }
+  .app-shell-mobile-page-wash {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: var(--color-background-elevated-primary-opaque);
+    will-change: opacity;
+  }
   .app-shell-header {
     padding-left: max(var(--padding-toolbar), var(--shell-mobile-safe-left));
     padding-right: max(var(--padding-toolbar), var(--shell-mobile-safe-right));
@@ -12048,10 +12022,19 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
   // A portal has no window-material ancestor. Composite the theme's Sidebar
   // material over its window backing once, rather than borrowing main content.
-  --shell-mobile-sidebar-background: linear-gradient(var(--codex-sidebar-material-background), var(--codex-sidebar-material-background)), var(--codex-window-material);
+  --shell-mobile-sidebar-background: linear-gradient(var(--opencraft-sidebar-material-background), var(--opencraft-sidebar-material-background)), var(--opencraft-window-material);
   // Keep the material plane stationary while the panel scales/fades above it.
   // The portal outlives presence; exiting/inert or empty hosts must not cover the page.
   &:has(.app-shell-floating-left-panel:not([aria-hidden="true"])) { background: var(--shell-mobile-sidebar-background); }
+  // Mobile progress has finished before presence exits. aria-hidden/inert
+  // revoke input but still paint, so hide the retained surface in this same
+  // DOM commit, before Motion's next render or the portal's final removal.
+  .app-shell-floating-left-panel {
+    // Even the global reduced-motion 0.01ms duration would defer visibility
+    // until another frame. Mobile MotionValues own movement; CSS owns hiding.
+    transition-property: none;
+    &[aria-hidden="true"] { visibility: hidden; }
+  }
   @media (prefers-reduced-motion: no-preference) {
     // This owner exists only for floating presence. Keep its changing scale on
     // a composited layer rather than re-rasterizing it at every scale value.
@@ -12128,33 +12111,33 @@ html[data-codex-window-type="electron"] .thread-scroll {
 // queue may scroll; the action footer must remain outside that scroll budget.
 @media (max-width: 767px) and (any-pointer: coarse) {
   html[data-timeline-tracks-visual-viewport="true"] {
-    .codex-composer-stack {
+    .opencraft-composer-stack {
       display: flex;
       flex-direction: column;
       max-height: max(120px, calc(var(--timeline-visual-viewport-height) - var(--height-toolbar) - 24px));
     }
-    .codex-composer-shell {
+    .opencraft-composer-shell {
       display: flex;
       flex-direction: column;
       min-height: 0;
       flex: 1 1 auto;
     }
-    .codex-composer-input-row {
+    .opencraft-composer-input-row {
       min-height: 0;
       flex: 1 1 auto;
       overflow-y: auto;
       overscroll-behavior: contain;
     }
-    .codex-composer-editor {
+    .opencraft-composer-editor {
       max-height: min(232px, calc(var(--timeline-visual-viewport-height) * .3));
     }
-    .codex-composer-attached-rail { flex: 0 0 auto; }
-    .codex-composer-queue-tray {
+    .opencraft-composer-attached-rail { flex: 0 0 auto; }
+    .opencraft-composer-queue-tray {
       flex: 0 0 auto;
       max-height: min(calc(var(--height-composer-queue-row) * 3 + 34px), calc(var(--timeline-visual-viewport-height) * .25));
     }
-    .codex-composer-footer { flex: 0 0 auto; }
-    .codex-composer-attachments {
+    .opencraft-composer-footer { flex: 0 0 auto; }
+    .opencraft-composer-attachments {
       max-height: min(120px, calc(var(--timeline-visual-viewport-height) * .2));
       overflow-y: auto;
     }
@@ -12162,7 +12145,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 // Composer consumes the same interaction density as navigation, menus and Settings.
-.codex-composer-footer {
+.opencraft-composer-footer {
   --composer-control-size: max(28px, var(--size-control-hit-min));
   --composer-primary-size: max(30px, var(--size-control-hit-min));
   --composer-footer-gap: max(5px, var(--gap-control-density-min));
@@ -12192,7 +12175,7 @@ html[data-codex-window-type="electron"] .thread-scroll {
   > img { width: 100%; height: 100%; object-fit: cover; }
 }
 
-// Touch chrome owns one stationary sidebar action above the drawer, below dialogs.
+// Unified chrome owns one stationary sidebar action above the drawer, below dialogs.
 // Its measured placeholder reserves the same header slot in every visibility state.
 .app-shell-touch-sidebar-toggle {
   position: fixed;
@@ -12201,10 +12184,12 @@ html[data-codex-window-type="electron"] .thread-scroll {
   > .chrome-button {
     width: 100%;
     height: 100%;
-    > svg { width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile); }
   }
 }
 :root[data-ui-density="touch"] {
+  .app-shell-touch-sidebar-toggle > .chrome-button > svg {
+    width: var(--size-shell-header-icon-mobile); height: var(--size-shell-header-icon-mobile);
+  }
   .app-shell-root.has-mobile-sidebar-gestures .app-shell-header {
     // The rails own edge clearance, including safe areas, without a second inset.
     padding-inline: 0;
@@ -12219,7 +12204,6 @@ html[data-codex-window-type="electron"] .thread-scroll {
   .app-shell-header [data-app-shell-window-action="sidebar-toggle"] .chrome-button {
     width: var(--size-shell-header-action-mobile); height: var(--size-shell-header-action-mobile);
   }
-  .shell-sidebar__toggle { display: none; }
   .app-shell-floating-overlay-root:not([data-mobile-sidebar]) .shell-sidebar__header {
     padding-inline-start: calc(max(var(--spacing-token-safe-header-left), var(--spacing-shell-header-edge-touch)) + var(--size-shell-header-action-mobile) + 4px);
     > [data-app-shell-sidebar-trigger] { display: none; }
@@ -12252,38 +12236,37 @@ html[data-codex-window-type="electron"] .thread-scroll {
     height: var(--size-transcript-float-dot-touch);
     background: var(--color-text);
   }
-  .codex-composer-stack { isolation: auto; --radius-composer-shell: var(--radius-composer-newera); }
+  .opencraft-composer-stack { isolation: auto; --radius-composer-shell: var(--radius-composer-newera); }
   // The sticky footer used to paint an opaque veil behind the glass.
   .thread-scroll-footer__gradient { background: none; }
-  .codex-composer-icon-button,
-  .codex-composer-submit {
+  .opencraft-composer-icon-button,
+  .opencraft-composer-submit {
     border-radius: var(--radius-composer-newera-icon);
     clip-path: circle(50%); // Match pointer hit testing to the visible circle.
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
   }
-  .codex-composer-mode,
-  .codex-composer-shortcut-trigger {
+  .opencraft-composer-mode {
     border-radius: var(--radius-composer-newera-capsule);
     clip-path: inset(0 round var(--radius-composer-newera-capsule));
     &:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -3px; }
   }
-  .codex-composer-footer {
+  .opencraft-composer-footer {
     --composer-control-size: var(--size-control-hit-min);
     --composer-primary-size: var(--size-control-hit-min);
   }
-  .codex-composer-shell {
+  .opencraft-composer-shell {
     border: var(--width-composer-rail-border) solid var(--color-border-composer-newera);
     border-radius: var(--radius-composer-shell);
     --composer-surface-background: var(--color-background-composer-newera);
     --composer-surface-filter: blur(var(--blur-composer-newera)) saturate(var(--saturation-composer-newera));
     box-shadow: var(--shadow-composer-newera), inset 0 1px 0 var(--composer-seam-highlight, var(--color-highlight-composer-newera));
   }
-  .codex-composer-attached-rail:not(:empty) + .codex-composer-shell {
+  .opencraft-composer-attached-rail:not(:empty) + .opencraft-composer-shell {
     border-top-color: transparent;
     --composer-seam-highlight: transparent;
   }
-  .codex-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"] {
-    .codex-composer-shell {
+  .opencraft-composer-stack[data-composer-layout="auto-single-line"][data-composer-empty="true"][data-composer-editing="false"] {
+    .opencraft-composer-shell {
       --newera-input-row: 1;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -12292,38 +12275,37 @@ html[data-codex-window-type="electron"] .thread-scroll {
       min-height: var(--height-composer-newera);
       padding: var(--padding-composer-newera);
     }
-    .codex-composer-footer__controls { display: none; }
-    .codex-composer-input-row {
+    .opencraft-composer-footer__controls { display: none; }
+    .opencraft-composer-input-row {
       grid-column: 2; grid-row: var(--newera-input-row);
       padding: 0; min-width: 0;
     }
-    .codex-composer-editor { min-height: 1lh; max-height: 1lh; overflow: hidden; }
-    .codex-composer-placeholder::before {
+    .opencraft-composer-editor { min-height: 1lh; max-height: 1lh; overflow: hidden; }
+    .opencraft-composer-placeholder::before {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .codex-composer-footer { display: contents; }
-    .codex-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
-    .codex-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
-    .codex-composer-shortcut-trigger,
-    .codex-composer-icon-button--context,
-    .codex-composer-icon-button--attachment { display: none; }
+    .opencraft-composer-footer { display: contents; }
+    .opencraft-composer-footer__attachment { grid-column: 1; grid-row: var(--newera-input-row); }
+    .opencraft-composer-footer__end { grid-column: 3; grid-row: var(--newera-input-row); }
+    .opencraft-composer-icon-button--context,
+    .opencraft-composer-icon-button--attachment { display: none; }
     // Dictation replaces this same row. The inactive editor stays mounted and
     // keeps its selection, while the voice footer owns the full control width.
-    &:has(.codex-composer-footer[data-input-mode="dictation"]) {
-      .codex-composer-input-row { opacity: 0; pointer-events: none; }
-      .codex-composer-footer {
+    &:has(.opencraft-composer-footer[data-input-mode="dictation"]) {
+      .opencraft-composer-input-row { opacity: 0; pointer-events: none; }
+      .opencraft-composer-footer {
         display: grid;
         grid-column: 1 / -1;
         grid-row: var(--newera-input-row);
         min-height: var(--composer-control-size);
         padding: 0;
-        > .codex-composer-footer__attachment,
-        > .codex-composer-footer__controls,
-        > .codex-composer-footer__end { display: none; }
+        > .opencraft-composer-footer__attachment,
+        > .opencraft-composer-footer__controls,
+        > .opencraft-composer-footer__end { display: none; }
       }
-      .codex-composer-voice-footer {
+      .opencraft-composer-voice-footer {
         position: relative;
         inset: auto;
         grid-column: 1 / -1;
@@ -12338,10 +12320,10 @@ html[data-codex-window-type="electron"] .thread-scroll {
     backdrop-filter: none;
   }
 
-  :root[data-ui-density] .codex-composer-stack .codex-composer-shell {
+  :root[data-ui-density] .opencraft-composer-stack .opencraft-composer-shell {
     --composer-surface-background: var(--color-background-elevated-primary-opaque);
   }
-  .codex-composer-attached-rail {
+  .opencraft-composer-attached-rail {
     --composer-rail-background: var(--color-background-composer-rail-opaque);
   }
 }
@@ -12352,11 +12334,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
     backdrop-filter: none;
   }
 
-  :root[data-ui-density] .codex-composer-stack .codex-composer-shell {
+  :root[data-ui-density] .opencraft-composer-stack .opencraft-composer-shell {
     --composer-surface-background: var(--color-background-elevated-primary-opaque);
     --composer-surface-filter: none;
   }
-  .codex-composer-attached-rail {
+  .opencraft-composer-attached-rail {
     --composer-rail-background: var(--color-background-composer-rail-opaque);
     --composer-rail-filter: none;
   }
@@ -12376,27 +12358,18 @@ html[data-codex-window-type="electron"] .thread-scroll {
   }
 }
 @media (any-hover: hover) and (any-pointer: fine) {
-  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:hover, :focus-visible, [data-state="open"])) {
+  :root:not([data-touch-interaction]) .sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:hover) {
     .sidebar-activity-item__trailing { opacity: 0; }
     .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
   }
 }
-// Touch retains a discoverable action beside the single activity renderer,
-// both within the same existing 44px hit target rather than another column.
-@mixin sidebar-activity-touch-menu {
-  .sidebar-activity-row[data-has-menu="true"]:has(.sidebar-activity-item__status[role="img"]) {
-    .sidebar-activity-item__trailing { opacity: 1; padding-inline-end: calc(var(--size-icon-navigation) + var(--spacing)); }
-    .sidebar-activity-item__menu-trigger:not([data-forking]) {
-      padding-inline-start: calc(var(--size-icon-navigation) + var(--spacing));
-      > .sidebar-activity-item__menu-dots { display: block; }
-    }
-    &:has(.sidebar-activity-item__menu-trigger[data-forking]) {
-      .sidebar-activity-item__trailing { opacity: 0; }
-    }
-  }
+// Touch uses the same single-glyph lane. Its transparent 44px action target
+// remains operable over activity paint; opening actions (or keyboard focus)
+// replaces that paint with dots rather than displaying both glyphs together.
+.sidebar-activity-row:has(.sidebar-activity-item__status[role="img"]):has(.sidebar-activity-item__menu-trigger:is(:focus-visible, [data-state="open"])) {
+  .sidebar-activity-item__trailing { opacity: 0; }
+  .sidebar-activity-item__menu-trigger > .sidebar-activity-item__menu-dots { display: block; }
 }
-:root[data-touch-interaction] { @include sidebar-activity-touch-menu; }
-@media (hover: none), (any-pointer: coarse) { @include sidebar-activity-touch-menu; }
 .sidebar-activity-row:has(.sidebar-activity-item__menu-trigger[data-forking]) {
   .sidebar-activity-item__trailing { opacity: 0; }
 }
@@ -12487,26 +12460,26 @@ html[data-codex-window-type="electron"] .thread-scroll {
 }
 
 // Session-only model presentation shares the Composer menu and footer tokens.
-.codex-composer-footer[data-model-selection-policy="session"] {
+.opencraft-composer-footer[data-model-selection-policy="session"] {
   column-gap: 2px;
   padding-inline-start: calc(var(--composer-footer-padding-inline) + 4px);
 }
 
-.codex-composer-footer[data-model-selection-policy="session"] .codex-composer-picker-region {
+.opencraft-composer-footer[data-model-selection-policy="session"] .opencraft-composer-picker-region {
   justify-content: flex-end;
 }
 
-.codex-composer-footer[data-model-selection-policy="session"] .codex-composer-mode__model-label {
+.opencraft-composer-footer[data-model-selection-policy="session"] .opencraft-composer-mode__model-label {
   max-width: 16ch;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.codex-composer-footer[data-model-selection-policy="session"]:is([data-footer-density="tight"], [data-footer-density="minimal"]) .codex-composer-mode__model-label {
+.opencraft-composer-footer[data-model-selection-policy="session"]:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode__model-label {
   max-width: min(16ch, 92px);
 }
 
-.codex-composer-mode__model-skeleton {
+.opencraft-composer-mode__model-skeleton {
   display: inline-block;
   width: 32px;
   height: 10px;
@@ -12515,26 +12488,26 @@ html[data-codex-window-type="electron"] .thread-scroll {
   opacity: 0.18;
 }
 
-.codex-composer-selection-menu__item.is-root-model .codex-composer-selection-menu__label {
+.opencraft-composer-selection-menu__item.is-root-model .opencraft-composer-selection-menu__label {
   @include typography.role(control-compact, secondary);
 }
 
-.codex-composer-model-group__label {
+.opencraft-composer-model-group__label {
   @include typography.role(sidebar-section, secondary);
   padding: 8px 8px 3px;
   overflow-wrap: anywhere;
 }
 
-.codex-composer-selection-menu__item.is-nested-model {
+.opencraft-composer-selection-menu__item.is-nested-model {
   padding-inline-start: 18px;
 
-  .codex-composer-selection-menu__label {
+  .opencraft-composer-selection-menu__label {
     overflow: visible;
     white-space: normal;
   }
 }
 
-.codex-composer-model-label-with-role {
+.opencraft-composer-model-label-with-role {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -12542,11 +12515,11 @@ html[data-codex-window-type="electron"] .thread-scroll {
   max-width: 100%;
 }
 
-.codex-composer-model-label-with-role__name {
+.opencraft-composer-model-label-with-role__name {
   overflow-wrap: anywhere;
 }
 
-.codex-composer-model-role {
+.opencraft-composer-model-role {
   @include typography.role(label, secondary);
   display: inline-flex;
   min-height: 20px;
@@ -12558,24 +12531,125 @@ html[data-codex-window-type="electron"] .thread-scroll {
   white-space: nowrap;
 }
 
-.codex-composer-model-configure-footer {
+.opencraft-composer-model-configure-footer {
   flex: none;
   padding: 0 4px 4px;
 
-  .codex-composer-selection-menu__separator {
+  .opencraft-composer-selection-menu__separator {
     background: var(--color-border-default);
   }
 
-  .codex-composer-selection-menu__item {
+  .opencraft-composer-selection-menu__item {
     gap: 10px;
     @include typography.role(control-compact);
   }
 }
 
-.codex-composer-selection-menu--intelligence[data-has-detail="false"][data-model-groups="true"] { width: min(320px, calc(100vw - 16px)); }
-.codex-composer-selection-menu--intelligence[data-configure-models="true"] {
+.opencraft-composer-selection-menu--intelligence[data-has-detail="false"][data-model-groups="true"] { width: min(320px, calc(100vw - 16px)); }
+.opencraft-composer-selection-menu--intelligence[data-configure-models="true"] {
   display: flex;
   max-height: min(368px, var(--radix-dropdown-menu-content-available-height), calc(100vh - 16px));
   flex-direction: column;
-  .codex-composer-intelligence-view { min-height: 0; max-height: none; flex: 1 1 auto; }
+  .opencraft-composer-intelligence-view { min-height: 0; max-height: none; flex: 1 1 auto; }
 }
+
+// Inherited model metadata has no pointer or menu interaction.
+.opencraft-composer-mode--inherited {
+  cursor: default;
+  pointer-events: none;
+  .opencraft-composer-mode__model-label { flex: 0 1 auto; }
+  padding-inline: 0;
+}
+
+.opencraft-composer-model-quick {
+  @include material.surface(menu);
+  z-index: 90;
+  box-sizing: border-box;
+  width: min(288px, calc(100vw - 24px));
+  padding: calc(var(--spacing) * 3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  outline: none;
+}
+.opencraft-composer-model-quick__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing);
+}
+.opencraft-composer-model-quick__action-slot { width: max(32px, var(--size-control-hit-min)); }
+.opencraft-composer-model-quick__labels { min-width: 0; }
+.opencraft-composer-model-quick__effort {
+  @include typography.role(control-compact, null);
+  color: var(--color-text-accent);
+  min-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opencraft-composer-model-quick__title {
+  @include typography.role(control-compact, secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing);
+  min-height: max(24px, var(--size-control-hit-min));
+  padding: 0 var(--spacing);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  > svg { flex: none; }
+}
+.opencraft-composer-model-quick__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(32px, var(--size-control-hit-min));
+  height: max(32px, var(--size-control-hit-min));
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  &[data-state="checked"] { color: var(--color-icon-accent); }
+  &[data-highlighted] { background: var(--color-background-primary-ghost-hover); }
+  &[data-disabled] { opacity: var(--opacity-control-disabled); cursor: default; }
+}
+.opencraft-composer-mode__fast { flex: none; color: var(--color-icon-accent); }
+.opencraft-composer-selection-menu--model-select {
+  box-sizing: border-box;
+  z-index: 91;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(320px, var(--radix-dropdown-menu-content-available-height), calc(100dvh - 24px));
+  overflow-y: auto;
+  .opencraft-composer-intelligence-view { display: block; max-height: none; }
+  .opencraft-composer-intelligence-models { overflow: visible; max-height: none; }
+}
+
+.opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: none; }
+.opencraft-composer-footer[data-footer-density="minimal"] .opencraft-composer-mode--depth .opencraft-composer-mode__model-icon { display: block; }
+
+// Empty idle touch drafts use a single row without a model entrance. Editor
+// focus opens the ordinary footer; content retains its own expansion policy.
+.opencraft-composer-collapsed-fast { display: none; color: var(--color-text-accent); }
+:root[data-ui-density="touch"][data-touch-newera="on"] .opencraft-composer-stack[data-composer-layout="auto-single-line"]:has(.opencraft-composer-footer[data-input-mode="standard"]) {
+  .opencraft-composer-input-row { flex: 0 1 auto; }
+  .opencraft-composer-editor { min-height: 1lh; text-align: start; }
+  // Add already owns attachments. Avoid a duplicate action consuming the
+  // model/depth budget after the idle row opens.
+  .opencraft-composer-icon-button--attachment { display: none; }
+  .opencraft-composer-footer[data-footer-density="tight"] {
+    .opencraft-composer-mode--depth .opencraft-composer-mode__model-label { max-width: 60px; }
+    .opencraft-composer-mode--depth .opencraft-composer-mode__effort-label {
+      display: block;
+      max-width: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  &[data-composer-empty="true"][data-composer-editing="false"] {
+    .opencraft-composer-collapsed-fast { display: inline-flex; align-items: center; }
+  }
+}
+
+.opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }

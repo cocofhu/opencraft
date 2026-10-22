@@ -1,4 +1,3 @@
-// Codex ComposerDictationButton separates tap from a 150ms press-and-hold.
 export class DictationPressGesture {
   private disarm: (() => void) | null = null;
   private finish: (() => void) | null = null;

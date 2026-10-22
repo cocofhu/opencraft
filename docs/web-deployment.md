@@ -120,7 +120,7 @@ npm run smoke:server-updates
 npm run smoke:server-updates:systemd
 ```
 
-`test:server-updates` 覆盖安装/回退、执行启动失败、持久化失败、网站启动失败、进程中断恢复及 systemd 生命周期配置。smoke 使用隔离 HOME、合成账户和本地 Responses 端点，运行真实 Codex CLI、归档内 gateway/daemon、生产 SPA 和真实 npm；浏览器点安装时 shell 已在运行，断线后原 turn 完成，shell 开始/结束各一次、core/CLI/运行中子进程 PID 不变，再从页面回退。默认 smoke 的 systemd 边界由隔离进程重启替代；`:systemd` 入口在 `/run/systemd/system` 创建随机命名的临时 core/执行 unit，通过实际 `systemctl restart` 验证同一链路并在结束时删除自己的 unit。两种入口都不修改线上 unit、不使用真实账户或付费推理；生产服务器仍需核对权限与首次迁移。
+`test:server-updates` 通过 `tsx` 加载真实 TypeScript headless composition 依赖，覆盖安装/回退、执行启动失败、持久化失败、网站启动失败、进程中断恢复及 systemd 生命周期配置。独立 DSH 兼容边界测试仍构建完整 execution 归档，仅查询指定 service 成员以限制子进程输出；其三分钟预算覆盖完整打包，不削弱指针、服务身份或拒绝旧包的断言。smoke 使用隔离 HOME、合成账户和本地 Responses 端点，运行真实 Codex CLI、归档内 gateway/daemon、生产 SPA 和真实 npm；浏览器点安装时 shell 已在运行，断线后原 turn 完成，shell 开始/结束各一次、core/CLI/运行中子进程 PID 不变，再从页面回退。默认 smoke 的 systemd 边界由隔离进程重启替代；`:systemd` 入口在 `/run/systemd/system` 创建随机命名的临时 core/执行 unit，通过实际 `systemctl restart` 验证同一链路并在结束时删除自己的 unit。两种入口都不修改线上 unit、不使用真实账户或付费推理；生产服务器仍需核对权限与首次迁移。
 
 ## 本地源码与 npm 复用更新事务
 
@@ -165,11 +165,13 @@ npm run gate:server-updates -- --scenario self-upgrade
 
 包模板版本必须与tag相同；tag必须位于main历史中。预检再次核对tag内来源清单、安装锁定依赖、执行相关测试和浏览器回归，然后构建一个execution tgz、核对公开包内容并生成SHA256 manifest。发布job只下载并发布这份归档，不重建；npm版本已存在时只接受字节完全一致的归档。最后核对npm下载/安装及GitHub Release归档、manifest和release notes。全发布workflow串行，`npm-release` Environment仍只允许main。已上传后若最终校验失败，用 `gh run rerun <run-id> --failed` 复用原归档，核对远端字节后继续，不重建或重复上传。操作技能见 [opencraft-release](../.agents/skills/opencraft-release/SKILL.md)，迁移边界见[上游迁移](upstream-transition.md)。
 
+正式发布预检还执行 `npm run gate:performance`，在打包前比较版本化基线并保留30天原始样本、JSON/Markdown报告及失败截图；回退或证据不完整阻断后续发布。该完整套件不接日常服务器更新/普通PR流水线，开发可独立执行；场景、阈值及校准流程见 [performance regression gate](startup-performance.md#formal-release-performance-regression-gate)。
+
 预检按 `package-lock.json` 缓存 npm 下载内容，仍执行 `npm ci`；按操作系统、架构与锁定的 Playwright 版本缓存浏览器，每次仍安装所需系统依赖。依赖安装、类型检查、翻译检查、各组测试、浏览器安装、打包、上传和发布后验证分别记录 Actions step 时间。浏览器回归使用 2 个 worker，各自拥有独立 registry、状态目录和动态端口。依赖审计由 security workflow 执行，不重复放在 release 的依赖安装中。
 
 npm 上传返回成功后，公开 metadata 可能延迟出现。整包 metadata 可能受 CDN 缓存影响；发布烟测显式使用 `--metadata-source version-api` 查询公共精确版本接口 `/包名/版本`，验证返回的包名和版本，并记录缓存状态、等待及安装耗时。该模式不发送 npm 凭据；需要认证或没有此接口的 registry 继续使用默认 npm CLI 查询。精确接口的 HTTP 404 最多重试 30 次、间隔 10 秒，然后仍在独立临时目录运行 `npm install 包名@版本 --prefer-online`。安装 CLI 自身仍可能读取受缓存影响的整包 metadata；仅对明确的 `ETARGET` 且错误指向本次精确版本进行同样的有界重试，认证、网络、其他包缺失、错误版本和其他安装错误立即失败。用新 workflow 复核旧 tag 时，若 tag 内的 kit 尚未提供此参数，则使用原 npm CLI 查询。已存在版本的烟测不能证明新版本上传后的同步耗时，需在下一次真实发布中观察。
 
-Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。仓库已公开（`opencraft-app/opencraft`），发布 workflow 不额外声明 npm provenance；来源证明以仓库内 `NOTICE`、各包 `PROVENANCE.md` 和 `config/source-provenance.json` 为准，不在 npm 侧另行宣称。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
+Trusted Publisher 的配置：GitHub Actions；组织 `opencraft-app`；仓库 `opencraft`；workflow filename `release.yml`；Environment `npm-release`。该 Environment 只允许 main。workflow 使用 OIDC，不存放长期 npm token。仓库已公开（`opencraft-app/opencraft`），发布 workflow 不额外声明 npm provenance；第三方版权与许可声明保留在仓库及归档内，不在 npm 侧另行宣称权利核实。首次真实发布需先以 npm 账号有效凭据上传本机验证过的归档，包存在后才能在 npm Settings 添加 Trusted Publisher；配置后按 npm 当前有效期要求及时通过 Actions 成功发布。
 
 ```sh
 gh workflow run release.yml --repo opencraft-app/opencraft --ref main -f tag=v0.1.10
@@ -238,7 +240,7 @@ Host overlay；需要保留这些能力时，先完成相应 adapter 接入，�
 结构拒绝，也不能移开后用空库替代。发现目标 preview 来自未提交或后续补丁时，将
 它与指定构建来源分别记录；未经确认不能把该 preview 当作已接收源码构建输入。
 
-完整保留下游 overlay 的受管 Headless 边界、Bot 恢复来源和 writer 回归见
+完整保留下游 overlay 的受管 Headless 边界、历史数据保留和 writer 回归见
 [受管 Headless 与独立 core](managed-headless.md)。纯 core bridge 不能替代该模式。
 # Optional ordinary relay
 

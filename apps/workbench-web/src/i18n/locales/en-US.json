@@ -260,7 +260,7 @@
   "panel.actionFailed": "Could not open the preview. Try again.",
   "panel.addressHint": "Enter an address above to navigate",
   "composer.cloudComputer": "Cloud computer",
-  "panel.desktopEntry": "Desktop",
+  "panel.desktopEntry": "Cloud computer",
   "panel.browser": "Browser",
   "panel.close": "Close preview panel",
   "panel.closeTab": "Close {title}",
@@ -640,5 +640,16 @@
   "conversation.reference.cancelled": "Cancelled",
   "conversation.reference.rejected": "The message could not be delivered",
   "conversation.reference.unknown": "Delivery needs review",
-  "conversation.reference.queued": "Waiting for the target conversation"
+  "conversation.reference.queued": "Waiting for the target conversation",
+  "sidebar.catalog.end": "No more conversations",
+  "conversation.forkFromTurn": "Branch from here",
+  "webUpdates.noticeAvailable": "Update available (v{version}), click to download",
+  "webUpdates.noticeRefresh": "New version ready, click to refresh",
+  "webUpdates.noticeAction": "Download update v{version}",
+  "webUpdates.noticeRefreshAction": "Refresh update",
+  "composer.model.configureTitle": "Configure",
+  "composer.model.speed": "Speed",
+  "composer.model.standardSpeed": "Standard",
+  "composer.model.done": "Done",
+  "composer.resetEffort": "Reset reasoning to model default"
 }

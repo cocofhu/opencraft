@@ -138,7 +138,7 @@ import {
   createWorkbenchNavigationTransaction
 } from "./workbench-navigation-transaction";
 
-import { appServerUrl, BoundedCheckpointMap, BrowserDisplayContinuity, createWebWorkbenchCommands, createWorkbenchQueryClient, currentProductDatabaseName, currentProductStorageKey, currentWorkbenchPlatform, hostDefinitionProfile, HostlessWebWorkbenchApplicationSupervisor, parseWebHostDefinitions, persistProvisionedHost, profileDescriptor, provisionWebSocketHost, refreshBundledHostBrowseRoots, rememberedThreadId, WebWorkbenchApplicationSupervisor, WebWorkbenchSupervisorOptions } from './workbench-application-services';
+import { appServerUrl, BoundedCheckpointMap, BrowserDisplayContinuity, createWebWorkbenchCommands, createWorkbenchQueryClient, currentProductDatabaseName, currentProductStorageKey, currentWorkbenchPlatform, hostDefinitionProfile, HostlessWebWorkbenchApplicationSupervisor, parseWebHostDefinitions, persistProvisionedHost, profileDescriptor, provisionWebSocketHost, refreshBundledHostProfiles, rememberedThreadId, WebWorkbenchApplicationSupervisor, WebWorkbenchSupervisorOptions } from './workbench-application-services';
 export async function createWebWorkbenchApplicationSupervisor(
   browserToolHost: BrowserDynamicToolHost,
   terminalToolHost: ConversationTerminalToolHost,
@@ -241,13 +241,16 @@ export async function createWebWorkbenchApplicationSupervisor(
     const headlessAppHost = platform === "web" && import.meta.env.VITE_INCLUDE_HEADLESS_CODEX === "true"
       ? connectWebSocketAppHost() : null;
     if (headlessAppHost !== null) startupRollback.push(() => headlessAppHost.close());
-    const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, { path: "/ssh-apphost" }) : null;
-    if (remoteAppHost) startupRollback.push(() => remoteAppHost.close());
     const sshManagement = headlessAppHost ? new (await import("@opencraft/plugin-builtin-agents")).SshConnectionsController(serverFetch, serverAdmissionOrigin()) : null;
     if (sshManagement) { startupRollback.push(() => sshManagement.dispose()); await sshManagement.startDiscovery(webSshDiscoveryLifecycle); }
+    const remoteAppHost = headlessAppHost ? connectWebSocketAppHost(undefined, {
+      path: "/ssh-apphost",
+      beforeConnect: () => sshManagement!.prepareConnection(),
+    }) : null;
+    if (remoteAppHost) startupRollback.push(() => remoteAppHost.close());
     const clientProduct = await options.clientProduct?.create({ platform, hostProfileMode: options.hostProfileMode, defaultExtensions: deployment.extensions });
     if (clientProduct) startupRollback.push(() => clientProduct.dispose());
-    const localClientScope = clientProduct ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
+    const localClientScope = clientProduct?.persistenceScope ? null : new LocalClientPersistenceScope(platformAccounts, serverStorageKey("local"));
     if (localClientScope) startupRollback.push(() => localClientScope.dispose());
     const clientPersistenceScope = clientProduct?.persistenceScope ?? localClientScope!;
     // Existing task View continuity remains its sole persistence owner. Bot
@@ -560,7 +563,7 @@ export async function createWebWorkbenchApplicationSupervisor(
         transportEndpoint: null, executionLocation: server.displayName, workspaceBrowseRoots: server.workspaceBrowseRoots, revision: server.revision,
       })))
     : storedHostProfiles;
-  if (!fixedPresentation) await refreshBundledHostBrowseRoots(configuredHostProfiles, bootstrapDefinitions);
+  if (!fixedPresentation) await refreshBundledHostProfiles(configuredHostProfiles, bootstrapDefinitions);
   const hostProfiles: HostConnectionProfileStore = options.hostProfileMode === "configured"
     ? configuredHostProfiles
     : new EnvironmentProfileStore(configuredHostProfiles, environmentDirectory);

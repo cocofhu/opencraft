@@ -28,7 +28,7 @@
     object-fit: contain;
   }
 
-  // Source canvas padding differs. Keep original contours and calibrate to
+  // Icon canvas padding differs. Calibrate licensed semantic artwork to
   // ~15px painted geometry; effective Lucide stroke remains 1.2 CSS pixels.
   > .lucide { stroke-width: 1.44; }
   > .lucide-brain,
@@ -36,19 +36,12 @@
   > .lucide-bot,
   > .lucide-monitor,
   > .lucide-message-square,
-  > .lucide-earth {
+  > .lucide-earth,
+  > .lucide-book-open,
+  > .lucide-pencil,
+  > .lucide-folder {
     width: 18px;
     height: 18px;
     stroke-width: 1.6;
-  }
-  > [data-codex-activity-icon="read"],
-  > [data-codex-activity-icon="files"],
-  > [data-codex-activity-icon="browser"] {
-    width: 19px;
-    height: 19px;
-  }
-  > [data-codex-activity-icon="stop"] {
-    width: 27px;
-    height: 27px;
   }
 }

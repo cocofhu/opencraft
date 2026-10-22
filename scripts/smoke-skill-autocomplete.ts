@@ -9,11 +9,11 @@ const output = await mkdtemp(join(tmpdir(), "opencraft-skill-autocomplete-"));
 const source = `
 import React,{useMemo,useState} from 'react';import{createRoot}from'react-dom/client';
 import{LocaleRuntime}from'@opencraft/i18n';import{IntlRuntimeProvider}from'@opencraft/i18n/react';
-import{CodexComposer}from'@opencraft/codex-composer';import{createComposerController}from'@opencraft/composer-core';
+import{OpenCraftComposer}from'@opencraft/composer-editor';import{createComposerController}from'@opencraft/composer-core';
 import{searchAppServerSkills,compileSubmitIntent}from'@opencraft/composer-appserver';
-import{buildCodexThemeCssProperties,zenCodeThemePalette}from'/packages/design-system/src/theme-engine.ts';
+import{buildOpenCraftThemeCssProperties,zenCodeThemePalette}from'/packages/design-system/src/theme-engine.ts';
 import'/apps/workbench-web/src/styles/app.scss';
-document.documentElement.dataset.theme='light';for(const[k,v]of Object.entries(buildCodexThemeCssProperties('light',zenCodeThemePalette.light)))document.documentElement.style.setProperty(k,v);
+document.documentElement.dataset.theme='light';for(const[k,v]of Object.entries(buildOpenCraftThemeCssProperties('light',zenCodeThemePalette.light)))document.documentElement.style.setProperty(k,v);
 let mode='ready',submitted=0,extra=0;const requests=[],pending=[],listeners=new Set();
 const response=host=>({data:[{cwd:'/workspace/'+host,errors:[],skills:[
 {name:'repo-review',path:'/workspace/'+host+'/review/SKILL.md',description:'Review repository changes',enabled:true,scope:'repo',interface:{displayName:host+' Review'}},
@@ -27,8 +27,8 @@ const catalog=useMemo(()=>available?{subscribeSkillsChanged:f=>{listeners.add(f)
 if(mode==='hold')return new Promise(resolve=>pending.push(()=>resolve(result())));if(mode==='error')throw Error('Synthetic catalog failure');return Promise.resolve(mode==='empty'?[]:result());}}:undefined,[host,available]);
 window.fixture={locale:locale=>intlRuntime.update({localeOverride:locale}),refresh:n=>{extra=n;listeners.forEach(f=>f())},host:()=>host,mode:v=>mode=v,resolve:()=>{pending.splice(0).forEach(f=>f())},requests:()=>requests.map(({signal,...r})=>({...r,aborted:signal?.aborted})),submitted:()=>submitted,switchHost:()=>setHost('B'),unavailable:()=>setAvailable(false),compile:()=>compileSubmitIntent(controller.createSubmitIntent()).input,document:()=>controller.getSnapshot().draft.document,
 codeBlock:()=>controller.dispatch({type:'set-document',document:{version:1,blocks:[{type:'code-block',language:'sh',text:'$'}]}}),
-dark:()=>{document.documentElement.dataset.theme='dark';for(const[k,v]of Object.entries(buildCodexThemeCssProperties('dark',zenCodeThemePalette.dark)))document.documentElement.style.setProperty(k,v)}};
-return <main style={{padding:40,paddingTop:320,maxWidth:900,margin:'auto'}}><button id='outside' style={{position:'fixed',top:16,left:16}}>Outside editor</button><CodexComposer controller={controller} catalog={catalog} shortcutCommands={host==='A'?[{name:'new',description:'New conversation'},{name:'compress',description:'Compress context'},{name:'status',description:'View status'},{name:'usage',description:'View usage'},{name:'stop',description:'Stop current task'},{name:'help',description:'All commands'}]:undefined} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}}/></main>}
+dark:()=>{document.documentElement.dataset.theme='dark';for(const[k,v]of Object.entries(buildOpenCraftThemeCssProperties('dark',zenCodeThemePalette.dark)))document.documentElement.style.setProperty(k,v)}};
+return <main style={{padding:40,paddingTop:320,maxWidth:900,margin:'auto'}}><button id='outside' style={{position:'fixed',top:16,left:16}}>Outside editor</button><OpenCraftComposer controller={controller} catalog={catalog} shortcutCommands={host==='A'?[{name:'new',description:'New conversation'},{name:'compress',description:'Compress context'},{name:'status',description:'View status'},{name:'usage',description:'View usage'},{name:'stop',description:'Stop current task'},{name:'help',description:'All commands'}]:undefined} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}}/></main>}
 const intlRuntime=new LocaleRuntime([{locale:'zh-CN',label:'简体中文',load:async()=> (await import('/apps/workbench-web/src/i18n/locales/zh-CN.json')).default}]);
 createRoot(document.getElementById('root')).render(<IntlRuntimeProvider runtime={intlRuntime}><App/></IntlRuntimeProvider>);`;
 const vite=await createServer({configFile:false,root:process.cwd(),logLevel:"error",cacheDir:join("node_modules",`.vite-${basename(output)}`),resolve:{dedupe:["react","react-dom","react-intl"]},optimizeDeps:{include:["react","react-dom/client","react/jsx-runtime","react-intl"]},esbuild:{jsx:"automatic"},server:{host:"127.0.0.1",port:0,hmr:false},plugins:[{name:"skill-autocomplete-fixture",resolveId:id=>id==="/probe.tsx"?id:null,load:id=>id==="/probe.tsx"?source:null,configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url==="/favicon.ico"){res.statusCode=204;res.end();return}if(req.url!=="/")return next();res.setHeader('content-type','text/html');res.end('<title>Skill autocomplete verification</title><div id="root"></div><script type="module" src="/probe.tsx"></script>')})}}]});
@@ -40,10 +40,10 @@ try{
     desktop=await _electron.launch({executablePath:process.env.OPENCRAFT_SKILL_ELECTRON_EXECUTABLE,args:[entry],env:Object.fromEntries(Object.entries(process.env).filter(([key])=>key!=="ELECTRON_RUN_AS_NODE"))});page=await desktop.firstWindow();
   }else{browser=await chromium.launch({headless:true,executablePath:process.env.OPENCRAFT_CHROMIUM_EXECUTABLE});page=await browser.newPage({viewport:{width:1100,height:850}})}
   page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(60000);page.on('pageerror',(e:Error)=>{errors.push(e.message);console.error(e.message)});page.on('console',(m:any)=>{if(m.type()==='error')console.error(m.text())});await page.addInitScript('window.__name=value=>value');await page.goto(url,{waitUntil:'domcontentloaded'});console.log('Composer fixture loaded');
-  const editor=page.locator('.codex-composer-editor');const list=page.getByRole('listbox',{name:'skill suggestions'});const options=list.getByRole('option');
+  const editor=page.locator('.opencraft-composer-editor');const list=page.getByRole('listbox',{name:'skill suggestions'});const options=list.getByRole('option');
   const fill=async(text:string)=>{await editor.fill('');await page.getByRole('listbox').waitFor({state:'hidden'});await editor.fill(text)};
   await page.getByRole('button',{name:'Commands'}).click();
-  const commandMenu=page.locator('.codex-composer-shortcut-menu');
+  const commandMenu=page.locator('.opencraft-composer-shortcut-menu');
   await commandMenu.getByRole('menuitem').first().waitFor();
   assert.equal(await commandMenu.getByRole('menuitem').count(),6);
   await page.screenshot({path:join(output,'hermes-commands.png')});

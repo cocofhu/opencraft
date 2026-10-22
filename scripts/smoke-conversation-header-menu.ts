@@ -31,7 +31,7 @@ try {
     const page=await context.newPage();const errors:string[]=[];page.on('pageerror',(e:Error)=>errors.push(e.message));
     await page.goto(vite.resolvedUrls!.local[0]!);
     const trigger=page.getByRole('button',{name:'Conversation actions',exact:true});await trigger.waitFor();
-    await page.evaluate(theme=>{(window as any).fixture.setThemePreference(theme==='dark'?'dark':'light');if(theme==='lavender')(window as any).fixture.setAppearanceThemeId('vela.core.lavender')},theme);
+    await page.evaluate(theme=>{(window as any).fixture.setThemePreference(theme==='dark'?'dark':'light');if(theme==='lavender')(window as any).fixture.setAppearanceThemeId('opencraft.core.lavender')},theme);
     const activate=async(locator:any)=>touch?locator.tap():locator.click();
     await activate(trigger);
     const archive=page.getByRole('menuitem',{name:'Archive',exact:true});await archive.waitFor();

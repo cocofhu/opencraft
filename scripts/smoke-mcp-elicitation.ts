@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import { createServer } from "vite";
+
+const playwright = await import(process.env.OPENCRAFT_PLAYWRIGHT_MODULE ?? "playwright");
+const { chromium } = playwright.default ?? playwright;
+const vite = await createServer({ configFile: false, root: process.cwd(), logLevel: "error",
+  esbuild: { jsx: "automatic" }, resolve: { dedupe: ["react", "react-dom"] },
+  cacheDir: "node_modules/.vite-mcp-elicitation-smoke", server: { host: "127.0.0.1", port: 0 },
+  plugins: [{ name: "mcp-elicitation-smoke", configureServer(server) {
+    server.middlewares.use((request, response, next) => {
+      if (request.url !== "/") return next();
+      response.setHeader("content-type", "text/html");
+      response.end('<meta name="viewport" content="width=device-width, initial-scale=1"><div id="root"></div><script type="module" src="/tests/fixtures/mcp-elicitation.tsx"></script>');
+    });
+  } }],
+});
+let browser: any;
+try {
+  await vite.listen();
+  browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
+  const errors: string[] = [];
+  for (const width of [390, 1200]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, reducedMotion: "reduce" });
+    page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}`);
+    const show = async (name: string) => {
+      await page.evaluate(name => { (window as any).mcpActions = []; (window as any).showMcpCase(name); }, name);
+      await page.locator(`main[data-scenario="${name}"]`).waitFor();
+    };
+    const actions = () => page.evaluate(() => (window as any).mcpActions);
+    await page.locator(".thread-elicitation").waitFor();
+    assert.deepEqual(await actions(), []);
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    assert.match(await page.getByRole("alert").innerText(), /This field is required/);
+    assert.deepEqual(await actions(), []);
+    const field = (name: string) => page.locator(".thread-elicitation__field").filter({ has: page.locator("b", { hasText: new RegExp(`^${name}$`) }) });
+    await field("Name").locator("input").fill("  Demo  ");
+    await field("Count").locator("input").fill("0");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    assert.match(await page.getByRole("alert").innerText(), /Must be at least 1/);
+    await field("Count").locator("input").fill("3");
+    await field("Environment").locator("select").selectOption("prod");
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", content: { name: "Demo", count: 3, enabled: true, environment: "prod", tags: ["safe"] } }]);
+    await show("multi");
+    assert.equal(await page.getByRole("checkbox").count(), 2);
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    assert.equal(await page.getByRole("alert").innerText(), "Select at least one option");
+    assert.deepEqual(await actions(), []);
+    await page.getByRole("checkbox", { name: "Fast mode", exact: true }).check();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", content: { tags: ["fast"] } }]);
+    await show("tool");
+    const approval = page.locator(".thread-mcp-tool-approval");
+    assert.equal(await approval.getAttribute("data-risk-level"), "high");
+    await approval.getByRole("button", { name: "Expand payload", exact: true }).click();
+    assert.match(await approval.locator('[data-expanded="true"]').innerText(), /x{140}/);
+    await approval.getByRole("button", { name: "Show 1 more items", exact: true }).click();
+    assert.equal(await approval.locator("dt").count(), 5);
+    await page.screenshot({ path: `/tmp/opencraft-mcp-elicitation-${width}.png`, fullPage: true });
+    await approval.locator("summary").click();
+    await approval.getByRole("menuitem", { name: "Allow this conversation", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist: "session" }]);
+    await show("tool");
+    await approval.locator("summary").click();
+    await approval.getByRole("menuitem", { name: "Always allow", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist: "always" }]);
+    await show("tool");
+    await approval.getByRole("button", { name: "Deny", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "decline" }]);
+    for (const [name, persist] of [["Allow this conversation", "session"], ["Always allow", "always"]] as const) {
+      await show("browser");
+      await approval.locator("summary").click();
+      await approval.getByRole("menuitem", { name, exact: true }).click();
+      await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+      assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist }]);
+    }
+    await show("browser");
+    await approval.getByRole("button", { name: "Allow once", exact: false }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation" }]);
+    await show("browser");
+    await approval.getByRole("button", { name: "Deny", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "decline" }]);
+    await show("suggestion");
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: /Install/ }).click();
+    assert.deepEqual(await actions(), []);
+    assert.equal(await page.evaluate(() => (window as any).mcpOpened.at(-1)), "https://example.test/install");
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation", persist: "always" }]);
+    await show("auth");
+    assert.match(await page.locator("main").innerText(), /files.read/);
+    await page.getByRole("button", { name: /Connect/ }).click();
+    assert.deepEqual(await actions(), []);
+    assert.equal(await page.evaluate(() => (window as any).mcpOpened.at(-1)), "https://example.test/auth");
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "accept-elicitation" }]);
+    await show("url");
+    assert.equal(await page.getByRole("link").getAttribute("href"), "https://example.test/continue");
+    await page.getByRole("button", { name: "Decline", exact: true }).click();
+    await page.waitForFunction(() => (window as any).mcpActions.length === 1);
+    assert.deepEqual(await actions(), [{ type: "decline" }]);
+    await page.close();
+  }
+  assert.deepEqual(errors, []);
+  console.log("PASS: real MCP interaction panel at 390/1200px; validation, typed and required anyOf form submit, browser-origin once/session/always/deny, risk, JSON expansion, persistence, setup handoffs, connector auth and generic URL actions");
+} finally { await browser?.close(); await vite.close(); }
