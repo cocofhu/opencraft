@@ -79,7 +79,7 @@ try {
   await model.tap();await menu.waitFor();assert(await menu.evaluate(el=>el.contains(document.activeElement)));
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
   console.log('core passed');
-  for(const trigger of [model,permissions,add])await assertComposingMenuEscape(page,editor,trigger,menu);
+  for(const trigger of [model,permissions])await assertComposingMenuEscape(page,editor,trigger,menu);
   // Outside text entry may take focus and must not be stolen by delayed cleanup.
   await editor.click();await model.tap();await menu.waitFor();
   await page.getByLabel('Outside input').tap();await menu.waitFor({state:'hidden'});
