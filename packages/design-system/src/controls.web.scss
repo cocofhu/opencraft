@@ -1,12 +1,10 @@
+@forward "./interaction-mixins.web";
+@use "./interaction-mixins.web" as *;
 @use "./icons.web" as icons;
 @use "./typography-mixins.web" as typography;
 
 // State-only primitives: never own geometry or domain pending state.
-@mixin focus-indicator {
-  outline: var(--width-control-focus-ring) solid var(--color-border-focus);
-  outline-offset: var(--offset-control-focus-ring);
-  @media (forced-colors: active) { outline-color: Highlight; }
-}
+
 
 @mixin disabled-feedback {
   opacity: var(--opacity-control-disabled);
@@ -21,11 +19,11 @@
 // A hybrid device can report hover capability even after a touch contact.
 // The document's current-input signal suppresses synthetic/sticky hover while
 // focus-visible and persistent selected/open states remain independent.
-@mixin hover-capable {
-  @media (any-hover: hover) and (any-pointer: fine) {
-    :root:not([data-touch-interaction]) & { @content; }
-  }
-}
+
+
+// Essential actions cannot depend on hover, including on a hybrid device after
+// touch contact. Density remains a separate layout preference.
+
 
 // Shared quiet controls. Layout belongs to the consumer, interaction to here.
 // An input-adaptive consumer may own its hover rule while retaining the same

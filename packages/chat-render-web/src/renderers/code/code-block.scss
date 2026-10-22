@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
+
 .chat-code-block {
   position: relative;
   contain: inline-size;
@@ -54,11 +56,16 @@
 
   .chat-code-block__actions {
     opacity: 0;
+    @include controls.touch-input { opacity: 1; }
   }
 
-  &:hover .chat-code-block__actions,
   &:focus-within .chat-code-block__actions {
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover .chat-code-block__actions {
+      opacity: 1;
+    }
   }
 }
 
@@ -92,9 +99,11 @@
   color: inherit;
   cursor: var(--cursor-interaction, default);
 
-  &:hover {
-    background: var(--color-background-primary-ghost-hover, var(--alpha-06));
-    color: var(--color-text, var(--text-primary));
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-primary-ghost-hover, var(--alpha-06));
+      color: var(--color-text, var(--text-primary));
+    }
   }
   &:focus-visible {
     outline: 2px solid var(--color-ring, var(--focus-ring));

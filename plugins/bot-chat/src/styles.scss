@@ -397,9 +397,13 @@
     backwards;
   transition: color 160ms ease;
 
-  &:hover,
   &:focus-within {
     color: var(--color-text);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      color: var(--color-text);
+    }
   }
 
   &[data-state="exiting"] {
@@ -451,19 +455,27 @@
   }
 
   &[data-active="true"],
-  &:hover,
   &:focus-visible {
     z-index: 3;
     opacity: 1;
     transform: translateY(-1px) scale(1.035);
   }
+  @include controls.hover-capable {
+    &:hover {
+      z-index: 3;
+      opacity: 1;
+      transform: translateY(-1px) scale(1.035);
+    }
+  }
 
-  &:hover {
-    background: color-mix(
-      in srgb,
-      var(--color-background-secondary) 72%,
-      transparent
-    );
+  @include controls.hover-capable {
+    &:hover {
+      background: color-mix(
+        in srgb,
+        var(--color-background-secondary) 72%,
+        transparent
+      );
+    }
   }
 
   &:focus-visible {
@@ -795,9 +807,11 @@
     color 140ms ease,
     transform 140ms ease;
 
-  &:hover {
-    background: var(--color-background-tertiary);
-    color: var(--color-icon-primary);
+  @include controls.hover-capable {
+    &:hover {
+      background: var(--color-background-tertiary);
+      color: var(--color-icon-primary);
+    }
   }
 
   &:active {
@@ -963,8 +977,10 @@
     letter-spacing: var(--typography-metadata-tracking);
   }
 
-  button:hover:not(:disabled) {
-    background: var(--color-background-tertiary);
+  @include controls.hover-capable {
+    button:hover:not(:disabled) {
+      background: var(--color-background-tertiary);
+    }
   }
 
   button[data-destructive="true"] {

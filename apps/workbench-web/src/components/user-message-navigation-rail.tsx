@@ -501,9 +501,11 @@ export function UserMessageNavigationRail({
                 }}
                 onBlur={closeTooltip}
                 onFocus={(event) => {
+                  if (event.currentTarget.ownerDocument.documentElement.dataset.pointerFocus) return;
                   requestPreview(item, event.currentTarget);
                 }}
                 onPointerEnter={(event) => {
+                  if (event.pointerType !== "mouse") return;
                   requestPreview(item, event.currentTarget);
                 }}
                 type="button"

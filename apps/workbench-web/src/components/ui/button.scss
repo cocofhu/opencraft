@@ -73,22 +73,30 @@
     color: var(--color-text-button-primary, #fff);
   }
 
-  &[data-variant="primary"]:hover:not(:disabled),
-  &[data-variant="hero"]:hover:not(:disabled) {
-    background: var(--color-background-button-primary-hover);
+  @include controls.hover-capable {
+    &[data-variant="primary"]:hover:not(:disabled),
+    &[data-variant="hero"]:hover:not(:disabled) {
+      background: var(--color-background-button-primary-hover);
+    }
   }
 
-  &[data-variant="secondary"]:hover:not(:disabled) {
-    background: var(--color-background-button-secondary-hover);
+  @include controls.hover-capable {
+    &[data-variant="secondary"]:hover:not(:disabled) {
+      background: var(--color-background-button-secondary-hover);
+    }
   }
 
-  &[data-variant="ghost"]:hover:not(:disabled),
-  &[data-variant="link"]:hover:not(:disabled) {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &[data-variant="ghost"]:hover:not(:disabled),
+    &[data-variant="link"]:hover:not(:disabled) {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
-  &[data-variant="outline"]:not([data-density="compact"]):hover:not(:disabled) {
-    background: var(--color-background-button-tertiary-hover);
+  @include controls.hover-capable {
+    &[data-variant="outline"]:not([data-density="compact"]):hover:not(:disabled) {
+      background: var(--color-background-button-tertiary-hover);
+    }
   }
 
   &:focus-visible {

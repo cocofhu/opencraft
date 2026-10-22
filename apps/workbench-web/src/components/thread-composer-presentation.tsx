@@ -671,7 +671,8 @@ export function ThreadComposerPresentation({
                     aria-hidden={!view.peeked || undefined}
                     aria-label="Show chat input"
                     title="Show chat input"
-                    onPointerEnter={() => {
+                    onPointerEnter={(event) => {
+                      if (event.pointerType !== "mouse") return;
                       clearTimeout(handoffTimer.current);
                       setHandoff(false);
                       setOverHandle(true);

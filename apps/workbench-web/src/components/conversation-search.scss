@@ -1,3 +1,4 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
 @use "@opencraft/design-system/typography.web" as typography;
 @use "./mobile-glass" as glass;
 
@@ -53,7 +54,8 @@
     @include typography.role(metadata, primary);
     flex-shrink: 0; min-height: var(--size-control-hit-min); padding: 6px 10px;
     background: transparent; border: 0; border-radius: var(--radius-md); cursor: pointer;
-    &:hover, &:focus-visible { background: var(--color-background-button-secondary); }
+    &:focus-visible { background: var(--color-background-button-secondary); }
+    @include controls.hover-capable { &:hover { background: var(--color-background-button-secondary); } }
   }
 }
 .conversation-search__server {

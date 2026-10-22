@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@opencraft/design-system": "0.1.0",
     "@deepseek-ai/cordis": "4.0.4",
     "@mermaid-js/layout-elk": "0.2.3",
     "@shikijs/core": "4.5.0",

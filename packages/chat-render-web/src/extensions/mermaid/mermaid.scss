@@ -1,3 +1,4 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
 @use "../../styles/wide-content";
 
 .chat-mermaid-block {
@@ -151,10 +152,15 @@
     cursor: var(--cursor-interaction, default);
     backdrop-filter: blur(8px);
 
-    &:hover,
     &:focus-visible {
       background: var(--color-background-primary-ghost-hover, var(--alpha-06));
       color: var(--color-text, var(--text-primary));
+    }
+    @include controls.hover-capable {
+      &:hover {
+        background: var(--color-background-primary-ghost-hover, var(--alpha-06));
+        color: var(--color-text, var(--text-primary));
+      }
     }
 
     &:focus-visible {
@@ -173,12 +179,16 @@
   }
 }
 
-.chat-mermaid-block:hover .chat-mermaid-actions,
 .chat-mermaid-block:focus-within .chat-mermaid-actions {
   opacity: 1;
 }
+@include controls.hover-capable {
+  .chat-mermaid-block:hover .chat-mermaid-actions {
+    opacity: 1;
+  }
+}
 
-@media (hover: none), (pointer: coarse) {
+@include controls.touch-input {
   .chat-mermaid-surface { padding-block-start: 56px; }
   .chat-mermaid-label { inset-block-start: 18px; }
   .chat-mermaid-actions { opacity: 1; }

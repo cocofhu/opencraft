@@ -2587,3 +2587,15 @@ thread identity is reused after name/save errors; an unknown creation result is
 shown for manual reconciliation, never retried automatically. Server switching
 clears server-specific skills and permissions. The shared modal body scrolls while
 primary and cancel actions remain reachable in short and narrow viewports.
+
+## Input-dependent hover across Web surfaces
+
+Transient hover requires both fine hover capability and the shared document
+input signal through `controls.hover-capable`. Touch and pen contact suppress
+residual hover across reflow and portals; real mouse movement restores it.
+Keyboard focus and persistent open/selected states remain outside that gate.
+Composer suggestions and hover previews only react to mouse entry. Essential
+content/card actions stay directly reachable with `controls.touch-input`,
+including after touch on hybrid hardware, independently of UI density.
+Separate HTML documents own their binding; embedded media pointer tracking is
+not a hover disclosure and retains its existing input owner.

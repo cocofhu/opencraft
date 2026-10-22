@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/interaction-mixins.web" as controls;
+
 // Width/height transitions are intentional bounded source behavior, not Shell motion.
 .thread-composer-overlay-host,
 .thread-composer-reveal-host {
@@ -167,20 +169,29 @@
     top: calc(var(--spacing) * -1);
     height: calc(var(--spacing) * 8);
   }
-  &:hover {
-    scale: 1.05;
-    color: var(--color-text);
+  @include controls.hover-capable {
+    &:hover {
+      scale: 1.05;
+      color: var(--color-text);
+    }
   }
 }
-.thread-composer-overlay__content:not([data-peeked="true"]):hover
-  .thread-composer-overlay__hide,
 .thread-composer-overlay__content:focus-within .thread-composer-overlay__hide,
 .thread-composer-overlay__hide:focus-visible {
   translate: -50% 0;
   pointer-events: auto;
 }
-.thread-composer-overlay__content:hover .thread-composer-overlay__hide {
-  transition-delay: 75ms;
+@include controls.hover-capable {
+  .thread-composer-overlay__content:not([data-peeked="true"]):hover
+    .thread-composer-overlay__hide {
+    translate: -50% 0;
+    pointer-events: auto;
+  }
+}
+@include controls.hover-capable {
+  .thread-composer-overlay__content:hover .thread-composer-overlay__hide {
+    transition-delay: 75ms;
+  }
 }
 .thread-composer-overlay__content:focus-within .thread-composer-overlay__hide {
   transition-delay: 0ms;
@@ -208,18 +219,27 @@
     translate: 0 0;
     pointer-events: auto;
   }
-  &:hover,
   &:focus-visible {
     height: calc(var(--spacing) * 8);
+  }
+  @include controls.hover-capable {
+    &:hover {
+      height: calc(var(--spacing) * 8);
+    }
   }
   svg {
     opacity: 0.6;
     transition: rotate var(--transition-duration-basic);
   }
-  &:hover svg,
   &:focus-visible svg {
     rotate: 90deg;
     opacity: 1;
+  }
+  @include controls.hover-capable {
+    &:hover svg {
+      rotate: 90deg;
+      opacity: 1;
+    }
   }
 }
 .thread-composer-overlay button:focus-visible,
