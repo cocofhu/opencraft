@@ -810,10 +810,27 @@ html[data-opencraft-window-type="browser"] .main-content-top-fade {
   &[data-opencraft-window-type="browser"] .app-shell-header {
     // Shell owns two painted regions; the live panel-toolbar aperture stays
     // transparent. One pane projection drives paint, resizing and animation.
-    background: linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
-      linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
+    background: var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) left / var(--app-shell-header-leading-paint-width, 100%) 100% no-repeat,
+      var(--opencraft-header-surface-paint, linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)) right / var(--app-shell-header-trailing-paint-width, 0px) 100% no-repeat;
   }
   &[data-opencraft-window-type="browser"] .app-shell-header::before { display: none; }
+  &[data-opencraft-window-type="browser"] .app-shell-header::after {
+    background: var(--opencraft-header-divider-color, var(--color-border-subtle));
+    @media (forced-colors: active) { background: CanvasText; }
+  }
+  &[data-opencraft-window-type="browser"] .app-shell-header__content-edge {
+    // Project the reading plane's upper edge into the recessed titlebar.
+    // Existing live Shell geometry follows resize/collapse and panel apertures.
+    position: absolute;
+    z-index: -1;
+    top: 100%;
+    left: var(--app-shell-header-left-slot-width, 0px);
+    width: max(0px, calc(var(--app-shell-header-leading-paint-width, 100%) - var(--app-shell-header-left-slot-width, 0px)));
+    height: var(--height-toolbar);
+    box-shadow: var(--opencraft-header-content-elevation, none);
+    clip-path: inset(calc(-1 * var(--height-toolbar)) 0 100% 0);
+    pointer-events: none;
+  }
   .main-content-surface { background: transparent; box-shadow: var(--opencraft-unified-surface-elevation, none); }
   .main-content-frame {
     background: var(--color-surface); border-start-start-radius: 0; overflow: clip;

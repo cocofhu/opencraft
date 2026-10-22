@@ -23,6 +23,7 @@ export interface OpenCraftThemeDefinition {
   shellMaterial?: {
     unifiedSurfaceElevation?: string;
     sidebarContextBackground?: string;
+    recessedHeaderBackground?: string;
     mainSurfaceElevation: string;
     sidebarBackground: string;
     sidebarFilter: string;
@@ -159,6 +160,7 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent)",
       sidebarBackground: "rgb(207 228 255 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
@@ -181,6 +183,7 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
       mainSurfaceElevation: "var(--elevation-prominent)",
       sidebarBackground: "rgb(27 56 91 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
@@ -651,6 +654,11 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
     "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
+    "--opencraft-header-surface-paint": shell.recessedHeaderBackground
+      ? `linear-gradient(${shell.recessedHeaderBackground}, ${shell.recessedHeaderBackground})`
+      : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
+    "--opencraft-header-divider-color": shell.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
+    "--opencraft-header-content-elevation": shell.recessedHeaderBackground ? shell.mainSurfaceElevation : "none",
     "--opencraft-sidebar-material-background": shell.sidebarBackground,
     "--opencraft-sidebar-material-filter": shell.sidebarFilter,
     "--opencraft-window-highlight": shell.windowHighlight,

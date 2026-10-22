@@ -284,6 +284,7 @@ export function AppShellHeader({
       data-app-shell-header-edge-scroll={isHeaderEdgeScroll}
       data-pip-obstacle="app-shell-header"
     >
+      <span className="app-shell-header__content-edge" aria-hidden="true" />
       <AppShellNavigationControls
         brand={navigationBrand}
         conversationHeader={conversationHeader}
