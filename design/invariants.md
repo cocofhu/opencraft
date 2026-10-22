@@ -1841,8 +1841,9 @@ Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mis
 
 ### Composer material breathing
 
-During an actual response, only the Composer material layer may breathe slowly
-within 92–100% opacity. Draft text, caret, buttons and geometry remain stable.
+During an actual response in touch density, only the Composer material layer may
+breathe slowly within 92–100% opacity. Desktop input material stays fully opaque
+both idle and streaming; its queue/goal rail keeps independent glass. Draft text, caret, buttons and geometry remain stable.
 Recovery scan owns recovery feedback and suppresses this secondary execution
 motion. Idle/settled and reduced motion/transparency/forced colors are static;
 no animation callback owns execution or changes draft identity.
