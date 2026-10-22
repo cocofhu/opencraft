@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { RemoteBrowserService } from './remote-browser-service.mjs';
 
 import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -223,6 +224,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
   let hubController;
   let sshNativeRpc;
   let codexReadiness;
+  let remoteBrowser;
   let closing = null;
   const close = () => {
     if (closing !== null) return closing;
@@ -230,6 +232,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     closing = (async () => {
       relay?.close();
       hubController?.close();
+      remoteBrowser?.close();
       desktop?.close(); // Retire viewers before the execution provider; never stop the desktop.
       // Retire admitted ingress clients before their Host provider.
       const entryResults = await Promise.allSettled([ingress?.close(), sshNativeRpc?.close()]);
@@ -433,6 +436,8 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       actorCollaborationService: actorCollaborationApi,
       authService: humanAuth ?? null,
       hubService: hubController,
+      remoteBrowserService: remoteBrowser = new RemoteBrowserService({ root, dataDirectory,
+        allowNoSandbox: process.env.OPENCRAFT_BROWSER_ALLOW_NO_SANDBOX === '1' }),
       speechService: new SpeechTranscriptionService({ configuration: new SpeechModelConfiguration(
         new ModelConfigurationRepository(join(dataDirectory, "models")), new ModelCredentialRepository(join(dataDirectory, "models"))) }),
     });

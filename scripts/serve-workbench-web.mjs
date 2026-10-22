@@ -358,6 +358,7 @@ export async function createWorkbenchWebServer({
   desktopService = null,
   desktopAccess = "loopback",
   speechService = null,
+  remoteBrowserService = null,
   /** @type {import('@opencraft/app-host-server').WorkbenchRequestIdentity | null} */
   identityService = null,
   localAccess = null,
@@ -462,6 +463,11 @@ export async function createWorkbenchWebServer({
             : supplied === undefined || supplied === origin || (!loopbackOnly && supplied === origin.replace(/^http:/u, "https:"));
         });
         return;
+      }
+      if (url.pathname === '/__opencraft_browser/capabilities') {
+        if (request.method !== 'GET') { sendJson(response, 405, { error: 'method_not_allowed' }); return; }
+        response.setHeader('cache-control', 'private, no-store');
+        sendJson(response, 200, { available: !!remoteBrowserService && await remoteBrowserService.available(), codec: 'avc1.42E028', width: 1280, height: 720 }); return;
       }
       if (sshManagement && await sshManagement.handle(request, response)) return;
       if (!sshManagement && (url.pathname === "/__opencraft_ssh" || url.pathname.startsWith("/__opencraft_ssh/"))) {
@@ -606,7 +612,7 @@ export async function createWorkbenchWebServer({
   };
   const heartbeat = webSocketHeartbeatIntervalMs > 0 ? setInterval(() => {
     revokePrivateSockets();
-    for (const client of [...websocketServer.clients, ...desktopWebSockets.clients]) {
+    for (const client of [...websocketServer.clients, ...desktopWebSockets.clients, ...(remoteBrowserService?.sockets ?? [])]) {
       if (!liveWebSockets.has(client)) {
         appHostSocketDiagnostics.get(client)?.("heartbeat-timeout");
         client.terminate();
@@ -700,6 +706,15 @@ export async function createWorkbenchWebServer({
       };
       expire(); client.once("close", () => clearTimeout(timer));
     };
+    if (pathname === '/__opencraft_browser/stream') {
+      if (!remoteBrowserService || !(sameOrigin(request, true) || allowedInternalDesktopOrigin(request))) {
+        socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return;
+      }
+      remoteBrowserService.upgrade(request, socket, head, { ownerId,
+        authorize: () => submissionContext.resourceOwner.assertCurrent(),
+        track: client => trackAdmittedWebSocket(client) });
+      return;
+    }
     const privateRejection = !privateConnection ? null : !sshManagement ? "management-unavailable"
       : !sshManagement.sameOrigin(request, true) ? "origin" : !sshManagement.authorized(request) ? "session" : null;
     if (privateRejection !== null) {
@@ -789,6 +804,7 @@ export async function createWorkbenchWebServer({
     },
     close() {
       speechService?.close();
+      remoteBrowserService?.close();
       unsubscribeRevocation?.();
       if (heartbeat !== null) clearInterval(heartbeat);
       for (const client of websocketServer.clients) client.terminate();
