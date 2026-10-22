@@ -476,6 +476,7 @@ Selections persist across Board/List/conversation remounts in the same activatio
 scoped to task authority and verified account. Ordinary board filters stay
 independent. Needs you sorts by oldest current round; other lanes use stable task
 order/ID. Five columns reflow to three/two/one by actual Tasks container capacity.
+Narrow layouts may hide the redundant Owner text label, never the shared select wrapper or its accessible control.
 Typography, colors, focus, touch targets, shared controls and Radix behavior come
 from the existing design owners. No synthetic prototype task or simulate button
 is shipped.
