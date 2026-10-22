@@ -1,7 +1,7 @@
 import { request as httpRequest } from 'node:http';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
-import { socketRequest, nodeObserver } from '../packages/observability-contract/node.mjs';
+import { socketRequest, nodeObserver, observationGrafanaBasePath } from '../packages/observability-contract/node.mjs';
 import { sanitizeEvent } from '../packages/observability-contract/index.mjs';
 
 function send(res,status,value){res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(value));}
@@ -9,6 +9,7 @@ export async function createObservabilityIngress(path,{access,actors,executionHe
   if(!path)return null;
   const info=await stat(path);if(!info.isFile()||(info.mode&0o077)!==0||info.uid!==process.getuid())throw Error('Observation configuration must be private');
   const config=JSON.parse(await readFile(path,'utf8'));
+  const grafanaBasePath=observationGrafanaBasePath(config.grafanaBasePath);
   if(!config.socketPath?.startsWith('/')||!config.grafanaSocket?.startsWith('/')||!config.pseudonymKey?.match(/^[a-f0-9]{64}$/u))throw Error('Invalid observation configuration');
   const observer=nodeObserver('gateway',{socketPath:config.socketPath});
   const pseudonym=value=>createHmac('sha256',config.pseudonymKey).update(value).digest('hex');
@@ -98,7 +99,8 @@ export async function createObservabilityIngress(path,{access,actors,executionHe
       ...(req.headers.origin?{origin:req.headers.origin}:{})};
     if(!['GET','HEAD'].includes(req.method)&&(!access.trustedOrigin(req)||req.headers.origin!==access.trustedOrigin(req))){send(res,403,{error:{code:'origin_denied'}});return true;}
     await new Promise(resolve=>{
-      const upstream=httpRequest({socketPath:config.grafanaSocket,path:req.url,method:req.method,headers},result=>{
+      const grafanaPath=grafanaBasePath+req.url.slice('/__opencraft_observe/grafana'.length);
+      const upstream=httpRequest({socketPath:config.grafanaSocket,path:grafanaPath,method:req.method,headers},result=>{
         const output={...result.headers,'cache-control':'private, no-store'};delete output['set-cookie'];
         res.writeHead(result.statusCode,output);result.on('error',()=>res.destroy());result.pipe(res);result.on('end',resolve);
       });

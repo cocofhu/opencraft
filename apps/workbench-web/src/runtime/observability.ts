@@ -1,6 +1,7 @@
 import { createClientId } from "@opencraft/composer-core";
 import type { AppServerClient } from '@opencraft/appserver-client';
 import type { TrustedExtensionDefinition } from '@opencraft/extension-runtime';
+import { serverFetch, serverUrl } from './server-context';
 
 type Event = Record<string, string | number | null>;
 let enabled = false;
@@ -28,7 +29,7 @@ async function flush() {
     const item = pending.shift()!;pendingBytes -= item.size;size += item.size + 1;events.push(item.event);
   }
   sending = true; lastAttempt = Date.now();
-  try { const response = await fetch('/__opencraft_observe/events',{method:'POST',credentials:'same-origin',redirect:'error',
+  try { const response = await serverFetch('/__opencraft_observe/events',{method:'POST',credentials:'same-origin',redirect:'error',
     headers:{'content-type':'application/json'},body:JSON.stringify({events}),signal:AbortSignal.timeout(4500)});
     if (!response.ok) { dropped += events.length; failures++; if ([401,403,404].includes(response.status)) enabled = false; }
     else { failures = 0; immediateAttempted = false; }
@@ -87,7 +88,7 @@ export function createObservabilityExtension(title = 'Platform monitoring'): Tru
     trust:'trusted',platforms:['web'],activationEvents:['onStartupFinished']},async activate(api){
     const startupFinishedAt=performance.now();
     let capability: {available?:boolean;telemetry?:boolean};
-    try {const response=await fetch('/__opencraft_observe/capabilities',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:api.signal});if(!response.ok)return;capability=await response.json();}catch{return;}
+    try {const response=await serverFetch('/__opencraft_observe/capabilities',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:api.signal});if(!response.ok)return;capability=await response.json();}catch{return;}
     if(api.signal.aborted)return;
     enabled=capability.telemetry===true;
     buildId=document.querySelector<HTMLMetaElement>('meta[name="opencraft-build-id"]')?.content??null;
@@ -110,7 +111,7 @@ export function createObservabilityExtension(title = 'Platform monitoring'): Tru
       api.signal.addEventListener('abort',()=>longTasks?.disconnect(),{once:true});
     }
     if(capability.available!==true)return;
-    api.commands.register({id:'opencraft.observability.open',title},()=>{window.open('/__opencraft_observe/grafana/d/opencraft-overview','_blank','noopener,noreferrer');});
+    api.commands.register({id:'opencraft.observability.open',title},()=>{window.open(serverUrl('/__opencraft_observe/grafana/d/opencraft-overview'),'_blank','noopener,noreferrer');});
     api.navigation.register({id:'opencraft.observability.navigation',title,surface:'sidebar-footer',icon:'activity',order:40,
       platforms:['web'],target:{kind:'command',commandId:'opencraft.observability.open'}});
   }};

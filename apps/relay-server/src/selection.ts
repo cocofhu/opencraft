@@ -92,11 +92,12 @@ export function scopedHtml(html: string, server: { id: string; name: string; bas
   if (upstreamBase?.startsWith('/') && !upstreamBase.startsWith('//')) {
     try {
       const parsed = new URL(upstreamBase, 'https://relay.invalid');
-      if (parsed.origin === 'https://relay.invalid') documentBase = server.base + parsed.pathname;
+      if (parsed.origin === 'https://relay.invalid') documentBase = parsed.pathname === server.base || parsed.pathname.startsWith(server.base + '/') ? parsed.pathname : server.base + parsed.pathname;
     } catch { /* Invalid bases retain the installation root. */ }
   }
   const context = `<base href="${escape(documentBase)}"><script id="opencraft-server-context" type="application/json">${json({ id: server.id, name: server.name, targetOrigin: server.targetOrigin, basePath: server.base, selectorPath: server.base.startsWith(LEGACY_SERVERS_PATH + '/') ? LEGACY_SERVERS_PATH : SERVERS_PATH })}</script>${canonical}${remember}`;
   // Only the bounded HTML document is rewritten. Uploads, SSE and other bodies stream unchanged.
-  return html.replace(/\s(?:href|src)=(['"])\/(?!\/)/gu, match => match.slice(0, -1) + server.base + '/')
+  return html.replace(/(\s(?:href|src)=)(['"])(\/(?!\/)[^'"]*)\2/gu, (match, attribute, quote, path) =>
+    path === server.base || path.startsWith(server.base + '/') ? match : attribute + quote + server.base + path + quote)
     .replace(/<base\b[^>]*>/giu, '').replace(/<head(?:\s[^>]*)?>/iu, head => head + context);
 }
