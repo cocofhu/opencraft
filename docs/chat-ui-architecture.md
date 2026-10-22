@@ -544,6 +544,12 @@ carrier Frame, never a fabricated message. Inline resource surfaces count toward
 the virtualizer's top-level geometry; Composer-routed live resources count toward
 footer geometry instead. Neither becomes a latest activity follow anchor.
 
+The Turn resource is read from Frame metadata independently of assistant Items.
+A Turn with only user or interaction Frames still materializes an empty assistant
+resource surface when it has a change summary. Completed, failed and interrupted
+Turns retain their Review entry even when no assistant message was returned;
+clearing the canonical resource removes it without inventing transcript content.
+
 Old `turnDiff` Items are lowered at the shared projection boundary and excluded
 from transcript/work-status derivation. An explicitly supplied Turn value,
 including null, wins over those compatibility Items; a null canonical `diff`

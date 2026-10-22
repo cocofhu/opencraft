@@ -556,6 +556,42 @@ test("Replica diff updates leave active work open across later Items and restore
   } finally { runtime.dispose(); }
 });
 
+test("Turn diff remains reviewable without an assistant Item, including clear and restore", () => {
+  const diff = "diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1 @@\n-old\n+new";
+  const user = { id: "resource-user", type: "userMessage", content: [{ type: "text", text: "Update files" }] };
+  const answer = { id: "resource-answer", type: "agentMessage", phase: "final_answer", text: "Done" };
+  for (const status of ["inProgress", "completed", "interrupted", "failed"]) {
+    for (const items of [[], [user], [user, answer]]) {
+      const entity = (changes: string | null) => threadView({ pendingInteractions: [], turns: [{
+        id: "turn-one", status, error: null, diff: changes, items,
+      }] });
+      const replica = new FakeReplica(entity(diff));
+      const create = () => createReplicaConversationRuntime({ key: createConversationKey("local", "thread-one"), replica,
+        commands: commands(), history: { async loadOlder() {} } });
+      const runtime = create();
+      const presentation = () => {
+        const turn = groupTimelineFramesByTurn(runtime.getSnapshot().timeline)[0];
+        return turn ? createTimelineTurnPresentationPlan(turn, undefined, { isMostRecentTurn: true }) : null;
+      };
+      try {
+        const initial = presentation();
+        assert.ok(initial);
+        assert.equal(initial.assistant?.changeSummary?.unifiedDiff, diff, `${status} with ${items.length} native Items retains its Turn resource`);
+        assert.equal(initial.userFrames.length, items.length ? 1 : 0);
+        assert.equal(initial.assistantFrame?.blocks.some(block => block.type === "turn-diff"), false);
+        const restored = create();
+        try { assert.deepEqual(createTimelineTurnPresentationPlan(groupTimelineFramesByTurn(restored.getSnapshot().timeline)[0]!,
+          undefined, { isMostRecentTurn: true }), initial); }
+        finally { restored.dispose(); }
+        replica.setEntity(entity(null));
+        assert.equal(presentation()?.assistant?.changeSummary ?? null, null);
+        replica.setEntity(entity(diff));
+        assert.equal(presentation()?.assistant?.changeSummary?.id, initial.assistant?.changeSummary?.id);
+      } finally { runtime.dispose(); }
+    }
+  }
+});
+
 test("Guardian auto-reviews attach to target tools and keep unmatched failures standalone", () => {
   const replica = new FakeReplica(
     threadView({

@@ -132,6 +132,27 @@ try {
     results.push({ width, theme, files: gitCase === "all" ? gitCases.length : 1, countsIntact: true, fullPathReview: true });
     await page.close();
   }
+  for (const width of [390, 1200]) for (const theme of ["light", "dark"]) for (const turnStatus of ["complete", "failed", "interrupted"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, reducedMotion: "reduce" });
+    const errors: string[] = [];
+    page.on("pageerror", (error: Error) => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/?theme=${theme}&gitCase=operators&review=1&withoutAssistant=1&turnStatus=${turnStatus}`);
+    await page.getByText("Update files", { exact: true }).waitFor();
+    const card = page.locator(".thread-turn-diff");
+    await card.waitFor();
+    assert.equal(await card.count(), 1, "the native Turn resource survives without an assistant Item");
+    const open = card.getByRole("button", { name: "View changes", exact: true });
+    if (width === 390) await open.tap(); else await open.click();
+    const dialog = page.getByRole("dialog", { name: "Review changed files" });
+    await dialog.waitFor();
+    assert.equal(await page.locator("html").getAttribute("data-review-diff"), gitCases.find(entry => entry.name === "operators")!.diff);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.deepEqual(errors, []);
+    results.push({ width, theme, files: 1, countsIntact: true, fullPathReview: true });
+    await page.close();
+  }
   console.log(JSON.stringify({ passed: results }));
 } finally {
   await browser?.close();

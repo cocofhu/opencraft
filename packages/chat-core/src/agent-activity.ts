@@ -528,12 +528,14 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
   const remaining = turn.frames.slice(start);
   const assistants = remaining.filter(frame => frame.type === "assistant");
   const seed = assistants[0];
+  // A Turn resource survives independently of which transcript lanes exist.
+  const changeSummary = turn.frames.find(frame => frame.changeSummary !== undefined)?.changeSummary ?? null;
   const blocks = remaining.flatMap(frame => frame.blocks);
   const active = isMostRecentTurn && live(turn.status);
   const latestObservation = [...blocks].reverse().find(block => block.type !== "todo");
-  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active ? {
+  let assistantFrame: AssistantTimelineFrame | null = remaining.length || active || changeSummary !== null ? {
     type: "assistant", id: `${turn.turnId}:assistant-surface`, turnId: turn.turnId, status: turn.status,
-    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary: seed?.changeSummary ?? null,
+    durationMs: seed?.durationMs ?? null, workStatus: seed?.workStatus ?? null, changeSummary,
     interruptedByThisClient: seed?.interruptedByThisClient ?? false, hookStats: seed?.hookStats ?? null,
     anchors: assistants.flatMap(frame => frame.anchors), blocks,
   } : null;
