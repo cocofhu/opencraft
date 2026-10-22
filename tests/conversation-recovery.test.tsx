@@ -18,7 +18,7 @@ test("recovery presentation retains painted history across syncing and failure",
   assert.equal(conversationRecoveryPresentation({ authoritative: true, hasVisibleHistory: true, failed: false }), "none");
 });
 
-test("cold loading and background sync use passive rings; failures keep an actionable retry", () => {
+test("cold loading keeps its ring; retained recovery is quiet until manual action", () => {
   const runtime = new LocaleRuntime([]);
   const render = (child: ReactElement) => renderToStaticMarkup(createElement(IntlRuntimeProvider, { runtime, children: child }));
   const notice = render(createElement(ConversationRecoveryNotice, { failed: false, reconnecting: true }));
@@ -26,12 +26,8 @@ test("cold loading and background sync use passive rings; failures keep an actio
   const error = render(createElement(ConversationRecoveryNotice, { failed: true, reconnecting: true, onRetry() {} }));
   const loading = render(createElement(ConversationRecoveryEmptyState, { failed: false }));
   const coldError = render(createElement(ConversationRecoveryEmptyState, { failed: true, onRetry() {} }));
-  assert.match(notice, /conversation-recovery-notice/);
-  assert.doesNotMatch(notice, /workbench-loading-spinner|conversation-hydration-stage/);
-  assert.match(syncing, /Syncing/);
-  assert.match(syncing, /workbench-loading-spinner/);
-  assert.match(syncing, /conversation-recovery-loading__label/);
-  assert.doesNotMatch(syncing, /conversation-recovery-notice__dot/);
+  assert.equal(notice, "");
+  assert.equal(syncing, "");
   assert.match(error, /role="alert"/);
   assert.match(error, /<button/);
   assert.match(loading, /role="status"/);
@@ -103,8 +99,11 @@ test("in-progress cold and retained recovery expose safe readable progress and c
  try {
   for(const child of [createElement(ConversationRecoveryNotice,{failed:false,reconnecting:true,diagnostic}),createElement(ConversationRecoveryEmptyState,{failed:false,diagnostic}),createElement(ConversationRecoveryNotice,{failed:true,reconnecting:false,diagnostic})]){
    const html=renderToStaticMarkup(createElement(IntlRuntimeProvider,{runtime,children:child}));
-   assert.match(html,/Waiting to retry/);assert.match(html,/Attempts started: 2/);assert.match(html,/Last failure: TIMEOUT/);
-   assert.match(html,/Technical details/);assert.match(html,/Copy details/);
+   if (child.type === ConversationRecoveryNotice) assert.equal(html, "", "automatic retry stays quiet even after an intermediate failure");
+   else {
+    assert.match(html,/Waiting to retry/);assert.match(html,/Attempts started: 2/);assert.match(html,/Last failure: TIMEOUT/);
+    assert.match(html,/Technical details/);assert.match(html,/Copy details/);
+   }
    assert.doesNotMatch(html,/<details[^>]*open/);
   }
  }finally{runtime.dispose();}
