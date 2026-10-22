@@ -2482,3 +2482,23 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+### Blocking question input continuity
+
+A pending question's request ID and question definitions own its page and drafts.
+Equivalent definitions reconstructed during a Replica refresh preserve the current
+page, selected options, freeform text, input DOM, focus and selection. A Thread
+metadata update, such as renaming the conversation, does not create a new question.
+A different request ID or changed question definitions reset the input state.
+The question panel stabilizes its typed JSON definitions before initializing its
+local input state; array allocation is not a user-visible reset signal.
+
+### Question keyboard composition
+
+Pending question and option picker cards leave keyboard ownership with the input
+method while composition is active. Enter and Escape must not submit, skip or
+dismiss the request during composition. The option picker also guards implicit
+form submission using the input's composition lifecycle; ignoring a composing
+keydown alone does not prevent the browser from submitting a form. Ordinary
+Enter and Escape retain their existing answer and dismissal actions once
+composition has ended.
