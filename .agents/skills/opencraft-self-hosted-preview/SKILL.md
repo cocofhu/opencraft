@@ -1,6 +1,6 @@
 ---
 name: opencraft-self-hosted-preview
-description: 切换或重启承载当前 Codex 会话的 OpenCraft headless 预览服务时使用；指导独立切换、回退和实际运行版本核验。普通本地开发预览不使用。
+description: 切换或重启承载当前 Agent 会话的 OpenCraft headless 预览服务时使用；指导独立切换、回退和实际运行版本核验。普通本地开发预览不使用。
 ---
 
 # OpenCraft 自托管预览切换

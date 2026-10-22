@@ -81,3 +81,23 @@ test("voice role markers do not absorb repeated bare line separators", () => {
   assert.deepEqual(parseRealtimeDelegation(envelope("<transcript_delta>assistant:\rReady</transcript_delta><input>latest</input>"))?.transcript, [{ role: "assistant", text: "Ready" }, { role: "user", text: "latest" }]);
   assert.deepEqual(parseRealtimeDelegation(envelope("<transcript_delta>assistant:   Ready\ncontinuation</transcript_delta><input>latest</input>"))?.transcript, [{ role: "assistant", text: "Ready\ncontinuation" }, { role: "user", text: "latest" }]);
 });
+
+
+
+test("singleton typed voice input projects a transcript instead of raw handoff markup", () => {
+  const markup = envelope("<transcript_delta>assistant: Ready</transcript_delta><input>Hello voice</input>");
+  const part = { type: "text", text: markup };
+  assert.equal(realtimeDelegationText(part), markup);
+  assert.deepEqual(parseRealtimeDelegation(part), parseRealtimeDelegation([part]));
+  for (const type of ["userMessage", "steeringUserMessage"]) {
+    const snapshot = projectTimeline({ key: createConversationKey("fixture", "singleton-voice"), revision: 1, phase: "live", authoritative: true,
+      turns: [{ id: "turn", status: "complete", items: [{ id: "realtime-delegation-fixture", type, payload: { input: part, content: part } }] }],
+    }, createDefaultTimelineProjectorRegistry());
+    const blocks = snapshot.frames.flatMap(frame => frame.blocks);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0]?.type, "realtime-transcript");
+    if (blocks[0]?.type !== "realtime-transcript") throw new Error("Expected a typed transcript");
+    assert.deepEqual(blocks[0].entries, [{ role: "assistant", text: "Ready" }, { role: "user", text: "Hello voice" }]);
+    assert.equal(blocks[0].handoffId, "fixture");
+  }
+});
