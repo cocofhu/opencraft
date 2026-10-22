@@ -2372,6 +2372,11 @@ disclosures only expand or collapse. The card's window shortcut ignores already
 consumed events and editable fields. Unfocused Enter still allows once and Escape
 still declines; keyboard focus never silently changes the selected permission.
 
+Ordinary command and permission approval shortcuts also ignore already consumed
+keyboard events. Escape used to dismiss a foreground menu or dialog must not
+answer a background approval. The focused controls, permanent-approval confirmation
+and unconsumed body shortcuts retain their existing actions and scope.
+
 ### Setup interaction drafts
 
 Supported setup role/task/context requests use the same pending-input checkpoint

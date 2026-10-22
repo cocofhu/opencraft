@@ -121,6 +121,7 @@ function ApprovalBlock({ block }: { block: Extract<TimelineBlock, { type: "appro
   useEffect(() => {
     if (!pending || submission.disabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const target = event.target;
       if (target instanceof HTMLElement && target.closest("input, textarea, [contenteditable='true']") !== null) return;
       // Focused controls own Enter. The shortcut must not turn a keyboard
