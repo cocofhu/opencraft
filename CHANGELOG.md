@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.13
+
+- Support Linux server browser tabs over H.264 with shared Browser Use and persistent remote tabs.
+- Integrate repository-owned Electron fork and native editing observation foundation.
+- Refine workbench shell interactions, touch-friendly gutters, mobile sidebar crossfades, and typography badges.
+- Harden AppHost connection boundaries, session recovery admissions, and reentrant inbound reply fences.
+- Improve conversation continuity for multi-file patch groups, saved message aliases, and Turn resource inspection.
+- Add shared Agent UI design guidance contracts and reference specifications.
+
 ## v0.1.12
 
 - Unify workbench icons and align navigation controls across the website.
