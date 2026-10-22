@@ -2768,6 +2768,16 @@ An orphan completion without a start cannot establish a new transcript position;
 authoritative history can recover it. Failure status, exit code and output stay
 attached to the execution. Web and Native consume the same projected order.
 
+### Pending interaction recovery motion
+
+Pending question, approval and setup panels consume their owning Conversation's
+entry-motion context. Recovered baselines and retained View returns paint fully
+visible and stationary from the first frame. New live requests keep their normal
+entry animation; reduced-motion preferences suppress it. Equivalent request
+updates retain the same panel node and input transaction. Question page changes
+keep their separate user-initiated transition. No request is authorized or answered
+by restoring its presentation.
+
 ### Pending interaction draft recovery
 
 The Application owns pending input checkpoints for each Host, Thread and View.
