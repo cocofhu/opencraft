@@ -1,5 +1,30 @@
 # 工作区不变量
 
+## Conversation model display continuity
+
+Existing conversation model and effort labels reflect its own execution or explicit draft choice before catalog hydration. Unknown settings never become a default effort. Completed model metadata may paint the matching label within one Host runtime, but cannot seed another Thread's selectable catalog or authorize submission. Historical views do not fetch new-conversation defaults.
+
+## Persistent sidebar control beside the brand
+
+Unified Shell navigation keeps its sidebar toggle in the persistent header,
+immediately after any visible application brand, through expansion, collapse and
+resize. The brand rail uses intrinsic content width in both states. Navigation
+rails and floating sidebars do not add another toggle. Existing mobile gestures,
+touch chrome, focus and draft owners remain responsible for their state.
+
+
+## Image preview gestures
+
+Web image previews share a bounded local pinch/rotate/pan viewport. Scaling spans 0.2–5× the fitted size;
+rotation and scaling preserve the two-finger anchor, with rotated bounds for pan. Lightboxes use the
+full available screen as that viewport, never the initial image rectangle;
+embedded resources retain the panel boundary. Manipulation never
+changes the document, page scale, source or active gallery index. Preview controls
+remain outside the transformed image and reachable at every scale; cancelling a
+pointer ends its participation without closing the modal or starting navigation.
+
+
+
 ## Internal projection metadata identity
 
 OpenCraft message projection writes use `__opencraft*` keys. The five exact
@@ -240,6 +265,13 @@ mean work just started. Subsequent live insertions and manual disclosure opening
 retain their existing entry motion and reduced-motion behavior. This changes no
 Turn clocks, provenance, history persistence or execution state.
 
+Activity-group bodies are keyboard-interactive only in their expanded phase.
+Opening and closing bodies remain inert and hidden from accessibility navigation;
+visual height animation cannot keep invisible tool actions in the Tab order.
+The disclosure trigger keeps focus, and expanding restores normal keyboard access.
+Verify closing and expanded Tab sequences alongside reflow and interrupted motion
+in `scripts/smoke-disclosure-reflow.ts`.
+
 ## Turn completion reminders
 
 - TURN-NOTIFY-01: Turn completion reminders are a shared OpenCraft platform
@@ -419,14 +451,58 @@ content; a leftward drag dismisses it, following the iOS direction convention.
 The Shell owns one progress MotionValue for direct manipulation, reversal and
 settling. Short slow gestures return to the starting intent; distance or a
 horizontal flick commits. Cancellation, multitouch and resize return to the
-starting intent. Vertical scrolling, editors, horizontal scroll areas, selection,
-menus and dialogs keep their own input; the outer 24px remains reserved for
+starting intent. Vertical scrolling, editors, exclusive gesture regions,
+selection, menus and dialogs keep their own input; the outer 24px remains reserved for
 browser/OS gestures. Ordinary buttons, links and clickable content (including
 reasoning/tool disclosures and image previews) do not own horizontal input merely
 because they are clickable. They may start a sidebar gesture; taps and small
 unrecognized movement still activate the original control. A recognized swipe
 suppresses its synthesized click without blocking the next deliberate tap.
-An image lightbox or a genuinely overflowing horizontal gallery retains its own input.
+The enabled mobile Shell discovers horizontal scrollports from the composed
+contact path using actual overflow and scroll extent. Reading content participates
+by default: Markdown, command output, raw details, future and dynamically mounted
+readers need no registration or navigation handlers. Only true input owners opt
+out via their semantics or `data-sidebar-gesture="ignore"`: editors, sliders,
+scrollbar controls, draggable controls, interactive terminals, media/canvas/iframes
+and foreground layers. Before committing, nested reading chooses the innermost
+scrollport with capacity in the requested direction; an exhausted child does not
+hide a readable parent. After committing, its movement owner stays fixed.
+The existing touch controller arbitrates one contact:
+`pending → sidebar | content | native`. Ambiguous diagonals remain pending;
+committed ownership never changes on reversal or later acceleration. A competing
+sidebar flick requires at least 28 CSS px, aligned recent speed 0.65 px/ms and
+horizontal/vertical ratio 1.8 within 100ms of meaningful movement; speed is
+averaged over the last 80ms. Stationary contact time does not consume this window.
+A prompt first sample may establish fast intent; a low initial estimate cannot
+establish reading because event delivery may include contact latency. Later speed
+uses samples beginning at meaningful movement, excluding touchstart latency.
+A rested first sample has unknown speed until the next timed segment. Passing
+28px alone never commits reading: a non-winning contact keeps the observation
+window and commits to content at 100ms of movement or on release. Pending, direction-locked horizontal contacts in discovered
+scrollports cancel their first cancelable move to prevent native takeover without moving either surface; vertical and
+ambiguous input remain available to the browser. A one-sample horizontal contact
+finishes as local reading on release rather than disappearing or synthesizing a
+click. A scrollport already
+at the requested boundary can yield to the ordinary sidebar threshold. These are
+initial tuning values, not physical-device or universal platform constants.
+The Shell does not impose ancestor `touch-action` restrictions or maintain a
+second DOM registration cache. Native vertical scrolling, pinch zoom, wheel and
+keyboard remain available, including inside exclusive descendants of reading
+scrollports. The capture listener drives `scrollLeft` only after content wins;
+sidebar wins never write content offsets. A non-cancelable stream remains with
+the browser instead of being seized or frozen. Desktop/standalone Chat stays native.
+Content momentum is bounded, respects reduced motion and is revoked by a new
+contact, modal, resize or unmount. Foreground layers, editors and explicit ignore
+regions retain native behavior; the outer 24px never acquires the sidebar.
+An image lightbox retains its own input. An ordinary horizontal gallery is reading
+content; a gallery with custom gestures declares an exclusive owner at its boundary.
+The entire foreground input layer owns the sequence, including image-preview
+letterboxing/scrims and controls. Shell admission resolves the composed event
+path and its presentation DOM root, so native dialogs and Shadow DOM portals
+have the same priority as accessible modal surfaces. Opening a foreground layer
+revokes any pending/held Shell gesture before its late move/end can commit.
+Closing it permits a new Shell sequence, never resumes the revoked contact.
+
 Acceptance: `OPENCRAFT_GESTURE_CONTENT_ONLY=1 npx tsx scripts/smoke-mobile-sidebar-gesture.ts`
 uses real reasoning, inspected/generated/sent-image renderers and CDP touch to
 check held following, no activation on swipe, original tap actions, cancellation
@@ -436,13 +512,19 @@ One progress translates the foreground and brings the rear layer from 90% scale 
 45% opacity to its full size and clarity, with a left-center origin. A stationary, pointer-transparent theme veil fades
 from 65% to zero with that same progress, stronger toward the foreground edge.
 Light themes wash toward white; dark themes retain their own elevated surface.
-Reduced motion disables the veil. It releases with panel presence/inertness. A stationary
+The foreground has a pointer-transparent theme veil driven by the same progress from zero to 65%, reciprocal to the rear veil: opening clarifies the sidebar while fading the conversation, and closing reverses both, including held and interrupted gestures. Reduced motion disables both veils. It releases with panel presence/inertness. A stationary
 full-viewport theme Sidebar/window material backs this animated layer while the
 floating panel is mounted, including the top/bottom safe areas. The scaled
 mobile panel surface is transparent: only the stationary owner paints the full
 material, avoiding fractional-edge double compositing. Scaling/fading
 content must never expose window-colored horizontal strips. The exiting/inert or empty portal
-paints nothing when the foreground returns to its ordinary stacking order. There is no
+paints nothing when the foreground returns to its ordinary stacking order.
+Mobile presence exit hides the retained content surface immediately: aria-hidden
+and inert alone do not suppress painting. The surface has no CSS transition,
+including the global reduced-motion duration, so hiding cannot wait one frame.
+Both content and backing are checked
+at DOM commits and animation frames through final removal; desktop exit motion
+retains its existing lifetime. There is no
 horizontal sidebar entrance, blur, separate depth timer or inherited animated
 variable. The foreground retains its full
 layout width, round leading corners and theme elevation; the untransformed root
@@ -508,7 +590,7 @@ the list viewport and the existing application Router authority.
 
 | ID | 不变量 | 责任/验证 |
 |---|---|---|
-| WSP-36 | 云桌面标签属于 Conversation；短期观看连接属于桌面显式常驻视图；远端桌面与独占输入授权属于后端。隐藏/切换工具保留观看但立即撤销输入，关闭标签或更换 owner 回收观看，不影响 Agent；其他插件不隐式常驻。观看续期必须双端声明能力、后端重验身份并匹配确认，不能删除到期门禁、复用票据或重新接管。未接通真实适配器不发布入口；观看默认无输入，两项就绪与有效授权缺一不可，握手不能冒充首帧；关闭、换账户、取消后迟到结果只释放，不复活连接。自动恢复仅限 adapter 声明安全的新观看授权与已分类传输中断，有限退避，不继承控制权、不重放资源创建。反馈不替换媒体宿主；申请立即投影可用的停止意图，授权确认前仍不绑定输入。View 捕获一次原生激活的固定动作，controller 按连接/控制意图代次消费一次；失焦不能把停止 click 翻成接管，旧动作不能撤销后继授权。不补发 pointerup 点击、不延时撤销；剪贴板仅显式手势读取、按原 grant 失效；物理能力与输入授权分开，不支持粘贴不画无效入口。设计系统拥有空态/进度/紧凑控件尺度，短状态及本征槽位保持相邻几何稳定 | cloud-desktop / DesktopViewController；Host-wire-controller 跨期限组合、真实 socket 授权复核、React 与主题/窄屏 Shell 验证；本轮媒体/输入外部边界合成，公网授权和手机实机/弱网未验收 |
+| WSP-36 | 云桌面标签属于 Conversation；短期观看连接属于桌面显式常驻视图；远端桌面与独占输入授权属于后端。隐藏/切换工具保留观看但立即撤销输入，关闭标签或更换 owner 回收观看，不影响 Agent；其他插件不隐式常驻。观看续期必须双端声明能力、后端重验身份并匹配确认，不能删除到期门禁、复用票据或重新接管。未接通真实适配器不发布入口；观看默认无输入；鼠标悬停不接管；点击桌面、H5单指轻点或接管按钮显式申请；媒体原生pointerup消费一次激活，拖动/取消/多指不触发，兼容click不重复消费；两项就绪与有效授权缺一不可，握手不能冒充首帧；关闭、换账户、取消后迟到结果只释放，不复活连接。自动恢复仅限 adapter 声明安全的新观看授权与已分类传输中断，有限退避，不继承控制权、不重放资源创建。反馈不替换媒体宿主；申请立即投影可用的停止意图，授权确认前仍不绑定输入。View 捕获一次原生激活的固定动作，controller 按连接/控制意图代次消费一次；失焦不能把停止 click 翻成接管，旧动作不能撤销后继授权。不合成补发 click、不延时撤销；剪贴板仅显式手势读取、按原 grant 失效；物理能力与输入授权分开，不支持粘贴不画无效入口。设计系统拥有空态/进度/紧凑控件尺度，短状态及本征槽位保持相邻几何稳定 | cloud-desktop / DesktopViewController；Host-wire-controller 跨期限组合、真实 socket 授权复核、React 与主题/窄屏 Shell 验证；本轮媒体/输入外部边界合成，公网授权和手机实机/弱网未验收 |
 | EXT-01 | 可选内置扩展的启用意图由统一 ExtensionInstallationRepository 持久化，产品默认值只在首次发现时填充；Collaboration 默认停用，不加载实现或注册导航。用户启停驱动真实激活/资源释放，不影响平台账户与 Agent 会话；内置来源不能被 URL 安装覆盖或单独移除/更新 | ExtensionManager/catalog；启停、重启恢复、来源保护测试与真实 Web 组件验收 |
 | WSP-01 | 同一主会话只有一个可交互主 Composer；普通/工具展开分支互斥，Side Chat 不叠加父输入 | ThreadComposerPresentation；Web smoke |
 | WSP-02 | 显示位置不改变草稿/附件/提交目标；Host 相同裸 threadId 不得碰撞 | composer-core + ConversationScope；既有 composer/binding 测试及新 smoke |
@@ -522,6 +604,7 @@ the list viewport and the existing application Router authority.
 | WSP-10 | Browser 物理 slot 使用实际 region/visibility；旧 lease 不覆盖新 slot | BrowserPresentationCoordinator；迁移 smoke 待验证 |
 | WSP-11 | 右侧/侧栏拖动实时改变几何；显隐 target、progress、mounted 分离。浮动侧栏与外侧命中层由 AppShell 共同 Portal 到 body 级覆盖宿主，成为窄屏唯一交互前景，盖过独立 Browser Surface portal；关闭时直到退出动画结束，其内容 Portal、导航投影与外侧命中层仍归浮动呈现所有，外侧命中层显式恢复 pointer hit testing；首次外侧触摸（包括空白）只关闭侧栏、不点穿浏览器或正文。右面板状态不因遮盖而重建，侧栏关闭后恢复呈现 | usePanelAnimation、FloatingLeftPanel、AppShell、BrowserPresentation；侧栏模型/真实组件帧采样及手机触摸验证 |
 | WSP-12 | Thread 菜单与 Side Chat 只消费版本匹配、显式声明的 Host 生命周期能力；菜单 Fork 仅需 fork，Side Chat 须同时声明 fork/ephemeral/injectItems/unsubscribe。不支持时明确失败，不用空会话模拟或删除父历史。顶部会话菜单与侧栏 Fork 共用 forkAndOpenThread；顶部使用分叉图标，未声明 fork 时不展示，等待期间原位显示进度并禁用重复操作，未知结果不自动重试。菜单 Fork 收到 child ID 后不等待目录刷新即可打开；若用户已切换 route scope，迟到结果不得抢回导航 | 协议能力解析、Workbench 门控、forkAndOpenThread、smoke-conversation-header-menu；Codex/DSH 真实 Host 与负例验证 |
+| WSP-12a | 普通菜单分支只请求元数据，子会话经既有分页读取；历史已结束的回复提供“从此处分支”，以原生 lastTurnId 包含当前轮并截断后续历史。流式轮及非权威缓存不提供执行入口；等待立即禁用重复点击，失败不自动重试，父历史不变，迟到结果沿用路由作用域保护 | ConversationDocumentContext、ForkTurnButton、threadManagement；专项协议与真实组件验证续录 |
 | WSP-13 | ephemeral fork 返回结果是 baseline，不请求持久 Resume/queue；旧连接代次不能被采用 | Session.adoptFork + HostRuntime；appserver-session.test.ts 与 smoke-side-chat-appserver.ts |
 | WSP-14 | 当前产品没有下方面板、移动到下方/Show bottom panel 入口或底部占位；旧标签无损归回右侧 | AppShell/RightPanel、restoreRightPanelTabs；类型、聚焦测试、Web/native smoke |
 | WSP-15 | 账号登录或零云端 Bot 不接管本机/其他 Host 工作区；创建仅来自主动环境操作；只有选中 Host 的真实连接错误可请求干预 | App connectionIntervention、下游产品 contribution；匿名/已登录零 Bot 回归 |
@@ -536,8 +619,8 @@ the list viewport and the existing application Router authority.
 | WSP-22 | Host 是 PTY/process 唯一 owner；Application 按 Conversation Scope 维护有序 terminal session 集合和最近激活项。Panel tab 只投影/更新 active session，切换到非 Terminal tab 不清空最近项。Agent 的 `read_thread_terminal` 仅通过调用 Host + Thread 的 binding 读取该 Scope 当前终端的有界输出，不接受 session ID、不枚举或跨会话读取 | ConversationTerminalSessionRegistry、ConversationBindingStore、Terminal Panel plugin、dynamic tool handler；多终端激活/关闭回退、Panel owner 与 resource owner 分离、非法参数/Host+Thread 隔离、UTF-8/截断测试 |
 | WSP-22 | 导航 hover 与当前路由是不同状态：Theme Engine 定义统一 `navigation-hover/current/pressed` token，Design System `navigation-control` 解释 `aria-current="page"`/selected；Sidebar、Work、Settings 与平台 Shell 不得自定义停留背景 | Theme Engine/controls.web；明暗主题 token 测试、Skills↔Storage Electron computed-style 验收 |
 | WSP-23 | Embedded Workbench 只拥有宿主右侧画布；外层 Sidebar、Explore/Chat 路由与 History 归宿主。嵌入 Composer 在 ready/show 前只读，hide 先撤销写 lease 但保留 Application、会话与 Panel；Host 侧仅消费 session snapshot/action，不复制会话真源 | EmbeddedWorkbenchElement、EmbeddedChatWriteAuthority、transient ConversationBinding；双跑/fallback 单测、真实下游产品页面与 Browser/Terminal Panel 验收 |
-| WSP-24 | Sidebar Activity 按等你处理(review/error)→置顶→最近去重分区；running不独立分区，按置顶与最近归类且保留行内运行状态；等你处理组两行桌面最小48px、触屏密度最小56px；含工作目录的各组采用标题与辅助目录两行，桌面最小48px、触屏密度最小56px；无目录且无待处理状态时为单行桌面最小32px、触屏密度最小44px，最近内部running优先，运行行按原生createdAt倒序（缺失创建元数据的行排在已知创建时间之后）；其余按规范recency倒序，完成后退出运行优先，已读不参与排序。排序先于十条分页；日期标题按实际可见行连续日期段投影，不重排会话，不新增进行中分区或定时挪位。各区可折叠；只有最近区消费十条预算。可选产品参与筛选默认关闭，由插件判定与按账号存偏好，snapshot.data为空（loading/error/unsupported）时保留行；数据已就绪但creator/participants均为空时不匹配“我参与的”，仅在顶部筛选控件调整，不追加底部隐藏人数或显示全部入口；displayIdentity为null时插件不输出filter描述符，Shell隐藏菜单参与筛选组；身份恢复沿用账号mineEnabled偏好，身份消失不改写偏好。停用插件隐藏菜单参与筛选并恢复完整目录。标题搜索与稳定Server筛选由Shell持有。企业身份 badge按实际内容宽度右对齐，仅显示最近已识别发言人，未知时回退创建人，多人时追加总人数圆标（上限99+、tooltip保留精确人数），头像20px、间距4px、圆标24px，不保留空人数槽；无内容不占位，分组模式遵循hideRowBadge；稳定来源是 `serverOrigin.serverId`，Hub route、tenant、Host placement 与 Thread 状态正交。行内不显示Server图标/色点，Server身份仍供筛选与完整tooltip使用；项目目录位于标题下方辅助行，使用label/tertiary排版，弱于metadata/secondary日期分组；必要待处理状态仍使用metadata，无底板、色点或独立配置项；待处理状态与目录共用辅助行，以中点分隔，不重复运行中文字；长目录按正文可用宽度省略，完整目录保留在行tooltip。头像右侧仅保留原菜单尾槽，与头像间隔4px；pending/running/Goal/review/error/unread与菜单共用该槽，内容网格仅正文和头像两列，不再预留独立18px状态列；状态或菜单能力变化不得推动正文/头像几何，错误/待处理/未读圆点统一5px中性灰。触控与桌面共用同一 Activity 组件、状态与 Design System token，不分叉业务语义；仅瞬时 hover 与菜单命中区按当前输入能力适配；移动抽屉纵向菜单固定顶部，搜索与筛选随列表滚动；底部仅悬浮新建与设置，不显示个人头像/账号底栏。Activity 行容器独占 hover/选中底色，按钮与伪元素不得重复叠加背景，“…”入口背景透明，指针移到入口时行 hover 不断开；文档级当前输入信号令触控滚动不产生鼠标 hover 底色。无 hover 或当前触摸输入时，独立“…”入口直接可见、有足够命中区，并为项目标签与尾部状态槽位预留空间；鼠标 hover、键盘焦点和选中态各自独立 | client-hub-server.ts、MultiHost compatibility projection、SidebarActivityItem/ThreadRowMenu、同 Server 跨 Hub route/改名/状态正交测试、触控/鼠标浏览器验收与真实 Electron 窄侧栏验收 |
-| WSP-25 | Web/Electron unified Sidebar 的桌面60px图标栏或移动抽屉纵向菜单只保留 Home，通过openChat恢复已有会话或草稿；桌面Conversations标题下的全宽New chat横条与移动端底部悬浮按钮复用navigateToHome新建草稿；移动新建与圆形设置按钮由Shell同排悬浮在滚动区上方，设置在右侧，不显示账号入口/底部底板，列表留出末尾空间；展开时折叠控件属于侧栏，收起时 persistent titlebar 仅保留展开入口，不再追加 Write。浏览器标题栏不再保留独立下游产品/Home 按钮；transient/floating Header 不复制 Write。动态 action 必须进入 Header rail 测量和 macOS safe area | AppShellNavigationControls、window-chrome；展开/收起、persistent/transient、首帧宽度、真实浏览器和 Electron 点击验收 |
+| WSP-24 | Sidebar Activity 按等你处理(review/error)→置顶→最近去重分区；running不独立分区，按置顶与最近归类且保留行内运行状态；等你处理组两行桌面最小48px、触屏密度最小56px；含工作目录的各组采用标题与辅助目录两行，桌面最小48px、触屏密度最小56px；无目录且无待处理状态时为单行桌面最小32px、触屏密度最小44px，最近内部running优先，运行行与其余行均按规范recency倒序（原生recencyAt优先、缺失时回退updatedAt），不再按对话创建时间排序；复用现有目录时间，不用输出片段或已读事件另造排序时钟，完成后退出运行优先，已读不参与排序。排序先于十条分页；日期标题按实际可见行连续日期段投影，不重排会话，不新增进行中分区或定时挪位。各区可折叠；只有最近区消费十条预算。可选产品参与筛选默认关闭，由插件判定与按账号存偏好，snapshot.data为空（loading/error/unsupported）时保留行；数据已就绪但creator/participants均为空时不匹配“我参与的”，仅在顶部筛选控件调整，不追加底部隐藏人数或显示全部入口；displayIdentity为null时插件不输出filter描述符，Shell隐藏菜单参与筛选组；身份恢复沿用账号mineEnabled偏好，身份消失不改写偏好。停用插件隐藏菜单参与筛选并恢复完整目录。标题搜索与稳定Server筛选由Shell持有。企业身份 badge按实际内容宽度右对齐，仅显示最近已识别发言人，未知时回退创建人，多人时追加总人数圆标（上限99+、tooltip保留精确人数），头像20px、间距4px、圆标24px，不保留空人数槽；无内容不占位，分组模式遵循hideRowBadge；稳定来源是 `serverOrigin.serverId`，Hub route、tenant、Host placement 与 Thread 状态正交。行内不显示Server图标/色点，Server身份仍供筛选与完整tooltip使用；项目目录位于标题下方辅助行，使用label/tertiary排版，弱于metadata/secondary日期分组；必要待处理状态仍使用metadata，无底板、色点或独立配置项；待处理状态与目录共用辅助行，以中点分隔，不重复运行中文字；长目录按正文可用宽度省略，完整目录保留在行tooltip。头像右侧仅保留原菜单尾槽，与头像间隔4px；pending/running/Goal/review/error/unread与菜单共用该槽，内容网格仅正文和头像两列，不再预留独立18px状态列；状态或菜单能力变化不得推动正文/头像几何，错误/待处理/未读圆点统一5px中性灰。触控与桌面共用同一 Activity 组件、状态与 Design System token，不分叉业务语义；仅瞬时 hover 与菜单命中区按当前输入能力适配；移动抽屉纵向菜单固定顶部，搜索与筛选随列表滚动；底部仅悬浮新建与设置，不显示个人头像/账号底栏。Activity 行容器独占 hover/选中底色，按钮与伪元素不得重复叠加背景，“…”入口背景透明，指针移到入口时行 hover 不断开；文档级当前输入信号令触控滚动不产生鼠标 hover 底色。无 hover 或当前触摸输入时，原44px菜单命中区保持可达；有状态时仅画pending/running/Goal/review/error/unread，无状态时仅画“…”；菜单打开或键盘焦点时以“…”替代状态，细指针hover同样切换，分支创建时只画瞬时spinner。三个点与状态不得并列或重叠绘制；鼠标 hover、键盘焦点和选中态各自独立 | client-hub-server.ts、MultiHost compatibility projection、SidebarActivityItem/ThreadRowMenu、同 Server 跨 Hub route/改名/状态正交测试、触控/鼠标浏览器验收与真实 Electron 窄侧栏验收 |
+| WSP-25 | Web/Electron unified Sidebar 的桌面60px图标栏或移动抽屉纵向菜单只保留 Home，通过openChat恢复已有会话或草稿；桌面Conversations标题下的全宽New chat横条与移动端底部悬浮按钮复用navigateToHome新建草稿；移动新建与圆形设置按钮由Shell同排悬浮在滚动区上方，设置在右侧，不显示账号入口/底部底板，列表留出末尾空间；展开与收起时开关都属于 persistent titlebar，紧邻可见品牌右侧原地保留同一按钮；侧栏导航轨与 transient Header 不复制开关，不再追加 Write。浏览器标题栏不再保留独立下游产品/Home 按钮；transient/floating Header 不复制 Write。动态 action 必须进入 Header rail 测量和 macOS safe area | AppShellNavigationControls、window-chrome；展开/收起、persistent/transient、首帧宽度、真实浏览器和 Electron 点击验收 |
 
 
 
@@ -646,11 +729,11 @@ WSP-29/30 所有权补充：Renderer 的 capability 声明接受与 Engine 挂�
 
 边界：普通并排使用 shellSpaceMetrics.mainMinimum（480），保持既有空间策略。状态：63项聚焦测试、完整门禁、最终包556帧验收通过；Frame最低480而Viewport可到0，普通held resize及取消恢复通过。证据 /tmp/oc-pane-4aFgS4；草稿和WebContents ID保留。
 
-## Browser 源实现迁移不变量
+## Browser 生命周期不变量
 
 | ID | 不变量 | 责任/验证 |
 |---|---|---|
-| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | opencraft/browser-manager.js；历史来源与当前模块分开锁定、冻结行为及实际 Web consumer、opencraft-browser-manager.test.ts |
+| BRW-01 | Browser Host registry 唯一管理 backing host、挂载 claim、持久化状态；独立 transition 管画面交接，React 只提供 slot 与测量 | opencraft/browser-manager.js；当前模块行为及实际 Web consumer、opencraft-browser-manager.test.ts |
 | BRW-02 | 上一个页面在新页面收到对应代次的 attachment ack、预热完成前继续承载画面；提交后一帧才释放旧画面与新页面交互 | opencraft/presentation-transition.js；确定性调度测试 |
 | BRW-03 | 替换/取消 pending handoff 后，旧 ack、timer、frame callback 不得重新显示旧 incoming 或清理新页面 | A→B→C 和迟到回调回归 |
 | BRW-04 | Claim release、presentation detach、logical close、backing dispose 相互独立；旧 reference/generation 不撤销新 claim | 独立状态机＋标准 host port；原生多标签回归 |
@@ -835,6 +918,7 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 
 - 以下可选运行位置适用于完整工作台。嵌入的 WorkbenchPresentationPolicy 固定执行目标，关闭机器管理与 runtime Host 配置；不显示 Work in/Agent/机器设置，并在 action 边界拒绝选择、配置和 retarget 写入。固定 Profile 的观测只在 Application 内存，不能打开 standalone Host catalog。
 - 机器分组只由 daemon 上报的 machineId 决定，不按 URL、域名、名称或 hostKind 推断；分组只影响呈现，不改变 Host 与 `(hostId, threadId)` 身份。机器显示名可由部署 `--machine-name` 设置，改名不改变 machineId。
+- 运行位置和机器设置优先展示部署自有 local/durable 执行端 机器，其后为 SSH、WebSocket 等外部连接，最后为云资源；各层保持原有相对顺序。排序不依赖显示名、连接状态或选中项，不改分组与选择偏好。
 - 读取机器身份不初始化引擎；未连接 Agent 的模型目录只在用户打开模型菜单时加载，加载与失败在菜单内原位反馈。
 - 新的机器、Agent、项目选择撤销旧准备；晚到结果不得覆盖较新的意图。切换机器或 Agent 只读：目录在目标 Host 存在才保留，不创建项目记录。
 - 切换运行位置保留草稿内容；暂不可用的附件原位标注，不静默删除。
@@ -888,7 +972,7 @@ Header 的可见导航 rail 用 `max-content` 在同一次布局中保留真实�
 
 触屏行高仅消费密度token：单行max(32px, --size-control-hit-min)，两行最小max(48px, --size-control-hit-min + 12px)；状态、头像与行菜单垂直居中。漏斗/右键的模式radio与filter checkbox共享indicator槽与文字轴，四种locale/桌面触屏均保留间隔。
 
-core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉沿用正常侧栏宽度，仅按屏宽减24px收窄，不再强制扩至屏宽84%，不写回桌面宽度；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
+core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉先按屏宽减64px保留关闭区域，再以共享frame.sidebarMobileWidthRatio（90%）收窄并取整；不写回桌面宽度、不缩小字体或触控目标；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
 
 `scripts/smoke-sidebar-thread-insets.mjs` 挂载真实 AppShell + Sidebar + ThreadRowMenu，以合成短/长标题、日期组、项目和状态测宽窄固定/浮动、选中/hover浅深几何；此前 Settings 列测试不代替会话消费链。
 
@@ -911,6 +995,18 @@ node and draft. Desktop and Native keep their own presentation rules.
 Verification: `scripts/smoke-composer-keyboard-viewport.ts` simulates iOS
 VisualViewport with queue/long text, offsets, light/dark and keyboard dismissal;
 physical iPhone/in-app keyboard verification remains a separate surface.
+
+The Web viewport port is the only writer of the Shell viewport projection.
+Native geometry events start a bounded one-second reconciliation window on mobile
+browser hosts; unchanged samples neither publish a new snapshot nor rewrite CSS.
+This covers a native transition finishing after its last event. Page restoration,
+foregrounding, orientation and the next touch invalidate the same projection.
+Hidden/disposed ports stop sampling, and desktop hosts retain event-driven reads.
+Actual VisualViewport geometry remains authoritative even without editor focus:
+blur never implies a closed keyboard, and recovery never forces layout height,
+scroll, focus, selection or editor replacement. A browser reporting incorrect
+native geometry still requires device evidence; synthetic timing is not physical
+iOS/in-app verification.
 
 Full-width Terminal consumes two separate geometry owners: the Shell follows the
 VisualViewport once; the Composer publishes its measured bottom occlusion,
@@ -1095,7 +1191,7 @@ and does not receive the standard task-flow continuation button.
 
 ### Shared floating material
 
-Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across Codex/Frost/Lavender light/dark and desktop/touch.
+Participant popovers and model/toolbar menus consume `menu.web.scss` `material`: elevated-secondary at 90%, 8px backdrop blur, shared border/radius/shadow. Page/sidebar backgrounds may be translucent and are not floating-surface tokens. Material is independent of menu geometry, typography and selection behavior; the participant popover retains its Radix and content ownership. Browser evidence: `scripts/smoke-participant-menu-material.ts` compares computed material across OpenCraft Neutral/Frost/Lavender light/dark and desktop/touch.
 
 ### Desktop navigation surface (2026-10-15)
 
@@ -1149,6 +1245,8 @@ floating New chat retains its primary fill.
 Conversation filter triggers use primary button fill and matching foreground while open or keyboard focused, rather than a persistent outline after menu focus restoration. Forced-colors mode retains the shared focus indicator; filter state and menu ownership remain unchanged.
 
 Unified Shell sidebar controls share one SidebarToggleButton contract. Docked mode presents it at the sidebar navigation rail top; floating/mobile mode presents it in the fixed sidebar header and dismisses the drawer. The persistent Header only renders the closed-state entrance, with compact brand geometry. No duplicate floating pin/toggle or collapsed Write action is synthesized for unified Shell. Existing gesture, resize and stateful sidebar portal owners remain authoritative.
+
+Application branding with a Home action is a native keyboard-accessible button. The mark and wordmark invoke the existing conversation-area Home destination, preserving the selected conversation or draft rather than creating a new task. Mobile drawers dismiss through the Shell selection owner. The hidden header measurement copy is inert; narrow-page brand visibility and rail alignment stay unchanged.
 
 Desktop browser application branding centers the plugin-provided mark on the shared sidebar icon rail, deriving the offset from rail width, mascot size and leading chrome padding. Header measurement and collapsed routes use the same alignment; labeled mobile drawers and native window safe insets retain their own presentation.
 
@@ -1251,9 +1349,14 @@ Desktop Web keeps the editor opaque while touch editors use glass; queue/goal
 rails use their own theme glass on both, independent of the Newera switch. The
 separate live file pill uses an opaque theme elevated surface.
 The footer must not put an opaque gradient between rails and scrolling content.
-The safe-area gutter below the Composer uses the main surface color so timeline
-rows never remain visible beneath the input; this cover does not extend behind
-the translucent Composer or its attached surfaces.
+Desktop covers only the rectangular safe-area gutter below the Composer: its
+upper edge is straight and does not follow the shell's rounded corner cutouts.
+Touch keeps the Composer floating; transcript paint remains visible around the
+shell and below it in the safe area. Neither mode paints an exterior contour.
+The shell's own radius, glass, shadow and attached surfaces remain unchanged.
+`scripts/smoke-composer-bottom-corners.ts` compares actual exterior and gutter
+pixels while changing transcript paint, including a live density switch that
+preserves the same editor, draft and focus.
 
 Entry defaults are runtime fallbacks, never startup writes. Existing valid choices
 win; reset/invalid-record fallback use that entry default. Explicitly choosing the
@@ -1271,6 +1374,8 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 附属rail背景在结构tuck之外仅覆盖1px材料接缝（coverage-composer-material-seam），到输入框边框下方，避免两份伪元素背景的外/内缘留下亚像素未覆盖带。验收测材料绘制边界，不能只比容器bbox；独立材质与无缝约束保持，结构tuck按完整对称圆弧计算。
 
 非空附属rail与shell连接处不重复绘制shell顶部边框/内侧高光；空rail恢复独立输入框完整边界。用户确认本轮对象为静止时中间横缝。
+
+Conversation search keeps result identity as Host/Thread. Moving the active result may reuse unchanged row presentation, while query/catalog/content-source/locale changes refresh the projection, disabled state and callbacks. The dialog retains input focus, active-descendant navigation and selection/abort ownership; rendering reuse must not truncate results or defer search. Unrelated App snapshot updates keep the searched-thread callback stable for the same Host catalog, and the search wrapper keeps close stable for the same open-state owner. Search selection subscribes only to the existing sidebar-dismiss action rather than unrelated Shell geometry. Owner replacement still refreshes callbacks; result reuse never captures obsolete navigation, close or locate behavior.
 
 ## Global conversation search
 
@@ -1351,6 +1456,13 @@ Task description expand/collapse retains the same editor and draft; expanding do
 
 Conversation headers expose capability-gated rename in standalone as well as embedded layouts. The same Host/Thread title writer owns persistence; Escape cancels, Enter saves, and failures use shared nonblocking notices. The pencil remains reachable for touch outside the Newera floating-header presentation; there, the existing menu retains Rename.
 Running sidebar rows with actions share a single trailing menu slot. Desktop shows activity until hover/focus/open; touch keeps the animated running ring beside actionable dots within the same 44px target, including while the menu is open. Existing Radix menu owns actions; rows without actions retain their status indicator. Title and avatar geometry is stable.
+
+Pin/unpin paints the intended membership immediately without waiting for native
+metadata writes or full-directory pagination. The shared action owner shows
+Saving feedback even when the destination group is folded or paginated. Pending
+intents survive stale reads, rejected writes restore confirmed membership and
+report an error, and revoked connection scopes cannot project late results.
+Existing group priority, filtering, six-pin/ten-recent budgets and ordering remain.
 
 Pinned conversations use presentation-only paging after filtering: six rows initially, six more per Show more, and Show less resets to six. Both controls belong below the last visible pinned row inside the pinned section, disappear with the collapsed section, and do not change catalog membership, selection, or recent pagination.
 
@@ -1495,7 +1607,7 @@ Shell keeps its existing header measurements, safe-area clearance, 44px touch ta
 
 ### Reasoning effort discrete slider
 
-The Composer detail pane projects only the selected model's declared, ordered
+The first Composer picker layer projects only the selected model's declared, ordered
 reasoning choices through the shared Web DiscreteSlider. Track/round thumb/ticks,
 readout and endpoints consume shared geometry, typography and theme tokens.
 Held drag changes preview only; release commits through existing selection and
@@ -1503,6 +1615,10 @@ remember-default actions. Escape/outside closes the existing menu, not each step
 Touch editing keeps its focus lease and native selection; keyboard adjustment is
 Radix-owned and must not become menu navigation. No choices hides, one disables,
 and an unset value remains explicitly unset until chosen.
+The model title opens configuration; its optional Speed row projects serviceTiers
+from the model catalog. A Standard choice sends null to clear Fast, including
+queued/reloaded messages. Unsupported models hide Speed and clear incompatible
+tiers; speed and reasoning never substitute for each other.
 
 ## Common workbench keyboard commands
 
@@ -1768,6 +1884,33 @@ and content-width changes publish invalidation ticks with effect cleanup.
 Shared animation, resize, browser and geometry implementations are unchanged;
 this disposition does not classify those dependencies or native platform behavior.
 
+## Composer model/depth hierarchy
+
+Standalone Composer opens its declared effort slider and an optional Fast lightning
+checkbox at the left on first activation. Effort is centered above the full model name, which opens a compact model list
+without capability details. The Composer shows enabled Fast beside the model name.
+High frequency depth changes do not traverse a model list. Presentation never
+adds unsupported speed/effort choices, remounts the editor or writes a default
+by opening. The shared slider capsule variant retains Radix gesture/keyboard
+ownership and previews effort until a completed choice. Desktop uses a compact surface with the shared slider metrics; touch targets keep the density minimum. The right reset commits only a declared model default effort, preserving model/tier/draft and native editor selection; absent defaults disable reset. Embedded session-only
+policy keeps Host-owned reasoning outside its model-only picker.
+
+## Touch Composer content geometry
+
+An empty idle auto-single-line touch Composer is one vertically centered row,
+with no model entrance. An enabled Fast tier remains a compact status icon.
+Entering the editor starts its local editing presentation and reveals the normal
+model/depth/Fast footer before typing. Toolbar and owned portal focus retain the
+session; focus leaving both ends it after menu close cleanup. Clearing while
+editing stays expanded; clearing and leaving restores the idle row. Attachments
+and editing use content-sized input with a one-line minimum, never flex-grown
+blank space. The same editor and native Selection survive all transitions.
+
+Vertical row alignment never centers the editor's inline text. The empty native
+caret and placeholder share the paragraph's logical start; typing and deleting
+the final character (also with the keyboard raised) must restore that origin
+without replacing the editor, moving Selection or drawing a substitute caret.
+
 
 ## Appearance runtime ownership
 
@@ -1779,6 +1922,8 @@ requested extension ID and falls back to an available built-in, restoring the
 selection when its contribution returns. The presentation policy's built-in default
 (or first visible built-in) owns fallback; unrelated missing IDs do not switch to a
 newly loaded extension default. An all-hidden policy retains Neutral for safety.
+The visible product default leads the theme choices; other built-ins retain their
+order, followed by extensions in registration order. Saved selection does not reorder choices.
 
 Shared compiler/palettes are unchanged dependency ports. Theme projection owns its
 CSS properties, mode/classes and native appearance payload; document initialization
@@ -1812,7 +1957,10 @@ independent of its parent. Images use the existing Host media loader and resourc
 port, with Host/conversation/cwd/document/source identity invalidating old previews.
 View expansion does not grant tool approval, execute output or own thread state.
 Subagent grouping uses current core-derived agent state; individual instructions
-remain available without repeating stale historical prompts in grouped rows.
+remain available without repeating stale historical prompts in grouped rows. Each
+expanded row uses that agent’s latest matching operation and instruction, while
+its identity and status remain core-derived. A one-operation group retains its
+input, reasoning effort and agent path details.
 Activity rails, fonts, modal focus and viewport reflow retain their shared owners.
 
 
@@ -1838,6 +1986,33 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+Generated images reserve their existing gallery placeholder while generation or Host media resolution is pending. Terminal items with no image and no pending load do not retain a progress indicator.
+
+### Side chat slash command
+
+An existing conversation’s Composer advertises `/side` alongside its Host shortcuts. Explicit submission of the standalone command invokes the same Side Chat panel action as the toolbar, with the current conversation owner and working directory. It never sends or queues model input, including during an active turn. A stale owner, unavailable action or failed fork retains the command draft and reports failure. Arguments, attachments, context and code remain ordinary prompt content. New-thread composers do not advertise a fork command.
+
+### Inline command discovery
+
+Composer commands are discovered directly from slash suggestions in the editor. A non-empty shortcut catalog must not introduce a command-library button or separate footer menu. Selecting a suggestion inserts editable text; explicit submission owns execution.
+### Side chat model display
+
+Side chat displays its fork’s current execution model as compact, non-interactive Composer metadata. It offers no model menu and submits no model, effort or service-tier override; the child conversation retains execution ownership. Main conversation model controls are unchanged.
+
+Side Chat inherited metadata groups the catalog model name, known reasoning effort and actual Fast state, using compact shared typography without interactive affordances. Identifier fallback uses readable words; missing settings do not invent defaults.
+
+### Message continuity and dictation motion preference
+
+Setup events preceding an initial user echo cannot discard its sender, attachments
+or source identity. Worktree initialization alone cannot hide historical input.
+Explicit steering server IDs join only earlier eligible local messages, survive
+history gaps and never replace ordinary local text with enriched Host prose.
+A live reduced-motion preference keeps dictation's signal static without
+interrupting capture, controls or bounded sample collection; changing preference
+and unmounting retain a single paint/listener owner.
+
+Sidebar search may reuse unchanged row presentation. Parent props, grouping and action-owner/context changes must invalidate render-time readers; controlled menus, badges, locale and busy states remain live through their own subscriptions. Reuse must preserve input focus, Host/Thread identity and current capability/callback ownership; it must not cap semantic catalog membership.
 
 
 ## Sidebar directory grid bounds

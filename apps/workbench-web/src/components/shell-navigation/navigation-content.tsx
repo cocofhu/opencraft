@@ -31,6 +31,8 @@ export interface ShellNavigationConfig {
   readonly account: ShellAccount | null;
   readonly onOpenSettings: () => void;
   readonly settingsActive?: boolean;
+  readonly onOpenUpdates?: () => void;
+  readonly updatesActive?: boolean;
   readonly allowDock?: boolean;
 }
 
