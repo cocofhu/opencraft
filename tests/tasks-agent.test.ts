@@ -134,6 +134,10 @@ test("materialized CLI uses authenticated shared authority, compact pagination, 
     assert.equal((await cli("list",{search:"Task 0"})).total,0);
     await cli("unarchive",{id:"task-0",expectedRevision:archived.tasks[0].revision});
     assert.equal((await cli("read",{id:"task-0"})).archivedAt,null);
+    await cli("properties",{id:"task-2",expectedRevision:1,aiResearch:"proactive",aiResearchReason:"Read-only repository investigation has a clear scope."});
+    assert.equal((await cli("list",{aiResearch:"proactive"})).total,1);
+    assert.equal((await cli("read",{id:"task-2"})).aiResearchReason,"Read-only repository investigation has a clear scope.");
+    assert.equal((await run("list",{aiResearch:"invalid"})).code,1);
     await agent.close();agent=undefined;
     await assert.rejects(access(join(dir,"codex/skills/opencraft-tasks")));
     await assert.rejects(access(join(dir,"agent/opencraft-tasks/scripts/connection.json")));

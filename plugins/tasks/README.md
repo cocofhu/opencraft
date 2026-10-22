@@ -125,3 +125,24 @@ and `restore` for the existing recycle contract. Progress uses a stable eventId
 and does not change task revisions. After an uncertain write, read that eventId
 before retrying with the same content. A report is explicit collaboration text;
 it does not complete the task or imply a conversation has finished.
+
+
+## AI research triage
+
+AI research is a four-way initial disposition with a short rationale: unassessed,
+AI can start research, needs context, or needs a decision. Edit it in task details
+and filter it from Board/List. The coordinator may assess unowned tasks; the
+field itself does not launch execution. Hosts must advertise `aiResearch:true`.
+Assessments reuse the existing transactional event authority, retaining v5 storage
+and rollback compatibility. See docs/tasks-model.md for the exact contract.
+
+## AI follow-up board
+
+A peer of Board/List with five collaboration lanes: Todo, Working, Needs you,
+In review, Ready to merge. All active tasks participate, including old rows.
+Explicit progress facts distinguish execution/review/readiness; old business
+statuses remain visibly unverified. No synthetic Demo tasks or simulate actions
+ship. Owner filtering and All/Needs me/My work plus search scope every count.
+Cards open existing task details and independently link original conversations.
+See [Tasks model](../../docs/tasks-model.md#ai-collaboration-board-and-compatibility)
+for `AI_FOLLOW_UP_V1`, legacy handoff compatibility and round timing.

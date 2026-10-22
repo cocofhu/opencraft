@@ -184,7 +184,7 @@ test("local Codex adapter owns Tasks RPC instead of forwarding it to native Code
       storage: "sqlite-rows",
       properties: true,
       memberIdentity: true,
-      archive: true, planning: true, activity: true, progress: true,
+      archive: true, aiResearch: true, planning: true, activity: true, progress: true,
       supportedKinds: ["unclassified", "feature", "improvement", "bug", "engineering", "harness", "research", "documentation", "operations", "growth", "task"],
       recycleBinRetentionMs: 7 * 86400000,
     });

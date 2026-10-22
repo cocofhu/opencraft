@@ -366,3 +366,116 @@ while code arrives; read state, account scope and periodic refresh stay with the
 same statistics component. Opening Tasks alone does not load this optional view. Its native read adapter
 also loads only on the first read; cancellation is checked after import before
 any request can begin.
+
+
+## First-round AI research triage
+
+The optional capability `aiResearch:true` exposes the board field AI research.
+`aiResearch` is `unassessed`, `proactive`, `needs_context` or `needs_decision`;
+`aiResearchReason` is at most 2048 characters and required for assessed modes.
+It describes whether AI can initiate preliminary research, independently of task
+status, ownership, priority and conversation activity. It neither starts work nor
+measures decision waiting. A coordinator assesses the actual goal and available
+context, identifies missing material or a precise human decision, and records a
+concise rationale. Lack of an assignee alone does not prevent read-only research.
+
+Existing tasks project unassessed with an empty reason; no historical assessment
+is fabricated. API create/update/properties accept the optional fields; omission
+preserves the latest pair, and a nonempty rationale is required for assessed
+modes. CAS and existing archive read-only rules apply. Successful changes append
+one structured created/updated event in the same transaction as task revision
+and time changes. The event stores the complete small assessment pair. The latest
+assessment is projected from that task's event sequence; batch snapshots fetch
+latest assessments in one scoped query, not one query per card. No new schema,
+column, migration checksum or second storage owner is introduced. Legacy writers
+preserve the assessment; rollback readers ignore the additional event payload and
+can continue to use the same v5 database. Read-only event history retains prior
+judgments. Existing progress reports remain independent.
+
+UI uses one existing task draft for the selector and rationale; save is explicit,
+unknown values survive unrelated edits, filters and card/list summaries use the
+same authority projection. Capability-absent Hosts hide editing/filter controls.
+The CLI exposes disposition in summaries and `list {aiResearch}` filtering; read
+returns the rationale and properties updates the assessment.
+
+
+## Morning overview
+
+The board heading includes a Morning overview action. It opens a read-only, whole-board projection of the current task authority, independent of browse filters; Back restores the prior browse view, filters, scroll, editor drafts and entry focus. The mounted browse view retains its owner. The four product metric cards (users, active users, instance inventory and submission level) are explicitly awaiting data. No synthetic zeroes, trends, quota or health claims are shown.
+
+Among non-terminal tasks, existing research assessments populate needs-decision and needs-context groups with recorded rationales and a direct task-detail action; ready-for-research and unassessed items remain in a collapsed pool. A research assessment never implies a stage output, active AI execution or a decision-ready handoff. Waiting times remain explicitly unavailable until a real handoff contract is implemented. Unsupported capability, initial loading, errors and retained background snapshots follow the existing task controller; this view performs no task mutation or scheduling and adds no storage.
+
+### AI collaboration board and compatibility
+
+AI follow-up remains a peer of Board/List. It now displays **all active tasks** in
+Todo, Working, Needs you, In review and Ready to merge. Deleted, archived, done
+and canceled rows are excluded. Morning remains separate for future risks and
+key exploration; this change adds no business metrics or risk workflow.
+
+Existing task rows, six workflow statuses, research dispositions, links and
+immutable migrations are unchanged. Backlog/todo maps to Todo; in_progress to
+Working with execution explicitly unverified; in_review without a verified
+human request maps to In review with review method unverified. Business status
+alone never asserts an AI run, automatic review, passed checks or merge readiness.
+Done is not Ready to merge. No drag or simulation controls change execution facts.
+
+The original `AI_RESEARCH_HANDOFF_V1\n` envelope with exactly output, decision and
+nextStep remains readable. The later server time of its first valid report in
+the current review cycle and review entry remains the waiting origin. Leaving
+review, deleting or restoring ends that cycle. Ordinary messages never reset it.
+Old research triage alone cannot create a human request or a timer.
+
+For explicitly recorded collaboration facts, existing progress append accepts:
+
+```text
+AI_FOLLOW_UP_V1
+{"lane":"needs","phase":"方案","summary":"范围对比材料已就绪","artifact":"范围方案 v2 · 关联会话内","decision":"先完成个人闭环还是团队协作？推荐个人闭环。","roundId":"scope-round-2","judgeId":"member-id"}
+```
+
+Allowed lanes are todo / working / needs / review / ready. Required nonempty
+strings are summary and artifact. Phase is optional. Needs additionally requires
+a nonempty decision and roundId; judgeId is an optional explicit member ID or
+null for unclaimed. Never infer the judge from the task Owner. Other fields,
+client timestamps, malformed JSON and reports over the existing 4096-character
+limit are not treated as facts. The material reference is descriptive text; it
+never creates a URL or bypasses the existing conversation resolver.
+
+Writers first move to the appropriate business status (todo/backlog for todo,
+in_progress for working, in_review for needs/review/ready), then append a fact
+using a stable event ID. A workflow status change closes the structured cycle.
+Only compatible facts determine a lane. Repeating a needs report for the same
+roundId or changing its judge preserves the first server timestamp; entering a
+new round uses a new roundId and starts a new clock. Ordinary progress is ignored
+by the projection. To end a wait, record the valid response and move to todo for
+work not yet started; publish working only after actual execution starts. Review
+and ready must describe observed checks/readiness, never an inferred result.
+This is a durable report convention, not an executor, CI integration or approval
+API. Ready does not imply merged, deployed or completed. Non-code tasks need no
+invented PR. Existing progress text, CAS mutations and backend actor provenance
+remain authoritative; the view does not create another writable state store.
+
+The board reads bounded current-cycle history, reuses unchanged rows, limits
+concurrent reads to four and fences stale results. Failed or incomplete history
+has no inferred human clock, with a scoped retry. There is no new storage,
+migration, scheduling or write from browsing. The board does not introduce a
+formal overdue cutoff: orange identifies human waiting. The old strict 72-hour
+helper remains for legacy consumers, but no overdue group survives this layout.
+
+Cards show title, a two-line decision when applicable, recorded material,
+current state/time, Owner and a clear detail action. Full content and editing use
+the existing task workspace/activity; conversation actions independently open the
+exact Server/Thread through the original resolver, using the accessible menu for
+multiple links. Missing links/navigation stay explicit. Current judge and task
+Owner are separate, and avatars use existing profile identity resolution.
+
+Owner filtering supports all, a stored member ID and unassigned. All/Needs me/My
+work and material/title search apply to every lane and count. Needs me matches
+only an explicit judge and the established current member, never a guessed login.
+Selections persist across Board/List/conversation remounts in the same activation,
+scoped to task authority and verified account. Ordinary board filters stay
+independent. Needs you sorts by oldest current round; other lanes use stable task
+order/ID. Five columns reflow to three/two/one by actual Tasks container capacity.
+Narrow layouts may hide the redundant Owner text label, never the shared select wrapper or its accessible control.
+Typography, colors, focus, touch targets, shared controls and Radix behavior come
+from the existing design owners. No synthetic prototype task or simulate button
+is shipped.

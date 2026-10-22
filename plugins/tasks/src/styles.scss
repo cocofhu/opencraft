@@ -112,6 +112,23 @@
   align-items: center;
   gap: 8px;
 }
+.tasks-research {
+  @include type.role(metadata);
+  display: block;
+  color: var(--color-text-secondary);
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  &[data-research="proactive"] { color: var(--color-status-connected); }
+  &[data-research="needs_decision"] { color: var(--color-text); }
+}
+.tasks-research-fields {
+  display: grid;
+  gap: 10px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--color-border-subtle);
+  p { @include type.role(metadata); margin: 0; color: var(--color-text-secondary); }
+  .tasks-editor__content & textarea { min-height: 72px; height: 88px; }
+}
 .tasks-link > span {
   flex: 1;
   min-width: 0;
@@ -515,15 +532,17 @@
     order: -2;
     margin-bottom: 0;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) 44px 44px;
+    grid-template-columns: minmax(0, 1fr) 44px 44px;
     gap: 6px;
     .tasks-search { width: 100%; min-width: 0; font: var(--typography-mobile-input-font); letter-spacing: var(--typography-mobile-input-tracking); }
     .tasks-filter-trigger { position: relative; padding: 0; width: 44px; }
     .tasks-mine { padding: 0; width: 44px; }
     .tasks-refresh { display: none; }
-    &:not(:has(.tasks-mine)) { grid-template-columns: auto minmax(0, 1fr) 44px; }
+    &:not(:has(.tasks-mine)) { grid-template-columns: minmax(0, 1fr) 44px; }
   }
   .tasks-view-switch {
+    grid-column: 1 / -1;
+    justify-self: start;
     button { width: 44px; padding: 0; }
     .tasks-view-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   }
@@ -798,4 +817,10 @@
 }
 @media (pointer: coarse) {
   .tasks-conversation :is(.tasks-conversation__open, .tasks-conversation__more) { min-height: 44px; }
+}
+
+.tasks-toolbar--ai-follow-up { justify-content: space-between; }
+@container tasks (max-width: 600px) {
+  .tasks-toolbar.tasks-toolbar--ai-follow-up { display: flex; }
+  .tasks-toolbar--ai-follow-up .tasks-refresh { display: inline-flex; }
 }

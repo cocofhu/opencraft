@@ -13,7 +13,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChartNoAxesCombined, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartNoAxesCombined, Sunrise, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";
@@ -33,6 +33,7 @@ import {
   TASK_STATUSES,
   TASK_PRIORITIES,
   TASK_KINDS,
+  TASK_AI_RESEARCH,
   type TaskKind,
   type TaskMember,
   type TasksMethodMap,
@@ -48,8 +49,23 @@ import { TasksArchiveController } from "./archive-controller";
 import { TasksController } from "./controller";
 import "./styles.scss";
 import { TaskDescriptionField } from "./description-field";
+import { AIFollowUp, type FollowUpSelection } from "./ai-follow-up";
+import { MorningOverview } from "./morning-overview";
+import { parseFollowUpReport } from "./ai-follow-up-model";
+import { parseResearchHandoff } from "./research-handoff";
 const ConversationOverview = lazy(() => import("./conversation-overview").then(module => ({ default: module.ConversationOverview })));
 const words = {
+  morningOverview: ["晨会总览", "Morning overview"],
+  aiFollowUp: ["AI 跟进", "AI follow-up"],
+  morningShort: ["晨会", "Morning"],
+  aiResearch: ["AI 主动预研", "AI research"],
+  allResearch: ["全部预研判断", "All research dispositions"],
+  researchUnassessed: ["未判断", "Unassessed"],
+  researchProactive: ["可主动预研", "AI can start research"],
+  researchContext: ["需补充上下文", "Needs context"],
+  researchDecision: ["需人判断", "Needs a decision"],
+  researchReason: ["判断依据／缺少的信息", "Rationale / missing information"],
+  researchHint: ["主管家先分流；此字段不启动会话，也不开始等待计时。", "Initial triage only; this field does not start a conversation or a waiting clock."],
   archive: ["归档任务", "Archive task"],
   archivedTasks: ["归档", "Archived tasks"],
   archiveHint: ["归档任务长期留底，不占用当前看板。恢复后回到原状态列。", "Archived tasks are retained outside the board. Restore an item to its original status column."],
@@ -255,7 +271,7 @@ function ActivityPanel({ model, session, canPost, ports }: { model: TaskActivity
     window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh);
     return () => { stop(); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
   }, [model, ports]);
-  const fields: Record<string, keyof typeof words> = { title: "title", description: "description", kind: "kind", acceptanceCriteria: "acceptance", assigneeId: "assignee", priority: "priority", dueDate: "dueDate", projectId: "project", projectServerId: "projectSource" };
+  const fields: Record<string, keyof typeof words> = { title: "title", description: "description", kind: "kind", acceptanceCriteria: "acceptance", aiResearch: "aiResearch", aiResearchReason: "researchReason", assigneeId: "assignee", priority: "priority", dueDate: "dueDate", projectId: "project", projectServerId: "projectSource" };
   return <section className="tasks-activity" aria-label={t("activityTab")}>
     <h3>{t("activityTab")}</h3>
     {canPost ? <div className="tasks-progress-composer">
@@ -267,7 +283,7 @@ function ActivityPanel({ model, session, canPost, ports }: { model: TaskActivity
     <ol>{state.events.map(event => <li key={event.eventId} data-event-id={event.eventId}>
       <div className="tasks-activity__meta"><span>{event.actor?.label ?? event.actor?.id ?? t(event.channel === "agent" ? "agentEntry" : "unverifiedActor")}</span><time dateTime={new Date(event.createdAt).toISOString()}>{new Date(event.createdAt).toLocaleString(intl.locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></div>
       <p>{t(event.type === "updated" && typeof event.payload.archived === "boolean" ? event.payload.archived ? "event_archived" : "event_unarchived" : `event_${event.type}`)}{event.type === "updated" && typeof event.payload.archived !== "boolean" && Array.isArray(event.payload.fields) ? ` · ${event.payload.fields.map(field => fields[String(field)] ? t(fields[String(field)]!) : String(field)).join("、")}` : ""}{event.type === "status_changed" ? ` · ${TASK_STATUSES.includes(event.payload.from as TaskStatus) ? t(event.payload.from as TaskStatus) : ""} → ${TASK_STATUSES.includes(event.payload.to as TaskStatus) ? t(event.payload.to as TaskStatus) : ""}` : ""}</p>
-      {event.type === "progress" ? <p className="tasks-activity__text">{String(event.payload.text ?? "")}</p> : null}
+      {event.type === "progress" ? <p className="tasks-activity__text">{(() => { const structured = parseFollowUpReport(event.payload.text); if (structured) return [structured.phase, structured.summary, structured.artifact, structured.decision, structured.roundId, structured.judgeId].filter(Boolean).join("\n\n"); const report = parseResearchHandoff(event.payload.text); return report ? intl.locale.startsWith("zh") ? `阶段产出：${report.output}\n\n需要判断：${report.decision}\n\n判断后下一步：${report.nextStep}` : `Output: ${report.output}\n\nDecision: ${report.decision}\n\nNext step: ${report.nextStep}` : String(event.payload.text ?? ""); })()}</p> : null}
     </li>)}</ol>
     {state.nextBeforeSeq !== null ? <SettingsButton type="button" disabled={state.loading} onClick={() => void model.refresh(true)}>{t("moreActivity")}</SettingsButton> : null}
   </section>;
@@ -291,13 +307,21 @@ function linkKey(link: Pick<TaskConversation, "serverId" | "threadId">): string 
   return JSON.stringify([link.serverId, link.threadId]);
 }
 interface ViewDraft {
-  mode: "board" | "list";
+  mode: "board" | "list" | "ai";
   status: TaskStatus;
   project: string;
   search: string;
   assignee: string;
   overdue: boolean;
   kind: string;
+  aiResearch: string;
+}
+function researchLabel(mode: string, t: ReturnType<typeof useText>): string {
+  return mode === "unassessed" ? t("researchUnassessed") : mode === "proactive" ? t("researchProactive") : mode === "needs_context" ? t("researchContext") : mode === "needs_decision" ? t("researchDecision") : mode;
+}
+function ResearchBadge({ task }: { task: TaskDetail }) {
+  const t = useText();
+  return task.aiResearch && task.aiResearch !== "unassessed" ? <span className="tasks-research" data-research={task.aiResearch} title={task.aiResearchReason}>{researchLabel(task.aiResearch, t)}</span> : null;
 }
 function isOverdue(task: TaskDetail): boolean {
   const now = new Date();
@@ -362,8 +386,9 @@ function TaskCardContents({ task, members, onEdit, onQuick, onArchive, onOpen, a
           {task.title}
         </button>
       </div>
-      {task.latestProgress ? <p className="tasks-card__progress" title={task.latestProgress.text}>{task.latestProgress.text}</p> : null}
+      {task.latestProgress ? <p className="tasks-card__progress" title={parseFollowUpReport(task.latestProgress.text)?.summary ?? parseResearchHandoff(task.latestProgress.text)?.output ?? task.latestProgress.text}>{parseFollowUpReport(task.latestProgress.text)?.summary ?? parseResearchHandoff(task.latestProgress.text)?.output ?? task.latestProgress.text}</p> : null}
       <TaskConversationShortcut task={task} activity={activity} onOpen={onOpen} onEdit={onEdit} />
+      <ResearchBadge task={task} />
       <TaskMeta task={task} members={members} compactOwner />
   </>;
 }
@@ -422,7 +447,7 @@ function TaskRow({ task, members, pending, onEdit, onMove, activity }: {
         </SettingsSelect>
       </div>
       <button type="button" className="tasks-row__title" onClick={onEdit}>{task.title}</button>
-      <TaskMeta task={task} members={members} />
+      <div><TaskMeta task={task} members={members} /><ResearchBadge task={task} /></div>
       <span className="tasks-row__activity">{task.conversations.length ? `${t("links")} ${task.conversations.length} · ${states.map(state => t(state)).join(" / ")}` : ""}</span>
     </article>
   );
@@ -543,7 +568,7 @@ function MemberIdentityEditor({ member, busy, onMember }: { member: TaskMember; 
   </details>;
 }
 function Editor({
-  planning, supportedKinds, activityModel, session, canPostProgress,
+  planning, supportedKinds, aiResearch, activityModel, session, canPostProgress,
   draft,
   members,
   properties,
@@ -567,7 +592,7 @@ function Editor({
   onBeginConversation,
   onStatus,
 }: {
-  planning: boolean; supportedKinds: readonly string[]; activityModel?: TaskActivityController; session: TasksEditorSession; canPostProgress: boolean;
+  planning: boolean; supportedKinds: readonly string[]; aiResearch: boolean; activityModel?: TaskActivityController; session: TasksEditorSession; canPostProgress: boolean;
   draft: Draft;
   members: readonly TaskMember[];
   properties: boolean;
@@ -800,6 +825,14 @@ function Editor({
           value={draft.description}
           onChange={(description) => update({ description })}
         />
+        {aiResearch ? <div className="tasks-research-fields">
+          <label>{t("aiResearch")}<SettingsSelect aria-label={t("aiResearch")} value={draft.aiResearch ?? "unassessed"} disabled={blocked} onChange={event => update({ aiResearch: event.target.value })}>
+            {draft.aiResearch && !TASK_AI_RESEARCH.some(mode => mode === draft.aiResearch) ? <option value={draft.aiResearch}>{draft.aiResearch}</option> : null}
+            {TASK_AI_RESEARCH.map(mode => <option key={mode} value={mode}>{researchLabel(mode, t)}</option>)}
+          </SettingsSelect></label>
+          <label>{t("researchReason")}<textarea aria-label={t("researchReason")} maxLength={2048} disabled={blocked} required={(draft.aiResearch ?? "unassessed") !== "unassessed"} value={draft.aiResearchReason ?? ""} onChange={event => update({ aiResearchReason: event.target.value })} /></label>
+          <p>{t("researchHint")}</p>
+        </div> : null}
         {planning ? <>
           <label className="tasks-acceptance">{t("acceptance")}<textarea aria-label={t("acceptance")} maxLength={16384} value={draft.acceptanceCriteria ?? ""} onChange={event => update({ acceptanceCriteria: event.target.value })} /></label>
           {!draft.description.trim() && !draft.acceptanceCriteria?.trim() ? <SettingsButton type="button" variant="quiet" disabled={blocked} onClick={() => update(starterTemplate(draft.kind ?? "unclassified", intl.locale.startsWith("zh")))}>{t("template")}</SettingsButton> : null}
@@ -1112,6 +1145,8 @@ export function createTasksView(
   preferences?: TrustedExtensionApiV1["localPreferences"],
 ) {
   const localSelections = new Map<string, string>();
+  const aiOwnerSelections = new Map<string, string>();
+  const aiViewSelections = new Map<string, FollowUpSelection>();
   let controller: TasksController | null = null;
   let archiveController: TasksArchiveController | null = null;
   const positions = new Map<string, number>();
@@ -1120,7 +1155,7 @@ export function createTasksView(
   let remembered: ViewDraft = {
     mode: "board",
     status: "todo",
-    project: "", search: "", assignee: "", overdue: false, kind: "",
+    project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "",
   };
   activationSignal.addEventListener(
     "abort",
@@ -1133,7 +1168,8 @@ export function createTasksView(
       for (const activity of activities.values()) activity.dispose();
       activities.clear();
       localSelections.clear();
-      remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "" };
+      aiOwnerSelections.clear(); aiViewSelections.clear();
+      remembered = { mode: "board", status: "todo", project: "", search: "", assignee: "", overdue: false, kind: "", aiResearch: "" };
     },
     { once: true },
   );
@@ -1147,6 +1183,13 @@ export function createTasksView(
     useLayoutEffect(() => { const node = viewport.current; if (!node) return; const observer = new ResizeObserver(entries => setCompact(entries[0]!.contentRect.width <= 600)); observer.observe(node); return () => observer.disconnect(); }, []);
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [overviewOpen, setOverviewOpen] = useState(false);
+    const [morningOpen, setMorningOpen] = useState(false);
+    const wasMorning = useRef(false);
+    useEffect(() => {
+      if (morningOpen) viewport.current?.querySelector<HTMLButtonElement>("[data-morning-back]")?.focus();
+      else if (wasMorning.current) viewport.current?.querySelector<HTMLButtonElement>("[data-morning-entry]")?.focus();
+      wasMorning.current = morningOpen;
+    }, [morningOpen]);
     const viewLive = useRef(true);
     useEffect(() => {
       viewLive.current = true;
@@ -1165,6 +1208,11 @@ export function createTasksView(
         });
       return controller;
     }, []);
+    const morningPort = useMemo(() => ({ request: <M extends keyof import("@opencraft/appserver-protocol").TasksMethodMap>(method: M, params: import("@opencraft/appserver-protocol").TasksMethodMap[M]["params"]) => {
+      activationSignal.throwIfAborted();
+      if (!authority) throw new Error("Missing task authority");
+      return ports.request(authority, method, params);
+    } }), [authority]);
     const state = useSyncExternalStore(
       model.subscribe,
       model.getSnapshot,
@@ -1366,6 +1414,7 @@ export function createTasksView(
       const d = editorSession.getSnapshot().draft;
       if (!d) return null;
       const content: TaskContent = {
+        ...(state.aiResearch ? { ...(d.aiResearch !== (task?.aiResearch ?? "unassessed") || !d.revision ? { aiResearch: d.aiResearch ?? "unassessed" } : {}), ...(d.aiResearchReason !== (task?.aiResearchReason ?? "") || !d.revision ? { aiResearchReason: d.aiResearchReason ?? "" } : {}) } : {}),
         ...(state.properties ? { assigneeId: d.assigneeId ?? null, priority: d.priority ?? "none", dueDate: d.dueDate ?? null } : {}),
         ...(state.planning ? { ...(d.kind !== (task?.kind ?? "unclassified") || !d.revision ? { kind: d.kind ?? "unclassified" } : {}), acceptanceCriteria: d.acceptanceCriteria ?? "" } : {}),
         title: d.title.trim(),
@@ -1451,7 +1500,8 @@ export function createTasksView(
         && (!draft.search.trim() || `${task.title} ${task.description}`.toLocaleLowerCase().includes(draft.search.trim().toLocaleLowerCase()))
         && (!draft.assignee || (draft.assignee === "mine" ? !!myMemberId && task.assigneeId === myMemberId : draft.assignee === "unassigned" ? !task.assigneeId : task.assigneeId === draft.assignee.slice(7)))
         && (!draft.overdue || isOverdue(task))
-        && (!draft.kind || (task.kind ?? "unclassified") === draft.kind),
+        && (!draft.kind || (task.kind ?? "unclassified") === draft.kind)
+        && (!draft.aiResearch || (task.aiResearch ?? "unassessed") === draft.aiResearch),
     );
     const archiveTask = async (item: TaskDetail) => {
       const saved = await model.mutate(TASKS.archive, { id: item.id, expectedRevision: item.revision });
@@ -1479,14 +1529,15 @@ export function createTasksView(
     return (
       <div ref={viewport} className="tasks-viewport">
         <section className="tasks">
-          <div className="tasks-overview" data-conversation-overview={overviewOpen && !managementOpen}>
+          <div className="tasks-overview" data-conversation-overview={overviewOpen && !managementOpen && !morningOpen}>
           <div className="tasks-page-heading">
             <div className="tasks-heading-title" ref={recycleHeading}>
-              {managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => { setRecycleOpen(false); setArchiveOpen(false); }}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : null}
-              <h2 className="tasks-title">{archiveOpen ? t("archivedTasks") : recycleOpen ? t("recycleBin") : t("tasks")}</h2>
+              {morningOpen ? <SettingsButton data-morning-back="" variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => setMorningOpen(false)}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("cancel")} title={t("cancel")} onClick={() => { setRecycleOpen(false); setArchiveOpen(false); }}><ArrowLeft size={18} aria-hidden="true" /></SettingsButton> : null}
+              <h2 className="tasks-title">{morningOpen ? t("morningOverview") : archiveOpen ? t("archivedTasks") : recycleOpen ? t("recycleBin") : t("tasks")}</h2>
             </div>
             <div className="tasks-heading-actions" ref={managementActions}>
-              {managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} title={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} aria-busy={archiveOpen ? archiveState.loading : refreshing} disabled={state.pending || (archiveOpen ? archiveState.loading : refreshing)} onClick={() => void (archiveOpen ? archives.refresh() : refreshTasks())}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : <>
+              {morningOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("refreshBoard")} title={t("refreshBoard")} aria-busy={refreshing} disabled={state.pending || refreshing || state.phase === "loading"} onClick={() => void refreshTasks()}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : managementOpen ? <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} title={t(archiveOpen ? "refreshArchive" : "refreshRecycle")} aria-busy={archiveOpen ? archiveState.loading : refreshing} disabled={state.pending || (archiveOpen ? archiveState.loading : refreshing)} onClick={() => void (archiveOpen ? archives.refresh() : refreshTasks())}><RefreshCw size={18} aria-hidden="true" /></SettingsButton> : <>
+                <SettingsButton data-morning-entry="" variant="quiet" aria-label={t("morningOverview")} onClick={() => setMorningOpen(true)}><Sunrise size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("morningOverview")}</span><span className="tasks-compact-only">{t("morningShort")}</span></SettingsButton>
                 <SettingsButton className="tasks-create" variant="primary" aria-label={t("add")} disabled={state.phase !== "ready" || state.pending} onClick={() => openEditor()}><Plus size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("add")}</span></SettingsButton>
                 <DropdownMenu.Root><DropdownMenu.Trigger asChild>
                   <SettingsButton variant="ghost" className="tasks-icon-action" aria-label={t("moreActions")} title={t("moreActions")}><MoreHorizontal size={18} aria-hidden="true" /></SettingsButton>
@@ -1498,7 +1549,7 @@ export function createTasksView(
               </>}
             </div>
           </div>
-          <header className="tasks-toolbar" hidden={managementOpen}>
+          <header className={`tasks-toolbar${draft.mode === "ai" && !overviewOpen ? " tasks-toolbar--ai-follow-up" : ""}`} hidden={managementOpen || morningOpen}>
             <SegmentedControl
               className="tasks-view-switch"
               label={t("view")}
@@ -1510,9 +1561,11 @@ export function createTasksView(
               options={[
                 { value: "board", label: <><Columns3 className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("board")}</span></> },
                 { value: "list", label: <><List className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("list")}</span></> },
+                { value: "ai", label: <><MessageSquare className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("aiFollowUp")}</span></> },
                 ...(ports.conversationOverview ? [{ value: "overview", label: <><ChartNoAxesCombined className="tasks-compact-only" size={18} aria-hidden="true" /><span className="tasks-view-label">{t("conversationOverview")}</span></> }] : []),
               ]}
             />
+            {draft.mode !== "ai" || overviewOpen ? <>
             <SettingsTextInput className="tasks-search" aria-label={t("searchTasks")} placeholder={t("searchTasks")} type="search" value={draft.search} onChange={e=>change({search:e.target.value})} />
             {state.properties ? <SettingsButton className="tasks-mine" variant="quiet" aria-label={t("myTasks")} title={t("myTasks")} aria-pressed={draft.assignee === "mine"} onClick={() => {
               change({ assignee: draft.assignee === "mine" ? "" : "mine" });
@@ -1520,10 +1573,12 @@ export function createTasksView(
             }}><UserRound size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("myTasks")}</span></SettingsButton> : null}
             <SettingsButton className="tasks-filter-trigger" variant="quiet" aria-label={t("filters")} title={t("filters")} aria-expanded={filtersOpen} aria-controls={filterId} onClick={()=>setFiltersOpen(value=>!value)}>
               <SlidersHorizontal size={18} aria-hidden="true" /><span className="tasks-wide-only">{t("filters")}</span>
-              {(draft.assignee || draft.project || draft.overdue || draft.kind) ? <span className="tasks-filter-count" aria-hidden="true">{Number(!!draft.assignee)+Number(!!draft.project)+Number(draft.overdue)+Number(!!draft.kind)}</span> : null}
+              {(draft.assignee || draft.project || draft.overdue || draft.kind || draft.aiResearch) ? <span className="tasks-filter-count" aria-hidden="true">{Number(!!draft.assignee)+Number(!!draft.project)+Number(draft.overdue)+Number(!!draft.kind)+Number(!!draft.aiResearch)}</span> : null}
             </SettingsButton>
+            </> : null}
             <SettingsButton className="tasks-refresh tasks-icon-action" variant="ghost" aria-label={t("refreshBoard")} title={t("refreshBoard")} aria-busy={refreshing} disabled={state.pending || refreshing || state.phase === "loading"} onClick={() => void refreshTasks()}><RefreshCw size={18} aria-hidden="true" /></SettingsButton>
-            <div id={filterId} className="tasks-filters" hidden={!filtersOpen} role="group" aria-label={t("filters")}>
+            <div id={filterId} className="tasks-filters" hidden={!filtersOpen || (draft.mode === "ai" && !overviewOpen)} role="group" aria-label={t("filters")}>
+            {state.aiResearch ? <label>{t("aiResearch")}<SettingsSelect aria-label={t("aiResearch")} value={draft.aiResearch} onChange={event => change({ aiResearch: event.target.value })}><option value="">{t("allResearch")}</option>{TASK_AI_RESEARCH.map(mode => <option key={mode} value={mode}>{researchLabel(mode, t)}</option>)}</SettingsSelect></label> : null}
             {state.planning ? <label>{t("kind")}<SettingsSelect aria-label={t("kind")} value={draft.kind} onChange={event => change({ kind: event.target.value })}><option value="">{t("allKinds")}</option>{[...new Set([...TASK_KINDS, ...state.tasks.map(task => task.kind ?? "unclassified")])].map(kind => <option key={kind} value={kind}>{kt(kind)}</option>)}</SettingsSelect></label> : null}
             {state.properties ? <>
               <label>{t("assignee")}<SettingsSelect aria-label={t("assignee")} value={draft.assignee} onChange={e=>change({assignee:e.target.value})}>
@@ -1563,7 +1618,7 @@ export function createTasksView(
 
             </div>
           </header>
-          {overviewOpen && !managementOpen && ports.conversationOverview ? <Suspense fallback={<p role="status">{t("loadingConversations")}</p>}><ConversationOverview key={memberScope} port={ports.conversationOverview} host={host} /></Suspense> : null}
+          {overviewOpen && !managementOpen && !morningOpen && ports.conversationOverview ? <Suspense fallback={<p role="status">{t("loadingConversations")}</p>}><ConversationOverview key={memberScope} port={ports.conversationOverview} host={host} /></Suspense> : null}
           {(ports.pendingConversationLinks?.() ?? []).map(link => (
             <SettingsNotice key={`${link.taskId}:${linkKey(link)}`} tone="error">
               {t("pendingLink")}{" "}
@@ -1571,12 +1626,14 @@ export function createTasksView(
               <SettingsButton variant="quiet" onClick={() => void ports.retryConversationLinks?.(link.taskId)}>{t("retryLink")}</SettingsButton>
             </SettingsNotice>
           ))}
-          {overviewOpen && !managementOpen ? null : state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
+          {overviewOpen && !managementOpen && !morningOpen ? null : state.phase === "loading" ? <TasksLoading mode={draft.mode} selected={draft.status} /> : state.phase !== "ready" ? (
             <div className="tasks-load-error" role="status">
               <SettingsNotice>{t(state.phase === "unavailable" ? "unavailable" : "loadError")}</SettingsNotice>
               <SettingsButton disabled={refreshing} onClick={() => void refreshTasks()}>{t("retry")}</SettingsButton>
             </div>
           ) : <>
+          {morningOpen ? <MorningOverview /> : null}
+          {draft.mode === "ai" && !morningOpen && !managementOpen && !overviewOpen ? <AIFollowUp tasks={state.tasks} members={state.members} activity={state.activity} port={morningPort} myMemberId={myMemberId} selection={aiViewSelections.get(memberScope) ?? { scope: "all", search: "" }} onSelectionChange={value => { aiViewSelections.set(memberScope, value); refreshLocalSelection(epoch => epoch + 1); }} onOpenTask={task => openEditor(task)} ownerFilter={aiOwnerSelections.get(memberScope) ?? ""} onOwnerFilterChange={value => { aiOwnerSelections.set(memberScope, value); refreshLocalSelection(epoch => epoch + 1); }} onOpenConversation={host.openConversation ? open : undefined} /> : null}
           {archiveOpen && state.archive ? <ArchivePanel model={archives} members={state.members} pending={state.pending} reportError={reportError} ports={ports} session={editorSession}
             activityFor={item => { let activity = activities.get(item.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, item.id, () => {}); activities.set(item.id, activity); } return activity; }}
             onRead={id => ports.request(authority!, TASKS.read, { id })} onOpen={open} onRestore={async item => { const saved = await model.mutate(TASKS.unarchive, { id: item.id, expectedRevision: item.revision }); await archives.refresh(); return saved; }} /> : null}
@@ -1594,7 +1651,7 @@ export function createTasksView(
               </li>)}
             </ul>}
           </section>
-          <div className="tasks-active-view" hidden={managementOpen}>
+          <div className="tasks-active-view" hidden={managementOpen || morningOpen || draft.mode === "ai"}>
           {draft.mode === "board" ? (
             <SegmentedControl
               className="tasks-statuses tasks-compact-only"
@@ -1609,8 +1666,8 @@ export function createTasksView(
               }))}
             />
           ) : null}
-          {(draft.search || draft.assignee || draft.project || draft.overdue || draft.kind) ? <div className="tasks-filter-result" role="status"><span>{draft.assignee === "mine" && !myMemberId ? t("chooseMyMember") : tasks.length ? `${tasks.length} ${t("results")}` : t("noResults")}</span><SettingsButton variant="quiet" onClick={()=>change({search:"",assignee:"",project:"",overdue:false,kind:""})}>{t("clearFilters")}</SettingsButton></div> : null}
-          {hiddenCreated ? <div className="tasks-filter-result" role="status"><span>{t("hiddenCreated")}</span><SettingsButton variant="quiet" onClick={() => { change({ search: "", assignee: "", project: "", overdue: false, kind: "" }); setHiddenCreated(false); }}>{t("clearFilters")}</SettingsButton></div> : null}
+          {(draft.search || draft.assignee || draft.project || draft.overdue || draft.kind || draft.aiResearch) ? <div className="tasks-filter-result" role="status"><span>{draft.assignee === "mine" && !myMemberId ? t("chooseMyMember") : tasks.length ? `${tasks.length} ${t("results")}` : t("noResults")}</span><SettingsButton variant="quiet" onClick={()=>change({search:"",assignee:"",project:"",overdue:false,kind:"",aiResearch:""})}>{t("clearFilters")}</SettingsButton></div> : null}
+          {hiddenCreated ? <div className="tasks-filter-result" role="status"><span>{t("hiddenCreated")}</span><SettingsButton variant="quiet" onClick={() => { change({ search: "", assignee: "", project: "", overdue: false, kind: "", aiResearch: "" }); setHiddenCreated(false); }}>{t("clearFilters")}</SettingsButton></div> : null}
             {draft.mode === "board" ? (
               <div className="tasks-columns">
                 {TASK_STATUSES.map((status) => {
@@ -1654,7 +1711,7 @@ export function createTasksView(
                   <Editor
                     key={edit.id}
                     draft={edit}
-                    planning={state.planning} supportedKinds={state.supportedKinds} session={editorSession} canPostProgress={state.progress}
+                    planning={state.planning} supportedKinds={state.supportedKinds} aiResearch={state.aiResearch} session={editorSession} canPostProgress={state.progress}
                     activityModel={task && state.activity ? (() => { let activity = activities.get(task.id); if (!activity) { activity = new TaskActivityController({ request: (method, params) => ports.request(authority!, method, params) }, task.id, () => { void model.refresh(); }); activities.set(task.id, activity); } return activity; })() : undefined}
                     members={state.members}
                     properties={state.properties}

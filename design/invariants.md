@@ -2066,3 +2066,29 @@ keyboard reveal, destination selection and drafts keep their existing owners.
   overflow clips child pixels and hits to that same shape. Active tab kind,
   maximizing or revealing a tool must not replace the plane with a square one,
   nor feed presentation shape into the tool's layout viewport or lifetime.
+
+
+## Tasks first-round research disposition
+
+AI research triage is a task property independent of workflow, assignment and
+conversation execution. One authority event projection feeds card/list summaries,
+filters and the existing editor draft. An unassessed default is distinct from
+missing context or a pending human decision. Assessment changes never create a
+conversation, claim a research result or start decision-wait timing. Capability
+absence hides unsupported controls; saved rationale and disposition survive
+legacy edits and view changes. See docs/tasks-model.md.
+
+
+## Tasks morning overview
+
+Morning overview is a read-only projection of the task controller snapshot, with explicit metric and waiting-time placeholders. Browse filters cannot silently narrow its whole-board triage counts. Terminal tasks are excluded from current attention groups; eligibility, workflow state and idle conversations cannot substitute for completed work or a decision-ready handoff. The entry/back controls preserve mounted browse state, scroll, editor drafts and focus. Existing detail/refresh commands retain their owners; no additional task store, mutation or scheduling is introduced.
+
+- Morning research overview excludes context requests/unassessed items. Only an
+  explicit decision-ready research report in the current review round starts the
+  human wait clock; strict >72h highlights are ordered longest first. Ordinary
+  progress, triage and task timestamps cannot establish/reset that clock. Leaving
+  review ends the round; unknown history stays unknown. The morning view is read-only.
+
+### AI follow-up cards and Morning separation
+
+AI follow-up is a peer of Board and List with Todo / Working / Needs you / In review / Ready to merge. All active tasks participate; Owner and local scope/search consistently filter every lane/count and survive route remounts within the authority/account activation. Todo is not started, Working requires an explicit execution report to claim AI activity; old business statuses stay visibly unverified. Needs you requires ready material and a specific round request, sorted by original server time; comments/reassignment never reset it. Judge and Owner are distinct. Ready requires a compatible explicit recorded fact and never implies merged/deployed. Cards provide readable titles, a bounded decision/material summary, state/time, Owner, existing task-detail entry and independent exact conversation navigation. Full content stays in original task activity/conversation. Semantic theme tokens, shared controls, profile avatars and Radix menus own presentation/interaction; five columns reflow within the Tasks container. No simulation, synthetic task, approval/scheduling or separate writable execution state is introduced. Morning remains the separate future risk/key-exploration surface.
