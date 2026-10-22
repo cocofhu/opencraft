@@ -1371,8 +1371,11 @@ supplemental interface icons. Source padding may require different canvas sizes;
 copy, slot geometry and alignment stay shared. Both live and settled content use
 the same metrics. The live glyph's internal pulse/cursor remains animated, and
 all live process labels use the existing cadenced text sweep: reasoning, commands,
-read/search/edit, tools, compaction and active group summaries. The shared disclosure
-and summary owners each add one sweep; callers do not nest another thinking sweep.
+read/search/edit, tools, compaction and active group summaries. All process row variants compose ActivityRowContent, which owns the rail and
+one summary sweep. Disclosure and summary adapters supply required running state
+and raw content. Deferred group content never captures animation state; only the
+glyph can hand motion to expanded running rows. CadencedShimmer is a separate
+leaf for independent plan/approval/loading consumers.
 Completion, failure or interruption removes the sweep; reduced motion disables both decorations. See the activity icon design contract.
 
 Engine-returned reasoning is a chronological Item-owned inner disclosure within
