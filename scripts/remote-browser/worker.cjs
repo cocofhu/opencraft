@@ -8,7 +8,7 @@ const { installClipboard } = require('./clipboard.cjs');
 const { installIme } = require('./ime.cjs');
 const { initializeNativeFocus } = require('./focus.cjs');
 const { createControls } = require('./controls.cjs');
-const { createTouchInput, MAX_TOUCH_POINTS } = require('./touch.cjs');
+const { createTouchInput, createWidgetTouchDispatcher, MAX_TOUCH_POINTS } = require('./touch.cjs');
 app.commandLine.appendSwitch('opencraft-remote-clipboard');
 // Keep per-contact release semantics stable on our pinned Chromium runtime.
 app.commandLine.appendSwitch('disable-features', 'SyntheticPointerActions');
@@ -193,7 +193,7 @@ async function createPage(id, input) {
     desktopPlatformName:process.platform === 'darwin'?'macOS':process.platform === 'win32'?'Windows':'Linux', epoch: 0, visible: false, closed: false, key: true, encoderReady: false, document: randomUUID(), bridgeInstalled: null, interactive: false };
   pages.set(id, p);
   const wc = window.webContents;
-  p.touch = createTouchInput(params => wc.debugger.sendCommand('Input.dispatchTouchEvent', params));
+  p.touch = createTouchInput(createWidgetTouchDispatcher(wc.debugger, () => wc.getZoomFactor()));
   p.clipboard = installClipboard(p, send); p.ime = installIme(p, send);
   wc.setFrameRate(2); wc.stopPainting();
   wc.setWindowOpenHandler(({ url }) => { try { send({ type: 'new-window', page: id, url: validUrl(url) }); } catch {} return { action: 'deny' }; });

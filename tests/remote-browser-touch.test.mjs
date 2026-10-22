@@ -1,9 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-const {createTouchInput}=createRequire(import.meta.url)('../scripts/remote-browser/touch.cjs');
+const {createTouchInput,createWidgetTouchDispatcher}=createRequire(import.meta.url)('../scripts/remote-browser/touch.cjs');
 const p=(id,x=30)=>({id,x,y:50,force:.5,radiusX:4,radiusY:5});
 const frame=(type,...touchPoints)=>({type,touchPoints});
+
+test('rendered touch locations survive changing native pinch and browser zoom',async()=>{
+ let pinch=1,zoom=1;const seen=[],queries=[];
+ const port={async sendCommand(method,input){queries.push(method);if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{scale:pinch,pageX:700,pageY:900,offsetX:140,offsetY:80}};seen.push(input);}};
+ const touch=createTouchInput(createWidgetTouchDispatcher(port,()=>zoom));
+ await touch.apply(frame('touchStart',p(1,120)));
+ pinch=2;await touch.apply(frame('touchStart',p(1,120),p(2,240)));
+ pinch=3;zoom=1.25;await touch.apply(frame('touchMove',p(1,150),p(2,300)));
+ pinch=1.5;await touch.apply(frame('touchEnd',p(2,300)));
+ await touch.apply(frame('touchEnd'));
+ assert.deepEqual(seen.map(v=>v.touchPoints.map(p=>p.x)),[[120],[120],[40,80],[80],[]]);
+ assert.equal(seen[2].touchPoints[0].y,50/3.75);
+ assert.equal(seen[2].touchPoints[0].radiusX,4);assert.equal(seen[2].touchPoints[0].force,.5);
+ assert.equal(queries.filter(x=>x==='Page.getLayoutMetrics').length,4);
+ assert(!touch.active);
+});
+
+test('failed native metrics cancel owned contacts without stale scale fallback',async()=>{
+ let invalid=false;const seen=[];
+ const port={async sendCommand(method,input){if(method==='Page.getLayoutMetrics')return {cssVisualViewport:{scale:invalid?0:1}};seen.push(input);}};
+ const touch=createTouchInput(createWidgetTouchDispatcher(port,()=>1));
+ await touch.apply(frame('touchStart',p(1)));invalid=true;
+ await assert.rejects(touch.apply(frame('touchMove',p(1))),/native touch scale/);
+ assert.deepEqual(seen.map(v=>v.type),['touchStart','touchCancel']);assert(!touch.active);
+ await touch.reset();assert.equal(seen.length,2);
+});
 
 test('independent fingers retain identity through partial release and re-add',async()=>{
  const seen=[],t=createTouchInput(async v=>seen.push(v));

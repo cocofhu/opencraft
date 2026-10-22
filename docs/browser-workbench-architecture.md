@@ -1340,6 +1340,16 @@ multi-contact behavior. Target viewport meta/touch-action and OS-reserved gestur
 remain authoritative; there is no local CSS/video zoom substitute. Remote DPR
 stays one even when the target's visual viewport is pinched.
 
+Touch coordinates on the wire identify the rendered widget, after the viewer's
+object-fit inverse mapping. The private CDP touch injector instead accepts CSS
+coordinates and multiplies them by native page scale and browser zoom. The
+worker reads native layout metrics at each ordered dispatch and divides the
+widget coordinates by that scale exactly once, including mid-pinch and partial
+release. Scroll/visual viewport offsets are not added: Chromium owns that
+projection. Contact radii stay in widget units in this dispatcher. Empty release
+and cancellation need no geometry query. There is no DOM scale inference, stale
+viewer-scale cache, local predicted page zoom or public CDP command surface.
+
 Blur, capture loss, parking, hiding, viewport/device changes, navigation and
 transport detach cancel owned contacts. A late move/release or an added contact
 from a retired gesture cannot recreate it. Native failure cancels the owned set

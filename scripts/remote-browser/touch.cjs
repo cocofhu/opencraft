@@ -2,6 +2,23 @@
 
 const MAX_TOUCH_POINTS = 10;
 const types = new Set(['touchStart', 'touchMove', 'touchEnd', 'touchCancel']);
+// Viewer coordinates already identify positions in the rendered widget. CDP
+// applies browser zoom and pinch scale to its CSS coordinates on injection.
+// Read native metrics at dispatch, including while a gesture changes scale;
+// a viewer notification or a once-per-gesture snapshot would be stale.
+function createWidgetTouchDispatcher(debuggerPort, getZoomFactor) {
+  return async input => {
+    let touchPoints = input.touchPoints;
+    if (touchPoints.length) {
+      const metrics = await debuggerPort.sendCommand('Page.getLayoutMetrics');
+      const scale = metrics.cssVisualViewport?.scale * getZoomFactor();
+      if (!Number.isFinite(scale) || scale <= 0) throw new Error('Invalid native touch scale');
+      touchPoints = touchPoints.map(point => ({ ...point, x: point.x / scale, y: point.y / scale }));
+    }
+    // Chromium's per-contact dispatcher leaves radius/force in widget units.
+    return debuggerPort.sendCommand('Input.dispatchTouchEvent', { ...input, touchPoints });
+  };
+}
 function points(input) {
   if (!types.has(input.type) || !Array.isArray(input.touchPoints) || input.touchPoints.length > MAX_TOUCH_POINTS) throw new Error('Invalid touch input');
   const ids = new Set();
@@ -68,4 +85,4 @@ function createTouchInput(dispatch) {
     }),
   };
 }
-module.exports = { createTouchInput, MAX_TOUCH_POINTS };
+module.exports = { createTouchInput, createWidgetTouchDispatcher, MAX_TOUCH_POINTS };
