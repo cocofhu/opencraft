@@ -11932,7 +11932,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 // A title-only contribution shares the title track and retains the action hit lane.
 .sidebar-activity-item-container[data-badge-placement="title"] {
   column-gap: var(--gap-control-group);
-  .sidebar-activity-item { min-height: max(40px, var(--size-control-hit-min)); }
+  .sidebar-activity-item { min-height: var(--height-sidebar-activity-title-row); }
 }
 .sidebar-activity-item__project {
   @include typography.role(label, tertiary);
