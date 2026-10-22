@@ -56,7 +56,7 @@
     pointer-events: none;
   }
   .shell-sidebar__rail-footer .shell-navigation__footer--unified {
-    display: flex; width: auto; padding: 0;
+    display: flex; flex-direction: column; gap: 8px; width: auto; padding: 0;
     .shell-navigation__entrance {
       pointer-events: auto;
       justify-content: center; padding: 0;
@@ -67,17 +67,18 @@
       background: linear-gradient(var(--color-background-button-secondary), var(--color-background-button-secondary)), var(--color-background-elevated-primary-opaque);
       color: var(--color-text);
       box-shadow: var(--elevation-prominent);
-      > svg { width: 20px; height: 20px; }
-      &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); }
+      > svg, .shell-navigation__icon-wrapper > svg { width: 20px; height: 20px; }
+      @include controls.hover-capable { &:hover { background: linear-gradient(var(--color-background-button-secondary-hover), var(--color-background-button-secondary-hover)), var(--color-background-elevated-primary-opaque); } }
       &:active { background: linear-gradient(var(--color-background-button-secondary-active), var(--color-background-button-secondary-active)), var(--color-background-elevated-primary-opaque); }
     }
+    .shell-navigation__name { display: none; }
   }
   // One native scrolling owner makes search and filters fold out with the list.
   // Keeping them mounted preserves text, focus and open/filter state on resize.
   .sidebar-panel { height: auto; overflow: visible; }
   .sidebar-content-scroll { flex: 0 0 auto; overflow: visible; contain: none; }
   .sidebar-tasks { flex: 0 0 auto; }
-  .sidebar-thread-group-heading { background: var(--shell-mobile-sidebar-background); }
+  .sidebar-thread-group-heading { background: var(--opencraft-sidebar-heading-background, var(--shell-mobile-sidebar-background)); }
   .sidebar-thread-group-heading .sidebar-thread-group-toggle {
     min-height: max(44px, var(--size-control-hit-min));
     > svg { opacity: 1; }
@@ -90,6 +91,13 @@
   .shell-sidebar__scroll {
     padding-block-end: 88px;
     scroll-padding-block-end: 88px;
+  }
+  &:has(.shell-navigation__footer--unified [data-surface="updates"]) .shell-sidebar__scroll {
+    // The update entrance stacks a second 48px button above the first one (8px
+    // gap) while a notice is visible; reserve both so the last row and its
+    // actions scroll clear of the two floating actions.
+    padding-block-end: 144px;
+    scroll-padding-block-end: 144px;
   }
   .shell-sidebar__floating-action {
     grid-column: 1; grid-row: 1;

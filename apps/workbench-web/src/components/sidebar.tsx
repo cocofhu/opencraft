@@ -31,6 +31,7 @@ import { SidebarThreadRowMenu, SidebarThreadBadge } from "./sidebar-thread-menu"
 import { sidebarActivityDateHeadings, groupThreadsByTaskFlow, sidebarActivityMetadata } from "../sidebar-activity";
 import { NavigationIcon as SidebarContributionIcon, type NavigationAction as SidebarActionItem } from "./shell-navigation/navigation-action";
 import { useSidebarEndPull } from "./use-sidebar-end-pull";
+import { useSidebarHeadingOcclusion } from "./use-sidebar-heading-occlusion";
 import { SidebarActivityItem } from "./sidebar-activity-item";
 import { SidebarNavigationItem } from "./sidebar-navigation-item";
 import { useShellPresentation, useDismissSidebarAfterSelection } from "./shell-presentation";
@@ -55,7 +56,7 @@ export interface SidebarCatalogItem {
   readonly initiallyCollapsed?: boolean;
   readonly content: ReactNode;
 }
-import { memo, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useSyncExternalStore, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 interface SidebarProps {
   threads: readonly SidebarThread[];
@@ -144,6 +145,14 @@ function SidebarPagination({ total, visibleCount, pageSize, onChange, pullToLoad
   </div>;
 }
 
+const SidebarThreadContent = memo(function SidebarThreadContent({ thread, attention, render }: {
+  thread: SidebarThread;
+  attention: boolean;
+  render: (thread: SidebarThread, attention: boolean) => ReactNode;
+}) {
+  return render(thread, attention);
+});
+
 export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const {
     threads, activeHostId, activeThreadId, sidebarLayout, onSelectThread, onNewTask, onOpenSettings,
@@ -169,8 +178,11 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const [pinnedLimit, setPinnedLimit] = useState(PINNED_PAGE_SIZE);
   const [recentLimit, setRecentLimit] = useState(RECENT_PAGE_SIZE);
   const [menus] = useState(() => new SidebarThreadMenuStore());
+  const [filterOpen, setFilterOpen] = useState(false);
   const actionOwner = useThreadActionOwner(threadActions ?? noThreadActions);
   const rowIdPrefix = useId();
+  const activityList = useRef<HTMLDivElement>(null);
+  useSidebarHeadingOcclusion(activityList);
   const text = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
   const label = (value: ThreadListLabel) => typeof value === "string" ? value : intl.formatMessage(value);
   const identity = (thread: SidebarThread) => JSON.stringify([thread.connectionHostId, thread.id]);
@@ -219,11 +231,13 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const allServersLabel = text("sidebar.allServers", "All servers");
   const dismissAfter = (action: () => void) => { menus.close(); action(); dismiss?.(); };
   const writeServerFilter = (serverId: string) => {
+    setFilterOpen(false);
     const name = serverOptions.find(([id]) => id === serverId)?.[1] ?? "";
     void preferences.set("sidebar.serverFilter", { serverId, label: name });
   };
-  const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind} />;
-  const renderThread = (thread: SidebarThread, attention = false) => {
+  const modeItems = (kind: "context" | "dropdown") => <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind={kind}
+    onSelect={kind === "dropdown" ? () => setFilterOpen(false) : undefined} />;
+  const renderThreadContent = useCallback((thread: SidebarThread, attention: boolean) => {
     const pending = pendingHostId === thread.connectionHostId && pendingThreadId === thread.id;
     const active = activeHostId === thread.connectionHostId && activeThreadId === thread.id;
     const selected = pendingHostId !== null && pendingThreadId !== null ? pending : active;
@@ -233,7 +247,10 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const disabled = thread.interactionAvailable === false;
     const capabilities = threadCapabilities?.(thread.connectionHostId)
       ?? { rename: !!threadActions, archive: !!threadActions, fork: !!threadActions, delete: !!threadActions, pin: !!threadActions?.onSetPinned };
-    const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
+    const changeOverlay = (kind: OpenSidebarThreadMenu["kind"], open: boolean) => {
+      if (open) setFilterOpen(false);
+      menus.update({ hostId: target.hostId, threadId: target.threadId, kind }, open);
+    };
     const badge = threadBadge && !(grouping.mode && grouping.hideRowBadge) ? <SidebarThreadBadge
       store={menus} contribution={threadBadge} hostId={thread.connectionHostId} threadId={thread.id}
       portalContainer={presentationRoot} onOpenChange={open => changeOverlay("badge", open)}
@@ -242,7 +259,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     const metadata = sidebarActivityMetadata(thread);
     return <SidebarThreadRowMenu key={identity(thread)} store={menus} target={target} owner={actionOwner}
       capabilities={capabilities} disabled={disabled} activityLabelId={activityId}
-      contextMenuExtra={threadListGrouping ? modeItems("context") : undefined}
+      contextMenuExtra={threadListGrouping ? <ThreadListModeItems contribution={threadListGrouping} snapshot={grouping} kind="context" /> : undefined}
       onOpenMenuChange={(kind, open) => changeOverlay(kind, open)}
       onCloseAutoFocus={event => { if (menus.getSnapshot() !== null) event.preventDefault(); }}>
       <SidebarActivityItem activityId={activityId} active={active} selected={selected} pending={pending}
@@ -252,9 +269,13 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
           hostId: thread.connectionHostId, threadId: thread.id, updatedAt: thread.updatedAt, pinned: thread.pinned,
         }) ?? true)} goalActive={thread.goalActive}
         schedule={thread.schedule} twoLine={attention} badge={badge} badgePlacement={threadBadge?.placement}
-        onInvoke={() => dismissAfter(() => onSelectThread(thread.connectionHostId, thread.id))} />
+        onInvoke={() => { menus.close(); onSelectThread(thread.connectionHostId, thread.id); dismiss?.(); }} />
     </SidebarThreadRowMenu>;
-  };
+  // Parent props invalidate render-time readers even when their function identity
+  // is stable. Only local search/folding/page changes can reuse an unchanged row.
+  }, [props, actionOwner, grouping, presentationRoot, dismiss, menus, rowIdPrefix]);
+  const renderThread = (thread: SidebarThread, attention = false) => <SidebarThreadContent
+    key={identity(thread)} thread={thread} attention={attention} render={renderThreadContent} />;
   const renderFlowSection = (key: string, title: string, rows: readonly SidebarThread[], limit?: number, update?: (count: number) => void) => {
     if (!rows.length) return null;
     const collapsed = folded[key] ?? false;
@@ -276,6 +297,28 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
     </section>;
   };
   const groupedSections = grouping.mode && threadListGrouping ? threadListGrouping.project(matchingReferences) : null;
+  // Row menus, the badge and the list display menu are one exclusive overlay
+  // owner; an owner whose row is no longer visible or no longer accepts
+  // interaction must not keep the menu open.
+  const visibleMenuTargets = useMemo(() => {
+    const targets = new Set<string>();
+    const addThread = (thread: SidebarThread | undefined) => {
+      if (thread && thread.interactionAvailable !== false) targets.add(JSON.stringify([thread.connectionHostId, thread.id]));
+    };
+    if (groupedSections) for (const group of groupedSections) {
+      if (group.collapsed) continue;
+      for (const ref of group.threads) addThread(matchingById.get(JSON.stringify([ref.hostId, ref.threadId])));
+    } else {
+      if (!(folded.attention ?? false)) for (const row of taskFlow.attention) addThread(row);
+      if (!(folded.pinned ?? false)) for (const row of taskFlow.pinned.slice(0, pinnedLimit)) addThread(row);
+      if (!(folded.recent ?? false)) for (const row of taskFlow.recent.slice(0, recentLimit)) addThread(row);
+    }
+    return targets;
+  }, [folded, groupedSections, matchingById, pinnedLimit, recentLimit, taskFlow]);
+  useLayoutEffect(() => {
+    const current = menus.getSnapshot();
+    if (current && !visibleMenuTargets.has(JSON.stringify([current.hostId, current.threadId]))) menus.close();
+  }, [menus, visibleMenuTargets]);
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
   const retryLabel = text("sidebar.catalog.retry", "Retry");
@@ -296,7 +339,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         <SidebarBots items={bots} creation={botCreation} />
         <section className="sidebar-tasks" aria-label="Tasks" aria-busy={busyCatalog}>
           <div className="sidebar-list-toolbar"><span>{text("sidebar.conversations", "Conversations")}</span>
-            <DropdownMenu.Root>
+            <DropdownMenu.Root open={filterOpen} onOpenChange={open => { if (open) menus.close(); setFilterOpen(open); }}>
               <DropdownMenu.Trigger asChild><button type="button" className="sidebar-list-mode-trigger"
                 aria-label={filtersLabel} title={[filtersLabel, ...(grouping.filter?.enabled ? [label(grouping.filter.label)] : []), serverFilter.serverId ? serverFilter.label : allServersLabel].join(" · ")}
                 data-filter-active={serverFilter.serverId !== "" || grouping.filter?.enabled || undefined}><ListFilter size={16} /></button></DropdownMenu.Trigger>
@@ -316,7 +359,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
             aria-label={text("sidebar.search", "Search conversations")} placeholder={text("sidebar.search", "Search conversations")}
             value={query} onChange={event => setQuery(event.currentTarget.value)} /></label> : null}
           {showNewChat ? <SidebarNewChatButton onNewTask={onNewTask} /> : null}
-          <div className="sidebar-activity-list">
+          <div className="sidebar-activity-list" ref={activityList}>
             {grouping.notice ? <div className="sidebar-activity-empty">{label(grouping.notice)}</div> : null}
             {groupedSections ? groupedSections.map(group => <section key={group.id} className="sidebar-activity-group" aria-label={label(group.label)} data-collapsed={group.collapsed}>
               <h3 className="sidebar-thread-group-heading"><button type="button" className="sidebar-thread-group-toggle" aria-expanded={!group.collapsed} onClick={() => threadListGrouping?.toggleGroup(group.id)}>

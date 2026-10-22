@@ -26,6 +26,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { getAppearanceThemeShellMaterial, useAppearanceTheme } from "../appearance-theme";
 
 import {
   getHeaderStartMinimumWidth,
@@ -357,6 +358,9 @@ export function AppShell({
   const [rightPanelPresentationActive, setRightPanelPresentationActive] =
     useState(rightPanelOpen || rightPanelAnimation.get() > 0.001);
   const mainContentViewportRef = useRef<HTMLDivElement | null>(null);
+  const appearance = useAppearanceTheme();
+  const recessedHeader = windowChrome.kind === "browser"
+    && Boolean(getAppearanceThemeShellMaterial(appearance)?.recessedHeaderBackground);
   const [threadEdgeScrollEligible, setThreadEdgeScrollEligible] =
     useState(false);
   const {
@@ -365,6 +369,7 @@ export function AppShell({
   } = resolveAppShellMainContentChrome({
     layout: presentedMainContentLayout,
     threadEdgeScrollEligible,
+    recessedHeader,
   });
   const {
     animatedSize: animatedSidebarWidth,
@@ -920,6 +925,13 @@ export function AppShell({
           ) : null}
           </Sidecar>
 
+          {/* Paint is a sibling of the clipped content surface. Consume the
+              same current width as Sidecar, not the saved CSS width at root. */}
+          <motion.div
+            className="app-shell-content-depth"
+            aria-hidden="true"
+            style={{ left: totalLeftWidth }}
+          />
           <main
             className="main-content-surface"
             data-app-shell-main-surface="default"

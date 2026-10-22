@@ -74,7 +74,7 @@ function activityHeaderFor(
   return deriveAgentActivityHeaderPresentation(group);
 }
 
-test("Hook lifecycle summaries match Codex counts, filtering, and adjacent-run coalescing", () => {
+test("Hook lifecycle summaries preserve counts, filtering, and adjacent-run coalescing", () => {
   const stats = summarizeHookRuns([
     {
       id: "lint",
@@ -1291,7 +1291,7 @@ test("adjacent imageView tool calls coalesce into one expandable visual activity
   assert.equal(presentToolActivity(third).summary, "Viewed an image");
 });
 
-test("node_repl MCP calls use Codex's terminal activity icon", () => {
+test("node_repl MCP calls use the terminal activity icon", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-node-repl",
     status: "complete",
@@ -2114,7 +2114,7 @@ test("tool call transport envelopes become typed renderer-neutral content", () =
   assert.equal(presentToolActivity(block).canExpand, true);
 });
 
-test("MCP JSON text is promoted and deduplicated exactly like Codex", () => {
+test("MCP JSON text is promoted and deduplicated by stable resource identity", () => {
   const snapshot = projectTimeline(source([{
     id: "turn-mcp-json",
     status: "complete",

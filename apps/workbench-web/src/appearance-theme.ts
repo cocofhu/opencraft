@@ -115,6 +115,10 @@ export function useAppearanceTheme(): AppearanceThemeSnapshot {
   return useSyncExternalStore(subscribeToAppearanceTheme, getAppearanceThemeSnapshot, getAppearanceThemeSnapshot);
 }
 
+export function getAppearanceThemeShellMaterial(next = current): OpenCraftThemeDefinition["shellMaterial"] {
+  return resolveEntry(next.themeId).palettes[next.resolvedTheme].shellMaterial;
+}
+
 export function getAppearanceThemePreviewProperties(themeId: string): ThemeCssProperties {
   return buildOpenCraftThemeCssProperties(current.resolvedTheme, resolveEntry(themeId).palettes[current.resolvedTheme]);
 }

@@ -246,6 +246,15 @@ test("extension theme selection is root-owned and unload falls back atomically",
     assert.deepEqual(desktopAppearances.at(-1), { themeSource: "light", resolvedTheme: "light", opaqueWindows: true, backgroundColor: "#ffffff" });
     appearance.setAppearanceThemeId(appearance.coreThemeId);
     assert.equal(properties.get("--opencraft-sidebar-material-filter"), "blur(28px) saturate(145%)");
+    assert.equal(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground, undefined);
+    appearance.setAppearanceThemeId(appearance.longingThemeId);
+    for (const mode of ["light", "dark"] as const) {
+      appearance.setThemePreference(mode);
+      assert.equal(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground,
+        longingThemePalette[mode].shellMaterial?.recessedHeaderBackground);
+      assert.ok(appearance.getAppearanceThemeShellMaterial()?.recessedHeaderBackground);
+    }
+    appearance.setThemePreference("light");
     appearance.setAppearanceThemeId(appearance.frostThemeId);
     assert.equal(dataset.themeId, appearance.frostThemeId);
     assert.equal(properties.get("--opencraft-sidebar-material-background"), "rgb(226 244 250 / 35%)");

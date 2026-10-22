@@ -32,9 +32,13 @@ test("root presentation follows explicit options and resets obsolete classic ove
 
 
 test("built-in compatibility aliases preserve policy constraints without renaming extensions", () => {
-  const aliases = ["codex", "web", "frost", "lavender", "mist", "zencode"];
-  for (const [index, canonical] of Object.values(builtinThemeIds).entries()) {
-    const legacy = `vela.core.${aliases[index]}`;
+  const aliases = {
+    codex: builtinThemeIds.neutral, web: builtinThemeIds.canvas,
+    frost: builtinThemeIds.frost, lavender: builtinThemeIds.lavender,
+    mist: builtinThemeIds.mist, zencode: builtinThemeIds.zencode,
+  };
+  for (const [alias, canonical] of Object.entries(aliases)) {
+    const legacy = `vela.core.${alias}`;
     assert.equal(normalizeBuiltinThemeId(legacy), canonical);
     assert.equal(resolveWorkbenchPresentation({defaultThemeId:legacy}).defaultThemeId, canonical);
     assert.deepEqual(resolveWorkbenchPresentation({hiddenBuiltinThemeIds:[legacy,canonical]}).hiddenBuiltinThemeIds,[canonical]);
@@ -42,7 +46,7 @@ test("built-in compatibility aliases preserve policy constraints without renamin
       assert.throws(()=>resolveWorkbenchPresentation({defaultThemeId:selected,hiddenBuiltinThemeIds:[hidden!]}), TypeError);
     }
   }
-  for (const extension of ["vela.extension.paper", "vendor.core.web", "vela.core.custom"]) {
+  for (const extension of ["vela.extension.paper", "vendor.core.web", "vela.core.custom", "vela.core.longing", builtinThemeIds.longing]) {
     assert.equal(normalizeBuiltinThemeId(extension), extension);
     assert.equal(resolveWorkbenchPresentation({defaultThemeId:extension}).defaultThemeId, extension);
   }

@@ -28,7 +28,7 @@
 
 ## 检索/错误
 
-- context 路由 `opencraft Codex workspace ownership composer overlay panel lifecycle design invariants` 无匹配；采用限定包目录精确检索。
+- context 路由 `opencraft workspace ownership composer overlay panel lifecycle design invariants` 无匹配；采用限定包目录精确检索。
 - 大批文档输出被截断：改为按专题分段读取。
 - 打包下载遇到 TLS 错误；npm electron 目录只有元数据，没有 dist。改用 SHA-256 校验匹配的 Electron 44.1.0 arm64 缓存 ZIP，成功打包，不修改依赖版本。
 - 真实 ephemeral fork 不支持 rollout Resume/持久 queue，改用 Session.adoptFork；不要把 deferGoalContinuation 与 ephemeral 组合（服务端明确拒绝）。

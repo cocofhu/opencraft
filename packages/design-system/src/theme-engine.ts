@@ -23,6 +23,8 @@ export interface OpenCraftThemeDefinition {
   shellMaterial?: {
     unifiedSurfaceElevation?: string;
     sidebarContextBackground?: string;
+    sidebarHeadingBackground?: string;
+    contentCornerRadius?: string;
     recessedHeaderBackground?: string;
     mainSurfaceElevation: string;
     sidebarBackground: string;
@@ -160,8 +162,10 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
-      mainSurfaceElevation: "var(--elevation-prominent)",
+      mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
       sidebarBackground: "rgb(207 228 255 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
       windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(255 255 255 / 60%), transparent 65%)",
@@ -183,8 +187,10 @@ export const longingThemePalette: Record<OpenCraftThemeMode, OpenCraftThemeDefin
     shellMaterial: {
       unifiedSurfaceElevation: "var(--opencraft-main-surface-elevation)",
       sidebarContextBackground: "transparent",
+      sidebarHeadingBackground: "transparent",
+      contentCornerRadius: "var(--radius-xl)",
       recessedHeaderBackground: "var(--opencraft-sidebar-material-background)",
-      mainSurfaceElevation: "var(--elevation-prominent)",
+      mainSurfaceElevation: "var(--elevation-prominent-diffuse)",
       sidebarBackground: "rgb(27 56 91 / 42%)",
       sidebarFilter: "blur(28px) saturate(140%)",
       windowHighlight: "radial-gradient(ellipse at 8% 0%, rgb(93 164 255 / 10%), transparent 65%)",
@@ -653,9 +659,24 @@ export function buildOpenCraftThemeCssProperties(
     "--opencraft-base-surface": definition.surface,
     "--opencraft-main-surface-elevation": shell.mainSurfaceElevation,
     "--opencraft-unified-surface-elevation": definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-frame-elevation": definition.shellMaterial?.recessedHeaderBackground ? "none" : definition.shellMaterial?.unifiedSurfaceElevation ?? "none",
+    "--opencraft-unified-content-elevation": definition.shellMaterial?.recessedHeaderBackground ? definition.shellMaterial?.unifiedSurfaceElevation ?? "none" : "none",
+    "--opencraft-panel-chassis-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-surface)",
+    "--opencraft-panel-toolbar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-background-elevated-secondary)",
+    "--opencraft-panel-divider-top": definition.shellMaterial?.recessedHeaderBackground ? "var(--height-toolbar)" : "0px",
+    "--opencraft-panel-divider-clip": definition.shellMaterial?.recessedHeaderBackground ? "inset(0 -100% -100% -100%)" : "none",
+    "--opencraft-sidebar-heading-background": definition.shellMaterial?.sidebarHeadingBackground ?? "initial",
+    "--opencraft-content-corner-radius": definition.shellMaterial?.contentCornerRadius ?? "0px",
     "--opencraft-sidebar-context-background": definition.shellMaterial?.sidebarContextBackground ?? "var(--color-surface)",
+    // Recessed chrome has one paint owner. Repainting the same translucent
+    // blue over Sidecar makes a darker brand tile even with identical tokens.
+    "--opencraft-shell-material-paint": definition.shellMaterial?.recessedHeaderBackground
+      ? `linear-gradient(${definition.shellMaterial.recessedHeaderBackground}, ${definition.shellMaterial.recessedHeaderBackground}), ${shell.windowHighlight}`
+      : shell.windowHighlight,
+    "--opencraft-sidecar-background": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--opencraft-sidebar-material-background)",
+    "--opencraft-sidecar-filter": definition.shellMaterial?.recessedHeaderBackground ? "none" : "var(--opencraft-sidebar-material-filter)",
     "--opencraft-header-surface-paint": definition.shellMaterial?.recessedHeaderBackground
-      ? `linear-gradient(${definition.shellMaterial?.recessedHeaderBackground}, ${definition.shellMaterial?.recessedHeaderBackground})`
+      ? "none"
       : "linear-gradient(to top, var(--color-border-subtle) 1px, var(--color-surface) 1px)",
     "--opencraft-header-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-subtle)",
     "--opencraft-thread-edge-divider-color": definition.shellMaterial?.recessedHeaderBackground ? "transparent" : "var(--color-border-strong)",

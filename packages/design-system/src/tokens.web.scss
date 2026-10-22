@@ -162,6 +162,8 @@
   --layer-floating-control: 250;
   --layer-tooltip: 260;
   --layer-toast: 300;
+  // Diffuse pane depth without the optional crisp outline.
+  --elevation-prominent-diffuse: 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
   --elevation-stroke: 0 0 0 0.5px var(--color-border-strong);
   --elevation-sidebar:
     var(--elevation-stroke),
@@ -256,7 +258,7 @@
   --shadow-hairline: 0 0 0 0.5px rgb(0 0 0 / 10%);
   --shadow-100: 0 1px 2px rgb(0 0 0 / 10%);
   --shadow-300: 0 8px 20px -6px rgb(0 0 0 / 18%);
-  --elevation-prominent: var(--shadow-hairline), 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
+  --elevation-prominent: var(--shadow-hairline), var(--elevation-prominent-diffuse);
 }
 
 :root[data-theme="dark"],
@@ -300,7 +302,7 @@
   --shadow-hairline: 0 0 0 0.5px rgb(255 255 255 / 12%);
   --shadow-100: 0 1px 2px rgb(0 0 0 / 22%);
   --shadow-300: 0 8px 16px -4px rgb(0 0 0 / 30%);
-  --elevation-prominent: var(--shadow-hairline), 0 3px 7.5px rgb(0 0 0 / 4%), 0 0 20px rgb(0 0 0 / 5%);
+  --elevation-prominent: var(--shadow-hairline), var(--elevation-prominent-diffuse);
 }
 
 // Interaction density is independent of viewport, theme and current hover modality.
