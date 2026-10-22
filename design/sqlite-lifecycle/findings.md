@@ -8,7 +8,7 @@
 - ConnectorDatabase 的构造器还执行 pending OAuth 取消与 prune；必须与 schema migration 分开，不计为一次性版本迁移。
 - 根 memory 快搜无迁移到 Drizzle 的相关事实；不依赖历史摘要决策。
 - 已确认六个数据库物理名称与入口；Host databasePath 由 Host dataDirectory 解析，Main 两库由 Electron userDataDirectory 解析，不由 Renderer 传路径。
-- execution DB 除 adapter 中两张表，还由 HyperNode 来源的 journal/queue 类自行建表。移交 DDL owner 必须显式处理，不能保留双重 schema 真源或修改 ref 原件。
+- execution DB 除 adapter 中两张表，还由 hypernode journal/queue 类自行建表。移交 DDL owner 必须显式处理，不能保留双重 schema 真源。
 - Expo replica 是另一种异步驱动，且当前按 payload schema_version 不匹配清理单个缓存记录；先分辨可重建 replica 与唯一业务数据，不照搬到 Connector/ThreadCatalog。
 - Drizzle 官方当前 node:sqlite 指南明确支持现有 DatabaseSync，但安装示例使用 @rc。正式依赖版本/运行时 migrator 必须先做能力门禁；本轮只查元数据，不安装。
 - npm 元数据（2026-09-18）：drizzle-orm latest=0.45.2、drizzle-kit latest=0.31.10，rc 均为 1.0.0-rc.4；不能混用 RC 文档与旧稳定包 API。
