@@ -1,3 +1,4 @@
+import { serverFetch } from "./runtime/server-context";
 import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
 import { copyConversationReference } from "./runtime/conversation-reference-actions";
 import { Monitor } from "lucide-react";
@@ -1656,6 +1657,9 @@ export function App({
         <Suspense fallback={<span className="chrome-button" />}>
           <ConversationTaskMenu
             key={JSON.stringify([displayScope, snapshot.hostId, activeThreadId])}
+            im={settingsContributionSnapshot.settingsPages.some(page => page.contribution.id === "opencraft.im.channels") ? {
+              fetcher: serverFetch, openSettings: () => workbenchNavigation.openSettings("opencraft.im.channels"),
+            } : undefined}
             port={hostCatalog.tasks ?? undefined}
             schedules={schedulesAvailable ? { request: (method, params) => hostCatalog.agentRuntimes.request(snapshot.hostId, method, params) } : undefined}
             scope={displayScope}

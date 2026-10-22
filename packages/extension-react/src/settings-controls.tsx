@@ -311,12 +311,14 @@ export function SettingsActions({ align = "end", className, children, ...props }
 
 export interface SettingsButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: "primary" | "secondary" | "danger" | "ghost" | "quiet";
+  readonly loading?: boolean;
 }
 
 
-export function SettingsButton({ variant = "secondary", className, children, ...props }: SettingsButtonProps) {
+export function SettingsButton({ variant = "secondary", className, children, loading = false, disabled, ...props }: SettingsButtonProps) {
   return (
-    <button {...props} className={classes("settings-control-button", `settings-control-button--${variant}`, className)}>
+    <button {...props} disabled={disabled || loading} aria-busy={loading || props["aria-busy"]} className={classes("settings-control-button", `settings-control-button--${variant}`, className)}>
+      {loading ? <span aria-hidden="true" className="settings-control-button__spinner" /> : null}
       {children}
     </button>
   );

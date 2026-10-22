@@ -51,6 +51,14 @@ test('verified external human identity does not require an enterprise provider n
   assert.equal((await fetch(app.url)).status, 401);
   const response = await fetch(app.url + '/__opencraft_actors/me', { headers });
   assert.equal(response.status, 200); const first = await response.json(); assert.equal(first.actor.kind, 'human');
+  // Exercise the actual assembly: conversation menus use the public Host,
+  // which must match the IM list/link and source-query boundary.
+  const im = await fetch(app.url + '/__opencraft_im', {method:'POST',
+    headers:{...headers,origin:app.url,'content-type':'application/json'},body:JSON.stringify({action:'list'})});
+  assert.equal(im.status,200);assert.equal((await im.json()).workbenchHostId,'local-codex');
+  const foreignSources = await fetch(app.url + '/__opencraft_im', {method:'POST',
+    headers:{...headers,origin:app.url,'content-type':'application/json'},body:JSON.stringify({action:'sources',hostId:'other-host',threadId:'thread'})});
+  assert.equal(foreignSources.status,400);assert.equal((await foreignSources.json()).error,'unsupported_host');
   current = false;
   assert.equal((await fetch(app.url + '/__opencraft_actors/me', { headers })).status, 401);
   assert.equal((await fetch(app.url, { headers })).status, 401);

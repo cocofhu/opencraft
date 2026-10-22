@@ -366,6 +366,7 @@ export async function createWorkbenchWebServer({
   actorCollaborationService = null,
   authService = null,
   mcpAppsService = null,
+  getImService = () => null,
   hubService = null,
   speechPublicAccess = process.env.OPENCRAFT_SPEECH_PUBLIC_ACCESS === "1",
   webSocketHeartbeatIntervalMs = 15_000,
@@ -382,12 +383,48 @@ export async function createWorkbenchWebServer({
   const sameOrigin = (request, requireOrigin) => allowedSameOriginRequest(request, requireOrigin, true)
     || (!!accessService?.trustedOrigin(request) && (request.headers.origin === accessService.trustedOrigin(request) || (!requireOrigin && request.headers.origin === undefined)));
   const runtimeReports = [];
+  let lastImRejection = {key: "", at: 0};
+  const imRejectionCodes = new Set([
+    "authentication_required", "instance_access_denied", "actor_access_denied",
+    "actor_resource_interface_required", "human_authentication_required", "unsupported_host",
+    "im_unavailable", "same_origin_required", "channel_denied", "missing",
+    "too_large", "operation_failed", "invalid_input", "invalid_operation",
+    "revision_conflict", "channel_missing", "invalid_route", "invalid_route_result",
+    "invalid_preview", "invalid_credentials", "bot_already_configured",
+    "connection_failed", "identity_conflict", "invalid_delivery", "invalid_platform",
+  ]);
   const emitAppHostDiagnostic = diagnostic => {
     try { onAppHostDiagnostic({ serverProtocolVersion: APP_HOST_PROTOCOL_VERSION, ...diagnostic }); }
     catch { /* Observability must not affect the connection. */ }
   };
 
   const server = createServer(async (request, response) => {
+    // Capture bounded error codes only, including admission failures before the
+    // IM handler. Never retain request bodies, headers, identities or credentials.
+    if ((request.url ?? "").split("?")[0] === "/__opencraft_im") {
+      let code = "unknown";
+      const end = response.end;
+      response.end = function (...args) {
+        if (response.statusCode >= 400) {
+          try {
+            const body = args[0];
+            if ((typeof body === "string" || Buffer.isBuffer(body)) && Buffer.byteLength(body) <= 4096) {
+              const value = JSON.parse(String(body)).error;
+              if (typeof value === "string" && imRejectionCodes.has(value)) code = value;
+              else if (value === "Matching origin required") code = "matching_origin_required";
+            }
+          } catch { /* Diagnostics never alter a response. */ }
+        }
+        return end.apply(this, args);
+      };
+      response.once("finish", () => {
+        if (response.statusCode < 400) return;
+        const key = response.statusCode + ":" + code, at = Date.now();
+        if (lastImRejection.key === key && at - lastImRejection.at < 30000) return;
+        lastImRejection = {key, at};
+        console.warn("[opencraft im request rejected]", {status: response.statusCode, code});
+      });
+    }
     try {
       if (loopbackOnly && !sameOrigin(request, false)) {
         sendJson(response, 403, { ok: false, error: "Matching origin required" });
@@ -431,6 +468,11 @@ export async function createWorkbenchWebServer({
         const identity = accessService.authenticate(request);
         if (identity) { const unwatch = accessService.watch(identity, () => response.destroy()); response.once('close', unwatch); }
         if (await accessService.handle(request, response)) return;
+      }
+      if(url.pathname === '/__opencraft_im' || url.pathname.startsWith('/__opencraft_im/')) {
+        const service=getImService();
+        if(service && await service.handle(request,response,sameOrigin))return;
+        sendJson(response,503,{error:'im_unavailable'});return;
       }
       if (hubService && await hubService.handle(request, response, () => {
         const identity = accessService?.authenticate(request);

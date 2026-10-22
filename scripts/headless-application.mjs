@@ -412,6 +412,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       resolveAppServerTarget: agent.resolveWebsocketUrl,
       appServerIdentity: agentIdentity ?? null,
       mcpAppsService: mcpApps,
+      getImService: () => imPlugins,
       loopbackOnly: host === "127.0.0.1",
       appHostServer,
       sshServerDescriptors: sshServers.map(binding => binding.descriptor),
@@ -462,7 +463,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     if (relayConfiguration) relay = connectRelay({ ...relayConfiguration.options, targetPort: relayConfiguration.options.targetPort ?? address.port });
     hubController.node?.start(address.port);
     if (options.codexCoreEndpoint) codexReadiness = maintainHeadlessCodexHost(appHostServer);
-    imPlugins = startImPlugins(imConfiguration,{dataDirectory,actors:actorStore,collaboration:actorCollaboration,getAppHost:() => appHostServer,admittedActor:actorId => !instanceAccess || instanceAccess.admitsActor(actorId)});
+    imPlugins = await startImPlugins(imConfiguration,{dataDirectory,actors:actorStore,collaboration:actorCollaboration,actorAccess,getAppHost:() => appHostServer,admittedActor:actorId => !instanceAccess || instanceAccess.admitsActor(actorId)});
     return { url: `http://127.0.0.1:${address.port}`, listenHost, listenPort: address.port, close };
   } catch (error) {
     await close().catch(() => undefined);
