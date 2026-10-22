@@ -140,6 +140,44 @@ test("an already-aborted connect does not allocate a socket", async () => {
   assert.equal(fixture.sockets.length, 0);
 });
 
+test("abort during connecting notification revokes the attempt before allocating a socket", async () => {
+  const fixture = transportFixture(); const controller = new AbortController();
+  fixture.transport.subscribeStatus(status => { if (status.state === "connecting") controller.abort(); });
+  const connecting = fixture.transport.connect(controller.signal);
+  if (fixture.sockets[0]) fixture.sockets[0].emitOpen();
+  try {
+    await assert.rejects(connecting, { name: "AbortError" });
+    assert.equal(fixture.sockets.length, 0);
+    assert.notEqual(fixture.transport.status.state, "open");
+  } finally { await fixture.transport.close(); }
+});
+
+test("close during connecting notification cannot be followed by a revived attempt", async () => {
+  const fixture = transportFixture(); let closing: Promise<void> | undefined;
+  fixture.transport.subscribeStatus(status => { if (status.state === "connecting") closing = fixture.transport.close(); });
+  const connecting = fixture.transport.connect();
+  if (fixture.sockets[0]) fixture.sockets[0].emitOpen();
+  try {
+    await closing; await assert.rejects(connecting, /closed before opening/);
+    assert.equal(fixture.sockets.length, 0); assert.equal(fixture.transport.status.state, "closed");
+  } finally { await fixture.transport.close(); }
+});
+
+test("old close finalization cannot erase a retry started by a status observer", async () => {
+  const fixture = transportFixture(); let retry: Promise<void> | undefined;
+  const original = fixture.transport.connect();
+  const rejected = assert.rejects(original, /old attempt/);
+  let once = false;
+  fixture.transport.subscribeStatus(status => {
+    if (status.state === "closed" && !once) { once = true; retry = fixture.transport.connect(); }
+  });
+  fixture.sockets[0]!.emitClose(1006, "old attempt"); await rejected;
+  assert.equal(fixture.sockets.length, 2);
+  assert.equal(fixture.transport.connect(), retry, "the retry retains its coalescing slot");
+  fixture.sockets[1]!.emitOpen(); await retry;
+  await fixture.transport.close();
+});
+
 test("a socket factory failure transitions the transport out of connecting", async () => {
   const transport = new WebSocketTransport({
     url: "not-a-websocket-url",
@@ -186,5 +224,51 @@ test("a non-text current frame transitions the transport to failed", async () =>
   socket.emitMessage({ unsupported: true });
   await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
   assert.equal(fixture.transport.status.state, "failed");
+  await fixture.transport.close();
+});
+
+
+test("closing an unfinished connect rejects its wait even when the close event is omitted", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = transportFixture(1000);
+  let settled = false;
+  const connecting = fixture.transport.connect();
+  const rejected = assert.rejects(connecting, /closed before opening/).then(() => { settled = true; });
+  const old = fixture.sockets[0]!; old.autoClose = false;
+  const closing = fixture.transport.close();
+  context.mock.timers.tick(1000); await closing; await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, true, "close must settle the original caller as well as its own wait");
+  await rejected;
+  const current = await connectCurrent(fixture);
+  old.emitOpen(); old.emitClose(1006, "late close");
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("successor"); assert.deepEqual(current.sent, ["successor"]);
+  await fixture.transport.close();
+});
+
+test("a previous close fallback cannot close an already-open successor", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const fixture = transportFixture(1000);
+  const old = await connectCurrent(fixture); old.autoClose = false;
+  const closing = fixture.transport.close();
+  const current = await connectCurrent(fixture);
+  context.mock.timers.tick(1000); await closing;
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("still open"); assert.deepEqual(current.sent, ["still open"]);
+  await fixture.transport.close();
+});
+
+test("a retired socket's pending Blob failure cannot poison its successor", async () => {
+  const fixture = transportFixture();
+  let rejectDecode!: (error: Error) => void;
+  const decoding = new Promise<ArrayBuffer>((_resolve, reject) => { rejectDecode = reject; });
+  class HeldBlob extends Blob { override arrayBuffer() { return decoding; } }
+  const old = await connectCurrent(fixture);
+  old.emitMessage(new HeldBlob()); await new Promise(resolve => setImmediate(resolve));
+  await fixture.transport.close();
+  const current = await connectCurrent(fixture);
+  rejectDecode(new Error("retired Blob decode failed")); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fixture.transport.status.state, "open");
+  await fixture.transport.send("current"); assert.deepEqual(current.sent, ["current"]);
   await fixture.transport.close();
 });

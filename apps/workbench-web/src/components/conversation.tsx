@@ -1,3 +1,4 @@
+import { ForkTurnButton } from "./conversation/fork-turn-button";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
@@ -92,7 +93,7 @@ import { UnifiedDiffPreview } from "./conversation-renderers/unified-diff-previe
 import {
   ActivityDisclosure,
   CadencedShimmer,
-  useCodexActivityOpen,
+  useActivityOpen,
 } from "./conversation-renderers/activity/activity-disclosure";
 import {
   ConversationInteractionContext,
@@ -168,7 +169,7 @@ function FileChangeActivity({
   const documentContext = useContext(ConversationDocumentContext);
   const presentation = useToolActivityPresentation(block);
   const hasDiff = change.unifiedDiff !== null && change.unifiedDiff.trim().length > 0;
-  const [open, setOpen] = useCodexActivityOpen(presentation.state === "running");
+  const [open, setOpen] = useActivityOpen(presentation.state === "running");
   const target = change.movePath ?? change.path;
   const openFile = useCallback(() => {
     const decision = resolveStandardChatResource(target, {
@@ -393,6 +394,7 @@ function Frame({
   thinkingId,
   thinkingLabel = "Thinking",
   showActions,
+  onFork,
   threadDetailLevel,
 }: {
   allowSingleSlotVirtualization: boolean;
@@ -404,6 +406,7 @@ function Frame({
   thinkingId: string | null;
   thinkingLabel?: "Thinking" | "Planning";
   showActions: boolean;
+  onFork?: () => Promise<void>;
   threadDetailLevel: ConversationDetailLevel;
 }) {
   const intl = useIntl();
@@ -436,7 +439,7 @@ function Frame({
   const units = assistantPlan?.slots ?? [];
   const actions = visibleFrame.type === "assistant" ? assistantMessageActions(visibleFrame) : null;
   const assistantCopyText = actions?.completed ? actions.copyText : "";
-  const hasMessageActions = assistantCopyText.length > 0 || onRetry !== undefined || visibleFrame.hookStats !== null;
+  const hasMessageActions = onFork !== undefined || assistantCopyText.length > 0 || onRetry !== undefined || visibleFrame.hookStats !== null;
   if (visibleFrame.type === "assistant"
     && units.length === 0
     && assistantPlan?.changeSummary == null
@@ -516,6 +519,7 @@ function Frame({
             const nodes = frameRef.current?.querySelectorAll<HTMLElement>("[data-assistant-copy-content] .opencraft-chat-document");
             return nodes?.length ? Array.from(nodes).map((node) => extractMarkdownElement(node).htmlText).join("\n") : null;
           }} /> : null}
+          {onFork === undefined ? null : <ForkTurnButton fork={onFork} />}
           {onRetry === undefined ? null : <button onClick={onRetry} type="button" title={intl.formatMessage({ id: "common.retry", defaultMessage: "Try again" })}><RotateCcw size={13} /></button>}
           {visibleFrame.hookStats == null ? null : <HookStatsButton detailLevel={threadDetailLevel} stats={visibleFrame.hookStats} />}
           {actions?.sentAtMs == null ? null : <time data-assistant-message-sent-time dateTime={new Date(actions.sentAtMs).toISOString()} title={new Date(actions.sentAtMs).toLocaleString()}>{new Date(actions.sentAtMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>}
@@ -542,6 +546,7 @@ function Turn({
   threadDetailLevel: ConversationDetailLevel;
   turn: TimelineTurnView;
 }) {
+  const forkTurn = useContext(ConversationDocumentContext).onForkTurn;
   const toolActivityPresenters = useContext(ToolActivityPresenterContext);
   const renderMcpApps = useContext(ConversationDocumentContext).mcpApps !== undefined;
   const toolActivityPresenterVersion = useSyncExternalStore(
@@ -584,6 +589,8 @@ function Turn({
           onActivityCollapsedChange={onActivityCollapsedChange}
           onRetry={onRetry}
           showActions
+          onFork={forkTurn !== undefined && ["complete", "failed", "interrupted"].includes(turn.status)
+            ? () => forkTurn(turn.turnId) : undefined}
           thinkingId={turnThinking?.placeholderId ?? null}
           thinkingLabel={turnThinking?.label}
           threadDetailLevel={threadDetailLevel}
@@ -653,7 +660,6 @@ export interface ConversationProps {
   readonly renderToolCallIcon?: ToolCallIconRenderer;
   /** Host/layout capabilities; protocol and conversation data never infer these. */
   readonly surfaceCapabilities?: TimelineSurfaceCapabilities;
-  /** Mirrors Codex's conversationDetailMode; commands is the desktop default. */
   readonly threadDetailLevel?: ConversationDetailLevel;
 }
 
@@ -687,7 +693,7 @@ function AnimatedTurn({
   readonly threadDetailLevel: ConversationDetailLevel;
   readonly turn: TimelineTurnView;
 }) {
-  // r3562 cO: latest/historical is a position, not a React lifetime boundary.
+  // Latest/historical is a position, not a React lifetime boundary.
   return <motion.div style={{ y: offset ?? 0 }}><Turn activityCollapsedById={activityCollapsedById} isMostRecentTurn={isMostRecentTurn} onActivityCollapsedChange={onActivityCollapsedChange} onRetry={onRetry} threadDetailLevel={threadDetailLevel} turn={turn} /></motion.div>;
 }
 
@@ -802,7 +808,7 @@ export function Conversation({
     setScrollElement(element);
   }, [viewportOwner]);
   useLayoutEffect(() => {
-    // r3562 ThreadScrollLayout owns initialOffset in BOTH policies. Never
+    // Thread scroll layout owns initialOffset in both policies. Never
     // reapply it on phase/content changes or a policy branch change.
     scrollController.scrollToDistanceFromBottomPx(
       normalizeInitialScrollDistance(initialRestoreSnapshot?.distanceFromBottomPx), "instant",
@@ -847,7 +853,7 @@ export function Conversation({
   const loadOlderUntilScrollable = historyBackfill.request;
 
 
-  // r3562 _k/wk: selection precedes policy construction. Baseline never owns
+  // Selection precedes policy construction. Baseline never owns
   // response state, even if a checkpoint from another policy contains it.
   const responseApiRef = useRef<ResponsePositionedTurnsApi | null>(null);
   const responseRestoreRef = useRef<ReturnType<ResponsePositionedTurnsApi["captureRestoreSnapshot"]> | null>(null);

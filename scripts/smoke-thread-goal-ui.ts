@@ -29,14 +29,14 @@ import {TurnDiffBlock} from '/apps/workbench-web/src/components/conversation/tur
 import {queuedSubmissionPresentation} from '/apps/workbench-web/src/queued-submission-presentation.ts';
 import {ThreadGoalSurface} from '/apps/workbench-web/src/components/thread-goal-surface.tsx';
 import {ThreadGoalResource} from '/packages/workbench-runtime/src/thread-goal-resource.ts';
-import {buildCodexThemeCssProperties,velaThemePalette,lavenderThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftCanvasThemePalette,lavenderThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
 import '@fontsource-variable/noto-sans-sc';
-Object.entries(buildCodexThemeCssProperties('light',velaThemePalette.light)).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
+Object.entries(buildOpenCraftThemeCssProperties('light',opencraftCanvasThemePalette.light)).forEach(([key,value])=>document.documentElement.style.setProperty(key,value));
 const queued=queuedSubmissionPresentation({commandId:'queue',clientMessageId:'client',serverSubmissionId:'server',input:[],preview:'检查并保留这份排队输入',operation:'idle',createdAt:100,pausedReason:null,error:null,state:'queued'},true);
 const diff={id:'diff',type:'turn-diff',sourceItemIds:['diff'],status:'running',unifiedDiff:'',additions:36,deletions:8,files:[{path:'goal-ui.tsx',additions:36,deletions:8}]};
 const initialGoal={threadId:'one',objective:'完成移动端目标体验，验证离开页面后仍能持续推进。',status:new URLSearchParams(location.search).has('completed')?'complete':'active',tokenBudget:null,tokensUsed:312,timeUsedSeconds:1139760,createdAt:Math.floor(Date.now()/1000)-82,updatedAt:Math.floor(Date.now()/1000)};
-let accounting=true,goal=initialGoal,write=true,setCalls=0,clearCalls=0,lastChange=null,submitted=0;
+let composerRenders=0,accounting=true,goal=initialGoal,write=true,setCalls=0,clearCalls=0,lastChange=null,submitted=0;
 const goals=new ThreadGoalResource({capability:()=>({version:1,read:true,write,...(!accounting?{usageAccounting:false}:{})}),get:async()=>({goal}),set:async(id,change)=>{setCalls++;lastChange=change;if(failWrite)throw Error('synthetic failure');goal=goal?{...goal,...change,threadId:id,updatedAt:Math.floor(Date.now()/1000)}:{...initialGoal,...change,threadId:id,tokensUsed:0,timeUsedSeconds:0,createdAt:Math.floor(Date.now()/1000),updatedAt:Math.floor(Date.now()/1000)};return {goal}},clear:async()=>{clearCalls++;goal=null;return {cleared:true}}});
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const scopes=createConversationScopeRegistry();
@@ -47,9 +47,9 @@ let creates=0,opens=0,failWrite=false,releaseCreate=null,holdCreate=false,connec
 const newGoals=new ThreadGoalResource({capability:()=>({version:1,read:true,write,...(!accounting?{usageAccounting:false}:{})}),get:async()=>({goal}),set:async(id,change)=>{setCalls++;if(failWrite)throw Error('synthetic failure');goal={...initialGoal,...change,threadId:id};return {goal}},clear:async()=>({cleared:true})});
 function App(){const[threadId,setThreadId]=useState('one');const[newDraft,setNewDraft]=useState(false);const[tick,setTick]=useState(0);const[extras,setExtras]=useState(false);
 const startGoal=React.useMemo(()=>createNewThreadGoalFlow({createThread:async()=>{creates++;if(holdCreate)await new Promise(resolve=>releaseCreate=resolve);return {hostId:'fixture',threadId:'created',turnId:null}},goals:()=>newGoals,openThread:async()=>{opens++;setThreadId('created');setNewDraft(false)}}),[]);
-window.fixture={accounting:value=>{accounting=value;goals.observe(threadId,goal)},setExtras:setExtras,setCapacity:width=>document.documentElement.style.setProperty('--probe-capacity',width+'px'),setPalette:(mode,palette)=>Object.entries(buildCodexThemeCssProperties(mode,(palette==='lavender'?lavenderThemePalette:velaThemePalette)[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),setLocale:value=>preferences.set('locale.override',value),localeOverride:()=>preferences.get('locale.override'),setGoal:change=>{goal={...initialGoal,...change};goals.observe(threadId,goal)},beginDraft:()=>{goal=null;connection='ready';write=true;setNewDraft(true)},creates:()=>creates,opens:()=>opens,failWrite:value=>failWrite=value,holdCreate:()=>holdCreate=true,releaseCreate:()=>{holdCreate=false;releaseCreate?.()},connection:value=>{connection=value;setTick(value=>value+1)},draftReadonly:value=>{write=!value;setTick(value=>value+1)},draftText:()=>draftController.getSnapshot().draft.document.blocks,setTheme:mode=>Object.entries(buildCodexThemeCssProperties(mode,velaThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),clear:()=>{goal=null;goals.observe(threadId,null)},readonly:value=>{write=!value;goals.observe(threadId,goal)},switchThread:value=>setThreadId(value),threadId:()=>threadId,goalPhase:()=>goals.getSnapshot(threadId).phase,setCalls:()=>setCalls,clearCalls:()=>clearCalls,lastChange:()=>lastChange,status:()=>goal?.status,submitted:()=>submitted,objective:()=>goal?.objective,completedObjective:()=>goals.getSnapshot(threadId).completedGoal?.objective,goalUsage:()=>({tokensUsed:goal?.tokensUsed,timeUsedSeconds:goal?.timeUsedSeconds})};
+window.fixture={composerRenders:()=>composerRenders,accounting:value=>{accounting=value;goals.observe(threadId,goal)},setExtras:setExtras,setCapacity:width=>document.documentElement.style.setProperty('--probe-capacity',width+'px'),setPalette:(mode,palette)=>Object.entries(buildOpenCraftThemeCssProperties(mode,(palette==='lavender'?lavenderThemePalette:opencraftCanvasThemePalette)[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),setLocale:value=>preferences.set('locale.override',value),localeOverride:()=>preferences.get('locale.override'),setGoal:change=>{goal={...initialGoal,...change};goals.observe(threadId,goal)},beginDraft:()=>{goal=null;connection='ready';write=true;setNewDraft(true)},creates:()=>creates,opens:()=>opens,failWrite:value=>failWrite=value,holdCreate:()=>holdCreate=true,releaseCreate:()=>{holdCreate=false;releaseCreate?.()},connection:value=>{connection=value;setTick(value=>value+1)},draftReadonly:value=>{write=!value;setTick(value=>value+1)},draftText:()=>draftController.getSnapshot().draft.document.blocks,setTheme:mode=>Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftCanvasThemePalette[mode])).forEach(([key,value])=>document.documentElement.style.setProperty(key,value)),clear:()=>{goal=null;goals.observe(threadId,null)},readonly:value=>{write=!value;goals.observe(threadId,goal)},switchThread:value=>setThreadId(value),threadId:()=>threadId,goalPhase:()=>goals.getSnapshot(threadId).phase,setCalls:()=>setCalls,clearCalls:()=>clearCalls,lastChange:()=>lastChange,status:()=>goal?.status,submitted:()=>submitted,objective:()=>goal?.objective,completedObjective:()=>goals.getSnapshot(threadId).completedGoal?.objective,goalUsage:()=>({tokensUsed:goal?.tokensUsed,timeUsedSeconds:goal?.timeUsedSeconds})};
 if(newDraft)return <FloatingComposerRegistryContext.Provider value={floatingRegistry}><NewThreadDraftPage draft={draft} controller={draftController} goals={newGoals} onCreateGoal={objective=>{const content=draftController.getSnapshot().draft;return startGoal({...content,target:draft.target,commandId:crypto.randomUUID(),clientMessageId:crypto.randomUUID(),createdAt:Date.now(),document:{version:1,blocks:[{type:'paragraph',children:[{type:'text',text:objective}]}]}},objective,()=>true)}} showExecutionControls={false} workspaceOptions={[]} activeHostId='fixture' hostOptions={[]} connectionPhase={connection} onSelectHost={()=>{}} onSelectWorkspace={()=>{}} onBrowseWorkspace={()=>{}} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} catalog={{}} onSubmit={()=>{throw Error('Goal must not send ordinary input')}} /></FloatingComposerRegistryContext.Provider>;
-return <div style={{height:'100dvh',display:'flex',flexDirection:'column',justifyContent:'flex-end',width:'min(100%,var(--probe-capacity,100%))',marginInline:'auto',padding:'20px 16px 32px',background:'var(--color-background-surface)'}}><ThreadGoalSurface threadId={threadId} goals={goals}>{(goalMenuItem,_busy,goalContent)=><OpenCraftComposer attachedContent={goalContent} floatingContent={extras?<div className='thread-live-changes'><TurnDiffBlock block={diff}/></div>:null} queuedSubmissions={extras?[queued]:[]} controller={controller} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}} addMenuContent={closeMenu=><><DropdownMenu.Item className='opencraft-composer-selection-menu__item opencraft-composer-add-menu__item'><FormattedMessage id='connector.title' defaultMessage='Connectors'/></DropdownMenu.Item>{goalMenuItem?.(closeMenu)}</>}/>}</ThreadGoalSurface></div>}
+return <div style={{height:'100dvh',display:'flex',flexDirection:'column',justifyContent:'flex-end',width:'min(100%,var(--probe-capacity,100%))',marginInline:'auto',padding:'20px 16px 32px',background:'var(--color-background-surface)'}}><ThreadGoalSurface threadId={threadId} goals={goals}>{(goalMenuItem,_busy,goalContent)=>(composerRenders++,<OpenCraftComposer attachedContent={goalContent} floatingContent={extras?<div className='thread-live-changes'><TurnDiffBlock block={diff}/></div>:null} queuedSubmissions={extras?[queued]:[]} controller={controller} selectionCatalog={{models:[{id:'model',value:'model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={async()=>{submitted++}} onCancel={()=>{}} addMenuContent={closeMenu=><><DropdownMenu.Item className='opencraft-composer-selection-menu__item opencraft-composer-add-menu__item'><FormattedMessage id='connector.title' defaultMessage='Connectors'/></DropdownMenu.Item>{goalMenuItem?.(closeMenu)}</>}/>)}</ThreadGoalSurface></div>}
 createRoot(document.getElementById('root')).render(<UiPreferencesProvider runtime={preferences}><WorkbenchIntlProvider controller={locale} target={document.documentElement}><App/></WorkbenchIntlProvider></UiPreferencesProvider>);
 `;
 const vite = await createServer({
@@ -564,6 +564,53 @@ try {
   await dsh.getByRole('button',{name:'继续',exact:true}).click();
   assert.equal(await dsh.evaluate(() => (window as any).fixture.lastChange().status),'active');
   await dsh.close();
+  // Exercise the real Goal surface and its Composer render prop with browser time.
+  const clockPage = await browser.newPage({ viewport: { width: 1280, height: 844 }, locale: "en-US" });
+  const clockErrors: string[] = [];
+  clockPage.on("pageerror", (error: Error) => clockErrors.push(error.message));
+  await clockPage.addInitScript("window.__name = value => value");
+  await clockPage.clock.install();
+  await clockPage.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}`);
+  await clockPage.locator('.thread-goal__time').waitFor();
+  await clockPage.clock.pauseAt(new Date(await clockPage.evaluate(() => Date.now()) + 100));
+  const setClockGoal = async (timeUsedSeconds: number, status = "active") => {
+    await clockPage.evaluate(({timeUsedSeconds,status}) => (window as any).fixture.setGoal({timeUsedSeconds,status,updatedAt:Date.now()/1000}),{timeUsedSeconds,status});
+    await clockPage.clock.runFor(50);
+  };
+  const renderCount = () => clockPage.evaluate(() => (window as any).fixture.composerRenders());
+  const clockLabel = () => clockPage.locator('.thread-goal__time').getAttribute('title');
+  await setClockGoal(120);
+  const steadyCount = await renderCount(), steadyLabel = await clockLabel();
+  await clockPage.clock.runFor(10000);
+  assert.equal(await renderCount(),steadyCount,'unchanged minute must not rerender the Composer');
+  assert.equal(await clockLabel(),steadyLabel);
+  await clockPage.clock.fastForward(60000);
+  assert.notEqual(await clockLabel(),steadyLabel,'a later minute must refresh after a clock jump');
+  await setClockGoal(59);
+  const secondLabel = await clockLabel();
+  await clockPage.clock.runFor(1100);
+  assert.notEqual(await clockLabel(),secondLabel,'59 seconds must advance into the first minute');
+  await setClockGoal(12);
+  const shortLabel = await clockLabel();
+  await clockPage.clock.runFor(1100);
+  assert.notEqual(await clockLabel(),shortLabel,'first-minute seconds retain their existing precision');
+  await setClockGoal(59,"paused");
+  const pausedCount = await renderCount(), pausedLabel = await clockLabel();
+  await clockPage.clock.runFor(5000);
+  assert.equal(await renderCount(),pausedCount); assert.equal(await clockLabel(),pausedLabel);
+  await setClockGoal(7200);
+  const accountingLabel = await clockLabel();
+  await setClockGoal(7260);
+  assert.notEqual(await clockLabel(),accountingLabel,'server accounting updates immediately replace the timer baseline');
+  await clockPage.evaluate(() => (window as any).fixture.accounting(false));
+  await clockPage.clock.runFor(50);
+  assert.equal(await clockPage.locator('.thread-goal__time').count(),0);
+  const noAccountingCount = await renderCount();
+  await clockPage.clock.runFor(5000);
+  assert.equal(await renderCount(),noAccountingCount,'no accounting capability must leave no clock updates');
+  assert.deepEqual(clockErrors,[]);
+  await clockPage.close();
+  console.log("goal clock precision, accounting and Composer render isolation passed");
   assert.equal(adaptiveCases,32);
   console.log(JSON.stringify({ output, passed: true, adaptiveCases, evidence: ["DSH disarmed Resume and absent usage metrics", "real automatic system locale and persisted override; live dialog language switching retains input/DOM/focus; English fallback and locale numbers; all Goal status messages", "existing goal light/dark", "touch Add menu, cancel and draft preservation", "keyboard create and confirmed goal", "read-only and missing Thread hide creation", "Thread switch closes draft without remounting Composer", "real new Draft light/dark at 390/1280: cancel, readonly, offline", "new Goal without ordinary submit; busy and failed write retry keep Thread and input"] }));
 } finally {

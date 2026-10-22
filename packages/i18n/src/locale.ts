@@ -20,8 +20,6 @@ export function isEnglishLocale(value: unknown): boolean {
   return locale !== undefined && new Intl.Locale(locale).language === "en";
 }
 
-/** Codex's override > configured IDE/system source selection, including its
- * non-English FIRST_AVAILABLE policy. Product region is not a locale source. */
 export function resolveRequestedLocale(input: LocaleInputs): string {
   const override = canonicalizeLocale(input.localeOverride);
   if (override) return override;

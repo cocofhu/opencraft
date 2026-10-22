@@ -136,10 +136,7 @@ Replica state, query keys, panels, and persisted selection are all scoped by
 `hostId`. Host URLs containing credentials are rejected; authentication belongs
 to the Web/Electron transport gateway.
 
-The renderer is semantic React/TypeScript and SCSS. It does not execute the
-generated recovery runtime. Provenance is pinned in
-`vendor/codex/IMPORT_MAP.json` to the r822 semantic source tree and the r823 to
-r826 audit, build, browser-differential, and hydration gates.
+The renderer is semantic React/TypeScript and SCSS. It shares the same renderer across Web and Electron.
 
 ## Workspace
 
@@ -151,7 +148,7 @@ r826 audit, build, browser-differential, and hydration gates.
 - `packages/composer-core`: serializable cross-platform composer blocks.
 - `packages/composer-editor`: ProseMirror composer with IME-safe input,
   attachments, mentions, skills, commands, history, and send/stop semantics.
-- `packages/design-system`: typed Codex theme compiler plus Web and Native tokens.
+- `packages/design-system`: typed OpenCraft theme compiler plus Web and Native tokens.
 - `packages/workbench-runtime`: renderer-free session store, commands and
   streaming lifecycle consumed by both renderer hosts.
 
@@ -161,7 +158,7 @@ build:expo:ios` runs the Linux-compatible Metro iOS bundle gate; launching an
 Apple Simulator and compiling the native pods still require macOS and Xcode.
 
 The frame contract and exact recovery evidence are documented in
-`docs/codex-frame-spec.md`. Platform boundaries and reuse rules are documented
+`docs/workbench-frame-spec.md`. Platform boundaries and reuse rules are documented
 in `docs/platform-architecture.md`. The Cordis-backed extension kernel,
 capability boundary and future marketplace model are documented in
 `docs/plugin-architecture.md`; the AI-native discovery, task lease, execution

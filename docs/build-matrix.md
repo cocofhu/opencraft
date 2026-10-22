@@ -19,37 +19,45 @@ so each surface is an explicit matrix target with its own artifact contract.
 | `electron-linux-x64-appimage` | Electron host + renderer | Portable x86_64 AppImage | Linux |
 | `electron-linux-x64-rpm` | Electron host + renderer | TencentOS/RHEL/Fedora RPM | Linux |
 | `electron-linux-x64-deb` | Electron host + renderer | Debian/Ubuntu amd64 package | Linux |
-| `headless-linux-amd64-tar` | Node Local Agent Host + Vite WebUI | Self-contained private server `.tar.gz` | Native Linux amd64 |
+| `headless-linux-amd64-tar` | Node Local Agent Host + Vite WebUI + bundled headless Electron browser | Self-contained private server `.tar.gz` | Native Linux amd64 |
 | `expo-web` | Public RN Workbench + Metro Web | Expo static export | Linux/macOS/Windows |
 | `expo-ios-bundle` | React Native + Metro | JS bundle and assets | Linux/macOS; native archive on macOS |
 | `expo-android-internal-apk` | Expo prebuild + Gradle release | Installable internal APK | Linux/macOS with JDK and Android SDK |
 | `expo-android-release-apk` | Expo prebuild + Gradle, external PKCS12 signing | Configured public application ID, signed APK and filing text | Linux with JDK, Android SDK and release key |
 
-## Optional developer references and browser evidence
+## Repository-owned Electron source fork
 
-Default builds, `npm run gate` and public product-entry tests do not require a
-parent monorepo or reference checkout. Prepare the separate locked execution
-runtime with `npm run prepare:dsh-runtime` before running the full gate.
+[`vendor/electron`](../vendor/electron/README.md) owns the fixed Electron source
+baseline, checksummed patch series and explicit source/sync/build commands. Its
+initial native patch exposes observation-only editing metadata and caret bounds;
+source verification is separate from compilation and real native input testing.
+Normal desktop and browser-runtime packages continue using their existing pinned
+distribution until a compiled custom artifact is explicitly integrated and
+validated. The fork's initial build entry targets Linux; macOS/Windows builds and
+physical input-method validation remain separate work.
 
-Historical source-parity tools are opt-in. Obtain a compatible snapshot yourself;
-the repository does not distribute or download it. Select the local input explicitly:
+## Developer diagnostics and browser evidence
+
+Default builds, `npm run gate` and public product-entry tests use the current
+OpenCraft implementation. Prepare the separate locked execution runtime with
+`npm run prepare:dsh-runtime` before running the full gate.
+
+The work-status diagnostic runs against the current production components,
+including final-response transitions and reading-position measurements:
 
 ```sh
-CODEX_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-work-status.ts
-CODEX_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-activity-rendering.ts
-CODEX_SCROLL_REFERENCE_ROOT=/absolute/reference npx tsx scripts/compare-codex-scroll.ts
-CODEX_SCROLL_REFERENCE_ROOT=/absolute/reference npx tsx scripts/diagnose-work-status-completion.ts
-CODEX_REFERENCE_ROOT=/absolute/reference npx tsx --test tests/codex-activity-model.test.ts
-node scripts/check-dsh-source.mjs /absolute/reference/services
+WORK_TRANSITION_ONLY=1 npx tsx scripts/diagnose-work-status-completion.ts
+```
+
+Connector catalog exports require an explicit local input. Missing arguments
+fail with usage before reading files:
+
+```sh
 node scripts/export-hermes-connector-catalog.mjs /absolute/marketplace
 ```
 
-The scroll tools also accept `CODEX_REFERENCE_ROOT` when the scroll-specific
-variable is unset. Missing inputs fail with a setup instruction before a browser
-or server starts. These tools retain their existing snapshot layout and function
-fingerprints; configuring a directory does not prove version compatibility or
-source rights. The catalog exporter emits historical product metadata and does
-not install a connector or connect to a service.
+The catalog exporter emits metadata; it does not install a connector or connect
+to a service.
 
 Goal and navigation-avatar browser probes write screenshots to a unique system
 temporary directory and print its path. They do not require `/data`, and retain
@@ -169,7 +177,13 @@ Manual `build-matrix` dispatch defaults to `validation: web`, exercising Web and
 Linux server regressions. Choose `validation: full` to validate all five portable
 targets, macOS native code and the Linux server archive. The `package_macos`
 checkbox also selects full validation and uploads a macOS DMG; that packaging
-job covers the separate native compile. Signed/notarized release workflows and
+job covers the separate native compile. CI DMGs use an explicit ad-hoc signature;
+the job verifies the final image and the app copied from it, then launches that
+app with isolated profile/model storage and checks its real renderer over CDP.
+Logs and a screenshot are retained as `electron-macos-smoke`. These are test
+packages, without Developer ID signing or Apple notarization; macOS may still
+require an explicit Privacy & Security exception for a downloaded test app.
+Signed/notarized release workflows and
 their tag/manual triggers are unchanged. Manual CI DMGs and server archives are
 retained for three days; release artifact retention is separate.
 
@@ -259,7 +273,10 @@ than a single-host matrix command. `.github/workflows/macos-universal-release.ym
 assembles arm64 on `macos-15` and x64 on `macos-15-intel`, merges only after both
 native packages pass, then enters the `macos-release` Environment for signing,
 notarization and final packaging. Manual runs are accepted only from `main`;
-version tags matching `v*` additionally publish a GitHub Release.
+version tags matching `v*` additionally publish a GitHub Release. A lightweight
+credential check in the same Environment runs before either native build, so
+missing Secrets fail without consuming macOS build time. Configure the Environment
+to allow only the `main` branch and `v*` tags.
 
 The standalone core must not resolve downstream-parent `file:` dependencies. The the downstream product
 snapshots of `lightvela-agent-core`, `vela-chat-client-core` and Collaboration now
@@ -317,7 +334,31 @@ committed or printed:
 The release job imports the Developer ID into an ephemeral keychain, deletes it
 in an `always()` cleanup step, verifies the Universal slices,
 Developer ID signature, stapled notarization ticket, Gatekeeper assessment,
-DMG signature/image and ZIP integrity, then emits SHA-256 checksums.
+DMG signature/image and ZIP integrity, then emits SHA-256 checksums. The final
+signed DMG is separately submitted to Apple; only an `Accepted` result permits
+stapling. Its ticket and Gatekeeper assessment must pass before checksums and
+artifact upload. The same final-DMG smoke test copies the app to an isolated
+profile, checks its real renderer and retains logs/a screenshot as
+`opencraft-macos-universal-smoke-<sha>` for three days. Only the final DMG,
+app ZIP and their checksums are delivered;
+intermediate update metadata/blockmaps are not published by this workflow.
+
+The standalone signing process queues file opens before loading the signer, so
+its concurrent resource inspection cannot exhaust macOS file descriptors.
+After Apple accepts an app or DMG, transient ticket-delivery failures retry
+with bounded backoff without resubmitting the artifact. Rejected submissions,
+exhausted retries and failed ticket validation still fail the release.
+
+To provision the Environment, use GitHub **Settings → Environments →
+macos-release → Environment secrets**, or `gh secret set --repo
+opencraft-app/opencraft --env macos-release NAME` with the value on standard
+input. The certificate must be a Developer ID Application identity exported with
+its private key as password-protected PKCS#12. Apple Development certificates
+cannot substitute for it. `APPLE_APP_SPECIFIC_PASSWORD` is an app-specific
+password for the Apple ID authorized to notarize for `APPLE_TEAM_ID`; it is not
+the account login password. Store credential files outside the repository and
+never pass their contents as shell literals or include them in logs. Missing
+credentials leave the release blocked; do not fall back to ad-hoc signing.
 
 The Electron host never loads the application with `file://`, but its loopback
 server is only a static asset owner. Renderer App Host frames cross a transferred
@@ -683,3 +724,7 @@ retain their pixels and alpha. Corrupt supported images fail the build.
 `test:web-release` exercises these contracts and the raw RGBA API also used by
 the mobile sidebar screenshot probe; dependency upgrades require both Node
 build/release runtimes and actual copied delivery-asset verification.
+
+### Linux remote-browser payload
+
+Both `package-headless-linux.mjs` and managed headless `package-web-server.mjs` ship `runtime/browser` using `package-browser-runtime.mjs`, including Electron licenses. Build on native Linux using the workspace-pinned Electron distribution. The independent browser worker does not start the desktop application. See [managed headless](managed-headless.md#内置远程网页渲染) for sandbox, dependencies and profile ownership. `npm run smoke:remote-browser` exercises the real typed Dynamic Tool Host, Page/Presentation and H.264 Canvas on Linux; it uses a synthetic website and does not prove macOS behavior or physical-device input.

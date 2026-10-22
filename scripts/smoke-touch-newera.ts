@@ -8,7 +8,7 @@ try {
  await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
 
  const quick = process.argv.includes("--quick");
- for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["codex"] : ["codex", "vela", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
+ for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
   console.log(`Checking ${width}/${palette}/${mode}`);
   const page = await browser.newPage({ viewport: { width, height: 800 }, hasTouch: true });
   const errors: string[] = []; page.on("pageerror", (e: Error) => errors.push(e.message));
@@ -31,18 +31,9 @@ try {
     }), 'visible icon and true hit region are circular, including microphone and send');
   }
   assert.equal(await page.locator('.thread-scroll-footer__gradient').evaluate((node: HTMLElement) => getComputedStyle(node).backgroundImage), 'none');
-  assert(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) => {
-    const footer = getComputedStyle(node);
-    const gutter = getComputedStyle(node, '::after');
-    const surface = document.createElement('span');
-    surface.style.background = 'var(--color-surface)';
-    node.append(surface);
-    const surfaceColor = getComputedStyle(surface).backgroundColor;
-    surface.remove();
-    return gutter.backgroundColor === surfaceColor
-      && Number.parseFloat(gutter.height) === Number.parseFloat(footer.paddingBottom)
-      && gutter.pointerEvents === 'none';
-  }), 'only the safe-area gutter covers scrolling rows below the Composer');
+  assert.equal(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) =>
+    getComputedStyle(node, '::after').content), 'none',
+    'touch safe area stays open beneath the floating Composer');
   assert(compact.background.includes('0.62'), compact.background);
   const shell = page.locator('.opencraft-composer-shell');
   const glassBefore = await shell.screenshot();
@@ -65,8 +56,8 @@ try {
   const railAfter = await rail.screenshot();
   assert(!railBefore.equals(railAfter), 'scrolling backdrop must show through queue glass too');
   await page.locator('[aria-hidden]').first().evaluate((node: HTMLElement) => { node.style.background = ''; });
-  if (width === 390 && palette === 'codex') await page.locator('.opencraft-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
-  if (width === 390 && palette === 'codex') {
+  if (width === 390 && palette === 'opencraftNeutral') await page.locator('.opencraft-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
+  if (width === 390 && palette === 'opencraftNeutral') {
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-transparency',value:'reduce'}]});
     assert(await page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches));
@@ -90,17 +81,18 @@ try {
   const expanding = await shell.evaluate((node: HTMLElement) => node.getAnimations().filter(animation => animation.id === "newera-focus-expansion").length);
   assert.equal(expanding, 0, 'empty focus has no geometry animation');
   await page.waitForTimeout(220);
-  assert.equal((await shape()).height, compact.height, 'empty focus keeps one row');
+  assert((await shape()).height > compact.height + 20, 'editor focus opens the normal footer');
   await editor.evaluate((node: HTMLElement) => node.blur());
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEditing === 'false');
   assert.equal((await shape()).height, compact.height, 'empty blur returns to one row');
   assert.equal(await page.getByRole('button', { name: '更多输入选项', exact: true }).count(), 0, 'no manual expansion toggle');
   await editor.click(); await page.waitForTimeout(220);
   await page.getByRole('button', { name: 'Fixture microphone', exact: true }).focus();
-  assert.equal((await shape()).height, compact.height, 'empty toolbar focus keeps one row');
-  await editor.fill('保留当前草稿');
-  await page.locator('.opencraft-composer-shortcut-trigger').click();
-  await page.locator('.opencraft-composer-shortcut-menu').waitFor();
-  assert((await shape()).height > compact.height + 20, 'portaled menu keeps its anchor expanded');
+  assert((await shape()).height > compact.height + 20, 'toolbar focus retains the editing session');
+  assert.equal(await page.locator('.opencraft-composer-shortcut-trigger').count(), 0, 'slash commands have no separate footer menu');
+  await editor.fill('/he');
+  await page.getByRole('listbox').waitFor();
+  assert((await shape()).height > compact.height + 20, 'inline command suggestions retain the editing session');
   await page.keyboard.press('Escape');
 
   await editor.fill('保留当前草稿'); await page.waitForTimeout(100);
@@ -114,6 +106,7 @@ try {
   await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEmpty === 'true');
   await page.evaluate(() => (window as any).setNewera(true)); await page.waitForTimeout(220);
   await editor.evaluate((node: HTMLElement) => node.blur());
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEditing === 'false');
   assert.equal((await shape()).height, compact.height, JSON.stringify(await page.locator(".opencraft-composer-stack").evaluate((n: HTMLElement) => ({...n.dataset, text:n.querySelector(".opencraft-composer-editor")?.textContent}))));
   await page.evaluate(() => (window as any).setTouch(false)); await page.waitForTimeout(100);
   assert((await shape()).radius !== "28px", 'compact layout ignores Newera');
@@ -122,10 +115,10 @@ try {
   assert.equal(await toggle.getAttribute('aria-checked'), 'true'); await toggle.click(); await page.waitForTimeout(80);
   assert.equal(await page.locator('html').getAttribute('data-touch-newera'), 'off');
   await toggle.click(); await page.waitForTimeout(80);
-  if (width === 390 && palette === 'codex' && mode === 'light') {
+  if (width === 390 && palette === 'opencraftNeutral' && mode === 'light') {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await editor.click();
-    assert.equal((await shape()).height, compact.height);
+    assert((await shape()).height > compact.height + 20, 'reduced motion preserves focus expansion');
     assert.equal(await shell.evaluate((node: HTMLElement) => node.getAnimations().filter(animation => animation.id === "newera-focus-expansion").length), 0);
     await editor.evaluate((node: HTMLElement) => node.blur());
     await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -133,5 +126,5 @@ try {
   if (width === 390) await page.screenshot({ path: `/tmp/newera-${palette}-${mode}.png` });
   assert(original.height > compact.height); assert.deepEqual(errors, []); await page.close();
  }
- console.log(`PASS: Newera ${quick ? 2 : 36} theme/layout combinations; round hit regions/glass pixel change/stable empty focus/no toggle/toolbar focus/type/clear/off/compact; same editor and draft; real Settings toggle; queue glass and accessibility fallback`);
+ console.log(`PASS: Newera ${quick ? 2 : 36} theme/layout combinations; round hit regions/glass pixel change/empty focus expansion/no toggle/toolbar continuity/type/clear/off/compact; same editor and draft; real Settings toggle; queue glass and accessibility fallback`);
 } finally { await browser?.close(); await vite.close(); }

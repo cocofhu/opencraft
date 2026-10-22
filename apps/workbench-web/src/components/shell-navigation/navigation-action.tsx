@@ -26,7 +26,7 @@ export function NavigationIcon({ name, size, selected = false }: {
   const classic = useWorkbenchPresentation().iconStyle === "classic";
   const icon = resolveWorkbenchIcon(name, classic, "navigation");
   const props = {
-    size: size ?? (classic ? workbenchIconMetrics.vela.navigation : workbenchIconMetrics.core.navigation),
+    size: size ?? (classic ? workbenchIconMetrics.classic.navigation : workbenchIconMetrics.core.navigation),
     "aria-hidden": true,
     focusable: false,
     "data-navigation-glyph-variant": selected ? "selected" : "outline",

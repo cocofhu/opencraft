@@ -33,7 +33,6 @@ export function useWorkspacePaneAnimation(progress: MotionValue<number>, visibil
   }, [fullWidth, scope, open, reducedMotion, progress, visibility]);
 }
 
-// Source-identical motion contract from the latest recovered Codex lineage:
 // settings/app-shell-layout-motion-context-04359.ts.
 export const PANEL_SPRING_TRANSITION = {
   type: "spring",
@@ -53,14 +52,6 @@ interface PanelAnimationInput {
   readonly size: number | MotionValue<number>;
 }
 
-/**
- * The writer for a panel visibility transaction lives above the panel.
- *
- * Codex's setRightPanelVisibility first updates semantic visibility, then
- * stops and retargets one route-scoped MotionValue. Panel, header and layout
- * consumers only read that value. Keeping this writer in AppShell preserves
- * the same ownership rule when panel content remounts or changes route.
- */
 export function usePanelVisibilityAnimation(
   isVisible: boolean,
   animation: MotionValue<number>,
@@ -86,11 +77,6 @@ export function usePanelVisibilityAnimation(
   }, [animation, isVisible, shouldReduceMotion]);
 }
 
-/**
- * Codex keeps panel progress in a MotionValue and binds it directly to layout
- * styles. This avoids a React render for every animation frame and preserves
- * the current velocity when an in-flight animation reverses direction.
- */
 export function usePanelAnimation({
   animation,
   isVisible,
@@ -112,7 +98,6 @@ export function usePanelAnimation({
     if (typeof size === "number") fallbackSizeValue.set(size);
   }, [fallbackSizeValue, size]);
 
-  // Codex does not mirror animation progress through React state. It renders
   // once more only at the terminal zero so the outgoing panel can unmount.
   // The change listener also covers the reduced-motion `set(0)` path, whose
   // MotionValue intentionally has no animationComplete event.

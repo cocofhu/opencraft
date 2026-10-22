@@ -70,6 +70,7 @@ export class WebSocketTransport implements DuplexTransport {
   private socket: AppServerWebSocket | null = null;
   private currentStatus: TransportStatus = { state: "idle" };
   private connectPromise: Promise<void> | null = null;
+  private cancelConnect: ((error: Error) => void) | null = null;
   private inboundQueue = Promise.resolve();
   private socketGeneration = 0;
 
@@ -86,87 +87,91 @@ export class WebSocketTransport implements DuplexTransport {
     if (this.connectPromise !== null) return this.connectPromise;
     if (signal?.aborted) return Promise.reject(abortError("WebSocket connection was aborted"));
 
+    // Publish ownership before any observer or factory can cancel/reenter.
+    const generation = ++this.socketGeneration;
+    let socket: AppServerWebSocket | null = null;
+    let settled = false;
+    let resolve!: () => void;
+    let reject!: (error: Error) => void;
+    const connectionPromise = new Promise<void>((a, b) => { resolve = a; reject = b; });
+    const isCurrentSocket = () => socket !== null && this.socket === socket && this.socketGeneration === generation;
+    const cleanupConnectListeners = () => {
+      socket?.removeEventListener("open", handleOpen);
+      signal?.removeEventListener("abort", handleAbort);
+      if (this.cancelConnect === failConnect) this.cancelConnect = null;
+    };
+    const failConnect = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanupConnectListeners();
+      if (this.connectPromise === connectionPromise) this.connectPromise = null;
+      reject(error);
+    };
+    const handleOpen = () => {
+      if (settled || !isCurrentSocket()) return;
+      settled = true;
+      cleanupConnectListeners();
+      if (this.connectPromise === connectionPromise) this.connectPromise = null;
+      this.setStatus({ state: "open" });
+      resolve();
+    };
+    const handleAbort = () => {
+      if (settled) return;
+      failConnect(abortError("WebSocket connection was aborted"));
+      // Native close can omit its event. Revocation is local and immediate.
+      if (this.socketGeneration === generation) this.setStatus({ state: "closed" });
+      try { socket?.close(1000, "aborted"); } catch { socket?.terminate?.(); }
+    };
+    this.connectPromise = connectionPromise;
+    this.cancelConnect = failConnect;
+    signal?.addEventListener("abort", handleAbort, { once: true });
     this.setStatus({ state: "connecting" });
+    if (settled || this.socketGeneration !== generation) return connectionPromise;
+    if (signal?.aborted) { handleAbort(); return connectionPromise; }
+
     const factory = this.options.createSocket ?? ((url, protocols) => new WebSocket(url, protocols));
-    let socket: AppServerWebSocket;
     try {
       socket = factory(this.options.url, this.options.protocols);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.setStatus({ state: "failed", reason });
-      return Promise.reject(error);
+      failConnect(error instanceof Error ? error : new Error(String(error)));
+      if (this.socketGeneration === generation) this.setStatus({ state: "failed", reason: error instanceof Error ? error.message : String(error) });
+      return connectionPromise;
     }
-    const generation = ++this.socketGeneration;
+    if (settled || this.socketGeneration !== generation) {
+      try { socket.close(1000, "cancelled attempt"); } catch { socket.terminate?.(); }
+      return connectionPromise;
+    }
     this.socket = socket;
     this.inboundQueue = Promise.resolve();
-
-    this.connectPromise = new Promise<void>((resolve, reject) => {
-      let settled = false;
-      const isCurrentSocket = () => this.socket === socket && this.socketGeneration === generation;
-      const cleanupConnectListeners = () => {
-        socket.removeEventListener("open", handleOpen);
-        signal?.removeEventListener("abort", handleAbort);
-      };
-      const failConnect = (error: Error) => {
-        if (settled) return;
-        settled = true;
-        cleanupConnectListeners();
-        this.connectPromise = null;
-        reject(error);
-      };
-      const handleOpen = () => {
-        if (settled || !isCurrentSocket()) return;
-        settled = true;
-        cleanupConnectListeners();
-        this.connectPromise = null;
-        this.setStatus({ state: "open" });
-        resolve();
-      };
-      const handleAbort = () => {
-        failConnect(abortError("WebSocket connection was aborted"));
-        try {
-          socket.close(1000, "aborted");
-        } catch {
-          socket.terminate?.();
-        }
-      };
-
-      socket.addEventListener("open", handleOpen);
-      socket.addEventListener("message", (event) => {
-        if (!isCurrentSocket()) return;
-        this.inboundQueue = this.inboundQueue
-          .then(() => messageDataToText(event.data))
-          .then((frame) => {
-            if (!isCurrentSocket() || this.currentStatus.state !== "open") return;
-            for (const listener of this.messageListeners) listener(frame);
-          })
-          .catch((error: unknown) => {
-            this.setStatus({
-              state: "failed",
-              reason: error instanceof Error ? error.message : String(error),
-            });
-          });
-      });
-      socket.addEventListener("error", () => {
-        if (!isCurrentSocket()) return;
-        const error = new Error(`WebSocket connection failed: ${this.options.url}`);
-        this.setStatus({ state: "failed", reason: error.message });
-        failConnect(error);
-      });
-      socket.addEventListener("close", (event) => {
-        if (!isCurrentSocket()) return;
-        this.socket = null;
-        this.connectPromise = null;
-        const reason = event.code === 1000
-          ? undefined
-          : event.reason || `WebSocket closed with code ${event.code}`;
-        this.setStatus(reason === undefined ? { state: "closed" } : { state: "closed", reason });
-        if (!settled) failConnect(new Error(reason ?? "WebSocket closed before opening"));
-      });
-      signal?.addEventListener("abort", handleAbort, { once: true });
+    socket.addEventListener("open", handleOpen);
+    socket.addEventListener("message", (event) => {
+      if (!isCurrentSocket()) return;
+      this.inboundQueue = this.inboundQueue
+        .then(() => messageDataToText(event.data))
+        .then((frame) => {
+          if (!isCurrentSocket() || this.currentStatus.state !== "open") return;
+          for (const listener of this.messageListeners) listener(frame);
+        })
+        .catch((error: unknown) => {
+          if (!isCurrentSocket() || this.currentStatus.state !== "open") return;
+          this.setStatus({ state: "failed", reason: error instanceof Error ? error.message : String(error) });
+        });
     });
-
-    return this.connectPromise;
+    socket.addEventListener("error", () => {
+      if (!isCurrentSocket()) return;
+      const error = new Error(`WebSocket connection failed: ${this.options.url}`);
+      failConnect(error);
+      if (isCurrentSocket()) this.setStatus({ state: "failed", reason: error.message });
+    });
+    socket.addEventListener("close", (event) => {
+      if (!isCurrentSocket()) return;
+      this.socket = null;
+      const reason = event.code === 1000 ? undefined : event.reason || `WebSocket closed with code ${event.code}`;
+      // Settle the old attempt before status observers can start its successor.
+      failConnect(new Error(reason ?? "WebSocket closed before opening"));
+      this.setStatus(reason === undefined ? { state: "closed" } : { state: "closed", reason });
+    });
+    return connectionPromise;
   }
 
   async send(frame: string): Promise<void> {
@@ -189,6 +194,9 @@ export class WebSocketTransport implements DuplexTransport {
 
   async close(): Promise<void> {
     const socket = this.socket;
+    // The platform may omit its close event, including after terminate().
+    // Settle the original connect caller before bounded socket disposal.
+    this.cancelConnect?.(new Error("WebSocket closed before opening"));
     if (socket === null) {
       if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
       return;
@@ -207,8 +215,10 @@ export class WebSocketTransport implements DuplexTransport {
         settled = true;
         globalThis.clearTimeout(timeoutId);
         socket.removeEventListener("close", handleClose);
-        if (this.socket === socket) this.socket = null;
-        if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
+        if (this.socket === socket) {
+          this.socket = null;
+          if (this.currentStatus.state !== "closed") this.setStatus({ state: "closed" });
+        }
         resolve();
       };
       const handleClose = () => finish();

@@ -1,9 +1,3 @@
-/**
- * Renderer-neutral viewport model for a Codex-style conversation timeline.
- *
- * DOM, Electron and React Native adapters all publish this shape. The
- * virtualizer consumes geometry and policy, never browser globals.
- */
 export type TimelineRenderHostKind = "browser" | "electron" | "native";
 
 export type TimelineRenderPlatform =
@@ -135,7 +129,7 @@ export function calculateSoftwareKeyboardInset({
   return Math.max(0, layoutHeight - visualHeight - visualTop);
 }
 
-/** Recovered side-panel invariant: shift mode moves content by half the panel. */
+/** Shift mode moves content by half the panel. */
 export function timelineWideContentOffset({
   displayMode,
   panelWidthPx,

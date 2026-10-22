@@ -62,7 +62,7 @@ try {
   assert.equal(await editor.count(), 1); assert.match(await editor.innerText(), /Keep this parent draft/);
   assert.equal(await editor.evaluate(element => element.closest("[inert]") !== null), false);
   await page.getByRole("textbox", { name: "Terminal input" }).fill("Still interactive behind overlay");
-  // Non-browser tools use Codex's default overlay, without browser peek handles.
+  // Non-browser tools use the default overlay, without browser peek handles.
   assert.equal(await page.getByRole("button", { name: "Hide chat input" }).count(), 0);
   assert.match(await editor.innerText(), /Keep this parent draft/);
   for (const theme of ["light", "dark"]) {

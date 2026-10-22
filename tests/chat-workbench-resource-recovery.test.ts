@@ -25,7 +25,7 @@ test("Host and active Thread recover independently of a rejected Thread and stal
         if (recovering && message.params.threadId === "missing") {
           reply.send(JSON.stringify({ id: message.id, error: { code: -32000, message: "Thread no longer exists" } }));
         } else send({ thread: thread(message.params.threadId), model: "test", modelProvider: "test", cwd: "/workspace",
-          serviceTier: "default", reasoningEffort: "medium", approvalsReviewer: "user",
+          serviceTier: "fast", reasoningEffort: "medium", approvalsReviewer: "user",
           runtimeWorkspaceRoots: ["/workspace"], instructionSources: [], activePermissionProfile: { id: "workspace" },
           approvalPolicy: "on-request", sandbox: { type: "workspaceWrite", writableRoots: ["/workspace"] },
           initialTurnsPage: { data: [], nextCursor: null }, turnsBackwardsCursor: null, itemsBackwardsCursor: null });
@@ -53,6 +53,7 @@ test("Host and active Thread recover independently of a rejected Thread and stal
     assert.equal(runtime.getSnapshot().phase, "ready");
     for (let i = 0; i < 10; i++) await tick();
     assert.equal(healthy.getSnapshot().authoritative, true);
+    assert.equal(healthy.getSnapshot().execution.serviceTier, "fast", "reconnect restores speed from the Host");
     assert.equal(runtime.getThreadResidency("missing")?.phase, "error");
     assert.deepEqual(resumedIds.slice(recoveryStart), ["healthy", "missing"], "visible first; cache residency alone creates no recovery read");
     const reopened = await runtime.acquireThread("cache-only");
@@ -101,6 +102,54 @@ for (const mode of ["acquire", "retry"] as const) {
       assert.equal(lease.getSnapshot().error,null);
       assert.equal(runtime.getSnapshot().phase,"ready");assert.equal(initializes,1);
       assert.equal(methods.some(method=>["turn/start","turn/steer","thread/start"].includes(method)),false);
+      lease.release();
+    } finally { await runtime.dispose(); }
+  });
+}
+
+for (const [label, data, persistent, expected] of [
+  ["transient", { retryable: true }, false, 2],
+  ["permanent", { retryable: false }, false, 1],
+  ["unknown", undefined, false, 1],
+  ["malformed", { retryable: "true" }, false, 1],
+  ["persistent transient", { retryable: true }, true, 4],
+] as const) {
+  test(`${label}: RPC history recovery respects explicit retryability and the existing bound`, async () => {
+    let resumes = 0, initializes = 0;
+    const methods: string[] = [];
+    const transport = new MemoryTransport({ receive(frame, peer) {
+      const request = JSON.parse(frame); if (request.id === undefined) return;
+      methods.push(request.method);
+      const send = (result: unknown) => peer.send(JSON.stringify({ id: request.id, result }));
+      if (request.method === "initialize") { initializes++; send({ codexHome: "/tmp", platformFamily: "unix", platformOs: "linux", userAgent: "rpc-recovery-test" }); }
+      else if (request.method === "thread/read") send({ thread: thread("history") });
+      else if (request.method === "thread/resume") {
+        resumes++;
+        if (persistent || resumes === 1) {
+          peer.send(JSON.stringify({ id: request.id, error: { code: -32000, message: "history unavailable", data } }));
+        } else send({ thread: thread("history"), model: "test", modelProvider: "test", cwd: "/workspace",
+          approvalPolicy: "on-request", approvalsReviewer: "user", runtimeWorkspaceRoots: ["/workspace"],
+          sandbox: { type: "workspaceWrite", writableRoots: ["/workspace"] },
+          initialTurnsPage: { data: [], nextCursor: null }, turnsBackwardsCursor: null, itemsBackwardsCursor: null });
+      } else if (request.method.endsWith("/list")) send({ data: [], nextCursor: null });
+      else send({});
+    }});
+    const runtime = createAppServerWorkbenchRuntime({ hostId: `rpc-${label}`, transport, autoReconnect: false,
+      requestTimeoutMs: 100, reconnectDelaysMs: [5, 10, 20] });
+    try {
+      await runtime.connect();
+      const lease = await runtime.acquireThread("history");
+      const deadline = Date.now() + 1000;
+      while (resumes < expected || (expected === 2 && !lease.getSnapshot().authoritative)) {
+        assert.ok(Date.now() < deadline, "recovery must reach its expected outcome");
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      await new Promise(resolve => setTimeout(resolve, 60));
+      assert.equal(resumes, expected);
+      assert.equal(lease.getSnapshot().authoritative, expected === 2);
+      assert.equal(runtime.getSnapshot().phase, "ready");
+      assert.equal(initializes, 1, "Thread failures must not reconnect the Host");
+      assert.equal(methods.some(method => ["turn/start", "turn/steer", "thread/start"].includes(method)), false);
       lease.release();
     } finally { await runtime.dispose(); }
   });

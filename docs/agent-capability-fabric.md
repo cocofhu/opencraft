@@ -63,13 +63,12 @@ Extension 负责完整产品体验和生命周期；AgentCapabilityRuntime 只�
 发起调用时才经过 Resolver、Lease、Invocation 和 Receipt。两条路径可以复用同一个 Domain
 Service，但不能强迫全部人工交互绕行 Agent 协议。
 
-## 3. 参考系统给出的 AI 原生证据
+## 3. 能力发现与执行边界
 
-### 3.1 Codex / AppServer
+### 3.1 AppServer 协议
 
-Codex 当前的 Plugin 已经是能力聚合包，不是单个 Renderer 模块：一个 listing 可包含
-Skills、Connected Apps 和 App Templates，安装并不自动获得 App 数据权限。OpenCraft 已同步的
-AppServer 协议还提供：
+OpenCraft 同步的 Codex AppServer 协议包含插件发现、说明读取、安装、授权策略和 MCP
+调用等独立入口；协议声明见 `packages/appserver-protocol/src/generated/ClientRequest.ts`：
 
 ```text
 plugin/search
@@ -80,19 +79,10 @@ McpServerStatus = tools + resources + resourceTemplates + authStatus
 mcpServer/tool/call
 ```
 
-这说明搜索、读取说明、安装、连接授权和实际调用是不同阶段。`ON_USE` 尤其证明认证可以
-推迟到能力真正被选择时。
-
-Codex Renderer 侧的 first-party bridge 只在对应 Plugin 已安装、启用且当前 Host 策略
-允许时才创建；MCP App UI 则通过 sandbox origin 与 RPC 呈现。它没有把 npm 包的 React
-组件直接变成 Agent 能力。
-
-参考：
-
-- `reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact/shared/create-plugin-bridge-manager-07301.js`；
-- `reference://codex/.runtime/source-tree-build-r2030-eager-immediate-compact/service/mcp-app-sandbox-renderer-07461.js`；
-- `packages/appserver-protocol/src/generated/ClientRequest.ts`；
-- [ChatGPT 与 Codex Plugins](https://help.openai.com/en/articles/20001256-plugins-in-codexOpenAI)。
+搜索、读取说明、安装、连接授权和实际调用是不同阶段。安装不自动获得数据权限；
+`ON_USE` 允许认证推迟到能力真正被选择时。Renderer bridge 必须检查插件安装、启用状态
+及当前 Host 策略，MCP App UI 通过 sandbox origin 与 RPC 呈现；npm 包中的 React 组件
+不会因此自动成为 Agent 能力。
 
 ### 3.2 MCP
 
@@ -101,34 +91,25 @@ MCP 把 Tools 定义为 model-controlled 能力。Tool 集合可变化、可分�
 `input_required` 多轮交互。新协议还让 list/read 结果携带 TTL/cache scope，并要求有状态
 操作显式返回 handle，而不是把状态藏在 transport session。
 
-采用这些思想，但不把 MCP 当成 OpenCraft 唯一内部协议：
+MCP 端口遵循其协议，OpenCraft 的内部能力契约仍独立于具体 transport：
 
 - [MCP Tools](https://modelcontextprotocol.io/specification/draft/server/tools)；
 - [MCP 2026-07-28 变更](https://blog.modelcontextprotocol.io/posts/2026-07-28/)。
 
-### 3.3 DeepSeek Harness / Cordis
+### 3.3 Scope 与临时扩展
 
-本地 Harness 已证明三项关键机制：
+OpenCraft 的能力模型遵循以下要求：
 
 1. **Capability seam**：Service Definition、Provider、Consumer 分开；工具只是一个
    model-facing Consumer，不等于底层实现；
-2. **Agent scope**：`agent.ctx` 让 Tool、Prompt、变量和事件同时获得 per-agent visibility
-   与 lifetime；
-3. **生成式临时扩展**：模型可以先 inspect 真实 API，再 define 不可变 Package、run、
-   update、stop、undefine；定义 session-scoped/process-local，浏览器 half 需要用户批准，
-   Tool set 变化会进入请求历史。
+2. **Agent scope**：Tool、Prompt、变量和事件显式绑定 per-agent visibility 与 lifetime；
+3. **生成式临时扩展**：先 inspect 真实 API，再 define 不可变 Package、run、update、stop、
+   undefine；定义声明 session-scoped/process-local 边界，浏览器侧权限由用户授权，
+   Tool set 变化进入请求历史。
 
-参考：
-
-- `/root/decode-codex/deepseek-harness/docs/architecture.md`；
-- `/root/decode-codex/deepseek-harness/packages/core/scope/README.md`；
-- `/root/decode-codex/deepseek-harness/packages/extensions/tool-cordis/README.md`；
-- `/root/decode-codex/deepseek-harness/packages/extensions/cordis-host-runner/README.md`。
-
-OpenCraft 应采用这些语义，但不能把 `node:vm` 或 scoped Context 宣传成安全边界。若系统允许
-Agent 自动定义并立即执行 Draft code，它进入真正隔离的 Capability Host；若 Agent 生成的
-是一个经过用户审阅、构建并明确安装的 Trusted Extension，则遵守 Extension Platform 的
-Trusted policy，不强制细粒度沙箱。
+`node:vm` 或 scoped Context 不构成安全边界。Agent 自动定义并立即执行的 Draft code
+必须进入真正隔离的 Capability Host；经过用户审阅、构建并明确安装的 Trusted Extension
+遵守 Extension Platform 的 Trusted policy，不强制细粒度沙箱。
 
 ## 4. 核心身份
 
@@ -780,8 +761,8 @@ Workbench + Extension Platform
        └─ durable Invocation receipts
 ```
 
-Firefox 与 Obsidian 仍然值得学习，但它们只解决 Artifact、权限、View 和生命周期。
-Codex/MCP/Harness 给出的新问题是：能力由模型发现和组合，能力集会动态变化，上下文有成本，
+Artifact、权限、View 和生命周期属于 Extension Platform 的既有职责。
+Agent 能力模型必须处理：能力由模型发现和组合，能力集会动态变化，上下文有成本，
 调用可能跨多轮并产生真实副作用，Agent 还会在运行时创造新能力。
 
 Extension 是公开产品和开发者生态的主角；Capability 是 Agent 调用边界内需要长期稳定的

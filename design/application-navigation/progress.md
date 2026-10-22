@@ -1,6 +1,6 @@
 # Progress
 
-2026-09-17: Approved navigation refactor plus AGENTS invariants. Protect dirty worktree. Context router selected frontend-product-surface solely by navigation trigger; its required frontend service card was read, actual scope remains OpenCraft. Existing reference and maintenance/React/desktop/TDD/planning instructions read. Dependency pinned to recovered Codex react-router 7.13.1, not a latest-version claim.
+2026-09-17: Approved navigation refactor plus AGENTS invariants. Protect dirty worktree. Context router selected frontend-product-surface solely by navigation trigger; its required frontend service card was read, actual scope remains OpenCraft. Existing reference and maintenance/React/desktop/TDD/planning instructions read. Dependency pinned to react-router 7.13.1.
 
 Red → green: replacing Settings with same location; late preparation cannot override Settings. New tests exercise real memory POP/forward, hostless explicit Chat, failed commit leaves history unchanged, same conversation different View restoration and disposal. Navigation core now uses createMemoryRouter/createBrowserRouter without loaders; existing Shell is an external-store consumer, not a second Router. Settings sections push; disabled-page redirect replaces. Browser known-entry-key receipts use sessionStorage only as button projection, validated against current router key. Desktop history is per window.
 

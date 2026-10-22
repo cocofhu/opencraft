@@ -6,7 +6,7 @@ view and native composer boundary.
 
 The `workbench-frame.web.tsx` and `workbench-frame.native.tsx` files are host
 adapters with a shared semantic component underneath. DOM-only packages such as
-ProseMirror and the Codex SCSS frame are intentionally unavailable here.
+ProseMirror and the Web SCSS frame are intentionally unavailable here.
 
 ## Public and downstream product entries
 

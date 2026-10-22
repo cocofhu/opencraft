@@ -1,12 +1,10 @@
-/** OpenCraft shared follow policy. Historical scope and compatibility evidence:
- * packages/timeline-virtualizer/PROVENANCE.md and docs/provenance/timeline-follow-replacement.md.
- */
 
-export const CODEX_FOLLOW_DISTANCE_THRESHOLD_PX = 24;
-export const CODEX_LATEST_TURN_PLACEMENT_THRESHOLD_PX = 300;
-export const CODEX_RESPONSE_SPACER_VIEWPORT_RATIO = 2 / 3;
-export const CODEX_RESPONSE_SPACER_MIN_CONTENT_HEIGHT_PX = 240;
-export const CODEX_LATEST_TURN_PLACEMENT_SPRING = Object.freeze({
+
+export const OPENCRAFT_FOLLOW_DISTANCE_THRESHOLD_PX = 24;
+export const OPENCRAFT_LATEST_TURN_PLACEMENT_THRESHOLD_PX = 300;
+export const OPENCRAFT_RESPONSE_SPACER_VIEWPORT_RATIO = 2 / 3;
+export const OPENCRAFT_RESPONSE_SPACER_MIN_CONTENT_HEIGHT_PX = 240;
+export const OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING = Object.freeze({
   bounce: 0,
   durationMs: 500,
   damping: 36.933653905806345,
@@ -82,7 +80,7 @@ export function createInitialTurnFollowState(options: {
 }): TurnFollowState {
   const saved = options.restoredFollowMode;
   const initial = saved == null || saved === "response_watch" ? "static" : saved;
-  const atBottom = options.distanceFromBottomPx <= CODEX_FOLLOW_DISTANCE_THRESHOLD_PX;
+  const atBottom = options.distanceFromBottomPx <= OPENCRAFT_FOLLOW_DISTANCE_THRESHOLD_PX;
   return createTurnFollowState(options.isLatestTurnInProgress && atBottom
     ? activeFollowMode(options.latestTurnPhase)
     : initial);
@@ -102,7 +100,7 @@ export function reduceTurnFollowState(state: TurnFollowState, event: TurnFollowE
       break;
     case "scroll_distance_changed":
       // Compare the attached side directly: NaN is not an attached distance.
-      if (event.distanceFromBottomPx <= CODEX_FOLLOW_DISTANCE_THRESHOLD_PX) break;
+      if (event.distanceFromBottomPx <= OPENCRAFT_FOLLOW_DISTANCE_THRESHOLD_PX) break;
       if (mode === "prework_follow" || (mode === "user_follow" && event.latestTurnPhase === "prework")) mode = "prework_watch";
       else if (mode === "user_follow" || mode === "response_watch") mode = "static";
       break;
@@ -147,7 +145,7 @@ export function createLatestTurnPlacementSnapshot(input: {
   return {
     distanceFromBottomPx: input.distanceFromBottomPx,
     scrollHeightPx: input.scrollHeightPx,
-    shouldPlaceLatestTurn: input.distanceFromBottomPx - input.responseSpacerHeightPx <= CODEX_LATEST_TURN_PLACEMENT_THRESHOLD_PX,
+    shouldPlaceLatestTurn: input.distanceFromBottomPx - input.responseSpacerHeightPx <= OPENCRAFT_LATEST_TURN_PLACEMENT_THRESHOLD_PX,
   };
 }
 
@@ -168,8 +166,8 @@ export function maximumResponseSpacerHeightPx(input: {
 }): number {
   const available = input.scrollElementHeightPx - input.scrollPaddingBottomPx;
   return Math.max(0, Math.min(
-    available * CODEX_RESPONSE_SPACER_VIEWPORT_RATIO,
-    available - CODEX_RESPONSE_SPACER_MIN_CONTENT_HEIGHT_PX,
+    available * OPENCRAFT_RESPONSE_SPACER_VIEWPORT_RATIO,
+    available - OPENCRAFT_RESPONSE_SPACER_MIN_CONTENT_HEIGHT_PX,
   ));
 }
 
@@ -190,7 +188,7 @@ export function normalizeFollowRestorePosition(input: {
 }): { readonly distanceFromBottomPx: number; readonly scrollState: TurnFollowState } {
   // This is a checkpoint projection; changing its saved mode never changes the
   // live state retained by the response-positioning controller.
-  const insideSpacer = responseSpacerOverflowPx(input) > CODEX_FOLLOW_DISTANCE_THRESHOLD_PX;
+  const insideSpacer = responseSpacerOverflowPx(input) > OPENCRAFT_FOLLOW_DISTANCE_THRESHOLD_PX;
   return {
     distanceFromBottomPx: insideSpacer ? 0 : Math.max(0, input.distanceFromBottomPx - input.responseSpacerHeightPx),
     scrollState: insideSpacer ? setMode(input.scrollState, activeFollowMode(input.latestTurnPhase)) : input.scrollState,

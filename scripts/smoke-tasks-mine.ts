@@ -26,7 +26,7 @@ try {
       let identity: { loginName: string; staffId: string; expiresAt: string } | null = null;
       const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", (error: Error) => errors.push(error.message));
       await page.clock.install();
-      await page.addInitScript(() => localStorage.setItem("vela.appearance-theme", "system"));
+      await page.addInitScript(() => localStorage.setItem("opencraft.appearance-theme", "system"));
       await page.emulateMedia({ colorScheme: theme });
       await page.route("**/__opencraft_enterprise_identity/session", route => route.fulfill({ status: identity ? 200 : 401, contentType: "application/json", body: JSON.stringify({ available: true, identity }) }));
       const board = server.url + "/views/opencraft.tasks.board";

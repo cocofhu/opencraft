@@ -5,18 +5,34 @@ import {
   groupTimelineFramesByTurn, partitionAgentActivityContentUnits, projectTimeline, resolveAgentActivityDisclosure, resolveAgentActivityLayout,
   type AgentActivityContentUnit, type TimelineSourceItem, type TimelineStatus,
 } from "@opencraft/chat-core";
-import { originalTaskDisclosure } from "./fixtures/codex-disclosure-oracle";
 
-test("ordinary task disclosure matches the reviewed current Codex oracle (96 cases)", () => {
+test("ordinary task disclosure follows eligibility and preference tables (96 cases)", () => {
+  // Final answer, cancelled Turn, renderable work, collapse eligibility.
+  const eligibility = [
+    [false, false, false, false], [false, false, true, false],
+    [false, true, false, false], [false, true, true, false],
+    [true, false, false, false], [true, false, true, true],
+    [true, true, false, false], [true, true, true, false],
+  ] as const;
+  // Forced expansion, prevent automatic collapse, saved choice, collapsed result
+  // for eligible work. Explicit choice beats the automatic default; forced
+  // expansion temporarily keeps every preference open.
+  const preferences = [
+    [false, false, undefined, true], [false, false, false, false], [false, false, true, true],
+    [false, true, undefined, false], [false, true, false, false], [false, true, true, true],
+    [true, false, undefined, false], [true, false, false, false], [true, false, true, false],
+    [true, true, undefined, false], [true, true, false, false], [true, true, true, false],
+  ] as const;
   let count = 0;
-  for (const hasFinalAssistantStarted of [false, true]) for (const isTurnCancelled of [false, true])
-    for (const hasRenderableAgentItems of [false, true]) for (const forceExpanded of [false, true])
-      for (const preventAutoCollapse of [false, true]) for (const persistedCollapsed of [undefined, false, true]) {
-        const state = { hasFinalAssistantStarted, isTurnCancelled, hasRenderableAgentItems,
-          forceExpanded, preventAutoCollapse, persistedCollapsed };
-        assert.deepEqual(resolveAgentActivityDisclosure(state), originalTaskDisclosure(state));
-        count++;
-      }
+  for (const [hasFinalAssistantStarted, isTurnCancelled, hasRenderableAgentItems, eligible] of eligibility)
+    for (const [forceExpanded, preventAutoCollapse, persistedCollapsed, collapsed] of preferences) {
+      const state = { hasFinalAssistantStarted, isTurnCancelled, hasRenderableAgentItems,
+        forceExpanded, preventAutoCollapse, persistedCollapsed };
+      assert.deepEqual(resolveAgentActivityDisclosure(state), eligible
+        ? { shouldAllowCollapse: true, isCollapsed: collapsed }
+        : { shouldAllowCollapse: false, isCollapsed: false });
+      count++;
+    }
   assert.equal(count, 96);
 });
 

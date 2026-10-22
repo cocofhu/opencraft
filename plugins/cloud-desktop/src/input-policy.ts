@@ -29,9 +29,6 @@ export function constrainView(view: ViewTransform, media: { width: number; heigh
   return { scale, x: Math.min(x, Math.max(-x, view.x)), y: Math.min(y, Math.max(-y, view.y)) };
 }
 
-/** One bounded scroll owner for wheel and two-finger drag. RFB has discrete
- * steps, not Codex's pixel deltas. Small deltas accumulate, reversals discard
- * old momentum, idle input expires and no timer can send after revocation. */
 export class DesktopScrollPolicy {
   private x = 0;
   private y = 0;
