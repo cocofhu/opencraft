@@ -2750,7 +2750,21 @@ attachments, never service-owned execution.
 
 AppHost ready and Host claim waits have finite control deadlines. Timed-out claim
 acknowledgements release their original lease; each subsequent attempt uses a new
-lease. Business envelopes serialize per Host, allowing another Host on the same
+lease.
+
+Expired claim records still count toward the shared request budget because
+late grants retain cleanup ownership. If they saturate that budget alongside
+pending requests, the client retires the bridge with retryable
+`APP_HOST_REQUEST_LIMIT`; its socket owner then replaces the connection and
+all affected Host attachments can recover. Detaching the bridge releases its
+claims without stopping service-owned execution. Ordinary in-flight backpressure
+without expired claims rejects only the excess request and keeps the bridge.
+The generic WebSocket transport settles unfinished connect callers on explicit
+close even when no platform close event arrives. Delayed close cleanup and
+asynchronous decode failures are fenced to their original socket; neither can
+close or fail a successor connection.
+
+Business envelopes serialize per Host, allowing another Host on the same
 socket and connection probes to progress during a slow activation. Local send
 cancellation releases its pending acknowledgement without cancelling or replaying
 remote execution. AppServer initialization rejects results from a revoked transport.
