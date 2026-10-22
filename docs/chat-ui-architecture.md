@@ -1655,6 +1655,15 @@ while the former DOM is still connected. Actual disclosure unmount separately
 verifies hook cancellation. These adapter lifetime checks complement the real
 mouse/touch animation path; they do not claim Native or Electron acceptance.
 
+### Subagent detail continuity
+
+Grouped collaboration rows retain each agent’s latest matching operation and
+instruction. Their display names, status and messages still come from the shared
+core aggregate; a later operation for another agent cannot replace that detail.
+Older instructions for the same agent are not repeated. A single-operation group
+retains the standalone input, reasoning effort and agent path. Disclosure changes
+only presentation and does not start, message or approve a subagent.
+
 ### Established
 
 - AppServer client, WebSocket, memory and Replay transports.
