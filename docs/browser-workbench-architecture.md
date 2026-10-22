@@ -1556,6 +1556,17 @@ generation checks still reject stale results. This permits browser inspection
 and interaction in a committed document while a subresource is stalled; no
 client JavaScript evaluator or CDP endpoint is exposed.
 
+Temporary network, deployment and worker transport outages keep retrying with
+exponential backoff capped at five seconds; they do not exhaust a five-attempt
+budget. Worker transport/startup failures and RPC deadlines carry retryable
+errors. Generic clean WebSocket closure is not a logical Tab retirement. The
+explicit `1000 / Browser tab closed` reason, authorization `1008`, legacy transfer
+`4009` and permanent open/admission errors stop retries. The permanent error
+remains visible rather than being overwritten by a generic close message.
+Late retry timers belong to their connection generation. Recovery opens only the
+same lease, never navigates, replays input or acquires control; an authoritative
+non-loading snapshot clears the old disconnection display, including blank tabs.
+
 A failed open or terminally disconnected transport does not make the tab's
 ready promise reusable. Explicit reload or replacement navigation establishes
 a new connection generation using the same persisted storage lease and current

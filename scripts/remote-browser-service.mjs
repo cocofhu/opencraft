@@ -9,6 +9,7 @@ import nativeDiagnostics from './remote-browser/diagnostics.cjs';
 
 const methods = new Set(['viewport', 'navigate', 'reload', 'stop', 'back', 'forward', 'visible', 'keyframe', 'capture', 'zoom', 'input', 'text', 'ime', 'copy', 'automation', 'close']);
 const quietMethods = new Set(['visible', 'keyframe', 'input', 'text']);
+const unavailable = message => Object.assign(new Error(message), { code: 'BROWSER_UNAVAILABLE', retryable: true });
 // The worker's bootstrap document is an empty tab, not an external URL.
 const checkpointUrl = url => url === 'about:blank' || url === '' ? null : url;
 function removedStorageLeases(previous, next) {
@@ -268,8 +269,8 @@ export class RemoteBrowserService {
         failure = { event, native: diagnostics.snapshot() };
         this.lastBrowserFailure = failure;
         if (!this.closed) this.diagnose(event);
-        failStartup?.(new Error('Browser process exited during startup'));
-        for (const request of this.requests.values()) { clearTimeout(request.timer); request.reject(new Error('Browser process exited')); }
+        failStartup?.(unavailable('Browser process exited during startup'));
+        for (const request of this.requests.values()) { clearTimeout(request.timer); request.reject(unavailable('Browser process exited')); }
         this.requests.clear();
         for (const p of this.pages.values()) { p.live = false; p.painted = false; p.controller = null; p.controlToken = null; p.controlKind = null; p.controlEpoch = (p.controlEpoch ?? 0) + 1; for (const ws of this.viewers(p).keys()) ws.close(1011, 'Browser process exited; reconnecting'); }
         // Retire this transport only. EOF/disconnect asks a still-running owned
@@ -305,9 +306,9 @@ export class RemoteBrowserService {
         const finish = error => { if (settled) return; settled = true; clearTimeout(timer); child.off('message', ready); error ? reject(error) : resolve(); };
         failStartup = finish;
         const ready = message => { if (message.type === 'ready') finish(); };
-        const timer = setTimeout(() => { child.kill(); finish(new Error('Browser startup timed out')); }, 15000);
-        child.on('message', ready); child.once('error', () => finish(new Error('Browser process could not start')));
-        child.once('exit', () => finish(new Error('Browser process exited during startup')));
+        const timer = setTimeout(() => { child.kill(); finish(unavailable('Browser startup timed out')); }, 15000);
+        child.on('message', ready); child.once('error', () => finish(unavailable('Browser process could not start')));
+        child.once('exit', () => finish(unavailable('Browser process exited during startup')));
       });
     })();
     const attempt = this.starting;
@@ -345,12 +346,12 @@ export class RemoteBrowserService {
       pendingRequests: this.requests.size }));
   }
   request(page, method, input, control) {
-    if (!this.child || (this.isolated ? this.child.stdin.destroyed : !this.child.connected)) return Promise.reject(new Error('Browser unavailable'));
+    if (!this.child || (this.isolated ? this.child.stdin.destroyed : !this.child.connected)) return Promise.reject(unavailable('Browser unavailable'));
     const id = randomUUID();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.requests.delete(id); this.diagnose('request_timeout', method); reject(new Error(`Browser operation timed out (${method})`)); }, 20000);
+      const timer = setTimeout(() => { this.requests.delete(id); this.diagnose('request_timeout', method); reject(unavailable(`Browser operation timed out (${method})`)); }, 20000);
       timer.unref(); this.requests.set(id, { resolve, reject, timer });
-      const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(new Error('Browser disconnected')); } };
+      const failed = error => { if (error) { clearTimeout(timer); this.requests.delete(id); reject(unavailable('Browser disconnected')); } };
       try {
         if (this.isolated) this.child.stdin.write(JSON.stringify({ id, page, method, input, control }) + '\n', failed);
         else this.child.send({ id, page, method, input, control }, failed);

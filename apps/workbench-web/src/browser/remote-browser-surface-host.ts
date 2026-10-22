@@ -286,6 +286,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     return new Promise((resolve, reject) => {
       const url = new URL(serverUrl('/__opencraft_browser/stream'), location.href); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(url); ws.binaryType = 'arraybuffer'; p.socket = ws;
+      let terminalError: Error | null = null;
       const timer = setTimeout(() => { reject(new Error('Browser connection timed out')); ws.close(); }, 20000);
       const current = () => !p.closed && p.connection === generation;
       ws.onopen = () => { if (!current()) return; clearTimeout(timer);
@@ -295,9 +296,15 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
           const effective = { width: config.width, height: config.height, deviceProfile: config.deviceProfile };
           if (!p.viewportMeasured) p.viewport = effective;
           p.sentViewport = JSON.stringify(effective); p.opened = true; for (const listener of this.controlListeners) listener(); p.retries = 0; clearTimeout(timer); resolve();
-          if (p.restored && config.navigation) { p.events.onNavigation?.(config.navigation); if (!config.navigation.isLoading) p.events.onLoaded(config.navigation.title || null); if (config.navigation.url) p.url = config.navigation.url; }
+          if (p.restored && config.navigation) { p.events.onNavigation?.(config.navigation); if (config.navigation.url) p.url = config.navigation.url; }
+          if (!config.navigation?.isLoading) p.events.onLoaded(config.navigation?.title || null);
           this.queueViewport(p); this.run(p, 'visible', { visible: p.visible });
-        }).catch(error => { clearTimeout(timer); reject(error); if (!current()) return; p.disconnected = true; p.events.onError(error.message); ws.close(1000); });
+        }).catch(error => {
+          clearTimeout(timer); reject(error); if (!current()) return; p.disconnected = true;
+          if (error instanceof BrowserAutomationError && !error.retryable) terminalError = error;
+          if (terminalError) p.events.onError(terminalError.message);
+          ws.close(1000);
+        });
       };
       ws.onmessage = event => {
         if (!current()) return;
@@ -346,8 +353,17 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
         if (!current()) return;
         p.disconnected = true; this.resetTransport(p);
         if (event.code === 4009) { p.displaced = true; p.events.onError('Browser tab opened in another client; reload this tab to take over'); return; }
-        if (event.code === 1000 || event.code === 1008 || p.retries >= 5) { p.events.onError('Browser disconnected; reload this tab'); return; }
-        p.reconnect = setTimeout(() => { p.reconnect = null; p.ready = this.connect(p); void p.ready.catch(() => {}); }, Math.min(5000, 250 * 2 ** p.retries++));
+        // Logical retirement and admission are terminal; a transport ending
+        // cleanly is not itself a Tab close. Retain compatibility with the
+        // existing server's explicit 1000 close reason.
+        if (terminalError || event.code === 1008 || event.code === 1000 && event.reason === 'Browser tab closed') {
+          p.events.onError(terminalError?.message || 'Browser disconnected; reload this tab'); return;
+        }
+        p.events.onError('Browser disconnected; reconnecting');
+        p.reconnect = setTimeout(() => {
+          if (!current()) return;
+          p.reconnect = null; p.ready = this.connect(p); void p.ready.catch(() => {});
+        }, Math.min(5000, 250 * 2 ** Math.min(p.retries++, 5)));
       };
     });
   }
@@ -412,7 +428,7 @@ export class RemoteBrowserSurfaceHost implements BrowserSurfaceHost {
     const id = crypto.randomUUID();
     if (['input','text','visible','keyframe'].includes(method)) { p.socket.send(JSON.stringify({ id, method, input, control })); return Promise.resolve(); }
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { p.pending.delete(id); reject(new Error(`Browser operation timed out (${method})`)); }, method === 'open' ? 45000 : 25000);
+      const timer = setTimeout(() => { p.pending.delete(id); reject(new BrowserAutomationError('TIMEOUT', `Browser operation timed out (${method})`, true)); }, method === 'open' ? 45000 : 25000);
       p.pending.set(id, { resolve, reject, timer }); p.socket!.send(JSON.stringify({ id, method, input, control }));
     });
   }

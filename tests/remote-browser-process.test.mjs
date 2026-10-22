@@ -33,7 +33,10 @@ try {
  old.stderr.emit('data',Buffer.from('[1:1:FATAL:ui/events/bitset_32.h:27] DCHECK failed: private-secret\n#0 0x123 ui::VelocityTracker::AddMovement()\n'));
  const viewer=()=>({close(code){assert.equal(code,1011);closed++}});const a=viewer(),b=viewer();
  const page={live:true,controller:a,viewers:new Map([[a,{}],[b,{}]])};service.pages.set('synthetic',page);
- await assert.rejects(service.request('page','capture'),/disconnected|exited/);
+ await assert.rejects(service.request('page','capture'),error=>{
+  assert.match(error.message,/disconnected|exited/);
+  assert.equal(error.code,'BROWSER_UNAVAILABLE');assert.equal(error.retryable,true);return true;
+ });
  await new Promise(r=>setTimeout(r,50));
  assert.equal(service.child,null);assert.equal(service.requests.size,0);assert.equal(page.live,false);assert.equal(closed,2);
  assert.equal(service.lastBrowserFailure.native.fatal.file,'bitset_32.h');
