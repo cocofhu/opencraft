@@ -175,6 +175,8 @@ try {
   await slider.focus();await page.keyboard.press('Home');assert.equal(await committed(),'low');
   assert(await editor.evaluate(el=>el===(window as any).keptEditor));assert.equal(await editor.innerText(),'Keep this draft');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});
+  // Radix restores the trigger in its native close-focus cleanup.
+  await page.waitForFunction(()=>document.activeElement===document.querySelector('.opencraft-composer-mode--intelligence'));
   await trigger.focus();await page.keyboard.press('ArrowDown');await menu.waitFor();
   await menu.locator('.opencraft-composer-model-quick__title').focus();await page.keyboard.press('Enter');
   const keyboardModels=page.locator('.opencraft-composer-selection-menu--model-select');await keyboardModels.waitFor();

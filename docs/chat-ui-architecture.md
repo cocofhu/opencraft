@@ -2491,3 +2491,7 @@ Reset the model-list view on the next opening, rather than changing the content
 class during the closing animation. Escape, outside dismissal and touch editing
 retain the same focus owner; reopening starts at the quick reasoning view.
 The original Composer smoke exercises native menu close with motion enabled.
+
+Keyboard reopening checks wait for the native close-focus cleanup to restore
+the trigger before sending ArrowDown; menu disappearance alone does not signal
+that deferred native focus cleanup has finished.
