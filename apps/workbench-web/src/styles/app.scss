@@ -12673,3 +12673,19 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 .opencraft-composer-footer:is([data-footer-density="tight"], [data-footer-density="minimal"]) .opencraft-composer-mode--inherited .opencraft-composer-mode__model-label { display: inline; }
 
 .conversation-toolbar { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }
+
+// Shared operation controls expose visible progress as well as aria-busy.
+.settings-control-button__spinner {
+  display: inline-block;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ui-button-spin 680ms linear infinite;
+}
+.opencraft-composer-stop-spinner { animation: ui-button-spin 680ms linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .settings-control-button__spinner, .opencraft-composer-stop-spinner { animation: none; }
+}

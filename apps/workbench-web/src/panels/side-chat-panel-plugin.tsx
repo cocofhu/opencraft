@@ -28,7 +28,7 @@ export function SideChatContent({ session, service, runtime }: { session: SideCh
       onLoadOlder={snapshot.history.hasOlder ? () => session.lease.loadOlder() : undefined}
       footer={<div className="thread-composer-region">
         {error ? <p role="alert">{error}</p> : null}
-        <OpenCraftComposer modelDisplayOnly controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} submissionDisabled={!snapshot.authoritative}
+        <OpenCraftComposer modelDisplayOnly controller={session.composer} defaultFollowUpAction="steer" isStreaming={snapshot.activeTurn !== null} isStopping={snapshot.activeTurn?.status === "interrupting"} submissionDisabled={!snapshot.authoritative}
           selectionCatalog={{ models: [], displayModels, permissionProfiles: [] }}
           effectiveSelections={{ model: snapshot.execution.model, effort: snapshot.execution.effort, serviceTier: snapshot.execution.serviceTier, permissionProfile: snapshot.execution.permissionProfile }}
           onSubmit={(intent, context) => {

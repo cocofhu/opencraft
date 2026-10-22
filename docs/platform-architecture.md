@@ -3284,3 +3284,16 @@ A content plane is distinct from the animated reveal aperture and the tool's
 layout viewport. Its shape never changes the viewport dimensions, surface
 identity, scroll owner or control lease. Main/preview and regular/maximized modes
 consume the same theme token; themes without that capability keep zero radius.
+
+### Operation acknowledgement
+
+Thread action acknowledgement and catalog revalidation have separate lifetimes.
+Rename/delete UI settles after the native write; refreshing the complete catalog
+continues in the background and cannot reinterpret a confirmed write as failure.
+Deletion reports pending,
+acknowledged or failed states through the existing notification owner. Conversation
+menus are non-modal: the dialog they open owns the sole focus/pointer lock, which
+must be released on confirm, cancel and Escape without editing body styles.
+Turn interruption remains Thread-owned, coalesces pending requests for the same
+Turn, and projects `interrupting` into Composer progress. Failure restores the
+control and reports an error only for the still-matching visible owner.

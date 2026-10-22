@@ -51,7 +51,7 @@ export interface ThreadActionOwner {
   beginDelete(target: ThreadActionTarget): void;
   setDraft(draft: string): void;
   dismiss(): void;
-  run(target: ThreadActionTarget, operation: () => Promise<void>, action?: "fork" | "archive" | "pin" | "other"): Promise<void>;
+  run(target: ThreadActionTarget, operation: () => Promise<void>, action?: "fork" | "archive" | "pin" | "delete" | "other"): Promise<void>;
 }
 
 export const threadActionKey = (target: Pick<ThreadActionTarget, "hostId" | "threadId">) => `${target.hostId}:${target.threadId}`;
@@ -63,29 +63,36 @@ export function useThreadActionOwner(callbacks: ThreadActionCallbacks): ThreadAc
   const [activity, setActivity] = useState<ReadonlyMap<string, ThreadRowActivity>>(() => new Map());
   const [modal, setModal] = useState<ThreadActionModal | null>(null);
   const mounted = useRef(true);
+  const inFlight = useRef(new Set<string>());
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const patch = (key: string, update: Partial<ThreadRowActivity>) => setActivity(current => {
     const next = new Map(current), merged = { ...(current.get(key) ?? idleActivity), ...update };
     if (!merged.busy && !merged.forking) next.delete(key); else next.set(key, merged);
     return next;
   });
-  const run = async (target: ThreadActionTarget, operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "other" = "other") => {
+  const run = async (target: ThreadActionTarget, operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "delete" | "other" = "other") => {
     const key = threadActionKey(target);
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
     patch(key, { busy: true, forking: action === "fork" });
     if (action === "archive") notices.loading({ key: `thread-action:${key}`, detail: target.title,
       message: intl.formatMessage({ id: "chat.archive.pending", defaultMessage: "Archiving conversation…" }) });
     if (action === "pin") notices.loading({ key: `thread-action:${key}`, detail: target.title,
       message: intl.formatMessage({ id: "sidebar.thread.saving", defaultMessage: "Saving…" }) });
+    if (action === "delete") notices.loading({ key: `thread-action:${key}`, detail: target.title,
+      message: intl.formatMessage({ id: "chat.delete.pending", defaultMessage: "Deleting conversation…" }) });
     try { await operation();
       if (action === "pin" && mounted.current) notices.dismiss(`thread-action:${key}`);
       if (action === "archive" && mounted.current) notices.success({ key: `thread-action:${key}`, detail: target.title,
         message: intl.formatMessage({ id: "chat.archive.done", defaultMessage: "Conversation archived" }) });
+      if (action === "delete" && mounted.current) notices.success({ key: `thread-action:${key}`, detail: target.title,
+        message: intl.formatMessage({ id: "chat.delete.done", defaultMessage: "Conversation deleted" }) });
       if (mounted.current) setModal(current => current && threadActionKey(current.target) === key ? null : current); }
     catch {
       if (mounted.current) notices.error({ key: `thread-action:${key}`, detail: target.title,
         message: intl.formatMessage({ id: "tasks.relation.saveError", defaultMessage: "Could not confirm the change. Review the current selection and retry." }) });
     }
-    finally { if (!mounted.current && (action === "archive" || action === "pin")) notices.dismiss(`thread-action:${key}`); if (mounted.current) patch(key, { busy: false, forking: false }); }
+    finally { inFlight.current.delete(key); if (!mounted.current && ["archive", "delete", "pin"].includes(action)) notices.dismiss(`thread-action:${key}`); if (mounted.current) patch(key, { busy: false, forking: false }); }
   };
   return useMemo<ThreadActionOwner>(() => ({
     callbacks, modal, run,
@@ -110,7 +117,7 @@ export function ThreadActionModals({ owner }: { owner: ThreadActionOwner }) {
     portalContainer={portalContainer}
     label={intl.formatMessage({ id: "sidebar.thread.deleteTitle", defaultMessage: "Delete conversation" })}
     size="compact"
-    confirmation={{ confirmLabel: intl.formatMessage({ id: "sidebar.thread.delete", defaultMessage: "Delete" }), onConfirm: () => { void owner.run(modal.target, () => owner.callbacks.onDelete(modal.target)); } }}
+    confirmation={{ confirmLabel: intl.formatMessage({ id: "sidebar.thread.delete", defaultMessage: "Delete" }), onConfirm: () => { void owner.run(modal.target, () => owner.callbacks.onDelete(modal.target), "delete"); } }}
     onDismiss={owner.dismiss}
   ><section className="thread-delete-confirmation"><h2>{intl.formatMessage({ id: "sidebar.thread.deleteQuestion", defaultMessage: "Delete “{title}”?" }, { title: modal.target.title })}</h2><p>{intl.formatMessage({ id: "sidebar.thread.deleteDescription", defaultMessage: "This conversation will be permanently removed and cannot be recovered." })}</p></section></ConfirmationModalSurface>;
 }
@@ -131,7 +138,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   const { onFork, onArchive, onSetPinned } = owner.callbacks;
   const { busy, forking } = owner.activity(target);
   const modalHandoff = useRef(false);
-  const run = (operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "other" = "other") => { void owner.run(target, operation, action); };
+  const run = (operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "delete" | "other" = "other") => { void owner.run(target, operation, action); };
   // Shared item model for both the right-click context menu and the row
   // "..." dropdown, mirroring the actions(entry).map pattern in bot-management.
   const menuItems = [
@@ -152,7 +159,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   return <>
     <div className="sidebar-activity-row" data-has-menu={hasMenu ? "true" : "false"}>
       {/* Keep the dropdown outside this trigger: portal pointer events still bubble through the React tree. */}
-      <ContextMenu.Root open={!disabled && hasMenu && openMenuKind === "context"} onOpenChange={open => onOpenMenuChange("context", open)}>
+      <ContextMenu.Root modal={false} open={!disabled && hasMenu && openMenuKind === "context"} onOpenChange={open => onOpenMenuChange("context", open)}>
         <ContextMenu.Trigger asChild disabled={disabled || !hasMenu} onPointerDown={onPointerDown}
           onClickCapture={event => {
             // Touch release retains its original target even after a context menu opens.
@@ -167,7 +174,7 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
           {contextMenuExtra ? <><ContextMenu.Separator />{contextMenuExtra}</> : null}
         </ContextMenu.Content></ContextMenu.Portal>
       </ContextMenu.Root>
-      <DropdownMenu.Root open={!disabled && hasMenu && openMenuKind === "dropdown"} onOpenChange={open => onOpenMenuChange("dropdown", open)}>
+      <DropdownMenu.Root modal={false} open={!disabled && hasMenu && openMenuKind === "dropdown"} onOpenChange={open => onOpenMenuChange("dropdown", open)}>
         {hasMenu ? <DropdownMenu.Trigger asChild>
           <button type="button" className="sidebar-activity-item__menu-trigger" aria-describedby={activityLabelId} aria-label={intl.formatMessage(forking ? { id: "sidebar.thread.forking", defaultMessage: "Creating branch for {title}" } : { id: "sidebar.thread.actions", defaultMessage: "Actions for {title}" }, { title: target.title })} aria-busy={forking || undefined} data-forking={forking || undefined} disabled={busy || disabled}>
             {forking ? <LoaderCircle size={14} aria-hidden="true" /> : <MoreHorizontal className="sidebar-activity-item__menu-dots" size={14} aria-hidden="true" />}

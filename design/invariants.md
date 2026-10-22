@@ -2545,3 +2545,17 @@ touch screen/client and page/client differences remain separate numeric
 observations. Reports contain no content or route, never drive layout, and all
 listeners/frames are released with the host. These measurements do not establish
 physical compositor painting or device acceptance.
+
+### Async operation feedback
+
+Every user operation distinguishes admission, pending, acknowledged success and
+failure. `SettingsButton loading` owns the visible indicator, aria-busy and disabled
+state; the caller owns the operation and translated progress label. A disabled
+control alone is not feedback. Rename and delete settle at write acknowledgement,
+with catalog refresh continuing separately. Stop progress does not claim the Turn
+has completed; repeated pending stops share the same Thread-owned command.
+Conversation menus opening a modal do not hold a second modal pointer lock.
+Real mouse/touch regressions must cover menu → dialog → cancel/confirm → another
+click, including delayed/rejected requests. Static lint cannot prove timing,
+feedback visibility, focus release or failure recovery; do not add a blanket ban
+on async handlers, void expressions, disabled controls or awaited refreshes.

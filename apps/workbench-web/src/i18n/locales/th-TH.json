@@ -677,5 +677,10 @@
   "toolbarDock.docked": "แถบเครื่องมือ",
   "toolbarDock.overflow": "เมนูเพิ่มเติม",
   "toolbarDock.emptyDock": "ลากการทำงานที่ใช้บ่อยมาที่นี่",
-  "toolbarDock.emptyMenu": "การทำงานทั้งหมดอยู่ในแถบเครื่องมือ"
+  "toolbarDock.emptyMenu": "การทำงานทั้งหมดอยู่ในแถบเครื่องมือ",
+  "chat.stop.pending": "กำลังหยุดการตอบกลับ…",
+  "chat.stop.failed": "หยุดการตอบกลับไม่ได้ โปรดลองอีกครั้ง",
+  "chat.delete.pending": "กำลังลบการสนทนา…",
+  "chat.delete.done": "ลบการสนทนาแล้ว",
+  "common.operation.pending": "กำลังใช้การเปลี่ยนแปลง…"
 }

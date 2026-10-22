@@ -677,5 +677,10 @@
   "toolbarDock.docked": "Bar alat",
   "toolbarDock.overflow": "Menu lagi",
   "toolbarDock.emptyDock": "Seret tindakan kerap anda ke sini",
-  "toolbarDock.emptyMenu": "Semua tindakan ada dalam bar alat"
+  "toolbarDock.emptyMenu": "Semua tindakan ada dalam bar alat",
+  "chat.stop.pending": "Menghentikan respons…",
+  "chat.stop.failed": "Tidak dapat menghentikan respons. Cuba lagi.",
+  "chat.delete.pending": "Memadamkan perbualan…",
+  "chat.delete.done": "Perbualan dipadamkan",
+  "common.operation.pending": "Menerapkan perubahan…"
 }

@@ -675,5 +675,10 @@
   "toolbarDock.docked": "Toolbar",
   "toolbarDock.overflow": "More menu",
   "toolbarDock.emptyDock": "Drag your frequent actions here",
-  "toolbarDock.emptyMenu": "All actions are in the toolbar"
+  "toolbarDock.emptyMenu": "All actions are in the toolbar",
+  "chat.stop.pending": "Stopping response…",
+  "chat.stop.failed": "Could not stop the response. Try again.",
+  "chat.delete.pending": "Deleting conversation…",
+  "chat.delete.done": "Conversation deleted",
+  "common.operation.pending": "Applying change…"
 }
