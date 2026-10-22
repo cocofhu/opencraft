@@ -2504,3 +2504,33 @@ Task-list paragraph detection still owns grid activation and checkbox spacing.
 Non-checkbox children keep column two independently of that detection, because
 grid placement is inert outside a grid. No DOM, event, layout owner or preview
 lifetime change is needed.
+
+### Blocking question input continuity
+
+A pending question's request ID and question definitions own its page and drafts.
+Equivalent definitions reconstructed during a Replica refresh preserve the current
+page, selected options, freeform text, input DOM, focus and selection. A Thread
+metadata update, such as renaming the conversation, does not create a new question.
+A different request ID or changed question definitions reset the input state.
+The question panel stabilizes its typed JSON definitions before initializing its
+local input state; array allocation is not a user-visible reset signal.
+
+### Question keyboard composition
+
+Pending question and option picker cards leave keyboard ownership with the input
+method while composition is active. Enter and Escape must not submit, skip or
+dismiss the request during composition. The option picker also guards implicit
+form submission using the input's composition lifecycle; ignoring a composing
+keydown alone does not prevent the browser from submitting a form. Ordinary
+Enter and Escape retain their existing answer and dismissal actions once
+composition has ended.
+
+Question and option-picker inputs leave compatibility keyCode 229 with the input
+method, including the final noncomposing Enter or Escape after compositionend.
+The option-picker input also prevents that Enter's implicit form submission;
+the original composition flag still gates programmatic submits during preedit.
+Ordinary Enter submits or advances and ordinary Escape cancels through the
+existing response owner. The original question-extensions smoke covers native
+composition, both compatibility keys, unchanged input identity/focus/draft and
+ordinary actions on desktop/touch in both themes, retaining its full plan,
+multi-question, request replacement, option and setup checks.
